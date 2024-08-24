@@ -1,11 +1,11 @@
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { vitePlugin as remix } from "@remix-run/dev";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
+console.log('process.env.NODE_ENV:', process.env.NODE_ENV);
+
 export default defineConfig({
-  server: {
-    port: 3000,
-  },
   plugins: [
     remix({
       future: {
@@ -15,5 +15,14 @@ export default defineConfig({
       },
     }),
     tsconfigPaths(),
+    sentryVitePlugin({
+      org: "andre-0g",
+      project: "allthingsweb-app",
+      disable: process.env.NODE_ENV === "development",
+    }),
   ],
+
+  build: {
+    sourcemap: true,
+  },
 });

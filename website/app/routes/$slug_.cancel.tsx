@@ -1,13 +1,13 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { NavLink, useLoaderData } from "@remix-run/react";
+import { CheckIcon } from "lucide-react";
 import { DefaultRightTopNav } from "~/modules/components/right-top-nav";
 import { Card } from "~/modules/components/ui/card";
-import { CheckIcon } from "~/modules/components/ui/icons";
 import { toEvent, Event } from "~/modules/pocketbase/pocketbase";
 import {
   getEventBySlug,
   updateAttendeeCancellation,
-} from "~/modules/pocketbase/pocketbase.server";
+} from "~/modules/pocketbase/api.server";
 import { trackEvent } from "~/modules/posthog/posthog.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
@@ -28,6 +28,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     attendee_id: attendeeId,
     event_name: event.name,
     event_id: event.id,
+    type: "website",
   });
   return { event };
 }
@@ -84,7 +85,7 @@ export function SuccessView({ event }: { event: Event }) {
         <h3 className="text-xl font-semibold">Attendance canceled!</h3>
         <p className="text-muted-foreground">
           Thank you for letting us know that you can&apos;t make it to the
-           {event.name}. We&apos;ve successfully canceled your attendance.
+          {event.name}. We&apos;ve successfully canceled your attendance.
           We&apos;ll miss you at the event, but we hope to see you at the next
           one!
         </p>

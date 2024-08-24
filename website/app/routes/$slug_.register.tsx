@@ -5,8 +5,15 @@ import {
 } from "@remix-run/node";
 import { Label } from "~/modules/components/ui/label";
 import { Input } from "~/modules/components/ui/input";
-import { Button } from "~/modules/components/ui/button";
-import { Card } from "~/modules/components/ui/card";
+import { Button, ButtonAnchor } from "~/modules/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "~/modules/components/ui/card";
 import {
   Form,
   NavLink,
@@ -15,32 +22,38 @@ import {
   useNavigation,
   useParams,
 } from "@remix-run/react";
+import { CheckIcon, XIcon, CalendarDays, MapPin } from "lucide-react";
 import {
   getAttendeeByEmail,
   getAttendeeCount,
   getEventBySlug,
   registerAttendee,
   updateAttendeeCancellation,
-} from "~/modules/pocketbase/pocketbase.server";
+} from "~/modules/pocketbase/api.server";
 import { toEvent, Event } from "~/modules/pocketbase/pocketbase";
-import { getSuccessfulEventSignupHtml } from "~/modules/email/templates";
-import { sendEmail } from "~/modules/email/resend.server";
-import { CheckIcon, LoadingSpinner, XIcon } from "~/modules/components/ui/icons";
+import { LoadingSpinner } from "~/modules/components/ui/icons";
 import { DefaultRightTopNav } from "~/modules/components/right-top-nav";
-import { env } from "~/modules/env";
 import { trackEvent } from "~/modules/posthog/posthog.server";
+import {
+  getUserSession,
+  requireUserSession,
+} from "~/modules/session/session.server";
+import { requireValidCsrfToken } from "~/modules/session/csrf.server";
+import { publishEvent } from "~/modules/inngest/events.server";
+import { mergeMetaTags } from "~/modules/meta";
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   if (!data || !data.event) {
     return [{ title: "Event Not Found" }];
   }
-  return [
+  return mergeMetaTags([
     { title: `${data.event.name} | All Things Web` },
     { name: "description", content: data.event.tagline },
-  ];
+  ], matches);
 };
 
 export async function action({ request, params }: ActionFunctionArgs) {
+  const session = await getUserSession(request);
   const { slug } = params;
   if (typeof slug !== "string") {
     return new Response("Not Found", { status: 404 });
@@ -50,6 +63,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return new Response("Not Found", { status: 404 });
   }
   const form = await request.formData();
+  const csrfToken = form.get("csrf");
+  await requireValidCsrfToken(session?.csrfToken, csrfToken);
+
   const email = form.get("email");
   const name = form.get("name");
   if (
@@ -61,17 +77,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return new Response("Bad Request", { status: 400 });
   }
 
+  const formAttendee = {
+    email: email.trim().toLowerCase(),
+    name: name.trim(),
+  };
   const [existingAttendee, attendeeCount] = await Promise.all([
-    getAttendeeByEmail(event.id, email),
+    getAttendeeByEmail(event.id, formAttendee.email),
     getAttendeeCount(event.id),
   ]);
 
   const alreadyRegistered = existingAttendee && !existingAttendee.canceled;
-  if (
-    !alreadyRegistered &&
-    event.attendeeLimit &&
-    attendeeCount >= event.attendeeLimit
-  ) {
+  if (!alreadyRegistered && attendeeCount >= event.attendeeLimit) {
     trackEvent("registration declined", event.slug, {
       attendee_id: existingAttendee?.id,
       event_name: event.name,
@@ -89,27 +105,31 @@ export async function action({ request, params }: ActionFunctionArgs) {
         attendee_id: attendeeId,
         event_name: event.name,
         event_id: event.id,
+        type: "website",
       });
     }
   } else {
-    const attendee = await registerAttendee(event.id, name, email);
+    const attendee = await registerAttendee(
+      event.id,
+      formAttendee.name,
+      formAttendee.email
+    );
     attendeeId = attendee.id;
     trackEvent("attendee registered", event.slug, {
       attendee_id: attendeeId,
       event_name: event.name,
       event_id: event.id,
+      type: "website",
     });
   }
 
-  const html = getSuccessfulEventSignupHtml(name, attendeeId, event, env.server.origin);
-  sendEmail({
-    from: {
-      name: "Team",
-      email: "events@allthingsweb.dev",
+  publishEvent("event/attendee.registered", {
+    attendee: {
+      email: formAttendee.email,
+      name: formAttendee.name,
+      id: attendeeId,
     },
-    to: [email],
-    subject: `${event.name} - You're in!`,
-    html,
+    eventSlug: event.slug,
   });
 
   return {
@@ -119,7 +139,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
   };
 }
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
+  const session = await requireUserSession(request);
   const { slug } = params;
   if (typeof slug !== "string") {
     throw new Response("Not Found", { status: 404 });
@@ -130,13 +151,19 @@ export async function loader({ params }: LoaderFunctionArgs) {
   }
   const attendeeCount = await getAttendeeCount(event.id);
   return {
+    csrfToken: session.csrfToken,
     event,
-    isAtCapacity: !!event.attendeeLimit && attendeeCount >= event.attendeeLimit,
+    isAtCapacity: attendeeCount >= event.attendeeLimit,
   };
 }
 
 export default function Component() {
-  const { event, isAtCapacity } = useLoaderData<typeof loader>();
+  const {
+    csrfToken,
+    event: eventData,
+    isAtCapacity,
+  } = useLoaderData<typeof loader>();
+  const event = toEvent(eventData);
   const actionData = useActionData<typeof action>();
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -152,32 +179,21 @@ export default function Component() {
         <DefaultRightTopNav />
       </header>
       <main className="flex-1 items-center justify-center">
-        <section className="flex items-center justify-center w-full py-12 md:py-24 lg:py-32">
+        <section className="flex items-center justify-center w-full py-6 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-              <div className="flex flex-col justify-center space-y-4">
-                {!actionData ? (
-                  <RegistrationForm />
-                ) : !actionData && isAtCapacity ? (
-                  <EventFullErrorView event={toEvent(event)} />
-                ) : actionData && !actionData.success ? (
-                  <EventFullErrorView event={toEvent(event)} />
-                ) : (
-                  <SuccessView
-                    event={toEvent(event)}
-                    hasAlreadyRegistered={actionData?.hasAlreadyRegistered}
-                    hasCanceled={actionData?.hasCanceled}
-                  />
-                )}
-              </div>
-              <img
-                src="/hero-image-hackathon.png"
-                width="550"
-                height="550"
-                alt="Hero"
-                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
+            {!actionData && !isAtCapacity ? (
+              <RegistrationForm csrfToken={csrfToken} event={event} />
+            ) : !actionData && isAtCapacity ? (
+              <EventFullErrorView event={event} />
+            ) : actionData && !actionData.success ? (
+              <EventFullErrorView event={event} />
+            ) : (
+              <SuccessView
+                event={event}
+                hasAlreadyRegistered={actionData?.hasAlreadyRegistered}
+                hasCanceled={actionData?.hasCanceled}
               />
-            </div>
+            )}
           </div>
         </section>
       </main>
@@ -200,37 +216,41 @@ export function SuccessView({
   hasCanceled?: boolean;
 }) {
   return (
-    <Card className="mx-auto max-w-md p-6 flex flex-col items-center gap-4">
-      <div className="bg-green-500 rounded-full p-3 flex items-center justify-center">
-        <CheckIcon className="w-6 h-6 text-white" />
-      </div>
-      <div className="space-y-2 text-center">
-        <h3 className="text-xl font-semibold">Signup successful!</h3>
-        {!hasAlreadyRegistered && (
-          <p className="text-muted-foreground">
-            Yay! You successfully signed up for the upcoming hackathon. 🎉
-            We&apos;ve sent you an email confirming your registration and to
-            manage your attendance. Please use the cancel link in the email if
-            you can&apos;t make it. See you there!
-          </p>
-        )}
-        {hasAlreadyRegistered && !hasCanceled && (
-          <p className="text-muted-foreground">
-            Looks like you&apos;ve already signed up for this event. 🎉 You are
-            all set! We re-sent your confirmation email. Please use the cancel
-            link in the email if you can&apos;t make it. See you there!
-          </p>
-        )}
-        {hasAlreadyRegistered && hasCanceled && (
-          <p className="text-muted-foreground">
-            Yay! You successfully signed up for the upcoming hackathon. 🎉 We
-            revoked your cancellation and sent you an email confirming your
-            registration. Thank you for being mindful of your attendance. 🙏 See
-            you there!
-          </p>
-        )}
-      </div>
-      <div className="flex flex-col items-center justify-center gap-1 space-y-2 text-center">
+    <Card className="mx-auto max-w-md">
+      <CardHeader className="flex flex-col items-center gap-4">
+        <div className="bg-green-500 rounded-full p-3">
+          <CheckIcon className="w-6 h-6 text-white" />
+        </div>
+        <CardTitle>Signup successful!</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CardDescription>
+          {!hasAlreadyRegistered && (
+            <>
+              Yay! You successfully signed up for the upcoming hackathon. 🎉
+              We&apos;ve sent you an email confirming your registration and to
+              manage your attendance. Please use the cancel link in the email if
+              you can&apos;t make it. See you there!
+            </>
+          )}
+          {hasAlreadyRegistered && !hasCanceled && (
+            <>
+              Looks like you&apos;ve already signed up for this event. 🎉 You
+              are all set! We re-sent your confirmation email. Please use the
+              cancel link in the email if you can&apos;t make it. See you there!
+            </>
+          )}
+          {hasAlreadyRegistered && hasCanceled && (
+            <>
+              Yay! You successfully signed up for the upcoming hackathon. 🎉 We
+              revoked your cancellation and sent you an email confirming your
+              registration. Thank you for being mindful of your attendance. 🙏
+              See you there!
+            </>
+          )}
+        </CardDescription>
+      </CardContent>
+      <CardFooter className="flex flex-col lg:flex-row items-center justify-center gap-2 text-center">
         <NavLink
           to={`/${event.slug}`}
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
@@ -245,28 +265,28 @@ export function SuccessView({
         >
           Register another attendee
         </NavLink>
-      </div>
+      </CardFooter>
     </Card>
   );
 }
 
-
-
 export function EventFullErrorView({ event }: { event: Event }) {
   return (
-    <Card className="mx-auto max-w-md p-6 flex flex-col items-center gap-4">
-      <div className="bg-red-500 rounded-full p-3 flex items-center justify-center">
-        <XIcon className="w-6 h-6 text-white" />
-      </div>
-      <div className="space-y-2 text-center">
-        <h3 className="text-xl font-semibold">Event is full</h3>
-        <p className="text-muted-foreground">
-          Snap! The event is already full. We do not currently accept any
-          more registrations. Please check back later for possible cancellations
-          or future events. We appreciate your interest!
-        </p>
-      </div>
-      <div className="flex flex-col items-center justify-center gap-1 space-y-2 text-center">
+    <Card className="mx-auto max-w-md">
+      <CardHeader className="flex flex-col items-center gap-4">
+        <div className="bg-red-500 rounded-full p-3">
+          <XIcon className="w-6 h-6 text-white" />
+        </div>
+        <CardTitle>Event is full</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CardDescription>
+          Snap! The event is already full. We do not currently accept any more
+          registrations. Please check back later for possible cancellations or
+          future events. We appreciate your interest!
+        </CardDescription>
+      </CardContent>
+      <CardFooter className="flex flex-col lg:flex-row items-center justify-center gap-2 text-center">
         <NavLink
           to={`/${event.slug}`}
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
@@ -274,31 +294,49 @@ export function EventFullErrorView({ event }: { event: Event }) {
         >
           Back to event
         </NavLink>
-      </div>
+      </CardFooter>
     </Card>
   );
 }
 
-export function RegistrationForm() {
+export function RegistrationForm({
+  csrfToken,
+  event,
+}: {
+  csrfToken: string;
+  event: Event;
+}) {
   const navigation = useNavigation();
   const { slug } = useParams();
   const isSubmitting = navigation.formAction === `/${slug}/register`;
   return (
     <div className="mx-auto max-w-md space-y-6 py-12">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">Sign up for the hackathon</h1>
+        <h1 className="text-3xl font-bold">{event.name}</h1>
         <p className="text-muted-foreground">
-          Enter your information to register for the upcoming hackathon.
+          Join us for an exciting coding adventure!
         </p>
+        <div className="flex justify-center items-center text-sm text-muted-foreground gap-4">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            <span>{event.start.toLocaleDateString()}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            <span>{event.shortLocation}</span>
+          </div>
+        </div>
       </div>
       <Form method="post" className="space-y-4" preventScrollReset={false}>
+        <input type="hidden" name="csrf" value={csrfToken} />
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
-          <Input name="name" placeholder="John Doe" required />
+          <Input id="name" name="name" placeholder="John Doe" required />
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
+            id="email"
             name="email"
             type="email"
             placeholder="example@email.com"
@@ -306,10 +344,28 @@ export function RegistrationForm() {
           />
         </div>
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting && <LoadingSpinner />} 
+          {isSubmitting && <LoadingSpinner />}
           Register
         </Button>
       </Form>
+      {event.lumaEventId && (
+        <>
+          <div className="text-center text-sm text-muted-foreground">
+            This event is managed via Luma and submitting this form will add
+            your attendance on lu.ma. Of course, you can also sign up directly
+            on Luma instead.
+          </div>
+          <ButtonAnchor
+            href={`https://lu.ma/event/${event.lumaEventId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="outline"
+            className="w-full"
+          >
+            View Event on Luma
+          </ButtonAnchor>
+        </>
+      )}
     </div>
   );
 }

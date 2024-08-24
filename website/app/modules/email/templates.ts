@@ -1,6 +1,55 @@
 import { Event } from "../pocketbase/pocketbase";
 
-export function getSuccessfulEventSignupHtml(username: string, userId: string, event: Event, serverOrigin: string) {
+export async function createEventAttachment({
+  event,
+  serverOrigin,
+  attendee,
+}: {
+  event: Event;
+  serverOrigin: string;
+  attendee: {
+    email: string;
+    name: string;
+  }
+}) {
+  const description = `${event.tagline}\n\nEvent page: ${serverOrigin}/${event.slug}`;
+  const ics = `
+BEGIN:VCALENDAR
+VERSION:2.0
+CALSCALE:GREGORIAN
+PRODID:-//All Things Web//EN
+BEGIN:VEVENT
+UID:${event.id}
+ORGANIZER;CN=Andre Landgraf:mailto:andre.timo.landgraf@gmail.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;RSVP=TRUE;CN=${attendee.name}:mailto:${attendee.email}
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "")}Z
+DTSTART:${event.start.toISOString().replace(/[-:]/g, "").slice(0, -5)}Z
+DTEND:${event.end.toISOString().replace(/[-:]/g, "").slice(0, -5)}Z
+SUMMARY:${event.name}
+DESCRIPTION:${description}
+LOCATION:${event.fullAddress}
+URL:${serverOrigin}/${event.slug}
+END:VEVENT
+END:VCALENDAR
+`.trim();
+  return {
+    content: Buffer.from(ics),
+    filename: "event.ics",
+    contentType: "text/calendar",
+  };
+}
+
+export function createSuccessfulEventSignupHtml({
+  username,
+  event,
+  serverOrigin,
+  userId,
+}: {
+  username: string;
+  userId: string;
+  event: Event;
+  serverOrigin: string;
+}) {
   return `
 <html lang="en">
   <head>
@@ -53,7 +102,10 @@ export function getSuccessfulEventSignupHtml(username: string, userId: string, e
     <p>
       Thank you for signing up for ${event.name}! We are excited to see you at
       Sentry in San Francisco on ${event.start.toLocaleDateString("en-US", {
-      weekday: 'long', month: 'long', day: 'numeric' })}.
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      })}.
     </p>
     <p>
       You can find more information about the event on the
@@ -65,6 +117,7 @@ export function getSuccessfulEventSignupHtml(username: string, userId: string, e
       There are only limited spots available, so if you can't make it, please
       let us know by canceling your registration. You can do so by clicking the
       link below:
+      <br />
       <a href="${serverOrigin}/${event.slug}/cancel?attendee=${userId}">
         Cancel registration
       </a>

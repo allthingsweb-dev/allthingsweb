@@ -1,4 +1,4 @@
-import { env } from "~/modules/env";
+import { env } from "~/modules/env.server";
 
 function generateRobotsTxt(origin: string) {
   return `User-agent: *

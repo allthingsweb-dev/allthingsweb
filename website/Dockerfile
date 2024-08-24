@@ -1,5 +1,4 @@
 ARG BUN_VERSION=1.1.12
-ARG NODE_VERSION=20
 
 FROM oven/bun:${BUN_VERSION}-slim as build
 
@@ -29,18 +28,6 @@ RUN bun --bun run build
 RUN rm -rf node_modules && \
     bun install --ci
 
-# Final stage for app image
-FROM node:${NODE_VERSION}-slim
-
-# Set the working directory
-WORKDIR /app
-
-# Copy built application
-COPY --from=build /app /app
-
-# Set production environment
-ENV NODE_ENV="production"
-
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "npm", "run", "start" ]
+CMD [ "bun", "run", "start" ]

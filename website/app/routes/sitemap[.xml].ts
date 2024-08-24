@@ -1,6 +1,6 @@
-import { env } from "~/modules/env";
+import { env } from "~/modules/env.server";
 import { Event } from "~/modules/pocketbase/pocketbase";
-import { getEvents } from "~/modules/pocketbase/pocketbase.server";
+import { getEvents } from "~/modules/pocketbase/api.server";
 
 function getUrlElementWithDate(url: string, date: string) {
   return `<url>

@@ -1,12 +1,16 @@
 import type { MetaFunction } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { getEvents } from "~/modules/pocketbase/pocketbase.server";
+import { mergeMetaTags } from "~/modules/meta";
+import { getEvents } from "~/modules/pocketbase/api.server";
 
-export const meta: MetaFunction = () => {
-  return [
-    { title: "All Things Web" },
-    { name: "description", content: "Bay Area events, hackathons, & more!" },
-  ];
+export const meta: MetaFunction = ({ matches }) => {
+  return mergeMetaTags(
+    [
+      { title: "All Things Web" },
+      { name: "description", content: "Bay Area events, hackathons, & more!" },
+    ],
+    matches
+  );
 };
 
 export async function loader() {

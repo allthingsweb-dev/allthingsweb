@@ -2,40 +2,57 @@ import {
   Links,
   Meta,
   Outlet,
-  redirect,
   Scripts,
   ScrollRestoration,
-  useLoaderData,
+  useRouteError,
 } from "@remix-run/react";
+import { captureRemixErrorBoundaryError, withSentry } from "@sentry/remix";
+import * as Sentry from "@sentry/remix";
 import tailwindStyles from "./tailwind.css?url";
-import { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
+import {
+  LinksFunction,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from "@remix-run/node";
 import { PageTransitionProgressBar } from "./modules/components/page-transition";
 import { ErrorPage } from "./modules/components/error-page";
+import { env } from "./modules/env.server";
+import { requireUserSession } from "./modules/session/session.server";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: tailwindStyles },
 ];
 
-export function loader({ request }: LoaderFunctionArgs) {
-  const pathname = new URL(request.url).pathname;
-  if (pathname !== "/" && pathname.endsWith("/")) {
-    return redirect(pathname.slice(0, -1));
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const meta: ReturnType<MetaFunction> = [];
+  if (data?.posthogPublicAPIKey) {
+    meta.push({ name: "x-posthog", content: data.posthogPublicAPIKey });
   }
+  if (data?.sentryDsn) {
+    meta.push({ name: "x-sentry", content: data.sentryDsn });
+  }
+  if (data?.appVersion) {
+    meta.push({ name: "x-app-version", content: data.appVersion });
+  }
+  return meta;
+};
+
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  console.log(`Sentry is running: ${Sentry.isInitialized()}`)
+  await requireUserSession(request);
   return {
-    posthogPublicAPIKey: process.env.POSTHOG_PUBLIC_API_KEY,
+    posthogPublicAPIKey: env.posthogPublicAPIKey,
+    sentryDsn: env.sentryDsn,
+    appVersion: context.appVersion,
   };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { posthogPublicAPIKey } = useLoaderData<typeof loader>();
   return (
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {posthogPublicAPIKey && (
-          <meta name="x-posthog" content={posthogPublicAPIKey} />
-        )}
         <Meta />
         <Links />
       </head>
@@ -49,10 +66,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
+function App() {
   return <Outlet />;
 }
 
+export default withSentry(App);
+
 export function ErrorBoundary() {
+  const error = useRouteError();
+  captureRemixErrorBoundaryError(error);
   return <ErrorPage />;
 }
