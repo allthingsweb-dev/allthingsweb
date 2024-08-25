@@ -12,6 +12,7 @@ const productionBuild =
 
 const appVersion = productionBuild ? productionBuild.assets.version : "dev";
 console.log(`Running app version ${appVersion}`);
+console.log(`Server timezone offset: ${new Date().getTimezoneOffset() / 60} hours`);
 
 if (env.sentryDsn) {
   console.log("Initializing Sentry for the express server");

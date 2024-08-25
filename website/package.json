@@ -6,8 +6,8 @@
   "scripts": {
     "typecheck": "tsc",
     "build": "remix vite:build",
-    "dev": "NODE_ENV=development bun ./server/index.ts",
-    "start": "NODE_ENV=production bun ./server/index.ts"
+    "dev": "NODE_ENV=development TZ=Etc/UTC bun ./server/index.ts",
+    "start": "NODE_ENV=production TZ=Etc/UTC bun ./server/index.ts"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.0",

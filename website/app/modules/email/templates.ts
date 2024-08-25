@@ -1,3 +1,4 @@
+import { toReadableDateTimeStr } from "../datetime";
 import { Event } from "../pocketbase/pocketbase";
 
 export async function createEventAttachment({
@@ -101,11 +102,7 @@ export function createSuccessfulEventSignupHtml({
     <p>Hey ${username},</p>
     <p>
       Thank you for signing up for ${event.name}! We are excited to see you at
-      Sentry in San Francisco on ${event.start.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })}.
+      Sentry in San Francisco on ${toReadableDateTimeStr(event.start)}.
     </p>
     <p>
       You can find more information about the event on the

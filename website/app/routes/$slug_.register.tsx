@@ -41,6 +41,7 @@ import {
 import { requireValidCsrfToken } from "~/modules/session/csrf.server";
 import { publishEvent } from "~/modules/inngest/events.server";
 import { mergeMetaTags } from "~/modules/meta";
+import { toReadableDateTimeStr } from "~/modules/datetime";
 
 export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   if (!data || !data.event) {
@@ -319,7 +320,7 @@ export function RegistrationForm({
         <div className="flex justify-center items-center text-sm text-muted-foreground gap-4">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            <span>{event.start.toLocaleDateString()}</span>
+            <span>{toReadableDateTimeStr(event.start, true)}</span>
           </div>
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />

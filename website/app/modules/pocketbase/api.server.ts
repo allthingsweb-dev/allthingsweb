@@ -135,6 +135,7 @@ export function toEvent(event: any): Event {
     start: new Date(event.start),
     end: new Date(event.end),
     fullAddress: event.fullAddress,
+    streetAddress: event.streetAddress,
     shortLocation: event.shortLocation,
     attendeeLimit: event.attendeeLimit,
     lumaEventId: event.lumaEventId,

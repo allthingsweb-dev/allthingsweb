@@ -2,7 +2,7 @@ import { HTMLAttributes } from "react";
 import { MetaFunction } from "@remix-run/node";
 import { NavLink, useLoaderData } from "@remix-run/react";
 import { clsx } from "clsx";
-import { UsersIcon, CalendarHeart } from "lucide-react";
+import { UsersIcon, CalendarHeart, AlertCircleIcon, InfoIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { MapPinIcon, SentryLogoIcon } from "~/modules/components/ui/icons";
 import { DefaultRightTopNav } from "~/modules/components/right-top-nav";
@@ -17,6 +17,11 @@ import {
 } from "~/modules/pocketbase/api.server";
 import { cn } from "~/modules/components/utils";
 import { mergeMetaTags } from "~/modules/meta";
+import {
+  deserializeEvent,
+  Event,
+  isEventInPast,
+} from "~/modules/pocketbase/pocketbase";
 
 export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   if (!data || !data.event) {
@@ -38,31 +43,54 @@ export async function loader() {
     throw new Response("Not Found", { status: 404 });
   }
   const attendeeCount = await getAttendeeCount(event.id);
+  const isAtCapacity = attendeeCount >= event.attendeeLimit;
+  const isInPast = isEventInPast(event);
+  const isRegistrationDisabled = isAtCapacity || isInPast;
   return {
     event,
     attendeeCount,
     attendeeLimit: event.attendeeLimit,
-    isAtCapacity: attendeeCount >= event.attendeeLimit,
-    isInPast: new Date(event.start) < new Date(),
+    isAtCapacity,
+    isInPast,
+    isRegistrationDisabled,
   };
 }
 
 export default function Component() {
-  const { event, isAtCapacity, attendeeCount, attendeeLimit, isInPast } =
-    useLoaderData<typeof loader>();
+  const {
+    event: eventData,
+    isAtCapacity,
+    attendeeCount,
+    attendeeLimit,
+    isInPast,
+    isRegistrationDisabled,
+  } = useLoaderData<typeof loader>();
+  const event = deserializeEvent(eventData);
   return (
     <div className="flex-1 min-h-[100dvh]">
       <header className="px-4 lg:px-6 h-14 flex items-center">
         <DefaultRightTopNav />
       </header>
       <main className="flex-1 items-center justify-center">
-        {isAtCapacity && (
+        {isAtCapacity && !isEventInPast && (
           <div className="px-4 lg:px-6">
             <Alert variant="destructive">
-              <AlertTitle>Registration Closed</AlertTitle>
+              <AlertCircleIcon className="h-6 w-6 text-destructive pr-2" />
+              <AlertTitle>Registration closed</AlertTitle>
               <AlertDescription>
                 We are full. Please check back later for possible openings or
                 future events. Thank you for your interest!
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+        {isInPast && (
+          <div className="px-4 lg:px-6">
+            <Alert>
+              <InfoIcon className="h-6 w-6 text-primary pr-2" />
+              <AlertTitle>Past event</AlertTitle>
+              <AlertDescription>
+                This event has ended. Thank you for joining us!
               </AlertDescription>
             </Alert>
           </div>
@@ -84,10 +112,10 @@ export default function Component() {
                     to={`/${event.slug}/register`}
                     className={clsx(
                       "mr-auto md:mr-0 inline-flex h-10 items-center justify-center rounded-md px-8 text-sm font-medium shadow transition-colors bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                      { "pointer-events-none opacity-50": isAtCapacity }
+                      { "pointer-events-none opacity-50": isRegistrationDisabled }
                     )}
                     prefetch="intent"
-                    aria-disabled={isAtCapacity}
+                    aria-disabled={isRegistrationDisabled}
                   >
                     Register Now
                   </NavLink>
@@ -105,6 +133,7 @@ export default function Component() {
         </Section>
         <Section variant="big" background="muted">
           <AllYouNeedToKnow
+            event={event}
             attendeeCount={attendeeCount}
             attendeeLimit={attendeeLimit}
             isInPast={isInPast}
@@ -164,10 +193,12 @@ function Section({
 }
 
 function AllYouNeedToKnow({
+  event,
   attendeeLimit,
   attendeeCount,
   isInPast,
 }: {
+  event: Event;
   attendeeLimit: number;
   attendeeCount: number;
   isInPast: boolean;
@@ -193,10 +224,10 @@ function AllYouNeedToKnow({
         <MapPinIcon className="h-12 w-12 text-primary" />
         <div>
           <h4 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-            Sentry HQ
+            {event.shortLocation}
           </h4>
           <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
-            45 Fremont St, San Francisco
+            {event.streetAddress}
           </p>
         </div>
       </div>

@@ -6,6 +6,7 @@ export type Event = {
   start: Date;
   end: Date;
   fullAddress: string;
+  streetAddress: string;
   shortLocation: string;
   attendeeLimit: number;
   lumaEventId?: string;
@@ -51,6 +52,14 @@ export function deserializeEvent(event: any) {
     created: new Date(event.created),
     updated: new Date(event.updated),
   };
+}
+
+export function isEventInPast(event: Event) {
+  return event.end < new Date();
+}
+
+export function hasEventStarted(event: Event) {
+  return event.start < new Date();
 }
 
 

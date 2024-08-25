@@ -1,3 +1,4 @@
+import { toReadableDateTimeStr } from "../datetime";
 import { ExpandedEvent } from "../pocketbase/pocketbase";
 
 declare module "react" {
@@ -121,12 +122,7 @@ export default function EventPreview({
         <div tw="text-3xl flex justify-center" style={{ gap: "2rem" }}>
           <div tw="flex items-center">
             <CalendarIcon />
-            {event.start.toLocaleDateString("en-US", {
-              weekday: "short",
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
+            {toReadableDateTimeStr(event.start, true)}
           </div>
           <div tw="flex items-center">
             <MapPinIcon />

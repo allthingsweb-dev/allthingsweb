@@ -34,6 +34,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   return new Response(data, {
     headers: {
       "Content-Type": "image/png",
+      "Cache-Control": `public, max-age=${event.start < new Date() ? 60 * 60 * 24 * 7 : 60 * 60 * 24}`,
     },
   });
 }
