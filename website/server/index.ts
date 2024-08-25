@@ -73,6 +73,10 @@ app.use(express.static("build/client", { maxAge: "1h" }));
 
 app.use(morgan("tiny"));
 
+app.use("/tests/errors/server-error", (req, res) => {
+  throw new Error("This is a test error from Express on Bun.");
+});
+
 // handle SSR requests
 app.all("*", remixHandler);
 
