@@ -19,3 +19,10 @@ export function toReadableDateTimeStr(date: Date, omitTime = false): string {
     timeZone: "America/Los_Angeles",
   });
 }
+
+export function toWeekdayStr(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "America/Los_Angeles",
+  });
+}
