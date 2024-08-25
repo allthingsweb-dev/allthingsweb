@@ -1,4 +1,4 @@
-import { SatoriOptions } from "satori"
+import { SatoriOptions } from "satori";
 
 /*
  * Shout-out to Jacob Paris (jacobmparis on Twitter) for this util function!
@@ -7,7 +7,7 @@ import { SatoriOptions } from "satori"
 export async function getFont(
     font: string,
     weights = [400, 500, 600, 700],
-    text = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\!@#$%^&*()_+-=<>?[]{}|;:,.`'’\"–—",
+    text = "abcdeéfghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\!@#$%^&*()_+-=<>?[]{}|;:,.`'’\"–—",
   ) {
     const css = await fetch(
       `https://fonts.googleapis.com/css2?family=${font}:wght@${weights.join(

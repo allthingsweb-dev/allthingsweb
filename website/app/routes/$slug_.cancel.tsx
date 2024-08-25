@@ -3,7 +3,7 @@ import { NavLink, useLoaderData } from "@remix-run/react";
 import { CheckIcon } from "lucide-react";
 import { DefaultRightTopNav } from "~/modules/components/right-top-nav";
 import { Card } from "~/modules/components/ui/card";
-import { toEvent, Event } from "~/modules/pocketbase/pocketbase";
+import { deserializeEvent, Event } from "~/modules/pocketbase/pocketbase";
 import {
   getEventBySlug,
   updateAttendeeCancellation,
@@ -53,7 +53,7 @@ export default function Component() {
           <div className="container px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
-                <SuccessView event={toEvent(event)} />
+                <SuccessView event={deserializeEvent(event)} />
               </div>
               <img
                 src="/hero-image-goodbye.png"

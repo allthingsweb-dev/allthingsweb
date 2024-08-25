@@ -3,7 +3,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { getFont } from "~/modules/image-gen/utils.server";
 import EventPreview from "~/modules/image-gen/templates";
-import { getEventWithSpeakersBySlug } from "~/modules/pocketbase/api.server";
+import { getExpandedEvent } from "~/modules/pocketbase/api.server";
 import { env } from "~/modules/env.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -11,8 +11,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (typeof slug !== "string") {
     throw new Response("Not Found", { status: 404 });
   }
-  const event = await getEventWithSpeakersBySlug(slug);
-  console.log(event);
+  const event = await getExpandedEvent(slug);
   if (!event) {
     throw new Response("Not Found", { status: 404 });
   }

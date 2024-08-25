@@ -1,9 +1,3 @@
-// API KEY header x-luma-api-key
-// curl --request GET \
-//      --url https://api.lu.ma/public/v1/calendar/list-events \
-//      --header 'accept: application/json'
-// query params pagination_limit pagination_crusor before after timestamps
-
 import { env } from "../env.server";
 
 export type LumaEvent = {
@@ -40,6 +34,18 @@ export type LumaEvent = {
   meeting_url: string;
 };
 
+export type LumaAttendee = {
+  api_id: string;
+  approval_status: "approved" | "declined" | "pending_approval" | "rejected";
+  created_at: string;
+  registered_at: string;
+  user_api_id: string;
+  user_name: string;
+  user_email: string;
+  name: string;
+  email: string;
+}
+
 export async function getUpcomingEvents() {
   const url = `https://api.lu.ma/public/v1/calendar/list-events?pagination_limit=50&after=${new Date().toISOString()}`;
   const headers = {
@@ -59,7 +65,24 @@ export async function getUpcomingEvents() {
   return resData.events.entries.map((e: any) => e.event) as LumaEvent[];
 }
 
-export async function getAttendees(eventId: string) {}
+export async function getAttendees(eventId: string) {
+  const url = `https://api.lu.ma/public/v1/event/get-guests?event_api_id=${eventId}&pagination_limit=5000`;
+  const headers = {
+    accept: "application/json",
+    "x-luma-api-key": env.lumaAPIKey,
+  };
+  const res = await fetch(url, {
+    method: "GET",
+    headers: headers,
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch attendees. Status: ${res.status} - ${res.statusText}`
+    );
+  }
+  const resData = await res.json();
+  return resData.entries.map((e: any) => e.guest) as LumaAttendee[];
+}
 
 export async function addAttendee(
   eventId: string,

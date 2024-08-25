@@ -1,4 +1,4 @@
-import { EventWithSpeakers } from "../pocketbase/pocketbase";
+import { ExpandedEvent } from "../pocketbase/pocketbase";
 
 declare module "react" {
   interface HTMLAttributes<T> {
@@ -55,7 +55,7 @@ function CalendarIcon() {
 export default function EventPreview({
   event,
 }: {
-  event: EventWithSpeakers;
+  event: ExpandedEvent;
   serverOrigin: string;
 }) {
   return (
@@ -66,31 +66,44 @@ export default function EventPreview({
           "linear-gradient(to bottom right, #3b0d60, #4b0082, #2d0031, #000000)",
       }}
     >
-      <div tw="flex justify-between items-start">
-        <div tw="flex flex-col" style={{ gap: "1rem" }}>
-          <div tw="text-2xl font-semibold">Sponsored by</div>
-          <div tw="flex" style={{ gap: "2rem" }}>
-            <div tw="w-40 h-40 bg-white rounded-lg flex items-center justify-center">
-              <span tw="text-gray-400">Sentry</span>
+      <div tw="w-full flex items-start">
+        {!!event.sponsors.length && (
+          <div tw="flex flex-col" style={{ gap: "1rem" }}>
+            <div tw="text-2xl font-semibold">Sponsored by</div>
+            <div tw="flex" style={{ gap: "2rem" }}>
+              {event.sponsors.map((sponsor) => (
+                <div
+                  key={sponsor.id}
+                  tw="flex flex-col items-center text-center mb-4"
+                >
+                  <div tw="mb-2 w-40 h-40 bg-white p-2 rounded-lg overflow-hidden flex items-center justify-center">
+                    <img src={sponsor.rectangularLogo} alt={sponsor.name} />
+                  </div>
+                  <div tw="font-semibold text-xl">{sponsor.name}</div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        )}
         {!!event.speakers.length && (
-          <div tw="flex flex-col" style={{ gap: "1rem" }}>
+          <div tw="flex flex-col" style={{ gap: "1rem", marginLeft: "auto" }}>
             <div tw="text-2xl font-semibold">Speakers</div>
             <div tw="flex" style={{ gap: "2rem" }}>
               {event.speakers.map((speaker) => (
-                <div tw="flex flex-col items-center text-center">
+                <div
+                  key={speaker.id}
+                  tw="flex flex-col items-center text-center"
+                >
                   <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
                     <img
                       src={speaker.profileImage}
                       alt={speaker.name}
                       width={160}
                       height={160}
-                      tw="object-fill"
+                      style={{ objectFit: "fill" }}
                     />
                   </div>
-                  <div tw="font-semibold">{speaker.name}</div>
+                  <div tw="font-semibold text-xl">{speaker.name}</div>
                   <div tw="text-sm opacity-75">{speaker.title}</div>
                 </div>
               ))}
@@ -122,7 +135,7 @@ export default function EventPreview({
         </div>
       </div>
       <div tw="text-3xl flex justify-center" style={{ marginTop: "auto" }}>
-        Join us for 48 hours of coding, innovation, and fun!
+        Find us on allthingsweb.dev and lu.ma/allthingsweb!
       </div>
     </div>
   );

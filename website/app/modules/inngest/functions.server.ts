@@ -4,12 +4,26 @@ import {
   createEventAttachment,
   createSuccessfulEventSignupHtml,
 } from "../email/templates";
-import { getEventBySlug } from "../pocketbase/api.server";
+import {
+  getAttendees,
+  getEventBySlug,
+  getUpcomingEvents,
+  registerAttendee,
+} from "../pocketbase/api.server";
 import { sendEmail } from "../email/resend.server";
-import { addAttendee } from "../luma/api.server";
+import {
+  addAttendee as addAttendeeOnLuma,
+  getAttendees as getLumaAttendees,
+} from "../luma/api.server";
+import { captureException } from "../sentry/capture.server";
 
 export const eventAttendeeRegisteredFn = inngest.createFunction(
-  { id: "event-attendee-registered-fn" },
+  {
+    id: "event-attendee-registered-fn",
+    onFailure: ({ error }) => {
+      captureException(error);
+    },
+  },
   { event: "event/attendee.registered" },
   async ({ event: inngestEvent, step }) => {
     const { attendee, eventSlug } =
@@ -51,8 +65,62 @@ export const eventAttendeeRegisteredFn = inngest.createFunction(
           return;
         }
         // Adding the attendee to the Luma event; this will also trigger the Luma registration email
-        await addAttendee(event.lumaEventId, attendee);
+        await addAttendeeOnLuma(event.lumaEventId, attendee);
       }),
     ]);
+  }
+);
+
+/**
+ * Sync attendees with Luma
+ */
+export const syncAttendeesWithLumaFn = inngest.createFunction(
+  {
+    id: "sync-attendees-with-luma-fn",
+    retries: 0, // no need to retry as we run this every hour
+    onFailure: ({ error }) => {
+      captureException(error);
+    },
+  },
+  { cron: "TZ=America/Los_Angeles 0 * * * *" }, // every hour
+  async ({ step }) => {
+    const events = await getUpcomingEvents();
+    for (const event of events) {
+      if (!event.lumaEventId) {
+        continue;
+      }
+      const attendees = await getAttendees(event.id);
+      const lumaAttendees = await getLumaAttendees(event.lumaEventId);
+
+      // Check what approved attendees on Luma are missing in the database
+      for (const lumaAttendee of lumaAttendees) {
+        if (lumaAttendee.approval_status !== "approved") {
+          continue;
+        }
+        const attendee = attendees.find(
+          (a) => a.email === lumaAttendee.email.toLowerCase()
+        );
+        if (!attendee) {
+          await registerAttendee(
+            event.id,
+            lumaAttendee.name,
+            lumaAttendee.email.toLowerCase()
+          );
+        }
+      }
+
+      // Check what approved attendees in the database are missing on Luma
+      for (const attendee of attendees) {
+        if (attendee.canceled) {
+          continue;
+        }
+        if (
+          lumaAttendees.some((a) => a.email.toLowerCase() === attendee.email)
+        ) {
+          continue;
+        }
+        await addAttendeeOnLuma(event.lumaEventId, attendee);
+      }
+    }
   }
 );

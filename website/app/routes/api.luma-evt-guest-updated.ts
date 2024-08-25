@@ -1,5 +1,6 @@
 import { ActionFunctionArgs } from "@remix-run/node";
 import { env } from "~/modules/env.server";
+import { LumaAttendee } from "~/modules/luma/api.server";
 import {
   getAttendeeByEmail,
   getEventByLumaEventId,
@@ -12,7 +13,7 @@ import { captureException } from "~/modules/sentry/capture.server";
 type Payload = {
   name: string;
   email: string;
-  status: "approved" | "declined" | "pending_approval" | "rejected";
+  status: LumaAttendee["approval_status"];
   eventId: string;
 };
 

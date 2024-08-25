@@ -30,7 +30,7 @@ import {
   registerAttendee,
   updateAttendeeCancellation,
 } from "~/modules/pocketbase/api.server";
-import { toEvent, Event } from "~/modules/pocketbase/pocketbase";
+import { deserializeEvent, Event } from "~/modules/pocketbase/pocketbase";
 import { LoadingSpinner } from "~/modules/components/ui/icons";
 import { DefaultRightTopNav } from "~/modules/components/right-top-nav";
 import { trackEvent } from "~/modules/posthog/posthog.server";
@@ -163,7 +163,7 @@ export default function Component() {
     event: eventData,
     isAtCapacity,
   } = useLoaderData<typeof loader>();
-  const event = toEvent(eventData);
+  const event = deserializeEvent(eventData);
   const actionData = useActionData<typeof action>();
   return (
     <div className="flex flex-col min-h-[100dvh]">
