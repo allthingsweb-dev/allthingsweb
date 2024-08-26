@@ -12,6 +12,7 @@ function getUrlElementWithDate(url: string, date: string) {
 function generateSiteMap(events: Event[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
         <urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
+            ${getUrlElementWithDate(`${origin}/`, new Date().toISOString())}
             ${events
               .map(
                 (event) =>
@@ -22,6 +23,7 @@ function generateSiteMap(events: Event[], origin: string) {
               )
               .join("\n")}
             ${events
+                .filter((event) => event.enableRegistrations)
                 .map(
                 (event) =>
                     `${getUrlElementWithDate(

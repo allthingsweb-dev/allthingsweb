@@ -3,6 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "~/modules/components/utils";
+import { NavLink, NavLinkProps } from "@remix-run/react";
 
 export const buttonVariants = cva(
   "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
@@ -53,17 +54,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
-export interface ButtonAnchorProps
-  extends React.AnchorHTMLAttributes<HTMLAnchorElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
+export type ButtonAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> &  VariantProps<typeof buttonVariants>;
 
 export const ButtonAnchor = React.forwardRef<HTMLAnchorElement, ButtonAnchorProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "a";
+  ({ className, variant, size, ...props }, ref) => {
     return (
-      <Comp
+      <a
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
@@ -73,3 +69,17 @@ export const ButtonAnchor = React.forwardRef<HTMLAnchorElement, ButtonAnchorProp
 );
 ButtonAnchor.displayName = "ButtonAnchor";
 
+export type ButtonNavLinkProps = NavLinkProps & VariantProps<typeof buttonVariants>;
+
+export const ButtonNavLink = React.forwardRef<HTMLAnchorElement, ButtonNavLinkProps>(
+  ({ className, variant, size, ...props }, ref) => {
+    return (
+      <NavLink
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+ButtonAnchor.displayName = "ButtonNavLink";

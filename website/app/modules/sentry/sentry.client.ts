@@ -1,13 +1,11 @@
 import * as Sentry from "@sentry/remix";
 import { useLocation, useMatches } from "@remix-run/react";
 import { useEffect } from "react";
+import { clientEnv } from "../env.client";
 
-const meta = document.querySelector(
-  'meta[name="x-sentry"]'
-) as HTMLMetaElement | null;
-if (meta) {
+if (clientEnv.sentryDsn) {
   Sentry.init({
-    dsn: meta.content,
+    dsn: clientEnv.sentryDsn,
     tracesSampleRate: 1,
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1,

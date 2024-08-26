@@ -7,7 +7,6 @@ import {
   useRouteError,
 } from "@remix-run/react";
 import { captureRemixErrorBoundaryError, withSentry } from "@sentry/remix";
-import * as Sentry from "@sentry/remix";
 import tailwindStyles from "./tailwind.css?url";
 import {
   LinksFunction,
@@ -34,16 +33,19 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
   if (data?.appVersion) {
     meta.push({ name: "x-app-version", content: data.appVersion });
   }
+  if(data?.serverOrigin) {
+    meta.push({ name: "x-server-origin", content: data.serverOrigin });
+  }
   return meta;
 };
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
-  console.log(`Sentry is running: ${Sentry.isInitialized()}`)
   await requireUserSession(request);
   return {
     posthogPublicAPIKey: env.posthogPublicAPIKey,
     sentryDsn: env.sentryDsn,
     appVersion: context.appVersion,
+    serverOrigin: env.server.origin,
   };
 }
 

@@ -109,6 +109,11 @@ export const syncAttendeesWithLumaFn = inngest.createFunction(
         }
       }
 
+      if(!event.enableRegistrations) {
+        // Do not consider registrations from allthingsweb.dev
+        continue;
+      }
+
       // Check what approved attendees in the database are missing on Luma
       for (const attendee of attendees) {
         if (attendee.canceled) {

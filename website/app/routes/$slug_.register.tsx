@@ -2,6 +2,7 @@ import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
   MetaFunction,
+  redirect,
 } from "@remix-run/node";
 import { Label } from "~/modules/components/ui/label";
 import { Input } from "~/modules/components/ui/input";
@@ -40,17 +41,22 @@ import {
 } from "~/modules/session/session.server";
 import { requireValidCsrfToken } from "~/modules/session/csrf.server";
 import { publishEvent } from "~/modules/inngest/events.server";
-import { mergeMetaTags } from "~/modules/meta";
+import { getMetaTags, mergeMetaTags } from "~/modules/meta";
 import { toReadableDateTimeStr } from "~/modules/datetime";
+import { env } from "~/modules/env.server";
 
 export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   if (!data || !data.event) {
-    return [{ title: "Event Not Found" }];
+    return mergeMetaTags([{ title: "Event not found" }], matches);
   }
-  return mergeMetaTags([
-    { title: `${data.event.name} | All Things Web` },
-    { name: "description", content: data.event.tagline },
-  ], matches);
+  const title = `Register | ${data.event.name} | All Things Web`;
+  const description = data.event.tagline;
+  const eventUrl = `${env.server.origin}/${data.event.slug}`;
+  const previewImageUrl = `${env.server.origin}/${data.event.slug}/preview.png`;
+  return mergeMetaTags(
+    getMetaTags(title, description, eventUrl, previewImageUrl),
+    matches
+  );
 };
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -62,6 +68,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const event = await getEventBySlug(slug);
   if (!event) {
     return new Response("Not Found", { status: 404 });
+  }
+  if(!event.enableRegistrations) {
+    return new Response("Registrations disabled. Use Luma.", { status: 400 });
   }
   const form = await request.formData();
   const csrfToken = form.get("csrf");
@@ -149,6 +158,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const event = await getEventBySlug(slug);
   if (!event) {
     throw new Response("Not Found", { status: 404 });
+  }
+  if(!event.enableRegistrations) {
+    return redirect(`/${event.slug}`);
   }
   const attendeeCount = await getAttendeeCount(event.id);
   return {
@@ -357,7 +369,7 @@ export function RegistrationForm({
             on Luma instead.
           </div>
           <ButtonAnchor
-            href={`https://lu.ma/event/${event.lumaEventId}`}
+            href={event.lumaUrl}
             target="_blank"
             rel="noopener noreferrer"
             variant="outline"

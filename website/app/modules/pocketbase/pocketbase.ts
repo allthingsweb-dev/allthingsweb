@@ -9,7 +9,11 @@ export type Event = {
   streetAddress: string;
   shortLocation: string;
   attendeeLimit: number;
-  lumaEventId?: string;
+  lumaEventId: string;
+  lumaUrl: string;
+  enableRegistrations: boolean;
+  isHackathon: boolean;
+  highlightOnLandingPage: boolean;
   speakers: string[];
   sponsors: string[];
   created: Date;
@@ -44,7 +48,7 @@ export type ExpandedEvent = Omit<Event, "speakers"| "sponsors"> & {
   sponsors: Sponsor[];
 };
 
-export function deserializeEvent(event: any) {
+export function deserializeEvent(event: any): Event {
   return {
     ...event,
     start: new Date(event.start),
