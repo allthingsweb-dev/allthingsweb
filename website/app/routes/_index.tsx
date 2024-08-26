@@ -86,22 +86,18 @@ export default function Component() {
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-gray-800">
                   Join {highlightEvent.name}
                 </h2>
-                <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   {highlightEvent.tagline}
                 </p>
               </div>
-              <div className="w-full max-w-sm space-y-2">
-                <div className="flex justify-center items-baseline space-x-2">
-                  <CalendarIcon className="h-5 w-5 text-gray-500" />
-                  <span className="text-2xl font-bold text-gray-800">
-                    {toReadableDateTimeStr(highlightEvent.start, true)}
-                  </span>
+              <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>{toReadableDateTimeStr(highlightEvent.start, true)}</span>
                 </div>
-                <div className="flex justify-center items-baseline space-x-2">
-                  <MapPinIcon className="h-5 w-5 text-gray-500" />
-                  <span className="text-xl text-gray-600">
-                    {highlightEvent.shortLocation}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <MapPinIcon className="h-4 w-4" />
+                  <span>{highlightEvent.shortLocation}</span>
                 </div>
               </div>
               <div className="w-full max-w-sm pt-4">
@@ -121,7 +117,7 @@ export default function Component() {
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                 Other events
               </h2>
-              <p className="text-gray-500 dark:text-gray-400 md:text-xl">
+              <p className="text-gray-500 md:text-xl">
                 Discover more upcoming web development events in the Bay Area
                 here or on Luma.
               </p>
@@ -143,11 +139,11 @@ export default function Component() {
                     <CardDescription>{event.tagline}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <CalendarIcon className="h-4 w-4" />
                       <span>{toReadableDateTimeStr(event.start, true)}</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500 mt-2">
                       <MapPinIcon className="h-4 w-4" />
                       <span>{event.shortLocation}</span>
                     </div>

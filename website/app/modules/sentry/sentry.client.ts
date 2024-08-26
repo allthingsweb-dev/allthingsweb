@@ -17,6 +17,9 @@ if (clientEnv.sentryDsn) {
         useMatches,
       }),
       Sentry.replayIntegration(),
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+      }),
     ],
   });
 }

@@ -1,7 +1,6 @@
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
-  MetaFunction,
   redirect,
 } from "@remix-run/node";
 import { Label } from "~/modules/components/ui/label";
@@ -23,7 +22,7 @@ import {
   useNavigation,
   useParams,
 } from "@remix-run/react";
-import { CheckIcon, XIcon, CalendarDays, MapPin } from "lucide-react";
+import { CheckIcon, XIcon, CalendarDays, MapPin, CalendarIcon } from "lucide-react";
 import {
   getAttendeeByEmail,
   getAttendeeCount,
@@ -32,7 +31,7 @@ import {
   updateAttendeeCancellation,
 } from "~/modules/pocketbase/api.server";
 import { deserializeEvent, Event } from "~/modules/pocketbase/pocketbase";
-import { LoadingSpinner } from "~/modules/components/ui/icons";
+import { LoadingSpinner, MapPinIcon } from "~/modules/components/ui/icons";
 import { DefaultRightTopNav } from "~/modules/components/right-top-nav";
 import { trackEvent } from "~/modules/posthog/posthog.server";
 import {
@@ -41,23 +40,10 @@ import {
 } from "~/modules/session/session.server";
 import { requireValidCsrfToken } from "~/modules/session/csrf.server";
 import { publishEvent } from "~/modules/inngest/events.server";
-import { getMetaTags, mergeMetaTags } from "~/modules/meta";
 import { toReadableDateTimeStr } from "~/modules/datetime";
-import { env } from "~/modules/env.server";
+import { meta } from "~/modules/event-details/meta";
 
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  if (!data || !data.event) {
-    return mergeMetaTags([{ title: "Event not found" }], matches);
-  }
-  const title = `Register | ${data.event.name} | All Things Web`;
-  const description = data.event.tagline;
-  const eventUrl = `${env.server.origin}/${data.event.slug}`;
-  const previewImageUrl = `${env.server.origin}/${data.event.slug}/preview.png`;
-  return mergeMetaTags(
-    getMetaTags(title, description, eventUrl, previewImageUrl),
-    matches
-  );
-};
+export { meta };
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const session = await getUserSession(request);
@@ -331,11 +317,11 @@ export function RegistrationForm({
         </p>
         <div className="flex justify-center items-center text-sm text-muted-foreground gap-4">
           <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
+            <CalendarIcon className="h-4 w-4" />
             <span>{toReadableDateTimeStr(event.start, true)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
+            <MapPinIcon className="h-4 w-4" />
             <span>{event.shortLocation}</span>
           </div>
         </div>

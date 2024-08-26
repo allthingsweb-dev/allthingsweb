@@ -14,7 +14,7 @@ import { Section } from "../components/ui/section";
 import clsx from "clsx";
 import { PageLayout } from "../components/page-layout";
 
-export function AllYouNeedToKnow({
+export function AllYouNeedToKnowSection({
   event,
   attendeeLimit,
   attendeeCount,
@@ -26,45 +26,48 @@ export function AllYouNeedToKnow({
   isInPast: boolean;
 }) {
   return (
-    <div className="w-full px-4 md:px-6 flex flex-col md:items-center justify-center lg:flex-row gap-12 lg:gap-24 xl:gap-32 2xl:gap-44">
-      <div className="flex md:items-center gap-4">
-        <UsersIcon className="h-12 w-12 text-primary" />
-        <div>
-          <h4 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-            {!isInPast && attendeeCount < attendeeLimit
-              ? "Spots available"
-              : !isInPast && attendeeCount >= attendeeLimit
-              ? "At capacity"
-              : "Event has ended"}
-          </h4>
-          <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
-            {attendeeCount} / {attendeeLimit} guests registered
-          </p>
+    <Section variant="big" background="muted">
+      <div className="w-full px-4 md:px-6 flex flex-col md:items-center justify-center lg:flex-row gap-12 lg:gap-24 xl:gap-32 2xl:gap-44">
+        <h2 className="sr-only">All you need to know</h2>
+        <div className="flex md:items-center gap-4">
+          <UsersIcon className="h-12 w-12 text-primary" />
+          <div>
+            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
+              {!isInPast && attendeeCount < attendeeLimit
+                ? "Spots available"
+                : !isInPast && attendeeCount >= attendeeLimit
+                ? "At capacity"
+                : "Event has ended"}
+            </h3>
+            <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
+              {attendeeCount} / {attendeeLimit} guests registered
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <MapPinIcon className="h-12 w-12 text-primary" />
+          <div>
+            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
+              {event.shortLocation}
+            </h3>
+            <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
+              {event.streetAddress}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <CalendarHeart className="h-12 w-12 text-primary" />
+          <div>
+            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
+              {toWeekdayStr(event.start)}
+            </h3>
+            <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
+              {toReadableDateTimeStr(event.start, true)}
+            </p>
+          </div>
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <MapPinIcon className="h-12 w-12 text-primary" />
-        <div>
-          <h4 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-            {event.shortLocation}
-          </h4>
-          <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
-            {event.streetAddress}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
-        <CalendarHeart className="h-12 w-12 text-primary" />
-        <div>
-          <h4 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-            {toWeekdayStr(event.start)}
-          </h4>
-          <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
-            {toReadableDateTimeStr(event.start, true)}
-          </p>
-        </div>
-      </div>
-    </div>
+    </Section>
   );
 }
 
@@ -147,14 +150,12 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
           </div>
         </div>
       </Section>
-      <Section variant="big" background="muted">
-        <AllYouNeedToKnow
-          event={event}
-          attendeeCount={attendeeCount}
-          attendeeLimit={attendeeLimit}
-          isInPast={isInPast}
-        />
-      </Section>
+      <AllYouNeedToKnowSection
+        event={event}
+        attendeeCount={attendeeCount}
+        attendeeLimit={attendeeLimit}
+        isInPast={isInPast}
+      />
       {children}
     </PageLayout>
   );

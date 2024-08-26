@@ -1,13 +1,20 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { getAttendeeCount, getEventBySlug } from "../pocketbase/api.server";
 import { isEventInPast } from "../pocketbase/pocketbase";
+import { getAttendees as getLumaAttendees } from "../luma/api.server";
 
 export async function eventDetailsLoader(slug: string) {
   const event = await getEventBySlug(slug);
   if (!event) {
     throw new Response("Not Found", { status: 404 });
   }
-  const attendeeCount = await getAttendeeCount(event.id);
+  let attendeeCount = 0;
+  if(event.enableRegistrations) {
+    attendeeCount = await getAttendeeCount(event.id);
+  } else {
+    const lumaAttendees = await getLumaAttendees(event.id);
+    attendeeCount = lumaAttendees.length;
+  }
   const isAtCapacity = attendeeCount >= event.attendeeLimit;
   const isInPast = isEventInPast(event);
   const isRegistrationDisabled = isAtCapacity || isInPast;
