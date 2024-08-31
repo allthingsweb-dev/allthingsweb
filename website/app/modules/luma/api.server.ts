@@ -84,6 +84,14 @@ export async function getAttendees(eventId: string) {
   return resData.entries.map((e: any) => e.guest) as LumaAttendee[];
 }
 
+export async function getAttendeeCount(eventId: string) {
+  const attendees = await getAttendees(eventId);
+  const approvedAttendees = attendees.filter(
+    (a) => a.approval_status === "approved"
+  );
+  return approvedAttendees.length;
+}
+
 export async function addAttendee(
   eventId: string,
   attendee: { email: string; name: string }

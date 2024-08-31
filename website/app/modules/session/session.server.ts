@@ -15,14 +15,16 @@ const { commitSession, destroySession, getSession } =
     },
   });
 
-export async function createUserSession(headers = new Headers()): Promise<Headers> {
+export async function createUserSession(headers = new Headers()): Promise<[UserSession, Headers]> {
   const cookie = await getSession();
-  cookie.set("csrfToken", createCsrfToken());
+
+  const csrfToken = createCsrfToken();
+  cookie.set("csrfToken", csrfToken);
 
   const cookieValue = await commitSession(cookie);
   headers.set("Set-Cookie", cookieValue);
 
-  return headers;
+  return [{ csrfToken }, headers];
 }
 
 export type UserSession = {
@@ -39,7 +41,7 @@ export async function getUserSession(
   return null;
 }
 
-export async function requireUserSession(request: Request) {
+export async function requireUserSession(request: Request): Promise<[UserSession, Headers | undefined]> {
     const session = await getUserSession(request);
     const pathname = new URL(request.url).pathname;
   
@@ -52,8 +54,7 @@ export async function requireUserSession(request: Request) {
     }
   
     if(!session) {
-      const headers = await createUserSession();
-      throw redirect(pathname, { headers });
+      return createUserSession();
     }
-    return session;
+    return [session, undefined];
 }

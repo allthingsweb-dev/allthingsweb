@@ -12,6 +12,7 @@ import {
   LinksFunction,
   LoaderFunctionArgs,
   MetaFunction,
+  json,
 } from "@remix-run/node";
 import { PageTransitionProgressBar } from "./modules/components/page-transition";
 import { ErrorPage } from "./modules/components/error-page";
@@ -20,6 +21,13 @@ import { requireUserSession } from "./modules/session/session.server";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: tailwindStyles },
+  { rel: "alternate", type: "application/rss+xml", href: "/rss" },
+  {
+    rel: "icon",
+    type: "image/svg+xml",
+    // Shout-out to Jacob Paris (@jacobmparis) for this cool trick!
+    href: "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>",
+  },
 ];
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -33,20 +41,24 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
   if (data?.appVersion) {
     meta.push({ name: "x-app-version", content: data.appVersion });
   }
-  if(data?.serverOrigin) {
+  if (data?.serverOrigin) {
     meta.push({ name: "x-server-origin", content: data.serverOrigin });
   }
   return meta;
 };
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
-  await requireUserSession(request);
-  return {
-    posthogPublicAPIKey: env.posthogPublicAPIKey,
-    sentryDsn: env.sentryDsn,
-    appVersion: context.appVersion,
-    serverOrigin: env.server.origin,
-  };
+  const [userSession, headers] = await requireUserSession(request);
+  return json(
+    {
+      csrfToken: userSession.csrfToken,
+      posthogPublicAPIKey: env.posthogPublicAPIKey,
+      sentryDsn: env.sentryDsn,
+      appVersion: context.appVersion,
+      serverOrigin: env.server.origin,
+    },
+    { headers }
+  );
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {

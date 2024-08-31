@@ -153,14 +153,12 @@ function Sponsor() {
               event. Actually, we are using Sentry to monitor this very website!
             </p>
             <p className="text-muted-foreground">
-              For software teams, Sentry is essential for monitoring application
-              code quality. From Error tracking to Performance monitoring,
-              developers can see clearer, solve quicker, and learn continuously
-              about their applications — from frontend to backend. Loved by
-              nearly 4 million developers and 90,000 organizations worldwide,
-              Sentry provides code-level observability to many of the world’s
-              best-known companies like Disney, Cloudflare, Eventbrite, Slack,
-              Supercell, and Rockstar Games.
+              Sentry is the debuggability platform built for how modern
+              developers work. Over 4 million developers worldwide trust
+              Sentry’s opinionated approach to debugging—favoring action over
+              dashboards—which gives them the context and code level visibility
+              they need to solve issues fast. Sentry users spend more time
+              building and less time firefighting.
             </p>
           </div>
         </div>

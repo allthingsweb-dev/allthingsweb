@@ -8,7 +8,7 @@ export const meta: MetaFunction<typeof loader, { 'root': typeof rootLoader }> = 
   if (!data || !data.event || !rootLoader) {
     return mergeMetaTags([{ title: "Event not found" }], matches);
   }
-  const title = `${data.event.name} | All Things Web`;
+  const title = data.event.name;
   const description = data.event.tagline;
   const eventUrl = `${rootLoader.serverOrigin}/${data.event.slug}`;
   const previewImageUrl = `${rootLoader.serverOrigin}/${data.event.slug}/preview.png`;

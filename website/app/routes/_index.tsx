@@ -1,4 +1,3 @@
-import type { MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { ButtonAnchor, ButtonNavLink } from "~/modules/components/ui/button";
 import {
@@ -15,19 +14,29 @@ import {
   MapPinIcon,
   UsersIcon,
 } from "lucide-react";
-import { mergeMetaTags } from "~/modules/meta";
 import { getUpcomingEvents } from "~/modules/pocketbase/api.server";
 import { PageLayout } from "~/modules/components/page-layout";
 import { Section } from "~/modules/components/ui/section";
 import { toReadableDateTimeStr } from "~/modules/datetime";
 import { deserializeEvent } from "~/modules/pocketbase/pocketbase";
+import { getMetaTags, mergeMetaTags } from "~/modules/meta";
+import { MetaFunction } from "@remix-run/node";
+import { type loader as rootLoader } from "~/root";
 
-export const meta: MetaFunction = ({ matches }) => {
+export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
+  matches,
+}) => {
+  const rootLoaderData = matches.find((match) => match.id === "root")?.data;
+  if (!rootLoaderData) {
+    return mergeMetaTags([{ title: "Something went wrong" }], matches);
+  }
   return mergeMetaTags(
-    [
-      { title: "All Things Web" },
-      { name: "description", content: "Bay Area events, hackathons, & more!" },
-    ],
+    getMetaTags(
+      "All Things Web",
+      "Join our tech meetups and hackathons in the Bay Area.",
+      `${rootLoaderData.serverOrigin}/`,
+      `${rootLoaderData.serverOrigin}/hero-image-rocket.png`
+    ),
     matches
   );
 };
@@ -93,7 +102,9 @@ export default function Component() {
               <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  <span>{toReadableDateTimeStr(highlightEvent.start, true)}</span>
+                  <span>
+                    {toReadableDateTimeStr(highlightEvent.start, true)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="h-4 w-4" />
@@ -164,7 +175,7 @@ export default function Component() {
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                Join Our Discord Community
+                Join our discord community                
               </h2>
               <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl">
                 Connect with fellow developers, share ideas, and stay updated on

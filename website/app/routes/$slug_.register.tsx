@@ -22,7 +22,13 @@ import {
   useNavigation,
   useParams,
 } from "@remix-run/react";
-import { CheckIcon, XIcon, CalendarDays, MapPin, CalendarIcon } from "lucide-react";
+import {
+  CheckIcon,
+  XIcon,
+  CalendarDays,
+  MapPin,
+  CalendarIcon,
+} from "lucide-react";
 import {
   getAttendeeByEmail,
   getAttendeeCount,
@@ -42,6 +48,7 @@ import { requireValidCsrfToken } from "~/modules/session/csrf.server";
 import { publishEvent } from "~/modules/inngest/events.server";
 import { toReadableDateTimeStr } from "~/modules/datetime";
 import { meta } from "~/modules/event-details/meta";
+import { useCsrfToken } from "~/modules/session/csrf";
 
 export { meta };
 
@@ -55,7 +62,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (!event) {
     return new Response("Not Found", { status: 404 });
   }
-  if(!event.enableRegistrations) {
+  if (!event.enableRegistrations) {
     return new Response("Registrations disabled. Use Luma.", { status: 400 });
   }
   const form = await request.formData();
@@ -136,7 +143,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const session = await requireUserSession(request);
   const { slug } = params;
   if (typeof slug !== "string") {
     throw new Response("Not Found", { status: 404 });
@@ -145,23 +151,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (!event) {
     throw new Response("Not Found", { status: 404 });
   }
-  if(!event.enableRegistrations) {
+  if (!event.enableRegistrations) {
     return redirect(`/${event.slug}`);
   }
   const attendeeCount = await getAttendeeCount(event.id);
   return {
-    csrfToken: session.csrfToken,
     event,
     isAtCapacity: attendeeCount >= event.attendeeLimit,
   };
 }
 
 export default function Component() {
-  const {
-    csrfToken,
-    event: eventData,
-    isAtCapacity,
-  } = useLoaderData<typeof loader>();
+  const { event: eventData, isAtCapacity } = useLoaderData<typeof loader>();
+  const csrfToken = useCsrfToken();
   const event = deserializeEvent(eventData);
   const actionData = useActionData<typeof action>();
   return (
