@@ -10,6 +10,7 @@
     "start": "NODE_ENV=production TZ=Etc/UTC bun ./server/index.ts"
   },
   "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-popover": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.0",

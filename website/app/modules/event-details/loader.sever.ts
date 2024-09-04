@@ -1,10 +1,10 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
-import { getAttendeeCount, getEventBySlug } from "../pocketbase/api.server";
+import { getAttendeeCount, getExpandedEventBySlug } from "../pocketbase/api.server";
 import { isEventInPast } from "../pocketbase/pocketbase";
 import { getAttendeeCount as getLumaAttendeeCount } from "../luma/api.server";
 
 export async function eventDetailsLoader(slug: string) {
-  const event = await getEventBySlug(slug);
+  const event = await getExpandedEventBySlug(slug);
   if (!event) {
     throw new Response("Not Found", { status: 404 });
   }

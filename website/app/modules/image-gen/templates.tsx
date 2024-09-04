@@ -86,11 +86,11 @@ export default function EventPreview({
             </div>
           </div>
         )}
-        {!!event.speakers.length && (
+        {!!event.talks.length && (
           <div tw="flex flex-col" style={{ gap: "1rem", marginLeft: "auto" }}>
             <div tw="text-2xl font-semibold">Speakers</div>
             <div tw="flex" style={{ gap: "2rem" }}>
-              {event.speakers.map((speaker) => (
+              {event.talks.map(({ speaker }) => (
                 <div
                   key={speaker.id}
                   tw="flex flex-col items-center text-center"

@@ -14,8 +14,8 @@ export type Event = {
   enableRegistrations: boolean;
   isHackathon: boolean;
   highlightOnLandingPage: boolean;
-  speakers: string[];
-  sponsors: string[];
+  talkIds: string[];
+  sponsorIds: string[];
   created: Date;
   updated: Date;
 };
@@ -34,6 +34,9 @@ export type Speaker = {
   email: string;
   title: string;
   profileImage: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  bio: string;
 };
 
 export type Sponsor = {
@@ -43,12 +46,33 @@ export type Sponsor = {
   about: string;
 };
 
-export type ExpandedEvent = Omit<Event, "speakers"| "sponsors"> & {
-  speakers: Speaker[];
+export type Talk = {
+  id: string;
+  title: string;
+  description: string;
+  speakerId: string;
+}
+
+export type ExpandedTalk = Talk & {
+  speaker: Speaker;
+};
+
+export type ExpandedEvent = Event & {
+  talks: ExpandedTalk[];
   sponsors: Sponsor[];
 };
 
 export function deserializeEvent(event: any): Event {
+  return {
+    ...event,
+    start: new Date(event.start),
+    end: new Date(event.end),
+    created: new Date(event.created),
+    updated: new Date(event.updated),
+  };
+}
+
+export function deserializeExpandedEvent(event: any): ExpandedEvent {
   return {
     ...event,
     start: new Date(event.start),

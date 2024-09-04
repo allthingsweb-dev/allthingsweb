@@ -1,18 +1,43 @@
+import { NavLink, useLoaderData } from "@remix-run/react";
 import {
   AlertCircleIcon,
   CalendarHeart,
   InfoIcon,
   UsersIcon,
 } from "lucide-react";
-import { MapPinIcon } from "../components/ui/icons";
-import { toReadableDateTimeStr, toWeekdayStr } from "../datetime";
-import { deserializeEvent, Event } from "../pocketbase/pocketbase";
-import { NavLink, useLoaderData } from "@remix-run/react";
-import { loader } from "./loader.sever";
-import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Section } from "../components/ui/section";
 import clsx from "clsx";
-import { PageLayout } from "../components/page-layout";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "~/modules/components/ui/avatar";
+import {
+  MapPinIcon,
+  LinkedInLogoIcon,
+  TwitterLogoIcon,
+} from "~/modules/components/ui/icons";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "~/modules/components/ui/alert";
+import { toReadableDateTimeStr, toWeekdayStr } from "~/modules/datetime";
+import { Section } from "~/modules/components/ui/section";
+import { PageLayout } from "~/modules/components/page-layout";
+import {
+  deserializeExpandedEvent,
+  Event,
+  ExpandedTalk,
+} from "~/modules/pocketbase/pocketbase";
+import { loader } from "./loader.sever";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 
 export function AllYouNeedToKnowSection({
   event,
@@ -71,6 +96,71 @@ export function AllYouNeedToKnowSection({
   );
 }
 
+export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
+  return (
+    <Section variant="big">
+      <div className="container mx-auto px-4">
+        <h2 className="text-3xl font-bold text-center tracking-tight mb-8">Talks</h2>
+        <div className="grid gap-8 md:grid-cols-2">
+          {talks.map((talk) => (
+            <Card key={talk.id} className="flex flex-col">
+              <CardHeader>
+                <div className="flex items-center space-x-4 mb-2">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage
+                      src={talk.speaker.profileImage}
+                      alt={talk.speaker.name}
+                    />
+                    <AvatarFallback>{talk.speaker.name}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle>
+                      {talk.speaker.name}
+                    </CardTitle>
+                    <CardDescription>{talk.speaker.title}</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-grow flex flex-col items-start gap-4">
+                <h4 className="text-2xl">{talk.title}</h4>
+                <div className="text-muted-foreground flex flex-col gap-2" dangerouslySetInnerHTML={{ __html: talk.description }} />
+                <div className="flex-grow flex flex-col items-start gap-2">
+                  <h4 className="font-semibold">About the Speaker</h4>
+                  <p className="text-muted-foreground">{talk.speaker.bio}</p>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <div className="flex justify-start gap-2 items-center">
+                  {talk.speaker.twitterUrl && (
+                    <a
+                      href={talk.speaker.twitterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <TwitterLogoIcon className="h-4 w-4" />
+                      <span className="sr-only">Twitter</span>
+                    </a>
+                  )}
+                  {talk.speaker.linkedinUrl && (
+                    <a
+                      href={talk.speaker.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <LinkedInLogoIcon className="h-5 w-5" />
+                      <span className="sr-only">LinkedIn</span>
+                    </a>
+                  )}
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
   const {
     event: eventData,
@@ -80,7 +170,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
     isInPast,
     isRegistrationDisabled,
   } = useLoaderData<typeof loader>();
-  const event = deserializeEvent(eventData);
+  const event = deserializeExpandedEvent(eventData);
   return (
     <PageLayout>
       {isAtCapacity && !isInPast && (
@@ -157,6 +247,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
         isInPast={isInPast}
       />
       {children}
+      {event.talks.length > 0 && <TalksSection talks={event.talks} />}
     </PageLayout>
   );
 }

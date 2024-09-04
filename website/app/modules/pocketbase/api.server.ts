@@ -1,6 +1,6 @@
 import PocketBase from "pocketbase";
 import { env } from "../env.server";
-import { Attendee, Event, ExpandedEvent, Speaker, Sponsor } from "./pocketbase";
+import { Attendee, Event, ExpandedEvent, ExpandedTalk, Speaker, Sponsor } from "./pocketbase";
 
 const pb = new PocketBase(env.pocketbase.origin);
 pb.autoCancellation(false);
@@ -44,13 +44,13 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   }
 }
 
-export async function getExpandedEvent(slug: string): Promise<ExpandedEvent | null> {
+export async function getExpandedEventBySlug(slug: string): Promise<ExpandedEvent | null> {
   await authenticateAdmin();
   try {
     const event = await pb
       .collection("events")
       .getFirstListItem(`slug="${slug}"`, {
-        expand: "speakers,sponsors",
+        expand: "talks,talks.speaker,sponsors",
       });
     if (!event) {
       return null;
@@ -143,8 +143,8 @@ export function toEvent(event: any): Event {
     enableRegistrations: event.enableRegistrations,
     highlightOnLandingPage: event.highlightOnLandingPage,
     isHackathon: event.isHackathon,
-    speakers: event.speakers,
-    sponsors: event.sponsors,
+    talkIds: event.talks,
+    sponsorIds: event.sponsors,
     created: new Date(event.created),
     updated: new Date(event.updated),
   };
@@ -157,6 +157,19 @@ export function toSpeaker(speaker: any): Speaker {
     email: speaker.email,
     title: speaker.title,
     profileImage: `${env.pocketbase.origin}/api/files/speakers/${speaker.id}/${speaker.profileImage}`,
+    linkedinUrl: `https://www.linkedin.com/in/${speaker.linkedinHandle}`,
+    twitterUrl: `https://twitter.com/${speaker.twitterHandle}`,
+    bio: speaker.bio,
+  };
+}
+
+export function toExpandedTalk(talk: any): ExpandedTalk {
+  return {
+    id: talk.id,
+    title: talk.title,
+    description: talk.description,
+    speakerId: talk.speaker,
+    speaker: toSpeaker(talk.expand.speaker),
   };
 }
 
@@ -172,7 +185,7 @@ export function toSponsor(sponsor: any): Sponsor {
 export function toExpandedEvent(event: any): ExpandedEvent {
   return {
     ...toEvent(event),
-    speakers: event.expand?.speakers?.map(toSpeaker) || [],
+    talks: event.expand?.talks?.map(toExpandedTalk) || [],
     sponsors: event.expand?.sponsors?.map(toSponsor) || [],
   };
 }

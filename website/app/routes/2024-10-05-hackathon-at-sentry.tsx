@@ -95,7 +95,7 @@ function MoreInformation() {
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
             The event will take place on Saturday, October 5, 2024 at the Sentry
-            office in San Francisco. Doors will open at 10:30 am. Join us for a
+            office in San Francisco. Doors will open at 11:30 am. Join us for a
             day of coding, networking, and fun!
           </p>
         </div>
