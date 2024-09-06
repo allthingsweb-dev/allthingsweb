@@ -26,3 +26,10 @@ export function toWeekdayStr(date: Date): string {
     timeZone: "America/Los_Angeles",
   });
 }
+
+export function toYearStr(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    timeZone: "America/Los_Angeles",
+  });
+}

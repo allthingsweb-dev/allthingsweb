@@ -85,7 +85,7 @@ export default function Component() {
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                   All Things Web 🚀
                 </h1>
-                <p className="max-w-[600px] text-gray-500 md:text-xl">
+                <p className="max-w-[600px] text-muted-foreground md:text-xl">
                   Discover exciting web development events in the Bay Area and
                   San Francisco. Join us for hackathons, hangouts, and meetups
                   to connect with fellow developers and web enthusiasts.
@@ -295,6 +295,7 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center"
+            variant="outline"
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
             View events on Luma calendar
@@ -318,6 +319,14 @@ function PastEventsSection({ events }: { events: Event[] }) {
             Find out what we&apos;ve been up to in the past. Check out our
             previous web development meetups and hackathons.
           </p>
+          <ButtonNavLink
+            to="/speakers"
+            className="inline-flex items-center justify-center"
+            variant="outline"
+          >
+            <UsersIcon className="mr-2 h-4 w-4" />
+            View all speakers
+          </ButtonNavLink>
         </div>
         <EventsCarousel events={events} />
       </div>

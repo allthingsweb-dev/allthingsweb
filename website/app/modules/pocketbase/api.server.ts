@@ -8,6 +8,7 @@ import {
   Link,
   Speaker,
   Sponsor,
+  Talk,
 } from "./pocketbase";
 
 const pb = new PocketBase(env.pocketbase.origin);
@@ -98,6 +99,18 @@ export async function getEventByLumaEventId(
   }
 }
 
+export async function getSpeakers(): Promise<Speaker[]> {
+  await authenticateAdmin();
+  const speakers = await pb.collection("speakers").getFullList();
+  return speakers.map(toSpeaker);
+}
+
+export async function getTalks(): Promise<Talk[]> {
+  await authenticateAdmin();
+  const talks = await pb.collection("talks").getFullList();
+  return talks.map(toTalk);
+}
+
 export async function registerAttendee(
   eventId: string,
   name: string,
@@ -147,6 +160,21 @@ export async function updateAttendeeCancellation(
   return pb.collection("attendees").update(attendeeId, { canceled });
 }
 
+export async function getLink(id: string): Promise<Link | null> {
+  try {
+    const linkData = await pb.collection("links").getOne(id);
+    if (!linkData) {
+      return null;
+    }
+    return toLink(linkData);
+  } catch (error) {
+    if (error instanceof ClientResponseError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export function toEvent(event: any): Event {
   return {
     id: event.id,
@@ -181,6 +209,15 @@ export function toSpeaker(speaker: any): Speaker {
     linkedinUrl: `https://www.linkedin.com/in/${speaker.linkedinHandle}`,
     twitterUrl: `https://twitter.com/${speaker.twitterHandle}`,
     bio: speaker.bio,
+  };
+}
+
+export function toTalk(talk: any): Talk {
+  return {
+    id: talk.id,
+    title: talk.title,
+    description: talk.description,
+    speakerId: talk.speaker,
   };
 }
 
@@ -228,17 +265,3 @@ export function toLink(link: any): Link {
   };
 }
 
-export async function getLink(id: string): Promise<Link | null> {
-  try {
-    const linkData = await pb.collection("links").getOne(id);
-    if (!linkData) {
-      return null;
-    }
-    return toLink(linkData);
-  } catch (error) {
-    if (error instanceof ClientResponseError && error.status === 404) {
-      return null;
-    }
-    throw error;
-  }
-}

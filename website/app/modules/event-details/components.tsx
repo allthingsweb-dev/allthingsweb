@@ -98,7 +98,7 @@ export function AllYouNeedToKnowSection({
 
 export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
   return (
-    <Section variant="big">
+    <Section id="talks" variant="big">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center tracking-tight mb-8">Talks</h2>
         <div className="grid gap-8 md:grid-cols-2">
