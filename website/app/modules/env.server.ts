@@ -5,6 +5,8 @@ invariant(sessionSecret, "SESSION_SECRET env variable is required");
 
 const pocketbaseOrigin = process.env.POCKETBASE_ORIGIN;
 invariant(pocketbaseOrigin, "POCKETBASE_ORIGIN env variable is required");
+const publicPocketbaseOrigin = process.env.PUBLIC_POCKETBASE_ORIGIN;
+invariant(publicPocketbaseOrigin, "PUBLIC_POCKETBASE_ORIGIN env variable is required");
 
 const pocketbaseAdminEmail = process.env.POCKETBASE_EMAIL;
 invariant(pocketbaseAdminEmail, "POCKETBASE_EMAIL env variable is required");
@@ -42,6 +44,7 @@ export const env = {
   sessionSecret,
   pocketbase: {
     origin: pocketbaseOrigin,
+    publicOrigin: publicPocketbaseOrigin,
     adminEmail: pocketbaseAdminEmail,
     adminPassword: pocketbaseAdminPassword,
   },

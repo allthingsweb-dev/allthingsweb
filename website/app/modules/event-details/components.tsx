@@ -212,7 +212,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
                 <NavLink
                   to={
                     event.enableRegistrations
-                      ? `/${event.slug}/register`
+                      ? `/${event.slug}/register?utm_source=web`
                       : event.lumaUrl
                   }
                   className={clsx(

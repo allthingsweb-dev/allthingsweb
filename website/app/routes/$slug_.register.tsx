@@ -49,6 +49,7 @@ import { publishEvent } from "~/modules/inngest/events.server";
 import { toReadableDateTimeStr } from "~/modules/datetime";
 import { meta } from "~/modules/event-details/meta";
 import { useCsrfToken } from "~/modules/session/csrf";
+import { notFound } from "~/modules/responses.server";
 
 export { meta };
 
@@ -56,11 +57,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const session = await getUserSession(request);
   const { slug } = params;
   if (typeof slug !== "string") {
-    return new Response("Not Found", { status: 404 });
+    return notFound();
   }
   const event = await getEventBySlug(slug);
   if (!event) {
-    return new Response("Not Found", { status: 404 });
+    return notFound();
   }
   if (!event.enableRegistrations) {
     return new Response("Registrations disabled. Use Luma.", { status: 400 });
@@ -145,11 +146,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { slug } = params;
   if (typeof slug !== "string") {
-    throw new Response("Not Found", { status: 404 });
+    throw notFound();
   }
   const event = await getEventBySlug(slug);
   if (!event) {
-    throw new Response("Not Found", { status: 404 });
+    throw notFound();
   }
   if (!event.enableRegistrations) {
     return redirect(`/${event.slug}`);

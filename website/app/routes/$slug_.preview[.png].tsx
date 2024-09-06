@@ -5,15 +5,16 @@ import { getFont } from "~/modules/image-gen/utils.server";
 import EventPreview from "~/modules/image-gen/templates";
 import { getExpandedEventBySlug } from "~/modules/pocketbase/api.server";
 import { env } from "~/modules/env.server";
+import { notFound } from "~/modules/responses.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { slug } = params;
   if (typeof slug !== "string") {
-    throw new Response("Not Found", { status: 404 });
+    throw notFound();
   }
   const event = await getExpandedEventBySlug(slug);
   if (!event) {
-    throw new Response("Not Found", { status: 404 });
+    throw notFound();
   }
 
   const jsx = (

@@ -62,6 +62,11 @@ export type ExpandedEvent = Event & {
   sponsors: Sponsor[];
 };
 
+export type Link = {
+  id: string;
+  destinationUrl: string;
+}
+
 export function deserializeEvent(event: any): Event {
   return {
     ...event,

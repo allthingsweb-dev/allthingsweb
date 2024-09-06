@@ -1,12 +1,20 @@
-import PocketBase from "pocketbase";
+import PocketBase, { ClientResponseError } from "pocketbase";
 import { env } from "../env.server";
-import { Attendee, Event, ExpandedEvent, ExpandedTalk, Speaker, Sponsor } from "./pocketbase";
+import {
+  Attendee,
+  Event,
+  ExpandedEvent,
+  ExpandedTalk,
+  Link,
+  Speaker,
+  Sponsor,
+} from "./pocketbase";
 
 const pb = new PocketBase(env.pocketbase.origin);
 pb.autoCancellation(false);
 
 export async function authenticateAdmin() {
-  if(!pb.authStore.isValid) {
+  if (!pb.authStore.isValid) {
     await pb.admins.authWithPassword(
       env.pocketbase.adminEmail,
       env.pocketbase.adminPassword
@@ -44,7 +52,9 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   }
 }
 
-export async function getExpandedEventBySlug(slug: string): Promise<ExpandedEvent | null> {
+export async function getExpandedEventBySlug(
+  slug: string
+): Promise<ExpandedEvent | null> {
   await authenticateAdmin();
   try {
     const event = await pb
@@ -62,7 +72,9 @@ export async function getExpandedEventBySlug(slug: string): Promise<ExpandedEven
   }
 }
 
-export async function getEventByLumaEventId(lumaEventId: string): Promise<Event | null> {
+export async function getEventByLumaEventId(
+  lumaEventId: string
+): Promise<Event | null> {
   await authenticateAdmin();
   try {
     const event = await pb
@@ -156,7 +168,7 @@ export function toSpeaker(speaker: any): Speaker {
     name: speaker.name,
     email: speaker.email,
     title: speaker.title,
-    profileImage: `${env.pocketbase.origin}/api/files/speakers/${speaker.id}/${speaker.profileImage}`,
+    profileImage: `${env.pocketbase.publicOrigin}/api/files/speakers/${speaker.id}/${speaker.profileImage}`,
     linkedinUrl: `https://www.linkedin.com/in/${speaker.linkedinHandle}`,
     twitterUrl: `https://twitter.com/${speaker.twitterHandle}`,
     bio: speaker.bio,
@@ -177,7 +189,7 @@ export function toSponsor(sponsor: any): Sponsor {
   return {
     id: sponsor.id,
     name: sponsor.name,
-    rectangularLogo: `${env.pocketbase.origin}/api/files/sponsors/${sponsor.id}/${sponsor.rectangularLogo}`,
+    rectangularLogo: `${env.pocketbase.publicOrigin}/api/files/sponsors/${sponsor.id}/${sponsor.rectangularLogo}`,
     about: sponsor.about,
   };
 }
@@ -198,4 +210,26 @@ export function toAttendee(attendee: any): Attendee {
     email: attendee.email,
     canceled: attendee.canceled,
   };
+}
+
+export function toLink(link: any): Link {
+  return {
+    id: link.id,
+    destinationUrl: link.destinationUrl,
+  };
+}
+
+export async function getLink(id: string): Promise<Link | null> {
+  try {
+    const linkData = await pb.collection("links").getOne(id);
+    if (!linkData) {
+      return null;
+    }
+    return toLink(linkData);
+  } catch (error) {
+    if(error instanceof ClientResponseError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }

@@ -9,19 +9,20 @@ import {
   updateAttendeeCancellation,
 } from "~/modules/pocketbase/api.server";
 import { trackEvent } from "~/modules/posthog/posthog.server";
+import { notFound } from "~/modules/responses.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const attendeeId = new URL(request.url).searchParams.get("attendee");
   if (!attendeeId) {
-    throw new Response("Not Found", { status: 404 });
+    throw notFound();
   }
   const { slug } = params;
   if (typeof slug !== "string") {
-    throw new Response("Not Found", { status: 404 });
+    throw notFound();
   }
   const event = await getEventBySlug(slug);
   if (!event) {
-    throw new Response("Not Found", { status: 404 });
+    throw notFound();
   }
   await updateAttendeeCancellation(attendeeId, true);
   trackEvent("attendee canceled", event.slug, {

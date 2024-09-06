@@ -133,7 +133,7 @@ export default function Component() {
                 here or on Luma.
               </p>
               <ButtonAnchor
-                href="https://lu.ma/allthingsweb"
+                href="https://lu.ma/allthingsweb?utm_source=web"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center"
