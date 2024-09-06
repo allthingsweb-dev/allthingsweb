@@ -1,5 +1,11 @@
-import { useLoaderData } from "@remix-run/react";
-import { ButtonAnchor, ButtonNavLink } from "~/modules/components/ui/button";
+import { Suspense, useCallback } from "react";
+import { Await, useLoaderData } from "@remix-run/react";
+import useEmblaCarousel from "embla-carousel-react";
+import {
+  Button,
+  ButtonAnchor,
+  ButtonNavLink,
+} from "~/modules/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,17 +17,23 @@ import {
 import {
   ArrowRightIcon,
   CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   MapPinIcon,
   UsersIcon,
 } from "lucide-react";
-import { getUpcomingEvents } from "~/modules/pocketbase/api.server";
+import {
+  getPastEvents,
+  getUpcomingEvents,
+} from "~/modules/pocketbase/api.server";
 import { PageLayout } from "~/modules/components/page-layout";
 import { Section } from "~/modules/components/ui/section";
 import { toReadableDateTimeStr } from "~/modules/datetime";
-import { deserializeEvent } from "~/modules/pocketbase/pocketbase";
+import { deserializeEvent, Event } from "~/modules/pocketbase/pocketbase";
 import { getMetaTags, mergeMetaTags } from "~/modules/meta";
-import { MetaFunction } from "@remix-run/node";
+import { defer, MetaFunction } from "@remix-run/node";
 import { type loader as rootLoader } from "~/root";
+import { Skeleton } from "~/modules/components/ui/skeleton";
 
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
   matches,
@@ -47,13 +59,18 @@ export async function loader() {
   const remainingEvents = events.filter(
     (event) => event.id !== highlightEvent?.id
   );
-  return { highlightEvent, remainingEvents };
+  return defer({
+    highlightEvent,
+    remainingEvents,
+    pastEventsPromise: getPastEvents(),
+  });
 }
 
 export default function Component() {
   const {
     highlightEvent: highlightEventData,
     remainingEvents: remainingEventsData,
+    pastEventsPromise,
   } = useLoaderData<typeof loader>();
   const highlightEvent = deserializeEvent(highlightEventData);
   const remainingEvents = remainingEventsData.map(deserializeEvent);
@@ -65,7 +82,7 @@ export default function Component() {
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-gray-800">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                   All Things Web 🚀
                 </h1>
                 <p className="max-w-[600px] text-gray-500 md:text-xl">
@@ -92,7 +109,7 @@ export default function Component() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-gray-800">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                   Join {highlightEvent.name}
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
@@ -122,60 +139,14 @@ export default function Component() {
         </Section>
       )}
       {remainingEvents.length > 0 && (
-        <Section variant="big">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center space-y-4 text-center mb-8">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                Other events
-              </h2>
-              <p className="text-gray-500 md:text-xl">
-                Discover more upcoming web development events in the Bay Area
-                here or on Luma.
-              </p>
-              <ButtonAnchor
-                href="https://lu.ma/allthingsweb?utm_source=web"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                View events on Luma calendar
-              </ButtonAnchor>
-            </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {remainingEvents.map((event) => (
-                <Card key={event.id}>
-                  <CardHeader>
-                    <CardTitle>{event.name}</CardTitle>
-                    <CardDescription>{event.tagline}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <CalendarIcon className="h-4 w-4" />
-                      <span>{toReadableDateTimeStr(event.start, true)}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500 mt-2">
-                      <MapPinIcon className="h-4 w-4" />
-                      <span>{event.shortLocation}</span>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <ButtonNavLink to={`/${event.slug}`} variant="outline">
-                      See details
-                    </ButtonNavLink>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </Section>
+        <OtherUpcomingEventsSection events={remainingEvents} />
       )}
       <Section variant="big" className="bg-indigo-600 text-white">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                Join us on Discord                
+                Join us on Discord
               </h2>
               <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl">
                 Connect with fellow developers, share ideas, and stay updated on
@@ -196,6 +167,225 @@ export default function Component() {
           </div>
         </div>
       </Section>
+      <Suspense fallback={<PendingPastEventsSection />}>
+        <Await resolve={pastEventsPromise}>
+          {(pastEvents) => (
+            <PastEventsSection events={pastEvents.map(deserializeEvent)} />
+          )}
+        </Await>
+      </Suspense>
     </PageLayout>
+  );
+}
+
+function EventCard({ event }: { event: Event }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{event.name}</CardTitle>
+        <CardDescription>{event.tagline}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+          <CalendarIcon className="h-4 w-4" />
+          <span>{toReadableDateTimeStr(event.start, true)}</span>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-2">
+          <MapPinIcon className="h-4 w-4" />
+          <span>{event.shortLocation}</span>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <ButtonNavLink to={`/${event.slug}`} variant="outline">
+          See details
+        </ButtonNavLink>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function EventsCarousel({ events }: { events: Event[] }) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    align: "start",
+  });
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  return (
+    <div className="relative">
+      <div className="overflow-hidden" ref={emblaRef}>
+        <div className="flex">
+          {events.map((event) => (
+            <div
+              key={event.id}
+              className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4"
+            >
+              <EventCard event={event} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute -left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+        onClick={scrollPrev}
+      >
+        <ChevronLeftIcon className="h-4 w-4" />
+        <span className="sr-only">Previous slide</span>
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute -right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+        onClick={scrollNext}
+      >
+        <ChevronRightIcon className="h-4 w-4" />
+        <span className="sr-only">Next slide</span>
+      </Button>
+    </div>
+  );
+}
+
+function SkeletonEventCard() {
+  return (
+    <Card className="h-full flex flex-col">
+      <CardContent className="flex-grow p-6 space-y-4">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-4 w-4" />
+          <Skeleton className="h-4 w-1/4" />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-4 w-4" />
+          <Skeleton className="h-4 w-1/3" />
+        </div>
+      </CardContent>
+      <CardFooter className="p-6 pt-0">
+        <Skeleton className="h-10 w-full" />
+      </CardFooter>
+    </Card>
+  );
+}
+
+function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
+  return (
+    <Section variant="big">
+      <div className="container px-4 md:px-6">
+        <div className="flex flex-col items-center space-y-4 text-center mb-8">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+            Other events
+          </h2>
+          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+            Discover more upcoming web development events in the Bay Area here
+            or on Luma.
+          </p>
+          <ButtonAnchor
+            href="https://lu.ma/allthingsweb?utm_source=web"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center"
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            View events on Luma calendar
+          </ButtonAnchor>
+        </div>
+        <EventsCarousel events={events} />
+      </div>
+    </Section>
+  );
+}
+
+function PastEventsSection({ events }: { events: Event[] }) {
+  return (
+    <Section variant="big">
+      <div className="container px-4 md:px-6">
+        <div className="flex flex-col items-center space-y-4 text-center mb-8">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">
+            Past events
+          </h2>
+          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+            Find out what we&apos;ve been up to in the past. Check out our
+            previous web development meetups and hackathons.
+          </p>
+        </div>
+        <EventsCarousel events={events} />
+      </div>
+    </Section>
+  );
+}
+
+function PendingPastEventsSection() {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    align: "start",
+  });
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  return (
+    <Section variant="big">
+      <div className="container px-4 md:px-6">
+        <div className="flex flex-col items-center space-y-4 text-center mb-8">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">
+            Past events
+          </h2>
+          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+            Find out what we&apos;ve been up to in the past. Check out our
+            previous web development meetups and hackathons.
+          </p>
+        </div>
+        <div className="relative">
+          <div className="overflow-hidden" ref={emblaRef}>
+            <div className="flex">
+              {Array(4)
+                .fill(0)
+                .map((_, index) => (
+                  <div
+                    key={index}
+                    className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4"
+                  >
+                    <SkeletonEventCard />
+                  </div>
+                ))}
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute -left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+            onClick={scrollPrev}
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+            <span className="sr-only">Previous slide</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute -right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+            onClick={scrollNext}
+          >
+            <ChevronRightIcon className="h-4 w-4" />
+            <span className="sr-only">Next slide</span>
+          </Button>
+        </div>
+      </div>
+    </Section>
   );
 }

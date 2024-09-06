@@ -37,18 +37,28 @@ export async function getUpcomingEvents(): Promise<Event[]> {
   return resultList.map(toEvent);
 }
 
+export async function getPastEvents(): Promise<Event[]> {
+  await authenticateAdmin();
+
+  const resultList = await pb.collection("events").getFullList({
+    filter: `start < "${new Date().toISOString()}"`,
+    sort: "-start",
+  });
+  return resultList.map(toEvent);
+}
+
 export async function getEventBySlug(slug: string): Promise<Event | null> {
   await authenticateAdmin();
   try {
     const event = await pb
       .collection("events")
       .getFirstListItem(`slug="${slug}"`);
-    if (!event) {
-      return null;
-    }
     return toEvent(event);
   } catch (error) {
-    return null;
+    if (error instanceof ClientResponseError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -62,13 +72,12 @@ export async function getExpandedEventBySlug(
       .getFirstListItem(`slug="${slug}"`, {
         expand: "talks,talks.speaker,sponsors",
       });
-    if (!event) {
-      return null;
-    }
     return toExpandedEvent(event);
   } catch (error) {
-    console.error(error);
-    return null;
+    if (error instanceof ClientResponseError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -80,12 +89,12 @@ export async function getEventByLumaEventId(
     const event = await pb
       .collection("events")
       .getFirstListItem(`lumaEventId="${lumaEventId}"`);
-    if (!event) {
-      return null;
-    }
     return toEvent(event);
   } catch (error) {
-    return null;
+    if (error instanceof ClientResponseError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -108,12 +117,12 @@ export async function getAttendeeByEmail(eventId: string, email: string) {
     const attendee = await pb
       .collection("attendees")
       .getFirstListItem(`event="${eventId}" && email="${email}"`);
-    if (!attendee) {
-      return null;
-    }
     return toAttendee(attendee);
   } catch (error) {
-    return null;
+    if (error instanceof ClientResponseError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -227,7 +236,7 @@ export async function getLink(id: string): Promise<Link | null> {
     }
     return toLink(linkData);
   } catch (error) {
-    if(error instanceof ClientResponseError && error.status === 404) {
+    if (error instanceof ClientResponseError && error.status === 404) {
       return null;
     }
     throw error;
