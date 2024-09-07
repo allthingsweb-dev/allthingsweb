@@ -1,64 +1,39 @@
-import { Suspense, useCallback } from "react";
-import { Await, useLoaderData } from "@remix-run/react";
-import useEmblaCarousel from "embla-carousel-react";
-import {
-  Button,
-  ButtonAnchor,
-  ButtonNavLink,
-} from "~/modules/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/modules/components/ui/card";
-import {
-  ArrowRightIcon,
-  CalendarIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MapPinIcon,
-  UsersIcon,
-} from "lucide-react";
-import {
-  getPastEvents,
-  getUpcomingEvents,
-} from "~/modules/pocketbase/api.server";
-import { PageLayout } from "~/modules/components/page-layout";
-import { Section } from "~/modules/components/ui/section";
-import { toReadableDateTimeStr } from "~/modules/datetime";
-import { deserializeEvent, Event } from "~/modules/pocketbase/pocketbase";
-import { getMetaTags, mergeMetaTags } from "~/modules/meta";
-import { defer, MetaFunction } from "@remix-run/node";
-import { type loader as rootLoader } from "~/root";
-import { Skeleton } from "~/modules/components/ui/skeleton";
+import { Suspense, useCallback } from 'react';
+import { Await, useLoaderData } from '@remix-run/react';
+import useEmblaCarousel from 'embla-carousel-react';
+import { Button, ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
+import { ArrowRightIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, MapPinIcon, UsersIcon } from 'lucide-react';
+import { getPastEvents, getUpcomingEvents } from '~/modules/pocketbase/api.server';
+import { PageLayout } from '~/modules/components/page-layout';
+import { Section } from '~/modules/components/ui/section';
+import { toReadableDateTimeStr } from '~/modules/datetime';
+import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
+import { getMetaTags, mergeMetaTags } from '~/modules/meta';
+import { defer, MetaFunction } from '@remix-run/node';
+import { type loader as rootLoader } from '~/root';
+import { Skeleton } from '~/modules/components/ui/skeleton';
 
-export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
-  matches,
-}) => {
-  const rootLoaderData = matches.find((match) => match.id === "root")?.data;
+export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
+  const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
   if (!rootLoaderData) {
-    return mergeMetaTags([{ title: "Something went wrong" }], matches);
+    return mergeMetaTags([{ title: 'Something went wrong' }], matches);
   }
   return mergeMetaTags(
     getMetaTags(
-      "All Things Web",
-      "Join our tech meetups and hackathons in the Bay Area.",
+      'All Things Web',
+      'Join our tech meetups and hackathons in the Bay Area.',
       `${rootLoaderData.serverOrigin}/`,
-      `${rootLoaderData.serverOrigin}/hero-image-rocket.png`
+      `${rootLoaderData.serverOrigin}/hero-image-rocket.png`,
     ),
-    matches
+    matches,
   );
 };
 
 export async function loader() {
   const events = await getUpcomingEvents();
   const highlightEvent = events.find((event) => event.highlightOnLandingPage);
-  const remainingEvents = events.filter(
-    (event) => event.id !== highlightEvent?.id
-  );
+  const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
   return defer({
     highlightEvent,
     remainingEvents,
@@ -82,13 +57,10 @@ export default function Component() {
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                  All Things Web 🚀
-                </h1>
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">All Things Web 🚀</h1>
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  Discover exciting web development events in the Bay Area and
-                  San Francisco. Join us for hackathons, hangouts, and meetups
-                  to connect with fellow developers and web enthusiasts.
+                  Discover exciting web development events in the Bay Area and San Francisco. Join us for hackathons,
+                  hangouts, and meetups to connect with fellow developers and web enthusiasts.
                 </p>
               </div>
             </div>
@@ -119,9 +91,7 @@ export default function Component() {
               <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  <span>
-                    {toReadableDateTimeStr(highlightEvent.start, true)}
-                  </span>
+                  <span>{toReadableDateTimeStr(highlightEvent.start, true)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="h-4 w-4" />
@@ -138,19 +108,14 @@ export default function Component() {
           </div>
         </Section>
       )}
-      {remainingEvents.length > 0 && (
-        <OtherUpcomingEventsSection events={remainingEvents} />
-      )}
+      {remainingEvents.length > 0 && <OtherUpcomingEventsSection events={remainingEvents} />}
       <Section variant="big" className="bg-indigo-600 text-white">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                Join us on Discord
-              </h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Join us on Discord</h2>
               <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl">
-                Connect with fellow developers, share ideas, and stay updated on
-                the latest events and opportunities.
+                Connect with fellow developers, share ideas, and stay updated on the latest events and opportunities.
               </p>
             </div>
             <div className="space-x-4">
@@ -169,16 +134,14 @@ export default function Component() {
       </Section>
       <Suspense fallback={<PendingPastEventsSection />}>
         <Await resolve={pastEventsPromise}>
-          {(pastEvents) => (
-            <PastEventsSection events={pastEvents.map(deserializeEvent)} />
-          )}
+          {(pastEvents) => <PastEventsSection events={pastEvents.map(deserializeEvent)} />}
         </Await>
       </Suspense>
     </PageLayout>
   );
 }
 
-function EventCard({ event, className }: { event: Event, className?: string }) {
+function EventCard({ event, className }: { event: Event; className?: string }) {
   return (
     <Card className={className}>
       <CardHeader>
@@ -207,7 +170,7 @@ function EventCard({ event, className }: { event: Event, className?: string }) {
 function EventsCarousel({ events }: { events: Event[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
-    align: "start",
+    align: 'start',
   });
 
   const scrollPrev = useCallback(() => {
@@ -224,7 +187,7 @@ function EventsCarousel({ events }: { events: Event[] }) {
         <div className="flex items-stretch">
           {events.map((event) => (
             <div key={event.id} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4">
-             <EventCard className="h-full" event={event} />
+              <EventCard className="h-full" event={event} />
             </div>
           ))}
         </div>
@@ -280,12 +243,9 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
     <Section variant="big">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-            Other events
-          </h2>
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Other events</h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
-            Discover more upcoming web development events in the Bay Area here
-            or on Luma.
+            Discover more upcoming web development events in the Bay Area here or on Luma.
           </p>
           <ButtonAnchor
             href="https://lu.ma/allthingsweb?utm_source=web"
@@ -309,18 +269,12 @@ function PastEventsSection({ events }: { events: Event[] }) {
     <Section variant="big">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">
-            Past events
-          </h2>
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">Past events</h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
-            Find out what we&apos;ve been up to in the past. Check out our
-            previous web development meetups and hackathons.
+            Find out what we&apos;ve been up to in the past. Check out our previous web development meetups and
+            hackathons.
           </p>
-          <ButtonNavLink
-            to="/speakers"
-            className="inline-flex items-center justify-center"
-            variant="outline"
-          >
+          <ButtonNavLink to="/speakers" className="inline-flex items-center justify-center" variant="outline">
             <UsersIcon className="mr-2 h-4 w-4" />
             View all speakers
           </ButtonNavLink>
@@ -334,7 +288,7 @@ function PastEventsSection({ events }: { events: Event[] }) {
 function PendingPastEventsSection() {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
-    align: "start",
+    align: 'start',
   });
 
   const scrollPrev = useCallback(() => {
@@ -349,12 +303,10 @@ function PendingPastEventsSection() {
     <Section variant="big">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">
-            Past events
-          </h2>
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">Past events</h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
-            Find out what we&apos;ve been up to in the past. Check out our
-            previous web development meetups and hackathons.
+            Find out what we&apos;ve been up to in the past. Check out our previous web development meetups and
+            hackathons.
           </p>
         </div>
         <div className="relative">
@@ -363,10 +315,7 @@ function PendingPastEventsSection() {
               {Array(4)
                 .fill(0)
                 .map((_, index) => (
-                  <div
-                    key={index}
-                    className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4"
-                  >
+                  <div key={index} className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4">
                     <SkeletonEventCard />
                   </div>
                 ))}

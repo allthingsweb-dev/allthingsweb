@@ -1,6 +1,6 @@
-import { env } from "~/modules/env.server";
-import { Event } from "~/modules/pocketbase/pocketbase";
-import { getEvents } from "~/modules/pocketbase/api.server";
+import { env } from '~/modules/env.server';
+import { Event } from '~/modules/pocketbase/pocketbase';
+import { getEvents } from '~/modules/pocketbase/api.server';
 
 function generateRSS(events: Event[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -10,14 +10,16 @@ function generateRSS(events: Event[], origin: string) {
         <description>Sup! Subscribe to stay up to date with our monthly events.</description>
         <link>${origin}</link>
         <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-        ${events.map((event) => `<item>
+        ${events
+          .map(
+            (event) => `<item>
             <title>${event.name}</title>
             <description>${event.tagline}</description>
             <link>${origin}/${event.slug}</link>
             <pubDate>${event.created.toUTCString()}</pubDate>
-        </item>`
+        </item>`,
           )
-          .join("\n")}
+          .join('\n')}
     </channel>
 </rss>`;
 }
@@ -26,7 +28,7 @@ export async function loader() {
   const events = await getEvents();
   return new Response(generateRSS(events, env.server.origin), {
     headers: {
-      "content-type": "application/rss+xml",
+      'content-type': 'application/rss+xml',
     },
   });
 }

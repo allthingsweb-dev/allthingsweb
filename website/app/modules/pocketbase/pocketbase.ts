@@ -51,7 +51,7 @@ export type Talk = {
   title: string;
   description: string;
   speakerId: string;
-}
+};
 
 export type ExpandedTalk = Talk & {
   speaker: Speaker;
@@ -65,7 +65,7 @@ export type ExpandedEvent = Event & {
 export type Link = {
   id: string;
   destinationUrl: string;
-}
+};
 
 export function deserializeEvent(event: any): Event {
   return {
@@ -94,5 +94,3 @@ export function isEventInPast(event: Event) {
 export function hasEventStarted(event: Event) {
   return event.start < new Date();
 }
-
-

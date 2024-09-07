@@ -1,6 +1,6 @@
-import { serve } from "inngest/remix";
-import { inngest } from "~/modules/inngest/inngest.server";
-import { eventAttendeeRegisteredFn } from "~/modules/inngest/functions.server";
+import { serve } from 'inngest/remix';
+import { inngest } from '~/modules/inngest/inngest.server';
+import { eventAttendeeRegisteredFn } from '~/modules/inngest/functions.server';
 
 const handler = serve({
   client: inngest,

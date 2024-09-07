@@ -1,12 +1,12 @@
-import { isRouteErrorResponse, NavLink, useRouteError } from "@remix-run/react";
-import { ArrowLeft } from "lucide-react";
+import { isRouteErrorResponse, NavLink, useRouteError } from '@remix-run/react';
+import { ArrowLeft } from 'lucide-react';
 
 export function ErrorPage() {
   const error = useRouteError();
 
   const heading =
     isRouteErrorResponse(error) && error.status === 404
-      ? "Oops, this page does not exist!"
+      ? 'Oops, this page does not exist!'
       : "Oops, you've found a glitch!";
   const paragraph =
     isRouteErrorResponse(error) && error.status === 404
@@ -22,11 +22,9 @@ export function ErrorPage() {
           height="300"
           alt="404 Illustration"
           className="mx-auto"
-          style={{ aspectRatio: "300/300", objectFit: "cover" }}
+          style={{ aspectRatio: '300/300', objectFit: 'cover' }}
         />
-        <h1 className="mt-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          {heading}
-        </h1>
+        <h1 className="mt-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{heading}</h1>
         <p className="mt-4 text-muted-foreground">{paragraph}</p>
         <div className="mt-6">
           <NavLink

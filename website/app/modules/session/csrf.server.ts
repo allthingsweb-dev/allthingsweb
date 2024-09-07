@@ -11,9 +11,14 @@ async function validateCsrfToken(tokenFromSession: string | null | undefined, to
   return tokenFromSession === token;
 }
 
-export async function requireValidCsrfToken(tokenFromSession: string | null | undefined, token: FormDataEntryValue | null) {
+export async function requireValidCsrfToken(
+  tokenFromSession: string | null | undefined,
+  token: FormDataEntryValue | null,
+) {
   const isValid = await validateCsrfToken(tokenFromSession, token);
   if (!isValid) {
-    throw new Response('Invalid CSRF token. Do not use third-party tools.', { status: 403 });
+    throw new Response('Invalid CSRF token. Do not use third-party tools.', {
+      status: 403,
+    });
   }
 }

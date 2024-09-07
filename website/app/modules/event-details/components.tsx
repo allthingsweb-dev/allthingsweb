@@ -1,44 +1,15 @@
-import { NavLink, useLoaderData } from "@remix-run/react";
-import {
-  AlertCircleIcon,
-  CalendarHeart,
-  InfoIcon,
-  UsersIcon,
-} from "lucide-react";
-import clsx from "clsx";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "~/modules/components/ui/avatar";
-import {
-  MapPinIcon,
-  LinkedInLogoIcon,
-  TwitterLogoIcon,
-} from "~/modules/components/ui/icons";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "~/modules/components/ui/alert";
-import { toReadableDateTimeStr, toWeekdayStr } from "~/modules/datetime";
-import { Section } from "~/modules/components/ui/section";
-import { PageLayout } from "~/modules/components/page-layout";
-import {
-  deserializeExpandedEvent,
-  Event,
-  ExpandedTalk,
-  Sponsor,
-} from "~/modules/pocketbase/pocketbase";
-import { loader } from "./loader.sever";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { NavLink, useLoaderData } from '@remix-run/react';
+import { AlertCircleIcon, CalendarHeart, InfoIcon, UsersIcon } from 'lucide-react';
+import clsx from 'clsx';
+import { Avatar, AvatarFallback, AvatarImage } from '~/modules/components/ui/avatar';
+import { MapPinIcon, LinkedInLogoIcon, TwitterLogoIcon } from '~/modules/components/ui/icons';
+import { Alert, AlertDescription, AlertTitle } from '~/modules/components/ui/alert';
+import { toReadableDateTimeStr, toWeekdayStr } from '~/modules/datetime';
+import { Section } from '~/modules/components/ui/section';
+import { PageLayout } from '~/modules/components/page-layout';
+import { deserializeExpandedEvent, Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
+import { loader } from './loader.sever';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 
 export function AllYouNeedToKnowSection({
   event,
@@ -60,10 +31,10 @@ export function AllYouNeedToKnowSection({
           <div>
             <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
               {!isInPast && attendeeCount < attendeeLimit
-                ? "Spots available"
+                ? 'Spots available'
                 : !isInPast && attendeeCount >= attendeeLimit
-                ? "At capacity"
-                : "Event has ended"}
+                  ? 'At capacity'
+                  : 'Event has ended'}
             </h3>
             <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
               {attendeeCount} / {attendeeLimit} guests registered
@@ -73,20 +44,14 @@ export function AllYouNeedToKnowSection({
         <div className="flex items-center gap-4">
           <MapPinIcon className="h-12 w-12 text-primary" />
           <div>
-            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-              {event.shortLocation}
-            </h3>
-            <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
-              {event.streetAddress}
-            </p>
+            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">{event.shortLocation}</h3>
+            <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">{event.streetAddress}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <CalendarHeart className="h-12 w-12 text-primary" />
           <div>
-            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-              {toWeekdayStr(event.start)}
-            </h3>
+            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">{toWeekdayStr(event.start)}</h3>
             <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
               {toReadableDateTimeStr(event.start, true)}
             </p>
@@ -101,19 +66,14 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
   return (
     <Section id="talks" variant="big">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center tracking-tight mb-8">
-          Talks
-        </h2>
+        <h2 className="text-3xl font-bold text-center tracking-tight mb-8">Talks</h2>
         <div className="grid gap-8 md:grid-cols-2">
           {talks.map((talk) => (
             <Card key={talk.id} className="flex flex-col">
               <CardHeader>
                 <div className="flex items-center space-x-4 mb-2">
                   <Avatar className="w-12 h-12">
-                    <AvatarImage
-                      src={talk.speaker.profileImage}
-                      alt={talk.speaker.name}
-                    />
+                    <AvatarImage src={talk.speaker.profileImage} alt={talk.speaker.name} />
                     <AvatarFallback>{talk.speaker.name}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -136,21 +96,13 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
               <CardFooter>
                 <div className="flex justify-start gap-2 items-center">
                   {talk.speaker.twitterUrl && (
-                    <a
-                      href={talk.speaker.twitterUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <a href={talk.speaker.twitterUrl} target="_blank" rel="noopener noreferrer">
                       <TwitterLogoIcon className="h-4 w-4" />
                       <span className="sr-only">Twitter</span>
                     </a>
                   )}
                   {talk.speaker.linkedinUrl && (
-                    <a
-                      href={talk.speaker.linkedinUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <a href={talk.speaker.linkedinUrl} target="_blank" rel="noopener noreferrer">
                       <LinkedInLogoIcon className="h-5 w-5" />
                       <span className="sr-only">LinkedIn</span>
                     </a>
@@ -170,26 +122,20 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
     <Section variant="big">
       <div className="container px-4 md:px-6 mx-auto max-w-4xl">
         <h2 className="text-3xl font-bold md:text-center mb-8">
-          {sponsors.length === 1 ? "Event Sponsor" : "Event Sponsors"}
+          {sponsors.length === 1 ? 'Event Sponsor' : 'Event Sponsors'}
         </h2>
         <div className="flex flex-col gap-4 md:gap-8 items-center justify-center">
-        {sponsors.map((sponsor) => (
-          <div key={sponsor.id} className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8">
-              <img
-                src={sponsor.rectangularLogo}
-                className="w-12"
-                alt={sponsor.name}
-              />
-              <div className="text-left">
-                <h3 className="text-2xl font-semibold mb-4">{sponsor.name}</h3>
-                <p className="text-muted-foreground">
-                  {sponsor.about}
-                </p>
+          {sponsors.map((sponsor) => (
+            <div key={sponsor.id} className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto">
+              <div className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8">
+                <img src={sponsor.rectangularLogo} className="w-12" alt={sponsor.name} />
+                <div className="text-left">
+                  <h3 className="text-2xl font-semibold mb-4">{sponsor.name}</h3>
+                  <p className="text-muted-foreground">{sponsor.about}</p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
         </div>
       </div>
     </Section>
@@ -214,8 +160,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
             <AlertCircleIcon className="h-6 w-6 text-destructive pr-2" />
             <AlertTitle>Registration closed</AlertTitle>
             <AlertDescription>
-              We are full. Please check back later for possible openings or
-              future events. Thank you for your interest!
+              We are full. Please check back later for possible openings or future events. Thank you for your interest!
             </AlertDescription>
           </Alert>
         </div>
@@ -225,9 +170,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
           <Alert>
             <InfoIcon className="h-6 w-6 text-primary pr-2" />
             <AlertTitle>Past event</AlertTitle>
-            <AlertDescription>
-              This event has ended. Thank you for joining us!
-            </AlertDescription>
+            <AlertDescription>This event has ended. Thank you for joining us!</AlertDescription>
           </Alert>
         </div>
       )}
@@ -236,32 +179,22 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                  {event.name}
-                </h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  {event.tagline}
-                </p>
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">{event.name}</h1>
+                <p className="max-w-[600px] text-muted-foreground md:text-xl">{event.tagline}</p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
                 <NavLink
-                  to={
-                    event.enableRegistrations
-                      ? `/${event.slug}/register?utm_source=web`
-                      : event.lumaUrl
-                  }
+                  to={event.enableRegistrations ? `/${event.slug}/register?utm_source=web` : event.lumaUrl}
                   className={clsx(
-                    "mr-auto md:mr-0 inline-flex h-10 items-center justify-center rounded-md px-8 text-sm font-medium shadow transition-colors bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    'mr-auto md:mr-0 inline-flex h-10 items-center justify-center rounded-md px-8 text-sm font-medium shadow transition-colors bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                     {
-                      "pointer-events-none opacity-50": isRegistrationDisabled,
-                    }
+                      'pointer-events-none opacity-50': isRegistrationDisabled,
+                    },
                   )}
                   prefetch="intent"
                   aria-disabled={isRegistrationDisabled}
                 >
-                  {event.enableRegistrations
-                    ? "Register now"
-                    : "Register on Luma"}
+                  {event.enableRegistrations ? 'Register now' : 'Register on Luma'}
                 </NavLink>
               </div>
             </div>

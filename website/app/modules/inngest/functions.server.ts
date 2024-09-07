@@ -1,39 +1,27 @@
-import { InngestEventData, inngest } from "./inngest.server";
-import { env } from "../env.server";
-import {
-  createEventAttachment,
-  createSuccessfulEventSignupHtml,
-} from "../email/templates";
-import {
-  getAttendees,
-  getEventBySlug,
-  getUpcomingEvents,
-  registerAttendee,
-} from "../pocketbase/api.server";
-import { sendEmail } from "../email/resend.server";
-import {
-  addAttendee as addAttendeeOnLuma,
-  getAttendees as getLumaAttendees,
-} from "../luma/api.server";
-import { captureException } from "../sentry/capture.server";
+import { InngestEventData, inngest } from './inngest.server';
+import { env } from '../env.server';
+import { createEventAttachment, createSuccessfulEventSignupHtml } from '../email/templates';
+import { getAttendees, getEventBySlug, getUpcomingEvents, registerAttendee } from '../pocketbase/api.server';
+import { sendEmail } from '../email/resend.server';
+import { addAttendee as addAttendeeOnLuma, getAttendees as getLumaAttendees } from '../luma/api.server';
+import { captureException } from '../sentry/capture.server';
 
 export const eventAttendeeRegisteredFn = inngest.createFunction(
   {
-    id: "event-attendee-registered-fn",
+    id: 'event-attendee-registered-fn',
     onFailure: ({ error }) => {
       captureException(error);
     },
   },
-  { event: "event/attendee.registered" },
+  { event: 'event/attendee.registered' },
   async ({ event: inngestEvent, step }) => {
-    const { attendee, eventSlug } =
-      inngestEvent.data as InngestEventData["event/attendee.registered"];
+    const { attendee, eventSlug } = inngestEvent.data as InngestEventData['event/attendee.registered'];
     const event = await getEventBySlug(eventSlug);
     if (!event) {
       throw new Error(`Event not found for slug: ${eventSlug}`);
     }
     await Promise.all([
-      step.run("send-registration-email", async () => {
+      step.run('send-registration-email', async () => {
         if (event.lumaEventId) {
           // event is managed by Luma, so we don't need to send an email
           return;
@@ -51,8 +39,8 @@ export const eventAttendeeRegisteredFn = inngest.createFunction(
         });
         sendEmail({
           from: {
-            name: "Team",
-            email: "events@allthingsweb.dev",
+            name: 'Team',
+            email: 'events@allthingsweb.dev',
           },
           to: [attendee.email],
           subject: `${event.name} - You're in!`,
@@ -60,7 +48,7 @@ export const eventAttendeeRegisteredFn = inngest.createFunction(
           attachments: [attachment],
         });
       }),
-      step.run("post-attendee-on-luma", async () => {
+      step.run('post-attendee-on-luma', async () => {
         if (!event.lumaEventId) {
           return;
         }
@@ -68,7 +56,7 @@ export const eventAttendeeRegisteredFn = inngest.createFunction(
         await addAttendeeOnLuma(event.lumaEventId, attendee);
       }),
     ]);
-  }
+  },
 );
 
 /**
@@ -76,13 +64,13 @@ export const eventAttendeeRegisteredFn = inngest.createFunction(
  */
 export const syncAttendeesWithLumaFn = inngest.createFunction(
   {
-    id: "sync-attendees-with-luma-fn",
+    id: 'sync-attendees-with-luma-fn',
     retries: 0, // no need to retry as we run this every hour
     onFailure: ({ error }) => {
       captureException(error);
     },
   },
-  { cron: "TZ=America/Los_Angeles 0 * * * *" }, // every hour
+  { cron: 'TZ=America/Los_Angeles 0 * * * *' }, // every hour
   async ({ step }) => {
     const events = await getUpcomingEvents();
     for (const event of events) {
@@ -94,22 +82,16 @@ export const syncAttendeesWithLumaFn = inngest.createFunction(
 
       // Check what approved attendees on Luma are missing in the database
       for (const lumaAttendee of lumaAttendees) {
-        if (lumaAttendee.approval_status !== "approved") {
+        if (lumaAttendee.approval_status !== 'approved') {
           continue;
         }
-        const attendee = attendees.find(
-          (a) => a.email === lumaAttendee.email.toLowerCase()
-        );
+        const attendee = attendees.find((a) => a.email === lumaAttendee.email.toLowerCase());
         if (!attendee) {
-          await registerAttendee(
-            event.id,
-            lumaAttendee.name,
-            lumaAttendee.email.toLowerCase()
-          );
+          await registerAttendee(event.id, lumaAttendee.name, lumaAttendee.email.toLowerCase());
         }
       }
 
-      if(!event.enableRegistrations) {
+      if (!event.enableRegistrations) {
         // Do not consider registrations from allthingsweb.dev
         continue;
       }
@@ -119,13 +101,11 @@ export const syncAttendeesWithLumaFn = inngest.createFunction(
         if (attendee.canceled) {
           continue;
         }
-        if (
-          lumaAttendees.some((a) => a.email.toLowerCase() === attendee.email)
-        ) {
+        if (lumaAttendees.some((a) => a.email.toLowerCase() === attendee.email)) {
           continue;
         }
         await addAttendeeOnLuma(event.lumaEventId, attendee);
       }
     }
-  }
+  },
 );

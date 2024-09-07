@@ -1,10 +1,10 @@
-import { LoaderFunctionArgs, redirect } from "@remix-run/node";
-import { getLink } from "~/modules/pocketbase/api.server";
-import { notFound } from "~/modules/responses.server";
+import { LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { getLink } from '~/modules/pocketbase/api.server';
+import { notFound } from '~/modules/responses.server';
 
 export async function loader({ params }: LoaderFunctionArgs) {
   if (!params.id) {
-    throw new Error("No id provided");
+    throw new Error('No id provided');
   }
   const link = await getLink(params.id);
   if (!link) {

@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/remix";
+import * as Sentry from '@sentry/remix';
 
 export function captureException(e: unknown) {
   Sentry.captureException(e);

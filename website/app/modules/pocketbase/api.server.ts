@@ -1,39 +1,27 @@
-import PocketBase, { ClientResponseError } from "pocketbase";
-import { env } from "../env.server";
-import {
-  Attendee,
-  Event,
-  ExpandedEvent,
-  ExpandedTalk,
-  Link,
-  Speaker,
-  Sponsor,
-  Talk,
-} from "./pocketbase";
+import PocketBase, { ClientResponseError } from 'pocketbase';
+import { env } from '../env.server';
+import { Attendee, Event, ExpandedEvent, ExpandedTalk, Link, Speaker, Sponsor, Talk } from './pocketbase';
 
 const pb = new PocketBase(env.pocketbase.origin);
 pb.autoCancellation(false);
 
 export async function authenticateAdmin() {
   if (!pb.authStore.isValid) {
-    await pb.admins.authWithPassword(
-      env.pocketbase.adminEmail,
-      env.pocketbase.adminPassword
-    );
+    await pb.admins.authWithPassword(env.pocketbase.adminEmail, env.pocketbase.adminPassword);
   }
 }
 
 export async function getEvents(): Promise<Event[]> {
   await authenticateAdmin();
-  const resultList = await pb.collection("events").getFullList();
+  const resultList = await pb.collection('events').getFullList();
   return resultList.map(toEvent);
 }
 
 export async function getUpcomingEvents(): Promise<Event[]> {
   await authenticateAdmin();
-  const resultList = await pb.collection("events").getFullList({
+  const resultList = await pb.collection('events').getFullList({
     filter: `start >= "${new Date().toISOString()}"`,
-    sort: "start",
+    sort: 'start',
   });
   return resultList.map(toEvent);
 }
@@ -41,9 +29,9 @@ export async function getUpcomingEvents(): Promise<Event[]> {
 export async function getPastEvents(): Promise<Event[]> {
   await authenticateAdmin();
 
-  const resultList = await pb.collection("events").getFullList({
+  const resultList = await pb.collection('events').getFullList({
     filter: `start < "${new Date().toISOString()}"`,
-    sort: "-start",
+    sort: '-start',
   });
   return resultList.map(toEvent);
 }
@@ -51,9 +39,7 @@ export async function getPastEvents(): Promise<Event[]> {
 export async function getEventBySlug(slug: string): Promise<Event | null> {
   await authenticateAdmin();
   try {
-    const event = await pb
-      .collection("events")
-      .getFirstListItem(`slug="${slug}"`);
+    const event = await pb.collection('events').getFirstListItem(`slug="${slug}"`);
     return toEvent(event);
   } catch (error) {
     if (error instanceof ClientResponseError && error.status === 404) {
@@ -63,16 +49,12 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   }
 }
 
-export async function getExpandedEventBySlug(
-  slug: string
-): Promise<ExpandedEvent | null> {
+export async function getExpandedEventBySlug(slug: string): Promise<ExpandedEvent | null> {
   await authenticateAdmin();
   try {
-    const event = await pb
-      .collection("events")
-      .getFirstListItem(`slug="${slug}"`, {
-        expand: "talks,talks.speaker,sponsors",
-      });
+    const event = await pb.collection('events').getFirstListItem(`slug="${slug}"`, {
+      expand: 'talks,talks.speaker,sponsors',
+    });
     return toExpandedEvent(event);
   } catch (error) {
     if (error instanceof ClientResponseError && error.status === 404) {
@@ -82,14 +64,10 @@ export async function getExpandedEventBySlug(
   }
 }
 
-export async function getEventByLumaEventId(
-  lumaEventId: string
-): Promise<Event | null> {
+export async function getEventByLumaEventId(lumaEventId: string): Promise<Event | null> {
   await authenticateAdmin();
   try {
-    const event = await pb
-      .collection("events")
-      .getFirstListItem(`lumaEventId="${lumaEventId}"`);
+    const event = await pb.collection('events').getFirstListItem(`lumaEventId="${lumaEventId}"`);
     return toEvent(event);
   } catch (error) {
     if (error instanceof ClientResponseError && error.status === 404) {
@@ -101,23 +79,19 @@ export async function getEventByLumaEventId(
 
 export async function getSpeakers(): Promise<Speaker[]> {
   await authenticateAdmin();
-  const speakers = await pb.collection("speakers").getFullList();
+  const speakers = await pb.collection('speakers').getFullList();
   return speakers.map(toSpeaker);
 }
 
 export async function getTalks(): Promise<Talk[]> {
   await authenticateAdmin();
-  const talks = await pb.collection("talks").getFullList();
+  const talks = await pb.collection('talks').getFullList();
   return talks.map(toTalk);
 }
 
-export async function registerAttendee(
-  eventId: string,
-  name: string,
-  email: string
-) {
+export async function registerAttendee(eventId: string, name: string, email: string) {
   await authenticateAdmin();
-  return pb.collection("attendees").create({
+  return pb.collection('attendees').create({
     event: eventId,
     name,
     email,
@@ -127,9 +101,7 @@ export async function registerAttendee(
 export async function getAttendeeByEmail(eventId: string, email: string) {
   await authenticateAdmin();
   try {
-    const attendee = await pb
-      .collection("attendees")
-      .getFirstListItem(`event="${eventId}" && email="${email}"`);
+    const attendee = await pb.collection('attendees').getFirstListItem(`event="${eventId}" && email="${email}"`);
     return toAttendee(attendee);
   } catch (error) {
     if (error instanceof ClientResponseError && error.status === 404) {
@@ -141,7 +113,7 @@ export async function getAttendeeByEmail(eventId: string, email: string) {
 
 export async function getAttendees(eventId: string) {
   await authenticateAdmin();
-  const result = await pb.collection("attendees").getFullList({
+  const result = await pb.collection('attendees').getFullList({
     filter: `event="${eventId}" && canceled=false`,
   });
   return result.map(toAttendee);
@@ -152,17 +124,14 @@ export async function getAttendeeCount(eventId: string) {
   return attendees.length;
 }
 
-export async function updateAttendeeCancellation(
-  attendeeId: string,
-  canceled: boolean
-) {
+export async function updateAttendeeCancellation(attendeeId: string, canceled: boolean) {
   await authenticateAdmin();
-  return pb.collection("attendees").update(attendeeId, { canceled });
+  return pb.collection('attendees').update(attendeeId, { canceled });
 }
 
 export async function getLink(id: string): Promise<Link | null> {
   try {
-    const linkData = await pb.collection("links").getOne(id);
+    const linkData = await pb.collection('links').getOne(id);
     if (!linkData) {
       return null;
     }
@@ -264,4 +233,3 @@ export function toLink(link: any): Link {
     destinationUrl: link.destinationUrl,
   };
 }
-
