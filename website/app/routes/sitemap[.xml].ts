@@ -13,6 +13,7 @@ function generateSiteMap(events: Event[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
         <urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
             ${getUrlElementWithDate(`${origin}/`, new Date().toISOString())}
+            ${getUrlElementWithDate(`${origin}/speakers`, new Date().toISOString())}
             ${events
               .map(
                 (event) =>

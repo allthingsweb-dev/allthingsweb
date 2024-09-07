@@ -28,6 +28,7 @@ import {
   deserializeExpandedEvent,
   Event,
   ExpandedTalk,
+  Sponsor,
 } from "~/modules/pocketbase/pocketbase";
 import { loader } from "./loader.sever";
 import {
@@ -100,7 +101,9 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
   return (
     <Section id="talks" variant="big">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center tracking-tight mb-8">Talks</h2>
+        <h2 className="text-3xl font-bold text-center tracking-tight mb-8">
+          Talks
+        </h2>
         <div className="grid gap-8 md:grid-cols-2">
           {talks.map((talk) => (
             <Card key={talk.id} className="flex flex-col">
@@ -114,16 +117,17 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
                     <AvatarFallback>{talk.speaker.name}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <CardTitle>
-                      {talk.speaker.name}
-                    </CardTitle>
+                    <CardTitle>{talk.speaker.name}</CardTitle>
                     <CardDescription>{talk.speaker.title}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="flex-grow flex flex-col items-start gap-4">
                 <h4 className="text-2xl">{talk.title}</h4>
-                <div className="text-muted-foreground flex flex-col gap-2" dangerouslySetInnerHTML={{ __html: talk.description }} />
+                <div
+                  className="text-muted-foreground flex flex-col gap-2"
+                  dangerouslySetInnerHTML={{ __html: talk.description }}
+                />
                 <div className="flex-grow flex flex-col items-start gap-2">
                   <h4 className="font-semibold">About the Speaker</h4>
                   <p className="text-muted-foreground">{talk.speaker.bio}</p>
@@ -155,6 +159,37 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
               </CardFooter>
             </Card>
           ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
+  return (
+    <Section variant="big">
+      <div className="container px-4 md:px-6 mx-auto max-w-4xl">
+        <h2 className="text-3xl font-bold md:text-center mb-8">
+          {sponsors.length === 1 ? "Event Sponsor" : "Event Sponsors"}
+        </h2>
+        <div className="flex flex-col gap-4 md:gap-8 items-center justify-center">
+        {sponsors.map((sponsor) => (
+          <div key={sponsor.id} className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8">
+              <img
+                src={sponsor.rectangularLogo}
+                className="w-12"
+                alt={sponsor.name}
+              />
+              <div className="text-left">
+                <h3 className="text-2xl font-semibold mb-4">{sponsor.name}</h3>
+                <p className="text-muted-foreground">
+                  {sponsor.about}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
         </div>
       </div>
     </Section>
@@ -247,7 +282,6 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
         isInPast={isInPast}
       />
       {children}
-      {event.talks.length > 0 && <TalksSection talks={event.talks} />}
     </PageLayout>
   );
 }

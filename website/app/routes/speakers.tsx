@@ -35,6 +35,9 @@ export async function loader() {
   const speakersWithTalks: SpeakerWithTalks[] = [];
   for (const speaker of speakers) {
     const speakerTalks = talks.filter((talk) => talk.speakerId === speaker.id);
+    if(!speakerTalks.length) {
+        continue;
+    }
     const talksWithEventInfo: TalkWithEventSlug[] = [];
     for (const talk of speakerTalks) {
       const event = events.find((event) => event.talkIds.includes(talk.id));
@@ -50,6 +53,9 @@ export async function loader() {
     }
     speakersWithTalks.push({ ...speaker, talks: talksWithEventInfo });
   }
+
+  // Randomize the order of speakers
+  speakersWithTalks.sort(() => Math.random() - 0.5);
 
   return { speakersWithTalks };
 }

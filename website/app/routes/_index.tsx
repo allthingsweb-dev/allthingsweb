@@ -178,9 +178,9 @@ export default function Component() {
   );
 }
 
-function EventCard({ event }: { event: Event }) {
+function EventCard({ event, className }: { event: Event, className?: string }) {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle>{event.name}</CardTitle>
         <CardDescription>{event.tagline}</CardDescription>
@@ -221,13 +221,10 @@ function EventsCarousel({ events }: { events: Event[] }) {
   return (
     <div className="relative">
       <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex">
+        <div className="flex items-stretch">
           {events.map((event) => (
-            <div
-              key={event.id}
-              className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4"
-            >
-              <EventCard event={event} />
+            <div key={event.id} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4">
+             <EventCard className="h-full" event={event} />
             </div>
           ))}
         </div>
