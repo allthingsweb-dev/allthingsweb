@@ -1,9 +1,9 @@
-import { PostHog } from "posthog-node";
-import { env } from "../env.server";
+import { PostHog } from 'posthog-node';
+import { env } from '../env.server';
 
 const client = env.posthogPublicAPIKey
   ? new PostHog(env.posthogPublicAPIKey, {
-      host: "https://us.i.posthog.com",
+      host: 'https://us.i.posthog.com',
     })
   : null;
 
@@ -42,16 +42,14 @@ type AnalyticsEventProperties = {
     event_name: string;
     event_id: string;
   };
-}
+};
 
 export type AnalyticsEventName = keyof AnalyticsEventProperties;
-  
-
 
 export function trackEvent<T extends AnalyticsEventName>(
   eventName: T,
   distinctId: string,
-  properties: AnalyticsEventProperties[T]
+  properties: AnalyticsEventProperties[T],
 ) {
   if (!client) {
     return;

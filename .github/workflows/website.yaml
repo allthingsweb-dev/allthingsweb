@@ -1,0 +1,36 @@
+name: Website CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    name: 🧪 Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📥 Download deps
+        working-directory: website
+        run: bun install
+
+      - name: 💄 Lint check
+        working-directory: website
+        run: bun run prettier:check
+
+      - name: ⎔ Build
+        run: bun run build
+        working-directory: website
+
+      - name: 🏄 Run the tests
+        run: echo "Soon we may have some. PR are welcome!"
+

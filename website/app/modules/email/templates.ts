@@ -1,5 +1,5 @@
-import { toReadableDateTimeStr } from "../datetime";
-import { Event } from "../pocketbase/pocketbase";
+import { toReadableDateTimeStr } from '../datetime';
+import { Event } from '../pocketbase/pocketbase';
 
 export async function createEventAttachment({
   event,
@@ -11,7 +11,7 @@ export async function createEventAttachment({
   attendee: {
     email: string;
     name: string;
-  }
+  };
 }) {
   const description = `${event.tagline}\n\nEvent page: ${serverOrigin}/${event.slug}`;
   const ics = `
@@ -23,9 +23,9 @@ BEGIN:VEVENT
 UID:${event.id}
 ORGANIZER;CN=Andre Landgraf:mailto:andre.timo.landgraf@gmail.com
 ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;RSVP=TRUE;CN=${attendee.name}:mailto:${attendee.email}
-DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "")}Z
-DTSTART:${event.start.toISOString().replace(/[-:]/g, "").slice(0, -5)}Z
-DTEND:${event.end.toISOString().replace(/[-:]/g, "").slice(0, -5)}Z
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '')}Z
+DTSTART:${event.start.toISOString().replace(/[-:]/g, '').slice(0, -5)}Z
+DTEND:${event.end.toISOString().replace(/[-:]/g, '').slice(0, -5)}Z
 SUMMARY:${event.name}
 DESCRIPTION:${description}
 LOCATION:${event.fullAddress}
@@ -35,8 +35,8 @@ END:VCALENDAR
 `.trim();
   return {
     content: Buffer.from(ics),
-    filename: "event.ics",
-    contentType: "text/calendar",
+    filename: 'event.ics',
+    contentType: 'text/calendar',
   };
 }
 

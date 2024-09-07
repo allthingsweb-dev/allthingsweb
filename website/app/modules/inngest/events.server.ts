@@ -1,10 +1,7 @@
-import { env } from "../env.server";
-import { InngestEventData, inngest, InngestEventName } from "./inngest.server";
+import { env } from '../env.server';
+import { InngestEventData, inngest, InngestEventName } from './inngest.server';
 
-export async function publishEvent<T extends InngestEventName>(
-  eventName: T,
-  data: InngestEventData[T]
-) {
+export async function publishEvent<T extends InngestEventName>(eventName: T, data: InngestEventData[T]) {
   if (!env.isInngestEnabled) {
     return;
   }

@@ -1,0 +1,21 @@
+{
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "typescript.suggest.paths": true,
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/node_modules": true,
+        "**/build": true,
+        "**/.cache": true
+    },
+    "files.associations": {
+        "**/app/**/*.css": "tailwindcss"
+    }
+}

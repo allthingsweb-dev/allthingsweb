@@ -1,8 +1,8 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
-import { getAttendeeCount, getExpandedEventBySlug } from "../pocketbase/api.server";
-import { isEventInPast } from "../pocketbase/pocketbase";
-import { getAttendeeCount as getLumaAttendeeCount } from "../luma/api.server";
-import { notFound } from "../responses.server";
+import { LoaderFunctionArgs } from '@remix-run/node';
+import { getAttendeeCount, getExpandedEventBySlug } from '../pocketbase/api.server';
+import { isEventInPast } from '../pocketbase/pocketbase';
+import { getAttendeeCount as getLumaAttendeeCount } from '../luma/api.server';
+import { notFound } from '../responses.server';
 
 export async function eventDetailsLoader(slug: string) {
   const event = await getExpandedEventBySlug(slug);
@@ -27,7 +27,7 @@ export async function eventDetailsLoader(slug: string) {
 
 export function loader({ params }: LoaderFunctionArgs) {
   if (!params.slug) {
-    throw new Error("No slug provided");
+    throw new Error('No slug provided');
   }
   return eventDetailsLoader(params.slug);
 }

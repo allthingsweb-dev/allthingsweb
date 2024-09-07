@@ -1,7 +1,7 @@
-import * as Sentry from "@sentry/remix";
-import { useLocation, useMatches } from "@remix-run/react";
-import { useEffect } from "react";
-import { clientEnv } from "../env.client";
+import * as Sentry from '@sentry/remix';
+import { useLocation, useMatches } from '@remix-run/react';
+import { useEffect } from 'react';
+import { clientEnv } from '../env.client';
 
 if (clientEnv.sentryDsn) {
   Sentry.init({
@@ -18,7 +18,7 @@ if (clientEnv.sentryDsn) {
       }),
       Sentry.replayIntegration(),
       Sentry.feedbackIntegration({
-        colorScheme: "system",
+        colorScheme: 'system',
       }),
     ],
   });

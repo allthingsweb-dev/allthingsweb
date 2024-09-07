@@ -1,19 +1,10 @@
-import { NavLink, useLoaderData } from "@remix-run/react";
-import { PageLayout } from "~/modules/components/page-layout";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/modules/components/ui/card";
-import { Section } from "~/modules/components/ui/section";
-import { toReadableDateTimeStr, toYearStr } from "~/modules/datetime";
-import {
-  getEvents,
-  getTalks,
-  getSpeakers,
-} from "~/modules/pocketbase/api.server";
-import { Speaker, Talk } from "~/modules/pocketbase/pocketbase";
+import { NavLink, useLoaderData } from '@remix-run/react';
+import { PageLayout } from '~/modules/components/page-layout';
+import { Card, CardContent, CardHeader, CardTitle } from '~/modules/components/ui/card';
+import { Section } from '~/modules/components/ui/section';
+import { toReadableDateTimeStr, toYearStr } from '~/modules/datetime';
+import { getEvents, getTalks, getSpeakers } from '~/modules/pocketbase/api.server';
+import { Speaker, Talk } from '~/modules/pocketbase/pocketbase';
 
 type TalkWithEventSlug = Talk & {
   eventName: string;
@@ -26,17 +17,13 @@ type SpeakerWithTalks = Speaker & {
 };
 
 export async function loader() {
-  const [events, talks, speakers] = await Promise.all([
-    getEvents(),
-    getTalks(),
-    getSpeakers(),
-  ]);
+  const [events, talks, speakers] = await Promise.all([getEvents(), getTalks(), getSpeakers()]);
 
   const speakersWithTalks: SpeakerWithTalks[] = [];
   for (const speaker of speakers) {
     const speakerTalks = talks.filter((talk) => talk.speakerId === speaker.id);
-    if(!speakerTalks.length) {
-        continue;
+    if (!speakerTalks.length) {
+      continue;
     }
     const talksWithEventInfo: TalkWithEventSlug[] = [];
     for (const talk of speakerTalks) {
@@ -67,12 +54,10 @@ export default function Component() {
       <Section variant="big">
         <div className="container mx-auto px-4 py-16">
           <div className="flex flex-col justify-center items-center gap-2 mb-16">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-center">
-              Speakers
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-center">Speakers</h1>
             <p className="max-w-[600px] text-muted-foreground md:text-xl text-center">
-              Huge shout-out to all the speakers who have shared their knowledge
-              and experience with us. Check out their talks below!
+              Huge shout-out to all the speakers who have shared their knowledge and experience with us. Check out their
+              talks below!
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -88,9 +73,7 @@ export default function Component() {
                   />
                   <div>
                     <CardTitle className="text-xl">{speaker.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {speaker.title}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{speaker.title}</p>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -105,8 +88,7 @@ export default function Component() {
                           {talk.title}
                         </NavLink>
                         <p className="text-sm text-muted-foreground">
-                          {talk.eventName}{" "}
-                          {toYearStr(new Date(talk.eventStart))}
+                          {talk.eventName} {toYearStr(new Date(talk.eventStart))}
                         </p>
                       </li>
                     ))}

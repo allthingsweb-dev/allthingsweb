@@ -1,6 +1,6 @@
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { ArrowUpRightIcon, MenuIcon, RssIcon } from "lucide-react";
-import { cn } from "./utils";
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { ArrowUpRightIcon, MenuIcon, RssIcon } from 'lucide-react';
+import { cn } from './utils';
 
 export function DefaultRightTopNav() {
   return (
@@ -20,7 +20,7 @@ export function DefaultRightTopNav() {
 
 function LinkList({ className }: { className?: string }) {
   return (
-    <ul className={cn("flex flex-col md:flex-row gap-4 md:gap-6", className)}>
+    <ul className={cn('flex flex-col md:flex-row gap-4 md:gap-6', className)}>
       <li>
         <a
           href="https://discord.gg/B3Sm4b5mfD"
@@ -77,10 +77,7 @@ function LinkList({ className }: { className?: string }) {
         </a>
       </li>
       <li>
-        <a
-          href="/rss"
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
+        <a href="/rss" className="text-sm font-medium hover:underline underline-offset-4">
           RSS
           <RssIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
         </a>
