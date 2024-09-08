@@ -13,7 +13,7 @@ if (env.sentryDsn && !Sentry.isInitialized()) {
     dsn: env.sentryDsn,
     tracesSampleRate: 1,
     autoInstrumentRemix: true,
-    environment: process.env.NODE_ENV,
+    environment: env.environment,
   });
 }
 

@@ -46,7 +46,11 @@ export type LumaAttendee = {
   email: string;
 };
 
-export async function getUpcomingEvents() {
+export async function getUpcomingEvents(): Promise<LumaEvent[]> {
+  if (!env.lumaAPIKey) {
+    console.warn('Did not fetch upcoming events because env.lumaAPIKey is not set');
+    return [];
+  }
   const url = `https://api.lu.ma/public/v1/calendar/list-events?pagination_limit=50&after=${new Date().toISOString()}`;
   const headers = {
     accept: 'application/json',
@@ -60,10 +64,14 @@ export async function getUpcomingEvents() {
     throw new Error(`Failed to fetch upcoming events. Status: ${res.status} - ${res.statusText}`);
   }
   const resData = await res.json();
-  return resData.events.entries.map((e: any) => e.event) as LumaEvent[];
+  return resData.events.entries.map((e: any) => e.event);
 }
 
-export async function getAttendees(eventId: string) {
+export async function getAttendees(eventId: string): Promise<LumaAttendee[]> {
+  if (!env.lumaAPIKey) {
+    console.warn('Did not fetch attendees because env.lumaAPIKey is not set');
+    return [];
+  }
   const url = `https://api.lu.ma/public/v1/event/get-guests?event_api_id=${eventId}&pagination_limit=5000`;
   const headers = {
     accept: 'application/json',
@@ -77,7 +85,7 @@ export async function getAttendees(eventId: string) {
     throw new Error(`Failed to fetch attendees. Status: ${res.status} - ${res.statusText}`);
   }
   const resData = await res.json();
-  return resData.entries.map((e: any) => e.guest) as LumaAttendee[];
+  return resData.entries.map((e: any) => e.guest);
 }
 
 export async function getAttendeeCount(eventId: string) {
@@ -87,6 +95,10 @@ export async function getAttendeeCount(eventId: string) {
 }
 
 export async function addAttendee(eventId: string, attendee: { email: string; name: string }) {
+  if (!env.lumaAPIKey) {
+    console.warn('Did not add attendee because env.lumaAPIKey is not set', { eventId, attendee });
+    return;
+  }
   const url = `https://api.lu.ma/public/v1/event/add-guests`;
   const headers = {
     accept: 'application/json',

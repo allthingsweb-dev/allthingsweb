@@ -5,7 +5,7 @@ import express from 'express';
 import morgan from 'morgan';
 import { env } from '~/modules/env.server.js';
 
-const productionBuild = process.env.NODE_ENV === 'production' ? await import('../build/server/index.js') : undefined;
+const productionBuild = env.environment === 'production' ? await import('../build/server/index.js') : undefined;
 
 const appVersion = productionBuild ? productionBuild.assets.version : 'dev';
 console.log(`Running app version ${appVersion}`);
@@ -16,13 +16,13 @@ if (env.sentryDsn) {
   Sentry.init({
     dsn: env.sentryDsn,
     tracesSampleRate: 1,
-    environment: process.env.NODE_ENV,
+    environment: env.environment,
     release: appVersion,
   });
 }
 
 const viteDevServer =
-  process.env.NODE_ENV === 'production'
+  env.environment === 'production'
     ? undefined
     : await import('vite').then((vite) =>
         vite.createServer({
