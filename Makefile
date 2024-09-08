@@ -42,7 +42,7 @@ codeclean: ## Code Clean
 
 .PHONY: strict-codeclean
 strict-codeclean: codeclean
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run typescheck
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run typecheck
 
 .PHONY: build
 build: ## Build All

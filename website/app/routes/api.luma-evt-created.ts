@@ -5,7 +5,7 @@ import { captureException } from '~/modules/sentry/capture.server';
 export async function action({ request }: ActionFunctionArgs) {
   const data = await request.json();
   const secretKey = request.headers.get('x-secret-key');
-  if(!env.zapierWebhookSecret) {
+  if (!env.zapierWebhookSecret) {
     console.warn('Rejected webhook request because env.zapierWebhookSecret is not set');
     return new Response('Forbidden', { status: 403, statusText: 'Forbidden' });
   }

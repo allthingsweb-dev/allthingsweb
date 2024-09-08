@@ -16,6 +16,7 @@ export type Event = {
   highlightOnLandingPage: boolean;
   talkIds: string[];
   sponsorIds: string[];
+  previewImageUrl: string | null;
   created: Date;
   updated: Date;
 };
@@ -33,9 +34,9 @@ export type Speaker = {
   name: string;
   email: string;
   title: string;
-  profileImage: string;
-  linkedinUrl?: string;
-  twitterUrl?: string;
+  profileImageUrl: string;
+  linkedinUrl: string | null;
+  twitterUrl: string | null;
   bio: string;
 };
 

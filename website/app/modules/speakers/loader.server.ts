@@ -1,5 +1,5 @@
-import { getEvents, getSpeakers, getTalks } from "../pocketbase/api.server";
-import { Speaker, Talk } from "../pocketbase/pocketbase";
+import { getEvents, getSpeakers, getTalks } from '../pocketbase/api.server';
+import { Speaker, Talk } from '../pocketbase/pocketbase';
 
 export type TalkWithEventSlug = Talk & {
   eventName: string;

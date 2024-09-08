@@ -163,6 +163,9 @@ export function toEvent(event: any): Event {
     isHackathon: event.isHackathon,
     talkIds: event.talks,
     sponsorIds: event.sponsors,
+    previewImageUrl: event.previewImage
+      ? `${env.pocketbase.publicOrigin}/api/files/events/${event.id}/${event.previewImage}`
+      : null,
     created: new Date(event.created),
     updated: new Date(event.updated),
   };
@@ -174,9 +177,9 @@ export function toSpeaker(speaker: any): Speaker {
     name: speaker.name,
     email: speaker.email,
     title: speaker.title,
-    profileImage: `${env.pocketbase.publicOrigin}/api/files/speakers/${speaker.id}/${speaker.profileImage}`,
-    linkedinUrl: `https://www.linkedin.com/in/${speaker.linkedinHandle}`,
-    twitterUrl: `https://twitter.com/${speaker.twitterHandle}`,
+    profileImageUrl: `${env.pocketbase.publicOrigin}/api/files/speakers/${speaker.id}/${speaker.profileImage}`,
+    linkedinUrl: speaker.linkedinHandle ? `https://www.linkedin.com/in/${speaker.linkedinHandle}` : null,
+    twitterUrl: speaker.twitterHandle ? `https://twitter.com/${speaker.twitterHandle}` : null,
     bio: speaker.bio,
   };
 }

@@ -2,10 +2,10 @@ import invariant from 'tiny-invariant';
 
 function enforceInProd(variable: string | undefined, variableName: string) {
   const isProduction = environment === 'production';
-  if(isProduction) {
+  if (isProduction) {
     invariant(variable, `${variableName} env variable is required.`);
   } else if (!variable) {
-      console.warn(`${variableName} env variable is not set.`);
+    console.warn(`${variableName} env variable is not set.`);
   }
 }
 

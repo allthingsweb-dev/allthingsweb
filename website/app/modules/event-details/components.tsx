@@ -33,8 +33,8 @@ export function AllYouNeedToKnowSection({
               {!isInPast && attendeeCount < attendeeLimit
                 ? 'Spots available'
                 : !isInPast && attendeeCount >= attendeeLimit
-                  ? 'At capacity'
-                  : 'Event has ended'}
+                ? 'At capacity'
+                : 'Event has ended'}
             </h3>
             <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
               {attendeeCount} / {attendeeLimit} guests registered
@@ -73,7 +73,7 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
               <CardHeader>
                 <div className="flex items-center space-x-4 mb-2">
                   <Avatar className="w-12 h-12">
-                    <AvatarImage src={talk.speaker.profileImage} alt={talk.speaker.name} />
+                    <AvatarImage src={talk.speaker.profileImageUrl} alt={talk.speaker.name} />
                     <AvatarFallback>{talk.speaker.name}</AvatarFallback>
                   </Avatar>
                   <div>

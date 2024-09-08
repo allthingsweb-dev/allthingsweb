@@ -85,7 +85,7 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
                 <div key={speaker.id} tw="flex flex-col items-center text-center">
                   <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
                     <img
-                      src={speaker.profileImage}
+                      src={speaker.profileImageUrl}
                       alt={speaker.name}
                       width={160}
                       height={160}
@@ -121,6 +121,8 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
 }
 
 export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
+  const maxSpeakersToShow = 5 * 5;
+  const visibleSpeakers = speakers.slice(0, maxSpeakersToShow);
   return (
     <div
       tw="w-[1200px] h-[1200px] bg-gradient-to-br flex flex-col p-16 text-white"
@@ -132,11 +134,11 @@ export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
         <div tw="flex flex-col flex-wrap" style={{ gap: '1rem' }}>
           <div tw="text-2xl font-semibold">Speakers</div>
           <div tw="flex flex-row flex-wrap" style={{ gap: '2rem' }}>
-            {speakers.map((speaker) => (
+            {visibleSpeakers.map((speaker) => (
               <div key={speaker.id} tw="flex flex-col items-center text-center">
                 <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
                   <img
-                    src={speaker.profileImage}
+                    src={speaker.profileImageUrl}
                     alt={speaker.name}
                     width={160}
                     height={160}
@@ -153,5 +155,5 @@ export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
         Find us on allthingsweb.dev and lu.ma/allthingsweb!
       </div>
     </div>
-  )
+  );
 }

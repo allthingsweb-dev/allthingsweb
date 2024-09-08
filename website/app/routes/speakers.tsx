@@ -6,7 +6,7 @@ import { Section } from '~/modules/components/ui/section';
 import { toYearStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { type loader as rootLoader } from '~/root';
-import { speakersLoader as loader } from "~/modules/speakers/loader.server";
+import { speakersLoader as loader } from '~/modules/speakers/loader.server';
 
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ data, matches }) => {
   const rootLoader = matches.find((match) => match.id === 'root')?.data;
@@ -14,7 +14,8 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
     return mergeMetaTags([{ title: 'Speakers not found' }], matches);
   }
   const title = `Our ${data.speakersWithTalks.length} speakers`;
-  const description = 'Huge shout-out to all the speakers who have shared their knowledge and experience with us. Check out their talks from our events!';
+  const description =
+    'Huge shout-out to all the speakers who have shared their knowledge and experience with us. Check out their talks from our events!';
   const previewImageUrl = `${rootLoader.serverOrigin}/speakers.png`;
   return mergeMetaTags(getMetaTags(title, description, '/speakers', previewImageUrl), matches);
 };
@@ -39,7 +40,7 @@ export default function Component() {
               <Card key={speaker.id} className="flex flex-col">
                 <CardHeader className="flex flex-row items-center gap-4 pb-2">
                   <img
-                    src={speaker.profileImage}
+                    src={speaker.profileImageUrl}
                     alt={speaker.name}
                     width={200}
                     height={200}

@@ -1,6 +1,6 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs, redirect } from '@remix-run/node';
 import { getFont } from '~/modules/image-gen/utils.server';
 import { EventPreview } from '~/modules/image-gen/templates';
 import { getExpandedEventBySlug } from '~/modules/pocketbase/api.server';
@@ -15,6 +15,13 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const event = await getExpandedEventBySlug(slug);
   if (!event) {
     throw notFound();
+  }
+
+  if (event.previewImageUrl) {
+    return redirect(`${event.previewImageUrl}?thumb=1200x1200`, {
+      status: 302,
+      statusText: 'Found',
+    });
   }
 
   const jsx = <EventPreview event={event} serverOrigin={env.server.origin} />;
