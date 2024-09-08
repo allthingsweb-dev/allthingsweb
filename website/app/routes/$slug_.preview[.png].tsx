@@ -2,12 +2,12 @@ import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { getFont } from '~/modules/image-gen/utils.server';
-import EventPreview from '~/modules/image-gen/templates';
+import { EventPreview } from '~/modules/image-gen/templates';
 import { getExpandedEventBySlug } from '~/modules/pocketbase/api.server';
 import { env } from '~/modules/env.server';
 import { notFound } from '~/modules/responses.server';
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ params }: LoaderFunctionArgs) {
   const { slug } = params;
   if (typeof slug !== 'string') {
     throw notFound();

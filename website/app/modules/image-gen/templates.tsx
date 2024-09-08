@@ -1,5 +1,5 @@
 import { toReadableDateTimeStr } from '../datetime';
-import { ExpandedEvent } from '../pocketbase/pocketbase';
+import { ExpandedEvent, Speaker } from '../pocketbase/pocketbase';
 
 declare module 'react' {
   interface HTMLAttributes<T> {
@@ -53,7 +53,7 @@ function CalendarIcon() {
   );
 }
 
-export default function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: string }) {
+export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: string }) {
   return (
     <div
       tw="w-[1200px] h-[1200px] bg-gradient-to-br flex flex-col p-16 text-white"
@@ -118,4 +118,40 @@ export default function EventPreview({ event }: { event: ExpandedEvent; serverOr
       </div>
     </div>
   );
+}
+
+export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
+  return (
+    <div
+      tw="w-[1200px] h-[1200px] bg-gradient-to-br flex flex-col p-16 text-white"
+      style={{
+        background: 'linear-gradient(to bottom right, #3b0d60, #4b0082, #2d0031, #000000)',
+      }}
+    >
+      <div tw="w-full flex items-start">
+        <div tw="flex flex-col flex-wrap" style={{ gap: '1rem' }}>
+          <div tw="text-2xl font-semibold">Speakers</div>
+          <div tw="flex flex-row flex-wrap" style={{ gap: '2rem' }}>
+            {speakers.map((speaker) => (
+              <div key={speaker.id} tw="flex flex-col items-center text-center">
+                <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
+                  <img
+                    src={speaker.profileImage}
+                    alt={speaker.name}
+                    width={160}
+                    height={160}
+                    style={{ objectFit: 'fill' }}
+                  />
+                </div>
+                <div tw="font-semibold text-xl">{speaker.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div tw="text-3xl flex justify-center" style={{ marginTop: 'auto' }}>
+        Find us on allthingsweb.dev and lu.ma/allthingsweb!
+      </div>
+    </div>
+  )
 }

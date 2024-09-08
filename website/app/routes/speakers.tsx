@@ -1,51 +1,25 @@
+import { MetaFunction } from '@remix-run/node';
 import { NavLink, useLoaderData } from '@remix-run/react';
 import { PageLayout } from '~/modules/components/page-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { Section } from '~/modules/components/ui/section';
-import { toReadableDateTimeStr, toYearStr } from '~/modules/datetime';
-import { getEvents, getTalks, getSpeakers } from '~/modules/pocketbase/api.server';
-import { Speaker, Talk } from '~/modules/pocketbase/pocketbase';
+import { toYearStr } from '~/modules/datetime';
+import { getMetaTags, mergeMetaTags } from '~/modules/meta';
+import { type loader as rootLoader } from '~/root';
+import { speakersLoader as loader } from "~/modules/speakers/loader.server";
 
-type TalkWithEventSlug = Talk & {
-  eventName: string;
-  eventSlug: string;
-  eventStart: Date;
-};
-
-type SpeakerWithTalks = Speaker & {
-  talks: TalkWithEventSlug[];
-};
-
-export async function loader() {
-  const [events, talks, speakers] = await Promise.all([getEvents(), getTalks(), getSpeakers()]);
-
-  const speakersWithTalks: SpeakerWithTalks[] = [];
-  for (const speaker of speakers) {
-    const speakerTalks = talks.filter((talk) => talk.speakerId === speaker.id);
-    if (!speakerTalks.length) {
-      continue;
-    }
-    const talksWithEventInfo: TalkWithEventSlug[] = [];
-    for (const talk of speakerTalks) {
-      const event = events.find((event) => event.talkIds.includes(talk.id));
-      if (!event) {
-        continue;
-      }
-      talksWithEventInfo.push({
-        ...talk,
-        eventSlug: event.slug,
-        eventStart: event.start,
-        eventName: event.name,
-      });
-    }
-    speakersWithTalks.push({ ...speaker, talks: talksWithEventInfo });
+export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ data, matches }) => {
+  const rootLoader = matches.find((match) => match.id === 'root')?.data;
+  if (!data || !data.speakersWithTalks || !rootLoader) {
+    return mergeMetaTags([{ title: 'Speakers not found' }], matches);
   }
+  const title = `Our ${data.speakersWithTalks.length} speakers`;
+  const description = 'Huge shout-out to all the speakers who have shared their knowledge and experience with us. Check out their talks from our events!';
+  const previewImageUrl = `${rootLoader.serverOrigin}/speakers.png`;
+  return mergeMetaTags(getMetaTags(title, description, '/speakers', previewImageUrl), matches);
+};
 
-  // Randomize the order of speakers
-  speakersWithTalks.sort(() => Math.random() - 0.5);
-
-  return { speakersWithTalks };
-}
+export { loader };
 
 export default function Component() {
   const { speakersWithTalks } = useLoaderData<typeof loader>();
