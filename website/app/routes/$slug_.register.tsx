@@ -16,7 +16,7 @@ import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
 import { LoadingSpinner, MapPinIcon } from '~/modules/components/ui/icons';
 import { DefaultRightTopNav } from '~/modules/components/right-top-nav';
 import { trackEvent } from '~/modules/posthog/posthog.server';
-import { getUserSession, requireUserSession } from '~/modules/session/session.server';
+import { getUserSession } from '~/modules/session/session.server';
 import { requireValidCsrfToken } from '~/modules/session/csrf.server';
 import { publishEvent } from '~/modules/inngest/events.server';
 import { toReadableDateTimeStr } from '~/modules/datetime';

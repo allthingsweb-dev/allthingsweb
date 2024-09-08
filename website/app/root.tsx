@@ -5,7 +5,7 @@ import { LinksFunction, LoaderFunctionArgs, MetaFunction, json } from '@remix-ru
 import { PageTransitionProgressBar } from './modules/components/page-transition';
 import { ErrorPage } from './modules/components/error-page';
 import { env } from './modules/env.server';
-import { requireUserSession } from './modules/session/session.server';
+import { requireCanonicalSession } from './modules/session/session.server';
 
 export const links: LinksFunction = () => [
   { rel: 'stylesheet', href: tailwindStyles },
@@ -36,7 +36,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
-  const [userSession, headers] = await requireUserSession(request);
+  const [userSession, headers] = await requireCanonicalSession(request);
   return json(
     {
       csrfToken: userSession.csrfToken,

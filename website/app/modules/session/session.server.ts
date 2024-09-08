@@ -38,16 +38,29 @@ export async function getUserSession(request: Request): Promise<UserSession | nu
   return null;
 }
 
-export async function requireUserSession(request: Request): Promise<[UserSession, Headers | undefined]> {
+export async function requireCanonicalSession(request: Request): Promise<[UserSession, Headers | undefined]> {
   const session = await getUserSession(request);
   const pathname = new URL(request.url).pathname;
+
+  if (new URL(request.url).hostname.startsWith('www.')) {
+    const headers = new Headers();
+    if (!session) {
+      await createUserSession(headers);
+    }
+    const canonicalUrl = new URL(request.url);
+    canonicalUrl.hostname = canonicalUrl.hostname.slice(4);
+    if (canonicalUrl.pathname !== '/' && canonicalUrl.pathname.endsWith('/')) {
+      canonicalUrl.pathname = canonicalUrl.pathname.slice(0, -1);
+    }
+    throw redirect(canonicalUrl.toString(), { headers, status: 301, statusText: 'Moved Permanently' });
+  }
 
   if (pathname !== '/' && pathname.endsWith('/')) {
     const headers = new Headers();
     if (!session) {
       await createUserSession(headers);
     }
-    throw redirect(pathname.slice(0, -1), { headers });
+    throw redirect(pathname.slice(0, -1), { headers, status: 301, statusText: 'Moved Permanently' });
   }
 
   if (!session) {
