@@ -1,6 +1,6 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
-import { env } from "~/modules/env.server";
-import QRCode from "qrcode";
+import { LoaderFunctionArgs } from '@remix-run/node';
+import { env } from '~/modules/env.server';
+import QRCode from 'qrcode';
 
 export async function loader({ params }: LoaderFunctionArgs) {
   if (!params.slug) {

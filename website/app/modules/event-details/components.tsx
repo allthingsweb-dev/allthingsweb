@@ -33,8 +33,8 @@ export function AllYouNeedToKnowSection({
               {!isInPast && attendeeCount < attendeeLimit
                 ? 'Spots available'
                 : !isInPast && attendeeCount >= attendeeLimit
-                ? 'At capacity'
-                : 'Event has ended'}
+                  ? 'At capacity'
+                  : 'Event has ended'}
             </h3>
             <p className="text-lg lg:text-xl text-muted-foreground text-nowrap">
               {attendeeCount} / {attendeeLimit} guests registered

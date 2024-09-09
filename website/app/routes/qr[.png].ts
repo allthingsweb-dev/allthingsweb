@@ -1,5 +1,5 @@
-import { env } from "~/modules/env.server";
-import QRCode from "qrcode";
+import { env } from '~/modules/env.server';
+import QRCode from 'qrcode';
 
 export async function loader() {
   const websiteUrl = `${env.server.origin}/`;
