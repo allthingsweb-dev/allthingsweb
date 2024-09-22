@@ -46,6 +46,8 @@ const sentryDsn = process.env.SENTRY_DSN;
 if (!sentryDsn) {
   console.warn('SENTRY_DSN env variable is not set');
 }
+enforceInProd(process.env.SENTRY_ORG, 'SENTRY_ORG');
+enforceInProd(process.env.SENTRY_PROJECT, 'SENTRY_PROJECT');
 enforceInProd(process.env.SENTRY_AUTH_TOKEN, 'SENTRY_AUTH_TOKEN');
 
 const inngestSigningKey = process.env.INNGEST_SIGNING_KEY;
@@ -70,7 +72,9 @@ export const env = {
   resendAPIKey,
   lumaAPIKey,
   zapierWebhookSecret,
-  sentryDsn,
+  sentry: {
+    dsn: sentryDsn,
+  },
   server: {
     origin,
   },

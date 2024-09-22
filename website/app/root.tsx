@@ -41,7 +41,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     {
       csrfToken: userSession.csrfToken,
       posthogPublicAPIKey: env.posthogPublicAPIKey,
-      sentryDsn: env.sentryDsn,
+      sentryDsn: env.sentry.dsn,
       appVersion: context.appVersion,
       serverOrigin: env.server.origin,
     },

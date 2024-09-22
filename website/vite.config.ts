@@ -16,12 +16,11 @@ export default defineConfig({
     }),
     tsconfigPaths(),
     sentryVitePlugin({
-      org: 'andre-0g',
-      project: 'allthingsweb-app',
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
       disable: process.env.NODE_ENV === 'development',
     }),
   ],
-
   build: {
     sourcemap: true,
   },

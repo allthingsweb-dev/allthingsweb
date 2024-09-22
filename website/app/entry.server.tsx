@@ -7,10 +7,10 @@ import { isbot } from 'isbot';
 import { renderToPipeableStream } from 'react-dom/server';
 import { env } from './modules/env.server';
 
-if (env.sentryDsn && !Sentry.isInitialized()) {
+if (env.sentry.dsn && !Sentry.isInitialized()) {
   console.log('Initializing Sentry for Remix');
   Sentry.init({
-    dsn: env.sentryDsn,
+    dsn: env.sentry.dsn,
     tracesSampleRate: 1,
     autoInstrumentRemix: true,
     environment: env.environment,
