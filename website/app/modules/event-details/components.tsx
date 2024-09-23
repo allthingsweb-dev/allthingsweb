@@ -144,14 +144,7 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
 }
 
 export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
-  const {
-    event: eventData,
-    isAtCapacity,
-    attendeeCount,
-    attendeeLimit,
-    isInPast,
-    isRegistrationDisabled,
-  } = useLoaderData<typeof loader>();
+  const { event: eventData, isAtCapacity, attendeeCount, attendeeLimit, isInPast } = useLoaderData<typeof loader>();
   const event = deserializeExpandedEvent(eventData);
   return (
     <PageLayout>
@@ -161,8 +154,8 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
             <AlertCircleIcon className="h-6 w-6 text-destructive pr-2" />
             <AlertTitle>Registration closed</AlertTitle>
             <AlertDescription>
-              This event is fully booked! Please check back later for any available spots or upcoming events. We
-              appreciate your interest!
+              This event is fully booked! Join the waitlist to be notified if any spots open up. We appreciate your
+              interest!
             </AlertDescription>
           </Alert>
         </div>
@@ -185,15 +178,14 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">{event.tagline}</p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link
-                  to={event.enableRegistrations ? `/${event.slug}/register?utm_source=web` : event.lumaUrl}
-                  disabled={event.enableRegistrations && isRegistrationDisabled}
-                >
+                <Link to={event.enableRegistrations ? `/${event.slug}/register?utm_source=web` : event.lumaUrl}>
                   {event.enableRegistrations
                     ? 'Register now'
-                    : isRegistrationDisabled
+                    : isInPast
                       ? 'View on Luma'
-                      : 'Register on Luma'}
+                      : isAtCapacity
+                        ? 'Join waitlist on Luma'
+                        : 'Register on Luma'}
                 </Link>
               </div>
             </div>

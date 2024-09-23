@@ -14,14 +14,12 @@ export async function eventDetailsLoader(slug: string) {
     : await getLumaAttendeeCount(event.lumaEventId);
   const isAtCapacity = attendeeCount >= event.attendeeLimit;
   const isInPast = isEventInPast(event);
-  const isRegistrationDisabled = isAtCapacity || isInPast;
   return {
     event,
     attendeeCount,
     attendeeLimit: event.attendeeLimit,
     isAtCapacity,
     isInPast,
-    isRegistrationDisabled,
   };
 }
 
