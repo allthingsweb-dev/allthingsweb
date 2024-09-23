@@ -3,7 +3,7 @@ import { env } from '../env.server';
 import { createEventAttachment, createSuccessfulEventSignupHtml } from '../email/templates';
 import { getAttendees, getEventBySlug, getUpcomingEvents, registerAttendee } from '../pocketbase/api.server';
 import { sendEmail } from '../email/resend.server';
-import { addAttendee as addAttendeeOnLuma, getAttendees as getLumaAttendees } from '../luma/api.server';
+import { addAttendee as addAttendeeOnLuma, getAllAttendees as getLumaAttendees } from '../luma/api.server';
 import { captureException } from '../sentry/capture.server';
 
 export const eventAttendeeRegisteredFn = inngest.createFunction(

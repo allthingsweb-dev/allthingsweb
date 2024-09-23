@@ -10,6 +10,7 @@ import { PageLayout } from '~/modules/components/page-layout';
 import { deserializeExpandedEvent, Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
 import { loader } from './loader.sever';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { Link } from '../components/ui/link';
 
 export function AllYouNeedToKnowSection({
   event,
@@ -156,11 +157,12 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
     <PageLayout>
       {isAtCapacity && !isInPast && (
         <div className="px-4 lg:px-6">
-          <Alert variant="destructive">
+          <Alert variant="default">
             <AlertCircleIcon className="h-6 w-6 text-destructive pr-2" />
             <AlertTitle>Registration closed</AlertTitle>
             <AlertDescription>
-              We are full. Please check back later for possible openings or future events. Thank you for your interest!
+              This event is fully booked! Please check back later for any available spots or upcoming events. We
+              appreciate your interest!
             </AlertDescription>
           </Alert>
         </div>
@@ -183,19 +185,16 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">{event.tagline}</p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <NavLink
+                <Link
                   to={event.enableRegistrations ? `/${event.slug}/register?utm_source=web` : event.lumaUrl}
-                  className={clsx(
-                    'mr-auto md:mr-0 inline-flex h-10 items-center justify-center rounded-md px-8 text-sm font-medium shadow transition-colors bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                    {
-                      'pointer-events-none opacity-50': isRegistrationDisabled,
-                    },
-                  )}
-                  prefetch="intent"
-                  aria-disabled={isRegistrationDisabled}
+                  disabled={event.enableRegistrations && isRegistrationDisabled}
                 >
-                  {event.enableRegistrations ? 'Register now' : 'Register on Luma'}
-                </NavLink>
+                  {event.enableRegistrations
+                    ? 'Register now'
+                    : isRegistrationDisabled
+                      ? 'View on Luma'
+                      : 'Register on Luma'}
+                </Link>
               </div>
             </div>
             <img
