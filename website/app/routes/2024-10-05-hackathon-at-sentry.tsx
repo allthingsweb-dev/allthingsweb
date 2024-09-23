@@ -86,14 +86,15 @@ function MoreInformation() {
             open at 11:30 am. Join us for a day of coding, networking, and fun!
           </p>
         </div>
-        <div id="prizes" className="space-y-2">
+        <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Awards and Prizes</h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            At the end of the event, we&apos;ll vote for the most creative and the most impactful projects. The winning
-            teams will be awarded with prizes. Stay tuned for more details!
+            At the end of the event, we’ll vote for the most creative and most impactful projects. The winning teams
+            will score some awesome prizes! Here’s what’s up for grabs: Syntax & Sentry swag and $80 in Sentry credits
+            per person on the winning teams!
           </p>
         </div>
-        <div id="sponsors" className="space-y-2">
+        <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Theme</h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
             The theme of the hackathon is "Open Source." We’d love for you to use open-source tools, maybe even give
@@ -101,7 +102,7 @@ function MoreInformation() {
             forget—two prizes are up for grabs: most creative and most impactful!
           </p>
         </div>
-        <div id="sponsors" className="space-y-2">
+        <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Team Building</h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
             No need to stress about finding a team before the event! We’ll kick things off with some fun ice breakers
