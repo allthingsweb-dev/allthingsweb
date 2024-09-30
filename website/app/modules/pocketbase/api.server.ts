@@ -13,14 +13,17 @@ export async function authenticateAdmin() {
 
 export async function getEvents(): Promise<Event[]> {
   await authenticateAdmin();
-  const resultList = await pb.collection('events').getFullList();
+  const resultList = await pb.collection('events').getFullList({
+    filter: 'isDraft = false',
+    sort: 'start',
+  });
   return resultList.map(toEvent);
 }
 
 export async function getUpcomingEvents(): Promise<Event[]> {
   await authenticateAdmin();
   const resultList = await pb.collection('events').getFullList({
-    filter: `start >= "${new Date().toISOString()}"`,
+    filter: `start >= "${new Date().toISOString()}" && isDraft = false`,
     sort: 'start',
   });
   return resultList.map(toEvent);
@@ -156,9 +159,10 @@ export function toEvent(event: any): Event {
     streetAddress: event.streetAddress,
     shortLocation: event.shortLocation,
     attendeeLimit: event.attendeeLimit,
-    lumaEventId: event.lumaEventId,
-    lumaUrl: `https://lu.ma/event/${event.lumaEventId}`,
+    lumaEventId: event.lumaEventId || undefined,
+    lumaUrl: event.lumaEventId ? `https://lu.ma/event/${event.lumaEventId}` : undefined,
     enableRegistrations: event.enableRegistrations,
+    isDraft: event.isDraft || false,
     highlightOnLandingPage: event.highlightOnLandingPage,
     isHackathon: event.isHackathon,
     talkIds: event.talks,

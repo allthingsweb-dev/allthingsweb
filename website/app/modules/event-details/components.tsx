@@ -177,17 +177,13 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">{event.name}</h1>
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">{event.tagline}</p>
               </div>
-              <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link to={event.enableRegistrations ? `/${event.slug}/register?utm_source=web` : event.lumaUrl}>
-                  {event.enableRegistrations
-                    ? 'Register now'
-                    : isInPast
-                      ? 'View on Luma'
-                      : isAtCapacity
-                        ? 'Join waitlist on Luma'
-                        : 'Register on Luma'}
-                </Link>
-              </div>
+              {event.lumaUrl && (
+                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                  <Link to={event.lumaUrl}>
+                    {isInPast ? 'View on Luma' : isAtCapacity ? 'Join waitlist on Luma' : 'Register on Luma'}
+                  </Link>
+                </div>
+              )}
             </div>
             <img
               src="/hero-image-hackathon.png"

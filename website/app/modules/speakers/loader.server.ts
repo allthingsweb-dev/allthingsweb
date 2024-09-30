@@ -32,6 +32,9 @@ export async function speakersLoader() {
         eventName: event.name,
       });
     }
+    if (!talksWithEventInfo.length) {
+      continue;
+    }
     speakersWithTalks.push({ ...speaker, talks: talksWithEventInfo });
   }
 

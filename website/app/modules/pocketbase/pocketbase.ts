@@ -9,9 +9,10 @@ export type Event = {
   streetAddress: string;
   shortLocation: string;
   attendeeLimit: number;
-  lumaEventId: string;
-  lumaUrl: string;
-  enableRegistrations: boolean;
+  lumaEventId?: string;
+  lumaUrl?: string;
+  enableRegistrations: boolean; // enable registrations via allthingsweb.dev (currently not used)
+  isDraft: boolean;
   isHackathon: boolean;
   highlightOnLandingPage: boolean;
   talkIds: string[];
