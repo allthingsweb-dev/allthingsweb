@@ -66,7 +66,7 @@ export default function Component() {
             </div>
             <div className="flex items-center justify-center">
               <img
-                alt="Rocket launching into space"
+                alt="A cartoon-style rocket launching into space against a purple and black starry background, creating a mystical atmosphere. In the foreground, a cartoon-style human-shaped figure with a laptop sits, watching the rocket."
                 className="aspect-video overflow-hidden rounded-xl object-cover object-center"
                 height="400"
                 src="/hero-image-rocket.png"

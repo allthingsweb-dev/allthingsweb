@@ -20,7 +20,7 @@ export function ErrorPage() {
           src="/hero-image-404.png"
           width="300"
           height="300"
-          alt="404 Illustration"
+          alt="A cartoon-style developer sitting at a desk with a laptop, looking puzzled."
           className="mx-auto"
           style={{ aspectRatio: '300/300', objectFit: 'cover' }}
         />

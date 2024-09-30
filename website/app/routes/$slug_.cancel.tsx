@@ -54,7 +54,7 @@ export default function Component() {
                 src="/hero-image-goodbye.png"
                 width="550"
                 height="550"
-                alt="Hero"
+                alt="A cartoon-style character, facing away from the camera, waves to a crowd entering a futuristic bus."
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
               />
             </div>
