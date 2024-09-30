@@ -198,7 +198,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
               )}
             </div>
             <img
-              src="/hero-image-hackathon.png"
+              src={event.isHackathon ? "/hero-image-hackathon.png" : "/hero-image-meetup.png"}
               width="550"
               height="550"
               alt="Hero"
