@@ -62,12 +62,12 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
       }}
     >
       <div tw="w-full flex items-start">
-        {!!event.sponsors.length && (
+        {!!event.sponsors.length && event.sponsors.length < 3 && (
           <div tw="flex flex-col" style={{ gap: '1rem' }}>
             <div tw="text-2xl font-semibold">Sponsored by</div>
             <div tw="flex" style={{ gap: '2rem' }}>
               {event.sponsors.map((sponsor) => (
-                <div key={sponsor.id} tw="flex flex-col items-center text-center mb-4">
+                <div key={sponsor.id} tw="flex flex-col items-center text-center">
                   <div tw="mb-2 w-40 h-40 bg-white p-2 rounded-lg overflow-hidden flex items-center justify-center">
                     <img src={sponsor.rectangularLogo} alt={sponsor.name} />
                   </div>
@@ -100,7 +100,7 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
           </div>
         )}
       </div>
-      <div tw="flex flex-col items-center text-center" style={{ gap: '2rem', marginTop: '14rem' }}>
+      <div tw="flex flex-col items-center text-center" style={{ gap: '2rem', marginTop: '10rem' }}>
         <h1 tw="text-8xl font-bold leading-tight max-w-[1100px]">{event.name}</h1>
         <div tw="text-3xl flex justify-center" style={{ gap: '2rem' }}>
           <div tw="flex items-center">
@@ -112,6 +112,18 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
             {event.shortLocation}
           </div>
         </div>
+        {event.sponsors.length >= 3 && (
+          <div tw="flex" style={{ gap: '2rem' }}>
+            {event.sponsors.map((sponsor) => (
+              <div key={sponsor.id} tw="flex flex-col items-center text-center">
+                <div tw="mb-2 w-20 h-20 bg-white p-2 rounded-lg overflow-hidden flex items-center justify-center">
+                  <img src={sponsor.rectangularLogo} alt={sponsor.name} />
+                </div>
+                <div tw="font-semibold text-xl">{sponsor.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div tw="text-3xl flex justify-center" style={{ marginTop: 'auto' }}>
         Find us on allthingsweb.dev and lu.ma/allthingsweb!
