@@ -169,6 +169,18 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
           </Alert>
         </div>
       )}
+      {event.isDraft && (
+        <div className="px-4 lg:px-6">
+          <Alert>
+            <InfoIcon className="h-6 w-6 text-primary pr-2" />
+            <AlertTitle>Draft event</AlertTitle>
+            <AlertDescription>
+              This event is still in draft mode. Please hold off on sharing it on your socials and stay tuned for
+              updates!
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       <Section variant="big">
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
