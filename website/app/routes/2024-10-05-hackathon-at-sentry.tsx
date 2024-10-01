@@ -77,7 +77,7 @@ function ScheduleItem({ time, title, description }: { time: string; title: strin
 
 function MoreInformation() {
   return (
-    <div className="container px-4 md:px-6">
+    <div className="container">
       <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
         <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">When and Where</h2>
@@ -117,7 +117,7 @@ function MoreInformation() {
 
 function Sponsor() {
   return (
-    <div className="container px-4 md:px-6 mx-auto max-w-4xl">
+    <div className="container max-w-4xl">
       <h2 className="text-3xl font-bold md:text-center mb-8">Our Sponsor</h2>
       <div className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto">
         <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">

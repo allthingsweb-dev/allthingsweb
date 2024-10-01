@@ -143,7 +143,7 @@ export default function Component() {
       </header>
       <main className="flex-1 items-center justify-center">
         <section className="flex items-center justify-center w-full py-6 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
+          <div className="container">
             {!actionData && !isAtCapacity ? (
               <RegistrationForm csrfToken={csrfToken} event={event} />
             ) : !actionData && isAtCapacity ? (

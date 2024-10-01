@@ -1,6 +1,5 @@
 import { NavLink, useLoaderData } from '@remix-run/react';
 import { AlertCircleIcon, CalendarHeart, InfoIcon, UsersIcon } from 'lucide-react';
-import clsx from 'clsx';
 import { Avatar, AvatarFallback, AvatarImage } from '~/modules/components/ui/avatar';
 import { MapPinIcon, LinkedInLogoIcon, TwitterLogoIcon } from '~/modules/components/ui/icons';
 import { Alert, AlertDescription, AlertTitle } from '~/modules/components/ui/alert';
@@ -11,6 +10,7 @@ import { deserializeExpandedEvent, Event, ExpandedTalk, Sponsor } from '~/module
 import { loader } from './loader.sever';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Link } from '../components/ui/link';
+import clsx from 'clsx';
 
 export function AllYouNeedToKnowSection({
   event,
@@ -66,7 +66,7 @@ export function AllYouNeedToKnowSection({
 export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
   return (
     <Section id="talks" variant="big">
-      <div className="container mx-auto px-4">
+      <div className="container">
         <h2 className="text-3xl font-bold text-center tracking-tight mb-8">Talks</h2>
         <div className="grid gap-8 md:grid-cols-2">
           {talks.map((talk) => (
@@ -121,7 +121,7 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
 export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
   return (
     <Section variant="big">
-      <div className="container px-4 md:px-6 mx-auto max-w-4xl">
+      <div className="container">
         <h2 className="text-3xl font-bold md:text-center mb-8">
           {sponsors.length === 1 ? 'Event Sponsor' : 'Event Sponsors'}
         </h2>
@@ -136,6 +136,52 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+export function PhotosSection({
+  photos,
+  background = 'muted',
+}: {
+  photos: string[];
+  background?: 'muted' | 'default';
+}) {
+  return (
+    <Section variant="big" background={background}>
+      <div className="container flex flex-col gap-8">
+        <h2 className="text-3xl font-bold md:text-center">Event Photos</h2>
+        <div
+          className={clsx(
+            'mx-auto grid grid-cols-1 gap-4 overflow-y-auto max-h-[648px] max-w-[1280px] p-4 rounded-lg shadow',
+            {
+              'bg-background': background === 'muted',
+              'bg-muted': background === 'default',
+              'sm:grid-cols-2': photos.length >= 2,
+              'md:grid-cols-3': photos.length >= 3,
+              'lg:grid-cols-4': photos.length >= 4,
+            },
+          )}
+        >
+          {photos.map((photoUrl) => (
+            <NavLink
+              key={photoUrl}
+              to={photoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:opacity-75 transition-opacity"
+            >
+              <img
+                src={photoUrl}
+                width={300}
+                height={300}
+                alt="Event photo"
+                className="rounded-lg h-[300px] w-[300px] object-cover"
+              />
+            </NavLink>
           ))}
         </div>
       </div>
@@ -182,7 +228,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
         </div>
       )}
       <Section variant="big">
-        <div className="container px-4 md:px-6">
+        <div className="container">
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">

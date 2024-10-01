@@ -18,6 +18,7 @@ export type Event = {
   talkIds: string[];
   sponsorIds: string[];
   previewImageUrl: string | null;
+  photos: string[];
   created: Date;
   updated: Date;
 };

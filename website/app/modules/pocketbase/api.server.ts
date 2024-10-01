@@ -170,6 +170,7 @@ export function toEvent(event: any): Event {
     previewImageUrl: event.previewImage
       ? `${env.pocketbase.publicOrigin}/api/files/events/${event.id}/${event.previewImage}`
       : null,
+    photos: event.photos.map((photo: string) => `${env.pocketbase.publicOrigin}/api/files/events/${event.id}/${photo}`),
     created: new Date(event.created),
     updated: new Date(event.updated),
   };

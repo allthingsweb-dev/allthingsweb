@@ -53,7 +53,7 @@ export default function Component() {
   return (
     <PageLayout>
       <Section variant="big">
-        <div className="container px-4 md:px-6">
+        <div className="container">
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
@@ -78,7 +78,7 @@ export default function Component() {
       </Section>
       {highlightEvent && (
         <Section variant="big" background="muted">
-          <div className="container px-4 md:px-6">
+          <div className="container">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
@@ -110,7 +110,7 @@ export default function Component() {
       )}
       {remainingEvents.length > 0 && <OtherUpcomingEventsSection events={remainingEvents} />}
       <Section variant="big" className="bg-indigo-600 text-white">
-        <div className="container px-4 md:px-6">
+        <div className="container">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Join us on Discord</h2>
@@ -241,7 +241,7 @@ function SkeletonEventCard() {
 function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
   return (
     <Section variant="big">
-      <div className="container px-4 md:px-6">
+      <div className="container">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Other events</h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
@@ -267,7 +267,7 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
 function PastEventsSection({ events }: { events: Event[] }) {
   return (
     <Section variant="big">
-      <div className="container px-4 md:px-6">
+      <div className="container">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">Past events</h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
@@ -301,7 +301,7 @@ function PendingPastEventsSection() {
 
   return (
     <Section variant="big">
-      <div className="container px-4 md:px-6">
+      <div className="container">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">Past events</h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
