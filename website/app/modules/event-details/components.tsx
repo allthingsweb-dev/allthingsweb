@@ -66,9 +66,13 @@ export function AllYouNeedToKnowSection({
 export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
   return (
     <Section id="talks" variant="big">
-      <div className="container">
-        <h2 className="text-3xl font-bold text-center tracking-tight mb-8">Talks</h2>
-        <div className="grid gap-8 md:grid-cols-2">
+      <div className="container flex flex-col gap-8">
+        <h2 className="text-3xl font-bold text-center tracking-tight">Talks</h2>
+        <div
+          className={clsx('mx-auto grid gap-4 grid-cols-[repeat(1,minmax(auto,600px))]', {
+            'lg:grid-cols-[repeat(2,minmax(auto,600px))]': talks.length >= 2,
+          })}
+        >
           {talks.map((talk) => (
             <Card key={talk.id} className="flex flex-col">
               <CardHeader>
