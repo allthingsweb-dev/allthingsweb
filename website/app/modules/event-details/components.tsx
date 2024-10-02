@@ -86,7 +86,7 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
               <CardContent className="flex-grow flex flex-col items-start gap-4">
                 <h4 className="text-2xl">{talk.title}</h4>
                 <div
-                  className="text-muted-foreground flex flex-col gap-2"
+                  className="text-muted-foreground flex flex-col gap-2 [&_p_a]:text-primary hover:[&_p_a]:text-primary/80 [&_p_a]:underline [&_p_a]:underline-offset-2 [&_p_a]:decoration-2 [&_p_a]:decoration-primary hover:[&_p_a]:decoration-primary/80 focus-visible:[&_p_a]:outline-none focus-visible:[&_p_a]:ring-1 focus-visible:[&_p_a]:ring-ring"
                   dangerouslySetInnerHTML={{ __html: talk.description }}
                 />
                 <div className="flex-grow flex flex-col items-start gap-2">
@@ -97,13 +97,23 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
               <CardFooter>
                 <div className="flex justify-start gap-2 items-center">
                   {talk.speaker.twitterUrl && (
-                    <a href={talk.speaker.twitterUrl} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={talk.speaker.twitterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
                       <TwitterLogoIcon className="h-4 w-4" />
                       <span className="sr-only">Twitter</span>
                     </a>
                   )}
                   {talk.speaker.linkedinUrl && (
-                    <a href={talk.speaker.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={talk.speaker.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
                       <LinkedInLogoIcon className="h-5 w-5" />
                       <span className="sr-only">LinkedIn</span>
                     </a>
