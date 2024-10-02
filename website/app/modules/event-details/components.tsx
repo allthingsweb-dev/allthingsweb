@@ -69,8 +69,8 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
       <div className="container flex flex-col gap-8">
         <h2 className="text-3xl font-bold text-center tracking-tight">Talks</h2>
         <div
-          className={clsx('mx-auto grid gap-4 grid-cols-[repeat(1,minmax(auto,600px))]', {
-            'lg:grid-cols-[repeat(2,minmax(auto,600px))]': talks.length >= 2,
+          className={clsx('mx-auto grid gap-4 grid-cols-[repeat(1,minmax(auto,800px))]', {
+            'lg:grid-cols-[repeat(2,minmax(auto,800px))]': talks.length >= 2,
           })}
         >
           {talks.map((talk) => (
@@ -90,7 +90,11 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
               <CardContent className="flex-grow flex flex-col items-start gap-4">
                 <h4 className="text-2xl">{talk.title}</h4>
                 <div
-                  className="text-muted-foreground flex flex-col gap-2 [&_p_a]:text-primary hover:[&_p_a]:text-primary/80 [&_p_a]:underline [&_p_a]:underline-offset-2 [&_p_a]:decoration-2 [&_p_a]:decoration-primary hover:[&_p_a]:decoration-primary/80 focus-visible:[&_p_a]:outline-none focus-visible:[&_p_a]:ring-1 focus-visible:[&_p_a]:ring-ring"
+                  className={clsx(
+                    'text-muted-foreground flex flex-col gap-2',
+                    '[&_a]:text-primary hover:[&_a]:text-primary/80 [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-2 [&_a]:decoration-primary hover:[&_a]:decoration-primary/80 focus-visible:[&_a]:outline-none focus-visible:[&_a]:ring-1 focus-visible:[&_a]:ring-ring',
+                    '[&_ul]:list-inside [&_ul]:list-disc',
+                  )}
                   dangerouslySetInnerHTML={{ __html: talk.description }}
                 />
                 <div className="flex-grow flex flex-col items-start gap-2">
