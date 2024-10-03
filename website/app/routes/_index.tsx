@@ -1,5 +1,6 @@
-import { Suspense, useCallback } from 'react';
-import { Await, useLoaderData } from '@remix-run/react';
+import { useCallback } from 'react';
+import { useLoaderData } from '@remix-run/react';
+import { MetaFunction } from '@remix-run/node';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Button, ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
@@ -10,7 +11,6 @@ import { Section } from '~/modules/components/ui/section';
 import { toReadableDateTimeStr } from '~/modules/datetime';
 import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
-import { defer, MetaFunction } from '@remix-run/node';
 import { type loader as rootLoader } from '~/root';
 import { Skeleton } from '~/modules/components/ui/skeleton';
 
@@ -31,51 +31,34 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
 };
 
 export async function loader() {
-  const events = await getUpcomingEvents();
+  const [events, pastEvents] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
   const highlightEvent = events.find((event) => event.highlightOnLandingPage);
   const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
-  return defer({
+  const photos = pastEvents.flatMap((event) => event.photos);
+  // take 40 random photos
+  const randomPhotos = photos.sort(() => 0.5 - Math.random()).slice(0, 40);
+  return {
     highlightEvent,
     remainingEvents,
-    pastEventsPromise: getPastEvents(),
-  });
+    pastEvents,
+    postEventImages: randomPhotos,
+  };
 }
 
 export default function Component() {
   const {
     highlightEvent: highlightEventData,
     remainingEvents: remainingEventsData,
-    pastEventsPromise,
+    pastEvents: pastEventsData,
+    postEventImages,
   } = useLoaderData<typeof loader>();
   const highlightEvent = deserializeEvent(highlightEventData);
   const remainingEvents = remainingEventsData.map(deserializeEvent);
+  const pastEvents = pastEventsData.map(deserializeEvent);
 
   return (
     <PageLayout>
-      <Section variant="big">
-        <div className="container">
-          <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-            <div className="flex flex-col justify-center space-y-4">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">All Things Web 🚀</h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  Discover exciting web development events in the Bay Area and San Francisco. Join us for hackathons,
-                  hangouts, and meetups to connect with fellow developers and web enthusiasts.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center justify-center">
-              <img
-                alt="A cartoon-style rocket launching into space against a purple and black starry background, creating a mystical atmosphere. In the foreground, a cartoon-style human-shaped figure with a laptop sits, watching the rocket."
-                className="aspect-video overflow-hidden rounded-xl object-cover object-center"
-                height="400"
-                src="/hero-image-rocket.png"
-                width="600"
-              />
-            </div>
-          </div>
-        </div>
-      </Section>
+      <LandingHero images={postEventImages} />
       {highlightEvent && (
         <Section variant="big" background="muted">
           <div className="container">
@@ -132,12 +115,34 @@ export default function Component() {
           </div>
         </div>
       </Section>
-      <Suspense fallback={<PendingPastEventsSection />}>
-        <Await resolve={pastEventsPromise}>
-          {(pastEvents) => <PastEventsSection events={pastEvents.map(deserializeEvent)} />}
-        </Await>
-      </Suspense>
+      <PastEventsSection events={pastEvents.map(deserializeEvent)} />
     </PageLayout>
+  );
+}
+
+function LandingHero({ images }: { images: string[] }) {
+  return (
+    <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
+      <div className="relative w-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1">
+        {images.map((imageSrc) => (
+          <img
+            src={imageSrc}
+            alt="Past event image"
+            aria-hidden="true"
+            className="w-full h-full object-cover object-center"
+          />
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4">
+        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">All Things Web 🚀</h1>
+        <p className="max-w-2xl text-lg sm:text-xl">
+          Discover exciting web development events in the Bay Area and San Francisco. Join us for hackathons, hangouts,
+          and meetups to connect with fellow developers and web enthusiasts.
+        </p>
+      </div>
+    </section>
   );
 }
 

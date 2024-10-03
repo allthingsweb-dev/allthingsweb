@@ -197,7 +197,7 @@ export function PhotosSection({
                 width={300}
                 height={300}
                 alt="Event photo"
-                className="rounded-lg h-[300px] w-[300px] object-cover"
+                className="rounded-lg h-[300px] w-[300px] object-cover object-center"
               />
             </NavLink>
           ))}
