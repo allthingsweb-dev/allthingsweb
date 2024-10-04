@@ -12,6 +12,7 @@
     "prettier:fix": "prettier --write ."
   },
   "dependencies": {
+    "@epic-web/cachified": "^5.2.0",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-popover": "^1.1.1",
@@ -31,6 +32,7 @@
     "express": "^4.19.2",
     "inngest": "^3.22.5",
     "isbot": "^4.1.0",
+    "lru-cache": "^11.0.1",
     "lucide-react": "^0.428.0",
     "morgan": "^1.10.0",
     "pocketbase": "^0.21.4",

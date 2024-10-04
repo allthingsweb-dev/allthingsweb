@@ -169,3 +169,41 @@ export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
     </div>
   );
 }
+
+export function LandingPagePreview({ images }: { images: string[] }) {
+  return (
+    <section tw="relative w-[1200px] h-[1200px] overflow-hidden">
+      <div tw="w-full flex flex-wrap absolute inset-0">
+        {images.map((imageSrc) => (
+          <img
+            key={imageSrc}
+            src={imageSrc}
+            alt="Past event image"
+            tw="w-[300px] h-[300px]"
+            width="300"
+            height="300"
+            style={{
+              objectFit: 'cover',
+              objectPosition: 'center',
+            }}
+          />
+        ))}
+      </div>
+      <div
+        tw="absolute inset-0 flex flex-col items-center text-center text-white"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.3))',
+          paddingTop: '480px',
+          zIndex: '20',
+        }}
+      >
+        <h1 tw="text-8xl font-light tracking-tight" style={{ marginBottom: '1rem' }}>
+          All Things Web
+        </h1>
+        <p tw="max-w-4xl text-4xl">
+          Discover exciting web development events in the Bay Area and San Francisco.
+        </p>
+      </div>
+    </section>
+  );
+}

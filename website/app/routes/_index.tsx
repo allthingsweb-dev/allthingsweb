@@ -24,7 +24,7 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
       'All Things Web',
       'Join our tech meetups and hackathons in the Bay Area.',
       `${rootLoaderData.serverOrigin}/`,
-      `${rootLoaderData.serverOrigin}/hero-image-rocket.png`,
+      `${rootLoaderData.serverOrigin}/preview.png`,
     ),
     matches,
   );
@@ -34,14 +34,15 @@ export async function loader() {
   const [events, pastEvents] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
   const highlightEvent = events.find((event) => event.highlightOnLandingPage);
   const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
-  const photos = pastEvents.flatMap((event) => event.photos);
-  // take 40 random photos
-  const randomPhotos = photos.sort(() => 0.5 - Math.random()).slice(0, 40);
+  const photos = pastEvents
+    .flatMap((event) => event.photos)
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 40);
   return {
     highlightEvent,
     remainingEvents,
     pastEvents,
-    postEventImages: randomPhotos,
+    postEventImages: photos,
   };
 }
 
@@ -123,9 +124,10 @@ export default function Component() {
 function LandingHero({ images }: { images: string[] }) {
   return (
     <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="relative w-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1">
+      <div className="w-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1">
         {images.map((imageSrc) => (
           <img
+            key={imageSrc}
             src={imageSrc}
             alt="Past event image"
             aria-hidden="true"
