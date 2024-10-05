@@ -1,4 +1,5 @@
 import { toReadableDateTimeStr } from '../datetime';
+import { getPocketbaseUrlForImage } from '../pocketbase/api.server';
 import { ExpandedEvent, Speaker } from '../pocketbase/pocketbase';
 
 declare module 'react' {
@@ -56,7 +57,7 @@ function CalendarIcon() {
 export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: string }) {
   return (
     <div
-      tw="w-[1200px] h-[1200px] bg-gradient-to-br flex flex-col p-16 text-white"
+      tw="w-[1200px] h-[1200px] flex flex-col p-16 text-white"
       style={{
         background: 'linear-gradient(to bottom right, #3b0d60, #4b0082, #2d0031, #000000)',
       }}
@@ -69,7 +70,7 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
               {event.sponsors.map((sponsor) => (
                 <div key={sponsor.id} tw="flex flex-col items-center text-center">
                   <div tw="mb-2 w-40 h-40 bg-white p-2 rounded-lg overflow-hidden flex items-center justify-center">
-                    <img src={sponsor.rectangularLogo} alt={sponsor.name} />
+                    <img src={getPocketbaseUrlForImage(sponsor.squareLogoId)} alt={sponsor.name} />
                   </div>
                   <div tw="font-semibold text-xl">{sponsor.name}</div>
                 </div>
@@ -85,7 +86,7 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
                 <div key={speaker.id} tw="flex flex-col items-center text-center">
                   <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
                     <img
-                      src={speaker.profileImageUrl}
+                      src={getPocketbaseUrlForImage(speaker.profileImageId)}
                       alt={speaker.name}
                       width={160}
                       height={160}
@@ -117,7 +118,7 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
             {event.sponsors.map((sponsor) => (
               <div key={sponsor.id} tw="flex flex-col items-center text-center">
                 <div tw="mb-2 w-20 h-20 bg-white p-2 rounded-lg overflow-hidden flex items-center justify-center">
-                  <img src={sponsor.rectangularLogo} alt={sponsor.name} />
+                  <img src={getPocketbaseUrlForImage(sponsor.squareLogoId)} alt={sponsor.name} />
                 </div>
                 <div tw="font-semibold text-xl">{sponsor.name}</div>
               </div>
@@ -137,7 +138,7 @@ export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
   const visibleSpeakers = speakers.slice(0, maxSpeakersToShow);
   return (
     <div
-      tw="w-[1200px] h-[1200px] bg-gradient-to-br flex flex-col p-16 text-white"
+      tw="w-[1200px] h-[1200px] flex flex-col p-16 text-white"
       style={{
         background: 'linear-gradient(to bottom right, #3b0d60, #4b0082, #2d0031, #000000)',
       }}
@@ -150,7 +151,7 @@ export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
               <div key={speaker.id} tw="flex flex-col items-center text-center">
                 <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
                   <img
-                    src={speaker.profileImageUrl}
+                    src={getPocketbaseUrlForImage(speaker.profileImageId)}
                     alt={speaker.name}
                     width={160}
                     height={160}
@@ -170,14 +171,14 @@ export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
   );
 }
 
-export function LandingPagePreview({ images }: { images: string[] }) {
+export function LandingPagePreview({ photoIds }: { photoIds: string[] }) {
   return (
     <section tw="relative w-[1200px] h-[1200px] overflow-hidden">
       <div tw="w-full flex flex-wrap absolute inset-0">
-        {images.map((imageSrc) => (
+        {photoIds.map((photoId) => (
           <img
-            key={imageSrc}
-            src={imageSrc}
+            key={photoId}
+            src={getPocketbaseUrlForImage(photoId)}
             alt="Past event image"
             tw="w-[300px] h-[300px]"
             width="300"
@@ -200,9 +201,7 @@ export function LandingPagePreview({ images }: { images: string[] }) {
         <h1 tw="text-8xl font-light tracking-tight" style={{ marginBottom: '1rem' }}>
           All Things Web
         </h1>
-        <p tw="max-w-4xl text-4xl">
-          Discover exciting web development events in the Bay Area and San Francisco.
-        </p>
+        <p tw="max-w-4xl text-4xl">Discover exciting web development events in the Bay Area and San Francisco.</p>
       </div>
     </section>
   );

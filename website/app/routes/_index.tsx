@@ -24,7 +24,7 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
       'All Things Web',
       'Join our tech meetups and hackathons in the Bay Area.',
       `${rootLoaderData.serverOrigin}/`,
-      `${rootLoaderData.serverOrigin}/preview.png`,
+      `${rootLoaderData.serverOrigin}/img/gen/preview.png`,
     ),
     matches,
   );
@@ -37,7 +37,7 @@ export async function loader() {
   const photos = pastEvents
     .flatMap((event) => event.photos)
     .sort(() => 0.5 - Math.random())
-    .slice(0, 40);
+    .slice(0, 30);
   return {
     highlightEvent,
     remainingEvents,
@@ -53,7 +53,7 @@ export default function Component() {
     pastEvents: pastEventsData,
     postEventImages,
   } = useLoaderData<typeof loader>();
-  const highlightEvent = deserializeEvent(highlightEventData);
+  const highlightEvent = highlightEventData ? deserializeEvent(highlightEventData) : null;
   const remainingEvents = remainingEventsData.map(deserializeEvent);
   const pastEvents = pastEventsData.map(deserializeEvent);
 
@@ -131,7 +131,7 @@ function LandingHero({ images }: { images: string[] }) {
             src={imageSrc}
             alt="Past event image"
             aria-hidden="true"
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover"
           />
         ))}
       </div>

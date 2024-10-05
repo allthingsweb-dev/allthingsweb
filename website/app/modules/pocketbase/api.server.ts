@@ -23,7 +23,7 @@ export async function getEvents(): Promise<Event[]> {
 export async function getUpcomingEvents(): Promise<Event[]> {
   await authenticateAdmin();
   const resultList = await pb.collection('events').getFullList({
-    filter: `start >= "${new Date().toISOString()}" && isDraft = false`,
+    filter: `end >= "${new Date().toISOString()}" && isDraft = false`,
     sort: 'start',
   });
   return resultList.map(toEvent);
@@ -33,7 +33,7 @@ export async function getPastEvents(): Promise<Event[]> {
   await authenticateAdmin();
 
   const resultList = await pb.collection('events').getFullList({
-    filter: `start < "${new Date().toISOString()}"`,
+    filter: `end < "${new Date().toISOString()}"`,
     sort: '-start',
   });
   return resultList.map(toEvent);
@@ -167,10 +167,10 @@ export function toEvent(event: any): Event {
     isHackathon: event.isHackathon,
     talkIds: event.talks,
     sponsorIds: event.sponsors,
-    previewImageUrl: event.previewImage
-      ? `${env.pocketbase.publicOrigin}/api/files/events/${event.id}/${event.previewImage}`
-      : null,
-    photos: event.photos.map((photo: string) => `${env.pocketbase.publicOrigin}/api/files/events/${event.id}/${photo}`),
+    previewImageUrl: event.previewImage ? `/img/pocketbase/events/${event.id}/${event.previewImage}` : null,
+    previewImageId: event.previewImage ? `/events/${event.id}/${event.previewImage}` : null,
+    photos: event.photos.map((photo: string) => `/img/pocketbase/events/${event.id}/${photo}`),
+    photosIds: event.photos.map((photo: string) => `/events/${event.id}/${photo}`),
     created: new Date(event.created),
     updated: new Date(event.updated),
   };
@@ -182,7 +182,8 @@ export function toSpeaker(speaker: any): Speaker {
     name: speaker.name,
     email: speaker.email,
     title: speaker.title,
-    profileImageUrl: `${env.pocketbase.publicOrigin}/api/files/speakers/${speaker.id}/${speaker.profileImage}`,
+    profileImageUrl: `/img/pocketbase/speakers/${speaker.id}/${speaker.profileImage}`,
+    profileImageId: `/speakers/${speaker.id}/${speaker.profileImage}`,
     linkedinUrl: speaker.linkedinHandle ? `https://www.linkedin.com/in/${speaker.linkedinHandle}` : null,
     twitterUrl: speaker.twitterHandle ? `https://twitter.com/${speaker.twitterHandle}` : null,
     bio: speaker.bio,
@@ -212,7 +213,8 @@ export function toSponsor(sponsor: any): Sponsor {
   return {
     id: sponsor.id,
     name: sponsor.name,
-    rectangularLogo: `${env.pocketbase.publicOrigin}/api/files/sponsors/${sponsor.id}/${sponsor.rectangularLogo}`,
+    squareLogo: `/img/pocketbase/sponsors/${sponsor.id}/${sponsor.rectangularLogo}`,
+    squareLogoId: `/sponsors/${sponsor.id}/${sponsor.rectangularLogo}`,
     about: sponsor.about,
   };
 }
@@ -240,4 +242,8 @@ export function toLink(link: any): Link {
     id: link.id,
     destinationUrl: link.destinationUrl,
   };
+}
+
+export function getPocketbaseUrlForImage(imageId: string) {
+  return `${env.pocketbase.origin}/api/files${imageId}`;
 }

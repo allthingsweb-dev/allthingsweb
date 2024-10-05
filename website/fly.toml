@@ -13,7 +13,25 @@ primary_region = 'sjc'
   min_machines_running = 1
   processes = ['app']
 
+[[http_service.checks]]
+  interval = "10s"
+  grace_period = "5s"
+  method = "get"
+  port = 3000
+  path = "/healthcheck"
+  protocol = "http"
+  timeout = "2s"
+  tls_skip_verify = false
+  headers = { }
+
 [[vm]]
-  memory = '1gb'
+  memory = '4gb'
   cpu_kind = 'shared'
-  cpus = 1
+  cpus = 2
+
+[mounts]
+  source = "data"
+  destination = "/data"
+
+
+

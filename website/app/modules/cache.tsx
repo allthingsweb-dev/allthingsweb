@@ -1,8 +1,7 @@
 import { LRUCache } from 'lru-cache';
 import { CacheEntry, Cache, totalTtl } from '@epic-web/cachified';
 
-// do not cache too many images in memory
-const lruInstance = new LRUCache<string, CacheEntry>({ max: 20 });
+const lruInstance = new LRUCache<string, CacheEntry>({ max: 100 });
 
 export const lru: Cache = {
   set(key, value) {

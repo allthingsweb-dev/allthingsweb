@@ -19,6 +19,7 @@ if (env.sentry.dsn && !Sentry.isInitialized()) {
 
 export const handleError = Sentry.wrapHandleErrorWithSentry((error, { request }) => {
   // Custom handleError implementation
+  console.error(error);
 });
 
 const ABORT_DELAY = 5_000;

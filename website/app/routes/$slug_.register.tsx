@@ -4,7 +4,7 @@ import { Input } from '~/modules/components/ui/input';
 import { Button, ButtonAnchor } from '~/modules/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '~/modules/components/ui/card';
 import { Form, NavLink, useActionData, useLoaderData, useNavigation, useParams } from '@remix-run/react';
-import { CheckIcon, XIcon, CalendarDays, MapPin, CalendarIcon } from 'lucide-react';
+import { CheckIcon, XIcon, CalendarIcon } from 'lucide-react';
 import {
   getAttendeeByEmail,
   getAttendeeCount,

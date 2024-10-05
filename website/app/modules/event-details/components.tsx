@@ -147,7 +147,7 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
           {sponsors.map((sponsor) => (
             <div key={sponsor.id} className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto">
               <div className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8">
-                <img src={sponsor.rectangularLogo} className="w-12" alt={sponsor.name} />
+                <img src={sponsor.squareLogo} className="w-12" alt={sponsor.name} />
                 <div className="text-left">
                   <h3 className="text-2xl font-semibold mb-4">{sponsor.name}</h3>
                   <p className="text-muted-foreground">{sponsor.about}</p>
@@ -197,7 +197,7 @@ export function PhotosSection({
                 width={300}
                 height={300}
                 alt="Event photo"
-                className="rounded-lg h-[300px] w-[300px] object-cover object-center"
+                className="rounded-lg h-[300px] w-[300px] object-cover"
               />
             </NavLink>
           ))}
@@ -262,7 +262,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
               )}
             </div>
             <img
-              src={event.isHackathon ? '/hero-image-hackathon.png' : '/hero-image-meetup.png'}
+              src={event.isHackathon ? '/img/public/hero-image-hackathon.png' : '/img/public/hero-image-meetup.png'}
               width="550"
               height="550"
               alt={

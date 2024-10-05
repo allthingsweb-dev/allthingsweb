@@ -1,7 +1,7 @@
 import { createRequestHandler } from '@remix-run/express';
 import * as Sentry from '@sentry/bun';
 import compression from 'compression';
-import express from 'express';
+import express, { NextFunction, Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import morgan from 'morgan';
 import { env } from '~/modules/env.server.js';
 
@@ -75,6 +75,12 @@ app.all('*', remixHandler);
 // Add this after all routes,
 // but before any and other error-handling middlewares are defined
 Sentry.setupExpressErrorHandler(app);
+
+// Log errors to console
+app.use((err: Error, req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+  console.error(err);
+  next(err);
+});
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Express server listening at http://localhost:${port}`));

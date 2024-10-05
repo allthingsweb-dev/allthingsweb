@@ -17,7 +17,7 @@ export function ErrorPage() {
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-md text-center">
         <img
-          src="/hero-image-404.png"
+          src="/img/public/hero-image-404.png"
           width="300"
           height="300"
           alt="A cartoon-style developer sitting at a desk with a laptop, looking puzzled."

@@ -51,7 +51,7 @@ export default function Component() {
                 <SuccessView event={deserializeEvent(event)} />
               </div>
               <img
-                src="/hero-image-goodbye.png"
+                src="/img/public/hero-image-goodbye.png"
                 width="550"
                 height="550"
                 alt="A cartoon-style character, facing away from the camera, waves to a crowd entering a futuristic bus."

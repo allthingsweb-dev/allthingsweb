@@ -52,8 +52,8 @@ export function createSuccessfulEventSignupHtml({
   serverOrigin: string;
 }) {
   const imgSrc = event.isHackathon
-    ? `${serverOrigin}/hero-image-hackathon.png`
-    : `${serverOrigin}/hero-image-meetup.png`;
+    ? `${serverOrigin}/img/public/hero-image-hackathon.png`
+    : `${serverOrigin}/img/public/hero-image-meetup.png`;
   return `
 <html lang="en">
   <head>

@@ -18,7 +18,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
   }
 
   if (event.previewImageUrl) {
-    return redirect(`${event.previewImageUrl}?thumb=1200x1200`, {
+    return redirect(event.previewImageUrl, {
       status: 302,
       statusText: 'Found',
     });

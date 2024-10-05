@@ -18,7 +18,9 @@ export type Event = {
   talkIds: string[];
   sponsorIds: string[];
   previewImageUrl: string | null;
+  previewImageId: string | null;
   photos: string[];
+  photosIds: string[];
   created: Date;
   updated: Date;
 };
@@ -37,6 +39,7 @@ export type Speaker = {
   email: string;
   title: string;
   profileImageUrl: string;
+  profileImageId: string;
   linkedinUrl: string | null;
   twitterUrl: string | null;
   bio: string;
@@ -45,7 +48,8 @@ export type Speaker = {
 export type Sponsor = {
   id: string;
   name: string;
-  rectangularLogo: string;
+  squareLogo: string;
+  squareLogoId: string;
   about: string;
 };
 
