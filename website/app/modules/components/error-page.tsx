@@ -1,5 +1,6 @@
 import { isRouteErrorResponse, NavLink, useRouteError } from '@remix-run/react';
 import { ArrowLeft } from 'lucide-react';
+import { getImageSrc } from '../image-opt/utils';
 
 export function ErrorPage() {
   const error = useRouteError();
@@ -17,12 +18,11 @@ export function ErrorPage() {
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-md text-center">
         <img
-          src="/img/public/hero-image-404.png"
+          src={getImageSrc('/img/public/hero-image-404.png', { width: 300, height: 300, fit: 'cover' })}
           width="300"
           height="300"
           alt="A cartoon-style developer sitting at a desk with a laptop, looking puzzled."
           className="mx-auto"
-          style={{ aspectRatio: '300/300', objectFit: 'cover' }}
         />
         <h1 className="mt-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{heading}</h1>
         <p className="mt-4 text-muted-foreground">{paragraph}</p>

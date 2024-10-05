@@ -125,7 +125,7 @@ function LandingHero({ images }: { images: string[] }) {
   return (
     <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
       <div className="w-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1">
-        {images.map((imageSrc) => (
+        {/* {images.map((imageSrc) => (
           <img
             key={imageSrc}
             src={imageSrc}
@@ -133,7 +133,7 @@ function LandingHero({ images }: { images: string[] }) {
             aria-hidden="true"
             className="w-full h-full object-cover"
           />
-        ))}
+        ))} */}
       </div>
 
       {/* Content */}

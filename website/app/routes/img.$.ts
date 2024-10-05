@@ -6,6 +6,7 @@ import { LoaderFunctionArgs } from '@remix-run/node';
 import { env } from '~/modules/env.server';
 import { notFound, internalServerError } from '~/modules/responses.server';
 import { captureException } from '~/modules/sentry/capture.server';
+import { type ObjectFit } from '~/modules/image-opt/utils';
 
 function getIntOrNull(value: string | null) {
   if (value === null) {
@@ -15,7 +16,7 @@ function getIntOrNull(value: string | null) {
   return Number.parseInt(value);
 }
 
-function getObjectFit(fit: string | null) {
+function getObjectFit(fit: string | null): ObjectFit {
   if (fit === 'contain') {
     return 'contain';
   }
@@ -41,8 +42,8 @@ function getFilePath(
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
 
-  const width = getIntOrNull(url.searchParams.get('width'));
-  const height = getIntOrNull(url.searchParams.get('height'));
+  const width = getIntOrNull(url.searchParams.get('w'));
+  const height = getIntOrNull(url.searchParams.get('h'));
   const fit = getObjectFit(url.searchParams.get('fit'));
 
   let filePath: string | null = null;

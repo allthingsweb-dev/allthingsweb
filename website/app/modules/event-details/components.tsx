@@ -11,6 +11,7 @@ import { loader } from './loader.sever';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Link } from '../components/ui/link';
 import clsx from 'clsx';
+import { getImageSrc } from '../image-opt/utils';
 
 export function AllYouNeedToKnowSection({
   event,
@@ -78,7 +79,12 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
               <CardHeader>
                 <div className="flex items-center space-x-4 mb-2">
                   <Avatar className="w-12 h-12">
-                    <AvatarImage src={talk.speaker.profileImageUrl} alt={talk.speaker.name} />
+                    <AvatarImage
+                      width={48}
+                      height={48}
+                      src={getImageSrc(talk.speaker.profileImageUrl, { width: 48, height: 48 })}
+                      alt={talk.speaker.name}
+                    />
                     <AvatarFallback>{talk.speaker.name}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -147,7 +153,13 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
           {sponsors.map((sponsor) => (
             <div key={sponsor.id} className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto">
               <div className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8">
-                <img src={sponsor.squareLogo} className="w-12" alt={sponsor.name} />
+                <img
+                  src={getImageSrc(sponsor.squareLogo, { width: 40, height: 40 })}
+                  width={48}
+                  height={48}
+                  className="w-12"
+                  alt={sponsor.name}
+                />
                 <div className="text-left">
                   <h3 className="text-2xl font-semibold mb-4">{sponsor.name}</h3>
                   <p className="text-muted-foreground">{sponsor.about}</p>
@@ -193,7 +205,7 @@ export function PhotosSection({
               className="block hover:opacity-75 transition-opacity"
             >
               <img
-                src={photoUrl}
+                src={getImageSrc(photoUrl, { width: 300, height: 300, fit: 'cover' })}
                 width={300}
                 height={300}
                 alt="Event photo"
@@ -262,7 +274,10 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
               )}
             </div>
             <img
-              src={event.isHackathon ? '/img/public/hero-image-hackathon.png' : '/img/public/hero-image-meetup.png'}
+              src={getImageSrc(
+                event.isHackathon ? '/img/public/hero-image-hackathon.png' : '/img/public/hero-image-meetup.png',
+                { width: 550, height: 550, fit: 'cover' },
+              )}
               width="550"
               height="550"
               alt={

@@ -7,6 +7,7 @@ import { toYearStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { type loader as rootLoader } from '~/root';
 import { speakersLoader as loader } from '~/modules/speakers/loader.server';
+import { getImageSrc } from '~/modules/image-opt/utils';
 
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ data, matches }) => {
   const rootLoader = matches.find((match) => match.id === 'root')?.data;
@@ -40,7 +41,7 @@ export default function Component() {
               <Card key={speaker.id} className="flex flex-col">
                 <CardHeader className="flex flex-row items-center gap-4 pb-2">
                   <img
-                    src={speaker.profileImageUrl}
+                    src={getImageSrc(speaker.profileImageUrl, { width: 200, height: 200, fit: 'cover' })}
                     alt={speaker.name}
                     width={200}
                     height={200}

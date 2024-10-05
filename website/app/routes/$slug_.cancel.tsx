@@ -7,6 +7,7 @@ import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
 import { getEventBySlug, updateAttendeeCancellation } from '~/modules/pocketbase/api.server';
 import { trackEvent } from '~/modules/posthog/posthog.server';
 import { notFound } from '~/modules/responses.server';
+import { getImageSrc } from '~/modules/image-opt/utils';
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const attendeeId = new URL(request.url).searchParams.get('attendee');
@@ -51,7 +52,7 @@ export default function Component() {
                 <SuccessView event={deserializeEvent(event)} />
               </div>
               <img
-                src="/img/public/hero-image-goodbye.png"
+                src={getImageSrc('/img/public/hero-image-goodbye.png', { width: 550, height: 550, fit: 'cover' })}
                 width="550"
                 height="550"
                 alt="A cartoon-style character, facing away from the camera, waves to a crowd entering a futuristic bus."
