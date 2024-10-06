@@ -244,6 +244,7 @@ export function toLink(link: any): Link {
   };
 }
 
+// URL for within Fly network
 export function getPocketbaseUrlForImage(imageId: string) {
   return `${env.pocketbase.origin}/api/files${imageId}`;
 }

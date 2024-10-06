@@ -77,6 +77,15 @@ function LinkList({ className }: { className?: string }) {
         </a>
       </li>
       <li>
+        <a
+          href="https://github.com/allthingsweb-dev/allthingsweb"
+          className="text-sm font-medium hover:underline underline-offset-4"
+        >
+          GitHub
+          <ArrowUpRightIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
+        </a>
+      </li>
+      <li>
         <a href="/rss" className="text-sm font-medium hover:underline underline-offset-4">
           RSS
           <RssIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />

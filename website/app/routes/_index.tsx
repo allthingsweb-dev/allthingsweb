@@ -124,16 +124,18 @@ export default function Component() {
 function LandingHero({ images }: { images: string[] }) {
   return (
     <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="w-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1">
-        {/* {images.map((imageSrc) => (
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+        {images.map((imageSrc) => (
           <img
             key={imageSrc}
-            src={imageSrc}
+            src={`${imageSrc}?w=400&h=400&fit=cover`}
             alt="Past event image"
             aria-hidden="true"
-            className="w-full h-full object-cover"
+            width={400}
+            height={400}
+            className="object-cover"
           />
-        ))} */}
+        ))}
       </div>
 
       {/* Content */}

@@ -8,13 +8,13 @@ type Options = {
 
 export function getImageSrc(srcStr: string, { width, height, fit }: Options) {
   const searchParams = new URLSearchParams();
-  if(width) {
+  if (width) {
     searchParams.set('w', width.toString());
   }
-  if(height) {
+  if (height) {
     searchParams.set('h', height.toString());
   }
-  if(fit) {
+  if (fit) {
     searchParams.set('fit', fit);
   }
   return `${srcStr}?${searchParams.toString()}`;
