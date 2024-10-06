@@ -22,7 +22,7 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
   return mergeMetaTags(
     getMetaTags(
       'All Things Web',
-      'Join our tech meetups and hackathons in the Bay Area.',
+      'Discover exciting web development events in the Bay Area and San Francisco.',
       `${rootLoaderData.serverOrigin}/`,
       `${rootLoaderData.serverOrigin}/img/gen/preview.png`,
     ),
