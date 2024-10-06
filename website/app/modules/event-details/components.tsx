@@ -84,6 +84,7 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
                       height={48}
                       src={getImageSrc(talk.speaker.profileImageUrl, { width: 48, height: 48 })}
                       alt={talk.speaker.name}
+                      loading="lazy"
                     />
                     <AvatarFallback>{talk.speaker.name}</AvatarFallback>
                   </Avatar>
@@ -159,6 +160,7 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
                   height={48}
                   className="w-12"
                   alt={sponsor.name}
+                  loading="lazy"
                 />
                 <div className="text-left">
                   <h3 className="text-2xl font-semibold mb-4">{sponsor.name}</h3>
@@ -210,6 +212,7 @@ export function PhotosSection({
                 height={300}
                 alt="Event photo"
                 className="rounded-lg h-[300px] w-[300px] object-cover"
+                loading="lazy"
               />
             </NavLink>
           ))}
@@ -257,7 +260,7 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
           </Alert>
         </div>
       )}
-      <Section variant="big">
+      <Section variant="first">
         <div className="container">
           <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
             <div className="flex flex-col justify-center space-y-4">

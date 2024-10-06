@@ -7,6 +7,7 @@ const sectionVariants = cva('flex items-center justify-center w-full', {
     variant: {
       default: 'py-6 md:py-12 lg:py-24',
       big: 'py-16 md:py-24 lg:py-32',
+      first: 'pb-16 pt-4 md:pb-24 md:pt-8 lg:pb-32 lg:pt-12',
     },
     background: {
       default: '',

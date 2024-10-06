@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useLoaderData } from '@remix-run/react';
 import { MetaFunction } from '@remix-run/node';
 import useEmblaCarousel from 'embla-carousel-react';
+import clsx from 'clsx';
 import { Button, ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { ArrowRightIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, MapPinIcon, UsersIcon } from 'lucide-react';
@@ -13,6 +14,7 @@ import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { type loader as rootLoader } from '~/root';
 import { Skeleton } from '~/modules/components/ui/skeleton';
+import { usePrevNextButtons } from '~/modules/components/ui/carousel';
 
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
   const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
@@ -34,11 +36,11 @@ export async function loader() {
   const [events, pastEvents] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
   const highlightEvent = events.find((event) => event.highlightOnLandingPage);
   const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
-  
+
   let eventPhotos: string[] = [];
   let loopCounter = 0;
   // Get even number of photos from each event
-  while(eventPhotos.length < 30) {
+  while (eventPhotos.length < 30) {
     const shuffledPastEvents = pastEvents.toSorted(() => Math.random() - 0.5);
     for (const event of shuffledPastEvents) {
       if (event.photos[loopCounter]) {
@@ -194,14 +196,7 @@ function EventsCarousel({ events }: { events: Event[] }) {
     loop: false,
     align: 'start',
   });
-
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
+  const { prevBtnDisabled, nextBtnDisabled, onPrevButtonClick, onNextButtonClick } = usePrevNextButtons(emblaApi);
 
   return (
     <div className="relative">
@@ -217,19 +212,23 @@ function EventsCarousel({ events }: { events: Event[] }) {
       <Button
         variant="outline"
         size="icon"
-        className="absolute -left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
-        onClick={scrollPrev}
+        className={clsx('absolute -left-2 top-1/2 -translate-y-1/2 backdrop-blur-sm', {
+          hidden: prevBtnDisabled,
+        })}
+        onClick={onPrevButtonClick}
       >
-        <ChevronLeftIcon className="h-4 w-4" />
+        <ChevronLeftIcon className="h-4 w-4 lg:h-6 lg:w-6" />
         <span className="sr-only">Previous slide</span>
       </Button>
       <Button
         variant="outline"
         size="icon"
-        className="absolute -right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
-        onClick={scrollNext}
+        className={clsx('absolute -right-2 top-1/2 -translate-y-1/2 backdrop-blur-sm', {
+          hidden: nextBtnDisabled,
+        })}
+        onClick={onNextButtonClick}
       >
-        <ChevronRightIcon className="h-4 w-4" />
+        <ChevronRightIcon className="h-4 w-4 lg:h-6 lg:w-6" />
         <span className="sr-only">Next slide</span>
       </Button>
     </div>

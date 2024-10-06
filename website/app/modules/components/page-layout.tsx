@@ -9,7 +9,7 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
       <header className="w-full px-4 lg:px-6 h-14 flex items-center">
         {location.pathname !== '/' && (
           <NavLink to="/" aria-label="To homepage">
-            <HomeIcon className="w-4 h-4" />
+            <HomeIcon className="w-6 h-6" />
           </NavLink>
         )}
         <DefaultRightTopNav />
