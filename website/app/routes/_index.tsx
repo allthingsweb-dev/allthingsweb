@@ -34,15 +34,28 @@ export async function loader() {
   const [events, pastEvents] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
   const highlightEvent = events.find((event) => event.highlightOnLandingPage);
   const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
-  const photos = pastEvents
-    .flatMap((event) => event.photos)
-    .sort(() => 0.5 - Math.random())
-    .slice(0, 30);
+  
+  let eventPhotos: string[] = [];
+  let loopCounter = 0;
+  // Get even number of photos from each event
+  while(eventPhotos.length < 30) {
+    const shuffledPastEvents = pastEvents.toSorted(() => Math.random() - 0.5);
+    for (const event of shuffledPastEvents) {
+      if (event.photos[loopCounter]) {
+        eventPhotos.push(event.photos[loopCounter]);
+      }
+      if (eventPhotos.length >= 30) {
+        break;
+      }
+    }
+    loopCounter++;
+  }
+
   return {
     highlightEvent,
     remainingEvents,
     pastEvents,
-    postEventImages: photos,
+    postEventImages: eventPhotos,
   };
 }
 
@@ -124,7 +137,7 @@ export default function Component() {
 function LandingHero({ images }: { images: string[] }) {
   return (
     <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1">
         {images.map((imageSrc) => (
           <img
             key={imageSrc}
@@ -133,7 +146,7 @@ function LandingHero({ images }: { images: string[] }) {
             aria-hidden="true"
             width={400}
             height={400}
-            className="object-cover"
+            className="w-full object-cover"
           />
         ))}
       </div>

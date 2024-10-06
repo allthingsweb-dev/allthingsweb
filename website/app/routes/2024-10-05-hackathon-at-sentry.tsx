@@ -1,8 +1,9 @@
 import { SentryLogoIcon } from '~/modules/components/ui/icons';
-import { EventDetailsPage } from '~/modules/event-details/components';
+import { EventDetailsPage, PhotosSection } from '~/modules/event-details/components';
 import { Section } from '~/modules/components/ui/section';
 import { meta } from '~/modules/event-details/meta';
 import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
+import { useLoaderData } from '@remix-run/react';
 
 export { meta };
 
@@ -11,15 +12,17 @@ export function loader() {
 }
 
 export default function Component() {
+  const { event } = useLoaderData<typeof loader>();
   return (
     <EventDetailsPage>
-      <Section variant="big">
+      {!!event.photos && <PhotosSection background="default" photos={event.photos} />}
+      <Section variant="big" background="muted">
         <Schedule />
       </Section>
-      <Section variant="big" background="muted">
+      <Section variant="big">
         <MoreInformation />
       </Section>
-      <Section variant="big">
+      <Section variant="big" background="muted">
         <Sponsor />
       </Section>
     </EventDetailsPage>
