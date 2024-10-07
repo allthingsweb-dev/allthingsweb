@@ -37,6 +37,9 @@ function getFilePath(
   return `data/images/${type}/v1-${fileName}-${widthInfo}-${heightInfo}-${fit}.webp`;
 }
 
+/**
+ * Inspired by Jacob Eybey's gist: https://gist.github.com/jacob-ebey/3a37a86307de9ef22f47aae2e593b56f
+ */
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
 
@@ -92,7 +95,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
   const arrayBuffer = await res.arrayBuffer();
 
-  let sharpInstance = sharp(arrayBuffer);
+  const sharpInstance = sharp(arrayBuffer);
   sharpInstance.on('error', (error) => {
     console.error(error);
     captureException(error);
