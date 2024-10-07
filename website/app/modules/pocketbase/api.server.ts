@@ -213,8 +213,8 @@ export function toSponsor(sponsor: any): Sponsor {
   return {
     id: sponsor.id,
     name: sponsor.name,
-    squareLogo: `/img/pocketbase/sponsors/${sponsor.id}/${sponsor.rectangularLogo}`,
-    squareLogoId: `/sponsors/${sponsor.id}/${sponsor.rectangularLogo}`,
+    squareLogo: `/img/pocketbase/sponsors/${sponsor.id}/${sponsor.squareLogo}`,
+    squareLogoId: `/sponsors/${sponsor.id}/${sponsor.squareLogo}`,
     about: sponsor.about,
   };
 }

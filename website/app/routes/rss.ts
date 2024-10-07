@@ -1,6 +1,8 @@
 import { env } from '~/modules/env.server';
 import { Event } from '~/modules/pocketbase/pocketbase';
 import { getEvents } from '~/modules/pocketbase/api.server';
+import cachified from '@epic-web/cachified';
+import { lru } from '~/modules/cache';
 
 function generateRSS(events: Event[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -26,7 +28,13 @@ function generateRSS(events: Event[], origin: string) {
 
 export async function loader() {
   const events = await getEvents();
-  return new Response(generateRSS(events, env.server.origin), {
+  const content = await cachified({
+    key: 'rss',
+    cache: lru,
+    ttl: 5 * 60 * 1000, // 5 minute
+    getFreshValue: () => generateRSS(events, env.server.origin),
+  })
+  return new Response(content, {
     headers: {
       'content-type': 'application/rss+xml',
     },

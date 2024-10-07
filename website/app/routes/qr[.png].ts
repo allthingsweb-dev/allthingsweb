@@ -7,7 +7,8 @@ export async function loader() {
   return new Response(qrCode, {
     headers: {
       'Content-Type': 'image/png',
-      'Cache-Control': `public, max-age=${60 * 60 * 24}`,
+      // QR code never changes
+      'Cache-Control': 'public, max-age=31536000, immutable',
     },
   });
 }

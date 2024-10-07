@@ -23,8 +23,6 @@ export async function loader() {
   return new Response(pngData.asPng(), {
     headers: {
       'Content-Type': 'image/png',
-      // 2 hours in seconds
-      'Cache-Control': `public, max-age=${60 * 60 * 2}`,
     },
   });
 }

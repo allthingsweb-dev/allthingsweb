@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
 import { useLoaderData } from '@remix-run/react';
 import { MetaFunction } from '@remix-run/node';
-import useEmblaCarousel from 'embla-carousel-react';
 import clsx from 'clsx';
+import useEmblaCarousel from 'embla-carousel-react';
+import cachified from '@epic-web/cachified';
+import { ArrowRightIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, MapPinIcon, UsersIcon } from 'lucide-react';
 import { Button, ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
-import { ArrowRightIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, MapPinIcon, UsersIcon } from 'lucide-react';
 import { getPastEvents, getUpcomingEvents } from '~/modules/pocketbase/api.server';
 import { PageLayout } from '~/modules/components/page-layout';
 import { Section } from '~/modules/components/ui/section';
@@ -15,6 +16,7 @@ import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { type loader as rootLoader } from '~/root';
 import { Skeleton } from '~/modules/components/ui/skeleton';
 import { usePrevNextButtons } from '~/modules/components/ui/carousel';
+import { lru } from '~/modules/cache';
 
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
   const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
@@ -33,9 +35,25 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
 };
 
 export async function loader() {
-  const [events, pastEvents] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
-  const highlightEvent = events.find((event) => event.highlightOnLandingPage);
-  const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
+  const { highlightEvent, remainingEvents, pastEvents } = await cachified({
+    key: '_index-loader-data',
+    cache: lru,
+    // Use cached value for 3 minutes, after one minute, fetch fresh value in the background
+    // Downstream is only hit once a minute
+    ttl: 60 * 1000, // one minute
+    staleWhileRevalidate: 2 * 60 * 1000, // two minutes
+    getFreshValue: async () => {
+      const [events, pastEvents] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
+      const highlightEvent = events.find((event) => event.highlightOnLandingPage);
+      const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
+
+      return {
+        highlightEvent,
+        remainingEvents,
+        pastEvents,
+      };
+    },
+  });
 
   let eventPhotos: string[] = [];
   let loopCounter = 0;
@@ -57,7 +75,7 @@ export async function loader() {
     highlightEvent,
     remainingEvents,
     pastEvents,
-    postEventImages: eventPhotos,
+    pastEventImages: eventPhotos,
   };
 }
 
@@ -66,7 +84,7 @@ export default function Component() {
     highlightEvent: highlightEventData,
     remainingEvents: remainingEventsData,
     pastEvents: pastEventsData,
-    postEventImages,
+    pastEventImages,
   } = useLoaderData<typeof loader>();
   const highlightEvent = highlightEventData ? deserializeEvent(highlightEventData) : null;
   const remainingEvents = remainingEventsData.map(deserializeEvent);
@@ -74,7 +92,7 @@ export default function Component() {
 
   return (
     <PageLayout>
-      <LandingHero images={postEventImages} />
+      <LandingHero images={pastEventImages} />
       {highlightEvent && (
         <Section variant="big" background="muted">
           <div className="container">
