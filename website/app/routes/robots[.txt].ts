@@ -21,7 +21,7 @@ export async function loader() {
     cache: lru,
     ttl: 5 * 60 * 1000, // 5 minute
     getFreshValue: () => generateRobotsTxt(env.server.origin, events),
-  })
+  });
   return new Response(content, {
     headers: {
       'content-type': 'text/plain',

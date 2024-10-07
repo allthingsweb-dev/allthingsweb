@@ -1,6 +1,4 @@
 import Bun from 'bun';
-import fsp from 'node:fs/promises';
-import path from 'node:path';
 import sharp from 'sharp';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { env } from '~/modules/env.server';
@@ -106,14 +104,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const newFile = await sharpInstance.toBuffer();
   try {
-    // Write the new file to the cache asynchronously
-    console.log('Writing new file to cache:', filePath);
-    fsp
-      .mkdir(path.dirname(filePath), { recursive: true })
-      .catch(() => {})
-      .then(() => {
-        fsp.writeFile(filePath, newFile);
-      });
+    // Save the image to the cache, mkdir path if it doesn't exist
+    await Bun.write(filePath, newFile, { createPath: true });
   } catch (error) {
     console.error(error);
     captureException(error);
@@ -122,7 +114,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return new Response(newFile, {
     headers: {
       'Content-Type': 'image/webp',
-      'Cache-Control': `public, max-age=${60 * 60 * 24}`,
+      'Cache-Control': `public, max-age=${60 * 60 * 24}`, // cache img 24 hours in browser
     },
   });
 }
