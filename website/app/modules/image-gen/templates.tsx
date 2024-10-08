@@ -70,7 +70,12 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
               {event.sponsors.map((sponsor) => (
                 <div key={sponsor.id} tw="flex flex-col items-center text-center">
                   <div tw="mb-2 w-40 h-40 bg-white p-2 rounded-lg overflow-hidden flex items-center justify-center">
-                    <img src={getPocketbaseUrlForImage(sponsor.squareLogoId)} alt={sponsor.name} />
+                    <img
+                      width={160}
+                      height={160}
+                      src={getPocketbaseUrlForImage(sponsor.squareLogoId, { width: 160, height: 160 })}
+                      alt={sponsor.name}
+                    />
                   </div>
                   <div tw="font-semibold text-xl">{sponsor.name}</div>
                 </div>
@@ -86,7 +91,7 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
                 <div key={speaker.id} tw="flex flex-col items-center text-center">
                   <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
                     <img
-                      src={getPocketbaseUrlForImage(speaker.profileImageId)}
+                      src={getPocketbaseUrlForImage(speaker.profileImageId, { width: 160, height: 160 })}
                       alt={speaker.name}
                       width={160}
                       height={160}
@@ -118,7 +123,12 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
             {event.sponsors.map((sponsor) => (
               <div key={sponsor.id} tw="flex flex-col items-center text-center">
                 <div tw="mb-2 w-20 h-20 bg-white p-2 rounded-lg overflow-hidden flex items-center justify-center">
-                  <img src={getPocketbaseUrlForImage(sponsor.squareLogoId)} alt={sponsor.name} />
+                  <img
+                    width={80}
+                    height={80}
+                    src={getPocketbaseUrlForImage(sponsor.squareLogoId, { width: 80, height: 80 })}
+                    alt={sponsor.name}
+                  />
                 </div>
                 <div tw="font-semibold text-xl">{sponsor.name}</div>
               </div>
@@ -151,7 +161,7 @@ export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
               <div key={speaker.id} tw="flex flex-col items-center text-center">
                 <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
                   <img
-                    src={getPocketbaseUrlForImage(speaker.profileImageId)}
+                    src={getPocketbaseUrlForImage(speaker.profileImageId, { width: 160, height: 160 })}
                     alt={speaker.name}
                     width={160}
                     height={160}
@@ -178,7 +188,7 @@ export function LandingPagePreview({ photoIds }: { photoIds: string[] }) {
         {photoIds.map((photoId) => (
           <img
             key={photoId}
-            src={getPocketbaseUrlForImage(photoId)}
+            src={getPocketbaseUrlForImage(photoId, { width: 300, height: 300 })}
             alt="Past event image"
             tw="w-[300px] h-[300px]"
             width="300"

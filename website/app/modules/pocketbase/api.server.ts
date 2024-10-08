@@ -245,6 +245,10 @@ export function toLink(link: any): Link {
 }
 
 // URL for within Fly network
-export function getPocketbaseUrlForImage(imageId: string) {
-  return `${env.pocketbase.origin}/api/files${imageId}`;
+export function getPocketbaseUrlForImage(imageId: string, thumb?: { width: number; height: number }) {
+  const searchParams = new URLSearchParams();
+  if(thumb) {
+    searchParams.set('thumb', `${thumb.width}x${thumb.height}`);
+  }
+  return `${env.pocketbase.origin}/api/files${imageId}?${searchParams.toString()}`;
 }
