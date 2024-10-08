@@ -16,6 +16,7 @@ export const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
+        icon: 'relative border border-input bg-background hover:bg-accent hover:text-accent-foreground',
       },
       size: {
         default: 'h-10 px-4 py-2',
@@ -31,16 +32,22 @@ export const buttonVariants = cva(
   },
 );
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
+export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean;
+  };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button';
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    return (
+      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props}>
+        {children}
+        {variant === 'icon' && (
+          <span className="absolute top-1/2 left-1/2 size-[max(100%,44px)] -translate-x-1/2 -translate-y-1/2 [@media(pointer:fine)]:hidden" />
+        )}
+      </Comp>
+    );
   },
 );
 Button.displayName = 'Button';
@@ -54,11 +61,29 @@ export const ButtonAnchor = React.forwardRef<HTMLAnchorElement, ButtonAnchorProp
 );
 ButtonAnchor.displayName = 'ButtonAnchor';
 
-export type ButtonNavLinkProps = NavLinkProps & VariantProps<typeof buttonVariants>;
+export type ButtonNavLinkProps = NavLinkProps &
+  VariantProps<typeof buttonVariants> & {
+    disabled?: boolean;
+    children: React.ReactNode;
+  };
 
 export const ButtonNavLink = React.forwardRef<HTMLAnchorElement, ButtonNavLinkProps>(
-  ({ className, variant, size, ...props }, ref) => {
-    return <NavLink className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+  ({ className, variant, size, disabled, children, ...props }, ref) => {
+    return (
+      <NavLink
+        aria-disabled={disabled}
+        className={cn(buttonVariants({ variant, size, className }), {
+          'pointer-events-none opacity-50': disabled,
+        })}
+        ref={ref}
+        {...props}
+      >
+        {children}
+        {variant === 'icon' && (
+          <span className="absolute top-1/2 left-1/2 size-[max(100%,44px)] -translate-x-1/2 -translate-y-1/2 [@media(pointer:fine)]:hidden" />
+        )}
+      </NavLink>
+    );
   },
 );
 ButtonAnchor.displayName = 'ButtonNavLink';

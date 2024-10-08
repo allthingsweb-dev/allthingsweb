@@ -1,22 +1,18 @@
-import { useCallback } from 'react';
 import { useLoaderData } from '@remix-run/react';
 import { MetaFunction } from '@remix-run/node';
-import clsx from 'clsx';
-import useEmblaCarousel from 'embla-carousel-react';
 import cachified from '@epic-web/cachified';
-import { ArrowRightIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, MapPinIcon, UsersIcon } from 'lucide-react';
-import { Button, ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
+import { ArrowRightIcon, CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react';
+import { type loader as rootLoader } from '~/root';
+import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
+import { ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
 import { getPastEvents, getUpcomingEvents } from '~/modules/pocketbase/api.server';
+import { EventsCarousel } from '~/modules/event-carousel/components';
 import { PageLayout } from '~/modules/components/page-layout';
 import { Section } from '~/modules/components/ui/section';
 import { toReadableDateTimeStr } from '~/modules/datetime';
-import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
-import { type loader as rootLoader } from '~/root';
-import { Skeleton } from '~/modules/components/ui/skeleton';
-import { usePrevNextButtons } from '~/modules/components/ui/carousel';
 import { lru } from '~/modules/cache';
+import { getImageSrc } from '~/modules/image-opt/utils';
 
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
   const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
@@ -161,7 +157,7 @@ function LandingHero({ images }: { images: string[] }) {
         {images.map((imageSrc) => (
           <img
             key={imageSrc}
-            src={`${imageSrc}?w=400&h=400&fit=cover`}
+            src={getImageSrc(imageSrc, { width: 400, height: 400, fit: 'cover' })}
             alt="Past event image"
             aria-hidden="true"
             width={400}
@@ -180,100 +176,6 @@ function LandingHero({ images }: { images: string[] }) {
         </p>
       </div>
     </section>
-  );
-}
-
-function EventCard({ event, className }: { event: Event; className?: string }) {
-  return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>{event.name}</CardTitle>
-        <CardDescription>{event.tagline}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          <CalendarIcon className="h-4 w-4" />
-          <span>{toReadableDateTimeStr(event.start, true)}</span>
-        </div>
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-2">
-          <MapPinIcon className="h-4 w-4" />
-          <span>{event.shortLocation}</span>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <ButtonNavLink to={`/${event.slug}`} variant="outline">
-          See details
-        </ButtonNavLink>
-      </CardFooter>
-    </Card>
-  );
-}
-
-function EventsCarousel({ events }: { events: Event[] }) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: false,
-    align: 'start',
-  });
-  const { prevBtnDisabled, nextBtnDisabled, onPrevButtonClick, onNextButtonClick } = usePrevNextButtons(emblaApi);
-
-  return (
-    <div className="relative">
-      <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex items-stretch">
-          {events.map((event) => (
-            <div key={event.id} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4">
-              <EventCard className="h-full" event={event} />
-            </div>
-          ))}
-        </div>
-      </div>
-      <Button
-        variant="outline"
-        size="icon"
-        className={clsx('absolute -left-2 top-1/2 -translate-y-1/2 backdrop-blur-sm', {
-          hidden: prevBtnDisabled,
-        })}
-        onClick={onPrevButtonClick}
-      >
-        <ChevronLeftIcon className="h-4 w-4 lg:h-6 lg:w-6" />
-        <span className="sr-only">Previous slide</span>
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        className={clsx('absolute -right-2 top-1/2 -translate-y-1/2 backdrop-blur-sm', {
-          hidden: nextBtnDisabled,
-        })}
-        onClick={onNextButtonClick}
-      >
-        <ChevronRightIcon className="h-4 w-4 lg:h-6 lg:w-6" />
-        <span className="sr-only">Next slide</span>
-      </Button>
-    </div>
-  );
-}
-
-function SkeletonEventCard() {
-  return (
-    <Card className="h-full flex flex-col">
-      <CardContent className="flex-grow p-6 space-y-4">
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-        <div className="flex items-center space-x-2">
-          <Skeleton className="h-4 w-4" />
-          <Skeleton className="h-4 w-1/4" />
-        </div>
-        <div className="flex items-center space-x-2">
-          <Skeleton className="h-4 w-4" />
-          <Skeleton className="h-4 w-1/3" />
-        </div>
-      </CardContent>
-      <CardFooter className="p-6 pt-0">
-        <Skeleton className="h-10 w-full" />
-      </CardFooter>
-    </Card>
   );
 }
 
@@ -319,66 +221,6 @@ function PastEventsSection({ events }: { events: Event[] }) {
           </ButtonNavLink>
         </div>
         <EventsCarousel events={events} />
-      </div>
-    </Section>
-  );
-}
-
-function PendingPastEventsSection() {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: false,
-    align: 'start',
-  });
-
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-
-  return (
-    <Section variant="big">
-      <div className="container">
-        <div className="flex flex-col items-center space-y-4 text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">Past events</h2>
-          <p className="text-muted-foreground md:text-xl max-w-[700px]">
-            Find out what we&apos;ve been up to in the past. Check out our previous web development meetups and
-            hackathons.
-          </p>
-        </div>
-        <div className="relative">
-          <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex">
-              {Array(4)
-                .fill(0)
-                .map((_, index) => (
-                  <div key={index} className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4">
-                    <SkeletonEventCard />
-                  </div>
-                ))}
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute -left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
-            onClick={scrollPrev}
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            <span className="sr-only">Previous slide</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute -right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm"
-            onClick={scrollNext}
-          >
-            <ChevronRightIcon className="h-4 w-4" />
-            <span className="sr-only">Next slide</span>
-          </Button>
-        </div>
       </div>
     </Section>
   );

@@ -1,4 +1,5 @@
 import { NavLink, useLoaderData } from '@remix-run/react';
+import clsx from 'clsx';
 import { AlertCircleIcon, CalendarHeart, InfoIcon, UsersIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '~/modules/components/ui/avatar';
 import { MapPinIcon, LinkedInLogoIcon, TwitterLogoIcon } from '~/modules/components/ui/icons';
@@ -7,11 +8,10 @@ import { toReadableDateTimeStr, toWeekdayStr } from '~/modules/datetime';
 import { Section } from '~/modules/components/ui/section';
 import { PageLayout } from '~/modules/components/page-layout';
 import { deserializeExpandedEvent, Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
+import { getImageSrc } from '~/modules/image-opt/utils';
+import { ButtonNavLink } from '~/modules/components/ui/button';
 import { loader } from './loader.sever';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
-import { Link } from '../components/ui/link';
-import clsx from 'clsx';
-import { getImageSrc } from '../image-opt/utils';
 
 export function AllYouNeedToKnowSection({
   event,
@@ -270,9 +270,9 @@ export function EventDetailsPage({ children }: { children?: React.ReactNode }) {
               </div>
               {event.lumaUrl && (
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link to={event.lumaUrl}>
+                  <ButtonNavLink variant="default" size="lg" to={event.lumaUrl}>
                     {isInPast ? 'View on Luma' : isAtCapacity ? 'Join waitlist on Luma' : 'Register on Luma'}
-                  </Link>
+                  </ButtonNavLink>
                 </div>
               )}
             </div>

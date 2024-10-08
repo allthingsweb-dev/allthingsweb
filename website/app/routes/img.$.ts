@@ -46,7 +46,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const width = getIntOrNull(url.searchParams.get('w'));
   const height = getIntOrNull(url.searchParams.get('h'));
   const fit = getObjectFit(url.searchParams.get('fit'));
-  if(Number.isNaN(width) || Number.isNaN(height)) {
+  if (Number.isNaN(width) || Number.isNaN(height)) {
     return new Response('w and h query parameters must be numbers', {
       status: 400,
       statusText: 'Bad Request',

@@ -1,6 +1,15 @@
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { env } from '../env.server';
-import { Attendee, Event, ExpandedEvent, ExpandedTalk, Link, Speaker, Sponsor, Talk } from './pocketbase';
+import { env } from '~/modules/env.server';
+import {
+  Attendee,
+  Event,
+  ExpandedEvent,
+  ExpandedTalk,
+  Link,
+  Speaker,
+  Sponsor,
+  Talk,
+} from '~/modules/pocketbase/pocketbase';
 
 const pb = new PocketBase(env.pocketbase.origin);
 pb.autoCancellation(false);
@@ -247,7 +256,7 @@ export function toLink(link: any): Link {
 // URL for within Fly network
 export function getPocketbaseUrlForImage(imageId: string, thumb?: { width: number; height: number }) {
   const searchParams = new URLSearchParams();
-  if(thumb) {
+  if (thumb) {
     searchParams.set('thumb', `${thumb.width}x${thumb.height}`);
   }
   return `${env.pocketbase.origin}/api/files${imageId}?${searchParams.toString()}`;
