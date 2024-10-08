@@ -166,7 +166,6 @@ function LandingHero({ images }: { images: string[] }) {
                 <img
                   key={index}
                   src={`${image}?w=400&h=${randomHeight}&fit=cover`}
-                  data-src={`${image}?w=400&h=${randomHeight}&fit=cover`}
                   alt="Past event image"
                   aria-hidden="true"
                   width={400}
