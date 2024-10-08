@@ -157,29 +157,39 @@ export default function Component() {
 function LandingHero({ images }: { images: string[] }) {
   return (
     <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1">
-        {images.map((imageSrc) => (
-          <img
-            key={imageSrc}
-            src={`${imageSrc}?w=400&h=400&fit=cover`}
-            alt="Past event image"
-            aria-hidden="true"
-            width={400}
-            height={400}
-            className="w-full object-cover"
-          />
-        ))}
-      </div>
+        <div className="w-full columns-2  md:columns-3 lg:columns-4 xl:columns-5 space-y-3 gap-3">
+          {images.map((image, index) => {
+            const randomHeight =
+              Math.floor(Math.random() * (800 - 400 + 1)) + 400;
+            return (
+              <>
+                <img
+                  key={index}
+                  src={`${image}?w=400&h=${randomHeight}&fit=cover`}
+                  data-src={`${image}?w=400&h=${randomHeight}&fit=cover`}
+                  alt="Past event image"
+                  aria-hidden="true"
+                  width={400}
+                  height={randomHeight}
+                  className="w-full h-full object-cover"
+                />
+              </>
+            );
+          })}
+        </div>
 
-      {/* Content */}
-      <div className="z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4">
-        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">All Things Web 🚀</h1>
-        <p className="max-w-2xl text-lg sm:text-xl">
-          Discover exciting web development events in the Bay Area and San Francisco. Join us for hackathons, hangouts,
-          and meetups to connect with fellow developers and web enthusiasts.
-        </p>
-      </div>
-    </section>
+        {/* Content */}
+        <div className="z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4">
+          <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+            All Things Web 🚀
+          </h1>
+          <p className="max-w-2xl text-lg sm:text-xl">
+            Discover exciting web development events in the Bay Area and San
+            Francisco. Join us for hackathons, hangouts, and meetups to connect
+            with fellow developers and web enthusiasts.
+          </p>
+        </div>
+      </section>
   );
 }
 
