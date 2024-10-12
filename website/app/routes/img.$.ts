@@ -108,7 +108,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   console.log('Cache miss, fetching image from origin:', originUrl);
-  const res = await time('fetchImg', () => nodeFetch(originUrl));
+  const res = await time('fetchImg', () => nodeFetch(originUrl, {}));
   const resBody = res.body;
   if (!res.ok || !resBody) {
     captureException(new Error(`Failed to fetch image from origin: ${originUrl}`));
@@ -135,16 +135,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const transformStream = resBody.pipe(sharpInstance);
   try {
     const cacheFileStream = fs.createWriteStream(filePath);
-    await time('transformImage', new Promise<void>((resolve, reject) => {
-      transformStream.pipe(cacheFileStream);
-      transformStream.on('end', () => {
-        resolve();
-      });
-      transformStream.on('error', async (error) => {
-        await fsp.rm(filePath).catch(() => {});
-        reject(error);
-      });
-    }));
+    await time(
+      'transformImage',
+      new Promise<void>((resolve, reject) => {
+        transformStream.pipe(cacheFileStream);
+        transformStream.on('end', () => {
+          resolve();
+        });
+        transformStream.on('error', async (error: Error) => {
+          await fsp.rm(filePath).catch(() => {});
+          reject(error);
+        });
+      }),
+    );
 
     const file = await time(
       'openNewlyCachedFile',
