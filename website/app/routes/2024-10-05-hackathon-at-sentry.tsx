@@ -5,6 +5,8 @@ import { meta } from '~/modules/event-details/meta';
 import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
 import { useLoaderData } from '@remix-run/react';
 
+export { headers } from '~/modules/header.server';
+
 export { meta };
 
 export function loader() {

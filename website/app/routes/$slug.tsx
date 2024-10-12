@@ -3,6 +3,8 @@ import { meta } from '~/modules/event-details/meta';
 import { loader } from '~/modules/event-details/loader.sever';
 import { useLoaderData } from '@remix-run/react';
 
+export { headers } from '~/modules/header.server';
+
 export { meta, loader };
 
 export default function Component() {

@@ -9,6 +9,8 @@ import { type loader as rootLoader } from '~/root';
 import { speakersLoader as loader } from '~/modules/speakers/loader.server';
 import { getImageSrc } from '~/modules/image-opt/utils';
 
+export { headers } from '~/modules/header.server';
+
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ data, matches }) => {
   const rootLoader = matches.find((match) => match.id === 'root')?.data;
   if (!data || !data.speakersWithTalks || !rootLoader) {

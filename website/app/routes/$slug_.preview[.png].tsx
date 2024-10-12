@@ -6,13 +6,17 @@ import { EventPreview } from '~/modules/image-gen/templates';
 import { getExpandedEventBySlug } from '~/modules/pocketbase/api.server';
 import { env } from '~/modules/env.server';
 import { notFound } from '~/modules/responses.server';
+import { getServerTiming } from '~/modules/server-timing.server';
+
+export { headers } from '~/modules/header.server';
 
 export async function loader({ params }: LoaderFunctionArgs) {
+  const { time, timeSync, getHeaderField } = getServerTiming();
   const { slug } = params;
   if (typeof slug !== 'string') {
     throw notFound();
   }
-  const event = await getExpandedEventBySlug(slug);
+  const event = await time('getExpandedEventBySlug', () => getExpandedEventBySlug(slug));
   if (!event) {
     throw notFound();
   }
@@ -26,17 +30,20 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
   const jsx = <EventPreview event={event} serverOrigin={env.server.origin} />;
 
-  const svg = await satori(jsx, {
-    width: 1200,
-    height: 1200,
-    fonts: await getFont('Roboto'),
-  });
+  const svg = await time('satori', async () =>
+    satori(jsx, {
+      width: 1200,
+      height: 1200,
+      fonts: await getFont('Roboto'),
+    }),
+  );
   const resvg = new Resvg(svg);
-  const pngData = resvg.render();
-  const data = pngData.asPng();
+  const pngData = timeSync('resvg.render', () => resvg.render());
+  const data = timeSync('asPng', () => pngData.asPng());
   return new Response(data, {
     headers: {
       'Content-Type': 'image/png',
+      'Server-Timing': getHeaderField(),
     },
   });
 }

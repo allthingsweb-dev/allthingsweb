@@ -1,5 +1,5 @@
 import { useLoaderData } from '@remix-run/react';
-import { MetaFunction } from '@remix-run/node';
+import { MetaFunction, json } from '@remix-run/node';
 import cachified from '@epic-web/cachified';
 import { ArrowRightIcon, CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react';
 import { type loader as rootLoader } from '~/root';
@@ -13,6 +13,9 @@ import { toReadableDateTimeStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { lru } from '~/modules/cache';
 import { getImageSrc } from '~/modules/image-opt/utils';
+import { getServerTiming } from '~/modules/server-timing.server';
+
+export { headers } from '~/modules/header.server';
 
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
   const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
@@ -31,6 +34,7 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
 };
 
 export async function loader() {
+  const { time, getServerTimingHeader } = getServerTiming();
   const { highlightEvent, remainingEvents, pastEvents } = await cachified({
     key: '_index-loader-data',
     cache: lru,
@@ -39,7 +43,10 @@ export async function loader() {
     ttl: 60 * 1000, // one minute
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
     getFreshValue: async () => {
-      const [events, pastEvents] = await Promise.all([getUpcomingEvents(), getPastEvents()]);
+      const [events, pastEvents] = await Promise.all([
+        time('getUpcomingEvents', getUpcomingEvents),
+        time('getPastEvents', getPastEvents),
+      ]);
       const highlightEvent = events.find((event) => event.highlightOnLandingPage);
       const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
 
@@ -67,12 +74,17 @@ export async function loader() {
     loopCounter++;
   }
 
-  return {
-    highlightEvent,
-    remainingEvents,
-    pastEvents,
-    pastEventImages: eventPhotos,
-  };
+  return json(
+    {
+      highlightEvent,
+      remainingEvents,
+      pastEvents,
+      pastEventImages: eventPhotos,
+    },
+    {
+      headers: getServerTimingHeader(),
+    },
+  );
 }
 
 export default function Component() {

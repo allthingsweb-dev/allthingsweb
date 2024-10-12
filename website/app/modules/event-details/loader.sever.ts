@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs, json } from '@remix-run/node';
 import { getAttendeeCount, getExpandedEventBySlug } from '../pocketbase/api.server';
 import { isEventInPast } from '../pocketbase/pocketbase';
 import { getAttendeeCount as getLumaAttendeeCount } from '../luma/api.server';
@@ -6,8 +6,10 @@ import { notFound } from '../responses.server';
 import { captureException } from '../sentry/capture.server';
 import cachified from '@epic-web/cachified';
 import { lru } from '../cache';
+import { getServerTiming } from '../server-timing.server';
 
 export async function eventDetailsLoader(slug: string) {
+  const { time, getServerTimingHeader } = getServerTiming();
   const event = await cachified({
     key: `getExpandedEventBySlug-${slug}`,
     cache: lru,
@@ -16,7 +18,7 @@ export async function eventDetailsLoader(slug: string) {
     ttl: 60 * 1000, // one minute
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
     async getFreshValue() {
-      return getExpandedEventBySlug(slug);
+      return time('getExpandedEventBySlug', () => getExpandedEventBySlug(slug));
     },
   });
   if (!event) {
@@ -32,10 +34,11 @@ export async function eventDetailsLoader(slug: string) {
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
     async getFreshValue() {
       try {
+        const lumaEventId = event.lumaEventId;
         if (event.enableRegistrations) {
-          return getAttendeeCount(event.id);
-        } else if (event.lumaEventId) {
-          return getLumaAttendeeCount(event.lumaEventId);
+          return time('getAttendeeCount', () => getAttendeeCount(event.id));
+        } else if (lumaEventId) {
+          return time('getLumaAttendeeCount', () => getLumaAttendeeCount(lumaEventId));
         }
         return 0;
       } catch (error) {
@@ -48,13 +51,16 @@ export async function eventDetailsLoader(slug: string) {
 
   const isAtCapacity = attendeeCount >= event.attendeeLimit;
   const isInPast = isEventInPast(event);
-  return {
-    event,
-    attendeeCount,
-    attendeeLimit: event.attendeeLimit,
-    isAtCapacity,
-    isInPast,
-  };
+  return json(
+    {
+      event,
+      attendeeCount,
+      attendeeLimit: event.attendeeLimit,
+      isAtCapacity,
+      isInPast,
+    },
+    { headers: getServerTimingHeader() },
+  );
 }
 
 export function loader({ params }: LoaderFunctionArgs) {

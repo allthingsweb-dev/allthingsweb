@@ -5,6 +5,9 @@ import { env } from '~/modules/env.server';
 import { notFound, internalServerError } from '~/modules/responses.server';
 import { captureException } from '~/modules/sentry/capture.server';
 import { type ObjectFit } from '~/modules/image-opt/utils';
+import { getServerTiming } from '~/modules/server-timing.server';
+
+export { headers } from '~/modules/header.server';
 
 function getIntOrNull(value: string | null) {
   if (value === null) {
@@ -41,8 +44,9 @@ function getFilePath(
  * Inspired by Jacob Eybey's gist: https://gist.github.com/jacob-ebey/3a37a86307de9ef22f47aae2e593b56f
  */
 export async function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
+  const { time, getHeaderField, getServerTimingHeader } = getServerTiming();
 
+  const url = new URL(request.url);
   const width = getIntOrNull(url.searchParams.get('w'));
   const height = getIntOrNull(url.searchParams.get('h'));
   const fit = getObjectFit(url.searchParams.get('fit'));
@@ -95,11 +99,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   console.log('Cache miss, fetching image from origin:', originUrl);
-  const res = await fetch(originUrl);
+  const res = await time('fetchImg', () => fetch(originUrl));
   if (!res.ok || !res.body) {
-    return internalServerError();
+    return internalServerError(getServerTimingHeader());
   }
-  const arrayBuffer = await res.arrayBuffer();
+  const arrayBuffer = await time('resToArrayBuffer', () => res.arrayBuffer());
 
   const sharpInstance = sharp(arrayBuffer);
   sharpInstance.on('error', (error) => {
@@ -111,10 +115,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
   sharpInstance.webp({ effort: 6 });
 
-  const newFile = await sharpInstance.toBuffer();
+  const newFile = await time('sharpToBuffer', () => sharpInstance.toBuffer());
   try {
     // Save the image to the cache, mkdir path if it doesn't exist
-    await Bun.write(filePath, newFile, { createPath: true });
+    await time('saveToFile', () => Bun.write(filePath, newFile, { createPath: true }));
   } catch (error) {
     console.error(error);
     captureException(error);
@@ -124,6 +128,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     headers: {
       'Content-Type': 'image/webp',
       'Cache-Control': `public, max-age=${60 * 60 * 24}`, // cache img 24 hours in browser
+      'Server-Timing': getHeaderField(),
     },
   });
 }
