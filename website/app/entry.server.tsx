@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/remix';
 import type { EntryContext } from '@remix-run/server-runtime';
 import { RemixServer } from '@remix-run/react';
-import { renderToReadableStream } from "react-dom/server.browser";
+import { renderToReadableStream } from 'react-dom/server.browser';
 import { isbot } from 'isbot';
 import { env } from '~/modules/env.server.ts';
 
@@ -48,16 +48,16 @@ export default async function handleRequest(
         }
         responseStatusCode = 500;
       },
-    }
+    },
   );
 
   body.allReady.then(() => clearTimeout(timeoutId));
 
-  if (isbot(request.headers.get("user-agent") || "")) {
+  if (isbot(request.headers.get('user-agent') || '')) {
     await body.allReady;
   }
 
-  responseHeaders.set("Content-Type", "text/html");
+  responseHeaders.set('Content-Type', 'text/html');
   return new Response(body, {
     headers: responseHeaders,
     status: responseStatusCode,

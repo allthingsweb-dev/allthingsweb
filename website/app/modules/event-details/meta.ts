@@ -1,4 +1,4 @@
-import { MetaFunction } from '@remix-run/server-runtime';
+import { MetaFunction } from '@remix-run/react';
 import { getMetaTags, mergeMetaTags } from '../meta.ts';
 import { type loader as rootLoader } from '~/root.tsx';
 import { type loader } from './loader.sever.ts';
