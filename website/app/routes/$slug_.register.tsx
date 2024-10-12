@@ -1,4 +1,4 @@
-import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from '@remix-run/server-runtime';
 import { Form, NavLink, useActionData, useLoaderData, useNavigation, useParams } from '@remix-run/react';
 import { CalendarIcon, CheckIcon, XIcon } from 'lucide-react';
 import { Label } from '~/modules/components/ui/label.tsx';

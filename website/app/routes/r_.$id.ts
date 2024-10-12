@@ -1,5 +1,5 @@
 import { cachified } from '@epic-web/cachified';
-import { LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { LoaderFunctionArgs, redirect } from '@remix-run/server-runtime';
 import { lru } from '~/modules/cache.ts';
 import { getLink } from '~/modules/pocketbase/api.server.ts';
 import { notFound } from '~/modules/responses.server.ts';

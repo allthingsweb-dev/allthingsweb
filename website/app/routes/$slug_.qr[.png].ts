@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from '@remix-run/server-runtime';
 import QRCode from 'qrcode';
 import { env } from '~/modules/env.server.ts';
 import { getServerTiming } from '~/modules/server-timing.server.ts';

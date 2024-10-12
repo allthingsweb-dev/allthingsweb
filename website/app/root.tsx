@@ -1,7 +1,7 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
 import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
 import tailwindStyles from './tailwind.css?url';
-import { json, LinksFunction, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
+import { json, LinksFunction, LoaderFunctionArgs, MetaFunction } from '@remix-run/server-runtime';
 import { PageTransitionProgressBar } from '~/modules/components/page-transition.tsx';
 import { ErrorPage } from '~/modules/components/error-page.tsx';
 import { env } from '~/modules/env.server.ts';

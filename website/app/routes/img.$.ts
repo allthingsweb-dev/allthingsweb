@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from '@remix-run/server-runtime';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -125,12 +125,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
   sharpInstance.webp({ effort: 6 });
 
-  await time(
-    'mkdirPath',
-    fsp
-      .mkdir(path.dirname(filePath), { recursive: true })
-      .catch(() => {}),
-  );
+  time('mkdirFileDir', Deno.mkdir(path.dirname(filePath), { recursive: true }));
 
   const transformStream = resBody.pipe(sharpInstance);
   try {

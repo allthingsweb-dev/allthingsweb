@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from '@remix-run/server-runtime';
 import { NavLink, useLoaderData } from '@remix-run/react';
 import { CheckIcon } from 'lucide-react';
 import { DefaultRightTopNav } from '~/modules/components/right-top-nav.tsx';

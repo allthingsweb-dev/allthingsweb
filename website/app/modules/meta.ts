@@ -1,4 +1,4 @@
-import { MetaFunction } from '@remix-run/node';
+import { MetaFunction } from '@remix-run/server-runtime';
 
 type MatchesObject = Parameters<MetaFunction>[0]['matches'];
 

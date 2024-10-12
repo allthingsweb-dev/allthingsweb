@@ -1,4 +1,4 @@
-import { MetaFunction } from '@remix-run/node';
+import { MetaFunction } from '@remix-run/server-runtime';
 import { NavLink, useLoaderData } from '@remix-run/react';
 import { PageLayout } from '~/modules/components/page-layout.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '~/modules/components/ui/card.tsx';

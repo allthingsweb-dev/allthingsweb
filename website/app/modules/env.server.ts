@@ -35,6 +35,7 @@ const resendAPIKey = Deno.env.get('RESEND_API_KEY');
 enforceInProd(resendAPIKey, 'RESEND_API_KEY');
 
 const origin = Deno.env.get('ORIGIN');
+const port = Deno.env.get('PORT');
 invariant(origin, 'ORIGIN env variable is required');
 
 const lumaAPIKey = Deno.env.get('LUMA_API_KEY');
@@ -83,5 +84,6 @@ export const env = {
   },
   server: {
     origin,
+    port: port ? Number.parseInt(port, 10) : 3000,
   },
 };

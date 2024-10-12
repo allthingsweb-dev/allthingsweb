@@ -1,8 +1,8 @@
-import { createCookieSessionStorage, redirect } from '@remix-run/node';
+import { createCookieSessionStorageFactory, redirect } from '@remix-run/server-runtime';
 import { env } from '~/modules/env.server.ts';
 import { createCsrfToken } from './csrf.server.ts';
 
-const { commitSession, getSession } = createCookieSessionStorage({
+const { commitSession, getSession } = createCookieSessionStorageFactory({
   cookie: {
     name: 'session',
     secure: true,
