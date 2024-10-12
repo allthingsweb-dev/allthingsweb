@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "remix vite:build",
-    "dev": "NODE_ENV=development TZ=Etc/UTC deno run --env -A ./server/index.ts",
+    "dev": "NODE_ENV=development TZ=Etc/UTC  deno run -A npm:@remix-run/dev vite:dev",
     "start": "NODE_ENV=production TZ=Etc/UTC deno run --env -A ./server/index.ts"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "@types/qrcode": "^1.5.5",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "cookie-signature": "^1.2.1",
     "embla-carousel-react": "^8.2.1",
     "inngest": "^3.22.5",
     "isbot": "^4.1.0",

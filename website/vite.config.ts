@@ -2,11 +2,15 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { vitePlugin as remix } from '@remix-run/dev';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
-import process from 'node:process';
 
-console.log('process.env.NODE_ENV:', process.env.NODE_ENV);
+console.log('process.env.NODE_ENV:', Deno.env.get('NODE_ENV'));
+const portFromEnv = Deno.env.get('PORT');
+const port = portFromEnv ? Number.parseInt(portFromEnv) : 3000;
 
 export default defineConfig({
+  server: {
+    port,
+  },
   plugins: [
     remix({
       future: {
@@ -17,9 +21,9 @@ export default defineConfig({
     }),
     tsconfigPaths(),
     sentryVitePlugin({
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      disable: process.env.NODE_ENV === 'development',
+      org: Deno.env.get('SENTRY_ORG'),
+      project: Deno.env.get('SENTRY_PROJECT'),
+      disable: Deno.env.get('NODE_ENV') === 'development',
     }),
   ],
   build: {

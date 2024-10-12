@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/remix';
 import type { EntryContext } from '@remix-run/server-runtime';
 import { RemixServer } from '@remix-run/react';
-import { renderToReadableStream } from "react-dom/server";
+import { renderToReadableStream } from "react-dom/server.browser";
 import { isbot } from 'isbot';
 import { env } from '~/modules/env.server.ts';
 
