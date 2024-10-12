@@ -1,33 +1,25 @@
-ARG BUN_VERSION=1.1.12
+ARG DENO_VERSION=2.0.0
 
-FROM oven/bun:${BUN_VERSION}-slim as build
+FROM hayd/alpine-deno:${DENO_VERSION}
+
+EXPOSE 3000 
 
 LABEL fly_launch_runtime="Remix"
 
 # Remix app lives here
 WORKDIR /app
 
-# Set production environment
-ENV NODE_ENV="production"
+USER deno
 
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
-
-# Install node modules
-COPY --link bun.lockb package.json ./
-RUN bun install
+# Install dependencies
+COPY --link package.json deno.json deno.lock ./
+RUN deno install
 
 # Copy application code
 COPY --link . .
 
 # Build application
-RUN bun --bun run build
-
-# Remove development dependencies
-RUN rm -rf node_modules && \
-    bun install --ci
+RUN deno task build
 
 # Start the server by default, this can be overwritten at runtime
-EXPOSE 3000
-CMD [ "bun", "run", "start" ]
+CMD [ "deno", "task", "start" ]

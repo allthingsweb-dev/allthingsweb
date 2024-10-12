@@ -1,11 +1,11 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { getFont } from '~/modules/image-gen/utils.server';
-import { fetchSpeakersWithTalks } from '~/modules/speakers/loader.server';
-import { SpeakersPreview } from '~/modules/image-gen/templates';
-import { getServerTiming } from '~/modules/server-timing.server';
+import { getFont } from '~/modules/image-gen/utils.server.ts';
+import { fetchSpeakersWithTalks } from '~/modules/speakers/loader.server.ts';
+import { SpeakersPreview } from '~/modules/image-gen/templates.tsx';
+import { getServerTiming } from '~/modules/server-timing.server.ts';
 
-export { headers } from '~/modules/header.server';
+export { headers } from '~/modules/header.server.ts';
 
 export async function loader() {
   const { time, timeSync, getHeaderField } = getServerTiming();
@@ -13,11 +13,14 @@ export async function loader() {
 
   const jsx = <SpeakersPreview speakers={speakersWithTalks} />;
 
-  const svg = await time('satori', satori(jsx, {
-    width: 1200,
-    height: 1200,
-    fonts: await getFont('Roboto'),
-  }));
+  const svg = await time(
+    'satori',
+    satori(jsx, {
+      width: 1200,
+      height: 1200,
+      fonts: await getFont('Roboto'),
+    }),
+  );
   const resvg = new Resvg(svg);
   const pngData = timeSync('resvg.render', () => resvg.render());
   const data = timeSync('asPng', () => pngData.asPng());

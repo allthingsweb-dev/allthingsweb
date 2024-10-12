@@ -19,7 +19,9 @@ export async function getFont(
       },
     },
   ).then((response) => response.text());
-  const resource = css.matchAll(/src: url\((.+)\) format\('(opentype|truetype)'\)/g);
+  const resource = css.matchAll(
+    /src: url\((.+)\) format\('(opentype|truetype)'\)/g,
+  );
   return Promise.all(
     [...resource]
       .map((match) => match[1])

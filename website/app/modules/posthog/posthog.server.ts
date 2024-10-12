@@ -1,10 +1,10 @@
 import { PostHog } from 'posthog-node';
-import { env } from '../env.server';
+import { env } from '../env.server.ts';
 
 const client = env.posthogPublicAPIKey
   ? new PostHog(env.posthogPublicAPIKey, {
-      host: 'https://us.i.posthog.com',
-    })
+    host: 'https://us.i.posthog.com',
+  })
   : null;
 
 type AnalyticsEventProperties = {

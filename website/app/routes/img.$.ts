@@ -1,13 +1,16 @@
-import Bun from 'bun';
-import sharp from 'sharp';
 import { LoaderFunctionArgs } from '@remix-run/node';
-import { env } from '~/modules/env.server';
-import { notFound, internalServerError } from '~/modules/responses.server';
-import { captureException } from '~/modules/sentry/capture.server';
-import { type ObjectFit } from '~/modules/image-opt/utils';
-import { getServerTiming } from '~/modules/server-timing.server';
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import sharp from 'sharp';
+import nodeFetch from 'node-fetch';
+import { env } from '~/modules/env.server.ts';
+import { internalServerError, notFound } from '~/modules/responses.server.ts';
+import { captureException } from '~/modules/sentry/capture.server.ts';
+import { type ObjectFit } from '~/modules/image-opt/utils.ts';
+import { getServerTiming } from '~/modules/server-timing.server.ts';
 
-export { headers } from '~/modules/header.server';
+export { headers } from '~/modules/header.server.ts';
 
 function getIntOrNull(value: string | null) {
   if (value === null) {
@@ -88,24 +91,31 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return notFound();
   }
 
-  const cachedFile = Bun.file(filePath);
-  if (await cachedFile.exists()) {
-    return new Response(cachedFile.stream(), {
+  try {
+    const cachedFile = await time('openCachedFile', Deno.open(filePath));
+    return new Response(cachedFile.readable, {
       headers: {
         'Content-Type': 'image/webp',
         'Cache-Control': `public, max-age=${60 * 60 * 24}`,
+        'Server-Timing': getHeaderField(),
       },
     });
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) {
+      console.error(error);
+      captureException(error);
+    }
   }
 
   console.log('Cache miss, fetching image from origin:', originUrl);
-  const res = await time('fetchImg', () => fetch(originUrl));
-  if (!res.ok || !res.body) {
+  const res = await time('fetchImg', () => nodeFetch(originUrl));
+  const resBody = res.body;
+  if (!res.ok || !resBody) {
+    captureException(new Error(`Failed to fetch image from origin: ${originUrl}`));
     return internalServerError(getServerTimingHeader());
   }
-  const arrayBuffer = await time('resToArrayBuffer', () => res.arrayBuffer());
 
-  const sharpInstance = sharp(arrayBuffer);
+  const sharpInstance = sharp();
   sharpInstance.on('error', (error) => {
     console.error(error);
     captureException(error);
@@ -115,20 +125,41 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
   sharpInstance.webp({ effort: 6 });
 
-  const newFile = await time('sharpToBuffer', () => sharpInstance.toBuffer());
+  await time(
+    'mkdirPath',
+    fsp
+      .mkdir(path.dirname(filePath), { recursive: true })
+      .catch(() => {}),
+  );
+
+  const transformStream = resBody.pipe(sharpInstance);
   try {
-    // Save the image to the cache, mkdir path if it doesn't exist
-    await time('saveToFile', () => Bun.write(filePath, newFile, { createPath: true }));
+    const cacheFileStream = fs.createWriteStream(filePath);
+    await time('transformImage', new Promise<void>((resolve, reject) => {
+      transformStream.pipe(cacheFileStream);
+      transformStream.on('end', () => {
+        resolve();
+      });
+      transformStream.on('error', async (error) => {
+        await fsp.rm(filePath).catch(() => {});
+        reject(error);
+      });
+    }));
+
+    const file = await time(
+      'openNewlyCachedFile',
+      () => Deno.open(filePath, { read: true }),
+    );
+    return new Response(file.readable, {
+      headers: {
+        'Content-Type': 'image/webp',
+        'Cache-Control': `public, max-age=${60 * 60 * 24}`, // cache img 24 hours in browser
+        'Server-Timing': getHeaderField(),
+      },
+    });
   } catch (error) {
     console.error(error);
     captureException(error);
+    return internalServerError(getServerTimingHeader());
   }
-
-  return new Response(newFile, {
-    headers: {
-      'Content-Type': 'image/webp',
-      'Cache-Control': `public, max-age=${60 * 60 * 24}`, // cache img 24 hours in browser
-      'Server-Timing': getHeaderField(),
-    },
-  });
 }

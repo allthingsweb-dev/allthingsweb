@@ -1,21 +1,31 @@
 {
-    "editor.detectIndentation": false,
-    "editor.tabSize": 2,
-    "editor.formatOnSave": true,
-    "editor.formatOnPaste": true,
-    "typescript.suggest.paths": true,
-    "files.exclude": {
-        "**/.git": true,
-        "**/.svn": true,
-        "**/.hg": true,
-        "**/CVS": true,
-        "**/.DS_Store": true,
-        "**/Thumbs.db": true,
-        "**/node_modules": true,
-        "**/build": true,
-        "**/.cache": true
-    },
-    "files.associations": {
-        "**/app/**/*.css": "tailwindcss"
-    }
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/node_modules": true,
+    "**/build": true,
+    "**/.cache": true
+  },
+  "typescript.suggest.paths": true,
+  "files.associations": {
+    "**/app/**/*.css": "tailwindcss"
+  },
+  "deno.enable": true,
+  "deno.lint": true,
+  "deno.enablePaths": ["./website"],
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true
 }

@@ -1,10 +1,10 @@
-import { InngestEventData, inngest } from './inngest.server';
-import { env } from '../env.server';
-import { createEventAttachment, createSuccessfulEventSignupHtml } from '../email/templates';
-import { getAttendees, getEventBySlug, getUpcomingEvents, registerAttendee } from '../pocketbase/api.server';
-import { sendEmail } from '../email/resend.server';
-import { addAttendee as addAttendeeOnLuma, getAllAttendees as getLumaAttendees } from '../luma/api.server';
-import { captureException } from '../sentry/capture.server';
+import { inngest, InngestEventData } from './inngest.server.ts';
+import { env } from '../env.server.ts';
+import { createEventAttachment, createSuccessfulEventSignupHtml } from '../email/templates.ts';
+import { getAttendees, getEventBySlug, getUpcomingEvents, registerAttendee } from '../pocketbase/api.server.ts';
+import { sendEmail } from '../email/resend.server.ts';
+import { addAttendee as addAttendeeOnLuma, getAllAttendees as getLumaAttendees } from '../luma/api.server.ts';
+import { captureException } from '../sentry/capture.server.ts';
 
 export const eventAttendeeRegisteredFn = inngest.createFunction(
   {
@@ -15,7 +15,8 @@ export const eventAttendeeRegisteredFn = inngest.createFunction(
   },
   { event: 'event/attendee.registered' },
   async ({ event: inngestEvent, step }) => {
-    const { attendee, eventSlug } = inngestEvent.data as InngestEventData['event/attendee.registered'];
+    const { attendee, eventSlug } = inngestEvent
+      .data as InngestEventData['event/attendee.registered'];
     const event = await getEventBySlug(eventSlug);
     if (!event) {
       throw new Error(`Event not found for slug: ${eventSlug}`);
@@ -71,7 +72,7 @@ export const syncAttendeesWithLumaFn = inngest.createFunction(
     },
   },
   { cron: 'TZ=America/Los_Angeles 0 * * * *' }, // every hour
-  async ({ step }) => {
+  async () => {
     const events = await getUpcomingEvents();
     for (const event of events) {
       if (!event.lumaEventId) {
@@ -87,7 +88,11 @@ export const syncAttendeesWithLumaFn = inngest.createFunction(
         }
         const attendee = attendees.find((a) => a.email === lumaAttendee.email.toLowerCase());
         if (!attendee) {
-          await registerAttendee(event.id, lumaAttendee.name, lumaAttendee.email.toLowerCase());
+          await registerAttendee(
+            event.id,
+            lumaAttendee.name,
+            lumaAttendee.email.toLowerCase(),
+          );
         }
       }
 
@@ -101,7 +106,9 @@ export const syncAttendeesWithLumaFn = inngest.createFunction(
         if (attendee.canceled) {
           continue;
         }
-        if (lumaAttendees.some((a) => a.email.toLowerCase() === attendee.email)) {
+        if (
+          lumaAttendees.some((a) => a.email.toLowerCase() === attendee.email)
+        ) {
           continue;
         }
         await addAttendeeOnLuma(event.lumaEventId, attendee);

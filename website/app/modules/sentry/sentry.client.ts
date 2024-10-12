@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/remix';
 import { useLocation, useMatches } from '@remix-run/react';
 import { useEffect } from 'react';
-import { clientEnv } from '../env.client';
+import { clientEnv } from '../env.client.ts';
 
 if (clientEnv.sentryDsn) {
   Sentry.init({

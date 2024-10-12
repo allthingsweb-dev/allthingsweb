@@ -1,5 +1,6 @@
+// deno-lint-ignore-file no-explicit-any
 import PocketBase, { ClientResponseError } from 'pocketbase';
-import { env } from '~/modules/env.server';
+import { env } from '~/modules/env.server.ts';
 import {
   Attendee,
   Event,
@@ -9,14 +10,17 @@ import {
   Speaker,
   Sponsor,
   Talk,
-} from '~/modules/pocketbase/pocketbase';
+} from '~/modules/pocketbase/pocketbase.ts';
 
 const pb = new PocketBase(env.pocketbase.origin);
 pb.autoCancellation(false);
 
 export async function authenticateAdmin() {
   if (!pb.authStore.isValid) {
-    await pb.admins.authWithPassword(env.pocketbase.adminEmail, env.pocketbase.adminPassword);
+    await pb.admins.authWithPassword(
+      env.pocketbase.adminEmail,
+      env.pocketbase.adminPassword,
+    );
   }
 }
 
@@ -51,7 +55,9 @@ export async function getPastEvents(): Promise<Event[]> {
 export async function getEventBySlug(slug: string): Promise<Event | null> {
   await authenticateAdmin();
   try {
-    const event = await pb.collection('events').getFirstListItem(`slug="${slug}"`);
+    const event = await pb.collection('events').getFirstListItem(
+      `slug="${slug}"`,
+    );
     return toEvent(event);
   } catch (error) {
     if (error instanceof ClientResponseError && error.status === 404) {
@@ -61,12 +67,17 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   }
 }
 
-export async function getExpandedEventBySlug(slug: string): Promise<ExpandedEvent | null> {
+export async function getExpandedEventBySlug(
+  slug: string,
+): Promise<ExpandedEvent | null> {
   await authenticateAdmin();
   try {
-    const event = await pb.collection('events').getFirstListItem(`slug="${slug}"`, {
-      expand: 'talks,talks.speaker,sponsors',
-    });
+    const event = await pb.collection('events').getFirstListItem(
+      `slug="${slug}"`,
+      {
+        expand: 'talks,talks.speaker,sponsors',
+      },
+    );
     return toExpandedEvent(event);
   } catch (error) {
     if (error instanceof ClientResponseError && error.status === 404) {
@@ -76,10 +87,14 @@ export async function getExpandedEventBySlug(slug: string): Promise<ExpandedEven
   }
 }
 
-export async function getEventByLumaEventId(lumaEventId: string): Promise<Event | null> {
+export async function getEventByLumaEventId(
+  lumaEventId: string,
+): Promise<Event | null> {
   await authenticateAdmin();
   try {
-    const event = await pb.collection('events').getFirstListItem(`lumaEventId="${lumaEventId}"`);
+    const event = await pb.collection('events').getFirstListItem(
+      `lumaEventId="${lumaEventId}"`,
+    );
     return toEvent(event);
   } catch (error) {
     if (error instanceof ClientResponseError && error.status === 404) {
@@ -101,7 +116,11 @@ export async function getTalks(): Promise<Talk[]> {
   return talks.map(toTalk);
 }
 
-export async function registerAttendee(eventId: string, name: string, email: string) {
+export async function registerAttendee(
+  eventId: string,
+  name: string,
+  email: string,
+) {
   await authenticateAdmin();
   return pb.collection('attendees').create({
     event: eventId,
@@ -113,7 +132,9 @@ export async function registerAttendee(eventId: string, name: string, email: str
 export async function getAttendeeByEmail(eventId: string, email: string) {
   await authenticateAdmin();
   try {
-    const attendee = await pb.collection('attendees').getFirstListItem(`event="${eventId}" && email="${email}"`);
+    const attendee = await pb.collection('attendees').getFirstListItem(
+      `event="${eventId}" && email="${email}"`,
+    );
     return toAttendee(attendee);
   } catch (error) {
     if (error instanceof ClientResponseError && error.status === 404) {
@@ -136,7 +157,10 @@ export async function getAttendeeCount(eventId: string) {
   return attendees.length;
 }
 
-export async function updateAttendeeCancellation(attendeeId: string, canceled: boolean) {
+export async function updateAttendeeCancellation(
+  attendeeId: string,
+  canceled: boolean,
+) {
   await authenticateAdmin();
   return pb.collection('attendees').update(attendeeId, { canceled });
 }
@@ -254,7 +278,10 @@ export function toLink(link: any): Link {
 }
 
 // URL for within Fly network
-export function getPocketbaseUrlForImage(imageId: string, thumb?: { width: number; height: number }) {
+export function getPocketbaseUrlForImage(
+  imageId: string,
+  thumb?: { width: number; height: number },
+) {
   const searchParams = new URLSearchParams();
   if (thumb) {
     searchParams.set('thumb', `${thumb.width}x${thumb.height}`);

@@ -1,9 +1,11 @@
 import { MetaFunction } from '@remix-run/node';
-import { getMetaTags, mergeMetaTags } from '../meta';
-import { type loader as rootLoader } from '~/root';
-import { type loader } from './loader.sever';
+import { getMetaTags, mergeMetaTags } from '../meta.ts';
+import { type loader as rootLoader } from '~/root.tsx';
+import { type loader } from './loader.sever.ts';
 
-export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ data, matches }) => {
+export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = (
+  { data, matches },
+) => {
   const rootLoader = matches.find((match) => match.id === 'root')?.data;
   if (!data || !data.event || !rootLoader) {
     return mergeMetaTags([{ title: 'Event not found' }], matches);
@@ -12,5 +14,8 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
   const description = data.event.tagline;
   const eventUrl = `${rootLoader.serverOrigin}/${data.event.slug}`;
   const previewImageUrl = `${rootLoader.serverOrigin}/img/gen/${data.event.slug}/preview.png`;
-  return mergeMetaTags(getMetaTags(title, description, eventUrl, previewImageUrl), matches);
+  return mergeMetaTags(
+    getMetaTags(title, description, eventUrl, previewImageUrl),
+    matches,
+  );
 };

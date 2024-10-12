@@ -1,6 +1,8 @@
 import { Resend } from 'resend';
-import { randomUUID } from 'crypto';
-import { env } from '../env.server';
+import { randomUUID } from 'node:crypto';
+import process from 'node:process';
+import { Buffer } from 'node:buffer';
+import { env } from '../env.server.ts';
 
 const resend = env.resendAPIKey ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -19,9 +21,15 @@ type EmailData = {
   }[];
 };
 
-export async function sendEmail({ from, to, subject, html, attachments }: EmailData) {
+export async function sendEmail(
+  { from, to, subject, html, attachments }: EmailData,
+) {
   if (!env.resendAPIKey || !resend) {
-    console.warn('Did not send email because env.resendAPIKey is not set', { from, to, subject });
+    console.warn('Did not send email because env.resendAPIKey is not set', {
+      from,
+      to,
+      subject,
+    });
     return;
   }
   const { error } = await resend.emails.send({
@@ -30,7 +38,7 @@ export async function sendEmail({ from, to, subject, html, attachments }: EmailD
     subject,
     html,
     headers: {
-      'X-Entity-Ref-ID': await randomUUID(),
+      'X-Entity-Ref-ID': randomUUID(),
     },
     attachments,
   });

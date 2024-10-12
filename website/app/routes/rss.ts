@@ -1,8 +1,8 @@
-import { env } from '~/modules/env.server';
-import { Event } from '~/modules/pocketbase/pocketbase';
-import { getEvents } from '~/modules/pocketbase/api.server';
-import cachified from '@epic-web/cachified';
-import { lru } from '~/modules/cache';
+import { cachified } from '@epic-web/cachified';
+import { env } from '~/modules/env.server.ts';
+import { Event } from '~/modules/pocketbase/pocketbase.ts';
+import { getEvents } from '~/modules/pocketbase/api.server.ts';
+import { lru } from '~/modules/cache.ts';
 
 function generateRSS(events: Event[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -12,16 +12,19 @@ function generateRSS(events: Event[], origin: string) {
         <description>Sup! Subscribe to stay up to date with our monthly events.</description>
         <link>${origin}</link>
         <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-        ${events
-          .map(
-            (event) => `<item>
+        ${
+    events
+      .map(
+        (event) =>
+          `<item>
             <title>${event.name}</title>
             <description>${event.tagline}</description>
             <link>${origin}/${event.slug}</link>
             <pubDate>${event.created.toUTCString()}</pubDate>
         </item>`,
-          )
-          .join('\n')}
+      )
+      .join('\n')
+  }
     </channel>
 </rss>`;
 }

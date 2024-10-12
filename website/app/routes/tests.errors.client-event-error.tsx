@@ -1,4 +1,4 @@
-import { Button } from '~/modules/components/ui/button';
+import { Button } from '~/modules/components/ui/button.tsx';
 
 export default function Component() {
   return (

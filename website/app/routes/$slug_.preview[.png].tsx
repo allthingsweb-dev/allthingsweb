@@ -1,14 +1,14 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
-import { getFont } from '~/modules/image-gen/utils.server';
-import { EventPreview } from '~/modules/image-gen/templates';
-import { getExpandedEventBySlug } from '~/modules/pocketbase/api.server';
-import { env } from '~/modules/env.server';
-import { notFound } from '~/modules/responses.server';
-import { getServerTiming } from '~/modules/server-timing.server';
+import { getFont } from '~/modules/image-gen/utils.server.ts';
+import { EventPreview } from '~/modules/image-gen/templates.tsx';
+import { getExpandedEventBySlug } from '~/modules/pocketbase/api.server.ts';
+import { env } from '~/modules/env.server.ts';
+import { notFound } from '~/modules/responses.server.ts';
+import { getServerTiming } from '~/modules/server-timing.server.ts';
 
-export { headers } from '~/modules/header.server';
+export { headers } from '~/modules/header.server.ts';
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const { time, timeSync, getHeaderField } = getServerTiming();
@@ -16,7 +16,10 @@ export async function loader({ params }: LoaderFunctionArgs) {
   if (typeof slug !== 'string') {
     throw notFound();
   }
-  const event = await time('getExpandedEventBySlug', () => getExpandedEventBySlug(slug));
+  const event = await time(
+    'getExpandedEventBySlug',
+    () => getExpandedEventBySlug(slug),
+  );
   if (!event) {
     throw notFound();
   }
@@ -35,8 +38,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
       width: 1200,
       height: 1200,
       fonts: await getFont('Roboto'),
-    }),
-  );
+    }));
   const resvg = new Resvg(svg);
   const pngData = timeSync('resvg.render', () => resvg.render());
   const data = timeSync('asPng', () => pngData.asPng());

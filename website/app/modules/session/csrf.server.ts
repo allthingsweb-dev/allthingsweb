@@ -4,7 +4,10 @@ export function createCsrfToken() {
   return crypto.randomUUID();
 }
 
-async function validateCsrfToken(tokenFromSession: string | null | undefined, token: FormDataEntryValue | null) {
+function validateCsrfToken(
+  tokenFromSession: string | null | undefined,
+  token: FormDataEntryValue | null,
+) {
   if (!tokenFromSession) {
     return false;
   }

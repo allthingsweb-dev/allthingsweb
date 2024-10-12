@@ -1,16 +1,18 @@
-import cachified from '@epic-web/cachified';
-import { lru } from '~/modules/cache';
-import { env } from '~/modules/env.server';
-import { getEvents } from '~/modules/pocketbase/api.server';
-import { Event } from '~/modules/pocketbase/pocketbase';
+import { cachified } from '@epic-web/cachified';
+import { lru } from '~/modules/cache.ts';
+import { env } from '~/modules/env.server.ts';
+import { getEvents } from '~/modules/pocketbase/api.server.ts';
+import { Event } from '~/modules/pocketbase/pocketbase.ts';
 
 function generateRobotsTxt(origin: string, events: Event[]) {
   return `User-agent: *
 Disallow: /*/cancel
-${events
-  .filter((event) => !event.enableRegistrations)
-  .map((event) => `Disallow: /${event.slug}/register`)
-  .join('\n')}
+${
+    events
+      .filter((event) => !event.enableRegistrations)
+      .map((event) => `Disallow: /${event.slug}/register`)
+      .join('\n')
+  }
 Sitemap: ${origin}/sitemap.xml`;
 }
 

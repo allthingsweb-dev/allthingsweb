@@ -1,14 +1,14 @@
 import { ActionFunctionArgs } from '@remix-run/node';
-import { env } from '~/modules/env.server';
-import { LumaAttendee } from '~/modules/luma/api.server';
+import { env } from '~/modules/env.server.ts';
+import { LumaAttendee } from '~/modules/luma/api.server.ts';
 import {
   getAttendeeByEmail,
   getEventByLumaEventId,
   registerAttendee,
   updateAttendeeCancellation,
-} from '~/modules/pocketbase/api.server';
-import { trackEvent } from '~/modules/posthog/posthog.server';
-import { captureException } from '~/modules/sentry/capture.server';
+} from '~/modules/pocketbase/api.server.ts';
+import { trackEvent } from '~/modules/posthog/posthog.server.ts';
+import { captureException } from '~/modules/sentry/capture.server.ts';
 
 type Payload = {
   name: string;
@@ -17,8 +17,9 @@ type Payload = {
   eventId: string;
 };
 
-function isPayload(data: any): data is Payload {
-  return typeof data === 'object' && 'name' in data && 'email' in data && 'status' in data && 'eventId' in data;
+function isPayload(data: unknown): data is Payload {
+  return typeof data === 'object' && !!data && 'name' in data && 'email' in data &&
+    'status' in data && 'eventId' in data;
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -29,12 +30,16 @@ export async function action({ request }: ActionFunctionArgs) {
   }
   if (!isPayload(data)) {
     console.error('Missing data in Zapier payload', data);
-    captureException(new Error(`Missing data in Zapier payload: ${JSON.stringify(data)}`));
+    captureException(
+      new Error(`Missing data in Zapier payload: ${JSON.stringify(data)}`),
+    );
     return new Response('Missing data in payload', { status: 400 });
   }
   try {
     const { eventId: lumaEventId, name, email, status } = data;
-    console.log(`Received guest updated event for ${email} with status ${status} for event ${lumaEventId}`);
+    console.log(
+      `Received guest updated event for ${email} with status ${status} for event ${lumaEventId}`,
+    );
     if (status === 'pending_approval') {
       return new Response('Ignoring pending approval', { status: 200 });
     }
@@ -59,7 +64,9 @@ export async function action({ request }: ActionFunctionArgs) {
     } else {
       const previouslyCancelled = attendee.canceled;
       const hasCancelled = status === 'declined';
-      console.log(`Updating attendee ${email} for event ${event.slug}. Has canceled: ${hasCancelled}.`);
+      console.log(
+        `Updating attendee ${email} for event ${event.slug}. Has canceled: ${hasCancelled}.`,
+      );
       await updateAttendeeCancellation(attendee.id, hasCancelled);
 
       if (!previouslyCancelled && hasCancelled) {

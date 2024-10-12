@@ -1,4 +1,5 @@
-import { env } from '../env.server';
+// deno-lint-ignore-file no-explicit-any
+import { env } from '../env.server.ts';
 
 export type LumaEvent = {
   app_id: string;
@@ -48,7 +49,9 @@ export type LumaAttendee = {
 
 export async function getUpcomingEvents(): Promise<LumaEvent[]> {
   if (!env.lumaAPIKey) {
-    console.warn('Did not fetch upcoming events because env.lumaAPIKey is not set');
+    console.warn(
+      'Did not fetch upcoming events because env.lumaAPIKey is not set',
+    );
     return [];
   }
   const url = `https://api.lu.ma/public/v1/calendar/list-events?pagination_limit=50&after=${new Date().toISOString()}`;
@@ -61,7 +64,9 @@ export async function getUpcomingEvents(): Promise<LumaEvent[]> {
     headers: headers,
   });
   if (!res.ok) {
-    throw new Error(`Failed to fetch upcoming events. Status: ${res.status} - ${res.statusText}`);
+    throw new Error(
+      `Failed to fetch upcoming events. Status: ${res.status} - ${res.statusText}`,
+    );
   }
   const resData = await res.json();
   return resData.events.entries.map((e: any) => e.event);
@@ -98,11 +103,16 @@ export async function getAttendees(
     headers: headers,
   });
   if (!res.ok) {
-    throw new Error(`Failed to fetch attendees. Status: ${res.status} - ${res.statusText}`);
+    throw new Error(
+      `Failed to fetch attendees. Status: ${res.status} - ${res.statusText}`,
+    );
   }
   const resData = await res.json();
   const attendees = resData.entries.map((e: any) => e.guest);
-  return [attendees, { hasMoreToFetch: resData.has_more, nextCursor: resData.next_cursor }];
+  return [attendees, {
+    hasMoreToFetch: resData.has_more,
+    nextCursor: resData.next_cursor,
+  }];
 }
 
 export async function getAllAttendees(
@@ -113,7 +123,10 @@ export async function getAllAttendees(
   let hasMore = true;
   let cursor: string | undefined;
   while (hasMore) {
-    const [newAttendees, { hasMoreToFetch, nextCursor }] = await getAttendees(eventId, { cursor, approvalStatus });
+    const [newAttendees, { hasMoreToFetch, nextCursor }] = await getAttendees(
+      eventId,
+      { cursor, approvalStatus },
+    );
     attendees = [...attendees, ...newAttendees];
     hasMore = hasMoreToFetch;
     cursor = nextCursor;
@@ -122,13 +135,21 @@ export async function getAllAttendees(
 }
 
 export async function getAttendeeCount(eventId: string) {
-  const attendees = await getAllAttendees(eventId, { approvalStatus: 'approved' });
+  const attendees = await getAllAttendees(eventId, {
+    approvalStatus: 'approved',
+  });
   return attendees.length;
 }
 
-export async function addAttendee(eventId: string, attendee: { email: string; name: string }) {
+export async function addAttendee(
+  eventId: string,
+  attendee: { email: string; name: string },
+) {
   if (!env.lumaAPIKey) {
-    console.warn('Did not add attendee because env.lumaAPIKey is not set', { eventId, attendee });
+    console.warn('Did not add attendee because env.lumaAPIKey is not set', {
+      eventId,
+      attendee,
+    });
     return;
   }
   const url = `https://api.lu.ma/public/v1/event/add-guests`;
@@ -147,7 +168,9 @@ export async function addAttendee(eventId: string, attendee: { email: string; na
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`Failed to add attendee. Status: ${res.status} - ${res.statusText}`);
+    throw new Error(
+      `Failed to add attendee. Status: ${res.status} - ${res.statusText}`,
+    );
   }
   return res;
 }

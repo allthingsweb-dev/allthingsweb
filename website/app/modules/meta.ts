@@ -4,28 +4,36 @@ type MatchesObject = Parameters<MetaFunction>[0]['matches'];
 
 type MetaDescriptors = ReturnType<MetaFunction>;
 
-export function mergeMetaTags(tags: MetaDescriptors, matches: MatchesObject): MetaDescriptors {
+export function mergeMetaTags(
+  tags: MetaDescriptors,
+  matches: MatchesObject,
+): MetaDescriptors {
   const rootRoute = matches.find((match) => match.id === 'root');
   const rootMeta = rootRoute?.meta ?? [];
   return [...rootMeta, ...tags];
 }
 
-export function getMetaTags(title: string, description: string, url: string, imageUrl?: string): MetaDescriptors {
+export function getMetaTags(
+  title: string,
+  description: string,
+  url: string,
+  imageUrl?: string,
+): MetaDescriptors {
   const imageElements = imageUrl
     ? [
-        {
-          name: 'twitter:image',
-          content: imageUrl,
-        },
-        {
-          property: 'og:image',
-          content: imageUrl,
-        },
-        {
-          name: 'twitter:card',
-          content: 'summary_large_image',
-        },
-      ]
+      {
+        name: 'twitter:image',
+        content: imageUrl,
+      },
+      {
+        property: 'og:image',
+        content: imageUrl,
+      },
+      {
+        name: 'twitter:card',
+        content: 'summary_large_image',
+      },
+    ]
     : [];
 
   return [

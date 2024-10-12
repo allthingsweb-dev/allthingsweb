@@ -32,17 +32,18 @@ export function PageTransitionProgressBar() {
 
   return (
     <div
-      role="progressbar"
+      role='progressbar'
       aria-hidden={!isTransitioning}
       aria-valuetext={isTransitioning ? 'Loading' : undefined}
-      className="fixed inset-x-0 top-0 left-0 z-50 h-2 animate-pulse"
+      className='fixed inset-x-0 top-0 left-0 z-50 h-2 animate-pulse'
     >
       <div
         ref={ref}
         className={clsx(
           'h-full bg-gradient-to-r transition-all duration-500 ease-in-out',
           'to-primary from-secondary',
-          navigation.state === 'idle' && hasAnimationCompleted && 'w-0 opacity-0 transition-none',
+          navigation.state === 'idle' && hasAnimationCompleted &&
+            'w-0 opacity-0 transition-none',
           navigation.state === 'submitting' && 'w-4/12',
           navigation.state === 'loading' && 'w-10/12',
           navigation.state === 'idle' && !hasAnimationCompleted && 'w-full',

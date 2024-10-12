@@ -1,8 +1,8 @@
-import cachified from '@epic-web/cachified';
+import { cachified } from '@epic-web/cachified';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
-import { lru } from '~/modules/cache';
-import { getLink } from '~/modules/pocketbase/api.server';
-import { notFound } from '~/modules/responses.server';
+import { lru } from '~/modules/cache.ts';
+import { getLink } from '~/modules/pocketbase/api.server.ts';
+import { notFound } from '~/modules/responses.server.ts';
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const id = params.id;
@@ -13,7 +13,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     key: `getLink-${id}`,
     ttl: 3 * 60 * 1000, // 3 minutes
     cache: lru,
-    async getFreshValue() {
+    getFreshValue() {
       return getLink(id);
     },
   });

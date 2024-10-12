@@ -1,12 +1,12 @@
-import { LoaderFunctionArgs, json } from '@remix-run/node';
-import { getAttendeeCount, getExpandedEventBySlug } from '../pocketbase/api.server';
-import { isEventInPast } from '../pocketbase/pocketbase';
-import { getAttendeeCount as getLumaAttendeeCount } from '../luma/api.server';
-import { notFound } from '../responses.server';
-import { captureException } from '../sentry/capture.server';
-import cachified from '@epic-web/cachified';
-import { lru } from '../cache';
-import { getServerTiming } from '../server-timing.server';
+import { json, LoaderFunctionArgs } from '@remix-run/node';
+import { cachified } from '@epic-web/cachified';
+import { getAttendeeCount, getExpandedEventBySlug } from '~/modules/pocketbase/api.server.ts';
+import { isEventInPast } from '~/modules/pocketbase/pocketbase.ts';
+import { getAttendeeCount as getLumaAttendeeCount } from '~/modules/luma/api.server.ts';
+import { notFound } from '~/modules/responses.server.ts';
+import { captureException } from '~/modules/sentry/capture.server.ts';
+import { lru } from '../cache.ts';
+import { getServerTiming } from '~/modules/server-timing.server.ts';
 
 export async function eventDetailsLoader(slug: string) {
   const { time, getServerTimingHeader } = getServerTiming();
@@ -17,7 +17,7 @@ export async function eventDetailsLoader(slug: string) {
     // Downstream is only hit once a minute
     ttl: 60 * 1000, // one minute
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
-    async getFreshValue() {
+    getFreshValue() {
       return time('getExpandedEventBySlug', () => getExpandedEventBySlug(slug));
     },
   });
@@ -32,13 +32,16 @@ export async function eventDetailsLoader(slug: string) {
     // Downstream is only hit once a minute
     ttl: 60 * 1000, // one minute
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
-    async getFreshValue() {
+    getFreshValue() {
       try {
         const lumaEventId = event.lumaEventId;
         if (event.enableRegistrations) {
           return time('getAttendeeCount', () => getAttendeeCount(event.id));
         } else if (lumaEventId) {
-          return time('getLumaAttendeeCount', () => getLumaAttendeeCount(lumaEventId));
+          return time(
+            'getLumaAttendeeCount',
+            () => getLumaAttendeeCount(lumaEventId),
+          );
         }
         return 0;
       } catch (error) {

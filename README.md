@@ -6,10 +6,11 @@
 
 ### 📋 Requirements
 
-- Bun
+- Deno
 - git
 
-> Requirements are checked int the `make install` but you can run `make check-dependencies`
+> Requirements are checked int the `make install` but you can run
+> `make check-dependencies`
 
 ### 📁 Directories
 
@@ -18,7 +19,8 @@
 
 ### 🛠️ Installation
 
-To ease the DX on the project, you don't necessarly have to know about BUN or other command, instead we provide a _Makefile_ that simplify it for you.
+To ease the DX on the project, we provide a _Makefile_ with some commands that
+you can execute from the root of the project.
 
 ```bash
 make install
@@ -28,7 +30,9 @@ make install
 
 #### 🔤 Environment variables
 
-You need to `cp` the `.env.dist` in a `.env` file (no versionned) and adapt the configuration in `website`
+You need to `cp` `website/.env.dist` in `website/.env`. Currently, you must have
+Pocketbase running locally or have access to a production instance in order to
+start the website.
 
 #### 🏃‍♂️ Running
 
@@ -42,6 +46,6 @@ make serve
 
 Before any Pull Request please make sure to:
 
-- `make codeclean` to apply the Coding Standards
+- `make check` and `make fix` to apply the Coding Standards
 
 > this is enforced in the CI

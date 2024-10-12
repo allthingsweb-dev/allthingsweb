@@ -1,7 +1,8 @@
-import { toReadableDateTimeStr } from '../datetime';
-import { Event } from '../pocketbase/pocketbase';
+import { Buffer } from 'node:buffer';
+import { toReadableDateTimeStr } from '~/modules/datetime.ts';
+import { Event } from '~/modules/pocketbase/pocketbase.ts';
 
-export async function createEventAttachment({
+export function createEventAttachment({
   event,
   serverOrigin,
   attendee,

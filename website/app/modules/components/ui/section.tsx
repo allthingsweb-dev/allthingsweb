@@ -1,6 +1,6 @@
 import { cva, VariantProps } from 'class-variance-authority';
 import { HTMLAttributes } from 'react';
-import { cn } from '../utils';
+import { cn } from '../utils.ts';
 
 const sectionVariants = cva('flex items-center justify-center w-full', {
   variants: {
@@ -28,7 +28,10 @@ export function Section({
   ...props
 }: HTMLAttributes<HTMLElement> & VariantProps<typeof sectionVariants>) {
   return (
-    <section {...props} className={cn(sectionVariants({ variant, background, className }))}>
+    <section
+      {...props}
+      className={cn(sectionVariants({ variant, background, className }))}
+    >
       {children}
     </section>
   );

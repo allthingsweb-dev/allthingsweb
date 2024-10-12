@@ -1,23 +1,25 @@
 import { useLoaderData } from '@remix-run/react';
-import { MetaFunction, json } from '@remix-run/node';
-import cachified from '@epic-web/cachified';
+import { json, MetaFunction } from '@remix-run/node';
+import { cachified } from '@epic-web/cachified';
 import { ArrowRightIcon, CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react';
-import { type loader as rootLoader } from '~/root';
-import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
-import { ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
-import { getPastEvents, getUpcomingEvents } from '~/modules/pocketbase/api.server';
-import { EventsCarousel } from '~/modules/event-carousel/components';
-import { PageLayout } from '~/modules/components/page-layout';
-import { Section } from '~/modules/components/ui/section';
-import { toReadableDateTimeStr } from '~/modules/datetime';
-import { getMetaTags, mergeMetaTags } from '~/modules/meta';
-import { lru } from '~/modules/cache';
-import { getImageSrc } from '~/modules/image-opt/utils';
-import { getServerTiming } from '~/modules/server-timing.server';
+import { type loader as rootLoader } from '~/root.tsx';
+import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase.ts';
+import { ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button.tsx';
+import { getPastEvents, getUpcomingEvents } from '~/modules/pocketbase/api.server.ts';
+import { EventsCarousel } from '~/modules/event-carousel/components.tsx';
+import { PageLayout } from '~/modules/components/page-layout.tsx';
+import { Section } from '~/modules/components/ui/section.tsx';
+import { toReadableDateTimeStr } from '~/modules/datetime.ts';
+import { getMetaTags, mergeMetaTags } from '~/modules/meta.ts';
+import { lru } from '~/modules/cache.ts';
+import { getImageSrc } from '~/modules/image-opt/utils.ts';
+import { getServerTiming } from '~/modules/server-timing.server.ts';
 
-export { headers } from '~/modules/header.server';
+export { headers } from '~/modules/header.server.ts';
 
-export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
+export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = (
+  { matches },
+) => {
   const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
   if (!rootLoaderData) {
     return mergeMetaTags([{ title: 'Something went wrong' }], matches);
@@ -58,7 +60,7 @@ export async function loader() {
     },
   });
 
-  let eventPhotos: string[] = [];
+  const eventPhotos: string[] = [];
   let loopCounter = 0;
   // Get even number of photos from each event
   while (eventPhotos.length < 30) {
@@ -102,31 +104,33 @@ export default function Component() {
     <PageLayout>
       <LandingHero images={pastEventImages} />
       {highlightEvent && (
-        <Section variant="big" background="muted">
-          <div className="container">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+        <Section variant='big' background='muted'>
+          <div className='container'>
+            <div className='flex flex-col items-center space-y-4 text-center'>
+              <div className='space-y-2'>
+                <h2 className='text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl'>
                   Join {highlightEvent.name}
                 </h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className='max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed'>
                   {highlightEvent.tagline}
                 </p>
               </div>
-              <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span>{toReadableDateTimeStr(highlightEvent.start, true)}</span>
+              <div className='flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl'>
+                <div className='flex items-center gap-2'>
+                  <CalendarIcon className='h-4 w-4' />
+                  <span>
+                    {toReadableDateTimeStr(highlightEvent.start, true)}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MapPinIcon className="h-4 w-4" />
+                <div className='flex items-center gap-2'>
+                  <MapPinIcon className='h-4 w-4' />
                   <span>{highlightEvent.shortLocation}</span>
                 </div>
               </div>
-              <div className="w-full max-w-sm pt-4">
+              <div className='w-full max-w-sm pt-4'>
                 <ButtonNavLink to={`/${highlightEvent.slug}`}>
                   See details
-                  <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  <ArrowRightIcon className='ml-2 h-4 w-4' />
                 </ButtonNavLink>
               </div>
             </div>
@@ -134,23 +138,25 @@ export default function Component() {
         </Section>
       )}
       {remainingEvents.length > 0 && <OtherUpcomingEventsSection events={remainingEvents} />}
-      <Section variant="big" className="bg-indigo-600 text-white">
-        <div className="container">
-          <div className="flex flex-col items-center space-y-4 text-center">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Join us on Discord</h2>
-              <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl">
+      <Section variant='big' className='bg-indigo-600 text-white'>
+        <div className='container'>
+          <div className='flex flex-col items-center space-y-4 text-center'>
+            <div className='space-y-2'>
+              <h2 className='text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl'>
+                Join us on Discord
+              </h2>
+              <p className='mx-auto max-w-[700px] text-gray-200 md:text-xl'>
                 Connect with fellow developers, share ideas, and stay updated on the latest events and opportunities.
               </p>
             </div>
-            <div className="space-x-4">
+            <div className='space-x-4'>
               <ButtonAnchor
-                className="inline-flex h-9 items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow transition-colors hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50"
-                href="https://discord.gg/B3Sm4b5mfD"
-                target="_blank"
-                rel="noopener noreferrer"
+                className='inline-flex h-9 items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow transition-colors hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50'
+                href='https://discord.gg/B3Sm4b5mfD'
+                target='_blank'
+                rel='noopener noreferrer'
               >
-                <UsersIcon className="mr-2 h-4 w-4" />
+                <UsersIcon className='mr-2 h-4 w-4' />
                 Join Discord
               </ButtonAnchor>
             </div>
@@ -164,25 +170,31 @@ export default function Component() {
 
 function LandingHero({ images }: { images: string[] }) {
   return (
-    <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1">
+    <section className='w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]'>
+      <div className='w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1'>
         {images.map((imageSrc) => (
           <img
             key={imageSrc}
-            src={getImageSrc(imageSrc, { width: 400, height: 400, fit: 'cover' })}
-            alt="Past event image"
-            aria-hidden="true"
+            src={getImageSrc(imageSrc, {
+              width: 400,
+              height: 400,
+              fit: 'cover',
+            })}
+            alt='Past event image'
+            aria-hidden='true'
             width={400}
             height={400}
-            className="w-full object-cover"
+            className='w-full object-cover'
           />
         ))}
       </div>
 
       {/* Content */}
-      <div className="z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4">
-        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">All Things Web 🚀</h1>
-        <p className="max-w-2xl text-lg sm:text-xl">
+      <div className='z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4'>
+        <h1 className='mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight'>
+          All Things Web 🚀
+        </h1>
+        <p className='max-w-2xl text-lg sm:text-xl'>
           Discover exciting web development events in the Bay Area and San Francisco. Join us for hackathons, hangouts,
           and meetups to connect with fellow developers and web enthusiasts.
         </p>
@@ -193,21 +205,23 @@ function LandingHero({ images }: { images: string[] }) {
 
 function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
   return (
-    <Section variant="big">
-      <div className="container">
-        <div className="flex flex-col items-center space-y-4 text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Other events</h2>
-          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+    <Section variant='big'>
+      <div className='container'>
+        <div className='flex flex-col items-center space-y-4 text-center mb-8'>
+          <h2 className='text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl'>
+            Other events
+          </h2>
+          <p className='text-muted-foreground md:text-xl max-w-[700px]'>
             Discover more upcoming web development events in the Bay Area here or on Luma.
           </p>
           <ButtonAnchor
-            href="https://lu.ma/allthingsweb?utm_source=web"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center"
-            variant="outline"
+            href='https://lu.ma/allthingsweb?utm_source=web'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='inline-flex items-center justify-center'
+            variant='outline'
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className='mr-2 h-4 w-4' />
             View events on Luma calendar
           </ButtonAnchor>
         </div>
@@ -219,16 +233,22 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
 
 function PastEventsSection({ events }: { events: Event[] }) {
   return (
-    <Section variant="big">
-      <div className="container">
-        <div className="flex flex-col items-center space-y-4 text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">Past events</h2>
-          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+    <Section variant='big'>
+      <div className='container'>
+        <div className='flex flex-col items-center space-y-4 text-center mb-8'>
+          <h2 className='text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4'>
+            Past events
+          </h2>
+          <p className='text-muted-foreground md:text-xl max-w-[700px]'>
             Find out what we&apos;ve been up to in the past. Check out our previous web development meetups and
             hackathons.
           </p>
-          <ButtonNavLink to="/speakers" className="inline-flex items-center justify-center" variant="outline">
-            <UsersIcon className="mr-2 h-4 w-4" />
+          <ButtonNavLink
+            to='/speakers'
+            className='inline-flex items-center justify-center'
+            variant='outline'
+          >
+            <UsersIcon className='mr-2 h-4 w-4' />
             View all speakers
           </ButtonNavLink>
         </div>

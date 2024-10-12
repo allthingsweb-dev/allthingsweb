@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { type NavLinkProps, NavLink } from '@remix-run/react';
-
-import { cn } from '~/modules/components/utils';
+import { NavLink, type NavLinkProps } from '@remix-run/react';
+import { cn } from '../utils.ts';
 
 export type LinkProps = Omit<NavLinkProps, 'className'> & {
   disabled?: boolean;
@@ -12,7 +11,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
   ({ disabled, className, children, ...props }, ref) => {
     return (
       <NavLink
-        prefetch="intent"
+        prefetch='intent'
         {...props}
         aria-disabled={disabled}
         ref={ref}

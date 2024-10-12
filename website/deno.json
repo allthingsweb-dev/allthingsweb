@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "lib": ["deno.ns", "dom", "dom.iterable", "es2023"]
+  },
+  "imports": {
+    "~/": "./app/"
+  },
+  "fmt": {
+    "indentWidth": 2,
+    "useTabs": false,
+    "lineWidth": 120,
+    "singleQuote": true,
+    "semiColons": true
+  },
+  "exclude": ["dist", "build", ".cache", ".git"]
+}

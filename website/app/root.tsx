@@ -1,11 +1,11 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
 import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
 import tailwindStyles from './tailwind.css?url';
-import { LinksFunction, LoaderFunctionArgs, MetaFunction, json } from '@remix-run/node';
-import { PageTransitionProgressBar } from './modules/components/page-transition';
-import { ErrorPage } from './modules/components/error-page';
-import { env } from './modules/env.server';
-import { requireCanonicalSession } from './modules/session/session.server';
+import { json, LinksFunction, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
+import { PageTransitionProgressBar } from '~/modules/components/page-transition.tsx';
+import { ErrorPage } from '~/modules/components/error-page.tsx';
+import { env } from '~/modules/env.server.ts';
+import { requireCanonicalSession } from '~/modules/session/session.server.ts';
 
 export const links: LinksFunction = () => [
   { rel: 'stylesheet', href: tailwindStyles },
@@ -14,7 +14,8 @@ export const links: LinksFunction = () => [
     rel: 'icon',
     type: 'image/svg+xml',
     // Shout-out to Jacob Paris (@jacobmparis) for this cool trick!
-    href: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>',
+    href:
+      'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>',
   },
 ];
 
@@ -51,10 +52,10 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang='en'>
       <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charSet='utf-8' />
+        <meta name='viewport' content='width=device-width, initial-scale=1' />
         <Meta />
         <Links />
       </head>

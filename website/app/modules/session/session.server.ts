@@ -1,8 +1,8 @@
 import { createCookieSessionStorage, redirect } from '@remix-run/node';
-import { env } from '../env.server';
-import { createCsrfToken } from './csrf.server';
+import { env } from '~/modules/env.server.ts';
+import { createCsrfToken } from './csrf.server.ts';
 
-const { commitSession, destroySession, getSession } = createCookieSessionStorage({
+const { commitSession, getSession } = createCookieSessionStorage({
   cookie: {
     name: 'session',
     secure: true,
@@ -14,7 +14,9 @@ const { commitSession, destroySession, getSession } = createCookieSessionStorage
   },
 });
 
-export async function createUserSession(headers = new Headers()): Promise<[UserSession, Headers]> {
+export async function createUserSession(
+  headers = new Headers(),
+): Promise<[UserSession, Headers]> {
   const cookie = await getSession();
 
   const csrfToken = createCsrfToken();
@@ -30,7 +32,9 @@ export type UserSession = {
   csrfToken: string;
 };
 
-export async function getUserSession(request: Request): Promise<UserSession | null> {
+export async function getUserSession(
+  request: Request,
+): Promise<UserSession | null> {
   const cookie = await getSession(request.headers.get('Cookie'));
   if (cookie && cookie.get('csrfToken')) {
     return { csrfToken: cookie.get('csrfToken') };
@@ -38,7 +42,9 @@ export async function getUserSession(request: Request): Promise<UserSession | nu
   return null;
 }
 
-export async function requireCanonicalSession(request: Request): Promise<[UserSession, Headers | undefined]> {
+export async function requireCanonicalSession(
+  request: Request,
+): Promise<[UserSession, Headers | undefined]> {
   const session = await getUserSession(request);
   const pathname = new URL(request.url).pathname;
 
@@ -52,7 +58,11 @@ export async function requireCanonicalSession(request: Request): Promise<[UserSe
     if (canonicalUrl.pathname !== '/' && canonicalUrl.pathname.endsWith('/')) {
       canonicalUrl.pathname = canonicalUrl.pathname.slice(0, -1);
     }
-    throw redirect(canonicalUrl.toString(), { headers, status: 301, statusText: 'Moved Permanently' });
+    throw redirect(canonicalUrl.toString(), {
+      headers,
+      status: 301,
+      statusText: 'Moved Permanently',
+    });
   }
 
   if (pathname !== '/' && pathname.endsWith('/')) {
@@ -60,7 +70,11 @@ export async function requireCanonicalSession(request: Request): Promise<[UserSe
     if (!session) {
       await createUserSession(headers);
     }
-    throw redirect(pathname.slice(0, -1), { headers, status: 301, statusText: 'Moved Permanently' });
+    throw redirect(pathname.slice(0, -1), {
+      headers,
+      status: 301,
+      statusText: 'Moved Permanently',
+    });
   }
 
   if (!session) {

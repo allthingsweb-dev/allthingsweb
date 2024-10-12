@@ -1,9 +1,9 @@
 import { LoaderFunctionArgs } from '@remix-run/node';
-import { env } from '~/modules/env.server';
 import QRCode from 'qrcode';
-import { getServerTiming } from '~/modules/server-timing.server';
+import { env } from '~/modules/env.server.ts';
+import { getServerTiming } from '~/modules/server-timing.server.ts';
 
-export { headers } from '~/modules/header.server';
+export { headers } from '~/modules/header.server.ts';
 
 export async function loader({ params }: LoaderFunctionArgs) {
   if (!params.slug) {
@@ -11,7 +11,10 @@ export async function loader({ params }: LoaderFunctionArgs) {
   }
   const { time, getHeaderField } = getServerTiming();
   const eventUrl = `${env.server.origin}/${params.slug}`;
-  const qrCode = await time('QRCode.toBuffer', QRCode.toBuffer(eventUrl, { width: 1200 }));
+  const qrCode = await time(
+    'QRCode.toBuffer',
+    QRCode.toBuffer(eventUrl, { width: 1200 }),
+  );
   return new Response(qrCode, {
     headers: {
       'Content-Type': 'image/png',

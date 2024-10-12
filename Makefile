@@ -5,9 +5,9 @@ RESTORE := $(shell echo "\033[0m")
 
 # Variables
 .DEFAULT_GOAL := list
-PACKAGE_MANAGER := bun
+PACKAGE_MANAGER := deno
 CURRENT_DIR := $(shell pwd)
-DEPENDENCIES := bun git
+DEPENDENCIES := deno git
 WEBSITE_DIR := $(CURRENT_DIR)/website
 
 .PHONY: list
@@ -35,19 +35,20 @@ website/.env:
 install: check-dependencies ## Install the dependencies
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) install
 
-.PHONY: codeclean
-codeclean: ## Code Clean
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:fix
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:check
+.PHONY: fix
+fix: ## Format & lint fix the code
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) fmt
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) lint --fix
 
-.PHONY: strict-codeclean
-strict-codeclean: codeclean
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run typecheck
+.PHONY: check
+check: ## Check format & lint
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) fmt --check
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) lint --compact
 
 .PHONY: build
 build: ## Build All
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run build
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) task build
 
 .PHONY: serve
 serve: website/.env ## Serve the application
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run dev
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) task dev

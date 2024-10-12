@@ -3,5 +3,9 @@ export function notFound(headers?: Headers | HeadersInit) {
 }
 
 export function internalServerError(headers?: Headers | HeadersInit) {
-  return new Response(null, { status: 500, statusText: 'Internal Server Error', headers });
+  return new Response(null, {
+    status: 500,
+    statusText: 'Internal Server Error',
+    headers,
+  });
 }

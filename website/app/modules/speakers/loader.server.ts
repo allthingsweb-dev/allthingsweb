@@ -1,9 +1,9 @@
-import cachified from '@epic-web/cachified';
-import { getEvents, getSpeakers, getTalks } from '../pocketbase/api.server';
-import { Speaker, Talk } from '../pocketbase/pocketbase';
-import { lru } from '../cache';
-import { getServerTiming, TimeFn } from '../server-timing.server';
 import { json } from '@remix-run/node';
+import { cachified } from '@epic-web/cachified';
+import { getEvents, getSpeakers, getTalks } from '~/modules/pocketbase/api.server.ts';
+import { Speaker, Talk } from '~/modules/pocketbase/pocketbase.ts';
+import { lru } from '~/modules/cache.ts';
+import { getServerTiming, TimeFn } from '~/modules/server-timing.server.ts';
 
 export type TalkWithEventSlug = Talk & {
   eventName: string;
@@ -16,7 +16,7 @@ export type SpeakerWithTalks = Speaker & {
 };
 
 export async function fetchSpeakersWithTalks(time: TimeFn) {
-    const speakersWithTalks = await cachified({
+  const speakersWithTalks = await cachified({
     key: 'speakersWithTalks',
     cache: lru,
     // Use cached value for 3 minutes, after one minute, fetch fresh value in the background

@@ -1,16 +1,16 @@
 import { Resvg } from '@resvg/resvg-js';
 import satori from 'satori';
-import { LandingPagePreview } from '~/modules/image-gen/templates';
-import { getFont } from '~/modules/image-gen/utils.server';
-import { getPastEvents } from '~/modules/pocketbase/api.server';
-import { getServerTiming } from '~/modules/server-timing.server';
+import { LandingPagePreview } from '~/modules/image-gen/templates.tsx';
+import { getFont } from '~/modules/image-gen/utils.server.ts';
+import { getPastEvents } from '~/modules/pocketbase/api.server.ts';
+import { getServerTiming } from '~/modules/server-timing.server.ts';
 
-export { headers } from '~/modules/header.server';
+export { headers } from '~/modules/header.server.ts';
 
 export async function loader() {
   const { time, timeSync, getHeaderField } = getServerTiming();
   const pastEvents = await time('getPastEvents', () => getPastEvents());
-  let eventPhotoIds: string[] = [];
+  const eventPhotoIds: string[] = [];
   let loopCounter = 0;
   // Get even number of photos from each event
   while (eventPhotoIds.length < 16) {
@@ -27,11 +27,12 @@ export async function loader() {
   }
 
   const jsx = <LandingPagePreview photoIds={eventPhotoIds} />;
-  const svg = await time('satori', async () => satori(jsx, {
-    width: 1200,
-    height: 1200,
-    fonts: await getFont('Roboto'),
-  }));
+  const svg = await time('satori', async () =>
+    satori(jsx, {
+      width: 1200,
+      height: 1200,
+      fonts: await getFont('Roboto'),
+    }));
   const resvg = new Resvg(svg);
   const pngData = timeSync('resvg.render', () => resvg.render());
   const data = timeSync('asPng', () => pngData.asPng());

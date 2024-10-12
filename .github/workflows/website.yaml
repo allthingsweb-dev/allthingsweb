@@ -14,23 +14,26 @@ jobs:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v4
 
-      - name: 🍞 Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: 🍞 Setup Deno
+        uses: denoland/setup-deno@v2
         with:
-          bun-version: latest
+          deno-version: v2.x
 
       - name: 📥 Download deps
         working-directory: website
-        run: bun install
+        run: deno install
+
+      - name: 🏡 Format check
+        working-directory: website
+        run: deno fmt --check
 
       - name: 💄 Lint check
         working-directory: website
-        run: bun run prettier:check
+        run: deno lint
 
       - name: ⎔ Build
-        run: bun run build
+        run: deno task build
         working-directory: website
 
       - name: 🏄 Run the tests
         run: echo "Soon we may have some. PR are welcome!"
-
