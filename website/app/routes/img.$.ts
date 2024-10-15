@@ -44,7 +44,7 @@ function getFilePath(
 }
 
 /**
- * Inspired by Jacob Eybey's gist: https://gist.github.com/jacob-ebey/3a37a86307de9ef22f47aae2e593b56f
+ * Inspired by Jacob Ebey's gist: https://gist.github.com/jacob-ebey/3a37a86307de9ef22f47aae2e593b56f
  */
 export async function loader({ request }: LoaderFunctionArgs) {
   const { time, getHeaderField, getServerTimingHeader } = getServerTiming();
@@ -125,7 +125,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
   sharpInstance.webp({ effort: 6 });
 
-  time('mkdirFileDir', Deno.mkdir(path.dirname(filePath), { recursive: true }));
+  await time('mkdirFileDir', Deno.mkdir(path.dirname(filePath), { recursive: true }));
 
   const transformStream = resBody.pipe(sharpInstance);
   try {

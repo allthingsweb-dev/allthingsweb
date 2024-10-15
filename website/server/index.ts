@@ -26,29 +26,22 @@ declare module '@remix-run/server-runtime' {
   }
 }
 
-const remixHandler = createRequestHandler({
-  // @ts-ignore comment
-  build: productionBuild,
-  getLoadContext: () => ({
-    appVersion,
-  }),
-});
+// @ts-ignore comment
+const handleRequest = createRequestHandler(productionBuild, 'production');
 
-async function serveStaticFile(filePath: string, cacheHeaderValue: string): Promise<Response> {
+function serveStaticFile(filePath: string, cacheHeaderValue: string): Response {
   try {
-    const file = await Deno.openSync(filePath, { read: true });
+    const file = Deno.openSync(filePath, { read: true });
     return new Response(file.readable, {
       headers: {
         'Cache-Control': cacheHeaderValue,
       },
     });
   } catch (error) {
-    if (error === Deno.errors.NotFound) {
+    if (error instanceof Deno.errors.NotFound) {
       return new Response(null, { status: 404, statusText: 'Not Found' });
     }
-    console.error(error);
-    Sentry.captureException(error);
-    return new Response(null, { status: 500, statusText: 'Internal Server Error' });
+    throw error;
   }
 }
 
@@ -56,6 +49,7 @@ Deno.serve({
   port: env.server.port,
   handler: (req) => {
     const url = new URL(req.url);
+    console.log(`[${req.method}] ${url.pathname}`);
 
     // Test error handling & Sentry integration
     if (url.pathname === '/tests/errors/server-error') {
@@ -63,18 +57,36 @@ Deno.serve({
     }
 
     // Serve Remix client code, cache for a year (max max-age)
-    if (url.pathname.startsWith('build/client/assets')) {
-      return serveStaticFile(url.pathname, 'public, max-age=31536000, immutable');
+    if (url.pathname.startsWith('/assets/')) {
+      const filePath = path.join('./build/client', url.pathname);
+      return serveStaticFile(filePath, 'public, max-age=31536000, immutable');
     }
 
-    // Serve static file from /public folder, cache for an hour
-    const dir = path.dirname(url.pathname);
-    if (dir === 'build/client') {
-      return serveStaticFile(url.pathname, `public, max-age=${60 * 60}`);
+    // Serve static files from /public folder, cache for an hour
+    try {
+      const filePath = path.join('./build/client', url.pathname);
+      const fileInfo = Deno.statSync(filePath);
+
+      if (fileInfo.isDirectory) {
+        throw new Deno.errors.NotFound();
+      }
+      
+      console.log(`attempting to serve ${filePath}`)
+      const file = Deno.openSync(filePath, { read: true });
+      return new Response(file.readable, {
+        headers: {
+          'Cache-Control': `public, max-age=${60 * 60}`,
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) {
+        throw error;
+      }
     }
 
     // Serve with Remix
-    return remixHandler(req);
+    console.log('handling req with remix...');
+    return handleRequest(req, { appVersion });
   },
   onError: (error) => {
     Sentry.captureException(error);

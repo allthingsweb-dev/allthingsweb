@@ -1,5 +1,5 @@
-import { useLoaderData } from '@remix-run/react';
-import { json, MetaFunction } from '@remix-run/server-runtime';
+import { MetaFunction, useLoaderData } from '@remix-run/react';
+import { json } from '@remix-run/server-runtime';
 import { cachified } from '@epic-web/cachified';
 import { ArrowRightIcon, CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react';
 import { type loader as rootLoader } from '~/root.tsx';

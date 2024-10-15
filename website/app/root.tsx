@@ -1,11 +1,12 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
+import { Links, Meta, MetaFunction, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
 import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
-import tailwindStyles from './tailwind.css?url';
-import { json, LinksFunction, LoaderFunctionArgs, MetaFunction } from '@remix-run/server-runtime';
+import { json, LinksFunction, LoaderFunctionArgs } from '@remix-run/server-runtime';
 import { PageTransitionProgressBar } from '~/modules/components/page-transition.tsx';
 import { ErrorPage } from '~/modules/components/error-page.tsx';
 import { env } from '~/modules/env.server.ts';
 import { requireCanonicalSession } from '~/modules/session/session.server.ts';
+// @ts-ignore comment
+import tailwindStyles from './tailwind.css?url';
 
 export const links: LinksFunction = () => [
   { rel: 'stylesheet', href: tailwindStyles },
