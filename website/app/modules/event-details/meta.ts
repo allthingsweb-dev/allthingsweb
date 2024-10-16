@@ -11,6 +11,6 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
   const title = data.event.name;
   const description = data.event.tagline;
   const eventUrl = `${rootLoader.serverOrigin}/${data.event.slug}`;
-  const previewImageUrl = `${rootLoader.serverOrigin}/img/gen/${data.event.slug}/preview.png`;
+  const previewImageUrl = data.event.previewImageUrl;
   return mergeMetaTags(getMetaTags(title, description, eventUrl, previewImageUrl), matches);
 };

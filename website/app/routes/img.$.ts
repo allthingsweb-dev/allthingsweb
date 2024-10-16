@@ -65,7 +65,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const urlPath = url.pathname;
     const pocketbaseFileId = urlPath.replace('/img/pocketbase/', '');
     filePath = getFilePath('pocketbase', pocketbaseFileId, width, height, fit);
-    originUrl = `${env.pocketbase.origin}/api/files/${pocketbaseFileId}`;
+    const thumb = width && height ? `thumb=${width}x${height}` : '';
+    originUrl = `${env.pocketbase.origin}/api/files/${pocketbaseFileId}?${thumb}`;
   }
 
   // path: /img/public/x/y/z.png for images in public folder

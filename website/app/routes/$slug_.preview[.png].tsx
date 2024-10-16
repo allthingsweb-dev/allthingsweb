@@ -21,7 +21,8 @@ export async function loader({ params }: LoaderFunctionArgs) {
     throw notFound();
   }
 
-  if (event.previewImageUrl) {
+  if (event.previewImageId) {
+    // If the event has a image associated on PocketBase, redirect to the image URL
     return redirect(event.previewImageUrl, {
       status: 302,
       statusText: 'Found',
