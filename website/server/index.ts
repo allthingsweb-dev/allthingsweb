@@ -70,8 +70,8 @@ Deno.serve({
       if (fileInfo.isDirectory) {
         throw new Deno.errors.NotFound();
       }
-      
-      console.log(`attempting to serve ${filePath}`)
+
+      console.log(`attempting to serve ${filePath}`);
       const file = Deno.openSync(filePath, { read: true });
       return new Response(file.readable, {
         headers: {
