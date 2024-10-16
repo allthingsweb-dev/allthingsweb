@@ -1,11 +1,10 @@
 {
   "name": "@allthingsweb/app",
-  "private": true,
   "sideEffects": false,
   "type": "module",
   "scripts": {
     "build": "remix vite:build",
-    "dev": "NODE_ENV=development TZ=Etc/UTC deno run --env -A ./server/index.ts",
+    "dev": "NODE_ENV=development TZ=Etc/UTC  deno run -A npm:@remix-run/dev vite:dev",
     "start": "NODE_ENV=production TZ=Etc/UTC deno run --env -A ./server/index.ts"
   },
   "dependencies": {
@@ -14,9 +13,8 @@
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-popover": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.0",
-    "@remix-run/express": "^2.11.2",
-    "@remix-run/node": "^2.11.2",
     "@remix-run/react": "^2.11.2",
+    "@remix-run/server-runtime": "^2.11.2",
     "@resvg/resvg-js": "^2.6.2",
     "@sentry/deno": "^8.34.0",
     "@sentry/remix": "^8.34.0",
@@ -24,14 +22,12 @@
     "@types/qrcode": "^1.5.5",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
-    "compression": "^1.7.4",
+    "cookie-signature": "^1.2.1",
     "embla-carousel-react": "^8.2.1",
-    "express": "^4.19.2",
     "inngest": "^3.22.5",
     "isbot": "^4.1.0",
     "lru-cache": "^11.0.1",
     "lucide-react": "^0.428.0",
-    "morgan": "^1.10.0",
     "node-fetch": "^3.3.2",
     "pocketbase": "^0.21.4",
     "posthog-js": "^1.155.4",
@@ -60,8 +56,5 @@
     "typescript": "^5.1.6",
     "vite": "^5.1.0",
     "vite-tsconfig-paths": "^4.2.1"
-  },
-  "engines": {
-    "node": ">=20.0.0"
   }
 }

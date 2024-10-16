@@ -1,4 +1,4 @@
-import { ActionFunctionArgs } from '@remix-run/node';
+import { ActionFunctionArgs } from '@remix-run/server-runtime';
 import { env } from '~/modules/env.server.ts';
 import { captureException } from '~/modules/sentry/capture.server.ts';
 

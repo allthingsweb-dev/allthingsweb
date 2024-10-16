@@ -1,6 +1,6 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { LoaderFunctionArgs, redirect } from '@remix-run/server-runtime';
 import { getFont } from '~/modules/image-gen/utils.server.ts';
 import { EventPreview } from '~/modules/image-gen/templates.tsx';
 import { getExpandedEventBySlug } from '~/modules/pocketbase/api.server.ts';

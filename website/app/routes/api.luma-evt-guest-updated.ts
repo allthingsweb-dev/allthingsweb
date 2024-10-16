@@ -1,4 +1,4 @@
-import { ActionFunctionArgs } from '@remix-run/node';
+import { ActionFunctionArgs } from '@remix-run/server-runtime';
 import { env } from '~/modules/env.server.ts';
 import { LumaAttendee } from '~/modules/luma/api.server.ts';
 import {

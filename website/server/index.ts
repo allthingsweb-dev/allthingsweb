@@ -1,14 +1,10 @@
-import process from 'node:process';
-import { createRequestHandler } from '@remix-run/express';
+import { createRequestHandler } from '@remix-run/server-runtime';
 import * as Sentry from '@sentry/deno';
-import compression from 'compression';
-import express, { NextFunction, Request as ExpressRequest, Response as ExpressResponse } from 'express';
-import morgan from 'morgan';
+import path from 'node:path';
 import { env } from '~/modules/env.server.ts';
 
-const productionBuild = env.environment === 'production' ? await import('../build/server/index.js') : undefined;
-
-const appVersion = productionBuild ? productionBuild.assets.version : 'dev';
+const productionBuild = await import('../build/server/index.js');
+const appVersion = productionBuild.assets.version;
 console.log(`Running app version ${appVersion}`);
 console.log(
   `Server timezone offset: ${new Date().getTimezoneOffset() / 60} hours`,
@@ -24,75 +20,77 @@ if (env.sentry.dsn) {
   });
 }
 
-const viteDevServer = env.environment === 'production'
-  ? undefined
-  : await import('vite').then((vite) =>
-    vite.createServer({
-      server: { middlewareMode: true },
-    })
-  );
-
-declare module '@remix-run/node' {
+declare module '@remix-run/server-runtime' {
   interface AppLoadContext {
     appVersion: string;
   }
 }
 
-const remixHandler = createRequestHandler({
-  // @ts-ignore comment
-  build: viteDevServer ? () => viteDevServer.ssrLoadModule('virtual:remix/server-build') : productionBuild,
-  getLoadContext: () => ({
-    appVersion,
-  }),
-});
+// @ts-ignore comment
+const handleRequest = createRequestHandler(productionBuild, 'production');
 
-const app = express();
-
-app.use(compression());
-
-// http://expressjs.com/en/advanced/best-practice-security.html#at-a-minimum-disable-x-powered-by-header
-app.disable('x-powered-by');
-
-// handle asset requests
-if (viteDevServer) {
-  app.use(viteDevServer.middlewares);
-} else {
-  // Vite fingerprints its assets so we can cache forever.
-  app.use(
-    '/assets',
-    express.static('build/client/assets', { immutable: true, maxAge: '1y' }),
-  );
+function serveStaticFile(filePath: string, cacheHeaderValue: string): Response {
+  try {
+    const file = Deno.openSync(filePath, { read: true });
+    return new Response(file.readable, {
+      headers: {
+        'Cache-Control': cacheHeaderValue,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return new Response(null, { status: 404, statusText: 'Not Found' });
+    }
+    throw error;
+  }
 }
 
-// Everything else (like favicon.ico) is cached for an hour. You may want to be
-// more aggressive with this caching.
-app.use(express.static('build/client', { maxAge: '1h' }));
+Deno.serve({
+  port: env.server.port,
+  handler: (req) => {
+    const url = new URL(req.url);
+    console.log(`[${req.method}] ${url.pathname}`);
 
-app.use(morgan('tiny'));
+    // Test error handling & Sentry integration
+    if (url.pathname === '/tests/errors/server-error') {
+      throw new Error('This is a test error from Express on Bun.');
+    }
 
-app.use('/tests/errors/server-error', () => {
-  throw new Error('This is a test error from Express on Bun.');
-});
+    // Serve Remix client code, cache for a year (max max-age)
+    if (url.pathname.startsWith('/assets/')) {
+      const filePath = path.join('./build/client', url.pathname);
+      return serveStaticFile(filePath, 'public, max-age=31536000, immutable');
+    }
 
-// handle SSR requests
-app.all('*', remixHandler);
+    // Serve static files from /public folder, cache for an hour
+    try {
+      const filePath = path.join('./build/client', url.pathname);
+      const fileInfo = Deno.statSync(filePath);
 
-// Log errors to console
-app.use(
-  (
-    err: Error,
-    _req: ExpressRequest,
-    _res: ExpressResponse,
-    next: NextFunction,
-  ) => {
-    console.error(err);
-    Sentry.captureException(err);
-    next(err);
+      if (fileInfo.isDirectory) {
+        throw new Deno.errors.NotFound();
+      }
+
+      console.log(`attempting to serve ${filePath}`);
+      const file = Deno.openSync(filePath, { read: true });
+      return new Response(file.readable, {
+        headers: {
+          'Cache-Control': `public, max-age=${60 * 60}`,
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) {
+        throw error;
+      }
+    }
+
+    // Serve with Remix
+    console.log('handling req with remix...');
+    return handleRequest(req, { appVersion });
   },
-);
-
-const port = process.env.PORT || 3000;
-app.listen(
-  port,
-  () => console.log(`Express server listening at http://localhost:${port}`),
-);
+  onError: (error) => {
+    Sentry.captureException(error);
+    console.error(error);
+    return new Response(null, { status: 500, statusText: 'Internal Server Error' });
+  },
+});

@@ -1,4 +1,4 @@
-import { json, LoaderFunctionArgs } from '@remix-run/node';
+import { json, LoaderFunctionArgs } from '@remix-run/server-runtime';
 import { cachified } from '@epic-web/cachified';
 import { getAttendeeCount, getExpandedEventBySlug } from '~/modules/pocketbase/api.server.ts';
 import { isEventInPast } from '~/modules/pocketbase/pocketbase.ts';

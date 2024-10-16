@@ -1,4 +1,4 @@
-import { json } from '@remix-run/node';
+import { json } from '@remix-run/server-runtime';
 import { cachified } from '@epic-web/cachified';
 import { getEvents, getSpeakers, getTalks } from '~/modules/pocketbase/api.server.ts';
 import { Speaker, Talk } from '~/modules/pocketbase/pocketbase.ts';

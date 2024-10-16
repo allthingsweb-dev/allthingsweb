@@ -1,4 +1,4 @@
-import { HeadersFunction } from '@remix-run/node';
+import { HeadersFunction } from '@remix-run/server-runtime';
 
 export const headers: HeadersFunction = ({ loaderHeaders, parentHeaders }) => {
   return setDefaultHeaders(new Headers(), {
