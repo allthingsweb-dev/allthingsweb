@@ -18,7 +18,7 @@ export type Event = {
   highlightOnLandingPage: boolean;
   talkIds: string[];
   sponsorIds: string[];
-  previewImageUrl: string | null;
+  previewImageUrl: string;
   previewImageId: string | null;
   photos: string[];
   photosIds: string[];

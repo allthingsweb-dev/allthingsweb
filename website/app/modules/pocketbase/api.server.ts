@@ -200,7 +200,7 @@ export function toEvent(event: any): Event {
     isHackathon: event.isHackathon,
     talkIds: event.talks,
     sponsorIds: event.sponsors,
-    previewImageUrl: event.previewImage ? `/img/pocketbase/events/${event.id}/${event.previewImage}` : null,
+    previewImageUrl: event.previewImage ? `${env.server.origin}/img/pocketbase/events/${event.id}/${event.previewImage}?w=1200&h=1200` : `${env.server.origin}/img/gen/${event.slug}/preview.png?w=1200&h=1200`,
     previewImageId: event.previewImage ? `/events/${event.id}/${event.previewImage}` : null,
     photos: event.photos.map((photo: string) => `/img/pocketbase/events/${event.id}/${photo}`),
     photosIds: event.photos.map((photo: string) => `/events/${event.id}/${photo}`),
