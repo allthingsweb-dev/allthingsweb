@@ -1,15 +1,11 @@
 ARG DENO_VERSION=2.0.0
 
-FROM hayd/alpine-deno:${DENO_VERSION}
-
-EXPOSE 3000 
+FROM denoland/deno:${DENO_VERSION}
 
 LABEL fly_launch_runtime="Remix"
 
 # Remix app lives here
 WORKDIR /app
-
-USER deno
 
 # Install dependencies
 COPY --link package.json deno.json deno.lock ./
@@ -22,4 +18,5 @@ COPY --link . .
 RUN deno task build
 
 # Start the server by default, this can be overwritten at runtime
+EXPOSE 3000 
 CMD [ "deno", "task", "start" ]
