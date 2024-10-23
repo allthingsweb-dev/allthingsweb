@@ -30,6 +30,8 @@ enforceInProd(resendAPIKey, 'RESEND_API_KEY');
 
 const origin = process.env.ORIGIN;
 invariant(origin, 'ORIGIN env variable is required');
+const port = process.env.PORT;
+invariant(port, 'PORT env variable is required');
 
 const lumaAPIKey = process.env.LUMA_API_KEY;
 enforceInProd(lumaAPIKey, 'LUMA_API_KEY');
@@ -77,5 +79,6 @@ export const env = {
   },
   server: {
     origin,
+    port: port ? Number.parseInt(port, 10) : 3000,
   },
 };

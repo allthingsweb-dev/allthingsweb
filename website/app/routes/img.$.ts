@@ -1,5 +1,9 @@
 import Bun from 'bun';
 import sharp from 'sharp';
+import nodeFetch from 'node-fetch';
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { env } from '~/modules/env.server';
 import { notFound, internalServerError } from '~/modules/responses.server';
@@ -100,13 +104,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   console.log('Cache miss, fetching image from origin:', originUrl);
-  const res = await time('fetchImg', () => fetch(originUrl));
+  // Using node-fetch to get a node:stream compatible response
+  const res = await time('fetchImg', () => nodeFetch(originUrl));
   if (!res.ok || !res.body) {
     return internalServerError(getServerTimingHeader());
   }
-  const arrayBuffer = await time('resToArrayBuffer', () => res.arrayBuffer());
-
-  const sharpInstance = sharp(arrayBuffer);
+  const sharpInstance = sharp();
   sharpInstance.on('error', (error) => {
     console.error(error);
     captureException(error);
@@ -116,20 +119,38 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
   sharpInstance.webp({ effort: 6 });
 
-  const newFile = await time('sharpToBuffer', () => sharpInstance.toBuffer());
+  await time(
+    'mkdirFileDir',
+    fsp.mkdir(path.dirname(filePath), { recursive: true }).catch(() => {}),
+  );
+
+  const transformStream = res.body.pipe(sharpInstance);
   try {
-    // Save the image to the cache, mkdir path if it doesn't exist
-    await time('saveToFile', () => Bun.write(filePath, newFile, { createPath: true }));
+    const cacheFileStream = fs.createWriteStream(filePath);
+    await time(
+      'transformImage',
+      new Promise<void>((resolve, reject) => {
+        transformStream.pipe(cacheFileStream);
+        transformStream.on('end', () => {
+          resolve();
+        });
+        transformStream.on('error', async (error: Error) => {
+          await fsp.rm(filePath).catch(() => {});
+          reject(error);
+        });
+      }),
+    );
+
+    return new Response(Bun.file(filePath).stream(), {
+      headers: {
+        'Content-Type': 'image/webp',
+        'Cache-Control': `public, max-age=${60 * 60 * 24}`, // cache img 24 hours in browser
+        'Server-Timing': getHeaderField(),
+      },
+    });
   } catch (error) {
     console.error(error);
     captureException(error);
+    return internalServerError(getServerTimingHeader());
   }
-
-  return new Response(newFile, {
-    headers: {
-      'Content-Type': 'image/webp',
-      'Cache-Control': `public, max-age=${60 * 60 * 24}`, // cache img 24 hours in browser
-      'Server-Timing': getHeaderField(),
-    },
-  });
 }

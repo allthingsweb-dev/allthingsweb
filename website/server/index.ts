@@ -65,7 +65,7 @@ app.use(express.static('build/client', { maxAge: '1h' }));
 
 app.use(morgan('tiny'));
 
-app.use('/tests/errors/server-error', (req, res) => {
+app.use('/tests/errors/server-error', () => {
   throw new Error('This is a test error from Express on Bun.');
 });
 
@@ -77,10 +77,10 @@ app.all('*', remixHandler);
 Sentry.setupExpressErrorHandler(app);
 
 // Log errors to console
-app.use((err: Error, req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+app.use((err: Error, _req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
   console.error(err);
   next(err);
 });
 
-const port = process.env.PORT || 3000;
+const port = env.server.port;
 app.listen(port, () => console.log(`Express server listening at http://localhost:${port}`));

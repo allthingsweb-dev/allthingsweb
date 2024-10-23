@@ -35,13 +35,14 @@ website/.env:
 install: check-dependencies ## Install the dependencies
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) install
 
-.PHONY: codeclean
-codeclean: ## Code Clean
+.PHONY: fmt
+fmt: ## Format the code
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:fix
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:check
 
-.PHONY: strict-codeclean
-strict-codeclean: codeclean
+.PHONY: check
+check: ## Check the code
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:check
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run typecheck
 
 .PHONY: build

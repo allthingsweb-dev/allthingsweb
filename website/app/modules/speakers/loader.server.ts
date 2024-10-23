@@ -16,7 +16,7 @@ export type SpeakerWithTalks = Speaker & {
 };
 
 export async function fetchSpeakersWithTalks(time: TimeFn) {
-    const speakersWithTalks = await cachified({
+  const speakersWithTalks = await cachified({
     key: 'speakersWithTalks',
     cache: lru,
     // Use cached value for 3 minutes, after one minute, fetch fresh value in the background

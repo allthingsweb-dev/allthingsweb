@@ -28,7 +28,9 @@ make install
 
 #### 🔤 Environment variables
 
-You need to `cp` the `.env.dist` in a `.env` file (no versionned) and adapt the configuration in `website`
+You need to `cp` `website/.env.dist` in `website/.env`. Currently, you must have
+Pocketbase running locally or have access to a production instance in order to
+start the website.
 
 #### 🏃‍♂️ Running
 
@@ -42,6 +44,7 @@ make serve
 
 Before any Pull Request please make sure to:
 
-- `make codeclean` to apply the Coding Standards
+- `make fix` to apply the coding standards
+- `make check` to check for issues
 
 > this is enforced in the CI

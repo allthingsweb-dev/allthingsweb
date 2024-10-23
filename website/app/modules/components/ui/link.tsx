@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { type NavLinkProps, NavLink } from '@remix-run/react';
-
-import { cn } from '~/modules/components/utils';
+import { cn } from '../utils';
 
 export type LinkProps = Omit<NavLinkProps, 'className'> & {
   disabled?: boolean;

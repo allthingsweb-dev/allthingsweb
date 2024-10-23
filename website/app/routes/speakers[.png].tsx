@@ -13,11 +13,14 @@ export async function loader() {
 
   const jsx = <SpeakersPreview speakers={speakersWithTalks} />;
 
-  const svg = await time('satori', satori(jsx, {
-    width: 1200,
-    height: 1200,
-    fonts: await getFont('Roboto'),
-  }));
+  const svg = await time(
+    'satori',
+    satori(jsx, {
+      width: 1200,
+      height: 1200,
+      fonts: await getFont('Roboto'),
+    }),
+  );
   const resvg = new Resvg(svg);
   const pngData = timeSync('resvg.render', () => resvg.render());
   const data = timeSync('asPng', () => pngData.asPng());

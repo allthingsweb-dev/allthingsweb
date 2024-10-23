@@ -13,7 +13,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     key: `getLink-${id}`,
     ttl: 3 * 60 * 1000, // 3 minutes
     cache: lru,
-    async getFreshValue() {
+    getFreshValue() {
       return getLink(id);
     },
   });

@@ -17,7 +17,7 @@ export async function eventDetailsLoader(slug: string) {
     // Downstream is only hit once a minute
     ttl: 60 * 1000, // one minute
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
-    async getFreshValue() {
+    getFreshValue() {
       return time('getExpandedEventBySlug', () => getExpandedEventBySlug(slug));
     },
   });
@@ -32,7 +32,7 @@ export async function eventDetailsLoader(slug: string) {
     // Downstream is only hit once a minute
     ttl: 60 * 1000, // one minute
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
-    async getFreshValue() {
+    getFreshValue() {
       try {
         const lumaEventId = event.lumaEventId;
         if (event.enableRegistrations) {
