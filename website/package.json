@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc",
-    "build": "remix vite:build",
+    "build": "bunx --bun remix vite:build",
     "dev": "NODE_ENV=development TZ=Etc/UTC bun ./server/index.ts",
     "profile": "NODE_ENV=development TZ=Etc/UTC bun --inspect ./server/index.ts",
     "start": "NODE_ENV=production TZ=Etc/UTC bun ./server/index.ts",
