@@ -197,6 +197,7 @@ export function toSpeaker(speaker: any): Speaker {
     profileImageId: `/speakers/${speaker.id}/${speaker.profileImage}`,
     linkedinUrl: speaker.linkedinHandle ? `https://www.linkedin.com/in/${speaker.linkedinHandle}` : null,
     twitterUrl: speaker.twitterHandle ? `https://twitter.com/${speaker.twitterHandle}` : null,
+    blueskyUrl: speaker.blueskyHandle ? `https://bsky.app/profile/${speaker.blueskyHandle}` : null,
     bio: speaker.bio,
   };
 }

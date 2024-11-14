@@ -2,7 +2,7 @@ import { NavLink, useLoaderData } from '@remix-run/react';
 import clsx from 'clsx';
 import { AlertCircleIcon, CalendarHeart, InfoIcon, UsersIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '~/modules/components/ui/avatar';
-import { MapPinIcon, LinkedInLogoIcon, TwitterLogoIcon } from '~/modules/components/ui/icons';
+import { MapPinIcon, LinkedInLogoIcon, TwitterLogoIcon, BlueSkyLogoIcon } from '~/modules/components/ui/icons';
 import { Alert, AlertDescription, AlertTitle } from '~/modules/components/ui/alert';
 import { toReadableDateTimeStr, toWeekdayStr } from '~/modules/datetime';
 import { Section } from '~/modules/components/ui/section';
@@ -111,6 +111,17 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
               </CardContent>
               <CardFooter>
                 <div className="flex justify-start gap-2 items-center">
+                  {talk.speaker.blueskyUrl && (
+                    <a
+                      href={talk.speaker.blueskyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <BlueSkyLogoIcon className="h-5 w-5" />
+                      <span className="sr-only">Twitter</span>
+                    </a>
+                  )}
                   {talk.speaker.twitterUrl && (
                     <a
                       href={talk.speaker.twitterUrl}

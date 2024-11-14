@@ -42,6 +42,7 @@ export type Speaker = {
   profileImageId: string;
   linkedinUrl: string | null;
   twitterUrl: string | null;
+  blueskyUrl: string | null;
   bio: string;
 };
 
