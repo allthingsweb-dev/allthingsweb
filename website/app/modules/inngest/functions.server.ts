@@ -71,7 +71,7 @@ export const syncAttendeesWithLumaFn = inngest.createFunction(
     },
   },
   { cron: 'TZ=America/Los_Angeles 0 * * * *' }, // every hour
-  async ({ step }) => {
+  async (/* { step }*/) => {
     const events = await getUpcomingEvents();
     for (const event of events) {
       if (!event.lumaEventId) {

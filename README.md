@@ -44,7 +44,7 @@ make serve
 
 Before any Pull Request please make sure to:
 
-- `make fix` to apply the coding standards
+- `make fmt` to apply the coding standards
 - `make check` to check for issues
 
 > this is enforced in the CI

@@ -107,7 +107,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   };
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ params }: LoaderFunctionArgs) {
   const { slug } = params;
   if (typeof slug !== 'string') {
     throw notFound();

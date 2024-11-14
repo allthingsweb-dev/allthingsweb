@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/remix';
 import { PassThrough } from 'node:stream';
-import type { AppLoadContext, EntryContext } from '@remix-run/node';
+import type { /* AppLoadContext, */ EntryContext } from '@remix-run/node';
 import { createReadableStreamFromReadable } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { isbot } from 'isbot';
@@ -17,7 +17,7 @@ if (env.sentry.dsn && !Sentry.isInitialized()) {
   });
 }
 
-export const handleError = Sentry.wrapHandleErrorWithSentry((error, { request }) => {
+export const handleError = Sentry.wrapHandleErrorWithSentry((error /*{ request }*/) => {
   // Custom handleError implementation
   console.error(error);
 });
@@ -29,7 +29,7 @@ export default function handleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   remixContext: EntryContext,
-  loadContext: AppLoadContext,
+  /* loadContext: AppLoadContext, */
 ) {
   return isbot(request.headers.get('user-agent') || '')
     ? handleBotRequest(request, responseStatusCode, responseHeaders, remixContext)
