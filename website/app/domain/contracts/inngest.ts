@@ -1,9 +1,5 @@
 import { Inngest } from 'inngest';
 
-export const inngest = new Inngest({
-  id: 'allthingsweb-app',
-});
-
 export type InngestEventData = {
   'event/attendee.registered': {
     attendee: {
@@ -15,4 +11,9 @@ export type InngestEventData = {
   };
 };
 
-export type InngestEventName = keyof InngestEventData;
+type InngestEventName = keyof InngestEventData;
+
+export type InngestServer = {
+  inngest: Inngest;
+  publishEvent: <T extends InngestEventName>(eventName: T, data: InngestEventData[T]) => void;
+};

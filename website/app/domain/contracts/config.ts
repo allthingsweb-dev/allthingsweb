@@ -23,7 +23,7 @@ const PocketBaseSchema = z.object({
 });
 
 const ResendSchema = z.object({
-  apiKey: z.string().min(1),
+  apiKey: z.string().optional(),
 });
 
 const LumaSchema = z.object({
@@ -46,8 +46,8 @@ const SentrySchema = z.object({
 });
 
 const InngestSchema = z.object({
-  signingKey: z.string().min(1),
-  eventKey: z.string().min(1),
+  signingKey: z.string().optional(),
+  eventKey: z.string().optional(),
 });
 
 export const MainConfigSchema = z

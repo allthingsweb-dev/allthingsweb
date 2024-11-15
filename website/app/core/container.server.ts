@@ -9,6 +9,11 @@ import crypto from 'node:crypto';
 import { createSessionManager } from '~/infrastructure/session/create-session-manager.server';
 import { redirect } from '@remix-run/node';
 import { SessionManager } from '~/domain/contracts/session';
+import { createMailer } from '~/infrastructure/create-mailer.server';
+import { Mailer } from '~/domain/contracts/mailer';
+import { createInngestServer } from '~/infrastructure/inngest/create-inngest.server';
+import { InngestServer } from '~/domain/contracts/inngest';
+import { buildInngestFunctions } from '~/infrastructure/inngest/functions.server';
 
 export const buildContainer = () => {
   const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
@@ -27,12 +32,12 @@ export const buildContainer = () => {
       adminPassword: process.env.POCKETBASE_PASSWORD || '',
     },
     inngest: {
-      signingKey: process.env.INNGEST_SIGNING_KEY || 'xxx',
-      eventKey: process.env.INNGEST_EVENT_KEY || 'xxx',
+      signingKey: process.env.INNGEST_SIGNING_KEY,
+      eventKey: process.env.INNGEST_EVENT_KEY,
     },
     sessionSecret: process.env.SESSION_SECRET || '',
     resend: {
-      apiKey: process.env.RESEND_API_KEY || 'xxx',
+      apiKey: process.env.RESEND_API_KEY,
     },
     luma: {
       apiKey: process.env.LUMA_API_KEY || 'xxx',
@@ -59,6 +64,9 @@ export const buildContainer = () => {
     commandBus: CommandBus;
     mainConfig: MainConfig;
     sessionManager: SessionManager;
+    mailer: Mailer;
+    inngestServer: InngestServer;
+    inngestFunctions: ReturnType<typeof buildInngestFunctions>;
   }>({
     injectionMode: InjectionMode.PROXY,
     strict: true,
@@ -72,6 +80,9 @@ export const buildContainer = () => {
     sessionManager: asFunction(createSessionManager)
       .inject(() => ({ redirect }))
       .singleton(),
+    mailer: asFunction(createMailer).singleton(),
+    inngestServer: asFunction(createInngestServer).singleton(),
+    inngestFunctions: asFunction(buildInngestFunctions).singleton(),
   });
 
   // 3. Setup the Bus
