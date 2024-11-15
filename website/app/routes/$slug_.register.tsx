@@ -16,18 +16,17 @@ import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
 import { LoadingSpinner, MapPinIcon } from '~/modules/components/ui/icons';
 import { DefaultRightTopNav } from '~/modules/components/right-top-nav';
 import { trackEvent } from '~/modules/posthog/posthog.server';
-import { getUserSession } from '~/modules/session/session.server';
-import { requireValidCsrfToken } from '~/modules/session/csrf.server';
 import { publishEvent } from '~/modules/inngest/events.server';
 import { toReadableDateTimeStr } from '~/modules/datetime';
 import { meta } from '~/modules/event-details/meta';
 import { useCsrfToken } from '~/modules/session/csrf';
 import { notFound } from '~/modules/responses.server';
+import { requireValidCsrfToken } from '~/infrastructure/session/csrf.server';
 
 export { meta };
 
-export async function action({ request, params }: ActionFunctionArgs) {
-  const session = await getUserSession(request);
+export async function action({ request, params, context }: ActionFunctionArgs) {
+  const session = await context.session.getUserSession(request);
   const { slug } = params;
   if (typeof slug !== 'string') {
     return notFound();
