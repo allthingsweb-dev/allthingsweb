@@ -8,11 +8,12 @@ import { Alert, AlertDescription, AlertTitle } from '~/modules/components/ui/ale
 import { toReadableDateTimeStr, toWeekdayStr } from '~/modules/datetime';
 import { Section } from '~/modules/components/ui/section';
 import { PageLayout } from '~/modules/components/page-layout';
-import { deserializeExpandedEvent, Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
+import { deserializeExpandedEvent } from '~/modules/pocketbase/pocketbase';
+import { Event, ExpandedTalk, Sponsor } from '~/domain/contracts/content';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { getImageSrc } from '~/modules/image-opt/utils';
 import { ButtonNavLink } from '~/modules/components/ui/button';
-import { loader } from './loader.sever';
+import { LoadEventDetailsHandlerDefinition } from '~/domain/use-cases/load-event-details.server';
 
 export function AllYouNeedToKnowSection({
   event,
@@ -235,7 +236,13 @@ export function PhotosSection({
 }
 
 export function EventDetailsPage({ children, heroContent }: { children?: React.ReactNode; heroContent?: ReactNode }) {
-  const { event: eventData, isAtCapacity, attendeeCount, attendeeLimit, isInPast } = useLoaderData<typeof loader>();
+  const {
+    event: eventData,
+    isAtCapacity,
+    attendeeCount,
+    attendeeLimit,
+    isInPast,
+  } = useLoaderData<LoadEventDetailsHandlerDefinition['LoadEventDetails']['result']>();
   const event = deserializeExpandedEvent(eventData);
   return (
     <PageLayout>

@@ -1,7 +1,7 @@
 import { MetaFunction } from '@remix-run/node';
 import { getMetaTags, mergeMetaTags } from '../meta';
 import { type loader as rootLoader } from '~/root';
-import { type loader } from './loader.sever';
+import { type loader } from '../../routes/$slug';
 
 export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ data, matches }) => {
   const rootLoader = matches.find((match) => match.id === 'root')?.data;

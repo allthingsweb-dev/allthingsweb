@@ -4,7 +4,6 @@ import tailwindStyles from './tailwind.css?url';
 import { LinksFunction, LoaderFunctionArgs, MetaFunction, json } from '@remix-run/node';
 import { PageTransitionProgressBar } from './modules/components/page-transition';
 import { ErrorPage } from './modules/components/error-page';
-import { env } from './modules/env.server';
 
 export const links: LinksFunction = () => [
   { rel: 'stylesheet', href: tailwindStyles },
@@ -38,10 +37,10 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   return json(
     {
       csrfToken: userSession.csrfToken,
-      posthogPublicAPIKey: env.posthogPublicAPIKey,
-      sentryDsn: env.sentry.dsn,
+      posthogPublicAPIKey: context.mainConfig.posthog.publicApiKey,
+      sentryDsn: context.mainConfig.sentry.dsn,
       appVersion: context.appVersion,
-      serverOrigin: env.server.origin,
+      serverOrigin: context.mainConfig.origin,
     },
     { headers },
   );

@@ -1,4 +1,4 @@
-import { MetaFunction } from '@remix-run/node';
+import { json, LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
 import { NavLink, useLoaderData } from '@remix-run/react';
 import { PageLayout } from '~/modules/components/page-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '~/modules/components/ui/card';
@@ -6,7 +6,6 @@ import { Section } from '~/modules/components/ui/section';
 import { toYearStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { type loader as rootLoader } from '~/root';
-import { speakersLoader as loader } from '~/modules/speakers/loader.server';
 import { getImageSrc } from '~/modules/image-opt/utils';
 
 export { headers } from '~/modules/header.server';
@@ -23,7 +22,14 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
   return mergeMetaTags(getMetaTags(title, description, '/speakers', previewImageUrl), matches);
 };
 
-export { loader };
+export const loader = async ({ context }: LoaderFunctionArgs) => {
+  const query = context.createQuery('FetchSpeakersWithTalks', {});
+  const { result } = await context.dispatchQuery(query);
+  const speakersWithTalks = result || [];
+  // Randomize the order of speakers
+  speakersWithTalks.sort(() => Math.random() - 0.5);
+  return json({ speakersWithTalks }, { headers: context.services.serverTimingsProfiler.getServerTimingHeader() });
+};
 
 export default function Component() {
   const { speakersWithTalks } = useLoaderData<typeof loader>();

@@ -1,16 +1,14 @@
 import { LoaderFunctionArgs } from '@remix-run/node';
-import { env } from '~/modules/env.server';
 import QRCode from 'qrcode';
-import { getServerTiming } from '~/modules/server-timing.server';
 
 export { headers } from '~/modules/header.server';
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params, context }: LoaderFunctionArgs) {
   if (!params.slug) {
     throw new Error('No slug provided');
   }
-  const { time, getHeaderField } = getServerTiming();
-  const eventUrl = `${env.server.origin}/${params.slug}`;
+  const { time, getHeaderField } = context.services.serverTimingsProfiler;
+  const eventUrl = `${context.mainConfig.origin}/${params.slug}`;
   const qrCode = await time('QRCode.toBuffer', QRCode.toBuffer(eventUrl, { width: 1200 }));
   return new Response(qrCode, {
     headers: {

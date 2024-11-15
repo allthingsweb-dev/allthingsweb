@@ -1,17 +1,27 @@
 import { createEventAttachment, createSuccessfulEventSignupHtml } from '../../modules/email/templates';
-import { getAttendees, getEventBySlug, getUpcomingEvents, registerAttendee } from '../../modules/pocketbase/api.server';
-import { addAttendee as addAttendeeOnLuma, getAllAttendees as getLumaAttendees } from '../../modules/luma/api.server';
 import { captureException } from '../../modules/sentry/capture.server';
 import { InngestEventData, InngestServer } from '~/domain/contracts/inngest';
 import { Mailer } from '~/domain/contracts/mailer';
 import { MainConfig } from '~/domain/contracts/config';
+import { PocketBaseClient } from '~/domain/contracts/pocketbase';
+import { LumaClient } from '~/domain/contracts/luma';
 
 type Deps = {
   mainConfig: MainConfig;
   inngestServer: InngestServer;
+  pocketBaseClient: PocketBaseClient;
+  lumaClient: LumaClient;
   mailer: Mailer;
 };
-export const buildInngestFunctions = ({ inngestServer, mainConfig, mailer: sendEmail }: Deps) => {
+export const buildInngestFunctions = ({
+  inngestServer,
+  mainConfig,
+  mailer: sendEmail,
+  pocketBaseClient,
+  lumaClient,
+}: Deps) => {
+  const { getEventBySlug, getUpcomingEvents, getAttendees, registerAttendee } = pocketBaseClient;
+  const { addAttendee: addAttendeeOnLuma, getAllAttendees: getLumaAttendees } = lumaClient;
   const eventAttendeeRegisteredFn = inngestServer.inngest.createFunction(
     {
       id: 'event-attendee-registered-fn',

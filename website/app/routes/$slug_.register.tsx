@@ -5,17 +5,10 @@ import { Button, ButtonAnchor } from '~/modules/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '~/modules/components/ui/card';
 import { Form, NavLink, useActionData, useLoaderData, useNavigation, useParams } from '@remix-run/react';
 import { CheckIcon, XIcon, CalendarIcon } from 'lucide-react';
-import {
-  getAttendeeByEmail,
-  getAttendeeCount,
-  getEventBySlug,
-  registerAttendee,
-  updateAttendeeCancellation,
-} from '~/modules/pocketbase/api.server';
-import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
+import { Event } from '~/domain/contracts/content';
+import { deserializeEvent } from '~/modules/pocketbase/pocketbase';
 import { LoadingSpinner, MapPinIcon } from '~/modules/components/ui/icons';
 import { DefaultRightTopNav } from '~/modules/components/right-top-nav';
-import { trackEvent } from '~/modules/posthog/posthog.server';
 import { toReadableDateTimeStr } from '~/modules/datetime';
 import { meta } from '~/modules/event-details/meta';
 import { useCsrfToken } from '~/modules/session/csrf';
@@ -26,6 +19,8 @@ export { meta };
 
 export async function action({ request, params, context }: ActionFunctionArgs) {
   const session = await context.session.getUserSession(request);
+  const { getEventBySlug, getAttendeeByEmail, getAttendeeCount, registerAttendee, updateAttendeeCancellation } =
+    context.services.pocketBaseClient;
   const { slug } = params;
   if (typeof slug !== 'string') {
     return notFound();
@@ -58,7 +53,7 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
 
   const alreadyRegistered = existingAttendee && !existingAttendee.canceled;
   if (!alreadyRegistered && attendeeCount >= event.attendeeLimit) {
-    trackEvent('registration declined', event.slug, {
+    context.services.posthogClient.trackEvent('registration declined', event.slug, {
       attendee_id: existingAttendee?.id,
       event_name: event.name,
       event_id: event.id,
@@ -71,7 +66,7 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
     attendeeId = existingAttendee.id;
     if (existingAttendee.canceled) {
       await updateAttendeeCancellation(attendeeId, false);
-      trackEvent('attendee uncanceled', event.slug, {
+      context.services.posthogClient.trackEvent('attendee uncanceled', event.slug, {
         attendee_id: attendeeId,
         event_name: event.name,
         event_id: event.id,
@@ -81,7 +76,7 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   } else {
     const attendee = await registerAttendee(event.id, formAttendee.name, formAttendee.email);
     attendeeId = attendee.id;
-    trackEvent('attendee registered', event.slug, {
+    context.services.posthogClient.trackEvent('attendee registered', event.slug, {
       attendee_id: attendeeId,
       event_name: event.name,
       event_id: event.id,
@@ -105,7 +100,8 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   };
 }
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params, context }: LoaderFunctionArgs) {
+  const { getEventBySlug, getAttendeeCount } = context.services.pocketBaseClient;
   const { slug } = params;
   if (typeof slug !== 'string') {
     throw notFound();

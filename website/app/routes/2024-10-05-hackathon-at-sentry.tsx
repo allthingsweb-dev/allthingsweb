@@ -2,15 +2,17 @@ import { SentryLogoIcon } from '~/modules/components/ui/icons';
 import { EventDetailsPage, PhotosSection } from '~/modules/event-details/components';
 import { Section } from '~/modules/components/ui/section';
 import { meta } from '~/modules/event-details/meta';
-import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
 import { useLoaderData } from '@remix-run/react';
+import { json, LoaderFunctionArgs } from '@remix-run/node';
 
 export { headers } from '~/modules/header.server';
 
 export { meta };
 
-export function loader() {
-  return eventDetailsLoader('2024-10-05-hackathon-at-sentry');
+export async function loader({ context }: LoaderFunctionArgs) {
+  const query = context.createQuery('LoadEventDetails', { slug: '2024-10-05-hackathon-at-sentry' });
+  const { result: eventDetails } = await context.dispatchQuery(query);
+  return json(eventDetails, { headers: context.services.serverTimingsProfiler.getServerTimingHeader() });
 }
 
 export default function Component() {

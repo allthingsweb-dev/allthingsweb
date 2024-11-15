@@ -1,5 +1,5 @@
 import { toReadableDateTimeStr } from '../datetime';
-import { Event } from '../pocketbase/pocketbase';
+import { Event } from '~/domain/contracts/content';
 
 export async function createEventAttachment({
   event,

@@ -20,6 +20,7 @@
     "**/dist": true,
     "**/node_modules": true,
     "**/build": true,
-    "**/.cache": true
+    "**/.cache": true,
+    "website/data": true
   }
 }

@@ -1,11 +1,11 @@
 import { useLoaderData } from '@remix-run/react';
-import { MetaFunction, json } from '@remix-run/node';
+import { LoaderFunctionArgs, MetaFunction, json } from '@remix-run/node';
 import cachified from '@epic-web/cachified';
 import { ArrowRightIcon, CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react';
 import { type loader as rootLoader } from '~/root';
-import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
+import { deserializeEvent } from '~/modules/pocketbase/pocketbase';
+import { Event } from '~/domain/contracts/content';
 import { ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
-import { getPastEvents, getUpcomingEvents } from '~/modules/pocketbase/api.server';
 import { EventsCarousel } from '~/modules/event-carousel/components';
 import { PageLayout } from '~/modules/components/page-layout';
 import { Section } from '~/modules/components/ui/section';
@@ -13,7 +13,6 @@ import { toReadableDateTimeStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { lru } from '~/modules/cache';
 import { getImageSrc } from '~/modules/image-opt/utils';
-import { getServerTiming } from '~/modules/server-timing.server';
 
 export { headers } from '~/modules/header.server';
 
@@ -33,8 +32,9 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
   );
 };
 
-export async function loader() {
-  const { time, getServerTimingHeader } = getServerTiming();
+export async function loader({ context }: LoaderFunctionArgs) {
+  const { getUpcomingEvents, getPastEvents } = context.services.pocketBaseClient;
+  const { time, getServerTimingHeader } = context.services.serverTimingsProfiler;
   const { highlightEvent, remainingEvents, pastEvents } = await cachified({
     key: '_index-loader-data',
     cache: lru,

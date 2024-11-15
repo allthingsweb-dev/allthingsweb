@@ -5,15 +5,15 @@ import { createReadableStreamFromReadable } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { isbot } from 'isbot';
 import { renderToPipeableStream } from 'react-dom/server';
-import { env } from './modules/env.server';
 
-if (env.sentry.dsn && !Sentry.isInitialized()) {
+// need to cheat here as we don't have access to the container
+if (process.env.SENTRY_DSN && !Sentry.isInitialized()) {
   console.log('Initializing Sentry for Remix');
   Sentry.init({
-    dsn: env.sentry.dsn,
+    dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1,
     autoInstrumentRemix: true,
-    environment: env.environment,
+    environment: process.env.NODE_ENV || 'development',
   });
 }
 

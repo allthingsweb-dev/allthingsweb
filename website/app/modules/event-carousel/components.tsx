@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
-import { Event } from '~/modules/pocketbase/pocketbase';
+import { Event } from '~/domain/contracts/content';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { Skeleton } from '~/modules/components/ui/skeleton';
 import { usePrevNextButtons } from '~/modules/components/ui/carousel';

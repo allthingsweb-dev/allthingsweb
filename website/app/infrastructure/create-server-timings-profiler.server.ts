@@ -3,48 +3,19 @@
  * https://gist.github.com/jacobparis/1e428524be3a31096ba3ecb35a7a15bb
  */
 
-export type PerformanceServerTimings = Record<string, Array<PerformanceServerTiming>>;
-
-export type TimeFn = ReturnType<typeof getServerTiming>['time'];
+import { PerformanceServerTimings, ServerTimingsProfiler } from '~/domain/contracts/server-timings-profiler';
 
 /**
  * Run this on the server to get a `time` function that can be used to time
  * server-side operations and add them to the `Server-Timing` header.
  */
-export function getServerTiming() {
+export function createServerTimingsProfiler(): ServerTimingsProfiler {
   const serverTimings: PerformanceServerTimings = {};
-
   return {
-    time<T>(
-      serverTiming:
-        | string
-        | {
-            name: string;
-            description: string;
-          },
-      fn: Promise<T> | (() => Promise<T>),
-    ) {
-      return time(serverTimings, serverTiming, fn);
-    },
-    timeSync<T>(
-      serverTiming:
-        | string
-        | {
-            name: string;
-            description: string;
-          },
-      fn: () => T,
-    ) {
-      return timeSync(serverTimings, serverTiming, fn);
-    },
-    getHeaderField() {
-      return getServerTimeHeaderField(serverTimings);
-    },
-    getServerTimingHeader() {
-      return {
-        'Server-Timing': getServerTimeHeaderField(serverTimings),
-      };
-    },
+    time: (serverTiming, fn) => time(serverTimings, serverTiming, fn),
+    timeSync: (serverTiming, fn) => timeSync(serverTimings, serverTiming, fn),
+    getHeaderField: () => getServerTimeHeaderField(serverTimings),
+    getServerTimingHeader: () => ({ 'Server-Timing': getServerTimeHeaderField(serverTimings) }),
   };
 }
 

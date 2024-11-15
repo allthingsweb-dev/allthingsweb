@@ -14,6 +14,13 @@ import { Mailer } from '~/domain/contracts/mailer';
 import { createInngestServer } from '~/infrastructure/inngest/create-inngest.server';
 import { InngestServer } from '~/domain/contracts/inngest';
 import { buildInngestFunctions } from '~/infrastructure/inngest/functions.server';
+import { createServerTimingsProfiler } from '~/infrastructure/create-server-timings-profiler.server';
+import { PocketBaseClient } from '~/domain/contracts/pocketbase';
+import { createPocketbaseClient } from '~/infrastructure/pocketbase/create-pocketbase-client.server';
+import { createFetchSpeakersWithTalksHandler } from '~/domain/use-cases/fetch-speakers-with-talks.server';
+import { createLoadEventDetailsHandler } from '~/domain/use-cases/load-event-details.server';
+import { createLumaClient } from '~/infrastructure/luma/create-luma-client.server';
+import { createPosthogClient } from '~/infrastructure/posthog/create-posthog-client.server';
 
 export const buildContainer = () => {
   const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
@@ -49,10 +56,10 @@ export const buildContainer = () => {
       publicApiKey: process.env.POSTHOG_PUBLIC_API_KEY || 'xxx',
     },
     sentry: {
-      dsn: process.env.SENTRY_DSN || 'xxx',
-      org: process.env.SENTRY_ORG || 'xxx',
-      project: process.env.SENTRY_PROJECT || 'xxx',
-      authToken: process.env.SENTRY_AUTH_TOKEN || 'xxx',
+      dsn: process.env.SENTRY_DSN,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
     },
   });
   const logger = createLogger(config.instanceId, ['info', 'debug']);
@@ -67,6 +74,12 @@ export const buildContainer = () => {
     mailer: Mailer;
     inngestServer: InngestServer;
     inngestFunctions: ReturnType<typeof buildInngestFunctions>;
+    serverTimingsProfiler: ReturnType<typeof createServerTimingsProfiler>;
+    pocketBaseClient: PocketBaseClient;
+    lumaClient: ReturnType<typeof createLumaClient>;
+    posthogClient: ReturnType<typeof createPosthogClient>;
+    fetchSpeakersWithTalksHandler: ReturnType<typeof createFetchSpeakersWithTalksHandler>;
+    loadEventDetailsHandler: ReturnType<typeof createLoadEventDetailsHandler>;
   }>({
     injectionMode: InjectionMode.PROXY,
     strict: true,
@@ -83,6 +96,12 @@ export const buildContainer = () => {
     mailer: asFunction(createMailer).singleton(),
     inngestServer: asFunction(createInngestServer).singleton(),
     inngestFunctions: asFunction(buildInngestFunctions).singleton(),
+    serverTimingsProfiler: asFunction(createServerTimingsProfiler).scoped(),
+    pocketBaseClient: asFunction(createPocketbaseClient).singleton(),
+    lumaClient: asFunction(createLumaClient).singleton(),
+    posthogClient: asFunction(createPosthogClient).singleton(),
+    fetchSpeakersWithTalksHandler: asFunction(createFetchSpeakersWithTalksHandler).singleton(),
+    loadEventDetailsHandler: asFunction(createLoadEventDetailsHandler).singleton(),
   });
 
   // 3. Setup the Bus
@@ -90,6 +109,14 @@ export const buildContainer = () => {
 
   // Query Bus
   container.cradle.queryBus.useLoggerMiddleware({ logger: simpleLogger });
+  container.cradle.queryBus.useCacherMiddleware({
+    defaultTtl: 60,
+    defaultStaleTtl: 120,
+    cache: 'all',
+    shortCircuit: true,
+  });
+  container.cradle.queryBus.register('FetchSpeakersWithTalks', container.cradle.fetchSpeakersWithTalksHandler);
+  container.cradle.queryBus.register('LoadEventDetails', container.cradle.loadEventDetailsHandler);
 
   // Command Bus
   container.cradle.commandBus.useLoggerMiddleware({ logger: simpleLogger });

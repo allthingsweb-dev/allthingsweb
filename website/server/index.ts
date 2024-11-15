@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/bun';
 import compression from 'compression';
 import express, { NextFunction, Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import morgan from 'morgan';
-import { env } from '~/modules/env.server.js';
 import { buildContainer } from '~/core/container.server.js';
 import { SessionManager } from '~/domain/contracts/session.js';
+import { MainConfig } from '~/domain/contracts/config.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const productionBuild = isProduction ? await import('../build/server/index.js') : undefined;
@@ -13,16 +13,6 @@ const productionBuild = isProduction ? await import('../build/server/index.js') 
 const appVersion = productionBuild ? productionBuild.assets.version : 'dev';
 console.log(`Running app version ${appVersion}`);
 console.log(`Server timezone offset: ${new Date().getTimezoneOffset() / 60} hours`);
-
-if (env.sentry.dsn) {
-  console.log('Initializing Sentry for the express server');
-  Sentry.init({
-    dsn: env.sentry.dsn,
-    tracesSampleRate: 1,
-    environment: env.environment,
-    release: appVersion,
-  });
-}
 
 const viteDevServer = isProduction
   ? undefined
@@ -42,9 +32,20 @@ declare module '@remix-run/node' {
     createCommand: ReturnType<typeof buildContainer>['cradle']['commandBus']['createCommand'];
     dispatchCommand: ReturnType<typeof buildContainer>['cradle']['commandBus']['dispatch'];
     session: SessionManager;
+    mainConfig: MainConfig;
   }
 }
 let container = buildContainer();
+if (container.cradle.mainConfig.sentry.dsn) {
+  console.log('Initializing Sentry for the express server');
+  Sentry.init({
+    dsn: container.cradle.mainConfig.sentry.dsn,
+    tracesSampleRate: 1,
+    environment: container.cradle.mainConfig.environment,
+    release: appVersion,
+  });
+}
+
 const remixHandler = createRequestHandler({
   // @ts-ignore comment
   build: viteDevServer ? () => viteDevServer.ssrLoadModule('virtual:remix/server-build') : productionBuild,
@@ -60,6 +61,7 @@ const remixHandler = createRequestHandler({
       createCommand: scopedServices.cradle.commandBus.createCommand,
       dispatchCommand: scopedServices.cradle.commandBus.dispatch,
       session: scopedServices.cradle.sessionManager,
+      mainConfig: scopedServices.cradle.mainConfig,
     };
   },
 });
@@ -114,5 +116,7 @@ app.use((err: Error, _req: ExpressRequest, _res: ExpressResponse, next: NextFunc
   next(err);
 });
 
-const port = env.server.port;
-app.listen(port, () => container.cradle.logger.start(`Remix server listening at http://localhost:${port}`));
+const port = container.cradle.mainConfig.port;
+app.listen(port, () =>
+  container.cradle.logger.start(`Remix server listening at ${container.cradle.mainConfig.origin}`),
+);

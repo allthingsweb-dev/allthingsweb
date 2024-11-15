@@ -1,14 +1,16 @@
 import { EventDetailsPage, PhotosSection, SponsorsSection, TalksSection } from '~/modules/event-details/components';
 import { meta } from '~/modules/event-details/meta';
-import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
 import { useLoaderData } from '@remix-run/react';
 import TypeAnimation from '~/modules/components/ui/typing-animation';
+import { json, LoaderFunctionArgs } from '@remix-run/node';
 export { headers } from '~/modules/header.server';
 
 export { meta };
 
-export function loader() {
-  return eventDetailsLoader('2024-12-03-all-things-web-at-convex');
+export async function loader({ context }: LoaderFunctionArgs) {
+  const query = context.createQuery('LoadEventDetails', { slug: '2024-12-03-all-things-web-at-convex' });
+  const { result: eventDetails } = await context.dispatchQuery(query);
+  return json(eventDetails, { headers: context.services.serverTimingsProfiler.getServerTimingHeader() });
 }
 
 const HeroAnimation = (

@@ -1,13 +1,5 @@
 import { ActionFunctionArgs } from '@remix-run/node';
-import { env } from '~/modules/env.server';
-import { LumaAttendee } from '~/modules/luma/api.server';
-import {
-  getAttendeeByEmail,
-  getEventByLumaEventId,
-  registerAttendee,
-  updateAttendeeCancellation,
-} from '~/modules/pocketbase/api.server';
-import { trackEvent } from '~/modules/posthog/posthog.server';
+import { LumaAttendee } from '~/domain/contracts/luma';
 import { captureException } from '~/modules/sentry/capture.server';
 
 type Payload = {
@@ -21,10 +13,12 @@ function isPayload(data: any): data is Payload {
   return typeof data === 'object' && 'name' in data && 'email' in data && 'status' in data && 'eventId' in data;
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, context }: ActionFunctionArgs) {
+  const { getEventByLumaEventId, getAttendeeByEmail, registerAttendee, updateAttendeeCancellation } =
+    context.services.pocketBaseClient;
   const data = await request.json();
   const secretKey = request.headers.get('x-secret-key');
-  if (secretKey !== env.zapierWebhookSecret) {
+  if (secretKey !== context.mainConfig.zapier.webhookSecret) {
     return new Response('Unauthorized', { status: 401 });
   }
   if (!isPayload(data)) {
@@ -50,7 +44,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!attendee) {
       console.log(`Registering new attendee ${email} for event ${event.slug}`);
       await registerAttendee(event.id, name, email);
-      await trackEvent('attendee registered', event.slug, {
+      context.services.posthogClient.trackEvent('attendee registered', event.slug, {
         attendee_id: email,
         event_name: event.name,
         event_id: event.id,
@@ -63,21 +57,21 @@ export async function action({ request }: ActionFunctionArgs) {
       await updateAttendeeCancellation(attendee.id, hasCancelled);
 
       if (!previouslyCancelled && hasCancelled) {
-        await trackEvent('attendee canceled', event.slug, {
+        context.services.posthogClient.trackEvent('attendee canceled', event.slug, {
           attendee_id: email,
           event_name: event.name,
           event_id: event.id,
           type: 'Luma',
         });
       } else if (previouslyCancelled && !hasCancelled) {
-        await trackEvent('attendee uncanceled', event.slug, {
+        context.services.posthogClient.trackEvent('attendee uncanceled', event.slug, {
           attendee_id: email,
           event_name: event.name,
           event_id: event.id,
           type: 'Luma',
         });
       } else {
-        await trackEvent('attendee re-registered', event.slug, {
+        context.services.posthogClient.trackEvent('attendee re-registered', event.slug, {
           attendee_id: email,
           event_name: event.name,
           event_id: event.id,

@@ -1,11 +1,9 @@
+import { MainConfig } from '~/domain/contracts/config';
 import { PostHog } from 'posthog-node';
-import { env } from '../env.server';
 
-const client = env.posthogPublicAPIKey
-  ? new PostHog(env.posthogPublicAPIKey, {
-      host: 'https://us.i.posthog.com',
-    })
-  : null;
+type Deps = {
+  mainConfig: MainConfig;
+};
 
 type AnalyticsEventProperties = {
   // First time registration for an event. Use event slug as distinct ID.
@@ -46,17 +44,32 @@ type AnalyticsEventProperties = {
 
 export type AnalyticsEventName = keyof AnalyticsEventProperties;
 
-export function trackEvent<T extends AnalyticsEventName>(
-  eventName: T,
-  distinctId: string,
-  properties: AnalyticsEventProperties[T],
-) {
-  if (!client) {
-    return;
+export const createPosthogClient = ({ mainConfig }: Deps) => {
+  if (!mainConfig.posthog.publicApiKey) {
+    return {
+      trackEvent: () => {
+        return;
+      },
+    };
   }
-  client.capture({
-    distinctId,
-    event: eventName,
-    properties,
+
+  const client = new PostHog(mainConfig.posthog.publicApiKey, {
+    host: 'https://us.i.posthog.com',
   });
-}
+
+  const trackEvent = <T extends AnalyticsEventName>(
+    eventName: T,
+    distinctId: string,
+    properties: AnalyticsEventProperties[T],
+  ) => {
+    client.capture({
+      distinctId,
+      event: eventName,
+      properties,
+    });
+  };
+
+  return {
+    trackEvent,
+  };
+};

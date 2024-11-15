@@ -1,8 +1,7 @@
 import cachified from '@epic-web/cachified';
 import { lru } from '~/modules/cache';
-import { env } from '~/modules/env.server';
-import { getEvents } from '~/modules/pocketbase/api.server';
-import { Event } from '~/modules/pocketbase/pocketbase';
+import { Event } from '~/domain/contracts/content';
+import { LoaderFunctionArgs } from '@remix-run/node';
 
 function generateRobotsTxt(origin: string, events: Event[]) {
   return `User-agent: *
@@ -14,13 +13,14 @@ ${events
 Sitemap: ${origin}/sitemap.xml`;
 }
 
-export async function loader() {
+export async function loader({ context }: LoaderFunctionArgs) {
+  const { getEvents } = context.services.pocketBaseClient;
   const events = await getEvents();
   const content = await cachified({
     key: 'robots',
     cache: lru,
     ttl: 5 * 60 * 1000, // 5 minute
-    getFreshValue: () => generateRobotsTxt(env.server.origin, events),
+    getFreshValue: () => generateRobotsTxt(context.mainConfig.origin, events),
   });
   return new Response(content, {
     headers: {

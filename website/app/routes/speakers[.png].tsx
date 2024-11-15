@@ -1,18 +1,22 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { getFont } from '~/modules/image-gen/utils.server';
-import { fetchSpeakersWithTalks } from '~/modules/speakers/loader.server';
 import { SpeakersPreview } from '~/modules/image-gen/templates';
-import { getServerTiming } from '~/modules/server-timing.server';
+import { LoaderFunctionArgs } from '@remix-run/node';
 
 export { headers } from '~/modules/header.server';
 
-export async function loader() {
-  const { time, timeSync, getHeaderField } = getServerTiming();
-  const speakersWithTalks = await fetchSpeakersWithTalks(time);
-
-  const jsx = <SpeakersPreview speakers={speakersWithTalks} />;
-
+export async function loader({ context }: LoaderFunctionArgs) {
+  const { time, timeSync, getHeaderField } = context.services.serverTimingsProfiler;
+  const query = context.createQuery('FetchSpeakersWithTalks', {});
+  const { result } = await context.dispatchQuery(query);
+  const speakersWithTalks = result || [];
+  const jsx = (
+    <SpeakersPreview
+      speakers={speakersWithTalks}
+      getPocketbaseUrlForImage={context.services.pocketBaseClient.getPocketbaseUrlForImage}
+    />
+  );
   const svg = await time(
     'satori',
     satori(jsx, {

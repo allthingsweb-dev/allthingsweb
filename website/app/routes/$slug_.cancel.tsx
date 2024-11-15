@@ -3,13 +3,13 @@ import { NavLink, useLoaderData } from '@remix-run/react';
 import { CheckIcon } from 'lucide-react';
 import { DefaultRightTopNav } from '~/modules/components/right-top-nav';
 import { Card } from '~/modules/components/ui/card';
-import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
-import { getEventBySlug, updateAttendeeCancellation } from '~/modules/pocketbase/api.server';
-import { trackEvent } from '~/modules/posthog/posthog.server';
+import { deserializeEvent } from '~/modules/pocketbase/pocketbase';
+import { Event } from '~/domain/contracts/content';
 import { notFound } from '~/modules/responses.server';
 import { getImageSrc } from '~/modules/image-opt/utils';
 
-export async function loader({ params, request }: LoaderFunctionArgs) {
+export async function loader({ params, request, context }: LoaderFunctionArgs) {
+  const { getEventBySlug, updateAttendeeCancellation } = context.services.pocketBaseClient;
   const attendeeId = new URL(request.url).searchParams.get('attendee');
   if (!attendeeId) {
     throw notFound();
@@ -23,7 +23,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw notFound();
   }
   await updateAttendeeCancellation(attendeeId, true);
-  trackEvent('attendee canceled', event.slug, {
+  context.services.posthogClient.trackEvent('attendee canceled', event.slug, {
     attendee_id: attendeeId,
     event_name: event.name,
     event_id: event.id,

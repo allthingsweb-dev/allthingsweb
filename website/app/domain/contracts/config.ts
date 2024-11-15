@@ -39,10 +39,10 @@ const PosthogSchema = z.object({
 });
 
 const SentrySchema = z.object({
-  dsn: z.string().min(1),
-  org: z.string().min(1),
-  project: z.string().min(1),
-  authToken: z.string().min(1),
+  dsn: z.string().optional(),
+  org: z.string().optional(),
+  project: z.string().optional(),
+  authToken: z.string().optional(),
 });
 
 const InngestSchema = z.object({
