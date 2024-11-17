@@ -101,46 +101,6 @@ export async function getTalks(): Promise<Talk[]> {
   return talks.map(toTalk);
 }
 
-export async function registerAttendee(eventId: string, name: string, email: string) {
-  await authenticateAdmin();
-  return pb.collection('attendees').create({
-    event: eventId,
-    name,
-    email,
-  });
-}
-
-export async function getAttendeeByEmail(eventId: string, email: string) {
-  await authenticateAdmin();
-  try {
-    const attendee = await pb.collection('attendees').getFirstListItem(`event="${eventId}" && email="${email}"`);
-    return toAttendee(attendee);
-  } catch (error) {
-    if (error instanceof ClientResponseError && error.status === 404) {
-      return null;
-    }
-    throw error;
-  }
-}
-
-export async function getAttendees(eventId: string) {
-  await authenticateAdmin();
-  const result = await pb.collection('attendees').getFullList({
-    filter: `event="${eventId}" && canceled=false`,
-  });
-  return result.map(toAttendee);
-}
-
-export async function getAttendeeCount(eventId: string) {
-  const attendees = await getAttendees(eventId);
-  return attendees.length;
-}
-
-export async function updateAttendeeCancellation(attendeeId: string, canceled: boolean) {
-  await authenticateAdmin();
-  return pb.collection('attendees').update(attendeeId, { canceled });
-}
-
 export async function getLink(id: string): Promise<Link | null> {
   try {
     const linkData = await pb.collection('links').getOne(id);
@@ -170,7 +130,6 @@ export function toEvent(event: any): Event {
     attendeeLimit: event.attendeeLimit,
     lumaEventId: event.lumaEventId || undefined,
     lumaUrl: event.lumaEventId ? `https://lu.ma/event/${event.lumaEventId}` : undefined,
-    enableRegistrations: event.enableRegistrations,
     isDraft: event.isDraft || false,
     highlightOnLandingPage: event.highlightOnLandingPage,
     isHackathon: event.isHackathon,

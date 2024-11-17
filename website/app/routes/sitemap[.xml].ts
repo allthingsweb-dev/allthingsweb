@@ -19,12 +19,6 @@ function generateSiteMap(events: Event[], origin: string) {
             ${events
               .map((event) => `${getUrlElementWithDate(`${origin}/${event.slug}`, event.updated.toISOString())}`)
               .join('\n')}
-            ${events
-              .filter((event) => event.enableRegistrations)
-              .map(
-                (event) => `${getUrlElementWithDate(`${origin}/${event.slug}/register`, event.updated.toISOString())}`,
-              )
-              .join('\n')}
         </urlset>`;
 }
 

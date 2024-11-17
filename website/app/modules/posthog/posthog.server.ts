@@ -7,42 +7,18 @@ const client = env.posthogPublicAPIKey
     })
   : null;
 
-type AnalyticsEventProperties = {
-  // First time registration for an event. Use event slug as distinct ID.
-  'attendee registered': {
-    attendee_id: string;
-    event_name: string;
-    event_id: string;
-    type: 'website' | 'Luma';
-  };
-  // Registered for an event already registered for. Use event slug as distinct ID.
-  'attendee re-registered': {
-    attendee_id: string;
-    event_name: string;
-    event_id: string;
-    type: 'website' | 'Luma';
-  };
-  // Canceled registration for an event. Use event slug as distinct ID.
-  'attendee canceled': {
-    attendee_id: string;
-    event_name: string;
-    event_id: string;
-    type: 'website' | 'Luma';
-  };
-  // Uncanceled registration for an event (re-registered after canceling). Use event slug as distinct ID.
-  'attendee uncanceled': {
-    attendee_id: string;
-    event_name: string;
-    event_id: string;
-    type: 'website' | 'Luma';
-  };
-  // Declined registration for an event because event is already full. Use event slug as distinct ID.
-  'registration declined': {
-    attendee_id?: string;
-    event_name: string;
-    event_id: string;
-  };
-};
+/**
+ * Define properties of custom analytics events here.
+ * @example
+ *  // First time registration for an event. Use event slug as distinct ID.
+ * 'attendee registered': {
+ *   attendee_id: string;
+ *   event_name: string;
+ *   event_id: string;
+ *   type: 'website' | 'Luma';
+ * };
+ */
+type AnalyticsEventProperties = {};
 
 export type AnalyticsEventName = keyof AnalyticsEventProperties;
 

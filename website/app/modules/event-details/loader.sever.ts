@@ -1,5 +1,5 @@
 import { LoaderFunctionArgs, json } from '@remix-run/node';
-import { getAttendeeCount, getExpandedEventBySlug } from '../pocketbase/api.server';
+import { getExpandedEventBySlug } from '../pocketbase/api.server';
 import { isEventInPast } from '../pocketbase/pocketbase';
 import { getAttendeeCount as getLumaAttendeeCount } from '../luma/api.server';
 import { notFound } from '../responses.server';
@@ -35,12 +35,10 @@ export async function eventDetailsLoader(slug: string) {
     getFreshValue() {
       try {
         const lumaEventId = event.lumaEventId;
-        if (event.enableRegistrations) {
-          return time('getAttendeeCount', () => getAttendeeCount(event.id));
-        } else if (lumaEventId) {
-          return time('getLumaAttendeeCount', () => getLumaAttendeeCount(lumaEventId));
+        if (!lumaEventId) {
+          return 0;
         }
-        return 0;
+        return time('getLumaAttendeeCount', () => getLumaAttendeeCount(lumaEventId));
       } catch (error) {
         console.error(error);
         captureException(error);

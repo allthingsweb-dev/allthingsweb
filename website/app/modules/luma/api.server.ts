@@ -125,29 +125,3 @@ export async function getAttendeeCount(eventId: string) {
   const attendees = await getAllAttendees(eventId, { approvalStatus: 'approved' });
   return attendees.length;
 }
-
-export async function addAttendee(eventId: string, attendee: { email: string; name: string }) {
-  if (!env.lumaAPIKey) {
-    console.warn('Did not add attendee because env.lumaAPIKey is not set', { eventId, attendee });
-    return;
-  }
-  const url = `https://api.lu.ma/public/v1/event/add-guests`;
-  const headers = {
-    accept: 'application/json',
-    'content-type': 'application/json',
-    'x-luma-api-key': env.lumaAPIKey,
-  };
-  const body = {
-    event_api_id: eventId,
-    guests: [attendee],
-  };
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to add attendee. Status: ${res.status} - ${res.statusText}`);
-  }
-  return res;
-}

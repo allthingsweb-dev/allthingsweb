@@ -11,7 +11,6 @@ export type Event = {
   attendeeLimit: number;
   lumaEventId?: string;
   lumaUrl?: string;
-  enableRegistrations: boolean; // enable registrations via allthingsweb.dev (currently not used)
   isDraft: boolean;
   isHackathon: boolean;
   highlightOnLandingPage: boolean;
