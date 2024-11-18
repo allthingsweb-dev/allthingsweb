@@ -1,12 +1,11 @@
-import { env } from '~/modules/env.server';
+import { LoaderFunctionArgs } from '@remix-run/node';
 import QRCode from 'qrcode';
-import { getServerTiming } from '~/modules/server-timing.server';
 
 export { headers } from '~/modules/header.server';
 
-export async function loader() {
-  const { time, getHeaderField } = getServerTiming();
-  const websiteUrl = `${env.server.origin}/`;
+export async function loader({ context }: LoaderFunctionArgs) {
+  const { time, getHeaderField } = context.serverTimingsProfiler;
+  const websiteUrl = `${context.mainConfig.origin}/`;
   const qrCode = await time('QRCode.toBuffer', QRCode.toBuffer(websiteUrl, { width: 1200 }));
   return new Response(qrCode, {
     headers: {

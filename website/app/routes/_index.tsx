@@ -1,11 +1,10 @@
 import { useLoaderData } from '@remix-run/react';
-import { MetaFunction, json } from '@remix-run/node';
+import { LoaderFunctionArgs, MetaFunction, json } from '@remix-run/node';
 import cachified from '@epic-web/cachified';
 import { ArrowRightIcon, CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react';
 import { type loader as rootLoader } from '~/root';
 import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
 import { ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
-import { getPastEvents, getUpcomingEvents } from '~/modules/pocketbase/api.server';
 import { EventsCarousel } from '~/modules/event-carousel/components';
 import { PageLayout } from '~/modules/components/page-layout';
 import { Section } from '~/modules/components/ui/section';
@@ -13,7 +12,6 @@ import { toReadableDateTimeStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { lru } from '~/modules/cache';
 import { getImageSrc } from '~/modules/image-opt/utils';
-import { getServerTiming } from '~/modules/server-timing.server';
 
 export { headers } from '~/modules/header.server';
 
@@ -33,8 +31,8 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
   );
 };
 
-export async function loader() {
-  const { time, getServerTimingHeader } = getServerTiming();
+export async function loader({ context }: LoaderFunctionArgs) {
+  const { time, getServerTimingHeader } = context.serverTimingsProfiler;
   const { highlightEvent, remainingEvents, pastEvents } = await cachified({
     key: '_index-loader-data',
     cache: lru,
@@ -44,8 +42,8 @@ export async function loader() {
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
     getFreshValue: async () => {
       const [events, pastEvents] = await Promise.all([
-        time('getUpcomingEvents', getUpcomingEvents),
-        time('getPastEvents', getPastEvents),
+        time('getUpcomingEvents', context.pocketBaseClient.getUpcomingEvents),
+        time('getPastEvents', context.pocketBaseClient.getPastEvents),
       ]);
       const highlightEvent = events.find((event) => event.highlightOnLandingPage);
       const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);

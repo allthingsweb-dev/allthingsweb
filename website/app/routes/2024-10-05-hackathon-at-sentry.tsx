@@ -4,13 +4,18 @@ import { Section } from '~/modules/components/ui/section';
 import { meta } from '~/modules/event-details/meta';
 import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
 import { useLoaderData } from '@remix-run/react';
+import { LoaderFunctionArgs } from '@remix-run/node';
 
 export { headers } from '~/modules/header.server';
 
 export { meta };
 
-export function loader() {
-  return eventDetailsLoader('2024-10-05-hackathon-at-sentry');
+export function loader({ context }: LoaderFunctionArgs) {
+  return eventDetailsLoader('2024-10-05-hackathon-at-sentry', {
+    serverTimingsProfiler: context.serverTimingsProfiler,
+    lumaClient: context.services.lumaClient,
+    pocketBaseClient: context.services.pocketBaseClient,
+  });
 }
 
 export default function Component() {

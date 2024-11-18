@@ -4,8 +4,6 @@ import tailwindStyles from './tailwind.css?url';
 import { LinksFunction, LoaderFunctionArgs, MetaFunction, json } from '@remix-run/node';
 import { PageTransitionProgressBar } from './modules/components/page-transition';
 import { ErrorPage } from './modules/components/error-page';
-import { env } from './modules/env.server';
-import { requireCanonicalSession } from './modules/session/session.server';
 
 export const links: LinksFunction = () => [
   { rel: 'stylesheet', href: tailwindStyles },
@@ -35,14 +33,14 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
-  const [userSession, headers] = await requireCanonicalSession(request);
+  const [userSession, headers] = await context.session.requireCanonicalSession(request);
   return json(
     {
       csrfToken: userSession.csrfToken,
-      posthogPublicAPIKey: env.posthogPublicAPIKey,
-      sentryDsn: env.sentry.dsn,
+      posthogPublicAPIKey: context.mainConfig.posthog.publicApiKey,
+      sentryDsn: context.mainConfig.sentry.dsn,
       appVersion: context.appVersion,
-      serverOrigin: env.server.origin,
+      serverOrigin: context.mainConfig.origin,
     },
     { headers },
   );

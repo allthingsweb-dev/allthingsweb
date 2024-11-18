@@ -1,9 +1,9 @@
 import cachified from '@epic-web/cachified';
-import { getEvents, getSpeakers, getTalks } from '../pocketbase/api.server';
 import { Speaker, Talk } from '../pocketbase/pocketbase';
 import { lru } from '../cache';
-import { getServerTiming, TimeFn } from '../server-timing.server';
-import { json } from '@remix-run/node';
+import { json, LoaderFunctionArgs } from '@remix-run/node';
+import { ServerTimingsProfiler } from '../server-timing.server';
+import { createPocketbaseClient } from '../pocketbase/api.server';
 
 export type TalkWithEventSlug = Talk & {
   eventName: string;
@@ -15,7 +15,12 @@ export type SpeakerWithTalks = Speaker & {
   talks: TalkWithEventSlug[];
 };
 
-export async function fetchSpeakersWithTalks(time: TimeFn) {
+type Deps = {
+  serverTimingsProfiler: ServerTimingsProfiler;
+  pocketBaseClient: ReturnType<typeof createPocketbaseClient>;
+};
+export async function fetchSpeakersWithTalks({ serverTimingsProfiler, pocketBaseClient }: Deps) {
+  const { time } = serverTimingsProfiler;
   const speakersWithTalks = await cachified({
     key: 'speakersWithTalks',
     cache: lru,
@@ -25,9 +30,9 @@ export async function fetchSpeakersWithTalks(time: TimeFn) {
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
     getFreshValue: async () => {
       const [events, talks, speakers] = await Promise.all([
-        time('getEvents', getEvents),
-        time('getTalks', getTalks),
-        time('getSpeakers', getSpeakers),
+        time('getEvents', pocketBaseClient.getEvents),
+        time('getTalks', pocketBaseClient.getTalks),
+        time('getSpeakers', pocketBaseClient.getSpeakers),
       ]);
       const speakersWithTalks: SpeakerWithTalks[] = [];
       for (const speaker of speakers) {
@@ -63,8 +68,11 @@ export async function fetchSpeakersWithTalks(time: TimeFn) {
   return speakersWithTalks;
 }
 
-export async function speakersLoader() {
-  const { time, getServerTimingHeader } = getServerTiming();
-  const speakersWithTalks = await fetchSpeakersWithTalks(time);
+export async function speakersLoader({ context }: LoaderFunctionArgs) {
+  const { getServerTimingHeader } = context.serverTimingsProfiler;
+  const speakersWithTalks = await fetchSpeakersWithTalks({
+    serverTimingsProfiler: context.serverTimingsProfiler,
+    pocketBaseClient: context.pocketBaseClient,
+  });
   return json({ speakersWithTalks }, { headers: getServerTimingHeader() });
 }
