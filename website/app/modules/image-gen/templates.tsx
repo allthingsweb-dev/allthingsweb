@@ -1,5 +1,5 @@
 import { toReadableDateTimeStr } from '../datetime';
-import { getPocketbaseUrlForImage } from '../pocketbase/api.server';
+import { createPocketbaseClient } from '../pocketbase/api.server';
 import { ExpandedEvent, Speaker } from '../pocketbase/pocketbase';
 
 declare module 'react' {
@@ -54,7 +54,13 @@ function CalendarIcon() {
   );
 }
 
-export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: string }) {
+export function EventPreview({
+  event,
+  getPocketbaseUrlForImage,
+}: {
+  event: ExpandedEvent;
+  getPocketbaseUrlForImage: ReturnType<typeof createPocketbaseClient>['getPocketbaseUrlForImage'];
+}) {
   return (
     <div
       tw="w-[1200px] h-[1200px] flex flex-col p-16 text-white"
@@ -143,7 +149,13 @@ export function EventPreview({ event }: { event: ExpandedEvent; serverOrigin: st
   );
 }
 
-export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
+export function SpeakersPreview({
+  speakers,
+  getPocketbaseUrlForImage,
+}: {
+  speakers: Speaker[];
+  getPocketbaseUrlForImage: ReturnType<typeof createPocketbaseClient>['getPocketbaseUrlForImage'];
+}) {
   const maxSpeakersToShow = 5 * 5;
   const visibleSpeakers = speakers.slice(0, maxSpeakersToShow);
   return (
@@ -181,7 +193,13 @@ export function SpeakersPreview({ speakers }: { speakers: Speaker[] }) {
   );
 }
 
-export function LandingPagePreview({ photoIds }: { photoIds: string[] }) {
+export function LandingPagePreview({
+  photoIds,
+  getPocketbaseUrlForImage,
+}: {
+  photoIds: string[];
+  getPocketbaseUrlForImage: ReturnType<typeof createPocketbaseClient>['getPocketbaseUrlForImage'];
+}) {
   return (
     <section tw="relative w-[1200px] h-[1200px] overflow-hidden">
       <div tw="w-full flex flex-wrap absolute inset-0">

@@ -1,15 +1,14 @@
+import { LoaderFunctionArgs } from '@remix-run/node';
 import { Resvg } from '@resvg/resvg-js';
 import satori from 'satori';
 import { LandingPagePreview } from '~/modules/image-gen/templates';
 import { getFont } from '~/modules/image-gen/utils.server';
-import { getPastEvents } from '~/modules/pocketbase/api.server';
-import { getServerTiming } from '~/modules/server-timing.server';
 
 export { headers } from '~/modules/header.server';
 
-export async function loader() {
-  const { time, timeSync, getHeaderField } = getServerTiming();
-  const pastEvents = await time('getPastEvents', () => getPastEvents());
+export async function loader({ context }: LoaderFunctionArgs) {
+  const { time, timeSync, getHeaderField } = context.serverTimingsProfiler;
+  const pastEvents = await time('getPastEvents', () => context.pocketBaseClient.getPastEvents());
   const eventPhotoIds: string[] = [];
   let loopCounter = 0;
   // Get even number of photos from each event
@@ -26,7 +25,12 @@ export async function loader() {
     loopCounter++;
   }
 
-  const jsx = <LandingPagePreview photoIds={eventPhotoIds} />;
+  const jsx = (
+    <LandingPagePreview
+      photoIds={eventPhotoIds}
+      getPocketbaseUrlForImage={context.pocketBaseClient.getPocketbaseUrlForImage}
+    />
+  );
   const svg = await time('satori', async () =>
     satori(jsx, {
       width: 1200,

@@ -5,11 +5,9 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { LoaderFunctionArgs } from '@remix-run/node';
-import { env } from '~/modules/env.server';
 import { notFound, internalServerError } from '~/modules/responses.server';
 import { captureException } from '~/modules/sentry/capture.server';
 import { type ObjectFit } from '~/modules/image-opt/utils';
-import { getServerTiming } from '~/modules/server-timing.server';
 
 export { headers } from '~/modules/header.server';
 
@@ -47,8 +45,8 @@ function getFilePath(
 /**
  * Inspired by Jacob Eybey's gist: https://gist.github.com/jacob-ebey/3a37a86307de9ef22f47aae2e593b56f
  */
-export async function loader({ request }: LoaderFunctionArgs) {
-  const { time, getHeaderField, getServerTimingHeader } = getServerTiming();
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  const { time, getHeaderField, getServerTimingHeader } = context.serverTimingsProfiler;
 
   const url = new URL(request.url);
   const width = getIntOrNull(url.searchParams.get('w'));
@@ -70,7 +68,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const pocketbaseFileId = urlPath.replace('/img/pocketbase/', '');
     filePath = getFilePath('pocketbase', pocketbaseFileId, width, height, fit);
     const thumb = width && height ? `thumb=${width}x${height}` : '';
-    originUrl = `${env.pocketbase.origin}/api/files/${pocketbaseFileId}?${thumb}`;
+    originUrl = `${context.mainConfig.pocketbase.origin}/api/files/${pocketbaseFileId}?${thumb}`;
   }
 
   // path: /img/public/x/y/z.png for images in public folder
@@ -78,7 +76,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const urlPath = url.pathname;
     const publicFileId = urlPath.replace('/img/public/', '');
     filePath = getFilePath('public', publicFileId, width, height, fit);
-    originUrl = `${env.server.origin}/${publicFileId}`;
+    originUrl = `${context.mainConfig.origin}/${publicFileId}`;
   }
 
   // path: /img/gen/x/y/z.png for images generated via modules/image-gen
@@ -86,7 +84,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const urlPath = url.pathname;
     const genFileId = urlPath.replace('/img/gen/', '');
     filePath = getFilePath('gen', genFileId, width, height, fit);
-    originUrl = `${env.server.origin}/${genFileId}`;
+    originUrl = `${context.mainConfig.origin}/${genFileId}`;
   }
 
   if (!filePath || !originUrl) {
@@ -103,7 +101,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
 
-  console.log('Cache miss, fetching image from origin:', originUrl);
+  context.logger.log('Cache miss, fetching image from origin:', originUrl);
   // Using node-fetch to get a node:stream compatible response
   const res = await time('fetchImg', () => nodeFetch(originUrl));
   if (!res.ok || !res.body) {

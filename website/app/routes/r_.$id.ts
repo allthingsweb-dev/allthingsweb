@@ -1,10 +1,9 @@
 import cachified from '@epic-web/cachified';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
 import { lru } from '~/modules/cache';
-import { getLink } from '~/modules/pocketbase/api.server';
 import { notFound } from '~/modules/responses.server';
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params, context }: LoaderFunctionArgs) {
   const id = params.id;
   if (!id) {
     throw new Error('No id provided');
@@ -14,7 +13,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     ttl: 3 * 60 * 1000, // 3 minutes
     cache: lru,
     getFreshValue() {
-      return getLink(id);
+      return context.pocketBaseClient.getLink(id);
     },
   });
   if (!link) {

@@ -3,12 +3,17 @@ import { meta } from '~/modules/event-details/meta';
 import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
 import { useLoaderData } from '@remix-run/react';
 import TypeAnimation from '~/modules/components/ui/typing-animation';
+import { LoaderFunctionArgs } from '@remix-run/node';
 export { headers } from '~/modules/header.server';
 
 export { meta };
 
-export function loader() {
-  return eventDetailsLoader('2024-12-03-all-things-web-at-convex');
+export function loader({ context }: LoaderFunctionArgs) {
+  return eventDetailsLoader('2024-12-03-all-things-web-at-convex', {
+    lumaClient: context.services.lumaClient,
+    pocketBaseClient: context.services.pocketBaseClient,
+    serverTimingsProfiler: context.serverTimingsProfiler,
+  });
 }
 
 const HeroAnimation = (

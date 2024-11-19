@@ -3,20 +3,17 @@ import { Resvg } from '@resvg/resvg-js';
 import { LoaderFunctionArgs, redirect } from '@remix-run/node';
 import { getFont } from '~/modules/image-gen/utils.server';
 import { EventPreview } from '~/modules/image-gen/templates';
-import { getExpandedEventBySlug } from '~/modules/pocketbase/api.server';
-import { env } from '~/modules/env.server';
 import { notFound } from '~/modules/responses.server';
-import { getServerTiming } from '~/modules/server-timing.server';
 
 export { headers } from '~/modules/header.server';
 
-export async function loader({ params }: LoaderFunctionArgs) {
-  const { time, timeSync, getHeaderField } = getServerTiming();
+export async function loader({ params, context }: LoaderFunctionArgs) {
+  const { time, timeSync, getHeaderField } = context.serverTimingsProfiler;
   const { slug } = params;
   if (typeof slug !== 'string') {
     throw notFound();
   }
-  const event = await time('getExpandedEventBySlug', () => getExpandedEventBySlug(slug));
+  const event = await time('getExpandedEventBySlug', () => context.pocketBaseClient.getExpandedEventBySlug(slug));
   if (!event) {
     throw notFound();
   }
@@ -29,7 +26,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
     });
   }
 
-  const jsx = <EventPreview event={event} serverOrigin={env.server.origin} />;
+  const jsx = (
+    <EventPreview event={event} getPocketbaseUrlForImage={context.pocketBaseClient.getPocketbaseUrlForImage} />
+  );
 
   const svg = await time('satori', async () =>
     satori(jsx, {

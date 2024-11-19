@@ -1,15 +1,20 @@
 import { LoaderFunctionArgs, json } from '@remix-run/node';
-import { getExpandedEventBySlug } from '../pocketbase/api.server';
 import { isEventInPast } from '../pocketbase/pocketbase';
-import { getAttendeeCount as getLumaAttendeeCount } from '../luma/api.server';
 import { notFound } from '../responses.server';
 import { captureException } from '../sentry/capture.server';
 import cachified from '@epic-web/cachified';
 import { lru } from '../cache';
-import { getServerTiming } from '../server-timing.server';
+import { ServerTimingsProfiler } from '../server-timing.server';
+import { createPocketbaseClient } from '../pocketbase/api.server';
+import { createLumaClient } from '../luma/api.server';
 
-export async function eventDetailsLoader(slug: string) {
-  const { time, getServerTimingHeader } = getServerTiming();
+type Deps = {
+  serverTimingsProfiler: ServerTimingsProfiler;
+  pocketBaseClient: ReturnType<typeof createPocketbaseClient>;
+  lumaClient: ReturnType<typeof createLumaClient>;
+};
+export async function eventDetailsLoader(slug: string, { serverTimingsProfiler, pocketBaseClient, lumaClient }: Deps) {
+  const { time, getServerTimingHeader } = serverTimingsProfiler;
   const event = await cachified({
     key: `getExpandedEventBySlug-${slug}`,
     cache: lru,
@@ -18,7 +23,7 @@ export async function eventDetailsLoader(slug: string) {
     ttl: 60 * 1000, // one minute
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
     getFreshValue() {
-      return time('getExpandedEventBySlug', () => getExpandedEventBySlug(slug));
+      return time('getExpandedEventBySlug', () => pocketBaseClient.getExpandedEventBySlug(slug));
     },
   });
   if (!event) {
@@ -38,7 +43,7 @@ export async function eventDetailsLoader(slug: string) {
         if (!lumaEventId) {
           return 0;
         }
-        return time('getLumaAttendeeCount', () => getLumaAttendeeCount(lumaEventId));
+        return time('getLumaAttendeeCount', () => lumaClient.getAttendeeCount(lumaEventId));
       } catch (error) {
         console.error(error);
         captureException(error);
@@ -61,9 +66,13 @@ export async function eventDetailsLoader(slug: string) {
   );
 }
 
-export function loader({ params }: LoaderFunctionArgs) {
+export function loader({ params, context }: LoaderFunctionArgs) {
   if (!params.slug) {
     throw new Error('No slug provided');
   }
-  return eventDetailsLoader(params.slug);
+  return eventDetailsLoader(params.slug, {
+    serverTimingsProfiler: context.serverTimingsProfiler,
+    pocketBaseClient: context.pocketBaseClient,
+    lumaClient: context.services.lumaClient,
+  });
 }

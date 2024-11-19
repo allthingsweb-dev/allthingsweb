@@ -1,8 +1,7 @@
-import { env } from '~/modules/env.server';
 import { Event } from '~/modules/pocketbase/pocketbase';
-import { getEvents } from '~/modules/pocketbase/api.server';
 import { lru } from '~/modules/cache';
 import cachified from '@epic-web/cachified';
+import { LoaderFunctionArgs } from '@remix-run/node';
 
 function getUrlElementWithDate(url: string, date: string) {
   return `<url>
@@ -22,13 +21,13 @@ function generateSiteMap(events: Event[], origin: string) {
         </urlset>`;
 }
 
-export async function loader() {
-  const events = await getEvents();
+export async function loader({ context }: LoaderFunctionArgs) {
+  const events = await context.pocketBaseClient.getEvents();
   const content = await cachified({
     key: 'sitemap',
     cache: lru,
     ttl: 5 * 60 * 1000, // 5 minute
-    getFreshValue: () => generateSiteMap(events, env.server.origin),
+    getFreshValue: () => generateSiteMap(events, context.mainConfig.origin),
   });
   return new Response(content, {
     headers: {
