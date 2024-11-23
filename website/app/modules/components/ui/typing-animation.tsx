@@ -45,15 +45,11 @@ export default function TypeAnimation({ texts, className }: { texts: string[]; c
   const displayedText = useTypingAnimation(texts);
 
   return (
-    <div className={clsx(className, 'flex items-center justify-center')}>
-      <Card className="py-4 px-6 rounded-lg">
-        <pre className="text-lg font-mono">
-          <span className="text-green-600 dark:text-green-400">$</span>{' '}
-          <span className="inline-block w-[260px] text-gray-800 dark:text-gray-200 whitespace-pre">
-            {displayedText}
-          </span>
-        </pre>
-      </Card>
-    </div>
+    <Card className={clsx('py-4 px-6 rounded-lg', className)}>
+      <pre className="text-lg font-mono">
+        <span className="text-green-600 dark:text-green-400">$</span>{' '}
+        <span className="inline-block w-[260px] text-gray-800 dark:text-gray-200 whitespace-pre">{displayedText}</span>
+      </pre>
+    </Card>
   );
 }

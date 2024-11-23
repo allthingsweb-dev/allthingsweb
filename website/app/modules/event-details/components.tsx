@@ -1,5 +1,4 @@
-import { ReactNode } from 'react';
-import { NavLink, useLoaderData } from '@remix-run/react';
+import { NavLink } from '@remix-run/react';
 import clsx from 'clsx';
 import { AlertCircleIcon, CalendarHeart, InfoIcon, UsersIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '~/modules/components/ui/avatar';
@@ -8,11 +7,94 @@ import { Alert, AlertDescription, AlertTitle } from '~/modules/components/ui/ale
 import { toReadableDateTimeStr, toWeekdayStr } from '~/modules/datetime';
 import { Section } from '~/modules/components/ui/section';
 import { PageLayout } from '~/modules/components/page-layout';
-import { deserializeExpandedEvent, Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
+import { Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { getImageSrc } from '~/modules/image-opt/utils';
 import { ButtonNavLink } from '~/modules/components/ui/button';
-import { loader } from './loader.sever';
+
+export function HeroSectionTitle({
+  event,
+  isAtCapacity,
+  isInPast,
+  children,
+}: {
+  event: Event;
+  isAtCapacity: boolean;
+  isInPast: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col justify-center space-y-4">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">{event.name}</h1>
+        <p className="max-w-[600px] text-muted-foreground md:text-xl">{event.tagline}</p>
+      </div>
+      {event.lumaUrl && (
+        <div className="flex flex-col gap-2 min-[400px]:flex-row">
+          <ButtonNavLink variant="default" size="lg" to={event.lumaUrl}>
+            {isInPast ? 'View on Luma' : isAtCapacity ? 'Join waitlist on Luma' : 'Register on Luma'}
+          </ButtonNavLink>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+export function HeroSectionImage({ imgSrc, imgAlt }: { imgSrc: string; imgAlt: string }) {
+  return (
+    <img
+      src={imgSrc}
+      width="550"
+      height="550"
+      alt={imgAlt}
+      className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
+    />
+  );
+}
+
+export function HeroSection({
+  event,
+  isInPast,
+  isAtCapacity,
+  children,
+  className,
+}: {
+  event: Event;
+  isAtCapacity: boolean;
+  isInPast: boolean;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Section variant="first" className={className}>
+      <div className="container">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-12">
+          {!!children ? (
+            children
+          ) : (
+            <>
+              <HeroSectionTitle event={event} isAtCapacity={isAtCapacity} isInPast={isInPast} />
+              <div className="w-full lg:max-w-[400px] xl:max-w-[600px]">
+                <HeroSectionImage
+                  imgSrc={getImageSrc(
+                    event.isHackathon ? '/img/public/hero-image-hackathon.png' : '/img/public/hero-image-meetup.png',
+                    { width: 550, height: 550, fit: 'cover' },
+                  )}
+                  imgAlt={
+                    event.isHackathon
+                      ? 'Four cartoon-style developers cheerfully throwing their arms up, surrounded by confetti. In the center, a desk with a laptop displaying code.'
+                      : 'A group of cartoon-style developers standing in a circle, chatting and laughing together.'
+                  }
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Section>
+  );
+}
 
 export function AllYouNeedToKnowSection({
   event,
@@ -27,7 +109,7 @@ export function AllYouNeedToKnowSection({
 }) {
   return (
     <Section variant="big" background="muted">
-      <div className="w-full px-4 md:px-6 flex flex-col md:items-center justify-center lg:flex-row gap-12 lg:gap-24 xl:gap-32 2xl:gap-44">
+      <div className="w-full px-4 md:px-6 flex flex-col md:items-center justify-center md:flex-row gap-12 lg:gap-24 xl:gap-32 2xl:gap-44">
         <h2 className="sr-only">All you need to know</h2>
         <div className="flex md:items-center gap-4">
           <UsersIcon className="h-12 w-12 text-primary" />
@@ -234,9 +316,17 @@ export function PhotosSection({
   );
 }
 
-export function EventDetailsPage({ children, heroContent }: { children?: React.ReactNode; heroContent?: ReactNode }) {
-  const { event: eventData, isAtCapacity, attendeeCount, attendeeLimit, isInPast } = useLoaderData<typeof loader>();
-  const event = deserializeExpandedEvent(eventData);
+export function EventDetailsPage({
+  children,
+  event,
+  isAtCapacity,
+  isInPast,
+}: {
+  children?: React.ReactNode;
+  event: Event;
+  isAtCapacity: boolean;
+  isInPast: boolean;
+}) {
   return (
     <PageLayout>
       {isAtCapacity && !isInPast && (
@@ -272,49 +362,6 @@ export function EventDetailsPage({ children, heroContent }: { children?: React.R
           </Alert>
         </div>
       )}
-      <Section variant="first">
-        <div className="container">
-          <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-            <div className="flex flex-col justify-center space-y-4">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">{event.name}</h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">{event.tagline}</p>
-              </div>
-              {event.lumaUrl && (
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <ButtonNavLink variant="default" size="lg" to={event.lumaUrl}>
-                    {isInPast ? 'View on Luma' : isAtCapacity ? 'Join waitlist on Luma' : 'Register on Luma'}
-                  </ButtonNavLink>
-                </div>
-              )}
-            </div>
-            {!!heroContent ? (
-              heroContent
-            ) : (
-              <img
-                src={getImageSrc(
-                  event.isHackathon ? '/img/public/hero-image-hackathon.png' : '/img/public/hero-image-meetup.png',
-                  { width: 550, height: 550, fit: 'cover' },
-                )}
-                width="550"
-                height="550"
-                alt={
-                  event.isHackathon
-                    ? 'Four cartoon-style developers cheerfully throwing their arms up, surrounded by confetti. In the center, a desk with a laptop displaying code.'
-                    : 'A group of cartoon-style developers standing in a circle, chatting and laughing together.'
-                }
-                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
-              />
-            )}
-          </div>
-        </div>
-      </Section>
-      <AllYouNeedToKnowSection
-        event={event}
-        attendeeCount={attendeeCount}
-        attendeeLimit={attendeeLimit}
-        isInPast={isInPast}
-      />
       {children}
     </PageLayout>
   );

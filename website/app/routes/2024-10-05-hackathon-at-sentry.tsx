@@ -1,10 +1,16 @@
 import { SentryLogoIcon } from '~/modules/components/ui/icons';
-import { EventDetailsPage, PhotosSection } from '~/modules/event-details/components';
+import {
+  AllYouNeedToKnowSection,
+  EventDetailsPage,
+  HeroSection,
+  PhotosSection,
+} from '~/modules/event-details/components';
 import { Section } from '~/modules/components/ui/section';
 import { meta } from '~/modules/event-details/meta';
 import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
 import { useLoaderData } from '@remix-run/react';
 import { LoaderFunctionArgs } from '@remix-run/node';
+import { deserializeExpandedEvent } from '~/modules/pocketbase/pocketbase';
 
 export { headers } from '~/modules/header.server';
 
@@ -19,9 +25,17 @@ export function loader({ context }: LoaderFunctionArgs) {
 }
 
 export default function Component() {
-  const { event } = useLoaderData<typeof loader>();
+  const { event: eventData, isAtCapacity, attendeeCount, attendeeLimit, isInPast } = useLoaderData<typeof loader>();
+  const event = deserializeExpandedEvent(eventData);
   return (
-    <EventDetailsPage>
+    <EventDetailsPage event={event} isAtCapacity={isAtCapacity} isInPast={isInPast}>
+      <HeroSection event={event} isAtCapacity={isAtCapacity} isInPast={isInPast} />
+      <AllYouNeedToKnowSection
+        event={event}
+        attendeeCount={attendeeCount}
+        attendeeLimit={attendeeLimit}
+        isInPast={isInPast}
+      />
       {!!event.photos && <PhotosSection background="default" photos={event.photos} />}
       <Section variant="big" background="muted">
         <Schedule />
