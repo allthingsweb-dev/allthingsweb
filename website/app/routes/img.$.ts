@@ -38,7 +38,7 @@ function getFilePath(
 ) {
   const widthInfo = `w${width || '0'}`;
   const heightInfo = `h${height || '0'}`;
-  const fileName = fileId.replace(/\/./g, '-');
+  const fileName = fileId.replaceAll('.', '-');
   return `data/images/${type}/v1-${fileName}-${widthInfo}-${heightInfo}-${fit}.webp`;
 }
 
@@ -105,6 +105,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   // Using node-fetch to get a node:stream compatible response
   const res = await time('fetchImg', () => nodeFetch(originUrl));
   if (!res.ok || !res.body) {
+    captureException(new Error(`Failed to fetch image from origin: ${originUrl}`));
     return internalServerError(getServerTimingHeader());
   }
   const sharpInstance = sharp();
