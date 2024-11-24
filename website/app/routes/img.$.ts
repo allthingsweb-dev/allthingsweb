@@ -105,12 +105,13 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   // Using node-fetch to get a node:stream compatible response
   const res = await time('fetchImg', () => nodeFetch(originUrl));
   if (!res.ok || !res.body) {
+    context.logger.error(`Failed to fetch image from origin: ${originUrl}`);
     captureException(new Error(`Failed to fetch image from origin: ${originUrl}`));
     return internalServerError(getServerTimingHeader());
   }
   const sharpInstance = sharp();
   sharpInstance.on('error', (error) => {
-    console.error(error);
+    context.logger.error('Sharp error:', error);
     captureException(error);
   });
   if (width || height) {
@@ -148,7 +149,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       },
     });
   } catch (error) {
-    console.error(error);
+    context.logger.error('Failed to transform image:', error);
     captureException(error);
     return internalServerError(getServerTimingHeader());
   }
