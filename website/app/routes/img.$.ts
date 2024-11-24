@@ -38,7 +38,7 @@ function getFilePath(
 ) {
   const widthInfo = `w${width || '0'}`;
   const heightInfo = `h${height || '0'}`;
-  const fileName = fileId.replaceAll('.', '-');
+  const fileName = fileId.replaceAll('.', '-').replaceAll('/', '-').replaceAll('?', '-').replaceAll('&', '-');
   return `data/images/${type}/v1-${fileName}-${widthInfo}-${heightInfo}-${fit}.webp`;
 }
 
