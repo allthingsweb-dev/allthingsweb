@@ -2,7 +2,7 @@ import { NavLink } from '@remix-run/react';
 import clsx from 'clsx';
 import { AlertCircleIcon, CalendarHeart, InfoIcon, UsersIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '~/modules/components/ui/avatar';
-import { MapPinIcon, LinkedInLogoIcon, TwitterLogoIcon, BlueSkyLogoIcon } from '~/modules/components/ui/icons';
+import { MapPinIcon } from '~/modules/components/ui/icons';
 import { Alert, AlertDescription, AlertTitle } from '~/modules/components/ui/alert';
 import { toReadableDateTimeStr, toWeekdayStr } from '~/modules/datetime';
 import { Section } from '~/modules/components/ui/section';
@@ -11,6 +11,7 @@ import { Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { getImageSrc } from '~/modules/image-opt/utils';
 import { ButtonNavLink } from '~/modules/components/ui/button';
+import { SpeakerSocialsList } from '../speakers/components';
 
 export function HeroSectionTitle({
   event,
@@ -193,41 +194,7 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
                 </div>
               </CardContent>
               <CardFooter>
-                <div className="flex justify-start gap-2 items-center">
-                  {talk.speaker.blueskyUrl && (
-                    <a
-                      href={talk.speaker.blueskyUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <BlueSkyLogoIcon className="h-5 w-5" />
-                      <span className="sr-only">Twitter</span>
-                    </a>
-                  )}
-                  {talk.speaker.twitterUrl && (
-                    <a
-                      href={talk.speaker.twitterUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <TwitterLogoIcon className="h-4 w-4" />
-                      <span className="sr-only">Twitter</span>
-                    </a>
-                  )}
-                  {talk.speaker.linkedinUrl && (
-                    <a
-                      href={talk.speaker.linkedinUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <LinkedInLogoIcon className="h-5 w-5" />
-                      <span className="sr-only">LinkedIn</span>
-                    </a>
-                  )}
-                </div>
+                <SpeakerSocialsList speaker={talk.speaker} />
               </CardFooter>
             </Card>
           ))}

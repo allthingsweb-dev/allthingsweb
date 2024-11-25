@@ -1,13 +1,14 @@
 import { MetaFunction } from '@remix-run/node';
 import { NavLink, useLoaderData } from '@remix-run/react';
 import { PageLayout } from '~/modules/components/page-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '~/modules/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { Section } from '~/modules/components/ui/section';
 import { toYearStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { type loader as rootLoader } from '~/root';
 import { speakersLoader as loader } from '~/modules/speakers/loader.server';
 import { getImageSrc } from '~/modules/image-opt/utils';
+import { SpeakerSocialsList } from '~/modules/speakers/components';
 
 export { headers } from '~/modules/header.server';
 
@@ -54,11 +55,11 @@ export default function Component() {
                     <p className="text-sm text-muted-foreground">{speaker.title}</p>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow">
                   <h3 className="text-lg font-semibold mb-2 mt-4">Talks:</h3>
                   <ul className="space-y-2">
                     {speaker.talks.map((talk) => (
-                      <li key={talk.id}>
+                      <li key={talk.id} className="list-disc ml-6">
                         <NavLink
                           to={`/${talk.eventSlug}#talks`}
                           className="text-primary underline-offset-4 hover:underline"
@@ -72,6 +73,9 @@ export default function Component() {
                     ))}
                   </ul>
                 </CardContent>
+                <CardFooter>
+                  <SpeakerSocialsList speaker={speaker} />
+                </CardFooter>
               </Card>
             ))}
           </div>
