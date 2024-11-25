@@ -12,7 +12,7 @@ export function SpeakerSocialsList({ speaker }: { speaker: Speaker }) {
           className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           <BlueSkyLogoIcon className="h-5 w-5" />
-          <span className="sr-only">Twitter</span>
+          <span className="sr-only">Bluesky</span>
         </a>
       )}
       {speaker.twitterUrl && (
