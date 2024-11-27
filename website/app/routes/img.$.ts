@@ -92,7 +92,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   }
 
   const cachedFile = Bun.file(filePath);
-  if (await cachedFile.exists()) {
+  if ((await cachedFile.exists()) && cachedFile.size > 0) {
     return new Response(cachedFile.stream(), {
       headers: {
         'Content-Type': 'image/webp',
