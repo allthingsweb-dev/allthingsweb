@@ -107,7 +107,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   if (!res.ok || !res.body) {
     const msg = `Failed to fetch image from origin: ${originUrl} due to: ${res.status} ${res.statusText}`;
     context.logger.error(msg);
-    captureException(new Error(msg));
+    captureException(new Error(msg), { originUrl, status: res.status, statusText: res.statusText, filePath });
     return internalServerError(getServerTimingHeader());
   }
   const sharpInstance = sharp();
