@@ -105,8 +105,9 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   // Using node-fetch to get a node:stream compatible response
   const res = await time('fetchImg', () => nodeFetch(originUrl));
   if (!res.ok || !res.body) {
-    context.logger.error(`Failed to fetch image from origin: ${originUrl}`);
-    captureException(new Error(`Failed to fetch image from origin: ${originUrl}`));
+    const msg = `Failed to fetch image from origin: ${originUrl} due to: ${res.status} ${res.statusText}`;
+    context.logger.error(msg);
+    captureException(new Error(msg));
     return internalServerError(getServerTimingHeader());
   }
   const sharpInstance = sharp();
