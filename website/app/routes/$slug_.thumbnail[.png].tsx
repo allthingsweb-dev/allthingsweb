@@ -1,6 +1,6 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { LoaderFunctionArgs } from '@remix-run/node';
 import { getFont } from '~/modules/image-gen/utils.server';
 import { EventYouTubeThumbnail } from '~/modules/image-gen/templates';
 import { notFound } from '~/modules/responses.server';
@@ -16,14 +16,6 @@ export async function loader({ params, context }: LoaderFunctionArgs) {
   const event = await time('getExpandedEventBySlug', () => context.pocketBaseClient.getExpandedEventBySlug(slug));
   if (!event) {
     throw notFound();
-  }
-
-  if (event.previewImageId) {
-    // If the event has a image associated on PocketBase, redirect to the image URL
-    return redirect(event.previewImageUrl, {
-      status: 302,
-      statusText: 'Found',
-    });
   }
 
   const jsx = (
