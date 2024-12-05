@@ -27,7 +27,11 @@ export async function loader({ params, context }: LoaderFunctionArgs) {
   }
 
   const jsx = (
-    <EventPreview event={event} getPocketbaseUrlForImage={context.pocketBaseClient.getPocketbaseUrlForImage} />
+    <EventPreview
+      event={event}
+      getPocketbaseUrlForImage={context.pocketBaseClient.getPocketbaseUrlForImage}
+      origin={context.mainConfig.origin}
+    />
   );
 
   const svg = await time('satori', async () =>
