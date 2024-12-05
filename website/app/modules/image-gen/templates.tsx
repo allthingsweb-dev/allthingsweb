@@ -1,6 +1,6 @@
 import { toReadableDateTimeStr } from '../datetime';
 import { createPocketbaseClient } from '../pocketbase/api.server';
-import { ExpandedEvent, Speaker } from '../pocketbase/pocketbase';
+import { ExpandedEvent, ExpandedTalk, Speaker } from '../pocketbase/pocketbase';
 
 declare module 'react' {
   interface HTMLAttributes<T> {
@@ -15,6 +15,55 @@ declare module 'react' {
 const bgStyles = {
   background: 'linear-gradient(to bottom right, #090215, #1e1924, #55505c)',
 };
+
+function EventPreviewTalks({
+  talks,
+  getPocketbaseUrlForImage,
+}: {
+  talks: ExpandedTalk[];
+  getPocketbaseUrlForImage: ReturnType<typeof createPocketbaseClient>['getPocketbaseUrlForImage'];
+}) {
+  return (
+    <div tw="flex flex-wrap" style={{ gap: '1rem' }}>
+      {talks.map((talk) => (
+        <div
+          key={talk.id}
+          tw="flex items-start rounded-xl p-4 border border-gray-300 border-opacity-20 shadow-lg w-[560px]"
+          style={{
+            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(209, 213, 219, 0.2)',
+          }}
+        >
+          <img
+            src={getPocketbaseUrlForImage(talk.speaker.profileImageId, { width: 100, height: 100 })}
+            alt={`${talk.speaker.name} profile`}
+            width={100}
+            height={100}
+            tw="rounded-full border-2 border-purple-400"
+          />
+          <div tw="flex flex-col ml-4">
+            <div
+              tw="w-[432px] flex text-3xl font-medium text-gray-100"
+              style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {talk.speaker.name}
+            </div>
+            <div
+              tw="w-[432px] flex text-xl text-purple-300"
+              style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {talk.speaker.title}
+            </div>
+            <div tw="w-[432px] flex text-3xl text-gray-400 mt-2" style={{ wordBreak: 'break-word' }}>
+              {talk.title}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function EventPreview({
   event,
@@ -50,50 +99,11 @@ export function EventPreview({
           <span tw="text-2xl text-purple-300 text-bold">allthingsweb.dev</span>
           <span tw="text-2xl text-purple-300 text-bold">lu.ma/allthingsweb</span>
         </div>
-
         <div tw="flex-grow flex flex-col justify-between">
           <div tw="flex flex-col">
             <div tw="flex flex-col text-4xl font-semibold mb-6 text-purple-300">Speakers & Talks</div>
-            <div tw="flex flex-wrap" style={{ gap: '1rem' }}>
-              {event.talks.map((talk, index) => (
-                <div
-                  key={index}
-                  tw="flex items-start rounded-xl p-4 border border-gray-300 border-opacity-20 shadow-lg w-[560px]"
-                  style={{
-                    backdropFilter: 'blur(8px)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(209, 213, 219, 0.2)',
-                  }}
-                >
-                  <img
-                    src={getPocketbaseUrlForImage(talk.speaker.profileImageId, { width: 100, height: 100 })}
-                    alt={`${talk.speaker.name} profile`}
-                    width={100}
-                    height={100}
-                    tw="rounded-full border-2 border-purple-400"
-                  />
-                  <div tw="flex flex-col ml-4">
-                    <div
-                      tw="w-[432px] flex text-3xl font-medium text-gray-100"
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    >
-                      {talk.speaker.name}
-                    </div>
-                    <div
-                      tw="w-[432px] flex text-xl text-purple-300"
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    >
-                      {talk.speaker.title}
-                    </div>
-                    <div tw="w-[432px] flex text-3xl text-gray-400 mt-2" style={{ wordBreak: 'break-word' }}>
-                      {talk.title}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <EventPreviewTalks talks={event.talks} getPocketbaseUrlForImage={getPocketbaseUrlForImage} />
           </div>
-
           <div tw="flex flex-col">
             <div tw="flex flex-col">
               <h2 tw="text-4xl font-semibold mb-6 text-purple-300">Sponsors</h2>
@@ -126,6 +136,76 @@ export function EventPreview({
   );
 }
 
+function EventYouTubeThumbnailTwoTalks({
+  talks,
+  getPocketbaseUrlForImage,
+}: {
+  talks: ExpandedTalk[];
+  getPocketbaseUrlForImage: ReturnType<typeof createPocketbaseClient>['getPocketbaseUrlForImage'];
+}) {
+  return (
+    <div tw="flex flex-wrap" style={{ gap: '3rem' }}>
+      {talks.map((talk, index) => (
+        <div key={index} tw="flex items-start w-[1200px]">
+          <img
+            src={getPocketbaseUrlForImage(talk.speaker.profileImageId, { width: 180, height: 180 })}
+            alt={`${talk.speaker.name} profile`}
+            width={180}
+            height={180}
+            tw="rounded-full border-2 border-purple-400"
+          />
+          <div tw="flex flex-col ml-8">
+            <div
+              tw="w-[1000px] flex text-5xl font-medium text-gray-100"
+              style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {talk.speaker.name}
+            </div>
+            <div tw="w-[1000px] flex text-5xl text-purple-300 mt-2" style={{ wordBreak: 'break-word' }}>
+              {talk.title}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EventYouTubeThumbnailFiveTalks({
+  talks,
+  getPocketbaseUrlForImage,
+}: {
+  talks: ExpandedTalk[];
+  getPocketbaseUrlForImage: ReturnType<typeof createPocketbaseClient>['getPocketbaseUrlForImage'];
+}) {
+  return (
+    <div tw="flex flex-wrap" style={{ gap: '1rem' }}>
+      {talks.map((talk, index) => (
+        <div key={index} tw="flex items-start w-[1200px]">
+          <img
+            src={getPocketbaseUrlForImage(talk.speaker.profileImageId, { width: 100, height: 100 })}
+            alt={`${talk.speaker.name} profile`}
+            width={100}
+            height={100}
+            tw="rounded-full border-2 border-purple-400"
+          />
+          <div tw="flex flex-col ml-4">
+            <div
+              tw="w-[1000px] flex text-3xl font-medium text-gray-100"
+              style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {talk.speaker.name}
+            </div>
+            <div tw="w-[1000px] flex text-3xl text-purple-300" style={{ wordBreak: 'break-word' }}>
+              {talk.title}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function EventYouTubeThumbnail({
   event,
   getPocketbaseUrlForImage,
@@ -135,36 +215,18 @@ export function EventYouTubeThumbnail({
   getPocketbaseUrlForImage: ReturnType<typeof createPocketbaseClient>['getPocketbaseUrlForImage'];
   origin: string;
 }) {
+  const talksCount = event.talks.length;
   return (
     <div tw="w-[1280px] h-[720px] flex flex-col text-white p-8 pb-24 overflow-hidden" style={bgStyles}>
       <div tw="h-full flex flex-col">
         <div tw="flex text-7xl font-bold" style={{ marginBottom: '6rem' }}>
           {event.name}
         </div>
-        <div tw="flex flex-wrap" style={{ gap: '3rem' }}>
-          {event.talks.map((talk, index) => (
-            <div key={index} tw="flex items-start w-[1200px]">
-              <img
-                src={getPocketbaseUrlForImage(talk.speaker.profileImageId, { width: 180, height: 180 })}
-                alt={`${talk.speaker.name} profile`}
-                width={180}
-                height={180}
-                tw="rounded-full border-2 border-purple-400"
-              />
-              <div tw="flex flex-col ml-8">
-                <div
-                  tw="w-[1000px] flex text-5xl font-medium text-gray-100"
-                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                >
-                  {talk.speaker.name}
-                </div>
-                <div tw="w-[1000px] flex text-5xl text-purple-300 mt-2" style={{ wordBreak: 'break-word' }}>
-                  {talk.title}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {talksCount === 5 ? (
+          <EventYouTubeThumbnailFiveTalks talks={event.talks} getPocketbaseUrlForImage={getPocketbaseUrlForImage} />
+        ) : (
+          <EventYouTubeThumbnailTwoTalks talks={event.talks} getPocketbaseUrlForImage={getPocketbaseUrlForImage} />
+        )}
       </div>
     </div>
   );
