@@ -12,6 +12,10 @@ declare module 'react' {
   }
 }
 
+const bgStyles = {
+  background: 'linear-gradient(to bottom right, #090215, #1e1924, #55505c)',
+};
+
 export function EventPreview({
   event,
   getPocketbaseUrlForImage,
@@ -22,13 +26,7 @@ export function EventPreview({
   origin: string;
 }) {
   return (
-    <div
-      tw="w-[1200px] h-[1200px] flex flex-col text-white p-8 pb-24 overflow-hidden"
-      style={{
-        background: 'linear-gradient(to bottom right, #111827, #1F2937, #4C1D95)',
-        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-      }}
-    >
+    <div tw="w-[1200px] h-[1200px] flex flex-col text-white p-8 pb-24 overflow-hidden" style={bgStyles}>
       <div tw="h-full flex flex-col">
         <div tw="flex items-center mb-12" style={{ gap: '2rem' }}>
           <div tw="relative flex">
@@ -138,13 +136,7 @@ export function EventYouTubeThumbnail({
   origin: string;
 }) {
   return (
-    <div
-      tw="w-[1280px] h-[720px] flex flex-col text-white p-8 pb-24 overflow-hidden"
-      style={{
-        background: 'linear-gradient(to bottom right, #111827, #1F2937, #4C1D95)',
-        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-      }}
-    >
+    <div tw="w-[1280px] h-[720px] flex flex-col text-white p-8 pb-24 overflow-hidden" style={bgStyles}>
       <div tw="h-full flex flex-col">
         <div tw="flex text-7xl font-bold" style={{ marginBottom: '6rem' }}>
           {event.name}
@@ -188,13 +180,7 @@ export function SpeakersPreview({
   const maxSpeakersToShow = 5 * 5;
   const visibleSpeakers = speakers.slice(0, maxSpeakersToShow);
   return (
-    <div
-      tw="w-[1200px] h-[1200px] flex flex-col text-white p-16 pb-24 overflow-hidden"
-      style={{
-        background: 'linear-gradient(to bottom right, #111827, #1F2937, #4C1D95)',
-        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-      }}
-    >
+    <div tw="w-[1200px] h-[1200px] flex flex-col text-white p-16 pb-24 overflow-hidden" style={bgStyles}>
       <div tw="w-full flex items-start">
         <div tw="flex flex-col flex-wrap" style={{ gap: '1rem' }}>
           <div tw="text-2xl font-semibold">Speakers</div>
