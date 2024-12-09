@@ -146,7 +146,7 @@ function EventYouTubeThumbnailTwoTalks({
   return (
     <div tw="flex flex-wrap" style={{ gap: '3rem' }}>
       {talks.map((talk, index) => (
-        <div key={index} tw="flex items-start w-[1200px]">
+        <div key={index} tw="flex items-center w-[1200px]">
           <img
             src={getPocketbaseUrlForImage(talk.speaker.profileImageId, { width: 180, height: 180 })}
             alt={`${talk.speaker.name} profile`}
@@ -181,7 +181,7 @@ function EventYouTubeThumbnailFiveTalks({
   return (
     <div tw="flex flex-wrap" style={{ gap: '1rem' }}>
       {talks.map((talk, index) => (
-        <div key={index} tw="flex items-start w-[1200px]">
+        <div key={index} tw="flex items-center w-[1200px]">
           <img
             src={getPocketbaseUrlForImage(talk.speaker.profileImageId, { width: 100, height: 100 })}
             alt={`${talk.speaker.name} profile`}
