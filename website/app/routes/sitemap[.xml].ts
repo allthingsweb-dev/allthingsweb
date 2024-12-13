@@ -15,6 +15,7 @@ function generateSiteMap(events: Event[], origin: string) {
         <urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
             ${getUrlElementWithDate(`${origin}/`, new Date().toISOString())}
             ${getUrlElementWithDate(`${origin}/speakers`, new Date().toISOString())}
+            ${getUrlElementWithDate(`${origin}/about`, new Date().toISOString())}
             ${events
               .map((event) => `${getUrlElementWithDate(`${origin}/${event.slug}`, event.updated.toISOString())}`)
               .join('\n')}
