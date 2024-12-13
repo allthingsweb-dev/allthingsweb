@@ -65,7 +65,7 @@ export default function Component() {
             <SocialBox
               title="Twitter"
               description="Follow us on X for event announcements and updates."
-              link="https://bsky.app/profile/allthingsweb.dev"
+              link="https://x.com/reactbayarea"
               logo={<TwitterLogoIcon className="h-4 w-4" />}
             />
           </div>
