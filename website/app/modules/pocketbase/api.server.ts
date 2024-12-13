@@ -1,6 +1,6 @@
 import PocketBase, { ClientResponseError } from 'pocketbase';
 import { MainConfig } from '~/config.server';
-import { Link, Event, Speaker, Talk, ExpandedTalk, Sponsor, ExpandedEvent, Attendee } from './pocketbase';
+import { Link, Event, Speaker, Talk, ExpandedTalk, Sponsor, ExpandedEvent, Attendee, Member } from './pocketbase';
 
 type Deps = {
   mainConfig: MainConfig;
@@ -94,6 +94,12 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
     await authenticateAdmin();
     const talks = await pb.collection('talks').getFullList();
     return talks.map(toTalk);
+  };
+
+  const getMembers = async () => {
+    await authenticateAdmin();
+    const members = await pb.collection('members').getFullList();
+    return members.map(toMember);
   };
 
   const getLink = async (id: string): Promise<Link | null> => {
@@ -203,6 +209,22 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
     };
   };
 
+  const toMember = (member: any): Member => {
+    return {
+      id: member.id,
+      name: member.name,
+      title: member.title || null,
+      bio: member.bio || null,
+      email: member.email || null,
+      type: member.type,
+      profileImageUrl: `/img/pocketbase/members/${member.id}/${member.profileImage}`,
+      profileImageId: `/members/${member.id}/${member.profileImage}`,
+      linkedinUrl: member.linkedinHandle ? `https://www.linkedin.com/in/${member.linkedinHandle}` : null,
+      twitterUrl: member.twitterHandle ? `https://twitter.com/${member.twitterHandle}` : null,
+      blueskyUrl: member.blueskyHandle ? `https://bsky.app/profile/${member.blueskyHandle}` : null,
+    };
+  };
+
   const toLink = (link: any): Link => {
     return {
       id: link.id,
@@ -229,6 +251,7 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
     getEventByLumaEventId,
     getSpeakers,
     getTalks,
+    getMembers,
     getLink,
     toEvent,
     toSpeaker,
@@ -237,6 +260,7 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
     toSponsor,
     toExpandedEvent,
     toAttendee,
+    toMember,
     toLink,
     getPocketbaseUrlForImage,
   };

@@ -11,7 +11,7 @@ import { Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { getImageSrc } from '~/modules/image-opt/utils';
 import { ButtonNavLink } from '~/modules/components/ui/button';
-import { SpeakerSocialsList } from '../speakers/components';
+import { SocialsList } from '../members/components';
 
 export function HeroSectionTitle({
   event,
@@ -194,7 +194,7 @@ export function TalksSection({ talks }: { talks: ExpandedTalk[] }) {
                 </div>
               </CardContent>
               <CardFooter>
-                <SpeakerSocialsList speaker={talk.speaker} />
+                <SocialsList socials={talk.speaker} />
               </CardFooter>
             </Card>
           ))}
