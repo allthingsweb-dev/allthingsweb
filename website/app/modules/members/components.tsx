@@ -1,5 +1,5 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
-import { BlueSkyLogoIcon, LinkedInLogoIcon, TwitterLogoIcon } from '../components/ui/icons';
+import { BlueskyLogoIcon, LinkedInLogoIcon, TwitterLogoIcon } from '../components/ui/icons';
 import { Socials } from './types';
 
 export type MemberProp = Socials & {
@@ -44,7 +44,7 @@ export function SocialsList({ socials }: { socials: Socials }) {
           rel="noopener noreferrer"
           className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
-          <BlueSkyLogoIcon className="h-5 w-5" />
+          <BlueskyLogoIcon className="h-5 w-5" />
           <span className="sr-only">Bluesky</span>
         </a>
       )}

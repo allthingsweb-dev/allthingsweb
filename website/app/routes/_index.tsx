@@ -12,6 +12,7 @@ import { toReadableDateTimeStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { lru } from '~/modules/cache';
 import { getImageSrc } from '~/modules/image-opt/utils';
+import { DiscordLogoIcon } from '~/modules/components/ui/icons';
 
 export { headers } from '~/modules/header.server';
 
@@ -148,7 +149,7 @@ export default function Component() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <UsersIcon className="mr-2 h-4 w-4" />
+                <DiscordLogoIcon className="mr-2 h-4 w-4" />
                 Join Discord
               </ButtonAnchor>
             </div>
