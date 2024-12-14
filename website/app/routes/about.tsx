@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
 import clsx from 'clsx';
 import { ExternalLinkIcon, RssIcon } from 'lucide-react';
@@ -13,6 +13,24 @@ import {
 import { Section } from '~/modules/components/ui/section';
 import { MemberCard } from '~/modules/members/components';
 import { fetchMembers, organizeByType } from '~/modules/members/loader.server';
+import { getMetaTags, mergeMetaTags } from '~/modules/meta';
+import { loader as rootLoader } from '~/root';
+
+export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
+  const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
+  if (!rootLoaderData) {
+    return mergeMetaTags([{ title: 'Something went wrong' }], matches);
+  }
+  return mergeMetaTags(
+    getMetaTags(
+      'About All Things Web',
+      'All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San Francisco. Check out our organizers and join us!',
+      `${rootLoaderData.serverOrigin}/`,
+      `${rootLoaderData.serverOrigin}/img/gen/preview.png`,
+    ),
+    matches,
+  );
+};
 
 export async function loader({ context }: LoaderFunctionArgs) {
   const members = await fetchMembers({ pocketbaseClient: context.pocketBaseClient });
