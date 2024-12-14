@@ -30,7 +30,7 @@ export default function Component() {
   return (
     <PageLayout>
       <Section variant="big">
-        <div className="container py-16">
+        <div className="container">
           <div className="flex flex-col justify-center items-center gap-2 mb-16">
             <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-center">Speakers</h1>
             <p className="max-w-[600px] text-muted-foreground md:text-xl text-center">
