@@ -1,9 +1,15 @@
 import { LoaderFunctionArgs } from '@remix-run/node';
 import { Link, useLoaderData } from '@remix-run/react';
 import clsx from 'clsx';
-import { ExternalLinkIcon } from 'lucide-react';
+import { ExternalLinkIcon, RssIcon } from 'lucide-react';
 import { PageLayout } from '~/modules/components/page-layout';
-import { BlueskyLogoIcon, DiscordLogoIcon, LumaLogoIcon, TwitterLogoIcon } from '~/modules/components/ui/icons';
+import {
+  BlueskyLogoIcon,
+  DiscordLogoIcon,
+  GitHubLogoIcon,
+  LumaLogoIcon,
+  TwitterLogoIcon,
+} from '~/modules/components/ui/icons';
 import { Section } from '~/modules/components/ui/section';
 import { MemberCard } from '~/modules/members/components';
 import { fetchMembers, organizeByType } from '~/modules/members/loader.server';
@@ -68,6 +74,18 @@ export default function Component() {
               link="https://x.com/reactbayarea"
               logo={<TwitterLogoIcon className="h-4 w-4" />}
             />
+            <SocialBox
+              title="GitHub"
+              description="Contribute to our website on GitHub."
+              link="https://github.com/allthingsweb-dev/allthingsweb"
+              logo={<GitHubLogoIcon className="h-6 w-6" />}
+            />
+            <SocialBox
+              title="RSS"
+              description="Subscribe to our RSS feed for event announcements."
+              link="/rss"
+              logo={<RssIcon className="h-6 w-6" />}
+            />
           </div>
         </div>
       </Section>
@@ -96,7 +114,7 @@ function SocialBox({
       rel="noopener noreferrer"
     >
       <div>{logo}</div>
-      <div>
+      <div className="flex-grow">
         <h3 className="font-semibold text-lg">{title}</h3>
         <p className="text-sm opacity-90">{description}</p>
       </div>

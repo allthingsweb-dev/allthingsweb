@@ -1,6 +1,7 @@
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { ArrowUpRightIcon, MenuIcon, RssIcon } from 'lucide-react';
 import { cn } from './utils';
+import { Link } from '@remix-run/react';
 
 export function DefaultRightTopNav() {
   return (
@@ -22,26 +23,14 @@ function LinkList({ className }: { className?: string }) {
   return (
     <ul className={cn('flex flex-col md:flex-row gap-4 md:gap-6', className)}>
       <li>
-        <a
-          href="https://discord.gg/B3Sm4b5mfD"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
-          Discord
-          <ArrowUpRightIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
-        </a>
+        <Link to="/about" className="text-sm font-medium hover:underline underline-offset-4">
+          About us
+        </Link>
       </li>
       <li>
-        <a
-          href="https://lu.ma/allthingsweb"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
-          Luma Calendar
-          <ArrowUpRightIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
-        </a>
+        <Link to="/speakers" className="text-sm font-medium hover:underline underline-offset-4">
+          Past speakers
+        </Link>
       </li>
       <li>
         <a
@@ -50,45 +39,8 @@ function LinkList({ className }: { className?: string }) {
           rel="noopener noreferrer"
           className="text-sm font-medium hover:underline underline-offset-4"
         >
-          Talk Proposal
-          <ArrowUpRightIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://www.meetup.com/reactjs-san-francisco"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
-          React Meetup
-          <ArrowUpRightIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://www.meetup.com/remix-bay-area"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
-          Remix Meetup
-          <ArrowUpRightIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/allthingsweb-dev/allthingsweb"
-          className="text-sm font-medium hover:underline underline-offset-4"
-        >
-          GitHub
-          <ArrowUpRightIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
-        </a>
-      </li>
-      <li>
-        <a href="/rss" className="text-sm font-medium hover:underline underline-offset-4">
-          RSS
-          <RssIcon className="md:hidden w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
+          Talk proposal
+          <ArrowUpRightIcon className="w-4 h-4 inline-block -mt-1 ml-1 text-muted-foreground" />
         </a>
       </li>
     </ul>
