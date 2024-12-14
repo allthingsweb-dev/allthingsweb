@@ -69,6 +69,20 @@ export type ExpandedEvent = Event & {
   sponsors: Sponsor[];
 };
 
+export type Member = {
+  id: string;
+  email: string | null;
+  name: string;
+  profileImageUrl: string;
+  profileImageId: string;
+  title: string | null;
+  bio: string | null;
+  type: 'member' | 'organizer';
+  linkedinUrl: string | null;
+  twitterUrl: string | null;
+  blueskyUrl: string | null;
+};
+
 export type Link = {
   id: string;
   destinationUrl: string;

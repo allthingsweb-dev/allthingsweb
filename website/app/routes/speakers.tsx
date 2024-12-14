@@ -1,14 +1,13 @@
 import { MetaFunction } from '@remix-run/node';
 import { NavLink, useLoaderData } from '@remix-run/react';
 import { PageLayout } from '~/modules/components/page-layout';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { Section } from '~/modules/components/ui/section';
 import { toYearStr } from '~/modules/datetime';
 import { getMetaTags, mergeMetaTags } from '~/modules/meta';
 import { type loader as rootLoader } from '~/root';
 import { speakersLoader as loader } from '~/modules/speakers/loader.server';
 import { getImageSrc } from '~/modules/image-opt/utils';
-import { SpeakerSocialsList } from '~/modules/speakers/components';
+import { MemberCard } from '~/modules/members/components';
 
 export { headers } from '~/modules/header.server';
 
@@ -41,21 +40,14 @@ export default function Component() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {speakersWithTalks.map((speaker) => (
-              <Card key={speaker.id} className="flex flex-col">
-                <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                  <img
-                    src={getImageSrc(speaker.profileImageUrl, { width: 200, height: 200, fit: 'cover' })}
-                    alt={speaker.name}
-                    width={200}
-                    height={200}
-                    className="rounded-full w-20 h-20 object-cover"
-                  />
-                  <div>
-                    <CardTitle className="text-xl">{speaker.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{speaker.title}</p>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow">
+              <MemberCard
+                key={speaker.id}
+                member={{
+                  ...speaker,
+                  profileImageUrl: getImageSrc(speaker.profileImageUrl, { width: 200, height: 200, fit: 'cover' }),
+                }}
+              >
+                <>
                   <h3 className="text-lg font-semibold mb-2 mt-4">Talks:</h3>
                   <ul className="space-y-2">
                     {speaker.talks.map((talk) => (
@@ -72,11 +64,8 @@ export default function Component() {
                       </li>
                     ))}
                   </ul>
-                </CardContent>
-                <CardFooter>
-                  <SpeakerSocialsList speaker={speaker} />
-                </CardFooter>
-              </Card>
+                </>
+              </MemberCard>
             ))}
           </div>
         </div>
