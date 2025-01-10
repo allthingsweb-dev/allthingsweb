@@ -1,5 +1,5 @@
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { ArrowUpRightIcon, MenuIcon, RssIcon } from 'lucide-react';
+import { ArrowUpRightIcon, MenuIcon } from 'lucide-react';
 import { cn } from './utils';
 import { Link } from '@remix-run/react';
 
@@ -10,7 +10,7 @@ export function DefaultRightTopNav() {
         <PopoverTrigger className="md:hidden" aria-label="Toggle navigation">
           <MenuIcon className="w-6 h-6" />
         </PopoverTrigger>
-        <PopoverContent>
+        <PopoverContent align="end">
           <LinkList />
         </PopoverContent>
       </Popover>
