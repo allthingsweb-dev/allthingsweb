@@ -142,6 +142,7 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
       previewImageId: event.previewImage ? `/events/${event.id}/${event.previewImage}` : null,
       photos: event.photos.map((photo: string) => `/img/pocketbase/events/${event.id}/${photo}`),
       photosIds: event.photos.map((photo: string) => `/events/${event.id}/${photo}`),
+      recordingUrl: event.recordingUrl || null,
       created: new Date(event.created),
       updated: new Date(event.updated),
     };

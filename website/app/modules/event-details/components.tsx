@@ -30,13 +30,25 @@ export function HeroSectionTitle({
         <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">{event.name}</h1>
         <p className="max-w-[600px] text-muted-foreground md:text-xl">{event.tagline}</p>
       </div>
-      {event.lumaUrl && (
-        <div className="flex flex-col gap-2 min-[400px]:flex-row">
-          <ButtonNavLink variant="default" size="lg" to={event.lumaUrl}>
+
+      <div className="flex flex-col gap-2 min-[400px]:flex-row">
+        {event.recordingUrl && (
+          <ButtonNavLink variant="default" size="lg" to={event.recordingUrl} target="_blank" rel="noopener noreferrer">
+            View recording
+          </ButtonNavLink>
+        )}
+        {event.lumaUrl && (
+          <ButtonNavLink
+            variant={isInPast ? 'outline' : 'default'}
+            size="lg"
+            to={event.lumaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {isInPast ? 'View on Luma' : isAtCapacity ? 'Join waitlist on Luma' : 'Register on Luma'}
           </ButtonNavLink>
-        </div>
-      )}
+        )}
+      </div>
       {children}
     </div>
   );

@@ -20,6 +20,7 @@ export type Event = {
   previewImageId: string | null;
   photos: string[];
   photosIds: string[];
+  recordingUrl: string | null;
   created: Date;
   updated: Date;
 };
