@@ -9,6 +9,7 @@ import {
   GitHubLogoIcon,
   LumaLogoIcon,
   TwitterLogoIcon,
+  YouTubeLogoIcon,
 } from '~/modules/components/ui/icons';
 import { Section } from '~/modules/components/ui/section';
 import { MemberCard } from '~/modules/members/components';
@@ -79,6 +80,12 @@ export default function Component() {
               description="Join our Discord server to hang out and chat about all things web."
               link="https://discord.gg/B3Sm4b5mfD"
               logo={<DiscordLogoIcon className="h-6 w-6" />}
+            />
+            <SocialBox
+              title="YouTube"
+              description="Subscribe to our YouTube channel for event recordings & our podcast."
+              link="https://www.youtube.com/@allthingsweb-dev/videos"
+              logo={<YouTubeLogoIcon className="h-6 w-6" />}
             />
             <SocialBox
               title="Bluesky"
