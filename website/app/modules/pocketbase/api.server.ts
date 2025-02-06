@@ -22,7 +22,7 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
       filter: 'isDraft = false',
       sort: 'start',
     });
-    return resultList.map(toEvent);
+    return resultList;
   };
 
   const getUpcomingEvents = async () => {
@@ -56,6 +56,16 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
     }
   };
 
+  const getSponsors = async () => {
+    await authenticateAdmin();
+    return pb.collection('sponsors').getFullList();
+  };
+
+  const getLinks = async () => {
+    await authenticateAdmin();
+    return pb.collection('links').getFullList();
+  };
+
   const getExpandedEventBySlug = async (slug: string) => {
     await authenticateAdmin();
     try {
@@ -86,8 +96,7 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
 
   const getSpeakers = async () => {
     await authenticateAdmin();
-    const speakers = await pb.collection('speakers').getFullList();
-    return speakers.map(toSpeaker);
+    return pb.collection('speakers').getFullList();
   };
 
   const getTalks = async () => {
@@ -98,8 +107,7 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
 
   const getMembers = async () => {
     await authenticateAdmin();
-    const members = await pb.collection('members').getFullList();
-    return members.map(toMember);
+    return pb.collection('members').getFullList();
   };
 
   const getLink = async (id: string): Promise<Link | null> => {
@@ -264,5 +272,7 @@ export const createPocketbaseClient = ({ mainConfig }: Deps) => {
     toMember,
     toLink,
     getPocketbaseUrlForImage,
+    getSponsors,
+    getLinks,
   };
 };

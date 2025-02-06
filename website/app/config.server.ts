@@ -3,11 +3,16 @@ import { z } from 'zod';
 import type { Schema, ZodTypeDef } from 'zod';
 import crypto from 'node:crypto';
 
+type PreValidate<ConfigData> = {
+  [K in keyof ConfigData]: ConfigData[K] extends object
+  ? PreValidate<ConfigData[K]> | undefined
+  : ConfigData[K] | undefined;
+};
+
 // Validation
-const validateConfigOrExit = <T, I>(schema: Schema<T, ZodTypeDef, I>, intent: I): T => {
+const validateConfigOrExit = <T, I>(schema: Schema<T, ZodTypeDef, I>, data: PreValidate<I>): T => {
   try {
-    const config = schema.parse(intent);
-    return config;
+    return schema.parse(data);
   } catch (exception: any) {
     if (exception instanceof z.ZodError) {
       console.error('Configuration validation failed. Exit is forced.');
@@ -30,6 +35,10 @@ const InstanceSchema = z.object({
   port: z.number().int().positive(),
 });
 
+const DbSchema = z.object({
+  databaseUrl: z.string(),
+});
+
 const LogLevelSchemaAware = z.object({
   logLevel: z
     .array(z.enum(['debug', 'info']))
@@ -37,11 +46,17 @@ const LogLevelSchemaAware = z.object({
     .max(2),
 });
 
+const S3Schema = z.object({
+  accessKeyId: z.string(),
+  secretAccessKey: z.string(),
+  url: z.string().url(),
+});
+
 const PocketBaseSchema = z.object({
   origin: z.string().url(),
   publicOrigin: z.string().url(),
-  adminEmail: z.string().min(1),
-  adminPassword: z.string().min(1),
+  adminEmail: z.string(),
+  adminPassword: z.string(),
 });
 
 const ResendSchema = z.object({
@@ -75,8 +90,10 @@ const MainConfigSchema = z
     luma: LumaSchema,
     zapier: ZapierSchema,
     sentry: SentrySchema,
+    s3: S3Schema,
   })
   .merge(InstanceSchema)
+  .merge(DbSchema)
   .merge(LogLevelSchemaAware)
   .superRefine((data, ctx) => {
     const addIssue = (name: string) => {
@@ -115,22 +132,29 @@ const MainConfigSchema = z
       }
     }
   });
+
 export type MainConfig = z.infer<typeof MainConfigSchema>;
 
 const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
-const MainConfig: MainConfig = validateConfigOrExit(MainConfigSchema, {
+export const mainConfig: MainConfig = validateConfigOrExit(MainConfigSchema, {
   instanceId: process.env.INSTANCE_ID || crypto.randomUUID(),
   logLevel: ['info', 'debug'],
   port,
   environment: process.env.NODE_ENV || 'development',
   origin: process.env.ORIGIN || `http://localhost:${port}`,
+  sessionSecret: process.env.SESSION_SECRET || 'local-session-secret-' + crypto.randomUUID(),
+  databaseUrl: process.env.DATABASE_URL,
+  s3: {
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    url: process.env.AWS_S3_URL,
+  },
   pocketbase: {
     origin: process.env.POCKETBASE_ORIGIN || '',
     publicOrigin: process.env.PUBLIC_POCKETBASE_ORIGIN || '',
     adminEmail: process.env.POCKETBASE_EMAIL || '',
     adminPassword: process.env.POCKETBASE_PASSWORD || '',
   },
-  sessionSecret: process.env.SESSION_SECRET || 'local-session-secret-' + crypto.randomUUID(),
   resend: {
     apiKey: process.env.RESEND_API_KEY,
   },
@@ -150,5 +174,3 @@ const MainConfig: MainConfig = validateConfigOrExit(MainConfigSchema, {
     authToken: process.env.SENTRY_AUTH_TOKEN,
   },
 });
-
-export default MainConfig;

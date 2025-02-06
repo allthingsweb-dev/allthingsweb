@@ -1,6 +1,6 @@
 import { createContainer, InjectionMode, asFunction, asValue } from 'awilix';
 import { redirect } from '@remix-run/node';
-import { MainConfig } from '../config.server';
+import { mainConfig, type MainConfig } from '../config.server';
 import { createLogger, Logger } from './logger.server';
 import { createSessionManager, SessionManager } from './session/create-session-manager.server';
 import { createMailer, Mailer } from './mailer.server';
@@ -8,11 +8,10 @@ import { createServerTimingsProfiler } from './server-timing.server';
 import { createLumaClient } from './luma/api.server';
 import { createPosthogClient } from './posthog/posthog.server';
 import { createPocketbaseClient } from './pocketbase/api.server';
-import config from '../config.server';
 
 export const buildContainer = () => {
   // 1. load the config
-  const logger = createLogger(config.instanceId, ['info', 'debug']);
+  const logger = createLogger(mainConfig.instanceId, ['info', 'debug']);
 
   // 2. Build the container
   const container = createContainer<{
@@ -31,7 +30,7 @@ export const buildContainer = () => {
 
   container.register({
     logger: asValue(logger),
-    mainConfig: asValue(config),
+    mainConfig: asValue(mainConfig),
     sessionManager: asFunction(createSessionManager)
       .inject(() => ({ redirect }))
       .singleton(),

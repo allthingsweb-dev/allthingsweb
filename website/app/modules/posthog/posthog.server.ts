@@ -1,8 +1,8 @@
 import { PostHog } from 'posthog-node';
-import { MainConfig } from '~/config.server';
+import { mainConfig } from '~/config.server';
 
 type Deps = {
-  mainConfig: MainConfig;
+  mainConfig,
 };
 type AnalyticsEventProperties = {};
 export type AnalyticsEventName = keyof AnalyticsEventProperties;
