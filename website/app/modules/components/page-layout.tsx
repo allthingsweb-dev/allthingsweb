@@ -1,4 +1,4 @@
-import { useLocation } from '@remix-run/react';
+import { useLocation } from 'react-router';
 import { DefaultRightTopNav } from './right-top-nav';
 import { HomeIcon } from 'lucide-react';
 import { ButtonNavLink } from './ui/button';

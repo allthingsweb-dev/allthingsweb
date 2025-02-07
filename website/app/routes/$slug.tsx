@@ -8,8 +8,8 @@ import {
 } from '~/modules/event-details/components';
 import { meta } from '~/modules/event-details/meta';
 import { loader } from '~/modules/event-details/loader.sever';
-import { useLoaderData } from '@remix-run/react';
-import { deserializeExpandedEvent } from '~/modules/pocketbase/pocketbase';
+import { useLoaderData } from 'react-router';
+import { deserializeExpandedEvent } from '~/modules/allthingsweb/public-types';
 
 export { headers } from '~/modules/header.server';
 

@@ -1,7 +1,7 @@
 import cachified from '@epic-web/cachified';
 import { Speaker, Talk } from '../pocketbase/pocketbase';
 import { lru } from '../cache';
-import { json, LoaderFunctionArgs } from '@remix-run/node';
+import { json, LoaderFunctionArgs } from 'react-router';
 import { ServerTimingsProfiler } from '../server-timing.server';
 import { createPocketbaseClient } from '../pocketbase/api.server';
 
@@ -74,5 +74,5 @@ export async function speakersLoader({ context }: LoaderFunctionArgs) {
     serverTimingsProfiler: context.serverTimingsProfiler,
     pocketBaseClient: context.pocketBaseClient,
   });
-  return json({ speakersWithTalks }, { headers: getServerTimingHeader() });
+  return Response.json({ speakersWithTalks }, { headers: getServerTimingHeader() });
 }

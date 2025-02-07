@@ -1,4 +1,4 @@
-import { Form } from '@remix-run/react';
+import { Form } from 'react-router';
 import { Button } from '~/modules/components/ui/button';
 import { captureException } from '~/modules/sentry/capture.server';
 

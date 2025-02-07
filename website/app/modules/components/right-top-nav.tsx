@@ -1,7 +1,7 @@
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { ArrowUpRightIcon, MenuIcon } from 'lucide-react';
 import { cn } from './utils';
-import { Link } from '@remix-run/react';
+import { Link } from 'react-router';
 
 export function DefaultRightTopNav() {
   return (

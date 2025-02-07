@@ -1,9 +1,9 @@
-import { useLoaderData } from '@remix-run/react';
-import { LoaderFunctionArgs, MetaFunction, json } from '@remix-run/node';
+import { useLoaderData } from 'react-router';
+import { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import cachified from '@epic-web/cachified';
 import { ArrowRightIcon, CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react';
 import { type loader as rootLoader } from '~/root';
-import { deserializeEvent, Event } from '~/modules/pocketbase/pocketbase';
+import type { Event } from '~/modules/allthingsweb/public-types';
 import { ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
 import { EventsCarousel } from '~/modules/event-carousel/components';
 import { PageLayout } from '~/modules/components/page-layout';
@@ -73,7 +73,7 @@ export async function loader({ context }: LoaderFunctionArgs) {
     loopCounter++;
   }
 
-  return json(
+  return Response.json(
     {
       highlightEvent,
       remainingEvents,
@@ -87,15 +87,7 @@ export async function loader({ context }: LoaderFunctionArgs) {
 }
 
 export default function Component() {
-  const {
-    highlightEvent: highlightEventData,
-    remainingEvents: remainingEventsData,
-    pastEvents: pastEventsData,
-    pastEventImages,
-  } = useLoaderData<typeof loader>();
-  const highlightEvent = highlightEventData ? deserializeEvent(highlightEventData) : null;
-  const remainingEvents = remainingEventsData.map(deserializeEvent);
-  const pastEvents = pastEventsData.map(deserializeEvent);
+  const { highlightEvent, remainingEvents, pastEvents, pastEventImages } = useLoaderData<typeof loader>();
 
   return (
     <PageLayout>

@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from 'react-router';
 import QRCode from 'qrcode';
 
 export { headers } from '~/modules/header.server';

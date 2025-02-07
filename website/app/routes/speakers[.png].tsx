@@ -3,7 +3,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { getFont } from '~/modules/image-gen/utils.server';
 import { fetchSpeakersWithTalks } from '~/modules/speakers/loader.server';
 import { SpeakersPreview } from '~/modules/image-gen/templates';
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from 'react-router';
 
 export { headers } from '~/modules/header.server';
 

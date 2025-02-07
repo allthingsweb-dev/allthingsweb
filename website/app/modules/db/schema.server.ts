@@ -7,7 +7,7 @@ const updatedAt = timestamp('updated_at', { withTimezone: true })
   .$onUpdate(() => new Date());
 
 export const redirectsTable = pgTable('redirects', {
-  slug: text('slug').notNull().unique().primaryKey(),
+  slug: text('slug').notNull().primaryKey(),
   destinationUrl: text('destination_url').notNull(),
   comment: text('comment'),
   createdAt,
@@ -124,6 +124,17 @@ export const eventTalksTable = pgTable('event_talks', {
   talkId: uuid('talk_id')
     .notNull()
     .references(() => talksTable.id, { onDelete: 'cascade' }),
+  createdAt,
+  updatedAt,
+});
+
+export const eventImagesTable = pgTable('event_images', {
+  eventId: uuid('event_id')
+    .notNull()
+    .references(() => eventsTable.id, { onDelete: 'cascade' }),
+  imageId: uuid('image_id')
+    .notNull()
+    .references(() => imagesTable.id, { onDelete: 'cascade' }),
   createdAt,
   updatedAt,
 });

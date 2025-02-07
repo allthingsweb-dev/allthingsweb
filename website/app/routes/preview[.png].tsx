@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from 'react-router';
 import { Resvg } from '@resvg/resvg-js';
 import satori from 'satori';
 import { LandingPagePreview } from '~/modules/image-gen/templates';

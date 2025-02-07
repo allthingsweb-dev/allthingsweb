@@ -1,4 +1,4 @@
-import { MetaFunction } from '@remix-run/node';
+import { MetaFunction } from 'react-router';
 import { getMetaTags, mergeMetaTags } from '../meta';
 import { type loader as rootLoader } from '~/root';
 import { type loader } from './loader.sever';

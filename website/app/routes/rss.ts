@@ -1,7 +1,7 @@
-import { Event } from '~/modules/pocketbase/pocketbase';
+import { Event } from '~/modules/allthingsweb/public-types';
 import cachified from '@epic-web/cachified';
 import { lru } from '~/modules/cache';
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from 'react-router';
 
 function generateRSS(events: Event[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>

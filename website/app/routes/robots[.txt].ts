@@ -1,5 +1,5 @@
 import cachified from '@epic-web/cachified';
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from 'react-router';
 import { lru } from '~/modules/cache';
 
 function generateRobotsTxt(origin: string) {

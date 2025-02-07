@@ -2,7 +2,7 @@
  * Shout-out to Gustavo Guichard (gustavoguichard on Twitter) for this awesome progress bar!
  * You can find the original blog post here: https://dev.to/gugaguichard/creating-a-github-like-progress-bar-for-your-remix-app-153l
  */
-import { useNavigation } from '@remix-run/react';
+import { useNavigation } from 'react-router';
 import { clsx } from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 

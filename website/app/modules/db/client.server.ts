@@ -1,6 +1,14 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import type { MainConfig } from '~/config.server';
 
-const sql = neon(process.env.DATABASE_URL!);
+type Deps = {
+  mainConfig: MainConfig;
+};
 
-export const db = drizzle({ client: sql });
+export type DatabaseClient = ReturnType<typeof createDatabaseClient>;
+
+export function createDatabaseClient({ mainConfig }: Deps) {
+  const sql = neon(mainConfig.databaseUrl);
+  return drizzle({ client: sql });
+}

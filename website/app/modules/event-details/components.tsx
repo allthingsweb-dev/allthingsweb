@@ -1,4 +1,4 @@
-import { NavLink } from '@remix-run/react';
+import { NavLink } from 'react-router';
 import clsx from 'clsx';
 import { AlertCircleIcon, CalendarHeart, InfoIcon, UsersIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '~/modules/components/ui/avatar';
@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '~/modules/components/ui/ale
 import { toReadableDateTimeStr, toWeekdayStr } from '~/modules/datetime';
 import { Section } from '~/modules/components/ui/section';
 import { PageLayout } from '~/modules/components/page-layout';
-import { Event, ExpandedTalk, Sponsor } from '~/modules/pocketbase/pocketbase';
+import type { Event, ExpandedTalk, Sponsor } from '~/modules/allthingsweb/public-types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
 import { getImageSrc } from '~/modules/image-opt/utils';
 import { ButtonNavLink } from '~/modules/components/ui/button';

@@ -5,8 +5,10 @@ import crypto from 'node:crypto';
 
 type PreValidate<ConfigData> = {
   [K in keyof ConfigData]: ConfigData[K] extends object
-  ? PreValidate<ConfigData[K]> | undefined
-  : ConfigData[K] | undefined;
+    ? PreValidate<ConfigData[K]> | undefined
+    : ConfigData[K] extends string
+      ? string | undefined // use string instead of enum values
+      : ConfigData[K] | undefined;
 };
 
 // Validation
@@ -52,13 +54,6 @@ const S3Schema = z.object({
   url: z.string().url(),
 });
 
-const PocketBaseSchema = z.object({
-  origin: z.string().url(),
-  publicOrigin: z.string().url(),
-  adminEmail: z.string(),
-  adminPassword: z.string(),
-});
-
 const ResendSchema = z.object({
   apiKey: z.string().optional(),
 });
@@ -84,7 +79,6 @@ const SentrySchema = z.object({
 
 const MainConfigSchema = z
   .object({
-    pocketbase: PocketBaseSchema,
     posthog: PosthogSchema,
     resend: ResendSchema,
     luma: LumaSchema,
@@ -148,12 +142,6 @@ export const mainConfig: MainConfig = validateConfigOrExit(MainConfigSchema, {
     accessKeyId: process.env.AWS_ACCESS_KEY,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     url: process.env.AWS_S3_URL,
-  },
-  pocketbase: {
-    origin: process.env.POCKETBASE_ORIGIN || '',
-    publicOrigin: process.env.PUBLIC_POCKETBASE_ORIGIN || '',
-    adminEmail: process.env.POCKETBASE_EMAIL || '',
-    adminPassword: process.env.POCKETBASE_PASSWORD || '',
   },
   resend: {
     apiKey: process.env.RESEND_API_KEY,

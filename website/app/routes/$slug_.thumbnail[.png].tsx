@@ -1,6 +1,6 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from 'react-router';
 import { getFont } from '~/modules/image-gen/utils.server';
 import { EventYouTubeThumbnail } from '~/modules/image-gen/templates';
 import { notFound } from '~/modules/responses.server';

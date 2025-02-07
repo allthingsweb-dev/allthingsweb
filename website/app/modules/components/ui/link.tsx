@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { type NavLinkProps, NavLink } from '@remix-run/react';
+import { type NavLinkProps, NavLink } from 'react-router';
 import { cn } from '../utils';
 
 export type LinkProps = Omit<NavLinkProps, 'className'> & {

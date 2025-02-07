@@ -1,5 +1,5 @@
-import { MetaFunction } from '@remix-run/node';
-import { NavLink, useLoaderData } from '@remix-run/react';
+import { MetaFunction } from 'react-router';
+import { NavLink, useLoaderData } from 'react-router';
 import { PageLayout } from '~/modules/components/page-layout';
 import { Section } from '~/modules/components/ui/section';
 import { toYearStr } from '~/modules/datetime';

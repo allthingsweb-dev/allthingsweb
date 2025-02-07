@@ -70,9 +70,8 @@ export type ExpandedEvent = Event & {
   sponsors: Sponsor[];
 };
 
-export type Member = {
+export type PublicMemberProfile = {
   id: string;
-  email: string | null;
   name: string;
   profileImageUrl: string;
   profileImageId: string;
@@ -83,36 +82,3 @@ export type Member = {
   twitterUrl: string | null;
   blueskyUrl: string | null;
 };
-
-export type Link = {
-  id: string;
-  destinationUrl: string;
-};
-
-export function deserializeEvent(event: any): Event {
-  return {
-    ...event,
-    start: new Date(event.start),
-    end: new Date(event.end),
-    created: new Date(event.created),
-    updated: new Date(event.updated),
-  };
-}
-
-export function deserializeExpandedEvent(event: any): ExpandedEvent {
-  return {
-    ...event,
-    start: new Date(event.start),
-    end: new Date(event.end),
-    created: new Date(event.created),
-    updated: new Date(event.updated),
-  };
-}
-
-export function isEventInPast(event: Event) {
-  return event.end < new Date();
-}
-
-export function hasEventStarted(event: Event) {
-  return event.start < new Date();
-}

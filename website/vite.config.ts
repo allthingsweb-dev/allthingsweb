@@ -1,27 +1,18 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
-import { vitePlugin as remix } from '@remix-run/dev';
+import { reactRouter } from '@react-router/dev/vite';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
-export default defineConfig({
-  plugins: [
-    remix({
-      future: {
-        v3_relativeSplatPath: true,
-        v3_throwAbortReason: true,
-        v3_lazyRouteDiscovery: true,
-        v3_fetcherPersist: true,
-        v3_singleFetch: true,
-      },
-    }),
-    tsconfigPaths(),
-    sentryVitePlugin({
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      disable: process.env.NODE_ENV === 'development',
-    }),
-  ],
+export default defineConfig(({ isSsrBuild, command }) => ({
   build: {
-    sourcemap: true,
+    rollupOptions: isSsrBuild
+      ? {
+          input: './server/app.ts',
+        }
+      : undefined,
   },
-});
+  ssr: {
+    noExternal: command === 'build' ? true : undefined,
+  },
+  plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+}));

@@ -1,13 +1,13 @@
 import { createContainer, InjectionMode, asFunction, asValue } from 'awilix';
-import { redirect } from '@remix-run/node';
+import { redirect } from 'react-router';
 import { mainConfig, type MainConfig } from '../config.server';
-import { createLogger, Logger } from './logger.server';
-import { createSessionManager, SessionManager } from './session/create-session-manager.server';
-import { createMailer, Mailer } from './mailer.server';
+import { createLogger, type Logger } from './logger.server';
+import { createSessionManager, type SessionManager } from './session/create-session-manager.server';
+import { createMailer, type Mailer } from './mailer.server';
 import { createServerTimingsProfiler } from './server-timing.server';
 import { createLumaClient } from './luma/api.server';
 import { createPosthogClient } from './posthog/posthog.server';
-import { createPocketbaseClient } from './pocketbase/api.server';
+import { createDatabaseClient } from './db/client.server';
 
 export const buildContainer = () => {
   // 1. load the config
@@ -20,7 +20,7 @@ export const buildContainer = () => {
     sessionManager: SessionManager;
     mailer: Mailer;
     serverTimingsProfiler: ReturnType<typeof createServerTimingsProfiler>;
-    pocketBaseClient: ReturnType<typeof createPocketbaseClient>;
+    db: ReturnType<typeof createDatabaseClient>;
     lumaClient: ReturnType<typeof createLumaClient>;
     posthogClient: ReturnType<typeof createPosthogClient>;
   }>({
@@ -36,7 +36,7 @@ export const buildContainer = () => {
       .singleton(),
     mailer: asFunction(createMailer).singleton(),
     serverTimingsProfiler: asFunction(createServerTimingsProfiler).scoped(),
-    pocketBaseClient: asFunction(createPocketbaseClient).singleton(),
+    db: asFunction(createDatabaseClient).singleton(),
     lumaClient: asFunction(createLumaClient).singleton(),
     posthogClient: asFunction(createPosthogClient).singleton(),
   });

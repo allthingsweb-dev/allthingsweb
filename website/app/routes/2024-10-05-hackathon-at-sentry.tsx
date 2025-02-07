@@ -8,9 +8,9 @@ import {
 import { Section } from '~/modules/components/ui/section';
 import { meta } from '~/modules/event-details/meta';
 import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
-import { useLoaderData } from '@remix-run/react';
-import { LoaderFunctionArgs } from '@remix-run/node';
-import { deserializeExpandedEvent } from '~/modules/pocketbase/pocketbase';
+import { useLoaderData } from 'react-router';
+import { LoaderFunctionArgs } from 'react-router';
+import { deserializeExpandedEvent } from '~/modules/allthingsweb/public-types';
 
 export { headers } from '~/modules/header.server';
 

@@ -1,4 +1,4 @@
-import { createCookieSessionStorage } from '@remix-run/node';
+import { createCookieSessionStorage } from 'react-router';
 import { createCsrfToken } from './csrf.server';
 import { MainConfig } from '~/config.server';
 
@@ -14,7 +14,7 @@ export type SessionManager = {
 
 type Deps = {
   mainConfig: MainConfig;
-  redirect: typeof import('@remix-run/node').redirect;
+  redirect: typeof import('react-router').redirect;
 };
 export const createSessionManager = ({ mainConfig, redirect }: Deps): SessionManager => {
   const { commitSession, getSession } = createCookieSessionStorage({

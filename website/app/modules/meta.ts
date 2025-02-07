@@ -1,4 +1,4 @@
-import { MetaFunction } from '@remix-run/node';
+import { MetaFunction } from 'react-router';
 
 type MatchesObject = Parameters<MetaFunction>[0]['matches'];
 

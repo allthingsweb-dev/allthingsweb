@@ -1,7 +1,7 @@
-import { Event } from '~/modules/pocketbase/pocketbase';
+import type { Event } from '~/modules/allthingsweb/public-types';
 import { lru } from '~/modules/cache';
 import cachified from '@epic-web/cachified';
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from 'react-router';
 
 function getUrlElementWithDate(url: string, date: string) {
   return `<url>

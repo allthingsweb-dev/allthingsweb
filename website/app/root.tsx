@@ -1,11 +1,11 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
-import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import tailwindStyles from './tailwind.css?url';
-import { LinksFunction, LoaderFunctionArgs, MetaFunction, json } from '@remix-run/node';
 import { PageTransitionProgressBar } from './modules/components/page-transition';
 import { ErrorPage } from './modules/components/error-page';
+import type { Route } from './+types/root';
+import './tailwind.css';
 
-export const links: LinksFunction = () => [
+export const links: Route.LinksFunction = () => [
   { rel: 'stylesheet', href: tailwindStyles },
   { rel: 'alternate', type: 'application/rss+xml', href: '/rss' },
   { rel: 'icon', href: '/favicon-16.png', sizes: '16x16' },
@@ -15,8 +15,8 @@ export const links: LinksFunction = () => [
   { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
 ];
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const meta: ReturnType<MetaFunction> = [];
+export const meta: Route.MetaFunction = ({ data }) => {
+  const meta: ReturnType<Route.MetaFunction> = [];
   if (data?.posthogPublicAPIKey) {
     meta.push({ name: 'x-posthog', content: data.posthogPublicAPIKey });
   }
@@ -32,9 +32,9 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
   return meta;
 };
 
-export async function loader({ request, context }: LoaderFunctionArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const [userSession, headers] = await context.session.requireCanonicalSession(request);
-  return json(
+  return Response.json(
     {
       csrfToken: userSession.csrfToken,
       posthogPublicAPIKey: context.mainConfig.posthog.publicApiKey,
@@ -65,14 +65,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function App() {
+export function App() {
   return <Outlet />;
 }
 
-export default withSentry(App);
-
 export function ErrorBoundary() {
-  const error = useRouteError();
-  captureRemixErrorBoundaryError(error);
   return <ErrorPage />;
 }

@@ -1,5 +1,5 @@
 import cachified from '@epic-web/cachified';
-import { LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { LoaderFunctionArgs, redirect } from 'react-router';
 import { lru } from '~/modules/cache';
 import { notFound } from '~/modules/responses.server';
 

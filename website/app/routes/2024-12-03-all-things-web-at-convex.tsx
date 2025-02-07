@@ -9,10 +9,10 @@ import {
 } from '~/modules/event-details/components';
 import { meta } from '~/modules/event-details/meta';
 import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
-import { useLoaderData } from '@remix-run/react';
+import { useLoaderData } from 'react-router';
 import TypeAnimation from '~/modules/components/ui/typing-animation';
-import { LoaderFunctionArgs } from '@remix-run/node';
-import { deserializeExpandedEvent } from '~/modules/pocketbase/pocketbase';
+import { LoaderFunctionArgs } from 'react-router';
+import { deserializeExpandedEvent } from '~/modules/allthingsweb/public-types';
 export { headers } from '~/modules/header.server';
 
 export { meta };

@@ -4,7 +4,7 @@ import nodeFetch from 'node-fetch';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import { LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from 'react-router';
 import { notFound, internalServerError } from '~/modules/responses.server';
 import { captureException } from '~/modules/sentry/capture.server';
 import { type ObjectFit } from '~/modules/image-opt/utils';

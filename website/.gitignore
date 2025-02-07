@@ -1,10 +1,16 @@
-node_modules
+.DS_Store
+/node_modules/
 
 /.cache
-/build
-/data
 .env
 
 # Sentry Config File
 .sentryclirc
+
+# React Router
+/.react-router/
+/build/
+
+# Vercel
+/.vercel/
 

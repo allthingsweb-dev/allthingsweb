@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs, json } from '@remix-run/node';
+import { LoaderFunctionArgs, json } from 'react-router';
 import { isEventInPast } from '../pocketbase/pocketbase';
 import { notFound } from '../responses.server';
 import { captureException } from '../sentry/capture.server';
@@ -54,7 +54,7 @@ export async function eventDetailsLoader(slug: string, { serverTimingsProfiler, 
 
   const isAtCapacity = attendeeCount >= event.attendeeLimit;
   const isInPast = isEventInPast(event);
-  return json(
+  return Response.json(
     {
       event,
       attendeeCount,

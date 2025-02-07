@@ -1,4 +1,4 @@
-import { isRouteErrorResponse, NavLink, useRouteError } from '@remix-run/react';
+import { isRouteErrorResponse, NavLink, useRouteError } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { getImageSrc } from '../image-opt/utils';
 

@@ -1,5 +1,5 @@
-import { LoaderFunctionArgs, MetaFunction } from '@remix-run/node';
-import { Link, useLoaderData } from '@remix-run/react';
+import { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import { Link, useLoaderData } from 'react-router';
 import clsx from 'clsx';
 import { ExternalLinkIcon, RssIcon } from 'lucide-react';
 import { PageLayout } from '~/modules/components/page-layout';

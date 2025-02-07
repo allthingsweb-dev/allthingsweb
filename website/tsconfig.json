@@ -1,20 +1,15 @@
 {
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/.server/**/*.ts",
-    "**/.server/**/*.tsx",
-    "**/.client/**/*.ts",
-    "**/.client/**/*.tsx"
-  ],
+  "include": ["**/*", "**/.server/**/*", "**/.client/**/*", ".react-router/types/**/*"],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "types": ["@remix-run/node", "vite/client"],
+    "types": ["vite/client"],
     "isolatedModules": true,
     "esModuleInterop": true,
+    "verbatimModuleSyntax": false,
     "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "rootDirs": [".", "./.react-router/types"],
+    "module": "ES2022",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "target": "ES2022",
     "strict": true,
@@ -25,10 +20,8 @@
     "paths": {
       "~/*": ["./app/*"]
     },
-
     // Vite takes care of building everything, not tsc.
     "noEmit": true,
-
     // Some stricter flags
     "noUnusedLocals": true,
     "noUnusedParameters": true
