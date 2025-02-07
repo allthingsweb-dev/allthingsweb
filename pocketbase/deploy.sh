@@ -1,1 +1,0 @@
-fly deploy --ha=false

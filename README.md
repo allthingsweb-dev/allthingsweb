@@ -14,11 +14,10 @@
 ### 📁 Directories
 
 - `website`: the web application. Frontend + backend SSR
-- `pocketbase`:
 
 ### 🛠️ Installation
 
-To ease the DX on the project, you don't necessarly have to know about BUN or other command, instead we provide a _Makefile_ that simplify it for you.
+To ease the DX on the project, you don't necessarly have to know about Bun or other command, instead we provide a _Makefile_ that simplify it for you.
 
 ```bash
 make install
@@ -28,9 +27,7 @@ make install
 
 #### 🔤 Environment variables
 
-You need to `cp` `website/.env.dist` in `website/.env`. Currently, you must have
-Pocketbase running locally or have access to a production instance in order to
-start the website.
+You need to `cp` `website/.env.dist` in `website/.env`.
 
 #### 🏃‍♂️ Running
 
