@@ -1,5 +1,5 @@
-import { UseEmblaCarouselType } from 'embla-carousel-react';
-import { useCallback, useEffect, useState } from 'react';
+import { UseEmblaCarouselType } from "embla-carousel-react";
+import { useCallback, useEffect, useState } from "react";
 
 type UsePrevNextButtonsType = {
   prevBtnDisabled: boolean;
@@ -8,7 +8,9 @@ type UsePrevNextButtonsType = {
   onNextButtonClick: () => void;
 };
 
-export const usePrevNextButtons = (emblaApi: UseEmblaCarouselType[1]): UsePrevNextButtonsType => {
+export const usePrevNextButtons = (
+  emblaApi: UseEmblaCarouselType[1],
+): UsePrevNextButtonsType => {
   const [prevBtnDisabled, setPrevBtnDisabled] = useState(true);
   const [nextBtnDisabled, setNextBtnDisabled] = useState(true);
 
@@ -32,7 +34,7 @@ export const usePrevNextButtons = (emblaApi: UseEmblaCarouselType[1]): UsePrevNe
     if (!emblaApi) return;
 
     onSelect(emblaApi);
-    emblaApi.on('reInit', onSelect).on('select', onSelect);
+    emblaApi.on("reInit", onSelect).on("select", onSelect);
   }, [emblaApi, onSelect]);
 
   return {

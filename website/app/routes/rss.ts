@@ -1,7 +1,7 @@
-import { Event } from '~/modules/allthingsweb/public-types';
-import cachified from '@epic-web/cachified';
-import { lru } from '~/modules/cache';
-import { LoaderFunctionArgs } from 'react-router';
+import { Event } from "~/modules/allthingsweb/events";
+import cachified from "@epic-web/cachified";
+import { lru } from "~/modules/cache";
+import { Route } from "./+types/rss";
 
 function generateRSS(events: Event[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -17,25 +17,25 @@ function generateRSS(events: Event[], origin: string) {
             <title>${event.name}</title>
             <description>${event.tagline}</description>
             <link>${origin}/${event.slug}</link>
-            <pubDate>${event.created.toUTCString()}</pubDate>
+            <pubDate>${event.createdAt.toUTCString()}</pubDate>
         </item>`,
           )
-          .join('\n')}
+          .join("\n")}
     </channel>
 </rss>`;
 }
 
-export async function loader({ context }: LoaderFunctionArgs) {
-  const events = await context.pocketBaseClient.getEvents();
+export async function loader({ context }: Route.LoaderArgs) {
+  const events = await context.queryClient.getPublishedEvents();
   const content = await cachified({
-    key: 'rss',
+    key: "rss",
     cache: lru,
     ttl: 5 * 60 * 1000, // 5 minute
     getFreshValue: () => generateRSS(events, context.mainConfig.origin),
   });
   return new Response(content, {
     headers: {
-      'content-type': 'application/rss+xml',
+      "content-type": "application/rss+xml",
     },
   });
 }

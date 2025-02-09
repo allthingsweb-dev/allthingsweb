@@ -1,16 +1,20 @@
-import { MetaFunction } from 'react-router';
-import { getMetaTags, mergeMetaTags } from '../meta';
-import { type loader as rootLoader } from '~/root';
-import { type loader } from './loader.sever';
+import { getMetaTags } from "../meta";
+import { Route } from "../../routes/+types/$slug";
 
-export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ data, matches }) => {
-  const rootLoader = matches.find((match) => match.id === 'root')?.data;
-  if (!data || !data.event || !rootLoader) {
-    return mergeMetaTags([{ title: 'Event not found' }], matches);
+export const meta: Route.MetaFunction = ({ data, matches }) => {
+  const rootMatch = matches.find((match) => match && match.id === "root");
+  if (!rootMatch || !rootMatch.meta) {
+    return [{ title: "Event not found" }];
+  }
+  if (!rootMatch.data) {
+    return [{ title: "Event not found" }, ...rootMatch.meta];
   }
   const title = data.event.name;
   const description = data.event.tagline;
-  const eventUrl = `${rootLoader.serverOrigin}/${data.event.slug}`;
-  const previewImageUrl = data.event.previewImageUrl;
-  return mergeMetaTags(getMetaTags(title, description, eventUrl, previewImageUrl), matches);
+  const eventUrl = `${(rootMatch as Route.MetaArgs["matches"][0]).data.serverOrigin}/${data.event.slug}`;
+  const previewImageUrl = data.event.previewImage?.url;
+  return [
+    ...getMetaTags(title, description, eventUrl, previewImageUrl),
+    ...rootMatch.meta,
+  ];
 };

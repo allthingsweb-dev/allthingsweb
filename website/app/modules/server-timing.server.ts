@@ -3,8 +3,11 @@
  * https://gist.github.com/jacobparis/1e428524be3a31096ba3ecb35a7a15bb
  */
 
-export type PerformanceServerTimings = Record<string, Array<PerformanceServerTiming>>;
-export type TimeFn = ServerTimingsProfiler['time'];
+export type PerformanceServerTimings = Record<
+  string,
+  Array<PerformanceServerTiming>
+>;
+export type TimeFn = ServerTimingsProfiler["time"];
 export type ServerTimingsProfiler = {
   time<T>(
     serverTiming:
@@ -38,7 +41,9 @@ export function createServerTimingsProfiler(): ServerTimingsProfiler {
     time: (serverTiming, fn) => time(serverTimings, serverTiming, fn),
     timeSync: (serverTiming, fn) => timeSync(serverTimings, serverTiming, fn),
     getHeaderField: () => getServerTimeHeaderField(serverTimings),
-    getServerTimingHeader: () => ({ 'Server-Timing': getServerTimeHeaderField(serverTimings) }),
+    getServerTimingHeader: () => ({
+      "Server-Timing": getServerTimeHeaderField(serverTimings),
+    }),
   };
 }
 
@@ -54,8 +59,12 @@ async function time<T>(
 ) {
   const start = performance.now();
 
-  const name = typeof serverTimingParam === 'string' ? serverTimingParam : serverTimingParam.name;
-  const description = typeof serverTimingParam === 'string' ? '' : serverTimingParam.description;
+  const name =
+    typeof serverTimingParam === "string"
+      ? serverTimingParam
+      : serverTimingParam.name;
+  const description =
+    typeof serverTimingParam === "string" ? "" : serverTimingParam.description;
 
   if (!serverTimings[name]) {
     serverTimings[name] = [];
@@ -63,11 +72,11 @@ async function time<T>(
 
   let result: T;
   try {
-    result = typeof fn === 'function' ? await fn() : await fn;
+    result = typeof fn === "function" ? await fn() : await fn;
   } catch (error) {
     void recordServerTiming(serverTimings, {
       name,
-      description: 'Error',
+      description: "Error",
     });
 
     // Re-throw the error so that the caller can handle it
@@ -95,8 +104,12 @@ function timeSync<T>(
 ) {
   const start = performance.now();
 
-  const name = typeof serverTimingParam === 'string' ? serverTimingParam : serverTimingParam.name;
-  const description = typeof serverTimingParam === 'string' ? '' : serverTimingParam.description;
+  const name =
+    typeof serverTimingParam === "string"
+      ? serverTimingParam
+      : serverTimingParam.name;
+  const description =
+    typeof serverTimingParam === "string" ? "" : serverTimingParam.description;
 
   if (!serverTimings[name]) {
     serverTimings[name] = [];
@@ -108,7 +121,7 @@ function timeSync<T>(
   } catch (error) {
     void recordServerTiming(serverTimings, {
       name,
-      description: 'Error',
+      description: "Error",
     });
 
     // Re-throw the error so that the caller can handle it
@@ -134,7 +147,7 @@ function recordServerTiming(
 ) {
   const serverTiming: PerformanceServerTiming = {
     name: timing.name,
-    description: timing.description ?? '',
+    description: timing.description ?? "",
     duration: timing.duration ?? 0,
     toJSON() {
       // https://w3c.github.io/server-timing/#dom-performanceservertiming-tojson
@@ -151,21 +164,23 @@ function getServerTimeHeaderField(serverTimings: PerformanceServerTimings) {
   return Object.entries(serverTimings)
     .map(([name, timingInfos]) => {
       // duration is in milliseconds with microseconds precision
-      const dur = timingInfos.reduce((totalDuration, { duration }) => totalDuration + duration, 0).toFixed(3);
+      const dur = timingInfos
+        .reduce((totalDuration, { duration }) => totalDuration + duration, 0)
+        .toFixed(3);
 
       const desc = timingInfos
         .map(({ description }) => description)
         .filter(Boolean)
-        .join(' & ');
+        .join(" & ");
 
       return [
-        name.replaceAll(/(:| |@|=|;|,)/g, '_'),
+        name.replaceAll(/(:| |@|=|;|,)/g, "_"),
         // desc and dur are both optional
         desc ? `desc=${JSON.stringify(desc)}` : null,
         dur ? `dur=${dur}` : null,
       ]
         .filter(Boolean)
-        .join(';');
+        .join(";");
     })
-    .join(',');
+    .join(",");
 }

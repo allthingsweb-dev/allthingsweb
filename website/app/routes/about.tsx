@@ -1,8 +1,8 @@
-import { LoaderFunctionArgs, MetaFunction } from 'react-router';
-import { Link, useLoaderData } from 'react-router';
-import clsx from 'clsx';
-import { ExternalLinkIcon, RssIcon } from 'lucide-react';
-import { PageLayout } from '~/modules/components/page-layout';
+import { MetaFunction } from "react-router";
+import { Link, useLoaderData } from "react-router";
+import clsx from "clsx";
+import { ExternalLinkIcon, RssIcon } from "lucide-react";
+import { PageLayout } from "~/modules/components/page-layout";
 import {
   BlueskyLogoIcon,
   DiscordLogoIcon,
@@ -10,33 +10,49 @@ import {
   LumaLogoIcon,
   TwitterLogoIcon,
   YouTubeLogoIcon,
-} from '~/modules/components/ui/icons';
-import { Section } from '~/modules/components/ui/section';
-import { MemberCard } from '~/modules/members/components';
-import { fetchMembers, organizeByType } from '~/modules/members/loader.server';
-import { getMetaTags, mergeMetaTags } from '~/modules/meta';
-import { loader as rootLoader } from '~/root';
+} from "~/modules/components/ui/icons";
+import { Section } from "~/modules/components/ui/section";
+import { ProfileCard } from "~/modules/profiles/components";
+import { organizeByType } from "~/modules/allthingsweb/profiles";
+import { getMetaTags } from "~/modules/meta";
+import { loader as rootLoader } from "~/root";
+import { Route } from "./+types/about";
+import cachified from "@epic-web/cachified";
+import { lru } from "~/modules/cache";
 
-export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
-  const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
-  if (!rootLoaderData) {
-    return mergeMetaTags([{ title: 'Something went wrong' }], matches);
+export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
+  matches,
+}) => {
+  const rootMatch = matches.find((match) => match.id === "root");
+  if (!rootMatch || !rootMatch?.meta) {
+    return [{ title: "Something went wrong" }];
   }
-  return mergeMetaTags(
-    getMetaTags(
-      'About All Things Web',
-      'All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San Francisco. Check out our organizers and join us!',
-      `${rootLoaderData.serverOrigin}/`,
-      `${rootLoaderData.serverOrigin}/img/gen/preview.png`,
-    ),
-    matches,
+  if (!rootMatch.data) {
+    return [{ title: "Something went wrong" }, ...rootMatch.meta];
+  }
+  const rootData = (rootMatch as Route.MetaArgs["matches"][0]).data;
+  return getMetaTags(
+    "About All Things Web",
+    "All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San Francisco. Check out our organizers and join us!",
+    `${rootData.serverOrigin}/`,
+    `${rootData.serverOrigin}/img/gen/preview.png`,
   );
 };
 
-export async function loader({ context }: LoaderFunctionArgs) {
-  const members = await fetchMembers({ pocketbaseClient: context.pocketBaseClient });
-  const membersMap = organizeByType(members);
-  return { membersMap };
+export async function loader({ context }: Route.LoaderArgs) {
+  return cachified({
+    key: "members",
+    cache: lru,
+    // Use cached value for 3 minutes, after one minute, fetch fresh value in the background
+    // Downstream is only hit once a minute
+    ttl: 60 * 1000, // one minute
+    staleWhileRevalidate: 2 * 60 * 1000, // two minutes
+    getFreshValue: async () => {
+      const profiles = await context.queryClient.getOrganizers();
+      const membersMap = organizeByType(profiles);
+      return { membersMap };
+    },
+  });
 }
 
 export default function Component() {
@@ -47,9 +63,11 @@ export default function Component() {
         <div className="container max-w-[800px]">
           <h1 className="text-4xl font-bold mb-8">About All Things Web</h1>
           <p className="text-lg text-gray-700">
-            All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San
-            Francisco. Our mission is to bring together passionate developers, foster knowledge sharing, and create
-            networking opportunities in the ever-evolving world of web technologies.
+            All Things Web is a community dedicated to organizing events for web
+            developers in the Bay Area and San Francisco. Our mission is to
+            bring together passionate developers, foster knowledge sharing, and
+            create networking opportunities in the ever-evolving world of web
+            technologies.
           </p>
         </div>
       </Section>
@@ -57,10 +75,10 @@ export default function Component() {
         <div className="container">
           <h2 className="text-2xl font-semibold mb-6">Organizers</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {membersMap.organizers.map((member) => (
-              <MemberCard key={member.id} member={member}>
-                <p className="mb-2 mt-4">{member.bio}</p>
-              </MemberCard>
+            {membersMap.organizers.map((profile) => (
+              <ProfileCard key={profile.id} profile={profile}>
+                <p className="mb-2 mt-4">{profile.bio}</p>
+              </ProfileCard>
             ))}
           </div>
         </div>
@@ -134,7 +152,10 @@ function SocialBox({
   return (
     <Link
       to={link}
-      className={clsx('flex items-center p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow gap-4', classNames)}
+      className={clsx(
+        "flex items-center p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow gap-4",
+        classNames,
+      )}
       target="_blank"
       rel="noopener noreferrer"
     >

@@ -1,42 +1,51 @@
-import { SentryLogoIcon } from '~/modules/components/ui/icons';
+import { SentryLogoIcon } from "~/modules/components/ui/icons";
 import {
   AllYouNeedToKnowSection,
   EventDetailsPage,
   HeroSection,
-  PhotosSection,
-} from '~/modules/event-details/components';
-import { Section } from '~/modules/components/ui/section';
-import { meta } from '~/modules/event-details/meta';
-import { eventDetailsLoader } from '~/modules/event-details/loader.sever';
-import { useLoaderData } from 'react-router';
-import { LoaderFunctionArgs } from 'react-router';
-import { deserializeExpandedEvent } from '~/modules/allthingsweb/public-types';
+  ImagesSection,
+} from "~/modules/event-details/components";
+import { Section } from "~/modules/components/ui/section";
+import { meta } from "~/modules/event-details/meta";
+import { eventDetailsLoader } from "~/modules/event-details/loader.sever";
+import { useLoaderData } from "react-router";
+import { Route } from "./+types/2024-10-05-hackathon-at-sentry";
 
-export { headers } from '~/modules/header.server';
+export { headers } from "~/modules/header.server";
 
 export { meta };
 
-export function loader({ context }: LoaderFunctionArgs) {
-  return eventDetailsLoader('2024-10-05-hackathon-at-sentry', {
+export function loader({ context }: Route.LoaderArgs) {
+  return eventDetailsLoader("2024-10-05-hackathon-at-sentry", {
     serverTimingsProfiler: context.serverTimingsProfiler,
     lumaClient: context.services.lumaClient,
-    pocketBaseClient: context.services.pocketBaseClient,
+    queryClient: context.services.queryClient,
   });
 }
 
 export default function Component() {
-  const { event: eventData, isAtCapacity, attendeeCount, attendeeLimit, isInPast } = useLoaderData<typeof loader>();
-  const event = deserializeExpandedEvent(eventData);
+  const { event, isAtCapacity, attendeeCount, attendeeLimit, isInPast } =
+    useLoaderData<typeof loader>();
   return (
-    <EventDetailsPage event={event} isAtCapacity={isAtCapacity} isInPast={isInPast}>
-      <HeroSection event={event} isAtCapacity={isAtCapacity} isInPast={isInPast} />
+    <EventDetailsPage
+      event={event}
+      isAtCapacity={isAtCapacity}
+      isInPast={isInPast}
+    >
+      <HeroSection
+        event={event}
+        isAtCapacity={isAtCapacity}
+        isInPast={isInPast}
+      />
       <AllYouNeedToKnowSection
         event={event}
         attendeeCount={attendeeCount}
         attendeeLimit={attendeeLimit}
         isInPast={isInPast}
       />
-      {!!event.photos && <PhotosSection background="default" photos={event.photos} />}
+      {!!event.images && (
+        <ImagesSection background="default" images={event.images} />
+      )}
       <Section variant="big" background="muted">
         <Schedule />
       </Section>
@@ -54,7 +63,9 @@ function Schedule() {
   return (
     <div className="px-4 md:px-6 mx-auto max-w-4xl">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Schedule</h2>
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Schedule
+        </h2>
       </div>
       <div className="space-y-6">
         <ScheduleItem
@@ -87,7 +98,15 @@ function Schedule() {
   );
 }
 
-function ScheduleItem({ time, title, description }: { time: string; title: string; description: string }) {
+function ScheduleItem({
+  time,
+  title,
+  description,
+}: {
+  time: string;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="grid grid-cols-[100px_1fr] items-start gap-4">
       <div className="text-sm font-medium text-muted-foreground">{time}</div>
@@ -104,34 +123,48 @@ function MoreInformation() {
     <div className="container">
       <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">When and Where</h2>
+          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
+            When and Where
+          </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            The event will take place on Saturday, October 5, 2024 at the Sentry office in San Francisco. Doors will
-            open at 11:30 am. Join us for a day of coding, networking, and fun!
+            The event will take place on Saturday, October 5, 2024 at the Sentry
+            office in San Francisco. Doors will open at 11:30 am. Join us for a
+            day of coding, networking, and fun!
           </p>
         </div>
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Awards and Prizes</h2>
+          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
+            Awards and Prizes
+          </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            At the end of the event, we’ll vote for the most creative and most impactful projects. The winning teams
-            will score some awesome prizes! Here’s what’s up for grabs: Syntax & Sentry swag and $80 in Sentry credits
-            per person on the winning teams!
+            At the end of the event, we’ll vote for the most creative and most
+            impactful projects. The winning teams will score some awesome
+            prizes! Here’s what’s up for grabs: Syntax & Sentry swag and $80 in
+            Sentry credits per person on the winning teams!
           </p>
         </div>
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Theme</h2>
+          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
+            Theme
+          </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            The theme of the hackathon is "Open Source." We’d love for you to use open-source tools, maybe even give
-            back to the community during the event! But feel free to work on whatever sparks your interest. And don’t
-            forget—two prizes are up for grabs: most creative and most impactful!
+            The theme of the hackathon is "Open Source." We’d love for you to
+            use open-source tools, maybe even give back to the community during
+            the event! But feel free to work on whatever sparks your interest.
+            And don’t forget—two prizes are up for grabs: most creative and most
+            impactful!
           </p>
         </div>
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Team Building</h2>
+          <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
+            Team Building
+          </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            No need to stress about finding a team before the event! We’ll kick things off with some fun ice breakers
-            and team building. You can bring friends, team up on the spot, or fly solo if that’s more your style.
-            Teaming up isn’t mandatory, but it’s an awesome way to make new friends!
+            No need to stress about finding a team before the event! We’ll kick
+            things off with some fun ice breakers and team building. You can
+            bring friends, team up on the spot, or fly solo if that’s more your
+            style. Teaming up isn’t mandatory, but it’s an awesome way to make
+            new friends!
           </p>
         </div>
       </div>
@@ -149,13 +182,16 @@ function Sponsor() {
           <div className="text-left">
             <h3 className="text-2xl font-semibold mb-4">Sentry</h3>
             <p className="text-muted-foreground mb-4">
-              This hackathon is made possible by Sentry! We are huge fans of Sentry and are very excited to have Sentry
-              host and sponsor this event. Actually, we are using Sentry to monitor this very website!
+              This hackathon is made possible by Sentry! We are huge fans of
+              Sentry and are very excited to have Sentry host and sponsor this
+              event. Actually, we are using Sentry to monitor this very website!
             </p>
             <p className="text-muted-foreground">
-              Sentry is the debuggability platform built for how modern developers work. Over 4 million developers
-              worldwide trust Sentry’s opinionated approach to debugging—favoring action over dashboards—which gives
-              them the context and code level visibility they need to solve issues fast. Sentry users spend more time
+              Sentry is the debuggability platform built for how modern
+              developers work. Over 4 million developers worldwide trust
+              Sentry’s opinionated approach to debugging—favoring action over
+              dashboards—which gives them the context and code level visibility
+              they need to solve issues fast. Sentry users spend more time
               building and less time firefighting.
             </p>
           </div>

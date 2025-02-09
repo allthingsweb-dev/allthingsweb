@@ -1,19 +1,23 @@
-import { LoaderFunctionArgs, json } from 'react-router';
-import { isEventInPast } from '../pocketbase/pocketbase';
-import { notFound } from '../responses.server';
-import { captureException } from '../sentry/capture.server';
-import cachified from '@epic-web/cachified';
-import { lru } from '../cache';
-import { ServerTimingsProfiler } from '../server-timing.server';
-import { createPocketbaseClient } from '../pocketbase/api.server';
-import { createLumaClient } from '../luma/api.server';
+import { data } from "react-router";
+import { isEventInPast } from "../allthingsweb/events";
+import { notFound } from "../responses.server";
+import { captureException } from "../sentry/capture.server";
+import cachified from "@epic-web/cachified";
+import { lru } from "../cache";
+import { ServerTimingsProfiler } from "../server-timing.server";
+import { createLumaClient } from "../luma/api.server";
+import { QueryClient } from "../db/queries.server";
+import { Route } from "../../routes/+types/$slug";
 
 type Deps = {
   serverTimingsProfiler: ServerTimingsProfiler;
-  pocketBaseClient: ReturnType<typeof createPocketbaseClient>;
+  queryClient: QueryClient;
   lumaClient: ReturnType<typeof createLumaClient>;
 };
-export async function eventDetailsLoader(slug: string, { serverTimingsProfiler, pocketBaseClient, lumaClient }: Deps) {
+export async function eventDetailsLoader(
+  slug: string,
+  { serverTimingsProfiler, queryClient, lumaClient }: Deps,
+) {
   const { time, getServerTimingHeader } = serverTimingsProfiler;
   const event = await cachified({
     key: `getExpandedEventBySlug-${slug}`,
@@ -23,7 +27,9 @@ export async function eventDetailsLoader(slug: string, { serverTimingsProfiler, 
     ttl: 60 * 1000, // one minute
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
     getFreshValue() {
-      return time('getExpandedEventBySlug', () => pocketBaseClient.getExpandedEventBySlug(slug));
+      return time("getExpandedEventBySlug", () =>
+        queryClient.getExpandedEventBySlug(slug),
+      );
     },
   });
   if (!event) {
@@ -43,7 +49,9 @@ export async function eventDetailsLoader(slug: string, { serverTimingsProfiler, 
         if (!lumaEventId) {
           return 0;
         }
-        return time('getLumaAttendeeCount', () => lumaClient.getAttendeeCount(lumaEventId));
+        return time("getLumaAttendeeCount", () =>
+          lumaClient.getAttendeeCount(lumaEventId),
+        );
       } catch (error) {
         console.error(error);
         captureException(error);
@@ -54,7 +62,7 @@ export async function eventDetailsLoader(slug: string, { serverTimingsProfiler, 
 
   const isAtCapacity = attendeeCount >= event.attendeeLimit;
   const isInPast = isEventInPast(event);
-  return Response.json(
+  return data(
     {
       event,
       attendeeCount,
@@ -66,13 +74,13 @@ export async function eventDetailsLoader(slug: string, { serverTimingsProfiler, 
   );
 }
 
-export function loader({ params, context }: LoaderFunctionArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   if (!params.slug) {
-    throw new Error('No slug provided');
+    throw new Error("No slug provided");
   }
   return eventDetailsLoader(params.slug, {
     serverTimingsProfiler: context.serverTimingsProfiler,
-    pocketBaseClient: context.pocketBaseClient,
+    queryClient: context.queryClient,
     lumaClient: context.services.lumaClient,
   });
 }

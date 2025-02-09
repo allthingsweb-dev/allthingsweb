@@ -1,5 +1,5 @@
-import { PostHog } from 'posthog-node';
-import { type MainConfig } from '~/config.server';
+import { PostHog } from "posthog-node";
+import { type MainConfig } from "~/config.server";
 
 type Deps = {
   mainConfig: MainConfig;
@@ -18,7 +18,7 @@ export const createPosthogClient = ({ mainConfig }: Deps) => {
   }
 
   const client = new PostHog(mainConfig.posthog.publicApiKey, {
-    host: 'https://us.i.posthog.com',
+    host: "https://us.i.posthog.com",
   });
 
   const trackEvent = <T extends AnalyticsEventName>(

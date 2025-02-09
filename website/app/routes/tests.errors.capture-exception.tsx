@@ -1,9 +1,9 @@
-import { Form } from 'react-router';
-import { Button } from '~/modules/components/ui/button';
-import { captureException } from '~/modules/sentry/capture.server';
+import { Form } from "react-router";
+import { Button } from "~/modules/components/ui/button";
+import { captureException } from "~/modules/sentry/capture.server";
 
 export async function action() {
-  captureException(new Error('This is a test error from an action function'));
+  captureException(new Error("This is a test error from an action function"));
   return {};
 }
 

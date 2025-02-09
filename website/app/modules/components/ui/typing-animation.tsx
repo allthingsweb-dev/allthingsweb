@@ -1,6 +1,6 @@
-import clsx from 'clsx';
-import { useState, useEffect } from 'react';
-import { Card } from './card';
+import clsx from "clsx";
+import { useState, useEffect } from "react";
+import { Card } from "./card";
 
 export function useTypingAnimation(
   texts: string[],
@@ -8,7 +8,7 @@ export function useTypingAnimation(
   deletingSpeed: number = 50,
   pauseDuration: number = 1000,
 ) {
-  const [displayedText, setDisplayedText] = useState('');
+  const [displayedText, setDisplayedText] = useState("");
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
 
@@ -25,7 +25,7 @@ export function useTypingAnimation(
         timeout = setTimeout(() => setIsTyping(false), pauseDuration);
       }
     } else {
-      if (displayedText !== '') {
+      if (displayedText !== "") {
         timeout = setTimeout(() => {
           setDisplayedText(displayedText.slice(0, -1));
         }, deletingSpeed);
@@ -36,19 +36,35 @@ export function useTypingAnimation(
     }
 
     return () => clearTimeout(timeout);
-  }, [displayedText, isTyping, currentTextIndex, texts, typingSpeed, deletingSpeed, pauseDuration]);
+  }, [
+    displayedText,
+    isTyping,
+    currentTextIndex,
+    texts,
+    typingSpeed,
+    deletingSpeed,
+    pauseDuration,
+  ]);
 
   return displayedText;
 }
 
-export default function TypeAnimation({ texts, className }: { texts: string[]; className?: string }) {
+export default function TypeAnimation({
+  texts,
+  className,
+}: {
+  texts: string[];
+  className?: string;
+}) {
   const displayedText = useTypingAnimation(texts);
 
   return (
-    <Card className={clsx('py-4 px-6 rounded-lg', className)}>
+    <Card className={clsx("py-4 px-6 rounded-lg", className)}>
       <pre className="text-lg font-mono">
-        <span className="text-green-600 dark:text-green-400">$</span>{' '}
-        <span className="inline-block w-[260px] text-gray-800 dark:text-gray-200 whitespace-pre">{displayedText}</span>
+        <span className="text-green-600 dark:text-green-400">$</span>{" "}
+        <span className="inline-block w-[260px] text-gray-800 dark:text-gray-200 whitespace-pre">
+          {displayedText}
+        </span>
       </pre>
     </Card>
   );

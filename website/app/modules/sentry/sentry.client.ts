@@ -1,7 +1,5 @@
-import * as Sentry from '@sentry/remix';
-import { useLocation, useMatches } from 'react-router';
-import { useEffect } from 'react';
-import { clientEnv } from '../env.client';
+import * as Sentry from "@sentry/react";
+import { clientEnv } from "../env.client";
 
 if (clientEnv.sentryDsn) {
   Sentry.init({
@@ -11,14 +9,10 @@ if (clientEnv.sentryDsn) {
     replaysOnErrorSampleRate: 1,
 
     integrations: [
-      Sentry.browserTracingIntegration({
-        useEffect,
-        useLocation,
-        useMatches,
-      }),
+      Sentry.browserTracingIntegration(),
       Sentry.replayIntegration(),
       Sentry.feedbackIntegration({
-        colorScheme: 'system',
+        colorScheme: "system",
       }),
     ],
   });

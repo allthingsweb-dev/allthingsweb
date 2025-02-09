@@ -1,13 +1,13 @@
-import { isRouteErrorResponse, NavLink, useRouteError } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
-import { getImageSrc } from '../image-opt/utils';
+import { isRouteErrorResponse, NavLink, useRouteError } from "react-router";
+import { Img } from "openimg/react";
+import { ArrowLeft } from "lucide-react";
 
 export function ErrorPage() {
   const error = useRouteError();
 
   const heading =
     isRouteErrorResponse(error) && error.status === 404
-      ? 'Oops, this page does not exist!'
+      ? "Oops, this page does not exist!"
       : "Oops, you've found a glitch!";
   const paragraph =
     isRouteErrorResponse(error) && error.status === 404
@@ -16,15 +16,17 @@ export function ErrorPage() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-md text-center">
-        <img
-          src={getImageSrc('/img/public/hero-image-404.png', { width: 300, height: 300, fit: 'cover' })}
-          width="300"
-          height="300"
+      <div className="mx-auto max-w-lg text-center">
+        <Img
+          src="/hero-image-404.png"
+          width={300}
+          height={300}
           alt="A cartoon-style developer sitting at a desk with a laptop, looking puzzled."
           className="mx-auto"
         />
-        <h1 className="mt-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{heading}</h1>
+        <h1 className="mt-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          {heading}
+        </h1>
         <p className="mt-4 text-muted-foreground">{paragraph}</p>
         <div className="mt-6">
           <NavLink

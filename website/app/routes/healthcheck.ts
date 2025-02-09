@@ -1,7 +1,7 @@
 export function loader() {
-  return new Response('OK', {
+  return new Response("OK", {
     headers: {
-      'Content-Type': 'text/plain',
+      "Content-Type": "text/plain",
     },
   });
 }

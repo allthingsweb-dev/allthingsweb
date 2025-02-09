@@ -1,41 +1,47 @@
-import { useLoaderData } from 'react-router';
-import { LoaderFunctionArgs, MetaFunction } from 'react-router';
-import cachified from '@epic-web/cachified';
-import { ArrowRightIcon, CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react';
-import { type loader as rootLoader } from '~/root';
-import type { Event } from '~/modules/allthingsweb/public-types';
-import { ButtonAnchor, ButtonNavLink } from '~/modules/components/ui/button';
-import { EventsCarousel } from '~/modules/event-carousel/components';
-import { PageLayout } from '~/modules/components/page-layout';
-import { Section } from '~/modules/components/ui/section';
-import { toReadableDateTimeStr } from '~/modules/datetime';
-import { getMetaTags, mergeMetaTags } from '~/modules/meta';
-import { lru } from '~/modules/cache';
-import { getImageSrc } from '~/modules/image-opt/utils';
-import { DiscordLogoIcon } from '~/modules/components/ui/icons';
+import { data, useLoaderData } from "react-router";
+import cachified from "@epic-web/cachified";
+import {
+  ArrowRightIcon,
+  CalendarIcon,
+  MapPinIcon,
+  UsersIcon,
+} from "lucide-react";
+import type { Event } from "~/modules/allthingsweb/events";
+import { ButtonAnchor, ButtonNavLink } from "~/modules/components/ui/button";
+import { EventsCarousel } from "~/modules/event-carousel/components";
+import { PageLayout } from "~/modules/components/page-layout";
+import { Section } from "~/modules/components/ui/section";
+import { toReadableDateTimeStr } from "~/modules/datetime";
+import { getMetaTags } from "~/modules/meta";
+import { lru } from "~/modules/cache";
+import { DiscordLogoIcon } from "~/modules/components/ui/icons";
+import { Route } from "./+types/_index";
+import { Image } from "~/modules/allthingsweb/images";
+import { Img } from "openimg/react";
 
-export { headers } from '~/modules/header.server';
+export { headers } from "~/modules/header.server";
 
-export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({ matches }) => {
-  const rootLoaderData = matches.find((match) => match.id === 'root')?.data;
-  if (!rootLoaderData) {
-    return mergeMetaTags([{ title: 'Something went wrong' }], matches);
+export const meta: Route.MetaFunction = ({ matches }) => {
+  const rootMatch = matches.find((match) => match && match.id === "root");
+  if (!rootMatch || !rootMatch.meta) {
+    return [{ title: "Something went wrong" }];
   }
-  return mergeMetaTags(
-    getMetaTags(
-      'All Things Web',
-      'Discover exciting web development events in the Bay Area and San Francisco.',
-      `${rootLoaderData.serverOrigin}/`,
-      `${rootLoaderData.serverOrigin}/img/gen/preview.png`,
-    ),
-    matches,
+  if (!rootMatch.data) {
+    return [{ title: "Something went wrong" }, ...rootMatch.meta];
+  }
+  const rootData = (rootMatch as Route.MetaArgs["matches"][0]).data;
+  return getMetaTags(
+    "All Things Web",
+    "Discover exciting web development events in the Bay Area and San Francisco.",
+    `${rootData.serverOrigin}/`,
+    `${rootData.serverOrigin}/img/gen/preview.png`,
   );
 };
 
-export async function loader({ context }: LoaderFunctionArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   const { time, getServerTimingHeader } = context.serverTimingsProfiler;
   const { highlightEvent, remainingEvents, pastEvents } = await cachified({
-    key: '_index-loader-data',
+    key: "_index-loader-data",
     cache: lru,
     // Use cached value for 3 minutes, after one minute, fetch fresh value in the background
     // Downstream is only hit once a minute
@@ -43,11 +49,18 @@ export async function loader({ context }: LoaderFunctionArgs) {
     staleWhileRevalidate: 2 * 60 * 1000, // two minutes
     getFreshValue: async () => {
       const [events, pastEvents] = await Promise.all([
-        time('getUpcomingEvents', context.pocketBaseClient.getUpcomingEvents),
-        time('getPastEvents', context.pocketBaseClient.getPastEvents),
+        time(
+          "getUpcomingEvents",
+          context.queryClient.getPublishedUpcomingEvents,
+        ),
+        time("getPastEvents", context.queryClient.getPublishedPastEvents),
       ]);
-      const highlightEvent = events.find((event) => event.highlightOnLandingPage);
-      const remainingEvents = events.filter((event) => event.id !== highlightEvent?.id);
+      const highlightEvent = events.find(
+        (event) => event.highlightOnLandingPage,
+      );
+      const remainingEvents = events.filter(
+        (event) => event.id !== highlightEvent?.id,
+      );
 
       return {
         highlightEvent,
@@ -57,28 +70,12 @@ export async function loader({ context }: LoaderFunctionArgs) {
     },
   });
 
-  let eventPhotos: string[] = [];
-  let loopCounter = 0;
-  // Get even number of photos from each event
-  while (eventPhotos.length < 30) {
-    const shuffledPastEvents = pastEvents.toSorted(() => Math.random() - 0.5);
-    for (const event of shuffledPastEvents) {
-      if (event.photos[loopCounter]) {
-        eventPhotos.push(event.photos[loopCounter]);
-      }
-      if (eventPhotos.length >= 30) {
-        break;
-      }
-    }
-    loopCounter++;
-  }
-
-  return Response.json(
+  return data(
     {
       highlightEvent,
       remainingEvents,
       pastEvents,
-      pastEventImages: eventPhotos,
+      pastEventImages: [], // TODO hard code a few images here
     },
     {
       headers: getServerTimingHeader(),
@@ -87,7 +84,8 @@ export async function loader({ context }: LoaderFunctionArgs) {
 }
 
 export default function Component() {
-  const { highlightEvent, remainingEvents, pastEvents, pastEventImages } = useLoaderData<typeof loader>();
+  const { highlightEvent, remainingEvents, pastEvents, pastEventImages } =
+    useLoaderData<typeof loader>();
 
   return (
     <PageLayout>
@@ -107,7 +105,9 @@ export default function Component() {
               <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  <span>{toReadableDateTimeStr(highlightEvent.start, true)}</span>
+                  <span>
+                    {toReadableDateTimeStr(highlightEvent.startDate, true)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="h-4 w-4" />
@@ -124,14 +124,19 @@ export default function Component() {
           </div>
         </Section>
       )}
-      {remainingEvents.length > 0 && <OtherUpcomingEventsSection events={remainingEvents} />}
+      {remainingEvents.length > 0 && (
+        <OtherUpcomingEventsSection events={remainingEvents} />
+      )}
       <Section variant="big" className="bg-indigo-600 text-white">
         <div className="container">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Join our Discord</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                Join our Discord
+              </h2>
               <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl">
-                Connect with fellow developers, share ideas, and stay updated on the latest events and opportunities.
+                Connect with fellow developers, share ideas, and stay updated on
+                the latest events and opportunities.
               </p>
             </div>
             <div className="space-x-4">
@@ -148,19 +153,19 @@ export default function Component() {
           </div>
         </div>
       </Section>
-      <PastEventsSection events={pastEvents.map(deserializeEvent)} />
+      <PastEventsSection events={pastEvents} />
     </PageLayout>
   );
 }
 
-function LandingHero({ images }: { images: string[] }) {
+function LandingHero({ images }: { images: Image[] }) {
   return (
     <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
       <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1">
-        {images.map((imageSrc) => (
-          <img
-            key={imageSrc}
-            src={getImageSrc(imageSrc, { width: 400, height: 400, fit: 'cover' })}
+        {images.map((image) => (
+          <Img
+            key={image.url}
+            src={image.url}
             alt="Past event image"
             aria-hidden="true"
             width={400}
@@ -172,10 +177,13 @@ function LandingHero({ images }: { images: string[] }) {
 
       {/* Content */}
       <div className="z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4">
-        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">All Things Web 🚀</h1>
+        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+          All Things Web 🚀
+        </h1>
         <p className="max-w-2xl text-lg sm:text-xl">
-          Discover exciting web development events in the Bay Area and San Francisco. Join us for hackathons, hangouts,
-          and meetups to connect with fellow developers and web enthusiasts.
+          Discover exciting web development events in the Bay Area and San
+          Francisco. Join us for hackathons, hangouts, and meetups to connect
+          with fellow developers and web enthusiasts.
         </p>
       </div>
     </section>
@@ -187,9 +195,12 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
     <Section variant="big">
       <div className="container">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Other events</h2>
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+            Other events
+          </h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
-            Discover more upcoming web development events in the Bay Area here or on Luma.
+            Discover more upcoming web development events in the Bay Area here
+            or on Luma.
           </p>
           <ButtonAnchor
             href="https://lu.ma/allthingsweb?utm_source=web"
@@ -213,12 +224,18 @@ function PastEventsSection({ events }: { events: Event[] }) {
     <Section variant="big">
       <div className="container">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">Past events</h2>
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">
+            Past events
+          </h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
-            Find out what we&apos;ve been up to in the past. Check out our previous web development meetups and
-            hackathons.
+            Find out what we&apos;ve been up to in the past. Check out our
+            previous web development meetups and hackathons.
           </p>
-          <ButtonNavLink to="/speakers" className="inline-flex items-center justify-center" variant="outline">
+          <ButtonNavLink
+            to="/speakers"
+            className="inline-flex items-center justify-center"
+            variant="outline"
+          >
             <UsersIcon className="mr-2 h-4 w-4" />
             View all speakers
           </ButtonNavLink>

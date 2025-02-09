@@ -1,4 +1,4 @@
-import { HeadersFunction } from 'react-router';
+import { HeadersFunction } from "react-router";
 
 export const headers: HeadersFunction = ({ loaderHeaders, parentHeaders }) => {
   return setDefaultHeaders(new Headers(), {
@@ -13,11 +13,11 @@ export function setDefaultHeaders(
     parentHeaders: Headers;
   },
 ) {
-  if (args.loaderHeaders.has('Server-Timing')) {
-    headers.set('Server-Timing', args.loaderHeaders.get('Server-Timing')!);
+  if (args.loaderHeaders.has("Server-Timing")) {
+    headers.set("Server-Timing", args.loaderHeaders.get("Server-Timing")!);
   }
-  if (args.parentHeaders.has('Server-Timing')) {
-    headers.append('Server-Timing', args.parentHeaders.get('Server-Timing')!);
+  if (args.parentHeaders.has("Server-Timing")) {
+    headers.append("Server-Timing", args.parentHeaders.get("Server-Timing")!);
   }
   return headers;
 }

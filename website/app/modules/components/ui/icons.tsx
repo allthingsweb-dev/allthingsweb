@@ -44,7 +44,12 @@ export function SentryLogoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export function LinkedInLogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} version="1.1" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      version="1.1"
+      viewBox="0 0 512 512"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <path d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
     </svg>
   );
@@ -52,7 +57,12 @@ export function LinkedInLogoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export function TwitterLogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1227" fill="none">
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1200 1227"
+      fill="none"
+    >
       <g>
         <path
           d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.854V687.828Z"
@@ -70,7 +80,14 @@ export function TwitterLogoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export function BlueskyLogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} width="568" height="501" viewBox="0 0 568 501" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      width="568"
+      height="501"
+      viewBox="0 0 568 501"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <path
         d="M123.121 33.6637C188.241 82.5526 258.281 181.681 284 234.873C309.719 181.681 379.759 82.5526 444.879 33.6637C491.866 -1.61183 568 -28.9064 568 57.9464C568 75.2916 558.055 203.659 552.222 224.501C531.947 296.954 458.067 315.434 392.347 304.249C507.222 323.8 536.444 388.56 473.333 453.32C353.473 576.312 301.061 422.461 287.631 383.039C285.169 375.812 284.017 372.431 284 375.306C283.983 372.431 282.831 375.812 280.369 383.039C266.939 422.461 214.527 576.312 94.6667 453.32C31.5556 388.56 60.7778 323.8 175.653 304.249C109.933 315.434 36.0535 296.954 15.7778 224.501C9.94525 203.659 0 75.2916 0 57.9464C0 -28.9064 76.1345 -1.61183 123.121 33.6637Z"
         fill="#1185FE"
@@ -89,7 +106,11 @@ export function LumaLogoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export function DiscordLogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 127.14 96.36">
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 127.14 96.36"
+    >
       <path
         fill="#5865f2"
         d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"
@@ -100,7 +121,13 @@ export function DiscordLogoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export function GitHubLogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} width="98" height="96" viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      width="98"
+      height="96"
+      viewBox="0 0 98 96"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <path
         fill-rule="evenodd"
         clip-rule="evenodd"
@@ -113,13 +140,21 @@ export function GitHubLogoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export function YouTubeLogoIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} viewBox="0 0 28.57 20" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      {...props}
+      viewBox="0 0 28.57 20"
+      preserveAspectRatio="xMidYMid meet"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <g>
         <path
           d="M27.9727 3.12324C27.6435 1.89323 26.6768 0.926623 25.4468 0.597366C23.2197 2.24288e-07 14.285 0 14.285 0C14.285 0 5.35042 2.24288e-07 3.12323 0.597366C1.89323 0.926623 0.926623 1.89323 0.597366 3.12324C2.24288e-07 5.35042 0 10 0 10C0 10 2.24288e-07 14.6496 0.597366 16.8768C0.926623 18.1068 1.89323 19.0734 3.12323 19.4026C5.35042 20 14.285 20 14.285 20C14.285 20 23.2197 20 25.4468 19.4026C26.6768 19.0734 27.6435 18.1068 27.9727 16.8768C28.5701 14.6496 28.5701 10 28.5701 10C28.5701 10 28.5677 5.35042 27.9727 3.12324Z"
           fill="#FF0000"
         ></path>
-        <path d="M11.4253 14.2854L18.8477 10.0004L11.4253 5.71533V14.2854Z" fill="white"></path>
+        <path
+          d="M11.4253 14.2854L18.8477 10.0004L11.4253 5.71533V14.2854Z"
+          fill="white"
+        ></path>
       </g>
     </svg>
   );

@@ -1,19 +1,20 @@
-import cachified from '@epic-web/cachified';
-import { LoaderFunctionArgs, redirect } from 'react-router';
-import { lru } from '~/modules/cache';
-import { notFound } from '~/modules/responses.server';
+import cachified from "@epic-web/cachified";
+import { redirect } from "react-router";
+import { lru } from "~/modules/cache";
+import { notFound } from "~/modules/responses.server";
+import { Route } from "./+types/r_.$id";
 
-export async function loader({ params, context }: LoaderFunctionArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const id = params.id;
   if (!id) {
-    throw new Error('No id provided');
+    throw new Error("No id provided");
   }
   const link = await cachified({
     key: `getLink-${id}`,
     ttl: 3 * 60 * 1000, // 3 minutes
     cache: lru,
     getFreshValue() {
-      return context.pocketBaseClient.getLink(id);
+      return context.queryClient.getRedirectLink(id);
     },
   });
   if (!link) {

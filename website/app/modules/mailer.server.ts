@@ -1,7 +1,7 @@
-import { Resend } from 'resend';
-import { randomUUID } from 'node:crypto';
-import { MainConfig } from '~/config.server';
-import { Logger } from './logger.server';
+import { Resend } from "resend";
+import { randomUUID } from "node:crypto";
+import { MainConfig } from "~/config.server";
+import { Logger } from "./logger.server";
 
 type EmailData = {
   from: {
@@ -26,7 +26,11 @@ type Deps = {
 };
 export const createMailer = ({ mainConfig, logger }: Deps): Mailer => {
   if (!mainConfig.resend.apiKey) {
-    return async (emailData) => logger.warn('Faking Send email as Resend API key is not defined.', emailData);
+    return async (emailData) =>
+      logger.warn(
+        "Faking Send email as Resend API key is not defined.",
+        emailData,
+      );
   }
 
   const resend = new Resend(mainConfig.resend.apiKey);
@@ -37,7 +41,7 @@ export const createMailer = ({ mainConfig, logger }: Deps): Mailer => {
       subject,
       html,
       headers: {
-        'X-Entity-Ref-ID': randomUUID(),
+        "X-Entity-Ref-ID": randomUUID(),
       },
       attachments,
     });

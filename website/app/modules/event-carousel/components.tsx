@@ -1,13 +1,20 @@
-import clsx from 'clsx';
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
-import useEmblaCarousel from 'embla-carousel-react';
-import type { Event } from '~/modules/allthingsweb/public-types';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/modules/components/ui/card';
-import { Skeleton } from '~/modules/components/ui/skeleton';
-import { usePrevNextButtons } from '~/modules/components/ui/carousel';
-import { Button, ButtonNavLink } from '~/modules/components/ui/button';
-import { MapPinIcon } from '~/modules/components/ui/icons';
-import { toReadableDateTimeStr } from '~/modules/datetime';
+import clsx from "clsx";
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
+import type { Event } from "~/modules/allthingsweb/events";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/modules/components/ui/card";
+import { Skeleton } from "~/modules/components/ui/skeleton";
+import { usePrevNextButtons } from "~/modules/components/ui/carousel";
+import { Button, ButtonNavLink } from "~/modules/components/ui/button";
+import { MapPinIcon } from "~/modules/components/ui/icons";
+import { toReadableDateTimeStr } from "~/modules/datetime";
 
 function SkeletonEventCard() {
   return (
@@ -36,9 +43,14 @@ function SkeletonEventCard() {
 export function PendingEventsCarousel() {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
-    align: 'start',
+    align: "start",
   });
-  const { prevBtnDisabled, nextBtnDisabled, onPrevButtonClick, onNextButtonClick } = usePrevNextButtons(emblaApi);
+  const {
+    prevBtnDisabled,
+    nextBtnDisabled,
+    onPrevButtonClick,
+    onNextButtonClick,
+  } = usePrevNextButtons(emblaApi);
 
   return (
     <div className="relative">
@@ -47,7 +59,10 @@ export function PendingEventsCarousel() {
           {Array(4)
             .fill(0)
             .map((_, index) => (
-              <div key={index} className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4">
+              <div
+                key={index}
+                className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4"
+              >
                 <SkeletonEventCard />
               </div>
             ))}
@@ -56,9 +71,12 @@ export function PendingEventsCarousel() {
       <Button
         variant="icon"
         size="icon"
-        className={clsx('absolute -left-2 top-1/2 -translate-y-1/2 backdrop-blur-sm', {
-          hidden: prevBtnDisabled,
-        })}
+        className={clsx(
+          "absolute -left-2 top-1/2 -translate-y-1/2 backdrop-blur-sm",
+          {
+            hidden: prevBtnDisabled,
+          },
+        )}
         onClick={onPrevButtonClick}
       >
         <ChevronLeftIcon className="h-4 w-4 lg:h-6 lg:w-6" />
@@ -67,9 +85,12 @@ export function PendingEventsCarousel() {
       <Button
         variant="icon"
         size="icon"
-        className={clsx('absolute -right-2 top-1/2 -translate-y-1/2 backdrop-blur-sm', {
-          hidden: nextBtnDisabled,
-        })}
+        className={clsx(
+          "absolute -right-2 top-1/2 -translate-y-1/2 backdrop-blur-sm",
+          {
+            hidden: nextBtnDisabled,
+          },
+        )}
         onClick={onNextButtonClick}
       >
         <ChevronRightIcon className="h-4 w-4 lg:h-6 lg:w-6" />
@@ -89,7 +110,7 @@ function EventCard({ event, className }: { event: Event; className?: string }) {
       <CardContent>
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
           <CalendarIcon className="h-4 w-4" />
-          <span>{toReadableDateTimeStr(event.start, true)}</span>
+          <span>{toReadableDateTimeStr(event.startDate, true)}</span>
         </div>
         <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-2">
           <MapPinIcon className="h-4 w-4" />
@@ -108,16 +129,24 @@ function EventCard({ event, className }: { event: Event; className?: string }) {
 export function EventsCarousel({ events }: { events: Event[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
-    align: 'start',
+    align: "start",
   });
-  const { prevBtnDisabled, nextBtnDisabled, onPrevButtonClick, onNextButtonClick } = usePrevNextButtons(emblaApi);
+  const {
+    prevBtnDisabled,
+    nextBtnDisabled,
+    onPrevButtonClick,
+    onNextButtonClick,
+  } = usePrevNextButtons(emblaApi);
 
   return (
     <div className="relative">
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex items-stretch">
           {events.map((event) => (
-            <div key={event.id} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4">
+            <div
+              key={event.id}
+              className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] px-4"
+            >
               <EventCard className="h-full" event={event} />
             </div>
           ))}
@@ -126,9 +155,12 @@ export function EventsCarousel({ events }: { events: Event[] }) {
       <Button
         variant="icon"
         size="icon"
-        className={clsx('absolute -left-2 top-1/2 -translate-y-1/2 backdrop-blur-sm', {
-          hidden: prevBtnDisabled,
-        })}
+        className={clsx(
+          "absolute -left-2 top-1/2 -translate-y-1/2 backdrop-blur-sm",
+          {
+            hidden: prevBtnDisabled,
+          },
+        )}
         onClick={onPrevButtonClick}
       >
         <ChevronLeftIcon className="h-4 w-4 lg:h-6 lg:w-6" />
@@ -137,9 +169,12 @@ export function EventsCarousel({ events }: { events: Event[] }) {
       <Button
         variant="icon"
         size="icon"
-        className={clsx('absolute -right-2 top-1/2 -translate-y-1/2 backdrop-blur-sm', {
-          hidden: nextBtnDisabled,
-        })}
+        className={clsx(
+          "absolute -right-2 top-1/2 -translate-y-1/2 backdrop-blur-sm",
+          {
+            hidden: nextBtnDisabled,
+          },
+        )}
         onClick={onNextButtonClick}
       >
         <ChevronRightIcon className="h-4 w-4 lg:h-6 lg:w-6" />

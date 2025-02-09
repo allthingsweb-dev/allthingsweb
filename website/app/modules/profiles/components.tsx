@@ -1,34 +1,43 @@
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
-import { BlueskyLogoIcon, LinkedInLogoIcon, TwitterLogoIcon } from '../components/ui/icons';
-import { Socials } from './types';
+import { Socials } from "../allthingsweb/socials";
+import { Profile } from "../allthingsweb/profiles";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import {
+  BlueskyLogoIcon,
+  LinkedInLogoIcon,
+  TwitterLogoIcon,
+} from "../components/ui/icons";
 
-export type MemberProp = Socials & {
-  id: string;
-  name: string;
-  title: string | null;
-  bio: string | null;
-  profileImageUrl: string;
-};
-
-export function MemberCard({ member, children }: { member: MemberProp; children?: React.ReactNode }) {
+export function ProfileCard({
+  profile,
+  children,
+}: {
+  profile: Profile;
+  children?: React.ReactNode;
+}) {
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex flex-row items-center gap-4 pb-2">
         <img
-          src={member.profileImageUrl}
-          alt={member.name}
+          src={profile.image.url}
+          alt={profile.name}
           width={200}
           height={200}
           className="rounded-full w-20 h-20 object-cover"
         />
         <div>
-          <CardTitle className="text-xl">{member.name}</CardTitle>
-          <p className="text-sm text-muted-foreground">{member.title}</p>
+          <CardTitle className="text-xl">{profile.name}</CardTitle>
+          <p className="text-sm text-muted-foreground">{profile.title}</p>
         </div>
       </CardHeader>
       <CardContent className="flex-grow">{children}</CardContent>
       <CardFooter>
-        <SocialsList socials={member} />
+        <SocialsList socials={profile.socials} />
       </CardFooter>
     </Card>
   );

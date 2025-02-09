@@ -1,8 +1,8 @@
-import * as React from 'react';
-import { type NavLinkProps, NavLink } from 'react-router';
-import { cn } from '../utils';
+import * as React from "react";
+import { type NavLinkProps, NavLink } from "react-router";
+import { cn } from "../utils";
 
-export type LinkProps = Omit<NavLinkProps, 'className'> & {
+export type LinkProps = Omit<NavLinkProps, "className"> & {
   disabled?: boolean;
   className?: string;
 };
@@ -16,10 +16,10 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
         aria-disabled={disabled}
         ref={ref}
         className={cn(
-          'inline-flex h-10 items-center justify-center rounded-md px-8 text-sm font-medium shadow transition-colors bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+          "inline-flex h-10 items-center justify-center rounded-md px-8 text-sm font-medium shadow transition-colors bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           className,
           {
-            'pointer-events-none opacity-50': disabled,
+            "pointer-events-none opacity-50": disabled,
           },
         )}
       >
@@ -28,4 +28,4 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
     );
   },
 );
-Link.displayName = 'Link';
+Link.displayName = "Link";

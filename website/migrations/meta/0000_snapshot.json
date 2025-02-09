@@ -41,12 +41,8 @@
           "tableFrom": "event_talks",
           "tableTo": "events",
           "schemaTo": "public",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -55,12 +51,8 @@
           "tableFrom": "event_talks",
           "tableTo": "talks",
           "schemaTo": "public",
-          "columnsFrom": [
-            "talk_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["talk_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -152,12 +144,8 @@
           "tableFrom": "profiles",
           "tableTo": "images",
           "schemaTo": "public",
-          "columnsFrom": [
-            "image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -293,12 +281,8 @@
           "tableFrom": "events",
           "tableTo": "images",
           "schemaTo": "public",
-          "columnsFrom": [
-            "preview_image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["preview_image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -306,16 +290,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "events_slug_unique": {
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "nullsNotDistinct": false,
           "name": "events_slug_unique"
         },
         "events_luma_event_id_unique": {
-          "columns": [
-            "luma_event_id"
-          ],
+          "columns": ["luma_event_id"],
           "nullsNotDistinct": false,
           "name": "events_luma_event_id_unique"
         }
@@ -456,12 +436,8 @@
           "tableFrom": "event_sponsors",
           "tableTo": "events",
           "schemaTo": "public",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -470,12 +446,8 @@
           "tableFrom": "event_sponsors",
           "tableTo": "sponsors",
           "schemaTo": "public",
-          "columnsFrom": [
-            "sponsor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -542,12 +514,8 @@
           "tableFrom": "sponsors",
           "tableTo": "images",
           "schemaTo": "public",
-          "columnsFrom": [
-            "square_logo_dark"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["square_logo_dark"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -556,12 +524,8 @@
           "tableFrom": "sponsors",
           "tableTo": "images",
           "schemaTo": "public",
-          "columnsFrom": [
-            "square_logo_light"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["square_logo_light"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -569,9 +533,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sponsors_name_unique": {
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "nullsNotDistinct": false,
           "name": "sponsors_name_unique"
         }
@@ -662,12 +624,8 @@
           "tableFrom": "talk_speakers",
           "tableTo": "talks",
           "schemaTo": "public",
-          "columnsFrom": [
-            "talk_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["talk_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -676,12 +634,8 @@
           "tableFrom": "talk_speakers",
           "tableTo": "profiles",
           "schemaTo": "public",
-          "columnsFrom": [
-            "speaker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["speaker_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -729,12 +683,8 @@
           "tableFrom": "event_images",
           "tableTo": "events",
           "schemaTo": "public",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -743,12 +693,8 @@
           "tableFrom": "event_images",
           "tableTo": "images",
           "schemaTo": "public",
-          "columnsFrom": [
-            "image_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -763,10 +709,7 @@
   "enums": {
     "public.profile_type": {
       "name": "profile_type",
-      "values": [
-        "organizer",
-        "member"
-      ],
+      "values": ["organizer", "member"],
       "schema": "public"
     }
   },

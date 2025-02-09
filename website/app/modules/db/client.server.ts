@@ -1,6 +1,6 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
-import type { MainConfig } from '~/config.server';
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import type { MainConfig } from "~/config.server";
 
 type Deps = {
   mainConfig: MainConfig;

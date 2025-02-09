@@ -1,4 +1,4 @@
-import Signale from 'signale';
+import Signale from "signale";
 
 export type Logger = {
   info: (...args: any[]) => void;
@@ -16,9 +16,12 @@ export type WithLogger<T = any> = T & {
   logger: Logger;
 };
 
-export const createLogger = (scope: string, levels: Array<'info' | 'debug'>): Logger => {
+export const createLogger = (
+  scope: string,
+  levels: Array<"info" | "debug">,
+): Logger => {
   const signale = new Signale.Signale({
-    logLevel: 'info', // we always display the maximum level of Signal and filter later
+    logLevel: "info", // we always display the maximum level of Signal and filter later
     interactive: false,
     scope,
     config: {
@@ -28,36 +31,36 @@ export const createLogger = (scope: string, levels: Array<'info' | 'debug'>): Lo
   });
   const log = (type: string, ...args: any[]) => {
     switch (type) {
-      case 'info':
-        if (levels.includes('info')) {
+      case "info":
+        if (levels.includes("info")) {
           signale.info(...args);
         }
         break;
-      case 'debug':
-        if (levels.includes('debug')) {
+      case "debug":
+        if (levels.includes("debug")) {
           signale.debug(...args);
         }
         break;
-      case 'warn':
+      case "warn":
         signale.warn(...args);
         break;
-      case 'error':
+      case "error":
         signale.error(...args);
         break;
-      case 'fatal':
+      case "fatal":
         signale.fatal(...args);
         break;
-      case 'success':
+      case "success":
         signale.success(...args);
         break;
-      case 'start':
+      case "start":
         signale.start(...args);
         break;
-      case 'note':
+      case "note":
         signale.note(...args);
         break;
-      case 'log':
-        if (levels.includes('debug')) {
+      case "log":
+        if (levels.includes("debug")) {
           signale.log(...args);
         }
         break;
@@ -67,14 +70,14 @@ export const createLogger = (scope: string, levels: Array<'info' | 'debug'>): Lo
   };
 
   return {
-    info: (...args: any[]) => log('info', ...args),
-    debug: (...args: any[]) => log('debug', ...args),
-    warn: (...args: any[]) => log('warn', ...args),
-    error: (...args: any[]) => log('error', ...args),
-    fatal: (...args: any[]) => log('fatal', ...args),
-    success: (...args: any[]) => log('success', ...args),
-    start: (...args: any[]) => log('start', ...args),
-    note: (...args: any[]) => log('note', ...args),
-    log: (...args: any[]) => log('log', ...args),
+    info: (...args: any[]) => log("info", ...args),
+    debug: (...args: any[]) => log("debug", ...args),
+    warn: (...args: any[]) => log("warn", ...args),
+    error: (...args: any[]) => log("error", ...args),
+    fatal: (...args: any[]) => log("fatal", ...args),
+    success: (...args: any[]) => log("success", ...args),
+    start: (...args: any[]) => log("start", ...args),
+    note: (...args: any[]) => log("note", ...args),
+    log: (...args: any[]) => log("log", ...args),
   };
 };

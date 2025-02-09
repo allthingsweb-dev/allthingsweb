@@ -1,5 +1,5 @@
-import { LRUCache } from 'lru-cache';
-import { CacheEntry, Cache, totalTtl } from '@epic-web/cachified';
+import { LRUCache } from "lru-cache";
+import { CacheEntry, Cache, totalTtl } from "@epic-web/cachified";
 
 const lruInstance = new LRUCache<string, CacheEntry>({ max: 500 });
 

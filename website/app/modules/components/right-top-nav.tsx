@@ -1,7 +1,7 @@
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { ArrowUpRightIcon, MenuIcon } from 'lucide-react';
-import { cn } from './utils';
-import { Link } from 'react-router';
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { ArrowUpRightIcon, MenuIcon } from "lucide-react";
+import { cn } from "./utils";
+import { Link } from "react-router";
 
 export function DefaultRightTopNav() {
   return (
@@ -21,14 +21,20 @@ export function DefaultRightTopNav() {
 
 function LinkList({ className }: { className?: string }) {
   return (
-    <ul className={cn('flex flex-col md:flex-row gap-4 md:gap-6', className)}>
+    <ul className={cn("flex flex-col md:flex-row gap-4 md:gap-6", className)}>
       <li>
-        <Link to="/about" className="text-sm font-medium hover:underline underline-offset-4">
+        <Link
+          to="/about"
+          className="text-sm font-medium hover:underline underline-offset-4"
+        >
           About us
         </Link>
       </li>
       <li>
-        <Link to="/speakers" className="text-sm font-medium hover:underline underline-offset-4">
+        <Link
+          to="/speakers"
+          className="text-sm font-medium hover:underline underline-offset-4"
+        >
           Past speakers
         </Link>
       </li>

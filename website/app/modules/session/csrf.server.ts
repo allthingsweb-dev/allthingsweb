@@ -1,10 +1,13 @@
-import crypto from 'node:crypto';
+import crypto from "node:crypto";
 
 export function createCsrfToken() {
   return crypto.randomUUID();
 }
 
-async function validateCsrfToken(tokenFromSession: string | null | undefined, token: FormDataEntryValue | null) {
+async function validateCsrfToken(
+  tokenFromSession: string | null | undefined,
+  token: FormDataEntryValue | null,
+) {
   if (!tokenFromSession) {
     return false;
   }
@@ -17,7 +20,7 @@ export async function requireValidCsrfToken(
 ) {
   const isValid = await validateCsrfToken(tokenFromSession, token);
   if (!isValid) {
-    throw new Response('Invalid CSRF token. Do not use third-party tools.', {
+    throw new Response("Invalid CSRF token. Do not use third-party tools.", {
       status: 403,
     });
   }
