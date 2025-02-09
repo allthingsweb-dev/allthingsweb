@@ -1,8 +1,8 @@
-ARG BUN_VERSION=1.1.34
+ARG BUN_VERSION=1.2.2
 
 FROM oven/bun:${BUN_VERSION}-slim as build
 
-LABEL fly_launch_runtime="Remix"
+LABEL fly_launch_runtime="React Router"
 
 # Remix app lives here
 WORKDIR /app
@@ -15,7 +15,7 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
 
 # Install node modules
-COPY --link bun.lockb package.json ./
+COPY --link bun.lock package.json ./
 RUN bun install
 
 # Copy application code
