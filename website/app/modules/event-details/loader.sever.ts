@@ -6,8 +6,8 @@ import cachified from "@epic-web/cachified";
 import { lru } from "../cache";
 import { ServerTimingsProfiler } from "../server-timing.server";
 import { createLumaClient } from "../luma/api.server";
-import { QueryClient } from "../db/queries.server";
 import { Route } from "../../routes/+types/$slug";
+import { QueryClient } from "../allthingsweb/client.server";
 
 type Deps = {
   serverTimingsProfiler: ServerTimingsProfiler;

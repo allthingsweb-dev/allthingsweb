@@ -12,7 +12,7 @@ export const meta: Route.MetaFunction = ({ data, matches }) => {
   const title = data.event.name;
   const description = data.event.tagline;
   const eventUrl = `${(rootMatch as Route.MetaArgs["matches"][0]).data.serverOrigin}/${data.event.slug}`;
-  const previewImageUrl = data.event.previewImage?.url;
+  const previewImageUrl = data.event.previewImage.url;
   return [
     ...getMetaTags(title, description, eventUrl, previewImageUrl),
     ...rootMatch.meta,
