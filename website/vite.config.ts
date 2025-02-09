@@ -7,6 +7,7 @@ export default defineConfig(({ isSsrBuild, command }) => ({
     rollupOptions: isSsrBuild
       ? {
           input: "./server/app.ts",
+          external: ['@resvg/resvg-js'],
         }
       : undefined,
   },
