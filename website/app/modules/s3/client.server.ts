@@ -19,7 +19,7 @@ export function createS3Client({ mainConfig }: Deps) {
 
   async function presign(url: string) {
     // Remove the endpoint from the URL to extract the key
-    const key = url.replace(mainConfig.s3.url + '/', "");
+    const key = url.replace(mainConfig.s3.url + "/", "");
     const command = new GetObjectCommand({
       Bucket: mainConfig.s3.bucket, // Ensure your config includes the bucket name
       Key: key,

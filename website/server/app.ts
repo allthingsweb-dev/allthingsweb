@@ -1,14 +1,18 @@
 import "react-router";
 import { createRequestHandler } from "@react-router/express";
-import compression from 'compression';
-import express, { NextFunction, Request as ExpressRequest, Response as ExpressResponse } from 'express';
-import morgan from 'morgan';
-import { MainConfig } from '~/config.server.js';
-import { buildContainer } from '~/modules/container.server.js';
-import { Logger } from '~/modules/logger.server.js';
-import { ServerTimingsProfiler } from '~/modules/server-timing.server.js';
-import { SessionManager } from '~/modules/session/create-session-manager.server.js';
-import * as Sentry from '@sentry/bun';
+import compression from "compression";
+import express, {
+  NextFunction,
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from "express";
+import morgan from "morgan";
+import { MainConfig } from "~/config.server.js";
+import { buildContainer } from "~/modules/container.server.js";
+import { Logger } from "~/modules/logger.server.js";
+import { ServerTimingsProfiler } from "~/modules/server-timing.server.js";
+import { SessionManager } from "~/modules/session/create-session-manager.server.js";
+import * as Sentry from "@sentry/bun";
 import { DatabaseClient } from "~/modules/db/client.server";
 import { DbQueryClient } from "~/modules/db/queries.server";
 import { QueryClient } from "~/modules/allthingsweb/client.server";
@@ -17,10 +21,12 @@ import { S3Client } from "~/modules/s3/client.server";
 let container = buildContainer();
 const logger = container.cradle.logger;
 logger.info(`Starting app...`);
-logger.start(`Server timezone offset: ${new Date().getTimezoneOffset() / 60} hours`);
+logger.start(
+  `Server timezone offset: ${new Date().getTimezoneOffset() / 60} hours`,
+);
 
 if (container.cradle.mainConfig.sentry.dsn) {
-  logger.log('Initializing Sentry for the express server');
+  logger.log("Initializing Sentry for the express server");
   Sentry.init({
     dsn: container.cradle.mainConfig.sentry.dsn,
     tracesSampleRate: 1,
@@ -47,10 +53,10 @@ export const app = express();
 app.use(compression());
 
 // http://expressjs.com/en/advanced/best-practice-security.html#at-a-minimum-disable-x-powered-by-header
-app.disable('x-powered-by');
+app.disable("x-powered-by");
 
 app.use(
-  morgan('tiny', {
+  morgan("tiny", {
     stream: {
       write: (message) => {
         container.cradle.logger.info(message.trim());
@@ -59,8 +65,8 @@ app.use(
   }),
 );
 
-app.use('/tests/errors/server-error', () => {
-  throw new Error('This is a test error from Express on Bun.');
+app.use("/tests/errors/server-error", () => {
+  throw new Error("This is a test error from Express on Bun.");
 });
 
 app.use(
@@ -81,7 +87,7 @@ app.use(
         queryClient: scopedServices.cradle.queryClient,
       };
     },
-  })
+  }),
 );
 
 // Add this after all routes,
@@ -89,8 +95,14 @@ app.use(
 Sentry.setupExpressErrorHandler(app);
 
 // Log errors to console
-app.use((err: Error, _req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
-  console.error(err);
-  next(err);
-});
-
+app.use(
+  (
+    err: Error,
+    _req: ExpressRequest,
+    _res: ExpressResponse,
+    next: NextFunction,
+  ) => {
+    console.error(err);
+    next(err);
+  },
+);
