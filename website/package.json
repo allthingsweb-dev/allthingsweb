@@ -8,8 +8,8 @@
     "prettier:fix": "prettier --write .",
     "typecheck": "react-router typegen && tsc -b",
     "build": "bunx --bun react-router build",
-    "dev": "NODE_ENV=development TZ=Etc/UTC bun run server.js",
-    "start": "NODE_ENV=production TZ=Etc/UTC bun run server.js",
+    "dev": "NODE_ENV=development TZ=Etc/UTC bun run server.ts",
+    "start": "NODE_ENV=production TZ=Etc/UTC bun run server.ts",
     "db:generate-migration": "drizzle-kit generate",
     "db:apply-migration": "drizzle-kit migrate"
   },

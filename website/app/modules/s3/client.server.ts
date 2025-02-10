@@ -27,7 +27,6 @@ export function createS3Client({ mainConfig }: Deps) {
     const signedUrl = await getSignedUrl(s3Client, command, {
       expiresIn: 60 * 60 * 24, // 1 day in seconds
     });
-    console.log(`Presigned URL: ${signedUrl}`);
     return signedUrl;
   }
 
