@@ -8,9 +8,9 @@ export default defineConfig(({ isSsrBuild, command }) => ({
     sourcemap: process.env.NODE_ENV !== "development",
     rollupOptions: isSsrBuild
       ? {
-        input: "./server/app.ts",
-        external: ["@resvg/resvg-js", "sharp"],
-      }
+          input: "./server/app.ts",
+          external: ["@resvg/resvg-js", "sharp"],
+        }
       : undefined,
   },
   ssr: {

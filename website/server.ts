@@ -68,7 +68,9 @@ if (DEVELOPMENT) {
     express.static("build/client/assets", { immutable: true, maxAge: "1y" }),
   );
   app.use(express.static("build/client", { maxAge: "1h" }));
-  app.use(await import(BUILD_PATH).then((mod) => mod.getRemixExpressApp(container)));
+  app.use(
+    await import(BUILD_PATH).then((mod) => mod.getRemixExpressApp(container)),
+  );
 }
 
 app.use(
