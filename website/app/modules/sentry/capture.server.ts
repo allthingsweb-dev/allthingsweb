@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 
 export function captureException(e: unknown, ctx?: Record<string, unknown>) {
   Sentry.captureException(e, {
