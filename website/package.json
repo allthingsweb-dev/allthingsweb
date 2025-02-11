@@ -6,7 +6,7 @@
   "scripts": {
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
-    "typecheck": "react-router typegen && tsc -b",
+    "typecheck": "react-router typegen && tsc",
     "build": "bunx --bun react-router build",
     "dev": "NODE_ENV=development TZ=Etc/UTC bun run server.ts",
     "start": "NODE_ENV=production TZ=Etc/UTC bun run server.ts",
