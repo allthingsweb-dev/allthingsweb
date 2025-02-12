@@ -35,7 +35,7 @@ export const meta: Route.MetaFunction = ({ matches }) => {
     "All Things Web",
     "Discover exciting web development events in the Bay Area and San Francisco.",
     `${rootData.serverOrigin}/`,
-    `${rootData.serverOrigin}/img/gen/preview.png`,
+    `${rootData.serverOrigin}/img?src=${rootData.serverOrigin}/preview.png&w=1200&h=1200&format=webp`,
   );
 };
 

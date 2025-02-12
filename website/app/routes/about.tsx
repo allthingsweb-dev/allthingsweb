@@ -35,7 +35,7 @@ export const meta: MetaFunction<typeof loader, { root: typeof rootLoader }> = ({
     "About All Things Web",
     "All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San Francisco. Check out our organizers and join us!",
     `${rootData.serverOrigin}/`,
-    `${rootData.serverOrigin}/img/gen/preview.png`,
+    `${rootData.serverOrigin}/img?src=${rootData.serverOrigin}/preview.png&w=1200&h=1200&format=webp`,
   );
 };
 
