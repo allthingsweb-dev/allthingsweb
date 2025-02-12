@@ -15,7 +15,7 @@ async function getFilePaths() {
 }
 
 async function main() {
-  let container = buildContainer();
+  const container = buildContainer();
   const eventSlug = "2025-01-28-all-things-web-at-sanity";
   const event = await container.cradle.queryClient.getEventBySlug(eventSlug);
   if (!event) {
