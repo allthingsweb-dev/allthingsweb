@@ -18,7 +18,7 @@ export async function loader({ context }: Route.LoaderArgs) {
   const svg = await time("satori", async () =>
     satori(jsx, {
       width: 1200,
-      height: 1200,
+      height: 630,
       fonts: await getFont("Roboto"),
     }),
   );

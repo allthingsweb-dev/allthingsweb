@@ -16,7 +16,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     "satori",
     satori(jsx, {
       width: 1200,
-      height: 1200,
+      height: 630,
       fonts: await getFont("Roboto"),
     }),
   );

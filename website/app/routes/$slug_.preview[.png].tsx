@@ -20,12 +20,12 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     throw notFound();
   }
 
-  const jsx = <EventPreview event={event} origin={context.mainConfig.origin} />;
+  const jsx = <EventPreview event={event} />;
 
   const svg = await time("satori", async () =>
     satori(jsx, {
       width: 1200,
-      height: 1200,
+      height: 630,
       fonts: await getFont("Roboto"),
     }),
   );

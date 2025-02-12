@@ -23,7 +23,7 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk) => (
         <div
           key={talk.id}
-          tw="flex items-start rounded-xl p-4 border border-gray-300 border-opacity-20 shadow-lg w-[560px]"
+          tw="flex items-center rounded-xl p-4 border border-gray-300 border-opacity-20 shadow-lg w-[560px]"
           style={{
             backdropFilter: "blur(8px)",
             backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -59,7 +59,7 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
               {talk.speakers[0].title}
             </div>
             <div
-              tw="w-[432px] flex text-3xl text-gray-400 mt-2"
+              tw="w-[432px] flex text-3xl text-white mt-2"
               style={{ wordBreak: "break-word" }}
             >
               {talk.title}
@@ -71,63 +71,42 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
   );
 }
 
-export function EventPreview({
-  event,
-  origin,
-}: {
-  event: ExpandedEvent;
-  origin: string;
-}) {
+/**
+ * Social preview for the event details page
+ * w1200 h630
+ */
+export function EventPreview({ event }: { event: ExpandedEvent }) {
   return (
     <div
-      tw="w-[1200px] h-[1200px] flex flex-col text-white p-8 pb-24 overflow-hidden"
+      tw="w-[1200px] h-[630px] flex flex-col text-white p-8 pb-24 overflow-hidden"
       style={bgStyles}
     >
       <div tw="h-full flex flex-col">
-        <div tw="flex items-center mb-12" style={{ gap: "2rem" }}>
-          <div tw="relative flex">
-            <div
-              tw="absolute bg-purple-400 rounded-full"
-              style={{
-                filter: "blur(4px)",
-                top: 0,
-                bottom: 0,
-                right: 0,
-                left: 0,
-              }}
-            ></div>
-            <img
-              src={`${origin}/logos/icon-circle-transparent-nobuffer.png`}
-              alt="Event logo showing Golden Gate Bridge"
-              width={140}
-              height={140}
-              tw="rounded-full w-[140px] h-[140px]"
-            />
+        <div tw="flex items-center mb-8" style={{ gap: "2rem" }}>
+          <div tw="flex flex-col" style={{ gap: "1rem" }}>
+            <span tw="text-6xl font-bold">{event.name}</span>
           </div>
-          <div tw="flex text-7xl font-bold">{event.name}</div>
         </div>
-        <div tw="flex text-4xl text-gray-300 text-bold">
-          {toReadableDateTimeStr(event.startDate, true)}
-        </div>
-        <div tw="flex text-4xl text-gray-300 text-bold mb-4">
-          {event.shortLocation}
-        </div>
-        <div tw="flex mb-8" style={{ gap: "12px" }}>
+        <span tw="text-2xl text-gray-300 text-bold" style={{ gap: "8px" }}>
+          <span>{toReadableDateTimeStr(event.startDate, true)}</span>
+          <span>{event.shortLocation}</span>
+        </span>
+        <span style={{ gap: "8px" }}>
           <span tw="text-2xl text-purple-300 text-bold">allthingsweb.dev</span>
-          <span tw="text-2xl text-purple-300 text-bold">
+          <span tw="text-2xl text-purple-300 text-bold mb-8">
             lu.ma/allthingsweb
           </span>
-        </div>
+        </span>
         <div tw="flex-grow flex flex-col justify-between">
           <div tw="flex flex-col">
-            <div tw="flex flex-col text-4xl font-semibold mb-6 text-purple-300">
+            <div tw="flex flex-col text-3xl font-semibold mb-2 text-purple-300">
               Speakers & Talks
             </div>
             <EventPreviewTalks talks={event.talks} />
           </div>
-          <div tw="flex flex-col">
+          <div tw="flex flex-col mt-8">
             <div tw="flex flex-col">
-              <h2 tw="text-4xl font-semibold mb-6 text-purple-300">Sponsors</h2>
+              <h2 tw="text-3xl font-semibold mb-2 text-purple-300">Sponsors</h2>
               <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
                 {event.sponsors.map((sponsor, index) => (
                   <div
@@ -139,13 +118,26 @@ export function EventPreview({
                       border: "1px solid rgba(209, 213, 219, 0.2)",
                     }}
                   >
-                    <img
-                      src={sponsor.squareLogoDark.url}
-                      alt={`${sponsor.name} logo`}
-                      width={60}
-                      height={60}
-                    />
-                    <span tw="ml-4 text-5xl font-medium text-gray-200">
+                    <div tw="relative flex">
+                      <div
+                        tw="absolute bg-purple-400 rounded-full"
+                        style={{
+                          top: 0,
+                          bottom: 0,
+                          right: 0,
+                          left: 0,
+                        }}
+                      />
+                      <img
+                        src={sponsor.squareLogoDark.url}
+                        alt={`${sponsor.name} logo`}
+                        width={60}
+                        height={60}
+                        tw="rounded-full w-[60px] h-[60px]"
+                      />
+                    </div>
+
+                    <span tw="ml-4 text-4xl font-medium text-gray-200">
                       {sponsor.name}
                     </span>
                   </div>
@@ -252,54 +244,62 @@ export function EventYouTubeThumbnail({ event }: { event: ExpandedEvent }) {
   );
 }
 
+/**
+ * Social preview for the speakers page
+ * w1200 h630
+ */
 export function SpeakersPreview({ speakers }: { speakers: Profile[] }) {
-  const maxSpeakersToShow = 5 * 5;
+  const maxSpeakersToShow = 7 * 3;
   const visibleSpeakers = speakers.slice(0, maxSpeakersToShow);
   return (
     <div
-      tw="w-[1200px] h-[1200px] flex flex-col text-white p-16 pb-24 overflow-hidden"
+      tw="w-[1200px] h-[630px] flex flex-col text-white p-4 overflow-hidden"
       style={bgStyles}
     >
-      <div tw="w-full flex items-start">
-        <div tw="flex flex-col flex-wrap" style={{ gap: "1rem" }}>
-          <div tw="text-2xl font-semibold">Speakers</div>
-          <div tw="flex flex-row flex-wrap" style={{ gap: "2rem" }}>
-            {visibleSpeakers.map((speaker) => (
-              <div key={speaker.id} tw="flex flex-col items-center text-center">
-                <div tw="w-40 h-40 bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
-                  <img
-                    src={speaker.image.url}
-                    alt={speaker.name}
-                    width={160}
-                    height={160}
-                    style={{ objectFit: "fill" }}
-                  />
-                </div>
-                <div tw="font-semibold text-xl">{speaker.name}</div>
-              </div>
-            ))}
+      <div
+        tw="w-full flex items-center justify-center flex-row flex-wrap"
+        style={{ gap: "2rem" }}
+      >
+        {visibleSpeakers.map((speaker) => (
+          <div key={speaker.id} tw="flex flex-col items-center text-center">
+            <div tw="w-[120px] h-[120px] bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
+              <img
+                src={speaker.image.url}
+                alt={speaker.name}
+                width={120}
+                height={120}
+                style={{ objectFit: "fill" }}
+              />
+            </div>
+            <div tw="font-semibold text-xl">{speaker.name}</div>
           </div>
-        </div>
+        ))}
       </div>
       <div tw="text-3xl flex justify-center" style={{ marginTop: "auto" }}>
-        Find us on allthingsweb.dev and lu.ma/allthingsweb!
+        A random selection of our awesome speakers!
       </div>
     </div>
   );
 }
 
+/**
+ * Social preview for the landing page
+ * w1200 h630: 8 images - 4 per row (2 rows)
+ */
 export function LandingPagePreview({ images }: { images: Image[] }) {
+  const maxImages = 8;
+  const imagesToShow = images.slice(0, maxImages);
   return (
-    <section tw="relative w-[1200px] h-[1200px] overflow-hidden">
+    <section tw="relative w-[1200px] h-[630px] overflow-hidden">
       <div tw="w-full flex flex-wrap absolute inset-0">
-        {images.map((image) => (
+        {imagesToShow.map((image) => (
           <img
             key={image.url}
             src={image.url}
             alt="Past event image"
-            tw="w-[300px] h-[300px]"
+            tw="w-[300px] h-[315px]"
             width="300"
-            height="300"
+            height="315"
             style={{
               objectFit: "cover",
               objectPosition: "center",
@@ -310,9 +310,9 @@ export function LandingPagePreview({ images }: { images: Image[] }) {
       <div
         tw="absolute inset-0 flex flex-col items-center text-center text-white"
         style={{
+          paddingTop: "180px",
           background:
             "linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.3))",
-          paddingTop: "480px",
           zIndex: "20",
         }}
       >
