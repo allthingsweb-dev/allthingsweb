@@ -18,6 +18,7 @@ import { DiscordLogoIcon } from "~/modules/components/ui/icons";
 import { Route } from "./+types/_index";
 import { Image } from "~/modules/allthingsweb/images";
 import { Img } from "openimg/react";
+import { getPastEventImages } from "~/modules/homepage/homepage";
 
 export { headers } from "~/modules/header.server";
 
@@ -40,42 +41,48 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const { time, getServerTimingHeader } = context.serverTimingsProfiler;
-  const { highlightEvent, remainingEvents, pastEvents } = await cachified({
-    key: "_index-loader-data",
-    cache: lru,
-    // Use cached value for 3 minutes, after one minute, fetch fresh value in the background
-    // Downstream is only hit once a minute
-    ttl: 60 * 1000, // one minute
-    staleWhileRevalidate: 2 * 60 * 1000, // two minutes
-    getFreshValue: async () => {
-      const [events, pastEvents] = await Promise.all([
-        time(
-          "getUpcomingEvents",
-          context.queryClient.getPublishedUpcomingEvents,
-        ),
-        time("getPastEvents", context.queryClient.getPublishedPastEvents),
-      ]);
-      const highlightEvent = events.find(
-        (event) => event.highlightOnLandingPage,
-      );
-      const remainingEvents = events.filter(
-        (event) => event.id !== highlightEvent?.id,
-      );
+  const { highlightEvent, remainingEvents, pastEvents, pastEventImages } =
+    await cachified({
+      key: "_index-loader-data",
+      cache: lru,
+      // Use cached value for 3 minutes, after one minute, fetch fresh value in the background
+      // Downstream is only hit once a minute
+      ttl: 60 * 1000, // one minute
+      staleWhileRevalidate: 2 * 60 * 1000, // two minutes
+      getFreshValue: async () => {
+        const [events, pastEvents, pastEventImages] = await Promise.all([
+          time(
+            "getUpcomingEvents",
+            context.queryClient.getPublishedUpcomingEvents,
+          ),
+          time("getPastEvents", context.queryClient.getPublishedPastEvents),
+          time(
+            "getPastEventImages",
+            getPastEventImages({ db: context.db, s3Client: context.s3Client }),
+          ),
+        ]);
+        const highlightEvent = events.find(
+          (event) => event.highlightOnLandingPage,
+        );
+        const remainingEvents = events.filter(
+          (event) => event.id !== highlightEvent?.id,
+        );
 
-      return {
-        highlightEvent,
-        remainingEvents,
-        pastEvents,
-      };
-    },
-  });
+        return {
+          highlightEvent,
+          remainingEvents,
+          pastEvents,
+          pastEventImages,
+        };
+      },
+    });
 
   return data(
     {
       highlightEvent,
       remainingEvents,
       pastEvents,
-      pastEventImages: [], // TODO hard code a few images here
+      pastEventImages,
     },
     {
       headers: getServerTimingHeader(),
@@ -161,16 +168,16 @@ export default function Component() {
 function LandingHero({ images }: { images: Image[] }) {
   return (
     <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1">
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
         {images.map((image) => (
           <Img
             key={image.url}
             src={image.url}
-            alt="Past event image"
-            aria-hidden="true"
-            width={400}
-            height={400}
-            className="w-full object-cover"
+            alt={image.alt}
+            role="presentation"
+            width={600}
+            height={600}
+            className="object-cover w-full max-w-[800px] h-auto"
           />
         ))}
       </div>

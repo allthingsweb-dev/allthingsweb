@@ -3,20 +3,18 @@ import satori from "satori";
 import { LandingPagePreview } from "~/modules/image-gen/templates";
 import { getFont } from "~/modules/image-gen/utils.server";
 import { Route } from "./+types/preview[.png]";
-import { Image } from "~/modules/allthingsweb/images";
+import { getPastEventImages } from "~/modules/homepage/homepage";
 
 export { headers } from "~/modules/header.server";
 
 export async function loader({ context }: Route.LoaderArgs) {
   const { time, timeSync, getHeaderField } = context.serverTimingsProfiler;
-  const pastEvents = await time("getPastEvents", () =>
-    context.queryClient.getPublishedPastEvents(),
-  );
-  const images: Image[] = [];
+  const pastEventImages = await getPastEventImages({
+    db: context.db,
+    s3Client: context.s3Client,
+  });
 
-  // TODO - add images to the images array
-
-  const jsx = <LandingPagePreview images={images} />;
+  const jsx = <LandingPagePreview images={pastEventImages} />;
   const svg = await time("satori", async () =>
     satori(jsx, {
       width: 1200,

@@ -304,11 +304,15 @@ export const createDbQueryClient = ({ db, mainConfig }: Deps) => {
           url: imagesTableDark.url,
           alt: imagesTableDark.alt,
           placeholder: imagesTableDark.placeholder,
+          width: imagesTableDark.width,
+          height: imagesTableDark.height,
         },
         lightImage: {
           url: imagesTableLight.url,
           alt: imagesTableLight.alt,
           placeholder: imagesTableLight.placeholder,
+          width: imagesTableLight.width,
+          height: imagesTableDark.height,
         },
       })
       .from(eventSponsorsTable)

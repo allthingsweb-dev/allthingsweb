@@ -9,5 +9,7 @@ export function getDefaultPreviewImage(
     url: `${serverOrigin}/img/gen/${eventSlug}/preview.png?w=1200&h=1200`,
     alt: `Preview image for ${eventName}`,
     placeholder: null,
+    width: 1200,
+    height: 1200,
   } satisfies Image;
 }

@@ -30,8 +30,10 @@ export type SelectRedirect = typeof redirectsTable.$inferSelect;
 export const imagesTable = pgTable("images", {
   id: uuid("id").primaryKey().defaultRandom(),
   url: text("url").notNull(),
-  placeholder: text("placeholder"), // Optional base64/data URL placeholder
+  placeholder: text("placeholder").notNull(),
   alt: text("alt").notNull(),
+  width: integer("width").notNull(),
+  height: integer("height").notNull(),
   createdAt,
   updatedAt,
 });
