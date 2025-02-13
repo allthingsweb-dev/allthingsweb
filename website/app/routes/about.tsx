@@ -90,7 +90,7 @@ export default function Component() {
             <SocialBox
               title="Luma"
               description="Subscribe to our Luma calendar for event reminders."
-              link="https://lu.ma/allthingsweb"
+              link="https://lu.ma/allthingsweb?utm_source=web"
               logo={<LumaLogoIcon className="h-7 w-7" />}
             />
             <SocialBox
