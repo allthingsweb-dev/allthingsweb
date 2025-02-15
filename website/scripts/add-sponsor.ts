@@ -1,9 +1,6 @@
 import { eq } from "drizzle-orm";
 import { buildContainer } from "~/modules/container.server";
-import {
-  eventSponsorsTable,
-  sponsorsTable,
-} from "~/modules/db/schema.server";
+import { eventSponsorsTable, sponsorsTable } from "~/modules/db/schema.server";
 
 const slug = "2025-03-19-all-things-web-at-convex";
 const sponsorName = "Convex";

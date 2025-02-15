@@ -21,15 +21,7 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
   return (
     <div tw="flex flex-wrap" style={{ gap: "1rem" }}>
       {talks.map((talk) => (
-        <div
-          key={talk.id}
-          tw="flex items-center rounded-xl p-4 border border-gray-300 border-opacity-20 shadow-lg w-[560px]"
-          style={{
-            backdropFilter: "blur(8px)",
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
-            border: "1px solid rgba(209, 213, 219, 0.2)",
-          }}
-        >
+        <div key={talk.id} tw="flex items-center">
           <img
             src={talk.speakers[0].image.url}
             alt={`${talk.speakers[0].name} profile`}
@@ -59,7 +51,7 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
               {talk.speakers[0].title}
             </div>
             <div
-              tw="w-[432px] flex text-3xl text-white mt-2"
+              tw="w-[432px] flex text-2xl text-white"
               style={{ wordBreak: "break-word" }}
             >
               {talk.title}
@@ -78,7 +70,7 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
 export function EventPreview({ event }: { event: ExpandedEvent }) {
   return (
     <div
-      tw="w-[1200px] h-[630px] flex flex-col text-white p-8 pb-24 overflow-hidden"
+      tw="w-[1200px] h-[630px] flex flex-col text-white p-8 overflow-hidden"
       style={bgStyles}
     >
       <div tw="h-full flex flex-col">
@@ -88,62 +80,27 @@ export function EventPreview({ event }: { event: ExpandedEvent }) {
           </div>
         </div>
         <span tw="text-2xl text-gray-300 text-bold" style={{ gap: "8px" }}>
-          <span>{toReadableDateTimeStr(event.startDate, true)}</span>
-          <span>{event.shortLocation}</span>
+          {toReadableDateTimeStr(event.startDate, true)} at {event.shortLocation}
         </span>
-        <span style={{ gap: "8px" }}>
-          <span tw="text-2xl text-purple-300 text-bold">allthingsweb.dev</span>
-          <span tw="text-2xl text-purple-300 text-bold mb-8">
-            lu.ma/allthingsweb
-          </span>
+        <span style={{ gap: "8px" }} tw="text-2xl text-purple-300 text-bold">
+        lu.ma/allthingsweb
         </span>
-        <div tw="flex-grow flex flex-col justify-between">
-          <div tw="flex flex-col">
-            <div tw="flex flex-col text-3xl font-semibold mb-2 text-purple-300">
-              Speakers & Talks
-            </div>
-            <EventPreviewTalks talks={event.talks} />
-          </div>
-          <div tw="flex flex-col mt-8">
-            <div tw="flex flex-col">
-              <h2 tw="text-3xl font-semibold mb-2 text-purple-300">Sponsors</h2>
-              <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
-                {event.sponsors.map((sponsor, index) => (
-                  <div
-                    key={index}
-                    tw="relative flex items-center rounded-xl p-4 shadow-lg"
-                    style={{
-                      backdropFilter: "blur(8px)",
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      border: "1px solid rgba(209, 213, 219, 0.2)",
-                    }}
-                  >
-                    <div tw="relative flex">
-                      <div
-                        tw="absolute bg-purple-400 rounded-full"
-                        style={{
-                          top: 0,
-                          bottom: 0,
-                          right: 0,
-                          left: 0,
-                        }}
-                      />
-                      <img
-                        src={sponsor.squareLogoDark.url}
-                        alt={`${sponsor.name} logo`}
-                        width={60}
-                        height={60}
-                        tw="rounded-full w-[60px] h-[60px]"
-                      />
-                    </div>
-
-                    <span tw="ml-4 text-4xl font-medium text-gray-200">
-                      {sponsor.name}
-                    </span>
-                  </div>
-                ))}
+        <div tw="flex-grow flex flex-col justify-between mt-12">
+          <EventPreviewTalks talks={event.talks} />
+          <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
+            {event.sponsors.map((sponsor, index) => (
+              <div key={index} tw="flex items-center">
+                <img
+                  src={sponsor.squareLogoDark.url}
+                  alt={`${sponsor.name} logo`}
+                  width={60}
+                  height={60}
+                />
+                <span tw="ml-2 text-4xl font-medium text-gray-200">
+                  {sponsor.name}
+                </span>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
