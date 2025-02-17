@@ -80,10 +80,11 @@ export function EventPreview({ event }: { event: ExpandedEvent }) {
           </div>
         </div>
         <span tw="text-2xl text-gray-300 text-bold" style={{ gap: "8px" }}>
-          {toReadableDateTimeStr(event.startDate, true)} at {event.shortLocation}
+          {toReadableDateTimeStr(event.startDate, true)} at{" "}
+          {event.shortLocation}
         </span>
         <span style={{ gap: "8px" }} tw="text-2xl text-purple-300 text-bold">
-        lu.ma/allthingsweb
+          lu.ma/allthingsweb
         </span>
         <div tw="flex-grow flex flex-col justify-between mt-12">
           <EventPreviewTalks talks={event.talks} />

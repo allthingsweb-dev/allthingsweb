@@ -98,12 +98,13 @@ export function HeroSectionImage({
   imgAlt: string;
 }) {
   return (
-    <img
+    <Img
       src={imgSrc}
-      width="550"
-      height="550"
+      width="1200"
+      height="1200"
       alt={imgAlt}
       className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
+      isAboveFold
     />
   );
 }
@@ -288,13 +289,11 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
               className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto"
             >
               <div className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8">
-                <img
+                <Img
                   src={sponsor.squareLogoLight.url}
                   width={48}
                   height={48}
-                  className="w-12"
                   alt={sponsor.name}
-                  loading="lazy"
                 />
                 <div className="text-left">
                   <h3 className="text-2xl font-semibold mb-4">
@@ -344,11 +343,11 @@ export function ImagesSection({
             >
               <Img
                 src={image.url}
+                placeholder={image.placeholder || undefined}
                 width={300}
                 height={300}
                 alt={image.alt}
-                className="rounded-lg h-[300px] w-[300px] object-cover"
-                loading="lazy"
+                className="rounded-lg object-cover"
               />
             </NavLink>
           ))}

@@ -23,6 +23,7 @@ export function ErrorPage() {
           height={300}
           alt="A cartoon-style developer sitting at a desk with a laptop, looking puzzled."
           className="mx-auto"
+          isAboveFold
         />
         <h1 className="mt-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           {heading}

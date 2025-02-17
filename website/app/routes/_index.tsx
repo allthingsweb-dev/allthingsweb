@@ -173,11 +173,11 @@ function LandingHero({ images }: { images: Image[] }) {
           <Img
             key={image.url}
             src={image.url}
-            alt={image.alt}
-            role="presentation"
-            width={600}
-            height={600}
+            placeholder={image.placeholder || undefined}
+            width={800}
+            height={800}
             className="object-cover w-full max-w-[800px] h-auto"
+            isAboveFold
           />
         ))}
       </div>

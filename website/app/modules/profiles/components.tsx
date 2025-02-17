@@ -12,6 +12,7 @@ import {
   LinkedInLogoIcon,
   TwitterLogoIcon,
 } from "../components/ui/icons";
+import { Img } from "openimg/react";
 
 export function ProfileCard({
   profile,
@@ -23,12 +24,13 @@ export function ProfileCard({
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex flex-row items-center gap-4 pb-2">
-        <img
+        <Img
           src={profile.image.url}
           alt={profile.name}
+          placeholder={profile.image.placeholder || undefined}
           width={200}
           height={200}
-          className="rounded-full w-20 h-20 object-cover"
+          className="rounded-full object-cover"
         />
         <div>
           <CardTitle className="text-xl">{profile.name}</CardTitle>
