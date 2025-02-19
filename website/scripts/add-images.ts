@@ -1,7 +1,5 @@
 import { S3Client } from "bun";
-import { getPixels, getFormat } from "@unpic/pixels";
-import { Readable } from "node:stream";
-import { getImgPlaceholderFromStream } from "openimg/bun";
+import { getImgPlaceholder, getImgMetadata } from "openimg/bun";
 import { eventImagesTable, imagesTable } from "../app/modules/db/schema.server";
 import { buildContainer } from "~/modules/container.server";
 import { readdir } from "node:fs/promises";
@@ -35,11 +33,9 @@ async function main() {
     console.log(entry);
     const file = Bun.file(entry);
     const buffer = await file.bytes();
-    const { width, height } = await getPixels(buffer);
-    const format = await getFormat(buffer);
+    const { width, height, format } = await getImgMetadata(buffer);
     const path = "events/" + event.slug + "/" + uuid + "." + format;
-    const nodeStream = Readable.fromWeb(file.stream() as any);
-    const placeholder = await getImgPlaceholderFromStream(nodeStream);
+    const placeholder = await getImgPlaceholder(buffer);
     await bunS3Client.write(path, buffer);
     const url = `${container.cradle.mainConfig.s3.url}/${path}`;
     const [image] = await container.cradle.db
