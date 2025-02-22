@@ -6,13 +6,13 @@ import {
 } from "~/modules/db/schema.server";
 
 const talk = {
-  title: "Image optimization from scratch!",
+  title: "Anti-Crash Course: Building Better Errors and Traces",
   description:
-    "One of the best ways to learn something is to try and build it from scratch. That's what I've attempted last year with image optimization. Instead of picking a third-party service, I built one from scratch... and open-sourced it! In this talk, we will live-code a simple image optimization HTTP handler and talk about the challenges I faced along the way.",
+    "We've all seen apps crash with screens that tell you nothing about what's actually broken (Hi <framework>, we see you), and leave you with little to go on to figure out solving it. Lets jump in and fix that, hands on!",
 } satisfies InsertTalk;
 
 async function main() {
-  const speakerId = "9527ccf6-8056-4225-b695-cb2a6e1ea50e";
+  const speakerId = "13368c6c-6dd0-46ca-883c-0841d480a302";
   const container = buildContainer();
 
   const talkRes = await container.cradle.db
