@@ -7,6 +7,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const headers = new Headers();
   headers.set("cache-control", "public, max-age=172800");
   return getImgResponse(request, {
+    cacheFolder: context.mainConfig.environment === "production" ? "/data/images" : "./data/images",
     getImgSource: ({ params }) => {
       const { src } = params;
       const isUrl = src.startsWith("http://") || src.startsWith("https://");
