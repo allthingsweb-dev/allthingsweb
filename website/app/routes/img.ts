@@ -11,10 +11,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       context.mainConfig.environment === "production"
         ? "/data/images"
         : "./data/images",
-    getImgSource: ({ params }) => {
-      const { src } = params;
-      const isUrl = src.startsWith("http://") || src.startsWith("https://");
-      if (isUrl) {
+    getImgSource: ({ request }) => {
+      const src = new URL(request.url).searchParams.get("src");
+      if(!src) {
+        return new Response("src query parameter is required", { status: 400 });
+      }
+      if (URL.canParse(src)) {
         // Remote images
         return { type: "fetch", url: src };
       }
