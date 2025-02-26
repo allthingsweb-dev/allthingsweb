@@ -6,6 +6,11 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import { mainConfig } from "./modules/config/env.server";
+import type { ClientConfig } from "./modules/config/env.client";
+import { rootAuthLoader } from '@clerk/react-router/ssr.server'
+import { ClerkProvider } from "@clerk/react-router";
+import Header from "./modules/nav/header";
 
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -22,6 +27,33 @@ export const links: Route.LinksFunction = () => [
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
 ];
+
+export async function loader(args: Route.LoaderArgs) {
+  return rootAuthLoader(args, () => {
+    const clientConfig: ClientConfig = {
+      origin: mainConfig.origin,
+      clerk: {
+        publishableKey: mainConfig.clerk.publishableKey,
+      },
+    };
+    return {
+      clientConfig,
+    };
+  }, {
+    signUpFallbackRedirectUrl: "/", 
+    signInFallbackRedirectUrl: "/",
+  });
+}
+
+export function meta({ data }: Route.MetaArgs): ReturnType<Route.MetaFunction> {
+  const { clientConfig } = data;
+  return [
+    {
+      name: "config",
+      content: JSON.stringify(clientConfig),
+    },
+  ];
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -41,8 +73,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
-  return <Outlet />;
+export default function App({ loaderData }: Route.ComponentProps) {
+  return (
+    <ClerkProvider
+      publishableKey={loaderData.clientConfig.clerk.publishableKey}
+      loaderData={loaderData}
+      signUpFallbackRedirectUrl="/"
+      signInFallbackRedirectUrl="/"
+    >
+      <Header />
+      <Outlet />
+    </ClerkProvider>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
