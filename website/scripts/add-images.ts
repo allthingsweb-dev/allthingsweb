@@ -14,7 +14,7 @@ async function getFilePaths() {
 
 async function main() {
   const container = buildContainer();
-  const eventSlug = "2025-01-28-all-things-web-at-sanity";
+  const eventSlug = "2025-02-25-all-things-web-at-sentry";
   const event = await container.cradle.queryClient.getEventBySlug(eventSlug);
   if (!event) {
     console.error(`Event with slug ${eventSlug} not found`);
@@ -55,37 +55,6 @@ async function main() {
       imageId: image.id,
     });
   }
-
-  // for (const image of images) {
-  //   if(image.placeholder) {
-  //     // console.log(`Image ${image.id} already has a placeholder`);
-  //     continue;
-  //   }
-  //   console.log(`Generating placeholder for image ${image.id}`);
-  //   const signedUrl = await s3.presign(image.url);
-  //   const res = await fetch(signedUrl);
-  //   if(!res.ok) {
-  //     console.error(`Failed to fetch image ${image.id}: ${res.status} ${res.statusText} with URL ${signedUrl}`);
-  //     const x = await db.select().from(eventImagesTable).where(eq(eventImagesTable.imageId, image.id));
-  //     if(x.length > 1) {
-  //       console.error(`Image ${image.id} is used in several events, skipping`);
-  //       continue;
-  //     }
-  //     if(x.length === 0) {
-  //       console.error(`Image ${image.id} is not used in any event, deleting`);
-  //       await db.delete(imagesTable).where(eq(imagesTable.id, image.id));
-  //       continue;
-  //     }
-  //     const evt = x[0].eventId;
-  //     console.log('Event ID:', evt);
-  //     continue;
-  //   }
-  //   const { width, height } = await getPixels(signedUrl);
-  //   const nodeStream = Readable.fromWeb(res.body as any);
-  //   const placeholder = await getImgPlaceholderFromStream(nodeStream);
-  //   await db.update(imagesTable).set({ width, height, placeholder }).where(eq(imagesTable.id, image.id));
-  //   console.log(`Updated image ${image.id} with width ${width}, height ${height}`);
-  // }
 }
 
 main();
