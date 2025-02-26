@@ -16,4 +16,5 @@
 
 # FS img cache
 data
-
+test-results/
+playwright-report/

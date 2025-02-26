@@ -49,6 +49,10 @@ check: ## Check the code
 build: ## Build All
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run build
 
+.PHONY: test
+test: ## Run Playwright tests (requires dev server to be running)
+	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run test
+
 .PHONY: serve
 serve: website/.env ## Serve the application
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run dev
