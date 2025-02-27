@@ -1,5 +1,5 @@
 {
-  "name": "@allthingsweb/app",
+  "name": "allthingsweb-app",
   "private": true,
   "sideEffects": false,
   "type": "module",

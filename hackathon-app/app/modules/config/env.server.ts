@@ -40,9 +40,15 @@ const ClerkSchema = z.object({
   secretKey: z.string(),
 });
 
+const ZeroSchema = z.object({
+  syncServerUrl: z.string().url(),
+  authSecret: z.string(),
+});
+
 const MainConfigSchema = z
   .object({
     clerk: ClerkSchema,
+    zero: ZeroSchema,
   })
   .merge(InstanceSchema);
 
@@ -55,5 +61,9 @@ export const mainConfig: MainConfig = validateConfigOrExit(MainConfigSchema, {
   clerk: {
     publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
     secretKey: process.env.CLERK_SECRET_KEY,
+  },
+  zero: {
+    syncServerUrl: process.env.ZERO_SERVER_URL,
+    authSecret: process.env.ZERO_AUTH_SECRET,
   },
 });
