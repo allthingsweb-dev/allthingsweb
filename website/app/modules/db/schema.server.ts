@@ -169,3 +169,40 @@ export type InsertEventTalk = typeof eventTalksTable.$inferInsert;
 export type SelectEventTalk = typeof eventTalksTable.$inferSelect;
 export type InsertEventImage = typeof eventImagesTable.$inferInsert;
 export type SelectEventImage = typeof eventImagesTable.$inferSelect;
+
+export const hacksTable = pgTable("hacks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => eventsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  project: text("description"),
+  createdAt,
+  updatedAt,
+});
+
+export const hackUsersTable = pgTable("hack_users", {
+  hackId: uuid("hack_id")
+    .notNull()
+    .references(() => hacksTable.id, { onDelete: "cascade" }),
+  clerkUserId: text("clerk_user_id").notNull(),
+  createdAt,
+  updatedAt,
+});
+
+export const hackVotesTable = pgTable("hack_votes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hackId: uuid("hack_id")
+    .notNull()
+    .references(() => hacksTable.id, { onDelete: "cascade" }),
+  clerkUserId: text("clerk_user_id").notNull(),
+  createdAt,
+  updatedAt,
+});
+
+export type InsertHack = typeof hacksTable.$inferInsert;
+export type SelectHack = typeof hacksTable.$inferSelect;
+export type InsertHackUser = typeof hackUsersTable.$inferInsert;
+export type SelectHackUser = typeof hackUsersTable.$inferSelect;
+export type InsertHackVote = typeof hackVotesTable.$inferInsert;
+export type SelectHackVote = typeof hackVotesTable.$inferSelect;
