@@ -134,7 +134,7 @@ const MainConfigSchema = z
 
 export type MainConfig = z.infer<typeof MainConfigSchema>;
 
-const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 5173;
+const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 export const mainConfig: MainConfig = validateConfigOrExit(MainConfigSchema, {
   instanceId: process.env.INSTANCE_ID || crypto.randomUUID(),
   logLevel: ["info", "debug"],

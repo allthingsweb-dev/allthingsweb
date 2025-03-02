@@ -14,6 +14,9 @@ export default defineConfig(({ isSsrBuild, command }) => ({
         }
       : undefined,
   },
+  server: {
+    port: 3000,
+  },
   ssr: {
     noExternal: command === "build" ? true : undefined,
   },
