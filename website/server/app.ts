@@ -10,6 +10,7 @@ import { DbQueryClient } from "~/modules/db/queries.server";
 import { QueryClient } from "~/modules/allthingsweb/client.server";
 import { S3Client } from "~/modules/s3/client.server";
 import { buildContainer } from "~/modules/container.server";
+import { LumaClient } from "~/modules/luma/api.server";
 
 declare module "react-router" {
   interface AppLoadContext {
@@ -22,6 +23,7 @@ declare module "react-router" {
     dbQueryClient: DbQueryClient;
     s3Client: S3Client;
     queryClient: QueryClient;
+    lumaClient: LumaClient;
   }
 }
 
@@ -46,6 +48,7 @@ export function getRemixExpressApp(
           dbQueryClient: scopedServices.cradle.dbQueryClient,
           s3Client: scopedServices.cradle.s3Client,
           queryClient: scopedServices.cradle.queryClient,
+          lumaClient: scopedServices.cradle.lumaClient,
         };
       },
     }),

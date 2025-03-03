@@ -52,6 +52,8 @@ type Deps = {
   logger: Logger;
 };
 
+export type LumaClient = ReturnType<typeof createLumaClient>;
+
 export const createLumaClient = ({ mainConfig, logger }: Deps) => {
   const apiKey = mainConfig.luma.apiKey;
 
