@@ -14,7 +14,18 @@ export async function loader({ context }: Route.LoaderArgs) {
     s3Client: context.s3Client,
   });
 
-  const jsx = <LandingPagePreview images={pastEventImages} />;
+  const resizedImages = pastEventImages.map((image) => {
+    const search = new URLSearchParams();
+    search.set("w", "300");
+    search.set("h", "315");
+    search.set("src", image.url);
+    return {
+    ...image,
+    url: context.mainConfig.origin + "/img" + "?" + search.toString(),
+    };
+  });
+
+  const jsx = <LandingPagePreview images={resizedImages} />;
   const svg = await time("satori", async () =>
     satori(jsx, {
       width: 1200,

@@ -243,6 +243,7 @@ export function SpeakersPreview({ speakers }: { speakers: Profile[] }) {
 /**
  * Social preview for the landing page
  * w1200 h630: 8 images - 4 per row (2 rows)
+ * one img will be 315x300
  */
 export function LandingPagePreview({ images }: { images: Image[] }) {
   const maxImages = 8;
