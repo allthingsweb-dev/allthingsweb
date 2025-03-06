@@ -35,6 +35,17 @@ export type LumaEvent = {
   meeting_url: string;
 };
 
+export type LumaHost = {
+  api_id: string;
+  name: string;
+  email: string;
+};
+
+export type LumaEventPayload = {
+  event: LumaEvent;
+  hosts: LumaHost[];
+};
+
 export type LumaAttendee = {
   api_id: string;
   approval_status: "approved" | "declined" | "pending_approval" | "rejected";
@@ -65,6 +76,12 @@ export const createLumaClient = ({ mainConfig, logger }: Deps) => {
         );
         return [];
       },
+      getEvent: async () => {
+        logger.warn(
+          "Did not fetch event because env.lumaAPIKey is not set",
+        );
+        return null;
+      },
       getAttendees: async () => {
         logger.warn(
           "Did not fetch attendees because env.lumaAPIKey is not set",
@@ -83,8 +100,8 @@ export const createLumaClient = ({ mainConfig, logger }: Deps) => {
         );
         return 0;
       },
-      addAttendee: async () => {
-        logger.warn("Did not add attendee because env.lumaAPIKey is not set");
+      addAttendees: async () => {
+        logger.warn("Did not add attendees because env.lumaAPIKey is not set");
         return undefined;
       },
     };
@@ -108,6 +125,21 @@ export const createLumaClient = ({ mainConfig, logger }: Deps) => {
     }
     const resData = await res.json();
     return resData.events.entries.map((e: any) => e.event);
+  };
+
+  const getEvent = async (eventId: string): Promise<LumaEventPayload> => {
+    const url = `https://api.lu.ma/public/v1/event/get?api_id=${eventId}`;
+    console.log(url, apiKey);
+    const res = await fetch(url, {
+      method: "GET",
+      headers,
+    });
+    if (!res.ok) {
+      throw new Error(
+        `Failed to fetch event. Status: ${res.status} - ${res.statusText}`,
+      );
+    }
+    return await res.json();
   };
 
   const getAttendees = async (
@@ -178,10 +210,26 @@ export const createLumaClient = ({ mainConfig, logger }: Deps) => {
     return attendees.length;
   };
 
+
+  const addAttendees = async (eventId: string, data: { email: string, name: string | null }[]) => {
+    const url = `https://api.lu.ma/public/v1/event/add-guests?event_api_id=${eventId}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to add attendee. Status: ${res.status} - ${res.statusText}`,
+      );
+    }
+  };
+
   return {
     getUpcomingEvents,
+    getEvent,
     getAttendees,
     getAllAttendees,
     getAttendeeCount,
+    addAttendees,
   };
 };
