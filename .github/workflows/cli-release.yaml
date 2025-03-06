@@ -1,0 +1,48 @@
+on:
+    push:
+        tags:
+            - '*'
+
+name: Release a New Version of the CLI
+
+jobs:
+    releaseandpublish:
+        name: Release on Github
+        runs-on: ubuntu-latest
+        steps:
+            - name: ⬇️ Checkout repo
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  fetch-tags: false
+
+            - name: ⎔ Setup bun
+              uses: oven-sh/setup-bun@v2
+
+            - name: 📥 Download deps
+              run: bun install --frozen-lockfile
+
+            - name: 🔨 Compiling the different versions
+              run: make build-all-cli
+
+            - name: 🏷 Create GitHub Release
+              run: |
+                  TAG_NAME=${GITHUB_REF_NAME}
+                  TAG_MESSAGE=$(git tag -l --format='%(contents)' "$TAG_NAME")
+                  gh release create "${TAG_NAME}" --title "Release ${TAG_NAME}" --notes "${TAG_MESSAGE}"
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: 🚀 Upload Assets
+              run: |
+                  ASSET_PLATFORMS=("bun-linux-x64" "bun-linux-arm64" "bun-windows-x64.exe" "bun-darwin-x64" "bun-darwin-arm64")
+                  for platform in "${ASSET_PLATFORMS[@]}"; do
+                    if [ -f "atw-cli/atw-cli-$platform" ]; then
+                      gh release upload "${GITHUB_REF_NAME}" "atw-cli/atw-cli-$platform" --clobber
+                      echo "✅ Uploaded file for platform $platform"
+                    else
+                      echo "❌ File for platform $platform not found, skipping."
+                    fi
+                  done
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

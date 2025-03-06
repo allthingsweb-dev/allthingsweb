@@ -9,6 +9,7 @@ PACKAGE_MANAGER := bun
 CURRENT_DIR := $(shell pwd)
 DEPENDENCIES := bun git
 WEBSITE_DIR := $(CURRENT_DIR)/website
+CLI_DIR := $(CURRENT_DIR)/atw-cli
 
 .PHONY: list
 list:
@@ -56,3 +57,19 @@ test: ## Run Playwright tests (requires dev server to be running)
 .PHONY: serve
 serve: website/.env ## Serve the application
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run dev
+
+.PHONY: build-cli
+build-cli:  ## Build CLI
+	@cd $(CLI_DIR) && bun build --bundle src/index.ts --outfile atw-cli.js --target=bun
+	@cd $(CLI_DIR) && bun shim.ts
+	@cd $(CLI_DIR) && bun build --compile --minify atw-cli.js --outfile atw-cli
+	@cd $(CLI_DIR) && rm atw-cli.js
+
+.PHONY: build-all-cli
+build-all-cli:  
+	@cd $(CLI_DIR) && bun build --bundle src/index.ts --outfile atw-cli.js --target=bun
+	@cd $(CLI_DIR) && bun shim.ts
+	@cd $(CLI_DIR) &&  for target in bun-linux-x64 bun-linux-arm64 bun-windows-x64 bun-darwin-x64 bun-darwin-arm64; do \
+		bun build --compile --minify atw-cli.js --outfile atw-cli-$$target --target=$$target; \
+	done
+	@rm atw-cli.js
