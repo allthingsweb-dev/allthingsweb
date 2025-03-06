@@ -69,7 +69,7 @@ build-cli:  ## Build CLI
 build-all-cli:  
 	@cd $(CLI_DIR) && bun build --bundle src/index.ts --outfile atw-cli.js --target=bun
 	@cd $(CLI_DIR) && bun shim.ts
-	@cd $(CLI_DIR) &&  for target in bun-linux-x64 bun-linux-arm64 bun-windows-x64 bun-darwin-x64 bun-darwin-arm64; do \
+	@cd $(CLI_DIR) && for target in bun-linux-x64 bun-linux-arm64 bun-windows-x64 bun-darwin-x64 bun-darwin-arm64; do \
 		bun build --compile --minify atw-cli.js --outfile atw-cli-$$target --target=$$target; \
 	done
-	@rm atw-cli.js
+	@cd $(CLI_DIR) && rm atw-cli.js

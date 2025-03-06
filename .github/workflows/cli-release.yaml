@@ -5,6 +5,9 @@ on:
 
 name: Release a New Version of the CLI
 
+permissions:
+    contents: write
+ 
 jobs:
     releaseandpublish:
         name: Release on Github
@@ -21,6 +24,7 @@ jobs:
 
             - name: 📥 Download deps
               run: bun install --frozen-lockfile
+              working-directory: atw-cli
 
             - name: 🔨 Compiling the different versions
               run: make build-all-cli

@@ -20,8 +20,8 @@ export async function loader({ context }: Route.LoaderArgs) {
     search.set("h", "315");
     search.set("src", image.url);
     return {
-    ...image,
-    url: context.mainConfig.origin + "/img" + "?" + search.toString(),
+      ...image,
+      url: context.mainConfig.origin + "/img" + "?" + search.toString(),
     };
   });
 
