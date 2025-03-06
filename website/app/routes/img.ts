@@ -13,7 +13,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         : "./data/images",
     getImgSource: ({ request }) => {
       const src = new URL(request.url).searchParams.get("src");
-      if(!src) {
+      if (!src) {
         return new Response("src query parameter is required", { status: 400 });
       }
       if (URL.canParse(src)) {
