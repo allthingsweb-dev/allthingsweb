@@ -1,16 +1,27 @@
-import type { Route } from "./+types/home";
+import { useQuery, useZero } from "@rocicorp/zero/react";
+import { schema } from "../../queries/schema";
 
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
-  ];
-}
+export default function Home() {
+  const z = useZero<typeof schema>();
+  
+  // Query all events, ordered by start date
+  const eventQuery = z.query.events.limit(10);
 
-export function loader({ context }: Route.LoaderArgs) {
-  return { message: "Hello from Vercel" };
-}
+  const [events, eventsDetail] = useQuery(eventQuery);
+  console.log(events, eventsDetail);
 
-export default function Home({ loaderData }: Route.ComponentProps) {
-  return "hello";
+  return (
+    <div>
+      <h1>Upcoming Events</h1>
+        <div>
+          {events.map((event) => (
+            <div key={event.id}>
+              <h2>{event.name}</h2>
+              <p>Starts: {new Date(event.startDate).toLocaleDateString()}</p>
+              <p>Slug: {event.slug}</p>
+            </div>
+          ))}
+        </div>
+    </div>
+  );
 }

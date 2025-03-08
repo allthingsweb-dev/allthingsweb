@@ -5,6 +5,9 @@ const ClientConfigSchema = z.object({
   clerk: z.object({
     publishableKey: z.string(),
   }),
+  zero: z.object({
+    serverUrl: z.string().url(),
+  }),
 });
 
 export function getConfig() {

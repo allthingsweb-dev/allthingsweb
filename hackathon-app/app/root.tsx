@@ -9,8 +9,11 @@ import {
 import { mainConfig } from "./modules/config/env.server";
 import type { ClientConfig } from "./modules/config/env.client";
 import { rootAuthLoader } from '@clerk/react-router/ssr.server'
-import { ClerkProvider } from "@clerk/react-router";
+import { ClerkProvider, useAuth } from "@clerk/react-router";
 import Header from "./modules/nav/header";
+import { ZeroProvider } from "@rocicorp/zero/react";
+import { Zero } from "@rocicorp/zero";
+import { schema } from "../queries/schema";
 
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -34,6 +37,9 @@ export async function loader(args: Route.LoaderArgs) {
       origin: mainConfig.origin,
       clerk: {
         publishableKey: mainConfig.clerk.publishableKey,
+      },
+      zero: {
+        serverUrl: mainConfig.zero.serverUrl,
       },
     };
     return {
@@ -73,6 +79,34 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const isClient = typeof window !== "undefined";
+
+function WithAuthApp({ zeroConfig }: { zeroConfig: ClientConfig["zero"] }) {
+  const { userId, getToken } = useAuth();
+  
+  const z = new Zero({
+    userID: userId || "anon",
+    server: zeroConfig.serverUrl,
+    schema,
+    kvStore: isClient ? "idb" : "mem",
+    auth: async () => {
+      // Only attempt to get a token if the user is logged in
+      if (userId) {
+        const token = await getToken();
+        return token ?? undefined;
+      }
+      return undefined;
+    },
+  });
+
+  return (
+    <ZeroProvider zero={z}>
+      <Header />
+      <Outlet />
+    </ZeroProvider>
+  );
+}
+
 export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <ClerkProvider
@@ -81,8 +115,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
       signUpFallbackRedirectUrl="/"
       signInFallbackRedirectUrl="/"
     >
-      <Header />
-      <Outlet />
+      <WithAuthApp zeroConfig={loaderData.clientConfig.zero} />
     </ClerkProvider>
   );
 }

@@ -41,8 +41,7 @@ const ClerkSchema = z.object({
 });
 
 const ZeroSchema = z.object({
-  syncServerUrl: z.string().url(),
-  authSecret: z.string(),
+  serverUrl: z.string().url(),
 });
 
 const MainConfigSchema = z
@@ -63,7 +62,6 @@ export const mainConfig: MainConfig = validateConfigOrExit(MainConfigSchema, {
     secretKey: process.env.CLERK_SECRET_KEY,
   },
   zero: {
-    syncServerUrl: process.env.ZERO_SERVER_URL,
-    authSecret: process.env.ZERO_AUTH_SECRET,
+    serverUrl: process.env.ZERO_SERVER_URL,
   },
 });
