@@ -8,5 +8,3 @@
 # Vercel
 /.vercel/
 
-# Zero
-/sync-server/permissions.sql

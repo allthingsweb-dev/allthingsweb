@@ -14,4 +14,3 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   }
   return Response.json({ event });
 }
-

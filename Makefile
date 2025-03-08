@@ -10,6 +10,8 @@ CURRENT_DIR := $(shell pwd)
 DEPENDENCIES := bun git
 WEBSITE_DIR := $(CURRENT_DIR)/website
 CLI_DIR := $(CURRENT_DIR)/atw-cli
+SYNC_SERVER_DIR := $(CURRENT_DIR)/sync-server
+HACKATHON_APP_DIR := $(CURRENT_DIR)/hackathon-app
 
 .PHONY: list
 list:
@@ -40,6 +42,10 @@ install: check-dependencies ## Install the dependencies
 fmt: ## Format the code
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:fix
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:check
+	@cd $(HACKATHON_APP_DIR) && $(PACKAGE_MANAGER) run prettier:fix
+	@cd $(HACKATHON_APP_DIR) && $(PACKAGE_MANAGER) run prettier:check
+	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:fix
+	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:check
 
 .PHONY: check
 check: ## Check the code
@@ -73,3 +79,7 @@ build-all-cli:
 		bun build --compile --minify atw-cli.js --outfile atw-cli-$$target --target=$$target; \
 	done
 	@cd $(CLI_DIR) && rm atw-cli.js
+
+.PHONY: deploy-sync-permissions
+deploy-sync-permissions:
+	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run deploy:permissions

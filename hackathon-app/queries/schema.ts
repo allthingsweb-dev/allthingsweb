@@ -1,5 +1,12 @@
-import { table, string, number, boolean, relationships, createSchema } from '@rocicorp/zero';
-import { definePermissions, ANYONE_CAN } from '@rocicorp/zero';
+import {
+  table,
+  string,
+  number,
+  boolean,
+  relationships,
+  createSchema,
+} from "@rocicorp/zero";
+import { definePermissions, ANYONE_CAN } from "@rocicorp/zero";
 
 export const events = table("events")
   .columns({
@@ -92,18 +99,15 @@ export const hackUserRelationships = relationships(hackUsers, ({ one }) => ({
   }),
 }));
 
-export const schema = createSchema(
-  1,
-  {
-    tables: [events, hacks, hackVotes, hackUsers],
-    relationships: [
-      eventRelationships,
-      hackRelationships,
-      hackVoteRelationships,
-      hackUserRelationships,
-    ],
-  }
-); 
+export const schema = createSchema(1, {
+  tables: [events, hacks, hackVotes, hackUsers],
+  relationships: [
+    eventRelationships,
+    hackRelationships,
+    hackVoteRelationships,
+    hackUserRelationships,
+  ],
+});
 
 export const permissions = definePermissions<{}, typeof schema>(schema, () => {
   return {
@@ -162,4 +166,4 @@ export const permissions = definePermissions<{}, typeof schema>(schema, () => {
       },
     },
   };
-}); 
+});

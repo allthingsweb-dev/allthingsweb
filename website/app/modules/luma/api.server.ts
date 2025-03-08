@@ -77,9 +77,7 @@ export const createLumaClient = ({ mainConfig, logger }: Deps) => {
         return [];
       },
       getEvent: async () => {
-        logger.warn(
-          "Did not fetch event because env.lumaAPIKey is not set",
-        );
+        logger.warn("Did not fetch event because env.lumaAPIKey is not set");
         return null;
       },
       getAttendees: async () => {
@@ -210,8 +208,10 @@ export const createLumaClient = ({ mainConfig, logger }: Deps) => {
     return attendees.length;
   };
 
-
-  const addAttendees = async (eventId: string, data: { email: string, name: string | null }[]) => {
+  const addAttendees = async (
+    eventId: string,
+    data: { email: string; name: string | null }[],
+  ) => {
     const url = `https://api.lu.ma/public/v1/event/add-guests?event_api_id=${eventId}`;
     const res = await fetch(url, {
       method: "POST",
@@ -219,7 +219,8 @@ export const createLumaClient = ({ mainConfig, logger }: Deps) => {
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      throw new Error(`Failed to add attendee. Status: ${res.status} - ${res.statusText}`,
+      throw new Error(
+        `Failed to add attendee. Status: ${res.status} - ${res.statusText}`,
       );
     }
   };

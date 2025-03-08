@@ -40,28 +40,31 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       );
     }
     const hosts = lumaEvent.hosts;
-    if(hosts.map((host) => host.email).includes(email)) {
+    if (hosts.map((host) => host.email).includes(email)) {
       return Response.json(
         { success: false, error: "Already registered as a host" },
         { status: 400, statusText: "Already registered as a host" },
       );
     }
-    
-    if(attendees.map((attendee) => attendee.email).includes(email)) {
+
+    if (attendees.map((attendee) => attendee.email).includes(email)) {
       return Response.json(
         { success: false, error: "Already registered as an attendee" },
         { status: 400, statusText: "Already registered as an attendee" },
       );
     }
 
-    await context.lumaClient.addAttendees(event.lumaEventId, [{
-      email,
-      name: null,
-    }]);
-    
+    await context.lumaClient.addAttendees(event.lumaEventId, [
+      {
+        email,
+        name: null,
+      },
+    ]);
+
     return Response.json({ success: true });
-  } catch(error: unknown) {
-      const message = error instanceof Error ? error.message : 'Something went wrong';
-      return Response.json({ success: false, error: message})
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Something went wrong";
+    return Response.json({ success: false, error: message });
   }
 }

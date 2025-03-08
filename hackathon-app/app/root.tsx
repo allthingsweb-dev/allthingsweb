@@ -8,7 +8,7 @@ import {
 } from "react-router";
 import { mainConfig } from "./modules/config/env.server";
 import type { ClientConfig } from "./modules/config/env.client";
-import { rootAuthLoader } from '@clerk/react-router/ssr.server'
+import { rootAuthLoader } from "@clerk/react-router/ssr.server";
 import { ClerkProvider, useAuth } from "@clerk/react-router";
 import Header from "./modules/nav/header";
 import { ZeroProvider } from "@rocicorp/zero/react";
@@ -32,23 +32,27 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader(args: Route.LoaderArgs) {
-  return rootAuthLoader(args, () => {
-    const clientConfig: ClientConfig = {
-      origin: mainConfig.origin,
-      clerk: {
-        publishableKey: mainConfig.clerk.publishableKey,
-      },
-      zero: {
-        serverUrl: mainConfig.zero.serverUrl,
-      },
-    };
-    return {
-      clientConfig,
-    };
-  }, {
-    signUpFallbackRedirectUrl: "/", 
-    signInFallbackRedirectUrl: "/",
-  });
+  return rootAuthLoader(
+    args,
+    () => {
+      const clientConfig: ClientConfig = {
+        origin: mainConfig.origin,
+        clerk: {
+          publishableKey: mainConfig.clerk.publishableKey,
+        },
+        zero: {
+          serverUrl: mainConfig.zero.serverUrl,
+        },
+      };
+      return {
+        clientConfig,
+      };
+    },
+    {
+      signUpFallbackRedirectUrl: "/",
+      signInFallbackRedirectUrl: "/",
+    },
+  );
 }
 
 export function meta({ data }: Route.MetaArgs): ReturnType<Route.MetaFunction> {
@@ -83,7 +87,7 @@ const isClient = typeof window !== "undefined";
 
 function WithAuthApp({ zeroConfig }: { zeroConfig: ClientConfig["zero"] }) {
   const { userId, getToken } = useAuth();
-  
+
   const z = new Zero({
     userID: userId || "anon",
     server: zeroConfig.serverUrl,
