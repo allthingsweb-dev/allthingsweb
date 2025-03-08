@@ -1,5 +1,5 @@
 import { useQuery, useZero } from "@rocicorp/zero/react";
-import { schema } from "../../queries/schema";
+import { schema } from "@lib/zero-sync/schema";
 
 export default function Home() {
   const z = useZero<typeof schema>();

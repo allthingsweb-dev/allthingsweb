@@ -1,4 +1,10 @@
 {
     "name": "allthingsweb-monorepo",
-    "private": true
+    "private": true,
+    "workspaces": [
+        "lib",
+        "hackathon-app",
+        "sync-server",
+        "website"
+    ]
 }

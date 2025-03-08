@@ -1,7 +1,7 @@
 import { inArray } from "drizzle-orm";
-import { DatabaseClient } from "../db/client.server";
+import { DatabaseClient } from "@lib/db/client.server";
 import { S3Client } from "../s3/client.server";
-import { imagesTable } from "../db/schema.server";
+import { imagesTable } from "@lib/db/schema.server";
 import { Image } from "../allthingsweb/images";
 
 type Deps = {

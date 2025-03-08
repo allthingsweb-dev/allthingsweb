@@ -14,20 +14,25 @@ ENV NODE_ENV="production"
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
 
-# Install node modules
-COPY --link bun.lock package.json ./
-RUN bun install
-
-# Copy application code
+# Copy the entire monorepo structure
 COPY --link . .
 
-# Build application
-RUN bun --bun run build
+# Install node modules for the entire monorepo
+RUN bun install
 
-# Remove development dependencies
-RUN rm -rf node_modules && \
-    bun install --ci
+# Build application (specifically the website)
+RUN cd website && bun --bun run build
+
+# Clean up node_modules
+RUN rm -rf node_modules
+
+# Install only production dependencies
+RUN cd website && bun i --ci
+
+# Remove irrelevant app folders
+RUN rm -rf hackathon-app atw-cli sync-server
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
+WORKDIR /app/website
 CMD [ "bun", "run", "start" ]

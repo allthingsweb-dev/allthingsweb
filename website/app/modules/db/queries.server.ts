@@ -6,7 +6,7 @@ import { RedirectLink } from "../allthingsweb/redirects";
 import { getDefaultPreviewImage } from "../allthingsweb/events.server";
 import { SpeakerWithTalkIds, TalkWithEventCtx } from "../allthingsweb/speakers";
 import { Image } from "../allthingsweb/images";
-import { DatabaseClient } from "./client.server";
+import { DatabaseClient } from "@lib/db/client.server";
 import {
   eventsTable,
   eventSponsorsTable,
@@ -18,7 +18,7 @@ import {
   redirectsTable,
   imagesTable,
   talkSpeakersTable,
-} from "./schema.server";
+} from "@lib/db/schema.server";
 import { getLumaUrl } from "../luma/utils";
 import { MainConfig } from "~/config.server";
 import { Profile } from "../allthingsweb/profiles";

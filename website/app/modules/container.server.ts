@@ -10,7 +10,7 @@ import { createMailer, type Mailer } from "./mailer.server";
 import { createServerTimingsProfiler } from "./server-timing.server";
 import { createLumaClient } from "./luma/api.server";
 import { createPosthogClient } from "./posthog/posthog.server";
-import { createDatabaseClient, DatabaseClient } from "./db/client.server";
+import { createDatabaseClient, DatabaseClient } from "@lib/db/client.server";
 import { createDbQueryClient, DbQueryClient } from "./db/queries.server";
 import { createQueryClient, QueryClient } from "./allthingsweb/client.server";
 import { createS3Client, S3Client } from "./s3/client.server";

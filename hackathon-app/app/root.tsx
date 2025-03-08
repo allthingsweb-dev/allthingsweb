@@ -13,7 +13,7 @@ import { ClerkProvider, useAuth } from "@clerk/react-router";
 import Header from "./modules/nav/header";
 import { ZeroProvider } from "@rocicorp/zero/react";
 import { Zero } from "@rocicorp/zero";
-import { schema } from "../queries/schema";
+import { schema } from "@lib/zero-sync/schema";
 
 import type { Route } from "./+types/root";
 import "./app.css";
