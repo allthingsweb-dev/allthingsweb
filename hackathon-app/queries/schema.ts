@@ -1,4 +1,4 @@
-import { table, string, relationships, createSchema } from '@rocicorp/zero';
+import { table, string, number, boolean, relationships, createSchema } from '@rocicorp/zero';
 import { definePermissions, ANYONE_CAN } from '@rocicorp/zero';
 
 export const events = table("events")
@@ -6,7 +6,21 @@ export const events = table("events")
     id: string(),
     name: string(),
     startDate: string().from("start_date"),
+    endDate: string().from("end_date"),
     slug: string(),
+    tagline: string(),
+    attendeeLimit: number().from("attendee_limit"),
+    streetAddress: string().from("street_address").optional(),
+    shortLocation: string().from("short_location").optional(),
+    fullAddress: string().from("full_address").optional(),
+    lumaEventId: string().from("luma_event_id").optional(),
+    isHackathon: boolean().from("is_hackathon"),
+    isDraft: boolean().from("is_draft"),
+    highlightOnLandingPage: boolean().from("highlight_on_landing_page"),
+    previewImage: string().from("preview_image").optional(),
+    recordingUrl: string().from("recording_url").optional(),
+    createdAt: string().from("created_at"),
+    updatedAt: string().from("updated_at"),
   })
   .primaryKey("id");
 
