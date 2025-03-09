@@ -1,10 +1,12 @@
 import { Box, Text } from "ink"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Select } from "./components/select"
 import { EmailInput, Spinner } from '@inkjs/ui';
 
 import { registerAction, type Event } from "../actions/register.action"
 import Link from "ink-link";
+import { useQuery, useZero } from "@rocicorp/zero/react";
+import { schema } from "@lib/zero-sync/schema";
 
 type RegisterJourneyProps = {
     unmount: () => void
@@ -13,31 +15,13 @@ type RegisterJourneyProps = {
 const toDate = (date: string) => `${new Date(date).toLocaleDateString()} ${new Date(date).toLocaleTimeString()}`
 
 export const RegisterJourney = ({ unmount }: RegisterJourneyProps) => {
-    const [events, setEvents] = useState<{
-        id: string,
-        slug: string,
-        name: string,
-        startDate: string,
-        location: string
-    }[]>([])
-
+    const z = useZero<typeof schema>();
+    
+    //where('startDate', '>', now.toUTCString())
+    const eventQuery = z.query.events.orderBy('startDate', 'desc').limit(10);
+    const [events] = useQuery(eventQuery);
     const [event, setEvent] = useState<Event | null>(null)
     const [hasSucceeded, setHasSucceeded] = useState(false)
-
-    useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const response = await fetch('https://allthingsweb.dev/api/events')
-                const { data } = await response.json()
-                setEvents(data)
-            } catch (error) {
-                console.error(error)
-            }
-
-        }
-        fetchEvents()
-    }, [])
-
     return <Box flexDirection="column" padding={1} gap={1}>
 
         {!event && <Text>Here is the list of the upcomping events:</Text>}
@@ -49,7 +33,7 @@ export const RegisterJourney = ({ unmount }: RegisterJourneyProps) => {
                 render: (label, value, isSelected) => <Box>
                     <Box flexDirection="column">
                         <Text bold={isSelected} dimColor={!isSelected}>{label}</Text>
-                        <Text dimColor={!isSelected}>{toDate(event.startDate)} - {value.location}</Text>
+                        <Text dimColor={!isSelected}>{toDate(event.startDate)} - {value.shortLocation}</Text>
                         <Link url={link}>
                             <Text color={'#FF9900'} dimColor={!isSelected}>{link}</Text>
                         </Link>
@@ -63,7 +47,7 @@ export const RegisterJourney = ({ unmount }: RegisterJourneyProps) => {
         {event && <Box flexDirection="column" padding={1} gap={1} borderStyle={"round"}>
             <Box flexDirection="column">
                 <Text bold>{event.name}</Text>
-                <Text>{toDate(event.startDate)} - {event.location}</Text>
+                <Text>{toDate(event.startDate)} - {event.shortLocation}</Text>
                 <Link url={`https://allthingsweb.dev/${event.slug}`}>
                     <Text color={'#FF9900'}>{`https://allthingsweb.dev/${event.slug}`}</Text>
                 </Link>

@@ -71,7 +71,7 @@ export function Select<T>({ options, onSelect, defaultSelectedIndex = 0, colors 
             })}
             {overflowItem && (
                 <Box marginLeft={3} flexDirection="row">
-                    <Text>
+                    <Text dimColor>
                         {overflowItem.label}
                         <Newline />
                         ...

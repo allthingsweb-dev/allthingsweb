@@ -4,7 +4,7 @@ export type Event = {
     slug: string
     name: string
     startDate: string
-    location: string
+    shortLocation: string|null
 }
 
 export const registerAction = async (email: string, eventId: Event['id']) => {
