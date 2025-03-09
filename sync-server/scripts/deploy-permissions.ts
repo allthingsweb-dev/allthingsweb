@@ -18,7 +18,7 @@ try {
     ZERO_CVR_DB=${process.env.ZERO_CVR_DB} \
     ZERO_CHANGE_DB=${process.env.ZERO_CHANGE_DB} \
     bunx zero-deploy-permissions \
-      --schema-path='../hackathon-app/queries/schema.ts' \
+      --schema-path='../lib/zero-sync/schema.ts' \
       --output-file='./permissions.sql'`;
 
   console.log("Permissions deployed successfully!");
