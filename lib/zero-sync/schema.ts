@@ -12,8 +12,8 @@ export const events = table("events")
   .columns({
     id: string(),
     name: string(),
-    startDate: string().from("start_date"),
-    endDate: string().from("end_date"),
+    startDate: number().from("start_date"),
+    endDate: number().from("end_date"),
     slug: string(),
     tagline: string(),
     attendeeLimit: number().from("attendee_limit"),
@@ -26,8 +26,8 @@ export const events = table("events")
     highlightOnLandingPage: boolean().from("highlight_on_landing_page"),
     previewImage: string().from("preview_image").optional(),
     recordingUrl: string().from("recording_url").optional(),
-    createdAt: string().from("created_at"),
-    updatedAt: string().from("updated_at"),
+    createdAt: number().from("created_at"),
+    updatedAt: number().from("updated_at"),
   })
   .primaryKey("id");
 
@@ -68,8 +68,8 @@ export const profiles = table("profiles")
     blueskyHandle: string().from("bluesky_handle").optional(),
     linkedinHandle: string().from("linkedin_handle").optional(),
     image: string().optional(),
-    createdAt: string().from("created_at"),
-    updatedAt: string().from("updated_at"),
+    createdAt: number().from("created_at"),
+    updatedAt: number().from("updated_at"),
   })
   .primaryKey("id");
 
@@ -81,8 +81,8 @@ export const images = table("images")
     alt: string(),
     width: number(),
     height: number(),
-    createdAt: string().from("created_at"),
-    updatedAt: string().from("updated_at"),
+    createdAt: number().from("created_at"),
+    updatedAt: number().from("updated_at"),
   })
   .primaryKey("id");
 
@@ -91,8 +91,8 @@ export const talks = table("talks")
     id: string(),
     title: string(),
     description: string(),
-    createdAt: string().from("created_at"),
-    updatedAt: string().from("updated_at"),
+    createdAt: number().from("created_at"),
+    updatedAt: number().from("updated_at"),
   })
   .primaryKey("id");
 
@@ -101,8 +101,8 @@ export const talkSpeakers = table("talkSpeakers")
   .columns({
     talkId: string().from("talk_id"),
     speakerId: string().from("speaker_id"),
-    createdAt: string().from("created_at"),
-    updatedAt: string().from("updated_at"),
+    createdAt: number().from("created_at"),
+    updatedAt: number().from("updated_at"),
   })
   .primaryKey("talkId", "speakerId");
 
@@ -111,8 +111,8 @@ export const eventTalks = table("eventTalks")
   .columns({
     eventId: string().from("event_id"),
     talkId: string().from("talk_id"),
-    createdAt: string().from("created_at"),
-    updatedAt: string().from("updated_at"),
+    createdAt: number().from("created_at"),
+    updatedAt: number().from("updated_at"),
   })
   .primaryKey("eventId", "talkId");
 
@@ -121,8 +121,8 @@ export const eventImages = table("eventImages")
   .columns({
     eventId: string().from("event_id"),
     imageId: string().from("image_id"),
-    createdAt: string().from("created_at"),
-    updatedAt: string().from("updated_at"),
+    createdAt: number().from("created_at"),
+    updatedAt: number().from("updated_at"),
   })
   .primaryKey("eventId", "imageId");
 
