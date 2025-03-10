@@ -13,7 +13,7 @@ import { createPosthogClient } from "./posthog/posthog.server";
 import { createDatabaseClient, DatabaseClient } from "@lib/db/client.server";
 import { createDbQueryClient, DbQueryClient } from "./db/queries.server";
 import { createQueryClient, QueryClient } from "./allthingsweb/client.server";
-import { createS3Client, S3Client } from "./s3/client.server";
+import { createS3Client, S3Client } from "@lib/s3/client.server";
 
 export const buildContainer = () => {
   // 1. load the config

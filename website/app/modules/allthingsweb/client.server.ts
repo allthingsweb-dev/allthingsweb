@@ -3,7 +3,7 @@ import { SpeakerWithTalkIds, TalkWithEventCtx } from "./speakers";
 import { Profile } from "./profiles";
 import { Event, ExpandedEvent, ExpandedTalk, Sponsor } from "./events";
 import { RedirectLink } from "./redirects";
-import { S3Client } from "../s3/client.server";
+import { S3Client } from "@lib/s3/client.server";
 import { MainConfig } from "~/config.server";
 import { Image } from "./images";
 

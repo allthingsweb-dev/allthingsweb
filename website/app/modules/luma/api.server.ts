@@ -210,15 +210,20 @@ export const createLumaClient = ({ mainConfig, logger }: Deps) => {
 
   const addAttendees = async (
     eventId: string,
-    data: { email: string; name: string | null }[],
+    guests: { email: string; name: string | null }[],
   ) => {
-    const url = `https://api.lu.ma/public/v1/event/add-guests?event_api_id=${eventId}`;
+    const url = `https://api.lu.ma/public/v1/event/add-guests`;
     const res = await fetch(url, {
       method: "POST",
       headers,
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        event_api_id: eventId,
+        guests,
+      }),
     });
     if (!res.ok) {
+      const resData = await res.json();
+      console.warn(resData);
       throw new Error(
         `Failed to add attendee. Status: ${res.status} - ${res.statusText}`,
       );

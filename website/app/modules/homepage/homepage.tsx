@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
 import { DatabaseClient } from "@lib/db/client.server";
-import { S3Client } from "../s3/client.server";
+import { S3Client } from "@lib/s3/client.server";
 import { imagesTable } from "@lib/db/schema.server";
 import { Image } from "../allthingsweb/images";
 

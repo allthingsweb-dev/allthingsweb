@@ -1,9 +1,16 @@
 import { S3Client as AWSS3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { MainConfig } from "~/config.server";
 
 type Deps = {
-  mainConfig: MainConfig;
+  mainConfig: {
+    s3: {
+      accessKeyId: string;
+      secretAccessKey: string;
+      region: string;
+      url: string;
+      bucket: string;
+    }
+  }
 };
 
 export type S3Client = ReturnType<typeof createS3Client>;
