@@ -18,9 +18,12 @@ jobs:
               with:
                   fetch-depth: 0
                   fetch-tags: false
-
+               
             - name: ⎔ Setup bun
               uses: oven-sh/setup-bun@v2
+
+            - name: 📥 Download deps on Mono
+              run: bun install --frozen-lockfile
 
             - name: 📥 Download deps
               run: bun install --frozen-lockfile

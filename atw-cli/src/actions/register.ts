@@ -1,20 +1,17 @@
+import { ATW_API_BASEURL } from "../config"
 
 export type Event = {
     id: string
     slug: string
     name: string
-    startDate: string
+    startDate: number
     shortLocation: string|null
 }
 
 export const registerAction = async (email: string, eventId: Event['id']) => {
-    const response = await fetch(`https://allthingsweb.dev/api/events/${eventId}/register`, {
+    const response = await fetch(`${ATW_API_BASEURL}/events/${eventId}/register`, {
         method: 'POST',
         body: JSON.stringify({ email })
     })
-    if (!response.ok) {
-        throw new Error('Failed to register')
-    }
-    const { success } = await response.json()
-    return success
+    return await response.json()
 }

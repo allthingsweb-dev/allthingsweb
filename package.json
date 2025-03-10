@@ -5,7 +5,6 @@
         "lib",
         "hackathon-app",
         "sync-server",
-        "website",
-        "atw-cli"
+        "website"
     ]
 }
