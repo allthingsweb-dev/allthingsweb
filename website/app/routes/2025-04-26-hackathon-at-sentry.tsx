@@ -16,7 +16,7 @@ export { headers } from "~/modules/header.server";
 export { meta };
 
 export function loader({ context }: Route.LoaderArgs) {
-  return eventDetailsLoader("2024-10-05-hackathon-at-sentry", {
+  return eventDetailsLoader("2025-04-26-hackathon-at-sentry", {
     serverTimingsProfiler: context.serverTimingsProfiler,
     lumaClient: context.services.lumaClient,
     queryClient: context.services.queryClient,
@@ -70,27 +70,27 @@ function Schedule() {
       </div>
       <div className="space-y-6">
         <ScheduleItem
-          time="11:30 am"
+          time="10:30 am"
           title="Doors open"
           description="Get to know your fellow hackers and form teams."
         />
         <ScheduleItem
-          time="12:30 pm"
+          time="11:00 am"
           title="Kick-off presentation"
           description="Get ready for a day of coding, networking, and fun!"
         />
         <ScheduleItem
-          time="1 - 7 pm"
+          time="1 - 7:30 pm"
           title="Hacking time"
           description="Focus on your project, ask for help, and enjoy the snacks."
         />
         <ScheduleItem
-          time="7 pm"
+          time="7:30 pm"
           title="Presentations & awards ceremony"
           description="Show off your project and vote for the best ones!"
         />
         <ScheduleItem
-          time="8 pm"
+          time="8:30 pm"
           title="Closing doors"
           description="Thank you for joining us! We hope you had a great time."
         />
@@ -128,8 +128,8 @@ function MoreInformation() {
             When and Where
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            The event will take place on Saturday, October 5, 2024 at the Sentry
-            office in San Francisco. Doors will open at 11:30 am. Join us for a
+            The event will take place on Saturday, April 26, 2025 at the Sentry
+            office in San Francisco. Doors will open at 10:30 am. Join us for a
             day of coding, networking, and fun!
           </p>
         </div>
@@ -140,8 +140,7 @@ function MoreInformation() {
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
             At the end of the event, we’ll vote for the most creative and most
             impactful projects. The winning teams will score some awesome
-            prizes! Here’s what’s up for grabs: Syntax & Sentry swag and $80 in
-            Sentry credits per person on the winning teams!
+            prizes! Stay tuned for more details!
           </p>
         </div>
         <div className="space-y-2">
@@ -149,11 +148,10 @@ function MoreInformation() {
             Theme
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            The theme of the hackathon is "Open Source". We’d love for you to
-            use open-source tools, maybe even give back to the community during
-            the event! But feel free to work on whatever sparks your interest.
-            And don’t forget—two prizes are up for grabs: most creative and most
-            impactful!
+            The theme of the hackathon is "Future of Web". We’d love for you to
+            imagine the future of web UI, interactions, and AI. But feel free to
+            work on whatever sparks your interest. And don’t forget—two prizes
+            are up for grabs: most creative and most impactful!
           </p>
         </div>
         <div className="space-y-2">
