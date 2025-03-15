@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   integer,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 
 const createdAt = timestamp("created_at", { withTimezone: true })
@@ -159,6 +160,10 @@ export const eventImagesTable = pgTable("event_images", {
     .references(() => imagesTable.id, { onDelete: "cascade" }),
   createdAt,
   updatedAt,
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.eventId, table.imageId] }),
+  };
 });
 
 export type InsertEvent = typeof eventsTable.$inferInsert;

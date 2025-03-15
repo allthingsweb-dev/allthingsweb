@@ -2,9 +2,10 @@ import { eq } from "drizzle-orm";
 import { buildContainer } from "~/modules/container.server";
 import { eventsTable, InsertEvent } from "@lib/db/schema.server";
 
-const slug = "2025-03-19-all-things-web-at-convex";
+const slug = "2025-03-12-all-things-web-hack-evening";
 const eventData = {
-  highlightOnLandingPage: true,
+  startDate: new Date("2025-03-12T17:30:00.000Z"),
+  endDate: new Date("2025-03-12T20:30:00.000Z"),
 } satisfies Partial<InsertEvent>;
 
 async function main() {

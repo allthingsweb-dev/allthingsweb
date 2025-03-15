@@ -1,22 +1,22 @@
 import { buildContainer } from "~/modules/container.server";
 import { eventsTable, InsertEvent } from "@lib/db/schema.server";
 
-// 177359e8-51a7-4b13-9859-cec7083a90cf
+// 0a27defe-abf3-4db9-8feb-4a547ef2ef18
 const event = {
-  name: "AI x All Things Web",
-  slug: "2025-04-03-ai-x-all-things-web",
-  attendeeLimit: 300,
+  name: "All Things Web Hack Evening",
+  slug: "2025-12-03-all-things-web-hack-evening",
+  attendeeLimit: 40,
   tagline:
-    "Join us on April 3rd for a special AI x All Things Web event at the AWS GenAI Loft. We'll have several fantastic lightning talks, snacks & drinks, and plenty of time to nerd out about AI, all things web, and the future of UI!",
-  startDate: new Date("2025-04-03T17:00:00.000Z"),
-  endDate: new Date("2025-04-03T20:30:00.000Z"),
-  lumaEventId: "evt-hMrMdGcrk8XOnuF",
+    "Join us for our first Hack Evening. Hack into the evening and hang out with awesome people; this event is all about providing you a space to work on your favorite project and connect with the community.",
+  startDate: new Date("2025-12-03T17:30:00.000Z"),
+  endDate: new Date("2025-12-03T20:30:00.000Z"),
+  lumaEventId: "evt-4tdtev7Ap2qLcPW",
   isDraft: false,
   isHackathon: false,
-  highlightOnLandingPage: true,
-  fullAddress: "525 Market St, San Francisco, CA 94105, USA",
-  shortLocation: "AWS GenAI Loft",
-  streetAddress: "525 Market St",
+  highlightOnLandingPage: false,
+  fullAddress: "620 Treat Ave, San Francisco, CA 94110, USA",
+  shortLocation: "Southern Pacific Brewing",
+  streetAddress: "620 Treat Ave",
 } satisfies InsertEvent;
 
 async function main() {

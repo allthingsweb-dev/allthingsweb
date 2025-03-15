@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { buildContainer } from "~/modules/container.server";
 import { eventSponsorsTable, sponsorsTable } from "@lib/db/schema.server";
 
-const slug = "2025-04-03-ai-x-all-things-web";
+const slug = "2025-12-03-all-things-web-hack-evening";
 const sponsorName = "Neon";
 
 async function main() {
