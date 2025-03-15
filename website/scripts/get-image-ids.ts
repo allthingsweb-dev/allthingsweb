@@ -1,5 +1,5 @@
 import { buildContainer } from "~/modules/container.server";
-import { imagesTable } from "~/modules/db/schema.server";
+import { imagesTable } from "@lib/db/schema.server";
 
 export async function getImgIdsForUrls() {
   let container = buildContainer();

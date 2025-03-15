@@ -3,7 +3,7 @@ import {
   InsertTalk,
   talkSpeakersTable,
   talksTable,
-} from "~/modules/db/schema.server";
+} from "@lib/db/schema.server";
 
 const talk = {
   title: "Anti-Crash Course: Building Better Errors and Traces",

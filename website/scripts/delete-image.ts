@@ -3,7 +3,7 @@ import {
   eventImagesTable,
   eventsTable,
   imagesTable,
-} from "../app/modules/db/schema.server";
+} from "@lib/db/schema.server";
 import { buildContainer } from "~/modules/container.server";
 import { eq } from "drizzle-orm";
 

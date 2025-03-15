@@ -1,6 +1,6 @@
 import { S3Client } from "bun";
 import { getImgPlaceholder, getImgMetadata } from "openimg/bun";
-import { eventImagesTable, imagesTable } from "../app/modules/db/schema.server";
+import { eventImagesTable, imagesTable } from "@lib/db/schema.server";
 import { buildContainer } from "~/modules/container.server";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";

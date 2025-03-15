@@ -4,7 +4,7 @@ import {
   imagesTable,
   InsertProfile,
   profilesTable,
-} from "~/modules/db/schema.server";
+} from "@lib/db/schema.server";
 import { randomUUID } from "node:crypto";
 import { getImgMetadata, getImgPlaceholder } from "openimg/bun";
 

@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
 import { buildContainer } from "~/modules/container.server";
-import { eventSponsorsTable, sponsorsTable } from "~/modules/db/schema.server";
+import { eventSponsorsTable, sponsorsTable } from "@lib/db/schema.server";
 
-const slug = "2025-03-19-all-things-web-at-convex";
-const sponsorName = "Convex";
+const slug = "2025-04-03-ai-x-all-things-web";
+const sponsorName = "Neon";
 
 async function main() {
   const container = buildContainer();

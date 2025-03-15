@@ -1,22 +1,22 @@
 import { buildContainer } from "~/modules/container.server";
-import { eventsTable, InsertEvent } from "~/modules/db/schema.server";
+import { eventsTable, InsertEvent } from "@lib/db/schema.server";
 
-// 51802baf-8e1b-4903-99ba-96cf637bff63
+// 177359e8-51a7-4b13-9859-cec7083a90cf
 const event = {
-  name: "All Things Web at Convex",
-  slug: "2025-03-19-all-things-web-at-convex",
-  attendeeLimit: 150,
+  name: "AI x All Things Web",
+  slug: "2025-04-03-ai-x-all-things-web",
+  attendeeLimit: 300,
   tagline:
-    "Join us for our next meetup at Convex! RSVP for two great tech talks, snacks & drinks, and plenty of time to chat about all things web.",
-  startDate: new Date("2025-03-19T17:00:00.000Z"),
-  endDate: new Date("2025-03-19T20:30:00.000Z"),
-  lumaEventId: "evt-xWl1tkPwl1b8zbI",
-  isDraft: true,
+    "Join us on April 3rd for a special AI x All Things Web event at the AWS GenAI Loft. We'll have several fantastic lightning talks, snacks & drinks, and plenty of time to nerd out about AI, all things web, and the future of UI!",
+  startDate: new Date("2025-04-03T17:00:00.000Z"),
+  endDate: new Date("2025-04-03T20:30:00.000Z"),
+  lumaEventId: "evt-hMrMdGcrk8XOnuF",
+  isDraft: false,
   isHackathon: false,
   highlightOnLandingPage: true,
-  fullAddress: "444 De Haro St #218, San Francisco, CA 94103",
-  shortLocation: "Convex HQ",
-  streetAddress: "444 De Haro St #218",
+  fullAddress: "525 Market St, San Francisco, CA 94105, USA",
+  shortLocation: "AWS GenAI Loft",
+  streetAddress: "525 Market St",
 } satisfies InsertEvent;
 
 async function main() {
