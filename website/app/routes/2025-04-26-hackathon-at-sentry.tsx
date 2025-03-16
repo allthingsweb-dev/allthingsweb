@@ -128,9 +128,7 @@ function MoreInformation() {
             When and Where
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            The event will take place on Saturday, April 26, 2025 at the Sentry
-            office in San Francisco. Doors will open at 10:30 am. Join us for a
-            day of coding, networking, and fun!
+            This is a full-day hackathon on Saturday, April 26, at the Sentry office in San Francisco! Doors will open at 10:30 am.
           </p>
         </div>
         <div className="space-y-2">
@@ -148,22 +146,15 @@ function MoreInformation() {
             Theme
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            The theme of the hackathon is "Future of Web". We’d love for you to
-            imagine the future of web UI, interactions, and AI. But feel free to
-            work on whatever sparks your interest. And don’t forget—two prizes
-            are up for grabs: most creative and most impactful!
+          "Future of Web" is the theme for this hackathon. Let's imagine the future of web UI, interactions, and AI. Please feel free to work on whatever else sparks your interest though.
           </p>
         </div>
         <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
-            Team Building
+            Team Matching
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            No need to stress about finding a team before the event! We’ll kick
-            things off with some fun ice breakers and team building. You can
-            bring friends, team up on the spot, or fly solo if that’s more your
-            style. Teaming up isn’t mandatory, but it’s an awesome way to make
-            new friends!
+          It's not required to bring a team, though you can bring friends, team up on the spot, or fly solo if that’s more your style. We’ll kick things off with some fun icebreakers and socializing. Teaming up isn’t mandatory, but it’s an awesome way to make new friends!
           </p>
         </div>
       </div>
