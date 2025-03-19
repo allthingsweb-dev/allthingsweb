@@ -134,6 +134,7 @@ export default function Component() {
       {remainingEvents.length > 0 && (
         <OtherUpcomingEventsSection events={remainingEvents} />
       )}
+      <CliSection />
       <Section variant="big" className="bg-indigo-600 text-white">
         <div className="container">
           <div className="flex flex-col items-center space-y-4 text-center">
@@ -221,6 +222,30 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
           </ButtonAnchor>
         </div>
         <EventsCarousel events={events} />
+      </div>
+    </Section>
+  );
+}
+
+function CliSection() {
+  return (
+    <Section variant="big" background="default">
+      <div className="container">
+        <div className="flex flex-col items-center space-y-4 text-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+              Bored of navigating Luma?
+            </h2>
+            <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+              Use our CLI tool to RSVP for upcoming events directly in your terminal:
+            </p>
+          </div>
+          <div className="w-full max-w-2xl mt-4 bg-black rounded-lg p-4 overflow-x-auto">
+            <code className="text-white font-mono text-sm">
+              curl -LSs https://allthingsweb-dev.github.io/allthingsweb/atw-install.bash | bash
+            </code>
+          </div>
+        </div>
       </div>
     </Section>
   );
