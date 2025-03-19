@@ -1,5 +1,5 @@
-import { Box, Text } from "ink"
-import { useReducer } from "react"
+import { Box, Newline, Text } from "ink"
+import { useEffect, useReducer, useState } from "react"
 import { Select } from "../../components/select"
 import { Badge, EmailInput, Spinner } from '@inkjs/ui';
 
@@ -10,17 +10,29 @@ import { schema } from "@lib/zero-sync/schema";
 import { colors } from "../../theme";
 import { initialState, reducer, toDate } from "./core";
 import { ATW_BASEURL } from "../../../config";
+import { generateQrCode } from "../../../helpers/generate-qr-code";
+import type { TalkativeBot } from "../../../contracts/talkative-bot-interface";
+
 
 type RegisterJourneyProps = {
     unmount: () => void
+    deps: {
+        tBot: TalkativeBot
+    }
 }
 
-export const RegisterJourney = ({ unmount }: RegisterJourneyProps) => {
+export const RegisterJourney = ({ unmount, deps: { tBot } }: RegisterJourneyProps) => {
     const z = useZero<typeof schema>();
     const [events] = useQuery(z.query.events.where('startDate', '>', (new Date()).getTime()).orderBy('startDate', 'desc').limit(10))
     const [state, dispatch] = useReducer(reducer, initialState);
     const { event, hasSucceeded, isSubmitting, error } = state
     const isLoading = events.length <= 0
+    const [qr, setQr] = useState<string | null>(null)
+    useEffect(() => {
+        if (!event) return
+        generateQrCode(`${ATW_BASEURL}/${event.slug}`).then(setQr).catch();
+    }, [event])
+
     return <Box flexDirection="column" padding={1}>
         {isLoading && <Spinner type='aesthetic' label="Loading events..." />}
         {!event && !isLoading && <Text>Here is the list of the upcomping events:</Text>}
@@ -39,8 +51,11 @@ export const RegisterJourney = ({ unmount }: RegisterJourneyProps) => {
                     </Box>
                 </Box>
             }
-        })} onSelect={(event) => {
+        })} onSelect={async (event) => {
             dispatch({ type: 'SELECT_EVENT', event })
+            await tBot.say(`You selected ${event.name}. It's happening on ${toDate(event.startDate)} at ${event.shortLocation}.`);
+            await tBot.say(event.tagline.split(/\.|\!/).slice(1).join('.'));
+            await tBot.say(`Please enter your email now.`);
         }} />}
 
         {event && <Box flexDirection="column" padding={1} gap={1}>
@@ -50,6 +65,10 @@ export const RegisterJourney = ({ unmount }: RegisterJourneyProps) => {
                 <Link url={`${ATW_BASEURL}/${event.slug}`}>
                     <Text color={colors.mainBlue}>{`${ATW_BASEURL}/${event.slug}`}</Text>
                 </Link>
+                <Newline />
+                <Text>{event.tagline}</Text>
+                <Newline />
+                <Text color={colors.mainPurple}>{qr}</Text>
             </Box>
 
             {hasSucceeded === null && !isSubmitting && <>
@@ -61,6 +80,12 @@ export const RegisterJourney = ({ unmount }: RegisterJourneyProps) => {
                         dispatch({ type: 'SET_EMAIL', email })
                         const results = await registerAction(email, event.id)
                         dispatch({ type: 'HANDLE_API_RESULTS', results })
+                        if (results.success === true) {
+                            await tBot.say(`Yeah! You are all set! See you there!`);
+                        }
+                        if (results.success === false) {
+                            await tBot.say(`Oh no! Something went wrong! ${error}`);
+                        }
                         setTimeout(() => {
                             unmount()
                         }, 2000)
@@ -72,8 +97,10 @@ export const RegisterJourney = ({ unmount }: RegisterJourneyProps) => {
             <Badge color="yellow">Registrating...</Badge><Text dimColor>{state.email}</Text><Spinner type='bouncingBall' label="Hang tight!" />
         </Box>}
         {hasSucceeded === true && <Box flexDirection="row" gap={2} padding={2}>
-            <Badge color="green">Registration Successful!</Badge><Spinner type='fingerDance' label="See you there" /><Text color={colors.mainOrange}>{state.email}</Text>
+            <Badge color="green">Registration Successful!</Badge>
+            <Spinner type='fingerDance' label="See you there" />
         </Box>}
+
         {hasSucceeded === false && <Box flexDirection="row" gap={2} padding={2}>
             <Badge color="red">Registration Failed!</Badge><Spinner type='monkey' label={error || 'Something went wrong!'} />
         </Box>}

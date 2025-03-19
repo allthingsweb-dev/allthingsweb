@@ -1,4 +1,13 @@
-import { eq, and, gte, lt, aliasedTable, desc, inArray, sql } from "drizzle-orm";
+import {
+  eq,
+  and,
+  gte,
+  lt,
+  aliasedTable,
+  desc,
+  inArray,
+  sql,
+} from "drizzle-orm";
 import { Speaker, Sponsor, Talk } from "../allthingsweb/events";
 import { Event } from "../allthingsweb/events";
 import { getSocialUrls } from "../allthingsweb/socials";
@@ -355,7 +364,7 @@ export const createDbQueryClient = ({ db, mainConfig }: Deps) => {
           SELECT DISTINCT ${talkSpeakersTable.speakerId} 
           FROM ${talkSpeakersTable}
           JOIN ${eventTalksTable} ON ${talkSpeakersTable.talkId} = ${eventTalksTable.talkId}
-        )`
+        )`,
       )
       .leftJoin(imagesTable, eq(profilesTable.image, imagesTable.id));
   }

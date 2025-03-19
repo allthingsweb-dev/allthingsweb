@@ -9,8 +9,8 @@ type Deps = {
       region: string;
       url: string;
       bucket: string;
-    }
-  }
+    };
+  };
 };
 
 export type S3Client = ReturnType<typeof createS3Client>;

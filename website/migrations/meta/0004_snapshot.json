@@ -40,12 +40,8 @@
           "name": "event_images_event_id_events_id_fk",
           "tableFrom": "event_images",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -53,12 +49,8 @@
           "name": "event_images_image_id_images_id_fk",
           "tableFrom": "event_images",
           "tableTo": "images",
-          "columnsFrom": [
-            "image_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -66,10 +58,7 @@
       "compositePrimaryKeys": {
         "event_images_event_id_image_id_pk": {
           "name": "event_images_event_id_image_id_pk",
-          "columns": [
-            "event_id",
-            "image_id"
-          ]
+          "columns": ["event_id", "image_id"]
         }
       },
       "uniqueConstraints": {},
@@ -113,12 +102,8 @@
           "name": "event_sponsors_event_id_events_id_fk",
           "tableFrom": "event_sponsors",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -126,12 +111,8 @@
           "name": "event_sponsors_sponsor_id_sponsors_id_fk",
           "tableFrom": "event_sponsors",
           "tableTo": "sponsors",
-          "columnsFrom": [
-            "sponsor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -178,12 +159,8 @@
           "name": "event_talks_event_id_events_id_fk",
           "tableFrom": "event_talks",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -191,12 +168,8 @@
           "name": "event_talks_talk_id_talks_id_fk",
           "tableFrom": "event_talks",
           "tableTo": "talks",
-          "columnsFrom": [
-            "talk_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["talk_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -331,12 +304,8 @@
           "name": "events_preview_image_images_id_fk",
           "tableFrom": "events",
           "tableTo": "images",
-          "columnsFrom": [
-            "preview_image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["preview_image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -346,16 +315,12 @@
         "events_slug_unique": {
           "name": "events_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         },
         "events_luma_event_id_unique": {
           "name": "events_luma_event_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "luma_event_id"
-          ]
+          "columns": ["luma_event_id"]
         }
       },
       "policies": {},
@@ -398,12 +363,8 @@
           "name": "hack_users_hack_id_hacks_id_fk",
           "tableFrom": "hack_users",
           "tableTo": "hacks",
-          "columnsFrom": [
-            "hack_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hack_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -457,12 +418,8 @@
           "name": "hack_votes_hack_id_hacks_id_fk",
           "tableFrom": "hack_votes",
           "tableTo": "hacks",
-          "columnsFrom": [
-            "hack_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hack_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -522,12 +479,8 @@
           "name": "hacks_event_id_events_id_fk",
           "tableFrom": "hacks",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -681,12 +634,8 @@
           "name": "profiles_image_images_id_fk",
           "tableFrom": "profiles",
           "tableTo": "images",
-          "columnsFrom": [
-            "image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -796,12 +745,8 @@
           "name": "sponsors_square_logo_dark_images_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "images",
-          "columnsFrom": [
-            "square_logo_dark"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["square_logo_dark"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -809,12 +754,8 @@
           "name": "sponsors_square_logo_light_images_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "images",
-          "columnsFrom": [
-            "square_logo_light"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["square_logo_light"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -824,9 +765,7 @@
         "sponsors_name_unique": {
           "name": "sponsors_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -869,12 +808,8 @@
           "name": "talk_speakers_talk_id_talks_id_fk",
           "tableFrom": "talk_speakers",
           "tableTo": "talks",
-          "columnsFrom": [
-            "talk_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["talk_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -882,12 +817,8 @@
           "name": "talk_speakers_speaker_id_profiles_id_fk",
           "tableFrom": "talk_speakers",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "speaker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["speaker_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -948,10 +879,7 @@
     "public.profile_type": {
       "name": "profile_type",
       "schema": "public",
-      "values": [
-        "organizer",
-        "member"
-      ]
+      "values": ["organizer", "member"]
     }
   },
   "schemas": {},

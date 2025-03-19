@@ -46,7 +46,6 @@ export const reducer = (state: State, action: Action): State => {
                 email: action.email
             }
         case 'HANDLE_API_RESULTS':
-            console.log({action})
             return {
                 ...state,
                 isSubmitting: false,

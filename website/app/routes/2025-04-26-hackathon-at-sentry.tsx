@@ -47,7 +47,10 @@ export default function Component() {
       {showEventImageSection && (
         <ImagesSection background="default" images={event.images} />
       )}
-      <Section variant="big" background={showEventImageSection ? "muted" : "default"}>
+      <Section
+        variant="big"
+        background={showEventImageSection ? "muted" : "default"}
+      >
         <Schedule />
       </Section>
       <Section variant="big">
@@ -128,7 +131,8 @@ function MoreInformation() {
             When and Where
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-            This is a full-day hackathon on Saturday, April 26, at the Sentry office in San Francisco! Doors will open at 10:30 am.
+            This is a full-day hackathon on Saturday, April 26, at the Sentry
+            office in San Francisco! Doors will open at 10:30 am.
           </p>
         </div>
         <div className="space-y-2">
@@ -146,7 +150,9 @@ function MoreInformation() {
             Theme
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-          "Future of Web" is the theme for this hackathon. Let's imagine the future of web UI, interactions, and AI. Please feel free to work on whatever else sparks your interest though.
+            "Future of Web" is the theme for this hackathon. Let's imagine the
+            future of web UI, interactions, and AI. Please feel free to work on
+            whatever else sparks your interest though.
           </p>
         </div>
         <div className="space-y-2">
@@ -154,7 +160,10 @@ function MoreInformation() {
             Team Matching
           </h2>
           <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-          It's not required to bring a team, though you can bring friends, team up on the spot, or fly solo if that’s more your style. We’ll kick things off with some fun icebreakers and socializing. Teaming up isn’t mandatory, but it’s an awesome way to make new friends!
+            It's not required to bring a team, though you can bring friends,
+            team up on the spot, or fly solo if that’s more your style. We’ll
+            kick things off with some fun icebreakers and socializing. Teaming
+            up isn’t mandatory, but it’s an awesome way to make new friends!
           </p>
         </div>
       </div>

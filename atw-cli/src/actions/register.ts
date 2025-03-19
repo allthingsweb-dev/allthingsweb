@@ -5,6 +5,7 @@ export type Event = {
     slug: string
     name: string
     startDate: number
+    tagline: string
     shortLocation: string|null
 }
 

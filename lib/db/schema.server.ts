@@ -151,20 +151,24 @@ export const eventTalksTable = pgTable("event_talks", {
   updatedAt,
 });
 
-export const eventImagesTable = pgTable("event_images", {
-  eventId: uuid("event_id")
-    .notNull()
-    .references(() => eventsTable.id, { onDelete: "cascade" }),
-  imageId: uuid("image_id")
-    .notNull()
-    .references(() => imagesTable.id, { onDelete: "cascade" }),
-  createdAt,
-  updatedAt,
-}, (table) => {
-  return {
-    pk: primaryKey({ columns: [table.eventId, table.imageId] }),
-  };
-});
+export const eventImagesTable = pgTable(
+  "event_images",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id, { onDelete: "cascade" }),
+    imageId: uuid("image_id")
+      .notNull()
+      .references(() => imagesTable.id, { onDelete: "cascade" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.eventId, table.imageId] }),
+    };
+  },
+);
 
 export type InsertEvent = typeof eventsTable.$inferInsert;
 export type SelectEvent = typeof eventsTable.$inferSelect;

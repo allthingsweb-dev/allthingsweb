@@ -75,19 +75,15 @@ serve: website/.env ## Serve the application
 
 .PHONY: build-cli
 build-cli:  ## Build CLI
-	@cd $(CLI_DIR) && bun build --bundle src/index.ts --outfile atw-cli.js --target=bun
-	@cd $(CLI_DIR) && bun shim.ts
-	@cd $(CLI_DIR) && bun build --compile --minify atw-cli.js --outfile atw-cli
-	@cd $(CLI_DIR) && rm atw-cli.js
+	@cd $(CLI_DIR) && bun build --compile --minify src/index --outfile atw-cli
+	@cd $(CLI_DIR) && rm -f .*.bun-build
 
 .PHONY: build-all-cli
 build-all-cli:  
-	@cd $(CLI_DIR) && bun build --bundle src/index.ts --outfile atw-cli.js --target=bun
-	@cd $(CLI_DIR) && bun shim.ts
 	@cd $(CLI_DIR) && for target in bun-linux-x64 bun-linux-arm64 bun-windows-x64 bun-darwin-x64 bun-darwin-arm64; do \
-		bun build --compile --minify atw-cli.js --outfile atw-cli-$$target --target=$$target; \
+		bun build --compile --minify src/index --outfile atw-cli-$$target --target=$$target; \
 	done
-	@cd $(CLI_DIR) && rm atw-cli.js
+	@cd $(CLI_DIR) && rm -f .*.bun-build
 
 .PHONY: deploy-sync-permissions
 deploy-sync-permissions:
