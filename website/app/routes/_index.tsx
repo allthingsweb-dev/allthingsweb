@@ -40,7 +40,8 @@ export const meta: Route.MetaFunction = ({ matches }) => {
   );
 };
 
-const CLI_INSTALL_COMMAND = "curl -LSs https://allthingsweb-dev.github.io/allthingsweb/atw-install.bash | bash";
+const CLI_INSTALL_COMMAND =
+  "curl -LSs https://allthingsweb-dev.github.io/allthingsweb/atw-install.bash | bash";
 
 export async function loader({ context }: Route.LoaderArgs) {
   const { time, getServerTimingHeader } = context.serverTimingsProfiler;
@@ -77,10 +78,7 @@ export async function loader({ context }: Route.LoaderArgs) {
           "getPastEventImages",
           getPastEventImages({ db: context.db, s3Client: context.s3Client }),
         ),
-        context.formatter.formatCode(
-          CLI_INSTALL_COMMAND,
-          "bash",
-        ),
+        context.formatter.formatCode(CLI_INSTALL_COMMAND, "bash"),
       ]);
       const highlightEvent = events.find(
         (event) => event.highlightOnLandingPage,
