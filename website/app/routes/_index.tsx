@@ -41,7 +41,7 @@ export const meta: Route.MetaFunction = ({ matches }) => {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const { time, getServerTimingHeader } = context.serverTimingsProfiler;
-  const { highlightEvent, remainingEvents, pastEvents, pastEventImages } =
+  const { highlightEvent, remainingEvents, liveEvents, pastEvents, pastEventImages } =
     await cachified({
       key: "_index-loader-data",
       cache: lru,
@@ -50,10 +50,14 @@ export async function loader({ context }: Route.LoaderArgs) {
       ttl: 60 * 1000, // one minute
       staleWhileRevalidate: 2 * 60 * 1000, // two minutes
       getFreshValue: async () => {
-        const [events, pastEvents, pastEventImages] = await Promise.all([
+        const [events, liveEvents, pastEvents, pastEventImages] = await Promise.all([
           time(
             "getUpcomingEvents",
             context.queryClient.getPublishedUpcomingEvents,
+          ),
+          time(
+            "getLiveEvents",
+            context.queryClient.getPublishedLiveEvents,
           ),
           time("getPastEvents", context.queryClient.getPublishedPastEvents),
           time(
@@ -71,6 +75,7 @@ export async function loader({ context }: Route.LoaderArgs) {
         return {
           highlightEvent,
           remainingEvents,
+          liveEvents,
           pastEvents,
           pastEventImages,
         };
@@ -81,6 +86,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     {
       highlightEvent,
       remainingEvents,
+      liveEvents,
       pastEvents,
       pastEventImages,
     },
@@ -91,19 +97,53 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function Component() {
-  const { highlightEvent, remainingEvents, pastEvents, pastEventImages } =
+  const { highlightEvent, remainingEvents, liveEvents, pastEvents, pastEventImages } =
     useLoaderData<typeof loader>();
 
   return (
     <PageLayout>
       <LandingHero images={pastEventImages} />
-      {highlightEvent && (
+      {liveEvents.length > 0 && liveEvents[0] && (
         <Section variant="big" background="muted">
           <div className="container">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Join {highlightEvent.name}
+                  Happening Now: {liveEvents[0].name}
+                </h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  {liveEvents[0].tagline}
+                </p>
+              </div>
+              <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>
+                    {toReadableDateTimeStr(liveEvents[0].startDate, true)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPinIcon className="h-4 w-4" />
+                  <span>{liveEvents[0].shortLocation}</span>
+                </div>
+              </div>
+              <div className="w-full max-w-sm pt-4">
+                <ButtonNavLink to={`/${liveEvents[0].slug}`}>
+                  See details
+                  <ArrowRightIcon className="ml-2 h-4 w-4" />
+                </ButtonNavLink>
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
+      {highlightEvent && (
+        <Section variant="big" background={liveEvents.length > 0 ? "default" : "muted"}>
+          <div className="container">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  Coming Next: {highlightEvent.name}
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   {highlightEvent.tagline}
@@ -130,6 +170,9 @@ export default function Component() {
             </div>
           </div>
         </Section>
+      )}
+      {liveEvents.length > 1 && (
+        <OtherLiveEventsSection events={liveEvents.slice(1)} />
       )}
       {remainingEvents.length > 0 && (
         <OtherUpcomingEventsSection events={remainingEvents} />
@@ -271,6 +314,24 @@ function PastEventsSection({ events }: { events: Event[] }) {
             <UsersIcon className="mr-2 h-4 w-4" />
             View all speakers
           </ButtonNavLink>
+        </div>
+        <EventsCarousel events={events} />
+      </div>
+    </Section>
+  );
+}
+
+function OtherLiveEventsSection({ events }: { events: Event[] }) {
+  return (
+    <Section variant="big">
+      <div className="container">
+        <div className="flex flex-col items-center space-y-4 text-center mb-8">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+            Other ongoing events
+          </h2>
+          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+            More events happening right now! Join us if you can.
+          </p>
         </div>
         <EventsCarousel events={events} />
       </div>

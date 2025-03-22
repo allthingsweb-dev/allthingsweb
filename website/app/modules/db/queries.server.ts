@@ -5,8 +5,9 @@ import {
   lt,
   aliasedTable,
   desc,
-  inArray,
   sql,
+  gt,
+  lte,
 } from "drizzle-orm";
 import { Speaker, Sponsor, Talk } from "../allthingsweb/events";
 import { Event } from "../allthingsweb/events";
@@ -239,6 +240,21 @@ export const createDbQueryClient = ({ db, mainConfig }: Deps) => {
       .from(eventsTable)
       .where(
         and(
+          gt(eventsTable.startDate, new Date()),
+          eq(eventsTable.isDraft, false),
+        ),
+      )
+      .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
+      .orderBy(desc(eventsTable.startDate));
+  }
+
+  function queryPublishedLiveEvents() {
+    return db
+      .select()
+      .from(eventsTable)
+      .where(
+        and(
+          lte(eventsTable.startDate, new Date()),
           gte(eventsTable.endDate, new Date()),
           eq(eventsTable.isDraft, false),
         ),
@@ -404,6 +420,7 @@ export const createDbQueryClient = ({ db, mainConfig }: Deps) => {
     queryEvents,
     queryPublishedEvents,
     queryPublishedUpcomingEvents,
+    queryPublishedLiveEvents,
     queryPublishedPastEvents,
     queryEventById,
     queryEventBySlug,

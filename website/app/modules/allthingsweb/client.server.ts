@@ -91,6 +91,16 @@ export const createQueryClient = ({
     });
   };
 
+  const getPublishedLiveEvents = async (): Promise<Event[]> => {
+    const results = await dbQueryClient.queryPublishedLiveEvents();
+    const events = dbQueryClient.toEvents(results);
+    return presignPreviewImages(events, {
+      dbQueryClient,
+      s3Client,
+      mainConfig,
+    });
+  };
+
   const getPublishedPastEvents = async (): Promise<Event[]> => {
     const results = await dbQueryClient.queryPublishedPastEvents();
     const events = dbQueryClient.toEvents(results);
@@ -252,6 +262,7 @@ export const createQueryClient = ({
     getAllEvents,
     getPublishedEvents,
     getPublishedUpcomingEvents,
+    getPublishedLiveEvents,
     getPublishedPastEvents,
     getEventById,
     getEventBySlug,
