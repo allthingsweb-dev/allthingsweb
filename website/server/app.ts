@@ -1,16 +1,17 @@
 import "react-router";
 import { createRequestHandler } from "@react-router/express";
 import express from "express";
+import { S3Client } from "@lib/s3/client.server";
+import { DatabaseClient } from "@lib/db/client.server";
 import { MainConfig } from "~/config.server";
 import { Logger } from "~/modules/logger.server";
 import { ServerTimingsProfiler } from "~/modules/server-timing.server";
 import { SessionManager } from "~/modules/session/create-session-manager.server";
-import { DatabaseClient } from "~/modules/db/client.server";
 import { DbQueryClient } from "~/modules/db/queries.server";
 import { QueryClient } from "~/modules/allthingsweb/client.server";
-import { S3Client } from "~/modules/s3/client.server";
 import { buildContainer } from "~/modules/container.server";
 import { LumaClient } from "~/modules/luma/api.server";
+import { Formatter } from "~/modules/code-formatting/formatter.server";
 
 declare module "react-router" {
   interface AppLoadContext {
@@ -24,6 +25,7 @@ declare module "react-router" {
     s3Client: S3Client;
     queryClient: QueryClient;
     lumaClient: LumaClient;
+    formatter: Formatter;
   }
 }
 
@@ -49,6 +51,7 @@ export function getRemixExpressApp(
           s3Client: scopedServices.cradle.s3Client,
           queryClient: scopedServices.cradle.queryClient,
           lumaClient: scopedServices.cradle.lumaClient,
+          formatter: scopedServices.cradle.formatter,
         };
       },
     }),

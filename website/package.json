@@ -57,6 +57,7 @@
     "resend": "^4.0.0",
     "satori": "^0.10.14",
     "sharp": "^0.33.5",
+    "shiki": "^3.2.1",
     "signale": "^1.4.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",

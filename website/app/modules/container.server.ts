@@ -14,6 +14,8 @@ import { createDatabaseClient, DatabaseClient } from "@lib/db/client.server";
 import { createDbQueryClient, DbQueryClient } from "./db/queries.server";
 import { createQueryClient, QueryClient } from "./allthingsweb/client.server";
 import { createS3Client, S3Client } from "@lib/s3/client.server";
+import { createShikiInstance } from "./shiki/shiki.server";
+import { createFormatter } from "./code-formatting/formatter.server";
 
 export const buildContainer = () => {
   // 1. load the config
@@ -32,6 +34,8 @@ export const buildContainer = () => {
     queryClient: QueryClient;
     lumaClient: ReturnType<typeof createLumaClient>;
     posthogClient: ReturnType<typeof createPosthogClient>;
+    shikiInstance: ReturnType<typeof createShikiInstance>;
+    formatter: ReturnType<typeof createFormatter>;
   }>({
     injectionMode: InjectionMode.PROXY,
     strict: true,
@@ -51,6 +55,8 @@ export const buildContainer = () => {
     queryClient: asFunction(createQueryClient).singleton(),
     lumaClient: asFunction(createLumaClient).singleton(),
     posthogClient: asFunction(createPosthogClient).singleton(),
+    shikiInstance: asFunction(createShikiInstance).singleton(),
+    formatter: asFunction(createFormatter).singleton(),
   });
 
   return container;

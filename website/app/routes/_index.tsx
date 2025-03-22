@@ -19,6 +19,7 @@ import { Route } from "./+types/_index";
 import { Image } from "~/modules/allthingsweb/images";
 import { Img } from "openimg/react";
 import { getPastEventImages } from "~/modules/homepage/homepage";
+import { CodeBlock } from "~/modules/components/ui/code-block";
 
 export { headers } from "~/modules/header.server";
 
@@ -39,48 +40,65 @@ export const meta: Route.MetaFunction = ({ matches }) => {
   );
 };
 
+const CLI_INSTALL_COMMAND = "curl -LSs https://allthingsweb-dev.github.io/allthingsweb/atw-install.bash | bash";
+
 export async function loader({ context }: Route.LoaderArgs) {
   const { time, getServerTimingHeader } = context.serverTimingsProfiler;
-  const { highlightEvent, remainingEvents, liveEvents, pastEvents, pastEventImages } =
-    await cachified({
-      key: "_index-loader-data",
-      cache: lru,
-      // Use cached value for 3 minutes, after one minute, fetch fresh value in the background
-      // Downstream is only hit once a minute
-      ttl: 60 * 1000, // one minute
-      staleWhileRevalidate: 2 * 60 * 1000, // two minutes
-      getFreshValue: async () => {
-        const [events, liveEvents, pastEvents, pastEventImages] = await Promise.all([
-          time(
-            "getUpcomingEvents",
-            context.queryClient.getPublishedUpcomingEvents,
-          ),
-          time(
-            "getLiveEvents",
-            context.queryClient.getPublishedLiveEvents,
-          ),
-          time("getPastEvents", context.queryClient.getPublishedPastEvents),
-          time(
-            "getPastEventImages",
-            getPastEventImages({ db: context.db, s3Client: context.s3Client }),
-          ),
-        ]);
-        const highlightEvent = events.find(
-          (event) => event.highlightOnLandingPage,
-        );
-        const remainingEvents = events.filter(
-          (event) => event.id !== highlightEvent?.id,
-        );
 
-        return {
-          highlightEvent,
-          remainingEvents,
-          liveEvents,
-          pastEvents,
-          pastEventImages,
-        };
-      },
-    });
+  const {
+    highlightEvent,
+    remainingEvents,
+    liveEvents,
+    pastEvents,
+    pastEventImages,
+    cliInstallCommand,
+  } = await cachified({
+    key: "_index-loader-data",
+    cache: lru,
+    // Use cached value for 3 minutes, after one minute, fetch fresh value in the background
+    // Downstream is only hit once a minute
+    ttl: 60 * 1000, // one minute
+    staleWhileRevalidate: 2 * 60 * 1000, // two minutes
+    getFreshValue: async () => {
+      const [
+        events,
+        liveEvents,
+        pastEvents,
+        pastEventImages,
+        cliInstallCommand,
+      ] = await Promise.all([
+        time(
+          "getUpcomingEvents",
+          context.queryClient.getPublishedUpcomingEvents,
+        ),
+        time("getLiveEvents", context.queryClient.getPublishedLiveEvents),
+        time("getPastEvents", context.queryClient.getPublishedPastEvents),
+        time(
+          "getPastEventImages",
+          getPastEventImages({ db: context.db, s3Client: context.s3Client }),
+        ),
+        context.formatter.formatCode(
+          CLI_INSTALL_COMMAND,
+          "bash",
+        ),
+      ]);
+      const highlightEvent = events.find(
+        (event) => event.highlightOnLandingPage,
+      );
+      const remainingEvents = events.filter(
+        (event) => event.id !== highlightEvent?.id,
+      );
+
+      return {
+        highlightEvent,
+        remainingEvents,
+        liveEvents,
+        pastEvents,
+        pastEventImages,
+        cliInstallCommand,
+      };
+    },
+  });
 
   return data(
     {
@@ -89,6 +107,7 @@ export async function loader({ context }: Route.LoaderArgs) {
       liveEvents,
       pastEvents,
       pastEventImages,
+      cliInstallCommand,
     },
     {
       headers: getServerTimingHeader(),
@@ -97,8 +116,14 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function Component() {
-  const { highlightEvent, remainingEvents, liveEvents, pastEvents, pastEventImages } =
-    useLoaderData<typeof loader>();
+  const {
+    highlightEvent,
+    remainingEvents,
+    liveEvents,
+    pastEvents,
+    pastEventImages,
+    cliInstallCommand,
+  } = useLoaderData<typeof loader>();
 
   return (
     <PageLayout>
@@ -138,7 +163,10 @@ export default function Component() {
         </Section>
       )}
       {highlightEvent && (
-        <Section variant="big" background={liveEvents.length > 0 ? "default" : "muted"}>
+        <Section
+          variant="big"
+          background={liveEvents.length > 0 ? "default" : "muted"}
+        >
           <div className="container">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
@@ -177,7 +205,7 @@ export default function Component() {
       {remainingEvents.length > 0 && (
         <OtherUpcomingEventsSection events={remainingEvents} />
       )}
-      <CliSection />
+      <CliSection cliInstallCommand={cliInstallCommand} />
       <Section variant="big" className="bg-indigo-600 text-white">
         <div className="container">
           <div className="flex flex-col items-center space-y-4 text-center">
@@ -270,7 +298,7 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
   );
 }
 
-function CliSection() {
+function CliSection({ cliInstallCommand }: { cliInstallCommand: string }) {
   return (
     <Section variant="big" background="default">
       <div className="container">
@@ -280,13 +308,12 @@ function CliSection() {
               Bored of navigating Luma?
             </h2>
             <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Use our CLI tool to RSVP for upcoming events directly in your terminal:
+              Use our CLI tool to RSVP for upcoming events directly in your
+              terminal:
             </p>
           </div>
-          <div className="w-full max-w-2xl mt-4 bg-black rounded-lg p-4 overflow-x-auto">
-            <code className="text-white font-mono text-sm">
-              curl -LSs https://allthingsweb-dev.github.io/allthingsweb/atw-install.bash | bash
-            </code>
+          <div className="w-full max-w-[860px] mt-4">
+            <CodeBlock html={cliInstallCommand} code={CLI_INSTALL_COMMAND} />
           </div>
         </div>
       </div>
