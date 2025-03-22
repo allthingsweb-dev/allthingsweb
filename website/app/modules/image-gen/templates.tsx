@@ -145,6 +145,42 @@ function EventYouTubeThumbnailTwoTalks({ talks }: { talks: ExpandedTalk[] }) {
   );
 }
 
+function EventYouTubeThumbnailThreeTalks({ talks }: { talks: ExpandedTalk[] }) {
+  return (
+    <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
+      {talks.map((talk, index) => (
+        <div key={index} tw="flex items-center w-[1200px]">
+          <img
+            src={talk.speakers[0].image.url}
+            alt={`${talk.speakers[0].name} profile`}
+            width={140}
+            height={140}
+            tw="rounded-full border-2 border-purple-400"
+          />
+          <div tw="flex flex-col ml-6">
+            <div
+              tw="w-[1000px] flex text-4xl font-medium text-gray-100"
+              style={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {talk.speakers[0].name}
+            </div>
+            <div
+              tw="w-[1000px] flex text-4xl text-purple-300 mt-2"
+              style={{ wordBreak: "break-word" }}
+            >
+              {talk.title}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EventYouTubeThumbnailFiveTalks({ talks }: { talks: ExpandedTalk[] }) {
   return (
     <div tw="flex flex-wrap" style={{ gap: "1rem" }}>
@@ -194,6 +230,8 @@ export function EventYouTubeThumbnail({ event }: { event: ExpandedEvent }) {
         </div>
         {talksCount === 5 ? (
           <EventYouTubeThumbnailFiveTalks talks={event.talks} />
+        ) : talksCount === 3 ? (
+          <EventYouTubeThumbnailThreeTalks talks={event.talks} />
         ) : (
           <EventYouTubeThumbnailTwoTalks talks={event.talks} />
         )}
