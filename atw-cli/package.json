@@ -2,7 +2,7 @@
   "name": "atw-cli",
   "module": "index.ts",
   "type": "module",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "scripts": {
     "prettier:check": "prettier --check .",
@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@inkjs/ui": "^2.0.0",
+    "@modelcontextprotocol/sdk": "^1.7.0",
     "@rocicorp/zero": "^0.16.2025031000",
     "commander": "^13.1.0",
     "ink": "^5.2.0",
@@ -25,6 +26,7 @@
     "picocolors": "^1.1.1",
     "qrcode-terminal": "^0.12.0",
     "react": "^18.3.1",
-    "react-devtools-core": "^6.1.1"
+    "react-devtools-core": "^6.1.1",
+    "zod": "^3.24.2"
   }
 }

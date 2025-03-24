@@ -5,9 +5,11 @@ import pc from "picocolors";
 import { logo } from "..";
 import { AppLayout } from "../ui/app-layout";
 import type { TalkativeBot } from "../contracts/talkative-bot-interface";
+import type { AtwZero } from "../core/create-zero";
 
 type Deps = {
   tBot: TalkativeBot;
+  zero: AtwZero;
 };
 export const createRegisterCommand = (deps: Deps): Command => {
   const command = new Command("register")
@@ -18,7 +20,7 @@ export const createRegisterCommand = (deps: Deps): Command => {
         "We can't wait to see you soon! Select one of the events below to register.",
       );
       const { waitUntilExit, unmount } = render(
-        <AppLayout title="Register to an event!">
+        <AppLayout zero={deps.zero} title="Register to an event!">
           <RegisterJourney unmount={() => unmount()} deps={deps} />
         </AppLayout>,
         {

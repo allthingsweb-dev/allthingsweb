@@ -47,4 +47,3 @@ try {
   console.error(exception);
   process.exit(1);
 }
-process.exit(0);
