@@ -25,34 +25,36 @@ export const createMCPServeCommand = ({ zero }: Deps): Command => {
         "Get all upcoming published All Things Web events",
         {},
         async () => {
-            const getEvents = async (): Promise<Event[]> => {
-                let count = 0;
-              return new Promise(async (resolve) => {
-                for(let i = 0; i < 10; i++) {
-                  const events = zero.query.events
-                    //.where("startDate", ">", new Date().getTime())
-                    .orderBy("startDate", "desc")
-                    .limit(10)
-                    .run();
-                  if(!events.length) {
-                    count += 1;
-                    await sleep(200);
-                  } else {
-                    resolve(events);
-                  }
+          const getEvents = async (): Promise<Event[]> => {
+            let count = 0;
+            return new Promise(async (resolve) => {
+              for (let i = 0; i < 10; i++) {
+                const events = zero.query.events
+                  .where("startDate", ">", new Date().getTime())
+                  .orderBy("startDate", "desc")
+                  .limit(10)
+                  .run();
+                if (!events.length) {
+                  count += 1;
+                  await sleep(200);
+                } else {
+                  resolve(events);
                 }
-              });
-            };
-            const events = await getEvents();
-          return { content: events.map((event) => ({
-            type: "text",
-            text: `
+              }
+            });
+          };
+          const events = await getEvents();
+          return {
+            content: events.map((event) => ({
+              type: "text",
+              text: `
              name: ${event.name}
              start: ${event.startDate}
              location: ${event.shortLocation}
              tagline: ${event.tagline}
-             eventId: ${event.id}`
-          })) };
+             eventId: ${event.id}`,
+            })),
+          };
         },
       );
 
@@ -70,7 +72,10 @@ export const createMCPServeCommand = ({ zero }: Deps): Command => {
             text = `Oh no! Something went wrong! ${results.error}`;
           }
           return {
-            content: [{ type: "text", text }, {type: "text", text: `eventId: ${eventId}`}],
+            content: [
+              { type: "text", text },
+              { type: "text", text: `eventId: ${eventId}` },
+            ],
           };
         },
       );
