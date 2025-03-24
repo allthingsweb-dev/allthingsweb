@@ -49,6 +49,8 @@ fmt: ## Format the code
 	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:check
 	@cd $(LIB_DIR) && $(PACKAGE_MANAGER) run prettier:fix
 	@cd $(LIB_DIR) && $(PACKAGE_MANAGER) run prettier:check
+	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run prettier:fix
+	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run prettier:check
 
 .PHONY: check
 check: ## Check the code

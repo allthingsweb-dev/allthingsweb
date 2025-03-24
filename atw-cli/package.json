@@ -4,6 +4,10 @@
   "type": "module",
   "version": "1.2.0",
   "private": true,
+  "scripts": {
+    "prettier:check": "prettier --check .",
+    "prettier:fix": "prettier --write ."
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/qrcode-terminal": "^0.12.2",
