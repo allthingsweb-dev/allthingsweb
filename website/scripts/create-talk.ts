@@ -6,13 +6,12 @@ import {
 } from "@lib/db/schema.server";
 
 const talk = {
-  title: "Anti-Crash Course: Building Better Errors and Traces",
-  description:
-    "We've all seen apps crash with screens that tell you nothing about what's actually broken (Hi <framework>, we see you), and leave you with little to go on to figure out solving it. Lets jump in and fix that, hands on!",
+  title: "​The Agent-First Bet: How Windsurf Hit 500K Users in 3 Months",
+  description: "In this lightning talk, Akshat will share how Windsurf hit 500K users in 3 months by placing agents at the center of their product.",
 } satisfies InsertTalk;
 
 async function main() {
-  const speakerId = "13368c6c-6dd0-46ca-883c-0841d480a302";
+  const speakerId = "d96f0e84-c3cf-452e-8d75-5b61695deebb";
   const container = buildContainer();
 
   const talkRes = await container.cradle.db

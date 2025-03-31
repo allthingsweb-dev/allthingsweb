@@ -1,9 +1,8 @@
 import { buildContainer } from "~/modules/container.server";
 import { eventTalksTable } from "@lib/db/schema.server";
 
-const slug = "2025-02-25-all-things-web-at-sentry";
-const talkId = "b8ef3673-71d6-4434-9551-a940cd5642ec";
-
+const slug = "2025-04-03-ai-x-all-things-web";
+const talkId = "14f2e300-f2ae-4311-a229-3f2f9b56990a";
 async function main() {
   const container = buildContainer();
 

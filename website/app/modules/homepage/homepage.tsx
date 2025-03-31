@@ -27,6 +27,7 @@ const imageIds = [
   "2b220343-569a-441f-acfc-a906b5fb97d0",
   "4d224238-6b78-4d5e-9d84-4ca2d03b91b7",
   "8016e3dc-9b18-4dd1-aab4-d145d2bee6e7",
+  "519b7fed-0d6d-42e8-9653-630578b6ef0b",
 ];
 
 export async function getPastEventImages({ db, s3Client }: Deps) {
