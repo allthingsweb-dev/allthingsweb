@@ -1,9 +1,10 @@
 import { buildContainer } from "~/modules/container.server";
 import {
-  InsertTalk,
   talkSpeakersTable,
   talksTable,
   profilesTable,
+  eventTalksTable,
+  eventsTable,
 } from "@lib/db/schema.server";
 import { eq } from "drizzle-orm";
 
@@ -21,6 +22,14 @@ async function main() {
     .from(talkSpeakersTable)
     .leftJoin(talksTable, eq(talkSpeakersTable.talkId, talksTable.id))
     .where(eq(talkSpeakersTable.speakerId, speaker.id));
+  if(talks[0]?.talks) {
+    const talkEvents = await db
+      .select()
+      .from(eventTalksTable)
+      .leftJoin(eventsTable, eq(eventTalksTable.eventId, eventsTable.id))
+      .where(eq(eventTalksTable.talkId, talks[0].talks?.id));
+    console.log(talkEvents);
+  }
   console.log(talks);
 }
 

@@ -2,7 +2,7 @@ import { buildContainer } from "~/modules/container.server";
 import { eventTalksTable } from "@lib/db/schema.server";
 import { and, eq } from "drizzle-orm";
 
-const slug = "2025-04-26-hackathon-at-sentry";
+const slug = "2025-04-03-ai-x-all-things-web";
 const talkId = "3fd184ad-a4e4-4324-bb1b-a22f00961388";
 async function main() {
   const container = buildContainer();
@@ -13,15 +13,16 @@ async function main() {
     return;
   }
 
-  await container.cradle.db
+  const result = await container.cradle.db
     .delete(eventTalksTable)
     .where(
       and(
         eq(eventTalksTable.talkId, talkId),
         eq(eventTalksTable.eventId, event.id),
       ),
-    );
-  console.log("Done");
+    )
+    .returning();
+  console.log(`Deleted ${result.length} talk(s) from event`);
 }
 
 main();
