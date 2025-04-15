@@ -7,7 +7,8 @@ import {
 
 const talk = {
   title: "​The Agent-First Bet: How Windsurf Hit 500K Users in 3 Months",
-  description: "In this lightning talk, Akshat will share how Windsurf hit 500K users in 3 months by placing agents at the center of their product.",
+  description:
+    "In this lightning talk, Akshat will share how Windsurf hit 500K users in 3 months by placing agents at the center of their product.",
 } satisfies InsertTalk;
 
 async function main() {

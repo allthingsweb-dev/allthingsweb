@@ -149,7 +149,9 @@ export const eventTalksTable = pgTable("event_talks", {
     .references(() => talksTable.id, { onDelete: "cascade" }),
   createdAt,
   updatedAt,
-});
+}, (table) => ({
+  pk: primaryKey({ columns: [table.eventId, table.talkId] }),
+}));
 
 export const eventImagesTable = pgTable(
   "event_images",

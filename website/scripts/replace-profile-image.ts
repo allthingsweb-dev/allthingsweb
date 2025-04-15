@@ -22,7 +22,10 @@ async function main() {
     bucket: container.cradle.mainConfig.s3.bucket,
   });
 
-  const [profile] = await container.cradle.db.select().from(profilesTable).where(eq(profilesTable.name, name));
+  const [profile] = await container.cradle.db
+    .select()
+    .from(profilesTable)
+    .where(eq(profilesTable.name, name));
   if (!profile) {
     console.error("Profile not found");
     return;
@@ -33,7 +36,10 @@ async function main() {
     console.error("No image to delete");
     return;
   }
-  const [imageToDelete] = await container.cradle.db.select().from(imagesTable).where(eq(imagesTable.id, imageToDeleteId));
+  const [imageToDelete] = await container.cradle.db
+    .select()
+    .from(imagesTable)
+    .where(eq(imagesTable.id, imageToDeleteId));
   if (!imageToDelete) {
     console.error("Image to delete not found");
     return;
@@ -57,11 +63,16 @@ async function main() {
     alt: `${profile.name} smiling into the camera`,
   });
 
-  await container.cradle.db.update(profilesTable).set({
-    image: uuid,
-  }).where(eq(profilesTable.id, profile.id));
+  await container.cradle.db
+    .update(profilesTable)
+    .set({
+      image: uuid,
+    })
+    .where(eq(profilesTable.id, profile.id));
 
-  await container.cradle.db.delete(imagesTable).where(eq(imagesTable.id, imageToDeleteId));
+  await container.cradle.db
+    .delete(imagesTable)
+    .where(eq(imagesTable.id, imageToDeleteId));
 
   await bunS3Client.delete(imageToDelete.url);
 }

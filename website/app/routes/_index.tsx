@@ -203,8 +203,8 @@ export default function Component() {
       {remainingEvents.length > 0 && (
         <OtherUpcomingEventsSection events={remainingEvents} />
       )}
-      <CliSection 
-        cliInstallCommand={cliInstallCommand} 
+      <CliSection
+        cliInstallCommand={cliInstallCommand}
         background={remainingEvents.length > 0 ? "muted" : "default"}
       />
       <Section variant="big" className="bg-indigo-600 text-white">
@@ -299,7 +299,13 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
   );
 }
 
-function CliSection({ cliInstallCommand, background = "default" }: { cliInstallCommand: string, background?: "default" | "muted" }) {
+function CliSection({
+  cliInstallCommand,
+  background = "default",
+}: {
+  cliInstallCommand: string;
+  background?: "default" | "muted";
+}) {
   return (
     <Section variant="big" background={background}>
       <div className="container">
