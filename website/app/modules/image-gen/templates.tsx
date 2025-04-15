@@ -183,17 +183,17 @@ function EventYouTubeThumbnailThreeTalks({ talks }: { talks: ExpandedTalk[] }) {
 
 function EventYouTubeThumbnailFourTalks({ talks }: { talks: ExpandedTalk[] }) {
   return (
-    <div tw="flex flex-wrap" style={{ gap: "1rem" }}>
+    <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
             src={talk.speakers[0].image.url}
             alt={`${talk.speakers[0].name} profile`}
-            width={100}
-            height={100}
+            width={120}
+            height={120}
             tw="rounded-full border-2 border-purple-400"
           />
-          <div tw="flex flex-col ml-4">
+          <div tw="flex flex-col ml-6">
             <div
               tw="w-[1000px] flex text-3xl font-medium text-gray-100"
               style={{
@@ -205,7 +205,7 @@ function EventYouTubeThumbnailFourTalks({ talks }: { talks: ExpandedTalk[] }) {
               {talk.speakers[0].name}
             </div>
             <div
-              tw="w-[1000px] flex text-3xl text-purple-300"
+              tw="w-[1000px] flex text-3xl text-purple-300 mt-2"
               style={{ wordBreak: "break-word" }}
             >
               {talk.title}
