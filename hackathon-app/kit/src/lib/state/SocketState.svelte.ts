@@ -59,6 +59,7 @@ class SocketState {
     seconds: 0,
   });
 
+  countdownAtZero = $derived<boolean>(this.countdown.seconds === 0 && this.countdown.minutes === 0);
   showConfetti = $state<boolean>(false);
   mounted = $state<boolean>(false);
 
