@@ -2,6 +2,12 @@ import { Socket } from "phoenix";
 import type { Channel } from "phoenix";
 import { appCurrentUser } from "$lib/state/CurrentUserState.svelte";
 
+declare global {
+  interface Window {
+    socket: Socket;
+  }
+}
+
 export interface Hack {
   id: string;
   name: string;
@@ -59,6 +65,7 @@ class SocketState {
   connect = () => {
     const socket = new Socket("/socket", { params: { token: appCurrentUser.user?.token } });
     socket.connect();
+    window.socket = socket;
 
     this.publicChannel = socket.channel("room:public", {});
     this.publicChannel
