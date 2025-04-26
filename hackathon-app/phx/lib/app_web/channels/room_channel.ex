@@ -32,37 +32,13 @@ defmodule AppWeb.RoomChannel do
 
   @impl true
   def handle_in("vote", %{"category_id" => category_id, "hack_id" => hack_id}, socket) do
-    current_user_id = socket.assigns.current_user_id
+    countdown = App.Services.Countdown.get_state()
 
-    vote =
-      Repo.get_by(Vote,
-        user_id: current_user_id,
-        category_id: category_id,
-        hack_id: hack_id
-      )
-
-    if vote do
-      Repo.delete!(vote)
+    if countdown.running do
+      handle_vote(socket, category_id, hack_id)
     else
-      Repo.delete_all(
-        from v in Vote,
-          where: v.user_id == ^current_user_id and v.category_id == ^category_id
-      )
-
-      %Vote{user_id: current_user_id, category_id: category_id, hack_id: hack_id}
-      |> Repo.insert!()
+      App.Services.Countdown.stop()
     end
-
-    hacks = get_hacks()
-    categories = get_categories_with_hacks()
-    user_votes = get_user_votes(socket)
-
-    AppWeb.Endpoint.broadcast!("room:public", "hacks", %{hacks: hacks})
-    AppWeb.Endpoint.broadcast!("room:public", "categories", %{categories: categories})
-
-    AppWeb.Endpoint.broadcast!("room:#{current_user_id}", "user_votes", %{
-      user_votes: user_votes
-    })
 
     {:noreply, socket}
   end
@@ -174,5 +150,39 @@ defmodule AppWeb.RoomChannel do
     else
       []
     end
+  end
+
+  def handle_vote(socket, category_id, hack_id) do
+    current_user_id = socket.assigns.current_user_id
+
+    vote =
+      Repo.get_by(Vote,
+        user_id: current_user_id,
+        category_id: category_id,
+        hack_id: hack_id
+      )
+
+    if vote do
+      Repo.delete!(vote)
+    else
+      Repo.delete_all(
+        from v in Vote,
+          where: v.user_id == ^current_user_id and v.category_id == ^category_id
+      )
+
+      %Vote{user_id: current_user_id, category_id: category_id, hack_id: hack_id}
+      |> Repo.insert!()
+    end
+
+    hacks = get_hacks()
+    categories = get_categories_with_hacks()
+    user_votes = get_user_votes(socket)
+
+    AppWeb.Endpoint.broadcast!("room:public", "hacks", %{hacks: hacks})
+    AppWeb.Endpoint.broadcast!("room:public", "categories", %{categories: categories})
+
+    AppWeb.Endpoint.broadcast!("room:#{current_user_id}", "user_votes", %{
+      user_votes: user_votes
+    })
   end
 end
