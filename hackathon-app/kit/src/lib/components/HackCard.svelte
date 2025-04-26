@@ -29,7 +29,9 @@
         <div class="flex w-full items-center justify-between">
           <button
             class={["btn w-52", voted ? "btn-success" : "btn-neutral"]}
-            disabled={!appCurrentUser.user || !appSocket.countdown.running}
+            disabled={!appCurrentUser.user ||
+              !appSocket.countdown.running ||
+              appSocket.countdownAtZero}
             onclick={() => vote(category.id)}
           >
             {#if voted}
