@@ -3,7 +3,6 @@
     "private": true,
     "workspaces": [
         "lib",
-        "hackathon-app",
         "sync-server",
         "website"
     ]

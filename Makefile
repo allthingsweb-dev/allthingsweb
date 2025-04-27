@@ -11,7 +11,6 @@ DEPENDENCIES := bun git
 WEBSITE_DIR := $(CURRENT_DIR)/website
 CLI_DIR := $(CURRENT_DIR)/atw-cli
 SYNC_SERVER_DIR := $(CURRENT_DIR)/sync-server
-HACKATHON_APP_DIR := $(CURRENT_DIR)/hackathon-app
 LIB_DIR := $(CURRENT_DIR)/lib
 
 .PHONY: list
@@ -43,8 +42,6 @@ install: check-dependencies ## Install the dependencies
 fmt: ## Format the code
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:fix
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:check
-	@cd $(HACKATHON_APP_DIR) && $(PACKAGE_MANAGER) run prettier:fix
-	@cd $(HACKATHON_APP_DIR) && $(PACKAGE_MANAGER) run prettier:check
 	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:fix
 	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:check
 	@cd $(LIB_DIR) && $(PACKAGE_MANAGER) run prettier:fix
@@ -56,8 +53,6 @@ fmt: ## Format the code
 check: ## Check the code
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:check
 	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run typecheck
-	@cd $(HACKATHON_APP_DIR) && $(PACKAGE_MANAGER) run prettier:check
-	@cd $(HACKATHON_APP_DIR) && $(PACKAGE_MANAGER) run typecheck
 	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:check
 	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run typecheck
 	@cd $(LIB_DIR) && $(PACKAGE_MANAGER) run prettier:check
