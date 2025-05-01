@@ -80,9 +80,11 @@ export async function loader({ context }: Route.LoaderArgs) {
         ),
         context.formatter.formatCode(CLI_INSTALL_COMMAND, "bash"),
       ]);
-      const highlightEvent = events.find(
-        (event) => event.highlightOnLandingPage,
-      );
+      const highlightEvent = events.length > 0 
+        ? events.reduce((earliest, current) => 
+            new Date(current.startDate) < new Date(earliest.startDate) ? current : earliest, 
+            events[0])
+        : null;
       const remainingEvents = events.filter(
         (event) => event.id !== highlightEvent?.id,
       );

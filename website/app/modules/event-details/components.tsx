@@ -291,9 +291,11 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
               <div className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8">
                 <Img
                   src={sponsor.squareLogoLight.url}
-                  width={48}
-                  height={48}
+                  width={96}
+                  height={96}
                   alt={sponsor.name}
+                  fit="contain"
+                  className="min-w-[48px] max-h-[48px] object-contain"
                 />
                 <div className="text-left">
                   <h3 className="text-2xl font-semibold mb-4">

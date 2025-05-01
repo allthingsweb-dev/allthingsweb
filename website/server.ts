@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/bun";
+import * as Sentry from "@sentry/node";
 import { buildContainer } from "~/modules/container.server";
 
 let container = buildContainer();
@@ -37,7 +37,7 @@ app.use(compression());
 app.disable("x-powered-by");
 
 app.use("/tests/errors/server-error", () => {
-  throw new Error("This is a test error from Express on Bun.");
+  throw new Error("This is a test error from Express on Node.");
 });
 
 if (DEVELOPMENT) {
