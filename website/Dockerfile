@@ -1,5 +1,4 @@
 ARG BUN_VERSION=1.2.2
-ARG NODE_VERSION=20.11.1
 
 FROM oven/bun:${BUN_VERSION}-slim as build
 
@@ -11,36 +10,29 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV="production"
 
-# Install packages needed to build node modules and node runtime
+# Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3 curl && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
+    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
 
 # Copy the entire monorepo structure
 COPY --link . .
 
-# Install node modules for the entire monorepo using Bun
+# Install node modules for the entire monorepo
 RUN bun install
 
 # Build application (specifically the website)
 RUN cd website && bun --bun run build
 
-# Remove dev dependencies and install only production dependencies
-RUN cd website && rm -rf node_modules && bun install --production
+# Clean up node_modules
+RUN rm -rf node_modules
 
-# Final production image
-FROM node:${NODE_VERSION}-slim
+# Install only production dependencies
+RUN cd website && bun i --ci
 
-WORKDIR /app
-ENV NODE_ENV="production"
+# Remove irrelevant app folders
+RUN rm -rf hackathon-app atw-cli sync-server
 
-# Copy built assets and server from the build stage
-COPY --from=build /app/website/build /app/build
-COPY --from=build /app/website/node_modules /app/node_modules
-COPY --from=build /app/website/package.json /app/package.json
-COPY --from=build /app/website/public /app/public
-
-# Start the server
+# Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "node", "build/server.js" ]
+WORKDIR /app/website
+CMD [ "bun", "run", "start" ]
