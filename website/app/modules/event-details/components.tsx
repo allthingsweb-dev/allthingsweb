@@ -295,6 +295,9 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
                   height={96}
                   alt={sponsor.name}
                   fit="contain"
+                  params={{
+                    containColor: "white",
+                  }}
                   className="min-w-[48px] max-h-[48px] object-contain"
                 />
                 <div className="text-left">
