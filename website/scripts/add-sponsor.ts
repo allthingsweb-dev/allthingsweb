@@ -2,8 +2,8 @@ import { eq } from "drizzle-orm";
 import { buildContainer } from "~/modules/container.server";
 import { eventSponsorsTable, sponsorsTable } from "@lib/db/schema.server";
 
-const slug = "2025-04-26-hackathon-at-sentry";
-const sponsorName = "Sentry";
+const slug = "2025-06-01-nextdevfm-live";
+const sponsorName = "Neon";
 
 async function main() {
   const container = buildContainer();

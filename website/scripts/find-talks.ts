@@ -22,7 +22,7 @@ async function main() {
     .from(talkSpeakersTable)
     .leftJoin(talksTable, eq(talkSpeakersTable.talkId, talksTable.id))
     .where(eq(talkSpeakersTable.speakerId, speaker.id));
-  if(talks[0]?.talks) {
+  if (talks[0]?.talks) {
     const talkEvents = await db
       .select()
       .from(eventTalksTable)

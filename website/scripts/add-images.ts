@@ -14,7 +14,7 @@ async function getFilePaths() {
 
 async function main() {
   const container = buildContainer();
-  const eventSlug = "2025-03-12-all-things-web-hack-evening";
+  const eventSlug = "2025-05-13-all-things-web-show-and-tell";
   const event = await container.cradle.queryClient.getEventBySlug(eventSlug);
   if (!event) {
     console.error(`Event with slug ${eventSlug} not found`);

@@ -140,18 +140,22 @@ export const eventSponsorsTable = pgTable("event_sponsors", {
   updatedAt,
 });
 
-export const eventTalksTable = pgTable("event_talks", {
-  eventId: uuid("event_id")
-    .notNull()
-    .references(() => eventsTable.id, { onDelete: "cascade" }),
-  talkId: uuid("talk_id")
-    .notNull()
-    .references(() => talksTable.id, { onDelete: "cascade" }),
-  createdAt,
-  updatedAt,
-}, (table) => ({
-  pk: primaryKey({ columns: [table.eventId, table.talkId] }),
-}));
+export const eventTalksTable = pgTable(
+  "event_talks",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id, { onDelete: "cascade" }),
+    talkId: uuid("talk_id")
+      .notNull()
+      .references(() => talksTable.id, { onDelete: "cascade" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.eventId, table.talkId] }),
+  }),
+);
 
 export const eventImagesTable = pgTable(
   "event_images",

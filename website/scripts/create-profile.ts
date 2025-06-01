@@ -8,12 +8,13 @@ import {
 import { randomUUID } from "node:crypto";
 import { getImgMetadata, getImgPlaceholder } from "openimg/bun";
 
-const imgPath = "./scripts/profile.jpeg";
+const imgPath = "./scripts/images/profile.jpg";
 const profile: InsertProfile = {
-  name: "Akshat Agrawal",
-  title: "Product + GTM @ Codeium",
-  bio: "Akshat is the product and GTM lead at Codeium. He was previously a senior product manager at Skyflow, and before that, he spent over four years at Google as a software engineer and product manager.",
-  linkedinHandle: "akshatag",
+  name: "Lee Robinson",
+  title: "VP of Developer Experience at Vercel",
+  bio: "Lee Robinson is the VP of Developer Experience at Vercel. He's a developer, optimist, and community builder. Lee is passionate about teaching about React, Next.js, and the web.",
+  linkedinHandle: "leeerob",
+  twitterHandle: "leerob",
   profileType: "member",
 };
 

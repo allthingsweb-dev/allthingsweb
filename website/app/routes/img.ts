@@ -5,8 +5,8 @@ import sharp from "sharp";
 export { headers } from "~/modules/header.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-   const searchParams = new URL(request.url).searchParams;
-  
+  const searchParams = new URL(request.url).searchParams;
+
   const headers = new Headers();
   headers.set("cache-control", "public, max-age=172800");
   return getImgResponse(request, {
@@ -32,27 +32,30 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     },
     getSharpPipeline({ params, source }) {
       const containColor = searchParams.get("containColor");
-      if(!containColor) {
+      if (!containColor) {
         return undefined;
       }
-      const pipeline = sharp().resize(params.width, params.height, { fit: params.fit, background: containColor });
-      if(params.format === "webp") {
+      const pipeline = sharp().resize(params.width, params.height, {
+        fit: params.fit,
+        background: containColor,
+      });
+      if (params.format === "webp") {
         pipeline.webp();
       }
-      if(params.format === "avif") {
+      if (params.format === "avif") {
         pipeline.avif();
       }
-      if(source.type === "fs") {
+      if (source.type === "fs") {
         return {
           pipeline,
           cacheKey: `${source.path}-${containColor}`,
-        }
+        };
       }
-      if(source.type === "fetch") {
+      if (source.type === "fetch") {
         return {
           pipeline,
           cacheKey: `${source.url}-${containColor}`,
-        }
+        };
       }
       return undefined;
     },
