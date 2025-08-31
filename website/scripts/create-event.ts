@@ -1,15 +1,14 @@
-import { buildContainer } from "~/modules/container.server";
-import { eventsTable, InsertEvent } from "@lib/db/schema.server";
+import { InsertEvent } from "@lib/db/schema.server";
+import { createEvent } from "./functions";
 
-// 0a27defe-abf3-4db9-8feb-4a547ef2ef18
 const event = {
-  name: "NextDev.fm Live",
-  slug: "2025-06-01-nextdevfm-live",
-  attendeeLimit: 160,
-  tagline: "Join us for a live episode of NextDev.fm! 🎙️",
-  startDate: new Date("2025-06-01T10:30:00.000Z"),
-  endDate: new Date("2025-06-01T20:30:00.000Z"),
-  lumaEventId: "evt-YgL8QkcPVOTymoN",
+  name: "All Things Web Show & Tell",
+  slug: "2025-07-23-all-things-web-show-and-tell",
+  attendeeLimit: 150,
+  tagline: "Join us for a community show & tell at the SF Nook community space!",
+  startDate: new Date("2025-07-23T10:30:00.000Z"),
+  endDate: new Date("2025-07-23T20:30:00.000Z"),
+  lumaEventId: "evt-TI4Rc7MwnlmlrvP",
   isDraft: false,
   isHackathon: false,
   highlightOnLandingPage: true,
@@ -19,11 +18,7 @@ const event = {
 } satisfies InsertEvent;
 
 async function main() {
-  const container = buildContainer();
-  const res = await container.cradle.db
-    .insert(eventsTable)
-    .values(event)
-    .returning();
+  const res = await createEvent(event);
   console.log(res);
 }
 

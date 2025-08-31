@@ -1,12 +1,5 @@
-import { S3Client } from "bun";
-import { buildContainer } from "~/modules/container.server";
-import {
-  imagesTable,
-  InsertSponsor,
-  sponsorsTable,
-} from "@lib/db/schema.server";
-import { randomUUID } from "node:crypto";
-import { getImgMetadata, getImgPlaceholder } from "openimg/bun";
+import { InsertSponsor } from "@lib/db/schema.server";
+import { createSponsor } from "./functions";
 
 const darkLogoFilePath = "./scripts/logo.png";
 const lightLogoFilePath = "./scripts/logo.png";
@@ -17,79 +10,13 @@ const sponsor: InsertSponsor = {
 };
 
 async function main() {
-  const container = buildContainer();
-
-  const bunS3Client = new S3Client({
-    region: container.cradle.mainConfig.s3.region,
-    accessKeyId: container.cradle.mainConfig.s3.accessKeyId,
-    secretAccessKey: container.cradle.mainConfig.s3.secretAccessKey,
-    bucket: container.cradle.mainConfig.s3.bucket,
-  });
-
-  // Process dark logo
-  const darkLogoUuid = randomUUID();
-  const darkLogoFile = Bun.file(darkLogoFilePath);
-  const darkLogoBuffer = await darkLogoFile.bytes();
-  const darkLogoMetadata = await getImgMetadata(darkLogoBuffer);
-  const nameSlug = sponsor.name.toLowerCase().replace(/ /g, "-");
-  const darkLogoS3Path =
-    "sponsors/" +
-    nameSlug +
-    "-dark-" +
-    darkLogoUuid +
-    "." +
-    darkLogoMetadata.format;
-  const darkLogoPlaceholder = await getImgPlaceholder(darkLogoBuffer);
-  await bunS3Client.write(darkLogoS3Path, darkLogoBuffer);
-  const darkLogoUrl = `${container.cradle.mainConfig.s3.url}/${darkLogoS3Path}`;
-  await container.cradle.db.insert(imagesTable).values({
-    url: darkLogoUrl,
-    id: darkLogoUuid,
-    width: darkLogoMetadata.width,
-    height: darkLogoMetadata.height,
-    placeholder: darkLogoPlaceholder,
-    alt: `${sponsor.name} dark logo`,
-  });
-
-  // Process light logo
-  const lightLogoUuid = randomUUID();
-  const lightLogoFile = Bun.file(lightLogoFilePath);
-  const lightLogoBuffer = await lightLogoFile.bytes();
-  const lightLogoMetadata = await getImgMetadata(lightLogoBuffer);
-  const lightLogoS3Path =
-    "sponsors/" +
-    nameSlug +
-    "-light-" +
-    lightLogoUuid +
-    "." +
-    lightLogoMetadata.format;
-  const lightLogoPlaceholder = await getImgPlaceholder(lightLogoBuffer);
-  await bunS3Client.write(lightLogoS3Path, lightLogoBuffer);
-  const lightLogoUrl = `${container.cradle.mainConfig.s3.url}/${lightLogoS3Path}`;
-  await container.cradle.db.insert(imagesTable).values({
-    url: lightLogoUrl,
-    id: lightLogoUuid,
-    width: lightLogoMetadata.width,
-    height: lightLogoMetadata.height,
-    placeholder: lightLogoPlaceholder,
-    alt: `${sponsor.name} light logo`,
-  });
-
-  // Update sponsor object with logo UUIDs
-  sponsor.squareLogoDark = darkLogoUuid;
-  sponsor.squareLogoLight = lightLogoUuid;
-
-  // Insert sponsor into database
-  const sponsorRes = await container.cradle.db
-    .insert(sponsorsTable)
-    .values(sponsor)
-    .returning();
-  if (!sponsorRes[0]) {
+  const createdSponsor = await createSponsor(sponsor, darkLogoFilePath, lightLogoFilePath);
+  if (!createdSponsor) {
     console.error("Failed to create sponsor");
     return;
   }
 
-  console.log(sponsorRes[0].id);
+  console.log(createdSponsor.id);
 }
 
 main();

@@ -7,6 +7,9 @@
 # Sentry Config File
 .sentryclirc
 
+# Cursor
+.cursor/
+
 # React Router
 /.react-router/
 /build/

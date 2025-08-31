@@ -1,10 +1,9 @@
-import { buildContainer } from "~/modules/container.server";
+import { getEventBySlug } from "./functions";
 
 const slug = "2024-10-05-hackathon-at-sentry";
 
 async function main() {
-  const container = buildContainer();
-  const event = await container.cradle.queryClient.getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
   if (!event) {
     console.error("Event not found");
     return;

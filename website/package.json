@@ -21,6 +21,7 @@
     "@aws-sdk/client-s3": "^3.744.0",
     "@aws-sdk/s3-request-presigner": "^3.744.0",
     "@epic-web/cachified": "^5.3.0",
+    "@modelcontextprotocol/sdk": "^1.17.4",
     "@neondatabase/serverless": "^0.10.4",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-label": "^2.1.0",
