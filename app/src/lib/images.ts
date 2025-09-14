@@ -2,8 +2,7 @@ import { inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { imagesTable } from "@/lib/schema";
 import { Image } from "@/lib/events";
-import { createS3Client } from "@/lib/s3";
-import { mainConfig } from "@/lib/config";
+import { signImages } from "@/lib/image-signing";
 
 // Static list of past event image IDs from the original website
 const imageIds = [
@@ -33,9 +32,6 @@ export async function getPastEventImages(): Promise<Image[]> {
     .from(imagesTable)
     .where(inArray(imagesTable.id, imageIds));
 
-  // Create S3 client for presigning URLs
-  const s3Client = createS3Client({ mainConfig });
-
   // Create a map for faster lookup
   const imageMap = new Map(images.map((img) => [img.id, img]));
 
@@ -44,26 +40,14 @@ export async function getPastEventImages(): Promise<Image[]> {
     .map((id) => imageMap.get(id))
     .filter((image): image is NonNullable<typeof image> => image !== undefined);
 
-  // Presign all S3 URLs in parallel for better performance
-  const presignedUrls = await Promise.all(
-    foundImages.map((image) => {
-      // Check if URL is from S3 (contains the S3 URL from config)
-      if (image.url.includes(mainConfig.s3.url)) {
-        return s3Client.presign(image.url);
-      }
-      // Return original URL if not from S3
-      return Promise.resolve(image.url);
-    }),
-  );
-
-  // Map to final Image format with presigned URLs
-  const orderedImages: Image[] = foundImages.map((image, index) => ({
-    url: presignedUrls[index],
+  // Convert to Image format and sign all URLs
+  const rawImages: Image[] = foundImages.map((image) => ({
+    url: image.url,
     alt: image.alt,
     placeholder: image.placeholder,
     width: image.width,
     height: image.height,
   }));
 
-  return orderedImages;
+  return signImages(rawImages);
 }

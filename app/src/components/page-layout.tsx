@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { HomeIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { TopNav } from "@/components/top-nav";
 
 export function PageLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -18,9 +19,7 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </Button>
         )}
-        <div className="ml-auto">
-          {/* Add theme toggle or other nav items here later */}
-        </div>
+        <TopNav />
       </header>
       <main className="w-full flex flex-col items-center justify-center">
         {children}

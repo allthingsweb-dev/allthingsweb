@@ -1,1 +1,0 @@
-ALTER TABLE "event_images" ADD CONSTRAINT "event_images_event_id_image_id_pk" PRIMARY KEY("event_id","image_id");

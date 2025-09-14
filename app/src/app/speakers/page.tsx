@@ -55,7 +55,10 @@ export default async function SpeakersPage() {
                   <h3 className="text-lg font-semibold mb-2 mt-4">Talks:</h3>
                   <ul className="space-y-2">
                     {getTalksOfSpeaker(talks, speaker).map((talk) => (
-                      <li key={`${speaker.id}-${talk.id}`} className="list-disc ml-6">
+                      <li
+                        key={`${speaker.id}-${talk.id}`}
+                        className="list-disc ml-6"
+                      >
                         <Link
                           href={`/${talk.eventSlug}#talks`}
                           className="text-primary underline-offset-4 hover:underline"

@@ -45,12 +45,55 @@ export function ProfileCard({
   );
 }
 
-export function SocialsList({ socials }: { socials: Socials }) {
+// Support both formats: full URLs (Socials) and handles (SpeakerSocials)
+type SpeakerSocials = {
+  twitter?: string;
+  bluesky?: string;
+  linkedin?: string;
+};
+
+export function SocialsList({
+  socials,
+}: {
+  socials: Socials | SpeakerSocials;
+}) {
+  // Check if it's the full URL format (Socials) or handle format (SpeakerSocials)
+  const isUrlFormat =
+    "twitterUrl" in socials ||
+    "blueskyUrl" in socials ||
+    "linkedinUrl" in socials;
+
+  const getUrls = () => {
+    if (isUrlFormat) {
+      const urlSocials = socials as Socials;
+      return {
+        twitter: urlSocials.twitterUrl,
+        bluesky: urlSocials.blueskyUrl,
+        linkedin: urlSocials.linkedinUrl,
+      };
+    } else {
+      const handleSocials = socials as SpeakerSocials;
+      return {
+        twitter: handleSocials.twitter
+          ? `https://twitter.com/${handleSocials.twitter}`
+          : null,
+        bluesky: handleSocials.bluesky
+          ? `https://bsky.app/profile/${handleSocials.bluesky}`
+          : null,
+        linkedin: handleSocials.linkedin
+          ? `https://linkedin.com/in/${handleSocials.linkedin}`
+          : null,
+      };
+    }
+  };
+
+  const urls = getUrls();
+
   return (
     <nav className="flex justify-start gap-2 items-center">
-      {socials.blueskyUrl && (
+      {urls.bluesky && (
         <a
-          href={socials.blueskyUrl}
+          href={urls.bluesky}
           target="_blank"
           rel="noopener noreferrer"
           className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -59,9 +102,9 @@ export function SocialsList({ socials }: { socials: Socials }) {
           <span className="sr-only">Bluesky</span>
         </a>
       )}
-      {socials.twitterUrl && (
+      {urls.twitter && (
         <a
-          href={socials.twitterUrl}
+          href={urls.twitter}
           target="_blank"
           rel="noopener noreferrer"
           className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -70,9 +113,9 @@ export function SocialsList({ socials }: { socials: Socials }) {
           <span className="sr-only">Twitter</span>
         </a>
       )}
-      {socials.linkedinUrl && (
+      {urls.linkedin && (
         <a
-          href={socials.linkedinUrl}
+          href={urls.linkedin}
           target="_blank"
           rel="noopener noreferrer"
           className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

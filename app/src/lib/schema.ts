@@ -8,6 +8,7 @@ import {
   integer,
   primaryKey,
 } from "drizzle-orm/pg-core";
+import { usersSync as usersSyncTable } from "drizzle-orm/neon";
 
 const createdAt = timestamp("created_at", { withTimezone: true })
   .notNull()
@@ -88,16 +89,20 @@ export const talksTable = pgTable("talks", {
   updatedAt,
 });
 
-export const talkSpeakersTable = pgTable("talk_speakers", {
-  talkId: uuid("talk_id")
-    .notNull()
-    .references(() => talksTable.id, { onDelete: "cascade" }),
-  speakerId: uuid("speaker_id")
-    .notNull()
-    .references(() => profilesTable.id, { onDelete: "cascade" }),
-  createdAt,
-  updatedAt,
-});
+export const talkSpeakersTable = pgTable(
+  "talk_speakers",
+  {
+    talkId: uuid("talk_id")
+      .notNull()
+      .references(() => talksTable.id, { onDelete: "cascade" }),
+    speakerId: uuid("speaker_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [primaryKey({ columns: [table.talkId, table.speakerId] })],
+);
 
 export type InsertTalk = typeof talksTable.$inferInsert;
 export type SelectTalk = typeof talksTable.$inferSelect;
@@ -129,16 +134,20 @@ export const eventsTable = pgTable("events", {
   updatedAt,
 });
 
-export const eventSponsorsTable = pgTable("event_sponsors", {
-  eventId: uuid("event_id")
-    .notNull()
-    .references(() => eventsTable.id, { onDelete: "cascade" }),
-  sponsorId: uuid("sponsor_id")
-    .notNull()
-    .references(() => sponsorsTable.id, { onDelete: "cascade" }),
-  createdAt,
-  updatedAt,
-});
+export const eventSponsorsTable = pgTable(
+  "event_sponsors",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id, { onDelete: "cascade" }),
+    sponsorId: uuid("sponsor_id")
+      .notNull()
+      .references(() => sponsorsTable.id, { onDelete: "cascade" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [primaryKey({ columns: [table.eventId, table.sponsorId] })],
+);
 
 export const eventTalksTable = pgTable(
   "event_talks",
@@ -152,9 +161,7 @@ export const eventTalksTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.eventId, table.talkId] }),
-  }),
+  (table) => [primaryKey({ columns: [table.eventId, table.talkId] })],
 );
 
 export const eventImagesTable = pgTable(
@@ -169,11 +176,7 @@ export const eventImagesTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.eventId, table.imageId] }),
-    };
-  },
+  (table) => [primaryKey({ columns: [table.eventId, table.imageId] })],
 );
 
 export type InsertEvent = typeof eventsTable.$inferInsert;
@@ -196,14 +199,18 @@ export const hacksTable = pgTable("hacks", {
   updatedAt,
 });
 
-export const hackUsersTable = pgTable("hack_users", {
-  hackId: uuid("hack_id")
-    .notNull()
-    .references(() => hacksTable.id, { onDelete: "cascade" }),
-  clerkUserId: text("clerk_user_id").notNull(),
-  createdAt,
-  updatedAt,
-});
+export const hackUsersTable = pgTable(
+  "hack_users",
+  {
+    hackId: uuid("hack_id")
+      .notNull()
+      .references(() => hacksTable.id, { onDelete: "cascade" }),
+    clerkUserId: text("clerk_user_id").notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [primaryKey({ columns: [table.hackId, table.clerkUserId] })],
+);
 
 export const hackVotesTable = pgTable("hack_votes", {
   id: uuid("id").primaryKey().defaultRandom(),

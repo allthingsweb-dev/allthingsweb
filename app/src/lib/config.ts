@@ -52,7 +52,10 @@ const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 const configData: PreValidate<MainConfig> = {
   instance: {
     environment: process.env.NODE_ENV || "development",
-    origin: process.env.ORIGIN || `http://localhost:${port}`,
+    origin:
+      process.env.VERCEL_URL ||
+      process.env.ORIGIN ||
+      `http://localhost:${port}`,
   },
   database: {
     databaseUrl: process.env.DATABASE_URL,

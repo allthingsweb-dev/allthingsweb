@@ -16,21 +16,24 @@ import { DiscordLogoIcon } from "@/components/ui/icons";
 import { Event, Image } from "@/lib/events";
 import { toReadableDateTimeStr } from "@/lib/datetime";
 import { getPastEventImages } from "@/lib/images";
+import { signImage } from "@/lib/image-signing";
 import NextImage from "next/image";
 
 async function getEvents() {
   const now = new Date();
 
   // Transform to Event type
-  const transformToEvent = (row: any): Event => {
+  const transformToEvent = async (row: any): Promise<Event> => {
     const event = row.events;
-    const previewImage = row.images || {
+    const previewImageRaw = row.images || {
       url: "/hero-image-rocket.png",
       alt: `${event.name} preview`,
       placeholder: null,
       width: 1200,
       height: 630,
     };
+
+    const previewImage = await signImage(previewImageRaw);
 
     return {
       ...event,
@@ -85,9 +88,11 @@ async function getEvents() {
     getPastEventImages(),
   ]);
 
-  const upcomingEvents = upcomingEventsQuery.map(transformToEvent);
-  const liveEvents = liveEventsQuery.map(transformToEvent);
-  const pastEvents = pastEventsQuery.map(transformToEvent);
+  const upcomingEvents = await Promise.all(
+    upcomingEventsQuery.map(transformToEvent),
+  );
+  const liveEvents = await Promise.all(liveEventsQuery.map(transformToEvent));
+  const pastEvents = await Promise.all(pastEventsQuery.map(transformToEvent));
 
   const highlightEvent =
     upcomingEvents.length > 0

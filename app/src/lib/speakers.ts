@@ -9,8 +9,7 @@ import {
   eventsTable,
 } from "./schema";
 import { Profile, getSocialUrls } from "./profiles";
-import { createS3Client } from "./s3";
-import { mainConfig } from "./config";
+import { signImage } from "./image-signing";
 
 export type Talk = {
   id: string;
@@ -29,16 +28,6 @@ export type TalkWithEventCtx = Talk & {
 export type SpeakerWithTalkIds = Profile & {
   talkIds: string[];
 };
-
-async function presignImageUrl(imageUrl: string): Promise<string> {
-  // Check if URL is from S3 (contains the S3 URL from config)
-  if (imageUrl.includes(mainConfig.s3.url)) {
-    const s3Client = createS3Client({ mainConfig });
-    return s3Client.presign(imageUrl);
-  }
-  // Return original URL if not from S3
-  return imageUrl;
-}
 
 export async function getSpeakersWithTalks(): Promise<{
   speakers: SpeakerWithTalkIds[];
@@ -107,16 +96,13 @@ export async function getSpeakersWithTalks(): Promise<{
           height: 400,
         };
 
-        // Presign the image URL if it's from S3
-        const presignedImageUrl = await presignImageUrl(image.url);
+        // Sign the image
+        const signedImage = await signImage(image);
 
         return {
           id: profile.id,
           name: profile.name,
-          image: {
-            ...image,
-            url: presignedImageUrl,
-          },
+          image: signedImage,
           title: profile.title,
           bio: profile.bio,
           type: profile.profileType,
@@ -133,7 +119,7 @@ export async function getSpeakersWithTalks(): Promise<{
 
   // Deduplicate talks (since a talk can have multiple speakers, it appears multiple times in talksQuery)
   const talksMap = new Map<string, TalkWithEventCtx>();
-  
+
   talksQuery.forEach((row) => {
     if (!talksMap.has(row.talk.id)) {
       talksMap.set(row.talk.id, {
@@ -148,7 +134,7 @@ export async function getSpeakersWithTalks(): Promise<{
       });
     }
   });
-  
+
   const talks: TalkWithEventCtx[] = Array.from(talksMap.values());
 
   return { speakers: speakersWithPresignedImages, talks };
