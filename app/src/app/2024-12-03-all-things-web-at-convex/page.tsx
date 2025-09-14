@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
 import { isEventInPast } from "@/lib/events";
+import { getEventAttendeeCount } from "@/lib/attendee-counter";
 import {
   EventDetailsPage,
   HeroSection,
@@ -62,8 +63,10 @@ export default async function ConvexEventPage() {
     notFound();
   }
 
-  // Mock attendee data - in a real app, you'd fetch this from Luma API
-  const attendeeCount = Math.floor(Math.random() * event.attendeeLimit);
+  // Get real attendee count from Luma API
+  const attendeeCount = event.lumaEventId
+    ? await getEventAttendeeCount(event.lumaEventId)
+    : 0;
   const attendeeLimit = event.attendeeLimit;
   const isAtCapacity = attendeeCount >= attendeeLimit;
   const isInPast = isEventInPast(event);

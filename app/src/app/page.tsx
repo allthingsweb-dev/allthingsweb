@@ -17,6 +17,7 @@ import { Event, Image } from "@/lib/events";
 import { toReadableDateTimeStr } from "@/lib/datetime";
 import { getPastEventImages } from "@/lib/images";
 import { signImage } from "@/lib/image-signing";
+import { getLumaUrl } from "@/lib/luma";
 import NextImage from "next/image";
 
 async function getEvents() {
@@ -38,9 +39,7 @@ async function getEvents() {
     return {
       ...event,
       previewImage,
-      lumaEventUrl: event.lumaEventId
-        ? `https://lu.ma/${event.lumaEventId}`
-        : null,
+      lumaEventUrl: getLumaUrl(event.lumaEventId),
     };
   };
 
