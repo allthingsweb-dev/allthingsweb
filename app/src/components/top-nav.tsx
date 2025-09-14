@@ -10,7 +10,11 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ModeToggle } from "@/components/theme-toggle";
 
-export function TopNav() {
+interface TopNavProps {
+  authNav: React.ReactNode;
+}
+
+export function TopNav({ authNav }: TopNavProps) {
   return (
     <nav className="ml-auto flex items-center gap-4">
       <Popover>
@@ -19,13 +23,17 @@ export function TopNav() {
         </PopoverTrigger>
         <PopoverContent align="end">
           <LinkList />
-          <div className="mt-4 pt-4 border-t">
+          <div className="mt-4 pt-4 border-t flex items-center justify-between">
             <ModeToggle />
+            {authNav}
           </div>
         </PopoverContent>
       </Popover>
       <LinkList className="hidden md:flex" />
-      <ModeToggle />
+      <div className="hidden md:flex items-center gap-4">
+        {authNav}
+        <ModeToggle />
+      </div>
     </nav>
   );
 }

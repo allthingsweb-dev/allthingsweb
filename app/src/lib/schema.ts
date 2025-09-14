@@ -228,3 +228,15 @@ export type InsertHackUser = typeof hackUsersTable.$inferInsert;
 export type SelectHackUser = typeof hackUsersTable.$inferSelect;
 export type InsertHackVote = typeof hackVotesTable.$inferInsert;
 export type SelectHackVote = typeof hackVotesTable.$inferSelect;
+
+export const administratorsTable = pgTable("administrators", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => usersSyncTable.id, { onDelete: "cascade" }),
+  createdAt,
+  updatedAt,
+});
+
+export type InsertAdministrator = typeof administratorsTable.$inferInsert;
+export type SelectAdministrator = typeof administratorsTable.$inferSelect;

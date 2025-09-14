@@ -1,13 +1,13 @@
-"use client";
-
-import { usePathname } from "next/navigation";
+import { headers } from "next/headers";
 import { HomeIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/top-nav";
+import { AuthNav } from "@/components/auth-nav";
 
-export function PageLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+export async function PageLayout({ children }: { children: React.ReactNode }) {
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "/";
 
   return (
     <div className="min-h-[100dvh] max-w-[100vw] w-full flex flex-col">
@@ -19,7 +19,7 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </Button>
         )}
-        <TopNav />
+        <TopNav authNav={<AuthNav />} />
       </header>
       <main className="w-full flex flex-col items-center justify-center">
         {children}

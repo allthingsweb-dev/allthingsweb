@@ -1,0 +1,50 @@
+---
+description: Use Bun instead of Node.js, npm, pnpm, or vite for testing, build, package management
+globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
+alwaysApply: false
+---
+
+## Development vs Production
+
+**IMPORTANT**: We use Bun for development tasks but Node.js for production.
+
+- **Development**: Use Bun for package management, running scripts, testing, and local development
+- **Production**: The app runs on Node.js (Vercel uses Node.js runtime)
+
+## Development Usage
+
+Default to using Bun instead of npm, pnpm, or vite for development tasks:
+
+- Use `bun <file>` instead of `node <file>` or `ts-node <file>` for running scripts locally
+- Use `bun test` instead of `jest` or `vitest`
+- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
+- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
+- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
+- Bun automatically loads .env, so don't use dotenv in development scripts
+
+## Production Considerations
+
+- The Next.js app in `app/` is deployed to Vercel and runs on Node.js
+- Use standard Node.js/Next.js patterns for production code
+- Bun-specific APIs (like `Bun.file`, `Bun.serve`) should only be used in development scripts
+- Production code should be compatible with Node.js runtime
+
+## Testing
+
+Use `bun test` for development testing only.
+
+```ts#index.test.ts
+import { test, expect } from "bun:test";
+
+test("hello world", () => {
+  expect(1).toBe(1);
+});
+```
+
+## Development Scripts
+
+- Use Bun for running development scripts in the `scripts/` directory
+- Scripts can use Bun-specific APIs like `Bun.file()` since they're development-only
+- Production code should use Node.js-compatible APIs only
+
+For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.

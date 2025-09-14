@@ -1,0 +1,9 @@
+---
+description: Never run scripts for testing
+globs: "scripts/**/*.ts"
+alwaysApply: true
+---
+
+Never run scripts for testing - we are connected to the database and we don't want to run scripts for testing.
+
+Make sure to only run find/get functions for testing. Never mutations.
