@@ -5,8 +5,9 @@
   "version": "1.3.1",
   "private": true,
   "scripts": {
-    "prettier:check": "prettier --check .",
-    "prettier:fix": "prettier --write ."
+    "fmt": "prettier --write .",
+    "check": "prettier --check .",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,11 +1,6 @@
 {
     "name": "allthingsweb-monorepo",
     "private": true,
-    "workspaces": [
-        "lib",
-        "sync-server",
-        "website"
-    ],
     "scripts": {
         "mcp:debug": "cd website && npx @modelcontextprotocol/inspector bun run scripts/mcp-server.ts"
     },

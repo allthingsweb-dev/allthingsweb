@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "fmt": "prettier --write .",
+    "check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },

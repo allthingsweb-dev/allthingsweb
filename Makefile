@@ -8,10 +8,8 @@ RESTORE := $(shell echo "\033[0m")
 PACKAGE_MANAGER := bun
 CURRENT_DIR := $(shell pwd)
 DEPENDENCIES := bun git
-WEBSITE_DIR := $(CURRENT_DIR)/website
+APP_DIR := $(CURRENT_DIR)/app
 CLI_DIR := $(CURRENT_DIR)/atw-cli
-SYNC_SERVER_DIR := $(CURRENT_DIR)/sync-server
-LIB_DIR := $(CURRENT_DIR)/lib
 
 .PHONY: list
 list:
@@ -30,45 +28,38 @@ check-dependencies:
 	done
 	@echo "All ${YELLOW}dependencies are installed.${RESTORE}"
 
-website/.env:
-	@echo "You need to create the '.env' file from the '.env.dist' example."
+app/.env.local:
+	@echo "You need to create the '.env.local' file from the 'example.env' example."
 	@exit 1
 
 .PHONY: install
 install: check-dependencies ## Install the dependencies
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) install
+	@cd $(APP_DIR) && $(PACKAGE_MANAGER) install
+	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) install
 
 .PHONY: fmt
 fmt: ## Format the code
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:fix
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:check
-	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:fix
-	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:check
-	@cd $(LIB_DIR) && $(PACKAGE_MANAGER) run prettier:fix
-	@cd $(LIB_DIR) && $(PACKAGE_MANAGER) run prettier:check
-	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run prettier:fix
-	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run prettier:check
+	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run fmt
+	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run fmt
 
 .PHONY: check
 check: ## Check the code
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run prettier:check
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run typecheck
-	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run prettier:check
-	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run typecheck
-	@cd $(LIB_DIR) && $(PACKAGE_MANAGER) run prettier:check
-	@cd $(LIB_DIR) && $(PACKAGE_MANAGER) run typecheck
+	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run check
+	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run typecheck
+	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run check
+	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run typecheck
 
 .PHONY: build
-build: ## Build All
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run build
+build: ## Build the Next.js app
+	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run build
 
 .PHONY: test
-test: ## Run Playwright tests (requires dev server to be running)
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run test
+test: ## Run tests
+	@echo "No tests configured yet. Add tests as needed."
 
 .PHONY: serve
-serve: website/.env ## Serve the application
-	@cd $(WEBSITE_DIR) && $(PACKAGE_MANAGER) run dev
+serve: app/.env ## Serve the Next.js application
+	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run dev
 
 .PHONY: build-cli
 build-cli:  ## Build CLI
@@ -82,16 +73,3 @@ build-all-cli:
 	done
 	@cd $(CLI_DIR) && rm -f .*.bun-build
 
-.PHONY: deploy-sync-permissions
-deploy-sync-permissions:
-	@cd $(SYNC_SERVER_DIR) && $(PACKAGE_MANAGER) run deploy:permissions
-
-.PHONY: deploy-website
-deploy-website: ## Deploy the website to Fly.io
-	@echo "${YELLOW}Deploying website to Fly.io...${RESTORE}"
-	@if ! command -v flyctl &> /dev/null; then \
-		echo "${RED}Error:${RESTORE} flyctl is not installed. Please install it from https://fly.io/docs/hands-on/install-flyctl/"; \
-		exit 1; \
-	fi
-	@flyctl deploy --config $(WEBSITE_DIR)/fly.toml --dockerfile $(WEBSITE_DIR)/Dockerfile
-	@echo "${YELLOW}Website deployed successfully!${RESTORE}"
