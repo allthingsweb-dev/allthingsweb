@@ -1,16 +1,11 @@
 import { createLumaClient } from "@/lib/luma";
 
-/**
- * Get the total count of approved attendees for a Luma event
- * This function properly handles pagination to get the accurate count
- */
 export async function getEventAttendeeCount(
   lumaEventId: string,
 ): Promise<number> {
   const lumaClient = createLumaClient();
 
   try {
-    // This function automatically handles pagination and returns the total count
     return await lumaClient.getAttendeeCount(lumaEventId);
   } catch (error) {
     console.error(
@@ -21,15 +16,10 @@ export async function getEventAttendeeCount(
   }
 }
 
-/**
- * Get all approved attendees for a Luma event
- * This function properly handles pagination to get all attendees
- */
 export async function getEventAttendees(lumaEventId: string) {
   const lumaClient = createLumaClient();
 
   try {
-    // This function automatically handles pagination and returns all attendees
     return await lumaClient.getAllAttendees(lumaEventId, {
       approvalStatus: "approved",
     });
@@ -39,9 +29,6 @@ export async function getEventAttendees(lumaEventId: string) {
   }
 }
 
-/**
- * Example of manual pagination if you need more control
- */
 export async function getEventAttendeesWithManualPagination(
   lumaEventId: string,
 ) {
@@ -52,17 +39,29 @@ export async function getEventAttendeesWithManualPagination(
 
   try {
     while (hasMore) {
-      const [attendees, { hasMoreToFetch, nextCursor }] =
-        await lumaClient.getAttendees(lumaEventId, {
-          cursor,
-          approvalStatus: "approved",
-        });
+      const result = await lumaClient.getAttendees(lumaEventId, {
+        cursor,
+        approvalStatus: "approved",
+      });
 
-      allAttendees.push(...attendees);
-      hasMore = hasMoreToFetch;
-      cursor = nextCursor;
+      if (Array.isArray(result) && result.length === 2) {
+        const [attendees, paginationInfo] = result;
+        if (
+          Array.isArray(attendees) &&
+          paginationInfo &&
+          typeof paginationInfo === "object" &&
+          "hasMoreToFetch" in paginationInfo
+        ) {
+          allAttendees.push(...attendees);
+          hasMore = paginationInfo.hasMoreToFetch || false;
+          cursor = paginationInfo.nextCursor;
+        } else {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
 
-      // Optional: Add a small delay to avoid rate limiting
       if (hasMore) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }

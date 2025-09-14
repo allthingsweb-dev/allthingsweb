@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return new Response(qrBuffer as BufferSource, {
       headers: {
         "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=86400", // Cache for 24 hours
+        "Cache-Control": "public, max-age=31536000, immutable", // Cache for 1 year, immutable
       },
     });
   } catch (error) {

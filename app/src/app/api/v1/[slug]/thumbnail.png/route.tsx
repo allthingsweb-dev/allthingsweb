@@ -30,7 +30,7 @@ export async function GET(
       height: 720,
       fonts: await getFont("Roboto"),
       headers: {
-        "Cache-Control": "public, max-age=3600", // Cache for 1 hour
+        "Cache-Control": "public, max-age=31536000, immutable", // Cache for 1 year, immutable
       },
     });
   } catch (error) {

@@ -30,7 +30,7 @@ export async function generateMetadata({
   }
 
   const url = `${mainConfig.instance.origin}/${slug}`;
-  const imageUrl = `${mainConfig.instance.origin}/api/${slug}/preview.png`;
+  const imageUrl = `${mainConfig.instance.origin}/api/v1/${slug}/preview.png`;
 
   return {
     title: event.name,

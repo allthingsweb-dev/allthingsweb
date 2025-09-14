@@ -20,7 +20,7 @@ const title = "About All Things Web";
 const description =
   "All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San Francisco. Check out our organizers and join us!";
 const url = `${mainConfig.instance.origin}/about`;
-const imageUrl = `${mainConfig.instance.origin}/api/preview.png`;
+const imageUrl = `${mainConfig.instance.origin}/api/v1/preview.png`;
 
 export const metadata: Metadata = {
   title,

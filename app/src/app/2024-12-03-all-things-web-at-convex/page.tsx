@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   const url = `${mainConfig.instance.origin}/${EVENT_SLUG}`;
-  const imageUrl = `${mainConfig.instance.origin}/api/${EVENT_SLUG}/preview.png`;
+  const imageUrl = `${mainConfig.instance.origin}/api/v1/${EVENT_SLUG}/preview.png`;
 
   return {
     title: event.name,

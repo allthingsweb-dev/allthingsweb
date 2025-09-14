@@ -9,10 +9,11 @@ export async function GET(request: NextRequest) {
     // Get past event images
     const pastEventImages = await getPastEventImages();
 
-    // Resize images for the preview (similar to the original implementation)
+    // Use high resolution images for great quality in the social preview
+    // Each image will be 400x315 for high quality with 6 images (3 per row, 2 rows)
     const resizedImages = pastEventImages.map((image) => {
       const search = new URLSearchParams();
-      search.set("w", "300");
+      search.set("w", "400");
       search.set("h", "315");
       search.set("src", image.url);
       return {
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       height: 630,
       fonts: await getFont("Roboto"),
       headers: {
-        "Cache-Control": "public, max-age=3600", // Cache for 1 hour
+        "Cache-Control": "public, max-age=31536000, immutable", // Cache for 1 year, immutable
       },
     });
   } catch (error) {

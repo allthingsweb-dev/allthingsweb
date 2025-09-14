@@ -318,11 +318,11 @@ export function SpeakersPreview({ speakers }: { speakers: Profile[] }) {
 
 /**
  * Social preview for the landing page
- * w1200 h630: 8 images - 4 per row (2 rows)
- * one img will be 315x300
+ * w1200 h630: 6 images - 3 per row (2 rows)
+ * one img will be 400x315 for high quality
  */
 export function LandingPagePreview({ images }: { images: Image[] }) {
-  const maxImages = 8;
+  const maxImages = 6;
   const imagesToShow = images.slice(0, maxImages);
   return (
     <section tw="relative w-[1200px] h-[630px] overflow-hidden">
@@ -332,8 +332,8 @@ export function LandingPagePreview({ images }: { images: Image[] }) {
             key={image.url}
             src={image.url}
             alt="Past event image"
-            tw="w-[300px] h-[315px]"
-            width="300"
+            tw="w-[400px] h-[315px]"
+            width="400"
             height="315"
             style={{
               objectFit: "cover",

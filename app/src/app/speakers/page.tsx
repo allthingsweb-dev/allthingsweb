@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description =
     "Huge shout-out to all the speakers who have shared their knowledge and experience with us. Check out their talks from our events!";
   const url = `${mainConfig.instance.origin}/speakers`;
-  const imageUrl = `${mainConfig.instance.origin}/api/speakers.png`;
+  const imageUrl = `${mainConfig.instance.origin}/api/v1/speakers.png`;
 
   return {
     title,

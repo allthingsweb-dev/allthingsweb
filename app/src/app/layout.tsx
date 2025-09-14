@@ -20,7 +20,7 @@ const title = "All Things Web";
 const description =
   "Discover exciting web development events in the Bay Area and San Francisco.";
 const url = mainConfig.instance.origin;
-const imageUrl = `${mainConfig.instance.origin}/api/preview.png`;
+const imageUrl = `${mainConfig.instance.origin}/api/v1/preview.png`;
 
 export const metadata: Metadata = {
   title: {
