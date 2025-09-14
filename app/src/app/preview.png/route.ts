@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const imagePath = join(process.cwd(), "public", "hero-image-rocket.png");
     const imageBuffer = readFileSync(imagePath);
 
-    return new Response(imageBuffer, {
+    return new Response(imageBuffer as BufferSource, {
       headers: {
         "Content-Type": "image/png",
         "Cache-Control": "public, max-age=3600", // 1 hour cache

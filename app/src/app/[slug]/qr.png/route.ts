@@ -4,12 +4,13 @@ import { NextRequest } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const eventUrl = `${mainConfig.instance.origin}/${params.slug}`;
+  const { slug } = await params;
+  const eventUrl = `${mainConfig.instance.origin}/${slug}`;
   const qrCode = await QRCode.toBuffer(eventUrl, { width: 1200 });
 
-  return new Response(qrCode, {
+  return new Response(qrCode as BufferSource, {
     headers: {
       "Content-Type": "image/png",
       // QR code for a given slug never changes

@@ -1,12 +1,11 @@
 import QRCode from "qrcode";
 import { mainConfig } from "@/lib/config";
-import { NextRequest } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const websiteUrl = `${mainConfig.instance.origin}/`;
   const qrCode = await QRCode.toBuffer(websiteUrl, { width: 1200 });
 
-  return new Response(qrCode, {
+  return new Response(qrCode as BufferSource, {
     headers: {
       "Content-Type": "image/png",
       // QR code never changes

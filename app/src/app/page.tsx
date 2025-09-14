@@ -16,7 +16,7 @@ import { DiscordLogoIcon } from "@/components/ui/icons";
 import { Event, Image } from "@/lib/events";
 import { toReadableDateTimeStr } from "@/lib/datetime";
 import { getPastEventImages } from "@/lib/images";
-import { Img } from "openimg/react";
+import NextImage from "next/image";
 
 async function getEvents() {
   const now = new Date();
@@ -248,17 +248,23 @@ export default async function HomePage() {
 function LandingHero({ images }: { images: Image[] }) {
   return (
     <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
+      <div className="w-full h-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
         {images.map((image, index) => (
-          <Img
+          <div
             key={image.url + index}
-            src={image.url}
-            placeholder={image.placeholder || undefined}
-            width={800}
-            height={800}
-            className="object-cover w-full max-w-[800px] h-auto"
-            isAboveFold
-          />
+            className="relative w-full aspect-square overflow-hidden"
+          >
+            <NextImage
+              src={image.url}
+              placeholder={image.placeholder ? "blur" : undefined}
+              blurDataURL={image.placeholder || undefined}
+              fill
+              className="object-cover"
+              priority
+              alt={image.alt || `Event image ${index + 1}`}
+              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+            />
+          </div>
         ))}
       </div>
 

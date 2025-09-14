@@ -45,7 +45,6 @@
         "lucide-react": "^0.544.0",
         "next": "15.5.3",
         "next-themes": "^0.4.6",
-        "openimg": "^1.1.0",
         "qrcode": "^1.5.4",
         "react": "19.1.0",
         "react-day-picker": "^9.9.0",
@@ -849,8 +848,6 @@
     "oauth4webapi": ["oauth4webapi@2.17.0", "", {}, "sha512-lbC0Z7uzAFNFyzEYRIC+pkSVvDHJTbEW+dYlSBAlCYDe6RxUkJ26bClhk8ocBZip1wfI9uKTe0fm4Ib4RHn6uQ=="],
 
     "object-assign": ["object-assign@4.1.1", "", {}, "sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg=="],
-
-    "openimg": ["openimg@1.1.0", "", { "optionalDependencies": { "react": ">=18.0.0", "react-dom": ">=18.0.0" }, "peerDependencies": { "sharp": "^0.34.2" } }, "sha512-c43icL+14OKjdXuBfAL8soZwbV3KIJ0/i5nxxL1EGgmja1ipGWirtsU1Ht50XAjoxY5E+V9D1IZU0g4lLXkaJw=="],
 
     "p-limit": ["p-limit@2.3.0", "", { "dependencies": { "p-try": "^2.0.0" } }, "sha512-//88mFWSJx8lxCzwdAABTJL2MyWB12+eIY7MDL2SqLmAkeKU9qxRvWuSyTjm3FUmpBEMuFfckAIqEaVGUDxb6w=="],
 
