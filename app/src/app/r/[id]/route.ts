@@ -6,10 +6,10 @@ import { redirectsTable } from "@/lib/schema";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  
+
   if (!id) {
     return new Response("No id provided", { status: 400 });
   }

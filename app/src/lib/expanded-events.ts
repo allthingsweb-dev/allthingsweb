@@ -49,14 +49,14 @@ export type ExpandedEvent = Event & {
   images: Image[];
 };
 
-export async function getExpandedEventBySlug(
-  slug: string,
+export async function getExpandedEventById(
+  id: string,
 ): Promise<ExpandedEvent | null> {
   // Get the base event with preview image
   const eventQuery = await db
     .select()
     .from(eventsTable)
-    .where(eq(eventsTable.slug, slug))
+    .where(eq(eventsTable.id, id))
     .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
     .limit(1);
 
@@ -64,7 +64,12 @@ export async function getExpandedEventBySlug(
     return null;
   }
 
-  const eventRow = eventQuery[0];
+  return getExpandedEventFromQuery(eventQuery[0]);
+}
+
+async function getExpandedEventFromQuery(
+  eventRow: any,
+): Promise<ExpandedEvent> {
   const event = eventRow.events;
   const previewImageRaw = eventRow.images || {
     url: "/hero-image-rocket.png",
@@ -205,4 +210,22 @@ export async function getExpandedEventBySlug(
     sponsors,
     images,
   };
+}
+
+export async function getExpandedEventBySlug(
+  slug: string,
+): Promise<ExpandedEvent | null> {
+  // Get the base event with preview image
+  const eventQuery = await db
+    .select()
+    .from(eventsTable)
+    .where(eq(eventsTable.slug, slug))
+    .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
+    .limit(1);
+
+  if (eventQuery.length === 0) {
+    return null;
+  }
+
+  return getExpandedEventFromQuery(eventQuery[0]);
 }
