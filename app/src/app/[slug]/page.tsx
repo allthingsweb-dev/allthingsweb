@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
 import { isEventInPast } from "@/lib/events";
 import { getEventAttendeeCount } from "@/lib/attendee-counter";
+import { mainConfig } from "@/lib/config";
 import {
   EventDetailsPage,
   HeroSection,
@@ -28,26 +29,35 @@ export async function generateMetadata({
     };
   }
 
+  const url = `${mainConfig.instance.origin}/${slug}`;
+  const imageUrl = `${mainConfig.instance.origin}/api/${slug}/preview.png`;
+
   return {
     title: event.name,
     description: event.tagline,
     openGraph: {
       title: event.name,
       description: event.tagline,
+      url,
       images: [
         {
-          url: event.previewImage.url,
-          width: event.previewImage.width || 1200,
-          height: event.previewImage.height || 630,
-          alt: event.previewImage.alt,
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: event.name,
         },
       ],
+      type: "website",
+      siteName: "All Things Web",
+      locale: "en_US",
     },
     twitter: {
       card: "summary_large_image",
       title: event.name,
       description: event.tagline,
-      images: [event.previewImage.url],
+      images: [imageUrl],
+      site: "@ReactBayArea",
+      creator: "@ReactBayArea",
     },
   };
 }

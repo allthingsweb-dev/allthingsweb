@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { Metadata } from "next";
+import { mainConfig } from "@/lib/config";
 import { ExternalLinkIcon, RssIcon } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import {
@@ -15,10 +16,39 @@ import { Section } from "@/components/ui/section";
 import { ProfileCard } from "@/components/profile-card";
 import { getOrganizers } from "@/lib/profiles";
 
+const title = "About All Things Web";
+const description =
+  "All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San Francisco. Check out our organizers and join us!";
+const url = `${mainConfig.instance.origin}/about`;
+const imageUrl = `${mainConfig.instance.origin}/api/preview.png`;
+
 export const metadata: Metadata = {
-  title: "About All Things Web",
-  description:
-    "All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San Francisco. Check out our organizers and join us!",
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    url,
+    images: [
+      {
+        url: imageUrl,
+        width: 1200,
+        height: 630,
+        alt: title,
+      },
+    ],
+    type: "website",
+    siteName: "All Things Web",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [imageUrl],
+    site: "@ReactBayArea",
+    creator: "@ReactBayArea",
+  },
 };
 
 async function getAboutData() {
@@ -33,8 +63,10 @@ export default async function AboutPage() {
     <PageLayout>
       <Section variant="first">
         <div className="container max-w-[800px]">
-          <h1 className="text-4xl font-bold mb-8">About All Things Web</h1>
-          <p className="text-lg text-gray-700">
+          <h1 className="text-4xl font-bold mb-8 text-foreground">
+            About All Things Web
+          </h1>
+          <p className="text-lg text-muted-foreground">
             All Things Web is a community dedicated to organizing events for web
             developers in the Bay Area and San Francisco. Our mission is to
             bring together passionate developers, foster knowledge sharing, and
@@ -45,7 +77,9 @@ export default async function AboutPage() {
       </Section>
       <Section background="muted">
         <div className="container">
-          <h2 className="text-2xl font-semibold mb-6">Organizers</h2>
+          <h2 className="text-2xl font-semibold mb-6 text-foreground">
+            Organizers
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {organizers.map((profile) => (
               <ProfileCard key={profile.id} profile={profile}>
@@ -57,7 +91,9 @@ export default async function AboutPage() {
       </Section>
       <Section>
         <div className="container">
-          <h2 className="text-2xl font-semibold mb-6">Join us</h2>
+          <h2 className="text-2xl font-semibold mb-6 text-foreground">
+            Join us
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <SocialBox
               title="Luma"
@@ -125,18 +161,18 @@ function SocialBox({
     <Link
       href={link}
       className={clsx(
-        "flex items-center p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow gap-4",
+        "flex items-center p-6 rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow gap-4 hover:bg-accent/50",
         classNames,
       )}
       target="_blank"
       rel="noopener noreferrer"
     >
-      <div>{logo}</div>
+      <div className="text-primary">{logo}</div>
       <div className="flex-grow">
-        <h3 className="font-semibold text-lg">{title}</h3>
-        <p className="text-sm opacity-90">{description}</p>
+        <h3 className="font-semibold text-lg text-card-foreground">{title}</h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <div>
+      <div className="text-muted-foreground">
         <ExternalLinkIcon className="h-5 w-5" />
       </div>
     </Link>

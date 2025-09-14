@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { profilesTable, imagesTable } from "./schema";
 import { Image } from "./events";
+import { signImage } from "./image-signing";
 
 export type Socials = {
   twitterUrl: string | null;
@@ -50,15 +51,17 @@ export async function getOrganizers(): Promise<Profile[]> {
     .where(eq(profilesTable.profileType, "organizer"))
     .leftJoin(imagesTable, eq(profilesTable.image, imagesTable.id));
 
-  return profilesQuery.map((row): Profile => {
+  const transformToProfile = async (row: any): Promise<Profile> => {
     const profile = row.profiles;
-    const image = row.images || {
+    const imageRaw = row.images || {
       url: "/hero-image-rocket.png",
       alt: `${profile.name} profile picture`,
       placeholder: null,
       width: 400,
       height: 400,
     };
+
+    const image = await signImage(imageRaw);
 
     return {
       id: profile.id,
@@ -73,5 +76,7 @@ export async function getOrganizers(): Promise<Profile[]> {
         blueskyHandle: profile.blueskyHandle,
       }),
     };
-  });
+  };
+
+  return await Promise.all(profilesQuery.map(transformToProfile));
 }

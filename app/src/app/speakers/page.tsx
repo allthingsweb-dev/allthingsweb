@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { mainConfig } from "@/lib/config";
 import { PageLayout } from "@/components/page-layout";
 import { Section } from "@/components/ui/section";
 import { toYearStr } from "@/lib/datetime";
@@ -14,10 +15,39 @@ export async function generateMetadata(): Promise<Metadata> {
   const { speakers } = await getSpeakersWithTalks();
   const speakerCount = speakers.length;
 
+  const title = `Our ${speakerCount} speakers`;
+  const description =
+    "Huge shout-out to all the speakers who have shared their knowledge and experience with us. Check out their talks from our events!";
+  const url = `${mainConfig.instance.origin}/speakers`;
+  const imageUrl = `${mainConfig.instance.origin}/api/speakers.png`;
+
   return {
-    title: `Our ${speakerCount} speakers`,
-    description:
-      "Huge shout-out to all the speakers who have shared their knowledge and experience with us. Check out their talks from our events!",
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+      type: "website",
+      siteName: "All Things Web",
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [imageUrl],
+      site: "@ReactBayArea",
+      creator: "@ReactBayArea",
+    },
   };
 }
 
