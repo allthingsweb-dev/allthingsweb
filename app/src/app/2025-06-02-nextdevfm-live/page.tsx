@@ -67,8 +67,8 @@ export async function generateMetadata(): Promise<Metadata> {
       title: event.name,
       description: event.tagline,
       images: [imageUrl],
-      site: "@ReactBayArea",
-      creator: "@ReactBayArea",
+      site: "@allthingswebdev",
+      creator: "@allthingswebdev",
     },
   };
 }

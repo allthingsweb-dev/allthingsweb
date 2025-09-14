@@ -46,8 +46,8 @@ export const metadata: Metadata = {
     title,
     description,
     images: [imageUrl],
-    site: "@ReactBayArea",
-    creator: "@ReactBayArea",
+    site: "@allthingswebdev",
+    creator: "@allthingswebdev",
   },
 };
 

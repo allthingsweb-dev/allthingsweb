@@ -56,8 +56,8 @@ export async function generateMetadata({
       title: event.name,
       description: event.tagline,
       images: [imageUrl],
-      site: "@ReactBayArea",
-      creator: "@ReactBayArea",
+      site: "@allthingswebdev",
+      creator: "@allthingswebdev",
     },
   };
 }

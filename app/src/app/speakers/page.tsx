@@ -45,8 +45,8 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       images: [imageUrl],
-      site: "@ReactBayArea",
-      creator: "@ReactBayArea",
+      site: "@allthingswebdev",
+      creator: "@allthingswebdev",
     },
   };
 }

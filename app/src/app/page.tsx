@@ -5,6 +5,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { Metadata } from "next";
 import { eq, and, gt, lte, gte, lt, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { eventsTable, imagesTable } from "@/lib/schema";
@@ -19,6 +20,12 @@ import { getPastEventImages } from "@/lib/images";
 import { signImage } from "@/lib/image-signing";
 import { getLumaUrl } from "@/lib/luma";
 import NextImage from "next/image";
+
+// Homepage metadata - the layout already provides the base metadata
+// This ensures the homepage gets "All Things Web" instead of "All Things Web | All Things Web"
+export const metadata: Metadata = {
+  title: "All Things Web",
+};
 
 async function getEvents() {
   const now = new Date();
