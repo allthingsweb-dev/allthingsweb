@@ -57,8 +57,9 @@ const configData: PreValidate<MainConfig> = {
   database: {
     databaseUrl: process.env.DATABASE_URL,
     neonAuth: {
-      stackProjectId: process.env.STACK_PROJECT_ID,
-      stackPublishableClientKey: process.env.STACK_PUBLISHABLE_CLIENT_KEY,
+      stackProjectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID,
+      stackPublishableClientKey:
+        process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY,
       stackSecretServerKey: process.env.STACK_SECRET_SERVER_KEY,
     },
   },

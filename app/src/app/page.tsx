@@ -1,103 +1,350 @@
-import Image from "next/image";
+import {
+  ArrowRightIcon,
+  CalendarIcon,
+  MapPinIcon,
+  UsersIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { eq, and, gt, lte, gte, lt, desc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { eventsTable, imagesTable } from "@/lib/schema";
+import { PageLayout } from "@/components/page-layout";
+import { Section } from "@/components/ui/section";
+import { Button } from "@/components/ui/button";
+import { EventsCarousel } from "@/components/event-carousel";
+import { DiscordLogoIcon } from "@/components/ui/icons";
+import { Event, Image } from "@/lib/events";
+import { toReadableDateTimeStr } from "@/lib/datetime";
+import { getPastEventImages } from "@/lib/images";
+import { Img } from "openimg/react";
 
-export default function Home() {
+async function getEvents() {
+  const now = new Date();
+
+  // Transform to Event type
+  const transformToEvent = (row: any): Event => {
+    const event = row.events;
+    const previewImage = row.images || {
+      url: "/hero-image-rocket.png",
+      alt: `${event.name} preview`,
+      placeholder: null,
+      width: 1200,
+      height: 630,
+    };
+
+    return {
+      ...event,
+      previewImage,
+      lumaEventUrl: event.lumaEventId
+        ? `https://lu.ma/${event.lumaEventId}`
+        : null,
+    };
+  };
+
+  // Execute all database queries in parallel for better performance
+  const [
+    upcomingEventsQuery,
+    liveEventsQuery,
+    pastEventsQuery,
+    pastEventImages,
+  ] = await Promise.all([
+    // Get upcoming events
+    db
+      .select()
+      .from(eventsTable)
+      .where(
+        and(gt(eventsTable.startDate, now), eq(eventsTable.isDraft, false)),
+      )
+      .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
+      .orderBy(eventsTable.startDate),
+
+    // Get live events
+    db
+      .select()
+      .from(eventsTable)
+      .where(
+        and(
+          lte(eventsTable.startDate, now),
+          gte(eventsTable.endDate, now),
+          eq(eventsTable.isDraft, false),
+        ),
+      )
+      .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
+      .orderBy(desc(eventsTable.startDate)),
+
+    // Get past events
+    db
+      .select()
+      .from(eventsTable)
+      .where(and(lt(eventsTable.endDate, now), eq(eventsTable.isDraft, false)))
+      .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
+      .orderBy(desc(eventsTable.startDate))
+      .limit(10),
+
+    // Get past event images for the hero
+    getPastEventImages(),
+  ]);
+
+  const upcomingEvents = upcomingEventsQuery.map(transformToEvent);
+  const liveEvents = liveEventsQuery.map(transformToEvent);
+  const pastEvents = pastEventsQuery.map(transformToEvent);
+
+  const highlightEvent =
+    upcomingEvents.length > 0
+      ? upcomingEvents.reduce((earliest, current) =>
+          new Date(current.startDate) < new Date(earliest.startDate)
+            ? current
+            : earliest,
+        )
+      : null;
+
+  const remainingEvents = upcomingEvents.filter(
+    (event) => event.id !== highlightEvent?.id,
+  );
+
+  return {
+    highlightEvent,
+    remainingEvents,
+    liveEvents,
+    pastEvents,
+    pastEventImages,
+  };
+}
+
+export default async function HomePage() {
+  const {
+    highlightEvent,
+    remainingEvents,
+    liveEvents,
+    pastEvents,
+    pastEventImages,
+  } = await getEvents();
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <PageLayout>
+      <LandingHero images={pastEventImages} />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {liveEvents.length > 0 && liveEvents[0] && (
+        <Section variant="big" background="muted">
+          <div className="container">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  Happening Now: {liveEvents[0].name}
+                </h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  {liveEvents[0].tagline}
+                </p>
+              </div>
+              <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>
+                    {toReadableDateTimeStr(liveEvents[0].startDate, true)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPinIcon className="h-4 w-4" />
+                  <span>{liveEvents[0].shortLocation}</span>
+                </div>
+              </div>
+              <div className="w-full max-w-sm pt-4">
+                <Button asChild>
+                  <Link href={`/${liveEvents[0].slug}`}>
+                    See details
+                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {highlightEvent && (
+        <Section
+          variant="big"
+          background={liveEvents.length > 0 ? "default" : "muted"}
+        >
+          <div className="container">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  Coming Next: {highlightEvent.name}
+                </h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  {highlightEvent.tagline}
+                </p>
+              </div>
+              <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>
+                    {toReadableDateTimeStr(highlightEvent.startDate, true)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPinIcon className="h-4 w-4" />
+                  <span>{highlightEvent.shortLocation}</span>
+                </div>
+              </div>
+              <div className="w-full max-w-sm pt-4">
+                <Button asChild>
+                  <Link href={`/${highlightEvent.slug}`}>
+                    See details
+                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {liveEvents.length > 1 && (
+        <OtherLiveEventsSection events={liveEvents.slice(1)} />
+      )}
+
+      {remainingEvents.length > 0 && (
+        <OtherUpcomingEventsSection events={remainingEvents} />
+      )}
+
+      <Section variant="big" className="bg-indigo-600 text-white">
+        <div className="container">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                Join our Discord
+              </h2>
+              <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl">
+                Connect with fellow developers, share ideas, and stay updated on
+                the latest events and opportunities.
+              </p>
+            </div>
+            <div className="space-x-4">
+              <Button
+                className="inline-flex h-9 items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow transition-colors hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50"
+                asChild
+              >
+                <Link
+                  href="https://discord.gg/B3Sm4b5mfD"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <DiscordLogoIcon className="mr-2 h-4 w-4" />
+                  Join Discord
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </Section>
+
+      <PastEventsSection events={pastEvents} />
+    </PageLayout>
+  );
+}
+
+function LandingHero({ images }: { images: Image[] }) {
+  return (
+    <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
+        {images.map((image, index) => (
+          <Img
+            key={image.url + index}
+            src={image.url}
+            placeholder={image.placeholder || undefined}
+            width={800}
+            height={800}
+            className="object-cover w-full max-w-[800px] h-auto"
+            isAboveFold
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4">
+        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+          All Things Web 🚀
+        </h1>
+        <p className="max-w-2xl text-lg sm:text-xl">
+          Discover exciting web development events in the Bay Area and San
+          Francisco. Join us for hackathons, hangouts, and meetups to connect
+          with fellow developers and web enthusiasts.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
+  return (
+    <Section variant="big">
+      <div className="container">
+        <div className="flex flex-col items-center space-y-4 text-center mb-8">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+            Other events
+          </h2>
+          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+            Discover more upcoming web development events in the Bay Area here
+            or on Luma.
+          </p>
+          <Button variant="outline" asChild>
+            <Link
+              href="https://lu.ma/allthingsweb?utm_source=web"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              View events on Luma calendar
+            </Link>
+          </Button>
+        </div>
+        <EventsCarousel events={events} />
+      </div>
+    </Section>
+  );
+}
+
+function PastEventsSection({ events }: { events: Event[] }) {
+  return (
+    <Section variant="big">
+      <div className="container">
+        <div className="flex flex-col items-center space-y-4 text-center mb-8">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-4">
+            Past events
+          </h2>
+          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+            Find out what we&apos;ve been up to in the past. Check out our
+            previous web development meetups and hackathons.
+          </p>
+          <Button variant="outline" asChild>
+            <Link href="/speakers">
+              <UsersIcon className="mr-2 h-4 w-4" />
+              View all speakers
+            </Link>
+          </Button>
+        </div>
+        <EventsCarousel events={events} />
+      </div>
+    </Section>
+  );
+}
+
+function OtherLiveEventsSection({ events }: { events: Event[] }) {
+  return (
+    <Section variant="big">
+      <div className="container">
+        <div className="flex flex-col items-center space-y-4 text-center mb-8">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+            Other ongoing events
+          </h2>
+          <p className="text-muted-foreground md:text-xl max-w-[700px]">
+            More events happening right now! Join us if you can.
+          </p>
+        </div>
+        <EventsCarousel events={events} />
+      </div>
+    </Section>
   );
 }
