@@ -13,7 +13,8 @@
 
 ### 📁 Directories
 
-- `website`: the web application. Frontend + backend SSR
+- `app`: the Next.js web application
+- `atw-cli`: the CLI tool
 
 ### 🛠️ Installation
 
@@ -27,11 +28,9 @@ make install
 
 #### 🔤 Environment variables
 
-You need to `cp` `website/.env.dist` in `website/.env`.
+You need to `cp` `app/example.env` to `app/.env.local`.
 
 #### 🏃‍♂️ Running
-
-Just run `make`
 
 ```bash
 make serve
