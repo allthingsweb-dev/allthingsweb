@@ -28,3 +28,11 @@ export function toYearStr(date: Date): string {
     timeZone: "America/Los_Angeles",
   });
 }
+
+export function toShortDateStr(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "America/Los_Angeles",
+  });
+}

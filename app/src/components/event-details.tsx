@@ -43,19 +43,24 @@ export function HeroSectionTitle({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col justify-center space-y-4">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+    <div className="flex flex-col justify-center space-y-6 lg:space-y-4">
+      <div className="space-y-3 lg:space-y-2">
+        <h1 className="text-2xl font-bold tracking-tighter sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl/none">
           {event.name}
         </h1>
-        <p className="max-w-[600px] text-muted-foreground md:text-xl">
+        <p className="max-w-[600px] text-muted-foreground text-base sm:text-lg md:text-xl leading-relaxed">
           {event.tagline}
         </p>
       </div>
 
-      <div className="flex flex-col gap-2 min-[400px]:flex-row">
+      <div className="flex flex-col items-center gap-3 min-[400px]:flex-row min-[400px]:items-start min-[400px]:gap-2">
         {event.recordingUrl && (
-          <Button asChild variant="default" size="lg">
+          <Button
+            asChild
+            variant="default"
+            size="lg"
+            className="w-full min-[400px]:w-auto"
+          >
             <Link
               href={event.recordingUrl}
               target="_blank"
@@ -66,7 +71,12 @@ export function HeroSectionTitle({
           </Button>
         )}
         {event.lumaEventUrl && (
-          <Button asChild variant={isInPast ? "outline" : "default"} size="lg">
+          <Button
+            asChild
+            variant={isInPast ? "outline" : "default"}
+            size="lg"
+            className="w-full min-[400px]:w-auto"
+          >
             <Link
               href={event.lumaEventUrl}
               target="_blank"
@@ -121,17 +131,19 @@ export function HeroSection({
   return (
     <Section variant="big" className={className}>
       <div className="container">
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-12">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 xl:gap-16">
           {!!children ? (
             children
           ) : (
             <>
-              <HeroSectionTitle
-                event={event}
-                isAtCapacity={isAtCapacity}
-                isInPast={isInPast}
-              />
-              <div className="w-full lg:max-w-[400px] xl:max-w-[600px]">
+              <div className="flex-1 text-center lg:text-left">
+                <HeroSectionTitle
+                  event={event}
+                  isAtCapacity={isAtCapacity}
+                  isInPast={isInPast}
+                />
+              </div>
+              <div className="w-full max-w-md lg:max-w-[400px] xl:max-w-[600px] lg:flex-1">
                 <HeroSectionImage
                   imgSrc={
                     event.isHackathon
@@ -166,43 +178,47 @@ export function AllYouNeedToKnowSection({
 }) {
   return (
     <Section variant="big" background="muted">
-      <div className="w-full px-4 md:px-6 flex flex-col gap-8 sm:gap-12 lg:items-center lg:justify-center lg:flex-row lg:gap-16 xl:gap-24">
-        <h2 className="sr-only">All you need to know</h2>
-        <div className="flex items-center gap-4">
-          <UsersIcon className="h-12 w-12 text-primary flex-shrink-0" />
-          <div className="min-w-0">
-            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-              {!isInPast && attendeeCount < attendeeLimit
-                ? "Spots available"
-                : !isInPast && attendeeCount >= attendeeLimit
-                  ? "At capacity"
-                  : "Event has ended"}
-            </h3>
-            <p className="text-lg lg:text-xl text-muted-foreground">
-              {attendeeCount} / {attendeeLimit} guests registered
-            </p>
+      <div className="container">
+        <div className="flex flex-col gap-6 sm:gap-8 lg:items-center lg:justify-center lg:flex-row lg:gap-12 xl:gap-16">
+          <h2 className="text-2xl font-bold text-center lg:sr-only mb-2 lg:mb-0">
+            All you need to know
+          </h2>
+          <div className="flex items-start gap-3 sm:gap-4 lg:flex-col lg:items-center lg:text-center">
+            <UsersIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
+                {!isInPast && attendeeCount < attendeeLimit
+                  ? "Spots available"
+                  : !isInPast && attendeeCount >= attendeeLimit
+                    ? "At capacity"
+                    : "Event has ended"}
+              </h3>
+              <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1">
+                {attendeeCount} / {attendeeLimit} guests registered
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <MapPinIcon className="h-12 w-12 text-primary flex-shrink-0" />
-          <div className="min-w-0">
-            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-              {event.shortLocation}
-            </h3>
-            <p className="text-lg lg:text-xl text-muted-foreground">
-              {event.streetAddress}
-            </p>
+          <div className="flex items-start gap-3 sm:gap-4 lg:flex-col lg:items-center lg:text-center">
+            <MapPinIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
+                {event.shortLocation}
+              </h3>
+              <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1 break-words">
+                {event.streetAddress}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <CalendarIcon className="h-12 w-12 text-primary flex-shrink-0" />
-          <div className="min-w-0">
-            <h3 className="text-xl lg:text-2xl xl:text-3xl font-medium">
-              {toWeekdayStr(event.startDate)}
-            </h3>
-            <p className="text-lg lg:text-xl text-muted-foreground">
-              {toReadableDateTimeStr(event.startDate, false)}
-            </p>
+          <div className="flex items-start gap-3 sm:gap-4 lg:flex-col lg:items-center lg:text-center">
+            <CalendarIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
+                {toWeekdayStr(event.startDate)}
+              </h3>
+              <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1">
+                {toReadableDateTimeStr(event.startDate, false)}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -214,50 +230,60 @@ export function TalksSection({ talks }: { talks: Talk[] }) {
   return (
     <Section id="talks" variant="big">
       <div className="container flex flex-col gap-8">
-        <h2 className="text-3xl font-bold text-center tracking-tight">Talks</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight">
+          Talks
+        </h2>
         <div
-          className={clsx(
-            "mx-auto grid gap-4 grid-cols-[repeat(1,minmax(auto,800px))]",
-            {
-              "lg:grid-cols-[repeat(2,minmax(auto,800px))]": talks.length >= 2,
-            },
-          )}
+          className={clsx("mx-auto grid gap-6 grid-cols-1 max-w-4xl", {
+            "lg:grid-cols-2": talks.length >= 2,
+          })}
         >
           {talks.map((talk) => (
-            <Card key={talk.id} className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-center space-x-4 mb-2">
-                  <Avatar className="w-12 h-12">
+            <Card key={talk.id} className="flex flex-col h-full">
+              <CardHeader className="pb-4">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <Avatar className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
                     <AvatarImage
                       src={talk.speakers[0].image.url}
                       alt={talk.speakers[0].name}
                     />
-                    <AvatarFallback>{talk.speakers[0].name}</AvatarFallback>
+                    <AvatarFallback className="text-sm">
+                      {talk.speakers[0].name}
+                    </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <CardTitle>{talk.speakers[0].name}</CardTitle>
-                    <CardDescription>{talk.speakers[0].title}</CardDescription>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-base sm:text-lg leading-tight">
+                      {talk.speakers[0].name}
+                    </CardTitle>
+                    <CardDescription className="text-sm sm:text-base mt-1">
+                      {talk.speakers[0].title}
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-grow flex flex-col items-start gap-4">
-                <h4 className="text-2xl">{talk.title}</h4>
+              <CardContent className="flex-grow flex flex-col items-start gap-4 pt-0">
+                <h4 className="text-lg sm:text-xl font-semibold leading-tight">
+                  {talk.title}
+                </h4>
                 <div
                   className={clsx(
-                    "text-muted-foreground flex flex-col gap-2",
+                    "text-muted-foreground flex flex-col gap-2 text-sm sm:text-base",
                     "[&_a]:text-primary hover:[&_a]:text-primary/80 [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-2 [&_a]:decoration-primary hover:[&_a]:decoration-primary/80 focus-visible:[&_a]:outline-none focus-visible:[&_a]:ring-1 focus-visible:[&_a]:ring-ring",
-                    "[&_ul]:list-inside [&_ul]:list-disc",
+                    "[&_ul]:list-inside [&_ul]:list-disc [&_li]:mb-1",
+                    "[&_p]:mb-2 [&_p:last-child]:mb-0",
                   )}
                   dangerouslySetInnerHTML={{ __html: talk.description }}
                 />
-                <div className="flex-grow flex flex-col items-start gap-2">
-                  <h4 className="font-semibold">About the Speaker</h4>
-                  <p className="text-muted-foreground">
+                <div className="flex-grow flex flex-col items-start gap-2 w-full">
+                  <h4 className="font-semibold text-sm sm:text-base">
+                    About the Speaker
+                  </h4>
+                  <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
                     {talk.speakers[0].bio}
                   </p>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="pt-4">
                 <SocialsList socials={talk.speakers[0].socials} />
               </CardFooter>
             </Card>
@@ -272,28 +298,32 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
   return (
     <Section variant="big">
       <div className="container">
-        <h2 className="text-3xl font-bold md:text-center mb-8">
-          {sponsors.length === 1 ? "Event Sponsor" : "Event Sponsors"}
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">
+          {sponsors.length === 1
+            ? "Our Host & Sponsor"
+            : "Our Hosts & Sponsors"}
         </h2>
-        <div className="flex flex-col gap-4 md:gap-8 items-center justify-center">
+        <div className="flex flex-col gap-6 md:gap-8 items-center justify-center max-w-4xl mx-auto">
           {sponsors.map((sponsor) => (
             <div
               key={sponsor.id}
-              className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto"
+              className="bg-background rounded-lg shadow-lg p-6 sm:p-8 w-full"
             >
-              <div className="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8">
+              <div className="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-6">
                 <NextImage
                   src={sponsor.squareLogoLight.url}
                   width={96}
                   height={96}
                   alt={sponsor.name}
-                  className="min-w-[48px] max-h-[48px] object-contain"
+                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain flex-shrink-0"
                 />
-                <div className="text-left">
-                  <h3 className="text-2xl font-semibold mb-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">
                     {sponsor.name}
                   </h3>
-                  <p className="text-muted-foreground">{sponsor.about}</p>
+                  <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+                    {sponsor.about}
+                  </p>
                 </div>
               </div>
             </div>
@@ -313,11 +343,13 @@ export function ImagesSection({
 }) {
   return (
     <Section variant="big" background={background}>
-      <div className="container flex flex-col gap-8">
-        <h2 className="text-3xl font-bold md:text-center">Event Photos</h2>
+      <div className="container flex flex-col gap-6 sm:gap-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center">
+          Event Photos
+        </h2>
         <div
           className={clsx(
-            "mx-auto grid grid-cols-1 gap-4 overflow-y-auto max-h-[648px] max-w-[1280px] p-4 rounded-lg shadow",
+            "mx-auto grid grid-cols-1 gap-3 sm:gap-4 overflow-y-auto max-h-[600px] sm:max-h-[648px] max-w-[1280px] p-3 sm:p-4 rounded-lg shadow-sm",
             {
               "bg-background": background === "muted",
               "bg-muted": background === "default",
@@ -333,7 +365,7 @@ export function ImagesSection({
               href={image.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block hover:opacity-75 transition-opacity"
+              className="block hover:opacity-75 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
             >
               <NextImage
                 src={image.url}
@@ -342,7 +374,7 @@ export function ImagesSection({
                 width={400}
                 height={256}
                 alt={image.alt}
-                className="w-full h-64 object-cover rounded-lg"
+                className="w-full h-48 sm:h-56 md:h-64 object-cover rounded-lg"
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
             </Link>

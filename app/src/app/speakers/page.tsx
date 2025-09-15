@@ -69,33 +69,35 @@ export default async function SpeakersPage() {
     <PageLayout>
       <Section variant="big">
         <div className="container">
-          <div className="flex flex-col justify-center items-center gap-2 mb-16">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-center">
+          <div className="flex flex-col justify-center items-center gap-3 mb-12 sm:mb-16">
+            <h1 className="text-2xl font-bold tracking-tighter sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl/none text-center">
               Speakers
             </h1>
-            <p className="max-w-[600px] text-muted-foreground md:text-xl text-center">
+            <p className="max-w-[600px] text-muted-foreground text-base sm:text-lg md:text-xl text-center leading-relaxed">
               Huge shout-out to all the speakers who have shared their knowledge
               and experience with us. Check out their talks below!
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {speakers.map((speaker) => (
               <ProfileCard key={speaker.id} profile={speaker}>
                 <>
-                  <h3 className="text-lg font-semibold mb-2 mt-4">Talks:</h3>
+                  <h3 className="text-base sm:text-lg font-semibold mb-2 mt-4">
+                    Talks:
+                  </h3>
                   <ul className="space-y-2">
                     {getTalksOfSpeaker(talks, speaker).map((talk) => (
                       <li
                         key={`${speaker.id}-${talk.id}`}
-                        className="list-disc ml-6"
+                        className="list-disc ml-4 sm:ml-6"
                       >
                         <Link
                           href={`/${talk.eventSlug}#talks`}
-                          className="text-primary underline-offset-4 hover:underline"
+                          className="text-primary underline-offset-4 hover:underline transition-colors duration-200 text-sm sm:text-base leading-tight"
                         >
                           {talk.title}
                         </Link>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                           {talk.eventName}{" "}
                           {toYearStr(new Date(talk.eventStart))}
                         </p>

@@ -3,6 +3,7 @@
 
 /.cache
 .env
+.playwright-mcp
 
 # Sentry Config File
 .sentryclirc

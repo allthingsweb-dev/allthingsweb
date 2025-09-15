@@ -1,8 +1,8 @@
-import { inArray } from "drizzle-orm";
+import { inArray, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { imagesTable } from "@/lib/schema";
+import { imagesTable, eventsTable, eventImagesTable } from "@/lib/schema";
 import { Image } from "@/lib/events";
-import { signImages } from "@/lib/image-signing";
+import { signImages, signImage } from "@/lib/image-signing";
 
 // Static list of past event image IDs from the original website
 const imageIds = [
@@ -24,6 +24,8 @@ const imageIds = [
   "4d224238-6b78-4d5e-9d84-4ca2d03b91b7",
   "8016e3dc-9b18-4dd1-aab4-d145d2bee6e7",
   "519b7fed-0d6d-42e8-9653-630578b6ef0b",
+  "9703c964-7809-4282-b4f2-c5c5be124e87",
+  "73a16b87-2d54-4de3-ae5d-d83819ef4a31",
 ];
 
 export async function getPastEventImages(): Promise<Image[]> {
@@ -50,4 +52,59 @@ export async function getPastEventImages(): Promise<Image[]> {
   }));
 
   return signImages(rawImages);
+}
+
+export interface EventImageWithDetails {
+  imageId: string;
+  imageUrl: string;
+  imageAlt: string;
+  imageWidth: number;
+  imageHeight: number;
+  imagePlaceholder: string;
+  eventId: string;
+  eventName: string;
+  eventSlug: string;
+  eventStartDate: Date;
+}
+
+export async function getAllEventImagesWithDetails(): Promise<
+  EventImageWithDetails[]
+> {
+  const results = await db
+    .select({
+      imageId: imagesTable.id,
+      imageUrl: imagesTable.url,
+      imageAlt: imagesTable.alt,
+      imageWidth: imagesTable.width,
+      imageHeight: imagesTable.height,
+      imagePlaceholder: imagesTable.placeholder,
+      eventId: eventsTable.id,
+      eventName: eventsTable.name,
+      eventSlug: eventsTable.slug,
+      eventStartDate: eventsTable.startDate,
+    })
+    .from(eventImagesTable)
+    .innerJoin(imagesTable, eq(eventImagesTable.imageId, imagesTable.id))
+    .innerJoin(eventsTable, eq(eventImagesTable.eventId, eventsTable.id))
+    .orderBy(eventsTable.startDate, eventsTable.name);
+
+  // Sign all image URLs
+  const signedResults = await Promise.all(
+    results.map(async (result) => {
+      const signedImage = await signImage({
+        url: result.imageUrl,
+        alt: result.imageAlt,
+        placeholder: result.imagePlaceholder,
+        width: result.imageWidth,
+        height: result.imageHeight,
+      });
+
+      return {
+        ...result,
+        imageUrl: signedImage.url,
+      };
+    }),
+  );
+
+  return signedResults;
 }

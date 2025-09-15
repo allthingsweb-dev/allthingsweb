@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { EventsCarousel } from "@/components/event-carousel";
 import { DiscordLogoIcon } from "@/components/ui/icons";
 import { Event, Image } from "@/lib/events";
-import { toReadableDateTimeStr } from "@/lib/datetime";
+import { toReadableDateTimeStr, toShortDateStr } from "@/lib/datetime";
 import { getPastEventImages } from "@/lib/images";
 import { signImage } from "@/lib/image-signing";
 import { getLumaUrl } from "@/lib/luma";
@@ -150,9 +150,7 @@ export default async function HomePage() {
               <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  <span>
-                    {toReadableDateTimeStr(liveEvents[0].startDate, true)}
-                  </span>
+                  <span>{toShortDateStr(liveEvents[0].startDate)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="h-4 w-4" />
@@ -190,9 +188,7 @@ export default async function HomePage() {
               <div className="flex justify-center items-center gap-4 text-muted-foreground md:text-xl lg:text-base xl:text-xl">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  <span>
-                    {toReadableDateTimeStr(highlightEvent.startDate, true)}
-                  </span>
+                  <span>{toShortDateStr(highlightEvent.startDate)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="h-4 w-4" />

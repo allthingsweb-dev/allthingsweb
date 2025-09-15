@@ -61,7 +61,7 @@ export type LumaClient = ReturnType<typeof createLumaClient>;
 
 export function getLumaUrl(lumaEventId?: string | null): string | null {
   if (!lumaEventId) return null;
-  return `https://lu.ma/${lumaEventId}`;
+  return `https://lu.ma/event/${lumaEventId}`;
 }
 
 export const createLumaClient = () => {
