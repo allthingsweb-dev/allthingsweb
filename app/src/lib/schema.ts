@@ -240,3 +240,22 @@ export const administratorsTable = pgTable("administrators", {
 
 export type InsertAdministrator = typeof administratorsTable.$inferInsert;
 export type SelectAdministrator = typeof administratorsTable.$inferSelect;
+
+export const profileUsersTable = pgTable(
+  "profile_users",
+  {
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" })
+      .unique(), // One profile can only be associated with one user
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersSyncTable.id, { onDelete: "cascade" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [primaryKey({ columns: [table.profileId, table.userId] })],
+);
+
+export type InsertProfileUser = typeof profileUsersTable.$inferInsert;
+export type SelectProfileUser = typeof profileUsersTable.$inferSelect;

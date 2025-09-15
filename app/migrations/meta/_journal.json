@@ -15,6 +15,20 @@
       "when": 1757887981615,
       "tag": "0001_peaceful_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1757896773155,
+      "tag": "0002_shallow_mathemanic",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1757896917092,
+      "tag": "0003_jazzy_ma_gnuci",
+      "breakpoints": true
     }
   ]
 }

@@ -53,10 +53,6 @@ check: ## Check the code
 build: ## Build the Next.js app
 	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run build
 
-.PHONY: test
-test: ## Run tests
-	@echo "No tests configured yet. Add tests as needed."
-
 .PHONY: serve
 serve: app/.env ## Serve the Next.js application
 	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run dev
