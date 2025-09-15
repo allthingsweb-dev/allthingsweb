@@ -13,10 +13,15 @@ import { PageLayout } from "@/components/page-layout";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { EventsCarousel } from "@/components/event-carousel";
+import { PastEventsGrid } from "@/components/past-events-grid";
 import { DiscordLogoIcon } from "@/components/ui/icons";
 import { Event, Image } from "@/lib/events";
 import { toReadableDateTimeStr, toShortDateStr } from "@/lib/datetime";
-import { getPastEventImages } from "@/lib/images";
+import {
+  getPastEventImages,
+  getPastEventsWithImages,
+  EventWithImages,
+} from "@/lib/images";
 import { signImage } from "@/lib/image-signing";
 import { getLumaUrl } from "@/lib/luma";
 import NextImage from "next/image";
@@ -54,7 +59,7 @@ async function getEvents() {
   const [
     upcomingEventsQuery,
     liveEventsQuery,
-    pastEventsQuery,
+    pastEventsWithImages,
     pastEventImages,
   ] = await Promise.all([
     // Get upcoming events
@@ -81,14 +86,8 @@ async function getEvents() {
       .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
       .orderBy(desc(eventsTable.startDate)),
 
-    // Get past events
-    db
-      .select()
-      .from(eventsTable)
-      .where(and(lt(eventsTable.endDate, now), eq(eventsTable.isDraft, false)))
-      .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
-      .orderBy(desc(eventsTable.startDate))
-      .limit(10),
+    // Get past events with images
+    getPastEventsWithImages(),
 
     // Get past event images for the hero
     getPastEventImages(),
@@ -98,7 +97,6 @@ async function getEvents() {
     upcomingEventsQuery.map(transformToEvent),
   );
   const liveEvents = await Promise.all(liveEventsQuery.map(transformToEvent));
-  const pastEvents = await Promise.all(pastEventsQuery.map(transformToEvent));
 
   const highlightEvent =
     upcomingEvents.length > 0
@@ -117,7 +115,7 @@ async function getEvents() {
     highlightEvent,
     remainingEvents,
     liveEvents,
-    pastEvents,
+    pastEvents: pastEventsWithImages,
     pastEventImages,
   };
 }
@@ -319,7 +317,7 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
   );
 }
 
-function PastEventsSection({ events }: { events: Event[] }) {
+function PastEventsSection({ events }: { events: EventWithImages[] }) {
   return (
     <Section variant="big">
       <div className="container">
@@ -331,14 +329,16 @@ function PastEventsSection({ events }: { events: Event[] }) {
             Find out what we&apos;ve been up to in the past. Check out our
             previous web development meetups and hackathons.
           </p>
-          <Button variant="outline" asChild>
-            <Link href="/speakers">
-              <UsersIcon className="mr-2 h-4 w-4" />
-              View all speakers
-            </Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <Button variant="outline" asChild>
+              <Link href="/speakers">
+                <UsersIcon className="mr-2 h-4 w-4" />
+                View all speakers
+              </Link>
+            </Button>
+          </div>
         </div>
-        <EventsCarousel events={events} />
+        <PastEventsGrid events={events} />
       </div>
     </Section>
   );

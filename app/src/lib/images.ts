@@ -1,4 +1,4 @@
-import { inArray, eq } from "drizzle-orm";
+import { inArray, eq, and, lt, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { imagesTable, eventsTable, eventImagesTable } from "@/lib/schema";
 import { Image } from "@/lib/events";
@@ -107,4 +107,117 @@ export async function getAllEventImagesWithDetails(): Promise<
   );
 
   return signedResults;
+}
+
+export interface EventWithImages {
+  event: {
+    id: string;
+    name: string;
+    slug: string;
+    tagline: string;
+    startDate: Date;
+    endDate: Date;
+    shortLocation: string | null;
+    fullAddress: string | null;
+    attendeeLimit: number;
+    streetAddress: string | null;
+    isHackathon: boolean;
+    isDraft: boolean;
+    highlightOnLandingPage: boolean;
+    lumaEventId: string | null;
+    recordingUrl: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  previewImage?: Image;
+  additionalImages: Image[];
+}
+
+export async function getPastEventsWithImages(): Promise<EventWithImages[]> {
+  const now = new Date();
+
+  // Get all past events
+  const pastEvents = await db
+    .select()
+    .from(eventsTable)
+    .where(and(lt(eventsTable.endDate, now), eq(eventsTable.isDraft, false)))
+    .leftJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
+    .orderBy(desc(eventsTable.startDate));
+
+  // Get additional images for each event
+  const eventIds = pastEvents.map((row) => row.events.id);
+  const eventImagesQuery = await db
+    .select({
+      eventId: eventImagesTable.eventId,
+      imageUrl: imagesTable.url,
+      imageAlt: imagesTable.alt,
+      imagePlaceholder: imagesTable.placeholder,
+      imageWidth: imagesTable.width,
+      imageHeight: imagesTable.height,
+    })
+    .from(eventImagesTable)
+    .innerJoin(imagesTable, eq(eventImagesTable.imageId, imagesTable.id))
+    .where(inArray(eventImagesTable.eventId, eventIds))
+    .orderBy(imagesTable.createdAt);
+
+  // Group additional images by event ID
+  const imagesByEventId = eventImagesQuery.reduce(
+    (acc, img) => {
+      if (!acc[img.eventId]) {
+        acc[img.eventId] = [];
+      }
+      acc[img.eventId].push({
+        url: img.imageUrl,
+        alt: img.imageAlt,
+        placeholder: img.imagePlaceholder,
+        width: img.imageWidth,
+        height: img.imageHeight,
+      });
+      return acc;
+    },
+    {} as Record<
+      string,
+      Array<{
+        url: string;
+        alt: string;
+        placeholder: string;
+        width: number;
+        height: number;
+      }>
+    >,
+  );
+
+  // Process all events and sign images
+  const eventsWithImages = await Promise.all(
+    pastEvents.map(async (row) => {
+      const event = row.events;
+      const previewImageRaw = row.images;
+
+      // Sign preview image if exists
+      const previewImage = previewImageRaw
+        ? await signImage({
+            url: previewImageRaw.url,
+            alt: previewImageRaw.alt,
+            placeholder: previewImageRaw.placeholder,
+            width: previewImageRaw.width,
+            height: previewImageRaw.height,
+          })
+        : undefined;
+
+      // Sign additional images (limit to 2 for performance)
+      const additionalImagesRaw = imagesByEventId[event.id] || [];
+      const limitedImages = additionalImagesRaw.slice(0, 2);
+      const additionalImages = await Promise.all(
+        limitedImages.map((img) => signImage(img)),
+      );
+
+      return {
+        event,
+        previewImage,
+        additionalImages,
+      };
+    }),
+  );
+
+  return eventsWithImages;
 }
