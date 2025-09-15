@@ -53,7 +53,7 @@ export function HeroSectionTitle({
         </p>
       </div>
 
-      <div className="flex flex-col items-center gap-3 min-[400px]:flex-row min-[400px]:items-start min-[400px]:gap-2">
+      <div className="flex flex-col items-center gap-3 lg:items-start">
         {event.recordingUrl && (
           <Button
             asChild
@@ -183,7 +183,7 @@ export function AllYouNeedToKnowSection({
           <h2 className="text-2xl font-bold text-center lg:sr-only mb-2 lg:mb-0">
             All you need to know
           </h2>
-          <div className="flex items-start gap-3 sm:gap-4 lg:flex-col lg:items-center lg:text-center">
+          <div className="flex gap-3 sm:gap-4 flex-col items-center text-center">
             <UsersIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
             <div className="min-w-0 flex-1">
               <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
@@ -198,7 +198,7 @@ export function AllYouNeedToKnowSection({
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 sm:gap-4 lg:flex-col lg:items-center lg:text-center">
+          <div className="flex gap-3 sm:gap-4 flex-col items-center text-center">
             <MapPinIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
             <div className="min-w-0 flex-1">
               <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
@@ -209,7 +209,7 @@ export function AllYouNeedToKnowSection({
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 sm:gap-4 lg:flex-col lg:items-center lg:text-center">
+          <div className="flex gap-3 sm:gap-4 flex-col items-center text-center">
             <CalendarIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
             <div className="min-w-0 flex-1">
               <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">

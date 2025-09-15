@@ -21,6 +21,11 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-red: var(--brand-red);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-orange: var(--brand-orange);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -51,7 +56,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: var(--brand-purple);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -68,6 +73,11 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
+  --brand-purple: #3b0d60;
+  --brand-red: #a72f30;
+  --brand-blue: #1e093f;
+  --brand-yellow: #efc048;
+  --brand-orange: #ec7846;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -85,8 +95,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: var(--brand-purple);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -102,6 +112,11 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  --brand-purple: #5a1a8b;
+  --brand-red: #d63e3f;
+  --brand-blue: #2d1259;
+  --brand-yellow: #f5d666;
+  --brand-orange: #f49866;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -118,5 +133,56 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Brand color utilities */
+  .bg-brand-purple {
+    background-color: var(--brand-purple);
+  }
+  .bg-brand-red {
+    background-color: var(--brand-red);
+  }
+  .bg-brand-blue {
+    background-color: var(--brand-blue);
+  }
+  .bg-brand-yellow {
+    background-color: var(--brand-yellow);
+  }
+  .bg-brand-orange {
+    background-color: var(--brand-orange);
+  }
+
+  .text-brand-purple {
+    color: var(--brand-purple);
+  }
+  .text-brand-red {
+    color: var(--brand-red);
+  }
+  .text-brand-blue {
+    color: var(--brand-blue);
+  }
+  .text-brand-yellow {
+    color: var(--brand-yellow);
+  }
+  .text-brand-orange {
+    color: var(--brand-orange);
+  }
+
+  .border-brand-purple {
+    border-color: var(--brand-purple);
+  }
+  .border-brand-red {
+    border-color: var(--brand-red);
+  }
+  .border-brand-blue {
+    border-color: var(--brand-blue);
+  }
+  .border-brand-yellow {
+    border-color: var(--brand-yellow);
+  }
+  .border-brand-orange {
+    border-color: var(--brand-orange);
   }
 }
