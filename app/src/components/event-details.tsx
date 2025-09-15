@@ -22,11 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type {
-  ExpandedEvent,
-  Talk,
-  Sponsor,
-} from "@/lib/expanded-events";
+import type { ExpandedEvent, Talk, Sponsor } from "@/lib/expanded-events";
 import type { Image } from "@/lib/events";
 import { SocialsList } from "@/components/profile-card";
 
@@ -54,11 +50,7 @@ export function HeroSectionTitle({
 
       <div className="flex flex-col items-center gap-3 lg:items-start">
         {event.recordingUrl && (
-          <Button
-            asChild
-            variant="default"
-            size="lg"
-          >
+          <Button asChild variant="default" size="lg">
             <Link
               href={event.recordingUrl}
               target="_blank"

@@ -94,10 +94,10 @@ export const talkSpeakersTable = pgTable(
   {
     talkId: uuid("talk_id")
       .notNull()
-      .references(() => talksTable.id, { onDelete: "cascade" }),
+      .references(() => talksTable.id),
     speakerId: uuid("speaker_id")
       .notNull()
-      .references(() => profilesTable.id, { onDelete: "cascade" }),
+      .references(() => profilesTable.id),
     createdAt,
     updatedAt,
   },
@@ -139,10 +139,10 @@ export const eventSponsorsTable = pgTable(
   {
     eventId: uuid("event_id")
       .notNull()
-      .references(() => eventsTable.id, { onDelete: "cascade" }),
+      .references(() => eventsTable.id),
     sponsorId: uuid("sponsor_id")
       .notNull()
-      .references(() => sponsorsTable.id, { onDelete: "cascade" }),
+      .references(() => sponsorsTable.id),
     createdAt,
     updatedAt,
   },
@@ -154,10 +154,10 @@ export const eventTalksTable = pgTable(
   {
     eventId: uuid("event_id")
       .notNull()
-      .references(() => eventsTable.id, { onDelete: "cascade" }),
+      .references(() => eventsTable.id),
     talkId: uuid("talk_id")
       .notNull()
-      .references(() => talksTable.id, { onDelete: "cascade" }),
+      .references(() => talksTable.id),
     createdAt,
     updatedAt,
   },
@@ -169,10 +169,10 @@ export const eventImagesTable = pgTable(
   {
     eventId: uuid("event_id")
       .notNull()
-      .references(() => eventsTable.id, { onDelete: "cascade" }),
+      .references(() => eventsTable.id),
     imageId: uuid("image_id")
       .notNull()
-      .references(() => imagesTable.id, { onDelete: "cascade" }),
+      .references(() => imagesTable.id),
     createdAt,
     updatedAt,
   },
@@ -192,7 +192,7 @@ export const hacksTable = pgTable("hacks", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id")
     .notNull()
-    .references(() => eventsTable.id, { onDelete: "cascade" }),
+    .references(() => eventsTable.id),
   name: text("name").notNull(),
   project: text("description"),
   createdAt,
@@ -204,7 +204,7 @@ export const hackUsersTable = pgTable(
   {
     hackId: uuid("hack_id")
       .notNull()
-      .references(() => hacksTable.id, { onDelete: "cascade" }),
+      .references(() => hacksTable.id),
     clerkUserId: text("clerk_user_id").notNull(),
     createdAt,
     updatedAt,
@@ -216,7 +216,7 @@ export const hackVotesTable = pgTable("hack_votes", {
   id: uuid("id").primaryKey().defaultRandom(),
   hackId: uuid("hack_id")
     .notNull()
-    .references(() => hacksTable.id, { onDelete: "cascade" }),
+    .references(() => hacksTable.id),
   clerkUserId: text("clerk_user_id").notNull(),
   createdAt,
   updatedAt,
@@ -233,7 +233,7 @@ export const administratorsTable = pgTable("administrators", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id")
     .notNull()
-    .references(() => usersSyncTable.id, { onDelete: "cascade" }),
+    .references(() => usersSyncTable.id),
   createdAt,
   updatedAt,
 });
@@ -246,11 +246,11 @@ export const profileUsersTable = pgTable(
   {
     profileId: uuid("profile_id")
       .notNull()
-      .references(() => profilesTable.id, { onDelete: "cascade" })
+      .references(() => profilesTable.id)
       .unique(), // One profile can only be associated with one user
     userId: text("user_id")
       .notNull()
-      .references(() => usersSyncTable.id, { onDelete: "cascade" }),
+      .references(() => usersSyncTable.id),
     createdAt,
     updatedAt,
   },

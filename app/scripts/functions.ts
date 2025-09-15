@@ -1,4 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { db } from "../src/lib/db";
 import { mainConfig } from "../src/lib/config";
 import {
@@ -656,4 +656,130 @@ export async function getLumaEvent(eventId: string) {
   throw new Error(
     "getLumaEvent not implemented - use the Luma client from the app",
   );
+}
+
+// DANGER: Secret profile deletion function - use with extreme caution
+export async function deleteProfile(profileId: string) {
+  console.log(`🚨 DANGER: Attempting to delete profile ${profileId}`);
+
+  // First, get the profile to ensure it exists
+  const profile = await db
+    .select()
+    .from(profilesTable)
+    .where(eq(profilesTable.id, profileId))
+    .then((profiles) => profiles[0]);
+
+  if (!profile) {
+    throw new Error(`Profile with ID ${profileId} not found`);
+  }
+
+  console.log(`Found profile: ${profile.name} (${profile.profileType})`);
+
+  // Check if profile has any associated talks - SAFETY CHECK
+  const talkAssociations = await db
+    .select()
+    .from(talkSpeakersTable)
+    .where(eq(talkSpeakersTable.speakerId, profileId));
+
+  if (talkAssociations.length > 0) {
+    throw new Error(
+      `❌ DELETION ABORTED: Profile has ${talkAssociations.length} associated talk(s). Cannot delete.`,
+    );
+  }
+
+  // Even if no associations exist, manually delete any potential orphaned records
+  // to avoid cascade delete issues with Neon's replication
+  console.log("🧹 Cleaning up any potential talk_speakers references...");
+
+  // Get all talk_speaker records for this profile to delete them precisely
+  const speakerRecords = await db
+    .select({
+      talkId: talkSpeakersTable.talkId,
+      speakerId: talkSpeakersTable.speakerId,
+    })
+    .from(talkSpeakersTable)
+    .where(eq(talkSpeakersTable.speakerId, profileId));
+
+  // Delete each record using both primary key columns
+  for (const record of speakerRecords) {
+    await db
+      .delete(talkSpeakersTable)
+      .where(
+        and(
+          eq(talkSpeakersTable.talkId, record.talkId),
+          eq(talkSpeakersTable.speakerId, record.speakerId),
+        ),
+      );
+  }
+
+  console.log(
+    `✅ Talk speakers cleanup completed (${speakerRecords.length} records processed)`,
+  );
+
+  console.log("✅ No talk associations found, proceeding with deletion...");
+
+  const s3Client = new S3Client({
+    region: mainConfig.s3.region,
+    credentials: {
+      accessKeyId: mainConfig.s3.accessKeyId,
+      secretAccessKey: mainConfig.s3.secretAccessKey,
+    },
+  });
+
+  // Get the associated image if it exists
+  let image = null;
+  if (profile.image) {
+    image = await db
+      .select()
+      .from(imagesTable)
+      .where(eq(imagesTable.id, profile.image))
+      .then((images) => images[0]);
+  }
+
+  try {
+    // Step 1: Delete image from S3 if it exists
+    if (image) {
+      console.log(`Deleting image from S3: ${image.url}`);
+      const s3Path = image.url.replace(mainConfig.s3.url + "/", "");
+
+      await s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: mainConfig.s3.bucket,
+          Key: s3Path,
+        }),
+      );
+      console.log("✅ Image deleted from S3");
+    }
+
+    // Step 2: Delete image record from database
+    if (profile.image) {
+      console.log(`Deleting image record: ${profile.image}`);
+      await db.delete(imagesTable).where(eq(imagesTable.id, profile.image));
+      console.log("✅ Image record deleted from database");
+    }
+
+    // Step 3: Delete the profile
+    console.log(`Deleting profile: ${profileId}`);
+    const deletedProfile = await db
+      .delete(profilesTable)
+      .where(eq(profilesTable.id, profileId))
+      .returning();
+
+    if (deletedProfile.length === 0) {
+      throw new Error(
+        "Failed to delete profile - profile may have been deleted by another process",
+      );
+    }
+
+    console.log("✅ Profile deleted successfully");
+
+    return {
+      deletedProfile: deletedProfile[0],
+      deletedImage: image,
+      message: `Successfully deleted profile: ${profile.name} (${profile.profileType})`,
+    };
+  } catch (error) {
+    console.error("❌ Error during deletion process:", error);
+    throw new Error(`Deletion failed: ${error.message}`);
+  }
 }

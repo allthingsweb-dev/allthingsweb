@@ -29,6 +29,13 @@
       "when": 1757896917092,
       "tag": "0003_jazzy_ma_gnuci",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1757965007987,
+      "tag": "0004_equal_excalibur",
+      "breakpoints": true
     }
   ]
 }
