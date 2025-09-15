@@ -26,7 +26,6 @@ import type {
   ExpandedEvent,
   Talk,
   Sponsor,
-  Speaker,
 } from "@/lib/expanded-events";
 import type { Image } from "@/lib/events";
 import { SocialsList } from "@/components/profile-card";
@@ -59,7 +58,6 @@ export function HeroSectionTitle({
             asChild
             variant="default"
             size="lg"
-            className="w-full min-[400px]:w-auto"
           >
             <Link
               href={event.recordingUrl}
@@ -131,12 +129,12 @@ export function HeroSection({
   return (
     <Section variant="big" className={className}>
       <div className="container">
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 xl:gap-16">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 xl:gap-24 xl2:gap-32">
           {!!children ? (
             children
           ) : (
             <>
-              <div className="flex-1 text-center lg:text-left">
+              <div className="text-center lg:text-left">
                 <HeroSectionTitle
                   event={event}
                   isAtCapacity={isAtCapacity}
