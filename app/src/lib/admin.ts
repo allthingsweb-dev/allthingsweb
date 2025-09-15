@@ -1,9 +1,12 @@
-import { eq, isNull } from "drizzle-orm";
+import { eq, isNull, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
   administratorsTable,
   profilesTable,
   profileUsersTable,
+  eventsTable,
+  eventImagesTable,
+  imagesTable,
 } from "./schema";
 import { usersSync } from "drizzle-orm/neon";
 
@@ -98,4 +101,36 @@ export async function removeProfileUserAssignment(profileId: string) {
   await db
     .delete(profileUsersTable)
     .where(eq(profileUsersTable.profileId, profileId));
+}
+
+export async function getAllEvents() {
+  return await db
+    .select({
+      id: eventsTable.id,
+      name: eventsTable.name,
+      slug: eventsTable.slug,
+      startDate: eventsTable.startDate,
+      endDate: eventsTable.endDate,
+      isDraft: eventsTable.isDraft,
+    })
+    .from(eventsTable)
+    .orderBy(desc(eventsTable.startDate));
+}
+
+export async function getEventImages(eventId: string) {
+  const results = await db
+    .select({
+      imageId: imagesTable.id,
+      imageUrl: imagesTable.url,
+      imageAlt: imagesTable.alt,
+      imageWidth: imagesTable.width,
+      imageHeight: imagesTable.height,
+      imagePlaceholder: imagesTable.placeholder,
+    })
+    .from(eventImagesTable)
+    .innerJoin(imagesTable, eq(eventImagesTable.imageId, imagesTable.id))
+    .where(eq(eventImagesTable.eventId, eventId))
+    .orderBy(imagesTable.createdAt);
+
+  return results;
 }

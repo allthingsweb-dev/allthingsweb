@@ -79,9 +79,9 @@ export default async function AdminPage() {
                 </div>
               </Link>
 
-              {/* View Event Images Card */}
+              {/* Upload Event Images Card */}
               <Link
-                href="/admin/images"
+                href="/admin/upload-images"
                 className="block p-6 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors group"
               >
                 <div className="flex items-center">
@@ -96,12 +96,44 @@ export default async function AdminPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                       />
                     </svg>
                   </div>
                   <div className="ml-4">
                     <h3 className="text-lg font-medium text-gray-900 group-hover:text-green-900">
+                      Upload Event Images
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Upload multiple images to any event
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* View Event Images Card */}
+              <Link
+                href="/admin/images"
+                className="block p-6 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors group"
+              >
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-8 w-8 text-purple-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-purple-900">
                       View Event Images
                     </h3>
                     <p className="text-sm text-gray-600">
