@@ -1,0 +1,203 @@
+Rule Name: s3-image-signing
+Description: Always sign S3 images when fetching them for display
+
+# S3 Image Signing Guidelines
+
+## Overview
+All images stored in S3 must be signed server-side before being sent to the client for display. Raw S3 URLs will not work properly and images will fail to load.
+
+## Key Principle
+**Never return raw S3 URLs to the client. Always return signed URLs.**
+
+## Implementation Requirements
+
+### 1. Import the Signing Function
+```typescript
+import { signImage } from "@/lib/image-signing";
+```
+
+### 2. Sign Images Before Returning
+For any API endpoint that returns image URLs:
+
+```typescript
+// ❌ WRONG - Raw S3 URL
+return NextResponse.json({
+  imageUrl: image.url, // This will not display
+});
+
+// ✅ CORRECT - Signed URL
+const signedImageUrl = await signImage({
+  url: image.url,
+  alt: image.alt,
+  placeholder: image.placeholder,
+  width: image.width,
+  height: image.height,
+});
+
+return NextResponse.json({
+  imageUrl: signedImageUrl.url, // This will display correctly
+});
+```
+
+### 3. Helper Function Pattern
+For consistent implementation, create helper functions:
+
+```typescript
+// Helper function to sign a single image URL
+async function signImageUrl(imageUrl: string | null): Promise<string | null> {
+  if (!imageUrl) return null;
+  
+  try {
+    const signedImage = await signImage({
+      url: imageUrl,
+      alt: "",
+      placeholder: "",
+      width: 0,
+      height: 0,
+    });
+    return signedImage.url;
+  } catch (error) {
+    console.error("Error signing image:", error);
+    return imageUrl; // Fallback to unsigned URL
+  }
+}
+```
+
+### 4. Batch Signing for Multiple Images
+For endpoints returning multiple images:
+
+```typescript
+import { signImages } from "@/lib/image-signing";
+
+// Convert database records to Image format
+const rawImages: Image[] = imageRecords.map((record) => ({
+  url: record.url,
+  alt: record.alt,
+  placeholder: record.placeholder,
+  width: record.width,
+  height: record.height,
+}));
+
+// Sign all images
+const signedImages = await signImages(rawImages);
+```
+
+## Common Patterns
+
+### Profile Images
+```typescript
+// GET /api/v1/profile
+const signedImageUrl = await signProfileImageUrl(result.image?.url || null);
+
+return NextResponse.json({
+  profile: {
+    ...result.profile,
+    imageUrl: signedImageUrl,
+    imageAlt: result.image?.alt,
+  },
+});
+```
+
+### Event Images
+```typescript
+// When fetching events with images
+const previewImageRaw = {
+  url: event.previewImage.url,
+  alt: event.previewImage.alt,
+  placeholder: event.previewImage.placeholder,
+  width: event.previewImage.width,
+  height: event.previewImage.height,
+};
+
+const previewImage = await signImage(previewImageRaw);
+```
+
+### Speaker/Profile Lists
+```typescript
+// When fetching lists of profiles with images
+const profiles = await Promise.all(
+  profileRecords.map(async (profile) => {
+    let signedImageUrl = null;
+    if (profile.imageUrl) {
+      signedImageUrl = await signImageUrl(profile.imageUrl);
+    }
+    
+    return {
+      ...profile,
+      imageUrl: signedImageUrl,
+    };
+  })
+);
+```
+
+## Error Handling
+
+### Always Provide Fallbacks
+```typescript
+async function signImageUrl(imageUrl: string | null): Promise<string | null> {
+  if (!imageUrl) return null;
+  
+  try {
+    const signedImage = await signImage({
+      url: imageUrl,
+      alt: "",
+      placeholder: "",
+      width: 0,
+      height: 0,
+    });
+    return signedImage.url;
+  } catch (error) {
+    console.error("Error signing image:", error);
+    // Return unsigned URL as fallback to prevent broken images
+    return imageUrl;
+  }
+}
+```
+
+### Handle Missing Images
+```typescript
+// Check if image exists before signing
+if (imageRecord?.url) {
+  signedImageUrl = await signImageUrl(imageRecord.url);
+} else {
+  signedImageUrl = null; // Explicit null for missing images
+}
+```
+
+## Why This Matters
+
+### Security
+- S3 buckets should not be publicly accessible
+- Presigned URLs provide time-limited, authorized access
+- Prevents direct S3 access bypassing application logic
+
+### Performance
+- Presigned URLs expire after 24 hours
+- Reduces load on S3 by preventing unauthorized requests
+- Consistent access patterns
+
+### User Experience
+- Images display immediately without authentication issues
+- Consistent behavior across all image types
+- No broken image placeholders
+
+## Existing Implementation Examples
+
+The following files demonstrate correct image signing patterns:
+- `app/src/lib/expanded-events.ts` - Event images
+- `app/src/lib/profiles.ts` - Profile images  
+- `app/src/lib/speakers.ts` - Speaker images
+- `app/src/lib/images.ts` - Past event images
+- `app/src/app/api/v1/profile/route.ts` - Profile API
+
+## Checklist for New Image Endpoints
+
+- [ ] Import `signImage` or `signImages` from `@/lib/image-signing`
+- [ ] Convert database records to `Image` format if needed
+- [ ] Sign all image URLs before returning to client
+- [ ] Implement proper error handling with fallbacks
+- [ ] Test that images display correctly in the UI
+- [ ] Follow existing patterns from other endpoints
+
+## Remember
+**If an image is not displaying, the first thing to check is whether the URL is being signed server-side.**
