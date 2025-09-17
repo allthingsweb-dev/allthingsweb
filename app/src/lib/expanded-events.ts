@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   eventsTable,
@@ -10,6 +10,8 @@ import {
   eventTalksTable,
   eventImagesTable,
   talkSpeakersTable,
+  hacksTable,
+  hackVotesTable,
 } from "@/lib/schema";
 import { Event, Image } from "@/lib/events";
 import { getLumaUrl } from "@/lib/luma";
@@ -47,6 +49,14 @@ export type ExpandedEvent = Event & {
   talks: Talk[];
   sponsors: Sponsor[];
   images: Image[];
+  hacks?: Array<{
+    id: string;
+    teamName: string;
+    projectName?: string | null;
+    projectDescription?: string | null;
+    teamImage?: Image | null;
+    voteCount: number;
+  }>;
 };
 
 export async function getExpandedEventById(
@@ -202,6 +212,60 @@ async function getExpandedEventFromQuery(
 
   const images = await signImages(imagesRaw);
 
+  // Get hacks for hackathon events
+  let hacks: ExpandedEvent["hacks"] | undefined = undefined;
+  if (event.isHackathon) {
+    // Base hacks with optional team image joined
+    const baseHacksQuery = await db
+      .select()
+      .from(hacksTable)
+      .where(eq(hacksTable.eventId, event.id))
+      .leftJoin(imagesTable, eq(hacksTable.teamImage, imagesTable.id));
+    if (baseHacksQuery.length > 0) {
+      const hackIds = baseHacksQuery.map((row) => row.hacks.id);
+      // fetch all votes for listed hacks
+      const allVotes = await db
+        .select({ hackId: hackVotesTable.hackId })
+        .from(hackVotesTable)
+        .where(inArray(hackVotesTable.hackId, hackIds));
+
+      const voteCountByHack: Record<string, number> = {};
+      for (const v of allVotes) {
+        const id = (v as any).hackId as string;
+        voteCountByHack[id] = (voteCountByHack[id] ?? 0) + 1;
+      }
+
+      hacks = await Promise.all(
+        baseHacksQuery.map(async (row) => {
+          const hack = row.hacks;
+          const img = row.images;
+          const signed = img
+            ? await signImage({
+                url: img.url,
+                alt: img.alt,
+                placeholder: img.placeholder,
+                width: img.width,
+                height: img.height,
+              })
+            : null;
+          return {
+            id: hack.id,
+            teamName:
+              (hack as any).teamName ?? (hack as any).team_name ?? (hack as any).name,
+            projectName:
+              (hack as any).projectName ?? (hack as any).project_name ?? null,
+            projectDescription:
+              (hack as any).projectDescription ??
+              (hack as any).project_description ??
+              null,
+            teamImage: signed,
+            voteCount: voteCountByHack[hack.id] ?? 0,
+          };
+        }),
+      );
+    }
+  }
+
   return {
     ...event,
     previewImage,
@@ -209,6 +273,7 @@ async function getExpandedEventFromQuery(
     talks,
     sponsors,
     images,
+    hacks,
   };
 }
 

@@ -324,6 +324,68 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
   );
 }
 
+export function TeamsAndHacksSection({
+  hacks,
+}: {
+  hacks: NonNullable<ExpandedEvent["hacks"]>;
+}) {
+  if (!hacks.length) return null;
+  return (
+    <Section id="hacks" variant="big">
+      <div className="container flex flex-col gap-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight">
+          Teams & Hacks
+        </h2>
+        <div
+          className={clsx(
+            "mx-auto grid gap-6 grid-cols-1 max-w-5xl",
+            "sm:grid-cols-2",
+          )}
+        >
+          {hacks.map((hack) => (
+            <Card key={hack.id} className="flex flex-col h-full">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  {hack.teamImage ? (
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={hack.teamImage.url} alt={hack.teamName} />
+                      <AvatarFallback>{hack.teamName[0]}</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback>{hack.teamName[0]}</AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div className="min-w-0">
+                    <CardTitle className="text-base leading-tight truncate">
+                      {hack.teamName}
+                    </CardTitle>
+                    {hack.projectName && (
+                      <CardDescription className="text-sm mt-1 truncate">
+                        {hack.projectName}
+                      </CardDescription>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {hack.projectDescription && (
+                  <p className="text-muted-foreground text-sm line-clamp-4">
+                    {hack.projectDescription}
+                  </p>
+                )}
+              </CardContent>
+              <CardFooter>
+                <div className="text-sm text-muted-foreground">Votes: {hack.voteCount}</div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 export function ImagesSection({
   images,
   background = "muted",

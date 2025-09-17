@@ -193,8 +193,15 @@ export const hacksTable = pgTable("hacks", {
   eventId: uuid("event_id")
     .notNull()
     .references(() => eventsTable.id),
-  name: text("name").notNull(),
-  project: text("description"),
+  // team name for the hack
+  teamName: text("team_name").notNull(),
+  // optional project name and description
+  projectName: text("project_name"),
+  projectDescription: text("project_description"),
+  // optional team image
+  teamImage: uuid("team_image").references(() => imagesTable.id, {
+    onDelete: "set null",
+  }),
   createdAt,
   updatedAt,
 });
@@ -205,11 +212,12 @@ export const hackUsersTable = pgTable(
     hackId: uuid("hack_id")
       .notNull()
       .references(() => hacksTable.id),
-    clerkUserId: text("clerk_user_id").notNull(),
+    // Associate to neon_auth.users_sync by id (TEXT) without FK constraint
+    userId: text("user_id").notNull(),
     createdAt,
     updatedAt,
   },
-  (table) => [primaryKey({ columns: [table.hackId, table.clerkUserId] })],
+  (table) => [primaryKey({ columns: [table.hackId, table.userId] })],
 );
 
 export const hackVotesTable = pgTable("hack_votes", {
@@ -217,7 +225,8 @@ export const hackVotesTable = pgTable("hack_votes", {
   hackId: uuid("hack_id")
     .notNull()
     .references(() => hacksTable.id),
-  clerkUserId: text("clerk_user_id").notNull(),
+  // Associate to neon_auth.users_sync by id (TEXT) without FK constraint
+  userId: text("user_id").notNull(),
   createdAt,
   updatedAt,
 });

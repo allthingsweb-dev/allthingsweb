@@ -11,6 +11,7 @@ import {
   TalksSection,
   ImagesSection,
   SponsorsSection,
+  TeamsAndHacksSection,
 } from "@/components/event-details";
 
 interface PageProps {
@@ -101,6 +102,9 @@ export default async function EventPage({ params }: PageProps) {
           images={event.images}
           background={event.talks.length ? "muted" : "default"}
         />
+      )}
+      {event.isHackathon && event.hacks && event.hacks.length > 0 && (
+        <TeamsAndHacksSection hacks={event.hacks} />
       )}
       {event.sponsors.length > 0 && (
         <SponsorsSection sponsors={event.sponsors} />
