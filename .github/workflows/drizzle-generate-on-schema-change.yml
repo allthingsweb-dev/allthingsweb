@@ -34,8 +34,7 @@ jobs:
       - name: Generate Drizzle migrations
         working-directory: app
         env:
-          # Drizzle config references DATABASE_URL, provide a dummy valid Postgres URL for config parsing
-          DATABASE_URL: postgres://user:password@localhost:5432/db
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: bun run db:generate
 
       - name: Commit and push migration diffs
