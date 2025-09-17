@@ -88,183 +88,196 @@ async function getExpandedEventFromQuery(
     width: 1200,
     height: 630,
   };
-  const previewImage = await signImage(previewImageRaw);
+  const previewImagePromise = signImage(previewImageRaw);
 
-  // Get event sponsors
-  const sponsorsQuery = await db
-    .select()
-    .from(eventSponsorsTable)
-    .where(eq(eventSponsorsTable.eventId, event.id))
-    .leftJoin(sponsorsTable, eq(eventSponsorsTable.sponsorId, sponsorsTable.id))
-    .leftJoin(imagesTable, eq(sponsorsTable.squareLogoLight, imagesTable.id));
-
-  const sponsors: Sponsor[] = await Promise.all(
-    sponsorsQuery
-      .filter((row) => row.sponsors)
-      .map(async (row) => {
-        const sponsor = row.sponsors!;
-        const lightLogoRaw = row.images || {
-          url: "/placeholder-sponsor.png",
-          alt: sponsor.name,
-          placeholder: null,
-          width: 200,
-          height: 200,
-        };
-
-        // Get dark logo separately
-        const darkLogoQuery = await db
-          .select()
-          .from(imagesTable)
-          .where(eq(imagesTable.id, sponsor.squareLogoDark!))
-          .limit(1);
-
-        const darkLogoRaw = darkLogoQuery[0] || lightLogoRaw;
-
-        // Sign both logos
-        const [lightLogo, darkLogo] = await Promise.all([
-          signImage(lightLogoRaw),
-          signImage(darkLogoRaw),
-        ]);
-
-        return {
-          id: sponsor.id,
-          name: sponsor.name,
-          about: sponsor.about,
-          squareLogoLight: lightLogo,
-          squareLogoDark: darkLogo,
-        };
-      }),
-  );
-
-  // Get event talks with speakers
-  const talksQuery = await db
-    .select()
-    .from(eventTalksTable)
-    .where(eq(eventTalksTable.eventId, event.id))
-    .leftJoin(talksTable, eq(eventTalksTable.talkId, talksTable.id));
-
-  const talks: Talk[] = await Promise.all(
-    talksQuery
-      .filter((row) => row.talks)
-      .map(async (row) => {
-        const talk = row.talks!;
-
-        // Get speakers for this talk
-        const speakersQuery = await db
-          .select()
-          .from(talkSpeakersTable)
-          .where(eq(talkSpeakersTable.talkId, talk.id))
-          .leftJoin(
-            profilesTable,
-            eq(talkSpeakersTable.speakerId, profilesTable.id),
-          )
-          .leftJoin(imagesTable, eq(profilesTable.image, imagesTable.id));
-
-        const speakers: Speaker[] = await Promise.all(
-          speakersQuery
-            .filter((speakerRow) => speakerRow.profiles)
-            .map(async (speakerRow) => {
-              const profile = speakerRow.profiles!;
-              const imageRaw = speakerRow.images || {
-                url: "/placeholder-avatar.png",
-                alt: profile.name,
-                placeholder: null,
-                width: 200,
-                height: 200,
-              };
-
-              const image = await signImage(imageRaw);
-
-              return {
-                id: profile.id,
-                name: profile.name,
-                title: profile.title,
-                image,
-                bio: profile.bio,
-                socials: {
-                  twitter: profile.twitterHandle || undefined,
-                  bluesky: profile.blueskyHandle || undefined,
-                  linkedin: profile.linkedinHandle || undefined,
-                },
-              };
-            }),
-        );
-
-        return {
-          id: talk.id,
-          title: talk.title,
-          description: talk.description,
-          speakers,
-        };
-      }),
-  );
-
-  // Get event images
-  const imagesQuery = await db
-    .select()
-    .from(eventImagesTable)
-    .where(eq(eventImagesTable.eventId, event.id))
-    .leftJoin(imagesTable, eq(eventImagesTable.imageId, imagesTable.id));
-
-  const imagesRaw: Image[] = imagesQuery
-    .filter((row) => row.images)
-    .map((row) => row.images!);
-
-  const images = await signImages(imagesRaw);
-
-  // Get hacks for hackathon events
-  let hacks: ExpandedEvent["hacks"] | undefined = undefined;
-  if (event.isHackathon) {
-    // Base hacks with optional team image joined
-    const baseHacksQuery = await db
+  // Sponsors
+  const sponsorsPromise: Promise<Sponsor[]> = (async () => {
+    const sponsorsQuery = await db
       .select()
-      .from(hacksTable)
-      .where(eq(hacksTable.eventId, event.id))
-      .leftJoin(imagesTable, eq(hacksTable.teamImage, imagesTable.id));
-    if (baseHacksQuery.length > 0) {
-      const hackIds = baseHacksQuery.map((row) => row.hacks.id);
-      // fetch all votes for listed hacks
-      const allVotes = await db
-        .select({ hackId: hackVotesTable.hackId })
-        .from(hackVotesTable)
-        .where(inArray(hackVotesTable.hackId, hackIds));
+      .from(eventSponsorsTable)
+      .where(eq(eventSponsorsTable.eventId, event.id))
+      .leftJoin(sponsorsTable, eq(eventSponsorsTable.sponsorId, sponsorsTable.id))
+      .leftJoin(imagesTable, eq(sponsorsTable.squareLogoLight, imagesTable.id));
 
-      const voteCountByHack: Record<string, number> = {};
-      for (const v of allVotes) {
-        const id = (v as any).hackId as string;
-        voteCountByHack[id] = (voteCountByHack[id] ?? 0) + 1;
-      }
+    return Promise.all(
+      sponsorsQuery
+        .filter((row) => row.sponsors)
+        .map(async (row) => {
+          const sponsor = row.sponsors!;
+          const lightLogoRaw = row.images || {
+            url: "/placeholder-sponsor.png",
+            alt: sponsor.name,
+            placeholder: null,
+            width: 200,
+            height: 200,
+          };
 
-      hacks = await Promise.all(
-        baseHacksQuery.map(async (row) => {
-          const hack = row.hacks;
-          const img = row.images;
-          const signed = img
-            ? await signImage({
-                url: img.url,
-                alt: img.alt,
-                placeholder: img.placeholder,
-                width: img.width,
-                height: img.height,
-              })
-            : null;
+          // Get dark logo separately
+          const darkLogoQuery = await db
+            .select()
+            .from(imagesTable)
+            .where(eq(imagesTable.id, sponsor.squareLogoDark!))
+            .limit(1);
+
+          const darkLogoRaw = darkLogoQuery[0] || lightLogoRaw;
+
+          // Sign both logos
+          const [lightLogo, darkLogo] = await Promise.all([
+            signImage(lightLogoRaw),
+            signImage(darkLogoRaw),
+          ]);
+
           return {
-            id: hack.id,
-            teamName:
-              (hack as any).teamName ?? (hack as any).team_name ?? (hack as any).name,
-            projectName:
-              (hack as any).projectName ?? (hack as any).project_name ?? null,
-            projectDescription:
-              (hack as any).projectDescription ??
-              (hack as any).project_description ??
-              null,
-            teamImage: signed,
-            voteCount: voteCountByHack[hack.id] ?? 0,
+            id: sponsor.id,
+            name: sponsor.name,
+            about: sponsor.about,
+            squareLogoLight: lightLogo,
+            squareLogoDark: darkLogo,
           };
         }),
-      );
-    }
-  }
+    );
+  })();
+
+  // Talks (with speakers)
+  const talksPromise: Promise<Talk[]> = (async () => {
+    const talksQuery = await db
+      .select()
+      .from(eventTalksTable)
+      .where(eq(eventTalksTable.eventId, event.id))
+      .leftJoin(talksTable, eq(eventTalksTable.talkId, talksTable.id));
+
+    return Promise.all(
+      talksQuery
+        .filter((row) => row.talks)
+        .map(async (row) => {
+          const talk = row.talks!;
+
+          // Get speakers for this talk
+          const speakersQuery = await db
+            .select()
+            .from(talkSpeakersTable)
+            .where(eq(talkSpeakersTable.talkId, talk.id))
+            .leftJoin(
+              profilesTable,
+              eq(talkSpeakersTable.speakerId, profilesTable.id),
+            )
+            .leftJoin(imagesTable, eq(profilesTable.image, imagesTable.id));
+
+          const speakers: Speaker[] = await Promise.all(
+            speakersQuery
+              .filter((speakerRow) => speakerRow.profiles)
+              .map(async (speakerRow) => {
+                const profile = speakerRow.profiles!;
+                const imageRaw = speakerRow.images || {
+                  url: "/placeholder-avatar.png",
+                  alt: profile.name,
+                  placeholder: null,
+                  width: 200,
+                  height: 200,
+                };
+
+                const image = await signImage(imageRaw);
+
+                return {
+                  id: profile.id,
+                  name: profile.name,
+                  title: profile.title,
+                  image,
+                  bio: profile.bio,
+                  socials: {
+                    twitter: profile.twitterHandle || undefined,
+                    bluesky: profile.blueskyHandle || undefined,
+                    linkedin: profile.linkedinHandle || undefined,
+                  },
+                };
+              }),
+          );
+
+          return {
+            id: talk.id,
+            title: talk.title,
+            description: talk.description,
+            speakers,
+          };
+        }),
+    );
+  })();
+
+  // Event images
+  const imagesPromise: Promise<Image[]> = (async () => {
+    const imagesQuery = await db
+      .select()
+      .from(eventImagesTable)
+      .where(eq(eventImagesTable.eventId, event.id))
+      .leftJoin(imagesTable, eq(eventImagesTable.imageId, imagesTable.id));
+
+    const imagesRaw: Image[] = imagesQuery
+      .filter((row) => row.images)
+      .map((row) => row.images!);
+
+    return signImages(imagesRaw);
+  })();
+
+  // Hacks (only for hackathons)
+  const hacksPromise: Promise<ExpandedEvent["hacks"]> = event.isHackathon
+    ? (async () => {
+        const baseHacksQuery = await db
+          .select()
+          .from(hacksTable)
+          .where(eq(hacksTable.eventId, event.id))
+          .leftJoin(imagesTable, eq(hacksTable.teamImage, imagesTable.id));
+        if (baseHacksQuery.length === 0) return [];
+
+        const hackIds = baseHacksQuery.map((row) => row.hacks.id);
+        const allVotes = await db
+          .select({ hackId: hackVotesTable.hackId })
+          .from(hackVotesTable)
+          .where(inArray(hackVotesTable.hackId, hackIds));
+
+        const voteCountByHack: Record<string, number> = {};
+        for (const v of allVotes) {
+          const id = (v as any).hackId as string;
+          voteCountByHack[id] = (voteCountByHack[id] ?? 0) + 1;
+        }
+
+        return Promise.all(
+          baseHacksQuery.map(async (row) => {
+            const hack = row.hacks;
+            const img = row.images;
+            const signed = img
+              ? await signImage({
+                  url: img.url,
+                  alt: img.alt,
+                  placeholder: img.placeholder,
+                  width: img.width,
+                  height: img.height,
+                })
+              : null;
+            return {
+              id: hack.id,
+              teamName:
+                (hack as any).teamName ?? (hack as any).team_name ?? (hack as any).name,
+              projectName:
+                (hack as any).projectName ?? (hack as any).project_name ?? null,
+              projectDescription:
+                (hack as any).projectDescription ??
+                (hack as any).project_description ??
+                null,
+              teamImage: signed,
+              voteCount: voteCountByHack[hack.id] ?? 0,
+            };
+          }),
+        );
+      })()
+    : Promise.resolve(undefined);
+
+  const [previewImage, sponsors, talks, images, hacks] = await Promise.all([
+    previewImagePromise,
+    sponsorsPromise,
+    talksPromise,
+    imagesPromise,
+    hacksPromise,
+  ]);
 
   return {
     ...event,
