@@ -5,11 +5,6 @@ const nextConfig = {
         hostname: "allthingsweb-dev.s3.us-west-2.amazonaws.com",
       },
     ],
-    // Prefer modern formats when available
-    formats: ["image/avif", "image/webp"],
-    // Let Next/Vercel handle aggressive caching on the image optimizer layer
-    // while providing long browser hints; optimizer adds its own SWR
-    minimumCacheTTL: 60 * 60, // 1 hour baseline for optimized outputs
   },
   async headers() {
     return [
