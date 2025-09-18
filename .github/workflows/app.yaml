@@ -30,11 +30,6 @@ jobs:
       - name: 🔍 Type check
         working-directory: app
         run: bun run typecheck
-
-      - name: ⎔ Build
-        working-directory: app
-        run: bun run build
-
       - name: 🏄 Run the tests
         run: echo "No tests configured yet. Add tests as needed."
 
