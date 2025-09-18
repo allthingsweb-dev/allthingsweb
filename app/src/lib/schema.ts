@@ -199,9 +199,7 @@ export const hacksTable = pgTable("hacks", {
   projectName: text("project_name"),
   projectDescription: text("project_description"),
   // optional team image
-  teamImage: uuid("team_image").references(() => imagesTable.id, {
-    onDelete: "set null",
-  }),
+  teamImage: uuid("team_image").references(() => imagesTable.id),
   createdAt,
   updatedAt,
 });
@@ -212,8 +210,8 @@ export const hackUsersTable = pgTable(
     hackId: uuid("hack_id")
       .notNull()
       .references(() => hacksTable.id),
-    // Associate to neon_auth.users_sync by id (TEXT) without FK constraint
-    userId: text("user_id").notNull(),
+    // Reference to neon_auth.users_sync.id
+    userId: text("user_id").notNull().references(() => usersSyncTable.id),
     createdAt,
     updatedAt,
   },
@@ -225,8 +223,8 @@ export const hackVotesTable = pgTable("hack_votes", {
   hackId: uuid("hack_id")
     .notNull()
     .references(() => hacksTable.id),
-  // Associate to neon_auth.users_sync by id (TEXT) without FK constraint
-  userId: text("user_id").notNull(),
+  // Reference to neon_auth.users_sync.id
+  userId: text("user_id").notNull().references(() => usersSyncTable.id),
   createdAt,
   updatedAt,
 });
