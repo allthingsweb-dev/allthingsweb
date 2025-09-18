@@ -250,6 +250,27 @@ export default async function HomePage() {
   );
 }
 
+// Track if we've already warned about missing dimensions
+let missingDimensionsWarned = false;
+
+// Helper function to safely calculate aspect ratio
+function safeAspectRatio(
+  width: number | null | undefined,
+  height: number | null | undefined,
+  fallback = "1/1"
+): string {
+  if (width && height && width > 0 && height > 0) {
+    return `${width}/${height}`;
+  }
+
+  if (!missingDimensionsWarned) {
+    console.warn("Missing or invalid image dimensions detected, using fallback aspect ratio");
+    missingDimensionsWarned = true;
+  }
+
+  return fallback;
+}
+
 function LandingHero({ images }: { images: Image[] }) {
   // Distribute images across columns for masonry effect
   const distributeImagesAcrossColumns = (images: Image[], columnCount: number) => {
@@ -291,7 +312,7 @@ function LandingHero({ images }: { images: Image[] }) {
                 <div
                   key={`${image.url}-${index}-1`}
                   className="relative w-full"
-                  style={{ aspectRatio: `${image.width}/${image.height}` }}
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
                 >
                   <NextImage
                     src={image.url}
@@ -310,7 +331,7 @@ function LandingHero({ images }: { images: Image[] }) {
                 <div
                   key={`${image.url}-${index}-2`}
                   className="relative w-full"
-                  style={{ aspectRatio: `${image.width}/${image.height}` }}
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
                 >
                   <NextImage
                     src={image.url}
@@ -339,7 +360,7 @@ function LandingHero({ images }: { images: Image[] }) {
                 <div
                   key={`${image.url}-${index}-1`}
                   className="relative w-full"
-                  style={{ aspectRatio: `${image.width}/${image.height}` }}
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
                 >
                   <NextImage
                     src={image.url}
@@ -358,7 +379,7 @@ function LandingHero({ images }: { images: Image[] }) {
                 <div
                   key={`${image.url}-${index}-2`}
                   className="relative w-full"
-                  style={{ aspectRatio: `${image.width}/${image.height}` }}
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
                 >
                   <NextImage
                     src={image.url}
@@ -387,7 +408,7 @@ function LandingHero({ images }: { images: Image[] }) {
                 <div
                   key={`${image.url}-${index}-1`}
                   className="relative w-full"
-                  style={{ aspectRatio: `${image.width}/${image.height}` }}
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
                 >
                   <NextImage
                     src={image.url}
@@ -406,7 +427,7 @@ function LandingHero({ images }: { images: Image[] }) {
                 <div
                   key={`${image.url}-${index}-2`}
                   className="relative w-full"
-                  style={{ aspectRatio: `${image.width}/${image.height}` }}
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
                 >
                   <NextImage
                     src={image.url}
