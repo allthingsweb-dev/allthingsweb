@@ -185,4 +185,44 @@
   .border-brand-orange {
     border-color: var(--brand-orange);
   }
+
+  /* Masonry scroll animations */
+  @keyframes scroll-up {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-50%);
+    }
+  }
+
+  .animate-scroll-slow {
+    animation: scroll-up 80s linear infinite;
+  }
+
+  .animate-scroll-medium {
+    animation: scroll-up 70s linear infinite;
+  }
+
+  .animate-scroll-fast {
+    animation: scroll-up 60s linear infinite;
+  }
+
+  .animate-scroll-slower {
+    animation: scroll-up 90s linear infinite;
+  }
+
+  .animate-scroll-faster {
+    animation: scroll-up 50s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-scroll-slow,
+    .animate-scroll-medium,
+    .animate-scroll-fast,
+    .animate-scroll-slower,
+    .animate-scroll-faster {
+      animation: none;
+    }
+  }
 }
