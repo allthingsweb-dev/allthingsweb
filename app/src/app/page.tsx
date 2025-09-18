@@ -301,11 +301,12 @@ function LandingHero({ images }: { images: Image[] }) {
   return (
     <section className="relative w-full h-[80vh] overflow-hidden">
         {/* Desktop Layout - 4 columns */}
-        <div className="absolute inset-0 hidden lg:grid grid-cols-4 gap-1">
+        <div className="absolute inset-0 hidden lg:grid grid-cols-4 gap-1" aria-hidden="true">
           {desktopColumns.map((columnImages, columnIndex) => (
             <div
               key={`desktop-column-${columnIndex}`}
               className={`flex flex-col gap-1 ${animationSpeeds[columnIndex]}`}
+              style={{ animationDelay: `${-(columnIndex * 5)}s` }}
             >
               {/* First set of images */}
               {columnImages.map((image, index) => (
@@ -349,11 +350,12 @@ function LandingHero({ images }: { images: Image[] }) {
         </div>
 
         {/* Tablet Layout - 3 columns */}
-        <div className="absolute inset-0 hidden md:grid lg:hidden grid-cols-3 gap-1">
+        <div className="absolute inset-0 hidden md:grid lg:hidden grid-cols-3 gap-1" aria-hidden="true">
           {tabletColumns.map((columnImages, columnIndex) => (
             <div
               key={`tablet-column-${columnIndex}`}
               className={`flex flex-col gap-1 ${animationSpeeds[columnIndex]}`}
+              style={{ animationDelay: `${-(columnIndex * 5)}s` }}
             >
               {/* First set of images */}
               {columnImages.map((image, index) => (
@@ -397,11 +399,12 @@ function LandingHero({ images }: { images: Image[] }) {
         </div>
 
         {/* Mobile Layout - 2 columns */}
-        <div className="absolute inset-0 grid md:hidden grid-cols-2 gap-1">
+        <div className="absolute inset-0 grid md:hidden grid-cols-2 gap-1" aria-hidden="true">
           {mobileColumns.map((columnImages, columnIndex) => (
             <div
               key={`mobile-column-${columnIndex}`}
               className={`flex flex-col gap-1 ${animationSpeeds[columnIndex]}`}
+              style={{ animationDelay: `${-(columnIndex * 5)}s` }}
             >
               {/* First set of images */}
               {columnImages.map((image, index) => (
