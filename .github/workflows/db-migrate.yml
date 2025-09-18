@@ -1,0 +1,31 @@
+name: Run Drizzle migrations on main when schema or migrations change
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/src/lib/schema.ts'
+      - 'app/migrations/**'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies (app)
+        working-directory: app
+        run: bun install
+
+      - name: Run migrations
+        working-directory: app
+        run: bun run db:migrate
