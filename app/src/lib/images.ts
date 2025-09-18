@@ -149,6 +149,7 @@ export async function getPastEventsWithImages(): Promise<EventWithImages[]> {
   const eventImagesQuery = await db
     .select({
       eventId: eventImagesTable.eventId,
+      imageId: imagesTable.id,
       imageUrl: imagesTable.url,
       imageAlt: imagesTable.alt,
       imagePlaceholder: imagesTable.placeholder,
@@ -167,6 +168,7 @@ export async function getPastEventsWithImages(): Promise<EventWithImages[]> {
         acc[img.eventId] = [];
       }
       acc[img.eventId].push({
+        id: img.imageId,
         url: img.imageUrl,
         alt: img.imageAlt,
         placeholder: img.imagePlaceholder,
@@ -178,6 +180,7 @@ export async function getPastEventsWithImages(): Promise<EventWithImages[]> {
     {} as Record<
       string,
       Array<{
+        id: string;
         url: string;
         alt: string;
         placeholder: string;
@@ -204,11 +207,31 @@ export async function getPastEventsWithImages(): Promise<EventWithImages[]> {
           })
         : undefined;
 
-      // Sign additional images (limit to 2 for performance)
-      const additionalImagesRaw = imagesByEventId[event.id] || [];
-      const limitedImages = additionalImagesRaw.slice(0, 2);
+      // Select first and last event images, excluding the preview image if present
+      const allEventImages = imagesByEventId[event.id] || [];
+      const previewImageId = (event as any).previewImage as string | null;
+      const nonPreviewImages = previewImageId
+        ? allEventImages.filter((img) => img.id !== previewImageId)
+        : allEventImages;
+
+      let selectedImages = nonPreviewImages;
+      if (nonPreviewImages.length >= 2) {
+        selectedImages = [
+          nonPreviewImages[0],
+          nonPreviewImages[nonPreviewImages.length - 1],
+        ];
+      }
+
       const additionalImages = await Promise.all(
-        limitedImages.map((img) => signImage(img)),
+        selectedImages.map((img) =>
+          signImage({
+            url: img.url,
+            alt: img.alt,
+            placeholder: img.placeholder,
+            width: img.width,
+            height: img.height,
+          }),
+        ),
       );
 
       return {
