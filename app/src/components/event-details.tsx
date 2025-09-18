@@ -80,6 +80,13 @@ export function HeroSectionTitle({
             </Link>
           </Button>
         )}
+        {event.isHackathon && (
+          <Button asChild variant={isInPast ? "outline" : "secondary"} size="lg" className="w-full min-[400px]:w-auto">
+            <Link href={`/${event.slug}/register-team`} aria-disabled={isInPast} className={clsx({ "pointer-events-none opacity-60": isInPast })}>
+              {isInPast ? "Registration closed" : "Register a team"}
+            </Link>
+          </Button>
+        )}
       </div>
       {children}
     </div>
