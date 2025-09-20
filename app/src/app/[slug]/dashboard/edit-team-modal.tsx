@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ImageUploadCrop } from "@/components/image-upload-crop";
-import { Loader2, Save, Users, Edit } from "lucide-react";
+import { Loader2, Save, Users, Edit, X } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientUser } from "@/lib/client-user";
 
@@ -30,6 +30,7 @@ interface Team {
 interface EditTeamModalProps {
   hackId: string;
   user: ClientUser;
+  isAdmin?: boolean;
   trigger?: React.ReactNode;
   onTeamUpdated?: (team: Team) => void;
 }
@@ -37,6 +38,7 @@ interface EditTeamModalProps {
 export function EditTeamModal({
   hackId,
   user,
+  isAdmin = false,
   trigger,
   onTeamUpdated,
 }: EditTeamModalProps) {
@@ -45,6 +47,7 @@ export function EditTeamModal({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     teamName: "",
     projectName: "",
@@ -70,7 +73,10 @@ export function EditTeamModal({
             });
           }
         } else if (response.status === 403) {
-          toast.error("You are not a member of this team");
+          const errorMessage = isAdmin
+            ? "Team not found or access denied"
+            : "You are not a member of this team";
+          toast.error(errorMessage);
           setOpen(false);
         } else {
           console.error("Error fetching team:", response.statusText);
@@ -96,6 +102,9 @@ export function EditTeamModal({
 
   const handleImageCropped = (croppedFile: File) => {
     setImageFile(croppedFile);
+    // Create preview URL for the cropped image
+    const url = URL.createObjectURL(croppedFile);
+    setPreviewUrl(url);
   };
 
   const handleImageRemoved = async () => {
@@ -152,6 +161,11 @@ export function EditTeamModal({
         const data = await response.json();
         setTeam(data.team);
         setImageFile(null);
+        // Clean up preview URL
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+          setPreviewUrl(null);
+        }
         toast.success("Team updated successfully");
         if (onTeamUpdated) {
           onTeamUpdated(data.team);
@@ -206,6 +220,42 @@ export function EditTeamModal({
               maxWidth={800}
               maxHeight={800}
             />
+            {imageFile && previewUrl && (
+              <div className="mt-3">
+                <p className="text-sm text-muted-foreground mb-2">
+                  New image preview:
+                </p>
+                <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+                  <img
+                    src={previewUrl}
+                    alt="New team image preview"
+                    className="w-16 h-16 object-cover rounded-lg border"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {imageFile.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {(imageFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setImageFile(null);
+                      if (previewUrl) {
+                        URL.revokeObjectURL(previewUrl);
+                        setPreviewUrl(null);
+                      }
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Team Name */}
             <div>

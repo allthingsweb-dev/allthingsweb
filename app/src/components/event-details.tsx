@@ -75,24 +75,21 @@ export function HeroSectionTitle({
     </div>
   );
 
-  const teamButton = event.isHackathon && (
-    <div>
-      <Button
-        asChild
-        variant={isInPast ? "outline" : "secondary"}
-        size="lg"
-        className="w-full min-[400px]:w-auto"
-      >
-        <Link
-          href={`/${event.slug}/dashboard`}
-          aria-disabled={isInPast}
-          className={clsx({ "pointer-events-none opacity-60": isInPast })}
+  const teamButton = event.isHackathon &&
+    (!isInPast || (event.hacks && event.hacks.length > 0)) && (
+      <div>
+        <Button
+          asChild
+          variant={isInPast ? "outline" : "secondary"}
+          size="lg"
+          className="w-full min-[400px]:w-auto"
         >
-          {isInPast ? "View Results" : "Hack Dashboard"}
-        </Link>
-      </Button>
-    </div>
-  );
+          <Link href={`/${event.slug}/dashboard`}>
+            {isInPast ? "View Results" : "Hack Dashboard"}
+          </Link>
+        </Button>
+      </div>
+    );
 
   return (
     <div className="flex flex-col justify-center space-y-6 lg:space-y-4">
@@ -262,7 +259,7 @@ export function TalksSection({ talks }: { talks: Talk[] }) {
           Talks
         </h2>
         <div
-          className={clsx("mx-auto grid gap-6 grid-cols-1 max-w-4xl", {
+          className={clsx("mx-auto grid gap-6 grid-cols-1 max-w-6xl", {
             "lg:grid-cols-2": talks.length >= 2,
           })}
         >

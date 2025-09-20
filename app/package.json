@@ -9,6 +9,7 @@
     "fmt": "prettier --write .",
     "check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "typecheck:scripts": "tsc --noEmit --project scripts/tsconfig.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },

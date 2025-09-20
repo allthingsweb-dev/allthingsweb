@@ -1,4 +1,8 @@
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  DeleteObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 import { db } from "../src/lib/db";
 import { mainConfig } from "../src/lib/config";
 import {
@@ -23,6 +27,7 @@ import { getImgMetadata, getImgPlaceholder } from "openimg/bun";
 import { and, eq } from "drizzle-orm";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { createLumaClient } from "../src/lib/luma";
 
 // Enhanced event types that accept string dates
 export interface CreateEventInput {
@@ -149,11 +154,13 @@ export async function createProfile(profile: InsertProfile, imgPath: string) {
   const placeholder = await getImgPlaceholder(buffer);
 
   // Upload to S3
-  await s3Client.putObject({
-    Bucket: mainConfig.s3.bucket,
-    Key: path,
-    Body: buffer,
-  });
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: mainConfig.s3.bucket,
+      Key: path,
+      Body: buffer,
+    }),
+  );
 
   const url = `${mainConfig.s3.url}/${path}`;
   await db.insert(imagesTable).values({
@@ -206,11 +213,13 @@ export async function replaceProfileImage(name: string, imgPath: string) {
   const path = "profiles/" + nameSlug + "-" + uuid + "." + format;
   const placeholder = await getImgPlaceholder(buffer);
 
-  await s3Client.putObject({
-    Bucket: mainConfig.s3.bucket,
-    Key: path,
-    Body: buffer,
-  });
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: mainConfig.s3.bucket,
+      Key: path,
+      Body: buffer,
+    }),
+  );
 
   const url = `${mainConfig.s3.url}/${path}`;
   await db.insert(imagesTable).values({
@@ -232,10 +241,12 @@ export async function replaceProfileImage(name: string, imgPath: string) {
   await db.delete(imagesTable).where(eq(imagesTable.id, imageToDeleteId));
 
   const s3Path = imageToDelete.url.replace(mainConfig.s3.url + "/", "");
-  await s3Client.deleteObject({
-    Bucket: mainConfig.s3.bucket,
-    Key: s3Path,
-  });
+  await s3Client.send(
+    new DeleteObjectCommand({
+      Bucket: mainConfig.s3.bucket,
+      Key: s3Path,
+    }),
+  );
 
   return profile;
 }
@@ -291,6 +302,23 @@ export async function createTalk(talk: InsertTalk, speakerIds: string[]) {
   }
 
   return { talk: talkRes[0], speakers: talkSpeakerResults };
+}
+
+export async function updateTalk(
+  talkId: string,
+  updateData: Partial<InsertTalk>,
+) {
+  const talkRes = await db
+    .update(talksTable)
+    .set({ ...updateData, updatedAt: new Date() })
+    .where(eq(talksTable.id, talkId))
+    .returning();
+
+  if (!talkRes[0]) {
+    throw new Error("Talk not found or failed to update");
+  }
+
+  return talkRes[0];
 }
 
 export async function addTalkToEvent(slug: string, talkId: string) {
@@ -379,11 +407,13 @@ export async function createSponsor(
     darkLogoMetadata.format;
   const darkLogoPlaceholder = await getImgPlaceholder(darkLogoBuffer);
 
-  await s3Client.putObject({
-    Bucket: mainConfig.s3.bucket,
-    Key: darkLogoS3Path,
-    Body: darkLogoBuffer,
-  });
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: mainConfig.s3.bucket,
+      Key: darkLogoS3Path,
+      Body: darkLogoBuffer,
+    }),
+  );
 
   const darkLogoUrl = `${mainConfig.s3.url}/${darkLogoS3Path}`;
   await db.insert(imagesTable).values({
@@ -409,11 +439,13 @@ export async function createSponsor(
     lightLogoMetadata.format;
   const lightLogoPlaceholder = await getImgPlaceholder(lightLogoBuffer);
 
-  await s3Client.putObject({
-    Bucket: mainConfig.s3.bucket,
-    Key: lightLogoS3Path,
-    Body: lightLogoBuffer,
-  });
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: mainConfig.s3.bucket,
+      Key: lightLogoS3Path,
+      Body: lightLogoBuffer,
+    }),
+  );
 
   const lightLogoUrl = `${mainConfig.s3.url}/${lightLogoS3Path}`;
   await db.insert(imagesTable).values({
@@ -470,7 +502,7 @@ export async function getImgIdsForUrls(imageUrls: string[]) {
   return ids;
 }
 
-export async function deleteImages(imageUrls: string[]) {
+export async function deleteEventImages(imageUrls: string[]) {
   const ids = await getImgIdsForUrls(imageUrls);
   const s3Client = new S3Client({
     region: mainConfig.s3.region,
@@ -508,10 +540,12 @@ export async function deleteImages(imageUrls: string[]) {
     }
     const s3Path = image.url.replace(mainConfig.s3.url + "/", "");
 
-    await s3Client.deleteObject({
-      Bucket: mainConfig.s3.bucket,
-      Key: s3Path,
-    });
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: mainConfig.s3.bucket,
+        Key: s3Path,
+      }),
+    );
 
     await db.delete(eventImagesTable).where(eq(eventImagesTable.imageId, id));
     await db.delete(imagesTable).where(eq(imagesTable.id, id));
@@ -519,6 +553,64 @@ export async function deleteImages(imageUrls: string[]) {
   }
 
   return results;
+}
+
+export async function deleteOrphanedImage(s3Url: string) {
+  // Check if image exists in database
+  const existingImage = await db
+    .select()
+    .from(imagesTable)
+    .where(eq(imagesTable.url, s3Url))
+    .limit(1);
+
+  if (existingImage.length > 0) {
+    const imageId = existingImage[0].id;
+
+    try {
+      // Attempt to delete from database - if FK constraint fails, it's not orphaned
+      await db.delete(imagesTable).where(eq(imagesTable.id, imageId));
+    } catch (error: any) {
+      if (error.code === "23503") {
+        // PostgreSQL foreign key constraint violation
+        throw new Error(
+          `Image ${s3Url} is not orphaned - it is still referenced by other records (foreign key constraint)`,
+        );
+      }
+      // Re-throw other errors
+      throw error;
+    }
+  }
+
+  // Image is orphaned (or wasn't in DB), proceed with S3 deletion
+  const s3Client = new S3Client({
+    region: mainConfig.s3.region,
+    credentials: {
+      accessKeyId: mainConfig.s3.accessKeyId,
+      secretAccessKey: mainConfig.s3.secretAccessKey,
+    },
+  });
+
+  try {
+    // Extract S3 key from URL
+    const s3Path = s3Url.replace(mainConfig.s3.url + "/", "");
+
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: mainConfig.s3.bucket,
+        Key: s3Path,
+      }),
+    );
+
+    return {
+      success: true,
+      message: `Successfully deleted orphaned image: ${s3Url}`,
+      s3Path,
+    };
+  } catch (error) {
+    throw new Error(
+      `Failed to delete orphaned image from S3: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
 }
 
 export async function addImagesToEvent(
@@ -550,11 +642,13 @@ export async function addImagesToEvent(
     const path = "events/" + event.slug + "/" + uuid + "." + format;
     const placeholder = await getImgPlaceholder(buffer);
 
-    await s3Client.putObject({
-      Bucket: mainConfig.s3.bucket,
-      Key: path,
-      Body: buffer,
-    });
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: mainConfig.s3.bucket,
+        Key: path,
+        Body: buffer,
+      }),
+    );
 
     const url = `${mainConfig.s3.url}/${path}`;
     const [image] = await db
@@ -652,12 +746,19 @@ export async function listAdmins() {
   return admins;
 }
 
-// Luma functions - simplified since we don't have the container system
+// Luma functions
 export async function getLumaEvent(eventId: string) {
-  // This would need to be implemented with the Luma client from the app
-  throw new Error(
-    "getLumaEvent not implemented - use the Luma client from the app",
-  );
+  const lumaClient = createLumaClient();
+
+  try {
+    const eventData = await lumaClient.getEvent(eventId);
+    return eventData;
+  } catch (error) {
+    console.error(`Failed to fetch Luma event ${eventId}:`, error);
+    throw new Error(
+      `Failed to fetch Luma event: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 // DANGER: Secret profile deletion function - use with extreme caution
@@ -782,7 +883,9 @@ export async function deleteProfile(profileId: string) {
     };
   } catch (error) {
     console.error("❌ Error during deletion process:", error);
-    throw new Error(`Deletion failed: ${error.message}`);
+    throw new Error(
+      `Deletion failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -845,7 +948,9 @@ export async function createAward(input: CreateAwardInput) {
     };
   } catch (error) {
     console.error("❌ Error creating award:", error);
-    throw new Error(`Failed to create award: ${error.message}`);
+    throw new Error(
+      `Failed to create award: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -880,6 +985,8 @@ export async function listAwards(eventId: string) {
     };
   } catch (error) {
     console.error("❌ Error listing awards:", error);
-    throw new Error(`Failed to list awards: ${error.message}`);
+    throw new Error(
+      `Failed to list awards: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }

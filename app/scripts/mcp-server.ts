@@ -17,13 +17,15 @@ import {
   updateProfileById,
   replaceProfileImage,
   createTalk,
+  updateTalk,
   addTalkToEvent,
   removeTalkFromEvent,
   findTalksBySpeakerName,
   createSponsor,
   addSponsorToEvent,
   getImgIdsForUrls,
-  deleteImages,
+  deleteEventImages,
+  deleteOrphanedImage,
   addImagesToEvent,
   addUserToAdmins,
   removeUserFromAdmins,
@@ -79,6 +81,14 @@ const InsertProfileSchema = z.object({
 const InsertTalkSchema = z.object({
   title: z.string(),
   description: z.string(), // Required in schema
+});
+
+const UpdateTalkSchema = z.object({
+  talkId: z.string(),
+  talkData: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+  }),
 });
 
 const InsertSponsorSchema = z.object({
@@ -312,6 +322,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "update_talk",
+        description: "Update an existing talk",
+        inputSchema: {
+          type: "object",
+          properties: {
+            talkId: { type: "string", description: "Talk ID" },
+            talkData: {
+              type: "object",
+              properties: {
+                title: { type: "string", description: "Talk title" },
+                description: {
+                  type: "string",
+                  description: "Talk description",
+                },
+              },
+              additionalProperties: true,
+              description: "Talk data to update",
+            },
+          },
+          required: ["talkId", "talkData"],
+        },
+      },
+      {
         name: "add_talk_to_event",
         description: "Add talk to event",
         inputSchema: {
@@ -402,8 +435,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "delete_images",
-        description: "Delete images by URLs",
+        name: "delete_event_images",
+        description: "Delete event images by URLs",
         inputSchema: {
           type: "object",
           properties: {
@@ -414,6 +447,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["imageUrls"],
+        },
+      },
+      {
+        name: "delete_orphaned_image",
+        description:
+          "Delete an orphaned image from S3 (only if not in database)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            s3Url: {
+              type: "string",
+              description: "S3 URL of the image to delete",
+            },
+          },
+          required: ["s3Url"],
         },
       },
       {
@@ -658,6 +706,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case "update_talk": {
+        const { talkId, talkData } = UpdateTalkSchema.parse(args);
+        const result = await updateTalk(talkId, talkData);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
       case "add_talk_to_event": {
         const { slug, talkId } = args as { slug: string; talkId: string };
         const result = await addTalkToEvent(slug, talkId);
@@ -750,9 +811,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "delete_images": {
+      case "delete_event_images": {
         const { imageUrls } = args as { imageUrls: string[] };
-        const result = await deleteImages(imageUrls);
+        const result = await deleteEventImages(imageUrls);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "delete_orphaned_image": {
+        const { s3Url } = args as { s3Url: string };
+        const result = await deleteOrphanedImage(s3Url);
         return {
           content: [
             {

@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, Users, ChevronDown } from "lucide-react";
+import { Edit, Trash2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { EditTeamModal } from "./edit-team-modal";
 import type { ClientUser } from "@/lib/client-user";
@@ -59,10 +59,8 @@ export function TeamManagement({
         setShowDeleteDialog(false);
         if (onTeamDeleted) {
           onTeamDeleted();
-        } else {
-          // Fallback to page reload if no callback provided
-          window.location.reload();
         }
+        // TanStack DB will automatically update via live queries
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Failed to delete team");
@@ -79,16 +77,16 @@ export function TeamManagement({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="lg" className="flex-1 sm:flex-none">
-            <Users className="h-4 w-4 mr-2" />
-            Manage Team
-            <ChevronDown className="h-4 w-4 ml-2" />
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-auto">
+            <MoreVertical className="h-4 w-4" />
+            <span className="sr-only">Open team menu</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-48">
           <EditTeamModal
             hackId={hackId}
             user={user}
+            isAdmin={isAdmin}
             onTeamUpdated={onTeamUpdated ? () => onTeamUpdated() : undefined}
             trigger={
               <DropdownMenuItem
@@ -101,21 +99,15 @@ export function TeamManagement({
             }
           />
 
-          {(!hasVotes || isAdmin) && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={() => setShowDeleteDialog(true)}
-                className="cursor-pointer text-red-600 focus:text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Team
-                {isAdmin && hasVotes && (
-                  <span className="text-xs text-red-400 ml-1">(Admin)</span>
-                )}
-              </DropdownMenuItem>
-            </>
-          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => setShowDeleteDialog(true)}
+            disabled={hasVotes && !isAdmin}
+            className="cursor-pointer text-red-600 focus:text-red-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Team
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -142,8 +134,8 @@ export function TeamManagement({
                 </span>
               ) : hasVotes && isAdmin ? (
                 <span className="text-orange-600 font-medium">
-                  ⚠️ Admin override: This team has votes but can be deleted with
-                  admin privileges. This will also remove all associated votes.
+                  ⚠️ This team has votes but can be deleted with admin
+                  privileges. This will also remove all associated votes.
                 </span>
               ) : (
                 "This action is only available before voting begins."
@@ -154,7 +146,7 @@ export function TeamManagement({
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTeam}
-              disabled={isDeleting || hasVotes}
+              disabled={isDeleting || (hasVotes && !isAdmin)}
               className="bg-red-600 hover:bg-red-700"
             >
               {isDeleting ? (

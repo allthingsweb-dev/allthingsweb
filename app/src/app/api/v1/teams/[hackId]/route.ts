@@ -8,6 +8,7 @@ import {
   eventsTable,
 } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
+import { isAdmin } from "@/lib/admin";
 import {
   S3Client,
   PutObjectCommand,
@@ -117,23 +118,27 @@ export async function GET(
 
     const team = teamData[0];
 
-    // Check if user is a member of this team
-    const membership = await db
-      .select()
-      .from(hackUsersTable)
-      .where(
-        and(
-          eq(hackUsersTable.hackId, hackId),
-          eq(hackUsersTable.userId, user.id),
-        ),
-      )
-      .limit(1);
+    // Check if user is a member of this team or an admin
+    const userIsAdmin = await isAdmin(user.id);
 
-    if (membership.length === 0) {
-      return NextResponse.json(
-        { error: "You are not a member of this team" },
-        { status: 403 },
-      );
+    if (!userIsAdmin) {
+      const membership = await db
+        .select()
+        .from(hackUsersTable)
+        .where(
+          and(
+            eq(hackUsersTable.hackId, hackId),
+            eq(hackUsersTable.userId, user.id),
+          ),
+        )
+        .limit(1);
+
+      if (membership.length === 0) {
+        return NextResponse.json(
+          { error: "You are not a member of this team" },
+          { status: 403 },
+        );
+      }
     }
 
     // Sign the team image if it exists
@@ -186,23 +191,27 @@ export async function PUT(
     const existingTeam = existingTeamData[0].hack;
     const event = existingTeamData[0].event;
 
-    // Check if user is a member of this team
-    const membership = await db
-      .select()
-      .from(hackUsersTable)
-      .where(
-        and(
-          eq(hackUsersTable.hackId, hackId),
-          eq(hackUsersTable.userId, user.id),
-        ),
-      )
-      .limit(1);
+    // Check if user is a member of this team or an admin
+    const userIsAdmin = await isAdmin(user.id);
 
-    if (membership.length === 0) {
-      return NextResponse.json(
-        { error: "You are not a member of this team" },
-        { status: 403 },
-      );
+    if (!userIsAdmin) {
+      const membership = await db
+        .select()
+        .from(hackUsersTable)
+        .where(
+          and(
+            eq(hackUsersTable.hackId, hackId),
+            eq(hackUsersTable.userId, user.id),
+          ),
+        )
+        .limit(1);
+
+      if (membership.length === 0) {
+        return NextResponse.json(
+          { error: "You are not a member of this team" },
+          { status: 403 },
+        );
+      }
     }
 
     const formData = await request.formData();
@@ -222,6 +231,7 @@ export async function PUT(
     }
 
     let imageId = existingTeam.teamImage;
+    let oldImageId = existingTeam.teamImage; // Store old image ID for cleanup
 
     // Handle image upload if provided
     if (imageFile && imageFile.size > 0) {
@@ -233,12 +243,7 @@ export async function PUT(
         },
       });
 
-      // Delete old image if exists
-      if (existingTeam.teamImage) {
-        await deleteImageFromStorage(existingTeam.teamImage, s3Client);
-      }
-
-      // Upload new image
+      // Upload new image first
       const uuid = randomUUID();
       const buffer = await imageFile.arrayBuffer();
       const bufferUint8 = new Uint8Array(buffer);
@@ -282,6 +287,25 @@ export async function PUT(
       })
       .where(eq(hacksTable.id, hackId))
       .returning();
+
+    // Clean up old image if we uploaded a new one
+    if (
+      imageFile &&
+      imageFile.size > 0 &&
+      oldImageId &&
+      oldImageId !== imageId
+    ) {
+      const s3Client = new S3Client({
+        region: mainConfig.s3.region,
+        credentials: {
+          accessKeyId: mainConfig.s3.accessKeyId,
+          secretAccessKey: mainConfig.s3.secretAccessKey,
+        },
+      });
+
+      // Now it's safe to delete the old image since the team record no longer references it
+      await deleteImageFromStorage(oldImageId, s3Client);
+    }
 
     // Get the signed image URL for the response
     let signedImageUrl = null;
@@ -338,23 +362,27 @@ export async function DELETE(
 
     const existingTeam = existingTeamData[0];
 
-    // Check if user is a member of this team
-    const membership = await db
-      .select()
-      .from(hackUsersTable)
-      .where(
-        and(
-          eq(hackUsersTable.hackId, hackId),
-          eq(hackUsersTable.userId, user.id),
-        ),
-      )
-      .limit(1);
+    // Check if user is a member of this team or an admin
+    const userIsAdmin = await isAdmin(user.id);
 
-    if (membership.length === 0) {
-      return NextResponse.json(
-        { error: "You are not a member of this team" },
-        { status: 403 },
-      );
+    if (!userIsAdmin) {
+      const membership = await db
+        .select()
+        .from(hackUsersTable)
+        .where(
+          and(
+            eq(hackUsersTable.hackId, hackId),
+            eq(hackUsersTable.userId, user.id),
+          ),
+        )
+        .limit(1);
+
+      if (membership.length === 0) {
+        return NextResponse.json(
+          { error: "You are not a member of this team" },
+          { status: 403 },
+        );
+      }
     }
 
     if (!existingTeam.teamImage) {
@@ -364,7 +392,16 @@ export async function DELETE(
       );
     }
 
-    // Delete the image
+    // First, update team to remove image reference
+    const [updatedTeam] = await db
+      .update(hacksTable)
+      .set({
+        teamImage: null,
+      })
+      .where(eq(hacksTable.id, hackId))
+      .returning();
+
+    // Then delete the image from storage and database
     const s3Client = new S3Client({
       region: mainConfig.s3.region,
       credentials: {
@@ -379,15 +416,6 @@ export async function DELETE(
     );
 
     if (deleted) {
-      // Update team to remove image reference
-      const [updatedTeam] = await db
-        .update(hacksTable)
-        .set({
-          teamImage: null,
-        })
-        .where(eq(hacksTable.id, hackId))
-        .returning();
-
       return NextResponse.json({
         message: "Team image deleted successfully",
         team: {
@@ -396,10 +424,15 @@ export async function DELETE(
         },
       });
     } else {
-      return NextResponse.json(
-        { error: "Failed to delete team image" },
-        { status: 500 },
-      );
+      // Even if image deletion failed, the team reference was removed
+      return NextResponse.json({
+        message:
+          "Team image reference removed, but failed to delete image file",
+        team: {
+          ...updatedTeam,
+          imageUrl: null,
+        },
+      });
     }
   } catch (error) {
     console.error("Error deleting team image:", error);

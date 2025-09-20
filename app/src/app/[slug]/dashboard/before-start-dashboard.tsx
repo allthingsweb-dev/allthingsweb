@@ -93,6 +93,16 @@ export function BeforeStartDashboard({
           .where(({ vote }) => eq(vote.hack_id, "never-match")),
   );
 
+  // Get all votes for all teams to check which teams have votes
+  const { data: allVotes } = useLiveQuery((q) =>
+    q
+      .from({ vote: hackVotesCollection })
+      .join({ hack: hacksCollection }, ({ vote, hack }) =>
+        eq(vote.hack_id, hack.id),
+      )
+      .where(({ hack }) => eq(hack!.event_id, event.id)),
+  );
+
   const userTeamHasVotes = teamVotes && teamVotes.length > 0;
 
   return (
@@ -107,12 +117,10 @@ export function BeforeStartDashboard({
             hasVotes={userTeamHasVotes}
             isAdmin={isAdmin}
             onTeamDeleted={() => {
-              // Trigger a refetch of the data
-              window.location.reload();
+              // TanStack DB will automatically update via live queries
             }}
             onTeamUpdated={() => {
-              // Trigger a refetch of the data
-              window.location.reload();
+              // TanStack DB will automatically update via live queries
             }}
           />
         ) : (
@@ -226,10 +234,6 @@ export function BeforeStartDashboard({
               {event.streetAddress && (
                 <p className="text-sm text-gray-600">{event.streetAddress}</p>
               )}
-              {event.fullAddress &&
-                event.fullAddress !== event.streetAddress && (
-                  <p className="text-xs text-gray-500">{event.fullAddress}</p>
-                )}
             </div>
           </CardContent>
         </Card>
@@ -240,7 +244,7 @@ export function BeforeStartDashboard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Registered Teams
+            Teams
             <Badge variant="secondary">{teams?.length || 0}</Badge>
           </CardTitle>
           <CardDescription>
@@ -261,6 +265,9 @@ export function BeforeStartDashboard({
                   teamMembers?.filter((m) => m.hackId === team.id) || [];
                 const isUserTeam = members.some((m) => m.userId === user.id);
                 const canManageTeam = isUserTeam || isAdmin;
+                const teamHasVotes =
+                  allVotes?.some((vote) => vote.vote.hack_id === team.id) ||
+                  false;
 
                 return (
                   <Card
@@ -294,18 +301,18 @@ export function BeforeStartDashboard({
                                 Your Team
                               </Badge>
                             )}
-                            {isAdmin && !isUserTeam && (
-                              <Badge variant="outline" className="text-xs">
-                                Admin View
-                              </Badge>
-                            )}
                             {canManageTeam && (
-                              <EditTeamModal
+                              <TeamManagement
                                 hackId={team.id}
+                                teamName={team.team_name}
                                 user={user}
+                                hasVotes={teamHasVotes}
+                                isAdmin={isAdmin}
+                                onTeamDeleted={() => {
+                                  // TanStack DB will automatically update via live queries
+                                }}
                                 onTeamUpdated={() => {
-                                  // Trigger a refetch of the data
-                                  window.location.reload();
+                                  // TanStack DB will automatically update via live queries
                                 }}
                               />
                             )}

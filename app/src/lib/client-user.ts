@@ -8,6 +8,7 @@ export type ClientUser = {
   id: string;
   displayName: string | null;
   primaryEmail: string | null;
+  profileImageUrl: string | null;
 };
 
 /**
@@ -19,5 +20,6 @@ export function toClientUser(user: ServerUser): ClientUser {
     id: user.id,
     displayName: user.displayName,
     primaryEmail: user.primaryEmail,
+    profileImageUrl: user.profileImageUrl,
   };
 }

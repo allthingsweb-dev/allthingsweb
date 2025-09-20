@@ -172,7 +172,7 @@ export function RegisterTeamModal({
   const defaultTrigger = (
     <Button size="lg" className="flex items-center gap-2">
       <Users className="h-4 w-4" />
-      Register a Team
+      Create a Team
     </Button>
   );
 
@@ -181,7 +181,7 @@ export function RegisterTeamModal({
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Register Your Team</DialogTitle>
+          <DialogTitle>Create Your Team</DialogTitle>
           <DialogDescription>
             Create a team for this hackathon. You'll be automatically added as a
             team member.
@@ -375,7 +375,7 @@ export function RegisterTeamModal({
               type="submit"
               disabled={disabled || isSubmitting || !teamName.trim()}
             >
-              {isSubmitting ? "Registering..." : "Register Team"}
+              {isSubmitting ? "Creating..." : "Create Team"}
             </Button>
           </div>
         </form>

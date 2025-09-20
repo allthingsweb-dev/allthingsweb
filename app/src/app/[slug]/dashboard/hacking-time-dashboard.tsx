@@ -118,12 +118,10 @@ export function HackingTimeDashboard({
             user={user}
             hasVotes={userTeamHasVotes}
             onTeamDeleted={() => {
-              // Trigger a refetch of the data
-              window.location.reload();
+              // TanStack DB will automatically update via live queries
             }}
             onTeamUpdated={() => {
-              // Trigger a refetch of the data
-              window.location.reload();
+              // TanStack DB will automatically update via live queries
             }}
           />
         ) : (
@@ -256,8 +254,7 @@ export function HackingTimeDashboard({
                                   hackId={team.id}
                                   user={user}
                                   onTeamUpdated={() => {
-                                    // Trigger a refetch of the data
-                                    window.location.reload();
+                                    // TanStack DB will automatically update via live queries
                                   }}
                                 />
                               </>

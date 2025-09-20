@@ -10,6 +10,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { mainConfig } from "@/lib/config";
+import { isAdmin } from "@/lib/admin";
 
 // Helper function to delete an image from both S3 and database
 async function deleteImageFromStorage(imageId: string, s3Client: S3Client) {
@@ -72,33 +73,37 @@ export async function DELETE(
 
     const existingTeam = existingTeamData[0];
 
-    // Check if user is a member of this team
-    const membership = await db
-      .select()
-      .from(hackUsersTable)
-      .where(
-        and(
-          eq(hackUsersTable.hackId, hackId),
-          eq(hackUsersTable.userId, user.id),
-        ),
-      )
-      .limit(1);
+    // Check if user is a member of this team or an admin
+    const userIsAdmin = await isAdmin(user.id);
 
-    if (membership.length === 0) {
-      return NextResponse.json(
-        { error: "You are not a member of this team" },
-        { status: 403 },
-      );
+    if (!userIsAdmin) {
+      const membership = await db
+        .select()
+        .from(hackUsersTable)
+        .where(
+          and(
+            eq(hackUsersTable.hackId, hackId),
+            eq(hackUsersTable.userId, user.id),
+          ),
+        )
+        .limit(1);
+
+      if (membership.length === 0) {
+        return NextResponse.json(
+          { error: "You are not a member of this team" },
+          { status: 403 },
+        );
+      }
     }
 
-    // Check if team has any votes - if so, prevent deletion
+    // Check if team has any votes - prevent deletion unless admin
     const existingVotes = await db
       .select()
       .from(hackVotesTable)
       .where(eq(hackVotesTable.hackId, hackId))
       .limit(1);
 
-    if (existingVotes.length > 0) {
+    if (existingVotes.length > 0 && !userIsAdmin) {
       return NextResponse.json(
         {
           error:
@@ -119,6 +124,11 @@ export async function DELETE(
       });
 
       await deleteImageFromStorage(existingTeam.teamImage, s3Client);
+    }
+
+    // If admin is deleting a team with votes, delete votes first
+    if (existingVotes.length > 0 && userIsAdmin) {
+      await db.delete(hackVotesTable).where(eq(hackVotesTable.hackId, hackId));
     }
 
     // Delete team members (junction table entries)

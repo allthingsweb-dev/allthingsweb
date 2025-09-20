@@ -269,8 +269,7 @@ export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
                                   hackId={team.id}
                                   user={user}
                                   onTeamUpdated={() => {
-                                    // Trigger a refetch of the data
-                                    window.location.reload();
+                                    // TanStack DB will automatically update via live queries
                                   }}
                                 />
                               </>

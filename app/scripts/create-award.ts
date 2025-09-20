@@ -24,6 +24,6 @@ try {
   console.log("Event:", result.event.name);
 } catch (error) {
   console.error("\n❌ Failed to create award:");
-  console.error(error.message);
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
