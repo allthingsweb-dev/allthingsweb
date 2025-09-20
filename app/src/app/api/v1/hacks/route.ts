@@ -25,22 +25,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("📥 POST /api/v1/hacks - Request body", { body });
 
-    const {
-      id,
-      eventId,
-      teamName,
-      projectName,
-      projectDescription,
-      teamImage,
-    } = body;
-
+    // Transform field names from snake_case to camelCase for Drizzle schema
     const insertData = {
-      id,
-      eventId,
-      teamName,
-      projectName,
-      projectDescription,
-      teamImage,
+      id: body.id,
+      eventId: body.event_id,
+      teamName: body.team_name,
+      projectName: body.project_name,
+      projectDescription: body.project_description,
+      teamImage: body.team_image,
     };
     console.log("💾 POST /api/v1/hacks - Inserting into database", {
       insertData,

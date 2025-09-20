@@ -12,6 +12,8 @@ import {
   talkSpeakersTable,
   hacksTable,
   hackVotesTable,
+  hackUsersTable,
+  usersSyncTable,
 } from "@/lib/schema";
 import { Event, Image } from "@/lib/events";
 import { getLumaUrl } from "@/lib/luma";
@@ -56,6 +58,10 @@ export type ExpandedEvent = Event & {
     projectDescription?: string | null;
     teamImage?: Image | null;
     voteCount: number;
+    members: Array<{
+      userId: string;
+      name: string | null;
+    }>;
   }>;
 };
 
@@ -243,6 +249,34 @@ async function getExpandedEventFromQuery(
           voteCountByHack[id] = (voteCountByHack[id] ?? 0) + 1;
         }
 
+        // Get team members for all hacks
+        const teamMembersQuery = await db
+          .select({
+            hackId: hackUsersTable.hackId,
+            userId: hackUsersTable.userId,
+            userName: usersSyncTable.name,
+          })
+          .from(hackUsersTable)
+          .leftJoin(
+            usersSyncTable,
+            eq(hackUsersTable.userId, usersSyncTable.id),
+          )
+          .where(inArray(hackUsersTable.hackId, hackIds));
+
+        const membersByHack: Record<
+          string,
+          Array<{ userId: string; name: string | null }>
+        > = {};
+        for (const member of teamMembersQuery) {
+          if (!membersByHack[member.hackId]) {
+            membersByHack[member.hackId] = [];
+          }
+          membersByHack[member.hackId].push({
+            userId: member.userId,
+            name: member.userName,
+          });
+        }
+
         return Promise.all(
           baseHacksQuery.map(async (row) => {
             const hack = row.hacks;
@@ -270,6 +304,7 @@ async function getExpandedEventFromQuery(
                 null,
               teamImage: signed,
               voteCount: voteCountByHack[hack.id] ?? 0,
+              members: membersByHack[hack.id] || [],
             };
           }),
         );

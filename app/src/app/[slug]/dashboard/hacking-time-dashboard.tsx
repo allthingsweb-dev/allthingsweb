@@ -21,11 +21,11 @@ import {
   hackVotesCollection,
   hackImagesCollection,
 } from "@/lib/hackathons/collections";
+import { usersCollection } from "@/lib/collections";
 import { CountdownTimer } from "./countdown-timer";
 import { RegisterTeamModal } from "./register-team-modal";
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
-import { EditTeamModal } from "./edit-team-modal";
 import { TeamManagement } from "./team-management";
 
 interface HackingTimeDashboardProps {
@@ -62,7 +62,7 @@ export function HackingTimeDashboard({
       })),
   );
 
-  // Get team members for all teams
+  // Get team members for all teams with user names
   const { data: teamMembers } = useLiveQuery((q) =>
     q
       .from({ member: hackUsersCollection })
@@ -71,29 +71,30 @@ export function HackingTimeDashboard({
         ({ member, hack }) => eq(member.hack_id, hack.id),
         "inner",
       )
+      .leftJoin({ user: usersCollection }, ({ member, user }) =>
+        eq(member.user_id, user.id),
+      )
       .where(({ hack }) => eq(hack.event_id, event.id))
-      .select(({ member, hack }) => ({
+      .select(({ member, hack, user }) => ({
         hackId: member.hack_id,
         userId: member.user_id,
         teamName: hack.team_name,
+        userName: user?.name,
       })),
   );
 
   // Check if current user is already on a team
   const userTeam = teamMembers?.find((member) => member.userId === user.id);
 
-  // Get votes for user's team to check if deletion is allowed
-  const { data: teamVotes } = useLiveQuery((q) =>
-    userTeam
-      ? q
-          .from({ vote: hackVotesCollection })
-          .where(({ vote }) => eq(vote.hack_id, userTeam.hackId))
-      : q
-          .from({ vote: hackVotesCollection })
-          .where(({ vote }) => eq(vote.hack_id, "never-match")),
+  // Get all votes for all teams to check which teams have votes
+  const { data: allVotes } = useLiveQuery((q) =>
+    q
+      .from({ vote: hackVotesCollection })
+      .join({ hack: hacksCollection }, ({ vote, hack }) =>
+        eq(vote.hack_id, hack.id),
+      )
+      .where(({ hack }) => eq(hack!.event_id, event.id)),
   );
-
-  const userTeamHasVotes = teamVotes && teamVotes.length > 0;
 
   // Get hacking deadline
   const hackingDeadline = event.hackUntil
@@ -111,20 +112,7 @@ export function HackingTimeDashboard({
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        {userTeam ? (
-          <TeamManagement
-            hackId={userTeam.hackId}
-            teamName={userTeam.teamName}
-            user={user}
-            hasVotes={userTeamHasVotes}
-            onTeamDeleted={() => {
-              // TanStack DB will automatically update via live queries
-            }}
-            onTeamUpdated={() => {
-              // TanStack DB will automatically update via live queries
-            }}
-          />
-        ) : (
+        {!userTeam && (
           <RegisterTeamModal
             eventId={event.id}
             eventSlug={event.slug}
@@ -158,8 +146,6 @@ export function HackingTimeDashboard({
           <Code className="h-4 w-4" />
           <AlertDescription>
             <strong>You're hacking with team: {userTeam.teamName}</strong>
-            <br />
-            Good luck! Remember to submit your project before the deadline.
           </AlertDescription>
         </Alert>
       ) : (
@@ -186,8 +172,7 @@ export function HackingTimeDashboard({
             <li>• Focus on building an MVP (Minimum Viable Product)</li>
             <li>• Document your project well for the judges</li>
             <li>• Test your demo before presenting</li>
-            <li>• Don't forget to submit before the deadline!</li>
-            <li>• Ask mentors for help if you get stuck</li>
+            <li>• Don't forget to create your team before deadline!</li>
           </ul>
         </CardContent>
       </Card>
@@ -212,11 +197,15 @@ export function HackingTimeDashboard({
               <p className="text-sm">Be the first to register!</p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-[280px]">
               {teams.map((team) => {
                 const members =
                   teamMembers?.filter((m) => m.hackId === team.id) || [];
                 const isUserTeam = members.some((m) => m.userId === user.id);
+                const canManageTeam = isUserTeam || isAdmin;
+                const teamHasVotes =
+                  allVotes?.some((vote) => vote.vote.hack_id === team.id) ||
+                  false;
 
                 return (
                   <Card
@@ -224,7 +213,7 @@ export function HackingTimeDashboard({
                     className={`border-2 transition-colors ${
                       isUserTeam
                         ? "border-blue-300 bg-blue-50"
-                        : "hover:border-gray-300"
+                        : "hover:border-blue-200"
                     }`}
                   >
                     <CardHeader className="pb-3">
@@ -246,18 +235,24 @@ export function HackingTimeDashboard({
                           <CardTitle className="text-base truncate flex items-center gap-2">
                             {team.team_name}
                             {isUserTeam && (
-                              <>
-                                <Badge variant="secondary" className="text-xs">
-                                  Your Team
-                                </Badge>
-                                <EditTeamModal
-                                  hackId={team.id}
-                                  user={user}
-                                  onTeamUpdated={() => {
-                                    // TanStack DB will automatically update via live queries
-                                  }}
-                                />
-                              </>
+                              <Badge variant="secondary" className="text-xs">
+                                Your Team
+                              </Badge>
+                            )}
+                            {canManageTeam && (
+                              <TeamManagement
+                                hackId={team.id}
+                                teamName={team.team_name}
+                                user={user}
+                                hasVotes={teamHasVotes}
+                                isAdmin={isAdmin}
+                                onTeamDeleted={() => {
+                                  // TanStack DB will automatically update via live queries
+                                }}
+                                onTeamUpdated={() => {
+                                  // TanStack DB will automatically update via live queries
+                                }}
+                              />
                             )}
                           </CardTitle>
                           {team.project_name && (
@@ -269,19 +264,26 @@ export function HackingTimeDashboard({
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                        <Users className="h-4 w-4" />
-                        <span>
-                          {members.length} member
-                          {members.length !== 1 ? "s" : ""}
-                        </span>
-                        <Code className="h-4 w-4 ml-2" />
-                        <span className="text-blue-600 font-medium">
-                          Hacking
-                        </span>
+                      <div className="text-sm text-gray-600">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Users className="h-4 w-4" />
+                          <span className="font-medium">Team Members:</span>
+                        </div>
+                        {members.length > 0 && (
+                          <div className="text-xs text-gray-500 pl-6">
+                            {members.map((member, index) => (
+                              <span key={member.userId}>
+                                {member.userId === user.id
+                                  ? "You"
+                                  : member.userName || "Anonymous"}
+                                {index < members.length - 1 ? ", " : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       {team.project_description && (
-                        <p className="text-sm text-gray-500 line-clamp-2">
+                        <p className="text-sm text-gray-500 mt-2 line-clamp-2">
                           {team.project_description}
                         </p>
                       )}

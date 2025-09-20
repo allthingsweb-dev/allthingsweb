@@ -375,47 +375,90 @@ export function TeamsAndHacksSection({
           className={clsx(
             "mx-auto grid gap-6 grid-cols-1 max-w-5xl",
             "sm:grid-cols-2",
+            "[&>*]:min-w-[320px]",
           )}
         >
           {hacks.map((hack) => (
-            <Card key={hack.id} className="flex flex-col h-full">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
+            <Card
+              key={hack.id}
+              className="flex flex-col h-full hover:shadow-md transition-shadow"
+            >
+              <CardHeader className="pb-4">
+                <div className="flex items-start gap-4">
                   {hack.teamImage ? (
-                    <Avatar className="w-10 h-10">
+                    <Avatar className="w-12 h-12 shrink-0">
                       <AvatarImage
                         src={hack.teamImage.url}
                         alt={hack.teamName}
                       />
-                      <AvatarFallback>{hack.teamName[0]}</AvatarFallback>
+                      <AvatarFallback className="text-sm font-semibold">
+                        {hack.teamName.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                   ) : (
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>{hack.teamName[0]}</AvatarFallback>
+                    <Avatar className="w-12 h-12 shrink-0">
+                      <AvatarFallback className="text-sm font-semibold">
+                        {hack.teamName.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                   )}
-                  <div className="min-w-0">
-                    <CardTitle className="text-base leading-tight truncate">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-lg leading-tight mb-1">
                       {hack.teamName}
                     </CardTitle>
-                    {hack.projectName && (
-                      <CardDescription className="text-sm mt-1 truncate">
+                    {hack.projectName && hack.projectName.trim() && (
+                      <CardDescription className="text-sm font-medium text-foreground/70">
                         {hack.projectName}
                       </CardDescription>
                     )}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                {hack.projectDescription && (
-                  <p className="text-muted-foreground text-sm line-clamp-4">
-                    {hack.projectDescription}
-                  </p>
+              <CardContent className="pt-0 flex-1">
+                {hack.projectDescription && hack.projectDescription.trim() && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Project Description
+                    </h4>
+                    <p className="text-sm text-foreground/80 line-clamp-4 leading-relaxed">
+                      {hack.projectDescription}
+                    </p>
+                  </div>
+                )}
+                {(!hack.projectDescription ||
+                  !hack.projectDescription.trim()) && (
+                  <div className="flex items-center justify-center py-8">
+                    <p className="text-sm text-muted-foreground italic">
+                      Project details coming soon...
+                    </p>
+                  </div>
                 )}
               </CardContent>
-              <CardFooter>
-                <div className="text-sm text-muted-foreground">
-                  Votes: {hack.voteCount}
+              <CardFooter className="pt-4 border-t bg-muted/20">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    <span>
+                      Votes:{" "}
+                      <span className="font-medium text-foreground">
+                        {hack.voteCount}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {hack.members && hack.members.length > 0 ? (
+                      <div className="text-right">
+                        <p className="font-medium">Team Members:</p>
+                        <p>
+                          {hack.members
+                            .map((member) => member.name || "Anonymous")
+                            .join(", ")}
+                        </p>
+                      </div>
+                    ) : (
+                      <span>No members</span>
+                    )}
+                  </div>
                 </div>
               </CardFooter>
             </Card>

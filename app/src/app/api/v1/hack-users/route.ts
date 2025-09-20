@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("📥 POST /api/v1/hack-users - Request body", { body });
 
-    const { hackId, userId } = body;
+    // Transform field names from snake_case to camelCase for Drizzle schema
+    const hackId = body.hack_id;
+    const userId = body.user_id;
     console.log("🔗 POST /api/v1/hack-users - Relationship data", {
       hackId,
       userId,
@@ -83,7 +85,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { hackId, userId } = body;
+    // Transform field names from snake_case to camelCase for Drizzle schema
+    const hackId = body.hack_id;
+    const userId = body.user_id;
 
     // Delete the hack user relationship
     await db

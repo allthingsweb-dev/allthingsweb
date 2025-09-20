@@ -10,6 +10,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { usersSync as usersSyncTable } from "drizzle-orm/neon";
 
+export { usersSyncTable };
+
 const createdAt = timestamp("created_at", { withTimezone: true })
   .notNull()
   .defaultNow();

@@ -1,5 +1,5 @@
 {
-  "id": "fc76faa8-e00a-4055-ae92-538ad3c8b3a6",
+  "id": "5a3947f3-c297-4307-8847-299f75e9fd7c",
   "prevId": "f45b5552-0fb1-48b2-b504-21370b12c762",
   "version": "7",
   "dialect": "postgresql",
@@ -1143,6 +1143,61 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "neon_auth.users_sync": {
+      "name": "users_sync",
+      "schema": "neon_auth",
+      "columns": {
+        "raw_json": {
+          "name": "raw_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},

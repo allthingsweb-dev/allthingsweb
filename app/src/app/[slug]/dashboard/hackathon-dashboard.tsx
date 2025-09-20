@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ExpandedEvent } from "@/lib/expanded-events";
+import { useLiveQuery, eq } from "@tanstack/react-db";
+import { eventsCollection } from "@/lib/collections";
 import type { ClientUser } from "@/lib/client-user";
 import { BeforeStartDashboard } from "./before-start-dashboard";
 import { HackingTimeDashboard } from "./hacking-time-dashboard";
@@ -12,7 +13,7 @@ import { VotingTimeDashboard } from "./voting-time-dashboard";
 import { EndedDashboard } from "./ended-dashboard";
 
 interface HackathonDashboardProps {
-  event: ExpandedEvent;
+  eventSlug: string;
   user: ClientUser;
   isAdmin: boolean;
 }
@@ -20,27 +21,38 @@ interface HackathonDashboardProps {
 type HackathonState = "before_start" | "hacking" | "voting" | "ended";
 
 export function HackathonDashboard({
-  event,
+  eventSlug,
   user,
   isAdmin,
 }: HackathonDashboardProps) {
   const [hackathonState, setHackathonState] =
     useState<HackathonState>("before_start");
 
+  // Get the event data from the reactive collection
+  const { data: events } = useLiveQuery((q) =>
+    q
+      .from({ event: eventsCollection })
+      .where(({ event }) => eq(event.slug, eventSlug)),
+  );
+
+  const event = events?.[0];
+
   // Determine hackathon state based on event data and current time
   useEffect(() => {
+    if (!event) return;
+
     const determineState = () => {
       const now = new Date();
 
       // If we have explicit hackathon state from database, use it
-      if (event.hackathonState) {
-        setHackathonState(event.hackathonState as HackathonState);
+      if (event.hackathon_state) {
+        setHackathonState(event.hackathon_state as HackathonState);
         return;
       }
 
       // Fallback to time-based logic
-      const eventStart = new Date(event.startDate);
-      const eventEnd = new Date(event.endDate);
+      const eventStart = new Date(event.start_date);
+      const eventEnd = new Date(event.end_date);
 
       if (now < eventStart) {
         setHackathonState("before_start");
@@ -60,8 +72,68 @@ export function HackathonDashboard({
     return () => clearInterval(interval);
   }, [event]);
 
+  // Transform the event data to match the expected ExpandedEvent format
+  const transformedEvent = event
+    ? {
+        id: event.id,
+        name: event.name,
+        startDate: new Date(event.start_date),
+        endDate: new Date(event.end_date),
+        slug: event.slug,
+        tagline: event.tagline,
+        attendeeLimit: event.attendee_limit,
+        streetAddress: event.street_address,
+        shortLocation: event.short_location,
+        fullAddress: event.full_address,
+        lumaEventUrl: event.luma_event_id
+          ? `https://lu.ma/${event.luma_event_id}`
+          : null,
+        lumaEventId: event.luma_event_id,
+        isHackathon: event.is_hackathon,
+        isDraft: event.is_draft,
+        highlightOnLandingPage: event.highlight_on_landing_page,
+        previewImage: event.preview_image
+          ? {
+              url: event.preview_image,
+              alt: event.name + " preview image",
+              width: null,
+              height: null,
+            }
+          : null,
+        recordingUrl: event.recording_url,
+        hackathonState: event.hackathon_state,
+        hackStartedAt: event.hack_started_at
+          ? new Date(event.hack_started_at)
+          : null,
+        hackUntil: event.hack_until ? new Date(event.hack_until) : null,
+        voteStartedAt: event.vote_started_at
+          ? new Date(event.vote_started_at)
+          : null,
+        voteUntil: event.vote_until ? new Date(event.vote_until) : null,
+        createdAt: new Date(event.created_at),
+        updatedAt: new Date(event.updated_at),
+        // These fields are not available in the events collection but are needed for compatibility
+        hacks: [],
+        talks: [],
+        speakers: [],
+        sponsors: [],
+        images: [],
+      }
+    : null;
+
   const renderDashboardForState = () => {
-    const commonProps = { event, user, isAdmin };
+    if (!transformedEvent) {
+      return (
+        <div className="min-h-screen bg-gray-50 w-full flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading event data...</p>
+          </div>
+        </div>
+      );
+    }
+
+    const commonProps = { event: transformedEvent, user, isAdmin };
 
     switch (hackathonState) {
       case "before_start":
@@ -85,7 +157,7 @@ export function HackathonDashboard({
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <Link
-                href={`/${event.slug}`}
+                href={`/${eventSlug}`}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -94,7 +166,7 @@ export function HackathonDashboard({
               <div className="h-6 w-px bg-gray-300" />
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {event.name}
+                  {transformedEvent?.name || "Loading..."}
                 </h1>
                 <p className="text-sm text-gray-500">Hackathon Dashboard</p>
               </div>

@@ -1,8 +1,6 @@
 import { stackServerApp } from "@/lib/stack";
-import { getExpandedEventBySlug } from "@/lib/expanded-events";
 import { toClientUser } from "@/lib/client-user";
 import { isAdmin } from "@/lib/admin";
-import { notFound } from "next/navigation";
 import { ClientOnly } from "@/components/client-only";
 import { HackathonDashboard } from "./hackathon-dashboard";
 import { Toaster } from "sonner";
@@ -17,18 +15,6 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
 
   // Await the params in Next.js 15
   const { slug } = await params;
-
-  // Get the event data
-  const event = await getExpandedEventBySlug(slug);
-
-  if (!event) {
-    notFound();
-  }
-
-  // Only show dashboard for hackathon events
-  if (!event.isHackathon) {
-    notFound();
-  }
 
   // Extract only serializable user data for the client component
   const clientUser = toClientUser(user);
@@ -50,7 +36,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         }
       >
         <HackathonDashboard
-          event={event}
+          eventSlug={slug}
           user={clientUser}
           isAdmin={userIsAdmin}
         />

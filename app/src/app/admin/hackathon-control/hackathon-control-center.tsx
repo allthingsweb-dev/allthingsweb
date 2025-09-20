@@ -20,7 +20,17 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Clock, Play, Vote, X } from "lucide-react";
+import {
+  CheckCircle,
+  Clock,
+  Play,
+  Vote,
+  X,
+  Plus,
+  Edit,
+  Trash2,
+  Trophy,
+} from "lucide-react";
 
 interface HackathonEvent {
   id: string;
@@ -33,6 +43,14 @@ interface HackathonEvent {
   hackUntil: string | null;
   voteStartedAt: string | null;
   voteUntil: string | null;
+}
+
+interface Award {
+  id: string;
+  eventId: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const stateConfig = {
@@ -72,6 +90,13 @@ export function HackathonControlCenter() {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
 
+  // Awards management state
+  const [awards, setAwards] = useState<Award[]>([]);
+  const [newAwardName, setNewAwardName] = useState<string>("");
+  const [editingAward, setEditingAward] = useState<Award | null>(null);
+  const [editAwardName, setEditAwardName] = useState<string>("");
+  const [awardsLoading, setAwardsLoading] = useState(false);
+
   // Fetch hackathon events
   useEffect(() => {
     async function fetchEvents() {
@@ -108,12 +133,28 @@ export function HackathonControlCenter() {
           ? new Date(event.voteUntil).toISOString().slice(0, 16)
           : "",
       );
+      // Fetch awards for the selected event
+      fetchAwards(event.id);
     } else {
       setHackathonState("");
       setHackUntil("");
       setVoteUntil("");
+      setAwards([]);
     }
   }, [selectedEventId, events]);
+
+  // Fetch awards for a specific event
+  const fetchAwards = async (eventId: string) => {
+    try {
+      const response = await fetch(`/api/v1/admin/awards?eventId=${eventId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAwards(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch awards:", err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,6 +205,115 @@ export function HackathonControlCenter() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Awards management functions
+  const handleCreateAward = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEventId || !newAwardName.trim()) return;
+
+    setAwardsLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch("/api/v1/admin/awards", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId: selectedEventId,
+          name: newAwardName.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create award");
+      }
+
+      setSuccess("Award created successfully!");
+      setNewAwardName("");
+      await fetchAwards(selectedEventId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create award");
+    } finally {
+      setAwardsLoading(false);
+    }
+  };
+
+  const handleUpdateAward = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAward || !editAwardName.trim()) return;
+
+    setAwardsLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch(`/api/v1/admin/awards/${editingAward.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: editAwardName.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update award");
+      }
+
+      setSuccess("Award updated successfully!");
+      setEditingAward(null);
+      setEditAwardName("");
+      await fetchAwards(selectedEventId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update award");
+    } finally {
+      setAwardsLoading(false);
+    }
+  };
+
+  const handleDeleteAward = async (awardId: string, awardName: string) => {
+    if (!confirm(`Are you sure you want to delete the award "${awardName}"?`)) {
+      return;
+    }
+
+    setAwardsLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch(`/api/v1/admin/awards/${awardId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete award");
+      }
+
+      setSuccess("Award deleted successfully!");
+      await fetchAwards(selectedEventId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete award");
+    } finally {
+      setAwardsLoading(false);
+    }
+  };
+
+  const startEditingAward = (award: Award) => {
+    setEditingAward(award);
+    setEditAwardName(award.name);
+  };
+
+  const cancelEditingAward = () => {
+    setEditingAward(null);
+    setEditAwardName("");
   };
 
   const formatDateTime = (dateString: string | null) => {
@@ -344,6 +494,132 @@ export function HackathonControlCenter() {
           </Card>
         )}
       </div>
+
+      {/* Awards Management */}
+      {selectedEvent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Awards Management
+            </CardTitle>
+            <CardDescription>
+              Create, edit, and manage awards for {selectedEvent.name}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Create New Award */}
+            <div className="border rounded-lg p-4">
+              <h4 className="font-medium mb-3">Create New Award</h4>
+              <form onSubmit={handleCreateAward} className="flex gap-2">
+                <Input
+                  placeholder="Award name (e.g., Best Innovation, People's Choice)"
+                  value={newAwardName}
+                  onChange={(e) => setNewAwardName(e.target.value)}
+                  disabled={awardsLoading}
+                  maxLength={100}
+                />
+                <Button
+                  type="submit"
+                  disabled={awardsLoading || !newAwardName.trim()}
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {awardsLoading ? "Creating..." : "Create"}
+                </Button>
+              </form>
+            </div>
+
+            {/* Existing Awards */}
+            <div>
+              <h4 className="font-medium mb-3">
+                Existing Awards ({awards.length})
+              </h4>
+              {awards.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Trophy className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No awards created yet</p>
+                  <p className="text-sm">Create your first award above</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {awards.map((award) => (
+                    <div
+                      key={award.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                    >
+                      {editingAward?.id === award.id ? (
+                        <form
+                          onSubmit={handleUpdateAward}
+                          className="flex gap-2 flex-1"
+                        >
+                          <Input
+                            value={editAwardName}
+                            onChange={(e) => setEditAwardName(e.target.value)}
+                            disabled={awardsLoading}
+                            maxLength={100}
+                            autoFocus
+                          />
+                          <Button
+                            type="submit"
+                            size="sm"
+                            disabled={awardsLoading || !editAwardName.trim()}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={cancelEditingAward}
+                            disabled={awardsLoading}
+                          >
+                            Cancel
+                          </Button>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <Trophy className="h-4 w-4 text-yellow-600" />
+                            <div>
+                              <p className="font-medium">{award.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Created{" "}
+                                {new Date(award.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditingAward(award)}
+                              disabled={awardsLoading}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleDeleteAward(award.id, award.name)
+                              }
+                              disabled={awardsLoading}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* All Events Overview */}
       <Card>

@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useLiveQuery } from "@tanstack/react-db";
 import { eq } from "@tanstack/db";
-import { Calendar, MapPin, Users, Clock, ExternalLink } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Users,
+  Clock,
+  ExternalLink,
+  Trophy,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +26,9 @@ import {
   hackUsersCollection,
   hackVotesCollection,
   hackImagesCollection,
+  awardsCollection,
 } from "@/lib/hackathons/collections";
+import { usersCollection } from "@/lib/collections";
 import { toReadableDateTimeStr } from "@/lib/datetime";
 import { RegisterTeamModal } from "./register-team-modal";
 import type { ExpandedEvent } from "@/lib/expanded-events";
@@ -62,7 +71,7 @@ export function BeforeStartDashboard({
   );
   console.log("teams", teams);
 
-  // Get team members for all teams
+  // Get team members for all teams with user names
   const { data: teamMembers } = useLiveQuery((q) =>
     q
       .from({ member: hackUsersCollection })
@@ -71,11 +80,15 @@ export function BeforeStartDashboard({
         ({ member, hack }) => eq(member.hack_id, hack.id),
         "inner",
       )
+      .leftJoin({ user: usersCollection }, ({ member, user }) =>
+        eq(member.user_id, user.id),
+      )
       .where(({ hack }) => eq(hack.event_id, event.id))
-      .select(({ member, hack }) => ({
+      .select(({ member, hack, user }) => ({
         hackId: member.hack_id,
         userId: member.user_id,
         teamName: hack.team_name,
+        userName: user?.name,
       })),
   );
 
@@ -103,27 +116,20 @@ export function BeforeStartDashboard({
       .where(({ hack }) => eq(hack!.event_id, event.id)),
   );
 
+  // Get awards for this event
+  const { data: awards } = useLiveQuery((q) =>
+    q
+      .from({ award: awardsCollection })
+      .where(({ award }) => eq(award.event_id, event.id)),
+  );
+
   const userTeamHasVotes = teamVotes && teamVotes.length > 0;
 
   return (
     <div className="space-y-8">
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        {userTeam ? (
-          <TeamManagement
-            hackId={userTeam.hackId}
-            teamName={userTeam.teamName}
-            user={user}
-            hasVotes={userTeamHasVotes}
-            isAdmin={isAdmin}
-            onTeamDeleted={() => {
-              // TanStack DB will automatically update via live queries
-            }}
-            onTeamUpdated={() => {
-              // TanStack DB will automatically update via live queries
-            }}
-          />
-        ) : (
+        {!userTeam && (
           <RegisterTeamModal
             eventId={event.id}
             eventSlug={event.slug}
@@ -166,75 +172,118 @@ export function BeforeStartDashboard({
         </Card>
       )}
 
-      {/* Event Details */}
+      {/* Event Details and Awards */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Schedule */}
+        {/* Event Schedule & Location */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Event Schedule
+              Event Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <div>
-                <p className="font-medium">Event Start</p>
-                <p className="text-sm text-gray-600">
-                  {toReadableDateTimeStr(event.startDate)}
-                </p>
+            {/* Location Section */}
+            <div className="pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-3 mb-2">
+                <MapPin className="h-4 w-4 text-gray-500" />
+                <p className="font-medium">Location</p>
+              </div>
+              <div className="pl-7 space-y-1">
+                <p className="text-sm font-medium">{event.shortLocation}</p>
+                {event.streetAddress && (
+                  <p className="text-sm text-gray-600">{event.streetAddress}</p>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <div>
-                <p className="font-medium">Event End</p>
-                <p className="text-sm text-gray-600">
-                  {toReadableDateTimeStr(event.endDate)}
-                </p>
-              </div>
-            </div>
-            {event.hackUntil && (
+
+            {/* Schedule Section */}
+            <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-blue-500" />
+                <Clock className="h-4 w-4 text-gray-500" />
                 <div>
-                  <p className="font-medium">Hacking Deadline</p>
+                  <p className="font-medium">Event Start</p>
                   <p className="text-sm text-gray-600">
-                    {toReadableDateTimeStr(event.hackUntil)}
+                    {toReadableDateTimeStr(event.startDate)}
                   </p>
                 </div>
               </div>
-            )}
-            {event.voteUntil && (
               <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-yellow-500" />
+                <Clock className="h-4 w-4 text-gray-500" />
                 <div>
-                  <p className="font-medium">Voting Deadline</p>
+                  <p className="font-medium">Event End</p>
                   <p className="text-sm text-gray-600">
-                    {toReadableDateTimeStr(event.voteUntil)}
+                    {toReadableDateTimeStr(event.endDate)}
                   </p>
                 </div>
               </div>
-            )}
+              {event.hackUntil && (
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <p className="font-medium">Hacking Deadline</p>
+                    <p className="text-sm text-gray-600">
+                      {toReadableDateTimeStr(event.hackUntil)}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {event.voteUntil && (
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-yellow-500" />
+                  <div>
+                    <p className="font-medium">Voting Deadline</p>
+                    <p className="text-sm text-gray-600">
+                      {toReadableDateTimeStr(event.voteUntil)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Location */}
+        {/* Awards */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Location
+              <Trophy className="h-5 w-5" />
+              Awards
+              <Badge variant="secondary">{awards?.length || 0}</Badge>
             </CardTitle>
+            <CardDescription>
+              Awards available for this hackathon
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <p className="font-medium">{event.shortLocation}</p>
-              {event.streetAddress && (
-                <p className="text-sm text-gray-600">{event.streetAddress}</p>
-              )}
-            </div>
+            {!awards || awards.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No awards announced yet</p>
+                <p className="text-sm">Awards will be announced soon!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {awards.map((award, index) => (
+                  <div
+                    key={award.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200"
+                  >
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">
+                          {index + 1}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{award.name}</p>
+                    </div>
+                    <Trophy className="h-4 w-4 text-yellow-600" />
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -259,7 +308,7 @@ export function BeforeStartDashboard({
               <p className="text-sm">Be the first to register your team!</p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-[280px]">
               {teams.map((team) => {
                 const members =
                   teamMembers?.filter((m) => m.hackId === team.id) || [];
@@ -326,12 +375,23 @@ export function BeforeStartDashboard({
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Users className="h-4 w-4" />
-                        <span>
-                          {members.length} member
-                          {members.length !== 1 ? "s" : ""}
-                        </span>
+                      <div className="text-sm text-gray-600">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Users className="h-4 w-4" />
+                          <span className="font-medium">Team Members:</span>
+                        </div>
+                        {members.length > 0 && (
+                          <div className="text-xs text-gray-500 pl-6">
+                            {members.map((member, index) => (
+                              <span key={member.userId}>
+                                {member.userId === user.id
+                                  ? "You"
+                                  : member.userName || "Anonymous"}
+                                {index < members.length - 1 ? ", " : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       {team.project_description && (
                         <p className="text-sm text-gray-500 mt-2 line-clamp-2">
