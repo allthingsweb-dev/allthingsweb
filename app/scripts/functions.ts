@@ -2,11 +2,13 @@ import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { db } from "../src/lib/db";
 import { mainConfig } from "../src/lib/config";
 import {
+  awardsTable,
   eventImagesTable,
   eventSponsorsTable,
   eventTalksTable,
   eventsTable,
   imagesTable,
+  InsertAward,
   InsertEvent,
   InsertProfile,
   InsertSponsor,
@@ -781,5 +783,103 @@ export async function deleteProfile(profileId: string) {
   } catch (error) {
     console.error("❌ Error during deletion process:", error);
     throw new Error(`Deletion failed: ${error.message}`);
+  }
+}
+
+// Award management functions
+export interface CreateAwardInput {
+  eventId: string;
+  name: string;
+}
+
+export async function createAward(input: CreateAwardInput) {
+  console.log("🏆 Creating award...");
+
+  try {
+    // Check if event exists
+    const event = await db
+      .select()
+      .from(eventsTable)
+      .where(eq(eventsTable.id, input.eventId))
+      .limit(1);
+
+    if (event.length === 0) {
+      throw new Error(`Event with ID ${input.eventId} not found`);
+    }
+
+    // Check if award with same name already exists for this event
+    const existingAward = await db
+      .select()
+      .from(awardsTable)
+      .where(
+        and(
+          eq(awardsTable.eventId, input.eventId),
+          eq(awardsTable.name, input.name),
+        ),
+      )
+      .limit(1);
+
+    if (existingAward.length > 0) {
+      throw new Error(`Award "${input.name}" already exists for this event`);
+    }
+
+    const awardData: InsertAward = {
+      id: randomUUID(),
+      eventId: input.eventId,
+      name: input.name,
+    };
+
+    const [newAward] = await db
+      .insert(awardsTable)
+      .values(awardData)
+      .returning();
+
+    console.log(
+      `✅ Award created: ${newAward.name} for event ${event[0].name}`,
+    );
+
+    return {
+      award: newAward,
+      event: event[0],
+      message: `Successfully created award: ${newAward.name}`,
+    };
+  } catch (error) {
+    console.error("❌ Error creating award:", error);
+    throw new Error(`Failed to create award: ${error.message}`);
+  }
+}
+
+export async function listAwards(eventId: string) {
+  console.log("📋 Listing awards for event...");
+
+  try {
+    // Check if event exists
+    const event = await db
+      .select()
+      .from(eventsTable)
+      .where(eq(eventsTable.id, eventId))
+      .limit(1);
+
+    if (event.length === 0) {
+      throw new Error(`Event with ID ${eventId} not found`);
+    }
+
+    const awards = await db
+      .select()
+      .from(awardsTable)
+      .where(eq(awardsTable.eventId, eventId))
+      .orderBy(awardsTable.createdAt);
+
+    console.log(`✅ Found ${awards.length} awards for event ${event[0].name}`);
+
+    return {
+      awards,
+      event: event[0],
+      count: awards.length,
+      message: `Found ${awards.length} awards for event: ${event[0].name}`,
+    };
+  } catch (error) {
+    console.error("❌ Error listing awards:", error);
+    throw new Error(`Failed to list awards: ${error.message}`);
   }
 }

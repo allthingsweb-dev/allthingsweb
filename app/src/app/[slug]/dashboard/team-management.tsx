@@ -1,0 +1,177 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Edit, Trash2, Users, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
+import { EditTeamModal } from "./edit-team-modal";
+import type { ClientUser } from "@/lib/client-user";
+
+interface TeamManagementProps {
+  hackId: string;
+  teamName: string;
+  user: ClientUser;
+  hasVotes?: boolean;
+  isAdmin?: boolean;
+  onTeamDeleted?: () => void;
+  onTeamUpdated?: () => void;
+}
+
+export function TeamManagement({
+  hackId,
+  teamName,
+  user,
+  hasVotes = false,
+  isAdmin = false,
+  onTeamDeleted,
+  onTeamUpdated,
+}: TeamManagementProps) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteTeam = async () => {
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/v1/teams/${hackId}/delete`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Team deleted successfully");
+        setShowDeleteDialog(false);
+        if (onTeamDeleted) {
+          onTeamDeleted();
+        } else {
+          // Fallback to page reload if no callback provided
+          window.location.reload();
+        }
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Failed to delete team");
+      }
+    } catch (error) {
+      console.error("Error deleting team:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="lg" className="flex-1 sm:flex-none">
+            <Users className="h-4 w-4 mr-2" />
+            Manage Team
+            <ChevronDown className="h-4 w-4 ml-2" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="w-48">
+          <EditTeamModal
+            hackId={hackId}
+            user={user}
+            onTeamUpdated={onTeamUpdated ? () => onTeamUpdated() : undefined}
+            trigger={
+              <DropdownMenuItem
+                onSelect={(e) => e.preventDefault()}
+                className="cursor-pointer"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Team
+              </DropdownMenuItem>
+            }
+          />
+
+          {(!hasVotes || isAdmin) && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => setShowDeleteDialog(true)}
+                className="cursor-pointer text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Team
+                {isAdmin && hasVotes && (
+                  <span className="text-xs text-red-400 ml-1">(Admin)</span>
+                )}
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Team</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the team "{teamName}"? This action
+              cannot be undone and will:
+              <br />
+              <br />
+              • Remove all team members
+              <br />
+              • Delete the team image (if any)
+              <br />
+              • Permanently delete all team data
+              <br />
+              <br />
+              {hasVotes && !isAdmin ? (
+                <span className="text-red-600 font-medium">
+                  ⚠️ This team cannot be deleted because votes have already been
+                  cast for it.
+                </span>
+              ) : hasVotes && isAdmin ? (
+                <span className="text-orange-600 font-medium">
+                  ⚠️ Admin override: This team has votes but can be deleted with
+                  admin privileges. This will also remove all associated votes.
+                </span>
+              ) : (
+                "This action is only available before voting begins."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTeam}
+              disabled={isDeleting || hasVotes}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Team
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

@@ -16,6 +16,11 @@ const databaseSchema = z.object({
   neonAuth: neonAuthSchema,
 });
 
+const electricSQLSchema = z.object({
+  sourceId: z.string(),
+  sourceSecret: z.string(),
+});
+
 const s3Schema = z.object({
   accessKeyId: z.string(),
   secretAccessKey: z.string(),
@@ -35,6 +40,7 @@ const lumaSchema = z.object({
 const configSchema = z.object({
   instance: instanceSchema,
   database: databaseSchema,
+  electricSQL: electricSQLSchema,
   s3: s3Schema,
   resend: resendSchema,
   luma: lumaSchema,
@@ -64,6 +70,10 @@ const configData: PreValidate<MainConfig> = {
         process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY,
       stackSecretServerKey: process.env.STACK_SECRET_SERVER_KEY,
     },
+  },
+  electricSQL: {
+    sourceId: process.env.ELECTRIC_SQL_CLOUD_SOURCE_ID,
+    sourceSecret: process.env.ELECTRIC_SQL_CLOUD_SOURCE_SECRET,
   },
   s3: {
     accessKeyId: process.env.AWS_S3_ACCESS_KEY,

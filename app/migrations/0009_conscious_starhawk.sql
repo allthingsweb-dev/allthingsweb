@@ -1,0 +1,1 @@
+ALTER TABLE "hack_users" ADD CONSTRAINT "hack_users_hack_id_user_id_pk" PRIMARY KEY("hack_id","user_id");--> statement-breakpoint 
