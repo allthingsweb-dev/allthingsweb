@@ -19,9 +19,13 @@ export default async function RegisterTeamPage({ params }: PageProps) {
   return (
     <Section variant="big">
       <div className="container max-w-3xl">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6">Register your team</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6">
+          Register your team
+        </h1>
         {disabled ? (
-          <p className="text-muted-foreground">This event has ended. Team registration is closed.</p>
+          <p className="text-muted-foreground">
+            This event has ended. Team registration is closed.
+          </p>
         ) : (
           <RegisterTeamForm slug={slug} disabled={disabled} />
         )}
@@ -29,4 +33,3 @@ export default async function RegisterTeamPage({ params }: PageProps) {
     </Section>
   );
 }
-

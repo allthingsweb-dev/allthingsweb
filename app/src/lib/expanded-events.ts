@@ -96,7 +96,10 @@ async function getExpandedEventFromQuery(
       .select()
       .from(eventSponsorsTable)
       .where(eq(eventSponsorsTable.eventId, event.id))
-      .leftJoin(sponsorsTable, eq(eventSponsorsTable.sponsorId, sponsorsTable.id))
+      .leftJoin(
+        sponsorsTable,
+        eq(eventSponsorsTable.sponsorId, sponsorsTable.id),
+      )
       .leftJoin(imagesTable, eq(sponsorsTable.squareLogoLight, imagesTable.id));
 
     return Promise.all(
@@ -256,7 +259,9 @@ async function getExpandedEventFromQuery(
             return {
               id: hack.id,
               teamName:
-                (hack as any).teamName ?? (hack as any).team_name ?? (hack as any).name,
+                (hack as any).teamName ??
+                (hack as any).team_name ??
+                (hack as any).name,
               projectName:
                 (hack as any).projectName ?? (hack as any).project_name ?? null,
               projectDescription:

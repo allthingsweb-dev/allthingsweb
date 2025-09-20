@@ -14,15 +14,26 @@ export async function GET(request: NextRequest) {
     }
 
     const results = await db
-      .select({ id: usersSyncTable.id, name: usersSyncTable.name, email: usersSyncTable.email })
+      .select({
+        id: usersSyncTable.id,
+        name: usersSyncTable.name,
+        email: usersSyncTable.email,
+      })
       .from(usersSyncTable)
-      .where(and(ilike(usersSyncTable.name, `%${q}%`), isNull(usersSyncTable.deletedAt)))
+      .where(
+        and(
+          ilike(usersSyncTable.name, `%${q}%`),
+          isNull(usersSyncTable.deletedAt),
+        ),
+      )
       .limit(limit);
 
     return NextResponse.json({ users: results });
   } catch (error) {
     console.error("Error searching users:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
-

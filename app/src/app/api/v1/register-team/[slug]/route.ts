@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack";
 import { db } from "@/lib/db";
-import { eventsTable, imagesTable, hacksTable, hackUsersTable } from "@/lib/schema";
+import {
+  eventsTable,
+  imagesTable,
+  hacksTable,
+  hackUsersTable,
+} from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { mainConfig } from "@/lib/config";
@@ -48,8 +53,10 @@ export async function POST(
 
     const formData = await request.formData();
     const teamName = (formData.get("teamName") as string)?.trim();
-    const projectName = (formData.get("projectName") as string | null)?.trim() || null;
-    const projectDescription = (formData.get("projectDescription") as string | null)?.trim() || null;
+    const projectName =
+      (formData.get("projectName") as string | null)?.trim() || null;
+    const projectDescription =
+      (formData.get("projectDescription") as string | null)?.trim() || null;
     const imageFile = formData.get("teamImage") as File | null;
     const memberIdsJson = formData.get("memberIds") as string | null; // JSON array of user IDs
     const memberIds: string[] = memberIdsJson ? JSON.parse(memberIdsJson) : [];
@@ -112,15 +119,19 @@ export async function POST(
     // Associate members (include current user if not provided)
     const uniqueMemberIds = Array.from(new Set([user.id, ...memberIds]));
     if (uniqueMemberIds.length > 0) {
-      await db.insert(hackUsersTable).values(
-        uniqueMemberIds.map((uid) => ({ hackId: hack.id, userId: uid })),
-      );
+      await db
+        .insert(hackUsersTable)
+        .values(
+          uniqueMemberIds.map((uid) => ({ hackId: hack.id, userId: uid })),
+        );
     }
 
     return NextResponse.json({ id: hack.id }, { status: 201 });
   } catch (error) {
     console.error("Error registering team:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
-

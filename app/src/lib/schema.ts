@@ -211,7 +211,9 @@ export const hackUsersTable = pgTable(
       .notNull()
       .references(() => hacksTable.id),
     // Reference to neon_auth.users_sync.id
-    userId: text("user_id").notNull().references(() => usersSyncTable.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersSyncTable.id),
     createdAt,
     updatedAt,
   },
@@ -224,7 +226,9 @@ export const hackVotesTable = pgTable("hack_votes", {
     .notNull()
     .references(() => hacksTable.id),
   // Reference to neon_auth.users_sync.id
-  userId: text("user_id").notNull().references(() => usersSyncTable.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => usersSyncTable.id),
   createdAt,
   updatedAt,
 });

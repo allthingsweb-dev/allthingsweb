@@ -81,8 +81,17 @@ export function HeroSectionTitle({
           </Button>
         )}
         {event.isHackathon && (
-          <Button asChild variant={isInPast ? "outline" : "secondary"} size="lg" className="w-full min-[400px]:w-auto">
-            <Link href={`/${event.slug}/register-team`} aria-disabled={isInPast} className={clsx({ "pointer-events-none opacity-60": isInPast })}>
+          <Button
+            asChild
+            variant={isInPast ? "outline" : "secondary"}
+            size="lg"
+            className="w-full min-[400px]:w-auto"
+          >
+            <Link
+              href={`/${event.slug}/register-team`}
+              aria-disabled={isInPast}
+              className={clsx({ "pointer-events-none opacity-60": isInPast })}
+            >
               {isInPast ? "Registration closed" : "Register a team"}
             </Link>
           </Button>
@@ -355,7 +364,10 @@ export function TeamsAndHacksSection({
                 <div className="flex items-center gap-3">
                   {hack.teamImage ? (
                     <Avatar className="w-10 h-10">
-                      <AvatarImage src={hack.teamImage.url} alt={hack.teamName} />
+                      <AvatarImage
+                        src={hack.teamImage.url}
+                        alt={hack.teamName}
+                      />
                       <AvatarFallback>{hack.teamName[0]}</AvatarFallback>
                     </Avatar>
                   ) : (
@@ -383,7 +395,9 @@ export function TeamsAndHacksSection({
                 )}
               </CardContent>
               <CardFooter>
-                <div className="text-sm text-muted-foreground">Votes: {hack.voteCount}</div>
+                <div className="text-sm text-muted-foreground">
+                  Votes: {hack.voteCount}
+                </div>
               </CardFooter>
             </Card>
           ))}
