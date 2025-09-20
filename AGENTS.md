@@ -1,0 +1,5 @@
+# General guidelines
+
+- Do not add documentation (e.g., README.md updates, docs/ folder, etc.) for code changes if not explicitly requested.
+- When instructed to refactor code, only make the changes requested. Do not add additional changes or improvements unless explicitly requested. Do not leave comments like //removed and moved to x.tsx etc.
+- Do not add example components, code, or other explanatory content to the codebase unless explicitly requested.

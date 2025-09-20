@@ -37,6 +37,63 @@ export function HeroSectionTitle({
   isInPast: boolean;
   children?: React.ReactNode;
 }) {
+  // Define reusable button components
+  const recordingButton = event.recordingUrl && (
+    <div>
+      <Button asChild variant="default" size="lg">
+        <Link
+          href={event.recordingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View recording
+        </Link>
+      </Button>
+    </div>
+  );
+
+  const lumaButton = event.lumaEventUrl && (
+    <div>
+      <Button
+        asChild
+        variant={isInPast ? "outline" : "default"}
+        size="lg"
+        className="w-full min-[400px]:w-auto"
+      >
+        <Link
+          href={event.lumaEventUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {isInPast
+            ? "View on Luma"
+            : isAtCapacity
+              ? "Join waitlist on Luma"
+              : "Register on Luma"}
+        </Link>
+      </Button>
+    </div>
+  );
+
+  const teamButton = event.isHackathon && (
+    <div>
+      <Button
+        asChild
+        variant={isInPast ? "outline" : "secondary"}
+        size="lg"
+        className="w-full min-[400px]:w-auto"
+      >
+        <Link
+          href={`/${event.slug}/dashboard`}
+          aria-disabled={isInPast}
+          className={clsx({ "pointer-events-none opacity-60": isInPast })}
+        >
+          {isInPast ? "View Results" : "Hack Dashboard"}
+        </Link>
+      </Button>
+    </div>
+  );
+
   return (
     <div className="flex flex-col justify-center space-y-6 lg:space-y-4">
       <div className="space-y-3 lg:space-y-2">
@@ -49,52 +106,17 @@ export function HeroSectionTitle({
       </div>
 
       <div className="flex flex-col items-center gap-3 lg:items-start">
-        {event.recordingUrl && (
-          <Button asChild variant="default" size="lg">
-            <Link
-              href={event.recordingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View recording
-            </Link>
-          </Button>
-        )}
-        {event.lumaEventUrl && (
-          <Button
-            asChild
-            variant={isInPast ? "outline" : "default"}
-            size="lg"
-            className="w-full min-[400px]:w-auto"
-          >
-            <Link
-              href={event.lumaEventUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {isInPast
-                ? "View on Luma"
-                : isAtCapacity
-                  ? "Join waitlist on Luma"
-                  : "Register on Luma"}
-            </Link>
-          </Button>
-        )}
-        {event.isHackathon && (
-          <Button
-            asChild
-            variant={isInPast ? "outline" : "secondary"}
-            size="lg"
-            className="w-full min-[400px]:w-auto"
-          >
-            <Link
-              href={`/${event.slug}/register-team`}
-              aria-disabled={isInPast}
-              className={clsx({ "pointer-events-none opacity-60": isInPast })}
-            >
-              {isInPast ? "Registration closed" : "Register a team"}
-            </Link>
-          </Button>
+        {recordingButton}
+        {event.isHackathon && event.lumaEventUrl ? (
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+            {lumaButton}
+            {teamButton}
+          </div>
+        ) : (
+          <>
+            {lumaButton}
+            {teamButton}
+          </>
         )}
       </div>
       {children}
@@ -211,7 +233,7 @@ export function AllYouNeedToKnowSection({
                 {event.shortLocation}
               </h3>
               <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1 break-words">
-                {event.streetAddress}
+                {event.shortLocation}
               </p>
             </div>
           </div>
