@@ -71,6 +71,13 @@
       "when": 1758344017084,
       "tag": "0009_conscious_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1758405192287,
+      "tag": "0010_graceful_nova",
+      "breakpoints": true
     }
   ]
 }
