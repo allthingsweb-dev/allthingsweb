@@ -9,6 +9,7 @@ import {
   HeroSection,
   AllYouNeedToKnowSection,
   ImagesSection,
+  TeamsAndHacksSection,
 } from "@/components/event-details";
 import { Section } from "@/components/ui/section";
 import { SentryLogoIcon } from "@/components/ui/icons";
@@ -92,6 +93,9 @@ export default async function HackathonPage() {
       />
       {showEventImageSection && (
         <ImagesSection background="default" images={event.images} />
+      )}
+      {event.isHackathon && event.hacks && event.hacks.length > 0 && (
+        <TeamsAndHacksSection hacks={event.hacks} />
       )}
       <Section
         variant="big"

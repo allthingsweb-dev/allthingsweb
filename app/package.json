@@ -9,6 +9,7 @@
     "fmt": "prettier --write .",
     "check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "typecheck:scripts": "tsc --noEmit --project scripts/tsconfig.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
@@ -70,6 +71,7 @@
     "sharp": "^0.34.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
+    "uuid": "^13.0.0",
     "vaul": "^1.1.2",
     "zod": "^4.1.8"
   },

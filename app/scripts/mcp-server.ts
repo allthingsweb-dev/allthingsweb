@@ -17,18 +17,22 @@ import {
   updateProfileById,
   replaceProfileImage,
   createTalk,
+  updateTalk,
   addTalkToEvent,
   removeTalkFromEvent,
   findTalksBySpeakerName,
   createSponsor,
   addSponsorToEvent,
   getImgIdsForUrls,
-  deleteImages,
+  deleteEventImages,
+  deleteOrphanedImage,
   addImagesToEvent,
   addUserToAdmins,
   removeUserFromAdmins,
   listAdmins,
   getLumaEvent,
+  createAward,
+  listAwards,
 } from "./functions.js";
 
 // Zod schemas for function parameters
@@ -79,9 +83,26 @@ const InsertTalkSchema = z.object({
   description: z.string(), // Required in schema
 });
 
+const UpdateTalkSchema = z.object({
+  talkId: z.string(),
+  talkData: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+  }),
+});
+
 const InsertSponsorSchema = z.object({
   name: z.string(),
   about: z.string(), // Required in schema
+});
+
+const CreateAwardSchema = z.object({
+  eventId: z.string(),
+  name: z.string(),
+});
+
+const ListAwardsSchema = z.object({
+  eventId: z.string(),
 });
 
 const server = new Server(
@@ -301,6 +322,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "update_talk",
+        description: "Update an existing talk",
+        inputSchema: {
+          type: "object",
+          properties: {
+            talkId: { type: "string", description: "Talk ID" },
+            talkData: {
+              type: "object",
+              properties: {
+                title: { type: "string", description: "Talk title" },
+                description: {
+                  type: "string",
+                  description: "Talk description",
+                },
+              },
+              additionalProperties: true,
+              description: "Talk data to update",
+            },
+          },
+          required: ["talkId", "talkData"],
+        },
+      },
+      {
         name: "add_talk_to_event",
         description: "Add talk to event",
         inputSchema: {
@@ -391,8 +435,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "delete_images",
-        description: "Delete images by URLs",
+        name: "delete_event_images",
+        description: "Delete event images by URLs",
         inputSchema: {
           type: "object",
           properties: {
@@ -403,6 +447,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["imageUrls"],
+        },
+      },
+      {
+        name: "delete_orphaned_image",
+        description:
+          "Delete an orphaned image from S3 (only if not in database)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            s3Url: {
+              type: "string",
+              description: "S3 URL of the image to delete",
+            },
+          },
+          required: ["s3Url"],
         },
       },
       {
@@ -471,6 +530,40 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {},
           required: [],
+        },
+      },
+      // Award tools
+      {
+        name: "create_award",
+        description: "Create a new award for a hackathon event",
+        inputSchema: {
+          type: "object",
+          properties: {
+            eventId: {
+              type: "string",
+              description: "Event ID for the hackathon",
+            },
+            name: {
+              type: "string",
+              description:
+                "Award name (e.g., 'Best Innovation', 'People's Choice')",
+            },
+          },
+          required: ["eventId", "name"],
+        },
+      },
+      {
+        name: "list_awards",
+        description: "List all awards for a hackathon event",
+        inputSchema: {
+          type: "object",
+          properties: {
+            eventId: {
+              type: "string",
+              description: "Event ID for the hackathon",
+            },
+          },
+          required: ["eventId"],
         },
       },
     ],
@@ -613,6 +706,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case "update_talk": {
+        const { talkId, talkData } = UpdateTalkSchema.parse(args);
+        const result = await updateTalk(talkId, talkData);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
       case "add_talk_to_event": {
         const { slug, talkId } = args as { slug: string; talkId: string };
         const result = await addTalkToEvent(slug, talkId);
@@ -705,9 +811,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "delete_images": {
+      case "delete_event_images": {
         const { imageUrls } = args as { imageUrls: string[] };
-        const result = await deleteImages(imageUrls);
+        const result = await deleteEventImages(imageUrls);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "delete_orphaned_image": {
+        const { s3Url } = args as { s3Url: string };
+        const result = await deleteOrphanedImage(s3Url);
         return {
           content: [
             {
@@ -777,6 +896,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "list_admins": {
         const result = await listAdmins();
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "create_award": {
+        const { eventId, name } = args as { eventId: string; name: string };
+        const result = await createAward({ eventId, name });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "list_awards": {
+        const { eventId } = args as { eventId: string };
+        const result = await listAwards(eventId);
         return {
           content: [
             {

@@ -37,6 +37,60 @@ export function HeroSectionTitle({
   isInPast: boolean;
   children?: React.ReactNode;
 }) {
+  // Define reusable button components
+  const recordingButton = event.recordingUrl && (
+    <div>
+      <Button asChild variant="default" size="lg">
+        <Link
+          href={event.recordingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View recording
+        </Link>
+      </Button>
+    </div>
+  );
+
+  const lumaButton = event.lumaEventUrl && (
+    <div>
+      <Button
+        asChild
+        variant={isInPast ? "outline" : "default"}
+        size="lg"
+        className="w-full min-[400px]:w-auto"
+      >
+        <Link
+          href={event.lumaEventUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {isInPast
+            ? "View on Luma"
+            : isAtCapacity
+              ? "Join waitlist on Luma"
+              : "Register on Luma"}
+        </Link>
+      </Button>
+    </div>
+  );
+
+  const teamButton = event.isHackathon &&
+    (!isInPast || (event.hacks && event.hacks.length > 0)) && (
+      <div>
+        <Button
+          asChild
+          variant={isInPast ? "outline" : "secondary"}
+          size="lg"
+          className="w-full min-[400px]:w-auto"
+        >
+          <Link href={`/${event.slug}/dashboard`}>
+            {isInPast ? "View Results" : "Hack Dashboard"}
+          </Link>
+        </Button>
+      </div>
+    );
+
   return (
     <div className="flex flex-col justify-center space-y-6 lg:space-y-4">
       <div className="space-y-3 lg:space-y-2">
@@ -49,36 +103,17 @@ export function HeroSectionTitle({
       </div>
 
       <div className="flex flex-col items-center gap-3 lg:items-start">
-        {event.recordingUrl && (
-          <Button asChild variant="default" size="lg">
-            <Link
-              href={event.recordingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View recording
-            </Link>
-          </Button>
-        )}
-        {event.lumaEventUrl && (
-          <Button
-            asChild
-            variant={isInPast ? "outline" : "default"}
-            size="lg"
-            className="w-full min-[400px]:w-auto"
-          >
-            <Link
-              href={event.lumaEventUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {isInPast
-                ? "View on Luma"
-                : isAtCapacity
-                  ? "Join waitlist on Luma"
-                  : "Register on Luma"}
-            </Link>
-          </Button>
+        {recordingButton}
+        {event.isHackathon && event.lumaEventUrl ? (
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+            {lumaButton}
+            {teamButton}
+          </div>
+        ) : (
+          <>
+            {lumaButton}
+            {teamButton}
+          </>
         )}
       </div>
       {children}
@@ -195,7 +230,7 @@ export function AllYouNeedToKnowSection({
                 {event.shortLocation}
               </h3>
               <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1 break-words">
-                {event.streetAddress}
+                {event.shortLocation}
               </p>
             </div>
           </div>
@@ -224,7 +259,7 @@ export function TalksSection({ talks }: { talks: Talk[] }) {
           Talks
         </h2>
         <div
-          className={clsx("mx-auto grid gap-6 grid-cols-1 max-w-4xl", {
+          className={clsx("mx-auto grid gap-6 grid-cols-1 max-w-6xl", {
             "lg:grid-cols-2": talks.length >= 2,
           })}
         >
@@ -317,6 +352,73 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+export function TeamsAndHacksSection({
+  hacks,
+}: {
+  hacks: NonNullable<ExpandedEvent["hacks"]>;
+}) {
+  if (!hacks.length) return null;
+  return (
+    <Section id="hacks" variant="big">
+      <div className="container flex flex-col gap-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight">
+          Teams & Hacks
+        </h2>
+        <div
+          className={clsx(
+            "mx-auto grid gap-6 grid-cols-1 max-w-5xl",
+            "sm:grid-cols-2",
+          )}
+        >
+          {hacks.map((hack) => (
+            <Card key={hack.id} className="flex flex-col h-full">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  {hack.teamImage ? (
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage
+                        src={hack.teamImage.url}
+                        alt={hack.teamName}
+                      />
+                      <AvatarFallback>{hack.teamName[0]}</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback>{hack.teamName[0]}</AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div className="min-w-0">
+                    <CardTitle className="text-base leading-tight truncate">
+                      {hack.teamName}
+                    </CardTitle>
+                    {hack.projectName && (
+                      <CardDescription className="text-sm mt-1 truncate">
+                        {hack.projectName}
+                      </CardDescription>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {hack.projectDescription && (
+                  <p className="text-muted-foreground text-sm line-clamp-4">
+                    {hack.projectDescription}
+                  </p>
+                )}
+              </CardContent>
+              <CardFooter>
+                <div className="text-sm text-muted-foreground">
+                  Votes: {hack.voteCount}
+                </div>
+              </CardFooter>
+            </Card>
           ))}
         </div>
       </div>

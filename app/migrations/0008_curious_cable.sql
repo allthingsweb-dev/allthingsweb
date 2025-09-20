@@ -1,0 +1,1 @@
+ALTER TABLE "hack_votes" DROP COLUMN "id";

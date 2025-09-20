@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useUser } from "@stackframe/stack";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,34 +12,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Settings, LogOut, Shield } from "lucide-react";
+import type { ClientUser } from "@/lib/client-user";
 
-export function ProfileButton() {
-  const user = useUser({ or: "redirect" });
+interface ProfileButtonProps {
+  user: ClientUser;
+  isAdmin: boolean;
+}
+
+export function ProfileButton({ user, isAdmin }: ProfileButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
-
-  // Check admin status when component mounts
-  useEffect(() => {
-    async function checkAdminStatus() {
-      try {
-        const response = await fetch("/api/v1/admin/check");
-        if (response.ok) {
-          const data = await response.json();
-          setIsAdmin(data.isAdmin);
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-      } finally {
-        setAdminCheckLoading(false);
-      }
-    }
-
-    checkAdminStatus();
-  }, []);
 
   const handleSignOut = async () => {
-    await user.signOut();
+    // Redirect to sign out page
+    window.location.href = "/handler/sign-out";
   };
 
   // Get user initials for fallback

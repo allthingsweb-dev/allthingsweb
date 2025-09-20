@@ -36,6 +36,48 @@
       "when": 1757965007987,
       "tag": "0004_equal_excalibur",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1758330541463,
+      "tag": "0005_skinny_madelyne_pryor",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1758332543986,
+      "tag": "0006_orange_katie_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1758336148849,
+      "tag": "0007_elite_chamber",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1758338840400,
+      "tag": "0008_curious_cable",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1758344017084,
+      "tag": "0009_conscious_starhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1758405192287,
+      "tag": "0010_graceful_nova",
+      "breakpoints": true
     }
   ]
 }
