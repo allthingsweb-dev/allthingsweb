@@ -31,6 +31,13 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
   const [existingImages, setExistingImages] = useState<EventImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    total: number;
+    completed: number;
+    failed: number;
+    uploading: string | null;
+  }>({ total: 0, completed: 0, failed: 0, uploading: null });
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -103,6 +110,37 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
     setMessage(null);
   };
 
+  const uploadSingleImage = async (
+    file: File,
+    eventId: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append("eventId", eventId);
+      formData.append("image", file);
+
+      const response = await fetch("/api/v1/admin/upload-event-images", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return {
+          success: false,
+          error: error.error || "Failed to upload image",
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "An error occurred",
+      };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -124,48 +162,76 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
 
     setIsLoading(true);
     setMessage(null);
+    setUploadErrors([]);
+    setUploadProgress({
+      total: selectedFiles.length,
+      completed: 0,
+      failed: 0,
+      uploading: null,
+    });
 
-    try {
-      const formData = new FormData();
-      formData.append("eventId", selectedEventId);
+    const errors: string[] = [];
+    let completedCount = 0;
+    let failedCount = 0;
 
-      // Append all selected files
-      selectedFiles.forEach((file) => {
-        formData.append("images", file);
-      });
+    // Upload images one by one
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
 
-      const response = await fetch("/api/v1/admin/upload-event-images", {
-        method: "POST",
-        body: formData,
-      });
+      setUploadProgress((prev) => ({
+        ...prev,
+        uploading: file.name,
+      }));
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to upload images");
+      const result = await uploadSingleImage(file, selectedEventId);
+
+      if (result.success) {
+        completedCount++;
+      } else {
+        failedCount++;
+        errors.push(`${file.name}: ${result.error}`);
       }
 
-      const result = await response.json();
+      setUploadProgress((prev) => ({
+        ...prev,
+        completed: completedCount,
+        failed: failedCount,
+        uploading: null,
+      }));
+    }
+
+    // Set final results
+    setUploadErrors(errors);
+
+    if (completedCount > 0 && failedCount === 0) {
       setMessage({
         type: "success",
-        text: `Successfully uploaded ${result.uploadedCount} image(s) to the event!`,
+        text: `Successfully uploaded all ${completedCount} image(s) to the event!`,
       });
+    } else if (completedCount > 0 && failedCount > 0) {
+      setMessage({
+        type: "error",
+        text: `Uploaded ${completedCount} image(s) successfully, but ${failedCount} failed. See errors below.`,
+      });
+    } else {
+      setMessage({
+        type: "error",
+        text: `Failed to upload all ${failedCount} image(s). See errors below.`,
+      });
+    }
 
-      // Reset form
+    // Reset form if all uploads succeeded
+    if (failedCount === 0) {
       setSelectedFiles([]);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-
-      // Reload existing images to show the newly uploaded ones
-      await loadExistingImages(selectedEventId);
-    } catch (error) {
-      setMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : "An error occurred",
-      });
-    } finally {
-      setIsLoading(false);
     }
+
+    // Reload existing images to show the newly uploaded ones
+    await loadExistingImages(selectedEventId);
+
+    setIsLoading(false);
   };
 
   const removeFile = (index: number) => {
@@ -192,6 +258,81 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
           }`}
         >
           {message.text}
+        </div>
+      )}
+
+      {/* Upload Progress Display */}
+      {isLoading && (
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-blue-900">
+              Upload Progress
+            </h3>
+            <span className="text-sm text-blue-600">
+              {uploadProgress.completed + uploadProgress.failed} of{" "}
+              {uploadProgress.total}
+            </span>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{
+                width: `${((uploadProgress.completed + uploadProgress.failed) / uploadProgress.total) * 100}%`,
+              }}
+            ></div>
+          </div>
+
+          {/* Current Upload Status */}
+          {uploadProgress.uploading && (
+            <div className="flex items-center text-sm text-blue-700">
+              <svg
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Uploading: {uploadProgress.uploading}
+            </div>
+          )}
+
+          {/* Summary */}
+          <div className="flex justify-between text-xs text-blue-600 mt-2">
+            <span>✅ Completed: {uploadProgress.completed}</span>
+            <span>❌ Failed: {uploadProgress.failed}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Error List Display */}
+      {uploadErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 p-4 rounded-md">
+          <h3 className="text-sm font-medium text-red-900 mb-2">
+            Upload Errors ({uploadErrors.length})
+          </h3>
+          <ul className="text-sm text-red-700 space-y-1">
+            {uploadErrors.map((error, index) => (
+              <li key={index} className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>{error}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -265,7 +406,8 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
             required
           />
           <p className="text-sm text-gray-500 mt-1">
-            Select multiple image files to upload to the event
+            Select multiple image files to upload to the event. Images will be
+            uploaded one at a time to prevent timeouts with large files.
           </p>
         </div>
 
@@ -363,10 +505,12 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Uploading Images...
+                {uploadProgress.uploading
+                  ? `Uploading: ${uploadProgress.uploading}`
+                  : "Uploading Images..."}
               </div>
             ) : (
-              `Upload ${selectedFiles.length} Image${selectedFiles.length !== 1 ? "s" : ""}`
+              `Upload ${selectedFiles.length} Image${selectedFiles.length !== 1 ? "s" : ""} (One at a Time)`
             )}
           </button>
         </div>

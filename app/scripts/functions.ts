@@ -23,7 +23,7 @@ import {
   talksTable,
 } from "../src/lib/schema";
 import { randomUUID } from "node:crypto";
-import { getImgMetadata, getImgPlaceholder } from "openimg/bun";
+import { processImageFromBunFile } from "../src/lib/image-processor";
 import { and, eq } from "drizzle-orm";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -146,19 +146,24 @@ export async function createProfile(profile: InsertProfile, imgPath: string) {
   });
 
   const uuid = randomUUID();
-  const file = Bun.file(imgPath);
-  const buffer = await file.bytes();
-  const { width, height, format } = await getImgMetadata(buffer);
+
+  // Process image using our new utility
+  const processedImage = await processImageFromBunFile(imgPath, {
+    convertUnsupportedFormats: true,
+    conversionFormat: "PNG",
+  });
+
   const nameSlug = profile.name.toLowerCase().replace(/ /g, "-");
-  const path = "profiles/" + nameSlug + "-" + uuid + "." + format;
-  const placeholder = await getImgPlaceholder(buffer);
+  const path =
+    "profiles/" + nameSlug + "-" + uuid + "." + processedImage.metadata.format;
 
   // Upload to S3
   await s3Client.send(
     new PutObjectCommand({
       Bucket: mainConfig.s3.bucket,
       Key: path,
-      Body: buffer,
+      Body: processedImage.buffer,
+      ContentType: `image/${processedImage.metadata.format}`,
     }),
   );
 
@@ -166,9 +171,9 @@ export async function createProfile(profile: InsertProfile, imgPath: string) {
   await db.insert(imagesTable).values({
     url,
     id: uuid,
-    width,
-    height,
-    placeholder,
+    width: processedImage.metadata.width,
+    height: processedImage.metadata.height,
+    placeholder: processedImage.placeholder,
     alt: `${profile.name} smiling into the camera`,
   });
 
@@ -206,18 +211,23 @@ export async function replaceProfileImage(name: string, imgPath: string) {
   }
 
   const uuid = randomUUID();
-  const file = Bun.file(imgPath);
-  const buffer = await file.bytes();
-  const { width, height, format } = await getImgMetadata(buffer);
+
+  // Process image using our new utility
+  const processedImage = await processImageFromBunFile(imgPath, {
+    convertUnsupportedFormats: true,
+    conversionFormat: "PNG",
+  });
+
   const nameSlug = profile.name.toLowerCase().replace(/ /g, "-");
-  const path = "profiles/" + nameSlug + "-" + uuid + "." + format;
-  const placeholder = await getImgPlaceholder(buffer);
+  const path =
+    "profiles/" + nameSlug + "-" + uuid + "." + processedImage.metadata.format;
 
   await s3Client.send(
     new PutObjectCommand({
       Bucket: mainConfig.s3.bucket,
       Key: path,
-      Body: buffer,
+      Body: processedImage.buffer,
+      ContentType: `image/${processedImage.metadata.format}`,
     }),
   );
 
@@ -225,9 +235,9 @@ export async function replaceProfileImage(name: string, imgPath: string) {
   await db.insert(imagesTable).values({
     url,
     id: uuid,
-    width,
-    height,
-    placeholder,
+    width: processedImage.metadata.width,
+    height: processedImage.metadata.height,
+    placeholder: processedImage.placeholder,
     alt: `${profile.name} smiling into the camera`,
   });
 
@@ -394,9 +404,13 @@ export async function createSponsor(
 
   // Process dark logo
   const darkLogoUuid = randomUUID();
-  const darkLogoFile = Bun.file(darkLogoFilePath);
-  const darkLogoBuffer = await darkLogoFile.bytes();
-  const darkLogoMetadata = await getImgMetadata(darkLogoBuffer);
+
+  // Process dark logo image using our new utility
+  const processedDarkLogo = await processImageFromBunFile(darkLogoFilePath, {
+    convertUnsupportedFormats: true,
+    conversionFormat: "PNG",
+  });
+
   const nameSlug = sponsor.name.toLowerCase().replace(/ /g, "-");
   const darkLogoS3Path =
     "sponsors/" +
@@ -404,14 +418,14 @@ export async function createSponsor(
     "-dark-" +
     darkLogoUuid +
     "." +
-    darkLogoMetadata.format;
-  const darkLogoPlaceholder = await getImgPlaceholder(darkLogoBuffer);
+    processedDarkLogo.metadata.format;
 
   await s3Client.send(
     new PutObjectCommand({
       Bucket: mainConfig.s3.bucket,
       Key: darkLogoS3Path,
-      Body: darkLogoBuffer,
+      Body: processedDarkLogo.buffer,
+      ContentType: `image/${processedDarkLogo.metadata.format}`,
     }),
   );
 
@@ -419,31 +433,35 @@ export async function createSponsor(
   await db.insert(imagesTable).values({
     url: darkLogoUrl,
     id: darkLogoUuid,
-    width: darkLogoMetadata.width,
-    height: darkLogoMetadata.height,
-    placeholder: darkLogoPlaceholder,
+    width: processedDarkLogo.metadata.width,
+    height: processedDarkLogo.metadata.height,
+    placeholder: processedDarkLogo.placeholder,
     alt: `${sponsor.name} dark logo`,
   });
 
   // Process light logo
   const lightLogoUuid = randomUUID();
-  const lightLogoFile = Bun.file(lightLogoFilePath);
-  const lightLogoBuffer = await lightLogoFile.bytes();
-  const lightLogoMetadata = await getImgMetadata(lightLogoBuffer);
+
+  // Process light logo image using our new utility
+  const processedLightLogo = await processImageFromBunFile(lightLogoFilePath, {
+    convertUnsupportedFormats: true,
+    conversionFormat: "PNG",
+  });
+
   const lightLogoS3Path =
     "sponsors/" +
     nameSlug +
     "-light-" +
     lightLogoUuid +
     "." +
-    lightLogoMetadata.format;
-  const lightLogoPlaceholder = await getImgPlaceholder(lightLogoBuffer);
+    processedLightLogo.metadata.format;
 
   await s3Client.send(
     new PutObjectCommand({
       Bucket: mainConfig.s3.bucket,
       Key: lightLogoS3Path,
-      Body: lightLogoBuffer,
+      Body: processedLightLogo.buffer,
+      ContentType: `image/${processedLightLogo.metadata.format}`,
     }),
   );
 
@@ -451,9 +469,9 @@ export async function createSponsor(
   await db.insert(imagesTable).values({
     url: lightLogoUrl,
     id: lightLogoUuid,
-    width: lightLogoMetadata.width,
-    height: lightLogoMetadata.height,
-    placeholder: lightLogoPlaceholder,
+    width: processedLightLogo.metadata.width,
+    height: processedLightLogo.metadata.height,
+    placeholder: processedLightLogo.placeholder,
     alt: `${sponsor.name} light logo`,
   });
 
@@ -636,17 +654,27 @@ export async function addImagesToEvent(
   const results = [];
   for await (const entry of filePaths) {
     const uuid = randomUUID();
-    const file = Bun.file(entry);
-    const buffer = await file.bytes();
-    const { width, height, format } = await getImgMetadata(buffer);
-    const path = "events/" + event.slug + "/" + uuid + "." + format;
-    const placeholder = await getImgPlaceholder(buffer);
+
+    // Process image using our new utility
+    const processedImage = await processImageFromBunFile(entry, {
+      convertUnsupportedFormats: true,
+      conversionFormat: "PNG",
+    });
+
+    const path =
+      "events/" +
+      event.slug +
+      "/" +
+      uuid +
+      "." +
+      processedImage.metadata.format;
 
     await s3Client.send(
       new PutObjectCommand({
         Bucket: mainConfig.s3.bucket,
         Key: path,
-        Body: buffer,
+        Body: processedImage.buffer,
+        ContentType: `image/${processedImage.metadata.format}`,
       }),
     );
 
@@ -656,9 +684,9 @@ export async function addImagesToEvent(
       .values({
         url,
         id: uuid,
-        width,
-        height,
-        placeholder,
+        width: processedImage.metadata.width,
+        height: processedImage.metadata.height,
+        placeholder: processedImage.placeholder,
         alt: `Event image for ${event.name}`,
       })
       .returning();

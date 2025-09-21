@@ -5,7 +5,7 @@ import { imagesTable } from "@/lib/schema";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { mainConfig } from "@/lib/config";
 import { randomUUID } from "crypto";
-import { getImgMetadata, getImgPlaceholder } from "openimg/node";
+import { processImage } from "@/lib/image-processor";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,30 +35,27 @@ export async function POST(request: NextRequest) {
     });
 
     const uuid = randomUUID();
-    const buf = new Uint8Array(await imageFile.arrayBuffer());
 
-    // Get image metadata
-    const metadata = await getImgMetadata(buf);
-    if (!metadata) {
-      return NextResponse.json(
-        { error: "Invalid image file" },
-        { status: 400 },
-      );
-    }
-
-    const { width, height } = metadata;
-
-    // Generate placeholder
-    const placeholder = await getImgPlaceholder(buf);
+    // Process image using our new utility
+    const processedImage = await processImage(imageFile, imageFile.name, {
+      convertUnsupportedFormats: true,
+      conversionFormat: "PNG",
+    });
 
     // Upload to S3
-    const s3Path = `events/${eventSlug}/teams/${uuid}.${imageFile.type.split("/")[1]}`;
+    const s3Path = `events/${eventSlug}/teams/${uuid}.${processedImage.metadata.format}`;
     await s3Client.send(
       new PutObjectCommand({
         Bucket: mainConfig.s3.bucket,
         Key: s3Path,
-        Body: buf,
-        ContentType: imageFile.type,
+        Body: processedImage.buffer,
+        ContentType: `image/${processedImage.metadata.format}`,
+        Metadata: {
+          originalName: imageFile.name,
+          uploadedBy: user.id,
+          originalFormat: processedImage.originalFormat,
+          wasConverted: processedImage.wasConverted.toString(),
+        },
       }),
     );
 
@@ -70,9 +67,9 @@ export async function POST(request: NextRequest) {
       .values({
         id: uuid,
         url: imageUrl,
-        width,
-        height,
-        placeholder,
+        width: processedImage.metadata.width,
+        height: processedImage.metadata.height,
+        placeholder: processedImage.placeholder,
         alt: "Team image", // Required alt text for accessibility
       })
       .returning();

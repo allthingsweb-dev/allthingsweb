@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { mainConfig } from "@/lib/config";
 import { randomUUID } from "crypto";
-import { getImgMetadata, getImgPlaceholder } from "openimg/node";
+import { processImage } from "@/lib/image-processor";
 
 const s3Client = new S3Client({
   region: mainConfig.s3.region,
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Parse form data
     const formData = await request.formData();
     const eventId = formData.get("eventId") as string;
-    const imageFiles = formData.getAll("images") as File[];
+    const imageFile = formData.get("image") as File;
 
     if (!eventId) {
       return NextResponse.json(
@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!imageFiles || imageFiles.length === 0) {
+    if (!imageFile || !(imageFile instanceof File)) {
       return NextResponse.json(
-        { error: "At least one image file is required" },
+        { error: "Image file is required" },
         { status: 400 },
       );
     }
@@ -61,118 +61,100 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    const uploadResults = [];
-    const uploadedImageIds = [];
+    // Validate file type
+    if (!imageFile.type.startsWith("image/")) {
+      return NextResponse.json(
+        { error: `Invalid file type: ${imageFile.name}` },
+        { status: 400 },
+      );
+    }
 
-    // Upload each image
-    for (const imageFile of imageFiles) {
-      if (!(imageFile instanceof File)) {
-        continue;
-      }
+    try {
+      // Process image using our new utility
+      const processedImage = await processImage(imageFile, imageFile.name, {
+        convertUnsupportedFormats: true,
+        conversionFormat: "PNG",
+      });
 
-      // Validate file type
-      if (!imageFile.type.startsWith("image/")) {
-        return NextResponse.json(
-          { error: `Invalid file type: ${imageFile.name}` },
-          { status: 400 },
-        );
-      }
+      // Generate unique filename with proper extension
+      const uuid = randomUUID();
+      const fileName = `events/${eventId}/${uuid}.${processedImage.metadata.format}`;
 
-      try {
-        // Convert file to buffer and process image metadata
-        const arrayBuffer = await imageFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const bufferUint8 = new Uint8Array(arrayBuffer);
+      console.log(
+        `Processing ${imageFile.name}: original=${processedImage.originalFormat}, final=${processedImage.metadata.format}, converted=${processedImage.wasConverted}, uuid=${uuid}`,
+      );
 
-        // Get image metadata and placeholder
-        const { width, height, format } = await getImgMetadata(bufferUint8);
-        const placeholder = await getImgPlaceholder(bufferUint8);
-
-        // Validate and sanitize format
-        const sanitizedFormat =
-          format?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-
-        // Generate unique filename with proper extension
-        const uuid = randomUUID();
-        const fileName = `events/${eventId}/${uuid}.${sanitizedFormat}`;
-
-        console.log(
-          `Processing ${imageFile.name}: format=${format}, sanitized=${sanitizedFormat}, uuid=${uuid}`,
-        );
-
-        // Upload to S3
-        const uploadCommand = new PutObjectCommand({
-          Bucket: mainConfig.s3.bucket,
-          Key: fileName,
-          Body: bufferUint8,
-          ContentType: imageFile.type,
-          Metadata: {
-            originalName: imageFile.name,
-            uploadedBy: user.id,
-            eventId: eventId,
-          },
-        });
-
-        await s3Client.send(uploadCommand);
-
-        // Create image record in database
-        const imageUrl = `${mainConfig.s3.url}/${fileName}`;
-
-        console.log(
-          `Inserting image record: id=${uuid}, url=${imageUrl}, width=${width}, height=${height}`,
-        );
-
-        const [imageRecord] = await db
-          .insert(imagesTable)
-          .values({
-            id: uuid,
-            url: imageUrl,
-            alt: `Event image for ${event[0].name}`,
-            width,
-            height,
-            placeholder,
-          })
-          .returning();
-
-        // Associate image with event
-        await db.insert(eventImagesTable).values({
+      // Upload to S3
+      const uploadCommand = new PutObjectCommand({
+        Bucket: mainConfig.s3.bucket,
+        Key: fileName,
+        Body: processedImage.buffer,
+        ContentType: `image/${processedImage.metadata.format}`,
+        Metadata: {
+          originalName: imageFile.name,
+          uploadedBy: user.id,
           eventId: eventId,
-          imageId: imageRecord.id,
-        });
+          originalFormat: processedImage.originalFormat,
+          wasConverted: processedImage.wasConverted.toString(),
+        },
+      });
 
-        uploadResults.push({
+      await s3Client.send(uploadCommand);
+
+      // Create image record in database
+      const imageUrl = `${mainConfig.s3.url}/${fileName}`;
+
+      console.log(
+        `Inserting image record: id=${uuid}, url=${imageUrl}, width=${processedImage.metadata.width}, height=${processedImage.metadata.height}`,
+      );
+
+      const [imageRecord] = await db
+        .insert(imagesTable)
+        .values({
+          id: uuid,
+          url: imageUrl,
+          alt: `Event image for ${event[0].name}`,
+          width: processedImage.metadata.width,
+          height: processedImage.metadata.height,
+          placeholder: processedImage.placeholder,
+        })
+        .returning();
+
+      // Associate image with event
+      await db.insert(eventImagesTable).values({
+        eventId: eventId,
+        imageId: imageRecord.id,
+      });
+
+      return NextResponse.json({
+        message: "Image uploaded successfully",
+        eventId,
+        eventName: event[0].name,
+        image: {
           originalName: imageFile.name,
           url: imageUrl,
           imageId: imageRecord.id,
-        });
+          originalFormat: processedImage.originalFormat,
+          wasConverted: processedImage.wasConverted,
+        },
+      });
+    } catch (error) {
+      console.error(`Error uploading ${imageFile.name}:`, error);
 
-        uploadedImageIds.push(imageRecord.id);
-      } catch (error) {
-        console.error(`Error uploading ${imageFile.name}:`, error);
-
-        // Provide more specific error messages
-        let errorMessage = `Failed to upload ${imageFile.name}`;
-        if (error instanceof Error) {
-          if (error.message.includes("pattern")) {
-            errorMessage = `Invalid file format or name pattern for ${imageFile.name}: ${error.message}`;
-          } else if (error.message.includes("constraint")) {
-            errorMessage = `Database constraint violation for ${imageFile.name}: ${error.message}`;
-          } else {
-            errorMessage = `${errorMessage}: ${error.message}`;
-          }
+      // Provide more specific error messages
+      let errorMessage = `Failed to upload ${imageFile.name}`;
+      if (error instanceof Error) {
+        if (error.message.includes("pattern")) {
+          errorMessage = `Invalid file format or name pattern for ${imageFile.name}: ${error.message}`;
+        } else if (error.message.includes("constraint")) {
+          errorMessage = `Database constraint violation for ${imageFile.name}: ${error.message}`;
+        } else {
+          errorMessage = `${errorMessage}: ${error.message}`;
         }
-
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
       }
-    }
 
-    return NextResponse.json({
-      message: "Images uploaded successfully",
-      uploadedCount: uploadResults.length,
-      eventId,
-      eventName: event[0].name,
-      images: uploadResults,
-    });
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
+    }
   } catch (error) {
     console.error("Error uploading event images:", error);
     return NextResponse.json(
