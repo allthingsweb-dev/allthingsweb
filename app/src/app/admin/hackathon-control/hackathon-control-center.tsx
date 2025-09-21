@@ -220,15 +220,10 @@ export function HackathonControlCenter() {
       const body: any = {
         eventId: selectedEventId,
         hackathonState,
+        // Always send time fields, even if empty (as null)
+        hackUntil: hackUntil ? convertPDTInputToUTC(hackUntil) : null,
+        voteUntil: voteUntil ? convertPDTInputToUTC(voteUntil) : null,
       };
-
-      if (hackUntil) {
-        body.hackUntil = convertPDTInputToUTC(hackUntil);
-      }
-
-      if (voteUntil) {
-        body.voteUntil = convertPDTInputToUTC(voteUntil);
-      }
 
       const response = await fetch("/api/v1/admin/hackathon-control", {
         method: "POST",

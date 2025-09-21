@@ -79,14 +79,14 @@ export async function POST(request: NextRequest) {
       updateData.voteStartedAt = now;
     }
 
-    // Set hackUntil if provided
-    if (hackUntil) {
-      updateData.hackUntil = new Date(hackUntil);
+    // Set hackUntil - handle both provided values and explicit null
+    if (hackUntil !== undefined) {
+      updateData.hackUntil = hackUntil ? new Date(hackUntil) : null;
     }
 
-    // Set voteUntil if provided
-    if (voteUntil) {
-      updateData.voteUntil = new Date(voteUntil);
+    // Set voteUntil - handle both provided values and explicit null
+    if (voteUntil !== undefined) {
+      updateData.voteUntil = voteUntil ? new Date(voteUntil) : null;
     }
 
     // Update the event
