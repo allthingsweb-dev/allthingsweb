@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +14,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ImageUploadCrop } from "@/components/image-upload-crop";
+import { TeamMemberManagement } from "@/components/team-member-management";
 import { Loader2, Save, Users, Edit, X } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientUser } from "@/lib/client-user";
+
+type UserOption = { id: string; name: string | null; email: string | null };
 
 interface Team {
   id: string;
@@ -25,6 +28,7 @@ interface Team {
   projectDescription: string | null;
   imageUrl?: string;
   imageAlt?: string;
+  memberIds?: string[];
 }
 
 interface EditTeamModalProps {
@@ -33,6 +37,7 @@ interface EditTeamModalProps {
   isAdmin?: boolean;
   trigger?: React.ReactNode;
   onTeamUpdated?: (team: Team) => void;
+  userLookup?: Array<{ id: string; name: string | null }>; // For converting member IDs to user objects
 }
 
 export function EditTeamModal({
@@ -41,6 +46,7 @@ export function EditTeamModal({
   isAdmin = false,
   trigger,
   onTeamUpdated,
+  userLookup = [],
 }: EditTeamModalProps) {
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState<Team | null>(null);
@@ -48,11 +54,28 @@ export function EditTeamModal({
   const [isSaving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<UserOption[]>([]);
   const [formData, setFormData] = useState({
     teamName: "",
     projectName: "",
     projectDescription: "",
   });
+
+  // Convert member IDs to user objects for the team member management component
+  const teamMembers = useMemo(() => {
+    if (!team?.memberIds) return [];
+
+    return team.memberIds
+      .filter((id) => id !== user.id) // Exclude current user
+      .map((id) => {
+        const userInfo = userLookup.find((u) => u.id === id);
+        return {
+          id,
+          name: userInfo?.name || null,
+          email: null, // We don't have email in userLookup, but it's not critical for display
+        };
+      });
+  }, [team?.memberIds, user.id, userLookup]);
 
   // Fetch team data when modal opens
   useEffect(() => {
@@ -71,6 +94,21 @@ export function EditTeamModal({
               projectName: data.team.projectName || "",
               projectDescription: data.team.projectDescription || "",
             });
+
+            // Initialize selected users from team member IDs
+            if (data.team.memberIds) {
+              const teamMemberUsers = data.team.memberIds
+                .filter((id: string) => id !== user.id) // Exclude current user
+                .map((id: string) => {
+                  const userInfo = userLookup.find((u) => u.id === id);
+                  return {
+                    id,
+                    name: userInfo?.name || null,
+                    email: null,
+                  };
+                });
+              setSelectedUsers(teamMemberUsers);
+            }
           }
         } else if (response.status === 403) {
           const errorMessage = isAdmin
@@ -91,7 +129,7 @@ export function EditTeamModal({
     }
 
     fetchTeam();
-  }, [open, hackId]);
+  }, [open, hackId, userLookup, user.id]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -295,6 +333,17 @@ export function EditTeamModal({
                 rows={4}
               />
             </div>
+
+            {/* Team Member Management */}
+            <TeamMemberManagement
+              user={user}
+              selectedUsers={selectedUsers}
+              onUsersChange={setSelectedUsers}
+              disabled={isSaving}
+              hackId={hackId}
+              showCurrentUser={true}
+              mode="edit"
+            />
 
             {/* Submit Button */}
             <div className="flex gap-3 pt-4">

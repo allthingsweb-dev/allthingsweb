@@ -32,6 +32,10 @@ interface TeamManagementProps {
   isAdmin?: boolean;
   onTeamDeleted?: () => void;
   onTeamUpdated?: () => void;
+  userLookup?: Array<{ id: string; name: string | null }>;
+  // Mode-specific props
+  mode?: "default" | "voting" | "ended";
+  voteButton?: React.ReactNode;
 }
 
 export function TeamManagement({
@@ -42,6 +46,9 @@ export function TeamManagement({
   isAdmin = false,
   onTeamDeleted,
   onTeamUpdated,
+  userLookup = [],
+  mode = "default",
+  voteButton,
 }: TeamManagementProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -75,41 +82,48 @@ export function TeamManagement({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-auto">
-            <MoreVertical className="h-4 w-4" />
-            <span className="sr-only">Open team menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="w-48">
-          <EditTeamModal
-            hackId={hackId}
-            user={user}
-            isAdmin={isAdmin}
-            onTeamUpdated={onTeamUpdated ? () => onTeamUpdated() : undefined}
-            trigger={
-              <DropdownMenuItem
-                onSelect={(e) => e.preventDefault()}
-                className="cursor-pointer"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Team
-              </DropdownMenuItem>
-            }
-          />
+      {mode === "voting" ? (
+        // In voting mode, render the vote button
+        voteButton
+      ) : mode === "ended" ? null : ( // In ended mode, don't render any management controls
+        // In default mode, render the dropdown menu
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-auto">
+              <MoreVertical className="h-4 w-4" />
+              <span className="sr-only">Open team menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-48">
+            <EditTeamModal
+              hackId={hackId}
+              user={user}
+              isAdmin={isAdmin}
+              onTeamUpdated={onTeamUpdated ? () => onTeamUpdated() : undefined}
+              userLookup={userLookup}
+              trigger={
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  className="cursor-pointer"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Team
+                </DropdownMenuItem>
+              }
+            />
 
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => setShowDeleteDialog(true)}
-            disabled={hasVotes && !isAdmin}
-            className="cursor-pointer text-red-600 focus:text-red-600 disabled:text-gray-400 disabled:cursor-not-allowed"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Team
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => setShowDeleteDialog(true)}
+              disabled={hasVotes && !isAdmin}
+              className="cursor-pointer text-red-600 focus:text-red-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Team
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>

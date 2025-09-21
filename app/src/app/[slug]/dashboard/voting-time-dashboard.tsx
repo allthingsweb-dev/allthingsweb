@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useLiveQuery } from "@tanstack/react-db";
 import { eq } from "@tanstack/db";
 import {
@@ -21,7 +21,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
@@ -35,6 +34,7 @@ import { CountdownTimer } from "./countdown-timer";
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
 import { EditTeamModal } from "./edit-team-modal";
+import { TeamCard } from "@/components/team-card";
 
 interface VotingTimeDashboardProps {
   event: ExpandedEvent;
@@ -82,30 +82,124 @@ export function VotingTimeDashboard({
       .orderBy(({ award }) => award.created_at, "asc"),
   );
 
-  // Get all votes for this event
-  const { data: allVotes } = useLiveQuery((q) =>
-    q
-      .from({ vote: hackVotesCollection })
-      .join(
-        { hack: hacksCollection },
-        ({ vote, hack }) => eq(vote.hack_id, hack.id),
-        "inner",
-      )
-      .join(
-        { award: awardsCollection },
-        ({ vote, award }) => eq(vote.award_id, award.id),
-        "inner",
-      )
-      .where(({ hack }) => eq(hack.event_id, event.id))
-      .select(({ vote, hack, award }) => ({
-        voteId: `${vote.hack_id}-${vote.award_id}-${vote.user_id}`, // Composite key as voteId
-        hackId: vote.hack_id,
-        awardId: vote.award_id,
-        userId: vote.user_id,
-        teamName: hack.team_name,
-        awardName: award.name,
-      })),
+  // Get all votes for this event - using separate queries to avoid join issues
+  const { data: allVotesRaw } = useLiveQuery((q) =>
+    q.from({ vote: hackVotesCollection }),
   );
+
+  const { data: allHacks } = useLiveQuery((q) =>
+    q
+      .from({ hack: hacksCollection })
+      .where(({ hack }) => eq(hack.event_id, event.id)),
+  );
+
+  // Add logging to debug the data structure
+  React.useEffect(() => {
+    console.log("=== VOTING DASHBOARD DEBUG ===");
+    console.log("allVotesRaw:", allVotesRaw);
+    if (allVotesRaw && allVotesRaw.length > 0) {
+      console.log("First vote object:", allVotesRaw[0]);
+      console.log("Vote keys:", Object.keys(allVotesRaw[0]));
+      console.log("Vote values:", Object.values(allVotesRaw[0]));
+      console.log(
+        "vote.hack_id:",
+        allVotesRaw[0].hack_id,
+        "type:",
+        typeof allVotesRaw[0].hack_id,
+      );
+      console.log(
+        "vote.award_id:",
+        allVotesRaw[0].award_id,
+        "type:",
+        typeof allVotesRaw[0].award_id,
+      );
+      console.log(
+        "vote.user_id:",
+        allVotesRaw[0].user_id,
+        "type:",
+        typeof allVotesRaw[0].user_id,
+      );
+    }
+    console.log("allHacks:", allHacks);
+    if (allHacks && allHacks.length > 0) {
+      console.log("First hack object:", allHacks[0]);
+      console.log("Hack keys:", Object.keys(allHacks[0]));
+    }
+    console.log("awards:", awards);
+    if (awards && awards.length > 0) {
+      console.log("First award object:", awards[0]);
+      console.log("Award keys:", Object.keys(awards[0]));
+    }
+    console.log("==============================");
+  }, [allVotesRaw, allHacks, awards]);
+
+  // Process votes and join with hacks and awards in memory
+  const allVotes = React.useMemo(() => {
+    if (!allVotesRaw || !allHacks || !awards) return [];
+
+    console.log("Processing votes in useMemo...");
+
+    const hacksMap = new Map(allHacks.map((hack) => [hack.id, hack]));
+    const awardsMap = new Map(awards.map((award) => [award.id, award]));
+
+    return allVotesRaw
+      .map((vote, index) => {
+        console.log(`Processing vote ${index}:`, vote);
+
+        try {
+          const hackId = vote.hack_id;
+          const awardId = vote.award_id;
+          const userId = vote.user_id;
+
+          console.log(
+            `Vote ${index} - hackId:`,
+            hackId,
+            "type:",
+            typeof hackId,
+          );
+          console.log(
+            `Vote ${index} - awardId:`,
+            awardId,
+            "type:",
+            typeof awardId,
+          );
+          console.log(
+            `Vote ${index} - userId:`,
+            userId,
+            "type:",
+            typeof userId,
+          );
+
+          const hack = hacksMap.get(hackId);
+          const award = awardsMap.get(awardId);
+
+          if (!hack || !award) {
+            console.log(`Vote ${index} - Missing hack or award:`, {
+              hack: !!hack,
+              award: !!award,
+            });
+            return null;
+          }
+
+          const result = {
+            voteId: `${hackId}-${awardId}-${userId}`,
+            hackId,
+            awardId,
+            userId,
+            teamName: hack.team_name,
+            awardName: award.name,
+          };
+
+          console.log(`Vote ${index} - Result:`, result);
+          return result;
+        } catch (error) {
+          console.error(`Error processing vote ${index}:`, error);
+          console.error(`Vote ${index} data:`, vote);
+          return null;
+        }
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [allVotesRaw, allHacks, awards]);
 
   // Get team members for all teams
   const { data: teamMembers } = useLiveQuery((q) =>
@@ -313,6 +407,7 @@ export function VotingTimeDashboard({
         targetDate={votingDeadline}
         title="Voting Time Remaining"
         subtitle="Vote for your favorite projects!"
+        timerType="voting"
       />
 
       {/* Action Buttons */}
@@ -331,40 +426,6 @@ export function VotingTimeDashboard({
           </Button>
         )}
       </div>
-
-      {/* Voting Status */}
-      <Alert>
-        <Vote className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Voting is now open!</strong>
-          <br />
-          You've cast {userVotes.length} vote{userVotes.length !== 1 ? "s" : ""}{" "}
-          across {awards?.length || 0} award{awards?.length !== 1 ? "s" : ""}.
-          {userTeam && ` You're on team: ${userTeam.teamName}`}
-        </AlertDescription>
-      </Alert>
-
-      {/* Voting Instructions */}
-      <Card className="border-yellow-200 bg-yellow-50">
-        <CardHeader>
-          <CardTitle className="text-yellow-800 flex items-center gap-2">
-            <Vote className="h-5 w-5" />
-            Voting Instructions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-yellow-700">
-          <ul className="space-y-2 text-sm">
-            <li>• You can vote for multiple teams across different awards</li>
-            <li>• You can vote once per team per award</li>
-            <li>• You cannot vote for your own team</li>
-            <li>• Each vote counts equally within its award category</li>
-            <li>
-              • Vote for projects you find most impressive in each category
-            </li>
-            <li>• Voting closes at the deadline above</li>
-          </ul>
-        </CardContent>
-      </Card>
 
       {/* Awards and Voting */}
       {!awards || awards.length === 0 ? (
@@ -396,95 +457,28 @@ export function VotingTimeDashboard({
                   <p>No teams to vote for</p>
                 </div>
               ) : (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-[280px]">
                   {teams.map((team) => {
                     const members =
                       teamMembers?.filter((m) => m.hackId === team.id) || [];
-                    const isUserTeam = members.some(
-                      (m) => m.userId === user.id,
-                    );
                     const voteKey = `${team.id}-${award.id}`;
                     const voteCount = voteCountsByTeamAndAward[voteKey] || 0;
 
                     return (
-                      <Card
+                      <TeamCard
                         key={team.id}
-                        className={`border-2 transition-colors ${
-                          isUserTeam
-                            ? "border-blue-300 bg-blue-50"
-                            : "hover:border-gray-300"
-                        }`}
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center gap-3">
-                            {team.team_image_url ? (
-                              <Avatar className="w-12 h-12">
-                                <AvatarImage
-                                  src={team.team_image_url}
-                                  alt={team.team_image_alt || team.team_name}
-                                />
-                                <AvatarFallback>
-                                  {team.team_name[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                            ) : (
-                              <Avatar className="w-12 h-12">
-                                <AvatarFallback>
-                                  {team.team_name[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-base truncate flex items-center gap-2">
-                                {team.team_name}
-                                {isUserTeam && (
-                                  <>
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      Your Team
-                                    </Badge>
-                                    <EditTeamModal
-                                      hackId={team.id}
-                                      user={user}
-                                      onTeamUpdated={() => {
-                                        // TanStack DB will automatically update via live queries
-                                      }}
-                                    />
-                                  </>
-                                )}
-                              </CardTitle>
-                              {team.project_name && (
-                                <CardDescription className="text-sm truncate">
-                                  {team.project_name}
-                                </CardDescription>
-                              )}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Users className="h-4 w-4" />
-                            <span>
-                              {members.length} member
-                              {members.length !== 1 ? "s" : ""}
-                            </span>
-                            <span className="text-gray-400">•</span>
-                            <span className="text-blue-600 font-medium">
-                              {voteCount} vote{voteCount !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-                          {team.project_description && (
-                            <p className="text-sm text-gray-500 line-clamp-3">
-                              {team.project_description}
-                            </p>
-                          )}
-                          <div className="pt-2">
-                            {renderVoteButton(team, award)}
-                          </div>
-                        </CardContent>
-                      </Card>
+                        team={team}
+                        members={members}
+                        user={user}
+                        isAdmin={isAdmin}
+                        hasVotes={false} // Not used in voting mode
+                        mode="voting"
+                        voteButton={renderVoteButton(team, award)}
+                        voteCount={voteCount}
+                        onTeamUpdated={() => {
+                          // TanStack DB will automatically update via live queries
+                        }}
+                      />
                     );
                   })}
                 </div>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploadCrop } from "@/components/image-upload-crop";
+import { TeamMemberManagement } from "@/components/team-member-management";
 import {
   Dialog,
   DialogContent,
@@ -15,19 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandInput,
-  CommandEmpty,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Users, Plus } from "lucide-react";
+import { Users } from "lucide-react";
 import type { ClientUser } from "@/lib/client-user";
 import { createTeamAction } from "@/lib/hackathons/optimistic-mutations";
 
@@ -55,15 +44,7 @@ export function RegisterTeamModal({
   const [teamImageFile, setTeamImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [openSearch, setOpenSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<UserOption[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<UserOption[]>([]);
-
-  const selectedIds = useMemo(
-    () => new Set(selectedUsers.map((u) => u.id)),
-    [selectedUsers],
-  );
 
   // Create and cleanup object URL for image preview
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -87,22 +68,7 @@ export function RegisterTeamModal({
     setProjectDescription("");
     setTeamImageFile(null);
     setSelectedUsers([]);
-    setSearchQuery("");
-    setSearchResults([]);
   };
-
-  async function fetchUsers(q: string) {
-    try {
-      const res = await fetch(
-        `/api/v1/user-search?q=${encodeURIComponent(q)}&limit=10`,
-      );
-      const data = await res.json();
-      setSearchResults((data.users || []) as UserOption[]);
-    } catch (e) {
-      console.error(e);
-      setSearchResults([]);
-    }
-  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -262,102 +228,14 @@ export function RegisterTeamModal({
             )}
           </div>
 
-          <div>
-            <Label>Team members</Label>
-            <p className="text-sm text-muted-foreground mb-3">
-              You'll be automatically added to the team. Add additional members
-              below.
-            </p>
-
-            {/* Current user display */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-                {user.displayName || user.primaryEmail} (You)
-              </span>
-              {selectedUsers.map((u) => (
-                <span
-                  key={u.id}
-                  className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm flex items-center gap-2"
-                >
-                  {(u.name || u.email || u.id) as string}
-                  <button
-                    type="button"
-                    className="text-gray-500 hover:text-gray-700"
-                    onClick={() =>
-                      setSelectedUsers((prev) =>
-                        prev.filter((x) => x.id !== u.id),
-                      )
-                    }
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-
-            <Popover open={openSearch} onOpenChange={setOpenSearch}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex items-center gap-2"
-                  disabled={disabled || isSubmitting}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add team members
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="p-0 w-[320px]">
-                <Command shouldFilter={false}>
-                  <CommandInput
-                    placeholder="Search users by name or email"
-                    value={searchQuery}
-                    onValueChange={(v) => {
-                      setSearchQuery(v);
-                      if (v.trim()) {
-                        fetchUsers(v);
-                      } else {
-                        setSearchResults([]);
-                      }
-                    }}
-                  />
-                  <CommandEmpty>
-                    {searchQuery.trim()
-                      ? "No users found."
-                      : "Start typing to search..."}
-                  </CommandEmpty>
-                  <CommandGroup>
-                    {searchResults
-                      .filter((u) => u.id !== user.id) // Exclude current user
-                      .map((u) => (
-                        <CommandItem
-                          key={u.id}
-                          disabled={selectedIds.has(u.id)}
-                          onSelect={() => {
-                            if (!selectedIds.has(u.id)) {
-                              setSelectedUsers((prev) => [...prev, u]);
-                            }
-                            setOpenSearch(false);
-                            setSearchQuery("");
-                          }}
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">
-                              {u.name || u.email || u.id}
-                            </span>
-                            {u.email && u.name && (
-                              <span className="text-xs text-muted-foreground">
-                                {u.email}
-                              </span>
-                            )}
-                          </div>
-                        </CommandItem>
-                      ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+          <TeamMemberManagement
+            user={user}
+            selectedUsers={selectedUsers}
+            onUsersChange={setSelectedUsers}
+            disabled={disabled || isSubmitting}
+            showCurrentUser={true}
+            mode="create"
+          />
 
           <div className="flex justify-end gap-3 pt-4">
             <Button

@@ -49,6 +49,7 @@
     "@tanstack/electric-db-collection": "^0.1.19",
     "@tanstack/query-db-collection": "^0.2.16",
     "@tanstack/react-db": "^0.1.17",
+    "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -78,6 +79,7 @@
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19",

@@ -31,14 +31,6 @@ const eventSchema = z.object({
   updated_at: z.string(),
 });
 
-const userSchema = z.object({
-  id: z.string(),
-  name: z.string().nullable(),
-  email: z.string().nullable(),
-  created_at: z.string().nullable(),
-  deleted_at: z.string().nullable(),
-});
-
 const getShapeUrl = () => {
   // Safe to assume window is available in client components wrapped with ClientOnly
   return `${window.location.origin}/api/v1/shapes`;
@@ -56,21 +48,5 @@ export const eventsCollection = createCollection(
     },
     getKey: (item) => item.id,
     schema: eventSchema,
-  }),
-);
-
-// Users Collection
-export const usersCollection = createCollection(
-  electricCollectionOptions({
-    id: "users",
-    shapeOptions: {
-      url: `${getShapeUrl()}/users`,
-      params: {
-        table: "neon_auth.users_sync",
-        where: "deleted_at IS NULL",
-      },
-    },
-    getKey: (item) => item.id,
-    schema: userSchema,
   }),
 );

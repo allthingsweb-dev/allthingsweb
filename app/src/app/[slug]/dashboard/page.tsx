@@ -1,6 +1,7 @@
 import { stackServerApp } from "@/lib/stack";
 import { toClientUser } from "@/lib/client-user";
 import { isAdmin } from "@/lib/admin";
+import { getUserLookupArray } from "@/lib/users";
 import { ClientOnly } from "@/components/client-only";
 import { HackathonDashboard } from "./hackathon-dashboard";
 import { Toaster } from "sonner";
@@ -22,6 +23,9 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   // Check if user is admin
   const userIsAdmin = await isAdmin(user.id);
 
+  // Fetch user lookup data for team member names
+  const userLookup = await getUserLookupArray();
+
   return (
     <div className="min-h-[100dvh] max-w-[100vw] w-full">
       <Toaster richColors />
@@ -39,6 +43,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
           eventSlug={slug}
           user={clientUser}
           isAdmin={userIsAdmin}
+          userLookup={userLookup}
         />
       </ClientOnly>
     </div>

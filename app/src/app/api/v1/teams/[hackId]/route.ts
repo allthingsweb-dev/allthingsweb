@@ -141,6 +141,14 @@ export async function GET(
       }
     }
 
+    // Get team members
+    const teamMembers = await db
+      .select({
+        userId: hackUsersTable.userId,
+      })
+      .from(hackUsersTable)
+      .where(eq(hackUsersTable.hackId, hackId));
+
     // Sign the team image if it exists
     const signedImageUrl = await signTeamImageUrl(team.image?.url || null);
 
@@ -149,6 +157,7 @@ export async function GET(
         ...team.hack,
         imageUrl: signedImageUrl,
         imageAlt: team.image?.alt,
+        memberIds: teamMembers.map((m) => m.userId),
       },
     });
   } catch (error) {

@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Clock } from "lucide-react";
+import { useConfetti } from "@/hooks/use-confetti";
 
 interface CountdownTimerProps {
   targetDate: Date;
   title: string;
   subtitle?: string;
+  onTimeExpired?: (type: "hackathon" | "voting") => void;
+  timerType?: "hackathon" | "voting";
 }
 
 interface TimeLeft {
@@ -20,6 +23,8 @@ export function CountdownTimer({
   targetDate,
   title,
   subtitle,
+  onTimeExpired,
+  timerType = "hackathon",
 }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({
     days: 0,
@@ -28,6 +33,8 @@ export function CountdownTimer({
     seconds: 0,
   });
   const [isExpired, setIsExpired] = useState(false);
+  const hasTriggeredConfetti = useRef(false);
+  const { fireHackathonEndConfetti, fireVotingEndConfetti } = useConfetti();
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -47,8 +54,36 @@ export function CountdownTimer({
 
         setTimeLeft({ days, hours, minutes, seconds });
         setIsExpired(false);
+        hasTriggeredConfetti.current = false; // Reset confetti flag when time is active
       } else {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+        // Check if we just expired (within 5 minutes) and haven't triggered confetti yet
+        const timeSinceExpiry = Math.abs(difference);
+        const fiveMinutesInMs = 5 * 60 * 1000;
+
+        if (!isExpired) {
+          // Just expired - trigger confetti if within 5 minutes
+          if (
+            timeSinceExpiry <= fiveMinutesInMs &&
+            !hasTriggeredConfetti.current
+          ) {
+            hasTriggeredConfetti.current = true;
+
+            // Trigger appropriate confetti based on timer type
+            if (timerType === "hackathon") {
+              fireHackathonEndConfetti();
+            } else if (timerType === "voting") {
+              fireVotingEndConfetti();
+            }
+
+            // Call the callback if provided
+            if (onTimeExpired) {
+              onTimeExpired(timerType);
+            }
+          }
+        }
+
         setIsExpired(true);
       }
     };
@@ -57,7 +92,14 @@ export function CountdownTimer({
     const timer = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [
+    targetDate,
+    isExpired,
+    timerType,
+    onTimeExpired,
+    fireHackathonEndConfetti,
+    fireVotingEndConfetti,
+  ]);
 
   const formatNumber = (num: number) => num.toString().padStart(2, "0");
 
@@ -70,7 +112,6 @@ export function CountdownTimer({
             <h2 className="text-2xl font-bold">{title}</h2>
           </div>
           <p className="text-lg opacity-90">Time's up!</p>
-          {subtitle && <p className="text-sm opacity-75 mt-1">{subtitle}</p>}
         </div>
       </div>
     );

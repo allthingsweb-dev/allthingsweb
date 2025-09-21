@@ -116,23 +116,75 @@ export function HackathonControlCenter() {
     fetchEvents();
   }, []);
 
+  // Helper function to convert UTC to PDT for datetime-local input
+  const convertUTCtoPDTForInput = (utcString: string | null): string => {
+    if (!utcString) return "";
+
+    // Create date from UTC string
+    const utcDate = new Date(utcString);
+
+    // Convert to PDT using Intl.DateTimeFormat
+    const pdtFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    const parts = pdtFormatter.formatToParts(utcDate);
+    const year = parts.find((p) => p.type === "year")?.value;
+    const month = parts.find((p) => p.type === "month")?.value;
+    const day = parts.find((p) => p.type === "day")?.value;
+    const hour = parts.find((p) => p.type === "hour")?.value;
+    const minute = parts.find((p) => p.type === "minute")?.value;
+
+    // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  };
+
+  // Helper function to convert PDT datetime-local input to UTC
+  const convertPDTInputToUTC = (pdtInputString: string): string => {
+    if (!pdtInputString) return "";
+
+    // Parse the datetime-local input as if it were in PDT
+    const [datePart, timePart] = pdtInputString.split("T");
+    const [year, month, day] = datePart.split("-");
+    const [hour, minute] = timePart.split(":");
+
+    // Create a date string that explicitly includes the PDT timezone
+    const pdtDateString = `${year}-${month}-${day} ${hour}:${minute}:00`;
+
+    // Use Intl.DateTimeFormat to parse this as PDT time
+    // Create a temporary date and adjust for PDT offset
+    const tempDate = new Date(pdtDateString);
+
+    // Get the timezone offset for America/Los_Angeles at this date
+    const pdtDate = new Date(
+      tempDate.toLocaleString("en-US", { timeZone: "UTC" }),
+    );
+    const offsetDate = new Date(
+      tempDate.toLocaleString("en-US", { timeZone: timezone }),
+    );
+    const offset = pdtDate.getTime() - offsetDate.getTime();
+
+    // Apply the offset to get UTC
+    const utcDate = new Date(tempDate.getTime() + offset);
+
+    return utcDate.toISOString();
+  };
+
   // Update selected event when selection changes
   useEffect(() => {
     const event = events.find((e) => e.id === selectedEventId);
     setSelectedEvent(event || null);
     if (event) {
       setHackathonState(event.hackathonState || "before_start");
-      // Convert UTC to local timezone for display
-      setHackUntil(
-        event.hackUntil
-          ? new Date(event.hackUntil).toISOString().slice(0, 16)
-          : "",
-      );
-      setVoteUntil(
-        event.voteUntil
-          ? new Date(event.voteUntil).toISOString().slice(0, 16)
-          : "",
-      );
+      // Convert UTC to PDT for display in datetime-local inputs
+      setHackUntil(convertUTCtoPDTForInput(event.hackUntil));
+      setVoteUntil(convertUTCtoPDTForInput(event.voteUntil));
       // Fetch awards for the selected event
       fetchAwards(event.id);
     } else {
@@ -141,7 +193,7 @@ export function HackathonControlCenter() {
       setVoteUntil("");
       setAwards([]);
     }
-  }, [selectedEventId, events]);
+  }, [selectedEventId, events, timezone]);
 
   // Fetch awards for a specific event
   const fetchAwards = async (eventId: string) => {
@@ -171,11 +223,11 @@ export function HackathonControlCenter() {
       };
 
       if (hackUntil) {
-        body.hackUntil = new Date(hackUntil).toISOString();
+        body.hackUntil = convertPDTInputToUTC(hackUntil);
       }
 
       if (voteUntil) {
-        body.voteUntil = new Date(voteUntil).toISOString();
+        body.voteUntil = convertPDTInputToUTC(voteUntil);
       }
 
       const response = await fetch("/api/v1/admin/hackathon-control", {
@@ -414,23 +466,31 @@ export function HackathonControlCenter() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hack-until">Hack Until (PDT)</Label>
+                    <Label htmlFor="hack-until">Hack Until</Label>
                     <Input
                       id="hack-until"
                       type="datetime-local"
                       value={hackUntil}
                       onChange={(e) => setHackUntil(e.target.value)}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      All times are displayed and entered in Pacific Daylight
+                      Time (PDT)
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="vote-until">Vote Until (PDT)</Label>
+                    <Label htmlFor="vote-until">Vote Until</Label>
                     <Input
                       id="vote-until"
                       type="datetime-local"
                       value={voteUntil}
                       onChange={(e) => setVoteUntil(e.target.value)}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      All times are displayed and entered in Pacific Daylight
+                      Time (PDT)
+                    </p>
                   </div>
 
                   <Button type="submit" disabled={loading} className="w-full">

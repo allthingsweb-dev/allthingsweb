@@ -28,11 +28,11 @@ import {
   hackImagesCollection,
   awardsCollection,
 } from "@/lib/hackathons/collections";
-import { usersCollection } from "@/lib/collections";
 import { toReadableDateTimeStr } from "@/lib/datetime";
 import { RegisterTeamModal } from "./register-team-modal";
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
+import type { UserLookup } from "@/lib/users";
 import { EditTeamModal } from "./edit-team-modal";
 import { TeamManagement } from "./team-management";
 
@@ -40,13 +40,21 @@ interface BeforeStartDashboardProps {
   event: ExpandedEvent;
   user: ClientUser;
   isAdmin: boolean;
+  userLookup: UserLookup[];
 }
 
 export function BeforeStartDashboard({
   event,
   user,
   isAdmin,
+  userLookup,
 }: BeforeStartDashboardProps) {
+  // Helper function to look up user name by ID
+  const getUserName = (userId: string): string => {
+    if (userId === user.id) return "You";
+    const userInfo = userLookup.find((u) => u.id === userId);
+    return userInfo?.name || "Anonymous";
+  };
   // Get all registered teams for this event with their images
   const { data: teams } = useLiveQuery((q) =>
     q
@@ -71,7 +79,7 @@ export function BeforeStartDashboard({
   );
   console.log("teams", teams);
 
-  // Get team members for all teams with user names
+  // Get team members for all teams
   const { data: teamMembers } = useLiveQuery((q) =>
     q
       .from({ member: hackUsersCollection })
@@ -80,15 +88,11 @@ export function BeforeStartDashboard({
         ({ member, hack }) => eq(member.hack_id, hack.id),
         "inner",
       )
-      .leftJoin({ user: usersCollection }, ({ member, user }) =>
-        eq(member.user_id, user.id),
-      )
       .where(({ hack }) => eq(hack.event_id, event.id))
-      .select(({ member, hack, user }) => ({
+      .select(({ member, hack }) => ({
         hackId: member.hack_id,
         userId: member.user_id,
         teamName: hack.team_name,
-        userName: user?.name,
       })),
   );
 
@@ -357,6 +361,7 @@ export function BeforeStartDashboard({
                                 user={user}
                                 hasVotes={teamHasVotes}
                                 isAdmin={isAdmin}
+                                userLookup={userLookup}
                                 onTeamDeleted={() => {
                                   // TanStack DB will automatically update via live queries
                                 }}
@@ -384,9 +389,7 @@ export function BeforeStartDashboard({
                           <div className="text-xs text-gray-500 pl-6">
                             {members.map((member, index) => (
                               <span key={member.userId}>
-                                {member.userId === user.id
-                                  ? "You"
-                                  : member.userName || "Anonymous"}
+                                {getUserName(member.userId)}
                                 {index < members.length - 1 ? ", " : ""}
                               </span>
                             ))}
