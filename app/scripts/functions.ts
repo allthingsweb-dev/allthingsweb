@@ -23,7 +23,7 @@ import {
   talksTable,
 } from "../src/lib/schema";
 import { randomUUID } from "node:crypto";
-import { processImageFromBunFile } from "../src/lib/image-processor";
+import { processImageFromPath } from "../src/lib/image-processor";
 import { and, eq } from "drizzle-orm";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -147,11 +147,11 @@ export async function createProfile(profile: InsertProfile, imgPath: string) {
 
   const uuid = randomUUID();
 
-  // Process image using our new utility
-  const processedImage = await processImageFromBunFile(imgPath, {
-    convertUnsupportedFormats: true,
-    conversionFormat: "PNG",
-  });
+    // Process image using our new utility
+    const processedImage = await processImageFromPath(imgPath, {
+      convertUnsupportedFormats: true,
+      conversionFormat: "PNG",
+    });
 
   const nameSlug = profile.name.toLowerCase().replace(/ /g, "-");
   const path =
@@ -212,11 +212,11 @@ export async function replaceProfileImage(name: string, imgPath: string) {
 
   const uuid = randomUUID();
 
-  // Process image using our new utility
-  const processedImage = await processImageFromBunFile(imgPath, {
-    convertUnsupportedFormats: true,
-    conversionFormat: "PNG",
-  });
+    // Process image using our new utility
+    const processedImage = await processImageFromPath(imgPath, {
+      convertUnsupportedFormats: true,
+      conversionFormat: "PNG",
+    });
 
   const nameSlug = profile.name.toLowerCase().replace(/ /g, "-");
   const path =
@@ -405,11 +405,11 @@ export async function createSponsor(
   // Process dark logo
   const darkLogoUuid = randomUUID();
 
-  // Process dark logo image using our new utility
-  const processedDarkLogo = await processImageFromBunFile(darkLogoFilePath, {
-    convertUnsupportedFormats: true,
-    conversionFormat: "PNG",
-  });
+    // Process dark logo image using our new utility
+    const processedDarkLogo = await processImageFromPath(darkLogoFilePath, {
+      convertUnsupportedFormats: true,
+      conversionFormat: "PNG",
+    });
 
   const nameSlug = sponsor.name.toLowerCase().replace(/ /g, "-");
   const darkLogoS3Path =
@@ -442,11 +442,11 @@ export async function createSponsor(
   // Process light logo
   const lightLogoUuid = randomUUID();
 
-  // Process light logo image using our new utility
-  const processedLightLogo = await processImageFromBunFile(lightLogoFilePath, {
-    convertUnsupportedFormats: true,
-    conversionFormat: "PNG",
-  });
+    // Process light logo image using our new utility
+    const processedLightLogo = await processImageFromPath(lightLogoFilePath, {
+      convertUnsupportedFormats: true,
+      conversionFormat: "PNG",
+    });
 
   const lightLogoS3Path =
     "sponsors/" +
@@ -655,11 +655,11 @@ export async function addImagesToEvent(
   for await (const entry of filePaths) {
     const uuid = randomUUID();
 
-    // Process image using our new utility
-    const processedImage = await processImageFromBunFile(entry, {
-      convertUnsupportedFormats: true,
-      conversionFormat: "PNG",
-    });
+      // Process image using our new utility
+      const processedImage = await processImageFromPath(entry, {
+        convertUnsupportedFormats: true,
+        conversionFormat: "PNG",
+      });
 
     const path =
       "events/" +

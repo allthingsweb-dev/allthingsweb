@@ -245,18 +245,3 @@ export async function processImageFromPath(
   return processImage(buffer, fileName, options);
 }
 
-/**
- * Convenience function for processing images from Bun files (for scripts using Bun)
- */
-export async function processImageFromBunFile(
-  filePath: string,
-  options?: ImageProcessorOptions,
-): Promise<ProcessedImage> {
-  const path = await import("path");
-
-  const file = Bun.file(filePath);
-  const buffer = await file.bytes();
-  const fileName = path.basename(filePath);
-
-  return processImage(Buffer.from(buffer), fileName, options);
-}
