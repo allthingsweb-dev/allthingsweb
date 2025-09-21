@@ -85,7 +85,7 @@ export function TeamManagement({
       {mode === "voting" ? (
         // In voting mode, render the vote button
         voteButton
-      ) : mode === "ended" ? null : ( // In ended mode, don't render any management controls
+      ) : (
         // In default mode, render the dropdown menu
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

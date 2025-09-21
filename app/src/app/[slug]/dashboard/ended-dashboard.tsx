@@ -283,6 +283,52 @@ export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
           ))
         )}
       </div>
+
+      {/* All Teams */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            All Teams
+            <Badge variant="secondary">{teams?.length || 0}</Badge>
+          </CardTitle>
+          <CardDescription>
+            All teams that participated in this hackathon
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!teams || teams.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No teams participated</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-[280px]">
+              {teams.map((team) => {
+                const members =
+                  teamMembers?.filter((m) => m.hackId === team.id) || [];
+
+                // Calculate total votes for this team across all awards
+                const totalVotes =
+                  allVotes?.filter((vote) => vote.hackId === team.id).length ||
+                  0;
+
+                return (
+                  <TeamCard
+                    key={team.id}
+                    team={team}
+                    members={members}
+                    user={user}
+                    isAdmin={isAdmin}
+                    mode="ended"
+                    voteCount={totalVotes}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
