@@ -88,9 +88,17 @@ export async function POST(request: NextRequest) {
         const { width, height, format } = await getImgMetadata(bufferUint8);
         const placeholder = await getImgPlaceholder(bufferUint8);
 
+        // Validate and sanitize format
+        const sanitizedFormat =
+          format?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+
         // Generate unique filename with proper extension
         const uuid = randomUUID();
-        const fileName = `events/${eventId}/${uuid}.${format}`;
+        const fileName = `events/${eventId}/${uuid}.${sanitizedFormat}`;
+
+        console.log(
+          `Processing ${imageFile.name}: format=${format}, sanitized=${sanitizedFormat}, uuid=${uuid}`,
+        );
 
         // Upload to S3
         const uploadCommand = new PutObjectCommand({
@@ -109,6 +117,10 @@ export async function POST(request: NextRequest) {
 
         // Create image record in database
         const imageUrl = `${mainConfig.s3.url}/${fileName}`;
+
+        console.log(
+          `Inserting image record: id=${uuid}, url=${imageUrl}, width=${width}, height=${height}`,
+        );
 
         const [imageRecord] = await db
           .insert(imagesTable)
@@ -137,10 +149,20 @@ export async function POST(request: NextRequest) {
         uploadedImageIds.push(imageRecord.id);
       } catch (error) {
         console.error(`Error uploading ${imageFile.name}:`, error);
-        return NextResponse.json(
-          { error: `Failed to upload ${imageFile.name}` },
-          { status: 500 },
-        );
+
+        // Provide more specific error messages
+        let errorMessage = `Failed to upload ${imageFile.name}`;
+        if (error instanceof Error) {
+          if (error.message.includes("pattern")) {
+            errorMessage = `Invalid file format or name pattern for ${imageFile.name}: ${error.message}`;
+          } else if (error.message.includes("constraint")) {
+            errorMessage = `Database constraint violation for ${imageFile.name}: ${error.message}`;
+          } else {
+            errorMessage = `${errorMessage}: ${error.message}`;
+          }
+        }
+
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
       }
     }
 
