@@ -1,6 +1,6 @@
 import { getImgMetadata, getImgPlaceholder } from "openimg/node";
 import sharp from "sharp";
-const convert = require("heic-convert");
+import convert from "heic-convert";
 
 // Types for our image processing utility
 export interface ProcessedImage {
@@ -83,7 +83,7 @@ async function convertImage(
       `Converting ${originalFormat.toUpperCase()} using heic-convert...`,
     );
     const outputBuffer = await convert({
-      buffer: buffer,
+      buffer: buffer as any as ArrayBufferLike,
       format: conversionFormat,
       quality: conversionFormat === "JPEG" ? jpegQuality : 1,
     });

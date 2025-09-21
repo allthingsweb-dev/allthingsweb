@@ -49,6 +49,7 @@
     "@tanstack/electric-db-collection": "^0.1.19",
     "@tanstack/query-db-collection": "^0.2.16",
     "@tanstack/react-db": "^0.1.17",
+    "@types/heic-convert": "^2.1.0",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
