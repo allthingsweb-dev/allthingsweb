@@ -244,4 +244,3 @@ export async function processImageFromPath(
 
   return processImage(buffer, fileName, options);
 }
-

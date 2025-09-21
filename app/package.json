@@ -45,6 +45,7 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@resvg/resvg-js": "^2.6.2",
+    "@sentry/nextjs": "^10",
     "@stackframe/stack": "^2.8.36",
     "@tanstack/electric-db-collection": "^0.1.19",
     "@tanstack/query-db-collection": "^0.2.16",
