@@ -163,13 +163,13 @@ export function BeforeStartDashboard({
 
       {/* User Team Status */}
       {userTeam && (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
           <CardHeader>
-            <CardTitle className="text-green-800 flex items-center gap-2">
+            <CardTitle className="text-green-800 dark:text-green-200 flex items-center gap-2">
               <Users className="h-5 w-5" />
               You're Registered!
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-green-700 dark:text-green-300">
               You're part of team: <strong>{userTeam.teamName}</strong>
             </CardDescription>
           </CardHeader>
@@ -188,15 +188,19 @@ export function BeforeStartDashboard({
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Location Section */}
-            <div className="pb-3 border-b border-gray-100">
+            <div className="pb-3 border-b border-border">
               <div className="flex items-center gap-3 mb-2">
-                <MapPin className="h-4 w-4 text-gray-500" />
-                <p className="font-medium">Location</p>
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <p className="font-medium text-foreground">Location</p>
               </div>
               <div className="pl-7 space-y-1">
-                <p className="text-sm font-medium">{event.shortLocation}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {event.shortLocation}
+                </p>
                 {event.streetAddress && (
-                  <p className="text-sm text-gray-600">{event.streetAddress}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {event.streetAddress}
+                  </p>
                 )}
               </div>
             </div>
@@ -204,29 +208,31 @@ export function BeforeStartDashboard({
             {/* Schedule Section */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-gray-500" />
+                <Clock className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Event Start</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-medium text-foreground">Event Start</p>
+                  <p className="text-sm text-muted-foreground">
                     {toReadableDateTimeStr(event.startDate)}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-gray-500" />
+                <Clock className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Event End</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-medium text-foreground">Event End</p>
+                  <p className="text-sm text-muted-foreground">
                     {toReadableDateTimeStr(event.endDate)}
                   </p>
                 </div>
               </div>
               {event.hackUntil && (
                 <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-blue-500" />
+                  <Clock className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                   <div>
-                    <p className="font-medium">Hacking Deadline</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-medium text-foreground">
+                      Hacking Deadline
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       {toReadableDateTimeStr(event.hackUntil)}
                     </p>
                   </div>
@@ -234,10 +240,12 @@ export function BeforeStartDashboard({
               )}
               {event.voteUntil && (
                 <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-yellow-500" />
+                  <Clock className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
                   <div>
-                    <p className="font-medium">Voting Deadline</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-medium text-foreground">
+                      Voting Deadline
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       {toReadableDateTimeStr(event.voteUntil)}
                     </p>
                   </div>
@@ -261,7 +269,7 @@ export function BeforeStartDashboard({
           </CardHeader>
           <CardContent>
             {!awards || awards.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-muted-foreground">
                 <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No awards announced yet</p>
                 <p className="text-sm">Awards will be announced soon!</p>
@@ -271,19 +279,21 @@ export function BeforeStartDashboard({
                 {awards.map((award, index) => (
                   <div
                     key={award.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 border border-yellow-200 dark:border-yellow-800"
                   >
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 dark:from-yellow-500 dark:to-orange-500 flex items-center justify-center">
                         <span className="text-white font-bold text-sm">
                           {index + 1}
                         </span>
                       </div>
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{award.name}</p>
+                      <p className="font-medium text-foreground">
+                        {award.name}
+                      </p>
                     </div>
-                    <Trophy className="h-4 w-4 text-yellow-600" />
+                    <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                   </div>
                 ))}
               </div>
@@ -306,7 +316,7 @@ export function BeforeStartDashboard({
         </CardHeader>
         <CardContent>
           {!teams || teams.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>No teams registered yet</p>
               <p className="text-sm">Be the first to register your team!</p>
@@ -327,8 +337,8 @@ export function BeforeStartDashboard({
                     key={team.id}
                     className={`border-2 transition-colors ${
                       isUserTeam
-                        ? "border-blue-300 bg-blue-50"
-                        : "hover:border-blue-200"
+                        ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950"
+                        : "hover:border-blue-200 dark:hover:border-blue-700"
                     }`}
                   >
                     <CardHeader className="pb-3">

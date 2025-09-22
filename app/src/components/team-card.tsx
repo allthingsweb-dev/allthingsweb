@@ -70,7 +70,9 @@ export function TeamCard({
   return (
     <Card
       className={`border-2 transition-colors ${
-        isUserTeam ? "border-blue-300 bg-blue-50" : "hover:border-gray-300"
+        isUserTeam
+          ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950"
+          : "hover:border-gray-300 dark:hover:border-gray-600"
       } ${className}`}
     >
       <CardHeader className="pb-3">
@@ -124,30 +126,32 @@ export function TeamCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Users className="h-4 w-4" />
           <span>Team Members:</span>
-          <span className="text-gray-700">
+          <span className="text-foreground">
             {teamMemberNames.length > 0
               ? teamMemberNames.join(", ")
               : "No members"}
           </span>
-          {mode === "voting" && typeof voteCount === "number" && (
-            <>
-              <span className="text-gray-400">•</span>
-              <span className="text-primary font-semibold bg-primary/10 px-2 py-1 rounded-full text-xs">
-                {voteCount} vote{voteCount !== 1 ? "s" : ""}
-              </span>
-            </>
-          )}
+          {mode === "voting" &&
+            typeof voteCount === "number" &&
+            voteCount !== undefined && (
+              <>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-primary font-semibold bg-primary/10 px-2 py-1 rounded-full text-xs">
+                  {voteCount} vote{voteCount !== 1 ? "s" : ""}
+                </span>
+              </>
+            )}
         </div>
         {team.project_description && (
-          <p className="text-sm text-gray-500 line-clamp-3">
+          <p className="text-sm text-muted-foreground line-clamp-3">
             {team.project_description}
           </p>
         )}
         {mode === "voting" && voteButton && !canManageTeam && (
-          <div className="pt-3 border-t border-gray-100">{voteButton}</div>
+          <div className="pt-3 border-t border-border">{voteButton}</div>
         )}
       </CardContent>
     </Card>

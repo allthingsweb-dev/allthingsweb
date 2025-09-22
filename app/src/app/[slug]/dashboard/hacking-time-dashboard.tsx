@@ -146,14 +146,14 @@ export function HackingTimeDashboard({
       </div>
 
       {/* Hacking Tips */}
-      <Card className="border-blue-200 bg-blue-50">
+      <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
         <CardHeader>
-          <CardTitle className="text-blue-800 flex items-center gap-2">
+          <CardTitle className="text-blue-800 dark:text-blue-200 flex items-center gap-2">
             <Code className="h-5 w-5" />
             Hacking Tips
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-blue-700">
+        <CardContent className="text-blue-700 dark:text-blue-300">
           <ul className="space-y-2 text-sm">
             <li>• Focus on building an MVP (Minimum Viable Product)</li>
             <li>• Document your project well for the judges</li>
@@ -177,7 +177,7 @@ export function HackingTimeDashboard({
         </CardHeader>
         <CardContent>
           {!teams || teams.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>No teams registered yet</p>
               <p className="text-sm">Be the first to register!</p>
@@ -198,8 +198,8 @@ export function HackingTimeDashboard({
                     key={team.id}
                     className={`border-2 transition-colors ${
                       isUserTeam
-                        ? "border-blue-300 bg-blue-50"
-                        : "hover:border-blue-200"
+                        ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950"
+                        : "hover:border-blue-200 dark:hover:border-blue-700"
                     }`}
                   >
                     <CardHeader className="pb-3">

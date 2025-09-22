@@ -198,7 +198,7 @@ export function EndedDashboard({
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-muted-foreground mb-2">
                 View event details and connect with other participants
               </p>
               <Link
@@ -227,7 +227,7 @@ export function EndedDashboard({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-muted-foreground">
                 <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No awards or votes yet</p>
               </div>
@@ -243,7 +243,7 @@ export function EndedDashboard({
                   {awardData.winners && awardData.winners.length > 0 && (
                     <Badge
                       variant="secondary"
-                      className="bg-yellow-100 text-yellow-800"
+                      className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
                     >
                       {awardData.winners.length === 1
                         ? `Winner: ${awardData.winners[0].team_name}`
@@ -259,7 +259,7 @@ export function EndedDashboard({
               </CardHeader>
               <CardContent>
                 {awardData.teams.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500">
+                  <div className="text-center py-4 text-muted-foreground">
                     <p>No teams received votes for this award</p>
                   </div>
                 ) : (
@@ -280,10 +280,10 @@ export function EndedDashboard({
                           voteCount={team.voteCount}
                           className={
                             isWinner
-                              ? "border-yellow-300 bg-yellow-50"
+                              ? "border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-950"
                               : index === 1
-                                ? "border-gray-300 bg-gray-50"
-                                : "border-amber-300 bg-amber-50"
+                                ? "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-950"
+                                : "border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-950"
                           }
                         />
                       );
@@ -310,7 +310,7 @@ export function EndedDashboard({
         </CardHeader>
         <CardContent>
           {!teams || teams.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>No teams participated</p>
             </div>

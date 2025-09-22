@@ -79,12 +79,6 @@ export function ProfileButton({ user, isAdmin }: ProfileButtonProps) {
             </Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem asChild>
-          <Link href="/handler/account-settings" className="cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
-            Account Settings
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer text-red-600 focus:text-red-600"

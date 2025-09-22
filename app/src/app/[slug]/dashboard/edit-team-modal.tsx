@@ -95,20 +95,7 @@ export function EditTeamModal({
               projectDescription: data.team.projectDescription || "",
             });
 
-            // Initialize selected users from team member IDs
-            if (data.team.memberIds) {
-              const teamMemberUsers = data.team.memberIds
-                .filter((id: string) => id !== user.id) // Exclude current user
-                .map((id: string) => {
-                  const userInfo = userLookup.find((u) => u.id === id);
-                  return {
-                    id,
-                    name: userInfo?.name || null,
-                    email: null,
-                  };
-                });
-              setSelectedUsers(teamMemberUsers);
-            }
+            // Selected users will be initialized by the separate useEffect
           }
         } else if (response.status === 403) {
           const errorMessage = isAdmin
@@ -129,7 +116,24 @@ export function EditTeamModal({
     }
 
     fetchTeam();
-  }, [open, hackId, userLookup, user.id]);
+  }, [open, hackId, user.id]);
+
+  // Update selected users when userLookup changes (to get updated names)
+  useEffect(() => {
+    if (team?.memberIds && userLookup.length > 0) {
+      const teamMemberUsers = team.memberIds
+        .filter((id: string) => id !== user.id) // Exclude current user
+        .map((id: string) => {
+          const userInfo = userLookup.find((u) => u.id === id);
+          return {
+            id,
+            name: userInfo?.name || null,
+            email: null,
+          };
+        });
+      setSelectedUsers(teamMemberUsers);
+    }
+  }, [userLookup, team?.memberIds, user.id]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({

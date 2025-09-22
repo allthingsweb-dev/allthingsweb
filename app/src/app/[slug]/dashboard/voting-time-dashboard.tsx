@@ -329,6 +329,7 @@ export function VotingTimeDashboard({
   const renderVoteButton = (team: any, award: any) => {
     const voteKey = `${team.id}-${award.id}`;
     const buttonState = getVoteButtonState(team.id, award.id);
+    // Hide vote counts during voting period for surprise reveal
     const voteCount = voteCountsByTeamAndAward[voteKey] || 0;
 
     switch (buttonState) {
@@ -341,7 +342,7 @@ export function VotingTimeDashboard({
             className="w-full h-12 text-sm"
           >
             <Users className="h-4 w-4 mr-2" />
-            Your Team ({voteCount} votes)
+            Your Team
           </Button>
         );
       case "voted":
@@ -353,14 +354,14 @@ export function VotingTimeDashboard({
             className="w-full h-12 text-sm bg-green-600 hover:bg-green-600"
           >
             <CheckCircle className="h-4 w-4 mr-2" />
-            Voted ({voteCount} votes)
+            Voted
           </Button>
         );
       case "loading":
         return (
           <Button disabled size="lg" className="w-full h-12 text-sm">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Voting... ({voteCount} votes)
+            Voting...
           </Button>
         );
       case "success":
@@ -372,7 +373,7 @@ export function VotingTimeDashboard({
             className="w-full h-12 text-sm bg-green-600 hover:bg-green-600"
           >
             <CheckCircle className="h-4 w-4 mr-2" />
-            Vote Submitted! ({voteCount + 1} votes)
+            Vote Submitted!
           </Button>
         );
       case "error":
@@ -386,7 +387,7 @@ export function VotingTimeDashboard({
             }
           >
             <AlertCircle className="h-4 w-4 mr-2" />
-            Retry Vote ({voteCount} votes)
+            Retry Vote
           </Button>
         );
       default:
@@ -399,7 +400,7 @@ export function VotingTimeDashboard({
             }
           >
             <Heart className="h-4 w-4 mr-2" />
-            Vote ({voteCount} votes)
+            Vote
           </Button>
         );
     }
@@ -457,7 +458,7 @@ export function VotingTimeDashboard({
             </CardHeader>
             <CardContent>
               {!teams || teams.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p>No teams to vote for</p>
                 </div>
@@ -479,7 +480,7 @@ export function VotingTimeDashboard({
                         hasVotes={false} // Not used in voting mode
                         mode="voting"
                         voteButton={renderVoteButton(team, award)}
-                        voteCount={voteCount}
+                        voteCount={undefined} // Hide vote counts during voting period
                         onTeamUpdated={() => {
                           // TanStack DB will automatically update via live queries
                         }}

@@ -105,7 +105,7 @@ export function CountdownTimer({
 
   if (isExpired) {
     return (
-      <div className="bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-xl p-6 mb-8">
+      <div className="bg-gradient-to-r from-gray-500 to-gray-600 dark:from-gray-700 dark:to-gray-800 text-white rounded-xl p-6 mb-8">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Clock className="h-6 w-6" />
@@ -118,7 +118,7 @@ export function CountdownTimer({
   }
 
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl p-6 mb-8">
+    <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700 text-white rounded-xl p-6 mb-8">
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
           <Clock className="h-6 w-6" />
