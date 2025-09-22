@@ -89,28 +89,32 @@ export function TeamCard({
             </Avatar>
           )}
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base truncate flex items-center gap-2">
-              {team.team_name}
-              {isUserTeam && (
-                <Badge variant="secondary" className="text-xs">
-                  Your Team
-                </Badge>
-              )}
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <CardTitle className="text-base truncate flex items-center gap-2 min-w-0">
+                <span className="truncate">{team.team_name}</span>
+                {isUserTeam && (
+                  <Badge variant="secondary" className="text-xs flex-shrink-0">
+                    Your Team
+                  </Badge>
+                )}
+              </CardTitle>
               {canManageTeam && (
-                <TeamManagement
-                  hackId={team.id}
-                  teamName={team.team_name}
-                  user={user}
-                  hasVotes={hasVotes}
-                  isAdmin={isAdmin}
-                  onTeamDeleted={onTeamDeleted}
-                  onTeamUpdated={onTeamUpdated}
-                  userLookup={userLookup}
-                  mode={mode}
-                  voteButton={voteButton}
-                />
+                <div className="flex-shrink-0">
+                  <TeamManagement
+                    hackId={team.id}
+                    teamName={team.team_name}
+                    user={user}
+                    hasVotes={hasVotes}
+                    isAdmin={isAdmin}
+                    onTeamDeleted={onTeamDeleted}
+                    onTeamUpdated={onTeamUpdated}
+                    userLookup={userLookup}
+                    mode={mode}
+                    voteButton={voteButton}
+                  />
+                </div>
               )}
-            </CardTitle>
+            </div>
             {team.project_name && (
               <CardDescription className="text-sm truncate">
                 {team.project_name}
@@ -131,7 +135,7 @@ export function TeamCard({
           {mode === "voting" && typeof voteCount === "number" && (
             <>
               <span className="text-gray-400">•</span>
-              <span className="text-blue-600 font-medium">
+              <span className="text-primary font-semibold bg-primary/10 px-2 py-1 rounded-full text-xs">
                 {voteCount} vote{voteCount !== 1 ? "s" : ""}
               </span>
             </>
@@ -143,7 +147,7 @@ export function TeamCard({
           </p>
         )}
         {mode === "voting" && voteButton && !canManageTeam && (
-          <div className="pt-2">{voteButton}</div>
+          <div className="pt-3 border-t border-gray-100">{voteButton}</div>
         )}
       </CardContent>
     </Card>

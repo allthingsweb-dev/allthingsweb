@@ -145,25 +145,6 @@ export function HackingTimeDashboard({
         )}
       </div>
 
-      {/* User Team Status */}
-      {userTeam ? (
-        <Alert>
-          <Code className="h-4 w-4" />
-          <AlertDescription>
-            <strong>You're hacking with team: {userTeam.teamName}</strong>
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <Alert>
-          <Clock className="h-4 w-4" />
-          <AlertDescription>
-            <strong>You're not on a team yet!</strong>
-            <br />
-            Register a team now to participate in the hackathon.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Hacking Tips */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader>

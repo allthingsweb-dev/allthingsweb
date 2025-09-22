@@ -366,10 +366,8 @@ export function TeamsAndHacksSection({
 }) {
   if (!hacks.length) return null;
 
-  // Find the highest vote count to identify potential winners
-  const maxVotes = Math.max(...hacks.map((hack) => hack.voteCount));
-  const isWinner = (hack: any) =>
-    hack.voteCount > 0 && hack.voteCount === maxVotes;
+  // Check if a hack has won any awards
+  const isWinner = (hack: any) => hack.awards && hack.awards.length > 0;
 
   return (
     <Section id="hacks" variant="big">
@@ -389,7 +387,8 @@ export function TeamsAndHacksSection({
               key={hack.id}
               className={clsx(
                 "flex flex-col h-full hover:shadow-md transition-shadow",
-                isWinner(hack) && "border-yellow-300 bg-yellow-50",
+                isWinner(hack) &&
+                  "border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-950",
               )}
             >
               <CardHeader className="pb-4">
@@ -430,9 +429,16 @@ export function TeamsAndHacksSection({
                 {/* Award winner section above project description */}
                 {isWinner(hack) && (
                   <div className="text-center py-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-medium">
-                      🏆 Award Winner
-                    </span>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {hack.awards?.map((award: any) => (
+                        <span
+                          key={award.id}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-sm font-medium"
+                        >
+                          🏆 {award.name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
 

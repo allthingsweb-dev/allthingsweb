@@ -26,14 +26,21 @@ import {
 } from "@/lib/hackathons/collections";
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
+import type { UserLookup } from "@/lib/users";
 
 interface EndedDashboardProps {
   event: ExpandedEvent;
   user: ClientUser;
   isAdmin: boolean;
+  userLookup: UserLookup[];
 }
 
-export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
+export function EndedDashboard({
+  event,
+  user,
+  isAdmin,
+  userLookup,
+}: EndedDashboardProps) {
   // Get all teams for this event
   const { data: teams } = useLiveQuery((q) =>
     q
@@ -144,10 +151,18 @@ export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
         .filter((team) => team.voteCount > 0) // Only include teams with votes
         .sort((a, b) => b.voteCount - a.voteCount);
 
+      // Find all teams with the highest vote count (handles ties)
+      const maxVotes =
+        teamsWithVotes.length > 0 ? teamsWithVotes[0].voteCount : 0;
+      const winners = teamsWithVotes.filter(
+        (team) => team.voteCount === maxVotes,
+      );
+
       return {
         award,
         teams: teamsWithVotes,
-        winner: teamsWithVotes[0] || null,
+        winners, // Array of all winners (handles ties)
+        winner: teamsWithVotes[0] || null, // Keep for backward compatibility
       };
     });
   }, [awards, allVotes, teams, teamMembers]);
@@ -201,17 +216,6 @@ export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
         </CardContent>
       </Card>
 
-      {/* User Summary */}
-      <Alert>
-        <Star className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Your Hackathon Summary:</strong>
-          <br />
-          {userTeam ? `Team: ${userTeam.teamName}` : "You didn't join a team"} •
-          Votes cast: {userVotes.length}
-        </AlertDescription>
-      </Alert>
-
       {/* Award Winners */}
       <div className="space-y-6">
         {awardWinners.length === 0 ? (
@@ -236,12 +240,14 @@ export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="h-5 w-5" />
                   {awardData.award.name}
-                  {awardData.winner && (
+                  {awardData.winners && awardData.winners.length > 0 && (
                     <Badge
                       variant="secondary"
                       className="bg-yellow-100 text-yellow-800"
                     >
-                      Winner: {awardData.winner.team_name}
+                      {awardData.winners.length === 1
+                        ? `Winner: ${awardData.winners[0].team_name}`
+                        : `Winners: ${awardData.winners.map((w) => w.team_name).join(", ")}`}
                     </Badge>
                   )}
                 </CardTitle>
@@ -258,24 +264,30 @@ export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-[280px]">
-                    {awardData.teams.slice(0, 3).map((team, index) => (
-                      <TeamCard
-                        key={team.id}
-                        team={team}
-                        members={team.members}
-                        user={user}
-                        isAdmin={isAdmin}
-                        mode="ended"
-                        voteCount={team.voteCount}
-                        className={
-                          index === 0
-                            ? "border-yellow-300 bg-yellow-50"
-                            : index === 1
-                              ? "border-gray-300 bg-gray-50"
-                              : "border-amber-300 bg-amber-50"
-                        }
-                      />
-                    ))}
+                    {awardData.teams.slice(0, 3).map((team, index) => {
+                      const isWinner = awardData.winners?.some(
+                        (winner) => winner.id === team.id,
+                      );
+                      return (
+                        <TeamCard
+                          key={team.id}
+                          team={team}
+                          members={team.members}
+                          user={user}
+                          isAdmin={isAdmin}
+                          userLookup={userLookup}
+                          mode="ended"
+                          voteCount={team.voteCount}
+                          className={
+                            isWinner
+                              ? "border-yellow-300 bg-yellow-50"
+                              : index === 1
+                                ? "border-gray-300 bg-gray-50"
+                                : "border-amber-300 bg-amber-50"
+                          }
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -320,6 +332,7 @@ export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
                     members={members}
                     user={user}
                     isAdmin={isAdmin}
+                    userLookup={userLookup}
                     mode="ended"
                     voteCount={totalVotes}
                   />

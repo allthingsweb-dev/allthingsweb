@@ -334,7 +334,12 @@ export function VotingTimeDashboard({
     switch (buttonState) {
       case "own-team":
         return (
-          <Button disabled variant="outline" size="sm" className="w-full">
+          <Button
+            disabled
+            variant="outline"
+            size="lg"
+            className="w-full h-12 text-sm"
+          >
             <Users className="h-4 w-4 mr-2" />
             Your Team ({voteCount} votes)
           </Button>
@@ -344,8 +349,8 @@ export function VotingTimeDashboard({
           <Button
             disabled
             variant="default"
-            size="sm"
-            className="w-full bg-green-600 hover:bg-green-600"
+            size="lg"
+            className="w-full h-12 text-sm bg-green-600 hover:bg-green-600"
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Voted ({voteCount} votes)
@@ -353,7 +358,7 @@ export function VotingTimeDashboard({
         );
       case "loading":
         return (
-          <Button disabled size="sm" className="w-full">
+          <Button disabled size="lg" className="w-full h-12 text-sm">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
             Voting... ({voteCount} votes)
           </Button>
@@ -363,8 +368,8 @@ export function VotingTimeDashboard({
           <Button
             disabled
             variant="default"
-            size="sm"
-            className="w-full bg-green-600 hover:bg-green-600"
+            size="lg"
+            className="w-full h-12 text-sm bg-green-600 hover:bg-green-600"
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Vote Submitted! ({voteCount + 1} votes)
@@ -374,8 +379,8 @@ export function VotingTimeDashboard({
         return (
           <Button
             variant="destructive"
-            size="sm"
-            className="w-full"
+            size="lg"
+            className="w-full h-12 text-sm"
             onClick={() =>
               handleVote(team.id, award.id, team.team_name, award.name)
             }
@@ -387,8 +392,8 @@ export function VotingTimeDashboard({
       default:
         return (
           <Button
-            size="sm"
-            className="w-full"
+            size="lg"
+            className="w-full h-12 text-sm bg-primary hover:bg-primary/90"
             onClick={() =>
               handleVote(team.id, award.id, team.team_name, award.name)
             }
@@ -457,7 +462,7 @@ export function VotingTimeDashboard({
                   <p>No teams to vote for</p>
                 </div>
               ) : (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-[280px]">
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
                   {teams.map((team) => {
                     const members =
                       teamMembers?.filter((m) => m.hackId === team.id) || [];

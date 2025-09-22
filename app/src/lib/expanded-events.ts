@@ -14,6 +14,7 @@ import {
   hackVotesTable,
   hackUsersTable,
   usersSyncTable,
+  awardsTable,
 } from "@/lib/schema";
 import { Event, Image } from "@/lib/events";
 import { getLumaUrl } from "@/lib/luma";
@@ -61,6 +62,11 @@ export type ExpandedEvent = Event & {
     members: Array<{
       userId: string;
       name: string | null;
+    }>;
+    awards?: Array<{
+      id: string;
+      name: string;
+      voteCount: number;
     }>;
   }>;
 };
@@ -277,6 +283,73 @@ async function getExpandedEventFromQuery(
           });
         }
 
+        // Get award winners for each hack
+        const awardWinnersQuery = await db
+          .select({
+            hackId: hackVotesTable.hackId,
+            awardId: hackVotesTable.awardId,
+            awardName: awardsTable.name,
+          })
+          .from(hackVotesTable)
+          .leftJoin(awardsTable, eq(hackVotesTable.awardId, awardsTable.id))
+          .where(inArray(hackVotesTable.hackId, hackIds));
+
+        // Calculate vote counts per hack per award
+        const voteCountsByHackAndAward: Record<
+          string,
+          Record<string, number>
+        > = {};
+        for (const vote of awardWinnersQuery) {
+          const hackId = vote.hackId;
+          const awardId = vote.awardId;
+          if (!voteCountsByHackAndAward[hackId]) {
+            voteCountsByHackAndAward[hackId] = {};
+          }
+          voteCountsByHackAndAward[hackId][awardId] =
+            (voteCountsByHackAndAward[hackId][awardId] || 0) + 1;
+        }
+
+        // Determine winners for each award
+        const awardWinnersByHack: Record<
+          string,
+          Array<{ id: string; name: string; voteCount: number }>
+        > = {};
+
+        // Get all awards for this event
+        const eventAwards = await db
+          .select()
+          .from(awardsTable)
+          .where(eq(awardsTable.eventId, event.id));
+
+        for (const award of eventAwards) {
+          // Find the maximum vote count for this award
+          let maxVotes = 0;
+          for (const hackId of hackIds) {
+            const voteCount = voteCountsByHackAndAward[hackId]?.[award.id] || 0;
+            if (voteCount > maxVotes) {
+              maxVotes = voteCount;
+            }
+          }
+
+          // Find all hacks that have the maximum vote count for this award
+          if (maxVotes > 0) {
+            for (const hackId of hackIds) {
+              const voteCount =
+                voteCountsByHackAndAward[hackId]?.[award.id] || 0;
+              if (voteCount === maxVotes) {
+                if (!awardWinnersByHack[hackId]) {
+                  awardWinnersByHack[hackId] = [];
+                }
+                awardWinnersByHack[hackId].push({
+                  id: award.id,
+                  name: award.name,
+                  voteCount,
+                });
+              }
+            }
+          }
+        }
+
         return Promise.all(
           baseHacksQuery.map(async (row) => {
             const hack = row.hacks;
@@ -305,6 +378,7 @@ async function getExpandedEventFromQuery(
               teamImage: signed,
               voteCount: voteCountByHack[hack.id] ?? 0,
               members: membersByHack[hack.id] || [],
+              awards: awardWinnersByHack[hack.id] || [],
             };
           }),
         );
