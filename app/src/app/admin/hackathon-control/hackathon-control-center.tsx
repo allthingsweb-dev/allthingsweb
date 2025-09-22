@@ -120,60 +120,76 @@ export function HackathonControlCenter() {
   const convertUTCtoPDTForInput = (utcString: string | null): string => {
     if (!utcString) return "";
 
-    // Create date from UTC string
-    const utcDate = new Date(utcString);
+    try {
+      // Create date from UTC string
+      const utcDate = new Date(utcString);
 
-    // Convert to PDT using Intl.DateTimeFormat
-    const pdtFormatter = new Intl.DateTimeFormat("en-CA", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+      // Check if date is valid
+      if (isNaN(utcDate.getTime())) {
+        console.error("Invalid date string:", utcString);
+        return "";
+      }
 
-    const parts = pdtFormatter.formatToParts(utcDate);
-    const year = parts.find((p) => p.type === "year")?.value;
-    const month = parts.find((p) => p.type === "month")?.value;
-    const day = parts.find((p) => p.type === "day")?.value;
-    const hour = parts.find((p) => p.type === "hour")?.value;
-    const minute = parts.find((p) => p.type === "minute")?.value;
+      // Convert to PDT/PST timezone using toLocaleString with proper formatting
+      const pdtDateTimeString = utcDate.toLocaleString("sv-SE", {
+        timeZone: timezone,
+      });
 
-    // Format for datetime-local input (YYYY-MM-DDTHH:mm)
-    return `${year}-${month}-${day}T${hour}:${minute}`;
+      // sv-SE locale gives us YYYY-MM-DD HH:mm:ss format
+      // Convert to YYYY-MM-DDTHH:mm format for datetime-local input
+      const [datePart, timePart] = pdtDateTimeString.split(" ");
+      const [hour, minute] = timePart.split(":");
+
+      return `${datePart}T${hour}:${minute}`;
+    } catch (error) {
+      console.error("Error converting UTC to PDT:", error);
+      return "";
+    }
   };
 
   // Helper function to convert PDT datetime-local input to UTC
   const convertPDTInputToUTC = (pdtInputString: string): string => {
     if (!pdtInputString) return "";
 
-    // Parse the datetime-local input as if it were in PDT
-    const [datePart, timePart] = pdtInputString.split("T");
-    const [year, month, day] = datePart.split("-");
-    const [hour, minute] = timePart.split(":");
+    try {
+      // Parse the input date/time parts
+      const [datePart, timePart] = pdtInputString.split("T");
+      const [year, month, day] = datePart.split("-");
+      const [hour, minute] = timePart.split(":");
 
-    // Create a date string that explicitly includes the PDT timezone
-    const pdtDateString = `${year}-${month}-${day} ${hour}:${minute}:00`;
+      // Create a date object representing this time in PDT/PST
+      // We'll use a trick with two dates to calculate the timezone offset
+      const inputDateTime = `${year}-${month}-${day} ${hour}:${minute}:00`;
 
-    // Use Intl.DateTimeFormat to parse this as PDT time
-    // Create a temporary date and adjust for PDT offset
-    const tempDate = new Date(pdtDateString);
+      // Create a date in UTC with these same numbers
+      const utcVersion = new Date(
+        `${year}-${month}-${day}T${hour}:${minute}:00Z`,
+      );
 
-    // Get the timezone offset for America/Los_Angeles at this date
-    const pdtDate = new Date(
-      tempDate.toLocaleString("en-US", { timeZone: "UTC" }),
-    );
-    const offsetDate = new Date(
-      tempDate.toLocaleString("en-US", { timeZone: timezone }),
-    );
-    const offset = pdtDate.getTime() - offsetDate.getTime();
+      // Create a date in the local timezone with these same numbers
+      const localVersion = new Date(
+        `${year}-${month}-${day}T${hour}:${minute}:00`,
+      );
 
-    // Apply the offset to get UTC
-    const utcDate = new Date(tempDate.getTime() + offset);
+      // Find out what time it would be in PDT if we had this UTC time
+      const whatWouldBeInPDT = new Date(
+        utcVersion.toLocaleString("en-US", { timeZone: timezone }),
+      );
 
-    return utcDate.toISOString();
+      // Find out what time it would be in UTC if we had this PDT time
+      const whatWouldBeInUTC = new Date(
+        localVersion.toLocaleString("en-US", { timeZone: "UTC" }),
+      );
+
+      // Calculate the difference and adjust
+      const offset = whatWouldBeInPDT.getTime() - utcVersion.getTime();
+      const adjustedUTC = new Date(localVersion.getTime() + offset);
+
+      return adjustedUTC.toISOString();
+    } catch (error) {
+      console.error("Error converting PDT to UTC:", error);
+      return "";
+    }
   };
 
   // Update selected event when selection changes
@@ -183,8 +199,17 @@ export function HackathonControlCenter() {
     if (event) {
       setHackathonState(event.hackathonState || "before_start");
       // Convert UTC to PDT for display in datetime-local inputs
-      setHackUntil(convertUTCtoPDTForInput(event.hackUntil));
-      setVoteUntil(convertUTCtoPDTForInput(event.voteUntil));
+      const convertedHackUntil = convertUTCtoPDTForInput(event.hackUntil);
+      const convertedVoteUntil = convertUTCtoPDTForInput(event.voteUntil);
+
+      console.log("Converting dates for display:");
+      console.log("Original hackUntil (UTC):", event.hackUntil);
+      console.log("Converted hackUntil (PDT):", convertedHackUntil);
+      console.log("Original voteUntil (UTC):", event.voteUntil);
+      console.log("Converted voteUntil (PDT):", convertedVoteUntil);
+
+      setHackUntil(convertedHackUntil);
+      setVoteUntil(convertedVoteUntil);
       // Fetch awards for the selected event
       fetchAwards(event.id);
     } else {
@@ -217,12 +242,25 @@ export function HackathonControlCenter() {
     setSuccess("");
 
     try {
+      const convertedHackUntil = hackUntil
+        ? convertPDTInputToUTC(hackUntil)
+        : null;
+      const convertedVoteUntil = voteUntil
+        ? convertPDTInputToUTC(voteUntil)
+        : null;
+
+      console.log("Converting dates for submission:");
+      console.log("Input hackUntil (PDT):", hackUntil);
+      console.log("Converted hackUntil (UTC):", convertedHackUntil);
+      console.log("Input voteUntil (PDT):", voteUntil);
+      console.log("Converted voteUntil (UTC):", convertedVoteUntil);
+
       const body: any = {
         eventId: selectedEventId,
         hackathonState,
         // Always send time fields, even if empty (as null)
-        hackUntil: hackUntil ? convertPDTInputToUTC(hackUntil) : null,
-        voteUntil: voteUntil ? convertPDTInputToUTC(voteUntil) : null,
+        hackUntil: convertedHackUntil,
+        voteUntil: convertedVoteUntil,
       };
 
       const response = await fetch("/api/v1/admin/hackathon-control", {

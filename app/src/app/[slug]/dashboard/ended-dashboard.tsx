@@ -156,7 +156,7 @@ export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
   const userVotes = allVotes?.filter((vote) => vote.userId === user.id) || [];
 
   return (
-    <div className="space-y-8">
+    <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 space-y-8">
       {/* Header */}
       <div className="text-center">
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl p-8">

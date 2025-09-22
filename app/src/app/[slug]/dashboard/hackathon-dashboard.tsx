@@ -127,10 +127,10 @@ export function HackathonDashboard({
   const renderDashboardForState = () => {
     if (!transformedEvent) {
       return (
-        <div className="min-h-screen bg-gray-50 w-full flex items-center justify-center">
+        <div className="min-h-screen bg-background w-full flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading event data...</p>
+            <p className="text-muted-foreground">Loading event data...</p>
           </div>
         </div>
       );
@@ -153,35 +153,37 @@ export function HackathonDashboard({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 w-full">
+    <div className="min-h-screen bg-background w-full">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b w-full">
+      <div className="bg-card shadow-sm border-b w-full">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <Link
                 href={`/${eventSlug}`}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Event
               </Link>
-              <div className="h-6 w-px bg-gray-300" />
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">
+              <div className="h-6 w-px bg-border" />
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg font-semibold text-foreground truncate">
                   {transformedEvent?.name || "Loading..."}
                 </h1>
-                <p className="text-sm text-gray-500">Hackathon Dashboard</p>
+                <p className="text-sm text-muted-foreground">
+                  Hackathon Dashboard
+                </p>
               </div>
             </div>
 
             {/* State indicator */}
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-sm font-medium text-gray-900 capitalize">
+                <div className="text-sm font-medium text-foreground capitalize">
                   {hackathonState.replace("_", " ")}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-muted-foreground">
                   Welcome, {user.displayName || user.primaryEmail}
                 </div>
               </div>
@@ -202,9 +204,7 @@ export function HackathonDashboard({
       </div>
 
       {/* Dashboard Content */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-        {renderDashboardForState()}
-      </div>
+      <div className="w-full py-8">{renderDashboardForState()}</div>
     </div>
   );
 }

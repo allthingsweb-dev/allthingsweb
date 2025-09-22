@@ -230,7 +230,7 @@ export function AllYouNeedToKnowSection({
                 {event.shortLocation}
               </h3>
               <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1 break-words">
-                {event.shortLocation}
+                {event.streetAddress || event.shortLocation}
               </p>
             </div>
           </div>

@@ -106,7 +106,7 @@ export function HackingTimeDashboard({
     : new Date(event.endDate);
 
   return (
-    <div className="space-y-8">
+    <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 space-y-8">
       {/* Countdown Timer */}
       <CountdownTimer
         targetDate={hackingDeadline}

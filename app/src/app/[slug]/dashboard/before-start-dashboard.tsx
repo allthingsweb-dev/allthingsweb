@@ -130,7 +130,7 @@ export function BeforeStartDashboard({
   const userTeamHasVotes = teamVotes && teamVotes.length > 0;
 
   return (
-    <div className="space-y-8">
+    <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 space-y-8">
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         {!userTeam && (
