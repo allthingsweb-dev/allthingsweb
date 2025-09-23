@@ -26,6 +26,7 @@ interface Team {
   teamName: string;
   projectName: string | null;
   projectDescription: string | null;
+  projectLink: string | null;
   imageUrl?: string;
   imageAlt?: string;
   memberIds?: string[];
@@ -59,6 +60,7 @@ export function EditTeamModal({
     teamName: "",
     projectName: "",
     projectDescription: "",
+    projectLink: "",
   });
 
   // Convert member IDs to user objects for the team member management component
@@ -93,6 +95,7 @@ export function EditTeamModal({
               teamName: data.team.teamName || "",
               projectName: data.team.projectName || "",
               projectDescription: data.team.projectDescription || "",
+              projectLink: data.team.projectLink || "",
             });
 
             // Selected users will be initialized by the separate useEffect
@@ -188,6 +191,9 @@ export function EditTeamModal({
           "projectDescription",
           formData.projectDescription,
         );
+      }
+      if (formData.projectLink) {
+        formDataToSend.append("projectLink", formData.projectLink);
       }
 
       if (imageFile) {
@@ -335,6 +341,19 @@ export function EditTeamModal({
                 }
                 placeholder="Describe your project, the problem it solves, technologies used, etc. (Optional)"
                 rows={4}
+              />
+            </div>
+
+            {/* Project Link */}
+            <div>
+              <Label htmlFor="projectLink">Project Link</Label>
+              <Input
+                id="projectLink"
+                value={formData.projectLink}
+                onChange={(e) =>
+                  handleInputChange("projectLink", e.target.value)
+                }
+                placeholder="https://github.com/your-repo or demo link (Optional)"
               />
             </div>
 

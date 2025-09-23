@@ -41,6 +41,7 @@ export function RegisterTeamModal({
   const [teamName, setTeamName] = useState("");
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
+  const [projectLink, setProjectLink] = useState("");
   const [teamImageFile, setTeamImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -66,6 +67,7 @@ export function RegisterTeamModal({
     setTeamName("");
     setProjectName("");
     setProjectDescription("");
+    setProjectLink("");
     setTeamImageFile(null);
     setSelectedUsers([]);
   };
@@ -115,6 +117,7 @@ export function RegisterTeamModal({
           team_name: teamName.trim(),
           project_name: projectName.trim() || null,
           project_description: projectDescription.trim() || null,
+          project_link: projectLink.trim() || null,
           team_image: teamImageId,
           created_at: now,
           updated_at: now,
@@ -187,6 +190,17 @@ export function RegisterTeamModal({
               onChange={(e) => setProjectDescription(e.target.value)}
               placeholder="Describe your project idea..."
               rows={4}
+              disabled={disabled || isSubmitting}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="projectLink">Project link</Label>
+            <Input
+              id="projectLink"
+              value={projectLink}
+              onChange={(e) => setProjectLink(e.target.value)}
+              placeholder="https://github.com/your-repo or demo link"
               disabled={disabled || isSubmitting}
             />
           </div>

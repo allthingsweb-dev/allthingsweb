@@ -11,6 +11,7 @@ export interface CreateTeamData {
     team_name: string;
     project_name: string | null;
     project_description: string | null;
+    project_link: string | null;
     team_image: string | null;
     created_at: string;
     updated_at: string;

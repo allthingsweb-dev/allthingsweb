@@ -213,6 +213,8 @@ export const hacksTable = pgTable("hacks", {
   // optional project name and description
   projectName: text("project_name"),
   projectDescription: text("project_description"),
+  // optional project link (demo/github repo)
+  projectLink: text("project_link"),
   // optional team image
   teamImage: uuid("team_image").references(() => imagesTable.id),
   createdAt,

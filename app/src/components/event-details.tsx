@@ -1,6 +1,7 @@
 import {
   AlertCircleIcon,
   CalendarIcon,
+  ExternalLink,
   InfoIcon,
   MapPinIcon,
   UsersIcon,
@@ -454,6 +455,17 @@ export function TeamsAndHacksSection({
                       Project details coming soon...
                     </p>
                   </div>
+                )}
+                {hack.projectLink && hack.projectLink.trim() && (
+                  <a
+                    href={hack.projectLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Project link
+                  </a>
                 )}
               </CardContent>
               <CardFooter className="pt-4 border-t bg-muted/20">

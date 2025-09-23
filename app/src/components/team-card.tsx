@@ -1,6 +1,6 @@
 "use client";
 
-import { Users } from "lucide-react";
+import { Users, ExternalLink } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,6 +23,7 @@ interface Team {
   team_name: string;
   project_name?: string | null;
   project_description?: string | null;
+  project_link?: string | null;
   team_image_url?: string | null;
   team_image_alt?: string | null;
 }
@@ -149,6 +150,17 @@ export function TeamCard({
           <p className="text-sm text-muted-foreground line-clamp-3">
             {team.project_description}
           </p>
+        )}
+        {team.project_link && (
+          <a
+            href={team.project_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Project link
+          </a>
         )}
         {mode === "voting" && voteButton && !canManageTeam && (
           <div className="pt-3 border-t border-border">{voteButton}</div>
