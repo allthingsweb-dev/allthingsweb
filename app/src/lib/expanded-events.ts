@@ -57,6 +57,7 @@ export type ExpandedEvent = Event & {
     teamName: string;
     projectName?: string | null;
     projectDescription?: string | null;
+    projectLink?: string | null;
     teamImage?: Image | null;
     voteCount: number;
     members: Array<{
@@ -375,6 +376,8 @@ async function getExpandedEventFromQuery(
                 (hack as any).projectDescription ??
                 (hack as any).project_description ??
                 null,
+              projectLink:
+                (hack as any).projectLink ?? (hack as any).project_link ?? null,
               teamImage: signed,
               voteCount: voteCountByHack[hack.id] ?? 0,
               members: membersByHack[hack.id] || [],
