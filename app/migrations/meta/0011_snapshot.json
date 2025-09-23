@@ -42,12 +42,8 @@
           "tableFrom": "administrators",
           "tableTo": "users_sync",
           "schemaTo": "neon_auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -101,12 +97,8 @@
           "name": "awards_event_id_events_id_fk",
           "tableFrom": "awards",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -153,12 +145,8 @@
           "name": "event_images_event_id_events_id_fk",
           "tableFrom": "event_images",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -166,12 +154,8 @@
           "name": "event_images_image_id_images_id_fk",
           "tableFrom": "event_images",
           "tableTo": "images",
-          "columnsFrom": [
-            "image_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -179,10 +163,7 @@
       "compositePrimaryKeys": {
         "event_images_event_id_image_id_pk": {
           "name": "event_images_event_id_image_id_pk",
-          "columns": [
-            "event_id",
-            "image_id"
-          ]
+          "columns": ["event_id", "image_id"]
         }
       },
       "uniqueConstraints": {},
@@ -226,12 +207,8 @@
           "name": "event_sponsors_event_id_events_id_fk",
           "tableFrom": "event_sponsors",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -239,12 +216,8 @@
           "name": "event_sponsors_sponsor_id_sponsors_id_fk",
           "tableFrom": "event_sponsors",
           "tableTo": "sponsors",
-          "columnsFrom": [
-            "sponsor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -252,10 +225,7 @@
       "compositePrimaryKeys": {
         "event_sponsors_event_id_sponsor_id_pk": {
           "name": "event_sponsors_event_id_sponsor_id_pk",
-          "columns": [
-            "event_id",
-            "sponsor_id"
-          ]
+          "columns": ["event_id", "sponsor_id"]
         }
       },
       "uniqueConstraints": {},
@@ -299,12 +269,8 @@
           "name": "event_talks_event_id_events_id_fk",
           "tableFrom": "event_talks",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -312,12 +278,8 @@
           "name": "event_talks_talk_id_talks_id_fk",
           "tableFrom": "event_talks",
           "tableTo": "talks",
-          "columnsFrom": [
-            "talk_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["talk_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -325,10 +287,7 @@
       "compositePrimaryKeys": {
         "event_talks_event_id_talk_id_pk": {
           "name": "event_talks_event_id_talk_id_pk",
-          "columns": [
-            "event_id",
-            "talk_id"
-          ]
+          "columns": ["event_id", "talk_id"]
         }
       },
       "uniqueConstraints": {},
@@ -491,12 +450,8 @@
           "name": "events_preview_image_images_id_fk",
           "tableFrom": "events",
           "tableTo": "images",
-          "columnsFrom": [
-            "preview_image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["preview_image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -506,16 +461,12 @@
         "events_slug_unique": {
           "name": "events_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         },
         "events_luma_event_id_unique": {
           "name": "events_luma_event_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "luma_event_id"
-          ]
+          "columns": ["luma_event_id"]
         }
       },
       "policies": {},
@@ -558,12 +509,8 @@
           "name": "hack_users_hack_id_hacks_id_fk",
           "tableFrom": "hack_users",
           "tableTo": "hacks",
-          "columnsFrom": [
-            "hack_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hack_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -572,12 +519,8 @@
           "tableFrom": "hack_users",
           "tableTo": "users_sync",
           "schemaTo": "neon_auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -585,10 +528,7 @@
       "compositePrimaryKeys": {
         "hack_users_hack_id_user_id_pk": {
           "name": "hack_users_hack_id_user_id_pk",
-          "columns": [
-            "hack_id",
-            "user_id"
-          ]
+          "columns": ["hack_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -638,12 +578,8 @@
           "name": "hack_votes_hack_id_hacks_id_fk",
           "tableFrom": "hack_votes",
           "tableTo": "hacks",
-          "columnsFrom": [
-            "hack_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hack_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -651,12 +587,8 @@
           "name": "hack_votes_award_id_awards_id_fk",
           "tableFrom": "hack_votes",
           "tableTo": "awards",
-          "columnsFrom": [
-            "award_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["award_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -665,12 +597,8 @@
           "tableFrom": "hack_votes",
           "tableTo": "users_sync",
           "schemaTo": "neon_auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -678,11 +606,7 @@
       "compositePrimaryKeys": {
         "hack_votes_hack_id_award_id_user_id_pk": {
           "name": "hack_votes_hack_id_award_id_user_id_pk",
-          "columns": [
-            "hack_id",
-            "award_id",
-            "user_id"
-          ]
+          "columns": ["hack_id", "award_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -757,12 +681,8 @@
           "name": "hacks_event_id_events_id_fk",
           "tableFrom": "hacks",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -770,12 +690,8 @@
           "name": "hacks_team_image_images_id_fk",
           "tableFrom": "hacks",
           "tableTo": "images",
-          "columnsFrom": [
-            "team_image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["team_image"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -885,12 +801,8 @@
           "name": "profile_users_profile_id_profiles_id_fk",
           "tableFrom": "profile_users",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -899,12 +811,8 @@
           "tableFrom": "profile_users",
           "tableTo": "users_sync",
           "schemaTo": "neon_auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -912,19 +820,14 @@
       "compositePrimaryKeys": {
         "profile_users_profile_id_user_id_pk": {
           "name": "profile_users_profile_id_user_id_pk",
-          "columns": [
-            "profile_id",
-            "user_id"
-          ]
+          "columns": ["profile_id", "user_id"]
         }
       },
       "uniqueConstraints": {
         "profile_users_profile_id_unique": {
           "name": "profile_users_profile_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "profile_id"
-          ]
+          "columns": ["profile_id"]
         }
       },
       "policies": {},
@@ -1011,12 +914,8 @@
           "name": "profiles_image_images_id_fk",
           "tableFrom": "profiles",
           "tableTo": "images",
-          "columnsFrom": [
-            "image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1126,12 +1025,8 @@
           "name": "sponsors_square_logo_dark_images_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "images",
-          "columnsFrom": [
-            "square_logo_dark"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["square_logo_dark"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1139,12 +1034,8 @@
           "name": "sponsors_square_logo_light_images_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "images",
-          "columnsFrom": [
-            "square_logo_light"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["square_logo_light"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1154,9 +1045,7 @@
         "sponsors_name_unique": {
           "name": "sponsors_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -1199,12 +1088,8 @@
           "name": "talk_speakers_talk_id_talks_id_fk",
           "tableFrom": "talk_speakers",
           "tableTo": "talks",
-          "columnsFrom": [
-            "talk_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["talk_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1212,12 +1097,8 @@
           "name": "talk_speakers_speaker_id_profiles_id_fk",
           "tableFrom": "talk_speakers",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "speaker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["speaker_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1225,10 +1106,7 @@
       "compositePrimaryKeys": {
         "talk_speakers_talk_id_speaker_id_pk": {
           "name": "talk_speakers_talk_id_speaker_id_pk",
-          "columns": [
-            "talk_id",
-            "speaker_id"
-          ]
+          "columns": ["talk_id", "speaker_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1341,20 +1219,12 @@
     "public.hackathon_state": {
       "name": "hackathon_state",
       "schema": "public",
-      "values": [
-        "before_start",
-        "hacking",
-        "voting",
-        "ended"
-      ]
+      "values": ["before_start", "hacking", "voting", "ended"]
     },
     "public.profile_type": {
       "name": "profile_type",
       "schema": "public",
-      "values": [
-        "organizer",
-        "member"
-      ]
+      "values": ["organizer", "member"]
     }
   },
   "schemas": {},
