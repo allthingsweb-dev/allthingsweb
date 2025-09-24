@@ -19,6 +19,7 @@ import { Plus, X, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientUser } from "@/lib/client-user";
 import { useUsers } from "@/hooks/use-users";
+import { getUserDisplayName } from "@/lib/display-name-utils";
 
 interface TeamMemberManagementProps {
   user: ClientUser;
@@ -161,7 +162,7 @@ export function TeamMemberManagement({
       <div className="flex flex-wrap gap-2 mb-3">
         {showCurrentUser && (
           <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-            {user.displayName || user.primaryEmail} (You)
+            {getUserDisplayName(user)} (You)
           </span>
         )}
         {selectedUsers.map((u) => (
@@ -169,7 +170,7 @@ export function TeamMemberManagement({
             key={u.id}
             className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm flex items-center gap-2"
           >
-            {u.displayName || u.primaryEmail || u.id}
+            {getUserDisplayName(u)}
             <button
               type="button"
               className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
@@ -231,7 +232,7 @@ export function TeamMemberManagement({
                 >
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">
-                      {u.displayName || u.primaryEmail || u.id}
+                      {getUserDisplayName(u)}
                     </span>
                     {u.primaryEmail && u.displayName && (
                       <span className="text-xs text-muted-foreground">

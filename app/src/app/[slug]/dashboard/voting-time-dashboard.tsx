@@ -35,6 +35,7 @@ import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
 import { EditTeamModal } from "./edit-team-modal";
 import { TeamCard } from "@/components/team-card";
+import { useUsers } from "@/hooks/use-users";
 
 interface VotingTimeDashboardProps {
   event: ExpandedEvent;
@@ -47,6 +48,7 @@ export function VotingTimeDashboard({
   user,
   isAdmin,
 }: VotingTimeDashboardProps) {
+  const { users } = useUsers();
   const [votingStates, setVotingStates] = useState<
     Record<string, "idle" | "loading" | "success" | "error">
   >({});
@@ -478,6 +480,7 @@ export function VotingTimeDashboard({
                         user={user}
                         isAdmin={isAdmin}
                         hasVotes={false} // Not used in voting mode
+                        userLookup={users}
                         mode="voting"
                         voteButton={renderVoteButton(team, award)}
                         voteCount={undefined} // Hide vote counts during voting period

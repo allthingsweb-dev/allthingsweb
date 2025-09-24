@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { TeamManagement } from "@/app/[slug]/dashboard/team-management";
 import type { ClientUser } from "@/lib/client-user";
+import { getUserDisplayName } from "@/lib/display-name-utils";
 
 interface TeamMember {
   hackId: string;
@@ -34,7 +35,7 @@ interface TeamCardProps {
   user: ClientUser;
   isAdmin?: boolean;
   hasVotes?: boolean;
-  userLookup?: Array<{ id: string; displayName: string | null }>;
+  userLookup?: ClientUser[]; // Updated to use full ClientUser data
   mode?: "default" | "voting" | "ended";
   voteButton?: React.ReactNode;
   voteCount?: number;
@@ -63,7 +64,7 @@ export function TeamCard({
   const getUserName = (userId: string) => {
     if (userId === user.id) return "You";
     const foundUser = userLookup.find((u) => u.id === userId);
-    return foundUser?.displayName || "Anonymous";
+    return foundUser ? getUserDisplayName(foundUser) : "Anonymous";
   };
 
   const teamMemberNames = members.map((member) => getUserName(member.userId));

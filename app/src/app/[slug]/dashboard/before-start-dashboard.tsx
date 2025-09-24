@@ -35,6 +35,7 @@ import type { ClientUser } from "@/lib/client-user";
 import { EditTeamModal } from "./edit-team-modal";
 import { TeamManagement } from "./team-management";
 import { useUsers } from "@/hooks/use-users";
+import { getUserDisplayName } from "@/lib/display-name-utils";
 
 interface BeforeStartDashboardProps {
   event: ExpandedEvent;
@@ -52,7 +53,7 @@ export function BeforeStartDashboard({
   const getUserName = (userId: string): string => {
     if (userId === user.id) return "You";
     const userInfo = users.find((u) => u.id === userId);
-    return userInfo?.displayName || "Anonymous";
+    return userInfo ? getUserDisplayName(userInfo) : "Anonymous";
   };
   // Get all registered teams for this event with their images
   const { data: teams } = useLiveQuery((q) =>

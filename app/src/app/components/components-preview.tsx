@@ -52,11 +52,31 @@ const mockUser: ClientUser = {
   profileImageUrl: null,
 };
 
-const mockUsers = [
-  { id: "user-1", displayName: "John Doe" },
-  { id: "user-2", displayName: "Jane Smith" },
-  { id: "user-3", displayName: "Bob Wilson" },
-  { id: "user-4", displayName: "Alice Brown" },
+const mockUsers: ClientUser[] = [
+  {
+    id: "user-1",
+    displayName: "John Doe",
+    primaryEmail: "john@example.com",
+    profileImageUrl: null,
+  },
+  {
+    id: "user-2",
+    displayName: "Jane Smith",
+    primaryEmail: "jane@example.com",
+    profileImageUrl: null,
+  },
+  {
+    id: "user-3",
+    displayName: "Bob Wilson",
+    primaryEmail: "bob@example.com",
+    profileImageUrl: null,
+  },
+  {
+    id: "user-4",
+    displayName: "Alice Brown",
+    primaryEmail: "alice@example.com",
+    profileImageUrl: null,
+  },
 ];
 
 const mockTeams = [
@@ -447,11 +467,7 @@ export function ComponentsPreview({ user }: ComponentsPreviewProps) {
               <CardContent>
                 <TeamMemberManagement
                   user={clientUser}
-                  selectedUsers={[mockUsers[1], mockUsers[2]].map((u) => ({
-                    ...u,
-                    primaryEmail: null,
-                    profileImageUrl: null,
-                  }))}
+                  selectedUsers={[mockUsers[1], mockUsers[2]]}
                   onUsersChange={() => {}}
                   mode="create"
                 />
@@ -466,11 +482,7 @@ export function ComponentsPreview({ user }: ComponentsPreviewProps) {
               <CardContent>
                 <TeamMemberManagement
                   user={clientUser}
-                  selectedUsers={[mockUsers[0]].map((u) => ({
-                    ...u,
-                    primaryEmail: null,
-                    profileImageUrl: null,
-                  }))}
+                  selectedUsers={[mockUsers[0]]}
                   onUsersChange={() => {}}
                   hackId="demo-team"
                   mode="edit"

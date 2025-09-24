@@ -27,6 +27,7 @@ import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
 import { TeamManagement } from "./team-management";
 import { useUsers } from "@/hooks/use-users";
+import { getUserDisplayName } from "@/lib/display-name-utils";
 
 interface HackingTimeDashboardProps {
   event: ExpandedEvent;
@@ -44,7 +45,7 @@ export function HackingTimeDashboard({
   const getUserName = (userId: string): string => {
     if (userId === user.id) return "You";
     const userInfo = users.find((u) => u.id === userId);
-    return userInfo?.displayName || "Anonymous";
+    return userInfo ? getUserDisplayName(userInfo) : "Anonymous";
   };
   // Get all teams for this event with their images
   const { data: teams } = useLiveQuery((q) =>

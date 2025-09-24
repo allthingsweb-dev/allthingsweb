@@ -27,6 +27,7 @@ import {
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
 import { useUsers } from "@/hooks/use-users";
+import { getUserDisplayName } from "@/lib/display-name-utils";
 
 interface EndedDashboardProps {
   event: ExpandedEvent;
