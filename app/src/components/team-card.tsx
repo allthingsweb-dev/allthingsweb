@@ -1,7 +1,6 @@
 "use client";
 
 import { Users, ExternalLink } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -78,23 +77,21 @@ export function TeamCard({
       } ${className}`}
     >
       <CardHeader className="pb-4">
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-6">
           {team.team_image_url ? (
-            <Avatar className="w-14 h-14 ring-2 ring-border">
-              <AvatarImage
+            <div className="w-32 h-20 rounded-lg overflow-hidden ring-2 ring-border/50 shrink-0 bg-gradient-to-br from-primary/5 to-primary/10">
+              <img
                 src={team.team_image_url}
                 alt={team.team_image_alt || team.team_name}
+                className="w-full h-full object-cover"
               />
-              <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
-                {team.team_name[0]}
-              </AvatarFallback>
-            </Avatar>
+            </div>
           ) : (
-            <Avatar className="w-14 h-14 ring-2 ring-border">
-              <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
-                {team.team_name[0]}
-              </AvatarFallback>
-            </Avatar>
+            <div className="w-32 h-20 rounded-lg ring-2 ring-border/50 shrink-0 bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center">
+              <span className="text-2xl font-bold text-primary/80">
+                {team.team_name.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-2">

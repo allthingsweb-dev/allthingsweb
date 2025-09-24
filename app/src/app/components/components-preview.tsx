@@ -18,12 +18,10 @@ import { ComponentsNavbar } from "./components-navbar";
 import { TeamCard } from "@/components/team-card";
 import { TeamManagement } from "@/app/[slug]/dashboard/team-management";
 import { TeamMemberManagement } from "@/components/team-member-management";
-import { RegisterTeamModal } from "@/app/[slug]/dashboard/register-team-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Star, Zap, Clock, Trophy } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Star, Clock, Trophy } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -43,14 +41,6 @@ import type { ClientUser } from "@/lib/client-user";
 interface ComponentsPreviewProps {
   user: ClientUser;
 }
-
-// Mock data for component examples
-const mockUser: ClientUser = {
-  id: "user-1",
-  displayName: "John Doe",
-  primaryEmail: "john@example.com",
-  profileImageUrl: null,
-};
 
 const mockUsers: ClientUser[] = [
   {

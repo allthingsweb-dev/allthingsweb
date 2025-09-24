@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
-import { isEventInPast } from "@/lib/events";
+import { isEventInPast, Image } from "@/lib/events";
 import { getEventAttendeeCount } from "@/lib/attendee-counter";
 import { mainConfig } from "@/lib/config";
 import {
@@ -72,7 +72,19 @@ export default async function LightningHackathonPage() {
   const attendeeLimit = event.attendeeLimit;
   const isAtCapacity = attendeeCount >= attendeeLimit;
   const isInPast = isEventInPast(event);
-  const showEventImageSection = !!event.images.length;
+
+  // Combine event images with hackathon team images
+  const allImages: Image[] = [...event.images];
+
+  if (event.isHackathon && event.hacks) {
+    const teamImages: Image[] = event.hacks
+      .map((hack) => hack.teamImage)
+      .filter((image): image is Image => image !== null && image !== undefined);
+
+    allImages.push(...teamImages);
+  }
+
+  const showEventImageSection = allImages.length > 0;
 
   return (
     <EventDetailsPage
@@ -92,7 +104,7 @@ export default async function LightningHackathonPage() {
         isInPast={isInPast}
       />
       {showEventImageSection && (
-        <ImagesSection background="default" images={event.images} />
+        <ImagesSection background="default" images={allImages} />
       )}
       {event.isHackathon && event.hacks && event.hacks.length > 0 && (
         <TeamsAndHacksSection hacks={event.hacks} />

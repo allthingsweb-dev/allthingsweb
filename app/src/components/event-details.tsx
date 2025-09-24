@@ -370,6 +370,19 @@ export function TeamsAndHacksSection({
   // Check if a hack has won any awards
   const isWinner = (hack: any) => hack.awards && hack.awards.length > 0;
 
+  // Sort hacks: winners first, then by vote count descending
+  const sortedHacks = [...hacks].sort((a, b) => {
+    const aIsWinner = isWinner(a);
+    const bIsWinner = isWinner(b);
+
+    // If one is a winner and the other isn't, winner comes first
+    if (aIsWinner && !bIsWinner) return -1;
+    if (!aIsWinner && bIsWinner) return 1;
+
+    // If both are winners or both are not winners, sort by vote count (descending)
+    return b.voteCount - a.voteCount;
+  });
+
   return (
     <Section id="hacks" variant="big">
       <div className="container flex flex-col gap-8">
@@ -383,7 +396,7 @@ export function TeamsAndHacksSection({
             "[&>*]:min-w-[320px]",
           )}
         >
-          {hacks.map((hack) => (
+          {sortedHacks.map((hack) => (
             <Card
               key={hack.id}
               className={clsx(

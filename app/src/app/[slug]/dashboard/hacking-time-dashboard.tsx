@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLiveQuery } from "@tanstack/react-db";
 import { eq } from "@tanstack/db";
-import { Users, ExternalLink, Clock } from "lucide-react";
+import { Users, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,8 +13,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   hacksCollection,
   hackUsersCollection,
@@ -25,9 +23,9 @@ import { CountdownTimer } from "./countdown-timer";
 import { RegisterTeamModal } from "./register-team-modal";
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
-import { TeamManagement } from "./team-management";
 import { useUsers } from "@/hooks/use-users";
 import { getUserDisplayName } from "@/lib/display-name-utils";
+import { TeamCard } from "@/components/team-card";
 
 interface HackingTimeDashboardProps {
   event: ExpandedEvent;
@@ -169,111 +167,27 @@ export function HackingTimeDashboard({
               {teams.map((team) => {
                 const members =
                   teamMembers?.filter((m) => m.hackId === team.id) || [];
-                const isUserTeam = members.some((m) => m.userId === user.id);
-                const canManageTeam = isUserTeam || isAdmin;
                 const teamHasVotes =
                   allVotes?.some((vote) => vote.vote.hack_id === team.id) ||
                   false;
 
                 return (
-                  <Card
+                  <TeamCard
                     key={team.id}
-                    className={`border-2 transition-all duration-200 shadow-sm hover:shadow-md ${
-                      isUserTeam
-                        ? "border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-950/50 ring-1 ring-blue-200 dark:ring-blue-800"
-                        : "border-border hover:border-primary/20 dark:hover:border-primary/30 hover:shadow-primary/5"
-                    }`}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start gap-3">
-                        {team.team_image_url ? (
-                          <Avatar className="w-12 h-12 ring-2 ring-border">
-                            <AvatarImage
-                              src={team.team_image_url}
-                              alt={team.team_image_alt || team.team_name}
-                            />
-                            <AvatarFallback className="text-base font-semibold bg-primary/10 text-primary">
-                              {team.team_name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                        ) : (
-                          <Avatar className="w-12 h-12 ring-2 ring-border">
-                            <AvatarFallback className="text-base font-semibold bg-primary/10 text-primary">
-                              {team.team_name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <CardTitle className="text-base font-bold truncate text-foreground">
-                                {team.team_name}
-                              </CardTitle>
-                              {isUserTeam && (
-                                <Badge
-                                  variant="default"
-                                  className="text-xs font-medium bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-                                >
-                                  Your Team
-                                </Badge>
-                              )}
-                            </div>
-                            {canManageTeam && (
-                              <div className="flex-shrink-0">
-                                <TeamManagement
-                                  hackId={team.id}
-                                  teamName={team.team_name}
-                                  user={user}
-                                  hasVotes={teamHasVotes}
-                                  isAdmin={isAdmin}
-                                  onTeamDeleted={() => {
-                                    // TanStack DB will automatically update via live queries
-                                  }}
-                                  onTeamUpdated={() => {
-                                    // TanStack DB will automatically update via live queries
-                                  }}
-                                />
-                              </div>
-                            )}
-                          </div>
-                          {team.project_name && (
-                            <CardDescription className="text-sm font-medium text-foreground/80 dark:text-foreground/90">
-                              {team.project_name}
-                            </CardDescription>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3 pt-0">
-                      {team.project_description && (
-                        <p className="text-sm text-foreground/75 dark:text-foreground/85 line-clamp-2 leading-relaxed">
-                          {team.project_description}
-                        </p>
-                      )}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm font-medium text-foreground/70 dark:text-foreground/80">
-                          <Users className="h-4 w-4" />
-                          <span>Team Members</span>
-                        </div>
-                        {members.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {members.map((member) => (
-                              <span
-                                key={member.userId}
-                                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-secondary/60 dark:bg-secondary/40 text-secondary-foreground dark:text-secondary-foreground border border-secondary-foreground/20"
-                              >
-                                {getUserName(member.userId)}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-xs italic">
-                            No members yet
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                    team={team}
+                    members={members}
+                    user={user}
+                    isAdmin={isAdmin}
+                    hasVotes={teamHasVotes}
+                    userLookup={users}
+                    mode="default"
+                    onTeamDeleted={() => {
+                      // TanStack DB will automatically update via live queries
+                    }}
+                    onTeamUpdated={() => {
+                      // TanStack DB will automatically update via live queries
+                    }}
+                  />
                 );
               })}
             </div>
