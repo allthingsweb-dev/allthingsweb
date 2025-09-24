@@ -391,9 +391,9 @@ export function TeamsAndHacksSection({
         </h2>
         <div
           className={clsx(
-            "mx-auto grid gap-6 grid-cols-1 max-w-5xl",
-            "sm:grid-cols-2",
-            "[&>*]:min-w-[320px]",
+            "mx-auto grid gap-8 grid-cols-1 max-w-7xl",
+            "lg:grid-cols-2",
+            "[&>*]:min-w-[400px]",
           )}
         >
           {sortedHacks.map((hack) => (
@@ -406,33 +406,37 @@ export function TeamsAndHacksSection({
               )}
             >
               <CardHeader className="pb-4">
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-6">
                   {hack.teamImage ? (
-                    <Avatar className="w-12 h-12 shrink-0">
-                      <AvatarImage
+                    <div className="w-20 h-16 shrink-0 rounded-lg overflow-hidden bg-muted">
+                      <NextImage
                         src={hack.teamImage.url}
                         alt={hack.teamName}
+                        width={80}
+                        height={64}
+                        className="w-full h-full object-cover"
+                        placeholder={
+                          hack.teamImage.placeholder ? "blur" : undefined
+                        }
+                        blurDataURL={hack.teamImage.placeholder || undefined}
                       />
-                      <AvatarFallback className="text-sm font-semibold">
-                        {hack.teamName.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    </div>
                   ) : (
-                    <Avatar className="w-12 h-12 shrink-0">
-                      <AvatarFallback className="text-sm font-semibold">
+                    <div className="w-20 h-16 shrink-0 rounded-lg bg-muted flex items-center justify-center">
+                      <span className="text-lg font-bold text-muted-foreground">
                         {hack.teamName.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                      </span>
+                    </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-lg leading-tight mb-1 flex items-center gap-2">
+                    <CardTitle className="text-xl leading-tight mb-2 flex items-center gap-2">
                       {hack.teamName}
                       {isWinner(hack) && (
-                        <span className="text-yellow-600 text-sm">🏆</span>
+                        <span className="text-yellow-600 text-lg">🏆</span>
                       )}
                     </CardTitle>
                     {hack.projectName && hack.projectName.trim() && (
-                      <CardDescription className="text-sm font-medium text-foreground/70">
+                      <CardDescription className="text-base font-medium text-foreground/70">
                         {hack.projectName}
                       </CardDescription>
                     )}
@@ -457,14 +461,14 @@ export function TeamsAndHacksSection({
                 )}
 
                 {hack.projectDescription && hack.projectDescription.trim() && (
-                  <p className="text-sm text-foreground/80 line-clamp-4 leading-relaxed">
+                  <p className="text-base text-foreground/80 line-clamp-4 leading-relaxed">
                     {hack.projectDescription}
                   </p>
                 )}
                 {(!hack.projectDescription ||
                   !hack.projectDescription.trim()) && (
                   <div className="flex items-center justify-center py-8">
-                    <p className="text-sm text-muted-foreground italic">
+                    <p className="text-base text-muted-foreground italic">
                       Project details coming soon...
                     </p>
                   </div>
@@ -474,7 +478,7 @@ export function TeamsAndHacksSection({
                     href={hack.projectLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
+                    className="inline-flex items-center gap-2 text-base text-primary hover:text-primary/80 hover:underline transition-colors font-medium"
                   >
                     <ExternalLink className="h-4 w-4" />
                     Project link
@@ -482,15 +486,16 @@ export function TeamsAndHacksSection({
                 )}
               </CardContent>
               <CardFooter className="pt-4 border-t bg-muted/20">
-                <div className="text-xs text-muted-foreground">
+                <div className="text-sm text-muted-foreground">
                   {hack.members && hack.members.length > 0 ? (
                     <p>
+                      <span className="font-medium">Team members:</span>{" "}
                       {hack.members
                         .map((member) => member.name || "Anonymous")
                         .join(", ")}
                     </p>
                   ) : (
-                    <span>No members</span>
+                    <span>No members listed</span>
                   )}
                 </div>
               </CardFooter>

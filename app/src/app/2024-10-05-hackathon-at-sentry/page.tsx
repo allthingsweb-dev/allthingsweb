@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
-import { isEventInPast, Image } from "@/lib/events";
+import { isEventInPast } from "@/lib/events";
 import { getEventAttendeeCount } from "@/lib/attendee-counter";
 import { mainConfig } from "@/lib/config";
 import {
@@ -71,19 +71,7 @@ export default async function HackathonPage() {
   const attendeeLimit = event.attendeeLimit;
   const isAtCapacity = attendeeCount >= attendeeLimit;
   const isInPast = isEventInPast(event);
-
-  // Combine event images with hackathon team images
-  const allImages: Image[] = [...event.images];
-
-  if (event.isHackathon && event.hacks) {
-    const teamImages: Image[] = event.hacks
-      .map((hack) => hack.teamImage)
-      .filter((image): image is Image => image !== null && image !== undefined);
-
-    allImages.push(...teamImages);
-  }
-
-  const showEventImageSection = allImages.length > 0;
+  const showEventImageSection = !!event.images.length;
 
   return (
     <EventDetailsPage
@@ -103,7 +91,7 @@ export default async function HackathonPage() {
         isInPast={isInPast}
       />
       {showEventImageSection && (
-        <ImagesSection background="default" images={allImages} />
+        <ImagesSection background="default" images={event.images} />
       )}
       <Section
         variant="big"
