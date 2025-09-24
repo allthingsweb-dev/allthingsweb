@@ -18,13 +18,12 @@ import {
 import { Plus, X, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientUser } from "@/lib/client-user";
-
-type UserOption = { id: string; name: string | null; email: string | null };
+import { useUsers } from "@/hooks/use-users";
 
 interface TeamMemberManagementProps {
   user: ClientUser;
-  selectedUsers: UserOption[];
-  onUsersChange: (users: UserOption[]) => void;
+  selectedUsers: ClientUser[];
+  onUsersChange: (users: ClientUser[]) => void;
   disabled?: boolean;
   hackId?: string; // For edit mode - to add/remove members from existing team
   showCurrentUser?: boolean; // Whether to show current user in the list
@@ -40,9 +39,9 @@ export function TeamMemberManagement({
   showCurrentUser = true,
   mode = "create",
 }: TeamMemberManagementProps) {
+  const { users: allUsers } = useUsers();
   const [openSearch, setOpenSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<UserOption[]>([]);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
 
@@ -51,20 +50,27 @@ export function TeamMemberManagement({
     [selectedUsers],
   );
 
-  async function fetchUsers(q: string) {
-    try {
-      const res = await fetch(
-        `/api/v1/user-search?q=${encodeURIComponent(q)}&limit=10`,
-      );
-      const data = await res.json();
-      setSearchResults((data.users || []) as UserOption[]);
-    } catch (e) {
-      console.error(e);
-      setSearchResults([]);
-    }
-  }
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return [];
 
-  const handleAddUser = async (userToAdd: UserOption) => {
+    return allUsers
+      .filter((u) => {
+        // Exclude already selected users and current user (if not showing current user)
+        if (selectedIds.has(u.id) || (!showCurrentUser && u.id === user.id)) {
+          return false;
+        }
+
+        const query = searchQuery.toLowerCase();
+        return (
+          u.displayName?.toLowerCase().includes(query) ||
+          u.primaryEmail?.toLowerCase().includes(query)
+        );
+      })
+      .slice(0, 10); // Limit to 10 results
+  }, [allUsers, searchQuery, selectedIds, showCurrentUser, user.id]);
+
+  const handleAddUser = async (userToAdd: ClientUser) => {
     if (selectedIds.has(userToAdd.id)) return;
 
     setIsAddingMember(true);
@@ -89,7 +95,7 @@ export function TeamMemberManagement({
         }
 
         toast.success(
-          `Added ${userToAdd.name || userToAdd.email || "user"} to team`,
+          `Added ${userToAdd.displayName || userToAdd.primaryEmail || "user"} to team`,
         );
       }
 
@@ -105,7 +111,7 @@ export function TeamMemberManagement({
     }
   };
 
-  const handleRemoveUser = async (userToRemove: UserOption) => {
+  const handleRemoveUser = async (userToRemove: ClientUser) => {
     setRemovingMemberId(userToRemove.id);
 
     try {
@@ -128,7 +134,7 @@ export function TeamMemberManagement({
         }
 
         toast.success(
-          `Removed ${userToRemove.name || userToRemove.email || "user"} from team`,
+          `Removed ${userToRemove.displayName || userToRemove.primaryEmail || "user"} from team`,
         );
       }
 
@@ -163,7 +169,7 @@ export function TeamMemberManagement({
             key={u.id}
             className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm flex items-center gap-2"
           >
-            {(u.name || u.email || u.id) as string}
+            {u.displayName || u.primaryEmail || u.id}
             <button
               type="button"
               className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
@@ -209,14 +215,7 @@ export function TeamMemberManagement({
             <CommandInput
               placeholder="Search users by name or email"
               value={searchQuery}
-              onValueChange={(v) => {
-                setSearchQuery(v);
-                if (v.trim()) {
-                  fetchUsers(v);
-                } else {
-                  setSearchResults([]);
-                }
-              }}
+              onValueChange={setSearchQuery}
             />
             <CommandEmpty>
               {searchQuery.trim()
@@ -224,31 +223,29 @@ export function TeamMemberManagement({
                 : "Start typing to search..."}
             </CommandEmpty>
             <CommandGroup>
-              {searchResults
-                .filter((u) => u.id !== user.id) // Exclude current user
-                .map((u) => (
-                  <CommandItem
-                    key={u.id}
-                    disabled={selectedIds.has(u.id)}
-                    onSelect={() => handleAddUser(u)}
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {u.name || u.email || u.id}
+              {filteredUsers.map((u) => (
+                <CommandItem
+                  key={u.id}
+                  disabled={selectedIds.has(u.id)}
+                  onSelect={() => handleAddUser(u)}
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                      {u.displayName || u.primaryEmail || u.id}
+                    </span>
+                    {u.primaryEmail && u.displayName && (
+                      <span className="text-xs text-muted-foreground">
+                        {u.primaryEmail}
                       </span>
-                      {u.email && u.name && (
-                        <span className="text-xs text-muted-foreground">
-                          {u.email}
-                        </span>
-                      )}
-                      {selectedIds.has(u.id) && (
-                        <span className="text-xs text-green-600">
-                          Already added
-                        </span>
-                      )}
-                    </div>
-                  </CommandItem>
-                ))}
+                    )}
+                    {selectedIds.has(u.id) && (
+                      <span className="text-xs text-green-600">
+                        Already added
+                      </span>
+                    )}
+                  </div>
+                </CommandItem>
+              ))}
             </CommandGroup>
           </Command>
         </PopoverContent>

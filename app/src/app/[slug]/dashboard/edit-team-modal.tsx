@@ -18,8 +18,7 @@ import { TeamMemberManagement } from "@/components/team-member-management";
 import { Loader2, Save, Users, Edit, X } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientUser } from "@/lib/client-user";
-
-type UserOption = { id: string; name: string | null; email: string | null };
+import { useUsers } from "@/hooks/use-users";
 
 interface Team {
   id: string;
@@ -38,7 +37,6 @@ interface EditTeamModalProps {
   isAdmin?: boolean;
   trigger?: React.ReactNode;
   onTeamUpdated?: (team: Team) => void;
-  userLookup?: Array<{ id: string; name: string | null }>; // For converting member IDs to user objects
 }
 
 export function EditTeamModal({
@@ -47,15 +45,15 @@ export function EditTeamModal({
   isAdmin = false,
   trigger,
   onTeamUpdated,
-  userLookup = [],
 }: EditTeamModalProps) {
+  const { users } = useUsers();
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState<Team | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [selectedUsers, setSelectedUsers] = useState<UserOption[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<ClientUser[]>([]);
   const [formData, setFormData] = useState({
     teamName: "",
     projectName: "",
@@ -70,14 +68,17 @@ export function EditTeamModal({
     return team.memberIds
       .filter((id) => id !== user.id) // Exclude current user
       .map((id) => {
-        const userInfo = userLookup.find((u) => u.id === id);
-        return {
-          id,
-          name: userInfo?.name || null,
-          email: null, // We don't have email in userLookup, but it's not critical for display
-        };
+        const userInfo = users.find((u) => u.id === id);
+        return (
+          userInfo || {
+            id,
+            displayName: null,
+            primaryEmail: null,
+            profileImageUrl: null,
+          }
+        );
       });
-  }, [team?.memberIds, user.id, userLookup]);
+  }, [team?.memberIds, user.id, users]);
 
   // Fetch team data when modal opens
   useEffect(() => {
@@ -121,22 +122,25 @@ export function EditTeamModal({
     fetchTeam();
   }, [open, hackId, user.id]);
 
-  // Update selected users when userLookup changes (to get updated names)
+  // Update selected users when users data changes (to get updated names)
   useEffect(() => {
-    if (team?.memberIds && userLookup.length > 0) {
+    if (team?.memberIds && users.length > 0) {
       const teamMemberUsers = team.memberIds
         .filter((id: string) => id !== user.id) // Exclude current user
         .map((id: string) => {
-          const userInfo = userLookup.find((u) => u.id === id);
-          return {
-            id,
-            name: userInfo?.name || null,
-            email: null,
-          };
+          const userInfo = users.find((u) => u.id === id);
+          return (
+            userInfo || {
+              id,
+              displayName: null,
+              primaryEmail: null,
+              profileImageUrl: null,
+            }
+          );
         });
       setSelectedUsers(teamMemberUsers);
     }
-  }, [userLookup, team?.memberIds, user.id]);
+  }, [users, team?.memberIds, user.id]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({

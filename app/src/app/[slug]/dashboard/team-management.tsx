@@ -32,7 +32,6 @@ interface TeamManagementProps {
   isAdmin?: boolean;
   onTeamDeleted?: () => void;
   onTeamUpdated?: () => void;
-  userLookup?: Array<{ id: string; name: string | null }>;
   // Mode-specific props
   mode?: "default" | "voting" | "ended";
   voteButton?: React.ReactNode;
@@ -46,7 +45,6 @@ export function TeamManagement({
   isAdmin = false,
   onTeamDeleted,
   onTeamUpdated,
-  userLookup = [],
   mode = "default",
   voteButton,
 }: TeamManagementProps) {
@@ -100,7 +98,6 @@ export function TeamManagement({
               user={user}
               isAdmin={isAdmin}
               onTeamUpdated={onTeamUpdated ? () => onTeamUpdated() : undefined}
-              userLookup={userLookup}
               trigger={
                 <DropdownMenuItem
                   onSelect={(e) => e.preventDefault()}

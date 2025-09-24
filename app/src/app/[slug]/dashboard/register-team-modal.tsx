@@ -20,8 +20,6 @@ import { Users } from "lucide-react";
 import type { ClientUser } from "@/lib/client-user";
 import { createTeamAction } from "@/lib/hackathons/optimistic-mutations";
 
-type UserOption = { id: string; name: string | null; email: string | null };
-
 interface RegisterTeamModalProps {
   eventId: string;
   eventSlug: string;
@@ -45,7 +43,7 @@ export function RegisterTeamModal({
   const [teamImageFile, setTeamImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [selectedUsers, setSelectedUsers] = useState<UserOption[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<ClientUser[]>([]);
 
   // Create and cleanup object URL for image preview
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

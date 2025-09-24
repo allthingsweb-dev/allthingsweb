@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLiveQuery } from "@tanstack/react-db";
 import { eq } from "@tanstack/db";
-import { Users, ExternalLink, Code, Clock } from "lucide-react";
+import { Users, ExternalLink, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,27 +25,26 @@ import { CountdownTimer } from "./countdown-timer";
 import { RegisterTeamModal } from "./register-team-modal";
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
-import type { UserLookup } from "@/lib/users";
 import { TeamManagement } from "./team-management";
+import { useUsers } from "@/hooks/use-users";
 
 interface HackingTimeDashboardProps {
   event: ExpandedEvent;
   user: ClientUser;
   isAdmin: boolean;
-  userLookup: UserLookup[];
 }
 
 export function HackingTimeDashboard({
   event,
   user,
   isAdmin,
-  userLookup,
 }: HackingTimeDashboardProps) {
+  const { users } = useUsers();
   // Helper function to look up user name by ID
   const getUserName = (userId: string): string => {
     if (userId === user.id) return "You";
-    const userInfo = userLookup.find((u) => u.id === userId);
-    return userInfo?.name || "Anonymous";
+    const userInfo = users.find((u) => u.id === userId);
+    return userInfo?.displayName || "Anonymous";
   };
   // Get all teams for this event with their images
   const { data: teams } = useLiveQuery((q) =>
@@ -145,24 +144,6 @@ export function HackingTimeDashboard({
         )}
       </div>
 
-      {/* Hacking Tips */}
-      <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
-        <CardHeader>
-          <CardTitle className="text-blue-800 dark:text-blue-200 flex items-center gap-2">
-            <Code className="h-5 w-5" />
-            Hacking Tips
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-blue-700 dark:text-blue-300">
-          <ul className="space-y-2 text-sm">
-            <li>• Focus on building an MVP (Minimum Viable Product)</li>
-            <li>• Document your project well for the judges</li>
-            <li>• Test your demo before presenting</li>
-            <li>• Don't forget to create your team before deadline!</li>
-          </ul>
-        </CardContent>
-      </Card>
-
       {/* All Teams */}
       <Card>
         <CardHeader>
@@ -232,7 +213,6 @@ export function HackingTimeDashboard({
                                 user={user}
                                 hasVotes={teamHasVotes}
                                 isAdmin={isAdmin}
-                                userLookup={userLookup}
                                 onTeamDeleted={() => {
                                   // TanStack DB will automatically update via live queries
                                 }}

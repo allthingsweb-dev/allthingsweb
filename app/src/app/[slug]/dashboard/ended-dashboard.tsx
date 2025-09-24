@@ -26,21 +26,16 @@ import {
 } from "@/lib/hackathons/collections";
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
-import type { UserLookup } from "@/lib/users";
+import { useUsers } from "@/hooks/use-users";
 
 interface EndedDashboardProps {
   event: ExpandedEvent;
   user: ClientUser;
   isAdmin: boolean;
-  userLookup: UserLookup[];
 }
 
-export function EndedDashboard({
-  event,
-  user,
-  isAdmin,
-  userLookup,
-}: EndedDashboardProps) {
+export function EndedDashboard({ event, user, isAdmin }: EndedDashboardProps) {
+  const { users } = useUsers();
   // Get all teams for this event
   const { data: teams } = useLiveQuery((q) =>
     q
@@ -275,7 +270,7 @@ export function EndedDashboard({
                           members={team.members}
                           user={user}
                           isAdmin={isAdmin}
-                          userLookup={userLookup}
+                          userLookup={users}
                           mode="ended"
                           voteCount={team.voteCount}
                           className={
@@ -332,7 +327,7 @@ export function EndedDashboard({
                     members={members}
                     user={user}
                     isAdmin={isAdmin}
-                    userLookup={userLookup}
+                    userLookup={users}
                     mode="ended"
                     voteCount={totalVotes}
                   />

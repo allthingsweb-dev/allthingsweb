@@ -34,7 +34,7 @@ interface TeamCardProps {
   user: ClientUser;
   isAdmin?: boolean;
   hasVotes?: boolean;
-  userLookup?: Array<{ id: string; name: string | null }>;
+  userLookup?: Array<{ id: string; displayName: string | null }>;
   mode?: "default" | "voting" | "ended";
   voteButton?: React.ReactNode;
   voteCount?: number;
@@ -63,7 +63,7 @@ export function TeamCard({
   const getUserName = (userId: string) => {
     if (userId === user.id) return "You";
     const foundUser = userLookup.find((u) => u.id === userId);
-    return foundUser?.name || "Anonymous";
+    return foundUser?.displayName || "Anonymous";
   };
 
   const teamMemberNames = members.map((member) => getUserName(member.userId));
@@ -111,7 +111,6 @@ export function TeamCard({
                     isAdmin={isAdmin}
                     onTeamDeleted={onTeamDeleted}
                     onTeamUpdated={onTeamUpdated}
-                    userLookup={userLookup}
                     mode={mode}
                     voteButton={voteButton}
                   />

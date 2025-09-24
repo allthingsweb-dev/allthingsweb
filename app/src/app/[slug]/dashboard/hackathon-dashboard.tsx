@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useLiveQuery, eq } from "@tanstack/react-db";
 import { eventsCollection } from "@/lib/collections";
 import type { ClientUser } from "@/lib/client-user";
-import type { UserLookup } from "@/lib/users";
 import { BeforeStartDashboard } from "./before-start-dashboard";
 import { HackingTimeDashboard } from "./hacking-time-dashboard";
 import { VotingTimeDashboard } from "./voting-time-dashboard";
@@ -17,7 +16,6 @@ interface HackathonDashboardProps {
   eventSlug: string;
   user: ClientUser;
   isAdmin: boolean;
-  userLookup: UserLookup[];
 }
 
 type HackathonState = "before_start" | "hacking" | "voting" | "ended";
@@ -26,7 +24,6 @@ export function HackathonDashboard({
   eventSlug,
   user,
   isAdmin,
-  userLookup,
 }: HackathonDashboardProps) {
   const [hackathonState, setHackathonState] =
     useState<HackathonState>("before_start");
@@ -136,7 +133,7 @@ export function HackathonDashboard({
       );
     }
 
-    const commonProps = { event: transformedEvent, user, isAdmin, userLookup };
+    const commonProps = { event: transformedEvent, user, isAdmin };
 
     switch (hackathonState) {
       case "before_start":
@@ -144,7 +141,13 @@ export function HackathonDashboard({
       case "hacking":
         return <HackingTimeDashboard {...commonProps} />;
       case "voting":
-        return <VotingTimeDashboard {...commonProps} />;
+        return (
+          <VotingTimeDashboard
+            event={transformedEvent}
+            user={user}
+            isAdmin={isAdmin}
+          />
+        );
       case "ended":
         return <EndedDashboard {...commonProps} />;
       default:

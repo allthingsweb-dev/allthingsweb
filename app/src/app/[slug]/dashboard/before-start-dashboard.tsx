@@ -32,28 +32,27 @@ import { toReadableDateTimeStr } from "@/lib/datetime";
 import { RegisterTeamModal } from "./register-team-modal";
 import type { ExpandedEvent } from "@/lib/expanded-events";
 import type { ClientUser } from "@/lib/client-user";
-import type { UserLookup } from "@/lib/users";
 import { EditTeamModal } from "./edit-team-modal";
 import { TeamManagement } from "./team-management";
+import { useUsers } from "@/hooks/use-users";
 
 interface BeforeStartDashboardProps {
   event: ExpandedEvent;
   user: ClientUser;
   isAdmin: boolean;
-  userLookup: UserLookup[];
 }
 
 export function BeforeStartDashboard({
   event,
   user,
   isAdmin,
-  userLookup,
 }: BeforeStartDashboardProps) {
+  const { users } = useUsers();
   // Helper function to look up user name by ID
   const getUserName = (userId: string): string => {
     if (userId === user.id) return "You";
-    const userInfo = userLookup.find((u) => u.id === userId);
-    return userInfo?.name || "Anonymous";
+    const userInfo = users.find((u) => u.id === userId);
+    return userInfo?.displayName || "Anonymous";
   };
   // Get all registered teams for this event with their images
   const { data: teams } = useLiveQuery((q) =>
@@ -371,7 +370,6 @@ export function BeforeStartDashboard({
                                 user={user}
                                 hasVotes={teamHasVotes}
                                 isAdmin={isAdmin}
-                                userLookup={userLookup}
                                 onTeamDeleted={() => {
                                   // TanStack DB will automatically update via live queries
                                 }}
