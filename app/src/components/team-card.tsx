@@ -70,37 +70,46 @@ export function TeamCard({
 
   return (
     <Card
-      className={`border-2 transition-colors ${
+      className={`border-2 transition-all duration-200 shadow-sm hover:shadow-md ${
         isUserTeam
-          ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950"
-          : "hover:border-gray-300 dark:hover:border-gray-600"
+          ? "border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-950/50 ring-1 ring-blue-200 dark:ring-blue-800"
+          : "border-border hover:border-primary/20 dark:hover:border-primary/30 hover:shadow-primary/5"
       } ${className}`}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-3">
+      <CardHeader className="pb-4">
+        <div className="flex items-start gap-4">
           {team.team_image_url ? (
-            <Avatar className="w-12 h-12">
+            <Avatar className="w-14 h-14 ring-2 ring-border">
               <AvatarImage
                 src={team.team_image_url}
                 alt={team.team_image_alt || team.team_name}
               />
-              <AvatarFallback>{team.team_name[0]}</AvatarFallback>
+              <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
+                {team.team_name[0]}
+              </AvatarFallback>
             </Avatar>
           ) : (
-            <Avatar className="w-12 h-12">
-              <AvatarFallback>{team.team_name[0]}</AvatarFallback>
+            <Avatar className="w-14 h-14 ring-2 ring-border">
+              <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
+                {team.team_name[0]}
+              </AvatarFallback>
             </Avatar>
           )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <CardTitle className="text-base truncate flex items-center gap-2 min-w-0">
-                <span className="truncate">{team.team_name}</span>
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <CardTitle className="text-lg font-bold truncate text-foreground">
+                  {team.team_name}
+                </CardTitle>
                 {isUserTeam && (
-                  <Badge variant="secondary" className="text-xs flex-shrink-0">
+                  <Badge
+                    variant="default"
+                    className="text-xs font-medium bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                  >
                     Your Team
                   </Badge>
                 )}
-              </CardTitle>
+              </div>
               {canManageTeam && (
                 <div className="flex-shrink-0">
                   <TeamManagement
@@ -118,51 +127,78 @@ export function TeamCard({
               )}
             </div>
             {team.project_name && (
-              <CardDescription className="text-sm truncate">
+              <CardDescription className="text-sm font-medium text-foreground/80 dark:text-foreground/90">
                 {team.project_name}
               </CardDescription>
             )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span>Team Members:</span>
-          <span className="text-foreground">
-            {teamMemberNames.length > 0
-              ? teamMemberNames.join(", ")
-              : "No members"}
-          </span>
-          {mode === "voting" &&
-            typeof voteCount === "number" &&
-            voteCount !== undefined && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-primary font-semibold bg-primary/10 px-2 py-1 rounded-full text-xs">
-                  {voteCount} vote{voteCount !== 1 ? "s" : ""}
-                </span>
-              </>
+      <CardContent className="space-y-4 pt-0">
+        {/* Project Description and Link - Moved above team members */}
+        {(team.project_description || team.project_link) && (
+          <div className="space-y-3 pb-4 border-b border-border/50">
+            {team.project_description && (
+              <p className="text-sm text-foreground/75 dark:text-foreground/85 line-clamp-3 leading-relaxed">
+                {team.project_description}
+              </p>
             )}
+            {team.project_link && (
+              <a
+                href={team.project_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 hover:underline transition-colors px-3 py-1.5 bg-primary/5 hover:bg-primary/10 rounded-md border border-primary/20"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View Project
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Team Members */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground/70 dark:text-foreground/80">
+            <Users className="h-4 w-4" />
+            <span>Team Members</span>
+            {mode === "voting" &&
+              typeof voteCount === "number" &&
+              voteCount !== undefined && (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-semibold text-primary border-primary/30"
+                  >
+                    {voteCount} vote{voteCount !== 1 ? "s" : ""}
+                  </Badge>
+                </>
+              )}
+          </div>
+          <div className="text-sm font-medium text-foreground dark:text-foreground">
+            {teamMemberNames.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {teamMemberNames.map((name, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-secondary/60 dark:bg-secondary/40 text-secondary-foreground dark:text-secondary-foreground border border-secondary-foreground/20"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-muted-foreground text-xs italic">
+                No members yet
+              </span>
+            )}
+          </div>
         </div>
-        {team.project_description && (
-          <p className="text-sm text-muted-foreground line-clamp-3">
-            {team.project_description}
-          </p>
-        )}
-        {team.project_link && (
-          <a
-            href={team.project_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Project link
-          </a>
-        )}
+
+        {/* Voting Button */}
         {mode === "voting" && voteButton && !canManageTeam && (
-          <div className="pt-3 border-t border-border">{voteButton}</div>
+          <div className="pt-3 border-t border-border/50">{voteButton}</div>
         )}
       </CardContent>
     </Card>

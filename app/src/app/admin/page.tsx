@@ -149,6 +149,38 @@ export default async function AdminPage() {
                     </div>
                   </div>
                 </Link>
+
+                {/* Components Preview Card */}
+                <Link
+                  href="/components"
+                  className="block p-6 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors group"
+                >
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="h-8 w-8 text-purple-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-lg font-medium text-gray-900 group-hover:text-purple-900">
+                        Components Preview
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Preview UI components in all their variants and states
+                      </p>
+                    </div>
+                  </div>
+                </Link>
               </div>
             </div>
           </div>
