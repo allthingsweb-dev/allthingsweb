@@ -1,5 +1,6 @@
 import { stackServerApp } from "@/lib/stack";
 import { isAdmin } from "@/lib/admin";
+import { toClientUser } from "@/lib/client-user";
 import Link from "next/link";
 import { ComponentsPreview } from "./components-preview";
 
@@ -33,5 +34,8 @@ export default async function ComponentsPage() {
     );
   }
 
-  return <ComponentsPreview user={user} />;
+  // Convert to client-safe user object
+  const clientUser = toClientUser(user);
+
+  return <ComponentsPreview user={clientUser} />;
 }

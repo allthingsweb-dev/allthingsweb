@@ -38,12 +38,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { ServerUser } from "@stackframe/stack";
 import type { ClientUser } from "@/lib/client-user";
-import { toClientUser } from "@/lib/client-user";
 
 interface ComponentsPreviewProps {
-  user: ServerUser;
+  user: ClientUser;
 }
 
 // Mock data for component examples
@@ -136,7 +134,7 @@ const componentRegistry = {
 export function ComponentsPreview({ user }: ComponentsPreviewProps) {
   const [selectedComponent, setSelectedComponent] =
     useState<string>("team-card");
-  const clientUser = toClientUser(user);
+  const clientUser = user;
 
   const renderTeamCardVariants = () => {
     return (
