@@ -250,41 +250,215 @@ export default async function HomePage() {
   );
 }
 
-function LandingHero({ images }: { images: Image[] }) {
-  return (
-    <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="w-full h-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
-        {images.map((image, index) => (
-          <div
-            key={image.url + index}
-            className="relative w-full aspect-square overflow-hidden"
-          >
-            <NextImage
-              src={image.url}
-              placeholder={image.placeholder ? "blur" : undefined}
-              blurDataURL={image.placeholder || undefined}
-              fill
-              className="object-cover"
-              priority
-              alt={image.alt || `Event image ${index + 1}`}
-              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-            />
-          </div>
-        ))}
-      </div>
+// Track if we've already warned about missing dimensions
+let missingDimensionsWarned = false;
 
-      {/* Content */}
-      <div className="z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4">
-        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
-          All Things Web 🚀
-        </h1>
-        <p className="max-w-2xl text-lg sm:text-xl">
-          Discover exciting web development events in the Bay Area and San
-          Francisco. Join us for hackathons, hangouts, and meetups to connect
-          with fellow developers and web enthusiasts.
-        </p>
-      </div>
-    </section>
+// Helper function to safely calculate aspect ratio
+function safeAspectRatio(
+  width: number | null | undefined,
+  height: number | null | undefined,
+  fallback = "1/1"
+): string {
+  if (width && height && width > 0 && height > 0) {
+    return `${width}/${height}`;
+  }
+
+  if (!missingDimensionsWarned) {
+    console.warn("Missing or invalid image dimensions detected, using fallback aspect ratio");
+    missingDimensionsWarned = true;
+  }
+
+  return fallback;
+}
+
+function LandingHero({ images }: { images: Image[] }) {
+  // Distribute images across columns for masonry effect
+  const distributeImagesAcrossColumns = (images: Image[], columnCount: number) => {
+    const columns: Image[][] = Array.from({ length: columnCount }, () => []);
+
+    images.forEach((image, index) => {
+      const columnIndex = index % columnCount;
+      columns[columnIndex].push(image);
+    });
+
+    return columns;
+  };
+
+  // Create different column counts for different screen sizes
+  // We'll use CSS to show/hide columns based on screen size
+  const desktopColumns = distributeImagesAcrossColumns(images, 4);
+  const tabletColumns = distributeImagesAcrossColumns(images, 3);
+  const mobileColumns = distributeImagesAcrossColumns(images, 2);
+
+  // Animation speed classes for each column
+  const animationSpeeds = [
+    'animate-scroll-slow',
+    'animate-scroll-medium',
+    'animate-scroll-fast',
+    'animate-scroll-slower'
+  ];
+
+  return (
+    <section className="relative w-full h-[80vh] overflow-hidden">
+        {/* Desktop Layout - 4 columns */}
+        <div className="absolute inset-0 hidden lg:grid grid-cols-4 gap-1" aria-hidden="true">
+          {desktopColumns.map((columnImages, columnIndex) => (
+            <div
+              key={`desktop-column-${columnIndex}`}
+              className={`flex flex-col gap-1 ${animationSpeeds[columnIndex]}`}
+              style={{ animationDelay: `${-(columnIndex * 5)}s` }}
+            >
+              {/* First set of images */}
+              {columnImages.map((image, index) => (
+                <div
+                  key={`${image.url}-${index}-1`}
+                  className="relative w-full"
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
+                >
+                  <NextImage
+                    src={image.url}
+                    placeholder={image.placeholder ? "blur" : undefined}
+                    blurDataURL={image.placeholder || undefined}
+                    fill
+                    className="object-cover"
+                    priority={index < 5}
+                    alt={image.alt || `Event image ${index + 1}`}
+                    sizes="25vw"
+                  />
+                </div>
+              ))}
+              {/* Duplicate set for seamless loop */}
+              {columnImages.map((image, index) => (
+                <div
+                  key={`${image.url}-${index}-2`}
+                  className="relative w-full"
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
+                >
+                  <NextImage
+                    src={image.url}
+                    placeholder={image.placeholder ? "blur" : undefined}
+                    blurDataURL={image.placeholder || undefined}
+                    fill
+                    className="object-cover"
+                    alt={image.alt || `Event image ${index + 1}`}
+                    sizes="25vw"
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Tablet Layout - 3 columns */}
+        <div className="absolute inset-0 hidden md:grid lg:hidden grid-cols-3 gap-1" aria-hidden="true">
+          {tabletColumns.map((columnImages, columnIndex) => (
+            <div
+              key={`tablet-column-${columnIndex}`}
+              className={`flex flex-col gap-1 ${animationSpeeds[columnIndex]}`}
+              style={{ animationDelay: `${-(columnIndex * 5)}s` }}
+            >
+              {/* First set of images */}
+              {columnImages.map((image, index) => (
+                <div
+                  key={`${image.url}-${index}-1`}
+                  className="relative w-full"
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
+                >
+                  <NextImage
+                    src={image.url}
+                    placeholder={image.placeholder ? "blur" : undefined}
+                    blurDataURL={image.placeholder || undefined}
+                    fill
+                    className="object-cover"
+                    priority={index < 3}
+                    alt={image.alt || `Event image ${index + 1}`}
+                    sizes="33vw"
+                  />
+                </div>
+              ))}
+              {/* Duplicate set for seamless loop */}
+              {columnImages.map((image, index) => (
+                <div
+                  key={`${image.url}-${index}-2`}
+                  className="relative w-full"
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
+                >
+                  <NextImage
+                    src={image.url}
+                    placeholder={image.placeholder ? "blur" : undefined}
+                    blurDataURL={image.placeholder || undefined}
+                    fill
+                    className="object-cover"
+                    alt={image.alt || `Event image ${index + 1}`}
+                    sizes="33vw"
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile Layout - 2 columns */}
+        <div className="absolute inset-0 grid md:hidden grid-cols-2 gap-1" aria-hidden="true">
+          {mobileColumns.map((columnImages, columnIndex) => (
+            <div
+              key={`mobile-column-${columnIndex}`}
+              className={`flex flex-col gap-1 ${animationSpeeds[columnIndex]}`}
+              style={{ animationDelay: `${-(columnIndex * 5)}s` }}
+            >
+              {/* First set of images */}
+              {columnImages.map((image, index) => (
+                <div
+                  key={`${image.url}-${index}-1`}
+                  className="relative w-full"
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
+                >
+                  <NextImage
+                    src={image.url}
+                    placeholder={image.placeholder ? "blur" : undefined}
+                    blurDataURL={image.placeholder || undefined}
+                    fill
+                    className="object-cover"
+                    priority={index < 2}
+                    alt={image.alt || `Event image ${index + 1}`}
+                    sizes="50vw"
+                  />
+                </div>
+              ))}
+              {/* Duplicate set for seamless loop */}
+              {columnImages.map((image, index) => (
+                <div
+                  key={`${image.url}-${index}-2`}
+                  className="relative w-full"
+                  style={{ aspectRatio: safeAspectRatio(image.width, image.height) }}
+                >
+                  <NextImage
+                    src={image.url}
+                    placeholder={image.placeholder ? "blur" : undefined}
+                    blurDataURL={image.placeholder || undefined}
+                    fill
+                    className="object-cover"
+                    alt={image.alt || `Event image ${index + 1}`}
+                    sizes="50vw"
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Content Overlay */}
+        <div className="absolute inset-0 z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center justify-center text-center text-white px-4">
+          <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+            All Things Web 🚀
+          </h1>
+          <p className="max-w-2xl text-lg sm:text-xl">
+            Discover exciting web development events in the Bay Area and San
+            Francisco. Join us for hackathons, hangouts, and meetups to connect
+            with fellow developers and web enthusiasts.
+          </p>
+        </div>
+      </section>
   );
 }
 

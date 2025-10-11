@@ -185,4 +185,54 @@
   .border-brand-orange {
     border-color: var(--brand-orange);
   }
+
+  /* Masonry scroll animations - namespaced to avoid conflicts */
+  @keyframes atw-scroll-up {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-50%);
+    }
+  }
+
+  .animate-scroll-slow {
+    animation: atw-scroll-up 80s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  .animate-scroll-medium {
+    animation: atw-scroll-up 70s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  .animate-scroll-fast {
+    animation: atw-scroll-up 60s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  .animate-scroll-slower {
+    animation: atw-scroll-up 90s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  .animate-scroll-faster {
+    animation: atw-scroll-up 50s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-scroll-slow,
+    .animate-scroll-medium,
+    .animate-scroll-fast,
+    .animate-scroll-slower,
+    .animate-scroll-faster {
+      animation: none;
+    }
+  }
 }
