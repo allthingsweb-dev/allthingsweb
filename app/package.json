@@ -8,6 +8,7 @@
     "env:pull:production": "bun ./node_modules/better-env/dist/cli.js pull --environment production",
     "env:validate": "bun ./node_modules/better-env/dist/cli.js validate --environment development",
     "env:validate:preview": "bun --env-file=.env.preview ./node_modules/better-env/dist/cli.js validate --environment production",
+    "// NOTE env:validate:preview": "CLI workaround: runs production validation, so preview-only schema checks are not exercised here. Preview schema source of truth: app/better-env.ts",
     "env:validate:production": "bun ./node_modules/better-env/dist/cli.js validate --environment production",
     "build:preview": "bun --env-file=.env.preview run build",
     "dev": "bun run env:validate && next dev",
