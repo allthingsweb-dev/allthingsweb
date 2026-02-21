@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "skills": {
+    "ai-agent-workflow": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "0c24341539343f34499b16168f9d17ea46927e9e4d211e6989453656ccc63be2"
+    },
+    "ai-chat": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "5cf5b55c318f980acd5bed332617f7055d38f69bef0df05c7f7e84ac36b48b27"
+    },
+    "authentication": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "e5936f3edbdff0e2850277fbafe7d3b20f6f087086dafdafebf6fcbba55ed2f0"
+    },
+    "base-app-setup": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "f6dd016fefaa37bc77ec4281ed25815ad0655f6fafb711ee6fed315c1f6ae771"
+    },
+    "better-env": {
+      "source": "neondatabase/better-env",
+      "sourceType": "github",
+      "computedHash": "9609c28a4286e38cde27e4f3a7a8e5d410da7823e8c91cfe005dfd8e3a39321f"
+    },
+    "env-management": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "ebcdf3b6a10b57f5a3a2a83286d71d4f216f900473abf674ed69b1c401241c19"
+    },
+    "observability-monitoring": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "91c3203bf5e0df6e7787ab1c88c80d5501ffe13f47d7b86f8aafbcc4067ae1fc"
+    },
+    "og-image-generation": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "d67a357031e5939e9049cef5eb89ea453c33fe05e5b0ef6f246c3f94ebd65f3c"
+    },
+    "ralph-loop": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "f7e1f79b58ab0b0423d716e20267a065f8c899f9e97acd5bab8e0433399a8568"
+    },
+    "shiki-code-blocks": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "58d6741b6c51e7b280de5674defcdd65a8a3f535a774e31bd97ae860a1c50552"
+    },
+    "stripe-subscriptions": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "4cfea011f4fbe65923cf586517029242c61dd4e79ecdccca4f6374e92d836290"
+    },
+    "testing": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "8e4cfd783ed48a18f27682d2c5734f4c828ba9cd9c9d0c95dfece29627153be7"
+    },
+    "url-state-management": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "47d952fc4213930ab57ef7988dda1ea2994ad11d5aeb6355f4f20da8c75b0473"
+    },
+    "use-fullstackrecipes": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "computedHash": "fdd87104c16fee73b227098a499c617d0a638b03055d773e3895679f5d7d0405"
+    }
+  }
+}
