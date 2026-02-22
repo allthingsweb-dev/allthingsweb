@@ -1,37 +1,41 @@
 import { mainConfig } from "@/lib/config";
 
-export type LumaEvent = {
-  app_id: string;
-  created_at: string;
-  cover_url: string;
-  name: string;
+type LumaGeoAddress = {
+  city: string;
+  type: "google" | "string";
+  country: string;
+  latitude: number;
+  longitude: number;
+  place_id: string;
+  address: string;
   description: string;
-  description_md: string;
+  city_state: string;
+  full_address: string;
+};
+
+export type LumaEvent = {
+  api_id?: string;
+  app_id?: string;
+  calendar_api_id?: string;
+  created_at: string;
+  cover_url?: string | null;
+  name: string;
+  description?: string | null;
+  description_md?: string | null;
   series_api_id?: string;
   start_at: string;
   duration_interval: string;
   end_at: string;
-  geo_address_json: {
-    city: string;
-    type: "google" | "string";
-    country: string;
-    latitude: number;
-    longitude: number;
-    place_id: string;
-    address: string;
-    description: string;
-    city_state: string;
-    full_address: string;
-  };
-  geo_latitude: number;
-  geo_longitude: number;
+  geo_address_json?: LumaGeoAddress | null;
+  geo_latitude?: number | null;
+  geo_longitude?: number | null;
   url: string;
   timezone: string;
   event_type: "independent" | "series";
   user_api_id: string;
   visibility: "public" | "private";
-  zoom_meeting_url: string;
-  meeting_url: string;
+  zoom_meeting_url?: string | null;
+  meeting_url?: string | null;
 };
 
 export type LumaHost = {
@@ -75,6 +79,12 @@ export const createLumaClient = () => {
         );
         return [];
       },
+      getCalendarEvents: async () => {
+        console.warn(
+          "Did not fetch calendar events because LUMA_API_KEY is not set",
+        );
+        return [];
+      },
       getEvent: async () => {
         console.warn("Did not fetch event because LUMA_API_KEY is not set");
         return null;
@@ -107,8 +117,44 @@ export const createLumaClient = () => {
     "x-luma-api-key": apiKey,
   };
 
-  const getUpcomingEvents = async () => {
-    const url = `https://api.lu.ma/public/v1/calendar/list-events?pagination_limit=50&after=${new Date().toISOString()}`;
+  const parseCalendarEventsResponse = (resData: any): LumaEvent[] => {
+    const entries = resData?.entries ?? resData?.events?.entries ?? [];
+    if (!Array.isArray(entries)) return [];
+    return entries
+      .map((entry: any) => entry?.event ?? entry)
+      .filter(Boolean) as LumaEvent[];
+  };
+
+  const getCalendarEvents = async ({
+    limit = 10,
+    after,
+    before,
+    calendarApiId,
+    calendarHandle,
+  }: {
+    limit?: number;
+    after?: string;
+    before?: string;
+    calendarApiId?: string;
+    calendarHandle?: string;
+  } = {}) => {
+    const searchParams = new URLSearchParams({
+      pagination_limit: String(limit),
+    });
+    if (after) {
+      searchParams.append("after", after);
+    }
+    if (before) {
+      searchParams.append("before", before);
+    }
+    if (calendarApiId) {
+      searchParams.append("calendar_api_id", calendarApiId);
+    }
+    if (calendarHandle) {
+      searchParams.append("calendar_handle", calendarHandle);
+    }
+
+    const url = `https://api.lu.ma/public/v1/calendar/list-events?${searchParams.toString()}`;
     const res = await fetch(url, {
       method: "GET",
       headers,
@@ -119,7 +165,14 @@ export const createLumaClient = () => {
       );
     }
     const resData = await res.json();
-    return resData.events.entries.map((e: any) => e.event);
+    return parseCalendarEventsResponse(resData);
+  };
+
+  const getUpcomingEvents = async () => {
+    return getCalendarEvents({
+      limit: 50,
+      after: new Date().toISOString(),
+    });
   };
 
   const getEvent = async (eventId: string): Promise<LumaEventPayload> => {
@@ -228,6 +281,7 @@ export const createLumaClient = () => {
 
   return {
     getUpcomingEvents,
+    getCalendarEvents,
     getEvent,
     getAttendees,
     getAllAttendees,
