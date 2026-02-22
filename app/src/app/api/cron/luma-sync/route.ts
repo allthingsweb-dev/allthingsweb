@@ -24,10 +24,15 @@ export async function GET(request: Request) {
   }
 
   try {
+    const calendarApiId = process.env.LUMA_CALENDAR_API_ID;
+    const calendarHandle =
+      process.env.LUMA_CALENDAR_HANDLE ?? DEFAULT_CALENDAR_HANDLE;
+
     const run = await start(syncLumaEventsWorkflow, [
       {
         limit: DEFAULT_LIMIT,
-        calendarHandle: DEFAULT_CALENDAR_HANDLE,
+        calendarApiId,
+        calendarHandle,
       },
     ]);
 
