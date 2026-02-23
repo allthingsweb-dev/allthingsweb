@@ -57,6 +57,8 @@
     "@tanstack/query-db-collection": "^0.2.16",
     "@tanstack/react-db": "^0.1.17",
     "@types/heic-convert": "^2.1.0",
+    "@workflow/ai": "^4.0.1-beta.52",
+    "ai": "^6.0.97",
     "better-env": "^0.3.1",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
@@ -84,6 +86,7 @@
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0",
     "vaul": "^1.1.2",
+    "workflow": "^4.1.0-beta.60",
     "zod": "^4.1.8"
   },
   "devDependencies": {
