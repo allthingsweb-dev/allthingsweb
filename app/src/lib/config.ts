@@ -18,6 +18,8 @@ export const mainConfig = {
   },
   luma: {
     apiKey: integrationsConfig.lumaApiKey,
+    calendarApiId: integrationsConfig.lumaCalendarApiId,
+    calendarHandle: integrationsConfig.lumaCalendarHandle,
   },
   discord: {
     botToken: integrationsConfig.discordBotToken,

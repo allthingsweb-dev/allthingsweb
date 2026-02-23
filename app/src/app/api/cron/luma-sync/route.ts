@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { start } from "workflow/api";
+import { mainConfig } from "@/lib/config";
 import { syncLumaEventsWorkflow } from "@/workflows/luma-sync";
 
 export const runtime = "nodejs";
@@ -30,9 +31,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const calendarApiId = process.env.LUMA_CALENDAR_API_ID;
+    const calendarApiId = mainConfig.luma.calendarApiId;
     const calendarHandle =
-      process.env.LUMA_CALENDAR_HANDLE ?? DEFAULT_CALENDAR_HANDLE;
+      mainConfig.luma.calendarHandle ?? DEFAULT_CALENDAR_HANDLE;
 
     const run = await start(syncLumaEventsWorkflow, [
       {
