@@ -5,13 +5,28 @@ const integrationsEnvConfig = configSchema("Integrations", {
     env: "RESEND_API_KEY",
     optional: true,
   }),
-  lumaApiKey: server({
-    env: "LUMA_API_KEY",
+  aiGatewayApiKey: server({
+    env: "AI_GATEWAY_API_KEY",
+    optional: true,
+  }),
+  vercelOidcToken: server({
+    env: "VERCEL_OIDC_TOKEN",
+    optional: true,
+  }),
+  discordBotToken: server({
+    env: "DISCORD_BOT_TOKEN",
+    optional: true,
+  }),
+  discordReviewChannelId: server({
+    env: "DISCORD_REVIEW_CHANNEL_ID",
     optional: true,
   }),
 });
 
 export const integrationsConfig = {
   resendApiKey: integrationsEnvConfig.server.resendApiKey,
-  lumaApiKey: integrationsEnvConfig.server.lumaApiKey,
+  aiGatewayApiKey: integrationsEnvConfig.server.aiGatewayApiKey,
+  vercelOidcToken: integrationsEnvConfig.server.vercelOidcToken,
+  discordBotToken: integrationsEnvConfig.server.discordBotToken,
+  discordReviewChannelId: integrationsEnvConfig.server.discordReviewChannelId,
 };

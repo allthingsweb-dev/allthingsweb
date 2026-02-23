@@ -1,4 +1,5 @@
 import { createGateway, generateObject } from "ai";
+import { mainConfig } from "@/lib/config";
 import type { LumaEvent } from "@/lib/luma";
 import {
   aiSuggestedEventSchema,
@@ -9,8 +10,8 @@ import {
 const AI_MODEL = "openai/gpt-5.3-medium";
 
 function getGatewayModel() {
-  const gatewayApiKey = process.env.AI_GATEWAY_API_KEY;
-  const oidcToken = process.env.VERCEL_OIDC_TOKEN;
+  const gatewayApiKey = mainConfig.ai.gatewayApiKey;
+  const oidcToken = mainConfig.ai.vercelOidcToken;
 
   if (!gatewayApiKey && !oidcToken) {
     throw new Error(
@@ -42,7 +43,7 @@ export async function generateEventDraftWithAI({
     model: getGatewayModel(),
     schema: aiSuggestedEventSchema,
     system:
-      "You convert Luma events to AllThingsWeb event records. Return realistic, concise values.",
+      "You convert Luma events to AllThingsWeb event records. Return realistic, concise values. shortLocation must be a short street/company-style label (for example: 'Mux Office', 'Vercel', 'Market St') and must not be only a city name like 'San Francisco'.",
     prompt: `
 Given a Luma event and a deterministic fallback draft, return an improved AllThingsWeb event payload.
 
@@ -51,6 +52,7 @@ Requirements:
 - Keep slug lowercase and URL-safe with hyphens only.
 - Tagline should be concise and usable as public event copy.
 - attendeeLimit must be a realistic positive integer.
+- shortLocation should be a concise street/company/venue label, not just city-only text.
 - For unknown optional address fields, return null.
 
 AllThingsWeb required fields:

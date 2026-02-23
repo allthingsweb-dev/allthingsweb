@@ -1,8 +1,10 @@
 import { authConfig } from "./auth/config";
+import { cronConfig } from "./cron/config";
 import { databaseConfig } from "./database/config";
 import { electricConfig } from "./electric/config";
 import { instanceConfig } from "./instance/config";
 import { integrationsConfig } from "./integrations/config";
+import { lumaConfig } from "./luma/config";
 import { storageConfig } from "./storage/config";
 
 export const mainConfig = {
@@ -16,8 +18,15 @@ export const mainConfig = {
   resend: {
     apiKey: integrationsConfig.resendApiKey,
   },
-  luma: {
-    apiKey: integrationsConfig.lumaApiKey,
+  ai: {
+    gatewayApiKey: integrationsConfig.aiGatewayApiKey,
+    vercelOidcToken: integrationsConfig.vercelOidcToken,
+  },
+  cron: cronConfig,
+  luma: lumaConfig,
+  discord: {
+    botToken: integrationsConfig.discordBotToken,
+    reviewChannelId: integrationsConfig.discordReviewChannelId,
   },
 };
 

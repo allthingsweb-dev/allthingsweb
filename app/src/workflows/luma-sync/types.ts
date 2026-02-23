@@ -36,11 +36,17 @@ export type LumaSyncCreatedEvent = {
   id: string;
   name: string;
   slug: string;
+  startDate: Date;
+  endDate: Date;
+  tagline: string;
+  attendeeLimit: number;
+  isDraft: boolean;
   lumaEventId: string | null;
 };
 
 export type LumaSyncError = {
-  lumaEventId: string;
+  scope: "import" | "review";
+  reference: string;
   error: string;
 };
 
@@ -48,6 +54,7 @@ export type LumaSyncResult = {
   fetchedCount: number;
   skippedExistingCount: number;
   createdCount: number;
+  approvedCount: number;
   createdEvents: LumaSyncCreatedEvent[];
   skippedEventIds: string[];
   errors: LumaSyncError[];
