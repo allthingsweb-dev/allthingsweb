@@ -1,4 +1,5 @@
 import { createGateway, generateObject } from "ai";
+import { mainConfig } from "@/lib/config";
 import type { LumaEvent } from "@/lib/luma";
 import {
   aiSuggestedEventSchema,
@@ -9,8 +10,8 @@ import {
 const AI_MODEL = "openai/gpt-5.3-medium";
 
 function getGatewayModel() {
-  const gatewayApiKey = process.env.AI_GATEWAY_API_KEY;
-  const oidcToken = process.env.VERCEL_OIDC_TOKEN;
+  const gatewayApiKey = mainConfig.ai.gatewayApiKey;
+  const oidcToken = mainConfig.ai.vercelOidcToken;
 
   if (!gatewayApiKey && !oidcToken) {
     throw new Error(

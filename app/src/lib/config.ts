@@ -1,4 +1,5 @@
 import { authConfig } from "./auth/config";
+import { cronConfig } from "./cron/config";
 import { databaseConfig } from "./database/config";
 import { electricConfig } from "./electric/config";
 import { instanceConfig } from "./instance/config";
@@ -17,6 +18,11 @@ export const mainConfig = {
   resend: {
     apiKey: integrationsConfig.resendApiKey,
   },
+  ai: {
+    gatewayApiKey: integrationsConfig.aiGatewayApiKey,
+    vercelOidcToken: integrationsConfig.vercelOidcToken,
+  },
+  cron: cronConfig,
   luma: lumaConfig,
   discord: {
     botToken: integrationsConfig.discordBotToken,

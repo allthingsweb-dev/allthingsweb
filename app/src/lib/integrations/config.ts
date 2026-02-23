@@ -5,6 +5,14 @@ const integrationsEnvConfig = configSchema("Integrations", {
     env: "RESEND_API_KEY",
     optional: true,
   }),
+  aiGatewayApiKey: server({
+    env: "AI_GATEWAY_API_KEY",
+    optional: true,
+  }),
+  vercelOidcToken: server({
+    env: "VERCEL_OIDC_TOKEN",
+    optional: true,
+  }),
   discordBotToken: server({
     env: "DISCORD_BOT_TOKEN",
     optional: true,
@@ -17,6 +25,8 @@ const integrationsEnvConfig = configSchema("Integrations", {
 
 export const integrationsConfig = {
   resendApiKey: integrationsEnvConfig.server.resendApiKey,
+  aiGatewayApiKey: integrationsEnvConfig.server.aiGatewayApiKey,
+  vercelOidcToken: integrationsEnvConfig.server.vercelOidcToken,
   discordBotToken: integrationsEnvConfig.server.discordBotToken,
   discordReviewChannelId: integrationsEnvConfig.server.discordReviewChannelId,
 };

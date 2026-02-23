@@ -14,7 +14,7 @@ function isAuthorized(request: Request, cronSecret: string): boolean {
 }
 
 export async function GET(request: Request) {
-  const cronSecret = process.env.CRON_SECRET?.trim();
+  const cronSecret = mainConfig.cron.secret?.trim();
 
   if (!cronSecret) {
     return NextResponse.json(
