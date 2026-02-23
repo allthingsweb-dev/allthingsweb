@@ -8,18 +8,24 @@ export const dynamic = "force-dynamic";
 const DEFAULT_LIMIT = 10;
 const DEFAULT_CALENDAR_HANDLE = "allthingswebcalendar";
 
-function isAuthorized(request: Request): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret) {
-    return true;
-  }
-
+function isAuthorized(request: Request, cronSecret: string): boolean {
   return request.headers.get("authorization") === `Bearer ${cronSecret}`;
 }
 
 export async function GET(request: Request) {
-  if (!isAuthorized(request)) {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+
+  if (!cronSecret) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Server misconfigured: CRON_SECRET is not set",
+      },
+      { status: 500 },
+    );
+  }
+
+  if (!isAuthorized(request, cronSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
