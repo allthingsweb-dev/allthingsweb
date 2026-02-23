@@ -1,9 +1,17 @@
 import type { LumaEvent } from "@/lib/luma";
 import { generateEventDraftWithAI } from "./steps/ai";
 import {
+  createDiscordReviewThreadForEvent,
+  pollDiscordThreadForApproval,
+} from "./steps/discord";
+import {
+  createDiscordReviewSession,
   createEventFromDraft,
   getExistingLumaEventIds,
+  listPendingDiscordReviewSessions,
   resolveUniqueSlug,
+  set_live_after_explicit_approval,
+  updateDiscordReviewSessionCursor,
 } from "./steps/events";
 import { fetchLatestLumaEvents, getLumaEventId } from "./steps/luma";
 import type {
@@ -93,7 +101,7 @@ function deriveEventDraft(
       geoAddress?.full_address ?? geoAddress?.description,
     ),
     lumaEventId,
-    isDraft: lumaEvent.visibility === "private",
+    isDraft: true,
   };
 }
 
@@ -187,7 +195,8 @@ export async function syncLumaEventsWorkflow(
         eventDraft = mergeAISuggestedDraft(fallbackDraft, aiSuggestedDraft);
       } catch (aiError) {
         errors.push({
-          lumaEventId: item.lumaEventId,
+          scope: "import",
+          reference: item.lumaEventId,
           error: `AI generation failed: ${toErrorMessage(aiError)}`,
         });
         eventDraft = fallbackDraft;
@@ -198,11 +207,74 @@ export async function syncLumaEventsWorkflow(
       const createdEvent = await createEventFromDraft(eventDraft);
       if (createdEvent) {
         createdEvents.push(createdEvent);
+
+        try {
+          const reviewThread =
+            await createDiscordReviewThreadForEvent(createdEvent);
+          await createDiscordReviewSession({
+            eventId: createdEvent.id,
+            channelId: reviewThread.channelId,
+            rootMessageId: reviewThread.rootMessageId,
+            threadId: reviewThread.threadId,
+            lastSeenMessageId: reviewThread.lastSeenMessageId,
+          });
+        } catch (reviewSetupError) {
+          errors.push({
+            scope: "review",
+            reference: createdEvent.id,
+            error: `Failed to create Discord review thread: ${toErrorMessage(
+              reviewSetupError,
+            )}`,
+          });
+        }
       }
     } catch (error) {
       errors.push({
-        lumaEventId: item.lumaEventId,
+        scope: "import",
+        reference: item.lumaEventId,
         error: toErrorMessage(error),
+      });
+    }
+  }
+
+  const pendingReviewSessions = await listPendingDiscordReviewSessions(100);
+  let approvedCount = 0;
+
+  for (const session of pendingReviewSessions) {
+    try {
+      const reviewScanResult = await pollDiscordThreadForApproval({
+        threadId: session.threadId,
+        afterMessageId: session.lastSeenMessageId,
+      });
+
+      if (reviewScanResult.approvalMessageId) {
+        const updated = await set_live_after_explicit_approval({
+          reviewSessionId: session.id,
+          eventId: session.eventId,
+          approvalMessageId: reviewScanResult.approvalMessageId,
+        });
+
+        if (updated) {
+          approvedCount += 1;
+        }
+
+        continue;
+      }
+
+      if (
+        reviewScanResult.latestSeenMessageId &&
+        reviewScanResult.latestSeenMessageId !== session.lastSeenMessageId
+      ) {
+        await updateDiscordReviewSessionCursor(
+          session.id,
+          reviewScanResult.latestSeenMessageId,
+        );
+      }
+    } catch (reviewError) {
+      errors.push({
+        scope: "review",
+        reference: session.id,
+        error: toErrorMessage(reviewError),
       });
     }
   }
@@ -211,6 +283,7 @@ export async function syncLumaEventsWorkflow(
     fetchedCount: uniqueEvents.length,
     skippedExistingCount: existingLumaEventIds.length,
     createdCount: createdEvents.length,
+    approvedCount,
     createdEvents,
     skippedEventIds: existingLumaEventIds,
     errors,

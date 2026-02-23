@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { eventsTable } from "@/lib/schema";
-import { eq, inArray, like, or } from "drizzle-orm";
+import { eventReviewSessionsTable, eventsTable } from "@/lib/schema";
+import { and, eq, inArray, like, or } from "drizzle-orm";
 import type { EventDraft, LumaSyncCreatedEvent } from "../types";
 
 function normalizeSlugPart(input: string): string {
@@ -93,8 +93,124 @@ export async function createEventFromDraft(
       id: eventsTable.id,
       name: eventsTable.name,
       slug: eventsTable.slug,
+      startDate: eventsTable.startDate,
+      endDate: eventsTable.endDate,
+      tagline: eventsTable.tagline,
+      attendeeLimit: eventsTable.attendeeLimit,
+      isDraft: eventsTable.isDraft,
       lumaEventId: eventsTable.lumaEventId,
     });
 
   return created ?? null;
 }
+
+export type PendingDiscordReviewSession = {
+  id: string;
+  eventId: string;
+  threadId: string;
+  lastSeenMessageId: string | null;
+};
+
+export async function createDiscordReviewSession(input: {
+  eventId: string;
+  channelId: string;
+  rootMessageId: string;
+  threadId: string;
+  lastSeenMessageId: string | null;
+}): Promise<void> {
+  "use step";
+
+  await db
+    .insert(eventReviewSessionsTable)
+    .values({
+      eventId: input.eventId,
+      provider: "discord",
+      channelId: input.channelId,
+      rootMessageId: input.rootMessageId,
+      threadId: input.threadId,
+      lastSeenMessageId: input.lastSeenMessageId,
+      status: "pending",
+      approvalMessageId: null,
+    })
+    .onConflictDoUpdate({
+      target: eventReviewSessionsTable.eventId,
+      set: {
+        provider: "discord",
+        channelId: input.channelId,
+        rootMessageId: input.rootMessageId,
+        threadId: input.threadId,
+        lastSeenMessageId: input.lastSeenMessageId,
+        status: "pending",
+        approvalMessageId: null,
+      },
+    });
+}
+
+export async function listPendingDiscordReviewSessions(
+  limit = 100,
+): Promise<PendingDiscordReviewSession[]> {
+  "use step";
+
+  return db
+    .select({
+      id: eventReviewSessionsTable.id,
+      eventId: eventReviewSessionsTable.eventId,
+      threadId: eventReviewSessionsTable.threadId,
+      lastSeenMessageId: eventReviewSessionsTable.lastSeenMessageId,
+    })
+    .from(eventReviewSessionsTable)
+    .where(
+      and(
+        eq(eventReviewSessionsTable.provider, "discord"),
+        eq(eventReviewSessionsTable.status, "pending"),
+      ),
+    )
+    .limit(limit);
+}
+
+export async function updateDiscordReviewSessionCursor(
+  reviewSessionId: string,
+  lastSeenMessageId: string,
+): Promise<void> {
+  "use step";
+
+  await db
+    .update(eventReviewSessionsTable)
+    .set({
+      lastSeenMessageId,
+    })
+    .where(eq(eventReviewSessionsTable.id, reviewSessionId));
+}
+
+export async function set_live_after_explicit_approval({
+  reviewSessionId,
+  eventId,
+  approvalMessageId,
+}: {
+  reviewSessionId: string;
+  eventId: string;
+  approvalMessageId: string;
+}): Promise<boolean> {
+  "use step";
+
+  const [updatedEvent] = await db
+    .update(eventsTable)
+    .set({
+      isDraft: false,
+    })
+    .where(and(eq(eventsTable.id, eventId), eq(eventsTable.isDraft, true)))
+    .returning({ id: eventsTable.id });
+
+  await db
+    .update(eventReviewSessionsTable)
+    .set({
+      status: "approved",
+      approvalMessageId,
+      lastSeenMessageId: approvalMessageId,
+    })
+    .where(eq(eventReviewSessionsTable.id, reviewSessionId));
+
+  return Boolean(updatedEvent);
+}
+
+export const setLiveAfterExplicitApproval = set_live_after_explicit_approval;

@@ -19,6 +19,10 @@ export const mainConfig = {
   luma: {
     apiKey: integrationsConfig.lumaApiKey,
   },
+  discord: {
+    botToken: integrationsConfig.discordBotToken,
+    reviewChannelId: integrationsConfig.discordReviewChannelId,
+  },
 };
 
 export type MainConfig = typeof mainConfig;

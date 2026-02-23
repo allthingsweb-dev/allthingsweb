@@ -194,6 +194,25 @@ export const eventImagesTable = pgTable(
   (table) => [primaryKey({ columns: [table.eventId, table.imageId] })],
 );
 
+export const eventReviewSessionsTable = pgTable("event_review_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => eventsTable.id, {
+      onDelete: "cascade",
+    })
+    .unique(),
+  provider: text("provider").notNull().default("discord"),
+  channelId: text("channel_id").notNull(),
+  rootMessageId: text("root_message_id").notNull(),
+  threadId: text("thread_id").notNull().unique(),
+  lastSeenMessageId: text("last_seen_message_id"),
+  status: text("status").notNull().default("pending"),
+  approvalMessageId: text("approval_message_id"),
+  createdAt,
+  updatedAt,
+});
+
 export type InsertEvent = typeof eventsTable.$inferInsert;
 export type SelectEvent = typeof eventsTable.$inferSelect;
 export type InsertEventSponsor = typeof eventSponsorsTable.$inferInsert;
@@ -202,6 +221,10 @@ export type InsertEventTalk = typeof eventTalksTable.$inferInsert;
 export type SelectEventTalk = typeof eventTalksTable.$inferSelect;
 export type InsertEventImage = typeof eventImagesTable.$inferInsert;
 export type SelectEventImage = typeof eventImagesTable.$inferSelect;
+export type InsertEventReviewSession =
+  typeof eventReviewSessionsTable.$inferInsert;
+export type SelectEventReviewSession =
+  typeof eventReviewSessionsTable.$inferSelect;
 
 export const hacksTable = pgTable("hacks", {
   id: uuid("id").primaryKey().defaultRandom(),
