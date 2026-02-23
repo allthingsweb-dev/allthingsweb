@@ -3,6 +3,7 @@ import { databaseConfig } from "./database/config";
 import { electricConfig } from "./electric/config";
 import { instanceConfig } from "./instance/config";
 import { integrationsConfig } from "./integrations/config";
+import { lumaConfig } from "./luma/config";
 import { storageConfig } from "./storage/config";
 
 export const mainConfig = {
@@ -16,11 +17,7 @@ export const mainConfig = {
   resend: {
     apiKey: integrationsConfig.resendApiKey,
   },
-  luma: {
-    apiKey: integrationsConfig.lumaApiKey,
-    calendarApiId: integrationsConfig.lumaCalendarApiId,
-    calendarHandle: integrationsConfig.lumaCalendarHandle,
-  },
+  luma: lumaConfig,
   discord: {
     botToken: integrationsConfig.discordBotToken,
     reviewChannelId: integrationsConfig.discordReviewChannelId,
