@@ -27,6 +27,7 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const bot = getDiscordReviewBot();
+    await bot.initialize();
     const discordAdapter = bot.getAdapter("discord");
     const durationMs = 600 * 1000;
     const webhookUrl = `${mainConfig.instance.origin}/api/webhooks/discord`;
