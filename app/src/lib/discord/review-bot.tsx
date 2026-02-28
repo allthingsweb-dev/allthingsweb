@@ -132,7 +132,7 @@ function registerHandlers(
             recentMessage.author.userName ||
             recentMessage.author.userId,
           text,
-          isBot: recentMessage.author.isBot,
+          isBot: recentMessage.author.isBot === true,
         });
         if (recentMessages.length >= 30) {
           break;
