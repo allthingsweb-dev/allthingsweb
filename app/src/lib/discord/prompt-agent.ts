@@ -1,8 +1,9 @@
 import { db } from "@/lib/db";
 import { mainConfig } from "@/lib/config";
 import { eventsTable, type InsertEvent } from "@/lib/schema";
+import { getExpandedEventBySlug } from "@/lib/expanded-events";
 import { createLumaClient } from "@/lib/luma";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { createGateway, generateText, tool } from "ai";
 import { z } from "zod";
 
@@ -102,13 +103,29 @@ function normalizeUpdateData(
 }
 
 async function getEventBySlug(slug: string) {
-  const [event] = await db
-    .select()
-    .from(eventsTable)
-    .where(eq(eventsTable.slug, slug))
-    .limit(1);
+  return getExpandedEventBySlug(slug);
+}
 
-  return event ?? null;
+async function listEventsSummary() {
+  const events = await db
+    .select({
+      name: eventsTable.name,
+      slug: eventsTable.slug,
+      startDate: eventsTable.startDate,
+      endDate: eventsTable.endDate,
+      shortLocation: eventsTable.shortLocation,
+      fullAddress: eventsTable.fullAddress,
+    })
+    .from(eventsTable)
+    .orderBy(desc(eventsTable.startDate));
+
+  return events.map((event) => ({
+    name: event.name,
+    slug: event.slug,
+    date: event.startDate.toISOString(),
+    endDate: event.endDate.toISOString(),
+    location: event.shortLocation ?? event.fullAddress ?? null,
+  }));
 }
 
 async function updateEventBySlug(
@@ -135,8 +152,15 @@ async function updateEventBySlug(
 
 function buildTools() {
   return {
+    list_events: tool({
+      description:
+        "List AllThingsWeb events with summary fields: name, date, location, and slug.",
+      inputSchema: z.object({}),
+      execute: async () => listEventsSummary(),
+    }),
     get_event_by_slug: tool({
-      description: "Fetch an AllThingsWeb event by slug.",
+      description:
+        "Fetch a full AllThingsWeb event by slug, including speakers, sponsors, and talks.",
       inputSchema: z.object({
         slug: z.string().min(1),
       }),
