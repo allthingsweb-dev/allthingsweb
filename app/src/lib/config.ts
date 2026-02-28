@@ -27,6 +27,12 @@ export const mainConfig = {
   discord: {
     botToken: integrationsConfig.discordBotToken,
     reviewChannelId: integrationsConfig.discordReviewChannelId,
+    publicKey: integrationsConfig.discordPublicKey,
+    applicationId: integrationsConfig.discordApplicationId,
+    guildId: integrationsConfig.discordGuildId,
+  },
+  chat: {
+    redisUrl: integrationsConfig.redisUrl,
   },
 };
 

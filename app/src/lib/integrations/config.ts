@@ -21,6 +21,22 @@ const integrationsEnvConfig = configSchema("Integrations", {
     env: "DISCORD_REVIEW_CHANNEL_ID",
     optional: true,
   }),
+  discordPublicKey: server({
+    env: "DISCORD_PUBLIC_KEY",
+    optional: true,
+  }),
+  discordApplicationId: server({
+    env: "DISCORD_APPLICATION_ID",
+    optional: true,
+  }),
+  discordGuildId: server({
+    env: "DISCORD_GUILD_ID",
+    optional: true,
+  }),
+  redisUrl: server({
+    env: "REDIS_URL",
+    optional: true,
+  }),
 });
 
 export const integrationsConfig = {
@@ -29,4 +45,8 @@ export const integrationsConfig = {
   vercelOidcToken: integrationsEnvConfig.server.vercelOidcToken,
   discordBotToken: integrationsEnvConfig.server.discordBotToken,
   discordReviewChannelId: integrationsEnvConfig.server.discordReviewChannelId,
+  discordPublicKey: integrationsEnvConfig.server.discordPublicKey,
+  discordApplicationId: integrationsEnvConfig.server.discordApplicationId,
+  discordGuildId: integrationsEnvConfig.server.discordGuildId,
+  redisUrl: integrationsEnvConfig.server.redisUrl,
 };

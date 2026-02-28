@@ -1,17 +1,11 @@
 import type { LumaEvent } from "@/lib/luma";
 import { generateEventDraftWithAI } from "./steps/ai";
-import {
-  createDiscordReviewThreadForEvent,
-  pollDiscordThreadForApproval,
-} from "./steps/discord";
+import { createDiscordReviewThreadForEvent } from "./steps/discord";
 import {
   createDiscordReviewSession,
   createEventFromDraft,
   getExistingLumaEventIds,
-  listPendingDiscordReviewSessions,
   resolveUniqueSlug,
-  set_live_after_explicit_approval,
-  updateDiscordReviewSessionCursor,
 } from "./steps/events";
 import { fetchLatestLumaEvents, getLumaEventId } from "./steps/luma";
 import type {
@@ -237,53 +231,11 @@ export async function syncLumaEventsWorkflow(
     }
   }
 
-  const pendingReviewSessions = await listPendingDiscordReviewSessions(100);
-  let approvedCount = 0;
-
-  for (const session of pendingReviewSessions) {
-    try {
-      const reviewScanResult = await pollDiscordThreadForApproval({
-        threadId: session.threadId,
-        afterMessageId: session.lastSeenMessageId,
-      });
-
-      if (reviewScanResult.approvalMessageId) {
-        const updated = await set_live_after_explicit_approval({
-          reviewSessionId: session.id,
-          eventId: session.eventId,
-          approvalMessageId: reviewScanResult.approvalMessageId,
-        });
-
-        if (updated) {
-          approvedCount += 1;
-        }
-
-        continue;
-      }
-
-      if (
-        reviewScanResult.latestSeenMessageId &&
-        reviewScanResult.latestSeenMessageId !== session.lastSeenMessageId
-      ) {
-        await updateDiscordReviewSessionCursor(
-          session.id,
-          reviewScanResult.latestSeenMessageId,
-        );
-      }
-    } catch (reviewError) {
-      errors.push({
-        scope: "review",
-        reference: session.id,
-        error: toErrorMessage(reviewError),
-      });
-    }
-  }
-
   return {
     fetchedCount: uniqueEvents.length,
     skippedExistingCount: existingLumaEventIds.length,
     createdCount: createdEvents.length,
-    approvedCount,
+    approvedCount: 0,
     createdEvents,
     skippedEventIds: existingLumaEventIds,
     errors,

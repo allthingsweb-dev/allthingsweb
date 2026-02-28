@@ -26,6 +26,11 @@
       "sourceType": "github",
       "computedHash": "9609c28a4286e38cde27e4f3a7a8e5d410da7823e8c91cfe005dfd8e3a39321f"
     },
+    "chat-sdk": {
+      "source": "vercel/chat",
+      "sourceType": "github",
+      "computedHash": "dd43b1cf55f7a481732655011e121140143db3c1280b7ed502fa6be8180fb057"
+    },
     "env-management": {
       "source": "andrelandgraf/fullstackrecipes",
       "sourceType": "github",

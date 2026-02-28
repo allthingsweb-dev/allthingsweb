@@ -22,6 +22,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
     "@aws-sdk/s3-request-presigner": "^3.888.0",
+    "@chat-adapter/discord": "^4.15.0",
+    "@chat-adapter/state-redis": "^4.15.0",
     "@hookform/resolvers": "^5.2.2",
     "@neondatabase/serverless": "^1.0.1",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -61,6 +63,7 @@
     "ai": "^6.0.97",
     "better-env": "^0.3.1",
     "canvas-confetti": "^1.9.3",
+    "chat": "^4.15.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

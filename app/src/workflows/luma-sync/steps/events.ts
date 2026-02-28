@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { approveDiscordReviewSessionByEventId } from "@/lib/review/approval";
 import { eventReviewSessionsTable, eventsTable } from "@/lib/schema";
 import { and, eq, inArray, like, or } from "drizzle-orm";
 import type { EventDraft, LumaSyncCreatedEvent } from "../types";
@@ -192,25 +193,12 @@ export async function set_live_after_explicit_approval({
   approvalMessageId: string;
 }): Promise<boolean> {
   "use step";
+  const result = await approveDiscordReviewSessionByEventId({
+    eventId,
+    approvalMessageId,
+  });
 
-  const [updatedEvent] = await db
-    .update(eventsTable)
-    .set({
-      isDraft: false,
-    })
-    .where(and(eq(eventsTable.id, eventId), eq(eventsTable.isDraft, true)))
-    .returning({ id: eventsTable.id });
-
-  await db
-    .update(eventReviewSessionsTable)
-    .set({
-      status: "approved",
-      approvalMessageId,
-      lastSeenMessageId: approvalMessageId,
-    })
-    .where(eq(eventReviewSessionsTable.id, reviewSessionId));
-
-  return Boolean(updatedEvent);
+  return result.status === "approved" || result.status === "already_approved";
 }
 
 export const setLiveAfterExplicitApproval = set_live_after_explicit_approval;
