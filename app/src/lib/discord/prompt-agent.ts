@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { mainConfig } from "@/lib/config";
 import { eventsTable, type InsertEvent } from "@/lib/schema";
 import { createLumaClient } from "@/lib/luma";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { createGateway, generateText, tool } from "ai";
 import { z } from "zod";
 
@@ -71,25 +71,32 @@ function normalizeUpdateData(
   if (typeof eventData.attendeeLimit === "number") {
     normalized.attendeeLimit = eventData.attendeeLimit;
   }
-  if (typeof eventData.tagline === "string") normalized.tagline = eventData.tagline;
+  if (typeof eventData.tagline === "string")
+    normalized.tagline = eventData.tagline;
   if (typeof eventData.startDate === "string") {
     normalized.startDate = toDate(eventData.startDate);
   }
   if (typeof eventData.endDate === "string") {
     normalized.endDate = toDate(eventData.endDate);
   }
-  if ("lumaEventId" in eventData) normalized.lumaEventId = eventData.lumaEventId;
-  if (typeof eventData.isDraft === "boolean") normalized.isDraft = eventData.isDraft;
+  if ("lumaEventId" in eventData)
+    normalized.lumaEventId = eventData.lumaEventId;
+  if (typeof eventData.isDraft === "boolean")
+    normalized.isDraft = eventData.isDraft;
   if (typeof eventData.isHackathon === "boolean") {
     normalized.isHackathon = eventData.isHackathon;
   }
   if (typeof eventData.highlightOnLandingPage === "boolean") {
     normalized.highlightOnLandingPage = eventData.highlightOnLandingPage;
   }
-  if ("fullAddress" in eventData) normalized.fullAddress = eventData.fullAddress;
-  if ("shortLocation" in eventData) normalized.shortLocation = eventData.shortLocation;
-  if ("streetAddress" in eventData) normalized.streetAddress = eventData.streetAddress;
-  if ("recordingUrl" in eventData) normalized.recordingUrl = eventData.recordingUrl;
+  if ("fullAddress" in eventData)
+    normalized.fullAddress = eventData.fullAddress;
+  if ("shortLocation" in eventData)
+    normalized.shortLocation = eventData.shortLocation;
+  if ("streetAddress" in eventData)
+    normalized.streetAddress = eventData.streetAddress;
+  if ("recordingUrl" in eventData)
+    normalized.recordingUrl = eventData.recordingUrl;
 
   return normalized;
 }
@@ -104,17 +111,23 @@ async function getEventBySlug(slug: string) {
   return event ?? null;
 }
 
-async function updateEventBySlug(input: z.infer<typeof updateEventInputSchema>) {
+async function updateEventBySlug(
+  input: z.infer<typeof updateEventInputSchema>,
+) {
   const existingEvent = await getEventBySlug(input.slug);
   if (!existingEvent) {
     throw new Error(`Event not found for slug: ${input.slug}`);
   }
 
   const normalized = normalizeUpdateData(input.eventData);
+  if (Object.keys(normalized).length === 0) {
+    throw new Error("No valid fields were provided for update");
+  }
+
   const [updated] = await db
     .update(eventsTable)
     .set(normalized)
-    .where(and(eq(eventsTable.id, existingEvent.id)))
+    .where(eq(eventsTable.id, existingEvent.id))
     .returning();
 
   return updated ?? null;
@@ -152,6 +165,11 @@ function buildTools() {
 export async function runDiscordPromptAgent(input: {
   prompt: string;
 }): Promise<string> {
+  const prompt = input.prompt.trim();
+  if (!prompt) {
+    return "Please provide a prompt.";
+  }
+
   const { text } = await generateText({
     model: getGatewayModel(),
     tools: buildTools(),
@@ -159,8 +177,9 @@ export async function runDiscordPromptAgent(input: {
 You can inspect and update AllThingsWeb event data and fetch Luma event payloads.
 Use tools whenever the answer depends on current data.
 Before updating event data, confirm intent from the user message and summarize what changed.
+If user intent is ambiguous, ask a clarifying question instead of calling update tools.
 Be concise and action-oriented.`,
-    prompt: input.prompt,
+    prompt,
   });
 
   return text.trim();

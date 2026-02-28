@@ -56,7 +56,12 @@ export async function approveDiscordReviewSessionByEventId(input: {
     .set({
       isDraft: false,
     })
-    .where(and(eq(eventsTable.id, pendingSession.eventId), eq(eventsTable.isDraft, true)));
+    .where(
+      and(
+        eq(eventsTable.id, pendingSession.eventId),
+        eq(eventsTable.isDraft, true),
+      ),
+    );
 
   await db
     .update(eventReviewSessionsTable)

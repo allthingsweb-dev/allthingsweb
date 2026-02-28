@@ -25,15 +25,25 @@ export async function GET(request: Request): Promise<Response> {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const bot = getDiscordReviewBot();
-  const discordAdapter = bot.getAdapter("discord");
-  const durationMs = 600 * 1000;
-  const webhookUrl = `${mainConfig.instance.origin}/api/webhooks/discord`;
+  try {
+    const bot = getDiscordReviewBot();
+    const discordAdapter = bot.getAdapter("discord");
+    const durationMs = 600 * 1000;
+    const webhookUrl = `${mainConfig.instance.origin}/api/webhooks/discord`;
 
-  return discordAdapter.startGatewayListener(
-    { waitUntil: (task) => after(() => task) },
-    durationMs,
-    undefined,
-    webhookUrl,
-  );
+    return discordAdapter.startGatewayListener(
+      { waitUntil: (task) => after(() => task) },
+      durationMs,
+      undefined,
+      webhookUrl,
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return new Response(
+      `Failed to start Discord gateway listener: ${message}`,
+      {
+        status: 500,
+      },
+    );
+  }
 }

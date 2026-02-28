@@ -27,8 +27,9 @@ type ReviewCardInput = {
   isDraft: boolean;
 };
 
-let reviewBot: Chat<{ discord: ReturnType<typeof createDiscordAdapter> }> | null =
-  null;
+let reviewBot: Chat<{
+  discord: ReturnType<typeof createDiscordAdapter>;
+}> | null = null;
 let handlersRegistered = false;
 
 function requireDiscordConfig() {
@@ -94,22 +95,35 @@ function registerHandlers(
     await event.thread.post("No pending review session found for this event.");
   });
 
+  const isPromptChannelMessage = (thread: Thread): boolean => {
+    const { reviewChannelId } = requireDiscordConfig();
+    const discordAdapter = bot.getAdapter("discord");
+    const decodedThread = discordAdapter.decodeThreadId(thread.id);
+    return decodedThread.channelId === reviewChannelId;
+  };
+
   const promptFromMessage = async (thread: Thread, message: Message) => {
+    if (!isPromptChannelMessage(thread)) {
+      return;
+    }
+
     const userPrompt = message.text?.trim();
-    if (!userPrompt) {
+    if (!userPrompt || userPrompt.length < 2) {
       return;
     }
 
     try {
       await thread.startTyping();
       const response = await runDiscordPromptAgent({
-        prompt: userPrompt,
+        prompt: userPrompt.slice(0, 4000),
       });
       await thread.post(response || "I couldn't generate a response.");
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      await thread.post(`I hit an error while processing that request: ${errorMessage}`);
+      await thread.post(
+        `I hit an error while processing that request: ${errorMessage}`,
+      );
     }
   };
 
@@ -164,7 +178,9 @@ export async function postEventReviewCard(
     Card({
       title: `New Luma event draft: ${input.name}`,
       children: [
-        CardText("Review this event draft and approve when it is ready to publish."),
+        CardText(
+          "Review this event draft and approve when it is ready to publish.",
+        ),
         Fields([
           Field({ label: "Event ID", value: input.eventId }),
           Field({ label: "Slug", value: input.slug }),
@@ -178,7 +194,10 @@ export async function postEventReviewCard(
             label: "End",
             value: new Date(input.endDate).toISOString().slice(0, 16),
           }),
-          Field({ label: "Attendee Limit", value: String(input.attendeeLimit) }),
+          Field({
+            label: "Attendee Limit",
+            value: String(input.attendeeLimit),
+          }),
         ]),
         CardText(input.tagline),
         Actions([
