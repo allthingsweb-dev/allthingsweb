@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { createGateway, generateText, tool } from "ai";
 import { z } from "zod";
 
-const DISCORD_AGENT_MODEL = "openai/gpt-5.3-medium";
+const DISCORD_AGENT_MODEL = "anthropic/claude-sonnet-4.6";
 
 const updateEventInputSchema = z.object({
   slug: z.string().min(1),
