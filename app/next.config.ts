@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["discord.js", "@discordjs/ws", "zlib-sync"],
   images: {
     remotePatterns: [
       {
