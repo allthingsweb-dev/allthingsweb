@@ -215,6 +215,9 @@ export async function runDiscordPromptAgent(input: {
           })
           .join("\n")}\n\nLatest user prompt:\n${prompt}`
       : prompt;
+  console.info(
+    `[discord-context] prompt_agent receivedMessages=${input.recentMessages?.length ?? 0} finalPromptChars=${contextText.length}`,
+  );
 
   const { text } = await generateText({
     model: getGatewayModel(),

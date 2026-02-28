@@ -32,6 +32,8 @@ type RecentMessageContext = {
   text: string;
   isBot: boolean;
 };
+const CONTEXT_MESSAGE_LIMIT = 30;
+const LOG_MESSAGE_PREVIEW_LENGTH = 80;
 
 let reviewBot: Chat<{
   discord: ReturnType<typeof createDiscordAdapter>;
@@ -65,6 +67,19 @@ function requireDiscordConfig() {
 
 function toReviewChannelId(guildId: string, reviewChannelId: string): string {
   return `discord:${guildId}:${reviewChannelId}`;
+}
+
+function buildContextLog(messages: RecentMessageContext[]): string {
+  return messages
+    .map((message, index) => {
+      const role = message.isBot ? "bot" : "user";
+      const preview = message.text.replace(/\s+/g, " ").slice(
+        0,
+        LOG_MESSAGE_PREVIEW_LENGTH,
+      );
+      return `${index + 1}/${messages.length} role=${role} author="${message.author}" chars=${message.text.length} preview="${preview}"`;
+    })
+    .join(" | ");
 }
 
 function registerHandlers(
@@ -134,11 +149,23 @@ function registerHandlers(
           text,
           isBot: recentMessage.author.isBot === true,
         });
-        if (recentMessages.length >= 30) {
+        if (recentMessages.length >= CONTEXT_MESSAGE_LIMIT) {
           break;
         }
       }
       recentMessages.reverse();
+      console.info(
+        `[discord-context] thread=${thread.id} fetched=${recentMessages.length} limit=${CONTEXT_MESSAGE_LIMIT} promptChars=${userPrompt.length}`,
+      );
+      if (recentMessages.length > 0) {
+        console.info(
+          `[discord-context] thread=${thread.id} messages=${buildContextLog(recentMessages)}`,
+        );
+      } else {
+        console.info(
+          `[discord-context] thread=${thread.id} no prior text messages found`,
+        );
+      }
 
       const response = await runDiscordPromptAgent({
         prompt: userPrompt.slice(0, 4000),
@@ -148,6 +175,9 @@ function registerHandlers(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
+      console.error(
+        `[discord-context] thread=${thread.id} prompt_failed=${errorMessage}`,
+      );
       await thread.post(
         `I hit an error while processing that request: ${errorMessage}`,
       );
