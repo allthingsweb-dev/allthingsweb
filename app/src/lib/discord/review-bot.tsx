@@ -27,6 +27,12 @@ type ReviewCardInput = {
   isDraft: boolean;
 };
 
+type RecentMessageContext = {
+  author: string;
+  text: string;
+  isBot: boolean;
+};
+
 let reviewBot: Chat<{
   discord: ReturnType<typeof createDiscordAdapter>;
 }> | null = null;
@@ -114,8 +120,29 @@ function registerHandlers(
 
     try {
       await thread.startTyping();
+      const recentMessages: RecentMessageContext[] = [];
+      for await (const recentMessage of thread.messages) {
+        const text = recentMessage.text?.trim();
+        if (!text) {
+          continue;
+        }
+        recentMessages.push({
+          author:
+            recentMessage.author.fullName ||
+            recentMessage.author.userName ||
+            recentMessage.author.userId,
+          text,
+          isBot: recentMessage.author.isBot,
+        });
+        if (recentMessages.length >= 30) {
+          break;
+        }
+      }
+      recentMessages.reverse();
+
       const response = await runDiscordPromptAgent({
         prompt: userPrompt.slice(0, 4000),
+        recentMessages,
       });
       await thread.post(response || "I couldn't generate a response.");
     } catch (error) {

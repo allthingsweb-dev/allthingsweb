@@ -8,6 +8,13 @@ import { createGateway, generateText, tool } from "ai";
 import { z } from "zod";
 
 const DISCORD_AGENT_MODEL = "anthropic/claude-sonnet-4.6";
+const MAX_CONTEXT_MESSAGE_LENGTH = 500;
+
+type RecentDiscordMessage = {
+  author: string;
+  text: string;
+  isBot: boolean;
+};
 
 const updateEventInputSchema = z.object({
   slug: z.string().min(1),
@@ -188,11 +195,26 @@ function buildTools() {
 
 export async function runDiscordPromptAgent(input: {
   prompt: string;
+  recentMessages?: RecentDiscordMessage[];
 }): Promise<string> {
   const prompt = input.prompt.trim();
   if (!prompt) {
     return "Please provide a prompt.";
   }
+
+  const contextText =
+    input.recentMessages && input.recentMessages.length > 0
+      ? `Recent Discord messages (oldest to newest):\n${input.recentMessages
+          .map((message) => {
+            const role = message.isBot ? "bot" : "user";
+            const text = message.text
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, MAX_CONTEXT_MESSAGE_LENGTH);
+            return `- [${role}] ${message.author}: ${text}`;
+          })
+          .join("\n")}\n\nLatest user prompt:\n${prompt}`
+      : prompt;
 
   const { text } = await generateText({
     model: getGatewayModel(),
@@ -203,7 +225,7 @@ Use tools whenever the answer depends on current data.
 Before updating event data, confirm intent from the user message and summarize what changed.
 If user intent is ambiguous, ask a clarifying question instead of calling update tools.
 Be concise and action-oriented.`,
-    prompt,
+    prompt: contextText,
   });
 
   return text.trim();
