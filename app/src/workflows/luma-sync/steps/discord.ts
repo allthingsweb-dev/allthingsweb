@@ -1,4 +1,3 @@
-import { postEventReviewCard } from "@/lib/discord/review-bot";
 import type { LumaSyncCreatedEvent } from "../types";
 
 export type DiscordReviewThread = {
@@ -12,6 +11,7 @@ export async function createDiscordReviewThreadForEvent(
   event: LumaSyncCreatedEvent,
 ): Promise<DiscordReviewThread> {
   "use step";
+  const { postEventReviewCard } = await import("@/lib/discord/review-bot");
   const message = await postEventReviewCard({
     eventId: event.id,
     name: event.name,
