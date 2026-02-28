@@ -30,13 +30,11 @@ export async function GET(request: Request): Promise<Response> {
     await bot.initialize();
     const discordAdapter = bot.getAdapter("discord");
     const durationMs = 600 * 1000;
-    const webhookUrl = `${mainConfig.instance.origin}/api/webhooks/discord`;
 
     return discordAdapter.startGatewayListener(
       { waitUntil: (task) => after(() => task) },
       durationMs,
       undefined,
-      webhookUrl,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
