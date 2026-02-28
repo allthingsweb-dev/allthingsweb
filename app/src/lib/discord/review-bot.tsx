@@ -1,7 +1,18 @@
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createRedisState } from "@chat-adapter/state-redis";
-import { Actions, Button, Card, CardText, Chat, Field, Fields } from "chat";
+import {
+  Actions,
+  Button,
+  Card,
+  CardText,
+  Chat,
+  Field,
+  Fields,
+  type Message,
+  type Thread,
+} from "chat";
 import { mainConfig } from "@/lib/config";
+import { runDiscordPromptAgent } from "@/lib/discord/prompt-agent";
 import { approveDiscordReviewSessionByEventId } from "@/lib/review/approval";
 
 type ReviewCardInput = {
@@ -81,6 +92,34 @@ function registerHandlers(
     }
 
     await event.thread.post("No pending review session found for this event.");
+  });
+
+  const promptFromMessage = async (thread: Thread, message: Message) => {
+    const userPrompt = message.text?.trim();
+    if (!userPrompt) {
+      return;
+    }
+
+    try {
+      await thread.startTyping();
+      const response = await runDiscordPromptAgent({
+        prompt: userPrompt,
+      });
+      await thread.post(response || "I couldn't generate a response.");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      await thread.post(`I hit an error while processing that request: ${errorMessage}`);
+    }
+  };
+
+  bot.onNewMessage(/\S+/, async (thread, message) => {
+    await thread.subscribe();
+    await promptFromMessage(thread, message);
+  });
+
+  bot.onSubscribedMessage(async (thread, message) => {
+    await promptFromMessage(thread, message);
   });
 
   handlersRegistered = true;

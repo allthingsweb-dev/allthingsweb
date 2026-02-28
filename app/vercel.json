@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/discord/gateway",
+      "schedule": "*/9 * * * *"
+    },
+    {
       "path": "/api/cron/luma-sync",
       "schedule": "0 * * * *"
     }
