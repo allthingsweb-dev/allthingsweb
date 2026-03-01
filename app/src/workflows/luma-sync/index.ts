@@ -1,6 +1,9 @@
 import type { LumaEvent } from "@/lib/luma";
 import { generateEventDraftWithAI } from "./steps/ai";
-import { createDiscordReviewThreadForEvent } from "./steps/discord";
+import {
+  createDiscordReviewThreadForEvent,
+  postDiscordLumaSyncStatusUpdate,
+} from "./steps/discord";
 import {
   createDiscordReviewSession,
   createEventFromDraft,
@@ -201,10 +204,14 @@ export async function syncLumaEventsWorkflow(
       const createdEvent = await createEventFromDraft(eventDraft);
       if (createdEvent) {
         createdEvents.push(createdEvent);
+        let reviewMessageId: string | null = null;
+        let reviewSessionCreated = false;
+        let reviewSetupErrorMessage: string | null = null;
 
         try {
           const reviewThread =
             await createDiscordReviewThreadForEvent(createdEvent);
+          reviewMessageId = reviewThread.rootMessageId;
           await createDiscordReviewSession({
             eventId: createdEvent.id,
             channelId: reviewThread.channelId,
@@ -212,12 +219,31 @@ export async function syncLumaEventsWorkflow(
             threadId: reviewThread.threadId,
             lastSeenMessageId: reviewThread.lastSeenMessageId,
           });
+          reviewSessionCreated = true;
         } catch (reviewSetupError) {
+          reviewSetupErrorMessage = toErrorMessage(reviewSetupError);
           errors.push({
             scope: "review",
             reference: createdEvent.id,
             error: `Failed to create Discord review thread: ${toErrorMessage(
               reviewSetupError,
+            )}`,
+          });
+        }
+
+        try {
+          await postDiscordLumaSyncStatusUpdate({
+            event: createdEvent,
+            reviewMessageId,
+            reviewSessionCreated,
+            reviewSetupError: reviewSetupErrorMessage,
+          });
+        } catch (statusUpdateError) {
+          errors.push({
+            scope: "review",
+            reference: createdEvent.id,
+            error: `Failed to post Discord status update: ${toErrorMessage(
+              statusUpdateError,
             )}`,
           });
         }

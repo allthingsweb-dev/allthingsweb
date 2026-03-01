@@ -27,6 +27,19 @@ type ReviewCardInput = {
   isDraft: boolean;
 };
 
+type LumaSyncStatusUpdateInput = {
+  eventId: string;
+  name: string;
+  slug: string;
+  lumaEventId: string | null;
+  isDraft: boolean;
+  startDate: Date;
+  endDate: Date;
+  reviewMessageId: string | null;
+  reviewSessionCreated: boolean;
+  reviewSetupError: string | null;
+};
+
 type RecentMessageContext = {
   author: string;
   text: string;
@@ -272,4 +285,42 @@ export async function postEventReviewCard(
     channelId: reviewChannelId,
     rootMessageId: sentMessage.id,
   };
+}
+
+export async function postLumaSyncStatusUpdate(
+  input: LumaSyncStatusUpdateInput,
+): Promise<void> {
+  const { guildId, reviewChannelId } = requireDiscordConfig();
+  const bot = getDiscordReviewBot();
+  const channel = bot.channel(toReviewChannelId(guildId, reviewChannelId));
+
+  const startIso = new Date(input.startDate).toISOString();
+  const endIso = new Date(input.endDate).toISOString();
+  const eventUrl = `${mainConfig.instance.origin}/${input.slug}`;
+  const reviewCardStatus = input.reviewMessageId
+    ? `posted (message id: ${input.reviewMessageId})`
+    : "not posted";
+  const reviewSessionStatus = input.reviewSessionCreated
+    ? "created (pending approval)"
+    : "not created";
+  const reviewError = input.reviewSetupError
+    ? `\n- Review setup error: ${input.reviewSetupError}`
+    : "";
+
+  await channel.post(
+    [
+      "Luma sync status update",
+      `- Event: ${input.name}`,
+      `- Event ID: ${input.eventId}`,
+      `- Slug: ${input.slug}`,
+      `- Luma Event ID: ${input.lumaEventId ?? "n/a"}`,
+      `- Draft: ${input.isDraft ? "true" : "false"}`,
+      `- Start: ${startIso}`,
+      `- End: ${endIso}`,
+      `- Event URL: ${eventUrl}`,
+      `- Review card: ${reviewCardStatus}`,
+      `- Review session: ${reviewSessionStatus}${reviewError}`,
+      "- Follow-up: reply in this channel with any edits or approval actions.",
+    ].join("\n"),
+  );
 }

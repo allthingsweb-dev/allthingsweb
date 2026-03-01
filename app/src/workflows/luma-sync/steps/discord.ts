@@ -31,3 +31,28 @@ export async function createDiscordReviewThreadForEvent(
     lastSeenMessageId: null,
   };
 }
+
+export async function postDiscordLumaSyncStatusUpdate(input: {
+  event: LumaSyncCreatedEvent;
+  reviewMessageId: string | null;
+  reviewSessionCreated: boolean;
+  reviewSetupError: string | null;
+}): Promise<void> {
+  "use step";
+  const { postLumaSyncStatusUpdate } = await import("@/lib/discord/review-bot");
+  const { event, reviewMessageId, reviewSessionCreated, reviewSetupError } =
+    input;
+
+  await postLumaSyncStatusUpdate({
+    eventId: event.id,
+    name: event.name,
+    slug: event.slug,
+    lumaEventId: event.lumaEventId,
+    isDraft: event.isDraft,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    reviewMessageId,
+    reviewSessionCreated,
+    reviewSetupError,
+  });
+}
