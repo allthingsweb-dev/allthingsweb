@@ -4,7 +4,7 @@ import { eventsTable, type InsertEvent } from "@/lib/schema";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
 import { createLumaClient } from "@/lib/luma";
 import { desc, eq } from "drizzle-orm";
-import { createGateway, generateText, tool } from "ai";
+import { createGateway, generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 
 const DISCORD_AGENT_MODEL = "anthropic/claude-sonnet-4.6";
@@ -223,7 +223,7 @@ export async function runDiscordPromptAgent(input: {
   const { text } = await generateText({
     model: getGatewayModel(),
     tools: buildTools(),
-    maxSteps: DISCORD_AGENT_MAX_STEPS,
+    stopWhen: stepCountIs(DISCORD_AGENT_MAX_STEPS),
     system: `You are the AllThingsWeb Discord ops assistant.
 You can inspect and update AllThingsWeb event data and fetch Luma event payloads.
 Use tools whenever the answer depends on current data.

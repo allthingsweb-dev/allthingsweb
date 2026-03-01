@@ -181,6 +181,38 @@ export default async function AdminPage() {
                     </div>
                   </div>
                 </Link>
+
+                {/* Raw Content Admin Card */}
+                <Link
+                  href="/admin/raw"
+                  className="block p-6 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 transition-colors group"
+                >
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="h-8 w-8 text-cyan-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 11H5m14-7H5m14 14H5"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-lg font-medium text-gray-900 group-hover:text-cyan-900">
+                        Raw Content Admin
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Add raw sponsors, profiles, and talks
+                      </p>
+                    </div>
+                  </div>
+                </Link>
               </div>
             </div>
           </div>

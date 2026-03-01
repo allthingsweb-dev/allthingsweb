@@ -73,10 +73,9 @@ function buildContextLog(messages: RecentMessageContext[]): string {
   return messages
     .map((message, index) => {
       const role = message.isBot ? "bot" : "user";
-      const preview = message.text.replace(/\s+/g, " ").slice(
-        0,
-        LOG_MESSAGE_PREVIEW_LENGTH,
-      );
+      const preview = message.text
+        .replace(/\s+/g, " ")
+        .slice(0, LOG_MESSAGE_PREVIEW_LENGTH);
       return `${index + 1}/${messages.length} role=${role} author="${message.author}" chars=${message.text.length} preview="${preview}"`;
     })
     .join(" | ");
