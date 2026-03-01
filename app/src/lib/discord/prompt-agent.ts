@@ -9,6 +9,7 @@ import { z } from "zod";
 
 const DISCORD_AGENT_MODEL = "anthropic/claude-sonnet-4.6";
 const MAX_CONTEXT_MESSAGE_LENGTH = 500;
+const DISCORD_AGENT_MAX_STEPS = 20;
 
 type RecentDiscordMessage = {
   author: string;
@@ -222,6 +223,7 @@ export async function runDiscordPromptAgent(input: {
   const { text } = await generateText({
     model: getGatewayModel(),
     tools: buildTools(),
+    maxSteps: DISCORD_AGENT_MAX_STEPS,
     system: `You are the AllThingsWeb Discord ops assistant.
 You can inspect and update AllThingsWeb event data and fetch Luma event payloads.
 Use tools whenever the answer depends on current data.
