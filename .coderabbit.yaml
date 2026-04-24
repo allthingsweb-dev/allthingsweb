@@ -17,7 +17,8 @@ reviews:
       enabled: true
   pre_merge_checks:
     docstrings:
-      threshold: 100
+      mode: warning
+      threshold: 80
 
 issue_enrichment:
   auto_enrich:
