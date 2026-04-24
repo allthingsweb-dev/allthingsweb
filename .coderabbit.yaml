@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+early_access: true
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  review_details: true
+  fail_commit_status: true
+  auto_apply_labels: true
+  auto_assign_reviewers: true
+  auto_review:
+    drafts: true
+  finishing_touches:
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: true
+  pre_merge_checks:
+    docstrings:
+      threshold: 100
+
+issue_enrichment:
+  auto_enrich:
+    enabled: true
+  labeling:
+    auto_apply_labels: true
