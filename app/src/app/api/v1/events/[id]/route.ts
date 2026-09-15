@@ -17,7 +17,7 @@ export async function GET(
   try {
     const event = await getExpandedEventById(id);
 
-    if (!event) {
+    if (!event || event.isDraft) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 

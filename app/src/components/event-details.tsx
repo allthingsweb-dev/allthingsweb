@@ -213,14 +213,26 @@ export function AllYouNeedToKnowSection({
             <UsersIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
             <div className="min-w-0 flex-1">
               <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
-                {!isInPast && attendeeCount < attendeeLimit
-                  ? "Spots available"
-                  : !isInPast && attendeeCount >= attendeeLimit
-                    ? "At capacity"
-                    : "Event has ended"}
+                {isInPast
+                  ? "Event has ended"
+                  : attendeeLimit <= 0
+                    ? "Registration on Luma"
+                    : attendeeCount < attendeeLimit
+                      ? "Spots available"
+                      : "At capacity"}
               </h3>
               <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1">
-                {attendeeCount} / {attendeeLimit} guests registered
+                {attendeeLimit > 0 ? (
+                  <>
+                    {attendeeCount} / {attendeeLimit} guests registered
+                  </>
+                ) : (
+                  <Link
+                    href={event.lumaEventUrl || "https://luma.com/allthingsweb"}
+                  >
+                    View event details on Luma
+                  </Link>
+                )}
               </p>
             </div>
           </div>
