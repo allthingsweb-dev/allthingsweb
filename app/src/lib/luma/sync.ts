@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { eventsTable } from "@/lib/schema";
 import { fetchPublicLumaEvents, type PublicLumaEvent } from "./public-calendar";
+import { mergeVenueField } from "./venue-recovery";
 
 function eventSlug(event: PublicLumaEvent): string {
   const date = new TZDate(event.startDate, "America/Los_Angeles");
@@ -52,9 +53,15 @@ export async function syncPublicLumaEvents(
         startDate: sql`excluded.start_date`,
         endDate: sql`excluded.end_date`,
         isDraft: sql`excluded.is_draft`,
-        streetAddress: sql`coalesce(excluded.street_address, ${eventsTable.streetAddress})`,
-        shortLocation: sql`coalesce(excluded.short_location, ${eventsTable.shortLocation})`,
-        fullAddress: sql`coalesce(excluded.full_address, ${eventsTable.fullAddress})`,
+        streetAddress: mergeVenueField(
+          "streetAddress",
+          sql`excluded.street_address`,
+        ),
+        shortLocation: mergeVenueField(
+          "shortLocation",
+          sql`excluded.short_location`,
+        ),
+        fullAddress: mergeVenueField("fullAddress", sql`excluded.full_address`),
       },
     })
     .returning({ slug: eventsTable.slug, isDraft: eventsTable.isDraft });

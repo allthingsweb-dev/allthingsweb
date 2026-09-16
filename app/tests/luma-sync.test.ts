@@ -92,6 +92,24 @@ describe("public Luma calendar", () => {
     expect(rows[0].name).toBe("Updated title");
   });
 
+  test("ignores Luma event-page location placeholders but keeps online venues", () => {
+    for (const location of [
+      "https://luma.com/event/evt-test",
+      "https://lu.ma/event/evt-test/",
+      "HTTPS://WWW.LUMA.COM/event/evt-test?ref=calendar",
+    ]) {
+      const input = event().replace("Sentry\\, San Francisco", location);
+      expect(parsePublicLumaCalendar(calendar(input))[0].location).toBeNull();
+    }
+    const online = event().replace(
+      "Sentry\\, San Francisco",
+      "https://zoom.us/j/123",
+    );
+    expect(parsePublicLumaCalendar(calendar(online))[0].location).toBe(
+      "https://zoom.us/j/123",
+    );
+  });
+
   test("withholds private and cancelled entries regardless of value casing", () => {
     for (const property of [
       "STATUS:cancelled",
@@ -341,5 +359,96 @@ describe("Luma synchronization against Postgres", () => {
     expect(updated.id).toBe(original.id);
     expect(updated.isDraft).toBe(true);
     expect(updated.recordingUrl).toBe(original.recordingUrl);
+  });
+
+  test("missing public venue details preserve a useful stored venue", async () => {
+    const [original] = await db
+      .insert(eventsTable)
+      .values({
+        ...seed,
+        streetAddress: "500 Terry A Francois Blvd",
+        shortLocation: "Meraki HQ",
+        fullAddress: "Cisco Meraki, San Francisco",
+      })
+      .returning();
+    respond(
+      calendar(
+        event().replace(
+          "Sentry\\, San Francisco",
+          "https://luma.com/event/evt-test",
+        ),
+      ),
+    );
+    await syncPublicLumaEvents(db);
+    const [updated] = await db.select().from(eventsTable);
+    expect(updated.streetAddress).toBe(original.streetAddress);
+    expect(updated.shortLocation).toBe(original.shortLocation);
+    expect(updated.fullAddress).toBe(original.fullAddress);
+  });
+
+  test("recovers archived venue fields once, preserves later edits, and accepts genuine Luma venue updates", async () => {
+    const id = "evt-HtDmTqndK1vA1Z4";
+    const placeholder = `https://luma.com/event/${id}`;
+    const [original] = await db
+      .insert(eventsTable)
+      .values({
+        ...seed,
+        lumaEventId: id,
+        streetAddress: placeholder,
+        shortLocation: placeholder,
+        fullAddress: placeholder,
+      })
+      .returning();
+    respond(
+      calendar(event(id).replace("Sentry\\, San Francisco", placeholder)),
+    );
+    await syncPublicLumaEvents(db);
+    const [recovered] = await db.select().from(eventsTable);
+    expect(recovered.id).toBe(original.id);
+    expect(recovered.streetAddress).toBe("500 Terry A Francois Blvd");
+    expect(recovered.shortLocation).toBe("Meraki HQ");
+    expect(recovered.fullAddress).toBe(
+      "Cisco Meraki, 500 Terry A Francois Blvd, San Francisco, CA 94158",
+    );
+    await syncPublicLumaEvents(db);
+    const [repeated] = await db.select().from(eventsTable);
+    expect(repeated.streetAddress).toBe(recovered.streetAddress);
+    await db.update(eventsTable).set({ shortLocation: "Edited venue label" });
+    await syncPublicLumaEvents(db);
+    expect((await db.select().from(eventsTable))[0].shortLocation).toBe(
+      "Edited venue label",
+    );
+    respond(calendar(event(id)));
+    await syncPublicLumaEvents(db);
+    expect((await db.select().from(eventsTable))[0].fullAddress).toBe(
+      "Sentry, San Francisco",
+    );
+  });
+
+  test("clears unrecoverable placeholders and imports unknown venues without inventing an address", async () => {
+    await db.insert(eventsTable).values({
+      ...seed,
+      streetAddress: "https://lu.ma/event/evt-test",
+      shortLocation: "https://lu.ma/event/evt-test",
+      fullAddress: "https://lu.ma/event/evt-test",
+    });
+    respond(
+      calendar(
+        ...["evt-test", "evt-new"].map((id) =>
+          event(id).replace(
+            "Sentry\\, San Francisco",
+            `https://luma.com/event/${id}`,
+          ),
+        ),
+      ),
+    );
+    await syncPublicLumaEvents(db);
+    const rows = await db.select().from(eventsTable);
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(row.streetAddress).toBeNull();
+      expect(row.shortLocation).toBeNull();
+      expect(row.fullAddress).toBeNull();
+    }
   });
 });
