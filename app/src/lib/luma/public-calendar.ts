@@ -3,6 +3,9 @@ import { TZDate } from "@date-fns/tz";
 
 export const ALL_THINGS_WEB_CALENDAR_ID = "cal-3AAimKnRVQEId4r";
 const CALENDAR_TIMEZONE = "America/Los_Angeles";
+export const LUMA_LOCATION_PLACEHOLDER_PATTERN =
+  "^https?://(www[.])?(luma[.]com|lu[.]ma)/event/evt-[A-Za-z0-9]+/?([?#].*)?$";
+const locationPlaceholder = new RegExp(LUMA_LOCATION_PLACEHOLDER_PATTERN, "i");
 
 export type PublicLumaEvent = {
   lumaEventId: string;
@@ -89,7 +92,10 @@ export function parsePublicLumaCalendar(text: string): PublicLumaEvent[] {
           name: event.summary.trim(),
           startDate,
           endDate,
-          location: event.location?.trim() || null,
+          location:
+            event.location && !locationPlaceholder.test(event.location.trim())
+              ? event.location.trim() || null
+              : null,
           isDraft,
         },
         sequence: event.sequence,

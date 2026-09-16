@@ -240,7 +240,7 @@ export function AllYouNeedToKnowSection({
             <MapPinIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
             <div className="min-w-0 flex-1">
               <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
-                {event.shortLocation}
+                {event.shortLocation || "Location details on Luma"}
               </h3>
               <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1 break-words">
                 {event.streetAddress || event.shortLocation}
