@@ -71,9 +71,14 @@ export function parsePublicLumaCalendar(text: string): PublicLumaEvent[] {
       throw new Error(`Luma returned invalid dates for ${id}`);
     }
 
-    const visibility = component.getFirstPropertyValue("class");
+    const visibility = String(component.getFirstPropertyValue("class") ?? "")
+      .trim()
+      .toUpperCase();
+    const status = String(component.getFirstPropertyValue("status") ?? "")
+      .trim()
+      .toUpperCase();
     const isDraft =
-      component.getFirstPropertyValue("status") === "CANCELLED" ||
+      status === "CANCELLED" ||
       visibility === "PRIVATE" ||
       visibility === "CONFIDENTIAL";
     const previous = events.get(id);

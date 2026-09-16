@@ -92,6 +92,29 @@ describe("public Luma calendar", () => {
     expect(rows[0].name).toBe("Updated title");
   });
 
+  test("withholds private and cancelled entries regardless of value casing", () => {
+    for (const property of [
+      "STATUS:cancelled",
+      "STATUS:CaNcElLeD",
+      "CLASS:private",
+      "CLASS:PrIvAtE",
+      "CLASS:confidential",
+      "CLASS:CoNfIdEnTiAl",
+      "CLASS: private ",
+    ]) {
+      expect(
+        parsePublicLumaCalendar(
+          calendar(event("evt-test", `${property}\r\n`)),
+        )[0].isDraft,
+      ).toBe(true);
+    }
+    expect(
+      parsePublicLumaCalendar(
+        calendar(event("evt-test", "CLASS:public\r\nSTATUS:tentative\r\n")),
+      )[0].isDraft,
+    ).toBe(false);
+  });
+
   test("resolves named timezones and date-only events independently of the host timezone", () => {
     const timed = event()
       .replace(
@@ -312,7 +335,7 @@ describe("Luma synchronization against Postgres", () => {
       .insert(eventsTable)
       .values({ ...seed, isDraft: false })
       .returning();
-    respond(calendar(event("evt-test", "STATUS:CANCELLED\r\n")));
+    respond(calendar(event("evt-test", "STATUS:cancelled\r\n")));
     await syncPublicLumaEvents(db);
     const [updated] = await db.select().from(eventsTable);
     expect(updated.id).toBe(original.id);
