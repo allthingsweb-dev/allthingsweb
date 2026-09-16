@@ -3,7 +3,6 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
 import { isEventInPast } from "@/lib/events";
-import { getEventAttendeeCount } from "@/lib/attendee-counter";
 import { mainConfig } from "@/lib/config";
 import {
   EventDetailsPage,
@@ -80,12 +79,6 @@ export default async function NextDevFmLivePage() {
     notFound();
   }
 
-  // Get real attendee count from Luma API
-  const attendeeCount = event.lumaEventId
-    ? await getEventAttendeeCount(event.lumaEventId)
-    : 0;
-  const attendeeLimit = event.attendeeLimit;
-  const isAtCapacity = attendeeCount >= attendeeLimit;
   const isInPast = isEventInPast(event);
   const showEventImageSection = !!event.images.length;
 
@@ -98,22 +91,9 @@ export default async function NextDevFmLivePage() {
   const ted = getProfile(tedNymanId);
 
   return (
-    <EventDetailsPage
-      event={event}
-      isAtCapacity={isAtCapacity}
-      isInPast={isInPast}
-    >
-      <HeroSection
-        event={event}
-        isAtCapacity={isAtCapacity}
-        isInPast={isInPast}
-      />
-      <AllYouNeedToKnowSection
-        event={event}
-        attendeeCount={attendeeCount}
-        attendeeLimit={attendeeLimit}
-        isInPast={isInPast}
-      />
+    <EventDetailsPage event={event} isInPast={isInPast}>
+      <HeroSection event={event} isInPast={isInPast} />
+      <AllYouNeedToKnowSection event={event} isInPast={isInPast} />
       {showEventImageSection && (
         <ImagesSection background="default" images={event.images} />
       )}

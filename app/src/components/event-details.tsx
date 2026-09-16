@@ -1,5 +1,4 @@
 import {
-  AlertCircleIcon,
   CalendarIcon,
   ExternalLink,
   InfoIcon,
@@ -29,12 +28,10 @@ import { SocialsList } from "@/components/profile-card";
 
 export function HeroSectionTitle({
   event,
-  isAtCapacity,
   isInPast,
   children,
 }: {
   event: ExpandedEvent;
-  isAtCapacity: boolean;
   isInPast: boolean;
   children?: React.ReactNode;
 }) {
@@ -66,11 +63,7 @@ export function HeroSectionTitle({
           target="_blank"
           rel="noopener noreferrer"
         >
-          {isInPast
-            ? "View on Luma"
-            : isAtCapacity
-              ? "Join waitlist on Luma"
-              : "Register on Luma"}
+          {isInPast ? "View on Luma" : "Register on Luma"}
         </Link>
       </Button>
     </div>
@@ -144,12 +137,10 @@ export function HeroSectionImage({
 export function HeroSection({
   event,
   isInPast,
-  isAtCapacity,
   children,
   className,
 }: {
   event: ExpandedEvent;
-  isAtCapacity: boolean;
   isInPast: boolean;
   children?: React.ReactNode;
   className?: string;
@@ -163,11 +154,7 @@ export function HeroSection({
           ) : (
             <>
               <div className="text-center lg:text-left">
-                <HeroSectionTitle
-                  event={event}
-                  isAtCapacity={isAtCapacity}
-                  isInPast={isInPast}
-                />
+                <HeroSectionTitle event={event} isInPast={isInPast} />
               </div>
               <div className="w-full max-w-md lg:max-w-[400px] xl:max-w-[600px] lg:flex-1">
                 <HeroSectionImage
@@ -193,13 +180,9 @@ export function HeroSection({
 
 export function AllYouNeedToKnowSection({
   event,
-  attendeeLimit,
-  attendeeCount,
   isInPast,
 }: {
   event: ExpandedEvent;
-  attendeeLimit: number;
-  attendeeCount: number;
   isInPast: boolean;
 }) {
   return (
@@ -215,25 +198,19 @@ export function AllYouNeedToKnowSection({
               <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
                 {isInPast
                   ? "Event has ended"
-                  : attendeeLimit <= 0
+                  : event.lumaEventUrl
                     ? "Registration on Luma"
-                    : attendeeCount < attendeeLimit
-                      ? "Spots available"
-                      : "At capacity"}
+                    : "Event details"}
               </h3>
-              <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1">
-                {attendeeLimit > 0 ? (
-                  <>
-                    {attendeeCount} / {attendeeLimit} guests registered
-                  </>
-                ) : (
-                  <Link
-                    href={event.lumaEventUrl || "https://luma.com/allthingsweb"}
-                  >
-                    View event details on Luma
+              {event.lumaEventUrl && (
+                <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1">
+                  <Link href={event.lumaEventUrl}>
+                    {isInPast
+                      ? "View event details on Luma"
+                      : "Check availability on Luma"}
                   </Link>
-                )}
-              </p>
+                </p>
+              )}
             </div>
           </div>
           <div className="flex gap-3 sm:gap-4 flex-col items-center text-center">
@@ -573,28 +550,14 @@ export function ImagesSection({
 export function EventDetailsPage({
   children,
   event,
-  isAtCapacity,
   isInPast,
 }: {
   children?: React.ReactNode;
   event: ExpandedEvent;
-  isAtCapacity: boolean;
   isInPast: boolean;
 }) {
   return (
     <PageLayout>
-      {isAtCapacity && !isInPast && (
-        <div className="px-4 lg:px-6">
-          <Alert variant="default">
-            <AlertCircleIcon className="h-6 w-6 text-destructive pr-2" />
-            <AlertTitle>Registration closed</AlertTitle>
-            <AlertDescription>
-              This event is fully booked! Join the waitlist to be notified if
-              any spots open up. We appreciate your interest!
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
       {isInPast && (
         <div className="px-4 lg:px-6">
           <Alert>
