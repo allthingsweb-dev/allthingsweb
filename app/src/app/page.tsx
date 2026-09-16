@@ -210,9 +210,7 @@ export default async function HomePage() {
         <OtherLiveEventsSection events={liveEvents.slice(1)} />
       )}
 
-      {remainingEvents.length > 0 && (
-        <OtherUpcomingEventsSection events={remainingEvents} />
-      )}
+      <OtherUpcomingEventsSection events={remainingEvents} />
 
       <Section variant="big" className="bg-indigo-600 text-white">
         <div className="container">
@@ -294,7 +292,7 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
       <div className="container">
         <div className="flex flex-col items-center space-y-4 text-center mb-8">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-            Other events
+            Events on Luma
           </h2>
           <p className="text-muted-foreground md:text-xl max-w-[700px]">
             Discover more upcoming web development events in the Bay Area here
@@ -311,7 +309,7 @@ function OtherUpcomingEventsSection({ events }: { events: Event[] }) {
             </Link>
           </Button>
         </div>
-        <EventsCarousel events={events} />
+        {events.length > 0 && <EventsCarousel events={events} />}
       </div>
     </Section>
   );

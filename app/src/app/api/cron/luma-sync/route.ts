@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { start } from "workflow/api";
+import { revalidatePath } from "next/cache";
+import { captureException } from "@sentry/nextjs";
 import { mainConfig } from "@/lib/config";
-import { syncLumaEventsWorkflow } from "@/workflows/luma-sync";
+import { db } from "@/lib/db";
+import { syncPublicLumaEvents } from "@/lib/luma/sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEFAULT_LIMIT = 10;
-const DEFAULT_CALENDAR_HANDLE = "allthingswebcalendar";
+export const maxDuration = 60;
 
 function isAuthorized(request: Request, cronSecret: string): boolean {
   return request.headers.get("authorization") === `Bearer ${cronSecret}`;
@@ -31,24 +32,28 @@ export async function GET(request: Request) {
   }
 
   try {
-    const calendarApiId = mainConfig.luma.calendarApiId;
-    const calendarHandle =
-      mainConfig.luma.calendarHandle ?? DEFAULT_CALENDAR_HANDLE;
-
-    const run = await start(syncLumaEventsWorkflow, [
-      {
-        limit: DEFAULT_LIMIT,
-        calendarApiId,
-        calendarHandle,
-      },
-    ]);
+    const { slugs, ...result } = await syncPublicLumaEvents(
+      db,
+      mainConfig.luma.calendarApiId,
+    );
+    for (const path of [
+      "/",
+      "/api/v1/events",
+      "/rss",
+      "/sitemap.xml",
+      ...slugs.map((slug) => `/${slug}`),
+    ]) {
+      revalidatePath(path);
+    }
+    console.info("Luma calendar sync completed", result);
 
     return NextResponse.json({
       ok: true,
-      runId: run.runId,
-      message: "Luma sync workflow started",
+      ...result,
     });
   } catch (error) {
+    captureException(error);
+    console.error("Luma calendar sync failed", error);
     const message = error instanceof Error ? error.message : "Unknown error";
 
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

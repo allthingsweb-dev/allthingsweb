@@ -24,7 +24,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const event = await getExpandedEventBySlug(slug);
 
-  if (!event) {
+  if (!event || event.isDraft) {
     return {
       title: "Event not found",
     };
@@ -67,16 +67,17 @@ export default async function EventPage({ params }: PageProps) {
   const { slug } = await params;
   const event = await getExpandedEventBySlug(slug);
 
-  if (!event) {
+  if (!event || event.isDraft) {
     notFound();
   }
 
   // Get real attendee count from Luma API
-  const attendeeCount = event.lumaEventId
-    ? await getEventAttendeeCount(event.lumaEventId)
-    : 0;
+  const attendeeCount =
+    event.lumaEventId && event.attendeeLimit > 0
+      ? await getEventAttendeeCount(event.lumaEventId)
+      : 0;
   const attendeeLimit = event.attendeeLimit;
-  const isAtCapacity = attendeeCount >= attendeeLimit;
+  const isAtCapacity = attendeeLimit > 0 && attendeeCount >= attendeeLimit;
   const isInPast = isEventInPast(event);
 
   return (
