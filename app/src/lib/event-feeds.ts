@@ -58,6 +58,7 @@ export function generateSiteMap(events: FeedEvent[]) {
             ${getUrlElement(`${PUBLIC_SITE_ORIGIN}/`)}
             ${getUrlElement(`${PUBLIC_SITE_ORIGIN}/speakers`)}
             ${getUrlElement(`${PUBLIC_SITE_ORIGIN}/about`)}
+            ${getUrlElement(`${PUBLIC_SITE_ORIGIN}/code-of-conduct`)}
             ${events
               .map((event) =>
                 getUrlElement(

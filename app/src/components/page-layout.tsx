@@ -49,6 +49,12 @@ export async function PageLayout({ children }: { children: React.ReactNode }) {
         <p className="text-xs text-muted-foreground">
           &copy; 2024 All Things Web. All rights reserved.
         </p>
+        <Link
+          href="/code-of-conduct"
+          className="text-sm underline underline-offset-4 sm:ml-auto"
+        >
+          Code of conduct
+        </Link>
       </footer>
     </div>
   );
