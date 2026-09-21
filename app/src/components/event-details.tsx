@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import type { ExpandedEvent, Talk, Sponsor } from "@/lib/expanded-events";
 import type { Image } from "@/lib/events";
 import { SocialsList } from "@/components/profile-card";
+import { getEventHeroImage } from "@/lib/event-hero";
 
 export function HeroSectionTitle({
   event,
@@ -118,17 +119,21 @@ export function HeroSectionTitle({
 export function HeroSectionImage({
   imgSrc,
   imgAlt,
+  image,
 }: {
   imgSrc: string;
   imgAlt: string;
+  image?: Image;
 }) {
   return (
     <NextImage
       src={imgSrc}
-      width={1200}
-      height={1200}
+      width={image?.width || 1200}
+      height={image?.height || 1200}
       alt={imgAlt}
-      className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
+      placeholder={image?.placeholder ? "blur" : undefined}
+      blurDataURL={image?.placeholder || undefined}
+      className="mx-auto aspect-video overflow-hidden rounded-xl object-contain sm:w-full lg:order-last lg:aspect-square"
       priority
     />
   );
@@ -145,6 +150,7 @@ export function HeroSection({
   children?: React.ReactNode;
   className?: string;
 }) {
+  const heroImage = getEventHeroImage(event);
   return (
     <Section variant="big" className={className}>
       <div className="container">
@@ -158,16 +164,9 @@ export function HeroSection({
               </div>
               <div className="w-full max-w-md lg:max-w-[400px] xl:max-w-[600px] lg:flex-1">
                 <HeroSectionImage
-                  imgSrc={
-                    event.isHackathon
-                      ? "/hero-image-hackathon.png"
-                      : "/hero-image-meetup.png"
-                  }
-                  imgAlt={
-                    event.isHackathon
-                      ? "Four cartoon-style developers cheerfully throwing their arms up, surrounded by confetti. In the center, a desk with a laptop displaying code."
-                      : "A group of cartoon-style developers standing in a circle, chatting and laughing together."
-                  }
+                  imgSrc={heroImage.url}
+                  imgAlt={heroImage.alt}
+                  image={heroImage}
                 />
               </div>
             </>
