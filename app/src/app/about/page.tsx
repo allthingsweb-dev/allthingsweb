@@ -15,10 +15,10 @@ import {
 import { Section } from "@/components/ui/section";
 import { ProfileCard } from "@/components/profile-card";
 import { getOrganizers } from "@/lib/profiles";
+import { community } from "@/lib/community";
 
 const title = "About All Things Web";
-const description =
-  "All Things Web is a community dedicated to organizing events for web developers in the Bay Area and San Francisco. Check out our organizers and join us!";
+const description = community.mission;
 const url = `${mainConfig.instance.origin}/about`;
 const imageUrl = `${mainConfig.instance.origin}/api/v1/preview.png`;
 
@@ -66,16 +66,25 @@ export default async function AboutPage() {
           <h1 className="text-4xl font-bold mb-8 text-foreground">
             About All Things Web
           </h1>
-          <p className="text-lg text-muted-foreground">
-            All Things Web is a community dedicated to organizing events for web
-            developers in the Bay Area and San Francisco. Our mission is to
-            bring together passionate developers, foster knowledge sharing, and
-            create networking opportunities in the ever-evolving world of web
-            technologies.
-          </p>
+          <p className="text-2xl font-semibold mb-6">{community.oneLiner}</p>
+          <div className="space-y-5 text-lg text-muted-foreground leading-relaxed">
+            <p>{community.mission}</p>
+            <p>{community.history}</p>
+            <p>{community.independence}</p>
+          </div>
         </div>
       </Section>
       <Section background="muted">
+        <div className="container max-w-[800px]" id="hosting">
+          <h2 className="text-2xl font-semibold mb-6 text-foreground">
+            Hosting companies
+          </h2>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            {community.hosting}
+          </p>
+        </div>
+      </Section>
+      <Section>
         <div className="container">
           <h2 className="text-2xl font-semibold mb-6 text-foreground">
             Organizers

@@ -24,6 +24,7 @@ import {
 } from "@/lib/images";
 import { signImage } from "@/lib/image-signing";
 import { getLumaUrl } from "@/lib/luma";
+import { community } from "@/lib/community";
 import NextImage from "next/image";
 
 // Homepage metadata - the layout already provides the base metadata
@@ -250,8 +251,8 @@ export default async function HomePage() {
 
 function LandingHero({ images }: { images: Image[] }) {
   return (
-    <section className="w-full h-[80vh] overflow-hidden grid [&>*]:col-[1] [&>*]:row-[1]">
-      <div className="w-full h-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
+    <section className="relative isolate w-full overflow-hidden">
+      <div className="absolute inset-0 -z-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
         {images.map((image, index) => (
           <div
             key={image.url + index}
@@ -272,15 +273,32 @@ function LandingHero({ images }: { images: Image[] }) {
       </div>
 
       {/* Content */}
-      <div className="z-20 bg-gradient-to-b from-black/70 to-black/30 flex flex-col items-center pt-[30vh] text-center text-white px-4">
+      <div className="min-h-[70svh] bg-gradient-to-b from-black/80 to-black/60 flex flex-col justify-center items-center py-20 sm:py-28 text-center text-white px-4">
         <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
           All Things Web 🚀
         </h1>
-        <p className="max-w-2xl text-lg sm:text-xl">
-          Discover exciting web development events in the Bay Area and San
-          Francisco. Join us for hackathons, hangouts, and meetups to connect
-          with fellow developers and web enthusiasts.
+        <p className="max-w-3xl text-2xl sm:text-3xl font-semibold mb-5">
+          {community.oneLiner}
         </p>
+        <p className="max-w-2xl text-lg sm:text-xl leading-relaxed">
+          {community.introduction}
+        </p>
+        <div className="flex flex-wrap justify-center gap-4 mt-8">
+          <Button
+            asChild
+            className="bg-brand-yellow text-black hover:brightness-95"
+          >
+            <Link href="https://luma.com/allthingsweb">
+              Find your next event
+            </Link>
+          </Button>
+          <Link
+            href="/about"
+            className="inline-flex items-center px-4 py-2 font-medium underline underline-offset-4 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          >
+            Meet the community
+          </Link>
+        </div>
       </div>
     </section>
   );
