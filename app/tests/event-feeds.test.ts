@@ -46,10 +46,11 @@ describe("public event feeds", () => {
       "https://allthingsweb.dev/",
       "https://allthingsweb.dev/speakers",
       "https://allthingsweb.dev/about",
+      "https://allthingsweb.dev/code-of-conduct",
       "https://allthingsweb.dev/2026-show-and-tell",
       "https://allthingsweb.dev/a%20%26%20b%23c",
     ]);
-    expect(parsed.url[3].lastmod).toBe(event.updatedAt.toISOString());
+    expect(parsed.url[4].lastmod).toBe(event.updatedAt.toISOString());
     expect(parsed.url[0].lastmod).toBeUndefined();
   });
 
