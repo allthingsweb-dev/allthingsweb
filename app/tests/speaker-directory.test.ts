@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { generateDrizzleJson, generateMigration } from "drizzle-kit/api";
 import { getSpeakerDirectory } from "../src/lib/speaker-directory";
@@ -124,4 +125,23 @@ test("returns an empty directory when there are no public past talks", async () 
     speakers: [],
     talks: [],
   });
+});
+
+test("orders every speaker's appearances newest first, including shared talks", async () => {
+  const a = await profile("A");
+  const b = await profile("B");
+  const older = await event("older");
+  const newer = await event("newer");
+  await db
+    .update(schema.eventsTable)
+    .set({ startDate: new Date("2026-09-18T12:00:00Z") })
+    .where(eq(schema.eventsTable.id, older.id));
+  await talk([a.id, b.id], [older.id]);
+  await talk([b.id], [newer.id]);
+  const result = await getSpeakerDirectory(db, now);
+  expect(
+    result.talks
+      .filter((talk) => talk.speakerIds.includes(b.id))
+      .map((talk) => talk.eventSlug),
+  ).toEqual(["newer", "older"]);
 });

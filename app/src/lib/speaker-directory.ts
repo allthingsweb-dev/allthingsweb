@@ -92,5 +92,13 @@ export async function getSpeakerDirectory(
     }
     talk.speakerIds.push(row.profile.id);
   }
-  return { speakers: [...speakers.values()], talks: [...talks.values()] };
+  return {
+    speakers: [...speakers.values()],
+    talks: [...talks.values()].sort(
+      (a, b) =>
+        b.eventStart.getTime() - a.eventStart.getTime() ||
+        a.eventId.localeCompare(b.eventId) ||
+        a.id.localeCompare(b.id),
+    ),
+  };
 }
