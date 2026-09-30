@@ -4,6 +4,7 @@ import { captureException } from "@sentry/nextjs";
 import { mainConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { syncPublicLumaEvents } from "@/lib/luma/sync";
+import { ingestMissingLumaCovers } from "@/lib/event-covers/runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,20 +37,29 @@ export async function GET(request: Request) {
       db,
       mainConfig.luma.calendarApiId,
     );
+    // Covers are best effort: a failure here must not hide a successful sync.
+    const covers = await ingestMissingLumaCovers().catch((error: unknown) => {
+      captureException(error);
+      return {
+        skipped: `Cover ingestion failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    });
+    const coveredSlugs = "ingested" in covers ? covers.ingested : [];
     for (const path of [
       "/",
       "/api/v1/events",
       "/rss",
       "/sitemap.xml",
-      ...slugs.map((slug) => `/${slug}`),
+      ...[...slugs, ...coveredSlugs].map((slug) => `/${slug}`),
     ]) {
       revalidatePath(path);
     }
-    console.info("Luma calendar sync completed", result);
+    console.info("Luma calendar sync completed", { ...result, covers });
 
     return NextResponse.json({
       ok: true,
       ...result,
+      covers,
     });
   } catch (error) {
     captureException(error);
