@@ -10,4 +10,8 @@ export const community = {
     "We have never taken money or paid sponsorship. Our events are community first, and our presentations are for sharing useful ideas and real work. No shilling. No sales pitches.",
   hosting:
     "We choose hosting companies whose tools and work we admire. They welcome the community by providing space, food, and a great place to spend time together. Hosting is an in-kind contribution to the community, not a paid sponsorship or a purchased speaking slot.",
+  links: {
+    events: "https://luma.com/allthingsweb",
+    discord: "https://discord.gg/B3Sm4b5mfD",
+  },
 } as const;
