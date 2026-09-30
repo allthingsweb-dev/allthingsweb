@@ -3,6 +3,7 @@ import { ImageResponse } from "next/og";
 import { SpeakersPreview } from "@/lib/image-gen/templates";
 import { getFont } from "@/lib/image-gen/utils";
 import { getSpeakersWithTalks } from "@/lib/speakers";
+import { generatedImageCacheControl } from "@/lib/image-gen/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
       height: 630,
       fonts: await getFont("Roboto"),
       headers: {
-        "Cache-Control": "public, max-age=31536000, immutable", // Cache for 1 year, immutable
+        "Cache-Control": generatedImageCacheControl,
       },
     });
   } catch (error) {
