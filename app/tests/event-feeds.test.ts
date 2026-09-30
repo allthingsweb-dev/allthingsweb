@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { generateRSS, generateSiteMap } from "../src/lib/event-feeds";
 
+const origin = "https://allthingsweb.dev";
+
 const event = {
   name: "Show & Tell <Web> 🚀",
   tagline: 'Meet "developers" & share ideas </description><item>fake</item>',
@@ -12,7 +14,7 @@ const event = {
 
 describe("public event feeds", () => {
   test("RSS parses special characters as text, never injected feed elements", () => {
-    const xml = generateRSS([event]);
+    const xml = generateRSS([event], origin);
     expect(XMLValidator.validate(xml)).toBe(true);
     const channel = new XMLParser().parse(xml).rss.channel;
     expect(channel.item.title).toBe(event.name);
@@ -26,9 +28,10 @@ describe("public event feeds", () => {
   });
 
   test("RSS omits invalid XML characters while preserving Unicode and newlines", () => {
-    const xml = generateRSS([
-      { ...event, name: "Hello\u0000\uD800 🚀\nWorld" },
-    ]);
+    const xml = generateRSS(
+      [{ ...event, name: "Hello\u0000\uD800 🚀\nWorld" }],
+      origin,
+    );
     expect(XMLValidator.validate(xml)).toBe(true);
     expect(new XMLParser().parse(xml).rss.channel.item.title).toBe(
       "Hello 🚀\nWorld",
@@ -36,7 +39,7 @@ describe("public event feeds", () => {
   });
 
   test("sitemap uses the protocol namespace and public URLs with stable modification dates", () => {
-    const xml = generateSiteMap([event, { ...event, slug: "a & b#c" }]);
+    const xml = generateSiteMap([event, { ...event, slug: "a & b#c" }], origin);
     expect(XMLValidator.validate(xml)).toBe(true);
     const parsed = new XMLParser({ ignoreAttributes: false }).parse(xml).urlset;
     expect(parsed["@_xmlns"]).toBe(
@@ -55,7 +58,7 @@ describe("public event feeds", () => {
   });
 
   test("empty event feeds remain valid documents", () => {
-    expect(XMLValidator.validate(generateRSS([]))).toBe(true);
-    expect(XMLValidator.validate(generateSiteMap([]))).toBe(true);
+    expect(XMLValidator.validate(generateRSS([], origin))).toBe(true);
+    expect(XMLValidator.validate(generateSiteMap([], origin))).toBe(true);
   });
 });
