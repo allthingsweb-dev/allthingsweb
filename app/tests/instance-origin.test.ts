@@ -32,6 +32,12 @@ describe("public origin", () => {
     ).toBe("https://atw.example.com");
   });
 
+  test("a configured origin is normalized so paths never double their slash", () => {
+    expect(
+      resolveOrigin({ port: 3000, origin: "https://atw.example.com/" }),
+    ).toBe("https://atw.example.com");
+  });
+
   test("local development falls back to localhost on the configured port", () => {
     expect(resolveOrigin({ port: 4321 })).toBe("http://localhost:4321");
   });

@@ -22,7 +22,7 @@ export function resolveOrigin(env: OriginEnv): string {
   }
 
   if (env.origin) {
-    return env.origin;
+    return new URL(env.origin).origin;
   }
 
   return `http://localhost:${env.port}`;
