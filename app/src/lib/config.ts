@@ -18,22 +18,8 @@ export const mainConfig = {
   resend: {
     apiKey: integrationsConfig.resendApiKey,
   },
-  ai: {
-    gatewayApiKey: integrationsConfig.aiGatewayApiKey,
-    vercelOidcToken: integrationsConfig.vercelOidcToken,
-  },
   cron: cronConfig,
   luma: lumaConfig,
-  discord: {
-    botToken: integrationsConfig.discordBotToken,
-    reviewChannelId: integrationsConfig.discordReviewChannelId,
-    publicKey: integrationsConfig.discordPublicKey,
-    applicationId: integrationsConfig.discordApplicationId,
-    guildId: integrationsConfig.discordGuildId,
-  },
-  chat: {
-    redisUrl: integrationsConfig.redisUrl,
-  },
 };
 
 export type MainConfig = typeof mainConfig;

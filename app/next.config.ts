@@ -1,9 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
-import { withWorkflow } from "workflow/next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["discord.js", "@discordjs/ws", "zlib-sync"],
   images: {
     remotePatterns: [
       {
@@ -54,9 +52,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-const workflowConfig = withWorkflow(nextConfig);
-
-export default withSentryConfig(workflowConfig, {
+export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
