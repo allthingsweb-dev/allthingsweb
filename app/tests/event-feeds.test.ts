@@ -8,6 +8,7 @@ const event = {
   name: "Show & Tell <Web> 🚀",
   tagline: 'Meet "developers" & share ideas </description><item>fake</item>',
   slug: "2026-show-and-tell",
+  startDate: new Date("2026-09-17T01:00:00Z"),
   createdAt: new Date("2026-09-01T00:00:00Z"),
   updatedAt: new Date("2026-09-16T02:00:00Z"),
 };
@@ -24,7 +25,21 @@ describe("public event feeds", () => {
     );
     expect(channel.link).toBe("https://allthingsweb.dev");
     expect(channel.item.pubDate).toBe(event.createdAt.toUTCString());
+    expect(channel.item.guid).toBe(
+      "https://allthingsweb.dev/2026-show-and-tell",
+    );
     expect(Array.isArray(channel.item)).toBe(false);
+  });
+
+  test("RSS dates imported past events by when they happened, not when they were imported", () => {
+    const imported = {
+      ...event,
+      startDate: new Date("2024-05-15T01:00:00Z"),
+      createdAt: new Date("2026-09-16T00:00:00Z"),
+    };
+    const channel = new XMLParser().parse(generateRSS([imported], origin)).rss
+      .channel;
+    expect(channel.item.pubDate).toBe(imported.startDate.toUTCString());
   });
 
   test("RSS omits invalid XML characters while preserving Unicode and newlines", () => {
