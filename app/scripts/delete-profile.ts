@@ -92,7 +92,7 @@ async function main() {
     console.log(`   ID: ${result.deletedProfile.id}`);
   } catch (error) {
     console.error("\n❌ DELETION FAILED:");
-    console.error(error.message);
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

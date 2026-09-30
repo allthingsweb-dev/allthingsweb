@@ -59,7 +59,7 @@ function getTalksOfSpeaker(
   talks: TalkWithEventCtx[],
   speaker: SpeakerWithTalkIds,
 ) {
-  return talks.filter((talk) => speaker.talkIds.includes(talk.id));
+  return talks.filter((talk) => talk.speakerIds.includes(speaker.id));
 }
 
 export default async function SpeakersPage() {
@@ -88,7 +88,7 @@ export default async function SpeakersPage() {
                   <ul className="space-y-2">
                     {getTalksOfSpeaker(talks, speaker).map((talk) => (
                       <li
-                        key={`${speaker.id}-${talk.id}`}
+                        key={`${speaker.id}-${talk.eventId}-${talk.id}`}
                         className="list-disc ml-4 sm:ml-6"
                       >
                         <Link

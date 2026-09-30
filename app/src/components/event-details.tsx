@@ -1,6 +1,6 @@
 import {
-  AlertCircleIcon,
   CalendarIcon,
+  ExternalLink,
   InfoIcon,
   MapPinIcon,
   UsersIcon,
@@ -25,18 +25,67 @@ import { Button } from "@/components/ui/button";
 import type { ExpandedEvent, Talk, Sponsor } from "@/lib/expanded-events";
 import type { Image } from "@/lib/events";
 import { SocialsList } from "@/components/profile-card";
+import { getEventHeroImage } from "@/lib/event-hero";
 
 export function HeroSectionTitle({
   event,
-  isAtCapacity,
   isInPast,
   children,
 }: {
   event: ExpandedEvent;
-  isAtCapacity: boolean;
   isInPast: boolean;
   children?: React.ReactNode;
 }) {
+  // Define reusable button components
+  const recordingButton = event.recordingUrl && (
+    <div>
+      <Button asChild variant="default" size="lg">
+        <Link
+          href={event.recordingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View recording
+        </Link>
+      </Button>
+    </div>
+  );
+
+  const lumaButton = event.lumaEventUrl && (
+    <div>
+      <Button
+        asChild
+        variant={isInPast ? "outline" : "default"}
+        size="lg"
+        className="w-full min-[400px]:w-auto"
+      >
+        <Link
+          href={event.lumaEventUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {isInPast ? "View on Luma" : "Register on Luma"}
+        </Link>
+      </Button>
+    </div>
+  );
+
+  const teamButton = event.isHackathon &&
+    (!isInPast || (event.hacks && event.hacks.length > 0)) && (
+      <div>
+        <Button
+          asChild
+          variant={isInPast ? "outline" : "secondary"}
+          size="lg"
+          className="w-full min-[400px]:w-auto"
+        >
+          <Link href={`/${event.slug}/dashboard`}>
+            {isInPast ? "View Results" : "Hack Dashboard"}
+          </Link>
+        </Button>
+      </div>
+    );
+
   return (
     <div className="flex flex-col justify-center space-y-6 lg:space-y-4">
       <div className="space-y-3 lg:space-y-2">
@@ -49,36 +98,17 @@ export function HeroSectionTitle({
       </div>
 
       <div className="flex flex-col items-center gap-3 lg:items-start">
-        {event.recordingUrl && (
-          <Button asChild variant="default" size="lg">
-            <Link
-              href={event.recordingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View recording
-            </Link>
-          </Button>
-        )}
-        {event.lumaEventUrl && (
-          <Button
-            asChild
-            variant={isInPast ? "outline" : "default"}
-            size="lg"
-            className="w-full min-[400px]:w-auto"
-          >
-            <Link
-              href={event.lumaEventUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {isInPast
-                ? "View on Luma"
-                : isAtCapacity
-                  ? "Join waitlist on Luma"
-                  : "Register on Luma"}
-            </Link>
-          </Button>
+        {recordingButton}
+        {event.isHackathon && event.lumaEventUrl ? (
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+            {lumaButton}
+            {teamButton}
+          </div>
+        ) : (
+          <>
+            {lumaButton}
+            {teamButton}
+          </>
         )}
       </div>
       {children}
@@ -89,17 +119,21 @@ export function HeroSectionTitle({
 export function HeroSectionImage({
   imgSrc,
   imgAlt,
+  image,
 }: {
   imgSrc: string;
   imgAlt: string;
+  image?: Image;
 }) {
   return (
     <NextImage
       src={imgSrc}
-      width={1200}
-      height={1200}
+      width={image?.width || 1200}
+      height={image?.height || 1200}
       alt={imgAlt}
-      className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
+      placeholder={image?.placeholder ? "blur" : undefined}
+      blurDataURL={image?.placeholder || undefined}
+      className="mx-auto aspect-video overflow-hidden rounded-xl object-contain sm:w-full lg:order-last lg:aspect-square"
       priority
     />
   );
@@ -108,16 +142,15 @@ export function HeroSectionImage({
 export function HeroSection({
   event,
   isInPast,
-  isAtCapacity,
   children,
   className,
 }: {
   event: ExpandedEvent;
-  isAtCapacity: boolean;
   isInPast: boolean;
   children?: React.ReactNode;
   className?: string;
 }) {
+  const heroImage = getEventHeroImage(event);
   return (
     <Section variant="big" className={className}>
       <div className="container">
@@ -127,24 +160,13 @@ export function HeroSection({
           ) : (
             <>
               <div className="text-center lg:text-left">
-                <HeroSectionTitle
-                  event={event}
-                  isAtCapacity={isAtCapacity}
-                  isInPast={isInPast}
-                />
+                <HeroSectionTitle event={event} isInPast={isInPast} />
               </div>
               <div className="w-full max-w-md lg:max-w-[400px] xl:max-w-[600px] lg:flex-1">
                 <HeroSectionImage
-                  imgSrc={
-                    event.isHackathon
-                      ? "/hero-image-hackathon.png"
-                      : "/hero-image-meetup.png"
-                  }
-                  imgAlt={
-                    event.isHackathon
-                      ? "Four cartoon-style developers cheerfully throwing their arms up, surrounded by confetti. In the center, a desk with a laptop displaying code."
-                      : "A group of cartoon-style developers standing in a circle, chatting and laughing together."
-                  }
+                  imgSrc={heroImage.url}
+                  imgAlt={heroImage.alt}
+                  image={heroImage}
                 />
               </div>
             </>
@@ -157,13 +179,9 @@ export function HeroSection({
 
 export function AllYouNeedToKnowSection({
   event,
-  attendeeLimit,
-  attendeeCount,
   isInPast,
 }: {
   event: ExpandedEvent;
-  attendeeLimit: number;
-  attendeeCount: number;
   isInPast: boolean;
 }) {
   return (
@@ -177,25 +195,31 @@ export function AllYouNeedToKnowSection({
             <UsersIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
             <div className="min-w-0 flex-1">
               <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
-                {!isInPast && attendeeCount < attendeeLimit
-                  ? "Spots available"
-                  : !isInPast && attendeeCount >= attendeeLimit
-                    ? "At capacity"
-                    : "Event has ended"}
+                {isInPast
+                  ? "Event has ended"
+                  : event.lumaEventUrl
+                    ? "Registration on Luma"
+                    : "Event details"}
               </h3>
-              <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1">
-                {attendeeCount} / {attendeeLimit} guests registered
-              </p>
+              {event.lumaEventUrl && (
+                <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1">
+                  <Link href={event.lumaEventUrl}>
+                    {isInPast
+                      ? "View event details on Luma"
+                      : "Check availability on Luma"}
+                  </Link>
+                </p>
+              )}
             </div>
           </div>
           <div className="flex gap-3 sm:gap-4 flex-col items-center text-center">
             <MapPinIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary flex-shrink-0 mt-1 lg:mt-0" />
             <div className="min-w-0 flex-1">
               <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-medium leading-tight">
-                {event.shortLocation}
+                {event.shortLocation || "Location details on Luma"}
               </h3>
               <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-muted-foreground mt-1 break-words">
-                {event.streetAddress}
+                {event.streetAddress || event.shortLocation}
               </p>
             </div>
           </div>
@@ -224,7 +248,7 @@ export function TalksSection({ talks }: { talks: Talk[] }) {
           Talks
         </h2>
         <div
-          className={clsx("mx-auto grid gap-6 grid-cols-1 max-w-4xl", {
+          className={clsx("mx-auto grid gap-6 grid-cols-1 max-w-6xl", {
             "lg:grid-cols-2": talks.length >= 2,
           })}
         >
@@ -324,6 +348,153 @@ export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
   );
 }
 
+export function TeamsAndHacksSection({
+  hacks,
+}: {
+  hacks: NonNullable<ExpandedEvent["hacks"]>;
+}) {
+  if (!hacks.length) return null;
+
+  // Check if a hack has won any awards
+  const isWinner = (hack: any) => hack.awards && hack.awards.length > 0;
+
+  // Sort hacks: winners first, then by vote count descending
+  const sortedHacks = [...hacks].sort((a, b) => {
+    const aIsWinner = isWinner(a);
+    const bIsWinner = isWinner(b);
+
+    // If one is a winner and the other isn't, winner comes first
+    if (aIsWinner && !bIsWinner) return -1;
+    if (!aIsWinner && bIsWinner) return 1;
+
+    // If both are winners or both are not winners, sort by vote count (descending)
+    return b.voteCount - a.voteCount;
+  });
+
+  return (
+    <Section id="hacks" variant="big">
+      <div className="container flex flex-col gap-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight">
+          Teams & Hacks
+        </h2>
+        <div
+          className={clsx(
+            "mx-auto grid gap-8 grid-cols-1 max-w-7xl",
+            "lg:grid-cols-2",
+            "[&>*]:min-w-[400px]",
+          )}
+        >
+          {sortedHacks.map((hack) => (
+            <Card
+              key={hack.id}
+              className={clsx(
+                "flex flex-col h-full hover:shadow-md transition-shadow",
+                isWinner(hack) &&
+                  "border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-950",
+              )}
+            >
+              <CardHeader className="pb-4">
+                <div className="flex items-start gap-6">
+                  {hack.teamImage ? (
+                    <div className="w-20 h-16 shrink-0 rounded-lg overflow-hidden bg-muted">
+                      <NextImage
+                        src={hack.teamImage.url}
+                        alt={hack.teamName}
+                        width={80}
+                        height={64}
+                        className="w-full h-full object-cover"
+                        placeholder={
+                          hack.teamImage.placeholder ? "blur" : undefined
+                        }
+                        blurDataURL={hack.teamImage.placeholder || undefined}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-20 h-16 shrink-0 rounded-lg bg-muted flex items-center justify-center">
+                      <span className="text-lg font-bold text-muted-foreground">
+                        {hack.teamName.slice(0, 2).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-xl leading-tight mb-2 flex items-center gap-2">
+                      {hack.teamName}
+                      {isWinner(hack) && (
+                        <span className="text-yellow-600 text-lg">🏆</span>
+                      )}
+                    </CardTitle>
+                    {hack.projectName && hack.projectName.trim() && (
+                      <CardDescription className="text-base font-medium text-foreground/70">
+                        {hack.projectName}
+                      </CardDescription>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0 flex-1 space-y-3">
+                {/* Award winner section above project description */}
+                {isWinner(hack) && (
+                  <div className="text-center py-2">
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {hack.awards?.map((award: any) => (
+                        <span
+                          key={award.id}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-sm font-medium"
+                        >
+                          🏆 {award.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {hack.projectDescription && hack.projectDescription.trim() && (
+                  <p className="text-base text-foreground/80 line-clamp-4 leading-relaxed">
+                    {hack.projectDescription}
+                  </p>
+                )}
+                {(!hack.projectDescription ||
+                  !hack.projectDescription.trim()) && (
+                  <div className="flex items-center justify-center py-8">
+                    <p className="text-base text-muted-foreground italic">
+                      Project details coming soon...
+                    </p>
+                  </div>
+                )}
+                {hack.projectLink && hack.projectLink.trim() && (
+                  <a
+                    href={hack.projectLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-base text-primary hover:text-primary/80 hover:underline transition-colors font-medium"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Project link
+                  </a>
+                )}
+              </CardContent>
+              <CardFooter className="pt-4 border-t bg-muted/20">
+                <div className="text-sm text-muted-foreground">
+                  {hack.members && hack.members.length > 0 ? (
+                    <p>
+                      <span className="font-medium">Team members:</span>{" "}
+                      {hack.members
+                        .map((member) => member.name || "Anonymous")
+                        .join(", ")}
+                    </p>
+                  ) : (
+                    <span>No members listed</span>
+                  )}
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 export function ImagesSection({
   images,
   background = "muted",
@@ -378,28 +549,14 @@ export function ImagesSection({
 export function EventDetailsPage({
   children,
   event,
-  isAtCapacity,
   isInPast,
 }: {
   children?: React.ReactNode;
   event: ExpandedEvent;
-  isAtCapacity: boolean;
   isInPast: boolean;
 }) {
   return (
     <PageLayout>
-      {isAtCapacity && !isInPast && (
-        <div className="px-4 lg:px-6">
-          <Alert variant="default">
-            <AlertCircleIcon className="h-6 w-6 text-destructive pr-2" />
-            <AlertTitle>Registration closed</AlertTitle>
-            <AlertDescription>
-              This event is fully booked! Join the waitlist to be notified if
-              any spots open up. We appreciate your interest!
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
       {isInPast && (
         <div className="px-4 lg:px-6">
           <Alert>

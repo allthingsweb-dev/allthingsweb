@@ -10,6 +10,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { usersSync as usersSyncTable } from "drizzle-orm/neon";
 
+export { usersSyncTable };
+
 const createdAt = timestamp("created_at", { withTimezone: true })
   .notNull()
   .defaultNow();
@@ -61,6 +63,13 @@ export type InsertSponsor = typeof sponsorsTable.$inferInsert;
 export type SelectSponsor = typeof sponsorsTable.$inferSelect;
 
 export const profileTypeEnum = pgEnum("profile_type", ["organizer", "member"]);
+
+export const hackathonStateEnum = pgEnum("hackathon_state", [
+  "before_start",
+  "hacking",
+  "voting",
+  "ended",
+]);
 
 export const profilesTable = pgTable("profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -130,6 +139,12 @@ export const eventsTable = pgTable("events", {
     onDelete: "set null",
   }),
   recordingUrl: text("recording_url"),
+  // Hackathon-specific fields
+  hackathonState: hackathonStateEnum("hackathon_state"),
+  hackStartedAt: timestamp("hack_started_at", { withTimezone: true }),
+  hackUntil: timestamp("hack_until", { withTimezone: true }),
+  voteStartedAt: timestamp("vote_started_at", { withTimezone: true }),
+  voteUntil: timestamp("vote_until", { withTimezone: true }),
   createdAt,
   updatedAt,
 });
@@ -179,6 +194,25 @@ export const eventImagesTable = pgTable(
   (table) => [primaryKey({ columns: [table.eventId, table.imageId] })],
 );
 
+export const eventReviewSessionsTable = pgTable("event_review_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => eventsTable.id, {
+      onDelete: "cascade",
+    })
+    .unique(),
+  provider: text("provider").notNull().default("discord"),
+  channelId: text("channel_id").notNull(),
+  rootMessageId: text("root_message_id").notNull(),
+  threadId: text("thread_id").notNull().unique(),
+  lastSeenMessageId: text("last_seen_message_id"),
+  status: text("status").notNull().default("pending"),
+  approvalMessageId: text("approval_message_id"),
+  createdAt,
+  updatedAt,
+});
+
 export type InsertEvent = typeof eventsTable.$inferInsert;
 export type SelectEvent = typeof eventsTable.$inferSelect;
 export type InsertEventSponsor = typeof eventSponsorsTable.$inferInsert;
@@ -187,14 +221,25 @@ export type InsertEventTalk = typeof eventTalksTable.$inferInsert;
 export type SelectEventTalk = typeof eventTalksTable.$inferSelect;
 export type InsertEventImage = typeof eventImagesTable.$inferInsert;
 export type SelectEventImage = typeof eventImagesTable.$inferSelect;
+export type InsertEventReviewSession =
+  typeof eventReviewSessionsTable.$inferInsert;
+export type SelectEventReviewSession =
+  typeof eventReviewSessionsTable.$inferSelect;
 
 export const hacksTable = pgTable("hacks", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id")
     .notNull()
     .references(() => eventsTable.id),
-  name: text("name").notNull(),
-  project: text("description"),
+  // team name for the hack
+  teamName: text("team_name").notNull(),
+  // optional project name and description
+  projectName: text("project_name"),
+  projectDescription: text("project_description"),
+  // optional project link (demo/github repo)
+  projectLink: text("project_link"),
+  // optional team image
+  teamImage: uuid("team_image").references(() => imagesTable.id),
   createdAt,
   updatedAt,
 });
@@ -205,27 +250,54 @@ export const hackUsersTable = pgTable(
     hackId: uuid("hack_id")
       .notNull()
       .references(() => hacksTable.id),
-    clerkUserId: text("clerk_user_id").notNull(),
+    // Reference to neon_auth.users_sync.id
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersSyncTable.id),
     createdAt,
     updatedAt,
   },
-  (table) => [primaryKey({ columns: [table.hackId, table.clerkUserId] })],
+  (table) => [primaryKey({ columns: [table.hackId, table.userId] })],
 );
 
-export const hackVotesTable = pgTable("hack_votes", {
+export const awardsTable = pgTable("awards", {
   id: uuid("id").primaryKey().defaultRandom(),
-  hackId: uuid("hack_id")
+  eventId: uuid("event_id")
     .notNull()
-    .references(() => hacksTable.id),
-  clerkUserId: text("clerk_user_id").notNull(),
+    .references(() => eventsTable.id),
+  name: text("name").notNull(),
   createdAt,
   updatedAt,
 });
+
+export const hackVotesTable = pgTable(
+  "hack_votes",
+  {
+    hackId: uuid("hack_id")
+      .notNull()
+      .references(() => hacksTable.id),
+    awardId: uuid("award_id")
+      .notNull()
+      .references(() => awardsTable.id),
+    // Reference to neon_auth.users_sync.id
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersSyncTable.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    // Each user can only vote once per hack per award
+    primaryKey({ columns: [table.hackId, table.awardId, table.userId] }),
+  ],
+);
 
 export type InsertHack = typeof hacksTable.$inferInsert;
 export type SelectHack = typeof hacksTable.$inferSelect;
 export type InsertHackUser = typeof hackUsersTable.$inferInsert;
 export type SelectHackUser = typeof hackUsersTable.$inferSelect;
+export type InsertAward = typeof awardsTable.$inferInsert;
+export type SelectAward = typeof awardsTable.$inferSelect;
 export type InsertHackVote = typeof hackVotesTable.$inferInsert;
 export type SelectHackVote = typeof hackVotesTable.$inferSelect;
 

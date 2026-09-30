@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
 import { isEventInPast } from "@/lib/events";
-import { getEventAttendeeCount } from "@/lib/attendee-counter";
 import { mainConfig } from "@/lib/config";
 import {
   EventDetailsPage,
@@ -11,6 +10,7 @@ import {
   TalksSection,
   ImagesSection,
   SponsorsSection,
+  TeamsAndHacksSection,
 } from "@/components/event-details";
 
 interface PageProps {
@@ -23,7 +23,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const event = await getExpandedEventBySlug(slug);
 
-  if (!event) {
+  if (!event || event.isDraft) {
     return {
       title: "Event not found",
     };
@@ -66,41 +66,25 @@ export default async function EventPage({ params }: PageProps) {
   const { slug } = await params;
   const event = await getExpandedEventBySlug(slug);
 
-  if (!event) {
+  if (!event || event.isDraft) {
     notFound();
   }
 
-  // Get real attendee count from Luma API
-  const attendeeCount = event.lumaEventId
-    ? await getEventAttendeeCount(event.lumaEventId)
-    : 0;
-  const attendeeLimit = event.attendeeLimit;
-  const isAtCapacity = attendeeCount >= attendeeLimit;
   const isInPast = isEventInPast(event);
 
   return (
-    <EventDetailsPage
-      event={event}
-      isAtCapacity={isAtCapacity}
-      isInPast={isInPast}
-    >
-      <HeroSection
-        event={event}
-        isAtCapacity={isAtCapacity}
-        isInPast={isInPast}
-      />
-      <AllYouNeedToKnowSection
-        event={event}
-        attendeeCount={attendeeCount}
-        attendeeLimit={attendeeLimit}
-        isInPast={isInPast}
-      />
+    <EventDetailsPage event={event} isInPast={isInPast}>
+      <HeroSection event={event} isInPast={isInPast} />
+      <AllYouNeedToKnowSection event={event} isInPast={isInPast} />
       {event.talks.length > 0 && <TalksSection talks={event.talks} />}
       {event.images.length > 0 && (
         <ImagesSection
           images={event.images}
           background={event.talks.length ? "muted" : "default"}
         />
+      )}
+      {event.isHackathon && event.hacks && event.hacks.length > 0 && (
+        <TeamsAndHacksSection hacks={event.hacks} />
       )}
       {event.sponsors.length > 0 && (
         <SponsorsSection sponsors={event.sponsors} />

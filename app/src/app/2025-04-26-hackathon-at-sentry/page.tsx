@@ -2,13 +2,13 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
 import { isEventInPast } from "@/lib/events";
-import { getEventAttendeeCount } from "@/lib/attendee-counter";
 import { mainConfig } from "@/lib/config";
 import {
   EventDetailsPage,
   HeroSection,
   AllYouNeedToKnowSection,
   ImagesSection,
+  TeamsAndHacksSection,
 } from "@/components/event-details";
 import { Section } from "@/components/ui/section";
 import { SentryLogoIcon } from "@/components/ui/icons";
@@ -64,34 +64,18 @@ export default async function HackathonPage() {
     notFound();
   }
 
-  // Get real attendee count from Luma API
-  const attendeeCount = event.lumaEventId
-    ? await getEventAttendeeCount(event.lumaEventId)
-    : 0;
-  const attendeeLimit = event.attendeeLimit;
-  const isAtCapacity = attendeeCount >= attendeeLimit;
   const isInPast = isEventInPast(event);
   const showEventImageSection = !!event.images.length;
 
   return (
-    <EventDetailsPage
-      event={event}
-      isAtCapacity={isAtCapacity}
-      isInPast={isInPast}
-    >
-      <HeroSection
-        event={event}
-        isAtCapacity={isAtCapacity}
-        isInPast={isInPast}
-      />
-      <AllYouNeedToKnowSection
-        event={event}
-        attendeeCount={attendeeCount}
-        attendeeLimit={attendeeLimit}
-        isInPast={isInPast}
-      />
+    <EventDetailsPage event={event} isInPast={isInPast}>
+      <HeroSection event={event} isInPast={isInPast} />
+      <AllYouNeedToKnowSection event={event} isInPast={isInPast} />
       {showEventImageSection && (
         <ImagesSection background="default" images={event.images} />
+      )}
+      {event.isHackathon && event.hacks && event.hacks.length > 0 && (
+        <TeamsAndHacksSection hacks={event.hacks} />
       )}
       <Section
         variant="big"

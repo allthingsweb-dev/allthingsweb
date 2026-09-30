@@ -10,7 +10,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { mainConfig } from "@/lib/config";
 import { randomUUID } from "crypto";
-import { getImgMetadata, getImgPlaceholder } from "openimg/node";
+import { processImage } from "@/lib/image-processor";
 import { signImage } from "@/lib/image-signing";
 
 // Helper function to sign a profile image URL
@@ -173,21 +173,28 @@ export async function POST(request: NextRequest) {
       });
 
       const uuid = randomUUID();
-      const buffer = await imageFile.arrayBuffer();
-      const bufferUint8 = new Uint8Array(buffer);
 
-      const { width, height, format } = await getImgMetadata(bufferUint8);
+      // Process image using our new utility
+      const processedImage = await processImage(imageFile, imageFile.name, {
+        convertUnsupportedFormats: true,
+        conversionFormat: "PNG",
+      });
+
       const nameSlug = name.toLowerCase().replace(/ /g, "-");
-      const path = `profiles/${nameSlug}-${uuid}.${format}`;
-      const placeholder = await getImgPlaceholder(bufferUint8);
+      const path = `profiles/${nameSlug}-${uuid}.${processedImage.metadata.format}`;
 
       // Upload to S3
       await s3Client.send(
         new PutObjectCommand({
           Bucket: mainConfig.s3.bucket,
           Key: path,
-          Body: bufferUint8,
-          ContentType: imageFile.type,
+          Body: processedImage.buffer,
+          ContentType: `image/${processedImage.metadata.format}`,
+          Metadata: {
+            originalName: imageFile.name,
+            originalFormat: processedImage.originalFormat,
+            wasConverted: processedImage.wasConverted.toString(),
+          },
         }),
       );
 
@@ -197,9 +204,9 @@ export async function POST(request: NextRequest) {
       await db.insert(imagesTable).values({
         url,
         id: uuid,
-        width,
-        height,
-        placeholder,
+        width: processedImage.metadata.width,
+        height: processedImage.metadata.height,
+        placeholder: processedImage.placeholder,
         alt: `${name} profile image`,
       });
 
@@ -321,20 +328,27 @@ export async function PUT(request: NextRequest) {
 
       // Upload new image
       const uuid = randomUUID();
-      const buffer = await imageFile.arrayBuffer();
-      const bufferUint8 = new Uint8Array(buffer);
 
-      const { width, height, format } = await getImgMetadata(bufferUint8);
+      // Process image using our new utility
+      const processedImage = await processImage(imageFile, imageFile.name, {
+        convertUnsupportedFormats: true,
+        conversionFormat: "PNG",
+      });
+
       const nameSlug = name.toLowerCase().replace(/ /g, "-");
-      const path = `profiles/${nameSlug}-${uuid}.${format}`;
-      const placeholder = await getImgPlaceholder(bufferUint8);
+      const path = `profiles/${nameSlug}-${uuid}.${processedImage.metadata.format}`;
 
       await s3Client.send(
         new PutObjectCommand({
           Bucket: mainConfig.s3.bucket,
           Key: path,
-          Body: bufferUint8,
-          ContentType: imageFile.type,
+          Body: processedImage.buffer,
+          ContentType: `image/${processedImage.metadata.format}`,
+          Metadata: {
+            originalName: imageFile.name,
+            originalFormat: processedImage.originalFormat,
+            wasConverted: processedImage.wasConverted.toString(),
+          },
         }),
       );
 
@@ -343,9 +357,9 @@ export async function PUT(request: NextRequest) {
       await db.insert(imagesTable).values({
         url,
         id: uuid,
-        width,
-        height,
-        placeholder,
+        width: processedImage.metadata.width,
+        height: processedImage.metadata.height,
+        placeholder: processedImage.placeholder,
         alt: `${name} profile image`,
       });
 

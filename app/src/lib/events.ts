@@ -22,8 +22,14 @@ export type Event = {
   isHackathon: boolean;
   isDraft: boolean;
   highlightOnLandingPage: boolean;
-  previewImage: Image;
+  previewImage: Image | null;
   recordingUrl: string | null;
+  // Hackathon-specific fields
+  hackathonState: "before_start" | "hacking" | "voting" | "ended" | null;
+  hackStartedAt: Date | null;
+  hackUntil: Date | null;
+  voteStartedAt: Date | null;
+  voteUntil: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };

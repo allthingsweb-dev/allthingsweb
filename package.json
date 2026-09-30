@@ -6,5 +6,9 @@
     },
     "devDependencies": {
         "@modelcontextprotocol/inspector": "^0.6.0"
+    },
+    "dependencies": {
+        "react": "^19.2.1",
+        "react-dom": "^19.2.1"
     }
 }

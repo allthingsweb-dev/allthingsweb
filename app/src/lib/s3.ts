@@ -25,6 +25,10 @@ export function createS3Client({ mainConfig }: Deps) {
   });
 
   async function presign(url: string) {
+    if (!url || typeof url !== "string") {
+      throw new Error("Invalid URL provided to presign function");
+    }
+
     // Remove the endpoint from the URL to extract the key
     const key = url.replace(mainConfig.s3.url + "/", "");
     const command = new GetObjectCommand({

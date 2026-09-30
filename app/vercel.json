@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/luma-sync",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

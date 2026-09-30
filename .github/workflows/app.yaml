@@ -6,6 +6,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: 🧪 Tests
@@ -31,5 +34,5 @@ jobs:
         working-directory: app
         run: bun run typecheck
       - name: 🏄 Run the tests
-        run: echo "No tests configured yet. Add tests as needed."
-
+        working-directory: app
+        run: bun run test

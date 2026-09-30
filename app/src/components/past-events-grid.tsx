@@ -142,23 +142,22 @@ function EventGridCard({
 }) {
   const { event, previewImage, additionalImages } = eventWithImages;
 
-  // Get up to 2 images to display (preview image + 1 additional, or 2 additional)
-  const imagesToShow = [];
-  if (previewImage) {
-    imagesToShow.push(previewImage);
-  }
-  // Add additional images up to a total of 2
-  const remainingSlots = 2 - imagesToShow.length;
-  if (remainingSlots > 0 && additionalImages.length > 0) {
-    imagesToShow.push(...additionalImages.slice(0, remainingSlots));
+  // Get up to 2 images to display - only use event images, not preview image
+  // Select first and last event images for better variety
+  let imagesToShow = additionalImages;
+  if (additionalImages.length >= 2) {
+    imagesToShow = [
+      additionalImages[0],
+      additionalImages[additionalImages.length - 1],
+    ];
   }
 
   return (
     <Card className="h-full flex flex-col overflow-hidden">
       {/* Event Images */}
-      {imagesToShow.length > 0 && (
-        <div className="relative w-full h-48 overflow-hidden">
-          {imagesToShow.length === 1 ? (
+      <div className="relative w-full h-48 overflow-hidden">
+        {imagesToShow.length > 0 ? (
+          imagesToShow.length === 1 ? (
             // Single image
             <NextImage
               src={imagesToShow[0].url}
@@ -195,9 +194,17 @@ function EventGridCard({
                 />
               </div>
             </div>
-          )}
-        </div>
-      )}
+          )
+        ) : (
+          // Placeholder when no images are available
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <div className="text-center text-muted-foreground">
+              <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-medium">{event.name}</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       <CardHeader className="flex-grow">
         <CardTitle className="line-clamp-2">{event.name}</CardTitle>
