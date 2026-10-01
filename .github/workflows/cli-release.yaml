@@ -33,7 +33,10 @@ jobs:
               run: |
                   TAG_NAME=${GITHUB_REF_NAME}
                   TAG_MESSAGE=$(git tag -l --format='%(contents)' "$TAG_NAME")
-                  gh release create "${TAG_NAME}" --title "Release ${TAG_NAME}" --notes "${TAG_MESSAGE}"
+                  # Hyphenated tags (2.0.0-alpha.1) are prereleases; the installer skips them.
+                  PRERELEASE=()
+                  if [[ "$TAG_NAME" == *-* ]]; then PRERELEASE=(--prerelease); fi
+                  gh release create "${TAG_NAME}" --title "Release ${TAG_NAME}" --notes "${TAG_MESSAGE}" "${PRERELEASE[@]}"
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
