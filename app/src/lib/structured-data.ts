@@ -59,7 +59,7 @@ export function eventJsonLd(
           location: {
             "@type": "Place",
             name: venueName,
-            address: event.fullAddress ?? venueName,
+            ...(event.fullAddress ? { address: event.fullAddress } : {}),
           },
         }
       : {}),

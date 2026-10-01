@@ -118,6 +118,16 @@ describe("structured data", () => {
     expect(data).not.toHaveProperty("offers");
   });
 
+  test("names a venue without inventing an address for it", () => {
+    const data = eventJsonLd({ ...event, fullAddress: null }, origin);
+    expect(data).toMatchObject({
+      location: { "@type": "Place", name: "CodeRabbit" },
+    });
+    expect((data as { location: object }).location).not.toHaveProperty(
+      "address",
+    );
+  });
+
   test("describes the organization", () => {
     expect(organizationJsonLd(origin)).toMatchObject({
       "@type": "Organization",
