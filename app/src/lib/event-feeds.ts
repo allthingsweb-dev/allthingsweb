@@ -1,6 +1,5 @@
 import type { Event } from "./events";
 
-const PUBLIC_SITE_ORIGIN = "https://allthingsweb.dev";
 type FeedEvent = Pick<
   Event,
   "name" | "tagline" | "slug" | "createdAt" | "updatedAt"
@@ -19,24 +18,24 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function eventUrl(slug: string): string {
-  return `${PUBLIC_SITE_ORIGIN}/${encodeURIComponent(slug)}`;
+function eventUrl(origin: string, slug: string): string {
+  return `${origin}/${encodeURIComponent(slug)}`;
 }
 
-export function generateRSS(events: FeedEvent[]) {
+export function generateRSS(events: FeedEvent[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
     <channel>
         <title>All Things Web Bay Area events</title>
         <description>Sup! Subscribe to stay up to date with our monthly events.</description>
-        <link>${PUBLIC_SITE_ORIGIN}</link>
+        <link>${escapeXml(origin)}</link>
         <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
         ${events
           .map(
             (event) => `<item>
             <title>${escapeXml(event.name)}</title>
             <description>${escapeXml(event.tagline)}</description>
-            <link>${escapeXml(eventUrl(event.slug))}</link>
+            <link>${escapeXml(eventUrl(origin, event.slug))}</link>
             <pubDate>${event.createdAt.toUTCString()}</pubDate>
         </item>`,
           )
@@ -52,17 +51,17 @@ function getUrlElement(url: string, date?: string) {
         </url>`;
 }
 
-export function generateSiteMap(events: FeedEvent[]) {
+export function generateSiteMap(events: FeedEvent[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
         <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-            ${getUrlElement(`${PUBLIC_SITE_ORIGIN}/`)}
-            ${getUrlElement(`${PUBLIC_SITE_ORIGIN}/speakers`)}
-            ${getUrlElement(`${PUBLIC_SITE_ORIGIN}/about`)}
-            ${getUrlElement(`${PUBLIC_SITE_ORIGIN}/code-of-conduct`)}
+            ${getUrlElement(`${origin}/`)}
+            ${getUrlElement(`${origin}/speakers`)}
+            ${getUrlElement(`${origin}/about`)}
+            ${getUrlElement(`${origin}/code-of-conduct`)}
             ${events
               .map((event) =>
                 getUrlElement(
-                  eventUrl(event.slug),
+                  eventUrl(origin, event.slug),
                   event.updatedAt.toISOString(),
                 ),
               )

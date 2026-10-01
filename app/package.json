@@ -23,8 +23,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
     "@aws-sdk/s3-request-presigner": "^3.888.0",
-    "@chat-adapter/discord": "^4.15.0",
-    "@chat-adapter/state-redis": "^4.15.0",
     "@date-fns/tz": "^1.5.0",
     "@hookform/resolvers": "^5.2.2",
     "@modelcontextprotocol/server": "^2.2.0",
@@ -62,11 +60,8 @@
     "@tanstack/query-db-collection": "^0.2.16",
     "@tanstack/react-db": "^0.1.17",
     "@types/heic-convert": "^2.1.0",
-    "@workflow/ai": "^4.0.1-beta.52",
-    "ai": "^6.0.97",
     "better-env": "^0.3.2",
     "canvas-confetti": "^1.9.3",
-    "chat": "^4.15.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -95,8 +90,6 @@
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0",
     "vaul": "^1.1.2",
-    "workflow": "^4.1.0-beta.60",
-    "zlib-sync": "^0.1.10",
     "zod": "^4.6.5"
   },
   "devDependencies": {
