@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { ExpandedEvent } from "../src/lib/expanded-events";
+import { sanitizeRichText } from "../src/lib/safe-html";
 import {
   eventJsonLd,
   organizationJsonLd,
@@ -45,8 +46,18 @@ const event: ExpandedEvent = {
   images: [],
   sponsors: [],
   talks: [
-    { id: "t1", title: "Fireside", description: "", speakers: [speaker] },
-    { id: "t2", title: "Q&A", description: "", speakers: [speaker] },
+    {
+      id: "t1",
+      title: "Fireside",
+      description: sanitizeRichText(""),
+      speakers: [speaker],
+    },
+    {
+      id: "t2",
+      title: "Q&A",
+      description: sanitizeRichText(""),
+      speakers: [speaker],
+    },
   ],
 };
 
