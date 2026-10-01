@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getPublishedEvents } from "@/lib/published-events";
 import { generateRSS } from "@/lib/event-feeds";
+import { mainConfig } from "@/lib/config";
 
 export async function GET() {
   try {
     const events = await getPublishedEvents();
-    const content = generateRSS(events);
+    const content = generateRSS(events, mainConfig.instance.origin);
 
     return new NextResponse(content, {
       headers: {
