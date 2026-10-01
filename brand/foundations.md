@@ -1,0 +1,125 @@
+# all things/\_ — brand foundations
+
+The rules every page, cover, slide, email and line of copy is checked against. Design tokens, components and templates implement these; when they disagree, this document wins and they get fixed.
+
+## Who we are
+
+**An open door and a high bar.** All Things is an open community for people who build software in San Francisco: the person a month into their first job, the maintainer of a library you install every day, the founder, the creator, and everyone between. Everyone is welcome. What goes on stage has earned its place.
+
+> Evenings for people who build software.
+> In the neighborhoods of San Francisco.
+
+These two sentences are the whole pitch. They support the page; they never headline it.
+
+## Name
+
+- The name is **all things**, always lowercase. The master wordmark is **all things/\_**: the slot after the slash is left open, and every event fills it.
+- Each event is **all things/&lt;topic&gt;**: all things/effect, all things/expo. The topic is lowercase, short and specific.
+- "all things" abbreviates to **at**. Lists and running copy use **at/&lt;topic&gt;** (at/effect, at/react native).
+- The sign-off is **see you at/&lt;topic&gt;**, exactly in that form. It belongs after someone commits: the confirmation state, the calendar invite title, the reminder email subject. Never beside the button that asks.
+- **The cursor means "not yet happened".** Upcoming and live events carry a blinking \_ (all things/effect\_); past events lose it (all things/expo). The master wordmark always keeps it.
+- The lockup is the link. allthings.dev/effect is the address of all things/effect.
+- "All Things Web" is our history. It appears on the history page and in launch messaging, never in the brand.
+
+## Voice
+
+Plain, warm, specific, a little dry. We sound like the friend who knows the good events, not like an events company.
+
+| Say | Not |
+| --- | --- |
+| evenings | events, programming |
+| I'm in | RSVP, Register now, Sign up |
+| hosted at CodeRabbit · hosts | sponsored by, sponsors, partners |
+| East Cut, Potrero Hill, FiDi | "downtown SF", "the Bay Area tech scene" |
+| who's on stage and what they built | "thought leaders", "industry experts" |
+| talk between evenings → discord | Join our vibrant community! |
+
+- Hosting companies give space, food and drinks. We have never taken money or sold a stage, so we never call anyone a sponsor.
+- Say each thing once. If the page already shows the date, the button doesn't repeat it.
+- No exclamation-mark enthusiasm, no hype words, no emoji in the brand voice.
+
+## Places
+
+Every event names its neighborhood, using the name locals use. It is how we remind a tech crowd that they live in a real city.
+
+| Venue | Neighborhood |
+| --- | --- |
+| 201 Spear St (CodeRabbit), 100 1st St (Vercel) | East Cut |
+| 45 Fremont St (Sentry), 351 California St (Sanity), 50 Beale St (Mux), 525 Market St (AWS GenAI Loft), 585 Market St, 660 Market St (WorkOS), 1 Post St (Mintlify) | FiDi |
+| 40 O'Farrell St (Convene), 760 Market St (Vapi, Solv) | Union Square |
+| 444 De Haro St (Convex, Discord), 277 Carolina St | Potrero Hill |
+| Pier 70 (Standard Deviant Brewing) | Dogpatch |
+| 1242 Market St | Mid-Market |
+| 360 Ritch St (Little Skillet) | SoMa |
+| 620 Treat Ave (Southern Pacific Brewing) | Mission |
+| 500 Terry A Francois Blvd (Cisco Meraki) | Mission Bay |
+
+Derive new ones from the venue's address, and prefer the local name over the official district.
+
+## Marks
+
+- **Master wordmark:** all things/\_ in Archivo 800 at 112% width, with the cursor blinking once a second. With reduced motion, the cursor stays solid.
+- **Logo and app icon:** **a/**. The tail of the a runs into the slash: a beginning, with what comes next implied.
+- The slash is always Bridge on light grounds and Glow on Night.
+- Don't stack the letters (a/ over t/), drop the slash, set the marks in another typeface, or add effects.
+
+## Color
+
+Contrast is judged with APCA (the perceptual model drafted for WCAG 3), not WCAG 2 ratios. WCAG 2 passes black on Glow at 6.6:1, yet it reads badly at text sizes; APCA rates it Lc 49.5, headline only. Targets: **Lc 90** preferred for body text, **Lc 75** minimum for small text, **Lc 60** at 24px and up, **Lc 45** for headlines and marks.
+
+| Token | Hex | On Paper | On Night | Use |
+| --- | --- | --- | --- | --- |
+| Paper | #F4F1EC | — | Lc 97.6 | Light ground; text on Night |
+| Ink | #141210 | Lc 97.1 | — | Text on Paper |
+| Bridge | #C0362C | Lc 68.1 | — | The slash; text only at 24px+ |
+| Bridge Deep | #9A2B22 | Lc 77.3 | — | Small orange text; Paper buttons |
+| Violet | #5B34D6 | Lc 75.9 | — | Neighborhoods and links on Paper |
+| Karl text | #5E5A55 | Lc 75.5 | — | Dates and meta on Paper |
+| Karl | #E6E2DC | — | — | Quiet surfaces on Paper (named for the fog) |
+| Night | #1C1236 | — | — | Dark ground |
+| Night raised | #2A1D4F | — | — | Surfaces on Night |
+| Mist | #E3DCF7 | — | Lc 86.3 | Secondary text on Night |
+| Dusk | #D9D3E0 | — | Lc 80.0 | Dates and meta on Night |
+| Lavender | #DACFFF | — | Lc 80.0 | Neighborhoods and links on Night |
+| Glow | #FF6A3D | — | Lc 46.8 | The slash and display at 36px+ only |
+
+Buttons: white on Bridge Deep (Lc 90.3) on Paper, and white on Bridge (Lc 81.7) on Night. Violet fills take white text at Lc 89.0.
+
+**One mode per event, everywhere.** Evening events are Night; daytime events (hackathons, brunches) are Paper. An event's cover, page, slides and posts all share its mode.
+
+## Typography
+
+One family, Archivo, used at three widths, plus Geist Mono for meta.
+
+| Role | Size / line | Weight | Width | Tracking | Min Lc |
+| --- | --- | --- | --- | --- | --- |
+| Wordmark | 168 / 0.84 | 800 | 112% | −4.5% | 45 |
+| Event lockup | 72 / 0.9 | 800 | 112% | −4% | 45 |
+| Label (caps) | 40 / 1.0 | 700 | 75% | −1% | 60 |
+| Lead | 30 / 1.25 | 500 | 100% | −1% | 75 |
+| List name | 21 | 700 | 100% | 0 | 75 |
+| List place (caps) | 14 | 600 | 75% | +6% | 60 |
+| Body | 18 / 1.55 | 400 | 100% | 0 | 90 |
+| Meta (Geist Mono, caps) | 14 / 1.5 | 500 | — | +6% | 75 |
+
+## Layout
+
+- A 12-column grid, flush left, ragged right. Rules instead of boxes; sharp corners.
+- Asymmetry is deliberate: neighboring blocks may sit on different cuts of the grid and align to different edges.
+- Lists of events: a light date, the name heavy with its slash, and the place bolder than the date but clearly secondary.
+- Home says each thing once: the next event is the hero, real photos sit beside it, and the lists below show only other events ("after that", "recently").
+
+## Imagery
+
+- Real photos of real people at our evenings. No AI illustrations and no stock photography.
+- Event covers are typographic: lockup, neighborhood, date, host, short link. They are generated from event data, never hand-assembled.
+
+## People and channels
+
+- Socials sit in a quiet line of words in the footer (luma · discord · youtube · github · x · bluesky · linkedin) and on the history page, never in a hero.
+- Luma and Discord are actions: "subscribe on luma" beside "every evening →", and "talk between evenings → discord".
+- The organizers are visible everywhere: "hosted by Erik & Andre" with portraits in every footer, organizers first on the people page, and "your hosts" beside the hosting company on every event page.
+
+## Accessibility
+
+APCA targets above for all text; never color alone to carry meaning; real buttons and links; alt text that describes the moment in a photo; the cursor stops blinking for people who prefer reduced motion.
