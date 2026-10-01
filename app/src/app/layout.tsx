@@ -6,6 +6,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { mainConfig } from "@/lib/config";
+import { JsonLd } from "@/components/json-ld";
+import { organizationJsonLd } from "@/lib/structured-data";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -75,6 +77,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <JsonLd data={organizationJsonLd(url)} />
         <StackProvider app={stackServerApp}>
           <StackTheme>
             <ThemeProvider

@@ -26,6 +26,9 @@ import type { ExpandedEvent, Talk, Sponsor } from "@/lib/expanded-events";
 import type { Image } from "@/lib/events";
 import { SocialsList } from "@/components/profile-card";
 import { getEventHeroImage } from "@/lib/event-hero";
+import { JsonLd } from "@/components/json-ld";
+import { mainConfig } from "@/lib/config";
+import { eventJsonLd } from "@/lib/structured-data";
 
 export function HeroSectionTitle({
   event,
@@ -557,6 +560,9 @@ export function EventDetailsPage({
 }) {
   return (
     <PageLayout>
+      {!event.isDraft && (
+        <JsonLd data={eventJsonLd(event, mainConfig.instance.origin)} />
+      )}
       {isInPast && (
         <div className="px-4 lg:px-6">
           <Alert>
