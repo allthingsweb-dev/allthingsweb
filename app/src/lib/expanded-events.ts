@@ -425,3 +425,11 @@ export async function getExpandedEventBySlug(
 
   return getExpandedEventFromQuery(eventQuery[0]);
 }
+
+/** An event as the public may see it: drafts are treated as missing. */
+export async function getPublicEventBySlug(
+  slug: string,
+): Promise<ExpandedEvent | null> {
+  const event = await getExpandedEventBySlug(slug);
+  return event && !event.isDraft ? event : null;
+}
