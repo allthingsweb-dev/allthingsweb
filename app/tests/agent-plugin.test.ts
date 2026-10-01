@@ -1,0 +1,72 @@
+import { describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import Ajv2020 from "ajv/dist/2020";
+import pluginSchema from "./fixtures/agent-plugins/plugin.schema.json";
+import mcpSchema from "./fixtures/agent-plugins/mcp.schema.json";
+
+const repoRoot = join(import.meta.dir, "../..");
+const pluginRoot = join(repoRoot, "plugins/all-things-web");
+
+async function readJson(path: string) {
+  return Bun.file(path).json();
+}
+
+function validate(schema: object, data: unknown) {
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  const check = ajv.compile(schema);
+  return check(data) ? [] : (check.errors ?? []);
+}
+
+describe("All Things Web agent plugin", () => {
+  test("its manifest satisfies the Agent Plugins schema", async () => {
+    expect(
+      validate(pluginSchema, await readJson(join(pluginRoot, "plugin.json"))),
+    ).toEqual([]);
+  });
+
+  test("its MCP configuration points at the public HTTPS server", async () => {
+    const config = await readJson(join(pluginRoot, "mcp.json"));
+    expect(validate(mcpSchema, config)).toEqual([]);
+    expect(config.mcpServers["all-things-web"]).toEqual({
+      type: "streamable-http",
+      url: "https://allthingsweb.dev/mcp",
+    });
+  });
+
+  test("every asset the manifest references exists", async () => {
+    const manifest = await readJson(join(pluginRoot, "plugin.json"));
+    const ui = manifest.extensions["com.openai"].interface;
+    for (const asset of [ui.composerIcon, ui.logo]) {
+      expect(existsSync(join(pluginRoot, asset))).toBe(true);
+    }
+  });
+
+  test("every skill declares a matching name and a description", async () => {
+    for (const skill of ["find-events", "event-briefing"]) {
+      const text = await Bun.file(
+        join(pluginRoot, "skills", skill, "SKILL.md"),
+      ).text();
+      const frontmatter = text.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+      expect(frontmatter).toContain(`name: ${skill}`);
+      expect(frontmatter).toMatch(/^description: .{40,}$/m);
+    }
+  });
+
+  test("the repository marketplace lists the plugin by a contained relative path", async () => {
+    const marketplace = await readJson(
+      join(repoRoot, ".agents/plugins/marketplace.json"),
+    );
+    const [entry] = marketplace.plugins;
+    expect(entry.name).toBe("all-things-web");
+    expect(entry.source.path).toBe("./plugins/all-things-web");
+    expect(existsSync(join(repoRoot, entry.source.path, "plugin.json"))).toBe(
+      true,
+    );
+    expect(entry.policy).toEqual({
+      installation: "AVAILABLE",
+      authentication: "ON_INSTALL",
+    });
+    expect(entry.category).toBeTruthy();
+  });
+});

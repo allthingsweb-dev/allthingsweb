@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "all-things-web",
+  "version": "0.1.0",
+  "description": "Find and attend All Things Web events in San Francisco: upcoming meetups and hackathons, their speakers and talks, hosting companies, and where to RSVP.",
+  "author": {
+    "name": "All Things Web",
+    "url": "https://allthingsweb.dev"
+  },
+  "homepage": "https://allthingsweb.dev",
+  "repository": "https://github.com/allthingsweb-dev/allthingsweb",
+  "keywords": [
+    "events",
+    "meetups",
+    "san francisco",
+    "web development",
+    "community"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "All Things Web",
+        "shortDescription": "SF web dev events, speakers and RSVPs",
+        "category": "Productivity",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}
