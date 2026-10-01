@@ -4,6 +4,7 @@ import type { Event } from "../src/lib/events";
 import type { ExpandedEvent } from "../src/lib/expanded-events";
 import { registerAtwTools } from "../src/lib/mcp/tools";
 import type { SpeakerDirectory } from "../src/lib/public-api/mappers";
+import { sanitizeRichText } from "../src/lib/safe-html";
 import {
   communitySchema,
   eventSchema,
@@ -81,8 +82,9 @@ const expanded: ExpandedEvent = {
     {
       id: "fireside",
       title: "Fireside chat",
-      description:
+      description: sanitizeRichText(
         "<p>Effect &amp; you</p><ul><li>Typed errors</li><li>Concurrency</li></ul>",
+      ),
       speakers: [
         {
           id: "michael",
