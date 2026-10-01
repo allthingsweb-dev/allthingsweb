@@ -1,3 +1,4 @@
+import { sanitizeRichText, type SafeHtml } from "@/lib/safe-html";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
@@ -44,7 +45,7 @@ export type Speaker = {
 export type Talk = {
   id: string;
   title: string;
-  description: string;
+  description: SafeHtml;
   speakers: Speaker[];
 };
 
@@ -212,7 +213,7 @@ async function getExpandedEventFromQuery(
           return {
             id: talk.id,
             title: talk.title,
-            description: talk.description,
+            description: sanitizeRichText(talk.description),
             speakers,
           };
         }),
