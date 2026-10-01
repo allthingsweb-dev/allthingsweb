@@ -1,3 +1,4 @@
+import { captureException } from "@sentry/nextjs";
 import { createMcpHandler } from "mcp-handler";
 import { mainConfig } from "@/lib/config";
 import { db } from "@/lib/db";
@@ -17,6 +18,8 @@ const handler = createMcpHandler(
       listPublishedEvents: getPublishedEvents,
       getEventBySlug: getExpandedEventBySlug,
       getSpeakerDirectory: () => getSpeakerDirectory(db),
+      reportError: (error, tool) =>
+        captureException(error, { tags: { mcpTool: tool } }),
     }),
   {
     serverInfo: {

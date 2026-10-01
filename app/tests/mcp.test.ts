@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { createMcpHandler } from "mcp-handler";
 import type { Event } from "../src/lib/events";
 import type { ExpandedEvent } from "../src/lib/expanded-events";
-import { registerAtwTools } from "../src/lib/mcp/tools";
+import {
+  registerAtwTools,
+  type AtwMcpDependencies,
+} from "../src/lib/mcp/tools";
 import type { SpeakerDirectory } from "../src/lib/public-api/mappers";
 import { sanitizeRichText } from "../src/lib/safe-html";
 import {
@@ -129,23 +132,35 @@ const directory: SpeakerDirectory = {
   ],
 };
 
-const handler = createMcpHandler((server) =>
-  registerAtwTools(server, {
-    origin,
-    now: () => now,
-    listPublishedEvents: async () => [past, older, live, next, later],
-    getEventBySlug: async (slug) =>
-      slug === expanded.slug
-        ? expanded
-        : slug === "draft"
-          ? { ...expanded, slug: "draft", isDraft: true }
-          : null,
-    getSpeakerDirectory: async () => directory,
-  }),
-);
+const reported: { error: unknown; tool: string }[] = [];
 
-async function callTool(name: string, args: Record<string, unknown> = {}) {
-  const response = await handler(
+function createHandler(overrides: Partial<AtwMcpDependencies> = {}) {
+  return createMcpHandler((server) =>
+    registerAtwTools(server, {
+      origin,
+      now: () => now,
+      listPublishedEvents: async () => [past, older, live, next, later],
+      getEventBySlug: async (slug) =>
+        slug === expanded.slug
+          ? expanded
+          : slug === "draft"
+            ? { ...expanded, slug: "draft", isDraft: true }
+            : null,
+      getSpeakerDirectory: async () => directory,
+      reportError: (error, tool) => reported.push({ error, tool }),
+      ...overrides,
+    }),
+  );
+}
+
+const handler = createHandler();
+
+async function callTool(
+  name: string,
+  args: Record<string, unknown> = {},
+  mcp = handler,
+) {
+  const response = await mcp(
     new Request(`${origin}/mcp`, {
       method: "POST",
       headers: {
@@ -246,5 +261,47 @@ describe("public MCP server", () => {
       discord: "https://discord.gg/B3Sm4b5mfD",
       codeOfConduct: `${origin}/code-of-conduct`,
     });
+  });
+
+  test("publishes only valid http(s) URLs from stored data", async () => {
+    const mcp = createHandler({
+      listPublishedEvents: async () => [
+        {
+          ...next,
+          recordingUrl: "javascript:alert(1)",
+          lumaEventUrl: "not a url",
+        },
+      ],
+    });
+    const result = await callTool("list_events", {}, mcp);
+    expect(result.structuredContent).toMatchObject({
+      events: [{ slug: "effect-sf", recordingUrl: null, rsvpUrl: null }],
+    });
+  });
+
+  test("turns data-source failures into reported, retryable errors", async () => {
+    reported.length = 0;
+    const failure = new Error("connection refused: db.internal:5432");
+    const mcp = createHandler({
+      listPublishedEvents: async () => Promise.reject(failure),
+      getEventBySlug: async () => Promise.reject(failure),
+      getSpeakerDirectory: async () => Promise.reject(failure),
+    });
+    for (const [tool, args] of [
+      ["list_events", {}],
+      ["get_event", { slug: "effect-sf" }],
+      ["list_speakers", {}],
+    ] as const) {
+      const result = await callTool(tool, args, mcp);
+      expect(result.isError).toBe(true);
+      expect(result.content[0]!.text).toContain("temporarily unavailable");
+      expect(result.content[0]!.text).not.toContain("db.internal");
+    }
+    expect(reported.map((r) => r.tool)).toEqual([
+      "list_events",
+      "get_event",
+      "list_speakers",
+    ]);
+    expect(reported.every((r) => r.error === failure)).toBe(true);
   });
 });

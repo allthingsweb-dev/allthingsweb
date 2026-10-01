@@ -7,16 +7,16 @@ export const eventStatusSchema = z
   .describe("Whether the event is still ahead, happening now, or over.");
 
 export const personLinksSchema = z.object({
-  x: z.string().nullable(),
-  bluesky: z.string().nullable(),
-  linkedin: z.string().nullable(),
+  x: z.httpUrl().nullable(),
+  bluesky: z.httpUrl().nullable(),
+  linkedin: z.httpUrl().nullable(),
 });
 
 export const eventSummarySchema = z.object({
   slug: z.string().describe("Stable identifier; pass it to get_event."),
   name: z.string(),
   tagline: z.string(),
-  url: z.string().describe("Event page on allthingsweb.dev."),
+  url: z.httpUrl().describe("Event page on allthingsweb.dev."),
   status: eventStatusSchema,
   startsAt: z.iso.datetime().describe("Start time as an ISO 8601 UTC instant."),
   endsAt: z.iso.datetime().describe("End time as an ISO 8601 UTC instant."),
@@ -27,10 +27,10 @@ export const eventSummarySchema = z.object({
     .object({ name: z.string().nullable(), address: z.string().nullable() })
     .nullable(),
   rsvpUrl: z
-    .string()
+    .httpUrl()
     .nullable()
     .describe("Where to register. Registration always happens on this page."),
-  recordingUrl: z.string().nullable(),
+  recordingUrl: z.httpUrl().nullable(),
   isHackathon: z.boolean(),
 });
 
@@ -60,7 +60,7 @@ export const speakerSchema = talkSpeakerSchema.extend({
       title: z.string(),
       eventName: z.string(),
       eventSlug: z.string(),
-      eventUrl: z.string(),
+      eventUrl: z.httpUrl(),
       date: z.iso.datetime(),
     }),
   ),
@@ -75,10 +75,10 @@ export const communitySchema = z.object({
   independence: z.string(),
   hosting: z.string(),
   links: z.object({
-    website: z.string(),
-    events: z.string(),
-    discord: z.string(),
-    codeOfConduct: z.string(),
+    website: z.httpUrl(),
+    events: z.httpUrl(),
+    discord: z.httpUrl(),
+    codeOfConduct: z.httpUrl(),
   }),
 });
 

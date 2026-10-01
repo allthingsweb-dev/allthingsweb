@@ -29,6 +29,19 @@ export function eventStatus(
   return "past";
 }
 
+/** Stored URLs are only published when they are valid http(s) URLs. */
+export function httpUrlOrNull(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function eventUrl(origin: string, slug: string): string {
   return `${origin}/${encodeURIComponent(slug)}`;
 }
@@ -36,9 +49,9 @@ function eventUrl(origin: string, slug: string): string {
 function personLinks(handles: SocialHandles) {
   const urls = getSocialUrls(handles);
   return {
-    x: urls.twitterUrl,
-    bluesky: urls.blueskyUrl,
-    linkedin: urls.linkedinUrl,
+    x: httpUrlOrNull(urls.twitterUrl),
+    bluesky: httpUrlOrNull(urls.blueskyUrl),
+    linkedin: httpUrlOrNull(urls.linkedinUrl),
   };
 }
 
@@ -81,8 +94,8 @@ export function toPublicEventSummary(
     venue: hasVenue
       ? { name: event.shortLocation, address: event.fullAddress }
       : null,
-    rsvpUrl: event.lumaEventUrl,
-    recordingUrl: event.recordingUrl,
+    rsvpUrl: httpUrlOrNull(event.lumaEventUrl),
+    recordingUrl: httpUrlOrNull(event.recordingUrl),
     isHackathon: event.isHackathon,
   };
 }

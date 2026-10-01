@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/server";
+import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { Event } from "@/lib/events";
 import type { ExpandedEvent } from "@/lib/expanded-events";
@@ -25,6 +25,8 @@ export type AtwMcpDependencies = {
   /** May return drafts; the tool filters them out. */
   getEventBySlug: (slug: string) => Promise<ExpandedEvent | null>;
   getSpeakerDirectory: () => Promise<SpeakerDirectory>;
+  /** Receives data-source failures; clients only see a retryable message. */
+  reportError: (error: unknown, tool: string) => void;
 };
 
 const readOnly = {
@@ -33,6 +35,29 @@ const readOnly = {
   idempotentHint: true,
   openWorldHint: false,
 } as const;
+
+/** Runs a tool body; data-source failures become a reported, retryable error. */
+async function withDataSource(
+  deps: AtwMcpDependencies,
+  tool: string,
+  subject: string,
+  run: () => Promise<CallToolResult>,
+): Promise<CallToolResult> {
+  try {
+    return await run();
+  } catch (error) {
+    deps.reportError(error, tool);
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: `All Things Web ${subject} are temporarily unavailable. Please retry in a minute.`,
+        },
+      ],
+    };
+  }
+}
 
 function json(value: unknown) {
   return [{ type: "text" as const, text: JSON.stringify(value, null, 2) }];
@@ -58,24 +83,25 @@ export function registerAtwTools(
       outputSchema: z.object({ events: z.array(eventSummarySchema) }),
       annotations: readOnly,
     },
-    async ({ when, limit }) => {
-      const now = deps.now();
-      const events = (await deps.listPublishedEvents())
-        .filter((event) => {
-          if (when === "all") return true;
-          const isPast = eventStatus(event, now) === "past";
-          return when === "past" ? isPast : !isPast;
-        })
-        .sort((a, b) =>
-          when === "upcoming"
-            ? a.startDate.getTime() - b.startDate.getTime()
-            : b.startDate.getTime() - a.startDate.getTime(),
-        )
-        .slice(0, limit)
-        .map((event) => toPublicEventSummary(event, deps.origin, now));
-      const result = { events };
-      return { content: json(result), structuredContent: result };
-    },
+    async ({ when, limit }) =>
+      withDataSource(deps, "list_events", "events", async () => {
+        const now = deps.now();
+        const events = (await deps.listPublishedEvents())
+          .filter((event) => {
+            if (when === "all") return true;
+            const isPast = eventStatus(event, now) === "past";
+            return when === "past" ? isPast : !isPast;
+          })
+          .sort((a, b) =>
+            when === "upcoming"
+              ? a.startDate.getTime() - b.startDate.getTime()
+              : b.startDate.getTime() - a.startDate.getTime(),
+          )
+          .slice(0, limit)
+          .map((event) => toPublicEventSummary(event, deps.origin, now));
+        const result = { events };
+        return { content: json(result), structuredContent: result };
+      }),
   );
 
   server.registerTool(
@@ -90,22 +116,23 @@ export function registerAtwTools(
       outputSchema: eventSchema,
       annotations: readOnly,
     },
-    async ({ slug }) => {
-      const event = await deps.getEventBySlug(slug);
-      if (!event || event.isDraft) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: "text",
-              text: `No published event has the slug "${slug}". Use list_events to find one.`,
-            },
-          ],
-        };
-      }
-      const result = toPublicEvent(event, deps.origin, deps.now());
-      return { content: json(result), structuredContent: result };
-    },
+    async ({ slug }) =>
+      withDataSource(deps, "get_event", "event details", async () => {
+        const event = await deps.getEventBySlug(slug);
+        if (!event || event.isDraft) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `No published event has the slug "${slug}". Use list_events to find one.`,
+              },
+            ],
+          };
+        }
+        const result = toPublicEvent(event, deps.origin, deps.now());
+        return { content: json(result), structuredContent: result };
+      }),
   );
 
   server.registerTool(
@@ -121,28 +148,29 @@ export function registerAtwTools(
       outputSchema: z.object({ speakers: z.array(speakerSchema) }),
       annotations: readOnly,
     },
-    async ({ query, limit }) => {
-      const needle = query?.toLowerCase();
-      const speakers = toPublicSpeakers(
-        await deps.getSpeakerDirectory(),
-        deps.origin,
-      )
-        .filter(
-          (speaker) =>
-            !needle ||
-            [
-              speaker.name,
-              speaker.title ?? "",
-              ...speaker.talks.map((t) => t.title),
-            ]
-              .join("\n")
-              .toLowerCase()
-              .includes(needle),
+    async ({ query, limit }) =>
+      withDataSource(deps, "list_speakers", "speakers", async () => {
+        const needle = query?.toLowerCase();
+        const speakers = toPublicSpeakers(
+          await deps.getSpeakerDirectory(),
+          deps.origin,
         )
-        .slice(0, limit);
-      const result = { speakers };
-      return { content: json(result), structuredContent: result };
-    },
+          .filter(
+            (speaker) =>
+              !needle ||
+              [
+                speaker.name,
+                speaker.title ?? "",
+                ...speaker.talks.map((t) => t.title),
+              ]
+                .join("\n")
+                .toLowerCase()
+                .includes(needle),
+          )
+          .slice(0, limit);
+        const result = { speakers };
+        return { content: json(result), structuredContent: result };
+      }),
   );
 
   server.registerTool(
