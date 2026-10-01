@@ -25,6 +25,7 @@
     "@aws-sdk/s3-request-presigner": "^3.888.0",
     "@date-fns/tz": "^1.5.0",
     "@hookform/resolvers": "^5.2.2",
+    "@modelcontextprotocol/server": "^2.2.0",
     "@neondatabase/serverless": "^1.0.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -59,7 +60,7 @@
     "@tanstack/query-db-collection": "^0.2.16",
     "@tanstack/react-db": "^0.1.17",
     "@types/heic-convert": "^2.1.0",
-    "better-env": "^0.3.1",
+    "better-env": "^0.3.2",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -71,6 +72,7 @@
     "ical.js": "^2.2.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.544.0",
+    "mcp-handler": "^2.2.0",
     "next": "^16.0.10",
     "next-themes": "^0.4.6",
     "qrcode": "^1.5.4",
@@ -88,7 +90,7 @@
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0",
     "vaul": "^1.1.2",
-    "zod": "^4.1.8"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

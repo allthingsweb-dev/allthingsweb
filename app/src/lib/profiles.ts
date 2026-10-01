@@ -3,12 +3,9 @@ import { db } from "./db";
 import { profilesTable, imagesTable } from "./schema";
 import { Image } from "./events";
 import { signImage } from "./image-signing";
+import { getSocialUrls, type Socials } from "./social-links";
 
-export type Socials = {
-  twitterUrl: string | null;
-  linkedinUrl: string | null;
-  blueskyUrl: string | null;
-};
+export { getSocialUrls, type Socials };
 
 export type Profile = {
   id: string;
@@ -24,24 +21,6 @@ export function organizeByType(members: Profile[]) {
   const organizers = members.filter((member) => member.type === "organizer");
   const attendees = members.filter((member) => member.type === "member");
   return { organizers, attendees };
-}
-
-export function getSocialUrls(socials: {
-  linkedinHandle?: string | null | undefined;
-  twitterHandle?: string | null | undefined;
-  blueskyHandle?: string | null | undefined;
-}): Socials {
-  return {
-    linkedinUrl: socials.linkedinHandle
-      ? `https://www.linkedin.com/in/${socials.linkedinHandle}`
-      : null,
-    twitterUrl: socials.twitterHandle
-      ? `https://twitter.com/${socials.twitterHandle}`
-      : null,
-    blueskyUrl: socials.blueskyHandle
-      ? `https://bsky.app/profile/${socials.blueskyHandle}`
-      : null,
-  };
 }
 
 export async function getOrganizers(): Promise<Profile[]> {
