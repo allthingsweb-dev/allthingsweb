@@ -1,33 +1,24 @@
 {
   "name": "atw-cli",
-  "module": "index.ts",
+  "version": "2.0.0",
+  "description": "All Things Web from your terminal and your agents.",
   "type": "module",
-  "version": "1.3.1",
   "private": true,
+  "bin": {
+    "atw": "./src/index.ts"
+  },
   "scripts": {
     "fmt": "prettier --write .",
     "check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/qrcode-terminal": "^0.12.2",
-    "@types/react": "^19.0.11"
-  },
-  "peerDependencies": {
-    "typescript": "^5.8.2"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
-    "@inkjs/ui": "^2.0.0",
-    "@modelcontextprotocol/sdk": "^1.7.0",
-    "@rocicorp/zero": "^0.16.2025031000",
-    "commander": "^13.1.0",
-    "ink": "^5.2.0",
-    "ink-link": "^4.1.0",
-    "picocolors": "^1.1.1",
-    "qrcode-terminal": "^0.12.0",
-    "react": "^18.3.1",
-    "react-devtools-core": "^6.1.1",
-    "zod": "^3.24.2"
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "prettier": "^3.6.2",
+    "typescript": "^5"
   }
 }
