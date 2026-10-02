@@ -49,14 +49,18 @@ export async function GET(request: Request) {
       revalidatePath(path);
     }
     // Covers are best effort: a failure here must not hide a successful sync.
-    const covers = await ingestMissingLumaCovers({
-      budgetMs: coverStartDeadlineMs - (Date.now() - startedAt),
-    }).catch((error: unknown) => {
-      captureException(error);
-      return {
-        skipped: `Cover ingestion failed: ${error instanceof Error ? error.message : String(error)}`,
-      };
-    });
+    const coverBudgetMs = coverStartDeadlineMs - (Date.now() - startedAt);
+    const covers =
+      coverBudgetMs <= 0
+        ? { skipped: "No time left for covers in this run" }
+        : await ingestMissingLumaCovers({ budgetMs: coverBudgetMs }).catch(
+            (error: unknown) => {
+              captureException(error);
+              return {
+                skipped: `Cover ingestion failed: ${error instanceof Error ? error.message : String(error)}`,
+              };
+            },
+          );
     if ("ingested" in covers && covers.ingested.length > 0) {
       for (const path of [
         ...listingPaths,
