@@ -44,6 +44,18 @@ describe("stored image URLs", () => {
     expect(mediaKeyFromSegments(named.split("/"))).toBe(named);
   });
 
+  test("round-trip names that use combining marks", () => {
+    for (const named of [
+      "profiles/priya-प्रिया-1a2b.png",
+      `profiles/${"erik-peña".normalize("NFD")}-3f7d.png`,
+    ]) {
+      const path = toMediaUrl(`${storage}/${named}`, storage);
+      expect(path.startsWith("/media/profiles/")).toBe(true);
+      const segments = path.slice("/media/".length).split("/");
+      expect(mediaKeyFromSegments(segments)).toBe(named);
+    }
+  });
+
   test("reject keys that could escape or smuggle paths", () => {
     expect(mediaKeyFromSegments(["events", "a.png"])).toBe("events/a.png");
     for (const segments of [

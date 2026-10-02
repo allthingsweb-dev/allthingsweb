@@ -6,9 +6,9 @@
 export const mediaPathPrefix = "/media/";
 
 // Letters and digits in any script, since keys are derived from names such as
-// "Erik Peña", then dots, dashes and underscores. Never separators, spaces or
-// percent signs.
-const keySegment = /^[\p{L}\p{N}_][\p{L}\p{N}._-]*$/u;
+// "Erik Peña", followed by combining marks (Devanagari vowel signs, a decomposed
+// "ñ"), dots, dashes and underscores. Never separators, spaces or percent signs.
+const keySegment = /^[\p{L}\p{N}_][\p{L}\p{M}\p{N}._-]*$/u;
 
 /** Maps a stored bucket URL to its media path; other URLs are returned as is. */
 export function toMediaUrl(storedUrl: string, storageOrigin: string): string {
