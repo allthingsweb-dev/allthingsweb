@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, resolve, isAbsolute } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
 import pluginSchema from "./fixtures/agent-plugins/plugin.schema.json";
 import mcpSchema from "./fixtures/agent-plugins/mcp.schema.json";
@@ -38,7 +38,11 @@ describe("All Things Web agent plugin", () => {
     const manifest = await readJson(join(pluginRoot, "plugin.json"));
     const ui = manifest.extensions["com.openai"].interface;
     for (const asset of [ui.composerIcon, ui.logo]) {
-      expect(existsSync(join(pluginRoot, asset))).toBe(true);
+      // Hosts require a ./-relative path that stays inside the plugin.
+      expect(asset).toStartWith("./");
+      const inside = relative(pluginRoot, resolve(pluginRoot, asset));
+      expect(inside.startsWith("..") || isAbsolute(inside)).toBe(false);
+      expect(existsSync(resolve(pluginRoot, asset))).toBe(true);
     }
   });
 
@@ -48,7 +52,7 @@ describe("All Things Web agent plugin", () => {
         join(pluginRoot, "skills", skill, "SKILL.md"),
       ).text();
       const frontmatter = text.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
-      expect(frontmatter).toContain(`name: ${skill}`);
+      expect(frontmatter).toMatch(new RegExp(`^name: ${skill}$`, "m"));
       expect(frontmatter).toMatch(/^description: .{40,}$/m);
     }
   });
