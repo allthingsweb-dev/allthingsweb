@@ -10,18 +10,28 @@ export type CoverImage = {
   placeholder: string;
 };
 
+type Cancellable = { signal: AbortSignal };
+
 export type CoverIngestionDependencies = {
   database: Pick<
     PgDatabase<PgQueryResultHKT>,
     "select" | "insert" | "update" | "delete" | "transaction"
   >;
   /** The event's banner at its listing provider, or null when it has none. */
-  findCoverUrl: (event: { lumaEventId: string }) => Promise<string | null>;
-  download: (url: string) => Promise<Uint8Array>;
+  findCoverUrl: (
+    event: { lumaEventId: string },
+    options: Cancellable,
+  ) => Promise<string | null>;
+  download: (url: string, options: Cancellable) => Promise<Uint8Array>;
   process: (bytes: Uint8Array) => Promise<CoverImage>;
   /** Stores the image under `key` and returns its stored URL. */
-  store: (key: string, image: CoverImage) => Promise<string>;
-  /** Deletes a stored image that did not become the event's cover. */
+  store: (
+    key: string,
+    image: CoverImage,
+    options: Cancellable,
+  ) => Promise<string>;
+  /** Deletes a stored image that did not become the event's cover. Runs even
+   * after cancellation, so it should bound itself. */
   remove: (key: string) => Promise<void>;
   newId: () => string;
   now: () => number;
@@ -43,7 +53,15 @@ function errorMessage(error: unknown): string {
  */
 export async function ingestMissingCovers(
   deps: CoverIngestionDependencies,
-  { budgetMs = 40_000 }: { budgetMs?: number } = {},
+  {
+    budgetMs = 40_000,
+    signal = new AbortController().signal,
+  }: {
+    /** How long to keep starting new events. */
+    budgetMs?: number;
+    /** Cancels the event in progress; no database write starts after it. */
+    signal?: AbortSignal;
+  } = {},
 ): Promise<CoverIngestionResult> {
   const deadline = deps.now() + budgetMs;
   const result: CoverIngestionResult = {
@@ -65,22 +83,32 @@ export async function ingestMissingCovers(
     .orderBy(desc(eventsTable.startDate));
 
   for (const event of events) {
-    if (deps.now() >= deadline || event.lumaEventId === null) break;
+    if (
+      deps.now() >= deadline ||
+      signal.aborted ||
+      event.lumaEventId === null
+    ) {
+      break;
+    }
     // Set once the image is stored, cleared once it becomes the cover.
     let unusedKey: string | null = null;
     try {
-      const coverUrl = await deps.findCoverUrl({
-        lumaEventId: event.lumaEventId,
-      });
+      const coverUrl = await deps.findCoverUrl(
+        { lumaEventId: event.lumaEventId },
+        { signal },
+      );
       if (!coverUrl) {
         result.withoutCover.push(event.slug);
         continue;
       }
-      const image = await deps.process(await deps.download(coverUrl));
+      const image = await deps.process(
+        await deps.download(coverUrl, { signal }),
+      );
       const imageId = deps.newId();
       const key = `events/${event.id}/cover-${imageId}.${image.format}`;
-      const url = await deps.store(key, image);
+      const url = await deps.store(key, image, { signal });
       unusedKey = key;
+      signal.throwIfAborted();
       const assigned = await deps.database.transaction(async (tx) => {
         await tx.insert(imagesTable).values({
           id: imageId,

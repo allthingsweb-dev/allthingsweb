@@ -11,9 +11,11 @@ export const dynamic = "force-dynamic";
 
 export const maxDuration = 60;
 
-// No new cover starts after this point, leaving room for one that is
-// mid-download (20s timeout) to finish within maxDuration.
+// Measured from the start of the request: no new cover starts after the first
+// deadline, and the one in progress is cancelled at the second, leaving time to
+// clean up, revalidate and respond within maxDuration.
 const coverStartDeadlineMs = 35_000;
+const coverCancelDeadlineMs = 50_000;
 
 const listingPaths = ["/", "/api/v1/events", "/rss", "/sitemap.xml"];
 
@@ -49,18 +51,20 @@ export async function GET(request: Request) {
       revalidatePath(path);
     }
     // Covers are best effort: a failure here must not hide a successful sync.
-    const coverBudgetMs = coverStartDeadlineMs - (Date.now() - startedAt);
+    const elapsedMs = Date.now() - startedAt;
+    const coverBudgetMs = coverStartDeadlineMs - elapsedMs;
     const covers =
       coverBudgetMs <= 0
         ? { skipped: "No time left for covers in this run" }
-        : await ingestMissingLumaCovers({ budgetMs: coverBudgetMs }).catch(
-            (error: unknown) => {
-              captureException(error);
-              return {
-                skipped: `Cover ingestion failed: ${error instanceof Error ? error.message : String(error)}`,
-              };
-            },
-          );
+        : await ingestMissingLumaCovers({
+            budgetMs: coverBudgetMs,
+            signal: AbortSignal.timeout(coverCancelDeadlineMs - elapsedMs),
+          }).catch((error: unknown) => {
+            captureException(error);
+            return {
+              skipped: `Cover ingestion failed: ${error instanceof Error ? error.message : String(error)}`,
+            };
+          });
     if ("ingested" in covers && covers.ingested.length > 0) {
       for (const path of [
         ...listingPaths,

@@ -217,6 +217,58 @@ describe("event cover ingestion", () => {
     expect(result.ingested).toEqual(["first"]);
   });
 
+  test("hands one cancellation signal to the lookup, download and upload", async () => {
+    await insertEvent("signals");
+    const controller = new AbortController();
+    const seen: AbortSignal[] = [];
+    await ingestMissingCovers(
+      deps({
+        findCoverUrl: async ({ lumaEventId }, { signal }) => {
+          seen.push(signal);
+          return `https://images.lumacdn.com/${lumaEventId}.png`;
+        },
+        download: async (_url, { signal }) => {
+          seen.push(signal);
+          return new Uint8Array([1]);
+        },
+        store: async (key, _image, { signal }) => {
+          seen.push(signal);
+          return `https://bucket.example/${key}`;
+        },
+      }),
+      { signal: controller.signal },
+    );
+    expect(seen).toEqual([
+      controller.signal,
+      controller.signal,
+      controller.signal,
+    ]);
+  });
+
+  test("once cancelled, saves nothing, deletes the upload and starts no other event", async () => {
+    await insertEvent("cancelled", {
+      startDate: new Date("2026-10-03T00:00:00Z"),
+    });
+    await insertEvent("never-started");
+    const controller = new AbortController();
+    const d = deps({
+      store: async (key) => {
+        d.stored.push(key);
+        controller.abort(new Error("Route deadline"));
+        return `https://bucket.example/${key}`;
+      },
+    });
+    const result = await ingestMissingCovers(d, { signal: controller.signal });
+    expect(result).toEqual({
+      ingested: [],
+      withoutCover: [],
+      failed: [{ slug: "cancelled", error: "Route deadline" }],
+    });
+    expect(d.stored).toHaveLength(1);
+    expect(d.removed).toEqual(d.stored);
+    expect(await db.select().from(imagesTable)).toHaveLength(0);
+  });
+
   test("deletes the stored image when saving it as the cover fails", async () => {
     await insertEvent("db-down");
     const d = deps({

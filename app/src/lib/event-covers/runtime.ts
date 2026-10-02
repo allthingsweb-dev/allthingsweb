@@ -13,8 +13,13 @@ import { readBodyAtMost } from "./read-body";
 
 const maxCoverBytes = 15 * 1024 * 1024;
 
-async function download(url: string): Promise<Uint8Array> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+async function download(
+  url: string,
+  { signal }: { signal: AbortSignal },
+): Promise<Uint8Array> {
+  const response = await fetch(url, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]),
+  });
   if (!response.ok) {
     await response.body?.cancel();
     throw new Error(`Cover download failed: ${response.status}`);
@@ -28,9 +33,12 @@ async function download(url: string): Promise<Uint8Array> {
 
 export async function ingestMissingLumaCovers({
   budgetMs,
+  signal,
 }: {
-  /** How long to keep starting new events; one already started may run on. */
+  /** How long to keep starting new events. */
   budgetMs: number;
+  /** Hard stop for the event in progress. */
+  signal: AbortSignal;
 }): Promise<CoverIngestionResult | { skipped: string }> {
   if (!mainConfig.luma.apiKey) {
     return { skipped: "LUMA_API_KEY is not set" };
@@ -47,8 +55,8 @@ export async function ingestMissingLumaCovers({
   return ingestMissingCovers(
     {
       database: db,
-      findCoverUrl: async ({ lumaEventId }) =>
-        (await luma.getEvent(lumaEventId))?.event.cover_url ?? null,
+      findCoverUrl: async ({ lumaEventId }, { signal }) =>
+        (await luma.getEvent(lumaEventId, { signal }))?.event.cover_url ?? null,
       download,
       process: async (bytes) => {
         const processed = await processImage(bytes);
@@ -60,7 +68,7 @@ export async function ingestMissingLumaCovers({
           placeholder: processed.placeholder,
         };
       },
-      store: async (key, image) => {
+      store: async (key, image, { signal }) => {
         await s3.send(
           new PutObjectCommand({
             Bucket: mainConfig.s3.bucket,
@@ -68,17 +76,19 @@ export async function ingestMissingLumaCovers({
             Body: image.bytes,
             ContentType: `image/${image.format}`,
           }),
+          { abortSignal: signal },
         );
         return `${mainConfig.s3.url}/${key}`;
       },
       remove: async (key) => {
         await s3.send(
           new DeleteObjectCommand({ Bucket: mainConfig.s3.bucket, Key: key }),
+          { abortSignal: AbortSignal.timeout(5_000) },
         );
       },
       newId: randomUUID,
       now: Date.now,
     },
-    { budgetMs },
+    { budgetMs, signal },
   );
 }
