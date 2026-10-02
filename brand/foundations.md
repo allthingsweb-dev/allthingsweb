@@ -65,25 +65,25 @@ Derive new ones from the venue's address, and prefer the local name over the off
 
 ## Color
 
-Contrast is judged with APCA (the perceptual model drafted for WCAG 3), not WCAG 2 ratios. WCAG 2 passes black on Glow at 6.6:1, yet it reads badly at text sizes; APCA rates it Lc 49.5, headline only. Targets: **Lc 90** preferred for body text, **Lc 75** minimum for small text, **Lc 60** at 24px and up, **Lc 45** for headlines and marks.
+Contrast is designed with APCA, the perceptual model being explored for WCAG 3, and every pairing must also pass WCAG 2.2 AA, which remains the standard: 4.5:1 for text and 3:1 for large text. APCA is the stricter guide in practice. WCAG 2 passes black on Glow at 6.6:1, yet it reads badly at text sizes; APCA rates it Lc 49.5, fit for headlines only. APCA targets: **Lc 90** preferred for body text, **Lc 75** minimum for small text, **Lc 60** at 24px and up, **Lc 45** for headlines and marks. The design-token tests check both.
 
 | Token | Hex | On Paper | On Night | Use |
 | --- | --- | --- | --- | --- |
-| Paper | #F4F1EC | — | Lc 97.6 | Light ground; text on Night |
-| Ink | #141210 | Lc 97.1 | — | Text on Paper |
-| Bridge | #C0362C | Lc 68.1 | — | The slash; text only at 24px+ |
-| Bridge Deep | #9A2B22 | Lc 77.3 | — | Small orange text; Paper buttons |
-| Violet | #5B34D6 | Lc 75.9 | — | Neighborhoods and links on Paper |
-| Karl text | #5E5A55 | Lc 75.5 | — | Dates and meta on Paper |
+| Paper | #F4F1EC | — | Lc 97.6 · 15.7:1 | Light ground; text on Night |
+| Ink | #141210 | Lc 97.1 · 16.6:1 | — | Text on Paper |
+| Bridge | #C0362C | Lc 68.1 · 4.9:1 | — | The slash; text only at 24px+ |
+| Bridge Deep | #9A2B22 | Lc 77.3 · 6.8:1 | — | Small orange text; Paper buttons |
+| Violet | #5B34D6 | Lc 75.9 · 6.4:1 | — | Neighborhoods and links on Paper |
+| Karl text | #5E5A55 | Lc 75.5 · 6.1:1 | — | Dates and meta on Paper |
 | Karl | #E6E2DC | — | — | Quiet surfaces on Paper (named for the fog) |
 | Night | #1C1236 | — | — | Dark ground |
 | Night raised | #2A1D4F | — | — | Surfaces on Night |
-| Mist | #E3DCF7 | — | Lc 86.3 | Secondary text on Night |
-| Dusk | #D9D3E0 | — | Lc 80.0 | Dates and meta on Night |
-| Lavender | #DACFFF | — | Lc 80.0 | Neighborhoods and links on Night |
-| Glow | #FF6A3D | — | Lc 46.8 | The slash and display at 36px+ only |
+| Mist | #E3DCF7 | — | Lc 86.3 · 13.3:1 | Secondary text on Night |
+| Dusk | #D9D3E0 | — | Lc 80.0 · 12.1:1 | Dates and meta on Night |
+| Lavender | #DACFFF | — | Lc 80.0 · 12.1:1 | Neighborhoods and links on Night |
+| Glow | #FF6A3D | — | Lc 46.8 · 6.2:1 | The slash and display at 36px+ only |
 
-Buttons: white on Bridge Deep (Lc 90.3) on Paper, and white on Bridge (Lc 81.7) on Night. Violet fills take white text at Lc 89.0.
+Buttons: white on Bridge Deep (Lc 90.3, 7.7:1) on Paper, and white on Bridge (Lc 81.7, 5.5:1) on Night. Violet fills take white text (Lc 89.0, 7.2:1).
 
 **One mode per event, everywhere.** Evening events are Night; daytime events (hackathons, brunches) are Paper. An event's cover, page, slides and posts all share its mode.
 
@@ -98,7 +98,7 @@ One family, Archivo, used at three widths, plus Geist Mono for meta.
 | Label (caps) | 40 / 1.0 | 700 | 75% | −1% | 60 |
 | Lead | 30 / 1.25 | 500 | 100% | −1% | 75 |
 | List name | 21 | 700 | 100% | 0 | 75 |
-| List place (caps) | 14 | 600 | 75% | +6% | 60 |
+| List place (caps) | 14 | 600 | 75% | +6% | 75 |
 | Body | 18 / 1.55 | 400 | 100% | 0 | 90 |
 | Meta (Geist Mono, caps) | 14 / 1.5 | 500 | — | +6% | 75 |
 
