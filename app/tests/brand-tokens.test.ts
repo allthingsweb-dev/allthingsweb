@@ -48,6 +48,25 @@ describe("all things/_ design tokens", () => {
     },
   );
 
+  // APCA guides the design; WCAG 2.2 AA is still the standard, so every pair
+  // must clear its text minimum too.
+  test.each(tokens.$extensions["dev.allthings"].contrast)(
+    "$use meets WCAG 2.2 AA (4.5:1)",
+    ({ text, background }) => {
+      const luminance = (name: string) => {
+        const [r, g, b] = rgb(hexes[referencedName(name)]!).map((channel) => {
+          const c = channel / 255;
+          return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+      };
+      const [lighter, darker] = [luminance(text), luminance(background)].sort(
+        (a, b) => b - a,
+      );
+      expect((lighter! + 0.05) / (darker! + 0.05)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
   test("every type role references a defined font", () => {
     for (const [name, token] of Object.entries(tokens.type)) {
       if (name === "$type" || typeof token === "string") continue;
