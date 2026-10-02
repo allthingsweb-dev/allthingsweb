@@ -21,6 +21,8 @@ export type CoverIngestionDependencies = {
   process: (bytes: Uint8Array) => Promise<CoverImage>;
   /** Stores the image under `key` and returns its stored URL. */
   store: (key: string, image: CoverImage) => Promise<string>;
+  /** Deletes a stored image that did not become the event's cover. */
+  remove: (key: string) => Promise<void>;
   newId: () => string;
   now: () => number;
 };
@@ -30,6 +32,10 @@ export type CoverIngestionResult = {
   withoutCover: string[];
   failed: { slug: string; error: string }[];
 };
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * Gives events without a cover their listing's banner. Covers set by hand are
@@ -60,6 +66,8 @@ export async function ingestMissingCovers(
 
   for (const event of events) {
     if (deps.now() >= deadline || event.lumaEventId === null) break;
+    // Set once the image is stored, cleared once it becomes the cover.
+    let unusedKey: string | null = null;
     try {
       const coverUrl = await deps.findCoverUrl({
         lumaEventId: event.lumaEventId,
@@ -70,10 +78,9 @@ export async function ingestMissingCovers(
       }
       const image = await deps.process(await deps.download(coverUrl));
       const imageId = deps.newId();
-      const url = await deps.store(
-        `events/${event.id}/cover-${imageId}.${image.format}`,
-        image,
-      );
+      const key = `events/${event.id}/cover-${imageId}.${image.format}`;
+      const url = await deps.store(key, image);
+      unusedKey = key;
       const assigned = await deps.database.transaction(async (tx) => {
         await tx.insert(imagesTable).values({
           id: imageId,
@@ -96,11 +103,19 @@ export async function ingestMissingCovers(
         }
         return updated.length > 0;
       });
-      if (assigned) result.ingested.push(event.slug);
+      if (assigned) {
+        unusedKey = null;
+        result.ingested.push(event.slug);
+      }
     } catch (error) {
-      result.failed.push({
-        slug: event.slug,
-        error: error instanceof Error ? error.message : String(error),
+      result.failed.push({ slug: event.slug, error: errorMessage(error) });
+    }
+    if (unusedKey) {
+      await deps.remove(unusedKey).catch((error: unknown) => {
+        result.failed.push({
+          slug: event.slug,
+          error: `Could not delete unused cover ${unusedKey}: ${errorMessage(error)}`,
+        });
       });
     }
   }

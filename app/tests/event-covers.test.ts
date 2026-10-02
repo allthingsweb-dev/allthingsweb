@@ -16,6 +16,7 @@ import {
   ingestMissingCovers,
   type CoverIngestionDependencies,
 } from "../src/lib/event-covers/ingest";
+import { readBodyAtMost } from "../src/lib/event-covers/read-body";
 
 const client = new PGlite();
 const db = drizzle(client);
@@ -40,8 +41,9 @@ afterAll(async () => {
 let ids = 0;
 function deps(
   overrides: Partial<CoverIngestionDependencies> = {},
-): CoverIngestionDependencies & { stored: string[] } {
+): CoverIngestionDependencies & { stored: string[]; removed: string[] } {
   const stored: string[] = [];
+  const removed: string[] = [];
   return {
     database: db,
     findCoverUrl: async ({ lumaEventId }) =>
@@ -58,10 +60,14 @@ function deps(
       stored.push(key);
       return `https://bucket.example/${key}`;
     },
+    remove: async (key) => {
+      removed.push(key);
+    },
     newId: () => `00000000-0000-4000-8000-${String(++ids).padStart(12, "0")}`,
     now: () => 0,
     ...overrides,
     stored,
+    removed,
   };
 }
 
@@ -145,17 +151,17 @@ describe("event cover ingestion", () => {
         height: 630,
       })
       .returning();
-    const result = await ingestMissingCovers(
-      deps({
-        store: async (key) => {
-          await db
-            .update(eventsTable)
-            .set({ previewImage: manual!.id })
-            .where(eq(eventsTable.id, event.id));
-          return `https://bucket.example/${key}`;
-        },
-      }),
-    );
+    const d = deps({
+      store: async (key) => {
+        d.stored.push(key);
+        await db
+          .update(eventsTable)
+          .set({ previewImage: manual!.id })
+          .where(eq(eventsTable.id, event.id));
+        return `https://bucket.example/${key}`;
+      },
+    });
+    const result = await ingestMissingCovers(d);
     expect(result.ingested).toEqual([]);
     const [row] = await db
       .select()
@@ -163,6 +169,7 @@ describe("event cover ingestion", () => {
       .where(eq(eventsTable.id, event.id));
     expect(row!.previewImage).toBe(manual!.id);
     expect(await db.select().from(imagesTable)).toHaveLength(1);
+    expect(d.removed).toEqual(d.stored);
   });
 
   test("reports events whose listing has no banner", async () => {
@@ -208,5 +215,68 @@ describe("event cover ingestion", () => {
       { budgetMs: 10 },
     );
     expect(result.ingested).toEqual(["first"]);
+  });
+
+  test("deletes the stored image when saving it as the cover fails", async () => {
+    await insertEvent("db-down");
+    const d = deps({
+      newId: () => "not-a-uuid",
+    });
+    const result = await ingestMissingCovers(d);
+    expect(result.ingested).toEqual([]);
+    expect(result.failed).toHaveLength(1);
+    expect(d.stored).toHaveLength(1);
+    expect(d.removed).toEqual(d.stored);
+  });
+
+  test("reports an unused image it could not delete", async () => {
+    await insertEvent("db-down");
+    const result = await ingestMissingCovers(
+      deps({
+        newId: () => "not-a-uuid",
+        remove: async () => {
+          throw new Error("S3 unavailable");
+        },
+      }),
+    );
+    expect(result.failed.map((failure) => failure.error)).toContainEqual(
+      expect.stringContaining("Could not delete unused cover"),
+    );
+  });
+});
+
+describe("reading a cover download", () => {
+  const stream = (...chunks: number[]) =>
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const size of chunks) controller.enqueue(new Uint8Array(size));
+        controller.close();
+      },
+    });
+
+  test("returns the whole body when it is within the limit", async () => {
+    const bytes = await readBodyAtMost(new Response(stream(3, 4)), 10);
+    expect(bytes.byteLength).toBe(7);
+  });
+
+  test("stops reading as soon as the body passes the limit", async () => {
+    let pulled = 0;
+    const endless = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(new Uint8Array(4));
+      },
+    });
+    await expect(readBodyAtMost(new Response(endless), 10)).rejects.toThrow(
+      "larger than",
+    );
+    expect(pulled).toBeLessThan(10);
+  });
+
+  test("rejects a declared length over the limit without reading", async () => {
+    const response = new Response(stream(4), {
+      headers: { "content-length": "11" },
+    });
+    await expect(readBodyAtMost(response, 10)).rejects.toThrow("larger than");
   });
 });
