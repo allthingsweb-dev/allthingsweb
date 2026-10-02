@@ -175,11 +175,15 @@ export const createLumaClient = () => {
     });
   };
 
-  const getEvent = async (eventId: string): Promise<LumaEventPayload> => {
+  const getEvent = async (
+    eventId: string,
+    { signal }: { signal?: AbortSignal } = {},
+  ): Promise<LumaEventPayload> => {
     const url = `https://api.lu.ma/public/v1/event/get?api_id=${eventId}`;
     const res = await fetch(url, {
       method: "GET",
       headers,
+      signal,
     });
     if (!res.ok) {
       throw new Error(
