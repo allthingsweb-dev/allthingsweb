@@ -57,6 +57,36 @@ describe("all things/_ design tokens", () => {
     }
   });
 
+  test("rejects references into the wrong group or to undefined tokens", async () => {
+    const source = await Bun.file(
+      join(brandDir, "all-things.tokens.json"),
+    ).json();
+    const withRole = (fontFamily: string) =>
+      structuredClone({
+        ...source,
+        type: {
+          ...source.type,
+          wordmark: {
+            ...source.type.wordmark,
+            $value: { ...source.type.wordmark.$value, fontFamily },
+          },
+        },
+      });
+    const withContrast = (text: string) => {
+      const file = structuredClone(source);
+      file.$extensions["dev.allthings"].contrast[0].text = text;
+      return file;
+    };
+    for (const file of [
+      withRole("{color.ink}"),
+      withRole("{font.serif}"),
+      withContrast("{font.display}"),
+      withContrast("{color.chartreuse}"),
+    ]) {
+      expect(tokenFileSchema.safeParse(file).success).toBe(false);
+    }
+  });
+
   test("the generated theme and constants are up to date", async () => {
     for (const [name, contents] of Object.entries(
       await generateFiles(tokens),

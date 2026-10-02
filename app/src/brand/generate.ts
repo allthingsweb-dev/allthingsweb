@@ -14,10 +14,17 @@ const colorToken = z.object({
   $description: z.string(),
 });
 const px = z.object({ value: z.number(), unit: z.literal("px") });
-const reference = z.string().regex(/^\{[a-z]+\.[A-Za-z]+\}$/);
+/** A `{group.name}` reference into one token group; names are checked below. */
+const reference = (group: "color" | "font") =>
+  z
+    .string()
+    .regex(
+      new RegExp(`^\\{${group}\\.[A-Za-z]+\\}$`),
+      `Expected a {${group}.name} reference`,
+    );
 const typeToken = z.object({
   $value: z.object({
-    fontFamily: reference,
+    fontFamily: reference("font"),
     fontSize: px,
     fontWeight: z.number().int().min(1).max(1000),
     lineHeight: z.number().positive(),
@@ -36,46 +43,77 @@ const typeToken = z.object({
   }),
 });
 const contrastPair = z.object({
-  text: reference,
-  background: reference,
+  text: reference("color"),
+  background: reference("color"),
   minLc: z.number().positive(),
   use: z.string(),
 });
 
-export const tokenFileSchema = z.object({
-  $description: z.string(),
-  color: z.object({ $type: z.literal("color") }).catchall(colorToken),
-  font: z.object({
-    $type: z.literal("fontFamily"),
-    display: z.object({
-      $value: z.array(z.string()).min(1),
-      $description: z.string(),
+export const tokenFileSchema = z
+  .object({
+    $description: z.string(),
+    color: z.object({ $type: z.literal("color") }).catchall(colorToken),
+    font: z.object({
+      $type: z.literal("fontFamily"),
+      display: z.object({
+        $value: z.array(z.string()).min(1),
+        $description: z.string(),
+      }),
+      mono: z.object({
+        $value: z.array(z.string()).min(1),
+        $description: z.string(),
+      }),
     }),
-    mono: z.object({
-      $value: z.array(z.string()).min(1),
-      $description: z.string(),
+    type: z.object({ $type: z.literal("typography") }).catchall(typeToken),
+    layout: z.object({
+      $type: z.literal("dimension"),
+      gutter: z.object({ $value: px, $description: z.string() }),
+      margin: z.object({ $value: px, $description: z.string() }),
     }),
-  }),
-  type: z.object({ $type: z.literal("typography") }).catchall(typeToken),
-  layout: z.object({
-    $type: z.literal("dimension"),
-    gutter: z.object({ $value: px, $description: z.string() }),
-    margin: z.object({ $value: px, $description: z.string() }),
-  }),
-  motion: z.object({
-    cursorBlink: z.object({
-      $type: z.literal("duration"),
-      $value: z.object({ value: z.number().positive(), unit: z.literal("ms") }),
-      $description: z.string(),
+    motion: z.object({
+      cursorBlink: z.object({
+        $type: z.literal("duration"),
+        $value: z.object({
+          value: z.number().positive(),
+          unit: z.literal("ms"),
+        }),
+        $description: z.string(),
+      }),
     }),
-  }),
-  $extensions: z.object({
-    "dev.allthings": z.object({
-      gridColumns: z.number().int().positive(),
-      contrast: z.array(contrastPair).min(1),
+    $extensions: z.object({
+      "dev.allthings": z.object({
+        gridColumns: z.number().int().positive(),
+        contrast: z.array(contrastPair).min(1),
+      }),
     }),
-  }),
-});
+  })
+  .superRefine((file, ctx) => {
+    const defined = (group: "color" | "font", ref: string) => {
+      const name = referencedName(ref);
+      return name !== "$type" && Object.hasOwn(file[group], name);
+    };
+    for (const [role, token] of Object.entries(file.type)) {
+      if (typeof token === "string") continue;
+      if (!defined("font", token.$value.fontFamily)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["type", role, "$value", "fontFamily"],
+          message: `Unknown font ${token.$value.fontFamily}`,
+        });
+      }
+    }
+    file.$extensions["dev.allthings"].contrast.forEach((pair, index) => {
+      for (const side of ["text", "background"] as const) {
+        if (!defined("color", pair[side])) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["$extensions", "dev.allthings", "contrast", index, side],
+            message: `Unknown color ${pair[side]}`,
+          });
+        }
+      }
+    });
+  });
 
 export type TokenFile = z.infer<typeof tokenFileSchema>;
 
