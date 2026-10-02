@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { processImage } from "@/lib/image-processor";
 import { createLumaClient } from "@/lib/luma";
 import { ingestMissingCovers, type CoverIngestionResult } from "./ingest";
+import { fetchCover } from "./cover-source";
 import { readBodyAtMost } from "./read-body";
 
 const maxCoverBytes = 15 * 1024 * 1024;
@@ -17,7 +18,7 @@ async function download(
   url: string,
   { signal }: { signal: AbortSignal },
 ): Promise<Uint8Array> {
-  const response = await fetch(url, {
+  const response = await fetchCover(url, {
     signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]),
   });
   if (!response.ok) {
