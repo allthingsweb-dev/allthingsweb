@@ -2,7 +2,7 @@ import type { Event } from "./events";
 
 type FeedEvent = Pick<
   Event,
-  "name" | "tagline" | "slug" | "startDate" | "createdAt" | "updatedAt"
+  "id" | "name" | "tagline" | "slug" | "startDate" | "createdAt" | "updatedAt"
 >;
 
 function escapeXml(value: string): string {
@@ -44,7 +44,7 @@ export function generateRSS(events: FeedEvent[], origin: string) {
             <title>${escapeXml(event.name)}</title>
             <description>${escapeXml(event.tagline)}</description>
             <link>${escapeXml(eventUrl(origin, event.slug))}</link>
-            <guid isPermaLink="true">${escapeXml(eventUrl(origin, event.slug))}</guid>
+            <guid isPermaLink="false">urn:uuid:${event.id}</guid>
             <pubDate>${announcedAt(event).toUTCString()}</pubDate>
         </item>`,
           )

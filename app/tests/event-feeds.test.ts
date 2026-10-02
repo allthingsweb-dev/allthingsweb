@@ -5,6 +5,7 @@ import { generateRSS, generateSiteMap } from "../src/lib/event-feeds";
 const origin = "https://allthingsweb.dev";
 
 const event = {
+  id: "6f1c2a52-3c1b-4d0e-9a51-3f2b7d1e8c40",
   name: "Show & Tell <Web> 🚀",
   tagline: 'Meet "developers" & share ideas </description><item>fake</item>',
   slug: "2026-show-and-tell",
@@ -25,10 +26,15 @@ describe("public event feeds", () => {
     );
     expect(channel.link).toBe("https://allthingsweb.dev");
     expect(channel.item.pubDate).toBe(event.createdAt.toUTCString());
-    expect(channel.item.guid).toBe(
-      "https://allthingsweb.dev/2026-show-and-tell",
-    );
+    expect(channel.item.guid).toBe(`urn:uuid:${event.id}`);
     expect(Array.isArray(channel.item)).toBe(false);
+  });
+
+  test("RSS guids survive a slug change", () => {
+    const guid = (slug: string) =>
+      new XMLParser().parse(generateRSS([{ ...event, slug }], origin)).rss
+        .channel.item.guid;
+    expect(guid("2026-09-16-show-and-tell")).toBe(guid(event.slug));
   });
 
   test("RSS dates imported past events by when they happened, not when they were imported", () => {
