@@ -208,7 +208,7 @@ export default async function AdminPage() {
                         Raw Content Admin
                       </h3>
                       <p className="text-sm text-gray-600">
-                        Add raw sponsors, profiles, and talks
+                        Add raw hosts, profiles, and talks
                       </p>
                     </div>
                   </div>

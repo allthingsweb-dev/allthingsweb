@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ImageUploadCrop } from "@/components/image-upload-crop";
 
-type EditableSponsor = {
+type EditableHost = {
   id: string;
   name: string;
   about: string;
@@ -13,14 +13,12 @@ type EditableSponsor = {
   squareLogoLightUrl: string | null;
 };
 
-interface CreateSponsorFormProps {
-  initialSponsors: EditableSponsor[];
+interface CreateHostFormProps {
+  initialHosts: EditableHost[];
 }
 
-export default function CreateSponsorForm({
-  initialSponsors,
-}: CreateSponsorFormProps) {
-  const [sponsors, setSponsors] = useState(initialSponsors);
+export default function CreateHostForm({ initialHosts }: CreateHostFormProps) {
+  const [hosts, setHosts] = useState(initialHosts);
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
   const [darkLogoFile, setDarkLogoFile] = useState<File | null>(null);
@@ -30,7 +28,7 @@ export default function CreateSponsorForm({
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const [selectedSponsorId, setSelectedSponsorId] = useState("");
+  const [selectedHostId, setSelectedHostId] = useState("");
   const [editName, setEditName] = useState("");
   const [editAbout, setEditAbout] = useState("");
   const [editDarkLogoFile, setEditDarkLogoFile] = useState<File | null>(null);
@@ -39,16 +37,16 @@ export default function CreateSponsorForm({
   const [editLightLogoUrl, setEditLightLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!selectedSponsorId) return;
-    const sponsor = sponsors.find((entry) => entry.id === selectedSponsorId);
-    if (!sponsor) return;
-    setEditName(sponsor.name);
-    setEditAbout(sponsor.about);
-    setEditDarkLogoUrl(sponsor.squareLogoDarkUrl);
-    setEditLightLogoUrl(sponsor.squareLogoLightUrl);
+    if (!selectedHostId) return;
+    const host = hosts.find((entry) => entry.id === selectedHostId);
+    if (!host) return;
+    setEditName(host.name);
+    setEditAbout(host.about);
+    setEditDarkLogoUrl(host.squareLogoDarkUrl);
+    setEditLightLogoUrl(host.squareLogoLightUrl);
     setEditDarkLogoFile(null);
     setEditLightLogoFile(null);
-  }, [selectedSponsorId, sponsors]);
+  }, [selectedHostId, hosts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,28 +64,28 @@ export default function CreateSponsorForm({
       payload.append("darkLogo", darkLogoFile);
       payload.append("lightLogo", lightLogoFile);
 
-      const response = await fetch("/api/v1/admin/raw/sponsors", {
+      const response = await fetch("/api/v1/admin/raw/hosts", {
         method: "POST",
         body: payload,
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create sponsor");
+        throw new Error(data.error || "Failed to create host");
       }
 
-      setSponsors((prev) => [
+      setHosts((prev) => [
         ...prev,
         {
-          ...data.sponsor,
-          squareLogoDark: data.sponsor.squareLogoDark ?? null,
-          squareLogoLight: data.sponsor.squareLogoLight ?? null,
-          squareLogoDarkUrl: data.sponsor.squareLogoDarkUrl ?? null,
-          squareLogoLightUrl: data.sponsor.squareLogoLightUrl ?? null,
+          ...data.host,
+          squareLogoDark: data.host.squareLogoDark ?? null,
+          squareLogoLight: data.host.squareLogoLight ?? null,
+          squareLogoDarkUrl: data.host.squareLogoDarkUrl ?? null,
+          squareLogoLightUrl: data.host.squareLogoLightUrl ?? null,
         },
       ]);
       setMessage({
         type: "success",
-        text: `Sponsor created: ${data.sponsor.name} (${data.sponsor.id})`,
+        text: `Host created: ${data.host.name} (${data.host.id})`,
       });
 
       setName("");
@@ -110,12 +108,12 @@ export default function CreateSponsorForm({
     setMessage(null);
 
     try {
-      if (!selectedSponsorId) {
-        throw new Error("Please select a sponsor to edit");
+      if (!selectedHostId) {
+        throw new Error("Please select a host to edit");
       }
 
       const payload = new FormData();
-      payload.append("sponsorId", selectedSponsorId);
+      payload.append("hostId", selectedHostId);
       payload.append("name", editName);
       payload.append("about", editAbout);
       if (editDarkLogoFile) {
@@ -125,37 +123,37 @@ export default function CreateSponsorForm({
         payload.append("lightLogo", editLightLogoFile);
       }
 
-      const response = await fetch("/api/v1/admin/raw/sponsors", {
+      const response = await fetch("/api/v1/admin/raw/hosts", {
         method: "PUT",
         body: payload,
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Failed to update sponsor");
+        throw new Error(data.error || "Failed to update host");
       }
 
-      setSponsors((prev) =>
-        prev.map((sponsor) =>
-          sponsor.id === selectedSponsorId
+      setHosts((prev) =>
+        prev.map((host) =>
+          host.id === selectedHostId
             ? {
-                ...sponsor,
-                ...data.sponsor,
-                squareLogoDark: data.sponsor.squareLogoDark ?? null,
-                squareLogoLight: data.sponsor.squareLogoLight ?? null,
-                squareLogoDarkUrl: data.sponsor.squareLogoDarkUrl ?? null,
-                squareLogoLightUrl: data.sponsor.squareLogoLightUrl ?? null,
+                ...host,
+                ...data.host,
+                squareLogoDark: data.host.squareLogoDark ?? null,
+                squareLogoLight: data.host.squareLogoLight ?? null,
+                squareLogoDarkUrl: data.host.squareLogoDarkUrl ?? null,
+                squareLogoLightUrl: data.host.squareLogoLightUrl ?? null,
               }
-            : sponsor,
+            : host,
         ),
       );
-      setEditDarkLogoUrl(data.sponsor.squareLogoDarkUrl ?? null);
-      setEditLightLogoUrl(data.sponsor.squareLogoLightUrl ?? null);
+      setEditDarkLogoUrl(data.host.squareLogoDarkUrl ?? null);
+      setEditLightLogoUrl(data.host.squareLogoLightUrl ?? null);
       setEditDarkLogoFile(null);
       setEditLightLogoFile(null);
 
       setMessage({
         type: "success",
-        text: `Sponsor updated: ${data.sponsor.name} (${data.sponsor.id})`,
+        text: `Host updated: ${data.host.name} (${data.host.id})`,
       });
     } catch (error) {
       setMessage({
@@ -182,9 +180,7 @@ export default function CreateSponsorForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Create New Sponsor
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900">Create New Host</h2>
         <div className="grid gap-6 md:grid-cols-2">
           <ImageUploadCrop
             onImageCropped={(file) => setDarkLogoFile(file)}
@@ -209,7 +205,7 @@ export default function CreateSponsorForm({
             htmlFor="name"
             className="block text-sm font-medium text-gray-700 mb-2"
           >
-            Sponsor Name
+            Host Name
           </label>
           <input
             id="name"
@@ -243,39 +239,39 @@ export default function CreateSponsorForm({
           disabled={isLoading}
           className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? "Creating..." : "Create Sponsor"}
+          {isLoading ? "Creating..." : "Create Host"}
         </button>
       </form>
 
       <div className="border-t border-gray-200 pt-6">
         <form onSubmit={handleUpdateSubmit} className="space-y-6">
           <h2 className="text-lg font-semibold text-gray-900">
-            Edit Existing Sponsor
+            Edit Existing Host
           </h2>
 
           <div>
             <label
-              htmlFor="edit-sponsor-id"
+              htmlFor="edit-host-id"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Select Sponsor
+              Select Host
             </label>
             <select
-              id="edit-sponsor-id"
-              value={selectedSponsorId}
-              onChange={(e) => setSelectedSponsorId(e.target.value)}
+              id="edit-host-id"
+              value={selectedHostId}
+              onChange={(e) => setSelectedHostId(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">Choose a sponsor...</option>
-              {sponsors.map((sponsor) => (
-                <option key={sponsor.id} value={sponsor.id}>
-                  {sponsor.name}
+              <option value="">Choose a host...</option>
+              {hosts.map((host) => (
+                <option key={host.id} value={host.id}>
+                  {host.name}
                 </option>
               ))}
             </select>
           </div>
 
-          {selectedSponsorId && (
+          {selectedHostId && (
             <>
               <div className="grid gap-6 md:grid-cols-2">
                 <ImageUploadCrop
@@ -300,13 +296,13 @@ export default function CreateSponsorForm({
 
               <div>
                 <label
-                  htmlFor="edit-sponsor-name"
+                  htmlFor="edit-host-name"
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
-                  Sponsor Name
+                  Host Name
                 </label>
                 <input
-                  id="edit-sponsor-name"
+                  id="edit-host-name"
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -317,13 +313,13 @@ export default function CreateSponsorForm({
 
               <div>
                 <label
-                  htmlFor="edit-sponsor-about"
+                  htmlFor="edit-host-about"
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
                   About
                 </label>
                 <textarea
-                  id="edit-sponsor-about"
+                  id="edit-host-about"
                   value={editAbout}
                   onChange={(e) => setEditAbout(e.target.value)}
                   rows={6}
@@ -337,7 +333,7 @@ export default function CreateSponsorForm({
                 disabled={isLoading}
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? "Updating..." : "Update Sponsor"}
+                {isLoading ? "Updating..." : "Update Host"}
               </button>
             </>
           )}

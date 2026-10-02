@@ -121,7 +121,7 @@ export function toPublicEvent(
         }),
       })),
     })),
-    hosts: event.sponsors.map((host) => ({
+    hosts: event.hosts.map((host) => ({
       name: host.name,
       about: host.about,
     })),

@@ -8,17 +8,17 @@ import { mainConfig } from "../src/lib/config";
 import {
   awardsTable,
   eventImagesTable,
-  eventSponsorsTable,
+  eventHostsTable,
   eventTalksTable,
   eventsTable,
   imagesTable,
   InsertAward,
   InsertEvent,
   InsertProfile,
-  InsertSponsor,
+  InsertHost,
   InsertTalk,
   profilesTable,
-  sponsorsTable,
+  hostsTable,
   talkSpeakersTable,
   talksTable,
 } from "../src/lib/schema";
@@ -388,9 +388,9 @@ export async function findTalksBySpeakerName(speakerName: string) {
   return { speaker, talks, talkEvents };
 }
 
-// Sponsor functions
-export async function createSponsor(
-  sponsor: InsertSponsor,
+// Host functions
+export async function createHost(
+  host: InsertHost,
   darkLogoFilePath: string,
   lightLogoFilePath: string,
 ) {
@@ -411,7 +411,7 @@ export async function createSponsor(
     conversionFormat: "PNG",
   });
 
-  const nameSlug = sponsor.name.toLowerCase().replace(/ /g, "-");
+  const nameSlug = host.name.toLowerCase().replace(/ /g, "-");
   const darkLogoS3Path =
     "sponsors/" +
     nameSlug +
@@ -436,7 +436,7 @@ export async function createSponsor(
     width: processedDarkLogo.metadata.width,
     height: processedDarkLogo.metadata.height,
     placeholder: processedDarkLogo.placeholder,
-    alt: `${sponsor.name} dark logo`,
+    alt: `${host.name} dark logo`,
   });
 
   // Process light logo
@@ -472,39 +472,39 @@ export async function createSponsor(
     width: processedLightLogo.metadata.width,
     height: processedLightLogo.metadata.height,
     placeholder: processedLightLogo.placeholder,
-    alt: `${sponsor.name} light logo`,
+    alt: `${host.name} light logo`,
   });
 
-  // Update sponsor object with logo UUIDs
-  sponsor.squareLogoDark = darkLogoUuid;
-  sponsor.squareLogoLight = lightLogoUuid;
+  // Update host object with logo UUIDs
+  host.squareLogoDark = darkLogoUuid;
+  host.squareLogoLight = lightLogoUuid;
 
-  // Insert sponsor into database
-  const sponsorRes = await db.insert(sponsorsTable).values(sponsor).returning();
+  // Insert host into database
+  const hostRes = await db.insert(hostsTable).values(host).returning();
 
-  return sponsorRes[0];
+  return hostRes[0];
 }
 
-export async function addSponsorToEvent(slug: string, sponsorName: string) {
+export async function addHostToEvent(slug: string, hostName: string) {
   const event = await getEventBySlug(slug);
   if (!event) {
     throw new Error("Event not found");
   }
 
-  const sponsors = await db
+  const hosts = await db
     .select()
-    .from(sponsorsTable)
-    .where(eq(sponsorsTable.name, sponsorName));
-  if (sponsors.length !== 1) {
-    throw new Error("Sponsor not found");
+    .from(hostsTable)
+    .where(eq(hostsTable.name, hostName));
+  if (hosts.length !== 1) {
+    throw new Error("Host not found");
   }
 
-  await db.insert(eventSponsorsTable).values({
+  await db.insert(eventHostsTable).values({
     eventId: event.id,
-    sponsorId: sponsors[0].id,
+    hostId: hosts[0].id,
   });
 
-  return { event, sponsor: sponsors[0] };
+  return { event, host: hosts[0] };
 }
 
 // Image functions

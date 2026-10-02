@@ -116,7 +116,7 @@ export function HackathonDashboard({
         hacks: [],
         talks: [],
         speakers: [],
-        sponsors: [],
+        hosts: [],
         images: [],
       }
     : null;

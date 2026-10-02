@@ -22,7 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { ExpandedEvent, Talk, Sponsor } from "@/lib/expanded-events";
+import type { ExpandedEvent, Talk, Host } from "@/lib/expanded-events";
 import type { Image } from "@/lib/events";
 import { SocialsList } from "@/components/profile-card";
 import { getEventHeroImage } from "@/lib/event-hero";
@@ -311,35 +311,33 @@ export function TalksSection({ talks }: { talks: Talk[] }) {
   );
 }
 
-export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
+export function HostsSection({ hosts }: { hosts: Host[] }) {
   return (
     <Section variant="big">
       <div className="container">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">
-          {sponsors.length === 1
-            ? "Our Host & Sponsor"
-            : "Our Hosts & Sponsors"}
+          {hosts.length === 1 ? "Our Host" : "Our Hosts"}
         </h2>
         <div className="flex flex-col gap-6 md:gap-8 items-center justify-center max-w-4xl mx-auto">
-          {sponsors.map((sponsor) => (
+          {hosts.map((host) => (
             <div
-              key={sponsor.id}
+              key={host.id}
               className="bg-background rounded-lg shadow-lg p-6 sm:p-8 w-full"
             >
               <div className="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-6">
                 <NextImage
-                  src={sponsor.squareLogoLight.url}
+                  src={host.squareLogoLight.url}
                   width={96}
                   height={96}
-                  alt={sponsor.name}
+                  alt={host.name}
                   className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">
-                    {sponsor.name}
+                    {host.name}
                   </h3>
                   <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-                    {sponsor.about}
+                    {host.about}
                   </p>
                 </div>
               </div>

@@ -89,16 +89,16 @@ export function EventPreview({ event }: { event: ExpandedEvent }) {
         <div tw="flex-grow flex flex-col justify-between mt-12">
           <EventPreviewTalks talks={event.talks} />
           <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
-            {event.sponsors.map((sponsor, index) => (
+            {event.hosts.map((host, index) => (
               <div key={index} tw="flex items-center">
                 <img
-                  src={sponsor.squareLogoDark.url}
-                  alt={`${sponsor.name} logo`}
+                  src={host.squareLogoDark.url}
+                  alt={`${host.name} logo`}
                   width={60}
                   height={60}
                 />
                 <span tw="ml-2 text-4xl font-medium text-gray-200">
-                  {sponsor.name}
+                  {host.name}
                 </span>
               </div>
             ))}

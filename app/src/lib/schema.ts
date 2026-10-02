@@ -45,7 +45,8 @@ export const imagesTable = pgTable("images", {
 export type InsertImage = typeof imagesTable.$inferInsert;
 export type SelectImage = typeof imagesTable.$inferSelect;
 
-export const sponsorsTable = pgTable("sponsors", {
+// Hosting companies. The tables keep their original `sponsors` names.
+export const hostsTable = pgTable("sponsors", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
   about: text("about").notNull(),
@@ -59,8 +60,8 @@ export const sponsorsTable = pgTable("sponsors", {
   updatedAt,
 });
 
-export type InsertSponsor = typeof sponsorsTable.$inferInsert;
-export type SelectSponsor = typeof sponsorsTable.$inferSelect;
+export type InsertHost = typeof hostsTable.$inferInsert;
+export type SelectHost = typeof hostsTable.$inferSelect;
 
 export const profileTypeEnum = pgEnum("profile_type", ["organizer", "member"]);
 
@@ -149,19 +150,19 @@ export const eventsTable = pgTable("events", {
   updatedAt,
 });
 
-export const eventSponsorsTable = pgTable(
+export const eventHostsTable = pgTable(
   "event_sponsors",
   {
     eventId: uuid("event_id")
       .notNull()
       .references(() => eventsTable.id),
-    sponsorId: uuid("sponsor_id")
+    hostId: uuid("sponsor_id")
       .notNull()
-      .references(() => sponsorsTable.id),
+      .references(() => hostsTable.id),
     createdAt,
     updatedAt,
   },
-  (table) => [primaryKey({ columns: [table.eventId, table.sponsorId] })],
+  (table) => [primaryKey({ columns: [table.eventId, table.hostId] })],
 );
 
 export const eventTalksTable = pgTable(
@@ -215,8 +216,8 @@ export const eventReviewSessionsTable = pgTable("event_review_sessions", {
 
 export type InsertEvent = typeof eventsTable.$inferInsert;
 export type SelectEvent = typeof eventsTable.$inferSelect;
-export type InsertEventSponsor = typeof eventSponsorsTable.$inferInsert;
-export type SelectEventSponsor = typeof eventSponsorsTable.$inferSelect;
+export type InsertEventHost = typeof eventHostsTable.$inferInsert;
+export type SelectEventHost = typeof eventHostsTable.$inferSelect;
 export type InsertEventTalk = typeof eventTalksTable.$inferInsert;
 export type SelectEventTalk = typeof eventTalksTable.$inferSelect;
 export type InsertEventImage = typeof eventImagesTable.$inferInsert;

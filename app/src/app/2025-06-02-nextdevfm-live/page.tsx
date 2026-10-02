@@ -9,7 +9,7 @@ import {
   HeroSection,
   AllYouNeedToKnowSection,
   ImagesSection,
-  SponsorsSection,
+  HostsSection,
 } from "@/components/event-details";
 import { Section } from "@/components/ui/section";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -112,7 +112,7 @@ export default async function NextDevFmLivePage() {
         variant="big"
         background={showEventImageSection ? "muted" : "default"}
       >
-        <SponsorsSection sponsors={event.sponsors} />
+        <HostsSection hosts={event.hosts} />
       </Section>
     </EventDetailsPage>
   );
