@@ -120,4 +120,26 @@ describe("MCP client", () => {
       ExitCode.ServiceError,
     );
   });
+
+  test("reports a body that times out as unreachable, not as an unexpected response", async () => {
+    const stalled = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(
+          new DOMException("The operation timed out.", "TimeoutError"),
+        );
+      },
+    });
+    const error = await expectCliError(
+      createClient({
+        fetch: async () =>
+          new Response(stalled, {
+            headers: { "content-type": "text/event-stream" },
+          }),
+      }).getCommunity(),
+      ExitCode.ServiceError,
+    );
+    expect(error.message).toBe(
+      "Could not reach https://allthingsweb.dev/mcp: timed out",
+    );
+  });
 });

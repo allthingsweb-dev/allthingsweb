@@ -16,6 +16,7 @@ import {
   eventSummarySchema,
   speakerSchema,
 } from "@/lib/public-api/schemas";
+import { eventNotFoundMessage } from "@/lib/public-api/errors";
 
 export type AtwMcpDependencies = {
   origin: string;
@@ -125,7 +126,7 @@ export function registerAtwTools(
             content: [
               {
                 type: "text",
-                text: `No published event has the slug "${slug}". Use list_events to find one.`,
+                text: eventNotFoundMessage(slug),
               },
             ],
           };

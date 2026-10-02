@@ -13,6 +13,27 @@ import {
 
 export const defaultEndpoint = "https://allthingsweb.dev/mcp";
 
+/**
+ * Whether a get_event tool error means the slug has no published event. The
+ * contract test checks this against the server's own message.
+ */
+export function isEventNotFound(message: string): boolean {
+  return message.startsWith("No published event");
+}
+
+function networkFailure(endpoint: string, error: unknown): CliError {
+  const reason =
+    error instanceof Error && error.name === "TimeoutError"
+      ? "timed out"
+      : error instanceof Error
+        ? error.message
+        : String(error);
+  return new CliError(
+    `Could not reach ${endpoint}: ${reason}`,
+    ExitCode.ServiceError,
+  );
+}
+
 const toolResultSchema = z.object({
   isError: z.boolean().optional(),
   content: z.array(z.object({ type: z.string(), text: z.string().optional() })),
@@ -64,10 +85,7 @@ export function createClient({
         signal: AbortSignal.timeout(20_000),
       });
     } catch (error) {
-      throw new CliError(
-        `Could not reach ${endpoint}: ${error instanceof Error ? error.message : String(error)}`,
-        ExitCode.ServiceError,
-      );
+      throw networkFailure(endpoint, error);
     }
     if (!response.ok) {
       throw new CliError(
@@ -76,13 +94,17 @@ export function createClient({
       );
     }
 
+    // The timeout also covers reading the body, which a slow stream can hit.
+    let body: string;
+    try {
+      body = await response.text();
+    } catch (error) {
+      throw networkFailure(endpoint, error);
+    }
     let rpc: z.infer<typeof rpcResponseSchema>;
     try {
       rpc = rpcResponseSchema.parse(
-        parseRpcBody(
-          await response.text(),
-          response.headers.get("content-type") ?? "",
-        ),
+        parseRpcBody(body, response.headers.get("content-type") ?? ""),
       );
     } catch {
       throw new CliError(
@@ -97,10 +119,9 @@ export function createClient({
     const { result } = rpc;
     if (result.isError) {
       const message = result.content.map((part) => part.text ?? "").join("\n");
-      const notFound = message.startsWith("No published event");
       throw new CliError(
         message,
-        notFound ? ExitCode.NotFound : ExitCode.ServiceError,
+        isEventNotFound(message) ? ExitCode.NotFound : ExitCode.ServiceError,
       );
     }
     const parsed = schema.safeParse(result.structuredContent);

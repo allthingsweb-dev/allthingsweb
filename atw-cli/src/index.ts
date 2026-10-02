@@ -14,8 +14,13 @@ const exitCode = await run(process.argv.slice(2), {
   isTTY: process.stdout.isTTY === true,
   env: process.env,
   openUrl: async (url) => {
-    await Bun.spawn([...opener, url], { stdout: "ignore", stderr: "ignore" })
-      .exited;
+    // The link is already printed, so a missing opener (no xdg-open) is fine.
+    try {
+      await Bun.spawn([...opener, url], { stdout: "ignore", stderr: "ignore" })
+        .exited;
+    } catch {
+      return;
+    }
   },
 });
 

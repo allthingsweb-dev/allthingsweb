@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import * as server from "../../app/src/lib/public-api/schemas.ts";
+import { eventNotFoundMessage } from "../../app/src/lib/public-api/errors.ts";
+import { isEventNotFound } from "../src/client.ts";
 import * as cli from "../src/schemas.ts";
 
 /** Descriptions are documentation for agents; the shapes must match exactly. */
@@ -21,5 +23,9 @@ describe("public contract", () => {
     ["communitySchema"],
   ] as const)("the CLI's %s matches the server's", (name) => {
     expect(shape(cli[name])).toEqual(shape(server[name]));
+  });
+
+  test("the CLI recognizes the server's event-not-found message", () => {
+    expect(isEventNotFound(eventNotFoundMessage("no-such-event"))).toBe(true);
   });
 });
