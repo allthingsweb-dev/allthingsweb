@@ -2,6 +2,12 @@ import { toReadableDateTimeStr } from "@/lib/datetime";
 import { Image } from "@/lib/events";
 import { ExpandedEvent, Talk as ExpandedTalk } from "@/lib/expanded-events";
 import { Profile } from "@/lib/profiles";
+import { mainConfig } from "@/lib/config";
+
+/** Satori fetches images itself, so same-origin paths must be absolute. */
+function ogImageSrc(url: string): string {
+  return url.startsWith("/") ? `${mainConfig.instance.origin}${url}` : url;
+}
 
 declare module "react" {
   interface HTMLAttributes<T> {
@@ -35,7 +41,7 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.slice(0, maxPreviewTalks).map((talk) => (
         <div key={talk.id} tw="flex items-center">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={avatarSize}
             height={avatarSize}
@@ -97,7 +103,7 @@ export function EventPreview({ event }: { event: ExpandedEvent }) {
             {event.sponsors.map((sponsor, index) => (
               <div key={index} tw="flex items-center">
                 <img
-                  src={sponsor.squareLogoDark.url}
+                  src={ogImageSrc(sponsor.squareLogoDark.url)}
                   alt={`${sponsor.name} logo`}
                   width={manyHosts ? 40 : 60}
                   height={manyHosts ? 40 : 60}
@@ -122,7 +128,7 @@ function EventYouTubeThumbnailTwoTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={180}
             height={180}
@@ -158,7 +164,7 @@ function EventYouTubeThumbnailThreeTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={140}
             height={140}
@@ -194,7 +200,7 @@ function EventYouTubeThumbnailFourTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={120}
             height={120}
@@ -230,7 +236,7 @@ function EventYouTubeThumbnailFiveTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={100}
             height={100}
@@ -305,7 +311,7 @@ export function SpeakersPreview({ speakers }: { speakers: Profile[] }) {
           <div key={speaker.id} tw="flex flex-col items-center text-center">
             <div tw="w-[120px] h-[120px] bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
               <img
-                src={speaker.image.url}
+                src={ogImageSrc(speaker.image.url)}
                 alt={speaker.name}
                 width={120}
                 height={120}
@@ -337,7 +343,7 @@ export function LandingPagePreview({ images }: { images: Image[] }) {
         {imagesToShow.map((image) => (
           <img
             key={image.url}
-            src={image.url}
+            src={ogImageSrc(image.url)}
             alt="Past event image"
             tw="w-[400px] h-[315px]"
             width="400"
