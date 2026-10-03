@@ -10,7 +10,6 @@ import {
   TalksSection,
   ImagesSection,
   HostsSection,
-  TeamsAndHacksSection,
 } from "@/components/event-details";
 
 interface PageProps {
@@ -80,9 +79,6 @@ export default async function EventPage({ params }: PageProps) {
           images={event.images}
           background={event.talks.length ? "muted" : "default"}
         />
-      )}
-      {event.isHackathon && event.hacks && event.hacks.length > 0 && (
-        <TeamsAndHacksSection hacks={event.hacks} />
       )}
       {event.hosts.length > 0 && <HostsSection hosts={event.hosts} />}
     </EventDetailsPage>
