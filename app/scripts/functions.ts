@@ -174,7 +174,7 @@ export async function createProfile(profile: InsertProfile, imgPath: string) {
     width: processedImage.metadata.width,
     height: processedImage.metadata.height,
     placeholder: processedImage.placeholder,
-    alt: `${profile.name} smiling into the camera`,
+    alt: profile.name,
   });
 
   profile.image = uuid;
@@ -183,7 +183,8 @@ export async function createProfile(profile: InsertProfile, imgPath: string) {
   return profileRes[0];
 }
 
-export async function replaceProfileImage(name: string, imgPath: string) {
+/** Sets a profile's photo, replacing (and deleting) any earlier one. */
+export async function setProfileImage(name: string, imgPath: string) {
   const s3Client = new S3Client({
     region: mainConfig.s3.region,
     credentials: {
@@ -197,18 +198,13 @@ export async function replaceProfileImage(name: string, imgPath: string) {
     throw new Error("Profile not found");
   }
 
-  const imageToDeleteId = profile.image;
-  if (!imageToDeleteId) {
-    throw new Error("No image to delete");
-  }
-  const imageToDelete = await db
-    .select()
-    .from(imagesTable)
-    .where(eq(imagesTable.id, imageToDeleteId))
-    .then((data) => data[0]);
-  if (!imageToDelete) {
-    throw new Error("Image to delete not found");
-  }
+  const imageToDelete = profile.image
+    ? await db
+        .select()
+        .from(imagesTable)
+        .where(eq(imagesTable.id, profile.image))
+        .then((data) => data[0])
+    : undefined;
 
   const uuid = randomUUID();
 
@@ -238,27 +234,25 @@ export async function replaceProfileImage(name: string, imgPath: string) {
     width: processedImage.metadata.width,
     height: processedImage.metadata.height,
     placeholder: processedImage.placeholder,
-    alt: `${profile.name} smiling into the camera`,
+    alt: profile.name,
   });
 
-  await db
+  const [updated] = await db
     .update(profilesTable)
-    .set({
-      image: uuid,
-    })
-    .where(eq(profilesTable.id, profile.id));
+    .set({ image: uuid })
+    .where(eq(profilesTable.id, profile.id))
+    .returning();
 
-  await db.delete(imagesTable).where(eq(imagesTable.id, imageToDeleteId));
-
-  const s3Path = imageToDelete.url.replace(mainConfig.s3.url + "/", "");
+  if (!imageToDelete) return updated;
+  await db.delete(imagesTable).where(eq(imagesTable.id, imageToDelete.id));
   await s3Client.send(
     new DeleteObjectCommand({
       Bucket: mainConfig.s3.bucket,
-      Key: s3Path,
+      Key: imageToDelete.url.replace(mainConfig.s3.url + "/", ""),
     }),
   );
 
-  return profile;
+  return updated;
 }
 
 export async function updateProfile(

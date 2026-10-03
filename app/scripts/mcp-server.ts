@@ -15,7 +15,7 @@ import {
   createProfile,
   updateProfile,
   updateProfileById,
-  replaceProfileImage,
+  setProfileImage,
   createTalk,
   updateTalk,
   addTalkToEvent,
@@ -283,8 +283,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "replace_profile_image",
-        description: "Replace profile image",
+        name: "set_profile_image",
+        description: "Set a profile's photo, replacing any earlier one",
         inputSchema: {
           type: "object",
           properties: {
@@ -675,9 +675,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "replace_profile_image": {
+      case "set_profile_image": {
         const { name, imgPath } = args as { name: string; imgPath: string };
-        const result = await replaceProfileImage(name, imgPath);
+        const result = await setProfileImage(name, imgPath);
         return {
           content: [
             {
