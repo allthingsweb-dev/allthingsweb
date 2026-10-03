@@ -11,4 +11,6 @@ bun run deploy --stage prod   # apply them
 bun run deploy                # your own stage (live_$USER) with its own resources
 ```
 
-Only the `prod` stage gets the `media.allthings.dev` domain, and its bucket is kept even if removed from the stack.
+- **Media:** an R2 bucket. Only `prod` gets the `media.allthings.dev` domain, and its bucket is kept even if removed from the stack.
+- **Upload Worker:** stores and deletes media for the app while it runs on Vercel. The bucket is a binding and callers present a token Alchemy generates. Every deploy proves uploads work by storing and deleting one object.
+- **Vercel env:** `prod` deploys write `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` to the Vercel project with the Vercel CLI, so it needs to be signed in (`bunx vercel login`).
