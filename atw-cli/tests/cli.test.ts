@@ -3,6 +3,7 @@ import { run, type Io } from "../src/cli.ts";
 import type { Client } from "../src/client.ts";
 import { CliError, ExitCode } from "../src/errors.ts";
 import { event, fakeClient, summary } from "./fixtures.ts";
+import packageJson from "../package.json";
 
 async function exec(
   argv: string[],
@@ -46,7 +47,10 @@ describe("atw", () => {
   });
 
   test("prints its version", async () => {
-    expect((await exec(["--version"])).stdout).toMatch(/^\d+\.\d+\.\d+\n$/);
+    const { stdout } = await exec(["--version"]);
+    expect(stdout).toBe(`${packageJson.version}\n`);
+    // SemVer, including prerelease tags such as 2.0.0-alpha.1.
+    expect(stdout).toMatch(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?\n$/);
   });
 
   test("rejects bad usage with exit code 2 and a pointer to help", async () => {
