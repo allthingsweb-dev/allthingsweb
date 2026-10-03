@@ -24,7 +24,10 @@ function authorized(request: Request, token: string): boolean {
 function objectKey(request: Request): string | undefined {
   try {
     const key = decodeURIComponent(new URL(request.url).pathname.slice(1));
-    return KEY.test(key) ? key : undefined;
+    // Like the app, never accept ".." inside a segment.
+    return KEY.test(key) && !key.split("/").some((s) => s.includes(".."))
+      ? key
+      : undefined;
   } catch {
     // Malformed percent-encoding.
     return undefined;
