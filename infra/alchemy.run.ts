@@ -1,46 +1,46 @@
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
-import * as RemovalPolicy from "alchemy/RemovalPolicy";
+import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
-
-const PRODUCTION = "prod";
-const MEDIA_DOMAIN = "media.allthings.dev";
+import { Media, PRODUCTION, MEDIA_DOMAIN } from "./src/media.ts";
+import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
+import { VercelEnv } from "./src/vercel-env.ts";
 
 export default Alchemy.Stack(
   "allthings",
   { providers: Cloudflare.providers(), state: Cloudflare.state() },
   Effect.gen(function* () {
-    const { stage } = yield* Alchemy.Stack;
-    const production = stage === PRODUCTION;
-
-    // The domain's zone must live in the deploying account; resolving it here
-    // fails the plan instead of a half-applied deploy.
-    const domains = production
-      ? [
-          {
-            name: MEDIA_DOMAIN,
-            zone: yield* Cloudflare.Zone.resolveZoneId({
-              accountId: (yield* yield* Cloudflare.CloudflareEnvironment)
-                .accountId,
-              zone: "allthings.dev",
-              hostname: MEDIA_DOMAIN,
-            }).pipe(Effect.orDie),
-            minTLS: "1.2" as const,
-          },
-        ]
-      : [];
-
-    // Event covers, speaker photos and host logos. Production serves them on
-    // media.allthings.dev; other stages get their own disposable bucket.
-    const media = Cloudflare.R2.Bucket("Media", {
-      name: production ? "allthings-media" : `allthings-media-${stage}`,
-      domains,
-      forceDestroy: !production,
+    const media = yield* Media;
+    const upload = yield* MediaUpload;
+    const token = yield* Alchemy.makeRandom("MediaUploadToken");
+    yield* MediaUploadCheck({
+      url: upload.url.as<string>(),
+      token,
+      workerHash: upload.hash.pipe(
+        Output.map((hash) => hash?.bundle ?? "unbuilt"),
+      ),
     });
-    const bucket = yield* production
-      ? media.pipe(RemovalPolicy.retain())
-      : media;
+    // The app on Vercel uploads through the Worker and links to the domain.
+    const { stage } = yield* Alchemy.Stack;
+    if (stage === PRODUCTION) {
+      const deployed = ["production", "preview"] as const;
+      yield* VercelEnv("MEDIA_UPLOAD_URL", upload.url.as<string>(), {
+        sensitive: false,
+        targets: deployed,
+      });
+      yield* VercelEnv("MEDIA_UPLOAD_TOKEN", token, {
+        sensitive: true,
+        targets: deployed,
+      });
+      yield* VercelEnv("MEDIA_PUBLIC_URL", `https://${MEDIA_DOMAIN}`, {
+        sensitive: false,
+        targets: [...deployed, "development"],
+      });
+    }
 
-    return { mediaBucket: bucket.bucketName };
+    return {
+      mediaBucket: media.bucketName,
+      mediaUploadUrl: upload.url.as<string>(),
+    };
   }),
 );
