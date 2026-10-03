@@ -31,8 +31,6 @@ import {
   removeUserFromAdmins,
   listAdmins,
   getLumaEvent,
-  createAward,
-  listAwards,
 } from "./functions.js";
 
 // Zod schemas for function parameters
@@ -94,15 +92,6 @@ const UpdateTalkSchema = z.object({
 const InsertHostSchema = z.object({
   name: z.string(),
   about: z.string(), // Required in schema
-});
-
-const CreateAwardSchema = z.object({
-  eventId: z.string(),
-  name: z.string(),
-});
-
-const ListAwardsSchema = z.object({
-  eventId: z.string(),
 });
 
 const server = new Server(
@@ -532,40 +521,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: [],
         },
       },
-      // Award tools
-      {
-        name: "create_award",
-        description: "Create a new award for a hackathon event",
-        inputSchema: {
-          type: "object",
-          properties: {
-            eventId: {
-              type: "string",
-              description: "Event ID for the hackathon",
-            },
-            name: {
-              type: "string",
-              description:
-                "Award name (e.g., 'Best Innovation', 'People's Choice')",
-            },
-          },
-          required: ["eventId", "name"],
-        },
-      },
-      {
-        name: "list_awards",
-        description: "List all awards for a hackathon event",
-        inputSchema: {
-          type: "object",
-          properties: {
-            eventId: {
-              type: "string",
-              description: "Event ID for the hackathon",
-            },
-          },
-          required: ["eventId"],
-        },
-      },
     ],
   };
 });
@@ -896,32 +851,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "list_admins": {
         const result = await listAdmins();
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "create_award": {
-        const { eventId, name } = args as { eventId: string; name: string };
-        const result = await createAward({ eventId, name });
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "list_awards": {
-        const { eventId } = args as { eventId: string };
-        const result = await listAwards(eventId);
         return {
           content: [
             {
