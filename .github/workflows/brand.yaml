@@ -18,6 +18,11 @@ on:
 permissions:
   contents: read
 
+# A newer push makes an older run of the same ref moot.
+concurrency:
+  group: brand-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   marks:
     name: 🅰️ Marks are up to date

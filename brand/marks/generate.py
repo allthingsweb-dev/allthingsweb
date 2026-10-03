@@ -25,7 +25,7 @@ import uharfbuzz as hb
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
-from PIL import Image
+from PIL import IcoImagePlugin, Image
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -98,7 +98,7 @@ def load_brand() -> Brand:
 def load_font() -> bytes:
     if not FONT_CACHE.exists():
         FONT_CACHE.parent.mkdir(parents=True, exist_ok=True)
-        with urllib.request.urlopen(FONT_URL) as response:
+        with urllib.request.urlopen(FONT_URL, timeout=60) as response:
             FONT_CACHE.write_bytes(response.read())
     data = FONT_CACHE.read_bytes()
     digest = hashlib.sha256(data).hexdigest()
@@ -342,11 +342,16 @@ def matches(path: Path, data: bytes) -> bool:
     if path.suffix == ".svg":
         return path.read_bytes() == data
 
-    def pixels(image: Image.Image) -> tuple:
-        sizes = tuple(sorted(image.info.get("sizes", {image.size})))
-        return sizes, image.size, image.convert("RGBA").tobytes()
+    def frames(image: Image.Image) -> list[tuple[tuple[int, int], bytes]]:
+        # An ICO holds one frame per size; every frame has to match.
+        if isinstance(image, IcoImagePlugin.IcoImageFile):
+            return [
+                (size, image.ico.getimage(size).convert("RGBA").tobytes())
+                for size in sorted(image.ico.sizes())
+            ]
+        return [(image.size, image.convert("RGBA").tobytes())]
 
-    return pixels(Image.open(path)) == pixels(Image.open(io.BytesIO(data)))
+    return frames(Image.open(path)) == frames(Image.open(io.BytesIO(data)))
 
 
 def main() -> None:
