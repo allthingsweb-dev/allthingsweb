@@ -325,13 +325,15 @@ export function HostsSection({ hosts }: { hosts: Host[] }) {
               className="bg-background rounded-lg shadow-lg p-6 sm:p-8 w-full"
             >
               <div className="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-6">
-                <NextImage
-                  src={host.squareLogoLight.url}
-                  width={96}
-                  height={96}
-                  alt={host.name}
-                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain flex-shrink-0"
-                />
+                {host.squareLogoLight && (
+                  <NextImage
+                    src={host.squareLogoLight.url}
+                    width={96}
+                    height={96}
+                    alt={host.name}
+                    className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain flex-shrink-0"
+                  />
+                )}
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">
                     {host.name}

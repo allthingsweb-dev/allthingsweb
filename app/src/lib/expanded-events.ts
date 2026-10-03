@@ -1,5 +1,6 @@
 import { sanitizeRichText, type SafeHtml } from "@/lib/safe-html";
 import { eq, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import {
   eventsTable,
@@ -25,8 +26,9 @@ export type Host = {
   id: string;
   name: string;
   about: string;
-  squareLogoLight: Image;
-  squareLogoDark: Image;
+  /** Null when the host has no logo; pages then show the name alone. */
+  squareLogoLight: Image | null;
+  squareLogoDark: Image | null;
 };
 
 export type Speaker = {
@@ -106,44 +108,30 @@ async function getExpandedEventFromQuery(
 
   // Hosts
   const hostsPromise: Promise<Host[]> = (async () => {
+    const darkLogos = alias(imagesTable, "dark_logos");
     const hostsQuery = await db
-      .select({ host: hostsTable, lightLogo: imagesTable })
+      .select({ host: hostsTable, light: imagesTable, dark: darkLogos })
       .from(eventHostsTable)
       .where(eq(eventHostsTable.eventId, event.id))
       .innerJoin(hostsTable, eq(eventHostsTable.hostId, hostsTable.id))
-      .leftJoin(imagesTable, eq(hostsTable.squareLogoLight, imagesTable.id));
+      .leftJoin(imagesTable, eq(hostsTable.squareLogoLight, imagesTable.id))
+      .leftJoin(darkLogos, eq(hostsTable.squareLogoDark, darkLogos.id));
 
     return Promise.all(
-      hostsQuery.map(async ({ host, lightLogo: lightLogoRow }) => {
-        const lightLogoRaw = lightLogoRow || {
-          url: "/placeholder-host.png",
-          alt: host.name,
-          placeholder: null,
-          width: 200,
-          height: 200,
-        };
-
-        // Get dark logo separately
-        const darkLogoQuery = await db
-          .select()
-          .from(imagesTable)
-          .where(eq(imagesTable.id, host.squareLogoDark!))
-          .limit(1);
-
-        const darkLogoRaw = darkLogoQuery[0] || lightLogoRaw;
-
-        // Sign both logos
-        const [lightLogo, darkLogo] = await Promise.all([
-          signImage(lightLogoRaw),
-          signImage(darkLogoRaw),
+      hostsQuery.map(async ({ host, light, dark }) => {
+        // A host with one logo variant uses it for both; with none, no logo.
+        const signed = (image: typeof light) =>
+          image ? signImage(image) : null;
+        const [squareLogoLight, squareLogoDark] = await Promise.all([
+          signed(light ?? dark),
+          signed(dark ?? light),
         ]);
-
         return {
           id: host.id,
           name: host.name,
           about: host.about,
-          squareLogoLight: lightLogo,
-          squareLogoDark: darkLogo,
+          squareLogoLight,
+          squareLogoDark,
         };
       }),
     );
