@@ -20,13 +20,24 @@ function authorized(request: Request, token: string): boolean {
   return difference === 0;
 }
 
+/** The object key from the path, or undefined if it's malformed or not a valid key. */
+function objectKey(request: Request): string | undefined {
+  try {
+    const key = decodeURIComponent(new URL(request.url).pathname.slice(1));
+    return KEY.test(key) ? key : undefined;
+  } catch {
+    // Malformed percent-encoding.
+    return undefined;
+  }
+}
+
 export default {
   async fetch(request: Request, env: MediaUploadEnv): Promise<Response> {
     if (!authorized(request, env.UPLOAD_TOKEN)) {
       return new Response("Unauthorized", { status: 401 });
     }
-    const key = decodeURIComponent(new URL(request.url).pathname.slice(1));
-    if (!KEY.test(key)) {
+    const key = objectKey(request);
+    if (key === undefined) {
       return new Response("Invalid key", { status: 400 });
     }
     switch (request.method) {
