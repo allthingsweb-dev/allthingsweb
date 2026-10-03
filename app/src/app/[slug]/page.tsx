@@ -24,9 +24,7 @@ export async function generateMetadata({
   const event = await getExpandedEventBySlug(slug);
 
   if (!event || event.isDraft) {
-    return {
-      title: "Event not found",
-    };
+    notFound();
   }
 
   const url = `${mainConfig.instance.origin}/${slug}`;

@@ -2,7 +2,7 @@ import type { Event } from "./events";
 
 type FeedEvent = Pick<
   Event,
-  "name" | "tagline" | "slug" | "createdAt" | "updatedAt"
+  "id" | "name" | "tagline" | "slug" | "startDate" | "createdAt" | "updatedAt"
 >;
 
 function escapeXml(value: string): string {
@@ -22,6 +22,14 @@ function eventUrl(origin: string, slug: string): string {
   return `${origin}/${encodeURIComponent(slug)}`;
 }
 
+/**
+ * When an event was announced. Events imported after they happened would
+ * otherwise all appear as new on the day they were imported.
+ */
+function announcedAt(event: FeedEvent): Date {
+  return event.createdAt < event.startDate ? event.createdAt : event.startDate;
+}
+
 export function generateRSS(events: FeedEvent[], origin: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -36,7 +44,8 @@ export function generateRSS(events: FeedEvent[], origin: string) {
             <title>${escapeXml(event.name)}</title>
             <description>${escapeXml(event.tagline)}</description>
             <link>${escapeXml(eventUrl(origin, event.slug))}</link>
-            <pubDate>${event.createdAt.toUTCString()}</pubDate>
+            <guid isPermaLink="false">urn:uuid:${event.id}</guid>
+            <pubDate>${announcedAt(event).toUTCString()}</pubDate>
         </item>`,
           )
           .join("\n")}
