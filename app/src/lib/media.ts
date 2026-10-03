@@ -5,31 +5,48 @@
  */
 export const mediaPathPrefix = "/media/";
 
-const keySegment = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
+// Letters and digits in any script, since keys are derived from names such as
+// "Erik Peña", followed by combining marks (Devanagari vowel signs, a decomposed
+// "ñ"), dots, dashes and underscores. Never separators, spaces or percent signs.
+const keySegment = /^[\p{L}\p{N}_][\p{L}\p{M}\p{N}._-]*$/u;
 
 /** Maps a stored bucket URL to its media path; other URLs are returned as is. */
 export function toMediaUrl(storedUrl: string, storageOrigin: string): string {
   const prefix = `${storageOrigin}/`;
   if (!storedUrl.startsWith(prefix)) return storedUrl;
-  const key = storedUrl.slice(prefix.length);
-  return mediaKeyFromSegments(key.split("/"))
-    ? `${mediaPathPrefix}${key}`
+  const key = mediaKeyFromSegments(storedUrl.slice(prefix.length).split("/"));
+  return key
+    ? `${mediaPathPrefix}${key.split("/").map(encodeURIComponent).join("/")}`
     : storedUrl;
 }
 
-/** Validates path segments from /media/[...key]; null rejects the request. */
+function decodeSegment(segment: string): string | null {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Validates path segments from /media/[...key], decoding any percent-encoding
+ * first so an encoded "..", "/" or space is judged as what it decodes to.
+ * Returns the bucket key, or null to reject the request.
+ */
 export function mediaKeyFromSegments(
   segments: readonly string[],
 ): string | null {
   if (segments.length === 0) return null;
+  const decoded = segments.map(decodeSegment);
   if (
-    !segments.every(
-      (segment) => keySegment.test(segment) && !segment.includes(".."),
+    !decoded.every(
+      (segment): segment is string =>
+        segment !== null && keySegment.test(segment) && !segment.includes(".."),
     )
   ) {
     return null;
   }
-  return segments.join("/");
+  return decoded.join("/");
 }
 
 export type MediaObject = {

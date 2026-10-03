@@ -34,6 +34,28 @@ describe("stored image URLs", () => {
     );
   });
 
+  test("map keys with non-ASCII names to encoded media paths", () => {
+    const named = "profiles/erik-peña-3f7defa8.png";
+    const path = toMediaUrl(`${storage}/${named}`, storage);
+    expect(path).toBe("/media/profiles/erik-pe%C3%B1a-3f7defa8.png");
+    // The route sees the encoded or decoded segments; both resolve to the key.
+    const segments = path.slice("/media/".length).split("/");
+    expect(mediaKeyFromSegments(segments)).toBe(named);
+    expect(mediaKeyFromSegments(named.split("/"))).toBe(named);
+  });
+
+  test("round-trip names that use combining marks", () => {
+    for (const named of [
+      "profiles/priya-प्रिया-1a2b.png",
+      `profiles/${"erik-peña".normalize("NFD")}-3f7d.png`,
+    ]) {
+      const path = toMediaUrl(`${storage}/${named}`, storage);
+      expect(path.startsWith("/media/profiles/")).toBe(true);
+      const segments = path.slice("/media/".length).split("/");
+      expect(mediaKeyFromSegments(segments)).toBe(named);
+    }
+  });
+
   test("reject keys that could escape or smuggle paths", () => {
     expect(mediaKeyFromSegments(["events", "a.png"])).toBe("events/a.png");
     for (const segments of [
@@ -42,7 +64,11 @@ describe("stored image URLs", () => {
       ["events", "..", "secret"],
       [".env"],
       ["a b"],
+      ["a%20b"],
       ["%2e%2e"],
+      ["events%2F..%2Fsecret"],
+      ["%E0%A4%A"],
+      ["a%25b"],
     ]) {
       expect(mediaKeyFromSegments(segments)).toBeNull();
     }
@@ -61,6 +87,23 @@ describe("serving media", () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(
       new Uint8Array([137, 80, 78, 71]),
     );
+  });
+
+  test("serves an encoded non-ASCII key as its stored key", async () => {
+    const named = "profiles/erik-peña-3f7defa8.png";
+    const requested: string[] = [];
+    const response = await serveMedia(
+      ["profiles", "erik-pe%C3%B1a-3f7defa8.png"],
+      deps({
+        isKnownImage: async (url) => url === `${storage}/${named}`,
+        getObject: async (objectKey) => {
+          requested.push(objectKey);
+          return deps().getObject(objectKey);
+        },
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(requested).toEqual([named]);
   });
 
   test("never serves objects that no image record references", async () => {
