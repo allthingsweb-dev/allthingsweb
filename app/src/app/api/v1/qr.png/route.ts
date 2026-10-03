@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import QRCode from "qrcode";
+import { generatedImageCacheControl } from "@/lib/image-gen/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     return new Response(qrBuffer as BufferSource, {
       headers: {
         "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=31536000, immutable", // Cache for 1 year, immutable
+        "Cache-Control": generatedImageCacheControl,
       },
     });
   } catch (error) {

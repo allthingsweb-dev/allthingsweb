@@ -18,7 +18,8 @@
     "typecheck:scripts": "tsc --noEmit --project scripts/tsconfig.json",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "test": "bun test"
+    "test": "bun test",
+    "brand:generate": "bun scripts/generate-brand.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
@@ -104,10 +105,12 @@
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.2",
     "ajv": "^8.20.0",
+    "apca-w3": "0.1.9",
     "drizzle-kit": "^0.31.4",
     "fast-xml-parser": "^5.11.1",
     "openimg": "^1.1.0",
     "prettier": "^3.6.2",
+    "schema-dts": "^2.0.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5"

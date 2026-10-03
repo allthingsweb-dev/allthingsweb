@@ -142,10 +142,12 @@ function EventGridCard({
 }) {
   const { event, previewImage, additionalImages } = eventWithImages;
 
-  // Get up to 2 images to display - only use event images, not preview image
-  // Select first and last event images for better variety
+  // Prefer photos from the event (first and last, for variety); fall back to
+  // the event's cover so every card shows something specific to it.
   let imagesToShow = additionalImages;
-  if (additionalImages.length >= 2) {
+  if (additionalImages.length === 0 && previewImage) {
+    imagesToShow = [previewImage];
+  } else if (additionalImages.length >= 2) {
     imagesToShow = [
       additionalImages[0],
       additionalImages[additionalImages.length - 1],

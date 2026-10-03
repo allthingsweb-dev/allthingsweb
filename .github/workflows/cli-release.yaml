@@ -14,13 +14,22 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: ⬇️ Checkout repo
-              uses: actions/checkout@v4
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
                   fetch-depth: 0
                   fetch-tags: false
+                  persist-credentials: false
                
             - name: ⎔ Setup bun
-              uses: oven-sh/setup-bun@v2
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+            - name: 🔎 Check the tag matches the CLI version
+              run: |
+                  VERSION=$(jq -r .version atw-cli/package.json)
+                  if [ "$GITHUB_REF_NAME" != "$VERSION" ]; then
+                    echo "::error::Tag $GITHUB_REF_NAME does not match atw-cli/package.json version $VERSION"
+                    exit 1
+                  fi
 
             - name: 📥 Download deps
               run: bun install --frozen-lockfile
@@ -33,7 +42,10 @@ jobs:
               run: |
                   TAG_NAME=${GITHUB_REF_NAME}
                   TAG_MESSAGE=$(git tag -l --format='%(contents)' "$TAG_NAME")
-                  gh release create "${TAG_NAME}" --title "Release ${TAG_NAME}" --notes "${TAG_MESSAGE}"
+                  # Hyphenated tags (2.0.0-alpha.1) are prereleases; the installer skips them.
+                  PRERELEASE=()
+                  if [[ "$TAG_NAME" == *-* ]]; then PRERELEASE=(--prerelease); fi
+                  gh release create "${TAG_NAME}" --title "Release ${TAG_NAME}" --notes "${TAG_MESSAGE}" "${PRERELEASE[@]}"
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

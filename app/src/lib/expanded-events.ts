@@ -4,10 +4,10 @@ import { db } from "@/lib/db";
 import {
   eventsTable,
   imagesTable,
-  sponsorsTable,
+  hostsTable,
   talksTable,
   profilesTable,
-  eventSponsorsTable,
+  eventHostsTable,
   eventTalksTable,
   eventImagesTable,
   talkSpeakersTable,
@@ -21,7 +21,7 @@ import { Event, Image } from "@/lib/events";
 import { getLumaUrl } from "@/lib/luma";
 import { signImage, signImages } from "@/lib/image-signing";
 
-export type Sponsor = {
+export type Host = {
   id: string;
   name: string;
   about: string;
@@ -51,7 +51,7 @@ export type Talk = {
 
 export type ExpandedEvent = Event & {
   talks: Talk[];
-  sponsors: Sponsor[];
+  hosts: Host[];
   images: Image[];
   hacks?: Array<{
     id: string;
@@ -104,54 +104,48 @@ async function getExpandedEventFromQuery(
   };
   const previewImagePromise = signImage(previewImageRaw);
 
-  // Sponsors
-  const sponsorsPromise: Promise<Sponsor[]> = (async () => {
-    const sponsorsQuery = await db
-      .select()
-      .from(eventSponsorsTable)
-      .where(eq(eventSponsorsTable.eventId, event.id))
-      .leftJoin(
-        sponsorsTable,
-        eq(eventSponsorsTable.sponsorId, sponsorsTable.id),
-      )
-      .leftJoin(imagesTable, eq(sponsorsTable.squareLogoLight, imagesTable.id));
+  // Hosts
+  const hostsPromise: Promise<Host[]> = (async () => {
+    const hostsQuery = await db
+      .select({ host: hostsTable, lightLogo: imagesTable })
+      .from(eventHostsTable)
+      .where(eq(eventHostsTable.eventId, event.id))
+      .innerJoin(hostsTable, eq(eventHostsTable.hostId, hostsTable.id))
+      .leftJoin(imagesTable, eq(hostsTable.squareLogoLight, imagesTable.id));
 
     return Promise.all(
-      sponsorsQuery
-        .filter((row) => row.sponsors)
-        .map(async (row) => {
-          const sponsor = row.sponsors!;
-          const lightLogoRaw = row.images || {
-            url: "/placeholder-sponsor.png",
-            alt: sponsor.name,
-            placeholder: null,
-            width: 200,
-            height: 200,
-          };
+      hostsQuery.map(async ({ host, lightLogo: lightLogoRow }) => {
+        const lightLogoRaw = lightLogoRow || {
+          url: "/placeholder-host.png",
+          alt: host.name,
+          placeholder: null,
+          width: 200,
+          height: 200,
+        };
 
-          // Get dark logo separately
-          const darkLogoQuery = await db
-            .select()
-            .from(imagesTable)
-            .where(eq(imagesTable.id, sponsor.squareLogoDark!))
-            .limit(1);
+        // Get dark logo separately
+        const darkLogoQuery = await db
+          .select()
+          .from(imagesTable)
+          .where(eq(imagesTable.id, host.squareLogoDark!))
+          .limit(1);
 
-          const darkLogoRaw = darkLogoQuery[0] || lightLogoRaw;
+        const darkLogoRaw = darkLogoQuery[0] || lightLogoRaw;
 
-          // Sign both logos
-          const [lightLogo, darkLogo] = await Promise.all([
-            signImage(lightLogoRaw),
-            signImage(darkLogoRaw),
-          ]);
+        // Sign both logos
+        const [lightLogo, darkLogo] = await Promise.all([
+          signImage(lightLogoRaw),
+          signImage(darkLogoRaw),
+        ]);
 
-          return {
-            id: sponsor.id,
-            name: sponsor.name,
-            about: sponsor.about,
-            squareLogoLight: lightLogo,
-            squareLogoDark: darkLogo,
-          };
-        }),
+        return {
+          id: host.id,
+          name: host.name,
+          about: host.about,
+          squareLogoLight: lightLogo,
+          squareLogoDark: darkLogo,
+        };
+      }),
     );
   })();
 
@@ -389,9 +383,9 @@ async function getExpandedEventFromQuery(
       })()
     : Promise.resolve(undefined);
 
-  const [previewImage, sponsors, talks, images, hacks] = await Promise.all([
+  const [previewImage, hosts, talks, images, hacks] = await Promise.all([
     previewImagePromise,
-    sponsorsPromise,
+    hostsPromise,
     talksPromise,
     imagesPromise,
     hacksPromise,
@@ -402,7 +396,7 @@ async function getExpandedEventFromQuery(
     previewImage,
     lumaEventUrl: getLumaUrl(event.lumaEventId),
     talks,
-    sponsors,
+    hosts,
     images,
     hacks,
   };
@@ -424,4 +418,12 @@ export async function getExpandedEventBySlug(
   }
 
   return getExpandedEventFromQuery(eventQuery[0]);
+}
+
+/** An event as the public may see it: drafts are treated as missing. */
+export async function getPublicEventBySlug(
+  slug: string,
+): Promise<ExpandedEvent | null> {
+  const event = await getExpandedEventBySlug(slug);
+  return event && !event.isDraft ? event : null;
 }

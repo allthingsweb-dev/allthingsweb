@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { ImageResponse } from "next/og";
 import { EventYouTubeThumbnail } from "@/lib/image-gen/templates";
 import { getFont } from "@/lib/image-gen/utils";
-import { getExpandedEventBySlug } from "@/lib/expanded-events";
+import { getPublicEventBySlug } from "@/lib/expanded-events";
+import { generatedImageCacheControl } from "@/lib/image-gen/cache";
 
 type Params = {
   slug: string;
@@ -19,7 +20,7 @@ export async function GET(
       return new Response("Invalid slug", { status: 400 });
     }
 
-    const event = await getExpandedEventBySlug(slug);
+    const event = await getPublicEventBySlug(slug);
 
     if (!event) {
       return new Response("Event not found", { status: 404 });
@@ -30,7 +31,7 @@ export async function GET(
       height: 720,
       fonts: await getFont("Roboto"),
       headers: {
-        "Cache-Control": "public, max-age=31536000, immutable", // Cache for 1 year, immutable
+        "Cache-Control": generatedImageCacheControl,
       },
     });
   } catch (error) {
