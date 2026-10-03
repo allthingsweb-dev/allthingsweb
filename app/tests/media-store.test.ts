@@ -62,6 +62,27 @@ describe("media store", () => {
     expect(calls).toHaveLength(0);
   });
 
+  test("joins configured URLs that end with a slash with a single slash", async () => {
+    const { impl, calls } = recordingFetch(201);
+    const store = mediaStore(
+      {
+        ...config,
+        publicUrl: "https://media.example.dev/",
+        uploadUrl: "https://upload.example.workers.dev//",
+        legacyOrigins: ["https://old-bucket.s3.us-west-2.amazonaws.com/"],
+      },
+      impl,
+    );
+    expect(await store.put("a.png", new Uint8Array(), "image/png")).toBe(
+      "https://media.example.dev/a.png",
+    );
+    expect(calls[0]?.url).toBe("https://upload.example.workers.dev/a.png");
+    expect(store.keyOf("https://media.example.dev/a.png")).toBe("a.png");
+    expect(
+      store.keyOf("https://old-bucket.s3.us-west-2.amazonaws.com/b.png"),
+    ).toBe("b.png");
+  });
+
   test("finds the key of URLs on the public and legacy origins only", () => {
     const store = mediaStore(config);
     expect(store.keyOf("https://media.example.dev/events/e1/a.png")).toBe(

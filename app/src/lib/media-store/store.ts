@@ -24,22 +24,27 @@ export type MediaStore = {
 const encodeKey = (key: string) =>
   key.split("/").map(encodeURIComponent).join("/");
 
+const trimSlashes = (url: string) => url.replace(/\/+$/, "");
+
 /** Stores media through the upload Worker; objects are served from publicUrl. */
 export function mediaStore(
   config: MediaStoreConfig,
   fetchImpl: typeof fetch = fetch,
 ): MediaStore {
+  // Configured URLs may end with "/"; every join below adds exactly one.
+  const publicUrl = trimSlashes(config.publicUrl);
+  const uploadUrl = config.uploadUrl && trimSlashes(config.uploadUrl);
   const send = async (
     method: "PUT" | "DELETE",
     key: string,
     init: { body?: Uint8Array; contentType?: string; signal?: AbortSignal },
   ) => {
-    if (!config.uploadUrl || !config.uploadToken) {
+    if (!uploadUrl || !config.uploadToken) {
       throw new Error(
         "Media uploads need MEDIA_UPLOAD_URL and MEDIA_UPLOAD_TOKEN",
       );
     }
-    const response = await fetchImpl(`${config.uploadUrl}/${encodeKey(key)}`, {
+    const response = await fetchImpl(`${uploadUrl}/${encodeKey(key)}`, {
       method,
       headers: {
         authorization: `Bearer ${config.uploadToken}`,
@@ -54,11 +59,11 @@ export function mediaStore(
     }
   };
 
-  const origins = [config.publicUrl, ...config.legacyOrigins];
+  const origins = [publicUrl, ...config.legacyOrigins.map(trimSlashes)];
   return {
     put: async (key, body, contentType, options = {}) => {
       await send("PUT", key, { body, contentType, ...options });
-      return `${config.publicUrl}/${encodeKey(key)}`;
+      return `${publicUrl}/${encodeKey(key)}`;
     },
     remove: (key, options = {}) => send("DELETE", key, options),
     keyOf: (url) => {
