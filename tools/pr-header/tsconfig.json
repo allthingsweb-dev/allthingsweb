@@ -21,6 +21,8 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "useUnknownInCatchVariables": true
+    "useUnknownInCatchVariables": true,
+    "noUncheckedSideEffectImports": true,
+    "erasableSyntaxOnly": true
   }
 }
