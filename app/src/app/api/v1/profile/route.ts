@@ -3,15 +3,11 @@ import { stackServerApp } from "@/lib/stack";
 import { db } from "@/lib/db";
 import { profilesTable, profileUsersTable, imagesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
-import { mainConfig } from "@/lib/config";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
 import { signImage } from "@/lib/image-signing";
+import { appMediaStore, removeStoredObject } from "@/lib/media-store";
+import { profilePhotoKey } from "@/lib/profile-photos/ingest";
 
 // Helper function to sign a profile image URL
 async function signProfileImageUrl(
@@ -35,8 +31,8 @@ async function signProfileImageUrl(
   }
 }
 
-// Helper function to delete an image from both S3 and database
-async function deleteImageFromStorage(imageId: string, s3Client: S3Client) {
+// Deletes an image from both the media store and the database
+async function deleteImageFromStorage(imageId: string) {
   try {
     const oldImage = await db
       .select()
@@ -45,18 +41,11 @@ async function deleteImageFromStorage(imageId: string, s3Client: S3Client) {
       .limit(1);
 
     if (oldImage[0]) {
-      // Delete from S3 first
-      const s3Path = oldImage[0].url.replace(mainConfig.s3.url + "/", "");
       try {
-        await s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: mainConfig.s3.bucket,
-            Key: s3Path,
-          }),
-        );
-      } catch (s3Error) {
-        console.error("Error deleting image from S3:", s3Error);
-        // Continue with DB deletion even if S3 deletion fails
+        await removeStoredObject(oldImage[0].url);
+      } catch (storageError) {
+        console.error("Error deleting image from storage:", storageError);
+        // Continue with DB deletion even if storage deletion fails
       }
 
       // Delete from database
@@ -164,14 +153,6 @@ export async function POST(request: NextRequest) {
 
     // Handle image upload if provided
     if (imageFile && imageFile.size > 0) {
-      const s3Client = new S3Client({
-        region: mainConfig.s3.region,
-        credentials: {
-          accessKeyId: mainConfig.s3.accessKeyId,
-          secretAccessKey: mainConfig.s3.secretAccessKey,
-        },
-      });
-
       const uuid = randomUUID();
 
       // Process image using our new utility
@@ -180,25 +161,13 @@ export async function POST(request: NextRequest) {
         conversionFormat: "PNG",
       });
 
-      const nameSlug = name.toLowerCase().replace(/ /g, "-");
-      const path = `profiles/${nameSlug}-${uuid}.${processedImage.metadata.format}`;
+      const path = profilePhotoKey(name, uuid, processedImage.metadata.format);
 
-      // Upload to S3
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: mainConfig.s3.bucket,
-          Key: path,
-          Body: processedImage.buffer,
-          ContentType: `image/${processedImage.metadata.format}`,
-          Metadata: {
-            originalName: imageFile.name,
-            originalFormat: processedImage.originalFormat,
-            wasConverted: processedImage.wasConverted.toString(),
-          },
-        }),
+      const url = await appMediaStore().put(
+        path,
+        processedImage.buffer,
+        `image/${processedImage.metadata.format}`,
       );
-
-      const url = `${mainConfig.s3.url}/${path}`;
 
       // Save image record
       await db.insert(imagesTable).values({
@@ -313,17 +282,9 @@ export async function PUT(request: NextRequest) {
 
     // Handle image upload if provided
     if (imageFile && imageFile.size > 0) {
-      const s3Client = new S3Client({
-        region: mainConfig.s3.region,
-        credentials: {
-          accessKeyId: mainConfig.s3.accessKeyId,
-          secretAccessKey: mainConfig.s3.secretAccessKey,
-        },
-      });
-
       // Delete old image if exists
       if (existingProfile.image) {
-        await deleteImageFromStorage(existingProfile.image, s3Client);
+        await deleteImageFromStorage(existingProfile.image);
       }
 
       // Upload new image
@@ -335,24 +296,13 @@ export async function PUT(request: NextRequest) {
         conversionFormat: "PNG",
       });
 
-      const nameSlug = name.toLowerCase().replace(/ /g, "-");
-      const path = `profiles/${nameSlug}-${uuid}.${processedImage.metadata.format}`;
+      const path = profilePhotoKey(name, uuid, processedImage.metadata.format);
 
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: mainConfig.s3.bucket,
-          Key: path,
-          Body: processedImage.buffer,
-          ContentType: `image/${processedImage.metadata.format}`,
-          Metadata: {
-            originalName: imageFile.name,
-            originalFormat: processedImage.originalFormat,
-            wasConverted: processedImage.wasConverted.toString(),
-          },
-        }),
+      const url = await appMediaStore().put(
+        path,
+        processedImage.buffer,
+        `image/${processedImage.metadata.format}`,
       );
-
-      const url = `${mainConfig.s3.url}/${path}`;
 
       await db.insert(imagesTable).values({
         url,
@@ -444,18 +394,8 @@ export async function DELETE() {
     }
 
     // Delete the image
-    const s3Client = new S3Client({
-      region: mainConfig.s3.region,
-      credentials: {
-        accessKeyId: mainConfig.s3.accessKeyId,
-        secretAccessKey: mainConfig.s3.secretAccessKey,
-      },
-    });
 
-    const deleted = await deleteImageFromStorage(
-      existingProfile.image,
-      s3Client,
-    );
+    const deleted = await deleteImageFromStorage(existingProfile.image);
 
     if (deleted) {
       // Update profile to remove image reference

@@ -4,18 +4,9 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { imagesTable, eventImagesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { mainConfig } from "@/lib/config";
+import { removeStoredObject } from "@/lib/media-store";
 
-const s3Client = new S3Client({
-  region: mainConfig.s3.region,
-  credentials: {
-    accessKeyId: mainConfig.s3.accessKeyId,
-    secretAccessKey: mainConfig.s3.secretAccessKey,
-  },
-});
-
-// Helper function to delete an image from both S3 and database
+// Deletes an image from both the media store and the database
 async function deleteImageFromStorage(imageId: string) {
   try {
     const oldImage = await db
@@ -25,18 +16,11 @@ async function deleteImageFromStorage(imageId: string) {
       .limit(1);
 
     if (oldImage[0]) {
-      // Delete from S3 first
-      const s3Path = oldImage[0].url.replace(mainConfig.s3.url + "/", "");
       try {
-        await s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: mainConfig.s3.bucket,
-            Key: s3Path,
-          }),
-        );
-      } catch (s3Error) {
-        console.error("Error deleting image from S3:", s3Error);
-        // Continue with DB deletion even if S3 deletion fails
+        await removeStoredObject(oldImage[0].url);
+      } catch (storageError) {
+        console.error("Error deleting image from storage:", storageError);
+        // Continue with DB deletion even if storage deletion fails
       }
 
       // Delete from event_images association table first

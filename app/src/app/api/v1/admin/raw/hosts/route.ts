@@ -5,22 +5,9 @@ import { db } from "@/lib/db";
 import { imagesTable, hostsTable } from "@/lib/schema";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
-import { mainConfig } from "@/lib/config";
-import {
-  DeleteObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
 import { eq } from "drizzle-orm";
 import { signImage } from "@/lib/image-signing";
-
-const s3Client = new S3Client({
-  region: mainConfig.s3.region,
-  credentials: {
-    accessKeyId: mainConfig.s3.accessKeyId,
-    secretAccessKey: mainConfig.s3.secretAccessKey,
-  },
-});
+import { appMediaStore, removeStoredObject } from "@/lib/media-store";
 
 function slugifyName(value: string): string {
   return value
@@ -34,9 +21,8 @@ async function uploadLogo(params: {
   file: File;
   hostName: string;
   variant: "dark" | "light";
-  uploadedBy: string;
 }): Promise<string> {
-  const { file, hostName, variant, uploadedBy } = params;
+  const { file, hostName, variant } = params;
 
   const processedImage = await processImage(file, file.name, {
     convertUnsupportedFormats: true,
@@ -46,24 +32,15 @@ async function uploadLogo(params: {
   const uuid = randomUUID();
   const key = `sponsors/${slugifyName(hostName)}-${variant}-${uuid}.${processedImage.metadata.format}`;
 
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: mainConfig.s3.bucket,
-      Key: key,
-      Body: processedImage.buffer,
-      ContentType: `image/${processedImage.metadata.format}`,
-      Metadata: {
-        originalName: file.name,
-        originalFormat: processedImage.originalFormat,
-        wasConverted: processedImage.wasConverted.toString(),
-        uploadedBy,
-      },
-    }),
+  const url = await appMediaStore().put(
+    key,
+    processedImage.buffer,
+    `image/${processedImage.metadata.format}`,
   );
 
   await db.insert(imagesTable).values({
     id: uuid,
-    url: `${mainConfig.s3.url}/${key}`,
+    url,
     width: processedImage.metadata.width,
     height: processedImage.metadata.height,
     placeholder: processedImage.placeholder,
@@ -94,16 +71,10 @@ async function deleteImageFromStorage(imageId: string) {
   const image = existingImage[0];
   if (!image) return;
 
-  const s3Path = image.url.replace(mainConfig.s3.url + "/", "");
   try {
-    await s3Client.send(
-      new DeleteObjectCommand({
-        Bucket: mainConfig.s3.bucket,
-        Key: s3Path,
-      }),
-    );
+    await removeStoredObject(image.url);
   } catch (error) {
-    console.error("Error deleting host image from S3:", error);
+    console.error("Error deleting host image from storage:", error);
   }
 
   await db.delete(imagesTable).where(eq(imagesTable.id, imageId));
@@ -156,14 +127,12 @@ export async function POST(request: NextRequest) {
       file: darkLogo,
       hostName: name,
       variant: "dark",
-      uploadedBy: user.id,
     });
 
     const squareLogoLight = await uploadLogo({
       file: lightLogo,
       hostName: name,
       variant: "light",
-      uploadedBy: user.id,
     });
 
     const [host] = await db
@@ -258,7 +227,6 @@ export async function PUT(request: NextRequest) {
         file: darkLogo,
         hostName: name,
         variant: "dark",
-        uploadedBy: user.id,
       });
     }
 
@@ -267,7 +235,6 @@ export async function PUT(request: NextRequest) {
         file: lightLogo,
         hostName: name,
         variant: "light",
-        uploadedBy: user.id,
       });
     }
 
