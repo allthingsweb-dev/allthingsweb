@@ -5,6 +5,7 @@ import { mainConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { syncPublicLumaEvents } from "@/lib/luma/sync";
 import { ingestMissingLumaCovers } from "@/lib/event-covers/runtime";
+import { ingestMissingProfilePhotos } from "@/lib/profile-photos/runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,16 +74,36 @@ export async function GET(request: Request) {
         revalidatePath(path);
       }
     }
-    // JSON so nested cover failures are logged in full, not as [Object].
+    // Profile photos share the cover deadlines: whatever time is left.
+    const photoElapsedMs = Date.now() - startedAt;
+    const photoBudgetMs = coverStartDeadlineMs - photoElapsedMs;
+    const photos =
+      photoBudgetMs <= 0
+        ? { skipped: "No time left for profile photos in this run" }
+        : await ingestMissingProfilePhotos({
+            budgetMs: photoBudgetMs,
+            signal: AbortSignal.timeout(coverCancelDeadlineMs - photoElapsedMs),
+          }).catch((error: unknown) => {
+            captureException(error);
+            return {
+              skipped: `Profile photo ingestion failed: ${error instanceof Error ? error.message : String(error)}`,
+            };
+          });
+    if ("ingested" in photos && photos.ingested.length > 0) {
+      // Speakers and organizers appear across event pages, /speakers and /about.
+      revalidatePath("/", "layout");
+    }
+    // JSON so nested failures are logged in full, not as [Object].
     console.info(
       "Luma calendar sync completed",
-      JSON.stringify({ ...result, covers }),
+      JSON.stringify({ ...result, covers, photos }),
     );
 
     return NextResponse.json({
       ok: true,
       ...result,
       covers,
+      photos,
     });
   } catch (error) {
     captureException(error);
