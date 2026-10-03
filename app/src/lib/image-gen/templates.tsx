@@ -102,17 +102,14 @@ export function EventPreview({ event }: { event: ExpandedEvent }) {
           <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
             {event.hosts.map((host, index) => (
               <div key={index} tw="flex items-center">
-                {host.squareLogoDark && (
-                  <img
-                    src={ogImageSrc(host.squareLogoDark.url)}
-                    alt={`${host.name} logo`}
-                    width={manyHosts ? 40 : 60}
-                    height={manyHosts ? 40 : 60}
-                    tw="mr-2"
-                  />
-                )}
+                <img
+                  src={ogImageSrc(host.squareLogoDark.url)}
+                  alt={`${host.name} logo`}
+                  width={manyHosts ? 40 : 60}
+                  height={manyHosts ? 40 : 60}
+                />
                 <span
-                  tw={`${manyHosts ? "text-2xl" : "text-4xl"} font-medium text-gray-200`}
+                  tw={`ml-2 ${manyHosts ? "text-2xl" : "text-4xl"} font-medium text-gray-200`}
                 >
                   {host.name}
                 </span>

@@ -21,14 +21,14 @@ import {
 import { Event, Image } from "@/lib/events";
 import { getLumaUrl } from "@/lib/luma";
 import { signImage, signImages } from "@/lib/image-signing";
+import { blankAvatar } from "@/lib/blank-avatar";
 
 export type Host = {
   id: string;
   name: string;
   about: string;
-  /** Null when the host has no logo; pages then show the name alone. */
-  squareLogoLight: Image | null;
-  squareLogoDark: Image | null;
+  squareLogoLight: Image;
+  squareLogoDark: Image;
 };
 
 export type Speaker = {
@@ -119,12 +119,12 @@ async function getExpandedEventFromQuery(
 
     return Promise.all(
       hostsQuery.map(async ({ host, light, dark }) => {
-        // A host with one logo variant uses it for both; with none, no logo.
-        const signed = (image: typeof light) =>
-          image ? signImage(image) : null;
+        // A host with one logo variant uses it for both; with none, the
+        // brand's blank avatar.
+        const fallback = blankAvatar(host.name);
         const [squareLogoLight, squareLogoDark] = await Promise.all([
-          signed(light ?? dark),
-          signed(dark ?? light),
+          signImage(light ?? dark ?? fallback),
+          signImage(dark ?? light ?? fallback),
         ]);
         return {
           id: host.id,
@@ -167,13 +167,7 @@ async function getExpandedEventFromQuery(
               .filter((speakerRow) => speakerRow.profiles)
               .map(async (speakerRow) => {
                 const profile = speakerRow.profiles!;
-                const imageRaw = speakerRow.images || {
-                  url: "/placeholder-avatar.png",
-                  alt: profile.name,
-                  placeholder: null,
-                  width: 200,
-                  height: 200,
-                };
+                const imageRaw = speakerRow.images ?? blankAvatar(profile.name);
 
                 const image = await signImage(imageRaw);
 

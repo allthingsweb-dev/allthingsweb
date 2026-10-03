@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { blankAvatar } from "@/lib/blank-avatar";
 import { type Profile, getSocialUrls } from "./profiles";
 import { signImage } from "./image-signing";
 import { getSpeakerDirectory } from "./speaker-directory";
@@ -18,15 +19,7 @@ export async function getSpeakersWithTalks(): Promise<{
       async ({ profile, image, talkIds }): Promise<SpeakerWithTalkIds> => ({
         id: profile.id,
         name: profile.name,
-        image: await signImage(
-          image ?? {
-            url: "/hero-image-rocket.png",
-            alt: `${profile.name} profile picture`,
-            placeholder: null,
-            width: 400,
-            height: 400,
-          },
-        ),
+        image: await signImage(image ?? blankAvatar(profile.name)),
         title: profile.title,
         bio: profile.bio,
         type: profile.profileType,

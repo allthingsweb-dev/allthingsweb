@@ -50,6 +50,9 @@ ICON_INK_WIDTH = 0.5
 FAVICON_INK_WIDTH = 0.84
 # Favicons use the heaviest weight so the slash survives at 16px.
 FAVICON_WEIGHT = 900
+# The blank avatar for people and hosts without a photo or logo: the
+# wordmark's tail, "/_", the slot still open.
+AVATAR_INK_WIDTH = 0.46
 # Maskable icons keep their content inside a centered circle of 80% diameter.
 MASKABLE_SAFE_RADIUS = 0.4
 
@@ -248,11 +251,12 @@ def tile_svg(
     ground: str,
     ink_width: float,
     title: str,
+    center_y: float = 0.5,
 ) -> str:
     x0, y0, x1, y1 = ink_bounds(placed)
     scale = TILE * ink_width / (x1 - x0)
     dx = (TILE - (x1 - x0) * scale) / 2 - x0 * scale
-    dy = (TILE - (y1 - y0) * scale) / 2 - y0 * scale
+    dy = TILE * center_y - (y0 + y1) / 2 * scale
     background = f'<rect width="{TILE}" height="{TILE}" fill="{ground}"/>'
     return svg(
         background + paths(placed, colors, scale, dx, dy),
@@ -315,6 +319,19 @@ def build() -> dict[str, bytes]:
     favicon = tile_svg(
         a_slash(FAVICON_WEIGHT), on_night, c["night"], FAVICON_INK_WIDTH, title
     )
+    avatar = tile_svg(
+        setter.set(
+            [
+                Run("/", brand.weight, "accent"),
+                Run("_", CURSOR_WEIGHT, "accent"),
+            ],
+            brand.tracking_em,
+        ),
+        on_night,
+        c["night"],
+        AVATAR_INK_WIDTH,
+        "No photo yet",
+    )
 
     files: dict[str, str | bytes] = {
         "wordmark.svg": text_svg(wordmark, on_paper, title, px),
@@ -324,11 +341,13 @@ def build() -> dict[str, bytes]:
         "mark.svg": text_svg(mark, on_paper, title, px),
         "mark-night.svg": text_svg(mark, on_night, title, px),
         "icon.svg": icon,
+        "avatar.svg": avatar,
         "favicon.svg": favicon,
         "favicon.ico": ico(favicon),
     }
     files.update({name: png(favicon, size) for name, size in ICON_SIZES.items()})
     files.update({name: png(icon, size) for name, size in LARGE_ICON_SIZES.items()})
+    files["avatar.png"] = png(avatar, 512)
     return {
         name: content.encode() if isinstance(content, str) else content
         for name, content in files.items()
