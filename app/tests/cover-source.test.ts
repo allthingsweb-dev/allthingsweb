@@ -37,6 +37,13 @@ describe("fetching an event cover", () => {
     expect(requested).toEqual([]);
   });
 
+  test("fetches covers picked from Luma's Unsplash search", async () => {
+    const unsplash = "https://images.unsplash.com/photo-1485579149621?w=1080";
+    const { impl, requested } = fakeFetch(new Response("jpg"));
+    expect((await fetchCover(unsplash, {}, impl)).status).toBe(200);
+    expect(requested).toEqual([unsplash]);
+  });
+
   test("follows a redirect to another allowed host", async () => {
     const { impl, requested } = fakeFetch(
       redirectTo("https://cdn.lu.ma/cover.png"),

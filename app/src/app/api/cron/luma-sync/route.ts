@@ -73,7 +73,11 @@ export async function GET(request: Request) {
         revalidatePath(path);
       }
     }
-    console.info("Luma calendar sync completed", { ...result, covers });
+    // JSON so nested cover failures are logged in full, not as [Object].
+    console.info(
+      "Luma calendar sync completed",
+      JSON.stringify({ ...result, covers }),
+    );
 
     return NextResponse.json({
       ok: true,
