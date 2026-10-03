@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { join, relative, resolve, isAbsolute } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
 import pluginSchema from "./fixtures/agent-plugins/plugin.schema.json";
@@ -40,9 +40,11 @@ describe("All Things Web agent plugin", () => {
     for (const asset of [ui.composerIcon, ui.logo]) {
       // Hosts require a ./-relative path that stays inside the plugin.
       expect(asset).toStartWith("./");
-      const inside = relative(pluginRoot, resolve(pluginRoot, asset));
+      const path = resolve(pluginRoot, asset);
+      expect(existsSync(path)).toBe(true);
+      // Compare real paths so a symlink can't point outside the plugin.
+      const inside = relative(realpathSync(pluginRoot), realpathSync(path));
       expect(inside.startsWith("..") || isAbsolute(inside)).toBe(false);
-      expect(existsSync(resolve(pluginRoot, asset))).toBe(true);
     }
   });
 
