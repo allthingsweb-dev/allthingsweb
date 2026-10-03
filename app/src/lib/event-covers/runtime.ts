@@ -10,6 +10,7 @@ import { processImage } from "@/lib/image-processor";
 import { createLumaClient } from "@/lib/luma";
 import { ingestMissingCovers, type CoverIngestionResult } from "./ingest";
 import { fetchCover } from "./cover-source";
+import { looksLikeImage } from "./image-signature";
 import { readBodyAtMost } from "./read-body";
 
 const maxCoverBytes = 15 * 1024 * 1024;
@@ -25,11 +26,11 @@ async function download(
     await response.body?.cancel();
     throw new Error(`Cover download failed: ${response.status}`);
   }
-  if (!response.headers.get("content-type")?.startsWith("image/")) {
-    await response.body?.cancel();
-    throw new Error("Cover is not an image");
+  const bytes = await readBodyAtMost(response, maxCoverBytes);
+  if (!looksLikeImage(bytes)) {
+    throw new Error("Cover is not a PNG, JPEG, GIF, WebP or AVIF image");
   }
-  return readBodyAtMost(response, maxCoverBytes);
+  return bytes;
 }
 
 export async function ingestMissingLumaCovers({

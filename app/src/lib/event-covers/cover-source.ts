@@ -1,5 +1,12 @@
-/** Hosts Luma serves event covers from. Covers come from nowhere else. */
-const coverHosts = new Set(["images.lumacdn.com", "cdn.lu.ma"]);
+/**
+ * Hosts Luma serves event covers from: its own CDN, and Unsplash for covers
+ * picked from Luma's built-in photo search. Covers come from nowhere else.
+ */
+const coverHosts = new Set([
+  "images.lumacdn.com",
+  "cdn.lu.ma",
+  "images.unsplash.com",
+]);
 const maxRedirects = 3;
 
 /** Parses a cover URL, rejecting anything but HTTPS on a known cover host. */
