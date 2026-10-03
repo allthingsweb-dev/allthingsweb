@@ -16,8 +16,26 @@ export function looksLikeImage(bytes: Uint8Array): boolean {
     startsWith(bytes, [0xff, 0xd8, 0xff]) || // JPEG
     startsWith(bytes, ascii("GIF8")) ||
     (startsWith(bytes, ascii("RIFF")) && startsWith(bytes, ascii("WEBP"), 8)) ||
-    (startsWith(bytes, ascii("ftyp"), 4) &&
-      (startsWith(bytes, ascii("avif"), 8) ||
-        startsWith(bytes, ascii("avis"), 8)))
+    isAvif(bytes)
+  );
+}
+
+/**
+ * AVIF files start with an ISO-BMFF `ftyp` box: size, "ftyp", a major brand,
+ * a minor version, then compatible brands. AVIF may be the major brand or
+ * only a compatible one (e.g. major brand "mif1").
+ */
+function isAvif(bytes: Uint8Array): boolean {
+  if (!startsWith(bytes, ascii("ftyp"), 4)) return false;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const boxEnd = Math.min(view.getUint32(0), bytes.byteLength);
+  const brandOffsets = [8];
+  for (let offset = 16; offset + 4 <= boxEnd; offset += 4) {
+    brandOffsets.push(offset);
+  }
+  return brandOffsets.some(
+    (offset) =>
+      startsWith(bytes, ascii("avif"), offset) ||
+      startsWith(bytes, ascii("avis"), offset),
   );
 }
