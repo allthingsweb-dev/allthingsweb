@@ -12,7 +12,7 @@ export default function RawAdminPage() {
                   Raw Content Admin
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Create raw sponsors, profiles, and talks
+                  Create raw hosts, profiles, and talks
                 </p>
               </div>
               <Link
@@ -27,14 +27,12 @@ export default function RawAdminPage() {
           <div className="p-6">
             <div className="grid gap-4 md:grid-cols-3">
               <Link
-                href="/admin/raw/sponsors"
+                href="/admin/raw/hosts"
                 className="block p-5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Sponsors
-                </h2>
+                <h2 className="text-lg font-semibold text-gray-900">Hosts</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Create sponsors with dark and light logo uploads
+                  Create hosts with dark and light logo uploads
                 </p>
               </Link>
 

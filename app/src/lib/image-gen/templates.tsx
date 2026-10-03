@@ -79,7 +79,7 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
  */
 export function EventPreview({ event }: { event: ExpandedEvent }) {
   const when = toReadableDateTimeStr(event.startDate, true);
-  const manyHosts = event.sponsors.length > 3;
+  const manyHosts = event.hosts.length > 3;
   return (
     <div
       tw="w-[1200px] h-[630px] flex flex-col text-white p-8 overflow-hidden"
@@ -100,18 +100,18 @@ export function EventPreview({ event }: { event: ExpandedEvent }) {
         <div tw="flex-grow flex flex-col justify-between mt-8">
           <EventPreviewTalks talks={event.talks} />
           <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
-            {event.sponsors.map((sponsor, index) => (
+            {event.hosts.map((host, index) => (
               <div key={index} tw="flex items-center">
                 <img
-                  src={ogImageSrc(sponsor.squareLogoDark.url)}
-                  alt={`${sponsor.name} logo`}
+                  src={ogImageSrc(host.squareLogoDark.url)}
+                  alt={`${host.name} logo`}
                   width={manyHosts ? 40 : 60}
                   height={manyHosts ? 40 : 60}
                 />
                 <span
                   tw={`ml-2 ${manyHosts ? "text-2xl" : "text-4xl"} font-medium text-gray-200`}
                 >
-                  {sponsor.name}
+                  {host.name}
                 </span>
               </div>
             ))}

@@ -44,7 +44,7 @@ const event: ExpandedEvent = {
   createdAt: new Date(),
   updatedAt: new Date(),
   images: [],
-  sponsors: [],
+  hosts: [],
   talks: [
     {
       id: "t1",

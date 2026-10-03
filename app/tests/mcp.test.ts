@@ -72,7 +72,7 @@ const later = event({
 const expanded: ExpandedEvent = {
   ...next,
   images: [],
-  sponsors: [
+  hosts: [
     {
       id: "coderabbit",
       name: "CodeRabbit",

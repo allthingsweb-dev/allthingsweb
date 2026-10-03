@@ -21,8 +21,8 @@ import {
   addTalkToEvent,
   removeTalkFromEvent,
   findTalksBySpeakerName,
-  createSponsor,
-  addSponsorToEvent,
+  createHost,
+  addHostToEvent,
   getImgIdsForUrls,
   deleteEventImages,
   deleteOrphanedImage,
@@ -91,7 +91,7 @@ const UpdateTalkSchema = z.object({
   }),
 });
 
-const InsertSponsorSchema = z.object({
+const InsertHostSchema = z.object({
   name: z.string(),
   about: z.string(), // Required in schema
 });
@@ -379,18 +379,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["speakerName"],
         },
       },
-      // Sponsor tools
+      // Host tools
       {
-        name: "create_sponsor",
-        description: "Create a new sponsor with logos",
+        name: "create_host",
+        description: "Create a new host with logos",
         inputSchema: {
           type: "object",
           properties: {
-            sponsor: {
+            host: {
               type: "object",
               properties: {
-                name: { type: "string", description: "Sponsor name" },
-                about: { type: "string", description: "About sponsor" },
+                name: { type: "string", description: "Host name" },
+                about: { type: "string", description: "About host" },
               },
               required: ["name", "about"],
             },
@@ -403,19 +403,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Path to light logo",
             },
           },
-          required: ["sponsor", "darkLogoFilePath", "lightLogoFilePath"],
+          required: ["host", "darkLogoFilePath", "lightLogoFilePath"],
         },
       },
       {
-        name: "add_sponsor_to_event",
-        description: "Add sponsor to event",
+        name: "add_host_to_event",
+        description: "Add host to event",
         inputSchema: {
           type: "object",
           properties: {
             slug: { type: "string", description: "Event slug" },
-            sponsorName: { type: "string", description: "Sponsor name" },
+            hostName: { type: "string", description: "Host name" },
           },
-          required: ["slug", "sponsorName"],
+          required: ["slug", "hostName"],
         },
       },
       // Image tools
@@ -758,16 +758,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      // Sponsor tools
-      case "create_sponsor": {
-        const { sponsor, darkLogoFilePath, lightLogoFilePath } = args as {
-          sponsor: any;
+      // Host tools
+      case "create_host": {
+        const { host, darkLogoFilePath, lightLogoFilePath } = args as {
+          host: any;
           darkLogoFilePath: string;
           lightLogoFilePath: string;
         };
-        const validatedSponsor = InsertSponsorSchema.parse(sponsor);
-        const result = await createSponsor(
-          validatedSponsor,
+        const validatedHost = InsertHostSchema.parse(host);
+        const result = await createHost(
+          validatedHost,
           darkLogoFilePath,
           lightLogoFilePath,
         );
@@ -781,12 +781,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "add_sponsor_to_event": {
-        const { slug, sponsorName } = args as {
+      case "add_host_to_event": {
+        const { slug, hostName } = args as {
           slug: string;
-          sponsorName: string;
+          hostName: string;
         };
-        const result = await addSponsorToEvent(slug, sponsorName);
+        const result = await addHostToEvent(slug, hostName);
         return {
           content: [
             {

@@ -1,20 +1,20 @@
 import Link from "next/link";
 import { asc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { imagesTable, sponsorsTable } from "@/lib/schema";
+import { imagesTable, hostsTable } from "@/lib/schema";
 import { signImage } from "@/lib/image-signing";
-import CreateSponsorForm from "./create-sponsor-form";
+import CreateHostForm from "./create-host-form";
 
-export default async function RawSponsorsAdminPage() {
-  const sponsors = await db
+export default async function RawHostsAdminPage() {
+  const hosts = await db
     .select()
-    .from(sponsorsTable)
-    .orderBy(asc(sponsorsTable.name));
+    .from(hostsTable)
+    .orderBy(asc(hostsTable.name));
 
   const imageIds = Array.from(
     new Set(
-      sponsors
-        .flatMap((sponsor) => [sponsor.squareLogoDark, sponsor.squareLogoLight])
+      hosts
+        .flatMap((host) => [host.squareLogoDark, host.squareLogoLight])
         .filter((id): id is string => Boolean(id)),
     ),
   );
@@ -27,13 +27,13 @@ export default async function RawSponsorsAdminPage() {
       : [];
   const imageMap = new Map(images.map((image) => [image.id, image]));
 
-  const initialSponsors = await Promise.all(
-    sponsors.map(async (sponsor) => {
-      const dark = sponsor.squareLogoDark
-        ? (imageMap.get(sponsor.squareLogoDark) ?? null)
+  const initialHosts = await Promise.all(
+    hosts.map(async (host) => {
+      const dark = host.squareLogoDark
+        ? (imageMap.get(host.squareLogoDark) ?? null)
         : null;
-      const light = sponsor.squareLogoLight
-        ? (imageMap.get(sponsor.squareLogoLight) ?? null)
+      const light = host.squareLogoLight
+        ? (imageMap.get(host.squareLogoLight) ?? null)
         : null;
 
       const squareLogoDarkUrl = dark
@@ -60,7 +60,7 @@ export default async function RawSponsorsAdminPage() {
         : null;
 
       return {
-        ...sponsor,
+        ...host,
         squareLogoDarkUrl,
         squareLogoLightUrl,
       };
@@ -75,10 +75,10 @@ export default async function RawSponsorsAdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Create Raw Sponsor
+                  Create Raw Host
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Add sponsors with dark and light square logos
+                  Add hosts with dark and light square logos
                 </p>
               </div>
               <Link
@@ -91,7 +91,7 @@ export default async function RawSponsorsAdminPage() {
           </div>
 
           <div className="p-6">
-            <CreateSponsorForm initialSponsors={initialSponsors} />
+            <CreateHostForm initialHosts={initialHosts} />
           </div>
         </div>
       </div>

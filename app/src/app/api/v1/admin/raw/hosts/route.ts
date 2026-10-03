@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
-import { imagesTable, sponsorsTable } from "@/lib/schema";
+import { imagesTable, hostsTable } from "@/lib/schema";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
 import { mainConfig } from "@/lib/config";
@@ -32,11 +32,11 @@ function slugifyName(value: string): string {
 
 async function uploadLogo(params: {
   file: File;
-  sponsorName: string;
+  hostName: string;
   variant: "dark" | "light";
   uploadedBy: string;
 }): Promise<string> {
-  const { file, sponsorName, variant, uploadedBy } = params;
+  const { file, hostName, variant, uploadedBy } = params;
 
   const processedImage = await processImage(file, file.name, {
     convertUnsupportedFormats: true,
@@ -44,7 +44,7 @@ async function uploadLogo(params: {
   });
 
   const uuid = randomUUID();
-  const key = `sponsors/${slugifyName(sponsorName)}-${variant}-${uuid}.${processedImage.metadata.format}`;
+  const key = `sponsors/${slugifyName(hostName)}-${variant}-${uuid}.${processedImage.metadata.format}`;
 
   await s3Client.send(
     new PutObjectCommand({
@@ -67,7 +67,7 @@ async function uploadLogo(params: {
     width: processedImage.metadata.width,
     height: processedImage.metadata.height,
     placeholder: processedImage.placeholder,
-    alt: `${sponsorName} ${variant} logo`,
+    alt: `${hostName} ${variant} logo`,
   });
 
   return uuid;
@@ -103,7 +103,7 @@ async function deleteImageFromStorage(imageId: string) {
       }),
     );
   } catch (error) {
-    console.error("Error deleting sponsor image from S3:", error);
+    console.error("Error deleting host image from S3:", error);
   }
 
   await db.delete(imagesTable).where(eq(imagesTable.id, imageId));
@@ -154,20 +154,20 @@ export async function POST(request: NextRequest) {
 
     const squareLogoDark = await uploadLogo({
       file: darkLogo,
-      sponsorName: name,
+      hostName: name,
       variant: "dark",
       uploadedBy: user.id,
     });
 
     const squareLogoLight = await uploadLogo({
       file: lightLogo,
-      sponsorName: name,
+      hostName: name,
       variant: "light",
       uploadedBy: user.id,
     });
 
-    const [sponsor] = await db
-      .insert(sponsorsTable)
+    const [host] = await db
+      .insert(hostsTable)
       .values({
         name,
         about,
@@ -179,18 +179,18 @@ export async function POST(request: NextRequest) {
     const darkImage = await db
       .select({ url: imagesTable.url })
       .from(imagesTable)
-      .where(eq(imagesTable.id, sponsor.squareLogoDark!))
+      .where(eq(imagesTable.id, host.squareLogoDark!))
       .limit(1);
     const lightImage = await db
       .select({ url: imagesTable.url })
       .from(imagesTable)
-      .where(eq(imagesTable.id, sponsor.squareLogoLight!))
+      .where(eq(imagesTable.id, host.squareLogoLight!))
       .limit(1);
 
     return NextResponse.json(
       {
-        sponsor: {
-          ...sponsor,
+        host: {
+          ...host,
           squareLogoDarkUrl: await signImageUrl(darkImage[0]?.url ?? null),
           squareLogoLightUrl: await signImageUrl(lightImage[0]?.url ?? null),
         },
@@ -198,9 +198,9 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Error creating raw sponsor:", error);
+    console.error("Error creating raw host:", error);
     return NextResponse.json(
-      { error: "Failed to create sponsor" },
+      { error: "Failed to create host" },
       { status: 500 },
     );
   }
@@ -225,28 +225,27 @@ export async function PUT(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const sponsorId =
-      (formData.get("sponsorId") as string | null)?.trim() ?? "";
+    const hostId = (formData.get("hostId") as string | null)?.trim() ?? "";
     const name = (formData.get("name") as string | null)?.trim() ?? "";
     const about = (formData.get("about") as string | null)?.trim() ?? "";
     const darkLogo = formData.get("darkLogo") as File | null;
     const lightLogo = formData.get("lightLogo") as File | null;
 
-    if (!sponsorId || !name || !about) {
+    if (!hostId || !name || !about) {
       return NextResponse.json(
-        { error: "sponsorId, name, and about are required" },
+        { error: "hostId, name, and about are required" },
         { status: 400 },
       );
     }
 
     const existing = await db
       .select()
-      .from(sponsorsTable)
-      .where(eq(sponsorsTable.id, sponsorId))
+      .from(hostsTable)
+      .where(eq(hostsTable.id, hostId))
       .limit(1);
     const current = existing[0];
     if (!current) {
-      return NextResponse.json({ error: "Sponsor not found" }, { status: 404 });
+      return NextResponse.json({ error: "Host not found" }, { status: 404 });
     }
 
     let squareLogoDark = current.squareLogoDark;
@@ -257,7 +256,7 @@ export async function PUT(request: NextRequest) {
     if (darkLogo && darkLogo.size > 0) {
       squareLogoDark = await uploadLogo({
         file: darkLogo,
-        sponsorName: name,
+        hostName: name,
         variant: "dark",
         uploadedBy: user.id,
       });
@@ -266,21 +265,21 @@ export async function PUT(request: NextRequest) {
     if (lightLogo && lightLogo.size > 0) {
       squareLogoLight = await uploadLogo({
         file: lightLogo,
-        sponsorName: name,
+        hostName: name,
         variant: "light",
         uploadedBy: user.id,
       });
     }
 
-    const [sponsor] = await db
-      .update(sponsorsTable)
+    const [host] = await db
+      .update(hostsTable)
       .set({
         name,
         about,
         squareLogoDark,
         squareLogoLight,
       })
-      .where(eq(sponsorsTable.id, sponsorId))
+      .where(eq(hostsTable.id, hostId))
       .returning();
 
     if (oldDark && oldDark !== squareLogoDark) {
@@ -290,32 +289,32 @@ export async function PUT(request: NextRequest) {
       await deleteImageFromStorage(oldLight);
     }
 
-    const darkImage = sponsor.squareLogoDark
+    const darkImage = host.squareLogoDark
       ? await db
           .select({ url: imagesTable.url })
           .from(imagesTable)
-          .where(eq(imagesTable.id, sponsor.squareLogoDark))
+          .where(eq(imagesTable.id, host.squareLogoDark))
           .limit(1)
       : [];
-    const lightImage = sponsor.squareLogoLight
+    const lightImage = host.squareLogoLight
       ? await db
           .select({ url: imagesTable.url })
           .from(imagesTable)
-          .where(eq(imagesTable.id, sponsor.squareLogoLight))
+          .where(eq(imagesTable.id, host.squareLogoLight))
           .limit(1)
       : [];
 
     return NextResponse.json({
-      sponsor: {
-        ...sponsor,
+      host: {
+        ...host,
         squareLogoDarkUrl: await signImageUrl(darkImage[0]?.url ?? null),
         squareLogoLightUrl: await signImageUrl(lightImage[0]?.url ?? null),
       },
     });
   } catch (error) {
-    console.error("Error updating raw sponsor:", error);
+    console.error("Error updating raw host:", error);
     return NextResponse.json(
-      { error: "Failed to update sponsor" },
+      { error: "Failed to update host" },
       { status: 500 },
     );
   }

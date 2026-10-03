@@ -9,7 +9,7 @@ import {
   HeroSectionTitle,
   AllYouNeedToKnowSection,
   ImagesSection,
-  SponsorsSection,
+  HostsSection,
   TalksSection,
 } from "@/components/event-details";
 import TypeAnimation from "@/components/ui/typing-animation";
@@ -89,9 +89,7 @@ export default async function ConvexEventPage() {
           background={event.talks.length ? "muted" : "default"}
         />
       )}
-      {event.sponsors.length > 0 && (
-        <SponsorsSection sponsors={event.sponsors} />
-      )}
+      {event.hosts.length > 0 && <HostsSection hosts={event.hosts} />}
     </EventDetailsPage>
   );
 }
