@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { eventsTable, imagesTable } from "@/lib/schema";
 
@@ -13,10 +13,9 @@ export type CoverImage = {
 type Cancellable = { signal: AbortSignal };
 
 export type CoverIngestionDependencies = {
-  database: Pick<
-    PgDatabase<PgQueryResultHKT>,
-    "select" | "insert" | "update" | "delete" | "transaction"
-  >;
+  database: Pick<PgDatabase<PgQueryResultHKT>, "select"> & {
+    execute: (query: SQL) => PromiseLike<{ rows: unknown[] }>;
+  };
   /** The event's banner at its listing provider, or null when it has none. */
   findCoverUrl: (
     event: { lumaEventId: string },
@@ -42,6 +41,46 @@ export type CoverIngestionResult = {
   withoutCover: string[];
   failed: { slug: string; error: string }[];
 };
+
+/**
+ * Records the image and makes it the event's cover in one statement, and only
+ * if the event still has no cover; a cover set meanwhile wins and nothing is
+ * written. One statement keeps this atomic without an interactive
+ * transaction, which the production driver (neon-http) does not support.
+ */
+async function saveCover(
+  database: CoverIngestionDependencies["database"],
+  cover: {
+    eventId: string;
+    imageId: string;
+    url: string;
+    alt: string;
+    image: CoverImage;
+  },
+): Promise<boolean> {
+  const result = await database.execute(sql`
+    with target as (
+      select ${eventsTable.id} from ${eventsTable}
+      where ${eventsTable.id} = ${cover.eventId}
+        and ${eventsTable.previewImage} is null
+      for update
+    ), image as (
+      insert into ${imagesTable}
+        (id, url, alt, placeholder, width, height, created_at, updated_at)
+      select ${cover.imageId}::uuid, ${cover.url}, ${cover.alt},
+        ${cover.image.placeholder}, ${cover.image.width}::integer,
+        ${cover.image.height}::integer, now(), now()
+      from target
+      returning id
+    )
+    update ${eventsTable}
+    set preview_image = image.id, updated_at = now()
+    from image
+    where ${eventsTable.id} = ${cover.eventId}
+    returning ${eventsTable.id}
+  `);
+  return result.rows.length > 0;
+}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -109,27 +148,12 @@ export async function ingestMissingCovers(
       const url = await deps.store(key, image, { signal });
       unusedKey = key;
       signal.throwIfAborted();
-      const assigned = await deps.database.transaction(async (tx) => {
-        await tx.insert(imagesTable).values({
-          id: imageId,
-          url,
-          alt: `${event.name} event cover`,
-          placeholder: image.placeholder,
-          width: image.width,
-          height: image.height,
-        });
-        const updated = await tx
-          .update(eventsTable)
-          .set({ previewImage: imageId })
-          .where(
-            and(eq(eventsTable.id, event.id), isNull(eventsTable.previewImage)),
-          )
-          .returning({ id: eventsTable.id });
-        if (updated.length === 0) {
-          // Someone set a cover meanwhile; theirs wins.
-          await tx.delete(imagesTable).where(eq(imagesTable.id, imageId));
-        }
-        return updated.length > 0;
+      const assigned = await saveCover(deps.database, {
+        eventId: event.id,
+        imageId,
+        url,
+        alt: `${event.name} event cover`,
+        image,
       });
       if (assigned) {
         unusedKey = null;
