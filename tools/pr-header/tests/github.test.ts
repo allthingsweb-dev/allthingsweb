@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { summarize, type PullRequestData } from "../src/github.ts";
+import {
+  fetchPullRequest,
+  summarize,
+  type GitHub,
+  type PullRequestData,
+} from "../src/github.ts";
 
 const repo = { owner: "allthingsweb-dev", name: "allthingsweb" };
 
@@ -48,10 +53,14 @@ describe("summarizing a pull request", () => {
     const pr = data({
       reviews: {
         nodes: [
-          { author: { login: "coderabbitai" }, state: "CHANGES_REQUESTED" },
-          { author: { login: "esthor" }, state: "COMMENTED" },
-          { author: { login: "coderabbitai" }, state: "APPROVED" },
-          { author: { login: "coderabbitai" }, state: "COMMENTED" },
+          {
+            author: { login: "coderabbitai" },
+            state: "CHANGES_REQUESTED",
+            body: "",
+          },
+          { author: { login: "esthor" }, state: "COMMENTED", body: "" },
+          { author: { login: "coderabbitai" }, state: "APPROVED", body: "" },
+          { author: { login: "coderabbitai" }, state: "COMMENTED", body: "" },
         ],
       },
     });
@@ -61,7 +70,9 @@ describe("summarizing a pull request", () => {
   test("shows CodeRabbit as reviewing while its check runs", () => {
     const pr = data({
       reviews: {
-        nodes: [{ author: { login: "coderabbitai" }, state: "APPROVED" }],
+        nodes: [
+          { author: { login: "coderabbitai" }, state: "APPROVED", body: "" },
+        ],
       },
       commits: contexts(checkRun("CodeRabbit", "IN_PROGRESS", null)),
     });
@@ -140,5 +151,89 @@ describe("summarizing a pull request", () => {
     expect(merge("BEHIND")).toBe("behind");
     expect(merge("UNKNOWN")).toBe("checking");
     expect(merge("SOMETHING_NEW")).toBe("unknown");
+  });
+});
+
+describe("findings outside the diff", () => {
+  const review = (state: string, body: string) => ({
+    author: { login: "coderabbitai" },
+    state,
+    body,
+  });
+
+  test("count CodeRabbit's outside-diff comments from its latest review", () => {
+    const pr = data({
+      reviews: {
+        nodes: [
+          review("COMMENTED", "⚠️ Outside diff range comments (5)"),
+          review(
+            "CHANGES_REQUESTED",
+            "Actionable comments posted: 1\n\n<summary>⚠️ Outside diff range comments (2)</summary>",
+          ),
+        ],
+      },
+      reviewThreads: { nodes: [thread("coderabbitai", false)] },
+    });
+    expect(summarize(repo, pr, ready, null).coderabbit.findings).toEqual({
+      resolved: 0,
+      open: 3,
+    });
+  });
+
+  test("are cleared once CodeRabbit approves", () => {
+    const pr = data({
+      reviews: {
+        nodes: [
+          review("CHANGES_REQUESTED", "⚠️ Outside diff range comments (2)"),
+          review("APPROVED", ""),
+        ],
+      },
+    });
+    expect(summarize(repo, pr, ready, null).coderabbit.findings.open).toBe(0);
+  });
+});
+
+describe("loading a pull request", () => {
+  test("follows review thread pages past the first hundred", async () => {
+    const first = data({
+      reviewThreads: {
+        pageInfo: { hasNextPage: true, endCursor: "c1" },
+        nodes: [thread("coderabbitai", true)],
+      },
+    });
+    const calls: Record<string, unknown>[] = [];
+    const github: GitHub = {
+      rest: async () => {
+        throw new Error("unused");
+      },
+      graphql: async <T>(
+        _query: string,
+        variables: Record<string, unknown>,
+      ) => {
+        calls.push(variables);
+        if (!variables["after"])
+          return { repository: { pullRequest: first } } as T;
+        return {
+          repository: {
+            pullRequest: {
+              reviewThreads: {
+                pageInfo: { hasNextPage: false, endCursor: null },
+                nodes: [
+                  thread("coderabbitai", false),
+                  thread("coderabbitai", false),
+                ],
+              },
+            },
+          },
+        } as T;
+      },
+    };
+    const pr = await fetchPullRequest(github, repo, 52);
+    expect(pr.reviewThreads.nodes).toHaveLength(3);
+    expect(calls.map((c) => c["after"] ?? null)).toEqual([null, "c1"]);
+    expect(summarize(repo, pr, ready, null).coderabbit.findings).toEqual({
+      resolved: 1,
+      open: 2,
+    });
   });
 });

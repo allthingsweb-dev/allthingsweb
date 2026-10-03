@@ -1,11 +1,10 @@
 import { join } from "node:path";
 import {
   createGitHub,
+  fetchPullRequest,
   previewDeployment,
-  pullRequestQuery,
   summarize,
   type GitHub,
-  type PullRequestData,
   type Repo,
 } from "./github.ts";
 import { renderHeader, withHeader } from "./render.ts";
@@ -63,21 +62,25 @@ async function refresh(
   mark: string | undefined,
   justDeployed: { sha: string; url: string } | null,
 ): Promise<void> {
-  const { repository } = await github.graphql<{
-    repository: { pullRequest: PullRequestData };
-  }>(pullRequestQuery, { owner: repo.owner, name: repo.name, number });
-  const pr = repository.pullRequest;
+  const pr = await fetchPullRequest(github, repo, number);
   const deployment = await previewDeployment(github, repo, pr.headRefOid);
 
   let stableUrl: string | null = null;
   if (vercel) {
-    const alias = previewAlias(number);
-    // Only the head commit's preview moves the alias, so a slow build of an
-    // older commit can't take it back.
-    if (justDeployed?.sha === pr.headRefOid) {
-      await assignPreviewAlias(vercel, justDeployed.url, alias);
+    // Stable previews are a nicety: a Vercel failure must not block the header.
+    try {
+      const alias = previewAlias(number);
+      // Only the head commit's preview moves the alias, so a slow build of an
+      // older commit can't take it back.
+      if (justDeployed?.sha === pr.headRefOid) {
+        await assignPreviewAlias(vercel, justDeployed.url, alias);
+      }
+      stableUrl = await stablePreviewUrl(vercel, alias);
+    } catch (error) {
+      console.warn(
+        `#${number}: no stable preview: ${error instanceof Error ? error.message : error}`,
+      );
     }
-    stableUrl = await stablePreviewUrl(vercel, alias);
   }
 
   const body = withHeader(

@@ -54,8 +54,9 @@ export const pullRequestQuery = `
       pullRequest(number: $number) {
         number url state isDraft mergeStateStatus headRefOid body
         additions deletions changedFiles
-        reviews(last: 50) { nodes { author { login } state } }
+        reviews(last: 20) { nodes { author { login } state body } }
         reviewThreads(first: 100) {
+          pageInfo { hasNextPage endCursor }
           nodes { isResolved comments(first: 1) { nodes { author { login } } } }
         }
         commits(last: 1) {
@@ -87,6 +88,11 @@ type Context =
     }
   | { __typename: "StatusContext"; context: string; state: string };
 
+type ReviewThread = {
+  isResolved: boolean;
+  comments: { nodes: { author: { login: string } | null }[] };
+};
+
 export type PullRequestData = {
   number: number;
   url: string;
@@ -98,12 +104,12 @@ export type PullRequestData = {
   additions: number;
   deletions: number;
   changedFiles: number;
-  reviews: { nodes: { author: { login: string } | null; state: string }[] };
+  reviews: {
+    nodes: { author: { login: string } | null; state: string; body: string }[];
+  };
   reviewThreads: {
-    nodes: {
-      isResolved: boolean;
-      comments: { nodes: { author: { login: string } | null }[] };
-    }[];
+    pageInfo?: { hasNextPage: boolean; endCursor: string | null };
+    nodes: ReviewThread[];
   };
   commits: {
     nodes: {
@@ -184,6 +190,16 @@ export function summarize(
     (t) => t.comments.nodes[0]?.author?.login === coderabbit,
   );
   const resolved = threads.filter((t) => t.isResolved).length;
+  // Findings on lines outside the diff live in the review body, not in a
+  // thread. The latest review supersedes earlier ones, and an approval means
+  // none are left.
+  const latestReview = pr.reviews.nodes.findLast(
+    (r) => r.author?.login === coderabbit,
+  );
+  const outsideDiff =
+    latestReview && latestReview.state !== "APPROVED"
+      ? outsideDiffFindings(latestReview.body)
+      : 0;
 
   const outcomes = contexts
     .filter((c) => !separateChecks.test(contextName(c)))
@@ -228,7 +244,7 @@ export function summarize(
     },
     coderabbit: {
       review,
-      findings: { resolved, open: threads.length - resolved },
+      findings: { resolved, open: threads.length - resolved + outsideDiff },
     },
     checks,
   };
@@ -257,4 +273,53 @@ export async function previewDeployment(
     state: status?.state ?? "pending",
     url: status?.environment_url || null,
   };
+}
+
+/** Counts CodeRabbit's "Outside diff range comments (N)" in a review body. */
+export function outsideDiffFindings(body: string): number {
+  const match = body.match(/Outside diff range comments \((\d+)\)/);
+  return match ? Number(match[1]) : 0;
+}
+
+const reviewThreadsQuery = `
+  query ($owner: String!, $name: String!, $number: Int!, $after: String!) {
+    repository(owner: $owner, name: $name) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 100, after: $after) {
+          pageInfo { hasNextPage endCursor }
+          nodes { isResolved comments(first: 1) { nodes { author { login } } } }
+        }
+      }
+    }
+  }
+`;
+
+type ThreadPage = {
+  repository: {
+    pullRequest: { reviewThreads: Required<PullRequestData["reviewThreads"]> };
+  };
+};
+
+/** Loads a PR with all of its review threads, however many pages they span. */
+export async function fetchPullRequest(
+  github: GitHub,
+  repo: Repo,
+  number: number,
+): Promise<PullRequestData> {
+  const variables = { owner: repo.owner, name: repo.name, number };
+  const { repository } = await github.graphql<{
+    repository: { pullRequest: PullRequestData };
+  }>(pullRequestQuery, variables);
+  const pr = repository.pullRequest;
+  let page = pr.reviewThreads.pageInfo;
+  while (page?.hasNextPage && page.endCursor) {
+    const next = await github.graphql<ThreadPage>(reviewThreadsQuery, {
+      ...variables,
+      after: page.endCursor,
+    });
+    const threads = next.repository.pullRequest.reviewThreads;
+    pr.reviewThreads.nodes.push(...threads.nodes);
+    page = threads.pageInfo;
+  }
+  return pr;
 }
