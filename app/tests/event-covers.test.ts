@@ -92,6 +92,25 @@ async function insertEvent(
 }
 
 describe("event cover ingestion", () => {
+  test("saves covers through a driver without interactive transactions", async () => {
+    // Production uses drizzle's neon-http driver, which rejects
+    // db.transaction(); ingestion must work with select and execute alone.
+    await insertEvent("http-driver");
+    const httpLike = {
+      select: db.select.bind(db),
+      execute: db.execute.bind(db),
+      transaction: () => {
+        throw new Error("No transactions support in neon-http driver");
+      },
+    };
+    const result = await ingestMissingCovers(deps({ database: httpLike }));
+    expect(result).toEqual({
+      ingested: ["http-driver"],
+      withoutCover: [],
+      failed: [],
+    });
+  });
+
   test("stores the listing banner and sets it as the event's cover", async () => {
     const event = await insertEvent("effect");
     const d = deps();
