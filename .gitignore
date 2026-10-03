@@ -24,7 +24,6 @@ test-results/
 playwright-report/
 .vercel
 
-# Agents: personal overrides and session state
-.agents/local/
+# Claude Code session state
 .claude/worktrees/
 **/settings.local.json
