@@ -1,38 +1,12 @@
 import { randomUUID } from "node:crypto";
-import {
-  DeleteObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
 import { mainConfig } from "@/lib/config";
 import { db } from "@/lib/db";
-import { processImage } from "@/lib/image-processor";
 import { createLumaClient } from "@/lib/luma";
+import { imageBucket } from "@/lib/remote-images/bucket";
+import { downloadImage, processForStorage } from "@/lib/remote-images/download";
+import { coverHosts } from "./cover-source";
 import { ingestMissingCovers, type CoverIngestionResult } from "./ingest";
-import { fetchCover } from "./cover-source";
 import { findLumaCoverUrl, publicLumaCoverUrl } from "./luma-cover";
-import { looksLikeImage } from "./image-signature";
-import { readBodyAtMost } from "./read-body";
-
-const maxCoverBytes = 15 * 1024 * 1024;
-
-async function download(
-  url: string,
-  { signal }: { signal: AbortSignal },
-): Promise<Uint8Array> {
-  const response = await fetchCover(url, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(20_000)]),
-  });
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new Error(`Cover download failed: ${response.status}`);
-  }
-  const bytes = await readBodyAtMost(response, maxCoverBytes);
-  if (!looksLikeImage(bytes)) {
-    throw new Error("Cover is not a PNG, JPEG, GIF, WebP or AVIF image");
-  }
-  return bytes;
-}
 
 export async function ingestMissingLumaCovers({
   budgetMs,
@@ -47,13 +21,7 @@ export async function ingestMissingLumaCovers({
     return { skipped: "LUMA_API_KEY is not set" };
   }
   const luma = createLumaClient();
-  const s3 = new S3Client({
-    region: mainConfig.s3.region,
-    credentials: {
-      accessKeyId: mainConfig.s3.accessKeyId,
-      secretAccessKey: mainConfig.s3.secretAccessKey,
-    },
-  });
+  const bucket = imageBucket();
 
   return ingestMissingCovers(
     {
@@ -64,35 +32,10 @@ export async function ingestMissingLumaCovers({
             (await luma.getEvent(id, { signal }))?.event.cover_url ?? null,
           publicData: publicLumaCoverUrl,
         }),
-      download,
-      process: async (bytes) => {
-        const processed = await processImage(bytes);
-        return {
-          bytes: processed.buffer,
-          width: processed.metadata.width,
-          height: processed.metadata.height,
-          format: processed.metadata.format,
-          placeholder: processed.placeholder,
-        };
-      },
-      store: async (key, image, { signal }) => {
-        await s3.send(
-          new PutObjectCommand({
-            Bucket: mainConfig.s3.bucket,
-            Key: key,
-            Body: image.bytes,
-            ContentType: `image/${image.format}`,
-          }),
-          { abortSignal: signal },
-        );
-        return `${mainConfig.s3.url}/${key}`;
-      },
-      remove: async (key) => {
-        await s3.send(
-          new DeleteObjectCommand({ Bucket: mainConfig.s3.bucket, Key: key }),
-          { abortSignal: AbortSignal.timeout(5_000) },
-        );
-      },
+      download: (url, options) => downloadImage(url, coverHosts, options),
+      process: processForStorage,
+      store: bucket.store,
+      remove: bucket.remove,
       newId: randomUUID,
       now: Date.now,
     },

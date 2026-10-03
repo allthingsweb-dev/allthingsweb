@@ -82,6 +82,9 @@ export const profilesTable = pgTable("profiles", {
   twitterHandle: text("twitter_handle"),
   blueskyHandle: text("bluesky_handle"),
   linkedinHandle: text("linkedin_handle"),
+  /** Where to fetch the profile's photo from (GitHub, X, YC); the hourly sync
+   * stores it in the bucket and sets `image`. */
+  photoSourceUrl: text("photo_source_url"),
   bio: text("bio").notNull(),
   profileType: profileTypeEnum("profile_type").notNull(),
   createdAt,
