@@ -75,7 +75,11 @@ async function refresh(
       if (justDeployed?.sha === pr.headRefOid) {
         await assignPreviewAlias(vercel, justDeployed.url, alias);
       }
-      stableUrl = await stablePreviewUrl(vercel, alias);
+      stableUrl = await stablePreviewUrl(
+        vercel,
+        alias,
+        deployment?.url ?? null,
+      );
     } catch (error) {
       console.warn(
         `#${number}: no stable preview: ${error instanceof Error ? error.message : error}`,

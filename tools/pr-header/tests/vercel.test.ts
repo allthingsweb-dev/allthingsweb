@@ -78,30 +78,67 @@ describe("stable preview aliases", () => {
     expect(calls.map((c) => c.method)).toEqual(["GET"]);
   });
 
-  test("are linked only once they exist and belong to this project", async () => {
-    const ours = fakeVercel({
-      "GET /v4/aliases/allthings-pr-52.vercel.app": {
+  describe("are linked only when they point at the current deployment", () => {
+    const current = "https://allthingsweb-new-team.vercel.app";
+    const routes = (alias: { status: number; body?: unknown }) => ({
+      "GET /v13/deployments/allthingsweb-new-team.vercel.app": {
         status: 200,
-        body: { projectId: "prj_1" },
+        body: { id: "dpl_new", projectId: "prj_1" },
       },
+      "GET /v4/aliases/allthings-pr-52.vercel.app": alias,
     });
-    expect(await stablePreviewUrl(config, previewAlias(52), ours.impl)).toBe(
-      "https://allthings-pr-52.vercel.app",
-    );
-    const missing = fakeVercel({
-      "GET /v4/aliases/allthings-pr-52.vercel.app": { status: 404 },
+
+    test("linked when the alias targets this deployment", async () => {
+      const { impl } = fakeVercel(
+        routes({
+          status: 200,
+          body: { projectId: "prj_1", deploymentId: "dpl_new" },
+        }),
+      );
+      expect(
+        await stablePreviewUrl(config, previewAlias(52), current, impl),
+      ).toBe("https://allthings-pr-52.vercel.app");
     });
-    expect(
-      await stablePreviewUrl(config, previewAlias(52), missing.impl),
-    ).toBeNull();
-    const theirs = fakeVercel({
-      "GET /v4/aliases/allthings-pr-52.vercel.app": {
-        status: 200,
-        body: { projectId: "prj_other" },
-      },
+
+    test("not linked while it still targets the previous deployment", async () => {
+      const { impl } = fakeVercel(
+        routes({
+          status: 200,
+          body: { projectId: "prj_1", deploymentId: "dpl_old" },
+        }),
+      );
+      expect(
+        await stablePreviewUrl(config, previewAlias(52), current, impl),
+      ).toBeNull();
     });
-    expect(
-      await stablePreviewUrl(config, previewAlias(52), theirs.impl),
-    ).toBeNull();
+
+    test("not linked when missing, another project's, or there is no deployment", async () => {
+      expect(
+        await stablePreviewUrl(
+          config,
+          previewAlias(52),
+          current,
+          fakeVercel(routes({ status: 404 })).impl,
+        ),
+      ).toBeNull();
+      expect(
+        await stablePreviewUrl(
+          config,
+          previewAlias(52),
+          current,
+          fakeVercel(
+            routes({
+              status: 200,
+              body: { projectId: "prj_other", deploymentId: "dpl_new" },
+            }),
+          ).impl,
+        ),
+      ).toBeNull();
+      const { impl, calls } = fakeVercel({});
+      expect(
+        await stablePreviewUrl(config, previewAlias(52), null, impl),
+      ).toBeNull();
+      expect(calls).toEqual([]);
+    });
   });
 });

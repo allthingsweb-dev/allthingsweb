@@ -57,17 +57,34 @@ export async function assignPreviewAlias(
   });
 }
 
-/** The alias's URL if it exists and belongs to this project, else null. */
+/**
+ * The alias's URL, but only once it points at the given deployment of this
+ * project; otherwise null, so the header never links an older preview.
+ */
 export async function stablePreviewUrl(
   config: VercelConfig,
   alias: string,
+  deploymentUrl: string | null,
   fetchImpl: typeof fetch = fetch,
 ): Promise<string | null> {
-  const { data } = await call<{ projectId: string }>(
-    config,
-    "GET",
-    `/v4/aliases/${alias}`,
-    fetchImpl,
-  );
-  return data?.projectId === config.projectId ? `https://${alias}` : null;
+  if (!deploymentUrl) return null;
+  const [deployment, target] = await Promise.all([
+    call<{ id: string }>(
+      config,
+      "GET",
+      `/v13/deployments/${new URL(deploymentUrl).host}`,
+      fetchImpl,
+    ),
+    call<{ projectId: string; deploymentId: string }>(
+      config,
+      "GET",
+      `/v4/aliases/${alias}`,
+      fetchImpl,
+    ),
+  ]);
+  const current =
+    target.data?.projectId === config.projectId &&
+    deployment.data !== null &&
+    target.data.deploymentId === deployment.data.id;
+  return current ? `https://${alias}` : null;
 }
