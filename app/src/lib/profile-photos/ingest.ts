@@ -1,4 +1,4 @@
-import { and, asc, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, isNull, ne, sql, type SQL } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { imagesTable, profilesTable } from "@/lib/schema";
 
@@ -39,9 +39,17 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** The bucket key convention used for profile photos. */
+/**
+ * The bucket key for a profile photo: the name reduced to letters, digits and
+ * dashes (accents kept, as in existing keys such as "erik-peña"), so nothing
+ * in a name can turn into a URL separator, query or fragment.
+ */
 export function profilePhotoKey(name: string, imageId: string, format: string) {
-  return `profiles/${name.toLowerCase().replace(/ /g, "-")}-${imageId}.${format}`;
+  const slug = name
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+  return `profiles/${slug || "profile"}-${imageId}.${format}`;
 }
 
 /**
@@ -103,12 +111,14 @@ export async function ingestProfilePhotos(
     })
     .from(profilesTable)
     .where(
-      and(isNull(profilesTable.image), isNotNull(profilesTable.photoSourceUrl)),
+      // `ne` also excludes NULL, so empty and missing sources are both skipped.
+      and(isNull(profilesTable.image), ne(profilesTable.photoSourceUrl, "")),
     )
     .orderBy(asc(profilesTable.createdAt));
 
   for (const profile of profiles) {
-    if (deps.now() >= deadline || signal.aborted || !profile.source) break;
+    if (deps.now() >= deadline || signal.aborted) break;
+    if (!profile.source) continue;
     let unusedKey: string | null = null;
     try {
       const photo = await deps.process(

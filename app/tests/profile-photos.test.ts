@@ -121,6 +121,15 @@ describe("profile photo ingestion", () => {
     );
   });
 
+  test("keeps URL separators, queries and fragments out of keys", () => {
+    expect(profilePhotoKey("Q&A? #1 / Ops", "abc", "png")).toBe(
+      "profiles/q-a-1-ops-abc.png",
+    );
+    expect(profilePhotoKey("???", "abc", "png")).toBe(
+      "profiles/profile-abc.png",
+    );
+  });
+
   test("never replaces a photo, and skips profiles without a source", async () => {
     const [existing] = await db
       .insert(imagesTable)
@@ -164,6 +173,15 @@ describe("profile photo ingestion", () => {
     expect((await ingestProfilePhotos(d)).ingested).toEqual([]);
     expect(d.removed).toEqual(d.stored);
     expect(await db.select().from(imagesTable)).toHaveLength(1);
+  });
+
+  test("skips an empty source and still processes later profiles", async () => {
+    await insertProfile("Empty Source", { photoSourceUrl: "" });
+    await insertProfile("Later Speaker");
+    expect(await ingestProfilePhotos(deps())).toEqual({
+      ingested: ["Later Speaker"],
+      failed: [],
+    });
   });
 
   test("isolates failures and reports them by name", async () => {
