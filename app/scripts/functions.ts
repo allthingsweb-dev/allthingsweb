@@ -237,14 +237,13 @@ export async function setProfileImage(name: string, imgPath: string) {
     alt: profile.name,
   });
 
-  await db
+  const [updated] = await db
     .update(profilesTable)
-    .set({
-      image: uuid,
-    })
-    .where(eq(profilesTable.id, profile.id));
+    .set({ image: uuid })
+    .where(eq(profilesTable.id, profile.id))
+    .returning();
 
-  if (!imageToDelete) return;
+  if (!imageToDelete) return updated;
   await db.delete(imagesTable).where(eq(imagesTable.id, imageToDelete.id));
   await s3Client.send(
     new DeleteObjectCommand({
@@ -253,7 +252,7 @@ export async function setProfileImage(name: string, imgPath: string) {
     }),
   );
 
-  return profile;
+  return updated;
 }
 
 export async function updateProfile(
