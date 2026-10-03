@@ -1,6 +1,6 @@
 import { addHostToEvent } from "./functions";
 
-const slug = "2025-06-01-nextdevfm-live";
+const slug = "2025-06-02-nextdevfm-live";
 const hostName = "Neon";
 
 async function main() {
