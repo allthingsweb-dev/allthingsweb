@@ -3,14 +3,15 @@
 The all things/\_ marks, generated from the design tokens and the Archivo
 typeface. The output lives in [`app/public/brand`](../../app/public/brand).
 
-| File                                                       | What it is                                                    |
-| ---------------------------------------------------------- | ------------------------------------------------------------- |
-| `wordmark.svg`, `wordmark-night.svg`                       | The master wordmark, for Paper and Night grounds              |
-| `wordmark-animated.svg`, `wordmark-night-animated.svg`     | The same with a blinking cursor (still under reduced motion)  |
-| `mark.svg`, `mark-night.svg`                               | The `a/` mark on a transparent ground                         |
-| `icon.svg`, `icon-192.png`, `icon-512.png`                 | App icon: `a/` on a Night tile, inside the maskable safe zone |
-| `apple-touch-icon.png`                                     | 180px app icon for iOS                                        |
-| `favicon.svg`, `favicon.ico`, `icon-16.png`, `icon-32.png` | Favicon: a larger, heavier `a/` that reads at 16px            |
+| File                                                       | What it is                                                                                     |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `wordmark.svg`, `wordmark-night.svg`                       | The master wordmark, for Paper and Night grounds                                               |
+| `wordmark-animated.svg`, `wordmark-night-animated.svg`     | The same with a blinking cursor (still under reduced motion)                                   |
+| `mark.svg`, `mark-night.svg`                               | The `a/` mark on a transparent ground                                                          |
+| `icon.svg`, `icon-192.png`, `icon-512.png`                 | App icon: `a/` on a Night tile, inside the maskable safe zone                                  |
+| `apple-touch-icon.png`                                     | 180px app icon for iOS                                                                         |
+| `favicon.svg`, `favicon.ico`, `icon-16.png`, `icon-32.png` | Favicon: a larger, heavier `a/` that reads at 16px                                             |
+| `avatar.svg`, `avatar.png`                                 | Blank avatar for a person or host without a photo or logo: the open slot `/_` in Glow on Night |
 
 Everything is a plain SVG path or a PNG rendered from one, so no font is
 needed to display the marks. Colors and the wordmark's weight, width and

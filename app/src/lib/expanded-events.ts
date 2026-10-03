@@ -1,5 +1,6 @@
 import { sanitizeRichText, type SafeHtml } from "@/lib/safe-html";
 import { eq, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import {
   eventsTable,
@@ -20,6 +21,7 @@ import {
 import { Event, Image } from "@/lib/events";
 import { getLumaUrl } from "@/lib/luma";
 import { signImage, signImages } from "@/lib/image-signing";
+import { blankAvatar } from "@/lib/blank-avatar";
 
 export type Host = {
   id: string;
@@ -106,44 +108,30 @@ async function getExpandedEventFromQuery(
 
   // Hosts
   const hostsPromise: Promise<Host[]> = (async () => {
+    const darkLogos = alias(imagesTable, "dark_logos");
     const hostsQuery = await db
-      .select({ host: hostsTable, lightLogo: imagesTable })
+      .select({ host: hostsTable, light: imagesTable, dark: darkLogos })
       .from(eventHostsTable)
       .where(eq(eventHostsTable.eventId, event.id))
       .innerJoin(hostsTable, eq(eventHostsTable.hostId, hostsTable.id))
-      .leftJoin(imagesTable, eq(hostsTable.squareLogoLight, imagesTable.id));
+      .leftJoin(imagesTable, eq(hostsTable.squareLogoLight, imagesTable.id))
+      .leftJoin(darkLogos, eq(hostsTable.squareLogoDark, darkLogos.id));
 
     return Promise.all(
-      hostsQuery.map(async ({ host, lightLogo: lightLogoRow }) => {
-        const lightLogoRaw = lightLogoRow || {
-          url: "/placeholder-host.png",
-          alt: host.name,
-          placeholder: null,
-          width: 200,
-          height: 200,
-        };
-
-        // Get dark logo separately
-        const darkLogoQuery = await db
-          .select()
-          .from(imagesTable)
-          .where(eq(imagesTable.id, host.squareLogoDark!))
-          .limit(1);
-
-        const darkLogoRaw = darkLogoQuery[0] || lightLogoRaw;
-
-        // Sign both logos
-        const [lightLogo, darkLogo] = await Promise.all([
-          signImage(lightLogoRaw),
-          signImage(darkLogoRaw),
+      hostsQuery.map(async ({ host, light, dark }) => {
+        // A host with one logo variant uses it for both; with none, the
+        // brand's blank avatar.
+        const fallback = blankAvatar(host.name);
+        const [squareLogoLight, squareLogoDark] = await Promise.all([
+          signImage(light ?? dark ?? fallback),
+          signImage(dark ?? light ?? fallback),
         ]);
-
         return {
           id: host.id,
           name: host.name,
           about: host.about,
-          squareLogoLight: lightLogo,
-          squareLogoDark: darkLogo,
+          squareLogoLight,
+          squareLogoDark,
         };
       }),
     );
@@ -179,13 +167,7 @@ async function getExpandedEventFromQuery(
               .filter((speakerRow) => speakerRow.profiles)
               .map(async (speakerRow) => {
                 const profile = speakerRow.profiles!;
-                const imageRaw = speakerRow.images || {
-                  url: "/placeholder-avatar.png",
-                  alt: profile.name,
-                  placeholder: null,
-                  width: 200,
-                  height: 200,
-                };
+                const imageRaw = speakerRow.images ?? blankAvatar(profile.name);
 
                 const image = await signImage(imageRaw);
 

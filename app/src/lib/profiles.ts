@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { blankAvatar } from "@/lib/blank-avatar";
 import { db } from "./db";
 import { profilesTable, imagesTable } from "./schema";
 import { Image } from "./events";
@@ -32,13 +33,7 @@ export async function getOrganizers(): Promise<Profile[]> {
 
   const transformToProfile = async (row: any): Promise<Profile> => {
     const profile = row.profiles;
-    const imageRaw = row.images || {
-      url: "/hero-image-rocket.png",
-      alt: `${profile.name} profile picture`,
-      placeholder: null,
-      width: 400,
-      height: 400,
-    };
+    const imageRaw = row.images ?? blankAvatar(profile.name);
 
     const image = await signImage(imageRaw);
 
