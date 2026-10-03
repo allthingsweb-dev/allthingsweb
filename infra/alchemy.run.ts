@@ -23,18 +23,20 @@ export default Alchemy.Stack(
     // The app on Vercel uploads through the Worker and links to the domain.
     const { stage } = yield* Alchemy.Stack;
     if (stage === PRODUCTION) {
-      const deployed = ["production", "preview"] as const;
+      // Development gets the token too, so admin scripts can upload from a
+      // maintainer's machine after `vercel env pull`.
+      const everywhere = ["production", "preview", "development"] as const;
       yield* VercelEnv("MEDIA_UPLOAD_URL", upload.url.as<string>(), {
         sensitive: false,
-        targets: deployed,
+        targets: everywhere,
       });
       yield* VercelEnv("MEDIA_UPLOAD_TOKEN", token, {
         sensitive: true,
-        targets: deployed,
+        targets: everywhere,
       });
       yield* VercelEnv("MEDIA_PUBLIC_URL", `https://${MEDIA_DOMAIN}`, {
         sensitive: false,
-        targets: [...deployed, "development"],
+        targets: everywhere,
       });
     }
 

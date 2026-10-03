@@ -20,7 +20,8 @@ export const VercelEnv = (
     command: targets
       .map(
         (target) =>
-          `printf %s "$VALUE" | ${VERCEL} env add ${name} ${target} ${PROJECT} --force --yes ${sensitive ? "--sensitive" : "--no-sensitive"}`,
+          // Vercel can't store sensitive values for development.
+          `printf %s "$VALUE" | ${VERCEL} env add ${name} ${target} ${PROJECT} --force --yes ${sensitive && target !== "development" ? "--sensitive" : "--no-sensitive"}`,
       )
       .join(" && "),
     shell: true,
