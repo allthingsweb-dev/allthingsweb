@@ -17,7 +17,8 @@ else
 fi
 
 FILE="bun-${OS}-${ARCH}"
-LATEST_RELEASE=$(curl -s "https://api.github.com/repos/allthingsweb-dev/allthingsweb/releases/latest" | grep tag_name | cut -d'"' -f 4)
+# Install a specific (pre)release with ATW_VERSION=2.0.0-alpha.1; defaults to the latest stable release.
+LATEST_RELEASE="${ATW_VERSION:-$(curl -s "https://api.github.com/repos/allthingsweb-dev/allthingsweb/releases/latest" | grep tag_name | cut -d'"' -f 4)}"
 URL="https://github.com/allthingsweb-dev/allthingsweb/releases/download/${LATEST_RELEASE}/atw-cli-${FILE}"
 
 if curl -fLO "${URL}"; then
