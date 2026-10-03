@@ -202,7 +202,6 @@ describe("Luma synchronization against Postgres", () => {
     isDraft: true,
     recordingUrl: "https://example.com/recording",
     isHackathon: true,
-    hackathonState: "ended" as const,
   };
 
   test("publishes stranded drafts and refreshes source facts without losing editorial content or relations", async () => {
