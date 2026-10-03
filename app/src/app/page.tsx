@@ -14,8 +14,9 @@ import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { EventsCarousel } from "@/components/event-carousel";
 import { PastEventsGrid } from "@/components/past-events-grid";
+import { LandingHero } from "@/components/landing-hero";
 import { DiscordLogoIcon } from "@/components/ui/icons";
-import { Event, Image } from "@/lib/events";
+import { Event } from "@/lib/events";
 import { toReadableDateTimeStr, toShortDateStr } from "@/lib/datetime";
 import {
   getPastEventImages,
@@ -24,8 +25,6 @@ import {
 } from "@/lib/images";
 import { signImage } from "@/lib/image-signing";
 import { getLumaUrl } from "@/lib/luma";
-import { community } from "@/lib/community";
-import NextImage from "next/image";
 
 // Homepage metadata - the layout already provides the base metadata
 // This ensures the homepage gets "All Things Web" instead of "All Things Web | All Things Web"
@@ -246,61 +245,6 @@ export default async function HomePage() {
 
       <PastEventsSection events={pastEvents} />
     </PageLayout>
-  );
-}
-
-function LandingHero({ images }: { images: Image[] }) {
-  return (
-    <section className="relative isolate w-full overflow-hidden">
-      <div className="absolute inset-0 -z-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
-        {images.map((image, index) => (
-          <div
-            key={image.url + index}
-            className="relative w-full aspect-square overflow-hidden"
-          >
-            <NextImage
-              src={image.url}
-              placeholder={image.placeholder ? "blur" : undefined}
-              blurDataURL={image.placeholder || undefined}
-              fill
-              className="object-cover"
-              priority
-              alt={image.alt || `Event image ${index + 1}`}
-              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div className="min-h-[70svh] bg-gradient-to-b from-black/80 to-black/60 flex flex-col justify-center items-center py-20 sm:py-28 text-center text-white px-4">
-        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
-          All Things Web 🚀
-        </h1>
-        <p className="max-w-3xl text-2xl sm:text-3xl font-semibold mb-5">
-          {community.oneLiner}
-        </p>
-        <p className="max-w-2xl text-lg sm:text-xl leading-relaxed">
-          {community.introduction}
-        </p>
-        <div className="flex flex-wrap justify-center gap-4 mt-8">
-          <Button
-            asChild
-            className="bg-brand-yellow text-black hover:brightness-95"
-          >
-            <Link href="https://luma.com/allthingsweb">
-              Find your next event
-            </Link>
-          </Button>
-          <Link
-            href="/about"
-            className="inline-flex items-center px-4 py-2 font-medium underline underline-offset-4 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-          >
-            Meet the community
-          </Link>
-        </div>
-      </div>
-    </section>
   );
 }
 

@@ -48,6 +48,18 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@theme {
+  --animate-hero-scroll: hero-scroll var(--hero-scroll-duration, 80s) linear
+    infinite;
+
+  /* Moves a column that repeats its images once by exactly one copy. */
+  @keyframes hero-scroll {
+    to {
+      transform: translateY(-50%);
+    }
+  }
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
