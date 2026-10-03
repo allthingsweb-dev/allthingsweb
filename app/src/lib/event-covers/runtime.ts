@@ -10,6 +10,7 @@ import { processImage } from "@/lib/image-processor";
 import { createLumaClient } from "@/lib/luma";
 import { ingestMissingCovers, type CoverIngestionResult } from "./ingest";
 import { fetchCover } from "./cover-source";
+import { findLumaCoverUrl, publicLumaCoverUrl } from "./luma-cover";
 import { looksLikeImage } from "./image-signature";
 import { readBodyAtMost } from "./read-body";
 
@@ -57,8 +58,12 @@ export async function ingestMissingLumaCovers({
   return ingestMissingCovers(
     {
       database: db,
-      findCoverUrl: async ({ lumaEventId }, { signal }) =>
-        (await luma.getEvent(lumaEventId, { signal }))?.event.cover_url ?? null,
+      findCoverUrl: ({ lumaEventId }, options) =>
+        findLumaCoverUrl(lumaEventId, options, {
+          api: async (id, { signal }) =>
+            (await luma.getEvent(id, { signal }))?.event.cover_url ?? null,
+          publicData: publicLumaCoverUrl,
+        }),
       download,
       process: async (bytes) => {
         const processed = await processImage(bytes);
