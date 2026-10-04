@@ -88,7 +88,7 @@ async function insertEvent(
       ...values,
     })
     .returning();
-  return row!;
+  return row;
 }
 
 describe("event cover ingestion", () => {
@@ -126,11 +126,11 @@ describe("event cover ingestion", () => {
       .from(eventsTable)
       .innerJoin(imagesTable, eq(eventsTable.previewImage, imagesTable.id))
       .where(eq(eventsTable.id, event.id));
-    expect(updated!.images).toMatchObject({
+    expect(updated.images).toMatchObject({
       alt: "effect event cover",
       width: 800,
       height: 800,
-      url: `https://bucket.example/events/${event.id}/cover-${updated!.images.id}.png`,
+      url: `https://bucket.example/events/${event.id}/cover-${updated.images.id}.png`,
     });
     expect(d.stored).toHaveLength(1);
   });
@@ -146,7 +146,7 @@ describe("event cover ingestion", () => {
         height: 630,
       })
       .returning();
-    await insertEvent("has-cover", { previewImage: manual!.id });
+    await insertEvent("has-cover", { previewImage: manual.id });
     await insertEvent("site-only", { lumaEventId: null });
 
     const d = deps();
@@ -175,7 +175,7 @@ describe("event cover ingestion", () => {
         d.stored.push(key);
         await db
           .update(eventsTable)
-          .set({ previewImage: manual!.id })
+          .set({ previewImage: manual.id })
           .where(eq(eventsTable.id, event.id));
         return `https://bucket.example/${key}`;
       },
@@ -186,7 +186,7 @@ describe("event cover ingestion", () => {
       .select()
       .from(eventsTable)
       .where(eq(eventsTable.id, event.id));
-    expect(row!.previewImage).toBe(manual!.id);
+    expect(row.previewImage).toBe(manual.id);
     expect(await db.select().from(imagesTable)).toHaveLength(1);
     expect(d.removed).toEqual(d.stored);
   });

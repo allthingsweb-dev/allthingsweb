@@ -70,7 +70,7 @@ export function htmlToPlainText(html: string): string {
     .replace(/<li[^>]*>/gi, "\n- ")
     .replace(/<br\s*\/?>|<\/(p|ul|ol|blockquote|pre|h[1-6])>/gi, "\n");
   return sanitizeHtml(withBreaks, { allowedTags: [], allowedAttributes: {} })
-    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (entity) => entities[entity]!)
+    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (entity) => entities[entity])
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

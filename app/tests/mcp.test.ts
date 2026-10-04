@@ -208,10 +208,10 @@ describe("public MCP server", () => {
     const details = eventSchema.parse(result.structuredContent);
     expect(details.url).toBe("https://allthingsweb.dev/effect-sf");
     expect(details.rsvpUrl).toBe("https://lu.ma/event/evt-1");
-    expect(details.talks[0]!.description).toBe(
+    expect(details.talks[0].description).toBe(
       "Effect & you\n\n- Typed errors\n- Concurrency",
     );
-    expect(details.talks[0]!.speakers[0]).toEqual({
+    expect(details.talks[0].speakers[0]).toEqual({
       name: "Michael Arnaldi",
       title: "Creator of Effect",
       bio: "Founder.",
@@ -231,7 +231,7 @@ describe("public MCP server", () => {
       const result = await callTool("get_event", { slug });
       expect(result.isError).toBe(true);
       expect(result.structuredContent).toBeUndefined();
-      expect(result.content[0]!.text).toContain(slug);
+      expect(result.content[0].text).toContain(slug);
     }
   });
 
@@ -289,8 +289,8 @@ describe("public MCP server", () => {
     ] as const) {
       const result = await callTool(tool, args, mcp);
       expect(result.isError).toBe(true);
-      expect(result.content[0]!.text).toContain("temporarily unavailable");
-      expect(result.content[0]!.text).not.toContain("db.internal");
+      expect(result.content[0].text).toContain("temporarily unavailable");
+      expect(result.content[0].text).not.toContain("db.internal");
     }
     expect(reported.map((r) => r.tool)).toEqual([
       "list_events",

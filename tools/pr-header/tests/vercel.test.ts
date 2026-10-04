@@ -12,18 +12,24 @@ const config: VercelConfig = {
   projectId: "prj_1",
 };
 
+/** The client sends JSON strings; any other body is a bug worth failing on. */
+function jsonText(body: RequestInit["body"]): string {
+  if (typeof body !== "string") throw new Error("Expected a JSON string body");
+  return body;
+}
+
 function fakeVercel(
   routes: Record<string, { status: number; body?: unknown }>,
 ) {
   const calls: { method: string; path: string; body?: unknown }[] = [];
   const impl = (async (input: string | URL | Request, init?: RequestInit) => {
-    const url = new URL(String(input));
+    const url = new URL(input instanceof Request ? input.url : input);
     expect(url.searchParams.get("teamId")).toBe("team_1");
     const method = init?.method ?? "GET";
     calls.push({
       method,
       path: url.pathname,
-      ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+      ...(init?.body ? { body: JSON.parse(jsonText(init.body)) } : {}),
     });
     const route = routes[`${method} ${url.pathname}`];
     if (!route) throw new Error(`Unexpected ${method} ${url.pathname}`);
@@ -71,6 +77,24 @@ describe("stable preview aliases", () => {
       assignPreviewAlias(
         config,
         "https://other.vercel.app",
+        previewAlias(52),
+        impl,
+      ),
+    ).rejects.toThrow("not a deployment of this project");
+    expect(calls.map((c) => c.method)).toEqual(["GET"]);
+  });
+
+  test("never alias a deployment Vercel describes without an id", async () => {
+    const { impl, calls } = fakeVercel({
+      "GET /v13/deployments/odd.vercel.app": {
+        status: 200,
+        body: { projectId: "prj_1" },
+      },
+    });
+    await expect(
+      assignPreviewAlias(
+        config,
+        "https://odd.vercel.app",
         previewAlias(52),
         impl,
       ),
@@ -139,6 +163,22 @@ describe("stable preview aliases", () => {
         await stablePreviewUrl(config, previewAlias(52), null, impl),
       ).toBeNull();
       expect(calls).toEqual([]);
+    });
+
+    test("not linked when neither response names a deployment id", async () => {
+      const { impl } = fakeVercel({
+        "GET /v13/deployments/allthingsweb-new-team.vercel.app": {
+          status: 200,
+          body: { projectId: "prj_1" },
+        },
+        "GET /v4/aliases/allthings-pr-52.vercel.app": {
+          status: 200,
+          body: { projectId: "prj_1" },
+        },
+      });
+      expect(
+        await stablePreviewUrl(config, previewAlias(52), current, impl),
+      ).toBeNull();
     });
   });
 });

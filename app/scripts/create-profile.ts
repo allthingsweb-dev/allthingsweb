@@ -21,4 +21,4 @@ async function main() {
   console.log(createdProfile.id);
 }
 
-main();
+await main();

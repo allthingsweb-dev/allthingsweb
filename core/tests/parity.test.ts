@@ -48,8 +48,10 @@ const { drizzle } = (await appPackage("drizzle-orm/pglite")) as {
 };
 const appDb = drizzle({ client: db });
 // The app reads its database and config from modules; point them here.
-mock.module(new URL("src/lib/db.ts", app).pathname, () => ({ db: appDb }));
-mock.module(new URL("src/lib/config.ts", app).pathname, () => ({
+await mock.module(new URL("src/lib/db.ts", app).pathname, () => ({
+  db: appDb,
+}));
+await mock.module(new URL("src/lib/config.ts", app).pathname, () => ({
   mainConfig: { s3: { url: "https://storage.example" } },
 }));
 
@@ -120,7 +122,7 @@ const SpeakerList = Schema.Struct({ speakers: Schema.Array(Contract.Speaker) });
 const canonical = <A>(values: ReadonlyArray<A>): Array<A> =>
   values
     .map((value) => [JSON.stringify(value), value] as const)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([, value]) => value);
 
 /**
@@ -147,7 +149,7 @@ describe("core answers as the app's MCP tools do", () => {
     "list_events when=%s",
     async (when) => {
       const appResult = await callApp("list_events", { when, limit: 100 });
-      const events = await runCore(
+      const summaries = await runCore(
         Events.use((events) => events.listPublished).pipe(
           Effect.map((rows) =>
             Mappers.selectEvents(rows, when, now).map((row) =>
@@ -156,8 +158,8 @@ describe("core answers as the app's MCP tools do", () => {
           ),
         ),
       );
-      expect(events.length).toBeGreaterThan(0);
-      expect(valid(EventList, { events })).toEqual(
+      expect(summaries.length).toBeGreaterThan(0);
+      expect(valid(EventList, { events: summaries })).toEqual(
         valid(EventList, appResult.structuredContent),
       );
     },
@@ -213,13 +215,13 @@ describe("core answers as the app's MCP tools do", () => {
 
   test("list_speakers", async () => {
     const appResult = await callApp("list_speakers", { limit: 200 });
-    const speakers = await runCore(
+    const coreSpeakers = await runCore(
       Speakers.use((speakers) => speakers.directory).pipe(
         Effect.map((directory) => Mappers.toSpeakers(directory, origin)),
       ),
     );
-    expect(speakers.length).toBeGreaterThan(0);
-    expect(valid(SpeakerList, { speakers })).toEqual(
+    expect(coreSpeakers.length).toBeGreaterThan(0);
+    expect(valid(SpeakerList, { speakers: coreSpeakers })).toEqual(
       valid(SpeakerList, appResult.structuredContent),
     );
   });

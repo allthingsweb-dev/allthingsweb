@@ -65,14 +65,14 @@ export function SocialsList({
 
   const getUrls = () => {
     if (isUrlFormat) {
-      const urlSocials = socials as Socials;
+      const urlSocials = socials;
       return {
         twitter: urlSocials.twitterUrl,
         bluesky: urlSocials.blueskyUrl,
         linkedin: urlSocials.linkedinUrl,
       };
     } else {
-      const handleSocials = socials as SpeakerSocials;
+      const handleSocials = socials;
       return {
         twitter: handleSocials.twitter
           ? `https://twitter.com/${handleSocials.twitter}`

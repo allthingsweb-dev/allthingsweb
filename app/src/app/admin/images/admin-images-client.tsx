@@ -25,7 +25,6 @@ interface AdminImagesClientProps {
 
 export function AdminImagesClient({
   initialEventImages,
-  sortedEvents: initialSortedEvents,
 }: AdminImagesClientProps) {
   const [eventImages, setEventImages] = useState(initialEventImages);
   const [message, setMessage] = useState<{
@@ -59,7 +58,7 @@ export function AdminImagesClient({
     >,
   );
 
-  const sortedEvents = Object.entries(imagesByEvent).sort(
+  const sortedEvents = Object.entries(imagesByEvent).toSorted(
     ([, a], [, b]) => b.eventStartDate.getTime() - a.eventStartDate.getTime(),
   );
 

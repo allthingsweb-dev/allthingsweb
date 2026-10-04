@@ -127,7 +127,7 @@ async function detectImageFormat(
     if (metadata.format) {
       return metadata.format;
     }
-  } catch (error) {
+  } catch {
     // If Sharp fails, fall back to file extension
     console.log("Sharp metadata detection failed, using file extension");
   }
@@ -225,6 +225,7 @@ export async function processImage(
     console.error("❌ Error processing image:", error);
     throw new Error(
       `Image processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { cause: error },
     );
   }
 }

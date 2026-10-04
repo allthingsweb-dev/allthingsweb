@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Metadata } from "next";
-import { eq, and, gt, lte, gte, lt, desc } from "drizzle-orm";
+import { eq, and, gt, lte, gte, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { eventsTable, imagesTable } from "@/lib/schema";
 import { PageLayout } from "@/components/page-layout";
@@ -17,7 +17,7 @@ import { PastEventsGrid } from "@/components/past-events-grid";
 import { LandingHero } from "@/components/landing-hero";
 import { DiscordLogoIcon } from "@/components/ui/icons";
 import { Event } from "@/lib/events";
-import { toReadableDateTimeStr, toShortDateStr } from "@/lib/datetime";
+import { toShortDateStr } from "@/lib/datetime";
 import {
   getPastEventImages,
   getPastEventsWithImages,

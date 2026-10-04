@@ -28,11 +28,7 @@ export type MediaUploadEnv = Cloudflare.InferEnv<typeof MediaUpload>;
  */
 export const MediaUploadCheck = Alchemy.Action(
   "MediaUploadCheck",
-  (input: {
-    url: string;
-    token: Redacted.Redacted<string>;
-    workerHash: string;
-  }) => {
+  (input: { url: string; token: Redacted.Redacted; workerHash: string }) => {
     const object = `${input.url}/deploy-checks/${input.workerHash}.txt`;
     const authorization = `Bearer ${Redacted.value(input.token)}`;
     const expect = (method: "PUT" | "DELETE", status: number) =>

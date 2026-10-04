@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // One rule set for every package. app/ and web/ extend it with their JSX
+  // plugins in their own .oxlintrc.json.
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "options": {
+    // Type-aware rules run on oxlint-tsgolint, which follows TypeScript 7.
+    "typeAware": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "rules": {
+    // A micro-optimization that is noisy in tests and Effect code.
+    "unicorn/consistent-function-scoping": "off",
+    // Effect's `_tag` and friends are idiomatic.
+    "eslint/no-underscore-dangle": "off",
+    // Omitting keys with a rest sibling (`const { a, ...rest } = x`) is how we
+    // drop fields, so those siblings are used.
+    "eslint/no-unused-vars": ["error", { "ignoreRestSiblings": true }],
+    // TypeScript checks namespace members already, and this rule resolves
+    // conditional exports wrongly (it misses @sentry/nextjs's browser API).
+    "import/namespace": "off",
+    "import/no-unassigned-import": [
+      "error",
+      { "allow": ["**/*.css", "server-only"] }
+    ],
+    // Each of today's casts (most in app/) needs a runtime check to replace
+    // it. That is its own change; this one keeps behavior as it is.
+    "typescript/no-unsafe-type-assertion": "off",
+    // JSX event handlers may be async: React ignores what they return.
+    "typescript/no-misused-promises": [
+      "error",
+      { "checksVoidReturn": { "attributes": false } }
+    ],
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/switch-exhaustiveness-check": "error"
+  },
+  "overrides": [
+    {
+      // bun-types declares `expect(...).rejects` matchers as returning void,
+      // but they return promises that must be awaited.
+      "files": ["**/tests/**"],
+      "rules": { "typescript/await-thenable": "off" }
+    }
+  ]
+}

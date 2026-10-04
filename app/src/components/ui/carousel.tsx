@@ -61,10 +61,10 @@ function Carousel({
   const [canScrollPrev, setCanScrollPrev] = React.useState(false);
   const [canScrollNext, setCanScrollNext] = React.useState(false);
 
-  const onSelect = React.useCallback((api: CarouselApi) => {
-    if (!api) return;
-    setCanScrollPrev(api.canScrollPrev());
-    setCanScrollNext(api.canScrollNext());
+  const onSelect = React.useCallback((carouselApi: CarouselApi) => {
+    if (!carouselApi) return;
+    setCanScrollPrev(carouselApi.canScrollPrev());
+    setCanScrollNext(carouselApi.canScrollNext());
   }, []);
 
   const scrollPrev = React.useCallback(() => {
@@ -94,7 +94,7 @@ function Carousel({
   }, [api, setApi]);
 
   React.useEffect(() => {
-    if (!api) return;
+    if (!api) return undefined;
     onSelect(api);
     api.on("reInit", onSelect);
     api.on("select", onSelect);
@@ -121,6 +121,7 @@ function Carousel({
       <div
         onKeyDownCapture={handleKeyDown}
         className={cn("relative", className)}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- WAI-ARIA APG carousel: a <section> without an accessible name has no region role
         role="region"
         aria-roledescription="carousel"
         data-slot="carousel"
@@ -158,6 +159,7 @@ function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
 
   return (
     <div
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- WAI-ARIA APG carousel: a slide is a group; none of the suggested tags fit
       role="group"
       aria-roledescription="slide"
       data-slot="carousel-item"

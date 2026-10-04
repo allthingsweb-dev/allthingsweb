@@ -27,6 +27,7 @@ function screenLuminance([r, g, b]: Rgb): number {
 
 /** Near-black luminances are lifted toward this threshold (flare). */
 const blackThreshold = 0.022;
+// oxlint-disable-next-line oxc/approx-constant -- APCA 0.0.98G defines this exponent as exactly 1.414, not √2
 const blackClamp = 1.414;
 
 const softClamp = (y: number) =>
@@ -66,6 +67,6 @@ export function wcagContrast(a: string, b: string): number {
   const [lighter, darker] = [
     relativeLuminance(rgb(a)),
     relativeLuminance(rgb(b)),
-  ].sort((x, y) => y - x);
+  ].toSorted((x, y) => y - x);
   return ((lighter ?? 0) + 0.05) / ((darker ?? 0) + 0.05);
 }

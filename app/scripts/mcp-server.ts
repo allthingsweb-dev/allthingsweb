@@ -527,10 +527,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 // Tool execution handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  const { name: toolName, arguments: args } = request.params;
 
   try {
-    switch (name) {
+    switch (toolName) {
       // Event tools
       case "create_event": {
         const { event } = args as { event: any };
@@ -862,7 +862,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       default:
-        throw new Error(`Unknown tool: ${name}`);
+        throw new Error(`Unknown tool: ${toolName}`);
     }
   } catch (error) {
     return {

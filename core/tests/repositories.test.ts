@@ -142,8 +142,8 @@ const serverComponents = {
 
 describe("Events", () => {
   test("lists published events only, latest start first", async () => {
-    const events = await run(Events.use((events) => events.listPublished));
-    expect(events.map((event) => event.slug)).toEqual([
+    const published = await run(Events.use((events) => events.listPublished));
+    expect(published.map((event) => event.slug)).toEqual([
       "2026-11-05-upcoming",
       "2026-10-03-hack-day",
       "2026-10-03-ends-now",
@@ -153,9 +153,9 @@ describe("Events", () => {
   });
 
   test("reads an event's columns and preview image", async () => {
-    const events = await run(Events.use((events) => events.listPublished));
+    const published = await run(Events.use((events) => events.listPublished));
     expect(
-      events.find((event) => event.slug === "2026-08-12-react-at-acme"),
+      published.find((event) => event.slug === "2026-08-12-react-at-acme"),
     ).toEqual({
       id: "e0000000-0000-4000-8000-000000000001",
       slug: "2026-08-12-react-at-acme",
@@ -172,7 +172,7 @@ describe("Events", () => {
       previewImage: cover,
     });
     expect(
-      events.find((event) => event.slug === "2026-10-03-hack-day"),
+      published.find((event) => event.slug === "2026-10-03-hack-day"),
     ).toMatchObject({
       shortLocation: null,
       fullAddress: null,

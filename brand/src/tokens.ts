@@ -147,7 +147,7 @@ function tokensOf<Token>(
 
 /** Every reference names a token that exists, and both modes define the same roles. */
 function referenceIssues(file: TokenFileShape): ReadonlyArray<string> {
-  const colors = new Set(tokensOf(file.color).map(([name]) => name));
+  const colorNames = new Set(tokensOf(file.color).map(([name]) => name));
   const fonts = new Set(["display", "mono"]);
   const issues: Array<string> = [];
   for (const [role, token] of tokensOf(file.type)) {
@@ -157,7 +157,7 @@ function referenceIssues(file: TokenFileShape): ReadonlyArray<string> {
   }
   for (const mode of ["paper", "night"] as const) {
     for (const [role, token] of tokensOf(file.theme[mode])) {
-      if (!colors.has(referencedName(token.$value))) {
+      if (!colorNames.has(referencedName(token.$value))) {
         issues.push(`theme.${mode}.${role}: unknown color ${token.$value}`);
       }
     }
@@ -173,7 +173,7 @@ function referenceIssues(file: TokenFileShape): ReadonlyArray<string> {
   }
   file.$extensions["dev.allthings"].contrast.forEach((pair, index) => {
     for (const side of ["text", "background"] as const) {
-      if (!colors.has(referencedName(pair[side]))) {
+      if (!colorNames.has(referencedName(pair[side]))) {
         issues.push(`contrast[${index}].${side}: unknown color ${pair[side]}`);
       }
     }

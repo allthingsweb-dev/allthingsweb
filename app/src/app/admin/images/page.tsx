@@ -4,11 +4,9 @@ import { isAdmin } from "@/lib/admin";
 import { getAllEventImagesWithDetails } from "@/lib/images";
 import { PageLayout } from "@/components/page-layout";
 import { Section } from "@/components/ui/section";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink } from "lucide-react";
-import { toReadableDateTimeStr } from "@/lib/datetime";
+import { ArrowLeft } from "lucide-react";
 import { AdminImagesClient } from "./admin-images-client";
 
 export default async function AdminImagesPage() {
@@ -70,7 +68,7 @@ export default async function AdminImagesPage() {
     >,
   );
 
-  const sortedEvents = Object.entries(imagesByEvent).sort(
+  const sortedEvents = Object.entries(imagesByEvent).toSorted(
     ([, a], [, b]) => b.eventStartDate.getTime() - a.eventStartDate.getTime(),
   );
 

@@ -49,6 +49,7 @@ export async function findLumaCoverUrl(
         error instanceof Error ? error.message : String(error);
       throw new Error(
         `Luma API: ${reason(apiError)}; public event data: ${reason(publicError)}`,
+        { cause: publicError },
       );
     }
   }

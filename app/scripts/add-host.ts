@@ -8,4 +8,4 @@ async function main() {
   console.log("Done");
 }
 
-main();
+await main();

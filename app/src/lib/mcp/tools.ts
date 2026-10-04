@@ -93,7 +93,7 @@ export function registerAtwTools(
             const isPast = eventStatus(event, now) === "past";
             return when === "past" ? isPast : !isPast;
           })
-          .sort((a, b) =>
+          .toSorted((a, b) =>
             when === "upcoming"
               ? a.startDate.getTime() - b.startDate.getTime()
               : b.startDate.getTime() - a.startDate.getTime(),

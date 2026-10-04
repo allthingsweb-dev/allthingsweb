@@ -89,7 +89,7 @@ export const toDirectory = (
   }
   return {
     speakers: [...speakers.values()],
-    talks: [...talks.values()].sort(newestFirst),
+    talks: [...talks.values()].toSorted(newestFirst),
   };
 };
 
