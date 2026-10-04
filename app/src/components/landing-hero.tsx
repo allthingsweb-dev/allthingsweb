@@ -32,10 +32,37 @@ const columns = [
 export function LandingHero({ images }: { images: Image[] }) {
   return (
     <section className="group/hero relative isolate w-full overflow-hidden">
-      <div
-        className="absolute inset-0 -z-10 grid grid-cols-2 items-start gap-x-1 md:grid-cols-3 lg:grid-cols-4"
-        aria-hidden="true"
-      >
+      <div className="min-h-[70svh] bg-gradient-to-b from-black/80 to-black/60 flex flex-col justify-center items-center py-20 sm:py-28 text-center text-white px-4">
+        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
+          All Things Web 🚀
+        </h1>
+        <p className="max-w-3xl text-2xl sm:text-3xl font-semibold mb-5">
+          {community.oneLiner}
+        </p>
+        <p className="max-w-2xl text-lg sm:text-xl leading-relaxed">
+          {community.introduction}
+        </p>
+        <div className="flex flex-wrap justify-center gap-4 mt-8">
+          <Button
+            asChild
+            className="bg-brand-yellow text-black hover:brightness-95"
+          >
+            <Link href="https://luma.com/allthingsweb">
+              Find your next event
+            </Link>
+          </Button>
+          <Link
+            href="/about"
+            className="inline-flex items-center px-4 py-2 font-medium underline underline-offset-4 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          >
+            Meet the community
+          </Link>
+        </div>
+      </div>
+
+      {/* Painted behind the copy but read after it, so the heading and links
+          come first. Each photo's first copy carries its alt text. */}
+      <div className="absolute inset-0 -z-10 grid grid-cols-2 items-start gap-x-1 md:grid-cols-3 lg:grid-cols-4">
         {distributeIntoColumns(images, columns).map(
           ({ column, items }, columnIndex) => (
             <div
@@ -77,34 +104,6 @@ export function LandingHero({ images }: { images: Image[] }) {
             </div>
           ),
         )}
-      </div>
-
-      <div className="min-h-[70svh] bg-gradient-to-b from-black/80 to-black/60 flex flex-col justify-center items-center py-20 sm:py-28 text-center text-white px-4">
-        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
-          All Things Web 🚀
-        </h1>
-        <p className="max-w-3xl text-2xl sm:text-3xl font-semibold mb-5">
-          {community.oneLiner}
-        </p>
-        <p className="max-w-2xl text-lg sm:text-xl leading-relaxed">
-          {community.introduction}
-        </p>
-        <div className="flex flex-wrap justify-center gap-4 mt-8">
-          <Button
-            asChild
-            className="bg-brand-yellow text-black hover:brightness-95"
-          >
-            <Link href="https://luma.com/allthingsweb">
-              Find your next event
-            </Link>
-          </Button>
-          <Link
-            href="/about"
-            className="inline-flex items-center px-4 py-2 font-medium underline underline-offset-4 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-          >
-            Meet the community
-          </Link>
-        </div>
       </div>
 
       {/* Lets anyone stop the motion without JavaScript (WCAG 2.2.2). */}
