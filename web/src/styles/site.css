@@ -211,6 +211,220 @@ main > section,
   max-width: 36ch;
 }
 
+/* Home: the next evening and photos, then the sentences and the lists. */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(48px, 5vw, 72px);
+}
+
+.hero,
+.band {
+  display: grid;
+  grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
+  column-gap: var(--at-grid-gutter);
+}
+
+.hero {
+  row-gap: 40px;
+}
+
+.hero-text {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  container-type: inline-size;
+}
+
+.with-photos .hero-text {
+  grid-column: span 7;
+}
+
+/* "all things/" fills the column at the largest size. */
+.hero-name {
+  font-weight: 800;
+  font-stretch: 112%;
+  line-height: 0.84;
+  letter-spacing: -0.045em;
+  overflow-wrap: break-word;
+}
+
+.lockup-l {
+  font-size: min(156px, 19.5cqi);
+}
+
+.lockup-m {
+  font-size: min(112px, 14cqi);
+}
+
+.lockup-s {
+  font-size: min(72px, 9.5cqi);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+}
+
+.hero-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-top: 28px;
+}
+
+.hero-label {
+  font-size: clamp(22px, 2vw, 28px);
+  font-weight: 700;
+  font-stretch: 75%;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 56px;
+  padding: 0 28px;
+  background: var(--at-button);
+  color: var(--at-button-text);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.button:hover {
+  text-decoration: underline 2px;
+}
+
+.mosaic {
+  grid-column: 9 / span 4;
+  align-self: end;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mosaic img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--at-surface);
+}
+
+.mosaic img:first-child {
+  grid-column: span 2;
+}
+
+.tiles-2 img:last-child {
+  grid-column: span 2;
+  aspect-ratio: 2 / 1;
+}
+
+.pitch {
+  grid-column: span 3;
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.pitch-place {
+  font-weight: 500;
+  color: var(--at-meta);
+}
+
+.lists {
+  grid-column: 6 / span 7;
+  display: grid;
+  gap: 40px 32px;
+  border-top: 2px solid var(--at-text);
+  padding-top: 14px;
+}
+
+.lists.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.list ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+
+.list-head {
+  padding-bottom: 8px;
+}
+
+.list-links {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--at-meta);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--at-rule);
+  color: inherit;
+  text-decoration: none;
+}
+
+.row:hover .name {
+  text-decoration: underline 2px;
+  text-underline-offset: 0.18em;
+}
+
+.row .date {
+  letter-spacing: 0;
+}
+
+.row .place {
+  color: var(--at-link);
+  text-align: right;
+}
+
+/* Lists that share the band stack the date and place over the name. */
+.two .row {
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "date place" "name name";
+  row-gap: 4px;
+}
+
+.two .row .date {
+  grid-area: date;
+}
+
+.two .row .place {
+  grid-area: place;
+}
+
+.two .row .name {
+  grid-area: name;
+}
+
 /* Palette */
 
 .swatches {
@@ -451,7 +665,19 @@ th {
 
 @media (max-width: 760px) {
   .type-row .spec,
-  .type-row .specimen {
+  .type-row .specimen,
+  .with-photos .hero-text,
+  .mosaic,
+  .pitch,
+  .lists {
     grid-column: 1 / -1;
+  }
+
+  .band {
+    row-gap: 40px;
+  }
+
+  .lists.two {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

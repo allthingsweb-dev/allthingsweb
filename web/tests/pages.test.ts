@@ -9,10 +9,19 @@ import {
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
-import { HtmlValidate } from "html-validate";
 import { immutable } from "../scripts/build.ts";
 import { CacheControl } from "../src/cache.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
+import {
+  cssBudget,
+  gzipped,
+  headingLevels,
+  htmlBudget,
+  htmlProblems,
+  stylesheetOf,
+  stylesheetUrls,
+  subresources,
+} from "./support/pages.ts";
 import { testStack } from "./support/stack.ts";
 
 /**
@@ -49,24 +58,6 @@ const it = (name: string, run: (url: string) => Promise<void>) =>
 const brand = async (url: string, query = "") => {
   const response = await fetch(`${url}/brand${query}`);
   return { response, html: await response.text() };
-};
-
-const gzipped = (text: string) => Bun.gzipSync(text, { level: 9 }).byteLength;
-
-/** The page's subresources: what <link>, <script> and <img> load. */
-function subresources(html: string): Array<string> {
-  const tags = html.match(/<(?:link|script|img|source|iframe)\b[^>]*>/g) ?? [];
-  return tags.flatMap((tag) =>
-    [...tag.matchAll(/\s(?:href|src|srcset)="([^"]*)"/g)].map(
-      ([, value]) => value ?? "",
-    ),
-  );
-}
-
-const stylesheetOf = (html: string) => {
-  const href = /<link rel="stylesheet" href="([^"]+)"/.exec(html)?.[1];
-  if (href === undefined) throw new Error("The page links no stylesheet");
-  return href;
 };
 
 describe("/brand", () => {
@@ -116,21 +107,7 @@ describe("/brand", () => {
 
   it("is valid HTML", async (url) => {
     const { html } = await brand(url);
-    const validator = new HtmlValidate({
-      extends: ["html-validate:recommended"],
-      rules: {
-        // How @kitajs/html writes markup: a lowercase doctype, void elements
-        // closed with "/>" and empty attributes as ="".
-        "doctype-style": ["error", { style: "lowercase" }],
-        "void-style": ["error", { style: "selfclose" }],
-        "attribute-empty-style": ["error", { style: "empty" }],
-      },
-    });
-    const report = await validator.validateString(html);
-    const messages = report.results.flatMap((result) =>
-      result.messages.map((m) => `${m.ruleId}: ${m.message} (${m.selector})`),
-    );
-    expect(messages).toEqual([]);
+    expect(await htmlProblems(html)).toEqual([]);
   });
 
   it("is English, with one header, main and footer, and headings in order", async (url) => {
@@ -139,9 +116,7 @@ describe("/brand", () => {
     for (const landmark of ["header", "main", "footer"]) {
       expect(html.match(new RegExp(`<${landmark}[ >]`, "g"))).toHaveLength(1);
     }
-    const levels = [...html.matchAll(/<h([1-6])[ >]/g)].map(([, level]) =>
-      Number(level),
-    );
+    const levels = headingLevels(html);
     expect(levels[0]).toBe(1);
     expect(levels.filter((level) => level === 1)).toHaveLength(1);
     levels.forEach((level, index) => {
@@ -152,10 +127,7 @@ describe("/brand", () => {
   it("loads nothing from another origin and runs no JavaScript", async (url) => {
     const { html } = await brand(url);
     const css = await (await fetch(`${url}${stylesheetOf(html)}`)).text();
-    const loaded = [
-      ...subresources(html),
-      ...[...css.matchAll(/url\(([^)]*)\)/g)].map(([, value]) => value ?? ""),
-    ];
+    const loaded = [...subresources(html), ...stylesheetUrls(css)];
     expect(loaded.length).toBeGreaterThan(4);
     for (const path of loaded) expect(path).toMatch(/^\/(?!\/)/);
     expect(css).not.toContain("@import");
@@ -165,15 +137,6 @@ describe("/brand", () => {
     });
     expect(files.filter((file) => /\.m?js$/.test(file))).toEqual([]);
   });
-
-  // The first round trip of a new connection carries about 14.6 KB (an
-  // initial congestion window of ten 1460-byte segments), so a page this
-  // size arrives whole in it. The foundations are most of today's 7.2 KB.
-  const htmlBudget = 14_000;
-  // One stylesheet serves every page and blocks rendering. Today's 2.8 KB
-  // leaves room for the home, event and people pages' components; with the
-  // HTML it stays under two initial windows.
-  const cssBudget = 8_000;
 
   it(`gzips to at most ${htmlBudget} bytes of HTML and ${cssBudget} of CSS`, async (url) => {
     const { html } = await brand(url);
@@ -233,6 +196,21 @@ describe("/brand", () => {
   }
 });
 
+describe("the Worker", () => {
+  // Workers on the free plan may be 3 MB gzipped; we hold ours far below
+  // that, since every cold start parses all of it.
+  const bundleBudget = 300_000;
+
+  it(`bundles to at most ${bundleBudget} bytes gzipped`, async () => {
+    // Where Alchemy wrote the bundle it just ran, as it deploys it.
+    const bundle = Bun.file(
+      new URL("../.alchemy/bundles/Pages/worker.js", import.meta.url),
+    );
+    expect(await bundle.exists()).toBe(true);
+    expect(gzipped(await bundle.text())).toBeLessThanOrEqual(bundleBudget);
+  });
+});
+
 describe("static assets", () => {
   it("serve every file the page loads, by content hash, for a year", async (url) => {
     const { html } = await brand(url);
@@ -243,10 +221,7 @@ describe("static assets", () => {
       png: "image/png",
     };
     const css = await (await fetch(`${url}${stylesheetOf(html)}`)).text();
-    const files = new Set([
-      ...subresources(html),
-      ...[...css.matchAll(/url\(([^)]*)\)/g)].map(([, value]) => value ?? ""),
-    ]);
+    const files = new Set([...subresources(html), ...stylesheetUrls(css)]);
     for (const path of files) {
       expect(path).toMatch(
         /^\/assets\/[a-z-]+\.[0-9a-f]{16}\.(css|woff2|svg|png)$/,

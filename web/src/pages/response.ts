@@ -1,15 +1,17 @@
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { CacheControl } from "../cache.ts";
+import { mediaOrigin } from "../links.ts";
 
 /**
- * How pages are sent. They load nothing from other origins and run no
- * scripts, and the Content-Security-Policy makes browsers hold them to it.
+ * How pages are sent. They run no scripts and load nothing from other
+ * origins but event photos from the media origin, and the
+ * Content-Security-Policy makes browsers hold them to it.
  */
 export const contentSecurityPolicy = [
   "default-src 'none'",
   "style-src 'self'",
   "font-src 'self'",
-  "img-src 'self'",
+  `img-src 'self' ${mediaOrigin}`,
   "base-uri 'none'",
   "form-action 'none'",
   "frame-ancestors 'none'",
@@ -58,12 +60,18 @@ export function contentEncoding(
 }
 
 const headers = {
-  "cache-control": CacheControl.page,
   "content-security-policy": contentSecurityPolicy,
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
   vary: "accept-encoding",
 } as const;
+
+export interface HtmlOptions {
+  /** How long the page may be kept: a pure function of data or of the build. */
+  readonly cacheControl: CacheControl;
+  /** 200 unless said otherwise. */
+  readonly status?: number;
+}
 
 /**
  * A page's HTML, compressed when the client accepts it. A client that
@@ -72,6 +80,7 @@ const headers = {
 export function htmlResponse(
   html: string,
   acceptEncoding: string | undefined,
+  { cacheControl, status = 200 }: HtmlOptions,
 ): HttpServerResponse.HttpServerResponse {
   const encoding = contentEncoding(acceptEncoding);
   if (encoding === undefined) {
@@ -81,10 +90,12 @@ export function htmlResponse(
     });
   }
   return HttpServerResponse.text(html, {
+    status,
     contentType: "text/html; charset=utf-8",
-    headers:
-      encoding === "identity"
-        ? headers
-        : { ...headers, "content-encoding": encoding },
+    headers: {
+      ...headers,
+      "cache-control": cacheControl,
+      ...(encoding === "identity" ? {} : { "content-encoding": encoding }),
+    },
   });
 }

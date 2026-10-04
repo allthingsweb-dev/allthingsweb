@@ -4,6 +4,21 @@
  * they are shown.
  */
 
+/** The community calendar on Luma, where people subscribe to every evening. */
+export const lumaCalendar = "https://luma.com/allthingsweb";
+
+/**
+ * Where event photos are served from (R2). It is the one other origin a
+ * page may load from, and only images; the Content-Security-Policy says so.
+ */
+export const mediaOrigin = "https://media.allthings.dev";
+
+/**
+ * Every evening, listed. The current site lists them on its home page, so
+ * that is where "every evening" goes until this site has its own list.
+ */
+export const everyEvening = (origin: string): string => `${origin}/`;
+
 /** The X account's handle, without the @. Its URL and mentions derive from it. */
 export const xHandle = "allthingswebdev";
 
@@ -15,7 +30,7 @@ export interface Social {
 
 /** In the order the footer lists them. */
 export const socials: ReadonlyArray<Social> = [
-  { name: "luma", href: "https://luma.com/allthingsweb" },
+  { name: "luma", href: lumaCalendar },
   { name: "discord", href: "https://discord.gg/B3Sm4b5mfD" },
   { name: "youtube", href: "https://www.youtube.com/@allthingsweb-dev" },
   { name: "github", href: "https://github.com/allthingsweb-dev/allthingsweb" },
