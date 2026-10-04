@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@effect/sql-pg": "4.0.0",
-    "effect": "4.0.0"
+    "effect": "4.0.0",
+    "ical.js": "2.2.1"
   },
   "devDependencies": {
     "@effect/platform-bun": "4.0.0",
