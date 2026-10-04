@@ -1,26 +1,24 @@
-import { eq, inArray } from "drizzle-orm";
+import { sanitizeRichText, type SafeHtml } from "@/lib/safe-html";
+import { eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import {
   eventsTable,
   imagesTable,
-  sponsorsTable,
+  hostsTable,
   talksTable,
   profilesTable,
-  eventSponsorsTable,
+  eventHostsTable,
   eventTalksTable,
   eventImagesTable,
   talkSpeakersTable,
-  hacksTable,
-  hackVotesTable,
-  hackUsersTable,
-  usersSyncTable,
-  awardsTable,
 } from "@/lib/schema";
 import { Event, Image } from "@/lib/events";
 import { getLumaUrl } from "@/lib/luma";
 import { signImage, signImages } from "@/lib/image-signing";
+import { blankAvatar } from "@/lib/blank-avatar";
 
-export type Sponsor = {
+export type Host = {
   id: string;
   name: string;
   about: string;
@@ -44,32 +42,14 @@ export type Speaker = {
 export type Talk = {
   id: string;
   title: string;
-  description: string;
+  description: SafeHtml;
   speakers: Speaker[];
 };
 
 export type ExpandedEvent = Event & {
   talks: Talk[];
-  sponsors: Sponsor[];
+  hosts: Host[];
   images: Image[];
-  hacks?: Array<{
-    id: string;
-    teamName: string;
-    projectName?: string | null;
-    projectDescription?: string | null;
-    projectLink?: string | null;
-    teamImage?: Image | null;
-    voteCount: number;
-    members: Array<{
-      userId: string;
-      name: string | null;
-    }>;
-    awards?: Array<{
-      id: string;
-      name: string;
-      voteCount: number;
-    }>;
-  }>;
 };
 
 export async function getExpandedEventById(
@@ -103,54 +83,34 @@ async function getExpandedEventFromQuery(
   };
   const previewImagePromise = signImage(previewImageRaw);
 
-  // Sponsors
-  const sponsorsPromise: Promise<Sponsor[]> = (async () => {
-    const sponsorsQuery = await db
-      .select()
-      .from(eventSponsorsTable)
-      .where(eq(eventSponsorsTable.eventId, event.id))
-      .leftJoin(
-        sponsorsTable,
-        eq(eventSponsorsTable.sponsorId, sponsorsTable.id),
-      )
-      .leftJoin(imagesTable, eq(sponsorsTable.squareLogoLight, imagesTable.id));
+  // Hosts
+  const hostsPromise: Promise<Host[]> = (async () => {
+    const darkLogos = alias(imagesTable, "dark_logos");
+    const hostsQuery = await db
+      .select({ host: hostsTable, light: imagesTable, dark: darkLogos })
+      .from(eventHostsTable)
+      .where(eq(eventHostsTable.eventId, event.id))
+      .innerJoin(hostsTable, eq(eventHostsTable.hostId, hostsTable.id))
+      .leftJoin(imagesTable, eq(hostsTable.squareLogoLight, imagesTable.id))
+      .leftJoin(darkLogos, eq(hostsTable.squareLogoDark, darkLogos.id));
 
     return Promise.all(
-      sponsorsQuery
-        .filter((row) => row.sponsors)
-        .map(async (row) => {
-          const sponsor = row.sponsors!;
-          const lightLogoRaw = row.images || {
-            url: "/placeholder-sponsor.png",
-            alt: sponsor.name,
-            placeholder: null,
-            width: 200,
-            height: 200,
-          };
-
-          // Get dark logo separately
-          const darkLogoQuery = await db
-            .select()
-            .from(imagesTable)
-            .where(eq(imagesTable.id, sponsor.squareLogoDark!))
-            .limit(1);
-
-          const darkLogoRaw = darkLogoQuery[0] || lightLogoRaw;
-
-          // Sign both logos
-          const [lightLogo, darkLogo] = await Promise.all([
-            signImage(lightLogoRaw),
-            signImage(darkLogoRaw),
-          ]);
-
-          return {
-            id: sponsor.id,
-            name: sponsor.name,
-            about: sponsor.about,
-            squareLogoLight: lightLogo,
-            squareLogoDark: darkLogo,
-          };
-        }),
+      hostsQuery.map(async ({ host, light, dark }) => {
+        // A host with one logo variant uses it for both; with none, the
+        // brand's blank avatar.
+        const fallback = blankAvatar(host.name);
+        const [squareLogoLight, squareLogoDark] = await Promise.all([
+          signImage(light ?? dark ?? fallback),
+          signImage(dark ?? light ?? fallback),
+        ]);
+        return {
+          id: host.id,
+          name: host.name,
+          about: host.about,
+          squareLogoLight,
+          squareLogoDark,
+        };
+      }),
     );
   })();
 
@@ -184,13 +144,7 @@ async function getExpandedEventFromQuery(
               .filter((speakerRow) => speakerRow.profiles)
               .map(async (speakerRow) => {
                 const profile = speakerRow.profiles!;
-                const imageRaw = speakerRow.images || {
-                  url: "/placeholder-avatar.png",
-                  alt: profile.name,
-                  placeholder: null,
-                  width: 200,
-                  height: 200,
-                };
+                const imageRaw = speakerRow.images ?? blankAvatar(profile.name);
 
                 const image = await signImage(imageRaw);
 
@@ -212,7 +166,7 @@ async function getExpandedEventFromQuery(
           return {
             id: talk.id,
             title: talk.title,
-            description: talk.description,
+            description: sanitizeRichText(talk.description),
             speakers,
           };
         }),
@@ -234,166 +188,11 @@ async function getExpandedEventFromQuery(
     return signImages(imagesRaw);
   })();
 
-  // Hacks (only for hackathons)
-  const hacksPromise: Promise<ExpandedEvent["hacks"]> = event.isHackathon
-    ? (async () => {
-        const baseHacksQuery = await db
-          .select()
-          .from(hacksTable)
-          .where(eq(hacksTable.eventId, event.id))
-          .leftJoin(imagesTable, eq(hacksTable.teamImage, imagesTable.id));
-        if (baseHacksQuery.length === 0) return [];
-
-        const hackIds = baseHacksQuery.map((row) => row.hacks.id);
-        const allVotes = await db
-          .select({ hackId: hackVotesTable.hackId })
-          .from(hackVotesTable)
-          .where(inArray(hackVotesTable.hackId, hackIds));
-
-        const voteCountByHack: Record<string, number> = {};
-        for (const v of allVotes) {
-          const id = (v as any).hackId as string;
-          voteCountByHack[id] = (voteCountByHack[id] ?? 0) + 1;
-        }
-
-        // Get team members for all hacks
-        const teamMembersQuery = await db
-          .select({
-            hackId: hackUsersTable.hackId,
-            userId: hackUsersTable.userId,
-            userName: usersSyncTable.name,
-          })
-          .from(hackUsersTable)
-          .leftJoin(
-            usersSyncTable,
-            eq(hackUsersTable.userId, usersSyncTable.id),
-          )
-          .where(inArray(hackUsersTable.hackId, hackIds));
-
-        const membersByHack: Record<
-          string,
-          Array<{ userId: string; name: string | null }>
-        > = {};
-        for (const member of teamMembersQuery) {
-          if (!membersByHack[member.hackId]) {
-            membersByHack[member.hackId] = [];
-          }
-          membersByHack[member.hackId].push({
-            userId: member.userId,
-            name: member.userName,
-          });
-        }
-
-        // Get award winners for each hack
-        const awardWinnersQuery = await db
-          .select({
-            hackId: hackVotesTable.hackId,
-            awardId: hackVotesTable.awardId,
-            awardName: awardsTable.name,
-          })
-          .from(hackVotesTable)
-          .leftJoin(awardsTable, eq(hackVotesTable.awardId, awardsTable.id))
-          .where(inArray(hackVotesTable.hackId, hackIds));
-
-        // Calculate vote counts per hack per award
-        const voteCountsByHackAndAward: Record<
-          string,
-          Record<string, number>
-        > = {};
-        for (const vote of awardWinnersQuery) {
-          const hackId = vote.hackId;
-          const awardId = vote.awardId;
-          if (!voteCountsByHackAndAward[hackId]) {
-            voteCountsByHackAndAward[hackId] = {};
-          }
-          voteCountsByHackAndAward[hackId][awardId] =
-            (voteCountsByHackAndAward[hackId][awardId] || 0) + 1;
-        }
-
-        // Determine winners for each award
-        const awardWinnersByHack: Record<
-          string,
-          Array<{ id: string; name: string; voteCount: number }>
-        > = {};
-
-        // Get all awards for this event
-        const eventAwards = await db
-          .select()
-          .from(awardsTable)
-          .where(eq(awardsTable.eventId, event.id));
-
-        for (const award of eventAwards) {
-          // Find the maximum vote count for this award
-          let maxVotes = 0;
-          for (const hackId of hackIds) {
-            const voteCount = voteCountsByHackAndAward[hackId]?.[award.id] || 0;
-            if (voteCount > maxVotes) {
-              maxVotes = voteCount;
-            }
-          }
-
-          // Find all hacks that have the maximum vote count for this award
-          if (maxVotes > 0) {
-            for (const hackId of hackIds) {
-              const voteCount =
-                voteCountsByHackAndAward[hackId]?.[award.id] || 0;
-              if (voteCount === maxVotes) {
-                if (!awardWinnersByHack[hackId]) {
-                  awardWinnersByHack[hackId] = [];
-                }
-                awardWinnersByHack[hackId].push({
-                  id: award.id,
-                  name: award.name,
-                  voteCount,
-                });
-              }
-            }
-          }
-        }
-
-        return Promise.all(
-          baseHacksQuery.map(async (row) => {
-            const hack = row.hacks;
-            const img = row.images;
-            const signed = img
-              ? await signImage({
-                  url: img.url,
-                  alt: img.alt,
-                  placeholder: img.placeholder,
-                  width: img.width,
-                  height: img.height,
-                })
-              : null;
-            return {
-              id: hack.id,
-              teamName:
-                (hack as any).teamName ??
-                (hack as any).team_name ??
-                (hack as any).name,
-              projectName:
-                (hack as any).projectName ?? (hack as any).project_name ?? null,
-              projectDescription:
-                (hack as any).projectDescription ??
-                (hack as any).project_description ??
-                null,
-              projectLink:
-                (hack as any).projectLink ?? (hack as any).project_link ?? null,
-              teamImage: signed,
-              voteCount: voteCountByHack[hack.id] ?? 0,
-              members: membersByHack[hack.id] || [],
-              awards: awardWinnersByHack[hack.id] || [],
-            };
-          }),
-        );
-      })()
-    : Promise.resolve(undefined);
-
-  const [previewImage, sponsors, talks, images, hacks] = await Promise.all([
+  const [previewImage, hosts, talks, images] = await Promise.all([
     previewImagePromise,
-    sponsorsPromise,
+    hostsPromise,
     talksPromise,
     imagesPromise,
-    hacksPromise,
   ]);
 
   return {
@@ -401,9 +200,8 @@ async function getExpandedEventFromQuery(
     previewImage,
     lumaEventUrl: getLumaUrl(event.lumaEventId),
     talks,
-    sponsors,
+    hosts,
     images,
-    hacks,
   };
 }
 
@@ -423,4 +221,12 @@ export async function getExpandedEventBySlug(
   }
 
   return getExpandedEventFromQuery(eventQuery[0]);
+}
+
+/** An event as the public may see it: drafts are treated as missing. */
+export async function getPublicEventBySlug(
+  slug: string,
+): Promise<ExpandedEvent | null> {
+  const event = await getExpandedEventBySlug(slug);
+  return event && !event.isDraft ? event : null;
 }

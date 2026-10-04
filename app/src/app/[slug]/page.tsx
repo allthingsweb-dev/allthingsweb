@@ -9,8 +9,7 @@ import {
   AllYouNeedToKnowSection,
   TalksSection,
   ImagesSection,
-  SponsorsSection,
-  TeamsAndHacksSection,
+  HostsSection,
 } from "@/components/event-details";
 
 interface PageProps {
@@ -24,9 +23,7 @@ export async function generateMetadata({
   const event = await getExpandedEventBySlug(slug);
 
   if (!event || event.isDraft) {
-    return {
-      title: "Event not found",
-    };
+    notFound();
   }
 
   const url = `${mainConfig.instance.origin}/${slug}`;
@@ -83,12 +80,7 @@ export default async function EventPage({ params }: PageProps) {
           background={event.talks.length ? "muted" : "default"}
         />
       )}
-      {event.isHackathon && event.hacks && event.hacks.length > 0 && (
-        <TeamsAndHacksSection hacks={event.hacks} />
-      )}
-      {event.sponsors.length > 0 && (
-        <SponsorsSection sponsors={event.sponsors} />
-      )}
+      {event.hosts.length > 0 && <HostsSection hosts={event.hosts} />}
     </EventDetailsPage>
   );
 }

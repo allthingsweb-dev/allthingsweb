@@ -3,6 +3,7 @@ import { ImageResponse } from "next/og";
 import { LandingPagePreview } from "@/lib/image-gen/templates";
 import { getFont } from "@/lib/image-gen/utils";
 import { getPastEventImages } from "@/lib/images";
+import { generatedImageCacheControl } from "@/lib/image-gen/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
       height: 630,
       fonts: await getFont("Roboto"),
       headers: {
-        "Cache-Control": "public, max-age=31536000, immutable", // Cache for 1 year, immutable
+        "Cache-Control": generatedImageCacheControl,
       },
     });
   } catch (error) {

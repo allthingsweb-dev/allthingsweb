@@ -1,5 +1,4 @@
-# General guidelines
+# AGENTS.md
 
-- Do not add documentation (e.g., README.md updates, docs/ folder, etc.) for code changes if not explicitly requested.
-- When instructed to refactor code, only make the changes requested. Do not add additional changes or improvements unless explicitly requested. Do not leave comments like //removed and moved to x.tsx etc.
-- Do not add example components, code, or other explanatory content to the codebase unless explicitly requested.
+- One concern per PR, and never stack PRs: wait for a dependency to merge.
+- Done means verified in production after merge, not just green checks.

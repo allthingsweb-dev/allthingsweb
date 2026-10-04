@@ -15,14 +15,14 @@ import {
   createProfile,
   updateProfile,
   updateProfileById,
-  replaceProfileImage,
+  setProfileImage,
   createTalk,
   updateTalk,
   addTalkToEvent,
   removeTalkFromEvent,
   findTalksBySpeakerName,
-  createSponsor,
-  addSponsorToEvent,
+  createHost,
+  addHostToEvent,
   getImgIdsForUrls,
   deleteEventImages,
   deleteOrphanedImage,
@@ -31,8 +31,6 @@ import {
   removeUserFromAdmins,
   listAdmins,
   getLumaEvent,
-  createAward,
-  listAwards,
 } from "./functions.js";
 
 // Zod schemas for function parameters
@@ -91,18 +89,9 @@ const UpdateTalkSchema = z.object({
   }),
 });
 
-const InsertSponsorSchema = z.object({
+const InsertHostSchema = z.object({
   name: z.string(),
   about: z.string(), // Required in schema
-});
-
-const CreateAwardSchema = z.object({
-  eventId: z.string(),
-  name: z.string(),
-});
-
-const ListAwardsSchema = z.object({
-  eventId: z.string(),
 });
 
 const server = new Server(
@@ -283,8 +272,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "replace_profile_image",
-        description: "Replace profile image",
+        name: "set_profile_image",
+        description: "Set a profile's photo, replacing any earlier one",
         inputSchema: {
           type: "object",
           properties: {
@@ -379,18 +368,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["speakerName"],
         },
       },
-      // Sponsor tools
+      // Host tools
       {
-        name: "create_sponsor",
-        description: "Create a new sponsor with logos",
+        name: "create_host",
+        description: "Create a new host with logos",
         inputSchema: {
           type: "object",
           properties: {
-            sponsor: {
+            host: {
               type: "object",
               properties: {
-                name: { type: "string", description: "Sponsor name" },
-                about: { type: "string", description: "About sponsor" },
+                name: { type: "string", description: "Host name" },
+                about: { type: "string", description: "About host" },
               },
               required: ["name", "about"],
             },
@@ -403,19 +392,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Path to light logo",
             },
           },
-          required: ["sponsor", "darkLogoFilePath", "lightLogoFilePath"],
+          required: ["host", "darkLogoFilePath", "lightLogoFilePath"],
         },
       },
       {
-        name: "add_sponsor_to_event",
-        description: "Add sponsor to event",
+        name: "add_host_to_event",
+        description: "Add host to event",
         inputSchema: {
           type: "object",
           properties: {
             slug: { type: "string", description: "Event slug" },
-            sponsorName: { type: "string", description: "Sponsor name" },
+            hostName: { type: "string", description: "Host name" },
           },
-          required: ["slug", "sponsorName"],
+          required: ["slug", "hostName"],
         },
       },
       // Image tools
@@ -452,16 +441,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "delete_orphaned_image",
         description:
-          "Delete an orphaned image from S3 (only if not in database)",
+          "Delete an orphaned image from storage (only if not in database)",
         inputSchema: {
           type: "object",
           properties: {
-            s3Url: {
+            imageUrl: {
               type: "string",
-              description: "S3 URL of the image to delete",
+              description: "URL of the stored image to delete",
             },
           },
-          required: ["s3Url"],
+          required: ["imageUrl"],
         },
       },
       {
@@ -530,40 +519,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {},
           required: [],
-        },
-      },
-      // Award tools
-      {
-        name: "create_award",
-        description: "Create a new award for a hackathon event",
-        inputSchema: {
-          type: "object",
-          properties: {
-            eventId: {
-              type: "string",
-              description: "Event ID for the hackathon",
-            },
-            name: {
-              type: "string",
-              description:
-                "Award name (e.g., 'Best Innovation', 'People's Choice')",
-            },
-          },
-          required: ["eventId", "name"],
-        },
-      },
-      {
-        name: "list_awards",
-        description: "List all awards for a hackathon event",
-        inputSchema: {
-          type: "object",
-          properties: {
-            eventId: {
-              type: "string",
-              description: "Event ID for the hackathon",
-            },
-          },
-          required: ["eventId"],
         },
       },
     ],
@@ -675,9 +630,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "replace_profile_image": {
+      case "set_profile_image": {
         const { name, imgPath } = args as { name: string; imgPath: string };
-        const result = await replaceProfileImage(name, imgPath);
+        const result = await setProfileImage(name, imgPath);
         return {
           content: [
             {
@@ -758,16 +713,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      // Sponsor tools
-      case "create_sponsor": {
-        const { sponsor, darkLogoFilePath, lightLogoFilePath } = args as {
-          sponsor: any;
+      // Host tools
+      case "create_host": {
+        const { host, darkLogoFilePath, lightLogoFilePath } = args as {
+          host: any;
           darkLogoFilePath: string;
           lightLogoFilePath: string;
         };
-        const validatedSponsor = InsertSponsorSchema.parse(sponsor);
-        const result = await createSponsor(
-          validatedSponsor,
+        const validatedHost = InsertHostSchema.parse(host);
+        const result = await createHost(
+          validatedHost,
           darkLogoFilePath,
           lightLogoFilePath,
         );
@@ -781,12 +736,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "add_sponsor_to_event": {
-        const { slug, sponsorName } = args as {
+      case "add_host_to_event": {
+        const { slug, hostName } = args as {
           slug: string;
-          sponsorName: string;
+          hostName: string;
         };
-        const result = await addSponsorToEvent(slug, sponsorName);
+        const result = await addHostToEvent(slug, hostName);
         return {
           content: [
             {
@@ -825,8 +780,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "delete_orphaned_image": {
-        const { s3Url } = args as { s3Url: string };
-        const result = await deleteOrphanedImage(s3Url);
+        const { imageUrl } = args as { imageUrl: string };
+        const result = await deleteOrphanedImage(imageUrl);
         return {
           content: [
             {
@@ -896,32 +851,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "list_admins": {
         const result = await listAdmins();
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "create_award": {
-        const { eventId, name } = args as { eventId: string; name: string };
-        const result = await createAward({ eventId, name });
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "list_awards": {
-        const { eventId } = args as { eventId: string };
-        const result = await listAwards(eventId);
         return {
           content: [
             {

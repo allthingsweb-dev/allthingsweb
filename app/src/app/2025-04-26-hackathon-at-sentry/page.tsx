@@ -8,7 +8,6 @@ import {
   HeroSection,
   AllYouNeedToKnowSection,
   ImagesSection,
-  TeamsAndHacksSection,
 } from "@/components/event-details";
 import { Section } from "@/components/ui/section";
 import { SentryLogoIcon } from "@/components/ui/icons";
@@ -74,9 +73,6 @@ export default async function HackathonPage() {
       {showEventImageSection && (
         <ImagesSection background="default" images={event.images} />
       )}
-      {event.isHackathon && event.hacks && event.hacks.length > 0 && (
-        <TeamsAndHacksSection hacks={event.hacks} />
-      )}
       <Section
         variant="big"
         background={showEventImageSection ? "muted" : "default"}
@@ -87,7 +83,7 @@ export default async function HackathonPage() {
         <MoreInformation />
       </Section>
       <Section variant="big" background="muted">
-        <Sponsor />
+        <Host />
       </Section>
     </EventDetailsPage>
   );
@@ -201,10 +197,10 @@ function MoreInformation() {
   );
 }
 
-function Sponsor() {
+function Host() {
   return (
     <div className="container max-w-4xl">
-      <h2 className="text-3xl font-bold md:text-center mb-8">Our Sponsor</h2>
+      <h2 className="text-3xl font-bold md:text-center mb-8">Our Host</h2>
       <div className="bg-background rounded-lg shadow-lg p-8 max-w-3xl mx-auto">
         <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
           <SentryLogoIcon className="md:mt-4 max-w-24" aria-hidden="true" />

@@ -6,6 +6,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { mainConfig } from "@/lib/config";
+import { JsonLd } from "@/components/json-ld";
+import { organizationJsonLd } from "@/lib/structured-data";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,6 +55,14 @@ export const metadata: Metadata = {
     site: "@allthingswebdev",
     creator: "@allthingswebdev",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
   alternates: {
     types: {
       "application/rss+xml": [
@@ -75,6 +85,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <JsonLd data={organizationJsonLd(url)} />
         <StackProvider app={stackServerApp}>
           <StackTheme>
             <ThemeProvider

@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import QRCode from "qrcode";
-import { getExpandedEventBySlug } from "@/lib/expanded-events";
+import { getPublicEventBySlug } from "@/lib/expanded-events";
 import { mainConfig } from "@/lib/config";
+import { generatedImageCacheControl } from "@/lib/image-gen/cache";
 
 type Params = {
   slug: string;
@@ -18,7 +19,7 @@ export async function GET(
       return new Response("Invalid slug", { status: 400 });
     }
 
-    const event = await getExpandedEventBySlug(slug);
+    const event = await getPublicEventBySlug(slug);
 
     if (!event) {
       return new Response("Event not found", { status: 404 });
@@ -40,7 +41,7 @@ export async function GET(
     return new Response(qrBuffer as BufferSource, {
       headers: {
         "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=31536000, immutable", // Cache for 1 year, immutable
+        "Cache-Control": generatedImageCacheControl,
       },
     });
   } catch (error) {

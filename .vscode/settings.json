@@ -1,8 +1,0 @@
-{
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "typescript.suggest.paths": true,
-  "files.associations": {
-    "**/app/**/*.css": "tailwindcss"
-  },
-  "elixirLS.projectDir": "hackathon-app/phx"
-}

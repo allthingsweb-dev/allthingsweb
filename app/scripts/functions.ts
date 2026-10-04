@@ -1,24 +1,23 @@
-import {
-  S3Client,
-  DeleteObjectCommand,
-  PutObjectCommand,
-} from "@aws-sdk/client-s3";
 import { db } from "../src/lib/db";
+import {
+  appMediaStore,
+  keySlug,
+  removeStoredObject,
+} from "../src/lib/media-store";
+import { profilePhotoKey } from "../src/lib/profile-photos/ingest";
 import { mainConfig } from "../src/lib/config";
 import {
-  awardsTable,
   eventImagesTable,
-  eventSponsorsTable,
+  eventHostsTable,
   eventTalksTable,
   eventsTable,
   imagesTable,
-  InsertAward,
   InsertEvent,
   InsertProfile,
-  InsertSponsor,
+  InsertHost,
   InsertTalk,
   profilesTable,
-  sponsorsTable,
+  hostsTable,
   talkSpeakersTable,
   talksTable,
 } from "../src/lib/schema";
@@ -137,14 +136,6 @@ export async function findProfileByName(name: string) {
 }
 
 export async function createProfile(profile: InsertProfile, imgPath: string) {
-  const s3Client = new S3Client({
-    region: mainConfig.s3.region,
-    credentials: {
-      accessKeyId: mainConfig.s3.accessKeyId,
-      secretAccessKey: mainConfig.s3.secretAccessKey,
-    },
-  });
-
   const uuid = randomUUID();
 
   // Process image using our new utility
@@ -153,28 +144,24 @@ export async function createProfile(profile: InsertProfile, imgPath: string) {
     conversionFormat: "PNG",
   });
 
-  const nameSlug = profile.name.toLowerCase().replace(/ /g, "-");
-  const path =
-    "profiles/" + nameSlug + "-" + uuid + "." + processedImage.metadata.format;
-
-  // Upload to S3
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: mainConfig.s3.bucket,
-      Key: path,
-      Body: processedImage.buffer,
-      ContentType: `image/${processedImage.metadata.format}`,
-    }),
+  const path = profilePhotoKey(
+    profile.name,
+    uuid,
+    processedImage.metadata.format,
   );
 
-  const url = `${mainConfig.s3.url}/${path}`;
+  const url = await appMediaStore().put(
+    path,
+    processedImage.buffer,
+    `image/${processedImage.metadata.format}`,
+  );
   await db.insert(imagesTable).values({
     url,
     id: uuid,
     width: processedImage.metadata.width,
     height: processedImage.metadata.height,
     placeholder: processedImage.placeholder,
-    alt: `${profile.name} smiling into the camera`,
+    alt: profile.name,
   });
 
   profile.image = uuid;
@@ -183,32 +170,20 @@ export async function createProfile(profile: InsertProfile, imgPath: string) {
   return profileRes[0];
 }
 
-export async function replaceProfileImage(name: string, imgPath: string) {
-  const s3Client = new S3Client({
-    region: mainConfig.s3.region,
-    credentials: {
-      accessKeyId: mainConfig.s3.accessKeyId,
-      secretAccessKey: mainConfig.s3.secretAccessKey,
-    },
-  });
-
+/** Sets a profile's photo, replacing (and deleting) any earlier one. */
+export async function setProfileImage(name: string, imgPath: string) {
   const profile = await findProfileByName(name);
   if (!profile) {
     throw new Error("Profile not found");
   }
 
-  const imageToDeleteId = profile.image;
-  if (!imageToDeleteId) {
-    throw new Error("No image to delete");
-  }
-  const imageToDelete = await db
-    .select()
-    .from(imagesTable)
-    .where(eq(imagesTable.id, imageToDeleteId))
-    .then((data) => data[0]);
-  if (!imageToDelete) {
-    throw new Error("Image to delete not found");
-  }
+  const imageToDelete = profile.image
+    ? await db
+        .select()
+        .from(imagesTable)
+        .where(eq(imagesTable.id, profile.image))
+        .then((data) => data[0])
+    : undefined;
 
   const uuid = randomUUID();
 
@@ -218,47 +193,37 @@ export async function replaceProfileImage(name: string, imgPath: string) {
     conversionFormat: "PNG",
   });
 
-  const nameSlug = profile.name.toLowerCase().replace(/ /g, "-");
-  const path =
-    "profiles/" + nameSlug + "-" + uuid + "." + processedImage.metadata.format;
-
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: mainConfig.s3.bucket,
-      Key: path,
-      Body: processedImage.buffer,
-      ContentType: `image/${processedImage.metadata.format}`,
-    }),
+  const path = profilePhotoKey(
+    profile.name,
+    uuid,
+    processedImage.metadata.format,
   );
 
-  const url = `${mainConfig.s3.url}/${path}`;
+  const url = await appMediaStore().put(
+    path,
+    processedImage.buffer,
+    `image/${processedImage.metadata.format}`,
+  );
   await db.insert(imagesTable).values({
     url,
     id: uuid,
     width: processedImage.metadata.width,
     height: processedImage.metadata.height,
     placeholder: processedImage.placeholder,
-    alt: `${profile.name} smiling into the camera`,
+    alt: profile.name,
   });
 
-  await db
+  const [updated] = await db
     .update(profilesTable)
-    .set({
-      image: uuid,
-    })
-    .where(eq(profilesTable.id, profile.id));
+    .set({ image: uuid })
+    .where(eq(profilesTable.id, profile.id))
+    .returning();
 
-  await db.delete(imagesTable).where(eq(imagesTable.id, imageToDeleteId));
+  if (!imageToDelete) return updated;
+  await db.delete(imagesTable).where(eq(imagesTable.id, imageToDelete.id));
+  await removeStoredObject(imageToDelete.url);
 
-  const s3Path = imageToDelete.url.replace(mainConfig.s3.url + "/", "");
-  await s3Client.send(
-    new DeleteObjectCommand({
-      Bucket: mainConfig.s3.bucket,
-      Key: s3Path,
-    }),
-  );
-
-  return profile;
+  return updated;
 }
 
 export async function updateProfile(
@@ -388,20 +353,12 @@ export async function findTalksBySpeakerName(speakerName: string) {
   return { speaker, talks, talkEvents };
 }
 
-// Sponsor functions
-export async function createSponsor(
-  sponsor: InsertSponsor,
+// Host functions
+export async function createHost(
+  host: InsertHost,
   darkLogoFilePath: string,
   lightLogoFilePath: string,
 ) {
-  const s3Client = new S3Client({
-    region: mainConfig.s3.region,
-    credentials: {
-      accessKeyId: mainConfig.s3.accessKeyId,
-      secretAccessKey: mainConfig.s3.secretAccessKey,
-    },
-  });
-
   // Process dark logo
   const darkLogoUuid = randomUUID();
 
@@ -411,8 +368,8 @@ export async function createSponsor(
     conversionFormat: "PNG",
   });
 
-  const nameSlug = sponsor.name.toLowerCase().replace(/ /g, "-");
-  const darkLogoS3Path =
+  const nameSlug = keySlug(host.name, "host");
+  const darkLogoKey =
     "sponsors/" +
     nameSlug +
     "-dark-" +
@@ -420,23 +377,18 @@ export async function createSponsor(
     "." +
     processedDarkLogo.metadata.format;
 
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: mainConfig.s3.bucket,
-      Key: darkLogoS3Path,
-      Body: processedDarkLogo.buffer,
-      ContentType: `image/${processedDarkLogo.metadata.format}`,
-    }),
+  const darkLogoUrl = await appMediaStore().put(
+    darkLogoKey,
+    processedDarkLogo.buffer,
+    `image/${processedDarkLogo.metadata.format}`,
   );
-
-  const darkLogoUrl = `${mainConfig.s3.url}/${darkLogoS3Path}`;
   await db.insert(imagesTable).values({
     url: darkLogoUrl,
     id: darkLogoUuid,
     width: processedDarkLogo.metadata.width,
     height: processedDarkLogo.metadata.height,
     placeholder: processedDarkLogo.placeholder,
-    alt: `${sponsor.name} dark logo`,
+    alt: `${host.name} dark logo`,
   });
 
   // Process light logo
@@ -448,7 +400,7 @@ export async function createSponsor(
     conversionFormat: "PNG",
   });
 
-  const lightLogoS3Path =
+  const lightLogoKey =
     "sponsors/" +
     nameSlug +
     "-light-" +
@@ -456,55 +408,50 @@ export async function createSponsor(
     "." +
     processedLightLogo.metadata.format;
 
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: mainConfig.s3.bucket,
-      Key: lightLogoS3Path,
-      Body: processedLightLogo.buffer,
-      ContentType: `image/${processedLightLogo.metadata.format}`,
-    }),
+  const lightLogoUrl = await appMediaStore().put(
+    lightLogoKey,
+    processedLightLogo.buffer,
+    `image/${processedLightLogo.metadata.format}`,
   );
-
-  const lightLogoUrl = `${mainConfig.s3.url}/${lightLogoS3Path}`;
   await db.insert(imagesTable).values({
     url: lightLogoUrl,
     id: lightLogoUuid,
     width: processedLightLogo.metadata.width,
     height: processedLightLogo.metadata.height,
     placeholder: processedLightLogo.placeholder,
-    alt: `${sponsor.name} light logo`,
+    alt: `${host.name} light logo`,
   });
 
-  // Update sponsor object with logo UUIDs
-  sponsor.squareLogoDark = darkLogoUuid;
-  sponsor.squareLogoLight = lightLogoUuid;
+  // Update host object with logo UUIDs
+  host.squareLogoDark = darkLogoUuid;
+  host.squareLogoLight = lightLogoUuid;
 
-  // Insert sponsor into database
-  const sponsorRes = await db.insert(sponsorsTable).values(sponsor).returning();
+  // Insert host into database
+  const hostRes = await db.insert(hostsTable).values(host).returning();
 
-  return sponsorRes[0];
+  return hostRes[0];
 }
 
-export async function addSponsorToEvent(slug: string, sponsorName: string) {
+export async function addHostToEvent(slug: string, hostName: string) {
   const event = await getEventBySlug(slug);
   if (!event) {
     throw new Error("Event not found");
   }
 
-  const sponsors = await db
+  const hosts = await db
     .select()
-    .from(sponsorsTable)
-    .where(eq(sponsorsTable.name, sponsorName));
-  if (sponsors.length !== 1) {
-    throw new Error("Sponsor not found");
+    .from(hostsTable)
+    .where(eq(hostsTable.name, hostName));
+  if (hosts.length !== 1) {
+    throw new Error("Host not found");
   }
 
-  await db.insert(eventSponsorsTable).values({
+  await db.insert(eventHostsTable).values({
     eventId: event.id,
-    sponsorId: sponsors[0].id,
+    hostId: hosts[0].id,
   });
 
-  return { event, sponsor: sponsors[0] };
+  return { event, host: hosts[0] };
 }
 
 // Image functions
@@ -522,13 +469,6 @@ export async function getImgIdsForUrls(imageUrls: string[]) {
 
 export async function deleteEventImages(imageUrls: string[]) {
   const ids = await getImgIdsForUrls(imageUrls);
-  const s3Client = new S3Client({
-    region: mainConfig.s3.region,
-    credentials: {
-      accessKeyId: mainConfig.s3.accessKeyId,
-      secretAccessKey: mainConfig.s3.secretAccessKey,
-    },
-  });
 
   const results = [];
   for await (const id of ids) {
@@ -556,14 +496,7 @@ export async function deleteEventImages(imageUrls: string[]) {
     if (!event) {
       throw Error(`Event with id ${eventImage.eventId} not found`);
     }
-    const s3Path = image.url.replace(mainConfig.s3.url + "/", "");
-
-    await s3Client.send(
-      new DeleteObjectCommand({
-        Bucket: mainConfig.s3.bucket,
-        Key: s3Path,
-      }),
-    );
+    await removeStoredObject(image.url);
 
     await db.delete(eventImagesTable).where(eq(eventImagesTable.imageId, id));
     await db.delete(imagesTable).where(eq(imagesTable.id, id));
@@ -573,12 +506,12 @@ export async function deleteEventImages(imageUrls: string[]) {
   return results;
 }
 
-export async function deleteOrphanedImage(s3Url: string) {
+export async function deleteOrphanedImage(imageUrl: string) {
   // Check if image exists in database
   const existingImage = await db
     .select()
     .from(imagesTable)
-    .where(eq(imagesTable.url, s3Url))
+    .where(eq(imagesTable.url, imageUrl))
     .limit(1);
 
   if (existingImage.length > 0) {
@@ -591,7 +524,7 @@ export async function deleteOrphanedImage(s3Url: string) {
       if (error.code === "23503") {
         // PostgreSQL foreign key constraint violation
         throw new Error(
-          `Image ${s3Url} is not orphaned - it is still referenced by other records (foreign key constraint)`,
+          `Image ${imageUrl} is not orphaned - it is still referenced by other records (foreign key constraint)`,
         );
       }
       // Re-throw other errors
@@ -599,34 +532,19 @@ export async function deleteOrphanedImage(s3Url: string) {
     }
   }
 
-  // Image is orphaned (or wasn't in DB), proceed with S3 deletion
-  const s3Client = new S3Client({
-    region: mainConfig.s3.region,
-    credentials: {
-      accessKeyId: mainConfig.s3.accessKeyId,
-      secretAccessKey: mainConfig.s3.secretAccessKey,
-    },
-  });
+  // Image is orphaned (or wasn't in DB), proceed with storage deletion
 
   try {
-    // Extract S3 key from URL
-    const s3Path = s3Url.replace(mainConfig.s3.url + "/", "");
-
-    await s3Client.send(
-      new DeleteObjectCommand({
-        Bucket: mainConfig.s3.bucket,
-        Key: s3Path,
-      }),
-    );
+    await removeStoredObject(imageUrl);
 
     return {
       success: true,
-      message: `Successfully deleted orphaned image: ${s3Url}`,
-      s3Path,
+      message: `Successfully deleted orphaned image: ${imageUrl}`,
+      key: appMediaStore().keyOf(imageUrl),
     };
   } catch (error) {
     throw new Error(
-      `Failed to delete orphaned image from S3: ${error instanceof Error ? error.message : "Unknown error"}`,
+      `Failed to delete orphaned image from storage: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 }
@@ -639,14 +557,6 @@ export async function addImagesToEvent(
   if (!event) {
     throw new Error(`Event with slug ${eventSlug} not found`);
   }
-
-  const s3Client = new S3Client({
-    region: mainConfig.s3.region,
-    credentials: {
-      accessKeyId: mainConfig.s3.accessKeyId,
-      secretAccessKey: mainConfig.s3.secretAccessKey,
-    },
-  });
 
   const fileNames = await readdir(imagesDir);
   const filePaths = fileNames.map((fn) => join(imagesDir, fn));
@@ -669,16 +579,11 @@ export async function addImagesToEvent(
       "." +
       processedImage.metadata.format;
 
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: mainConfig.s3.bucket,
-        Key: path,
-        Body: processedImage.buffer,
-        ContentType: `image/${processedImage.metadata.format}`,
-      }),
+    const url = await appMediaStore().put(
+      path,
+      processedImage.buffer,
+      `image/${processedImage.metadata.format}`,
     );
-
-    const url = `${mainConfig.s3.url}/${path}`;
     const [image] = await db
       .insert(imagesTable)
       .values({
@@ -849,14 +754,6 @@ export async function deleteProfile(profileId: string) {
 
   console.log("✅ No talk associations found, proceeding with deletion...");
 
-  const s3Client = new S3Client({
-    region: mainConfig.s3.region,
-    credentials: {
-      accessKeyId: mainConfig.s3.accessKeyId,
-      secretAccessKey: mainConfig.s3.secretAccessKey,
-    },
-  });
-
   // Get the associated image if it exists
   let image = null;
   if (profile.image) {
@@ -868,18 +765,11 @@ export async function deleteProfile(profileId: string) {
   }
 
   try {
-    // Step 1: Delete image from S3 if it exists
+    // Step 1: Delete the stored image if it exists
     if (image) {
-      console.log(`Deleting image from S3: ${image.url}`);
-      const s3Path = image.url.replace(mainConfig.s3.url + "/", "");
-
-      await s3Client.send(
-        new DeleteObjectCommand({
-          Bucket: mainConfig.s3.bucket,
-          Key: s3Path,
-        }),
-      );
-      console.log("✅ Image deleted from S3");
+      console.log(`Deleting stored image: ${image.url}`);
+      await removeStoredObject(image.url);
+      console.log("✅ Stored image deleted");
     }
 
     // Step 2: Delete image record from database
@@ -913,108 +803,6 @@ export async function deleteProfile(profileId: string) {
     console.error("❌ Error during deletion process:", error);
     throw new Error(
       `Deletion failed: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
-// Award management functions
-export interface CreateAwardInput {
-  eventId: string;
-  name: string;
-}
-
-export async function createAward(input: CreateAwardInput) {
-  console.log("🏆 Creating award...");
-
-  try {
-    // Check if event exists
-    const event = await db
-      .select()
-      .from(eventsTable)
-      .where(eq(eventsTable.id, input.eventId))
-      .limit(1);
-
-    if (event.length === 0) {
-      throw new Error(`Event with ID ${input.eventId} not found`);
-    }
-
-    // Check if award with same name already exists for this event
-    const existingAward = await db
-      .select()
-      .from(awardsTable)
-      .where(
-        and(
-          eq(awardsTable.eventId, input.eventId),
-          eq(awardsTable.name, input.name),
-        ),
-      )
-      .limit(1);
-
-    if (existingAward.length > 0) {
-      throw new Error(`Award "${input.name}" already exists for this event`);
-    }
-
-    const awardData: InsertAward = {
-      id: randomUUID(),
-      eventId: input.eventId,
-      name: input.name,
-    };
-
-    const [newAward] = await db
-      .insert(awardsTable)
-      .values(awardData)
-      .returning();
-
-    console.log(
-      `✅ Award created: ${newAward.name} for event ${event[0].name}`,
-    );
-
-    return {
-      award: newAward,
-      event: event[0],
-      message: `Successfully created award: ${newAward.name}`,
-    };
-  } catch (error) {
-    console.error("❌ Error creating award:", error);
-    throw new Error(
-      `Failed to create award: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
-export async function listAwards(eventId: string) {
-  console.log("📋 Listing awards for event...");
-
-  try {
-    // Check if event exists
-    const event = await db
-      .select()
-      .from(eventsTable)
-      .where(eq(eventsTable.id, eventId))
-      .limit(1);
-
-    if (event.length === 0) {
-      throw new Error(`Event with ID ${eventId} not found`);
-    }
-
-    const awards = await db
-      .select()
-      .from(awardsTable)
-      .where(eq(awardsTable.eventId, eventId))
-      .orderBy(awardsTable.createdAt);
-
-    console.log(`✅ Found ${awards.length} awards for event ${event[0].name}`);
-
-    return {
-      awards,
-      event: event[0],
-      count: awards.length,
-      message: `Found ${awards.length} awards for event: ${event[0].name}`,
-    };
-  } catch (error) {
-    console.error("❌ Error listing awards:", error);
-    throw new Error(
-      `Failed to list awards: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }

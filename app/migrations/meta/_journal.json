@@ -92,6 +92,20 @@
       "when": 1771807291166,
       "tag": "0012_thin_morlun",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791041809036,
+      "tag": "0013_profile_photo_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791058738062,
+      "tag": "0014_drop_hackathon_app",
+      "breakpoints": true
     }
   ]
 }

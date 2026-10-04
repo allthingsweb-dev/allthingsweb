@@ -1,10 +1,10 @@
 import { authConfig } from "./auth/config";
 import { cronConfig } from "./cron/config";
 import { databaseConfig } from "./database/config";
-import { electricConfig } from "./electric/config";
 import { instanceConfig } from "./instance/config";
 import { integrationsConfig } from "./integrations/config";
 import { lumaConfig } from "./luma/config";
+import { mediaConfig } from "./media-store/config";
 import { storageConfig } from "./storage/config";
 
 export const mainConfig = {
@@ -13,27 +13,13 @@ export const mainConfig = {
     databaseUrl: databaseConfig.databaseUrl,
     neonAuth: authConfig,
   },
-  electricSQL: electricConfig,
   s3: storageConfig,
+  media: mediaConfig,
   resend: {
     apiKey: integrationsConfig.resendApiKey,
   },
-  ai: {
-    gatewayApiKey: integrationsConfig.aiGatewayApiKey,
-    vercelOidcToken: integrationsConfig.vercelOidcToken,
-  },
   cron: cronConfig,
   luma: lumaConfig,
-  discord: {
-    botToken: integrationsConfig.discordBotToken,
-    reviewChannelId: integrationsConfig.discordReviewChannelId,
-    publicKey: integrationsConfig.discordPublicKey,
-    applicationId: integrationsConfig.discordApplicationId,
-    guildId: integrationsConfig.discordGuildId,
-  },
-  chat: {
-    redisUrl: integrationsConfig.redisUrl,
-  },
 };
 
 export type MainConfig = typeof mainConfig;

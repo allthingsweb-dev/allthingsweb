@@ -1,31 +1,11 @@
-import { createS3Client } from "@/lib/s3";
 import { mainConfig } from "@/lib/config";
 import type { Image } from "@/lib/events";
+import { toMediaUrl } from "@/lib/media";
 
-const s3Client = createS3Client({ mainConfig });
-
+// Callers still use the historical "sign" names; images are no longer
+// presigned but served from stable /media URLs.
 export async function signImage(image: Image): Promise<Image> {
-  // If it's a local/public image (starts with /), don't sign it
-  if (image.url.startsWith("/")) {
-    return image;
-  }
-
-  // If it's already a signed URL (contains signature params), return as-is
-  if (image.url.includes("X-Amz-Signature")) {
-    return image;
-  }
-
-  try {
-    const signedUrl = await s3Client.presign(image.url);
-    return {
-      ...image,
-      url: signedUrl,
-    };
-  } catch (error) {
-    console.error("Failed to sign image:", error);
-    // Return original image as fallback
-    return image;
-  }
+  return { ...image, url: toMediaUrl(image.url, mainConfig.s3.url) };
 }
 
 export async function signImages(images: Image[]): Promise<Image[]> {

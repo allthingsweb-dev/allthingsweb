@@ -2,6 +2,12 @@ import { toReadableDateTimeStr } from "@/lib/datetime";
 import { Image } from "@/lib/events";
 import { ExpandedEvent, Talk as ExpandedTalk } from "@/lib/expanded-events";
 import { Profile } from "@/lib/profiles";
+import { mainConfig } from "@/lib/config";
+
+/** Satori fetches images itself, so same-origin paths must be absolute. */
+function ogImageSrc(url: string): string {
+  return url.startsWith("/") ? `${mainConfig.instance.origin}${url}` : url;
+}
 
 declare module "react" {
   interface HTMLAttributes<T> {
@@ -17,42 +23,46 @@ const bgStyles = {
   background: "linear-gradient(to bottom right, #090215, #1e1924, #55505c)",
 };
 
+const singleLine = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
+
+// Past this many talks, the preview switches to a denser layout to fit 630px.
+const roomyTalkLimit = 4;
+const maxPreviewTalks = 6;
+
 function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
+  const compact = talks.length > roomyTalkLimit;
+  const avatarSize = compact ? 72 : 100;
   return (
     <div tw="flex flex-wrap" style={{ gap: "1rem" }}>
-      {talks.map((talk) => (
+      {talks.slice(0, maxPreviewTalks).map((talk) => (
         <div key={talk.id} tw="flex items-center">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
-            width={100}
-            height={100}
+            width={avatarSize}
+            height={avatarSize}
             tw="rounded-full border-2 border-purple-400"
           />
           <div tw="flex flex-col ml-4">
             <div
-              tw="w-[432px] flex text-3xl font-medium text-gray-100"
-              style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
+              tw={`w-[432px] flex ${compact ? "text-2xl" : "text-3xl"} font-medium text-gray-100`}
+              style={singleLine}
             >
               {talk.speakers[0].name}
             </div>
             <div
-              tw="w-[432px] flex text-xl text-purple-300"
-              style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
+              tw={`w-[432px] flex ${compact ? "text-lg" : "text-xl"} text-purple-300`}
+              style={singleLine}
             >
               {talk.speakers[0].title}
             </div>
             <div
-              tw="w-[432px] flex text-2xl text-white"
-              style={{ wordBreak: "break-word" }}
+              tw={`w-[432px] flex ${compact ? "text-xl" : "text-2xl"} text-white`}
+              style={compact ? singleLine : { wordBreak: "break-word" }}
             >
               {talk.title}
             </div>
@@ -68,6 +78,8 @@ function EventPreviewTalks({ talks }: { talks: ExpandedTalk[] }) {
  * w1200 h630
  */
 export function EventPreview({ event }: { event: ExpandedEvent }) {
+  const when = toReadableDateTimeStr(event.startDate, true);
+  const manyHosts = event.hosts.length > 3;
   return (
     <div
       tw="w-[1200px] h-[630px] flex flex-col text-white p-8 overflow-hidden"
@@ -79,26 +91,27 @@ export function EventPreview({ event }: { event: ExpandedEvent }) {
             <span tw="text-6xl font-bold">{event.name}</span>
           </div>
         </div>
-        <span tw="text-2xl text-gray-300 text-bold" style={{ gap: "8px" }}>
-          {toReadableDateTimeStr(event.startDate, true)} at{" "}
-          {event.shortLocation}
-        </span>
-        <span style={{ gap: "8px" }} tw="text-2xl text-purple-300 text-bold">
+        <div tw="flex text-2xl text-gray-300 font-bold">
+          {event.shortLocation ? `${when} at ${event.shortLocation}` : when}
+        </div>
+        <div tw="flex text-2xl text-purple-300 font-bold mt-1">
           lu.ma/allthingsweb
-        </span>
-        <div tw="flex-grow flex flex-col justify-between mt-12">
+        </div>
+        <div tw="flex-grow flex flex-col justify-between mt-8">
           <EventPreviewTalks talks={event.talks} />
           <div tw="flex flex-wrap" style={{ gap: "2rem" }}>
-            {event.sponsors.map((sponsor, index) => (
+            {event.hosts.map((host, index) => (
               <div key={index} tw="flex items-center">
                 <img
-                  src={sponsor.squareLogoDark.url}
-                  alt={`${sponsor.name} logo`}
-                  width={60}
-                  height={60}
+                  src={ogImageSrc(host.squareLogoDark.url)}
+                  alt={`${host.name} logo`}
+                  width={manyHosts ? 40 : 60}
+                  height={manyHosts ? 40 : 60}
                 />
-                <span tw="ml-2 text-4xl font-medium text-gray-200">
-                  {sponsor.name}
+                <span
+                  tw={`ml-2 ${manyHosts ? "text-2xl" : "text-4xl"} font-medium text-gray-200`}
+                >
+                  {host.name}
                 </span>
               </div>
             ))}
@@ -115,7 +128,7 @@ function EventYouTubeThumbnailTwoTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={180}
             height={180}
@@ -151,7 +164,7 @@ function EventYouTubeThumbnailThreeTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={140}
             height={140}
@@ -187,7 +200,7 @@ function EventYouTubeThumbnailFourTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={120}
             height={120}
@@ -223,7 +236,7 @@ function EventYouTubeThumbnailFiveTalks({ talks }: { talks: ExpandedTalk[] }) {
       {talks.map((talk, index) => (
         <div key={index} tw="flex items-center w-[1200px]">
           <img
-            src={talk.speakers[0].image.url}
+            src={ogImageSrc(talk.speakers[0].image.url)}
             alt={`${talk.speakers[0].name} profile`}
             width={100}
             height={100}
@@ -298,7 +311,7 @@ export function SpeakersPreview({ speakers }: { speakers: Profile[] }) {
           <div key={speaker.id} tw="flex flex-col items-center text-center">
             <div tw="w-[120px] h-[120px] bg-gray-300 rounded-full mb-2 overflow-hidden flex items-center justify-center">
               <img
-                src={speaker.image.url}
+                src={ogImageSrc(speaker.image.url)}
                 alt={speaker.name}
                 width={120}
                 height={120}
@@ -330,7 +343,7 @@ export function LandingPagePreview({ images }: { images: Image[] }) {
         {imagesToShow.map((image) => (
           <img
             key={image.url}
-            src={image.url}
+            src={ogImageSrc(image.url)}
             alt="Past event image"
             tw="w-[400px] h-[315px]"
             width="400"

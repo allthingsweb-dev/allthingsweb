@@ -20,8 +20,8 @@ import {
   eventImagesTable,
   talksTable,
   eventTalksTable,
-  sponsorsTable,
-  eventSponsorsTable,
+  hostsTable,
+  eventHostsTable,
   eventReviewSessionsTable,
 } from "../src/lib/schema";
 
@@ -202,7 +202,6 @@ describe("Luma synchronization against Postgres", () => {
     isDraft: true,
     recordingUrl: "https://example.com/recording",
     isHackathon: true,
-    hackathonState: "ended" as const,
   };
 
   test("publishes stranded drafts and refreshes source facts without losing editorial content or relations", async () => {
@@ -224,9 +223,9 @@ describe("Luma synchronization against Postgres", () => {
       .insert(talksTable)
       .values({ title: "Original talk", description: "Talk description" })
       .returning();
-    const [sponsor] = await db
-      .insert(sponsorsTable)
-      .values({ name: "Original sponsor", about: "Sponsor description" })
+    const [host] = await db
+      .insert(hostsTable)
+      .values({ name: "Original host", about: "Host description" })
       .returning();
     await db
       .insert(eventImagesTable)
@@ -235,8 +234,8 @@ describe("Luma synchronization against Postgres", () => {
       .insert(eventTalksTable)
       .values({ eventId: original.id, talkId: talk.id });
     await db
-      .insert(eventSponsorsTable)
-      .values({ eventId: original.id, sponsorId: sponsor.id });
+      .insert(eventHostsTable)
+      .values({ eventId: original.id, hostId: host.id });
     await db.insert(eventReviewSessionsTable).values({
       eventId: original.id,
       channelId: "old-channel",
@@ -247,7 +246,7 @@ describe("Luma synchronization against Postgres", () => {
     const relatedBefore = {
       images: await db.select().from(eventImagesTable),
       talks: await db.select().from(eventTalksTable),
-      sponsors: await db.select().from(eventSponsorsTable),
+      hosts: await db.select().from(eventHostsTable),
       reviews: await db.select().from(eventReviewSessionsTable),
     };
 
@@ -269,7 +268,7 @@ describe("Luma synchronization against Postgres", () => {
     expect({
       images: await db.select().from(eventImagesTable),
       talks: await db.select().from(eventTalksTable),
-      sponsors: await db.select().from(eventSponsorsTable),
+      hosts: await db.select().from(eventHostsTable),
       reviews: await db.select().from(eventReviewSessionsTable),
     }).toEqual(relatedBefore);
     await syncPublicLumaEvents(db);

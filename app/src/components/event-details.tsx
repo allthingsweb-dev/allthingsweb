@@ -22,10 +22,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { ExpandedEvent, Talk, Sponsor } from "@/lib/expanded-events";
+import type { ExpandedEvent, Talk, Host } from "@/lib/expanded-events";
 import type { Image } from "@/lib/events";
 import { SocialsList } from "@/components/profile-card";
 import { getEventHeroImage } from "@/lib/event-hero";
+import { JsonLd } from "@/components/json-ld";
+import { mainConfig } from "@/lib/config";
+import { eventJsonLd } from "@/lib/structured-data";
 
 export function HeroSectionTitle({
   event,
@@ -70,22 +73,6 @@ export function HeroSectionTitle({
     </div>
   );
 
-  const teamButton = event.isHackathon &&
-    (!isInPast || (event.hacks && event.hacks.length > 0)) && (
-      <div>
-        <Button
-          asChild
-          variant={isInPast ? "outline" : "secondary"}
-          size="lg"
-          className="w-full min-[400px]:w-auto"
-        >
-          <Link href={`/${event.slug}/dashboard`}>
-            {isInPast ? "View Results" : "Hack Dashboard"}
-          </Link>
-        </Button>
-      </div>
-    );
-
   return (
     <div className="flex flex-col justify-center space-y-6 lg:space-y-4">
       <div className="space-y-3 lg:space-y-2">
@@ -99,17 +86,7 @@ export function HeroSectionTitle({
 
       <div className="flex flex-col items-center gap-3 lg:items-start">
         {recordingButton}
-        {event.isHackathon && event.lumaEventUrl ? (
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-            {lumaButton}
-            {teamButton}
-          </div>
-        ) : (
-          <>
-            {lumaButton}
-            {teamButton}
-          </>
-        )}
+        {lumaButton}
       </div>
       {children}
     </div>
@@ -308,186 +285,37 @@ export function TalksSection({ talks }: { talks: Talk[] }) {
   );
 }
 
-export function SponsorsSection({ sponsors }: { sponsors: Sponsor[] }) {
+export function HostsSection({ hosts }: { hosts: Host[] }) {
   return (
     <Section variant="big">
       <div className="container">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">
-          {sponsors.length === 1
-            ? "Our Host & Sponsor"
-            : "Our Hosts & Sponsors"}
+          {hosts.length === 1 ? "Our Host" : "Our Hosts"}
         </h2>
         <div className="flex flex-col gap-6 md:gap-8 items-center justify-center max-w-4xl mx-auto">
-          {sponsors.map((sponsor) => (
+          {hosts.map((host) => (
             <div
-              key={sponsor.id}
+              key={host.id}
               className="bg-background rounded-lg shadow-lg p-6 sm:p-8 w-full"
             >
               <div className="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-6">
                 <NextImage
-                  src={sponsor.squareLogoLight.url}
+                  src={host.squareLogoLight.url}
                   width={96}
                   height={96}
-                  alt={sponsor.name}
+                  alt={host.name}
                   className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">
-                    {sponsor.name}
+                    {host.name}
                   </h3>
                   <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-                    {sponsor.about}
+                    {host.about}
                   </p>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-export function TeamsAndHacksSection({
-  hacks,
-}: {
-  hacks: NonNullable<ExpandedEvent["hacks"]>;
-}) {
-  if (!hacks.length) return null;
-
-  // Check if a hack has won any awards
-  const isWinner = (hack: any) => hack.awards && hack.awards.length > 0;
-
-  // Sort hacks: winners first, then by vote count descending
-  const sortedHacks = [...hacks].sort((a, b) => {
-    const aIsWinner = isWinner(a);
-    const bIsWinner = isWinner(b);
-
-    // If one is a winner and the other isn't, winner comes first
-    if (aIsWinner && !bIsWinner) return -1;
-    if (!aIsWinner && bIsWinner) return 1;
-
-    // If both are winners or both are not winners, sort by vote count (descending)
-    return b.voteCount - a.voteCount;
-  });
-
-  return (
-    <Section id="hacks" variant="big">
-      <div className="container flex flex-col gap-8">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center tracking-tight">
-          Teams & Hacks
-        </h2>
-        <div
-          className={clsx(
-            "mx-auto grid gap-8 grid-cols-1 max-w-7xl",
-            "lg:grid-cols-2",
-            "[&>*]:min-w-[400px]",
-          )}
-        >
-          {sortedHacks.map((hack) => (
-            <Card
-              key={hack.id}
-              className={clsx(
-                "flex flex-col h-full hover:shadow-md transition-shadow",
-                isWinner(hack) &&
-                  "border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-950",
-              )}
-            >
-              <CardHeader className="pb-4">
-                <div className="flex items-start gap-6">
-                  {hack.teamImage ? (
-                    <div className="w-20 h-16 shrink-0 rounded-lg overflow-hidden bg-muted">
-                      <NextImage
-                        src={hack.teamImage.url}
-                        alt={hack.teamName}
-                        width={80}
-                        height={64}
-                        className="w-full h-full object-cover"
-                        placeholder={
-                          hack.teamImage.placeholder ? "blur" : undefined
-                        }
-                        blurDataURL={hack.teamImage.placeholder || undefined}
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-20 h-16 shrink-0 rounded-lg bg-muted flex items-center justify-center">
-                      <span className="text-lg font-bold text-muted-foreground">
-                        {hack.teamName.slice(0, 2).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="text-xl leading-tight mb-2 flex items-center gap-2">
-                      {hack.teamName}
-                      {isWinner(hack) && (
-                        <span className="text-yellow-600 text-lg">🏆</span>
-                      )}
-                    </CardTitle>
-                    {hack.projectName && hack.projectName.trim() && (
-                      <CardDescription className="text-base font-medium text-foreground/70">
-                        {hack.projectName}
-                      </CardDescription>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0 flex-1 space-y-3">
-                {/* Award winner section above project description */}
-                {isWinner(hack) && (
-                  <div className="text-center py-2">
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {hack.awards?.map((award: any) => (
-                        <span
-                          key={award.id}
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-sm font-medium"
-                        >
-                          🏆 {award.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {hack.projectDescription && hack.projectDescription.trim() && (
-                  <p className="text-base text-foreground/80 line-clamp-4 leading-relaxed">
-                    {hack.projectDescription}
-                  </p>
-                )}
-                {(!hack.projectDescription ||
-                  !hack.projectDescription.trim()) && (
-                  <div className="flex items-center justify-center py-8">
-                    <p className="text-base text-muted-foreground italic">
-                      Project details coming soon...
-                    </p>
-                  </div>
-                )}
-                {hack.projectLink && hack.projectLink.trim() && (
-                  <a
-                    href={hack.projectLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-base text-primary hover:text-primary/80 hover:underline transition-colors font-medium"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Project link
-                  </a>
-                )}
-              </CardContent>
-              <CardFooter className="pt-4 border-t bg-muted/20">
-                <div className="text-sm text-muted-foreground">
-                  {hack.members && hack.members.length > 0 ? (
-                    <p>
-                      <span className="font-medium">Team members:</span>{" "}
-                      {hack.members
-                        .map((member) => member.name || "Anonymous")
-                        .join(", ")}
-                    </p>
-                  ) : (
-                    <span>No members listed</span>
-                  )}
-                </div>
-              </CardFooter>
-            </Card>
           ))}
         </div>
       </div>
@@ -557,6 +385,9 @@ export function EventDetailsPage({
 }) {
   return (
     <PageLayout>
+      {!event.isDraft && (
+        <JsonLd data={eventJsonLd(event, mainConfig.instance.origin)} />
+      )}
       {isInPast && (
         <div className="px-4 lg:px-6">
           <Alert>

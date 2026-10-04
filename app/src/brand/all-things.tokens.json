@@ -1,0 +1,422 @@
+{
+  "$description": "all things/_ design tokens. Source of truth for color, type, layout and motion; see brand/foundations.md.",
+  "color": {
+    "$type": "color",
+    "paper": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.956863, 0.945098, 0.92549]
+      },
+      "$description": "Light ground; text on Night."
+    },
+    "ink": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.078431, 0.070588, 0.062745]
+      },
+      "$description": "Text on Paper."
+    },
+    "bridge": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.752941, 0.211765, 0.172549]
+      },
+      "$description": "The slash; text only at 24px and up."
+    },
+    "bridgeDeep": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.603922, 0.168627, 0.133333]
+      },
+      "$description": "Small orange text and Paper buttons."
+    },
+    "violet": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.356863, 0.203922, 0.839216]
+      },
+      "$description": "Neighborhoods and links on Paper; violet fills."
+    },
+    "karlText": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.368627, 0.352941, 0.333333]
+      },
+      "$description": "Dates and meta on Paper."
+    },
+    "karl": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.901961, 0.886275, 0.862745]
+      },
+      "$description": "Quiet surfaces on Paper, named for the fog."
+    },
+    "rulePaper": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.823529, 0.8, 0.764706]
+      },
+      "$description": "Hairline rules on Paper."
+    },
+    "night": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.109804, 0.070588, 0.211765]
+      },
+      "$description": "Dark ground."
+    },
+    "nightRaised": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.164706, 0.113725, 0.309804]
+      },
+      "$description": "Surfaces on Night."
+    },
+    "ruleNight": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.227451, 0.168627, 0.4]
+      },
+      "$description": "Hairline rules on Night."
+    },
+    "mist": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.890196, 0.862745, 0.968627]
+      },
+      "$description": "Secondary text on Night."
+    },
+    "dusk": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.85098, 0.827451, 0.878431]
+      },
+      "$description": "Dates and meta on Night."
+    },
+    "lavender": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.854902, 0.811765, 1]
+      },
+      "$description": "Neighborhoods and links on Night."
+    },
+    "glow": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [1, 0.415686, 0.239216]
+      },
+      "$description": "The slash and display at 36px and up only."
+    },
+    "white": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [1, 1, 1]
+      },
+      "$description": "Text on filled buttons."
+    }
+  },
+  "font": {
+    "$type": "fontFamily",
+    "display": {
+      "$value": ["Archivo", "sans-serif"],
+      "$description": "Display and text, used at three widths."
+    },
+    "mono": {
+      "$value": ["Geist Mono", "ui-monospace", "monospace"],
+      "$description": "Meta: dates, labels, links."
+    }
+  },
+  "type": {
+    "$type": "typography",
+    "wordmark": {
+      "$value": {
+        "fontFamily": "{font.display}",
+        "fontSize": {
+          "value": 168,
+          "unit": "px"
+        },
+        "fontWeight": 800,
+        "lineHeight": 0.84,
+        "letterSpacing": {
+          "value": -7.56,
+          "unit": "px"
+        }
+      },
+      "$description": "The master wordmark.",
+      "$extensions": {
+        "dev.allthings": {
+          "width": "112%",
+          "letterSpacingEm": -0.045
+        }
+      }
+    },
+    "eventLockup": {
+      "$value": {
+        "fontFamily": "{font.display}",
+        "fontSize": {
+          "value": 72,
+          "unit": "px"
+        },
+        "fontWeight": 800,
+        "lineHeight": 0.9,
+        "letterSpacing": {
+          "value": -2.88,
+          "unit": "px"
+        }
+      },
+      "$description": "all things/<topic>.",
+      "$extensions": {
+        "dev.allthings": {
+          "width": "112%",
+          "letterSpacingEm": -0.04
+        }
+      }
+    },
+    "label": {
+      "$value": {
+        "fontFamily": "{font.display}",
+        "fontSize": {
+          "value": 40,
+          "unit": "px"
+        },
+        "fontWeight": 700,
+        "lineHeight": 1,
+        "letterSpacing": {
+          "value": -0.4,
+          "unit": "px"
+        }
+      },
+      "$description": "Neighborhood, date and host labels.",
+      "$extensions": {
+        "dev.allthings": {
+          "width": "75%",
+          "letterSpacingEm": -0.01,
+          "textTransform": "uppercase"
+        }
+      }
+    },
+    "lead": {
+      "$value": {
+        "fontFamily": "{font.display}",
+        "fontSize": {
+          "value": 30,
+          "unit": "px"
+        },
+        "fontWeight": 500,
+        "lineHeight": 1.25,
+        "letterSpacing": {
+          "value": -0.3,
+          "unit": "px"
+        }
+      },
+      "$description": "The two sentences and other lead copy.",
+      "$extensions": {
+        "dev.allthings": {
+          "width": "100%",
+          "letterSpacingEm": -0.01
+        }
+      }
+    },
+    "listName": {
+      "$value": {
+        "fontFamily": "{font.display}",
+        "fontSize": {
+          "value": 21,
+          "unit": "px"
+        },
+        "fontWeight": 700,
+        "lineHeight": 1.3,
+        "letterSpacing": {
+          "value": 0,
+          "unit": "px"
+        }
+      },
+      "$description": "Event names in lists.",
+      "$extensions": {
+        "dev.allthings": {
+          "width": "100%",
+          "letterSpacingEm": 0
+        }
+      }
+    },
+    "listPlace": {
+      "$value": {
+        "fontFamily": "{font.display}",
+        "fontSize": {
+          "value": 14,
+          "unit": "px"
+        },
+        "fontWeight": 600,
+        "lineHeight": 1.3,
+        "letterSpacing": {
+          "value": 0.84,
+          "unit": "px"
+        }
+      },
+      "$description": "Neighborhoods in lists.",
+      "$extensions": {
+        "dev.allthings": {
+          "width": "75%",
+          "letterSpacingEm": 0.06,
+          "textTransform": "uppercase"
+        }
+      }
+    },
+    "body": {
+      "$value": {
+        "fontFamily": "{font.display}",
+        "fontSize": {
+          "value": 18,
+          "unit": "px"
+        },
+        "fontWeight": 400,
+        "lineHeight": 1.55,
+        "letterSpacing": {
+          "value": 0,
+          "unit": "px"
+        }
+      },
+      "$description": "Body copy.",
+      "$extensions": {
+        "dev.allthings": {
+          "width": "100%",
+          "letterSpacingEm": 0
+        }
+      }
+    },
+    "meta": {
+      "$value": {
+        "fontFamily": "{font.mono}",
+        "fontSize": {
+          "value": 14,
+          "unit": "px"
+        },
+        "fontWeight": 500,
+        "lineHeight": 1.5,
+        "letterSpacing": {
+          "value": 0.84,
+          "unit": "px"
+        }
+      },
+      "$description": "Dates, times and labels in mono.",
+      "$extensions": {
+        "dev.allthings": {
+          "letterSpacingEm": 0.06,
+          "textTransform": "uppercase"
+        }
+      }
+    }
+  },
+  "layout": {
+    "$type": "dimension",
+    "gutter": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      },
+      "$description": "Gutter of the 12-column grid."
+    },
+    "margin": {
+      "$value": {
+        "value": 64,
+        "unit": "px"
+      },
+      "$description": "Page margin at desktop widths."
+    }
+  },
+  "motion": {
+    "cursorBlink": {
+      "$type": "duration",
+      "$value": {
+        "value": 1100,
+        "unit": "ms"
+      },
+      "$description": "One blink of the cursor; it stops for reduced motion."
+    }
+  },
+  "$extensions": {
+    "dev.allthings": {
+      "gridColumns": 12,
+      "contrast": [
+        {
+          "text": "{color.ink}",
+          "background": "{color.paper}",
+          "minLc": 90,
+          "use": "Body text on Paper"
+        },
+        {
+          "text": "{color.bridgeDeep}",
+          "background": "{color.paper}",
+          "minLc": 75,
+          "use": "Small orange text on Paper"
+        },
+        {
+          "text": "{color.violet}",
+          "background": "{color.paper}",
+          "minLc": 75,
+          "use": "Neighborhoods and links on Paper"
+        },
+        {
+          "text": "{color.karlText}",
+          "background": "{color.paper}",
+          "minLc": 75,
+          "use": "Meta on Paper"
+        },
+        {
+          "text": "{color.bridge}",
+          "background": "{color.paper}",
+          "minLc": 60,
+          "use": "Orange text at 24px and up"
+        },
+        {
+          "text": "{color.paper}",
+          "background": "{color.night}",
+          "minLc": 90,
+          "use": "Body text on Night"
+        },
+        {
+          "text": "{color.mist}",
+          "background": "{color.night}",
+          "minLc": 75,
+          "use": "Secondary text on Night"
+        },
+        {
+          "text": "{color.dusk}",
+          "background": "{color.night}",
+          "minLc": 75,
+          "use": "Meta on Night"
+        },
+        {
+          "text": "{color.lavender}",
+          "background": "{color.night}",
+          "minLc": 75,
+          "use": "Neighborhoods and links on Night"
+        },
+        {
+          "text": "{color.glow}",
+          "background": "{color.night}",
+          "minLc": 45,
+          "use": "The slash and display on Night"
+        },
+        {
+          "text": "{color.white}",
+          "background": "{color.bridgeDeep}",
+          "minLc": 75,
+          "use": "Paper button labels"
+        },
+        {
+          "text": "{color.white}",
+          "background": "{color.bridge}",
+          "minLc": 75,
+          "use": "Night button labels"
+        },
+        {
+          "text": "{color.white}",
+          "background": "{color.violet}",
+          "minLc": 75,
+          "use": "Text on violet fills"
+        }
+      ]
+    }
+  }
+}
