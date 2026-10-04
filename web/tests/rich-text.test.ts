@@ -13,7 +13,8 @@ import { compatibility } from "../src/compatibility.ts";
 /**
  * The talk-description sanitizer in workerd, whose HTMLRewriter the Worker
  * uses, held to what core's tests hold it to in Bun: the app's output for
- * every case in the corpus but the listed divergences, and nothing unsafe.
+ * every case in the corpus but the listed divergences, nothing unsafe, and
+ * output that sanitizes to itself.
  */
 
 const Stack = Alchemy.Stack(
@@ -58,9 +59,12 @@ describe("sanitizeRichText in workerd", () => {
   for (const html of corpus) {
     test(
       JSON.stringify(html),
-      Effect.map(sanitized(html), (output) => {
+      Effect.gen(function* () {
+        const output = yield* sanitized(html);
         expect(output).toBe(expectedSanitized(html));
         expect(unsafeParts(output)).toEqual([]);
+        // workerd's lol-html reads the output back as itself too.
+        expect(yield* sanitized(output)).toBe(output);
       }),
     );
   }
