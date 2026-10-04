@@ -15,4 +15,4 @@ async function main() {
   console.log(speakers);
 }
 
-main();
+await main();

@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  // The root rule set, plus accessibility checks for the pages' JSX, which
+  // renders straight to HTML. A nested config because `overrides` cannot
+  // enable categories.
+  "extends": ["../.oxlintrc.json"],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "jsx-a11y"],
+  "rules": {
+    // Cell text sits three elements deep inside its table cell.
+    "jsx-a11y/label-has-associated-control": ["error", { "depth": 3 }],
+    "jsx-a11y/control-has-associated-label": ["error", { "depth": 3 }]
+  }
+}

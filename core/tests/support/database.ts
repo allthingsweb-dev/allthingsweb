@@ -53,7 +53,7 @@ export async function migrate(
   const journal = Schema.decodeUnknownSync(Journal)(
     await Bun.file(new URL("meta/_journal.json", migrations)).json(),
   );
-  const entries = [...journal.entries].sort((a, b) => a.idx - b.idx);
+  const entries = journal.entries.toSorted((a, b) => a.idx - b.idx);
 
   // Neon Auth creates neon_auth.users_sync before any migration ran, and 0001
   // already references it. 0010 records that table's definition (IF NOT

@@ -82,7 +82,7 @@ async function refresh(
       );
     } catch (error) {
       console.warn(
-        `#${number}: no stable preview: ${error instanceof Error ? error.message : error}`,
+        `#${number}: no stable preview: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -142,7 +142,7 @@ async function main(): Promise<void> {
     } catch (error) {
       failed = true;
       console.error(
-        `#${number}: ${error instanceof Error ? error.message : error}`,
+        `#${number}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

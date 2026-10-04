@@ -1,13 +1,7 @@
-import {
-  CalendarIcon,
-  ExternalLink,
-  InfoIcon,
-  MapPinIcon,
-  UsersIcon,
-} from "lucide-react";
+import { CalendarIcon, InfoIcon, MapPinIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import NextImage from "next/image";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toReadableDateTimeStr, toWeekdayStr } from "@/lib/datetime";
@@ -132,7 +126,7 @@ export function HeroSection({
     <Section variant="big" className={className}>
       <div className="container">
         <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 xl:gap-24 xl2:gap-32">
-          {!!children ? (
+          {children ? (
             children
           ) : (
             <>

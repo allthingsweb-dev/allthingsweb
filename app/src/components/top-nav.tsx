@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ModeToggle } from "@/components/theme-toggle";
 import type { ClientUser } from "@/lib/client-user";
-import { Button } from "@/components/ui/button";
 
 interface TopNavProps {
   authNav: React.ReactNode;

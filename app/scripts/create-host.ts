@@ -23,4 +23,4 @@ async function main() {
   console.log(createdHost.id);
 }
 
-main();
+await main();

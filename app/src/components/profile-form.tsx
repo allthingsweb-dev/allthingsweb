@@ -25,7 +25,8 @@ interface Profile {
 }
 
 export function ProfileForm() {
-  const user = useUser({ or: "redirect" });
+  // Redirects signed-out visitors to sign-in.
+  useUser({ or: "redirect" });
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
@@ -67,7 +68,7 @@ export function ProfileForm() {
       }
     }
 
-    fetchProfile();
+    void fetchProfile();
   }, []);
 
   const handleInputChange = (field: string, value: string) => {

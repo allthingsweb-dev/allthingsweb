@@ -1,11 +1,10 @@
-import { NextRequest } from "next/server";
 import { ImageResponse } from "next/og";
 import { LandingPagePreview } from "@/lib/image-gen/templates";
 import { getFont } from "@/lib/image-gen/utils";
 import { getPastEventImages } from "@/lib/images";
 import { generatedImageCacheControl } from "@/lib/image-gen/cache";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get past event images
     const pastEventImages = await getPastEventImages();

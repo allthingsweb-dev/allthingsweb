@@ -70,7 +70,7 @@ export function PastEventsGrid({ events }: PastEventsGridProps) {
     );
 
     // Sort years in descending order
-    const sortedYears = Object.keys(grouped).sort(
+    const sortedYears = Object.keys(grouped).toSorted(
       (a, b) => parseInt(b) - parseInt(a),
     );
     return sortedYears.map((year) => ({

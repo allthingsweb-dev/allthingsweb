@@ -39,8 +39,10 @@ export async function loadApp(
   };
   const appDb = drizzle({ client: db });
   // The app reads its database and config from modules; point them here.
-  mock.module(new URL("src/lib/db.ts", app).pathname, () => ({ db: appDb }));
-  mock.module(new URL("src/lib/config.ts", app).pathname, () => ({
+  await mock.module(new URL("src/lib/db.ts", app).pathname, () => ({
+    db: appDb,
+  }));
+  await mock.module(new URL("src/lib/config.ts", app).pathname, () => ({
     mainConfig: {
       instance: { origin: settings.origin },
     },

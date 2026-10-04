@@ -94,7 +94,7 @@ export async function getSpeakerDirectory(
   }
   return {
     speakers: [...speakers.values()],
-    talks: [...talks.values()].sort(
+    talks: [...talks.values()].toSorted(
       (a, b) =>
         b.eventStart.getTime() - a.eventStart.getTime() ||
         a.eventId.localeCompare(b.eventId) ||

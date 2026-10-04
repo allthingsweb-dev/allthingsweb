@@ -9,4 +9,4 @@ async function main() {
   console.log(ids);
 }
 
-main();
+await main();

@@ -12,18 +12,24 @@ const config: VercelConfig = {
   projectId: "prj_1",
 };
 
+/** The client sends JSON strings; any other body is a bug worth failing on. */
+function jsonText(body: RequestInit["body"]): string {
+  if (typeof body !== "string") throw new Error("Expected a JSON string body");
+  return body;
+}
+
 function fakeVercel(
   routes: Record<string, { status: number; body?: unknown }>,
 ) {
   const calls: { method: string; path: string; body?: unknown }[] = [];
   const impl = (async (input: string | URL | Request, init?: RequestInit) => {
-    const url = new URL(String(input));
+    const url = new URL(input instanceof Request ? input.url : input);
     expect(url.searchParams.get("teamId")).toBe("team_1");
     const method = init?.method ?? "GET";
     calls.push({
       method,
       path: url.pathname,
-      ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+      ...(init?.body ? { body: JSON.parse(jsonText(init.body)) } : {}),
     });
     const route = routes[`${method} ${url.pathname}`];
     if (!route) throw new Error(`Unexpected ${method} ${url.pathname}`);

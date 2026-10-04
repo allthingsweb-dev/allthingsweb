@@ -28,8 +28,8 @@ export async function ingestMissingLumaCovers({
       database: db,
       findCoverUrl: ({ lumaEventId }, options) =>
         findLumaCoverUrl(lumaEventId, options, {
-          api: async (id, { signal }) =>
-            (await luma.getEvent(id, { signal }))?.event.cover_url ?? null,
+          api: async (id, apiOptions) =>
+            (await luma.getEvent(id, apiOptions))?.event.cover_url ?? null,
           publicData: publicLumaCoverUrl,
         }),
       download: (url, options) => downloadImage(url, coverHosts, options),

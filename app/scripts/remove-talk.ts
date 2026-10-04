@@ -8,4 +8,4 @@ async function main() {
   console.log(`Deleted ${result.length} talk(s) from event`);
 }
 
-main();
+await main();

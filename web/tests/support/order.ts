@@ -18,7 +18,7 @@ export type Json =
 const canonical = (values: ReadonlyArray<Json>): Array<Json> =>
   values
     .map((value) => [JSON.stringify(value), value] as const)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([, value]) => value);
 
 /** `event` with its attached lists, and each talk's speakers, in canonical order. */

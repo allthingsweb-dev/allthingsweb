@@ -33,7 +33,7 @@ function badge({ label, message, tone, href, logo }: Badge): string {
     style: "flat-square",
   });
   if (logo) params.set("logo", logo);
-  return `[![${label}: ${message}](https://img.shields.io/static/v1?${params})](${href})`;
+  return `[![${label}: ${message}](https://img.shields.io/static/v1?${params.toString()})](${href})`;
 }
 
 export function changeStackUrl(pr: Pick<PrState, "repo" | "number">): string {

@@ -10,7 +10,10 @@ const config: MediaStoreConfig = {
 function recordingFetch(status: number) {
   const calls: { url: string; init: RequestInit }[] = [];
   const impl = (async (input: string | URL | Request, init?: RequestInit) => {
-    calls.push({ url: String(input), init: init ?? {} });
+    calls.push({
+      url: input instanceof Request ? input.url : String(input),
+      init: init ?? {},
+    });
     return new Response(null, { status });
   }) as typeof fetch;
   return { impl, calls };

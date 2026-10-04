@@ -11,6 +11,7 @@ const opener =
 const exitCode = await run(process.argv.slice(2), {
   stdout: (text) => process.stdout.write(text),
   stderr: (text) => process.stderr.write(text),
+  // oxlint-disable-next-line typescript/no-unnecessary-boolean-literal-compare -- @types/node says boolean, but non-TTY streams leave isTTY undefined
   isTTY: process.stdout.isTTY === true,
   env: process.env,
   openUrl: async (url) => {

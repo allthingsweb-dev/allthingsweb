@@ -21,7 +21,7 @@ export const contentSecurityPolicy = [
  * without a readable one weighs 1.
  */
 function weights(acceptEncoding: string): Map<string, number> {
-  const weights = new Map<string, number>();
+  const byCoding = new Map<string, number>();
   for (const part of acceptEncoding.split(",")) {
     const [coding = "", ...parameters] = part
       .split(";")
@@ -31,9 +31,9 @@ function weights(acceptEncoding: string): Map<string, number> {
       .map((parameter) => /^q\s*=\s*([0-9.]+)$/i.exec(parameter)?.[1])
       .find((value) => value !== undefined);
     const weight = q === undefined ? Number.NaN : Number(q);
-    weights.set(coding.toLowerCase(), Number.isNaN(weight) ? 1 : weight);
+    byCoding.set(coding.toLowerCase(), Number.isNaN(weight) ? 1 : weight);
   }
-  return weights;
+  return byCoding;
 }
 
 /**

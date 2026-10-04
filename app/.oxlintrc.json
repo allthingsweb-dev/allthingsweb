@@ -1,0 +1,31 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  // The root rule set, plus React, Next.js and accessibility checks for this
+  // Next.js app. A nested config because `overrides` cannot enable categories.
+  "extends": ["../.oxlintrc.json"],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "promise",
+    "react",
+    "nextjs",
+    "jsx-a11y"
+  ],
+  "rules": {
+    // The automatic JSX runtime needs no React in scope.
+    "react/react-in-jsx-scope": "off",
+    // These check what the React Compiler can optimize, and this app doesn't
+    // use it. What they flag here are working effects (syncing form fields on
+    // selection, subscribing to media queries and carousels); rewriting them
+    // would change behavior, not fix it.
+    "react/set-state-in-effect": "off",
+    "react/immutability": "off",
+    "react/exhaustive-effect-dependencies": "off",
+    "react/purity": "off",
+    // Option text sits three elements deep inside its label.
+    "jsx-a11y/label-has-associated-control": ["error", { "depth": 3 }],
+    "jsx-a11y/control-has-associated-label": ["error", { "depth": 3 }]
+  }
+}
