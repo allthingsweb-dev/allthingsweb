@@ -4,18 +4,9 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { eventsTable, imagesTable, eventImagesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { mainConfig } from "@/lib/config";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
-
-const s3Client = new S3Client({
-  region: mainConfig.s3.region,
-  credentials: {
-    accessKeyId: mainConfig.s3.accessKeyId,
-    secretAccessKey: mainConfig.s3.secretAccessKey,
-  },
-});
+import { appMediaStore } from "@/lib/media-store";
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,25 +75,11 @@ export async function POST(request: NextRequest) {
         `Processing ${imageFile.name}: original=${processedImage.originalFormat}, final=${processedImage.metadata.format}, converted=${processedImage.wasConverted}, uuid=${uuid}`,
       );
 
-      // Upload to S3
-      const uploadCommand = new PutObjectCommand({
-        Bucket: mainConfig.s3.bucket,
-        Key: fileName,
-        Body: processedImage.buffer,
-        ContentType: `image/${processedImage.metadata.format}`,
-        Metadata: {
-          originalName: imageFile.name,
-          uploadedBy: user.id,
-          eventId: eventId,
-          originalFormat: processedImage.originalFormat,
-          wasConverted: processedImage.wasConverted.toString(),
-        },
-      });
-
-      await s3Client.send(uploadCommand);
-
-      // Create image record in database
-      const imageUrl = `${mainConfig.s3.url}/${fileName}`;
+      const imageUrl = await appMediaStore().put(
+        fileName,
+        processedImage.buffer,
+        `image/${processedImage.metadata.format}`,
+      );
 
       console.log(
         `Inserting image record: id=${uuid}, url=${imageUrl}, width=${processedImage.metadata.width}, height=${processedImage.metadata.height}`,

@@ -441,16 +441,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "delete_orphaned_image",
         description:
-          "Delete an orphaned image from S3 (only if not in database)",
+          "Delete an orphaned image from storage (only if not in database)",
         inputSchema: {
           type: "object",
           properties: {
-            s3Url: {
+            imageUrl: {
               type: "string",
-              description: "S3 URL of the image to delete",
+              description: "URL of the stored image to delete",
             },
           },
-          required: ["s3Url"],
+          required: ["imageUrl"],
         },
       },
       {
@@ -780,8 +780,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "delete_orphaned_image": {
-        const { s3Url } = args as { s3Url: string };
-        const result = await deleteOrphanedImage(s3Url);
+        const { imageUrl } = args as { imageUrl: string };
+        const result = await deleteOrphanedImage(imageUrl);
         return {
           content: [
             {
