@@ -1,0 +1,10 @@
+{
+  "$comment": "The Cloudflare token GitHub Actions deploys with. scripts/ci-token.sh applies this file to the allthings account. Grant only what alchemy.run.ts declares, and widen it in the PR that declares more.",
+  "name": "allthings deploy (GitHub Actions)",
+  "account": "af627f300cd00c4dca56aacf05bea050",
+  "permissionGroups": [
+    "Workers Scripts Write",
+    "Account Settings Read",
+    "Secrets Store Write"
+  ]
+}
