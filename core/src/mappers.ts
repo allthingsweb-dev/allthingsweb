@@ -40,6 +40,7 @@ export function httpUrlOrNull(value: string | null): string | null {
   return isHttpUrl(url.href) ? url.href : null;
 }
 
+/** An event's page: its slug, encoded, under the origin. */
 function eventUrl(origin: string, slug: string): string {
   return `${origin}/${encodeURIComponent(slug)}`;
 }
@@ -67,6 +68,7 @@ function rsvpUrl(lumaEventId: string | null): string | null {
     : null;
 }
 
+/** A speaker as a talk lists them; empty titles and bios read as unknown. */
 function talkSpeaker(profile: Rows.Profile): Contract.TalkSpeaker {
   return {
     name: profile.name,
@@ -76,6 +78,7 @@ function talkSpeaker(profile: Rows.Profile): Contract.TalkSpeaker {
   };
 }
 
+/** An event as list_events shows it, with its status at `now`. */
 export function toEventSummary(
   event: Rows.Event,
   origin: string,
@@ -100,6 +103,7 @@ export function toEventSummary(
   };
 }
 
+/** An event as get_event shows it: the summary plus talks, as plain text, and hosts. */
 export function toEvent(
   event: Rows.EventDetails,
   origin: string,
@@ -116,6 +120,10 @@ export function toEvent(
   };
 }
 
+/**
+ * The directory as list_speakers shows it: each speaker with their talks,
+ * newest first, linked to the events they were given at.
+ */
 export function toSpeakers(
   directory: SpeakerDirectory,
   origin: string,

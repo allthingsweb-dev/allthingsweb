@@ -39,6 +39,7 @@ const unreplayable: ReadonlyArray<{
 /** drizzle-kit's migrator runs each file as statements split at this marker. */
 const breakpoint = "--> statement-breakpoint";
 
+/** The SQL of the migration recorded as `tag` in the journal. */
 const readMigration = (tag: string): Promise<string> =>
   Bun.file(new URL(`${tag}.sql`, migrations)).text();
 

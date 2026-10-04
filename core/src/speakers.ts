@@ -102,7 +102,7 @@ const make = Effect.gen(function* () {
     Result: Rows.DirectoryRow,
     execute: (now) => sql`
       SELECT
-        ${sql.literal(profileJson("p"))} AS profile,
+        ${sql.literal(profileJson)} AS profile,
         t.id AS "talkId", t.title AS "talkTitle", t.description AS "talkDescription",
         e.id AS "eventId", e.name AS "eventName", e.slug AS "eventSlug",
         e.start_date AS "eventStart"

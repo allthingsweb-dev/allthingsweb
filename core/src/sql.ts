@@ -7,17 +7,24 @@ import { DataSourceError } from "./errors.ts";
  * that each repository call is a single statement: from a Worker, every extra
  * round trip to the database costs more than the query itself.
  *
- * Arguments are always constants written in this package, never input; the
- * snippets reach a query through `sql.literal`.
+ * The snippets reach a query through `sql.literal`, so their arguments are
+ * typed as the few constant column names the repositories use: no input can
+ * reach them.
  */
 
+/** Columns that reference an image, as the repositories alias their tables. */
+export type ImageColumn =
+  | "e.preview_image"
+  | "p.image"
+  | "s.square_logo_light"
+  | "s.square_logo_dark";
+
 /** The image `column` references, as a JSON object matching `rows.Image`, or NULL. */
-export const imageJson = (column: string): string =>
+export const imageJson = (column: ImageColumn): string =>
   `(SELECT json_build_object('url', i.url, 'alt', i.alt, 'placeholder', i.placeholder, 'width', i.width, 'height', i.height) FROM images i WHERE i.id = ${column})`;
 
-/** The profile aliased `alias`, as a JSON object matching `rows.Profile`. */
-export const profileJson = (alias: string): string =>
-  `json_build_object('id', ${alias}.id, 'name', ${alias}.name, 'title', ${alias}.title, 'bio', ${alias}.bio, 'twitterHandle', ${alias}.twitter_handle, 'blueskyHandle', ${alias}.bluesky_handle, 'linkedinHandle', ${alias}.linkedin_handle, 'image', ${imageJson(`${alias}.image`)})`;
+/** The profile aliased `p`, as a JSON object matching `rows.Profile`. */
+export const profileJson: string = `json_build_object('id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio, 'twitterHandle', p.twitter_handle, 'blueskyHandle', p.bluesky_handle, 'linkedinHandle', p.linkedin_handle, 'image', ${imageJson("p.image")})`;
 
 /** Folds SQL and decoding failures into the one error callers handle. */
 export const orDataSourceError = <A, R>(

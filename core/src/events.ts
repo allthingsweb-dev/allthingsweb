@@ -58,7 +58,7 @@ const make = Effect.gen(function* () {
             'title', t.title,
             'description', t.description,
             'speakers', COALESCE((
-              SELECT json_agg(${sql.literal(profileJson("p"))} ORDER BY ts.created_at, p.id)
+              SELECT json_agg(${sql.literal(profileJson)} ORDER BY ts.created_at, p.id)
               FROM talk_speakers ts
               JOIN profiles p ON p.id = ts.speaker_id
               WHERE ts.talk_id = t.id
