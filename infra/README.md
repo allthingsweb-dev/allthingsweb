@@ -23,12 +23,12 @@ Minting tokens takes the account's Global API Key, which OAuth can't provide. A 
 
 ```sh
 op read "op://Private/Cloudflare Global API Key/credential" | bun alchemy profile edit --profile admin \
-  --add cloudflare --method stored --set apiKey=- \
+  --add Cloudflare --method stored --set apiKey=- \
   --set email="$(op read 'op://Private/Cloudflare Global API Key/username')" \
   --set accountId=1b90995af2e8ed1710a8058226838681
-gh auth token | bun alchemy profile edit --profile admin --add github --method stored --set token=-
+gh auth token | bun alchemy profile edit --profile admin --add GitHub --method stored --set token=-
 bun alchemy deploy --config stacks/github.ts --stage prod --profile admin
-bun alchemy profile edit --profile admin --remove cloudflare --remove github
+bun alchemy profile edit --profile admin --remove Cloudflare --remove GitHub
 ```
 
 Rerunning the deploy updates the token's policies in place; the token value stays the same. To rotate it, run `bun alchemy destroy --config stacks/github.ts --stage prod --profile admin` first: that deletes the token and its secrets, and the deploy then mints a new token and writes it to `CLOUDFLARE_API_TOKEN`.
