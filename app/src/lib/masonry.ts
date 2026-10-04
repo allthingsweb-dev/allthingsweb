@@ -1,18 +1,13 @@
 /**
- * Deals items into `columnCount` columns round-robin, so neighbouring items
- * land side by side and every column stays within one item of the others.
+ * Deals items into the given columns round-robin, so neighbouring items land
+ * side by side and every column stays within one item of the others.
  */
-export function distributeIntoColumns<T>(
-  items: readonly T[],
-  columnCount: number,
-): T[][] {
-  if (!Number.isInteger(columnCount) || columnCount < 1) {
-    throw new RangeError("columnCount must be a positive integer");
-  }
-
-  const columns = Array.from({ length: columnCount }, (): T[] => []);
-  items.forEach((item, index) => {
-    columns[index % columnCount]!.push(item);
-  });
-  return columns;
+export function distributeIntoColumns<Item, Column>(
+  items: readonly Item[],
+  columns: readonly Column[],
+): { column: Column; items: Item[] }[] {
+  return columns.map((column, columnIndex) => ({
+    column,
+    items: items.filter((_, index) => index % columns.length === columnIndex),
+  }));
 }
