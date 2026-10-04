@@ -10,4 +10,4 @@ async function main() {
   console.log(profile);
 }
 
-main();
+await main();

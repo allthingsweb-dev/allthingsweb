@@ -39,7 +39,7 @@ export default function CreateTalkForm({
 
   const sortedProfiles = useMemo(
     () =>
-      [...profiles].sort((a, b) => {
+      profiles.toSorted((a, b) => {
         if (a.profileType === b.profileType) {
           return a.name.localeCompare(b.name);
         }
@@ -226,9 +226,9 @@ export default function CreateTalkForm({
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-gray-700">
+            <span className="block text-sm font-medium text-gray-700">
               Speakers (select at least one)
-            </label>
+            </span>
             <span className="text-sm text-gray-500">
               {selectedSpeakerIds.length} selected
             </span>
@@ -341,9 +341,9 @@ export default function CreateTalkForm({
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <span className="block text-sm font-medium text-gray-700">
                     Speakers
-                  </label>
+                  </span>
                   <span className="text-sm text-gray-500">
                     {editSpeakerIds.length} selected
                   </span>

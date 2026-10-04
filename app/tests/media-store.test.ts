@@ -5,13 +5,15 @@ const config: MediaStoreConfig = {
   publicUrl: "https://media.example.dev",
   uploadUrl: "https://upload.example.workers.dev",
   uploadToken: "secret-token",
-  legacyOrigins: ["https://old-bucket.s3.us-west-2.amazonaws.com"],
 };
 
 function recordingFetch(status: number) {
   const calls: { url: string; init: RequestInit }[] = [];
   const impl = (async (input: string | URL | Request, init?: RequestInit) => {
-    calls.push({ url: String(input), init: init ?? {} });
+    calls.push({
+      url: input instanceof Request ? input.url : String(input),
+      init: init ?? {},
+    });
     return new Response(null, { status });
   }) as typeof fetch;
   return { impl, calls };
@@ -69,7 +71,6 @@ describe("media store", () => {
         ...config,
         publicUrl: "https://media.example.dev/",
         uploadUrl: "https://upload.example.workers.dev//",
-        legacyOrigins: ["https://old-bucket.s3.us-west-2.amazonaws.com/"],
       },
       impl,
     );
@@ -78,20 +79,15 @@ describe("media store", () => {
     );
     expect(calls[0]?.url).toBe("https://upload.example.workers.dev/a.png");
     expect(store.keyOf("https://media.example.dev/a.png")).toBe("a.png");
-    expect(
-      store.keyOf("https://old-bucket.s3.us-west-2.amazonaws.com/b.png"),
-    ).toBe("b.png");
   });
 
-  test("finds the key of URLs on the public and legacy origins only", () => {
+  test("finds the key of URLs on the public origin only", () => {
     const store = mediaStore(config);
     expect(store.keyOf("https://media.example.dev/events/e1/a.png")).toBe(
       "events/e1/a.png",
     );
     expect(
-      store.keyOf(
-        "https://old-bucket.s3.us-west-2.amazonaws.com/profiles/erik-pe%C3%B1a-1.jpg",
-      ),
+      store.keyOf("https://media.example.dev/profiles/erik-pe%C3%B1a-1.jpg"),
     ).toBe("profiles/erik-peña-1.jpg");
     expect(store.keyOf("https://media.example.dev/")).toBeNull();
     expect(store.keyOf("https://media.example.dev/a%E0%A4%A")).toBeNull();

@@ -1,0 +1,166 @@
+column neon_auth.users_sync #001 raw_json jsonb not null
+column neon_auth.users_sync #002 id text not null generated always as ((raw_json ->> 'id'::text)) stored
+column neon_auth.users_sync #003 name text generated always as ((raw_json ->> 'display_name'::text)) stored
+column neon_auth.users_sync #004 email text generated always as ((raw_json ->> 'primary_email'::text)) stored
+column neon_auth.users_sync #005 created_at timestamp with time zone generated always as (to_timestamp((trunc((((raw_json ->> 'signed_up_at_millis'::text))::bigint)::double precision) / (1000)::double precision))) stored
+column neon_auth.users_sync #006 updated_at timestamp with time zone
+column neon_auth.users_sync #007 deleted_at timestamp with time zone
+column public.administrators #001 id uuid not null default gen_random_uuid()
+column public.administrators #002 user_id text not null
+column public.administrators #003 created_at timestamp with time zone not null default now()
+column public.administrators #004 updated_at timestamp with time zone not null
+column public.event_images #001 event_id uuid not null
+column public.event_images #002 image_id uuid not null
+column public.event_images #003 created_at timestamp with time zone not null default now()
+column public.event_images #004 updated_at timestamp with time zone not null
+column public.event_review_sessions #001 id uuid not null default gen_random_uuid()
+column public.event_review_sessions #002 event_id uuid not null
+column public.event_review_sessions #003 provider text not null default 'discord'::text
+column public.event_review_sessions #004 channel_id text not null
+column public.event_review_sessions #005 root_message_id text not null
+column public.event_review_sessions #006 thread_id text not null
+column public.event_review_sessions #007 last_seen_message_id text
+column public.event_review_sessions #008 status text not null default 'pending'::text
+column public.event_review_sessions #009 approval_message_id text
+column public.event_review_sessions #010 created_at timestamp with time zone not null default now()
+column public.event_review_sessions #011 updated_at timestamp with time zone not null
+column public.event_sponsors #001 event_id uuid not null
+column public.event_sponsors #002 sponsor_id uuid not null
+column public.event_sponsors #003 created_at timestamp with time zone not null default now()
+column public.event_sponsors #004 updated_at timestamp with time zone not null
+column public.event_talks #001 event_id uuid not null
+column public.event_talks #002 talk_id uuid not null
+column public.event_talks #003 created_at timestamp with time zone not null default now()
+column public.event_talks #004 updated_at timestamp with time zone not null
+column public.events #001 id uuid not null default gen_random_uuid()
+column public.events #002 name text not null
+column public.events #003 start_date timestamp with time zone not null
+column public.events #004 end_date timestamp with time zone not null
+column public.events #005 slug text not null
+column public.events #006 tagline text not null
+column public.events #007 attendee_limit integer not null
+column public.events #008 street_address text
+column public.events #009 short_location text
+column public.events #010 full_address text
+column public.events #011 luma_event_id text
+column public.events #012 is_hackathon boolean not null default false
+column public.events #013 is_draft boolean not null default false
+column public.events #014 highlight_on_landing_page boolean not null default false
+column public.events #015 preview_image uuid
+column public.events #016 recording_url text
+column public.events #017 created_at timestamp with time zone not null default now()
+column public.events #018 updated_at timestamp with time zone not null
+column public.images #001 id uuid not null default gen_random_uuid()
+column public.images #002 url text not null
+column public.images #003 placeholder text not null
+column public.images #004 alt text not null
+column public.images #005 created_at timestamp with time zone not null default now()
+column public.images #006 updated_at timestamp with time zone not null
+column public.images #007 width integer not null
+column public.images #008 height integer not null
+column public.profile_users #001 profile_id uuid not null
+column public.profile_users #002 user_id text not null
+column public.profile_users #003 created_at timestamp with time zone not null default now()
+column public.profile_users #004 updated_at timestamp with time zone not null
+column public.profiles #001 id uuid not null default gen_random_uuid()
+column public.profiles #002 name text not null
+column public.profiles #003 title text not null
+column public.profiles #004 image uuid
+column public.profiles #005 twitter_handle text
+column public.profiles #006 bluesky_handle text
+column public.profiles #007 linkedin_handle text
+column public.profiles #008 bio text not null
+column public.profiles #009 profile_type profile_type not null
+column public.profiles #010 created_at timestamp with time zone not null default now()
+column public.profiles #011 updated_at timestamp with time zone not null
+column public.profiles #012 photo_source_url text
+column public.redirects #001 slug text not null
+column public.redirects #002 destination_url text not null
+column public.redirects #003 comment text
+column public.redirects #004 created_at timestamp with time zone not null default now()
+column public.redirects #005 updated_at timestamp with time zone not null
+column public.sponsors #001 id uuid not null default gen_random_uuid()
+column public.sponsors #002 name text not null
+column public.sponsors #003 about text not null
+column public.sponsors #004 square_logo_dark uuid
+column public.sponsors #005 square_logo_light uuid
+column public.sponsors #006 created_at timestamp with time zone not null default now()
+column public.sponsors #007 updated_at timestamp with time zone not null
+column public.talk_speakers #001 talk_id uuid not null
+column public.talk_speakers #002 speaker_id uuid not null
+column public.talk_speakers #003 created_at timestamp with time zone not null default now()
+column public.talk_speakers #004 updated_at timestamp with time zone not null
+column public.talks #001 id uuid not null default gen_random_uuid()
+column public.talks #002 title text not null
+column public.talks #003 description text not null
+column public.talks #004 created_at timestamp with time zone not null default now()
+column public.talks #005 updated_at timestamp with time zone not null
+constraint neon_auth.users_sync users_sync_pkey PRIMARY KEY (id)
+constraint public.administrators administrators_pkey PRIMARY KEY (id)
+constraint public.administrators administrators_user_id_users_sync_id_fk FOREIGN KEY (user_id) REFERENCES neon_auth.users_sync(id)
+constraint public.event_images event_images_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_images event_images_event_id_image_id_pk PRIMARY KEY (event_id, image_id)
+constraint public.event_images event_images_image_id_images_id_fk FOREIGN KEY (image_id) REFERENCES images(id)
+constraint public.event_review_sessions event_review_sessions_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+constraint public.event_review_sessions event_review_sessions_event_id_unique UNIQUE (event_id)
+constraint public.event_review_sessions event_review_sessions_pkey PRIMARY KEY (id)
+constraint public.event_review_sessions event_review_sessions_thread_id_unique UNIQUE (thread_id)
+constraint public.event_sponsors event_sponsors_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_sponsors event_sponsors_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
+constraint public.event_talks event_talks_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_talks event_talks_event_id_talk_id_pk PRIMARY KEY (event_id, talk_id)
+constraint public.event_talks event_talks_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id)
+constraint public.events events_luma_event_id_unique UNIQUE (luma_event_id)
+constraint public.events events_pkey PRIMARY KEY (id)
+constraint public.events events_preview_image_images_id_fk FOREIGN KEY (preview_image) REFERENCES images(id) ON DELETE SET NULL
+constraint public.events events_slug_unique UNIQUE (slug)
+constraint public.images images_pkey PRIMARY KEY (id)
+constraint public.profile_users profile_users_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
+constraint public.profile_users profile_users_profile_id_unique UNIQUE (profile_id)
+constraint public.profile_users profile_users_profile_id_user_id_pk PRIMARY KEY (profile_id, user_id)
+constraint public.profile_users profile_users_user_id_users_sync_id_fk FOREIGN KEY (user_id) REFERENCES neon_auth.users_sync(id)
+constraint public.profiles profiles_image_images_id_fk FOREIGN KEY (image) REFERENCES images(id) ON DELETE SET NULL
+constraint public.profiles profiles_pkey PRIMARY KEY (id)
+constraint public.redirects redirects_slug_unique PRIMARY KEY (slug)
+constraint public.sponsors sponsors_name_unique UNIQUE (name)
+constraint public.sponsors sponsors_pkey PRIMARY KEY (id)
+constraint public.sponsors sponsors_square_logo_dark_images_id_fk FOREIGN KEY (square_logo_dark) REFERENCES images(id) ON DELETE SET NULL
+constraint public.sponsors sponsors_square_logo_light_images_id_fk FOREIGN KEY (square_logo_light) REFERENCES images(id) ON DELETE SET NULL
+constraint public.talk_speakers talk_speakers_speaker_id_profiles_id_fk FOREIGN KEY (speaker_id) REFERENCES profiles(id)
+constraint public.talk_speakers talk_speakers_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id)
+constraint public.talks talks_pkey PRIMARY KEY (id)
+enum public.profile_type ('organizer', 'member')
+index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at)
+index neon_auth.users_sync CREATE UNIQUE INDEX users_sync_pkey ON neon_auth.users_sync USING btree (id)
+index public.administrators CREATE UNIQUE INDEX administrators_pkey ON public.administrators USING btree (id)
+index public.event_images CREATE UNIQUE INDEX event_images_event_id_image_id_pk ON public.event_images USING btree (event_id, image_id)
+index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_event_id_unique ON public.event_review_sessions USING btree (event_id)
+index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_pkey ON public.event_review_sessions USING btree (id)
+index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_thread_id_unique ON public.event_review_sessions USING btree (thread_id)
+index public.event_talks CREATE UNIQUE INDEX event_talks_event_id_talk_id_pk ON public.event_talks USING btree (event_id, talk_id)
+index public.events CREATE UNIQUE INDEX events_luma_event_id_unique ON public.events USING btree (luma_event_id)
+index public.events CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)
+index public.events CREATE UNIQUE INDEX events_slug_unique ON public.events USING btree (slug)
+index public.images CREATE UNIQUE INDEX images_pkey ON public.images USING btree (id)
+index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_unique ON public.profile_users USING btree (profile_id)
+index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_user_id_pk ON public.profile_users USING btree (profile_id, user_id)
+index public.profiles CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
+index public.redirects CREATE UNIQUE INDEX redirects_slug_unique ON public.redirects USING btree (slug)
+index public.sponsors CREATE UNIQUE INDEX sponsors_name_unique ON public.sponsors USING btree (name)
+index public.sponsors CREATE UNIQUE INDEX sponsors_pkey ON public.sponsors USING btree (id)
+index public.talks CREATE UNIQUE INDEX talks_pkey ON public.talks USING btree (id)
+relation neon_auth.users_sync kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.administrators kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_images kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_review_sessions kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=
+relation public.images kind=r persistence=p rls=f force_rls=f replica_identity=f options=
+relation public.profile_users kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.profiles kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.redirects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.talk_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+routine public.show_db_tree() afc3f368beed7e4fb52b8c71a7b77586

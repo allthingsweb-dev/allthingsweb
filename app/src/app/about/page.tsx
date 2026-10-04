@@ -1,4 +1,4 @@
-import clsx from "clsx";
+import { clsx } from "clsx";
 import Link from "next/link";
 import { Metadata } from "next";
 import { mainConfig } from "@/lib/config";
@@ -17,24 +17,24 @@ import { ProfileCard } from "@/components/profile-card";
 import { getOrganizers } from "@/lib/profiles";
 import { community } from "@/lib/community";
 
-const title = "About All Things Web";
-const description = community.mission;
+const pageTitle = "About All Things Web";
+const pageDescription = community.mission;
 const url = `${mainConfig.instance.origin}/about`;
 const imageUrl = `${mainConfig.instance.origin}/api/v1/preview.png`;
 
 export const metadata: Metadata = {
-  title,
-  description,
+  title: pageTitle,
+  description: pageDescription,
   openGraph: {
-    title,
-    description,
+    title: pageTitle,
+    description: pageDescription,
     url,
     images: [
       {
         url: imageUrl,
         width: 1200,
         height: 630,
-        alt: title,
+        alt: pageTitle,
       },
     ],
     type: "website",
@@ -43,8 +43,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title,
-    description,
+    title: pageTitle,
+    description: pageDescription,
     images: [imageUrl],
     site: "@allthingswebdev",
     creator: "@allthingswebdev",

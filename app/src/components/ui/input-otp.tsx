@@ -68,6 +68,7 @@ function InputOTPSlot({
 
 function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
   return (
+    // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- the separator wraps an icon, and <hr> cannot have children
     <div data-slot="input-otp-separator" role="separator" {...props}>
       <MinusIcon />
     </div>

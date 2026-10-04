@@ -111,7 +111,7 @@ test("retains repeat appearances and co-speakers without duplicate profile talk 
     [shared.id],
     [shared.id],
   ]);
-  expect(result.talks.map((t) => t.eventSlug).sort()).toEqual([
+  expect(result.talks.map((t) => t.eventSlug).toSorted()).toEqual([
     "first",
     "second",
   ]);
@@ -141,7 +141,7 @@ test("orders every speaker's appearances newest first, including shared talks", 
   const result = await getSpeakerDirectory(db, now);
   expect(
     result.talks
-      .filter((talk) => talk.speakerIds.includes(b.id))
-      .map((talk) => talk.eventSlug),
+      .filter((entry) => entry.speakerIds.includes(b.id))
+      .map((entry) => entry.eventSlug),
   ).toEqual(["newer", "older"]);
 });

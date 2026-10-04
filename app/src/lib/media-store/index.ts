@@ -3,10 +3,7 @@ import { mediaStore } from "./store";
 
 /** The app's media store: the R2 bucket behind media.allthings.dev. */
 export function appMediaStore() {
-  return mediaStore({
-    ...mainConfig.media,
-    legacyOrigins: [mainConfig.s3.url],
-  });
+  return mediaStore(mainConfig.media);
 }
 
 export { keySlug, type MediaStore } from "./store";

@@ -13,7 +13,7 @@ const PROJECT = "--scope andrelandgraf --project allthingsweb";
  */
 export const VercelEnv = (
   name: string,
-  value: Input<string | Redacted.Redacted<string>>,
+  value: Input<string | Redacted.Redacted>,
   { sensitive, targets }: { sensitive: boolean; targets: readonly string[] },
 ) =>
   Command.Exec(`Vercel${name}`, {

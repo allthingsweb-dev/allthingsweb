@@ -85,7 +85,7 @@ async function insertProfile(
       ...values,
     })
     .returning();
-  return row!;
+  return row;
 }
 
 describe("profile photo ingestion", () => {
@@ -108,10 +108,10 @@ describe("profile photo ingestion", () => {
       .from(profilesTable)
       .innerJoin(imagesTable, eq(profilesTable.image, imagesTable.id))
       .where(eq(profilesTable.id, profile.id));
-    expect(row!.images).toMatchObject({
+    expect(row.images).toMatchObject({
       alt: "Simon Farshid",
       width: 460,
-      url: `https://bucket.example/profiles/simon-farshid-${row!.images.id}.jpeg`,
+      url: `https://bucket.example/profiles/simon-farshid-${row.images.id}.jpeg`,
     });
   });
 
@@ -141,7 +141,7 @@ describe("profile photo ingestion", () => {
         height: 400,
       })
       .returning();
-    await insertProfile("Has Photo", { image: existing!.id });
+    await insertProfile("Has Photo", { image: existing.id });
     await insertProfile("No Source", { photoSourceUrl: null });
     const d = deps();
     expect(await ingestProfilePhotos(d)).toEqual({ ingested: [], failed: [] });
@@ -165,7 +165,7 @@ describe("profile photo ingestion", () => {
         d.stored.push(key);
         await db
           .update(profilesTable)
-          .set({ image: manual!.id })
+          .set({ image: manual.id })
           .where(eq(profilesTable.id, profile.id));
         return `https://bucket.example/${key}`;
       },

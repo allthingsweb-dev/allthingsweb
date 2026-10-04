@@ -4,7 +4,9 @@ import { looksLikeImage } from "../src/lib/event-covers/image-signature";
 const bytes = (...parts: (number[] | string)[]) =>
   new Uint8Array(
     parts.flatMap((part) =>
-      typeof part === "string" ? [...part].map((c) => c.charCodeAt(0)) : part,
+      typeof part === "string"
+        ? part.split("").map((c) => c.charCodeAt(0))
+        : part,
     ),
   );
 

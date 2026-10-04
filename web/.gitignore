@@ -1,0 +1,4 @@
+.alchemy/
+node_modules/
+# Built by `bun run build`: static assets and build.json.
+dist/

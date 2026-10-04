@@ -11,7 +11,10 @@ function respondWith(
   return {
     requests,
     fetch: async (_url, init) => {
-      requests.push(JSON.parse(String(init.body)));
+      if (typeof init.body !== "string") {
+        throw new Error("Expected a JSON string body");
+      }
+      requests.push(JSON.parse(init.body));
       const json = JSON.stringify({
         jsonrpc: "2.0",
         id: 1,

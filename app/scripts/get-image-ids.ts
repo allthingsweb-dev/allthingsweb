@@ -1,7 +1,7 @@
 import { getImgIdsForUrls } from "./functions";
 
 const imageUrls = [
-  "https://allthingsweb-dev.s3.us-west-2.amazonaws.com/events/2024-09-24-react-bay-area-at-cisco-meraki/4d224238-6b78-4d5e-9d84-4ca2d03b91b7.png",
+  "https://media.allthings.dev/events/2024-09-24-react-bay-area-at-cisco-meraki/4d224238-6b78-4d5e-9d84-4ca2d03b91b7.png",
 ];
 
 async function main() {
@@ -9,4 +9,4 @@ async function main() {
   console.log(ids);
 }
 
-main();
+await main();

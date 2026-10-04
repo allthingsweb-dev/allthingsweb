@@ -1,0 +1,1510 @@
+{
+  "events": [
+    {
+      "slug": "2026-06-26-all-things-effect-w-michael-arnaldi",
+      "name": "Effect San Francisco 🇺🇸",
+      "tagline": "All Things Effect w/ Michael Arnaldi at All Things Web",
+      "url": "https://allthingsweb.dev/2026-06-26-all-things-effect-w-michael-arnaldi",
+      "status": "past",
+      "startsAt": "2026-10-01T00:30:00.000Z",
+      "endsAt": "2026-10-01T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "CodeRabbit",
+        "address": "CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-CIXBbu7ySP61MNP",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "Fireside chat with Michael Arnaldi, creator of Effect",
+          "description": "Effect's creator came to San Francisco for presentations, then a fireside chat and audience Q&A with Simon Farshid: the design decisions, the practical tradeoffs, and what's coming next.",
+          "speakers": [
+            {
+              "name": "Michael Arnaldi",
+              "title": "Creator of Effect",
+              "bio": "Creator of Effect, the TypeScript library for building robust, type-safe applications, and founder of Effectful Technologies.",
+              "links": {
+                "x": "https://twitter.com/@MichaelArnaldi",
+                "bluesky": null,
+                "linkedin": null
+              }
+            },
+            {
+              "name": "Simon Farshid",
+              "title": "Founder & CEO, assistant-ui",
+              "bio": "Founder and CEO of assistant-ui, the open-source React toolkit for AI chat.",
+              "links": {
+                "x": "https://twitter.com/@simonfarshid",
+                "bluesky": null,
+                "linkedin": null
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "CodeRabbit",
+          "about": "Code reviews are critical but time-consuming. CodeRabbit acts as your AI co-pilot, providing instant Code review comments and potential impacts of every pull request. Beyond just flagging issues, CodeRabbit provides one-click fix suggestions and lets you define custom code quality rules using AST Grep patterns. CodeRabbit can even plan a refactor or merge the code changes using Chat. CodeRabbit has so far reviewed more than 10 million PRs, installed on 1 million repositories, and used by 70 thousand Open-source projects. Try CodeRabbit today at coderabbit.ai."
+        }
+      ]
+    },
+    {
+      "slug": "2026-09-15-all-things-agent-setups-evt-yqRYriugnX9wi2u",
+      "name": "All Things Agent Setups",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2026-09-15-all-things-agent-setups-evt-yqRYriugnX9wi2u",
+      "status": "past",
+      "startsAt": "2026-09-16T00:30:00.000Z",
+      "endsAt": "2026-09-16T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry",
+        "address": "Sentry, 45 Fremont St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-yqRYriugnX9wi2u",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2026-04-30-all-things-sync",
+      "name": "All Things Sync",
+      "tagline": "All Things Sync at All Things Web",
+      "url": "https://allthingsweb.dev/2026-04-30-all-things-sync",
+      "status": "past",
+      "startsAt": "2026-04-30T00:30:00.000Z",
+      "endsAt": "2026-04-30T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": null,
+      "rsvpUrl": "https://lu.ma/event/evt-oZuT52GZDnYkAcL",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2026-04-09-typescript-ai-demo-day-evt-IpKgpcPJEOjvroH",
+      "name": "TypeScript AI Demo Day",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2026-04-09-typescript-ai-demo-day-evt-IpKgpcPJEOjvroH",
+      "status": "past",
+      "startsAt": "2026-04-09T15:30:00.000Z",
+      "endsAt": "2026-04-10T00:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Convene 100 Stockton",
+        "address": "Convene 100 Stockton, 40 O'Farrell St, San Francisco, CA 94108, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-IpKgpcPJEOjvroH",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2026-03-31-all-things-web-workos",
+      "name": "Dev Setup Demos - Show your agents.md!",
+      "tagline": "All Things Web @ WorkOS at All Things Web",
+      "url": "https://allthingsweb.dev/2026-03-31-all-things-web-workos",
+      "status": "past",
+      "startsAt": "2026-04-01T00:30:00.000Z",
+      "endsAt": "2026-04-01T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "WorkOS",
+        "address": "WorkOS, 660 Market St, San Francisco, CA 94104, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-wJxtorPCscwoGS4",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2026-02-25-devtool-ax-demos",
+      "name": "DevTool AX Demos",
+      "tagline": "Join us on Feb 24 for our monthly All Things Web meetup",
+      "url": "https://allthingsweb.dev/2026-02-25-devtool-ax-demos",
+      "status": "past",
+      "startsAt": "2026-02-25T01:30:00.000Z",
+      "endsAt": "2026-02-25T04:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "585 Market St",
+        "address": "585 Market St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-tMlbKr2pQktx6Qx",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2026-01-20-all-things-expo-evt-3nNZK4pu7n7TNbC",
+      "name": "All Things Expo!",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2026-01-20-all-things-expo-evt-3nNZK4pu7n7TNbC",
+      "status": "past",
+      "startsAt": "2026-01-21T01:30:00.000Z",
+      "endsAt": "2026-01-21T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "201 Spear St",
+        "address": "201 Spear St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-3nNZK4pu7n7TNbC",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2025-11-06-typescript-ai-the-official-conference-after-party-evt-ITMJYP0vdkjXbMr",
+      "name": "TypeScript AI: The official conference after-party",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2025-11-06-typescript-ai-the-official-conference-after-party-evt-ITMJYP0vdkjXbMr",
+      "status": "past",
+      "startsAt": "2025-11-07T01:30:00.000Z",
+      "endsAt": "2025-11-07T07:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Southern Pacific Brewing",
+        "address": "Southern Pacific Brewing, 620 Treat Ave, San Francisco, CA 94110, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-ITMJYP0vdkjXbMr",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2025-11-04-after-party-all-things-react-native-evt-TpDFOGNSBwCxU72",
+      "name": "After Party - All Things React Native",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2025-11-04-after-party-all-things-react-native-evt-TpDFOGNSBwCxU72",
+      "status": "past",
+      "startsAt": "2025-11-05T04:00:00.000Z",
+      "endsAt": "2025-11-05T06:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "277 Carolina St",
+        "address": "277 Carolina St, San Francisco, CA 94103, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-TpDFOGNSBwCxU72",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2025-11-04-all-things-react-native",
+      "name": "All Things React Native",
+      "tagline": "Join us at Discord HQ for All Things React Native - hang out with the mobile and web dev community, enjoy two exciting tech talks, and let's dive deep into React Native.",
+      "url": "https://allthingsweb.dev/2025-11-04-all-things-react-native",
+      "status": "past",
+      "startsAt": "2025-11-05T01:00:00.000Z",
+      "endsAt": "2025-11-05T04:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "444 De Haro St suite 200",
+        "address": "444 De Haro St suite 200, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-gVIQ04BaqjGAyAM",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "Discord's New Arch Journey",
+          "description": "Exploring Discord's journey with their new architecture and how it impacts the platform.",
+          "speakers": [
+            {
+              "name": "Alex Hendrix",
+              "title": "Senior Software Engineer",
+              "bio": "Senior Software Engineer at Discord with experience building scalable systems. Previously worked at ONENIGMA and Microsoft.",
+              "links": {
+                "x": "https://twitter.com/flewp",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/flewp"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Nitro Modules",
+          "description": "An introduction to Nitro Modules and how they work in React Native.",
+          "speakers": [
+            {
+              "name": "Marc Rousavy",
+              "title": "CEO @ Margelo",
+              "bio": "Founder and CEO of Margelo, a high-end app development company working with clients like Facebook, Red Bull, Coinbase and Shopify. Software developer and designer from Austria with experience at startups in Paris, San Francisco, and Vienna.",
+              "links": {
+                "x": "https://twitter.com/mrousavy",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/mrousavy"
+              }
+            }
+          ]
+        },
+        {
+          "title": "I'm Evan Bacon",
+          "description": "A talk by Evan Bacon... about Evan Bacon or something like that? Don't miss it!",
+          "speakers": [
+            {
+              "name": "Evan Bacon",
+              "title": "Creator of Expo Router",
+              "bio": "Creator of Expo Router at Expo.",
+              "links": {
+                "x": "https://twitter.com/Baconbrix",
+                "bluesky": null,
+                "linkedin": null
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Discord",
+          "about": "Discord is the place to talk. Whether you are part of a school club, a gaming group, a worldwide art community, or just a handful of friends that want to spend time together, Discord makes it easy to talk every day and hang out more often."
+        }
+      ]
+    },
+    {
+      "slug": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+      "name": "Pre Next.js Conf / Ship AI Meetup",
+      "tagline": "Kick off Next.js Conf / Ship AI with Strapi, Sentry, Mux, Neon, and Replit",
+      "url": "https://allthingsweb.dev/2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+      "status": "past",
+      "startsAt": "2025-10-22T01:00:00.000Z",
+      "endsAt": "2025-10-22T05:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Standard Deviant Brewing Pier 70",
+        "address": "Standard Deviant Brewing Pier 70, 1070 Maryland St suite 195, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-lPPnQypydANrkrJ",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "What We Learned from Building a Vibe Coding Tool",
+          "description": "Pierre Burgy, CEO of Strapi, shares insights and lessons learned from building a vibe coding tool. Discover the challenges, breakthroughs, and key takeaways from creating developer tools that enhance the coding experience.",
+          "speakers": [
+            {
+              "name": "Pierre Burgy",
+              "title": "CEO",
+              "bio": "Pierre Burgy is the CEO of Strapi, the leading open-source headless CMS. He's passionate about building developer tools and empowering teams to create amazing digital experiences with JavaScript and TypeScript.",
+              "links": {
+                "x": "https://twitter.com/pierre_burgy",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/pierre-burgy-strapi-88671673"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Using the Mux MCP to dynamically analyze video content for AI-driven tagging and content moderation",
+          "description": "Joshua Alphonse demonstrates how to leverage the Mux MCP (Model Context Protocol) for dynamic video content analysis, focusing on AI-driven tagging and content moderation solutions.",
+          "speakers": [
+            {
+              "name": "Joshua Alphonse",
+              "title": "Developer Advocate",
+              "bio": "Joshua Alphonse is a developer advocate passionate about video technology and AI-driven content solutions. He specializes in building innovative tools for video analysis and content moderation.",
+              "links": {
+                "x": null,
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/joshua-alphons"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Build your own CodeGen platform",
+          "description": "Andre Landgraf, Member of Technical Staff at Databricks, walks through building your own code generation platform. Learn about the architecture, tools, and techniques needed to create powerful CodeGen solutions.",
+          "speakers": [
+            {
+              "name": "Andre Landgraf",
+              "title": "Senior Developer Advocate",
+              "bio": "Andre is a passionate developer from Germany and the author of Full Stack Web Development with Remix. He lives in Cupertino, California, and works at Neon. Andre enjoys learning, writing, and teaching about web development, and he organizes All Things Web events in San Francisco. In his free time, he enjoys eating good food and spending time with friends and family.",
+              "links": {
+                "x": "https://twitter.com/andrelandgraf94",
+                "bluesky": "https://bsky.app/profile/andrelandgraf.com",
+                "linkedin": "https://www.linkedin.com/in/andre-landgraf"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Docs are product: how we write (and use) docs at Replit",
+          "description": "Matt Palmer from Replit explores the philosophy that documentation is product. Learn how Replit approaches writing, maintaining, and using documentation as a core part of their developer experience.",
+          "speakers": [
+            {
+              "name": "Matt Palmer",
+              "title": "Developer Experience Engineer",
+              "bio": "Matt Palmer is a Developer Experience Engineer at Replit, focused on creating exceptional documentation and developer tools. He believes that great docs are product and works to make developer experiences seamless.",
+              "links": {
+                "x": "https://twitter.com/mattppal",
+                "bluesky": null,
+                "linkedin": null
+              }
+            }
+          ]
+        },
+        {
+          "title": "Context Engineering: How We Ground Seer in Reality",
+          "description": "Ram Senthamarai, Senior Machine Learning Engineer at Sentry, discusses context engineering and how they ground Seer (Sentry's AI system) in reality. Explore the techniques and approaches for building reliable AI systems.",
+          "speakers": [
+            {
+              "name": "Ram Senthamarai",
+              "title": "Senior Machine Learning Engineer",
+              "bio": "Ram Senthamarai is a Senior Machine Learning Engineer at Sentry, specializing in context engineering and grounding AI systems in reality. He works on innovative ML solutions for developer tools and debugging platforms.",
+              "links": {
+                "x": null,
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/ramsenth"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": []
+    },
+    {
+      "slug": "2025-10-07-js-trivia-night-evt-2DtcNjNsqEqpgp6",
+      "name": "JS Trivia Night",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2025-10-07-js-trivia-night-evt-2DtcNjNsqEqpgp6",
+      "status": "past",
+      "startsAt": "2025-10-08T00:00:00.000Z",
+      "endsAt": "2025-10-08T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Standard Deviant Brewing Pier 70",
+        "address": "Standard Deviant Brewing Pier 70, 1070 Maryland St suite 195, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-2DtcNjNsqEqpgp6",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2025-09-30-agents-for-web-dev",
+      "name": "Agents for Web Dev",
+      "tagline": "Join us for two exciting talks about AI agents in web development and connect with the AI and web builder community!",
+      "url": "https://allthingsweb.dev/2025-09-30-agents-for-web-dev",
+      "status": "past",
+      "startsAt": "2025-10-01T00:30:00.000Z",
+      "endsAt": "2025-10-01T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Mintlify",
+        "address": "Mintlify, 1 Post St Ste 3000, San Francisco, CA 94104, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-s9SEHLVbphwdAPZ",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "All things modern docs! ✨",
+          "description": "Join Hahnbee Lee, co-founder of Mintlify, as she explores how modern documentation platforms are transforming the way developers create and consume technical content. Discover the innovations making it effortless to build world-class docs that actually get used.",
+          "speakers": [
+            {
+              "name": "Hahnbee Lee",
+              "title": "Co-founder, Mintlify",
+              "bio": "Hahnbee Lee is the co-founder of Mintlify, a next-generation documentation platform that powers developer docs for over 5,000 companies including Anthropic, Scale, Cursor and Pinecone. Before founding Mintlify through Y Combinator in 2022, she worked as a software engineer at Duolingo. She graduated from Cornell University with a degree in Computer and Information Sciences, where she met her co-founder Han Wang and built a course planning app still used by ~50% of Cornell's undergraduate students.",
+              "links": {
+                "x": null,
+                "bluesky": null,
+                "linkedin": null
+              }
+            }
+          ]
+        },
+        {
+          "title": "Use an open-source tool to get agents to install modern dev tools for you! 🧙",
+          "description": "Discover SourceWizard, the AI-powered setup wizard that revolutionizes how developers find, install, and configure development tools using natural language queries. Ivan Chebykin will demonstrate how this open-source tool with MCP integration makes dev environment setup as simple as describing what you need in plain English.",
+          "speakers": [
+            {
+              "name": "Ivan Chebykin",
+              "title": "Founder, SourceWizard & AI Engineer at Meta",
+              "bio": "Ivan Chebykin is an AI engineer at Meta focusing on AI infrastructure, with previous experience building complex backend systems at Yandex.Taxi and Tinkoff Investments. He is the founder of SourceWizard, an open-source AI-powered setup wizard that helps developers quickly find, install, and configure packages using natural language queries with MCP integration. Based in San Francisco, his work reflects his passion for automating coding processes with LLMs and improving developer experience through intelligent tooling.",
+              "links": {
+                "x": null,
+                "bluesky": null,
+                "linkedin": null
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Mintlify",
+          "about": "Meet the next generation of documentation. AI-native, beautiful out-of-the-box, and built for collaboration."
+        }
+      ]
+    },
+    {
+      "slug": "2025-09-23-lightning-hackathon-at-sentry",
+      "name": "Lightning Hackathon ⚡",
+      "tagline": "Join us for a fast-paced, two-hour hackathon! Build something amazing in just two hours!",
+      "url": "https://allthingsweb.dev/2025-09-23-lightning-hackathon-at-sentry",
+      "status": "past",
+      "startsAt": "2025-09-24T00:00:00.000Z",
+      "endsAt": "2025-09-24T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry",
+        "address": "Sentry, 45 Fremont St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-3WAjTY15pqdB1mb",
+      "recordingUrl": null,
+      "isHackathon": true,
+      "talks": [],
+      "hosts": [
+        {
+          "name": "Sentry",
+          "about": "For software teams, Sentry is essential for monitoring application code quality. From Error tracking to Performance monitoring, developers can see clearer, solve quicker, and learn continuously about their applications — from frontend to backend. Loved by nearly 4 million developers and 90,000 organizations worldwide, Sentry provides code-level observability to many of the world’s best-known companies like Disney, Cloudflare, Eventbrite, Slack, Supercell, and Rockstar Games."
+        }
+      ]
+    },
+    {
+      "slug": "2025-07-23-all-things-web-show-and-tell",
+      "name": "All Things Web Show & Tell",
+      "tagline": "Join us for a community show & tell at the SF Nook community space!",
+      "url": "https://allthingsweb.dev/2025-07-23-all-things-web-show-and-tell",
+      "status": "past",
+      "startsAt": "2025-07-24T00:00:00.000Z",
+      "endsAt": "2025-07-24T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "1242 Market St",
+        "address": "1242 Market St, San Francisco, CA 94102, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-TI4Rc7MwnlmlrvP",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2025-06-02-nextdevfm-live",
+      "name": "NextDev.fm Live",
+      "tagline": "Join us for a live episode of NextDev.fm! 🎙️",
+      "url": "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+      "status": "past",
+      "startsAt": "2025-06-03T00:00:00.000Z",
+      "endsAt": "2025-06-03T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "1242 Market St",
+        "address": "1242 Market St, San Francisco, CA 94102, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-YgL8QkcPVOTymoN",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "NextDev.fm Live",
+          "description": "In this live episode, Ted Nyman will be interviewed by Ryan Vogel and Dan Goosewin.",
+          "speakers": [
+            {
+              "name": "Ted Nyman",
+              "title": "CEO at Cased",
+              "bio": "Ted Nyman is the CEO of Cased, a platform for agent-enabled infrastructure and IaC. Previously, Ted served as CTO and worked as a systems engineer at GitHub.",
+              "links": {
+                "x": "https://twitter.com/tnm",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/tedny"
+              }
+            },
+            {
+              "name": "Ryan Vogel",
+              "title": "Devrel @ Neon",
+              "bio": "Ryan is a developer advocate at Neon. He also co-hosts the NextDev.fm podcast and founder of Mandarin 3D Prints, a 3D printing service.",
+              "links": {
+                "x": "https://twitter.com/ryandavogel",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/theryanvogel"
+              }
+            },
+            {
+              "name": "Dan Goosewin",
+              "title": "DevRel Lead @ Vapi",
+              "bio": "Dan is a DevRel Lead at Vapi and co-hosts the NextDev.fm podcast. He's passionate about software, videogames, finance, entrepreneurship, and ducks. He was formerly at Deaglo.",
+              "links": {
+                "x": "https://twitter.com/dan_goosewin",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/goosewin"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Neon",
+          "about": "Neon takes everything developers love about Postgres — reliability, performance, extensibility — and delivers it as a serverless product that helps you ship reliable, scalable applications faster than ever."
+        }
+      ]
+    },
+    {
+      "slug": "2025-05-28-all-things-web-at-vapi",
+      "name": "All Things Web at Vapi",
+      "tagline": "The future of Voice is here — join us to explore what LLMs are unlocking in Voice AI.",
+      "url": "https://allthingsweb.dev/2025-05-28-all-things-web-at-vapi",
+      "status": "past",
+      "startsAt": "2025-05-29T00:00:00.000Z",
+      "endsAt": "2025-05-29T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Vapi Inc.",
+        "address": "Vapi Inc., 760 Market St Floor 11, San Francisco, CA 94102, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-BASdmswlkMShs5c",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "Building a voice-first future",
+          "description": "Voice is the most natural interface for AI - once it feels natural for people to talk to things, they will. At Vapi, we’re building that future by making it dead simple to create real-time voice agents and scale them to production.",
+          "speakers": [
+            {
+              "name": "Elizabeth Trykin",
+              "title": "DX @ Vapi",
+              "bio": "Elizabeth works on Developer Experience at Vapi. She got into building things after making an app in high school to help nonverbal kids communicate. Since then, she’s led DevRel at Exa and built tools for biotech automation at Invert. These days, she’s into great DX, writing, running, and hitting Solidcore in the Castro.",
+              "links": {
+                "x": "https://twitter.com/lizatrykin",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/elizabeth-trykin"
+              }
+            }
+          ]
+        },
+        {
+          "title": "​Giving your voice agents superpowers with MCP",
+          "description": "In this lightning talk, Dan Goosewin shares how MCP can be used to give your voice agents superpowers, diving into Vapi's capabilities and how they can be used to build voice agents.",
+          "speakers": [
+            {
+              "name": "Dan Goosewin",
+              "title": "DevRel Lead @ Vapi",
+              "bio": "Dan is a DevRel Lead at Vapi and co-hosts the NextDev.fm podcast. He's passionate about software, videogames, finance, entrepreneurship, and ducks. He was formerly at Deaglo.",
+              "links": {
+                "x": "https://twitter.com/dan_goosewin",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/goosewin"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Performance optimizing agent for Next.js",
+          "description": "In this talk, Lee Robinson will be talking about the performance optimizing agent for Next.js and evals for better code generation.",
+          "speakers": [
+            {
+              "name": "Lee Robinson",
+              "title": "VP of Developer Experience at Vercel",
+              "bio": "Lee Robinson is the VP of Developer Experience at Vercel. He's a developer, optimist, and community builder. Lee is passionate about teaching about React, Next.js, and the web.",
+              "links": {
+                "x": "https://twitter.com/leerob",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/leeerob"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Vapi",
+          "about": "Vapi is a developer platform for building, testing, and deploying voice AI agents. It provides the infrastructure for businesses and developers to create custom voice assistants that can handle call operations for existing customer support, appointment booking, and sales calls, or for building new products using voice AI like prior authorization and product onboarding assistants. Try Vapi at vapi.ai."
+        }
+      ]
+    },
+    {
+      "slug": "2025-05-13-all-things-web-show-and-tell",
+      "name": "All Things Web Show & Tell",
+      "tagline": "​Join us for a community show & tell at the SF Nook community space on May 13!",
+      "url": "https://allthingsweb.dev/2025-05-13-all-things-web-show-and-tell",
+      "status": "past",
+      "startsAt": "2025-05-14T00:00:00.000Z",
+      "endsAt": "2025-05-14T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "1242 Market St",
+        "address": "1242 Market St, San Francisco, CA 94102, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-nOKkZn5xVC11i6d",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": [
+        {
+          "name": "CodeRabbit",
+          "about": "Code reviews are critical but time-consuming. CodeRabbit acts as your AI co-pilot, providing instant Code review comments and potential impacts of every pull request. Beyond just flagging issues, CodeRabbit provides one-click fix suggestions and lets you define custom code quality rules using AST Grep patterns. CodeRabbit can even plan a refactor or merge the code changes using Chat. CodeRabbit has so far reviewed more than 10 million PRs, installed on 1 million repositories, and used by 70 thousand Open-source projects. Try CodeRabbit today at coderabbit.ai."
+        }
+      ]
+    },
+    {
+      "slug": "2025-04-26-hackathon-at-sentry",
+      "name": "Future of Web Hackathon",
+      "tagline": "​​Join us for a day of hacking the web! Collaborate, create, and compete for two awards while bringing your ideas to life!",
+      "url": "https://allthingsweb.dev/2025-04-26-hackathon-at-sentry",
+      "status": "past",
+      "startsAt": "2025-04-26T17:30:00.000Z",
+      "endsAt": "2025-04-27T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry",
+        "address": "Sentry, 45 Fremont St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-qObtKnNENF3bDio",
+      "recordingUrl": null,
+      "isHackathon": true,
+      "talks": [],
+      "hosts": [
+        {
+          "name": "Sentry",
+          "about": "For software teams, Sentry is essential for monitoring application code quality. From Error tracking to Performance monitoring, developers can see clearer, solve quicker, and learn continuously about their applications — from frontend to backend. Loved by nearly 4 million developers and 90,000 organizations worldwide, Sentry provides code-level observability to many of the world’s best-known companies like Disney, Cloudflare, Eventbrite, Slack, Supercell, and Rockstar Games."
+        }
+      ]
+    },
+    {
+      "slug": "2025-04-03-ai-x-all-things-web",
+      "name": "AI x All Things Web",
+      "tagline": "Join us on April 3rd for a special AI x All Things Web event at the AWS GenAI Loft. We'll have several fantastic lightning talks, snacks & drinks, and plenty of time to nerd out about AI, all things web, and the future of UI!",
+      "url": "https://allthingsweb.dev/2025-04-03-ai-x-all-things-web",
+      "status": "past",
+      "startsAt": "2025-04-04T00:00:00.000Z",
+      "endsAt": "2025-04-04T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "AWS GenAI Loft",
+        "address": "AWS GenAI Loft, 525 Market St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-hMrMdGcrk8XOnuF",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "How to build AI Agents",
+          "description": "In this lightning talk, Sean will guide us through the process of building an AI Agent.",
+          "speakers": [
+            {
+              "name": "Sean Strong",
+              "title": "Partnerships @ Anthropic",
+              "bio": "Sean is the head of technical partnerships at Anthropic. Sean started his career as a software engineer at Apple and then moved on to found two startups. He also previously worked as an investor for Pear VC.",
+              "links": {
+                "x": null,
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/seantstrong"
+              }
+            }
+          ]
+        },
+        {
+          "title": "​The Agent-First Bet: How Windsurf Hit 500K Users in 3 Months",
+          "description": "In this lightning talk, Akshat will share how Windsurf hit 500K users in 3 months by placing agents at the center of their product.",
+          "speakers": [
+            {
+              "name": "Akshat Agrawal",
+              "title": "Product + GTM @ Codeium",
+              "bio": "Akshat is the product and GTM lead at Codeium. He was previously a senior product manager at Skyflow, and before that, he spent over four years at Google as a software engineer and product manager.",
+              "links": {
+                "x": null,
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/akshatag"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Leading LLMs - A structured approach to building quality software with AI",
+          "description": "AI dramatically accelerates software development, but how it is used often compromises quality and structure. Without a clear process, AI-generated code can become inconsistent and difficult to maintain.\n\r\nIn my recent work, I've been developing a way to use AI to write high-quality, well-tested, and high-performing code really fast. This approach is inspired by my work building PimDB, a browser-based persisted in-memory database. In this talk, we'll explore a structured process to empower teams to leverage AI to tackle complex projects with incredible velocity without compromising on quality.\n\r\nWe'll cover:\n\r\n\r\n\n- API design and architecture\r\n\n- Writing tests\r\n\n- Performance benchmarking\r\n\n- Writing documentation\r\n\n- Implementation and optimization\r\n\n\r\nAttendees will gain practical strategies for using AI to write maintainable, reliable code at AI speed—without compromising on quality.",
+          "speakers": [
+            {
+              "name": "Mikael Lirbank",
+              "title": "Tech lead",
+              "bio": "With over 20 years of experience, Mikael has built a strong track record of building apps from scratch, rescuing existing ones, and leading development teams. He is a tech lead, product manager, UI designer, and code quality expert, known for taking ownership of every project and delivering predictability and peace of mind to my clients.",
+              "links": {
+                "x": null,
+                "bluesky": "https://bsky.app/profile/lirbank.com",
+                "linkedin": "https://www.linkedin.com/in/mikaellirbank"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Fullstack AI with AWS Amplify",
+          "description": "Generative AI is transforming fullstack development. In this session, learn how AWS Amplify, Amazon Q, and Amazon Bedrock work together to streamline building generative AI apps.",
+          "speakers": [
+            {
+              "name": "Erik Hanchett",
+              "title": "Senior Developer Advocate",
+              "bio": "Hello! 👋 My name is Erik Hanchett! I'm a developer and author from Reno, NV. I've been teaching software development for over 10 years. Currently I work as a Senior Developer Advocate at AWS.",
+              "links": {
+                "x": "https://twitter.com/ErikCH",
+                "bluesky": "https://bsky.app/profile/erikch.bsky.social",
+                "linkedin": "https://www.linkedin.com/in/erikhanchett"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Neon",
+          "about": "Neon takes everything developers love about Postgres — reliability, performance, extensibility — and delivers it as a serverless product that helps you ship reliable, scalable applications faster than ever."
+        }
+      ]
+    },
+    {
+      "slug": "2025-03-19-all-things-web-at-convex",
+      "name": "All Things Web at Convex",
+      "tagline": "Join us for our next meetup at Convex! RSVP for three great tech talks, snacks & drinks, and plenty of time to chat about all things web.",
+      "url": "https://allthingsweb.dev/2025-03-19-all-things-web-at-convex",
+      "status": "past",
+      "startsAt": "2025-03-20T00:00:00.000Z",
+      "endsAt": "2025-03-20T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "444 De Haro St #218",
+        "address": "444 De Haro St #218, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-xWl1tkPwl1b8zbI",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "Image optimization from scratch!",
+          "description": "One of the best ways to learn something is to try and build it from scratch. That's what I've attempted last year with image optimization. Instead of picking a third-party service, I built one from scratch... and open-sourced it! In this talk, we will live-code a simple image optimization HTTP handler and talk about the challenges I faced along the way.",
+          "speakers": [
+            {
+              "name": "Andre Landgraf",
+              "title": "Senior Developer Advocate",
+              "bio": "Andre is a passionate developer from Germany and the author of Full Stack Web Development with Remix. He lives in Cupertino, California, and works at Neon. Andre enjoys learning, writing, and teaching about web development, and he organizes All Things Web events in San Francisco. In his free time, he enjoys eating good food and spending time with friends and family.",
+              "links": {
+                "x": "https://twitter.com/andrelandgraf94",
+                "bluesky": "https://bsky.app/profile/andrelandgraf.com",
+                "linkedin": "https://www.linkedin.com/in/andre-landgraf"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Technical Leadership in the world of AI Coding Agents",
+          "description": "For the past couple of weeks, I’ve really started using Devin for coding. I’ve been using it in some of my work at Convex. It’s an “AI Teammate” that can do coding tasks for you. I’ve been fairly impressed. It’s really piqued my interest for a variety of ways, but most interestingly in a philosophical way.",
+          "speakers": [
+            {
+              "name": "Nipunn Koorapati",
+              "title": "Software Engineer at Convex",
+              "bio": "Nipunn is a software engineer at Convex, building a serverless backend abstraction that empowers frontend and product engineers to manage data without backend expertise. Previously, he spent eight years at Dropbox (2013–2021), working on sync engines, developer tooling, and team leadership. He also maintains mypy-protobuf and has held engineering roles at Talaria, Microsoft, and MIT Lincoln Labs. He earned his BS and MS in Electrical and Computer Engineering from Carnegie Mellon and is based in San Francisco.",
+              "links": {
+                "x": "https://twitter.com/nipunn1313",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/nipunn1313"
+              }
+            }
+          ]
+        },
+        {
+          "title": "AI, IDEs, and the Future of Code Understanding",
+          "description": "In this talk, we'll explore the intersection of AI, IDEs, and the future of code understanding. We'll discuss how AI is changing the way we write code, and how IDEs are evolving to keep up.",
+          "speakers": [
+            {
+              "name": "James Grugett",
+              "title": "Cofounder of Codebuff",
+              "bio": "James is the cofounder of Codebuff. He also previously cofounded Manifold Markets. Previously, he was a software engineer at Google.",
+              "links": {
+                "x": "https://twitter.com/jahooma",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/james-grugett"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Convex",
+          "about": "Convex is the sync platform that replaces your backend and client state management."
+        }
+      ]
+    },
+    {
+      "slug": "2025-03-12-all-things-web-hack-evening",
+      "name": "All Things Web Hack Evening",
+      "tagline": "Join us for our first Hack Evening. Bring your favorite project, hack into the evening, and hang out with awesome people.",
+      "url": "https://allthingsweb.dev/2025-03-12-all-things-web-hack-evening",
+      "status": "past",
+      "startsAt": "2025-03-12T17:30:00.000Z",
+      "endsAt": "2025-03-12T20:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Southern Pacific Brewing",
+        "address": "620 Treat Ave, San Francisco, CA 94110, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-4tdtev7Ap2qLcPW",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": [
+        {
+          "name": "Neon",
+          "about": "Neon takes everything developers love about Postgres — reliability, performance, extensibility — and delivers it as a serverless product that helps you ship reliable, scalable applications faster than ever."
+        }
+      ]
+    },
+    {
+      "slug": "2025-02-25-all-things-web-at-sentry",
+      "name": "All Things Web at Sentry",
+      "tagline": "Join us on Feb 25 for our monthly All Things Web event. This month, it's all about performance!",
+      "url": "https://allthingsweb.dev/2025-02-25-all-things-web-at-sentry",
+      "status": "past",
+      "startsAt": "2025-02-26T01:00:00.000Z",
+      "endsAt": "2025-02-26T04:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry",
+        "address": "Sentry, 45 Fremont St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-R7t4c0PuzyjnYAf",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "React renders - do they matter?",
+          "description": "React can be tricky to optimize. The issue is that component props are compared by reference, not value. This is intentional – this way rendering can be cheap to run. However, this makes it easy to accidentally cause unnecessary renders, making the app slow. Even in production apps, with hundreds of engineers, can't fully optimize their apps.\n\r\nIn this talk, Aiden will dive into React performance and demo React Scan to detect performance issues and highlight renders that cause performance issues.",
+          "speakers": [
+            {
+              "name": "Aiden Bai",
+              "title": "Creator of React Scan",
+              "bio": "Aiden cares too much about React performance and spent the last 4 years building tooling to make your website fast.",
+              "links": {
+                "x": "https://twitter.com/aidenybai",
+                "bluesky": "https://bsky.app/profile/@aidenybai.bsky.social",
+                "linkedin": null
+              }
+            }
+          ]
+        },
+        {
+          "title": "Anti-Crash Course: Building Better Errors and Traces",
+          "description": "We've all seen apps crash with screens that tell you nothing about what's actually broken (Hi anon framework, we see you), and leave you with little to go on to figure out solving it. Lets jump in and fix that, hands on!",
+          "speakers": [
+            {
+              "name": "Cody De Arkland",
+              "title": "Developer Experience @ Sentry",
+              "bio": "Cody is a Senior Director at Sentry for Developer Experience. He is a passionate technologist who loves learning, community, and sharing knowledge.",
+              "links": {
+                "x": "https://twitter.com/Codydearkland",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/codydearkland"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Sentry",
+          "about": "For software teams, Sentry is essential for monitoring application code quality. From Error tracking to Performance monitoring, developers can see clearer, solve quicker, and learn continuously about their applications — from frontend to backend. Loved by nearly 4 million developers and 90,000 organizations worldwide, Sentry provides code-level observability to many of the world’s best-known companies like Disney, Cloudflare, Eventbrite, Slack, Supercell, and Rockstar Games."
+        }
+      ]
+    },
+    {
+      "slug": "2025-01-28-all-things-web-at-sanity",
+      "name": "All Things Web at Sanity",
+      "tagline": "Join us for the first All Things Web event of 2025!",
+      "url": "https://allthingsweb.dev/2025-01-28-all-things-web-at-sanity",
+      "status": "past",
+      "startsAt": "2025-01-29T01:00:00.000Z",
+      "endsAt": "2025-01-29T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "351 California St",
+        "address": "351 California St, San Francisco, CA 94104, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-KkE3Vi4Bxry4yFV",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "From Zero to Viral: Leveraging Tech Twitter for Career and Product Growth",
+          "description": "Tech twitter is one of the most important places to be as a web developer. From keeping up to date with open source development, to gaining new users via building in public, and making new connections. We'll go over starting from zero, how to post, and communities you should know about. When done right, posting on Twitter can be a huge kickstart to your career.",
+          "speakers": [
+            {
+              "name": "Rhys Sullivan",
+              "title": "Product Engineer at Vercel",
+              "bio": "Rhys is a product engineer at Vercel who, over the course of 2024, built his Twitter audience from 0 to 10k followers. During this time, he had multiple viral tweets with over 1M+ views, created http://ShipTalkers.dev—a viral Twitter app with 250k+ views and 80k+ users in just three days—and gained deep expertise in leveraging Twitter to launch successful products. Previously, he worked as a software engineer at http://Dosu.dev and at Microsoft on Teams.",
+              "links": {
+                "x": "https://twitter.com/RhysSullivan",
+                "bluesky": "https://bsky.app/profile/rhys.dev",
+                "linkedin": "https://www.linkedin.com/in/rhyssullivan"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Sanity",
+          "about": "Expect more from your CMS: Treat content as data—actionable, scalable, and ready to drive your business forward with Sanity Content Operating System."
+        }
+      ]
+    },
+    {
+      "slug": "2024-12-03-all-things-web-at-convex",
+      "name": "All Things Web at Convex",
+      "tagline": "Join us for a combined React & React Native meetup at Convex.",
+      "url": "https://allthingsweb.dev/2024-12-03-all-things-web-at-convex",
+      "status": "past",
+      "startsAt": "2024-12-04T01:00:00.000Z",
+      "endsAt": "2024-12-04T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Convex HQ",
+        "address": "444 De Haro St #218, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-deGtRGSvYsWMqAc",
+      "recordingUrl": "https://youtu.be/QfDQqDjKmWw",
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "Automerge: using local-first technologies within an authoritative server model",
+          "description": "How can we leverage tools like CRDTs to provide great local-first UX, within a broader app that has an authoritative server? We'll look at pairing Automerge and Convex to build an offline-enabled collaborative text editing experience, including authentication and authorization.",
+          "speakers": [
+            {
+              "name": "Ian Macartney",
+              "title": "Product Engineer",
+              "bio": "Ian is a senior engineer at Convex working on libraries, best practices, and demos for DX including developing AI Town in collaboration with a16z. He has previously created backend infrastructure for file previews at Dropbox, an ML workflow system for journalists at The New York Times, and other projects across iOS, web, and hardware platforms. Ian grew up in Colorado and studied Computer Science at Stanford.",
+              "links": {
+                "x": "https://twitter.com/ianmacartney",
+                "bluesky": "https://bsky.app/profile/ianmacartney.bsky.social",
+                "linkedin": "https://www.linkedin.com/in/ian-macartney"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Local first with React Native",
+          "description": "In this talk, Simon will present strategies for local first development in React Native.",
+          "speakers": [
+            {
+              "name": "Simon Sturmer",
+              "title": "Director of Product Engineering",
+              "bio": "Simon is a software engineer, founder, speaker, and father from Kansas City.",
+              "links": {
+                "x": "https://twitter.com/sstur_",
+                "bluesky": "https://bsky.app/profile/sstur.com",
+                "linkedin": "https://www.linkedin.com/in/sstur"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Convex",
+          "about": "Convex is the sync platform that replaces your backend and client state management."
+        },
+        {
+          "name": "Clerk",
+          "about": "Clerk is a complete suite of embeddable UIs, flexible APIs, and admin dashboards to authenticate and manage your users."
+        }
+      ]
+    },
+    {
+      "slug": "2024-11-12-all-things-web-at-vercel",
+      "name": "All Things Web @ Vercel HQ 👀",
+      "tagline": "Join us for an engaging evening with a talk and AMA with Tom Occhino.",
+      "url": "https://allthingsweb.dev/2024-11-12-all-things-web-at-vercel",
+      "status": "past",
+      "startsAt": "2024-11-13T01:00:00.000Z",
+      "endsAt": "2024-11-13T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Vercel HQ",
+        "address": "100 First Plaza, 100 1st St #2400, San Francisco, CA 94105"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-7CaqG4UZsbIQb6s",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "History of React",
+          "description": "Tom will give us all a first-hand account of the history of React, from first announcing it to the world in 2013 to the present.",
+          "speakers": [
+            {
+              "name": "Tom Occhino",
+              "title": "Chief Product Officer at Vercel",
+              "bio": "​Tom is the Chief Product Officer at Vercel leading Engineering, Product, and Design. Previously he spent over 12 years at Facebook where he led development of the company’s core JavaScript Infra, shaped its open source program, and was responsible for the creation and development of React and React Native. He enjoys traveling, dance music, fancy cocktails, and simple food.",
+              "links": {
+                "x": "https://twitter.com/tomocchino",
+                "bluesky": "https://bsky.app/profile/tomocchino.com",
+                "linkedin": null
+              }
+            }
+          ]
+        },
+        {
+          "title": "dynamicIO",
+          "description": "In this talk, JJ showcases the power of v0 and Next.js's new \"use cache\" directive, using the experimental dynamicIO feature.",
+          "speakers": [
+            {
+              "name": "JJ Kasper",
+              "title": "Software Engineer at Vercel",
+              "bio": "Next.js maintainer and Software Engineer at Vercel.",
+              "links": {
+                "x": "https://twitter.com/_ijjk",
+                "bluesky": "https://bsky.app/profile/ijjk.bsky.social",
+                "linkedin": null
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Vercel",
+          "about": " Vercel provides the developer tools and cloud infrastructure to build, scale, and secure a faster, more personalized web."
+        }
+      ]
+    },
+    {
+      "slug": "2024-11-04",
+      "name": "All Things Web at Little Skillet",
+      "tagline": "​Join us at Little Skillet for chicken & waffles or some tasty fries, plus plenty of time to chat about all things web.",
+      "url": "https://allthingsweb.dev/2024-11-04",
+      "status": "past",
+      "startsAt": "2024-11-05T01:00:00.000Z",
+      "endsAt": "2024-11-05T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Little Skillet",
+        "address": "Little Skillet, 360 Ritch St, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-dH8tlJFEIQe9eT2",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+      "name": "Pre Next.js Conf Meetup",
+      "tagline": "Kick off Next.js Conf with Strapi, Mux, Neon, Makeswift, and Inngest! Join us for talks, networking, and chats about all things web!",
+      "url": "https://allthingsweb.dev/2024-10-23-pre-nextjs-conf-meetup-at-mux",
+      "status": "past",
+      "startsAt": "2024-10-24T00:30:00.000Z",
+      "endsAt": "2024-10-24T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Mux",
+        "address": "Mux, 50 Beale St floor 9, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-8L3ror8OqcxgcXq",
+      "recordingUrl": "https://youtu.be/_d8qy6uH8AE",
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "Strapi 5 + Next.js - the modern, Open-Source Stack",
+          "description": "Using a modern, open-source stack (Strapi 5 + Next.js) as a case study, we'll do a deep dive into best practices for drafting and previewing your content for blazing-fast and scalable websites.",
+          "speakers": [
+            {
+              "name": "Alex Bodin",
+              "title": "CTO",
+              "bio": "Alex is the CTO @Strapi. He is a Product builder, software engineer, and open-source enthusiast from Paris.",
+              "links": {
+                "x": "https://twitter.com/_alexandrebodin",
+                "bluesky": null,
+                "linkedin": null
+              }
+            }
+          ]
+        },
+        {
+          "title": "Design System Patterns for Server Components",
+          "description": "Server components change the way we build for the modern web, and design systems must adjust accordingly. So, how do you encapsulate design and interactivity for larger UI elements without compromising performance while taking advantage of the latest features in React and Next.js? In this talk, we’ll explore new patterns for managing forms, state, and interactivity without forcing everything to be a client component. We’ll learn these patterns in the context of VIBES, a brand-new UI library for composable websites.",
+          "speakers": [
+            {
+              "name": "James Q Quick",
+              "title": "Head of Developer Experience",
+              "bio": "James is a developer, speaker, and teacher whose content has impacted hundreds of thousands of developers across the world. With 10+ years of experience, he blends deep technical knowledge with the ability to communicate across different levels of understanding and is currently serving a Head of Developer Experience at Makeswift. In his spare time, he and his wife love to travel, chase their toddler around, and play co-ed soccer.",
+              "links": {
+                "x": "https://twitter.com/jamesqquick",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/jamesqquick"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Building Video-Driven Web Apps with Mux, Strapi, and Next.js",
+          "description": "In this talk, we’ll explore the journey of migrating the Mux plugin from Strapi v4 to v5. We'll walk through the challenges faced during the transition, how ultimately created the final version, and explore some of the features of the plugin. Attendees will learn how this migration enhances workflows, reduces complexity, and enables seamless video experiences in modern Next.js applications.",
+          "speakers": [
+            {
+              "name": "Erik Peña",
+              "title": "Solution Architecture",
+              "bio": "​Erik is a Solutions Architect at Mux where he helps customers navigate the very nuanced world online video.  Being in this industry for 15+ years, Erik has performed in various roles from Operations, Sales Engineering, Architecture, Product Management.  Erik has built width and depth to his acumen working for major leaders in this space including Mux, Comcast Technology Solutions and You.i TV (now part of Warner Brothers Discovery).",
+              "links": {
+                "x": null,
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/erikspena"
+              }
+            }
+          ]
+        },
+        {
+          "title": "TCP vs. WebSockets vs. HTTP for Postgres queries",
+          "description": "In this talk, I will walk you through our journey developing Neon's serverless driver, and experimenting with various protocols and environments to lower Postgres query latencies.",
+          "speakers": [
+            {
+              "name": "Raouf Chebri",
+              "title": "DevRel",
+              "bio": "Raouf Chebri is a Developer Advocate at Neon and enjoys helping developers be more productive. Raouf has over a decade of experience in the tech industry and loves to connect with developers and talk about AI and modern application development. Raouf enjoys Mexican food, skiing, and riding his bike for hours in the Alps. ",
+              "links": {
+                "x": "https://twitter.com/_raoufai",
+                "bluesky": null,
+                "linkedin": null
+              }
+            }
+          ]
+        },
+        {
+          "title": "Bringing state to Next.js Serverless Functions with Inngest",
+          "description": "Many successful startups, such as Resend and Day.ai, use Inngest’s Durable Functions to build core features relying on workflows and long-running background processes. In this talk, Tony will drive you through the benefits of Durable Functions and how they enable Next.js developers to build SaaSs.",
+          "speakers": [
+            {
+              "name": "Tony Holdstock-Brown",
+              "title": "CEO & co-founder",
+              "bio": "​Tony is the CEO and co-founder of Inngest.",
+              "links": {
+                "x": "https://twitter.com/itstonyhb",
+                "bluesky": null,
+                "linkedin": null
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Mux",
+          "about": "We think your video can do more for you. Get our free demo and see what we mean: start building faster, improve performance across all your video, and focus on what makes your business shine."
+        },
+        {
+          "name": "Strapi",
+          "about": "Strapi is the leading open-source headless CMS. 100% JavaScript / TypeScript and fully customizable. Strapi gives developers the freedom to use their favorite tools and frameworks while allowing editors to easily manage their content and distribute it anywhere."
+        },
+        {
+          "name": "BigCommerce",
+          "about": "BigCommerce (Nasdaq: BIGC) is a leading open SaaS and composable ecommerce platform that empowers brands and retailers of all sizes to build, innovate and grow their businesses online. BigCommerce provides its customers sophisticated enterprise-grade functionality, customization and performance with simplicity and ease-of-use."
+        },
+        {
+          "name": "Neon",
+          "about": "Neon takes everything developers love about Postgres — reliability, performance, extensibility — and delivers it as a serverless product that helps you ship reliable, scalable applications faster than ever."
+        },
+        {
+          "name": "Inngest",
+          "about": "Inngest's durable functions replace queues, state management, and scheduling to enable any developer to write reliable step functions faster without touching infrastructure. Start building for free!"
+        }
+      ]
+    },
+    {
+      "slug": "2024-10-05-hackathon-at-sentry",
+      "name": "Open Source Hackathon",
+      "tagline": "Join us for a day of hacking and celebrating open source! Collaborate, create, and compete for two awards while bringing your ideas to life!",
+      "url": "https://allthingsweb.dev/2024-10-05-hackathon-at-sentry",
+      "status": "past",
+      "startsAt": "2024-10-05T18:30:00.000Z",
+      "endsAt": "2024-10-06T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry, SF",
+        "address": "45 Fremont St, San Francisco, CA 94105"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-dbF3WPClKyxWQ7n",
+      "recordingUrl": null,
+      "isHackathon": true,
+      "talks": [],
+      "hosts": [
+        {
+          "name": "Sentry",
+          "about": "For software teams, Sentry is essential for monitoring application code quality. From Error tracking to Performance monitoring, developers can see clearer, solve quicker, and learn continuously about their applications — from frontend to backend. Loved by nearly 4 million developers and 90,000 organizations worldwide, Sentry provides code-level observability to many of the world’s best-known companies like Disney, Cloudflare, Eventbrite, Slack, Supercell, and Rockstar Games."
+        }
+      ]
+    },
+    {
+      "slug": "2024-09-24-react-bay-area-at-cisco-meraki",
+      "name": "React Bay Area at Cisco Meraki",
+      "tagline": "Join us for two awesome talks, snacks, and chit-chat about all things web!",
+      "url": "https://allthingsweb.dev/2024-09-24-react-bay-area-at-cisco-meraki",
+      "status": "past",
+      "startsAt": "2024-09-25T00:00:00.000Z",
+      "endsAt": "2024-09-25T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Meraki HQ",
+        "address": "Cisco Meraki, 500 Terry A Francois Blvd, San Francisco, CA 94158"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-HtDmTqndK1vA1Z4",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "​A World Without Limits: Making Videos Accessible to All with React and Cloudflare",
+          "description": "​In an increasingly connected world, access to content in multiple languages is essential for inclusion and diversity. For many, especially those whose native language is not English, finding accessible content can be a significant challenge. This talk will address how to overcome these barriers using modern and accessible technologies.\n\r\n​\"A World Without Limits: Making Videos Accessible to All with React and Cloudflare\" will explore the creation of a video platform that offers pre-generated multilingual subtitles. Using React for the user interface, Cloudflare Pages, Cloudflare Stream, and Cloudflare Workers along with AI technologies for language detection and translation, we will share how to build a solution that truly makes video content accessible to everyone.",
+          "speakers": [
+            {
+              "name": "Pillippa Pérez Pons",
+              "title": "Software Engineer at Doordash",
+              "bio": "​I'm Pillippa Perez Pons, a Frontend Software Engineer at Doordash, I am passionate about developing innovative web applications that enhance user experiences and improve efficiency. Originally from Chile, I have been living in the Bay Area for the past three years, embracing the vibrant tech community here.",
+              "links": {
+                "x": "https://twitter.com/_pilliin_",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/ignaciapons"
+              }
+            }
+          ]
+        },
+        {
+          "title": "​Accessibility - Bridge between dream and reality",
+          "description": "​The fast-moving tech world is pushing dreams into reality. It's exciting until dreams turn into nightmares instead of reality. How do we shape our product visions into reality? I think Accessibility in product design can provide some hope.",
+          "speakers": [
+            {
+              "name": "Daniel Shin",
+              "title": "Staff Software Engineer at LinkedIn",
+              "bio": "​Daniel is a Staff Software Engineer at LinkedIn and is passionate about web accessibility.",
+              "links": {
+                "x": "https://twitter.com/deys_co",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/deyshin"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Cisco Meraki",
+          "about": "Cisco Meraki is a leader in cloud-managed IT solutions, providing businesses with a comprehensive suite of networking, security, and application management tools. With a focus on simplicity and scalability, Meraki’s cloud-based platform enables organizations of all sizes to deploy, monitor, and manage their IT infrastructure efficiently from a single, intuitive dashboard."
+        }
+      ]
+    },
+    {
+      "slug": "2024-08-27-react-bay-area-at-mux",
+      "name": "React Bay Area at Mux",
+      "tagline": "Meetups are back! Join our monthly React Bay Area events.",
+      "url": "https://allthingsweb.dev/2024-08-27-react-bay-area-at-mux",
+      "status": "past",
+      "startsAt": "2024-08-28T00:00:00.000Z",
+      "endsAt": "2024-08-28T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Mux",
+        "address": "Mux, 50 Beale St floor 9, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-TNS8NeNJwSPDKu5",
+      "recordingUrl": "https://youtu.be/edOxB0lXFmo",
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "Custom component-based media players",
+          "description": "Media players are often the last thing people try to customize in their applications, either because it's intimidating, the native player seems to be fine as it is, or the video/audio platform doesn't allow much customization. Some of us think that's sad and shouldn't be the case. Video and audio should be fun, and fun to work with.\n\r\nMedia Chrome and Player.style are a few open source projects trying to change that by providing composable player UI components that handle the complex media logic, and a set of professional-grade themes to start from. These themes and components work across media players (Youtube, HTML5 video), and across frameworks (React, Svelte, vanilla HTML). That's possible thanks to web components (with React wrappers), standardized media APIs, and lot of keyboard mashing. I hope you get inspired to upgrade your own player.",
+          "speakers": [
+            {
+              "name": "Steve Heffernan",
+              "title": "Founder of Mux",
+              "bio": "Steve Heffernan is the creator of Video.js and a founder of Mux.",
+              "links": {
+                "x": "https://twitter.com/heff",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/heffernan"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Implementing a shopping cart with React 19",
+          "description": "Let's build a shopping cart with the new hooks from React 19. We will start with a simple implementation and slowly iterate our way through different React 19 features and hooks using Next.js.",
+          "speakers": [
+            {
+              "name": "Sébastien Morel",
+              "title": "CTO",
+              "bio": "Sébastien is a passionate and accomplished tech leader and problem-solver with extensive experience in architecture, performance optimizations, development, and system administration. CTO at Crystallize, a super-fast, super modern, super sexy, and super-powerful Headless eCommerce, he's in charge (among others) of the Developer eXperience initiative. Previously, he led and grew his former web agency for 18 years, working on more than 150 projects that were successfully and proudly implemented, deployed, and maintained. Sébastien is also an open-source maintainer and is active in several communities.",
+              "links": {
+                "x": "https://twitter.com/Plopix",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/sebastienmorel"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Sanity",
+          "about": "Expect more from your CMS: Treat content as data—actionable, scalable, and ready to drive your business forward with Sanity Content Operating System."
+        },
+        {
+          "name": "Mux",
+          "about": "We think your video can do more for you. Get our free demo and see what we mean: start building faster, improve performance across all your video, and focus on what makes your business shine."
+        }
+      ]
+    },
+    {
+      "slug": "2024-08-13-remix-bay-area-at-little-skillet",
+      "name": "Remix Bay Area at Little Skillet",
+      "tagline": "We're getting together at Little Skillet next Tuesday for a casual hangout. It's going to be a great time to chat about web development, upcoming events, and whatever else comes up.",
+      "url": "https://allthingsweb.dev/2024-08-13-remix-bay-area-at-little-skillet",
+      "status": "past",
+      "startsAt": "2024-08-14T01:00:00.000Z",
+      "endsAt": "2024-09-18T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Little Skillet",
+        "address": "360 Ritch Street · San Francisco, CA"
+      },
+      "rsvpUrl": null,
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [],
+      "hosts": []
+    },
+    {
+      "slug": "2014-07-30-react-bay-area-at-sanity",
+      "name": "React Bay Area at Sanity",
+      "tagline": "​Join us on July 30 at the Sanity office in San Francisco for tech talks, snacks & drinks, and plenty of chit-chat about all things web!",
+      "url": "https://allthingsweb.dev/2014-07-30-react-bay-area-at-sanity",
+      "status": "past",
+      "startsAt": "2024-07-31T00:00:00.000Z",
+      "endsAt": "2024-07-31T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "351 California St",
+        "address": "351 California St, San Francisco, CA 94104, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-7zxJdkIDI78lDO3",
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "A Valuable Multi-Platform UI Architecture",
+          "description": "How to actually write once and deploy React everywhere.",
+          "speakers": [
+            {
+              "name": "Erik Thorelli",
+              "title": "Engineering Leader",
+              "bio": "Erik Thorelli is an Engineering Leader at Cisco Meraki, leading the mobile engineering organization. He's been developing React and React Native apps for almost a decade, across many industries...and seem some stuff.",
+              "links": {
+                "x": "https://twitter.com/esthor",
+                "bluesky": "https://bsky.app/profile/esthor.bsky.social",
+                "linkedin": "https://www.linkedin.com/in/erikthorelli"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Live Content that Scales with React Server Components ",
+          "description": "Did you know that Sanity makes it easy to add content programmatically? In this talk, we will be exploring React Server Components and Live Content.",
+          "speakers": [
+            {
+              "name": "Knut Melvær",
+              "title": "Head of Developer Community and Education",
+              "bio": "Managing sanity.io’s developer community. Building developer relations and support teams. I also work with product marketing, communication, and contributing to the Sanity ecosystem.",
+              "links": {
+                "x": "https://twitter.com/kmelve",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/knutmelvaer"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": [
+        {
+          "name": "Sanity",
+          "about": "Expect more from your CMS: Treat content as data—actionable, scalable, and ready to drive your business forward with Sanity Content Operating System."
+        }
+      ]
+    },
+    {
+      "slug": "2024-05-14-remix-bay-area-at-solv",
+      "name": "Remix Bay Area at Solv",
+      "tagline": " Join us for an awesome talk by Tony Dang, chit-chat about all things web, and enjoy some snacks and drinks.",
+      "url": "https://allthingsweb.dev/2024-05-14-remix-bay-area-at-solv",
+      "status": "past",
+      "startsAt": "2024-05-15T00:00:00.000Z",
+      "endsAt": "2024-05-15T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Solv, SF",
+        "address": "760 Market St #1150 · San Francisco, CA"
+      },
+      "rsvpUrl": null,
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "Enhancing User Authentication with Passkeys",
+          "description": "Dealing with passwords can be a hassle—from forgotten logins to security vulnerabilities like phishing attacks and data breaches. But worry not! There's a solution on the horizon: passkeys, powered by the Web Authentication API. In this presentation, we'll cover a live demo of a Remix app showcasing passkeys in action, how passkeys offer a more user-friendly and secure alternative to passwords, and a peek behind the scenes to understand how passkeys work and their benefits. Join us to learn how passkeys have the potential to provide us with a more secure and passwordless future!",
+          "speakers": [
+            {
+              "name": "Tony Dang",
+              "title": "Web Developer",
+              "bio": "Tony Dang is a web developer from the California Bay Area. He's excited about all things web - from Remix to SvelteKit, and even beyond to non-JS web technologies such as Phoenix, Laravel, Rails, and Django.",
+              "links": {
+                "x": "https://twitter.com/thisistonydang",
+                "bluesky": null,
+                "linkedin": "https://www.linkedin.com/in/thisistonydang"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": []
+    },
+    {
+      "slug": "2024-03-26-remix-bay-area-at-solv",
+      "name": "Remix Bay Area at Solv",
+      "tagline": "Join us for an awesome talk by Erik Thorelli, chit-chat about all things web, and enjoy some snacks and drinks.",
+      "url": "https://allthingsweb.dev/2024-03-26-remix-bay-area-at-solv",
+      "status": "past",
+      "startsAt": "2024-03-27T00:00:00.000Z",
+      "endsAt": "2024-03-27T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Solv, SF",
+        "address": "760 Market St #1150 · San Francisco, CA"
+      },
+      "rsvpUrl": null,
+      "recordingUrl": null,
+      "isHackathon": false,
+      "talks": [
+        {
+          "title": "// TODO // FIXME: Real Strategies to Modernize a Legacy React Project",
+          "description": "Or, “How to Do All The Things We Wish We Could Do to Improve a Legacy React Codebase but Never Get Around to Doing, in 43 and a Half Easy Steps”\n\r\nThis talk is about practical, working strategies for doing things like:\n\r\n\r\n\n- converting a big JS project to TS, without losing velocity\r\n\n- converting all old testing tools & patterns to modern ones, without losing coverage and confidence\r\n\n- integrating an app-wide design system, in a project that doesn't have one\r\n\n- migrate a monolith project repo into a modern monorepo\r\n\n- how to avoid the XKCD Standards trap when bringing in the new hotness\r\n\n- how to make the argument to management to spend time addressing tech debt\r\n\n- ...and maybe more if we have time\r\n\n\r\nThese strategies are based on a few different years-long projects and codebases as well as a over a decade of working with startups and spaghetti-code-is-why-we-cant-ever-release-stuff-fast-and-stable-please-help gigs.\n\r\nHere's hoping this is the nerdiest, feel-good, everybody-can-(maybe-embarrassingly)-relate motivational story talk of the year.",
+          "speakers": [
+            {
+              "name": "Erik Thorelli",
+              "title": "Engineering Leader",
+              "bio": "Erik Thorelli is an Engineering Leader at Cisco Meraki, leading the mobile engineering organization. He's been developing React and React Native apps for almost a decade, across many industries...and seem some stuff.",
+              "links": {
+                "x": "https://twitter.com/esthor",
+                "bluesky": "https://bsky.app/profile/esthor.bsky.social",
+                "linkedin": "https://www.linkedin.com/in/erikthorelli"
+              }
+            }
+          ]
+        }
+      ],
+      "hosts": []
+    }
+  ]
+}

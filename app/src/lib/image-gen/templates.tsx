@@ -1,3 +1,4 @@
+/* oxlint-disable nextjs/no-img-element -- Satori (next/og) renders these templates to PNG and only understands plain <img>. */
 import { toReadableDateTimeStr } from "@/lib/datetime";
 import { Image } from "@/lib/events";
 import { ExpandedEvent, Talk as ExpandedTalk } from "@/lib/expanded-events";
@@ -344,7 +345,7 @@ export function LandingPagePreview({ images }: { images: Image[] }) {
           <img
             key={image.url}
             src={ogImageSrc(image.url)}
-            alt="Past event image"
+            alt="A past All Things Web event"
             tw="w-[400px] h-[315px]"
             width="400"
             height="315"

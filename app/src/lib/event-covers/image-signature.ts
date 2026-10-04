@@ -4,7 +4,8 @@ const startsWith = (
   offset = 0,
 ) => signature.every((byte, index) => bytes[offset + index] === byte);
 
-const ascii = (text: string) => [...text].map((char) => char.charCodeAt(0));
+const ascii = (text: string) =>
+  text.split("").map((char) => char.charCodeAt(0));
 
 /**
  * Whether bytes begin like an image format we can process. Luma's CDN does

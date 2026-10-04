@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import { syncPublicLumaEvents } from "@/lib/luma/sync";
 import { ingestMissingLumaCovers } from "@/lib/event-covers/runtime";
 import { ingestMissingProfilePhotos } from "@/lib/profile-photos/runtime";
-import { copyLegacyS3Images } from "@/lib/media-store/copy-legacy-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,9 +19,6 @@ const coverStartDeadlineMs = 35_000;
 const coverCancelDeadlineMs = 50_000;
 // Profile photos run first but may only start new work for this long.
 const photoWindowMs = 10_000;
-// Then images still on S3 are copied to R2, in a window of their own, until
-// none are left.
-const legacyCopyWindowMs = 15_000;
 
 const listingPaths = ["/", "/api/v1/events", "/rss", "/sitemap.xml"];
 
@@ -80,27 +76,6 @@ export async function GET(request: Request) {
       // Speakers and organizers appear across event pages, /speakers and /about.
       revalidatePath("/", "layout");
     }
-    const copyAt = Date.now() - startedAt;
-    const copyBudgetMs = Math.min(
-      legacyCopyWindowMs,
-      coverStartDeadlineMs - copyAt,
-    );
-    const legacyMedia =
-      copyBudgetMs <= 0
-        ? { skipped: "No time left for copying legacy media in this run" }
-        : await copyLegacyS3Images({
-            budgetMs: copyBudgetMs,
-            signal: AbortSignal.timeout(coverCancelDeadlineMs - copyAt),
-          }).catch((error: unknown) => {
-            captureException(error);
-            return {
-              skipped: `Legacy media copy failed: ${error instanceof Error ? error.message : String(error)}`,
-            };
-          });
-    if ("copied" in legacyMedia && legacyMedia.copied > 0) {
-      // Images appear on event pages, /speakers, /about and in feeds.
-      revalidatePath("/", "layout");
-    }
     // Covers are best effort: a failure here must not hide a successful sync.
     const elapsedMs = Date.now() - startedAt;
     const coverBudgetMs = coverStartDeadlineMs - elapsedMs;
@@ -127,7 +102,7 @@ export async function GET(request: Request) {
     // JSON so nested failures are logged in full, not as [Object].
     console.info(
       "Luma calendar sync completed",
-      JSON.stringify({ ...result, covers, photos, legacyMedia }),
+      JSON.stringify({ ...result, covers, photos }),
     );
 
     return NextResponse.json({
@@ -135,7 +110,6 @@ export async function GET(request: Request) {
       ...result,
       covers,
       photos,
-      legacyMedia,
     });
   } catch (error) {
     captureException(error);

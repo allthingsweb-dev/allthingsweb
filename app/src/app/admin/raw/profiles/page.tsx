@@ -2,11 +2,10 @@ import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { imagesTable, profilesTable } from "@/lib/schema";
-import { signImage } from "@/lib/image-signing";
 import CreateProfileForm from "./create-profile-form";
 
 export default async function RawProfilesAdminPage() {
-  const profileRows = await db
+  const initialProfiles = await db
     .select({
       id: profilesTable.id,
       name: profilesTable.name,
@@ -22,23 +21,6 @@ export default async function RawProfilesAdminPage() {
     .from(profilesTable)
     .leftJoin(imagesTable, eq(profilesTable.image, imagesTable.id))
     .orderBy(asc(profilesTable.name));
-
-  const initialProfiles = await Promise.all(
-    profileRows.map(async (row) => ({
-      ...row,
-      imageUrl: row.imageUrl
-        ? (
-            await signImage({
-              url: row.imageUrl,
-              alt: "",
-              placeholder: "",
-              width: 0,
-              height: 0,
-            })
-          ).url
-        : null,
-    })),
-  );
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

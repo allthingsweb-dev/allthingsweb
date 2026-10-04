@@ -50,14 +50,14 @@ async function main() {
     console.log(`Name: ${profile.name}`);
     console.log(`Type: ${profile.profileType}`);
     console.log(`Title: ${profile.title}`);
-    console.log(`Created: ${profile.createdAt}`);
+    console.log(`Created: ${String(profile.createdAt)}`);
     if (profile.image) {
       console.log(`Image ID: ${profile.image}`);
     }
 
     console.log("\n⚠️  THIS ACTION WILL:");
     console.log("   • Delete the profile from the database");
-    console.log("   • Delete the associated image from S3");
+    console.log("   • Delete the associated image from storage");
     console.log("   • Delete the image record from database");
     console.log("   • This action CANNOT be undone!");
     console.log("\n✅ SAFETY CHECKS:");
@@ -99,5 +99,5 @@ async function main() {
 
 // Only run if this script is executed directly
 if (import.meta.main) {
-  main();
+  await main();
 }

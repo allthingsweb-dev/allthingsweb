@@ -50,7 +50,7 @@ describe("finding a Luma event's cover", () => {
 describe("Luma's public event data", () => {
   const respond = (body: unknown, status = 200) =>
     (async (input: string | URL | Request) => {
-      expect(String(input)).toBe(
+      expect(input instanceof Request ? input.url : String(input)).toBe(
         "https://api.lu.ma/event/get?event_api_id=evt-TpDFOGNSBwCxU72",
       );
       return new Response(JSON.stringify(body), { status });

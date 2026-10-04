@@ -3,7 +3,6 @@ import { blankAvatar } from "@/lib/blank-avatar";
 import { db } from "./db";
 import { profilesTable, imagesTable } from "./schema";
 import { Image } from "./events";
-import { signImage } from "./image-signing";
 import { getSocialUrls, type Socials } from "./social-links";
 
 export { getSocialUrls, type Socials };
@@ -31,16 +30,12 @@ export async function getOrganizers(): Promise<Profile[]> {
     .where(eq(profilesTable.profileType, "organizer"))
     .leftJoin(imagesTable, eq(profilesTable.image, imagesTable.id));
 
-  const transformToProfile = async (row: any): Promise<Profile> => {
+  const transformToProfile = (row: any): Profile => {
     const profile = row.profiles;
-    const imageRaw = row.images ?? blankAvatar(profile.name);
-
-    const image = await signImage(imageRaw);
-
     return {
       id: profile.id,
       name: profile.name,
-      image,
+      image: row.images ?? blankAvatar(profile.name),
       title: profile.title,
       bio: profile.bio,
       type: profile.profileType,
@@ -52,5 +47,5 @@ export async function getOrganizers(): Promise<Profile[]> {
     };
   };
 
-  return await Promise.all(profilesQuery.map(transformToProfile));
+  return profilesQuery.map(transformToProfile);
 }

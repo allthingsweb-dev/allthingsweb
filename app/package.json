@@ -19,11 +19,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "test": "bun test",
-    "brand:generate": "bun scripts/generate-brand.ts",
     "mcp:debug": "bunx @modelcontextprotocol/inspector bun run scripts/mcp-server.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.888.0",
     "@date-fns/tz": "^1.5.0",
     "@hookform/resolvers": "^5.2.2",
     "@modelcontextprotocol/server": "^2.2.0",
@@ -97,7 +95,6 @@
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.2",
     "ajv": "^8.20.0",
-    "apca-w3": "0.1.9",
     "drizzle-kit": "^0.31.4",
     "fast-xml-parser": "^5.11.1",
     "openimg": "^1.1.0",

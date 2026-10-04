@@ -4,8 +4,6 @@ export type MediaStoreConfig = {
   /** The upload Worker that writes to the bucket. */
   uploadUrl: string | undefined;
   uploadToken: string | undefined;
-  /** Older origins whose URLs map to the same keys, e.g. the former S3 bucket. */
-  legacyOrigins: readonly string[];
 };
 
 export type MediaStore = {
@@ -59,7 +57,6 @@ export function mediaStore(
     }
   };
 
-  const origins = [publicUrl, ...config.legacyOrigins.map(trimSlashes)];
   return {
     put: async (key, body, contentType, options = {}) => {
       await send("PUT", key, { body, contentType, ...options });
@@ -67,16 +64,12 @@ export function mediaStore(
     },
     remove: (key, options = {}) => send("DELETE", key, options),
     keyOf: (url) => {
-      for (const origin of origins) {
-        if (url.startsWith(`${origin}/`)) {
-          try {
-            return decodeURIComponent(url.slice(origin.length + 1)) || null;
-          } catch {
-            return null;
-          }
-        }
+      if (!url.startsWith(`${publicUrl}/`)) return null;
+      try {
+        return decodeURIComponent(url.slice(publicUrl.length + 1)) || null;
+      } catch {
+        return null;
       }
-      return null;
     },
   };
 }

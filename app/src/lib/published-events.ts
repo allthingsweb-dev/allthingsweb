@@ -1,8 +1,7 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { eventsTable, imagesTable } from "@/lib/schema";
 import { Event } from "@/lib/events";
-import { signImage } from "@/lib/image-signing";
 import { getLumaUrl } from "@/lib/luma";
 
 /**
@@ -18,17 +17,15 @@ export async function getPublishedEvents(): Promise<Event[]> {
     .orderBy(desc(eventsTable.startDate));
 
   // Transform to Event type
-  const transformToEvent = async (row: any): Promise<Event> => {
+  const transformToEvent = (row: any): Event => {
     const event = row.events;
-    const previewImageRaw = row.images || {
+    const previewImage = row.images || {
       url: "/hero-image-rocket.png",
       alt: `${event.name} preview`,
       placeholder: null,
       width: 1200,
       height: 630,
     };
-
-    const previewImage = await signImage(previewImageRaw);
 
     return {
       ...event,
@@ -37,6 +34,5 @@ export async function getPublishedEvents(): Promise<Event[]> {
     };
   };
 
-  const events = await Promise.all(eventsQuery.map(transformToEvent));
-  return events;
+  return eventsQuery.map(transformToEvent);
 }

@@ -16,7 +16,7 @@ typeface. The output lives in [`app/public/brand`](../../app/public/brand).
 Everything is a plain SVG path or a PNG rendered from one, so no font is
 needed to display the marks. Colors and the wordmark's weight, width and
 tracking come from
-[`all-things.tokens.json`](../../app/src/brand/all-things.tokens.json).
+[`all-things.tokens.json`](../all-things.tokens.json).
 
 ## Regenerating
 

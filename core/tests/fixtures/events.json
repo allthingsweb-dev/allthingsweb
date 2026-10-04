@@ -1,0 +1,596 @@
+{
+  "events": [
+    {
+      "slug": "2026-06-26-all-things-effect-w-michael-arnaldi",
+      "name": "Effect San Francisco 🇺🇸",
+      "tagline": "All Things Effect w/ Michael Arnaldi at All Things Web",
+      "url": "https://allthingsweb.dev/2026-06-26-all-things-effect-w-michael-arnaldi",
+      "status": "past",
+      "startsAt": "2026-10-01T00:30:00.000Z",
+      "endsAt": "2026-10-01T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "CodeRabbit",
+        "address": "CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-CIXBbu7ySP61MNP",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2026-09-15-all-things-agent-setups-evt-yqRYriugnX9wi2u",
+      "name": "All Things Agent Setups",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2026-09-15-all-things-agent-setups-evt-yqRYriugnX9wi2u",
+      "status": "past",
+      "startsAt": "2026-09-16T00:30:00.000Z",
+      "endsAt": "2026-09-16T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry",
+        "address": "Sentry, 45 Fremont St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-yqRYriugnX9wi2u",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2026-04-30-all-things-sync",
+      "name": "All Things Sync",
+      "tagline": "All Things Sync at All Things Web",
+      "url": "https://allthingsweb.dev/2026-04-30-all-things-sync",
+      "status": "past",
+      "startsAt": "2026-04-30T00:30:00.000Z",
+      "endsAt": "2026-04-30T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": null,
+      "rsvpUrl": "https://lu.ma/event/evt-oZuT52GZDnYkAcL",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2026-04-09-typescript-ai-demo-day-evt-IpKgpcPJEOjvroH",
+      "name": "TypeScript AI Demo Day",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2026-04-09-typescript-ai-demo-day-evt-IpKgpcPJEOjvroH",
+      "status": "past",
+      "startsAt": "2026-04-09T15:30:00.000Z",
+      "endsAt": "2026-04-10T00:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Convene 100 Stockton",
+        "address": "Convene 100 Stockton, 40 O'Farrell St, San Francisco, CA 94108, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-IpKgpcPJEOjvroH",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2026-03-31-all-things-web-workos",
+      "name": "Dev Setup Demos - Show your agents.md!",
+      "tagline": "All Things Web @ WorkOS at All Things Web",
+      "url": "https://allthingsweb.dev/2026-03-31-all-things-web-workos",
+      "status": "past",
+      "startsAt": "2026-04-01T00:30:00.000Z",
+      "endsAt": "2026-04-01T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "WorkOS",
+        "address": "WorkOS, 660 Market St, San Francisco, CA 94104, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-wJxtorPCscwoGS4",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2026-02-25-devtool-ax-demos",
+      "name": "DevTool AX Demos",
+      "tagline": "Join us on Feb 24 for our monthly All Things Web meetup",
+      "url": "https://allthingsweb.dev/2026-02-25-devtool-ax-demos",
+      "status": "past",
+      "startsAt": "2026-02-25T01:30:00.000Z",
+      "endsAt": "2026-02-25T04:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "585 Market St",
+        "address": "585 Market St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-tMlbKr2pQktx6Qx",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2026-01-20-all-things-expo-evt-3nNZK4pu7n7TNbC",
+      "name": "All Things Expo!",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2026-01-20-all-things-expo-evt-3nNZK4pu7n7TNbC",
+      "status": "past",
+      "startsAt": "2026-01-21T01:30:00.000Z",
+      "endsAt": "2026-01-21T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "201 Spear St",
+        "address": "201 Spear St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-3nNZK4pu7n7TNbC",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-11-06-typescript-ai-the-official-conference-after-party-evt-ITMJYP0vdkjXbMr",
+      "name": "TypeScript AI: The official conference after-party",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2025-11-06-typescript-ai-the-official-conference-after-party-evt-ITMJYP0vdkjXbMr",
+      "status": "past",
+      "startsAt": "2025-11-07T01:30:00.000Z",
+      "endsAt": "2025-11-07T07:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Southern Pacific Brewing",
+        "address": "Southern Pacific Brewing, 620 Treat Ave, San Francisco, CA 94110, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-ITMJYP0vdkjXbMr",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-11-04-after-party-all-things-react-native-evt-TpDFOGNSBwCxU72",
+      "name": "After Party - All Things React Native",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2025-11-04-after-party-all-things-react-native-evt-TpDFOGNSBwCxU72",
+      "status": "past",
+      "startsAt": "2025-11-05T04:00:00.000Z",
+      "endsAt": "2025-11-05T06:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "277 Carolina St",
+        "address": "277 Carolina St, San Francisco, CA 94103, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-TpDFOGNSBwCxU72",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-11-04-all-things-react-native",
+      "name": "All Things React Native",
+      "tagline": "Join us at Discord HQ for All Things React Native - hang out with the mobile and web dev community, enjoy two exciting tech talks, and let's dive deep into React Native.",
+      "url": "https://allthingsweb.dev/2025-11-04-all-things-react-native",
+      "status": "past",
+      "startsAt": "2025-11-05T01:00:00.000Z",
+      "endsAt": "2025-11-05T04:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "444 De Haro St suite 200",
+        "address": "444 De Haro St suite 200, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-gVIQ04BaqjGAyAM",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+      "name": "Pre Next.js Conf / Ship AI Meetup",
+      "tagline": "Kick off Next.js Conf / Ship AI with Strapi, Sentry, Mux, Neon, and Replit",
+      "url": "https://allthingsweb.dev/2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+      "status": "past",
+      "startsAt": "2025-10-22T01:00:00.000Z",
+      "endsAt": "2025-10-22T05:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Standard Deviant Brewing Pier 70",
+        "address": "Standard Deviant Brewing Pier 70, 1070 Maryland St suite 195, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-lPPnQypydANrkrJ",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-10-07-js-trivia-night-evt-2DtcNjNsqEqpgp6",
+      "name": "JS Trivia Night",
+      "tagline": "See Luma for event details and registration.",
+      "url": "https://allthingsweb.dev/2025-10-07-js-trivia-night-evt-2DtcNjNsqEqpgp6",
+      "status": "past",
+      "startsAt": "2025-10-08T00:00:00.000Z",
+      "endsAt": "2025-10-08T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Standard Deviant Brewing Pier 70",
+        "address": "Standard Deviant Brewing Pier 70, 1070 Maryland St suite 195, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-2DtcNjNsqEqpgp6",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-09-30-agents-for-web-dev",
+      "name": "Agents for Web Dev",
+      "tagline": "Join us for two exciting talks about AI agents in web development and connect with the AI and web builder community!",
+      "url": "https://allthingsweb.dev/2025-09-30-agents-for-web-dev",
+      "status": "past",
+      "startsAt": "2025-10-01T00:30:00.000Z",
+      "endsAt": "2025-10-01T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Mintlify",
+        "address": "Mintlify, 1 Post St Ste 3000, San Francisco, CA 94104, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-s9SEHLVbphwdAPZ",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-09-23-lightning-hackathon-at-sentry",
+      "name": "Lightning Hackathon ⚡",
+      "tagline": "Join us for a fast-paced, two-hour hackathon! Build something amazing in just two hours!",
+      "url": "https://allthingsweb.dev/2025-09-23-lightning-hackathon-at-sentry",
+      "status": "past",
+      "startsAt": "2025-09-24T00:00:00.000Z",
+      "endsAt": "2025-09-24T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry",
+        "address": "Sentry, 45 Fremont St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-3WAjTY15pqdB1mb",
+      "recordingUrl": null,
+      "isHackathon": true
+    },
+    {
+      "slug": "2025-07-23-all-things-web-show-and-tell",
+      "name": "All Things Web Show & Tell",
+      "tagline": "Join us for a community show & tell at the SF Nook community space!",
+      "url": "https://allthingsweb.dev/2025-07-23-all-things-web-show-and-tell",
+      "status": "past",
+      "startsAt": "2025-07-24T00:00:00.000Z",
+      "endsAt": "2025-07-24T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "1242 Market St",
+        "address": "1242 Market St, San Francisco, CA 94102, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-TI4Rc7MwnlmlrvP",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-06-02-nextdevfm-live",
+      "name": "NextDev.fm Live",
+      "tagline": "Join us for a live episode of NextDev.fm! 🎙️",
+      "url": "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+      "status": "past",
+      "startsAt": "2025-06-03T00:00:00.000Z",
+      "endsAt": "2025-06-03T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "1242 Market St",
+        "address": "1242 Market St, San Francisco, CA 94102, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-YgL8QkcPVOTymoN",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-05-28-all-things-web-at-vapi",
+      "name": "All Things Web at Vapi",
+      "tagline": "The future of Voice is here — join us to explore what LLMs are unlocking in Voice AI.",
+      "url": "https://allthingsweb.dev/2025-05-28-all-things-web-at-vapi",
+      "status": "past",
+      "startsAt": "2025-05-29T00:00:00.000Z",
+      "endsAt": "2025-05-29T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Vapi Inc.",
+        "address": "Vapi Inc., 760 Market St Floor 11, San Francisco, CA 94102, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-BASdmswlkMShs5c",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-05-13-all-things-web-show-and-tell",
+      "name": "All Things Web Show & Tell",
+      "tagline": "​Join us for a community show & tell at the SF Nook community space on May 13!",
+      "url": "https://allthingsweb.dev/2025-05-13-all-things-web-show-and-tell",
+      "status": "past",
+      "startsAt": "2025-05-14T00:00:00.000Z",
+      "endsAt": "2025-05-14T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "1242 Market St",
+        "address": "1242 Market St, San Francisco, CA 94102, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-nOKkZn5xVC11i6d",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-04-26-hackathon-at-sentry",
+      "name": "Future of Web Hackathon",
+      "tagline": "​​Join us for a day of hacking the web! Collaborate, create, and compete for two awards while bringing your ideas to life!",
+      "url": "https://allthingsweb.dev/2025-04-26-hackathon-at-sentry",
+      "status": "past",
+      "startsAt": "2025-04-26T17:30:00.000Z",
+      "endsAt": "2025-04-27T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry",
+        "address": "Sentry, 45 Fremont St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-qObtKnNENF3bDio",
+      "recordingUrl": null,
+      "isHackathon": true
+    },
+    {
+      "slug": "2025-04-03-ai-x-all-things-web",
+      "name": "AI x All Things Web",
+      "tagline": "Join us on April 3rd for a special AI x All Things Web event at the AWS GenAI Loft. We'll have several fantastic lightning talks, snacks & drinks, and plenty of time to nerd out about AI, all things web, and the future of UI!",
+      "url": "https://allthingsweb.dev/2025-04-03-ai-x-all-things-web",
+      "status": "past",
+      "startsAt": "2025-04-04T00:00:00.000Z",
+      "endsAt": "2025-04-04T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "AWS GenAI Loft",
+        "address": "AWS GenAI Loft, 525 Market St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-hMrMdGcrk8XOnuF",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-03-19-all-things-web-at-convex",
+      "name": "All Things Web at Convex",
+      "tagline": "Join us for our next meetup at Convex! RSVP for three great tech talks, snacks & drinks, and plenty of time to chat about all things web.",
+      "url": "https://allthingsweb.dev/2025-03-19-all-things-web-at-convex",
+      "status": "past",
+      "startsAt": "2025-03-20T00:00:00.000Z",
+      "endsAt": "2025-03-20T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "444 De Haro St #218",
+        "address": "444 De Haro St #218, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-xWl1tkPwl1b8zbI",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-03-12-all-things-web-hack-evening",
+      "name": "All Things Web Hack Evening",
+      "tagline": "Join us for our first Hack Evening. Bring your favorite project, hack into the evening, and hang out with awesome people.",
+      "url": "https://allthingsweb.dev/2025-03-12-all-things-web-hack-evening",
+      "status": "past",
+      "startsAt": "2025-03-12T17:30:00.000Z",
+      "endsAt": "2025-03-12T20:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Southern Pacific Brewing",
+        "address": "620 Treat Ave, San Francisco, CA 94110, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-4tdtev7Ap2qLcPW",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-02-25-all-things-web-at-sentry",
+      "name": "All Things Web at Sentry",
+      "tagline": "Join us on Feb 25 for our monthly All Things Web event. This month, it's all about performance!",
+      "url": "https://allthingsweb.dev/2025-02-25-all-things-web-at-sentry",
+      "status": "past",
+      "startsAt": "2025-02-26T01:00:00.000Z",
+      "endsAt": "2025-02-26T04:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry",
+        "address": "Sentry, 45 Fremont St, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-R7t4c0PuzyjnYAf",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2025-01-28-all-things-web-at-sanity",
+      "name": "All Things Web at Sanity",
+      "tagline": "Join us for the first All Things Web event of 2025!",
+      "url": "https://allthingsweb.dev/2025-01-28-all-things-web-at-sanity",
+      "status": "past",
+      "startsAt": "2025-01-29T01:00:00.000Z",
+      "endsAt": "2025-01-29T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "351 California St",
+        "address": "351 California St, San Francisco, CA 94104, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-KkE3Vi4Bxry4yFV",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-12-03-all-things-web-at-convex",
+      "name": "All Things Web at Convex",
+      "tagline": "Join us for a combined React & React Native meetup at Convex.",
+      "url": "https://allthingsweb.dev/2024-12-03-all-things-web-at-convex",
+      "status": "past",
+      "startsAt": "2024-12-04T01:00:00.000Z",
+      "endsAt": "2024-12-04T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Convex HQ",
+        "address": "444 De Haro St #218, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-deGtRGSvYsWMqAc",
+      "recordingUrl": "https://youtu.be/QfDQqDjKmWw",
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-11-12-all-things-web-at-vercel",
+      "name": "All Things Web @ Vercel HQ 👀",
+      "tagline": "Join us for an engaging evening with a talk and AMA with Tom Occhino.",
+      "url": "https://allthingsweb.dev/2024-11-12-all-things-web-at-vercel",
+      "status": "past",
+      "startsAt": "2024-11-13T01:00:00.000Z",
+      "endsAt": "2024-11-13T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Vercel HQ",
+        "address": "100 First Plaza, 100 1st St #2400, San Francisco, CA 94105"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-7CaqG4UZsbIQb6s",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-11-04",
+      "name": "All Things Web at Little Skillet",
+      "tagline": "​Join us at Little Skillet for chicken & waffles or some tasty fries, plus plenty of time to chat about all things web.",
+      "url": "https://allthingsweb.dev/2024-11-04",
+      "status": "past",
+      "startsAt": "2024-11-05T01:00:00.000Z",
+      "endsAt": "2024-11-05T03:30:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Little Skillet",
+        "address": "Little Skillet, 360 Ritch St, San Francisco, CA 94107, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-dH8tlJFEIQe9eT2",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+      "name": "Pre Next.js Conf Meetup",
+      "tagline": "Kick off Next.js Conf with Strapi, Mux, Neon, Makeswift, and Inngest! Join us for talks, networking, and chats about all things web!",
+      "url": "https://allthingsweb.dev/2024-10-23-pre-nextjs-conf-meetup-at-mux",
+      "status": "past",
+      "startsAt": "2024-10-24T00:30:00.000Z",
+      "endsAt": "2024-10-24T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Mux",
+        "address": "Mux, 50 Beale St floor 9, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-8L3ror8OqcxgcXq",
+      "recordingUrl": "https://youtu.be/_d8qy6uH8AE",
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-10-05-hackathon-at-sentry",
+      "name": "Open Source Hackathon",
+      "tagline": "Join us for a day of hacking and celebrating open source! Collaborate, create, and compete for two awards while bringing your ideas to life!",
+      "url": "https://allthingsweb.dev/2024-10-05-hackathon-at-sentry",
+      "status": "past",
+      "startsAt": "2024-10-05T18:30:00.000Z",
+      "endsAt": "2024-10-06T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Sentry, SF",
+        "address": "45 Fremont St, San Francisco, CA 94105"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-dbF3WPClKyxWQ7n",
+      "recordingUrl": null,
+      "isHackathon": true
+    },
+    {
+      "slug": "2024-09-24-react-bay-area-at-cisco-meraki",
+      "name": "React Bay Area at Cisco Meraki",
+      "tagline": "Join us for two awesome talks, snacks, and chit-chat about all things web!",
+      "url": "https://allthingsweb.dev/2024-09-24-react-bay-area-at-cisco-meraki",
+      "status": "past",
+      "startsAt": "2024-09-25T00:00:00.000Z",
+      "endsAt": "2024-09-25T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Meraki HQ",
+        "address": "Cisco Meraki, 500 Terry A Francois Blvd, San Francisco, CA 94158"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-HtDmTqndK1vA1Z4",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-08-27-react-bay-area-at-mux",
+      "name": "React Bay Area at Mux",
+      "tagline": "Meetups are back! Join our monthly React Bay Area events.",
+      "url": "https://allthingsweb.dev/2024-08-27-react-bay-area-at-mux",
+      "status": "past",
+      "startsAt": "2024-08-28T00:00:00.000Z",
+      "endsAt": "2024-08-28T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Mux",
+        "address": "Mux, 50 Beale St floor 9, San Francisco, CA 94105, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-TNS8NeNJwSPDKu5",
+      "recordingUrl": "https://youtu.be/edOxB0lXFmo",
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-08-13-remix-bay-area-at-little-skillet",
+      "name": "Remix Bay Area at Little Skillet",
+      "tagline": "We're getting together at Little Skillet next Tuesday for a casual hangout. It's going to be a great time to chat about web development, upcoming events, and whatever else comes up.",
+      "url": "https://allthingsweb.dev/2024-08-13-remix-bay-area-at-little-skillet",
+      "status": "past",
+      "startsAt": "2024-08-14T01:00:00.000Z",
+      "endsAt": "2024-09-18T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Little Skillet",
+        "address": "360 Ritch Street · San Francisco, CA"
+      },
+      "rsvpUrl": null,
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2014-07-30-react-bay-area-at-sanity",
+      "name": "React Bay Area at Sanity",
+      "tagline": "​Join us on July 30 at the Sanity office in San Francisco for tech talks, snacks & drinks, and plenty of chit-chat about all things web!",
+      "url": "https://allthingsweb.dev/2014-07-30-react-bay-area-at-sanity",
+      "status": "past",
+      "startsAt": "2024-07-31T00:00:00.000Z",
+      "endsAt": "2024-07-31T03:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "351 California St",
+        "address": "351 California St, San Francisco, CA 94104, USA"
+      },
+      "rsvpUrl": "https://lu.ma/event/evt-7zxJdkIDI78lDO3",
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-05-14-remix-bay-area-at-solv",
+      "name": "Remix Bay Area at Solv",
+      "tagline": " Join us for an awesome talk by Tony Dang, chit-chat about all things web, and enjoy some snacks and drinks.",
+      "url": "https://allthingsweb.dev/2024-05-14-remix-bay-area-at-solv",
+      "status": "past",
+      "startsAt": "2024-05-15T00:00:00.000Z",
+      "endsAt": "2024-05-15T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Solv, SF",
+        "address": "760 Market St #1150 · San Francisco, CA"
+      },
+      "rsvpUrl": null,
+      "recordingUrl": null,
+      "isHackathon": false
+    },
+    {
+      "slug": "2024-03-26-remix-bay-area-at-solv",
+      "name": "Remix Bay Area at Solv",
+      "tagline": "Join us for an awesome talk by Erik Thorelli, chit-chat about all things web, and enjoy some snacks and drinks.",
+      "url": "https://allthingsweb.dev/2024-03-26-remix-bay-area-at-solv",
+      "status": "past",
+      "startsAt": "2024-03-27T00:00:00.000Z",
+      "endsAt": "2024-03-27T04:00:00.000Z",
+      "timeZone": "America/Los_Angeles",
+      "venue": {
+        "name": "Solv, SF",
+        "address": "760 Market St #1150 · San Francisco, CA"
+      },
+      "rsvpUrl": null,
+      "recordingUrl": null,
+      "isHackathon": false
+    }
+  ]
+}

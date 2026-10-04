@@ -47,7 +47,7 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
   // Load existing images when event is selected
   useEffect(() => {
     if (selectedEventId) {
-      loadExistingImages(selectedEventId);
+      void loadExistingImages(selectedEventId);
     } else {
       setExistingImages([]);
     }
@@ -70,7 +70,7 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
     }
   };
 
-  const handleDeleteImage = async (imageId: string, imageUrl: string) => {
+  const handleDeleteImage = async (imageId: string) => {
     setMessage(null);
 
     try {
@@ -429,7 +429,7 @@ export default function UploadImagesForm({ events }: UploadImagesFormProps) {
                     image={image}
                     showDelete={true}
                     onDelete={async (imageId) => {
-                      await handleDeleteImage(imageId, image.imageUrl);
+                      await handleDeleteImage(imageId);
                     }}
                     imageContainerClassName="aspect-square"
                   />

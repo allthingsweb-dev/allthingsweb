@@ -2,7 +2,6 @@ import { inArray, eq, and, lt, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { imagesTable, eventsTable, eventImagesTable } from "@/lib/schema";
 import { Image } from "@/lib/events";
-import { signImages, signImage } from "@/lib/image-signing";
 
 // Static list of past event image IDs from the original website
 const imageIds = [
@@ -28,6 +27,11 @@ const imageIds = [
   "73a16b87-2d54-4de3-ae5d-d83819ef4a31",
 ];
 
+/** Just the Image fields of a row that may carry more. */
+function toImage({ url, alt, placeholder, width, height }: Image): Image {
+  return { url, alt, placeholder, width, height };
+}
+
 export async function getPastEventImages(): Promise<Image[]> {
   const images = await db
     .select()
@@ -38,20 +42,10 @@ export async function getPastEventImages(): Promise<Image[]> {
   const imageMap = new Map(images.map((img) => [img.id, img]));
 
   // Get images in the specified order, filtering out missing ones
-  const foundImages = imageIds
+  return imageIds
     .map((id) => imageMap.get(id))
-    .filter((image): image is NonNullable<typeof image> => image !== undefined);
-
-  // Convert to Image format and sign all URLs
-  const rawImages: Image[] = foundImages.map((image) => ({
-    url: image.url,
-    alt: image.alt,
-    placeholder: image.placeholder,
-    width: image.width,
-    height: image.height,
-  }));
-
-  return signImages(rawImages);
+    .filter((image): image is NonNullable<typeof image> => image !== undefined)
+    .map(toImage);
 }
 
 export interface EventImageWithDetails {
@@ -70,7 +64,7 @@ export interface EventImageWithDetails {
 export async function getAllEventImagesWithDetails(): Promise<
   EventImageWithDetails[]
 > {
-  const results = await db
+  return db
     .select({
       imageId: imagesTable.id,
       imageUrl: imagesTable.url,
@@ -87,26 +81,6 @@ export async function getAllEventImagesWithDetails(): Promise<
     .innerJoin(imagesTable, eq(eventImagesTable.imageId, imagesTable.id))
     .innerJoin(eventsTable, eq(eventImagesTable.eventId, eventsTable.id))
     .orderBy(eventsTable.startDate, eventsTable.name);
-
-  // Sign all image URLs
-  const signedResults = await Promise.all(
-    results.map(async (result) => {
-      const signedImage = await signImage({
-        url: result.imageUrl,
-        alt: result.imageAlt,
-        placeholder: result.imagePlaceholder,
-        width: result.imageWidth,
-        height: result.imageHeight,
-      });
-
-      return {
-        ...result,
-        imageUrl: signedImage.url,
-      };
-    }),
-  );
-
-  return signedResults;
 }
 
 export interface EventWithImages {
@@ -190,57 +164,29 @@ export async function getPastEventsWithImages(): Promise<EventWithImages[]> {
     >,
   );
 
-  // Process all events and sign images
-  const eventsWithImages = await Promise.all(
-    pastEvents.map(async (row) => {
-      const event = row.events;
-      const previewImageRaw = row.images;
+  return pastEvents.map((row) => {
+    const event = row.events;
+    const previewImage = row.images ? toImage(row.images) : undefined;
 
-      // Sign preview image if exists
-      const previewImage = previewImageRaw
-        ? await signImage({
-            url: previewImageRaw.url,
-            alt: previewImageRaw.alt,
-            placeholder: previewImageRaw.placeholder,
-            width: previewImageRaw.width,
-            height: previewImageRaw.height,
-          })
-        : undefined;
+    // Select first and last event images, excluding the preview image if present
+    const allEventImages = imagesByEventId[event.id] || [];
+    const previewImageId = (event as any).previewImage as string | null;
+    const nonPreviewImages = previewImageId
+      ? allEventImages.filter((img) => img.id !== previewImageId)
+      : allEventImages;
 
-      // Select first and last event images, excluding the preview image if present
-      const allEventImages = imagesByEventId[event.id] || [];
-      const previewImageId = (event as any).previewImage as string | null;
-      const nonPreviewImages = previewImageId
-        ? allEventImages.filter((img) => img.id !== previewImageId)
-        : allEventImages;
+    let selectedImages = nonPreviewImages;
+    if (nonPreviewImages.length >= 2) {
+      selectedImages = [
+        nonPreviewImages[0],
+        nonPreviewImages[nonPreviewImages.length - 1],
+      ];
+    }
 
-      let selectedImages = nonPreviewImages;
-      if (nonPreviewImages.length >= 2) {
-        selectedImages = [
-          nonPreviewImages[0],
-          nonPreviewImages[nonPreviewImages.length - 1],
-        ];
-      }
-
-      const additionalImages = await Promise.all(
-        selectedImages.map((img) =>
-          signImage({
-            url: img.url,
-            alt: img.alt,
-            placeholder: img.placeholder,
-            width: img.width,
-            height: img.height,
-          }),
-        ),
-      );
-
-      return {
-        event,
-        previewImage,
-        additionalImages,
-      };
-    }),
-  );
-
-  return eventsWithImages;
+    return {
+      event,
+      previewImage,
+      additionalImages: selectedImages.map(toImage),
+    };
+  });
 }

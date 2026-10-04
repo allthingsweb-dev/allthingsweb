@@ -2,7 +2,6 @@ import Link from "next/link";
 import { asc, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { imagesTable, hostsTable } from "@/lib/schema";
-import { signImage } from "@/lib/image-signing";
 import CreateHostForm from "./create-host-form";
 
 export default async function RawHostsAdminPage() {
@@ -27,45 +26,14 @@ export default async function RawHostsAdminPage() {
       : [];
   const imageMap = new Map(images.map((image) => [image.id, image]));
 
-  const initialHosts = await Promise.all(
-    hosts.map(async (host) => {
-      const dark = host.squareLogoDark
-        ? (imageMap.get(host.squareLogoDark) ?? null)
-        : null;
-      const light = host.squareLogoLight
-        ? (imageMap.get(host.squareLogoLight) ?? null)
-        : null;
+  const imageUrl = (id: string | null) =>
+    (id ? imageMap.get(id)?.url : undefined) ?? null;
 
-      const squareLogoDarkUrl = dark
-        ? (
-            await signImage({
-              url: dark.url,
-              alt: dark.alt,
-              placeholder: dark.placeholder,
-              width: dark.width,
-              height: dark.height,
-            })
-          ).url
-        : null;
-      const squareLogoLightUrl = light
-        ? (
-            await signImage({
-              url: light.url,
-              alt: light.alt,
-              placeholder: light.placeholder,
-              width: light.width,
-              height: light.height,
-            })
-          ).url
-        : null;
-
-      return {
-        ...host,
-        squareLogoDarkUrl,
-        squareLogoLightUrl,
-      };
-    }),
-  );
+  const initialHosts = hosts.map((host) => ({
+    ...host,
+    squareLogoDarkUrl: imageUrl(host.squareLogoDark),
+    squareLogoLightUrl: imageUrl(host.squareLogoLight),
+  }));
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
