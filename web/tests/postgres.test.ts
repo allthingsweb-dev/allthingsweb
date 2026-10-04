@@ -24,12 +24,23 @@ if (serverUrl === undefined) {
 } else {
   const database = `allthings_web_test_${process.pid}`;
   const admin = new SQL(serverUrl);
-  await admin.unsafe(`CREATE DATABASE ${database}`);
+  const dropDatabase = async () => {
+    await admin.unsafe(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);
+    await admin.close();
+  };
   const url = new URL(serverUrl);
   url.pathname = `/${database}`;
   const sql = new SQL(url.href);
-  await migrate((statement) => sql.unsafe(statement));
-  await sql.unsafe(await readSeed());
+  try {
+    await admin.unsafe(`CREATE DATABASE ${database}`);
+    await migrate((statement) => sql.unsafe(statement));
+    await sql.unsafe(await readSeed());
+  } catch (cause) {
+    // Leave nothing behind on a server that is reused.
+    await sql.close();
+    await dropDatabase();
+    throw cause;
+  }
   await sql.close();
 
   const wrongPassword = new URL(url.href);
@@ -47,16 +58,7 @@ if (serverUrl === undefined) {
     dev: true,
   });
   const workers = beforeAll(deploy(Stack));
-  afterAll(
-    destroy(Stack).pipe(
-      Effect.andThen(
-        Effect.promise(async () => {
-          await admin.unsafe(`DROP DATABASE ${database} WITH (FORCE)`);
-          await admin.close();
-        }),
-      ),
-    ),
-  );
+  afterAll(destroy(Stack).pipe(Effect.andThen(Effect.promise(dropDatabase))));
 
   const urlOf = (outputs: Readonly<Record<string, unknown>>, name: string) => {
     const value = outputs[name];
