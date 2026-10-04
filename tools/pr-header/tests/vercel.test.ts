@@ -84,6 +84,24 @@ describe("stable preview aliases", () => {
     expect(calls.map((c) => c.method)).toEqual(["GET"]);
   });
 
+  test("never alias a deployment Vercel describes without an id", async () => {
+    const { impl, calls } = fakeVercel({
+      "GET /v13/deployments/odd.vercel.app": {
+        status: 200,
+        body: { projectId: "prj_1" },
+      },
+    });
+    await expect(
+      assignPreviewAlias(
+        config,
+        "https://odd.vercel.app",
+        previewAlias(52),
+        impl,
+      ),
+    ).rejects.toThrow("not a deployment of this project");
+    expect(calls.map((c) => c.method)).toEqual(["GET"]);
+  });
+
   describe("are linked only when they point at the current deployment", () => {
     const current = "https://allthingsweb-new-team.vercel.app";
     const routes = (alias: { status: number; body?: unknown }) => ({
@@ -145,6 +163,22 @@ describe("stable preview aliases", () => {
         await stablePreviewUrl(config, previewAlias(52), null, impl),
       ).toBeNull();
       expect(calls).toEqual([]);
+    });
+
+    test("not linked when neither response names a deployment id", async () => {
+      const { impl } = fakeVercel({
+        "GET /v13/deployments/allthingsweb-new-team.vercel.app": {
+          status: 200,
+          body: { projectId: "prj_1" },
+        },
+        "GET /v4/aliases/allthings-pr-52.vercel.app": {
+          status: 200,
+          body: { projectId: "prj_1" },
+        },
+      });
+      expect(
+        await stablePreviewUrl(config, previewAlias(52), current, impl),
+      ).toBeNull();
     });
   });
 });

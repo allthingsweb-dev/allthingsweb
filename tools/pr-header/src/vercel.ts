@@ -9,7 +9,7 @@ export function previewAlias(prNumber: number): string {
   return `allthings-pr-${prNumber}.vercel.app`;
 }
 
-/** Vercel's JSON response, unvalidated; callers state the shape they expect. */
+/** Vercel's JSON response, unvalidated: callers check each field they use. */
 async function call(
   config: VercelConfig,
   method: "GET" | "POST",
@@ -36,6 +36,13 @@ async function call(
   return { status: response.status, data: await response.json() };
 }
 
+/** `value[key]` if `value` is an object with a string there, else undefined. */
+function stringField(value: unknown, key: string): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const field: unknown = Reflect.get(value, key);
+  return typeof field === "string" ? field : undefined;
+}
+
 /** Points the PR's alias at a deployment, given its *.vercel.app URL. */
 export async function assignPreviewAlias(
   config: VercelConfig,
@@ -44,13 +51,17 @@ export async function assignPreviewAlias(
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
   const host = new URL(deploymentUrl).host;
-  const data = (
-    await call(config, "GET", `/v13/deployments/${host}`, fetchImpl)
-  ).data as { id: string; projectId: string } | null;
-  if (!data || data.projectId !== config.projectId) {
+  const { data } = await call(
+    config,
+    "GET",
+    `/v13/deployments/${host}`,
+    fetchImpl,
+  );
+  const id = stringField(data, "id");
+  if (id === undefined || stringField(data, "projectId") !== config.projectId) {
     throw new Error(`${host} is not a deployment of this project`);
   }
-  await call(config, "POST", `/v2/deployments/${data.id}/aliases`, fetchImpl, {
+  await call(config, "POST", `/v2/deployments/${id}/aliases`, fetchImpl, {
     alias,
   });
 }
@@ -72,14 +83,13 @@ export async function stablePreviewUrl(
       "GET",
       `/v13/deployments/${new URL(deploymentUrl).host}`,
       fetchImpl,
-    ).then(({ data }) => data as { id: string } | null),
-    call(config, "GET", `/v4/aliases/${alias}`, fetchImpl).then(
-      ({ data }) => data as { projectId: string; deploymentId: string } | null,
     ),
+    call(config, "GET", `/v4/aliases/${alias}`, fetchImpl),
   ]);
+  const deploymentId = stringField(deployment.data, "id");
   const current =
-    target?.projectId === config.projectId &&
-    deployment !== null &&
-    target.deploymentId === deployment.id;
+    deploymentId !== undefined &&
+    stringField(target.data, "projectId") === config.projectId &&
+    stringField(target.data, "deploymentId") === deploymentId;
   return current ? `https://${alias}` : null;
 }
