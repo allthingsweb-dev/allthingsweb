@@ -84,6 +84,7 @@ const it = (
     ),
   );
 
+/** /brand with `query`, fetched with `init`, and its HTML. */
 const brand = async (url: string, query = "", init?: RequestInit) => {
   const response = await fetch(`${url}/brand${query}`, init);
   return { response, html: await response.text() };
@@ -342,6 +343,7 @@ describe("the mode switch", () => {
   });
 
   it("works end to end: choose night, see night on every page, then the system's again", async (url) => {
+    /** Chooses `choice` with `cookie`; where it goes and the cookie it sets. */
     const choose = async (choice: string, cookie?: string) => {
       const response = await fetch(
         `${url}/brand?theme=${choice}`,

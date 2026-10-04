@@ -99,6 +99,7 @@ const it = (
     ),
   );
 
+/** / fetched with `init`, and its HTML. */
 const home = async (url: string, init?: RequestInit) => {
   const response = await fetch(`${url}/`, init);
   return { response, html: await response.text() };

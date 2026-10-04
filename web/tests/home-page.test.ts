@@ -114,6 +114,7 @@ const view = (overrides: Partial<HomeView> = {}): HomeView => ({
   ...overrides,
 });
 
+/** The home page for `home`, in the system's mode and without portraits unless `options` say otherwise. */
 const render = (
   home: HomeView,
   options: Partial<Pick<HomeProps, "theme" | "portraits">> = {},

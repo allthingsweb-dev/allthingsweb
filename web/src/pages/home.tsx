@@ -194,6 +194,7 @@ function Mosaic({ photos }: { readonly photos: ReadonlyArray<Rows.Photo> }) {
   );
 }
 
+/** The whole home page for `home`, in the visitor's mode, signed off by the hosts. */
 export function homePage({
   home,
   origin,

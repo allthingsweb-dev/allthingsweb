@@ -75,6 +75,7 @@ const footer = <R>(
     ),
   );
 
+/** The hosts' portraits, by the profile ids links.ts names. */
 const hostPortraits = Portraits.use((repository) =>
   repository.read(
     hosts.map((host) => host.profileId),

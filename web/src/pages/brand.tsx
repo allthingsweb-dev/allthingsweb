@@ -392,6 +392,7 @@ export interface BrandProps {
   readonly portraits: PortraitsById;
 }
 
+/** The whole of /brand, in the visitor's mode, signed off by the hosts. */
 export function brandPage({ theme, portraits }: BrandProps): string {
   return Document({
     title: "all things/brand",

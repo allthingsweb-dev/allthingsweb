@@ -32,6 +32,7 @@ const Request = Schema.Struct({
   photoPrefix: Schema.String,
 });
 
+/** The repository over the request's `SqlClient`. */
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 

@@ -22,6 +22,7 @@ export type Theme = (typeof dataTheme)[Mode];
 
 const themes: ReadonlyArray<Theme> = Object.values(dataTheme);
 
+/** Whether `value` is a mode a page can fix, as `data-theme` writes it. */
 export function isTheme(value: string): value is Theme {
   return themes.some((theme) => theme === value);
 }
@@ -29,6 +30,7 @@ export function isTheme(value: string): value is Theme {
 /** What `?theme=` accepts: a fixed mode, or the system's again. */
 export type Choice = Theme | "system";
 
+/** Whether `value` is one of the switch's choices. */
 export function isChoice(value: string): value is Choice {
   return value === "system" || isTheme(value);
 }

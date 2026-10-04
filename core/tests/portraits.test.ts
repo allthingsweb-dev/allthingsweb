@@ -27,6 +27,7 @@ afterAll(() => db.close());
 
 const photoOrigin = "https://storage.example";
 
+/** Portraits of `profileIds` on `origin`, read from `database`. */
 const read = (
   profileIds: ReadonlyArray<string>,
   database: PGlite = db,
