@@ -140,6 +140,9 @@ main {
   height: 36px;
   border: 2px solid var(--at-ground);
   border-radius: 50%;
+  /* The ground-colored ring parts the overlapping portraits; the rule
+     outside it keeps a portrait as dark as Night visible on Night. */
+  box-shadow: 0 0 0 1px var(--at-rule);
 }
 
 .portraits img + img {
