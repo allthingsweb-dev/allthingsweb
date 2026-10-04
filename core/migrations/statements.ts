@@ -18,7 +18,9 @@ export const statements = (queries: ReadonlyArray<string>): Migration =>
         .unsafe(statement)
         .pipe(
           Effect.tapError(() =>
-            Effect.logError(`Migration statement failed: ${statement}`),
+            Effect.logError("Migration statement failed").pipe(
+              Effect.annotateLogs("statement", statement),
+            ),
           ),
         );
     }

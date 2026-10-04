@@ -19,6 +19,42 @@ export const neonAuth: ReadonlyArray<string> = [
     CONSTRAINT "users_sync_pkey" PRIMARY KEY ("id")
   )`,
   `CREATE INDEX IF NOT EXISTS "users_sync_deleted_at_idx" ON "neon_auth"."users_sync" ("deleted_at")`,
+  // IF NOT EXISTS keeps a table Neon Auth made, whatever its definition, so
+  // check it is the one above; otherwise the baseline would be recorded over
+  // a different schema.
+  `DO $check$
+  DECLARE
+    actual text;
+  BEGIN
+    SELECT concat_ws(E'\\n',
+      (SELECT string_agg(format('column %I %s%s%s', a.attname, pg_catalog.format_type(a.atttypid, a.atttypmod),
+          CASE WHEN a.attnotnull THEN ' not null' ELSE '' END,
+          CASE WHEN a.attgenerated = 's' THEN ' generated always as (' || pg_catalog.pg_get_expr(d.adbin, d.adrelid) || ') stored'
+            ELSE coalesce(' default ' || pg_catalog.pg_get_expr(d.adbin, d.adrelid), '') END), E'\\n' ORDER BY a.attnum)
+        FROM pg_catalog.pg_attribute a
+        LEFT JOIN pg_catalog.pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+        WHERE a.attrelid = 'neon_auth.users_sync'::regclass AND a.attnum > 0 AND NOT a.attisdropped),
+      (SELECT string_agg(format('constraint %I %s', c.conname, pg_catalog.pg_get_constraintdef(c.oid)), E'\\n' ORDER BY c.conname COLLATE "C")
+        FROM pg_catalog.pg_constraint c
+        WHERE c.conrelid = 'neon_auth.users_sync'::regclass AND c.contype <> 'n'),
+      (SELECT string_agg(pg_catalog.pg_get_indexdef(i.indexrelid), E'\\n' ORDER BY pg_catalog.pg_get_indexdef(i.indexrelid) COLLATE "C")
+        FROM pg_catalog.pg_index i
+        WHERE i.indrelid = 'neon_auth.users_sync'::regclass))
+    INTO actual;
+    IF actual IS DISTINCT FROM $expected$column raw_json jsonb not null
+column id text not null generated always as ((raw_json ->> 'id'::text)) stored
+column name text generated always as ((raw_json ->> 'display_name'::text)) stored
+column email text generated always as ((raw_json ->> 'primary_email'::text)) stored
+column created_at timestamp with time zone generated always as (to_timestamp((trunc((((raw_json ->> 'signed_up_at_millis'::text))::bigint)::double precision) / (1000)::double precision))) stored
+column updated_at timestamp with time zone
+column deleted_at timestamp with time zone
+constraint users_sync_pkey PRIMARY KEY (id)
+CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at)
+CREATE UNIQUE INDEX users_sync_pkey ON neon_auth.users_sync USING btree (id)$expected$ THEN
+      RAISE EXCEPTION 'neon_auth.users_sync is not the table the baseline expects. It reads:%', E'\\n' || actual;
+    END IF;
+  END
+  $check$`,
 ];
 
 /**

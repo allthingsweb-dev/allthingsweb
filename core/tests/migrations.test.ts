@@ -53,6 +53,10 @@ function failureOf(exit: Exit.Exit<unknown, unknown>): unknown {
     : error;
 }
 
+/** An error's message and its causes', one per line. */
+const messages = (error: unknown): string =>
+  error instanceof Error ? `${error.message}\n${messages(error.cause)}` : "";
+
 /** A database with `sql` applied directly, as drizzle built production. */
 async function provisioned(sql: ReadonlyArray<string>): Promise<PGlite> {
   const db = keep(await PGlite.create());
@@ -247,13 +251,17 @@ describe("against the app's drizzle history", () => {
       ],
     },
     {
-      name: "an index",
-      from: `CREATE INDEX IF NOT EXISTS "users_sync_deleted_at_idx" ON "neon_auth"."users_sync" ("deleted_at")`,
-      to: `SELECT 1`,
+      name: "an index's columns",
+      from: `CONSTRAINT "events_slug_unique" UNIQUE ("slug")`,
+      to: `CONSTRAINT "events_slug_unique" UNIQUE ("slug", "name")`,
       missing: [
-        "index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at)",
+        "constraint public.events events_slug_unique UNIQUE (slug)",
+        "index public.events CREATE UNIQUE INDEX events_slug_unique ON public.events USING btree (slug)",
       ],
-      unexpected: [],
+      unexpected: [
+        "constraint public.events events_slug_unique UNIQUE (slug, name)",
+        "index public.events CREATE UNIQUE INDEX events_slug_unique ON public.events USING btree (slug, name)",
+      ],
     },
     {
       name: "a unique constraint",
@@ -358,6 +366,22 @@ describe("the migrator", () => {
       ).rows,
     ).toEqual([{ ns: null }]);
     expect(await snapshotOf(db)).toEqual([]);
+  });
+
+  test("refuses a Neon Auth table other than the one it expects, recording nothing", async () => {
+    // users_sync as app/migrations 0010 records it, not as Neon makes it.
+    const db = await provisioned([
+      `CREATE SCHEMA "neon_auth"`,
+      `CREATE TABLE "neon_auth"."users_sync" ("raw_json" jsonb NOT NULL, "id" text PRIMARY KEY NOT NULL, "name" text, "email" text, "created_at" timestamp with time zone, "deleted_at" timestamp with time zone, "updated_at" timestamp with time zone)`,
+    ]);
+    const failure = failureOf(await runExit(db, Migrations.run()));
+    expect(messages(failure)).toContain(
+      "neon_auth.users_sync is not the table the baseline expects",
+    );
+    expect(await recorded(db)).toEqual([]);
+    expect(await snapshotOf(db)).not.toContain(
+      "relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=",
+    );
   });
 
   test("refuses to run on a database that has the schema but no record", async () => {
