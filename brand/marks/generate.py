@@ -29,7 +29,7 @@ from PIL import IcoImagePlugin, Image
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-TOKENS = ROOT / "app/src/brand/all-things.tokens.json"
+TOKENS = ROOT / "brand/all-things.tokens.json"
 OUT = ROOT / "app/public/brand"
 
 # Archivo variable font, pinned to a google/fonts commit and verified by hash.

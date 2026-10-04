@@ -1,0 +1,11 @@
+{
+  "name": "allthings-xss-scan",
+  "private": true,
+  "description": "The XSS check for web/ templates (@kitajs/ts-html-plugin). Its own workspace because the plugin runs on the TypeScript 5 compiler API, which TypeScript 7 no longer has.",
+  "type": "module",
+  "devDependencies": {
+    "@kitajs/html": "4.2.13",
+    "@kitajs/ts-html-plugin": "4.1.4",
+    "typescript": "5.9.3"
+  }
+}

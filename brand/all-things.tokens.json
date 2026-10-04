@@ -334,6 +334,87 @@
       "$description": "One blink of the cursor; it stops for reduced motion."
     }
   },
+  "theme": {
+    "$description": "What each color does in each mode. Paper is the light mode and Night the dark one; pages use these roles rather than the palette.",
+    "paper": {
+      "$type": "color",
+      "ground": {
+        "$value": "{color.paper}",
+        "$description": "Page ground."
+      },
+      "surface": {
+        "$value": "{color.karl}",
+        "$description": "Quiet surfaces."
+      },
+      "rule": {
+        "$value": "{color.rulePaper}",
+        "$description": "Hairline rules."
+      },
+      "text": {
+        "$value": "{color.ink}",
+        "$description": "Body text."
+      },
+      "meta": {
+        "$value": "{color.karlText}",
+        "$description": "Dates and meta."
+      },
+      "link": {
+        "$value": "{color.violet}",
+        "$description": "Neighborhoods and links."
+      },
+      "slash": {
+        "$value": "{color.bridge}",
+        "$description": "The slash and the cursor."
+      },
+      "button": {
+        "$value": "{color.bridgeDeep}",
+        "$description": "Filled buttons."
+      },
+      "buttonText": {
+        "$value": "{color.white}",
+        "$description": "Button labels."
+      }
+    },
+    "night": {
+      "$type": "color",
+      "ground": {
+        "$value": "{color.night}",
+        "$description": "Page ground."
+      },
+      "surface": {
+        "$value": "{color.nightRaised}",
+        "$description": "Quiet surfaces."
+      },
+      "rule": {
+        "$value": "{color.ruleNight}",
+        "$description": "Hairline rules."
+      },
+      "text": {
+        "$value": "{color.paper}",
+        "$description": "Body text."
+      },
+      "meta": {
+        "$value": "{color.dusk}",
+        "$description": "Dates and meta."
+      },
+      "link": {
+        "$value": "{color.lavender}",
+        "$description": "Neighborhoods and links."
+      },
+      "slash": {
+        "$value": "{color.glow}",
+        "$description": "The slash and the cursor."
+      },
+      "button": {
+        "$value": "{color.bridge}",
+        "$description": "Filled buttons."
+      },
+      "buttonText": {
+        "$value": "{color.white}",
+        "$description": "Button labels."
+      }
+    }
+  },
   "$extensions": {
     "dev.allthings": {
       "gridColumns": 12,

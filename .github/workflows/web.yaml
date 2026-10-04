@@ -6,6 +6,9 @@ on:
     paths:
       - "web/**"
       - "core/**"
+      - "brand/**"
+      - "tools/xss-scan/**"
+      - "app/public/brand/**"
       - "package.json"
       - "bun.lock"
       - "app/src/app/api/v1/**"
@@ -19,6 +22,9 @@ on:
     paths:
       - "web/**"
       - "core/**"
+      - "brand/**"
+      - "tools/xss-scan/**"
+      - "app/public/brand/**"
       - "package.json"
       - "bun.lock"
       - "app/src/app/api/v1/**"
@@ -79,6 +85,11 @@ jobs:
       - name: 🔍 Type check
         working-directory: web
         run: bun run typecheck
+
+      # Templates must escape what they interpolate; unescaped content fails.
+      - name: 🛡️ XSS scan
+        working-directory: web
+        run: bun run xss-scan
 
       # The Worker runs in workerd through Alchemy's local runtime; nothing
       # is deployed and no Cloudflare credentials exist here.

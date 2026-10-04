@@ -1,18 +1,20 @@
-name: Brand marks
+name: Brand
 
 on:
   push:
     branches: ["main"]
     paths:
-      - "brand/marks/**"
+      - "brand/**"
       - "app/public/brand/**"
-      - "app/src/brand/all-things.tokens.json"
+      - "package.json"
+      - "bun.lock"
       - ".github/workflows/brand.yaml"
   pull_request:
     paths:
-      - "brand/marks/**"
+      - "brand/**"
       - "app/public/brand/**"
-      - "app/src/brand/all-things.tokens.json"
+      - "package.json"
+      - "bun.lock"
       - ".github/workflows/brand.yaml"
 
 permissions:
@@ -24,6 +26,35 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  tokens:
+    name: 🎨 Tokens meet their contrast targets
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - name: 📥 Download deps
+        run: bun install --frozen-lockfile
+
+      - name: 💄 Format check
+        working-directory: brand
+        run: bun run check
+
+      - name: 🔍 Type check
+        working-directory: brand
+        run: bun run typecheck
+
+      - name: 🏄 Run the tests
+        working-directory: brand
+        run: bun run test
+
   marks:
     name: 🅰️ Marks are up to date
     runs-on: ubuntu-latest

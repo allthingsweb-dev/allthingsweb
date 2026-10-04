@@ -32,7 +32,7 @@ const postgres = new PGLiteSocketServer({ db, port: 0, maxConnections: 8 });
 await postgres.start();
 const app = await loadApp(db, { origin, storageOrigin });
 
-const Stack = testStack({
+const Stack = testStack("allthings-web-test", {
   Web: {
     ORIGIN: origin,
     DATABASE_URL: `postgres://postgres:postgres@${postgres.getServerConn()}/postgres`,
@@ -464,9 +464,10 @@ describe("MCP", () => {
 });
 
 describe("bundle", () => {
-  // Today: about 950 KB, 274 KB gzipped. Effect is a third of it, the MCP
+  // Today: about 990 KB, 288 KB gzipped. Effect is a third of it, the MCP
   // SDK and the zod it brings another third, and sanitize-html (with
-  // postcss) and @effect/sql-pg most of the rest. Raise the budget only on
+  // postcss) and @effect/sql-pg most of the rest; the pages (templates,
+  // tokens and the foundations as HTML) are 14 KB. Raise the budget only on
   // purpose; every byte is parsed on a cold start.
   const budget = 300_000;
 

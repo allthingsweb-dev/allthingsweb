@@ -11,26 +11,30 @@ export interface WorkerEnv {
 }
 
 /**
- * A stack of the Worker under each set of bindings in `workers`, bundled the
- * way infra/src/web.ts deploys it and run in workerd by Alchemy's local
- * runtime. Its state is in memory and every resource is local: deploying it
- * never reaches Cloudflare. Its outputs are the Workers' local URLs.
+ * A stack named `name` of the Worker under each set of bindings in
+ * `workers`, bundled the way infra/src/web.ts deploys it and run in workerd
+ * by Alchemy's local runtime, static assets included (`bun run test` builds
+ * them first). Its state is in memory and every resource is local:
+ * deploying it never reaches Cloudflare. Its outputs are the Workers' local
+ * URLs.
  */
 export const testStack = <const Name extends string>(
+  name: string,
   workers: Readonly<Record<Name, WorkerEnv>>,
 ) =>
   Alchemy.Stack(
-    "allthings-web-test",
+    name,
     { providers: Cloudflare.providers(), state: Alchemy.inMemoryState() },
     Effect.gen(function* () {
       const urls = [];
-      for (const [name, env] of Object.entries<WorkerEnv>(workers)) {
-        const worker = yield* Cloudflare.Worker(name, {
+      for (const [worker, env] of Object.entries<WorkerEnv>(workers)) {
+        const { url } = yield* Cloudflare.Worker(worker, {
           main: new URL("../../src/worker.ts", import.meta.url).pathname,
           compatibility,
+          assets: new URL("../../dist/public", import.meta.url).pathname,
           env: { ...env },
         });
-        urls.push([name, worker.url] as const);
+        urls.push([worker, url] as const);
       }
       return Object.fromEntries(urls);
     }),
