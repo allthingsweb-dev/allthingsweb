@@ -45,6 +45,7 @@ describe("topicOf", () => {
     ["ALL THINGS  Expo", "expo"],
     ["Effect SF", "effect"],
     ["Effect in San Francisco", "effect"],
+    ["All Things Web 👋🏽", "web"],
     ["Café Night", "café night"],
     ["Server-Side Rendering", "server-side rendering"],
     ["C++ & C#", "c++ & c#"],
@@ -81,6 +82,9 @@ describe("displayName", () => {
     ["Lightning Hackathon ⚡️", "Lightning Hackathon"],
     ["Hack night 👩‍💻", "Hack night"],
     ["Round 1️⃣", "Round 1"],
+    ["All Things Web 👋🏽", "All Things Web"],
+    ["Hack night 👩🏾‍💻", "Hack night"],
+    ["Effect Glasgow 🏴󠁧󠁢󠁳󠁣󠁴󠁿", "Effect Glasgow"],
     [
       "  Dev Setup Demos -  Show your agents.md! ",
       "Dev Setup Demos - Show your agents.md!",

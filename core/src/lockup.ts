@@ -19,12 +19,13 @@
  */
 
 /**
- * Emoji, flags, and what joins or modifies them: variation selectors, the
- * zero-width joiner and the keycap mark. Alternatives rather than one
- * character class, since the joiner and the keycap mark combine.
+ * Emoji, flags, and what joins or modifies them: skin tones, variation
+ * selectors, the zero-width joiner, the keycap mark and the tags of
+ * subdivision flags. Alternatives rather than one character class, since
+ * the joiner and the keycap mark combine.
  */
 const pictographs =
-  /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u{FE0E}|\u{FE0F}|\u{200D}|\u{20E3}/gu;
+  /\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|\u{FE0E}|\u{FE0F}|\u{200D}|\u{20E3}|[\u{E0020}-\u{E007F}]/gu;
 
 /** The longest topic the lockup sets; longer names read better as written. */
 export const maxTopicLength = 24;
