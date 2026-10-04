@@ -31,4 +31,4 @@ bun alchemy deploy --config stacks/github.ts --stage prod --profile admin
 bun alchemy profile edit --profile admin --remove cloudflare --remove github
 ```
 
-Rerun it to rotate the token or change its policies.
+Rerunning the deploy updates the token's policies in place; the token value stays the same. To rotate it, run `bun alchemy destroy --config stacks/github.ts --stage prod --profile admin` first: that deletes the token and its secrets, and the deploy then mints a new token and writes it to `CLOUDFLARE_API_TOKEN`.
