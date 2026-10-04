@@ -19,16 +19,22 @@ bun run deploy                # your own stage (live_$USER) with its own resourc
 
 [`stacks/github.ts`](stacks/github.ts) mints the account-owned Cloudflare token GitHub Actions deploys with, and writes it and the account ID to the repository's `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. Its policies grant only what `alchemy.run.ts` declares. Widen them there, in the same PR that declares more.
 
-Minting tokens takes the account's Global API Key, which OAuth can't provide. A maintainer deploys this stack by hand with a separate `admin` profile whose key comes from 1Password. Remove the key from the profile right after:
+Minting tokens takes the account's Global API Key, which OAuth can't provide. A maintainer applies this stack by hand with a separate `admin` profile, connected only for the run and fed from 1Password:
 
 ```sh
+# 1. Connect the admin profile.
 op read "op://Private/Cloudflare Global API Key/credential" | bun alchemy profile edit --profile admin \
   --add Cloudflare --method stored --set apiKey=- \
   --set email="$(op read 'op://Private/Cloudflare Global API Key/username')" \
   --set accountId=1b90995af2e8ed1710a8058226838681
 gh auth token | bun alchemy profile edit --profile admin --add GitHub --method stored --set token=-
+
+# 2. Apply. To rotate the token, destroy first: that deletes the token and its
+#    secrets, and the deploy mints a new one. A plain deploy updates the
+#    token's policies in place and keeps its value.
+bun alchemy destroy --config stacks/github.ts --stage prod --profile admin   # rotation only
 bun alchemy deploy --config stacks/github.ts --stage prod --profile admin
+
+# 3. Disconnect the admin profile.
 bun alchemy profile edit --profile admin --remove Cloudflare --remove GitHub
 ```
-
-Rerunning the deploy updates the token's policies in place; the token value stays the same. To rotate it, run `bun alchemy destroy --config stacks/github.ts --stage prod --profile admin` first: that deletes the token and its secrets, and the deploy then mints a new token and writes it to `CLOUDFLARE_API_TOKEN`.
