@@ -12,7 +12,7 @@ import type { SqlError } from "effect/sql/SqlError";
  * position among the table's live columns, type, nullability, default,
  * identity, generation and collation), a constraint (primary, unique, check
  * and foreign keys with their actions, as Postgres prints them), an index (its
- * full definition), an enum (labels in order), a domain or other type, a
+ * full definition, and whether it is valid), an enum (labels in order), a domain or other type, a
  * sequence, a view, a trigger, a row security policy, a routine or a comment.
  *
  * Owners and grants are left out: they belong to the environment (Neon's
@@ -74,7 +74,8 @@ SELECT line FROM (
   FROM pg_catalog.pg_constraint c JOIN rel r ON c.conrelid = r.oid
   WHERE c.contype <> 'n'
   UNION ALL
-  SELECT format('index %I.%I %s', r.nspname, r.relname, pg_catalog.pg_get_indexdef(i.indexrelid))
+  SELECT format('index %I.%I %s%s', r.nspname, r.relname, pg_catalog.pg_get_indexdef(i.indexrelid),
+    CASE WHEN i.indisvalid THEN '' ELSE ' invalid' END)
   FROM pg_catalog.pg_index i JOIN rel r ON i.indrelid = r.oid
   UNION ALL
   SELECT format('enum %I.%I (%s)', ns.nspname, t.typname,

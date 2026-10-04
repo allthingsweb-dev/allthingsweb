@@ -4,7 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { Cause, Effect, Exit, Schema } from "effect";
 import * as Migrator from "effect/sql/Migrator";
 import { SqlClient } from "effect/sql/SqlClient";
-import { baseline } from "../migrations/0001_baseline.ts";
+import { baseline, neonAuth } from "../migrations/0001_baseline.ts";
 import { migrations } from "../migrations/index.ts";
 import { statements } from "../migrations/statements.ts";
 import * as Migrations from "../src/migrator.ts";
@@ -134,6 +134,21 @@ describe("core/migrations", () => {
     for (const { prefix } of SchemaSnapshot.platformObjects) {
       expect(production.some((line) => line.startsWith(prefix))).toBe(true);
     }
+  });
+
+  test("an invalid index shows in the snapshot", async () => {
+    const db = keep(await migratedDatabase());
+    await db.exec(
+      `UPDATE pg_catalog.pg_index SET indisvalid = false WHERE indexrelid = 'neon_auth.users_sync_deleted_at_idx'::regclass`,
+    );
+    expect(SchemaSnapshot.diff(fromMigrations, await snapshotOf(db))).toEqual({
+      missing: [
+        "index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at)",
+      ],
+      unexpected: [
+        "index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at) invalid",
+      ],
+    });
   });
 
   test("a platform object does not change the snapshot", async () => {
@@ -382,6 +397,18 @@ describe("the migrator", () => {
     expect(await snapshotOf(db)).not.toContain(
       "relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=",
     );
+  });
+
+  test("refuses Neon Auth's table with an invalid index, recording nothing", async () => {
+    const db = await provisioned([
+      ...neonAuth.slice(0, -1),
+      `UPDATE pg_catalog.pg_index SET indisvalid = false WHERE indexrelid = 'neon_auth.users_sync_deleted_at_idx'::regclass`,
+    ]);
+    const failure = failureOf(await runExit(db, Migrations.run()));
+    expect(messages(failure)).toContain(
+      "users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at) invalid",
+    );
+    expect(await recorded(db)).toEqual([]);
   });
 
   test("refuses to run on a database that has the schema but no record", async () => {

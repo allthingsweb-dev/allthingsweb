@@ -37,7 +37,7 @@ export const neonAuth: ReadonlyArray<string> = [
       (SELECT string_agg(format('constraint %I %s', c.conname, pg_catalog.pg_get_constraintdef(c.oid)), E'\\n' ORDER BY c.conname COLLATE "C")
         FROM pg_catalog.pg_constraint c
         WHERE c.conrelid = 'neon_auth.users_sync'::regclass AND c.contype <> 'n'),
-      (SELECT string_agg(pg_catalog.pg_get_indexdef(i.indexrelid), E'\\n' ORDER BY pg_catalog.pg_get_indexdef(i.indexrelid) COLLATE "C")
+      (SELECT string_agg(pg_catalog.pg_get_indexdef(i.indexrelid) || CASE WHEN i.indisvalid THEN '' ELSE ' invalid' END, E'\\n' ORDER BY pg_catalog.pg_get_indexdef(i.indexrelid) COLLATE "C")
         FROM pg_catalog.pg_index i
         WHERE i.indrelid = 'neon_auth.users_sync'::regclass))
     INTO actual;
