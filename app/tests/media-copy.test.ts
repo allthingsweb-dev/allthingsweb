@@ -159,7 +159,52 @@ describe("copying legacy images into the media store", () => {
       },
     });
     const result = await copyLegacyImages(run, { budgetMs: 1_000 });
-    expect(result.remaining).toBe(0);
+    // The copy didn't switch the record, so it isn't counted.
+    expect(result).toEqual({ copied: 0, remaining: 0, failed: [] });
     expect(await urls()).toEqual([`${media}/replaced.png`]);
+  });
+
+  test("images that keep failing don't hold back newer ones", async () => {
+    for (let i = 0; i < 150; i++) {
+      await insertImage(`${legacy}/missing-${i}.png`, new Date(i));
+    }
+    await insertImage(`${legacy}/present.png`, new Date(1_000));
+    const result = await copyLegacyImages(
+      deps({
+        read: async (key) =>
+          key === "present.png"
+            ? { body: new Uint8Array([1]), contentType: "image/png" }
+            : null,
+      }),
+      { budgetMs: 1_000 },
+    );
+    expect(result.copied).toBe(1);
+    expect(result.failed).toHaveLength(150);
+    expect(result.remaining).toBe(150);
+  });
+
+  test("keeps the copies it made when counting the rest fails", async () => {
+    await insertImage(`${legacy}/a.png`, new Date(1));
+    let selects = 0;
+    const result = await copyLegacyImages(
+      deps({
+        database: {
+          select: ((...args: Parameters<typeof db.select>) => {
+            if (++selects === 2) throw new Error("connection reset");
+            return db.select(...args);
+          }) as typeof db.select,
+          execute: db.execute.bind(db),
+        },
+      }),
+      { budgetMs: 1_000 },
+    );
+    expect(result.copied).toBe(1);
+    expect(result.remaining).toBeNull();
+    expect(result.failed).toEqual([
+      {
+        url: `${legacy}/`,
+        error: "could not count remaining images: connection reset",
+      },
+    ]);
   });
 });

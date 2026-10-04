@@ -25,8 +25,8 @@ export type LegacyCopyDependencies = {
 
 export type LegacyCopyResult = {
   copied: number;
-  /** Images still on the legacy origin after this run. */
-  remaining: number;
+  /** Images still on the legacy origin after this run, or null if unknown. */
+  remaining: number | null;
   failed: { url: string; error: string }[];
 };
 
@@ -50,27 +50,27 @@ const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
  * Copies images that still live in the legacy bucket into the media store and
  * points their records at the copy. Each image is copied and switched on its
  * own, oldest first, so a run that stops early simply leaves the rest for the
- * next one; a record changed meanwhile is never overwritten.
+ * next one. Every legacy record is considered, so images that keep failing
+ * can't hold back the ones after them, and a record changed meanwhile is never
+ * overwritten.
  */
 export async function copyLegacyImages(
   deps: LegacyCopyDependencies,
   {
     budgetMs,
     signal = new AbortController().signal,
-    batchSize = 100,
-  }: { budgetMs: number; signal?: AbortSignal; batchSize?: number },
+  }: { budgetMs: number; signal?: AbortSignal },
 ): Promise<LegacyCopyResult> {
   const deadline = deps.now() + budgetMs;
   const prefix = `${deps.legacyOrigin.replace(/\/+$/, "")}/`;
   const onLegacyOrigin = like(imagesTable.url, `${escapeLike(prefix)}%`);
-  const result: LegacyCopyResult = { copied: 0, remaining: 0, failed: [] };
+  const result: LegacyCopyResult = { copied: 0, remaining: null, failed: [] };
 
   const images = await deps.database
     .select({ id: imagesTable.id, url: imagesTable.url })
     .from(imagesTable)
     .where(onLegacyOrigin)
-    .orderBy(asc(imagesTable.createdAt))
-    .limit(batchSize);
+    .orderBy(asc(imagesTable.createdAt));
 
   for (const image of images) {
     if (deps.now() >= deadline || signal.aborted) break;
@@ -87,21 +87,31 @@ export async function copyLegacyImages(
           "application/octet-stream",
         { signal },
       );
-      await deps.database.execute(sql`
+      const switched = await deps.database.execute(sql`
         update ${imagesTable}
         set url = ${url}, updated_at = now()
         where ${imagesTable.id} = ${image.id} and ${imagesTable.url} = ${image.url}
+        returning ${imagesTable.id}
       `);
-      result.copied++;
+      // Zero rows: the record changed during the copy and keeps its new URL.
+      if (switched.rows.length > 0) result.copied++;
     } catch (error) {
       result.failed.push({ url: image.url, error: errorMessage(error) });
     }
   }
 
-  const [remaining] = await deps.database
-    .select({ value: count() })
-    .from(imagesTable)
-    .where(onLegacyOrigin);
-  result.remaining = remaining?.value ?? 0;
+  // A failed count must not hide the copies this run already made.
+  try {
+    const [remaining] = await deps.database
+      .select({ value: count() })
+      .from(imagesTable)
+      .where(onLegacyOrigin);
+    result.remaining = remaining?.value ?? 0;
+  } catch (error) {
+    result.failed.push({
+      url: prefix,
+      error: `could not count remaining images: ${errorMessage(error)}`,
+    });
+  }
   return result;
 }
