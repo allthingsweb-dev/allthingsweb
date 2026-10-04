@@ -6,7 +6,7 @@ const cover = "https://images.lumacdn.com/uploads/gl/cover.png";
 function fakeFetch(...responses: Response[]) {
   const requested: string[] = [];
   const impl = (async (input: string | URL | Request) => {
-    requested.push(String(input));
+    requested.push(input instanceof Request ? input.url : String(input));
     const response = responses.shift();
     if (!response) throw new Error("Unexpected request");
     return response;

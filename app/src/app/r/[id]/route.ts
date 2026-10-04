@@ -36,5 +36,5 @@ export async function GET(
 
   // Redirect to the destination URL (moved permanently for SEO authority)
   // Note: redirect() will throw NEXT_REDIRECT which Next.js handles automatically
-  redirect(redirectLink.destinationUrl);
+  return redirect(redirectLink.destinationUrl);
 }

@@ -5,7 +5,6 @@ import {
   removeStoredObject,
 } from "../src/lib/media-store";
 import { profilePhotoKey } from "../src/lib/profile-photos/ingest";
-import { mainConfig } from "../src/lib/config";
 import {
   eventImagesTable,
   eventHostsTable,
@@ -471,7 +470,7 @@ export async function deleteEventImages(imageUrls: string[]) {
   const ids = await getImgIdsForUrls(imageUrls);
 
   const results = [];
-  for await (const id of ids) {
+  for (const id of ids) {
     const image = await db
       .select()
       .from(imagesTable)
@@ -525,6 +524,7 @@ export async function deleteOrphanedImage(imageUrl: string) {
         // PostgreSQL foreign key constraint violation
         throw new Error(
           `Image ${imageUrl} is not orphaned - it is still referenced by other records (foreign key constraint)`,
+          { cause: error },
         );
       }
       // Re-throw other errors
@@ -545,6 +545,7 @@ export async function deleteOrphanedImage(imageUrl: string) {
   } catch (error) {
     throw new Error(
       `Failed to delete orphaned image from storage: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { cause: error },
     );
   }
 }
@@ -562,7 +563,7 @@ export async function addImagesToEvent(
   const filePaths = fileNames.map((fn) => join(imagesDir, fn));
 
   const results = [];
-  for await (const entry of filePaths) {
+  for (const entry of filePaths) {
     const uuid = randomUUID();
 
     // Process image using our new utility
@@ -690,6 +691,7 @@ export async function getLumaEvent(eventId: string) {
     console.error(`Failed to fetch Luma event ${eventId}:`, error);
     throw new Error(
       `Failed to fetch Luma event: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
@@ -803,6 +805,7 @@ export async function deleteProfile(profileId: string) {
     console.error("❌ Error during deletion process:", error);
     throw new Error(
       `Deletion failed: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }

@@ -9,13 +9,14 @@ export function previewAlias(prNumber: number): string {
   return `allthings-pr-${prNumber}.vercel.app`;
 }
 
-async function call<T>(
+/** Vercel's JSON response, unvalidated: callers check each field they use. */
+async function call(
   config: VercelConfig,
   method: "GET" | "POST",
   path: string,
   fetchImpl: typeof fetch,
   body?: unknown,
-): Promise<{ status: number; data: T | null }> {
+): Promise<{ status: number; data: unknown }> {
   const url = new URL(`https://api.vercel.com${path}`);
   url.searchParams.set("teamId", config.teamId);
   const response = await fetchImpl(url, {
@@ -32,7 +33,14 @@ async function call<T>(
       `Vercel ${method} ${path}: ${response.status} ${await response.text()}`,
     );
   }
-  return { status: response.status, data: (await response.json()) as T };
+  return { status: response.status, data: await response.json() };
+}
+
+/** `value[key]` if `value` is an object with a string there, else undefined. */
+function stringField(value: unknown, key: string): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const field: unknown = Reflect.get(value, key);
+  return typeof field === "string" ? field : undefined;
 }
 
 /** Points the PR's alias at a deployment, given its *.vercel.app URL. */
@@ -43,16 +51,17 @@ export async function assignPreviewAlias(
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
   const host = new URL(deploymentUrl).host;
-  const { data } = await call<{ id: string; projectId: string }>(
+  const { data } = await call(
     config,
     "GET",
     `/v13/deployments/${host}`,
     fetchImpl,
   );
-  if (!data || data.projectId !== config.projectId) {
+  const id = stringField(data, "id");
+  if (id === undefined || stringField(data, "projectId") !== config.projectId) {
     throw new Error(`${host} is not a deployment of this project`);
   }
-  await call(config, "POST", `/v2/deployments/${data.id}/aliases`, fetchImpl, {
+  await call(config, "POST", `/v2/deployments/${id}/aliases`, fetchImpl, {
     alias,
   });
 }
@@ -69,22 +78,18 @@ export async function stablePreviewUrl(
 ): Promise<string | null> {
   if (!deploymentUrl) return null;
   const [deployment, target] = await Promise.all([
-    call<{ id: string }>(
+    call(
       config,
       "GET",
       `/v13/deployments/${new URL(deploymentUrl).host}`,
       fetchImpl,
     ),
-    call<{ projectId: string; deploymentId: string }>(
-      config,
-      "GET",
-      `/v4/aliases/${alias}`,
-      fetchImpl,
-    ),
+    call(config, "GET", `/v4/aliases/${alias}`, fetchImpl),
   ]);
+  const deploymentId = stringField(deployment.data, "id");
   const current =
-    target.data?.projectId === config.projectId &&
-    deployment.data !== null &&
-    target.data.deploymentId === deployment.data.id;
+    deploymentId !== undefined &&
+    stringField(target.data, "projectId") === config.projectId &&
+    stringField(target.data, "deploymentId") === deploymentId;
   return current ? `https://${alias}` : null;
 }

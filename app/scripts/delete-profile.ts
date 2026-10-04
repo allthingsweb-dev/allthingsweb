@@ -50,7 +50,7 @@ async function main() {
     console.log(`Name: ${profile.name}`);
     console.log(`Type: ${profile.profileType}`);
     console.log(`Title: ${profile.title}`);
-    console.log(`Created: ${profile.createdAt}`);
+    console.log(`Created: ${String(profile.createdAt)}`);
     if (profile.image) {
       console.log(`Image ID: ${profile.image}`);
     }
@@ -99,5 +99,5 @@ async function main() {
 
 // Only run if this script is executed directly
 if (import.meta.main) {
-  main();
+  await main();
 }

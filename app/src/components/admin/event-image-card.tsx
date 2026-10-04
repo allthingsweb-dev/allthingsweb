@@ -57,6 +57,7 @@ export function EventImageCard({
         <div
           className={`bg-white rounded-lg overflow-hidden border shadow-sm ${imageContainerClassName}`}
         >
+          {/* oxlint-disable-next-line nextjs/no-img-element -- admin preview of the stored original; onError swaps in an inline SVG placeholder */}
           <img
             src={image.imageUrl}
             alt={image.imageAlt}

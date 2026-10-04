@@ -42,7 +42,7 @@ export default function AssignProfileForm({
   // Load current assignment when profile is selected
   useEffect(() => {
     if (selectedProfileId) {
-      loadCurrentAssignment(selectedProfileId);
+      void loadCurrentAssignment(selectedProfileId);
     } else {
       setCurrentAssignment(null);
       setSelectedUserId("");

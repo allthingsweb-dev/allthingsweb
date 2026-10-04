@@ -1,5 +1,12 @@
 {
   "name": "allthings",
   "private": true,
-  "workspaces": ["brand", "core", "tools/xss-scan", "web"]
+  "workspaces": ["brand", "core", "tools/xss-scan", "web"],
+  "scripts": {
+    "lint": "oxlint"
+  },
+  "devDependencies": {
+    "oxlint": "1.86.0",
+    "oxlint-tsgolint": "7.0.2003"
+  }
 }

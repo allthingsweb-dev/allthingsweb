@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
-import { getExpandedEventBySlug } from "@/lib/expanded-events";
+import { getExpandedEventBySlug, type Speaker } from "@/lib/expanded-events";
 import { isEventInPast } from "@/lib/events";
 import { mainConfig } from "@/lib/config";
 import {
@@ -123,8 +123,8 @@ function LivePodcastSection({
   guest,
   showEventImageSection,
 }: {
-  hosts: (any | null)[];
-  guest: any | null;
+  hosts: (Speaker | null)[];
+  guest: Speaker | null;
   showEventImageSection: boolean;
 }) {
   return (
@@ -163,7 +163,7 @@ function LivePodcastSection({
             <h3 className="text-xl font-semibold mb-2">Hosts</h3>
             <div className="flex flex-col md:flex-row gap-6 w-full items-center md:items-stretch">
               {hosts.map(
-                (host, i) =>
+                (host) =>
                   host && (
                     <Card
                       key={host.id}

@@ -46,9 +46,11 @@ export default {
     switch (request.method) {
       case "PUT": {
         const contentType = request.headers.get("content-type");
-        const object = await env.MEDIA.put(key, request.body, {
-          ...(contentType ? { httpMetadata: { contentType } } : {}),
-        });
+        const object = await env.MEDIA.put(
+          key,
+          request.body,
+          contentType ? { httpMetadata: { contentType } } : {},
+        );
         return Response.json(
           { key: object.key, size: object.size },
           { status: 201 },

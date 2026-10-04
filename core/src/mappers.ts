@@ -168,7 +168,7 @@ export function selectEvents<
       const isPast = eventStatus(event, now) === "past";
       return when === "past" ? isPast : !isPast;
     })
-    .sort(
+    .toSorted(
       (a, b) =>
         direction *
         (DateTime.toEpochMillis(a.startDate) -

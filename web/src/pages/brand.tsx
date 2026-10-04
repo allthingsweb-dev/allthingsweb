@@ -103,6 +103,7 @@ function Palette() {
         ))}
       </ul>
       <h3 class="at-type-list-name">Pairings and their targets</h3>
+      {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard users need focus to scroll this wide table (WCAG 2.1.1) */}
       <section class="scroll" aria-label="Pairings" tabindex="0">
         <table class="pairs">
           <thead>

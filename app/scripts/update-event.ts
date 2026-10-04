@@ -11,4 +11,4 @@ async function main() {
   console.log(res);
 }
 
-main();
+await main();

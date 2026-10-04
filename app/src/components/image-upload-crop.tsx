@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import ReactCrop, {
+import {
+  ReactCrop,
   type Crop,
   type PixelCrop,
   centerCrop,
@@ -52,7 +53,7 @@ export function ImageUploadCrop({
     if (e.target.files && e.target.files.length > 0) {
       const reader = new FileReader();
       reader.addEventListener("load", () => {
-        const imageUrl = reader.result?.toString() || "";
+        const imageUrl = typeof reader.result === "string" ? reader.result : "";
         setImgSrc(imageUrl);
         setIsDialogOpen(true);
       });
@@ -64,7 +65,7 @@ export function ImageUploadCrop({
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       const { naturalWidth: width, naturalHeight: height } = e.currentTarget;
 
-      const crop = centerCrop(
+      const centeredCrop = centerCrop(
         makeAspectCrop(
           {
             unit: "%",
@@ -78,7 +79,7 @@ export function ImageUploadCrop({
         height,
       );
 
-      setCrop(crop);
+      setCrop(centeredCrop);
     },
     [aspectRatio],
   );
@@ -86,7 +87,7 @@ export function ImageUploadCrop({
   const getCroppedImg = useCallback(
     async (
       image: HTMLImageElement,
-      crop: PixelCrop,
+      pixelCrop: PixelCrop,
       fileName: string,
     ): Promise<File> => {
       const canvas = document.createElement("canvas");
@@ -100,8 +101,8 @@ export function ImageUploadCrop({
       const scaleY = image.naturalHeight / image.height;
 
       // Set canvas size to the crop size, but respect max dimensions
-      const cropWidth = crop.width * scaleX;
-      const cropHeight = crop.height * scaleY;
+      const cropWidth = pixelCrop.width * scaleX;
+      const cropHeight = pixelCrop.height * scaleY;
 
       let finalWidth = cropWidth;
       let finalHeight = cropHeight;
@@ -120,10 +121,10 @@ export function ImageUploadCrop({
 
       ctx.drawImage(
         image,
-        crop.x * scaleX,
-        crop.y * scaleY,
-        crop.width * scaleX,
-        crop.height * scaleY,
+        pixelCrop.x * scaleX,
+        pixelCrop.y * scaleY,
+        pixelCrop.width * scaleX,
+        pixelCrop.height * scaleY,
         0,
         0,
         finalWidth,
@@ -199,9 +200,10 @@ export function ImageUploadCrop({
       {/* Current image preview */}
       {currentImageUrl && (
         <div className="mb-4">
+          {/* oxlint-disable-next-line nextjs/no-img-element -- a 96px admin preview of the stored original; not worth an optimizer transform */}
           <img
             src={currentImageUrl}
-            alt="Current image"
+            alt="Current upload"
             className="w-24 h-24 object-cover rounded-lg border"
           />
         </div>
@@ -257,6 +259,7 @@ export function ImageUploadCrop({
                   minWidth={100}
                   minHeight={aspectRatio === 1 ? 100 : 100 / aspectRatio}
                 >
+                  {/* oxlint-disable-next-line nextjs/no-img-element -- ReactCrop measures and crops this element; src is a local data: URL */}
                   <img
                     ref={imgRef}
                     alt="Crop me"

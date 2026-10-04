@@ -1,11 +1,10 @@
-import { NextRequest } from "next/server";
 import { ImageResponse } from "next/og";
 import { SpeakersPreview } from "@/lib/image-gen/templates";
 import { getFont } from "@/lib/image-gen/utils";
 import { getSpeakersWithTalks } from "@/lib/speakers";
 import { generatedImageCacheControl } from "@/lib/image-gen/cache";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { speakers } = await getSpeakersWithTalks();
 
