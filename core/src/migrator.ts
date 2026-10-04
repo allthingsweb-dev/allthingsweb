@@ -160,6 +160,23 @@ export const run = (
     return ran.map(([id, name]) => ({ id, name }));
   });
 
+/**
+ * A failed migration's reason, for a person: the failure's message and each
+ * cause's under it, one per line, without repeats. The migrator wraps a
+ * failed statement's error (a migration's own RAISE, say) several levels
+ * down, under messages such as "PgConnection: Query failed".
+ */
+export function failureMessage(failure: Error): string {
+  const lines: Array<string> = [];
+  let current: unknown = failure;
+  // Bounded, in case a cause chain loops.
+  for (let depth = 0; current instanceof Error && depth < 10; depth++) {
+    if (!lines.includes(current.message)) lines.push(current.message);
+    current = current.cause;
+  }
+  return lines.join("\n");
+}
+
 /** Fails with the difference unless the live schema equals `expected`. */
 export const verify = (
   expected: ReadonlyArray<string>,
