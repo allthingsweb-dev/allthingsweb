@@ -42,7 +42,7 @@ until then (see below).
   stamped, takes migrations from here alone.
 - Add the lines the migration creates to
   `tests/fixtures/production-schema.txt`, which is production's catalog once
-  every migration here has run (`bun run migrate`, after the merge).
+  every migration here has run (`bun run migrate`, below).
 
 `0001_baseline` is production's schema on 2026-10-04, read from its catalog,
 not a copy of `app/migrations`: production received changes by hand that
@@ -58,8 +58,16 @@ DATABASE_URL=postgres://… bun run migrate --dry-run   # what would run
 DATABASE_URL=postgres://… bun run migrate             # run it
 ```
 
-After a pull request with a migration merges, run both against production:
-the dry run must list exactly that pull request's migrations as pending.
+A migration reaches production before the code that needs it: the app on
+Vercel builds and serves against production's database (previews too), so
+code that reads a new column fails until it exists. Once a pull request with
+a migration is approved and green, check out its final head commit and run
+both against production; the dry run must list exactly that pull request's
+migrations as pending. Then merge, and push nothing to the branch in between,
+since production records each migration by name. This works because the code
+already on `main` must keep running on the migrated schema: add before
+using, and split a drop or rename into a migration after the code stops
+using the old shape.
 
 `DATABASE_URL` comes from the environment only: the script does not read
 `.env` files. The record of applied migrations is `effect_sql.migrations`, in
