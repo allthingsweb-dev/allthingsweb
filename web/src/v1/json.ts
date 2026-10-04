@@ -1,5 +1,5 @@
 import { sanitizeRichText } from "allthings-core/src/rich-text.ts";
-import { DateTime } from "effect";
+import { DateTime, Effect } from "effect";
 import type {
   DirectoryRow,
   EventDetailsRow,
@@ -188,41 +188,48 @@ function handles(
  * An event as /api/v1/events/:id answers it: the listed shape plus talks with
  * sanitized descriptions and their speakers, hosts and photos.
  */
-export function eventDetailsJson(row: EventDetailsRow): EventDetailsJson {
+export const eventDetailsJson = (
+  row: EventDetailsRow,
+): Effect.Effect<EventDetailsJson> => {
   const photo = (value: ImageRow | null, name: string) =>
     value === null ? blankAvatar(name) : image(value);
-  return {
-    ...eventJson(row),
-    talks: row.talks.map((talk) => ({
-      id: talk.id,
-      title: talk.title,
-      description: sanitizeRichText(talk.description),
-      speakers: talk.speakers.map((speaker) => ({
-        id: speaker.id,
-        name: speaker.name,
-        title: speaker.title,
-        image: photo(speaker.image, speaker.name),
-        bio: speaker.bio,
-        socials: handles(speaker),
+  return Effect.map(
+    Effect.forEach(row.talks, (talk) =>
+      Effect.map(sanitizeRichText(talk.description), (description) => ({
+        id: talk.id,
+        title: talk.title,
+        description,
+        speakers: talk.speakers.map((speaker) => ({
+          id: speaker.id,
+          name: speaker.name,
+          title: speaker.title,
+          image: photo(speaker.image, speaker.name),
+          bio: speaker.bio,
+          socials: handles(speaker),
+        })),
       })),
-    })),
-    // A host with one logo variant uses it for both.
-    hosts: row.hosts.map((host) => ({
-      id: host.id,
-      name: host.name,
-      about: host.about,
-      squareLogoLight: photo(
-        host.squareLogoLight ?? host.squareLogoDark,
-        host.name,
-      ),
-      squareLogoDark: photo(
-        host.squareLogoDark ?? host.squareLogoLight,
-        host.name,
-      ),
-    })),
-    images: row.images.map((value) => image(value)),
-  };
-}
+    ),
+    (talks) => ({
+      ...eventJson(row),
+      talks,
+      // A host with one logo variant uses it for both.
+      hosts: row.hosts.map((host) => ({
+        id: host.id,
+        name: host.name,
+        about: host.about,
+        squareLogoLight: photo(
+          host.squareLogoLight ?? host.squareLogoDark,
+          host.name,
+        ),
+        squareLogoDark: photo(
+          host.squareLogoDark ?? host.squareLogoLight,
+          host.name,
+        ),
+      })),
+      images: row.images.map((value) => image(value)),
+    }),
+  );
+};
 
 /**
  * Folds one row per speaker and talk into speakers in first-appearance

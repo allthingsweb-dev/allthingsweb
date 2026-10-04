@@ -15,7 +15,7 @@ import {
 } from "./support/http.ts";
 import { normalizeJsonSchema } from "./support/json-schema.ts";
 import { ignoringAttachOrder, type Json } from "./support/order.ts";
-import { testStack } from "./support/stack.ts";
+import { bundleBudget, testStack } from "./support/stack.ts";
 
 /**
  * The Worker, bundled as it deploys and running in workerd, against the app
@@ -464,19 +464,12 @@ describe("MCP", () => {
 });
 
 describe("bundle", () => {
-  // Today: about 990 KB, 288 KB gzipped. Effect is a third of it, the MCP
-  // SDK and the zod it brings another third, and sanitize-html (with
-  // postcss) and @effect/sql-pg most of the rest; the pages (templates,
-  // tokens and the foundations as HTML) are 14 KB. Raise the budget only on
-  // purpose; every byte is parsed on a cold start.
-  const budget = 300_000;
-
-  it(`gzips to at most ${budget} bytes`, async () => {
+  it(`gzips to at most ${bundleBudget} bytes`, async () => {
     // Where Alchemy writes the bundle it uploads, for the Worker named Web.
     const bundle = Bun.file(
       new URL("../.alchemy/bundles/Web/worker.js", import.meta.url),
     );
     const size = Bun.gzipSync(await bundle.bytes(), { level: 9 }).byteLength;
-    expect(size).toBeLessThanOrEqual(budget);
+    expect(size).toBeLessThanOrEqual(bundleBudget);
   });
 });

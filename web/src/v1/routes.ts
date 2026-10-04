@@ -54,7 +54,7 @@ const event = (id: string) =>
     const row = yield* V1Data.use((data) => data.findEvent(id));
     if (Option.isNone(row) || row.value.isDraft) return yield* notFound;
     return yield* respond(
-      { event: eventDetailsJson(row.value) },
+      { event: yield* eventDetailsJson(row.value) },
       200,
       CacheControl.publicData,
     );

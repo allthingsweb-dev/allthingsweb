@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DateTime, Schema } from "effect";
+import { DateTime, Effect, Schema } from "effect";
 import * as Contract from "../src/contract.ts";
 import * as Mappers from "../src/mappers.ts";
 import { htmlToPlainText, sanitizeRichText } from "../src/rich-text.ts";
@@ -129,7 +129,8 @@ describe("selectEvents", () => {
 });
 
 describe("talk descriptions", () => {
-  const plain = (html: string) => htmlToPlainText(sanitizeRichText(html));
+  const plain = async (html: string) =>
+    htmlToPlainText(await Effect.runPromise(sanitizeRichText(html)));
 
   test.each([
     ["<p>One</p><p>Two</p>", "One\nTwo"],
@@ -138,7 +139,7 @@ describe("talk descriptions", () => {
     ["Line<br/>break", "Line\nbreak"],
     ["<p>x</p><p></p><p></p><p></p><p>y</p>", "x\n\ny"],
     ['<script>alert(1)</script><a href="javascript:x">link</a>', "link"],
-  ])("%j reads as %j", (html, text) => {
-    expect(plain(html)).toBe(text);
+  ])("%j reads as %j", async (html, text) => {
+    expect(await plain(html)).toBe(text);
   });
 });

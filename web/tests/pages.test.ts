@@ -22,7 +22,7 @@ import {
   stylesheetUrls,
   subresources,
 } from "./support/pages.ts";
-import { testStack } from "./support/stack.ts";
+import { bundleBudget, testStack } from "./support/stack.ts";
 
 /**
  * The site's pages, served by the Worker in workerd with its static assets,
@@ -197,10 +197,6 @@ describe("/brand", () => {
 });
 
 describe("the Worker", () => {
-  // Workers on the free plan may be 3 MB gzipped; we hold ours far below
-  // that, since every cold start parses all of it.
-  const bundleBudget = 300_000;
-
   it(`bundles to at most ${bundleBudget} bytes gzipped`, async () => {
     // Where Alchemy wrote the bundle it just ran, as it deploys it.
     const bundle = Bun.file(
