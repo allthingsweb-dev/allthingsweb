@@ -28,7 +28,7 @@ const home = HttpRouter.add(
     const request = yield* HttpServerRequest.HttpServerRequest;
     const acceptEncoding = request.headers["accept-encoding"];
     const { origin } = yield* Site;
-    return yield* Home.use((home) => home.read(mediaOrigin)).pipe(
+    return yield* Home.use((repository) => repository.read(mediaOrigin)).pipe(
       Effect.provide(repositories),
       Effect.map((view) =>
         htmlResponse(homePage({ home: view, origin }), acceptEncoding, {

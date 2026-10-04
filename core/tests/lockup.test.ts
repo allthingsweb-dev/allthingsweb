@@ -79,6 +79,8 @@ describe("displayName", () => {
     ["Effect San Francisco 🇺🇸", "Effect San Francisco"],
     ["All Things Web @ Vercel HQ 👀", "All Things Web @ Vercel HQ"],
     ["Lightning Hackathon ⚡️", "Lightning Hackathon"],
+    ["Hack night 👩‍💻", "Hack night"],
+    ["Round 1️⃣", "Round 1"],
     [
       "  Dev Setup Demos -  Show your agents.md! ",
       "Dev Setup Demos - Show your agents.md!",

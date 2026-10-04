@@ -35,14 +35,14 @@ function local(instant: DateTime.DateTime): DateTime.DateTime.PartsWithWeekday {
 
 /** "09.30.26": dates in lists. */
 export function listDate(instant: DateTime.DateTime): string {
-  const { month, day, year } = local(instant);
-  return `${twoDigits(month)}.${twoDigits(day)}.${twoDigits(year % 100)}`;
+  const { month, day: date, year } = local(instant);
+  return `${twoDigits(month)}.${twoDigits(date)}.${twoDigits(year % 100)}`;
 }
 
 /** "Wed Sep 30": the day of an evening. */
 export function day(instant: DateTime.DateTime): string {
-  const { weekDay, month, day } = local(instant);
-  return `${weekdays[weekDay] ?? ""} ${months[month - 1] ?? ""} ${day}`;
+  const { weekDay, month, day: date } = local(instant);
+  return `${weekdays[weekDay] ?? ""} ${months[month - 1] ?? ""} ${date}`;
 }
 
 /** "5:30 PM", "12:05 AM": the time of an evening. */

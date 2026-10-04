@@ -18,9 +18,13 @@
  * the lockup belong to topics only.
  */
 
-/** Emoji, flags, their joiners and variation selectors. */
+/**
+ * Emoji, flags, and what joins or modifies them: variation selectors, the
+ * zero-width joiner and the keycap mark. Alternatives rather than one
+ * character class, since the joiner and the keycap mark combine.
+ */
 const pictographs =
-  /[\p{Extended_Pictographic}\p{Regional_Indicator}\u{FE0E}\u{FE0F}\u{200D}\u{20E3}]/gu;
+  /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u{FE0E}|\u{FE0F}|\u{200D}|\u{20E3}/gu;
 
 /** The longest topic the lockup sets; longer names read better as written. */
 export const maxTopicLength = 24;

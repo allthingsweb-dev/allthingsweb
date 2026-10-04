@@ -37,9 +37,10 @@ interface Options {
   readonly database?: PGlite;
 }
 
-const home = (options: Options) =>
+/** Home as `options` set the clock and database. */
+const readHome = (options: Options) =>
   Effect.provide(
-    Home.use((home) => home.read(photoOrigin)),
+    Home.use((repository) => repository.read(photoOrigin)),
     Home.layer.pipe(
       Layer.provideMerge(sqlLayer(options.database ?? db)),
       Layer.provideMerge(clockAt(options.at ?? now)),
@@ -47,7 +48,7 @@ const home = (options: Options) =>
   );
 
 const read = (options: Options = {}): Promise<HomeView> =>
-  Effect.runPromise(home(options));
+  Effect.runPromise(readHome(options));
 
 const at = (iso: string) => DateTime.makeUnsafe(iso);
 const slugs = (evenings: ReadonlyArray<{ readonly slug: string }>) =>
@@ -181,7 +182,7 @@ describe("Home", () => {
     const empty = await PGlite.create();
     try {
       const error = await Effect.runPromise(
-        Effect.flip(home({ database: empty })),
+        Effect.flip(readHome({ database: empty })),
       );
       expect(error).toBeInstanceOf(DataSourceError);
     } finally {
