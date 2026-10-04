@@ -6,12 +6,16 @@ on:
     paths:
       - "core/**"
       - "app/src/lib/public-api/**"
+      - "app/package.json"
+      - "app/bun.lock"
       - ".github/workflows/core.yaml"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - "core/**"
       - "app/src/lib/public-api/**"
+      - "app/package.json"
+      - "app/bun.lock"
       - ".github/workflows/core.yaml"
 
 permissions:

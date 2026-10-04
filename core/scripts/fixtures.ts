@@ -40,7 +40,24 @@ async function write(file: string, value: unknown) {
   await Bun.write(new URL(file, dir), `${JSON.stringify(value, null, 2)}\n`);
 }
 
-const events = await call("list_events", { when: "all", limit: 100 });
+/** Lists at the tool's maximum page size, failing if the list may be cut off. */
+async function listAll(
+  name: string,
+  key: string,
+  limit: number,
+  args: Record<string, unknown> = {},
+) {
+  const result = await call(name, { ...args, limit });
+  if (result[key].length >= limit) {
+    throw new Error(
+      `${name} returned ${limit} ${key}, its maximum; the capture may be incomplete.`,
+    );
+  }
+  return result;
+}
+
+const events = await listAll("list_events", "events", 100, { when: "all" });
+const speakers = await listAll("list_speakers", "speakers", 200);
 const details = [];
 for (const { slug } of events.events as Array<{ slug: string }>) {
   details.push(await call("get_event", { slug }));
@@ -48,6 +65,6 @@ for (const { slug } of events.events as Array<{ slug: string }>) {
 
 await write("events.json", events);
 await write("event-details.json", { events: details });
-await write("speakers.json", await call("list_speakers", { limit: 200 }));
+await write("speakers.json", speakers);
 await write("community.json", await call("get_community", {}));
 console.log(`fixtures: ${details.length} events from ${endpoint}`);
