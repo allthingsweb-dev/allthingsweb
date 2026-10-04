@@ -9,8 +9,10 @@ import {
   type TypeRole,
   typeRoles,
 } from "allthings-brand/src/tokens.ts";
+import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
-import { Document, type Theme } from "./document.tsx";
+import { Document } from "./document.tsx";
+import type { Theme } from "./theme.ts";
 
 /**
  * /brand: the living style guide. The palette, the type scale and the marks
@@ -347,20 +349,16 @@ function Marks() {
   );
 }
 
-const themeLinks: ReadonlyArray<readonly [string, string]> = [
-  ["paper", "?theme=light"],
-  ["night", "?theme=dark"],
-  ["system", "/brand"],
-];
+let content: string | undefined;
 
-export function brandPage(theme: Theme | undefined): string {
-  const safeFoundations = built.foundations;
-  return Document({
-    title: "all things/brand",
-    description:
-      "The all things/_ brand: palette, type, marks and the rules they follow.",
-    theme,
-    children: (
+/**
+ * The page's <main>: a function of the build alone, the same in every mode,
+ * so it is rendered once per isolate.
+ */
+function brandContent(): string {
+  if (content === undefined) {
+    const safeFoundations = built.foundations;
+    const rendered = (
       <>
         <div class="intro">
           <p class="at-type-meta">brand · the living style guide</p>
@@ -372,23 +370,35 @@ export function brandPage(theme: Theme | undefined): string {
             with. Where this page and the foundations disagree, the foundations
             win.
           </p>
-          <p class="at-type-meta">
-            mode:{" "}
-            {themeLinks.map(([label, href], index) => (
-              <>
-                {index === 0 ? "" : " · "}
-                <a href={href} safe>
-                  {label}
-                </a>
-              </>
-            ))}
-          </p>
         </div>
         <Palette />
         <TypeScale />
         <Marks />
         <div class="prose">{safeFoundations}</div>
       </>
-    ),
+    );
+    // Components here are synchronous, so it is a string, never a promise.
+    if (typeof rendered !== "string") {
+      throw new Error("/brand rendered asynchronously");
+    }
+    content = rendered;
+  }
+  return content;
+}
+
+export interface BrandProps {
+  readonly theme: Theme | undefined;
+  /** The hosts' portraits, for the footer. */
+  readonly portraits: PortraitsById;
+}
+
+export function brandPage({ theme, portraits }: BrandProps): string {
+  return Document({
+    title: "all things/brand",
+    description:
+      "The all things/_ brand: palette, type, marks and the rules they follow.",
+    theme,
+    portraits,
+    children: brandContent(),
   });
 }

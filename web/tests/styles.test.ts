@@ -83,3 +83,17 @@ describe("site.css", () => {
     for (const name of used) expect(theme).toContain(`${name}:`);
   });
 });
+
+describe("the home page's two sentences", () => {
+  test("take their type from the lead role alone", () => {
+    for (const selector of [".pitch", ".pitch-place"]) {
+      const block = new RegExp(
+        `(?:^|\\n)${selector.replace(".", "\\.")} \\{([^}]*)\\}`,
+      ).exec(site)?.[1];
+      expect(block).toBeDefined();
+      expect(block).not.toMatch(
+        /font-(?:size|weight|family|stretch)|line-height|letter-spacing/,
+      );
+    }
+  });
+});

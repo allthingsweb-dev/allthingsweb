@@ -8,10 +8,18 @@ import {
 } from "allthings-brand/src/tokens.ts";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import { immutable } from "../scripts/build.ts";
-import { CacheControl } from "../src/cache.ts";
+import {
+  CacheControl,
+  PrivateCacheControl,
+  preferenceCacheControl,
+} from "../src/cache.ts";
+import { socials } from "../src/links.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
+import { themeCookieMaxAge } from "../src/pages/theme.ts";
+import { erikPortrait, hostsDatabase } from "./support/catalog.ts";
 import {
   cssBudget,
   gzipped,
@@ -22,15 +30,20 @@ import {
   stylesheetUrls,
   subresources,
 } from "./support/pages.ts";
+import { serve } from "./support/socket.ts";
 import { bundleBudget, testStack } from "./support/stack.ts";
 
 /**
  * The site's pages, served by the Worker in workerd with its static assets,
- * as they deploy. No database: /brand needs none.
+ * as they deploy. /brand reads only the hosts' portraits, from a database
+ * holding just their profiles; without one, the blank avatars stand in.
  */
 
+const database = await serve(await hostsDatabase());
+
 const Stack = testStack("allthings-web-pages-test", {
-  Pages: { ORIGIN: "https://allthings.dev" },
+  Pages: { ORIGIN: "https://allthings.dev", DATABASE_URL: database.url },
+  NoDatabase: { ORIGIN: "https://allthings.dev" },
 });
 
 const { test, beforeAll, afterAll, deploy, destroy } = Test.make({
@@ -38,27 +51,51 @@ const { test, beforeAll, afterAll, deploy, destroy } = Test.make({
   dev: true,
 });
 const workers = beforeAll(deploy(Stack));
-afterAll(destroy(Stack));
+afterAll(
+  destroy(Stack).pipe(Effect.ensuring(Effect.promise(() => database.stop()))),
+);
 
-/** A test that gets the running Worker's URL. */
-const it = (name: string, run: (url: string) => Promise<void>) =>
+/**
+ * A test that gets the running Worker's URL, and that of the one without
+ * a database.
+ */
+const it = (
+  name: string,
+  run: (url: string, noDatabase: string) => Promise<void>,
+) =>
   test(
     name,
     Effect.flatMap(workers, (outputs) =>
       Effect.promise(() => {
-        const url = outputs["Pages"];
-        if (typeof url !== "string" || !url.startsWith("http://localhost")) {
-          throw new Error(`Pages is not running locally: ${String(url)}`);
-        }
-        return run(url);
+        const url = (worker: "Pages" | "NoDatabase") => {
+          const value = outputs[worker];
+          if (
+            typeof value !== "string" ||
+            !value.startsWith("http://localhost")
+          ) {
+            throw new Error(
+              `${worker} is not running locally: ${String(value)}`,
+            );
+          }
+          return value;
+        };
+        return run(url("Pages"), url("NoDatabase"));
       }),
     ),
   );
 
-const brand = async (url: string, query = "") => {
-  const response = await fetch(`${url}/brand${query}`);
+const brand = async (url: string, query = "", init?: RequestInit) => {
+  const response = await fetch(`${url}/brand${query}`, init);
   return { response, html: await response.text() };
 };
+
+/** The footer's portraits. */
+const portraits = (html: string) =>
+  /<span class="portraits">(.*?)<\/span>/
+    .exec(html)?.[1]
+    ?.match(/<img [^>]*>/g) ?? [];
+
+const blankAvatar = /^<img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt=""/;
 
 describe("/brand", () => {
   it("answers with HTML that caches and may load only this site's files", async (url) => {
@@ -72,7 +109,7 @@ describe("/brand", () => {
       contentSecurityPolicy,
     );
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(response.headers.get("vary")).toBe("accept-encoding");
+    expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
   });
 
   for (const [accepted, encoding] of [
@@ -124,12 +161,14 @@ describe("/brand", () => {
     });
   });
 
-  it("loads nothing from another origin and runs no JavaScript", async (url) => {
+  it("loads nothing from another origin but a portrait, and runs no JavaScript", async (url) => {
     const { html } = await brand(url);
     const css = await (await fetch(`${url}${stylesheetOf(html)}`)).text();
     const loaded = [...subresources(html), ...stylesheetUrls(css)];
     expect(loaded.length).toBeGreaterThan(4);
-    for (const path of loaded) expect(path).toMatch(/^\/(?!\/)/);
+    expect(loaded.filter((path) => !/^\/(?!\/)/.test(path))).toEqual([
+      erikPortrait,
+    ]);
     expect(css).not.toContain("@import");
     expect(html).not.toMatch(/<script|\son[a-z]+=|javascript:/i);
     const files = await readdir(new URL("../dist/public", import.meta.url), {
@@ -173,25 +212,167 @@ describe("/brand", () => {
     );
   });
 
-  it("signs off with the hosts, the blank avatar standing in for portraits", async (url) => {
-    const { html } = await brand(url);
+  it("signs off with the hosts' portraits from their profiles, by id, and the socials in order", async (url) => {
+    const { response, html } = await brand(url);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.page);
     expect(html).toContain("<p>hosted by Erik &amp; Andre</p>");
+    const [erik, andre, ...more] = portraits(html);
+    expect(erik).toBe(
+      `<img src="${erikPortrait}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
+    );
+    expect(andre).toMatch(blankAvatar);
+    expect(more).toEqual([]);
+    // Another profile is named Andre Landgraf and has a photo.
+    expect(html).not.toContain("not-andre");
+    const elsewhere =
+      /<nav aria-label="all things elsewhere">(.*?)<\/nav>/.exec(html)?.[1];
     expect(
-      html.match(/<img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt=""/g),
-    ).toHaveLength(2);
-    expect(html).toContain('<a href="https://x.com/allthingswebdev">x</a>');
+      [...(elsewhere ?? "").matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)].map(
+        ([, href, name]) => ({ name, href }),
+      ),
+    ).toEqual([...socials]);
+    expect(elsewhere).toContain(
+      '<li><a href="https://www.linkedin.com/company/all-things-web-dev/">linkedin</a></li></ul>',
+    );
   });
 
-  for (const [query, attribute] of [
-    ["", '<html lang="en">'],
-    ["?theme=dark", '<html lang="en" data-theme="dark">'],
-    ["?theme=light", '<html lang="en" data-theme="light">'],
-    ["?theme=sepia", '<html lang="en">'],
+  it("shows the blank avatars, and is never stored, without a database", async (_, noDatabase) => {
+    const { response, html } = await brand(noDatabase);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    const images = portraits(html);
+    expect(images).toHaveLength(2);
+    for (const image of images) expect(image).toMatch(blankAvatar);
+  });
+});
+
+describe("the mode switch", () => {
+  const manual = { redirect: "manual" } as const;
+
+  for (const choice of ["light", "dark"] as const) {
+    it(`remembers ?theme=${choice} for a long while and shows the page again without it`, async (url) => {
+      const response = await fetch(`${url}/brand?theme=${choice}`, manual);
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe("/brand");
+      expect(response.headers.get("cache-control")).toBe(
+        preferenceCacheControl,
+      );
+      expect(response.headers.get("set-cookie")).toBe(
+        `theme=${choice}; Max-Age=${Duration.toSeconds(themeCookieMaxAge)}; Path=/; HttpOnly; Secure; SameSite=Lax`,
+      );
+      expect(await response.text()).toBe("");
+    });
+  }
+
+  it("forgets the choice for ?theme=system", async (url) => {
+    const response = await fetch(`${url}/brand?theme=system`, manual);
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("/brand");
+    expect(response.headers.get("cache-control")).toBe(preferenceCacheControl);
+    expect(response.headers.get("set-cookie")).toBe(
+      "theme=; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax",
+    );
+    await response.arrayBuffer();
+  });
+
+  it("keeps the rest of the query when it redirects", async (url) => {
+    const response = await fetch(`${url}/brand?a=1&theme=dark&b=2`, manual);
+    expect(response.headers.get("location")).toBe("/brand?a=1&b=2");
+    await response.arrayBuffer();
+  });
+
+  it("ignores a mode it doesn't know", async (url) => {
+    const { response, html } = await brand(url, "?theme=sepia", manual);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(html).toStartWith('<!doctype html><html lang="en">');
+  });
+
+  for (const [cookie, attribute, scheme, current, cacheControl] of [
+    [undefined, "", "light dark", "system", CacheControl.page],
+    [
+      "theme=light",
+      ' data-theme="light"',
+      "light",
+      "paper",
+      PrivateCacheControl.page,
+    ],
+    [
+      "theme=dark",
+      ' data-theme="dark"',
+      "dark",
+      "night",
+      PrivateCacheControl.page,
+    ],
+    ["theme=sepia", "", "light dark", "system", CacheControl.page],
+    [
+      "other=1; theme=dark",
+      ' data-theme="dark"',
+      "dark",
+      "night",
+      PrivateCacheControl.page,
+    ],
   ] as const) {
-    it(`${query || "without a theme"} sets the mode to ${attribute}`, async (url) => {
-      const { response, html } = await brand(url, query);
-      expect(response.status).toBe(200);
-      expect(html).toStartWith(`<!doctype html>${attribute}`);
+    it(`renders ${cookie ?? "no cookie"} as ${current}, cached ${cacheControl}`, async (url) => {
+      const { response, html } = await brand(
+        url,
+        "",
+        cookie === undefined ? {} : { headers: { cookie } },
+      );
+      expect(html).toStartWith(
+        `<!doctype html><html lang="en"${attribute}><head>`,
+      );
+      expect(html).toContain(`<meta name="color-scheme" content="${scheme}"/>`);
+      expect(html.match(/<a [^>]*aria-current="true"[^>]*>([^<]*)</)?.[1]).toBe(
+        current,
+      );
+      expect(response.headers.get("cache-control")).toBe(cacheControl);
+      expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
+    });
+  }
+
+  it("is three links in the header, labelled mode, that crawlers don't follow", async (url) => {
+    const { html } = await brand(url);
+    const header = /<header class="site-header">(.*?)<\/header>/.exec(
+      html,
+    )?.[1];
+    expect(header).toContain(
+      '<nav class="modes at-type-meta" aria-labelledby="mode"><span id="mode">mode</span><ul><li><a href="?theme=system" rel="nofollow" aria-current="true">system</a></li><li><a href="?theme=light" rel="nofollow">paper</a></li><li><a href="?theme=dark" rel="nofollow">night</a></li></ul></nav>',
+    );
+  });
+
+  it("works end to end: choose night, see night on every page, then the system's again", async (url) => {
+    const choose = async (choice: string, cookie?: string) => {
+      const response = await fetch(
+        `${url}/brand?theme=${choice}`,
+        cookie === undefined ? manual : { ...manual, headers: { cookie } },
+      );
+      await response.arrayBuffer();
+      const [pair = ""] = (response.headers.get("set-cookie") ?? "").split(";");
+      return { location: response.headers.get("location"), pair };
+    };
+    const night = await choose("dark");
+    expect(night.pair).toBe("theme=dark");
+    const { html } = await brand(url, "", {
+      headers: { cookie: night.pair },
+    });
+    expect(html).toStartWith(
+      '<!doctype html><html lang="en" data-theme="dark">',
+    );
+    const system = await choose("system", night.pair);
+    expect(system.pair).toBe("theme=");
+    // An emptied cookie is no choice.
+    const again = await brand(url, "", { headers: { cookie: system.pair } });
+    expect(again.html).toStartWith('<!doctype html><html lang="en"><head>');
+    expect(again.response.headers.get("cache-control")).toBe(CacheControl.page);
+  });
+
+  for (const cookie of ["theme=light", "theme=dark"]) {
+    it(`stays within budget and runs no JavaScript with ${cookie}`, async (url) => {
+      const { html } = await brand(url, "", { headers: { cookie } });
+      expect(gzipped(html)).toBeLessThanOrEqual(htmlBudget);
+      expect(html).not.toMatch(/<script|\son[a-z]+=|javascript:/i);
+      expect(await htmlProblems(html)).toEqual([]);
     });
   }
 });
@@ -217,7 +398,11 @@ describe("static assets", () => {
       png: "image/png",
     };
     const css = await (await fetch(`${url}${stylesheetOf(html)}`)).text();
-    const files = new Set([...subresources(html), ...stylesheetUrls(css)]);
+    const files = new Set(
+      [...subresources(html), ...stylesheetUrls(css)].filter((path) =>
+        path.startsWith("/"),
+      ),
+    );
     for (const path of files) {
       expect(path).toMatch(
         /^\/assets\/[a-z-]+\.[0-9a-f]{16}\.(css|woff2|svg|png)$/,

@@ -1,6 +1,11 @@
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
-import { CacheControl } from "../cache.ts";
+import {
+  CacheControl,
+  type CacheControlName,
+  PrivateCacheControl,
+} from "../cache.ts";
 import { mediaOrigin } from "../links.ts";
+import type { Theme } from "./theme.ts";
 
 /**
  * How pages are sent. They run no scripts and load nothing from other
@@ -63,12 +68,18 @@ const headers = {
   "content-security-policy": contentSecurityPolicy,
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
-  vary: "accept-encoding",
+  // Every page renders the mode its visitor's `theme` cookie fixes.
+  vary: "accept-encoding, cookie",
 } as const;
 
 export interface HtmlOptions {
-  /** How long the page may be kept: a pure function of data or of the build. */
-  readonly cacheControl: CacheControl;
+  /**
+   * How long the page may be kept: a pure function of data or of the build.
+   * Only the visitor's browser may keep a page in a mode they fixed.
+   */
+  readonly cacheControl: CacheControlName;
+  /** The mode the page was rendered in, from the visitor's cookie. */
+  readonly theme: Theme | undefined;
   /** 200 unless said otherwise. */
   readonly status?: number;
 }
@@ -80,13 +91,16 @@ export interface HtmlOptions {
 export function htmlResponse(
   html: string,
   acceptEncoding: string | undefined,
-  { cacheControl, status = 200 }: HtmlOptions,
+  { cacheControl, theme, status = 200 }: HtmlOptions,
 ): HttpServerResponse.HttpServerResponse {
   const encoding = contentEncoding(acceptEncoding);
   if (encoding === undefined) {
     return HttpServerResponse.text("Not Acceptable: br, gzip or identity", {
       status: 406,
-      headers: { "cache-control": CacheControl.failure, vary: headers.vary },
+      headers: {
+        "cache-control": CacheControl.failure,
+        vary: "accept-encoding",
+      },
     });
   }
   return HttpServerResponse.text(html, {
@@ -94,7 +108,10 @@ export function htmlResponse(
     contentType: "text/html; charset=utf-8",
     headers: {
       ...headers,
-      "cache-control": cacheControl,
+      "cache-control":
+        theme === undefined
+          ? CacheControl[cacheControl]
+          : PrivateCacheControl[cacheControl],
       ...(encoding === "identity" ? {} : { "content-encoding": encoding }),
     },
   });

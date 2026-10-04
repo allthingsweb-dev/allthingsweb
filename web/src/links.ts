@@ -36,19 +36,28 @@ export const socials: ReadonlyArray<Social> = [
   { name: "github", href: "https://github.com/allthingsweb-dev/allthingsweb" },
   { name: "x", href: `https://x.com/${xHandle}` },
   { name: "bluesky", href: "https://bsky.app/profile/allthingsweb.dev" },
+  {
+    name: "linkedin",
+    href: "https://www.linkedin.com/company/all-things-web-dev/",
+  },
 ];
 
 export interface Host {
+  /** As "hosted by" names them: first names. */
   readonly name: string;
   /**
-   * A portrait's URL on this site. Without one, the brand's blank avatar
-   * stands in; there are no stand-in photos.
+   * Their speaker profile's id, where their portrait comes from. Ids are
+   * stable and names are not, so profiles are never matched by name.
+   * Without a photo there, the brand's blank avatar stands in; there are no
+   * stand-in photos.
    */
-  readonly portrait?: string;
+  readonly profileId: string;
 }
 
 /** The organizers, who sign off every page. */
 export const hosts: readonly [Host, Host] = [
-  { name: "Erik" },
-  { name: "Andre" },
+  // Erik Thorelli
+  { name: "Erik", profileId: "717803b9-074f-47b9-adb7-ff3f2e520eee" },
+  // Andre Landgraf
+  { name: "Andre", profileId: "9527ccf6-8056-4225-b695-cb2a6e1ea50e" },
 ];

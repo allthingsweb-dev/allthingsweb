@@ -98,8 +98,10 @@ main {
 
 .site-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
+  gap: 8px 24px;
   border-top: 3px solid var(--at-text);
   padding-top: 14px;
 }
@@ -112,6 +114,44 @@ main {
   letter-spacing: -0.03em;
   line-height: 1;
   text-decoration: none;
+}
+
+/* The mode: links, the current one in the text color and underlined. */
+
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.6em;
+}
+
+#mode::after {
+  content: ":" / "";
+}
+
+.modes ul {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.modes a {
+  /* 24px tall, the least WCAG 2.2 allows for a target. */
+  display: inline-block;
+  padding: 2px 0;
+  color: var(--at-meta);
+  text-decoration: none;
+}
+
+.modes a:hover {
+  color: var(--at-link);
+  text-decoration: underline;
+}
+
+.modes a[aria-current] {
+  color: var(--at-text);
+  text-decoration: underline 2px;
 }
 
 .site-footer {
@@ -140,6 +180,7 @@ main {
   height: 36px;
   border: 2px solid var(--at-ground);
   border-radius: 50%;
+  object-fit: cover;
   /* The ground-colored ring parts the overlapping portraits; the rule
      outside it keeps a portrait as dark as Night visible on Night. */
   box-shadow: 0 0 0 1px var(--at-rule);
@@ -157,7 +198,9 @@ main {
   list-style: none;
 }
 
-.socials li + li::before {
+/* After each item but the last, so a wrapped line never starts with one. */
+.socials li:not(:last-child)::after,
+.modes li:not(:last-child)::after {
   content: "\b7" / "";
   padding: 0 0.6em;
 }
@@ -330,20 +373,18 @@ main > section,
   aspect-ratio: 2 / 1;
 }
 
+/* The two sentences, set in the lead role: four columns hold each in two
+   balanced lines at 30px, and narrower screens stack them above the lists. */
 .pitch {
-  grid-column: span 3;
+  grid-column: span 4;
   align-self: end;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .pitch-place {
-  font-weight: 500;
   color: var(--at-meta);
 }
 
@@ -666,11 +707,7 @@ th {
   white-space: nowrap;
 }
 
-@media (max-width: 760px) {
-  .type-row .spec,
-  .type-row .specimen,
-  .with-photos .hero-text,
-  .mosaic,
+@media (max-width: 1023px) {
   .pitch,
   .lists {
     grid-column: 1 / -1;
@@ -678,6 +715,15 @@ th {
 
   .band {
     row-gap: 40px;
+  }
+}
+
+@media (max-width: 760px) {
+  .type-row .spec,
+  .type-row .specimen,
+  .with-photos .hero-text,
+  .mosaic {
+    grid-column: 1 / -1;
   }
 
   .lists.two {
