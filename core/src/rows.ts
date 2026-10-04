@@ -88,6 +88,40 @@ export const DirectoryRow = Schema.Struct({
   eventStart: Schema.DateTimeUtcFromDate,
 });
 
+/**
+ * A published event as the home page lists it, with its hosts' names in
+ * attach order. It arrives nested in JSON, so its instants are ISO text.
+ */
+export const Listing = Schema.Struct({
+  id: Schema.String,
+  slug: Schema.String,
+  name: Schema.String,
+  startDate: Schema.DateTimeUtcFromString,
+  endDate: Schema.DateTimeUtcFromString,
+  streetAddress: Schema.NullOr(Schema.String),
+  shortLocation: Schema.NullOr(Schema.String),
+  fullAddress: Schema.NullOr(Schema.String),
+  lumaEventId: Schema.NullOr(Schema.String),
+  hosts: Schema.Array(Schema.String),
+});
+
+/** A photo from one of our evenings, from `event_images`. */
+export const Photo = Schema.Struct({
+  url: Schema.String,
+  alt: Schema.String,
+  width: Schema.Int,
+  height: Schema.Int,
+});
+
+/** What the home page reads, in one statement. */
+export const HomeRow = Schema.Struct({
+  /** Every event that hasn't ended, soonest first, up to the limit. */
+  ahead: Schema.Array(Listing),
+  /** The latest events that have ended, latest first, up to the limit. */
+  recent: Schema.Array(Listing),
+  photos: Schema.Array(Photo),
+});
+
 /** A `redirects` row: `/r/<slug>` sends visitors to `destinationUrl`. */
 export const Redirect = Schema.Struct({
   slug: Schema.String,
@@ -102,3 +136,6 @@ export type Host = typeof Host.Type;
 export type EventDetails = typeof EventDetails.Type;
 export type DirectoryRow = typeof DirectoryRow.Type;
 export type Redirect = typeof Redirect.Type;
+export type Listing = typeof Listing.Type;
+export type Photo = typeof Photo.Type;
+export type HomeRow = typeof HomeRow.Type;

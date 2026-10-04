@@ -41,7 +41,7 @@ export function httpUrlOrNull(value: string | null): string | null {
 }
 
 /** An event's page: its slug, encoded, under the origin. */
-function eventUrl(origin: string, slug: string): string {
+export function eventUrl(origin: string, slug: string): string {
   return `${origin}/${encodeURIComponent(slug)}`;
 }
 
@@ -62,7 +62,7 @@ function personLinks(
 }
 
 /** Registration happens on the event's Luma page. */
-function rsvpUrl(lumaEventId: string | null): string | null {
+export function rsvpUrl(lumaEventId: string | null): string | null {
   return lumaEventId
     ? httpUrlOrNull(`https://lu.ma/event/${lumaEventId}`)
     : null;
