@@ -45,7 +45,7 @@ if (serverUrl === undefined) {
 
   const wrongPassword = new URL(url.href);
   wrongPassword.password = "not-the-password";
-  const Stack = testStack({
+  const Stack = testStack("allthings-web-test", {
     Web: { ORIGIN: "https://allthingsweb.dev", DATABASE_URL: url.href },
     WrongPassword: {
       ORIGIN: "https://allthingsweb.dev",

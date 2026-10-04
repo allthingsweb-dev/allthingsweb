@@ -1,11 +1,12 @@
 import { ConfigProvider, Layer } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import { Mcp, mcpRoute } from "./mcp/endpoint.ts";
+import { pageRoutes } from "./pages/routes.ts";
 import { Site } from "./site.ts";
 import { v1Routes } from "./v1/routes.ts";
 
 /** Every route the Worker serves. */
-export const routes = Layer.mergeAll(v1Routes, mcpRoute);
+export const routes = Layer.mergeAll(v1Routes, mcpRoute, pageRoutes);
 
 /**
  * The Worker as a fetch handler, built once per isolate from its bindings.

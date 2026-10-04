@@ -1,5 +1,5 @@
 {
   "name": "allthings",
   "private": true,
-  "workspaces": ["core", "web"]
+  "workspaces": ["brand", "core", "tools/xss-scan", "web"]
 }

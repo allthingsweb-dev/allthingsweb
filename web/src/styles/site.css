@@ -1,0 +1,457 @@
+/*
+ * The site's own rules, after the faces and the theme the build generates
+ * from the brand tokens. Colors only ever come from a mode's roles
+ * (--at-ground, --at-text, ...) or, for specimens, a swatch.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+:root,
+[data-theme] {
+  background-color: var(--at-ground);
+  color: var(--at-text);
+}
+
+body {
+  margin: 0;
+  font-family: var(--at-font-display);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+a {
+  color: var(--at-link);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--at-link);
+  outline-offset: 3px;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+code {
+  font-family: var(--at-font-mono);
+  font-size: 0.9em;
+}
+
+.at-type-meta {
+  color: var(--at-meta);
+}
+
+.slash,
+.at-cursor {
+  color: var(--at-slash);
+}
+
+.at-cursor {
+  font-weight: 400;
+}
+
+/* Page frame: the margin narrows with the screen, down to 16px on phones. */
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(64px, 9vw, 112px);
+}
+
+.page {
+  --margin: clamp(16px, 4.5vw, var(--at-page-margin));
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 40px) var(--margin) 56px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(48px, 7vw, 88px);
+}
+
+.site-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-top: 3px solid var(--at-text);
+  padding-top: 14px;
+}
+
+.wordmark {
+  color: var(--at-text);
+  font-size: 28px;
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 32px;
+  border-top: 2px solid var(--at-text);
+  padding-top: 16px;
+}
+
+.hosts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+}
+
+.portraits {
+  display: flex;
+}
+
+.portraits img {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--at-ground);
+  border-radius: 50%;
+}
+
+.portraits img + img {
+  margin-left: -10px;
+}
+
+.socials {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.socials li + li::before {
+  content: "\b7" / "";
+  padding: 0 0.6em;
+}
+
+.socials a {
+  color: var(--at-meta);
+  text-decoration: none;
+}
+
+.socials a:hover {
+  color: var(--at-link);
+  text-decoration: underline;
+}
+
+/* Sections: a heavy rule, then a caps label. */
+
+main > section,
+.prose {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section-title,
+.prose h2 {
+  border-top: 2px solid var(--at-text);
+  padding-top: 14px;
+}
+
+.prose h2 {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.section-title {
+  font-size: clamp(28px, 4vw, 40px);
+}
+
+.intro {
+  display: grid;
+  gap: 20px;
+  max-width: 62rem;
+}
+
+.lockup {
+  font-size: min(72px, 12vw);
+}
+
+.lead {
+  font-size: clamp(22px, 3vw, 30px);
+  max-width: 36ch;
+}
+
+/* Palette */
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 32px var(--at-grid-gutter);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chip {
+  height: 88px;
+  margin-bottom: 8px;
+  background: var(--at-swatch);
+  border: 1px solid var(--at-rule);
+}
+
+.swatch .use {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.samples {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 6px;
+}
+
+.samples > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+}
+
+.samples dt {
+  font-size: 12px;
+}
+
+.samples dd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Figures: token names, hex values and contrast, in mono as written. */
+.figure {
+  font-family: var(--at-font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--at-meta);
+}
+
+.sample-text {
+  color: var(--at-swatch);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.pairs-scroll {
+  overflow-x: auto;
+}
+
+.pairs .sample {
+  display: inline-block;
+  min-width: 3.2em;
+  padding: 2px 10px;
+  background: var(--at-swatch);
+  font-weight: 700;
+}
+
+.pairs .sample > span {
+  color: var(--at-swatch);
+}
+
+/* Type */
+
+.type-scale {
+  display: flex;
+  flex-direction: column;
+}
+
+.type-row {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--at-grid-gutter);
+  row-gap: 8px;
+  align-items: baseline;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--at-rule);
+}
+
+.type-row .spec {
+  grid-column: span 3;
+}
+
+.type-row .specimen {
+  grid-column: span 9;
+  overflow-wrap: anywhere;
+}
+
+.specimen.at-type-wordmark {
+  font-size: min(168px, 17vw);
+}
+
+.specimen.at-type-event-lockup {
+  font-size: min(72px, 11vw);
+}
+
+.specimen.at-type-label {
+  font-size: min(40px, 8vw);
+}
+
+.specimen.place {
+  color: var(--at-link);
+}
+
+.list-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 24px;
+}
+
+/* Marks */
+
+.marks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--at-grid-gutter);
+}
+
+.mark-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 220px;
+  padding: 24px;
+  border: 1px solid var(--at-rule);
+}
+
+.mark-tile img {
+  margin: auto 0;
+}
+
+.mark-tile.wide {
+  grid-column: 1 / -1;
+}
+
+.mark-tile.wide img {
+  width: min(100%, 720px);
+}
+
+.mark-tile.small img {
+  width: 96px;
+}
+
+/* Tables, in the palette and the foundations */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+th,
+td {
+  padding: 10px 16px 10px 0;
+  border-bottom: 1px solid var(--at-rule);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+th {
+  font-family: var(--at-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--at-meta);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+/* The foundations, as prose */
+
+.prose {
+  gap: 16px;
+}
+
+.prose > :not(h2, h3, .scroll) {
+  max-width: 68ch;
+}
+
+.prose h3 {
+  margin-top: 24px;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.prose ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.prose li + li {
+  margin-top: 6px;
+}
+
+.prose blockquote {
+  padding-left: 20px;
+  font-size: clamp(20px, 2.4vw, 24px);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .type-row .spec,
+  .type-row .specimen {
+    grid-column: 1 / -1;
+  }
+}
