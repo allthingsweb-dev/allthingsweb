@@ -58,7 +58,8 @@ if (serverUrl === undefined) {
     dev: true,
   });
   const workers = beforeAll(deploy(Stack));
-  afterAll(destroy(Stack).pipe(Effect.andThen(Effect.promise(dropDatabase))));
+  // The database goes even if tearing the stack down fails.
+  afterAll(destroy(Stack).pipe(Effect.ensuring(Effect.promise(dropDatabase))));
 
   const urlOf = (outputs: Readonly<Record<string, unknown>>, name: string) => {
     const value = outputs[name];

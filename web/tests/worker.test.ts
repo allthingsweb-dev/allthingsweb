@@ -51,10 +51,15 @@ const { test, beforeAll, afterAll, deploy, destroy } = Test.make({
   dev: true,
 });
 const workers = beforeAll(deploy(Stack));
+// The database server stops even if tearing the stack down fails.
 afterAll(
   destroy(Stack).pipe(
-    Effect.andThen(Effect.promise(() => postgres.stop())),
-    Effect.andThen(Effect.promise(() => db.close())),
+    Effect.ensuring(
+      Effect.promise(async () => {
+        await postgres.stop();
+        await db.close();
+      }),
+    ),
   ),
 );
 

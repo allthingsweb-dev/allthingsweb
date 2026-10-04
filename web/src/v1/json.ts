@@ -149,6 +149,7 @@ function lumaEventUrl(lumaEventId: string | null): string | null {
   return lumaEventId ? `https://lu.ma/event/${lumaEventId}` : null;
 }
 
+/** An event as /api/v1/events lists it: its row, cover and Luma page. */
 export function eventJson(row: EventRow, legacy: LegacyMediaOrigin): EventJson {
   return {
     id: row.id,
@@ -187,6 +188,10 @@ function handles(
   };
 }
 
+/**
+ * An event as /api/v1/events/:id answers it: the listed shape plus talks with
+ * sanitized descriptions and their speakers, hosts and photos.
+ */
 export function eventDetailsJson(
   row: EventDetailsRow,
   legacy: LegacyMediaOrigin,
