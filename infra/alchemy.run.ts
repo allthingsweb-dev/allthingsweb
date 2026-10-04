@@ -4,6 +4,7 @@ import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
 import { Media, PRODUCTION, MEDIA_DOMAIN } from "./src/media.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
+import { Web } from "./src/web.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
 
 export default Alchemy.Stack(
@@ -40,9 +41,14 @@ export default Alchemy.Stack(
       });
     }
 
+    // The Worker replacing the app runs on every stage but prod until its
+    // data bindings land, so a prod deploy changes nothing yet.
+    const web = stage === PRODUCTION ? undefined : yield* Web;
+
     return {
       mediaBucket: media.bucketName,
       mediaUploadUrl: upload.url.as<string>(),
+      ...(web === undefined ? {} : { webUrl: web.url.as<string>() }),
     };
   }),
 );

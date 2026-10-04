@@ -15,7 +15,8 @@
 
 - `app`: the Next.js web application
 - `atw-cli`: the CLI tool
-- `core`: the Effect domain models and public contract, shared by the coming Workers site and the CLI
+- `core`: the Effect domain models, public contract and data access, shared by the Worker and the CLI
+- `web`: the Cloudflare Worker replacing the app: the public API and the MCP server so far. `core` and `web` form a bun workspace: run `bun install` at the repository root
 - `infra`: Cloudflare infrastructure as code, with Alchemy
 
 ### 🛠️ Installation

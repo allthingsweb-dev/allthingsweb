@@ -5,11 +5,13 @@ on:
     branches: ["main"]
     paths:
       - "infra/**"
+      - "web/src/compatibility.ts"
       - ".github/workflows/infra-ci.yaml"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - "infra/**"
+      - "web/src/compatibility.ts"
       - ".github/workflows/infra-ci.yaml"
 
 permissions:
