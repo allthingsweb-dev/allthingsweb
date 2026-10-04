@@ -23,7 +23,6 @@ import {
   getPastEventsWithImages,
   EventWithImages,
 } from "@/lib/images";
-import { signImage } from "@/lib/image-signing";
 import { getLumaUrl } from "@/lib/luma";
 
 // Homepage metadata - the layout already provides the base metadata
@@ -36,17 +35,15 @@ async function getEvents() {
   const now = new Date();
 
   // Transform to Event type
-  const transformToEvent = async (row: any): Promise<Event> => {
+  const transformToEvent = (row: any): Event => {
     const event = row.events;
-    const previewImageRaw = row.images || {
+    const previewImage = row.images || {
       url: "/hero-image-rocket.png",
       alt: `${event.name} preview`,
       placeholder: null,
       width: 1200,
       height: 630,
     };
-
-    const previewImage = await signImage(previewImageRaw);
 
     return {
       ...event,
@@ -93,10 +90,8 @@ async function getEvents() {
     getPastEventImages(),
   ]);
 
-  const upcomingEvents = await Promise.all(
-    upcomingEventsQuery.map(transformToEvent),
-  );
-  const liveEvents = await Promise.all(liveEventsQuery.map(transformToEvent));
+  const upcomingEvents = upcomingEventsQuery.map(transformToEvent);
+  const liveEvents = liveEventsQuery.map(transformToEvent);
 
   const highlightEvent =
     upcomingEvents.length > 0

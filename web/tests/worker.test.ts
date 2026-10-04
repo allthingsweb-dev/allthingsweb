@@ -25,18 +25,16 @@ import { testStack } from "./support/stack.ts";
  */
 
 const origin = "https://allthingsweb.dev";
-const storageOrigin = "https://storage.example";
 
 const db = await seededDatabase();
 const postgres = new PGLiteSocketServer({ db, port: 0, maxConnections: 8 });
 await postgres.start();
-const app = await loadApp(db, { origin, storageOrigin });
+const app = await loadApp(db, { origin });
 
 const Stack = testStack({
   Web: {
     ORIGIN: origin,
     DATABASE_URL: `postgres://postgres:postgres@${postgres.getServerConn()}/postgres`,
-    LEGACY_MEDIA_ORIGIN: storageOrigin,
   },
   // Nothing listens on the discard port, so every connection is refused.
   Unreachable: {
@@ -204,7 +202,9 @@ describe("v1 API", () => {
       };
     };
     expect(event.slug).toBe("2026-08-12-react-at-acme");
-    expect(event.previewImage.url).toBe("/media/covers/react.png");
+    expect(event.previewImage.url).toBe(
+      "https://storage.example/covers/react.png",
+    );
     // Attach order: the join row's created_at.
     expect(event.talks.map((talk) => talk.title)).toEqual([
       "Effect in production",
@@ -219,7 +219,7 @@ describe("v1 API", () => {
       event.hosts.map((host) => [host.name, host.squareLogoDark.url]),
     ).toEqual([
       ["Globex", "/brand/avatar.png"],
-      ["Acme", "/media/logos/acme.png"],
+      ["Acme", "https://storage.example/logos/acme.png"],
     ]);
     expect(event.images.map((image) => image.alt)).toEqual([
       "The stage",

@@ -57,7 +57,7 @@ async function main() {
 
     console.log("\n⚠️  THIS ACTION WILL:");
     console.log("   • Delete the profile from the database");
-    console.log("   • Delete the associated image from S3");
+    console.log("   • Delete the associated image from storage");
     console.log("   • Delete the image record from database");
     console.log("   • This action CANNOT be undone!");
     console.log("\n✅ SAFETY CHECKS:");

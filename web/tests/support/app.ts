@@ -32,7 +32,7 @@ export interface App {
 
 export async function loadApp(
   db: PGlite,
-  settings: { readonly origin: string; readonly storageOrigin: string },
+  settings: { readonly origin: string },
 ): Promise<App> {
   const { drizzle } = (await appPackage("drizzle-orm/pglite")) as {
     drizzle: (config: { client: PGlite }) => unknown;
@@ -43,7 +43,6 @@ export async function loadApp(
   mock.module(new URL("src/lib/config.ts", app).pathname, () => ({
     mainConfig: {
       instance: { origin: settings.origin },
-      s3: { url: settings.storageOrigin },
     },
   }));
 

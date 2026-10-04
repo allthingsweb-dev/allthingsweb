@@ -5,31 +5,8 @@ import { profilesTable, profileUsersTable, imagesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
-import { signImage } from "@/lib/image-signing";
 import { appMediaStore, removeStoredObject } from "@/lib/media-store";
 import { profilePhotoKey } from "@/lib/profile-photos/ingest";
-
-// Helper function to sign a profile image URL
-async function signProfileImageUrl(
-  imageUrl: string | null,
-): Promise<string | null> {
-  if (!imageUrl) return null;
-
-  try {
-    const signedImage = await signImage({
-      url: imageUrl,
-      alt: "", // We don't need alt for signing
-      placeholder: "", // We don't need placeholder for signing
-      width: 0, // We don't need dimensions for signing
-      height: 0,
-    });
-    return signedImage.url;
-  } catch (error) {
-    console.error("Error signing profile image:", error);
-    // Fall back to unsigned URL
-    return imageUrl;
-  }
-}
 
 // Deletes an image from both the media store and the database
 async function deleteImageFromStorage(imageId: string) {
@@ -91,13 +68,10 @@ export async function GET() {
       return NextResponse.json({ profile: null });
     }
 
-    // Sign the profile image if it exists
-    const signedImageUrl = await signProfileImageUrl(result.image?.url || null);
-
     return NextResponse.json({
       profile: {
         ...result.profile,
-        imageUrl: signedImageUrl,
+        imageUrl: result.image?.url || null,
         imageAlt: result.image?.alt,
       },
     });
@@ -203,8 +177,8 @@ export async function POST(request: NextRequest) {
       userId: user.id,
     });
 
-    // Get the signed image URL for the response
-    let signedImageUrl = null;
+    // Get the image URL for the response
+    let imageUrl: string | null = null;
     if (imageId) {
       const imageRecord = await db
         .select()
@@ -212,16 +186,14 @@ export async function POST(request: NextRequest) {
         .where(eq(imagesTable.id, imageId))
         .limit(1);
 
-      if (imageRecord[0]) {
-        signedImageUrl = await signProfileImageUrl(imageRecord[0].url);
-      }
+      imageUrl = imageRecord[0]?.url ?? null;
     }
 
     return NextResponse.json(
       {
         profile: {
           ...newProfile,
-          imageUrl: signedImageUrl,
+          imageUrl,
         },
       },
       { status: 201 },
@@ -331,8 +303,8 @@ export async function PUT(request: NextRequest) {
       .where(eq(profilesTable.id, existingProfile.id))
       .returning();
 
-    // Get the signed image URL for the response
-    let signedImageUrl = null;
+    // Get the image URL for the response
+    let imageUrl: string | null = null;
     if (imageId) {
       const imageRecord = await db
         .select()
@@ -340,15 +312,13 @@ export async function PUT(request: NextRequest) {
         .where(eq(imagesTable.id, imageId))
         .limit(1);
 
-      if (imageRecord[0]) {
-        signedImageUrl = await signProfileImageUrl(imageRecord[0].url);
-      }
+      imageUrl = imageRecord[0]?.url ?? null;
     }
 
     return NextResponse.json({
       profile: {
         ...updatedProfile,
-        imageUrl: signedImageUrl,
+        imageUrl,
       },
     });
   } catch (error) {

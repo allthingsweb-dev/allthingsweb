@@ -6,7 +6,6 @@ import { imagesTable, hostsTable } from "@/lib/schema";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
 import { eq } from "drizzle-orm";
-import { signImage } from "@/lib/image-signing";
 import { appMediaStore, removeStoredObject } from "@/lib/media-store";
 
 function slugifyName(value: string): string {
@@ -48,18 +47,6 @@ async function uploadLogo(params: {
   });
 
   return uuid;
-}
-
-async function signImageUrl(url: string | null): Promise<string | null> {
-  if (!url) return null;
-  const signed = await signImage({
-    url,
-    alt: "",
-    placeholder: "",
-    width: 0,
-    height: 0,
-  });
-  return signed.url;
 }
 
 async function deleteImageFromStorage(imageId: string) {
@@ -160,8 +147,8 @@ export async function POST(request: NextRequest) {
       {
         host: {
           ...host,
-          squareLogoDarkUrl: await signImageUrl(darkImage[0]?.url ?? null),
-          squareLogoLightUrl: await signImageUrl(lightImage[0]?.url ?? null),
+          squareLogoDarkUrl: darkImage[0]?.url ?? null,
+          squareLogoLightUrl: lightImage[0]?.url ?? null,
         },
       },
       { status: 201 },
@@ -274,8 +261,8 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       host: {
         ...host,
-        squareLogoDarkUrl: await signImageUrl(darkImage[0]?.url ?? null),
-        squareLogoLightUrl: await signImageUrl(lightImage[0]?.url ?? null),
+        squareLogoDarkUrl: darkImage[0]?.url ?? null,
+        squareLogoLightUrl: lightImage[0]?.url ?? null,
       },
     });
   } catch (error) {
