@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import type * as Contract from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
-import { displayName, topicOf } from "./lockup.ts";
+import { displayName, eventTopic } from "./lockup.ts";
 import { eventStatus, rsvpUrl } from "./mappers.ts";
 import { neighborhoodOf } from "./places.ts";
 import * as Rows from "./rows.ts";
@@ -26,7 +26,7 @@ export interface Evening {
   readonly slug: string;
   /** The name as written, without emoji. */
   readonly name: string;
-  /** all things/<topic>, when the name yields one (see lockup.ts). */
+  /** all things/<topic>: the one the site set, else the name's, if any (see lockup.ts). */
   readonly topic: string | undefined;
   /** At the `Clock`'s now. */
   readonly status: Contract.EventStatus;
@@ -57,7 +57,7 @@ export function toEvening(listing: Rows.Listing, now: DateTime.Utc): Evening {
   return {
     slug: listing.slug,
     name: displayName(listing.name),
-    topic: topicOf(listing.name),
+    topic: eventTopic(listing),
     status: eventStatus(listing, now),
     startsAt: listing.startDate,
     neighborhood: neighborhoodOf([
@@ -102,7 +102,7 @@ const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
   const listing = sql.literal(`json_build_object(
-    'id', e.id, 'slug', e.slug, 'name', e.name,
+    'id', e.id, 'slug', e.slug, 'name', e.name, 'topic', e.topic,
     'startDate', e.start_date, 'endDate', e.end_date,
     'streetAddress', e.street_address, 'shortLocation', e.short_location,
     'fullAddress', e.full_address, 'lumaEventId', e.luma_event_id,

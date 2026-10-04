@@ -212,7 +212,11 @@ describe("/ with evenings announced", () => {
       'at<span class="slash">/</span><span>effect</span>',
     );
     expect(rows[0]).toContain(">East Cut</span>");
-    expect(rows[1]).toContain("<span>Pre Next.js Conf / Ship AI Meetup</span>");
+    // Its name yields no topic; the site set one.
+    expect(rows[1]).toContain(
+      'at<span class="slash">/</span><span>ship ai</span>',
+    );
+    expect(rows[1]).not.toContain("Pre Next.js Conf");
     expect(rows[2]).toContain("<span>react bay area</span>");
     expect(rows[2]).toContain(">FiDi</span>");
     expect(recently).not.toContain(past[3].slug);

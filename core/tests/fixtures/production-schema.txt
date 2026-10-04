@@ -50,6 +50,7 @@ column public.events #015 preview_image uuid
 column public.events #016 recording_url text
 column public.events #017 created_at timestamp with time zone not null default now()
 column public.events #018 updated_at timestamp with time zone not null
+column public.events #019 topic text
 column public.images #001 id uuid not null default gen_random_uuid()
 column public.images #002 url text not null
 column public.images #003 placeholder text not null
@@ -114,6 +115,7 @@ constraint public.events events_luma_event_id_unique UNIQUE (luma_event_id)
 constraint public.events events_pkey PRIMARY KEY (id)
 constraint public.events events_preview_image_images_id_fk FOREIGN KEY (preview_image) REFERENCES images(id) ON DELETE SET NULL
 constraint public.events events_slug_unique UNIQUE (slug)
+constraint public.events events_topic_check CHECK (((char_length(topic) <= 24) AND (topic IS NFC NORMALIZED) AND (topic = lower((topic COLLATE pg_c_utf8))) AND (strpos(topic, 'all things'::text) = 0) AND ((topic COLLATE pg_c_utf8) ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'::text)))
 constraint public.images images_pkey PRIMARY KEY (id)
 constraint public.profile_users profile_users_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint public.profile_users profile_users_profile_id_unique UNIQUE (profile_id)

@@ -35,13 +35,21 @@ until then (see below).
   `CREATE INDEX CONCURRENTLY`; split such a change out when it is needed.
 - Until the cutover, a schema change ships twice: as the app's drizzle
   migration and as a migration here. `tests/migrations.test.ts` replays
-  `app/migrations` and fails when the two schemas drift apart.
+  `app/migrations` and fails when the two schemas drift apart. Change
+  `app/src/lib/schema.ts`, run `bun run db:generate --name <name>` in `app/`
+  for the migration and its snapshot, and append any data statements to the
+  generated SQL by hand. Only the test replays those files: production, now
+  stamped, takes migrations from here alone.
+- Add the lines the migration creates to
+  `tests/fixtures/production-schema.txt`, which is production's catalog once
+  every migration here has run (`bun run migrate`, after the merge).
 
-`0001_baseline` is production's schema on 2026-10-04, read from its catalog
-(`tests/fixtures/production-schema.txt`), not a copy of `app/migrations`:
-production received changes by hand that those files do not record. The test
-lists each difference with its reason, and holds the baseline to that catalog
-both in PGlite and on Postgres 17 (`tests/postgres.test.ts`, in CI).
+`0001_baseline` is production's schema on 2026-10-04, read from its catalog,
+not a copy of `app/migrations`: production received changes by hand that
+those files do not record. The test lists each difference with its reason.
+`tests/fixtures/production-schema.txt` is that catalog plus what each later
+migration adds, and the tests hold the migrations to it both in PGlite and on
+Postgres 17 (`tests/postgres.test.ts`, in CI).
 
 ### Running them
 
@@ -49,6 +57,9 @@ both in PGlite and on Postgres 17 (`tests/postgres.test.ts`, in CI).
 DATABASE_URL=postgres://… bun run migrate --dry-run   # what would run
 DATABASE_URL=postgres://… bun run migrate             # run it
 ```
+
+After a pull request with a migration merges, run both against production:
+the dry run must list exactly that pull request's migrations as pending.
 
 `DATABASE_URL` comes from the environment only: the script does not read
 `.env` files. The record of applied migrations is `effect_sql.migrations`, in
@@ -73,7 +84,8 @@ production's catalog to the expected schema in the same transaction: on any
 difference it fails and records nothing. It changes no table of the app's.
 To undo it, delete the stamped rows from `effect_sql.migrations` (or drop the
 `effect_sql` schema). After the stamp, `bun run migrate` applies later
-migrations, and drizzle's migrations stop.
+migrations, and drizzle's migrations stop. Production was stamped at
+`0001_baseline` on 2026-10-04.
 
 ### In CI, once a Neon credential exists
 

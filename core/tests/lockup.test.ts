@@ -1,5 +1,13 @@
-import { describe, expect, test } from "bun:test";
-import { displayName, maxTopicLength, topicOf } from "../src/lockup.ts";
+import { afterAll, describe, expect, test } from "bun:test";
+import {
+  displayName,
+  eventTopic,
+  isTopic,
+  maxTopicLength,
+  topicOf,
+} from "../src/lockup.ts";
+import { migratedDatabase } from "./support/database.ts";
+import { notTopics, topics } from "./support/topics.ts";
 
 describe("topicOf", () => {
   // Every published event's name as of 2026-10-04, and what lists show.
@@ -92,5 +100,91 @@ describe("displayName", () => {
     ["Café night", "Café night"],
   ])("%j is shown as %j", (name, shown) => {
     expect(displayName(name)).toBe(shown);
+  });
+});
+
+describe("isTopic", () => {
+  test.each([...topics])("%j is a topic", (topic) => {
+    expect(isTopic(topic)).toBe(true);
+  });
+
+  test.each([...notTopics])("%j is not a topic", (topic) => {
+    expect(isTopic(topic)).toBe(false);
+  });
+});
+
+/**
+ * The topics the site sets for the published events whose names yield none
+ * (migrations/0002_event_topic.ts), keyed by Luma id there.
+ */
+const setOnTheSite = [
+  ["Dev Setup Demos - Show your agents.md!", "dev setups"],
+  [
+    "TypeScript AI: The official conference after-party",
+    "typescript ai afterparty",
+  ],
+  ["After Party - All Things React Native", "react native after-party"],
+  ["Pre Next.js Conf / Ship AI Meetup", "ship ai"],
+  ["AI x All Things Web", "ai"],
+] as const;
+
+describe("eventTopic", () => {
+  test.each(setOnTheSite)(
+    "%j, whose name yields no topic, is at/%s as the site sets it",
+    (name, topic) => {
+      expect(topicOf(name)).toBeUndefined();
+      expect(isTopic(topic)).toBe(true);
+      expect(eventTopic({ name, topic })).toBe(topic);
+    },
+  );
+
+  test("prefers the topic the site sets to the one the name yields", () => {
+    expect(
+      eventTopic({ name: "All Things Web at Vapi", topic: "voice ai" }),
+    ).toBe("voice ai");
+  });
+
+  test("falls back to the name's topic, or none", () => {
+    expect(eventTopic({ name: "All Things Expo!", topic: null })).toBe("expo");
+    expect(
+      eventTopic({ name: "AI x All Things Web", topic: null }),
+    ).toBeUndefined();
+  });
+});
+
+const db = await migratedDatabase();
+afterAll(() => db.close());
+
+describe("the CHECK on events.topic", () => {
+  /** Whether the database stores `topic` on an event, or the CHECK refuses it. */
+  async function stores(topic: string): Promise<boolean> {
+    try {
+      await db.query(
+        `INSERT INTO events (slug, name, tagline, start_date, end_date, attendee_limit, updated_at, topic)
+         VALUES (gen_random_uuid()::text, 'Event', '', now(), now(), 0, now(), $1)`,
+        [topic],
+      );
+      return true;
+    } catch (error) {
+      if (String(error).includes("events_topic_check")) return false;
+      throw error;
+    }
+  }
+
+  test.each([...topics, ...notTopics])(
+    "agrees with isTopic on %j",
+    async (topic) => {
+      expect(await stores(topic)).toBe(isTopic(topic));
+    },
+  );
+
+  test("allows no topic", async () => {
+    await db.query(
+      `INSERT INTO events (slug, name, tagline, start_date, end_date, attendee_limit, updated_at)
+       VALUES ('no-topic', 'Event', '', now(), now(), 0, now())`,
+    );
+    expect(
+      (await db.query(`SELECT topic FROM events WHERE slug = 'no-topic'`)).rows,
+    ).toEqual([{ topic: null }]);
   });
 });

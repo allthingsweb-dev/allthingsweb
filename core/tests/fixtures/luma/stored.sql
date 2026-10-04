@@ -29,6 +29,12 @@ INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limi
   -- Only the site knows it: untouched.
   ('e0000000-0000-4000-8000-000000000009', 'website-only', 'Website only', 'Ours alone', '2026-10-30T01:00:00Z', '2026-10-30T04:00:00Z', 30, '1 Post St', 'Somewhere', '1 Post St, San Francisco', NULL, true, false, false, NULL, NULL, '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z');
 
+-- Topics an organizer set on the site, which the sync never writes: on an
+-- event Luma renames, one Luma no longer lists, and one only the site knows.
+UPDATE events SET topic = 'sentry summer' WHERE id = 'e0000000-0000-4000-8000-000000000001';
+UPDATE events SET topic = 'gone' WHERE id = 'e0000000-0000-4000-8000-000000000008';
+UPDATE events SET topic = 'ours' WHERE id = 'e0000000-0000-4000-8000-000000000009';
+
 INSERT INTO talks (id, title, description, created_at, updated_at) VALUES
   ('a0000000-0000-4000-8000-000000000001', 'Server components', '<p>Why.</p>', '2024-06-02T00:00:00Z', '2024-06-02T00:00:00Z');
 INSERT INTO profiles (id, name, title, bio, profile_type, created_at, updated_at) VALUES

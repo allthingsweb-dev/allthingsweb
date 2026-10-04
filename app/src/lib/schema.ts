@@ -7,7 +7,9 @@ import {
   timestamp,
   integer,
   primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { usersSync as usersSyncTable } from "drizzle-orm/neon";
 
 export { usersSyncTable };
@@ -115,30 +117,49 @@ export type SelectTalk = typeof talksTable.$inferSelect;
 export type InsertTalkSpeaker = typeof talkSpeakersTable.$inferInsert;
 export type SelectTalkSpeaker = typeof talkSpeakersTable.$inferSelect;
 
-export const eventsTable = pgTable("events", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  startDate: timestamp("start_date", { withTimezone: true }).notNull(),
-  endDate: timestamp("end_date", { withTimezone: true }).notNull(),
-  slug: text("slug").notNull().unique(),
-  tagline: text("tagline").notNull(),
-  attendeeLimit: integer("attendee_limit").notNull(),
-  streetAddress: text("street_address"),
-  shortLocation: text("short_location"),
-  fullAddress: text("full_address"),
-  lumaEventId: text("luma_event_id").unique(),
-  isHackathon: boolean("is_hackathon").notNull().default(false),
-  isDraft: boolean("is_draft").notNull().default(false),
-  highlightOnLandingPage: boolean("highlight_on_landing_page")
-    .notNull()
-    .default(false),
-  previewImage: uuid("preview_image").references(() => imagesTable.id, {
-    onDelete: "set null",
-  }),
-  recordingUrl: text("recording_url"),
-  createdAt,
-  updatedAt,
-});
+export const eventsTable = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+    endDate: timestamp("end_date", { withTimezone: true }).notNull(),
+    slug: text("slug").notNull().unique(),
+    tagline: text("tagline").notNull(),
+    attendeeLimit: integer("attendee_limit").notNull(),
+    streetAddress: text("street_address"),
+    shortLocation: text("short_location"),
+    fullAddress: text("full_address"),
+    lumaEventId: text("luma_event_id").unique(),
+    isHackathon: boolean("is_hackathon").notNull().default(false),
+    isDraft: boolean("is_draft").notNull().default(false),
+    highlightOnLandingPage: boolean("highlight_on_landing_page")
+      .notNull()
+      .default(false),
+    previewImage: uuid("preview_image").references(() => imagesTable.id, {
+      onDelete: "set null",
+    }),
+    recordingUrl: text("recording_url"),
+    createdAt,
+    updatedAt,
+    /**
+     * all things/<topic>, set on the site for a name that yields none; the
+     * Luma sync never writes it. The CHECK is core's isTopic
+     * (core/src/lockup.ts), as core/migrations/0002_event_topic.ts adds it.
+     */
+    topic: text("topic"),
+  },
+  () => [
+    check(
+      "events_topic_check",
+      sql`char_length("topic") <= 24
+    AND "topic" IS NFC NORMALIZED
+    AND "topic" = lower("topic" COLLATE "pg_c_utf8")
+    AND strpos("topic", 'all things') = 0
+    AND "topic" COLLATE "pg_c_utf8" ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'`,
+    ),
+  ],
+);
 
 export const eventHostsTable = pgTable(
   "event_sponsors",

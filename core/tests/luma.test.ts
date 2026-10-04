@@ -467,6 +467,44 @@ describe("syncing", () => {
     }
   });
 
+  test("never writes the topic the site sets, and gives new events none", async () => {
+    const db = await migratedDatabase();
+    try {
+      await db.exec(stored);
+      const topics = async () =>
+        (
+          await db.query<{ slug: string; name: string; topic: string | null }>(
+            "SELECT slug, name, topic FROM events WHERE topic IS NOT NULL ORDER BY slug",
+          )
+        ).rows;
+      const before = await topics();
+      expect(before.map(({ topic }) => topic)).toEqual([
+        "gone",
+        "sentry summer",
+        "ours",
+      ]);
+      expect(Exit.isSuccess(await sync(db, start, calendar))).toBe(true);
+      const after = await topics();
+      expect(after.map(({ slug, topic }) => ({ slug, topic }))).toEqual(
+        before.map(({ slug, topic }) => ({ slug, topic })),
+      );
+      // Luma renamed the Sentry evening, and its topic stayed.
+      expect(after.find((row) => row.slug === "sentry-summer-2024")).toEqual({
+        slug: "sentry-summer-2024",
+        name: "All Things Web at Sentry 🚀",
+        topic: "sentry summer",
+      });
+      const created = await db.query<{ topic: string | null }>(
+        "SELECT topic FROM events WHERE created_at = $1",
+        [DateTime.toDateUtc(start)],
+      );
+      expect(created.rows.length).toBeGreaterThan(0);
+      expect(created.rows.every(({ topic }) => topic === null)).toBe(true);
+    } finally {
+      await db.close();
+    }
+  });
+
   test("a database failure is a DataSourceError, and writes nothing", async () => {
     const db = await migratedDatabase();
     try {

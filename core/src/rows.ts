@@ -96,6 +96,8 @@ export const Listing = Schema.Struct({
   id: Schema.String,
   slug: Schema.String,
   name: Schema.String,
+  /** The topic the site set, which the database holds to the lockup's rule. */
+  topic: Schema.NullOr(Schema.String),
   startDate: Schema.DateTimeUtcFromString,
   endDate: Schema.DateTimeUtcFromString,
   streetAddress: Schema.NullOr(Schema.String),

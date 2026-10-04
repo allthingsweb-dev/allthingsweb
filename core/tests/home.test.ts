@@ -100,6 +100,32 @@ describe("Home", () => {
     });
   });
 
+  test("takes the topic the site set over the one the name yields", async () => {
+    const database = await seededDatabase();
+    try {
+      await database.exec(
+        `UPDATE events SET name = 'Pre Next.js Conf / Ship AI Meetup', topic = 'ship ai' WHERE slug = '2026-08-12-react-at-acme';
+         UPDATE events SET name = 'TypeScript AI: The official conference after-party' WHERE slug = '2026-11-05-upcoming'`,
+      );
+      const home = await read({ at: at("2026-08-01T00:00:00Z"), database });
+      expect(home.next).toMatchObject({
+        name: "Pre Next.js Conf / Ship AI Meetup",
+        topic: "ship ai",
+      });
+      // Without one, a name that yields none has none.
+      expect(
+        home.afterThat.find(
+          (evening) => evening.slug === "2026-11-05-upcoming",
+        ),
+      ).toMatchObject({
+        name: "TypeScript AI: The official conference after-party",
+        topic: undefined,
+      });
+    } finally {
+      await database.close();
+    }
+  });
+
   test(`lists at most ${afterThatLimit} evenings after the next one`, async () => {
     const home = await read({ at: at("2026-08-01T00:00:00Z") });
     expect(home.afterThat).toHaveLength(afterThatLimit);

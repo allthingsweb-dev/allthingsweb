@@ -23,6 +23,8 @@ import { venueArchive } from "./venue-archive.ts";
  * - The site, once the event exists: slug, tagline, attendee limit, and every
  *   other column and related row (talks, hosts, photos, recording, flags).
  *   The sync writes slug, tagline and attendee limit for new events only.
+ * - The site alone: the topic (all things/<topic>, src/lockup.ts). The sync
+ *   never writes it, for new events either: they start without one.
  *
  * Nothing is deleted: an event that leaves the feed stays as it is, and a
  * cancelled one becomes a draft. Events without a Luma id are never touched.
