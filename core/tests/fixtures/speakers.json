@@ -1,0 +1,823 @@
+{
+  "speakers": [
+    {
+      "name": "Aiden Bai",
+      "title": "Creator of React Scan",
+      "bio": "Aiden cares too much about React performance and spent the last 4 years building tooling to make your website fast.",
+      "links": {
+        "x": "https://twitter.com/aidenybai",
+        "bluesky": "https://bsky.app/profile/@aidenybai.bsky.social",
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "React renders - do they matter?",
+          "eventName": "All Things Web at Sentry",
+          "eventSlug": "2025-02-25-all-things-web-at-sentry",
+          "eventUrl": "https://allthingsweb.dev/2025-02-25-all-things-web-at-sentry",
+          "date": "2025-02-26T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Akshat Agrawal",
+      "title": "Product + GTM @ Codeium",
+      "bio": "Akshat is the product and GTM lead at Codeium. He was previously a senior product manager at Skyflow, and before that, he spent over four years at Google as a software engineer and product manager.",
+      "links": {
+        "x": null,
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/akshatag"
+      },
+      "talks": [
+        {
+          "title": "​The Agent-First Bet: How Windsurf Hit 500K Users in 3 Months",
+          "eventName": "AI x All Things Web",
+          "eventSlug": "2025-04-03-ai-x-all-things-web",
+          "eventUrl": "https://allthingsweb.dev/2025-04-03-ai-x-all-things-web",
+          "date": "2025-04-04T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Alex Bodin",
+      "title": "CTO",
+      "bio": "Alex is the CTO @Strapi. He is a Product builder, software engineer, and open-source enthusiast from Paris.",
+      "links": {
+        "x": "https://twitter.com/_alexandrebodin",
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "Strapi 5 + Next.js - the modern, Open-Source Stack",
+          "eventName": "Pre Next.js Conf Meetup",
+          "eventSlug": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "eventUrl": "https://allthingsweb.dev/2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "date": "2024-10-24T00:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Alex Hendrix",
+      "title": "Senior Software Engineer",
+      "bio": "Senior Software Engineer at Discord with experience building scalable systems. Previously worked at ONENIGMA and Microsoft.",
+      "links": {
+        "x": "https://twitter.com/flewp",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/flewp"
+      },
+      "talks": [
+        {
+          "title": "Discord's New Arch Journey",
+          "eventName": "All Things React Native",
+          "eventSlug": "2025-11-04-all-things-react-native",
+          "eventUrl": "https://allthingsweb.dev/2025-11-04-all-things-react-native",
+          "date": "2025-11-05T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Andre Landgraf",
+      "title": "Senior Developer Advocate",
+      "bio": "Andre is a passionate developer from Germany and the author of Full Stack Web Development with Remix. He lives in Cupertino, California, and works at Neon. Andre enjoys learning, writing, and teaching about web development, and he organizes All Things Web events in San Francisco. In his free time, he enjoys eating good food and spending time with friends and family.",
+      "links": {
+        "x": "https://twitter.com/andrelandgraf94",
+        "bluesky": "https://bsky.app/profile/andrelandgraf.com",
+        "linkedin": "https://www.linkedin.com/in/andre-landgraf"
+      },
+      "talks": [
+        {
+          "title": "Build your own CodeGen platform",
+          "eventName": "Pre Next.js Conf / Ship AI Meetup",
+          "eventSlug": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "eventUrl": "https://allthingsweb.dev/2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "date": "2025-10-22T01:00:00.000Z"
+        },
+        {
+          "title": "Image optimization from scratch!",
+          "eventName": "All Things Web at Convex",
+          "eventSlug": "2025-03-19-all-things-web-at-convex",
+          "eventUrl": "https://allthingsweb.dev/2025-03-19-all-things-web-at-convex",
+          "date": "2025-03-20T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Cody De Arkland",
+      "title": "Developer Experience @ Sentry",
+      "bio": "Cody is a Senior Director at Sentry for Developer Experience. He is a passionate technologist who loves learning, community, and sharing knowledge.",
+      "links": {
+        "x": "https://twitter.com/Codydearkland",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/codydearkland"
+      },
+      "talks": [
+        {
+          "title": "Anti-Crash Course: Building Better Errors and Traces",
+          "eventName": "All Things Web at Sentry",
+          "eventSlug": "2025-02-25-all-things-web-at-sentry",
+          "eventUrl": "https://allthingsweb.dev/2025-02-25-all-things-web-at-sentry",
+          "date": "2025-02-26T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Dan Goosewin",
+      "title": "DevRel Lead @ Vapi",
+      "bio": "Dan is a DevRel Lead at Vapi and co-hosts the NextDev.fm podcast. He's passionate about software, videogames, finance, entrepreneurship, and ducks. He was formerly at Deaglo.",
+      "links": {
+        "x": "https://twitter.com/dan_goosewin",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/goosewin"
+      },
+      "talks": [
+        {
+          "title": "NextDev.fm Live",
+          "eventName": "NextDev.fm Live",
+          "eventSlug": "2025-06-02-nextdevfm-live",
+          "eventUrl": "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+          "date": "2025-06-03T00:00:00.000Z"
+        },
+        {
+          "title": "​Giving your voice agents superpowers with MCP",
+          "eventName": "All Things Web at Vapi",
+          "eventSlug": "2025-05-28-all-things-web-at-vapi",
+          "eventUrl": "https://allthingsweb.dev/2025-05-28-all-things-web-at-vapi",
+          "date": "2025-05-29T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Daniel Shin",
+      "title": "Staff Software Engineer at LinkedIn",
+      "bio": "​Daniel is a Staff Software Engineer at LinkedIn and is passionate about web accessibility.",
+      "links": {
+        "x": "https://twitter.com/deys_co",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/deyshin"
+      },
+      "talks": [
+        {
+          "title": "​Accessibility - Bridge between dream and reality",
+          "eventName": "React Bay Area at Cisco Meraki",
+          "eventSlug": "2024-09-24-react-bay-area-at-cisco-meraki",
+          "eventUrl": "https://allthingsweb.dev/2024-09-24-react-bay-area-at-cisco-meraki",
+          "date": "2024-09-25T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Elizabeth Trykin",
+      "title": "DX @ Vapi",
+      "bio": "Elizabeth works on Developer Experience at Vapi. She got into building things after making an app in high school to help nonverbal kids communicate. Since then, she’s led DevRel at Exa and built tools for biotech automation at Invert. These days, she’s into great DX, writing, running, and hitting Solidcore in the Castro.",
+      "links": {
+        "x": "https://twitter.com/lizatrykin",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/elizabeth-trykin"
+      },
+      "talks": [
+        {
+          "title": "Building a voice-first future",
+          "eventName": "All Things Web at Vapi",
+          "eventSlug": "2025-05-28-all-things-web-at-vapi",
+          "eventUrl": "https://allthingsweb.dev/2025-05-28-all-things-web-at-vapi",
+          "date": "2025-05-29T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Erik Hanchett",
+      "title": "Senior Developer Advocate",
+      "bio": "Hello! 👋 My name is Erik Hanchett! I'm a developer and author from Reno, NV. I've been teaching software development for over 10 years. Currently I work as a Senior Developer Advocate at AWS.",
+      "links": {
+        "x": "https://twitter.com/ErikCH",
+        "bluesky": "https://bsky.app/profile/erikch.bsky.social",
+        "linkedin": "https://www.linkedin.com/in/erikhanchett"
+      },
+      "talks": [
+        {
+          "title": "Fullstack AI with AWS Amplify",
+          "eventName": "AI x All Things Web",
+          "eventSlug": "2025-04-03-ai-x-all-things-web",
+          "eventUrl": "https://allthingsweb.dev/2025-04-03-ai-x-all-things-web",
+          "date": "2025-04-04T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Erik Peña",
+      "title": "Solution Architecture",
+      "bio": "​Erik is a Solutions Architect at Mux where he helps customers navigate the very nuanced world online video.  Being in this industry for 15+ years, Erik has performed in various roles from Operations, Sales Engineering, Architecture, Product Management.  Erik has built width and depth to his acumen working for major leaders in this space including Mux, Comcast Technology Solutions and You.i TV (now part of Warner Brothers Discovery).",
+      "links": {
+        "x": null,
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/erikspena"
+      },
+      "talks": [
+        {
+          "title": "Building Video-Driven Web Apps with Mux, Strapi, and Next.js",
+          "eventName": "Pre Next.js Conf Meetup",
+          "eventSlug": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "eventUrl": "https://allthingsweb.dev/2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "date": "2024-10-24T00:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Erik Thorelli",
+      "title": "Engineering Leader",
+      "bio": "Erik Thorelli is an Engineering Leader at Cisco Meraki, leading the mobile engineering organization. He's been developing React and React Native apps for almost a decade, across many industries...and seem some stuff.",
+      "links": {
+        "x": "https://twitter.com/esthor",
+        "bluesky": "https://bsky.app/profile/esthor.bsky.social",
+        "linkedin": "https://www.linkedin.com/in/erikthorelli"
+      },
+      "talks": [
+        {
+          "title": "A Valuable Multi-Platform UI Architecture",
+          "eventName": "React Bay Area at Sanity",
+          "eventSlug": "2014-07-30-react-bay-area-at-sanity",
+          "eventUrl": "https://allthingsweb.dev/2014-07-30-react-bay-area-at-sanity",
+          "date": "2024-07-31T00:00:00.000Z"
+        },
+        {
+          "title": "// TODO // FIXME: Real Strategies to Modernize a Legacy React Project",
+          "eventName": "Remix Bay Area at Solv",
+          "eventSlug": "2024-03-26-remix-bay-area-at-solv",
+          "eventUrl": "https://allthingsweb.dev/2024-03-26-remix-bay-area-at-solv",
+          "date": "2024-03-27T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Evan Bacon",
+      "title": "Creator of Expo Router",
+      "bio": "Creator of Expo Router at Expo.",
+      "links": {
+        "x": "https://twitter.com/Baconbrix",
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "I'm Evan Bacon",
+          "eventName": "All Things React Native",
+          "eventSlug": "2025-11-04-all-things-react-native",
+          "eventUrl": "https://allthingsweb.dev/2025-11-04-all-things-react-native",
+          "date": "2025-11-05T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Hahnbee Lee",
+      "title": "Co-founder, Mintlify",
+      "bio": "Hahnbee Lee is the co-founder of Mintlify, a next-generation documentation platform that powers developer docs for over 5,000 companies including Anthropic, Scale, Cursor and Pinecone. Before founding Mintlify through Y Combinator in 2022, she worked as a software engineer at Duolingo. She graduated from Cornell University with a degree in Computer and Information Sciences, where she met her co-founder Han Wang and built a course planning app still used by ~50% of Cornell's undergraduate students.",
+      "links": {
+        "x": null,
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "All things modern docs! ✨",
+          "eventName": "Agents for Web Dev",
+          "eventSlug": "2025-09-30-agents-for-web-dev",
+          "eventUrl": "https://allthingsweb.dev/2025-09-30-agents-for-web-dev",
+          "date": "2025-10-01T00:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Ian Macartney",
+      "title": "Product Engineer",
+      "bio": "Ian is a senior engineer at Convex working on libraries, best practices, and demos for DX including developing AI Town in collaboration with a16z. He has previously created backend infrastructure for file previews at Dropbox, an ML workflow system for journalists at The New York Times, and other projects across iOS, web, and hardware platforms. Ian grew up in Colorado and studied Computer Science at Stanford.",
+      "links": {
+        "x": "https://twitter.com/ianmacartney",
+        "bluesky": "https://bsky.app/profile/ianmacartney.bsky.social",
+        "linkedin": "https://www.linkedin.com/in/ian-macartney"
+      },
+      "talks": [
+        {
+          "title": "Automerge: using local-first technologies within an authoritative server model",
+          "eventName": "All Things Web at Convex",
+          "eventSlug": "2024-12-03-all-things-web-at-convex",
+          "eventUrl": "https://allthingsweb.dev/2024-12-03-all-things-web-at-convex",
+          "date": "2024-12-04T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Ivan Chebykin",
+      "title": "Founder, SourceWizard & AI Engineer at Meta",
+      "bio": "Ivan Chebykin is an AI engineer at Meta focusing on AI infrastructure, with previous experience building complex backend systems at Yandex.Taxi and Tinkoff Investments. He is the founder of SourceWizard, an open-source AI-powered setup wizard that helps developers quickly find, install, and configure packages using natural language queries with MCP integration. Based in San Francisco, his work reflects his passion for automating coding processes with LLMs and improving developer experience through intelligent tooling.",
+      "links": {
+        "x": null,
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "Use an open-source tool to get agents to install modern dev tools for you! 🧙",
+          "eventName": "Agents for Web Dev",
+          "eventSlug": "2025-09-30-agents-for-web-dev",
+          "eventUrl": "https://allthingsweb.dev/2025-09-30-agents-for-web-dev",
+          "date": "2025-10-01T00:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "JJ Kasper",
+      "title": "Software Engineer at Vercel",
+      "bio": "Next.js maintainer and Software Engineer at Vercel.",
+      "links": {
+        "x": "https://twitter.com/_ijjk",
+        "bluesky": "https://bsky.app/profile/ijjk.bsky.social",
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "dynamicIO",
+          "eventName": "All Things Web @ Vercel HQ 👀",
+          "eventSlug": "2024-11-12-all-things-web-at-vercel",
+          "eventUrl": "https://allthingsweb.dev/2024-11-12-all-things-web-at-vercel",
+          "date": "2024-11-13T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "James Grugett",
+      "title": "Cofounder of Codebuff",
+      "bio": "James is the cofounder of Codebuff. He also previously cofounded Manifold Markets. Previously, he was a software engineer at Google.",
+      "links": {
+        "x": "https://twitter.com/jahooma",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/james-grugett"
+      },
+      "talks": [
+        {
+          "title": "AI, IDEs, and the Future of Code Understanding",
+          "eventName": "All Things Web at Convex",
+          "eventSlug": "2025-03-19-all-things-web-at-convex",
+          "eventUrl": "https://allthingsweb.dev/2025-03-19-all-things-web-at-convex",
+          "date": "2025-03-20T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "James Q Quick",
+      "title": "Head of Developer Experience",
+      "bio": "James is a developer, speaker, and teacher whose content has impacted hundreds of thousands of developers across the world. With 10+ years of experience, he blends deep technical knowledge with the ability to communicate across different levels of understanding and is currently serving a Head of Developer Experience at Makeswift. In his spare time, he and his wife love to travel, chase their toddler around, and play co-ed soccer.",
+      "links": {
+        "x": "https://twitter.com/jamesqquick",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/jamesqquick"
+      },
+      "talks": [
+        {
+          "title": "Design System Patterns for Server Components",
+          "eventName": "Pre Next.js Conf Meetup",
+          "eventSlug": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "eventUrl": "https://allthingsweb.dev/2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "date": "2024-10-24T00:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Joshua Alphonse",
+      "title": "Developer Advocate",
+      "bio": "Joshua Alphonse is a developer advocate passionate about video technology and AI-driven content solutions. He specializes in building innovative tools for video analysis and content moderation.",
+      "links": {
+        "x": null,
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/joshua-alphons"
+      },
+      "talks": [
+        {
+          "title": "Using the Mux MCP to dynamically analyze video content for AI-driven tagging and content moderation",
+          "eventName": "Pre Next.js Conf / Ship AI Meetup",
+          "eventSlug": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "eventUrl": "https://allthingsweb.dev/2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "date": "2025-10-22T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Knut Melvær",
+      "title": "Head of Developer Community and Education",
+      "bio": "Managing sanity.io’s developer community. Building developer relations and support teams. I also work with product marketing, communication, and contributing to the Sanity ecosystem.",
+      "links": {
+        "x": "https://twitter.com/kmelve",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/knutmelvaer"
+      },
+      "talks": [
+        {
+          "title": "Live Content that Scales with React Server Components ",
+          "eventName": "React Bay Area at Sanity",
+          "eventSlug": "2014-07-30-react-bay-area-at-sanity",
+          "eventUrl": "https://allthingsweb.dev/2014-07-30-react-bay-area-at-sanity",
+          "date": "2024-07-31T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Lee Robinson",
+      "title": "VP of Developer Experience at Vercel",
+      "bio": "Lee Robinson is the VP of Developer Experience at Vercel. He's a developer, optimist, and community builder. Lee is passionate about teaching about React, Next.js, and the web.",
+      "links": {
+        "x": "https://twitter.com/leerob",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/leeerob"
+      },
+      "talks": [
+        {
+          "title": "Performance optimizing agent for Next.js",
+          "eventName": "All Things Web at Vapi",
+          "eventSlug": "2025-05-28-all-things-web-at-vapi",
+          "eventUrl": "https://allthingsweb.dev/2025-05-28-all-things-web-at-vapi",
+          "date": "2025-05-29T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Marc Rousavy",
+      "title": "CEO @ Margelo",
+      "bio": "Founder and CEO of Margelo, a high-end app development company working with clients like Facebook, Red Bull, Coinbase and Shopify. Software developer and designer from Austria with experience at startups in Paris, San Francisco, and Vienna.",
+      "links": {
+        "x": "https://twitter.com/mrousavy",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/mrousavy"
+      },
+      "talks": [
+        {
+          "title": "Nitro Modules",
+          "eventName": "All Things React Native",
+          "eventSlug": "2025-11-04-all-things-react-native",
+          "eventUrl": "https://allthingsweb.dev/2025-11-04-all-things-react-native",
+          "date": "2025-11-05T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Matt Palmer",
+      "title": "Developer Experience Engineer",
+      "bio": "Matt Palmer is a Developer Experience Engineer at Replit, focused on creating exceptional documentation and developer tools. He believes that great docs are product and works to make developer experiences seamless.",
+      "links": {
+        "x": "https://twitter.com/mattppal",
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "Docs are product: how we write (and use) docs at Replit",
+          "eventName": "Pre Next.js Conf / Ship AI Meetup",
+          "eventSlug": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "eventUrl": "https://allthingsweb.dev/2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "date": "2025-10-22T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Michael Arnaldi",
+      "title": "Creator of Effect",
+      "bio": "Creator of Effect, the TypeScript library for building robust, type-safe applications, and founder of Effectful Technologies.",
+      "links": {
+        "x": "https://twitter.com/@MichaelArnaldi",
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "Fireside chat with Michael Arnaldi, creator of Effect",
+          "eventName": "Effect San Francisco 🇺🇸",
+          "eventSlug": "2026-06-26-all-things-effect-w-michael-arnaldi",
+          "eventUrl": "https://allthingsweb.dev/2026-06-26-all-things-effect-w-michael-arnaldi",
+          "date": "2026-10-01T00:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Mikael Lirbank",
+      "title": "Tech lead",
+      "bio": "With over 20 years of experience, Mikael has built a strong track record of building apps from scratch, rescuing existing ones, and leading development teams. He is a tech lead, product manager, UI designer, and code quality expert, known for taking ownership of every project and delivering predictability and peace of mind to my clients.",
+      "links": {
+        "x": null,
+        "bluesky": "https://bsky.app/profile/lirbank.com",
+        "linkedin": "https://www.linkedin.com/in/mikaellirbank"
+      },
+      "talks": [
+        {
+          "title": "Leading LLMs - A structured approach to building quality software with AI",
+          "eventName": "AI x All Things Web",
+          "eventSlug": "2025-04-03-ai-x-all-things-web",
+          "eventUrl": "https://allthingsweb.dev/2025-04-03-ai-x-all-things-web",
+          "date": "2025-04-04T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Nipunn Koorapati",
+      "title": "Software Engineer at Convex",
+      "bio": "Nipunn is a software engineer at Convex, building a serverless backend abstraction that empowers frontend and product engineers to manage data without backend expertise. Previously, he spent eight years at Dropbox (2013–2021), working on sync engines, developer tooling, and team leadership. He also maintains mypy-protobuf and has held engineering roles at Talaria, Microsoft, and MIT Lincoln Labs. He earned his BS and MS in Electrical and Computer Engineering from Carnegie Mellon and is based in San Francisco.",
+      "links": {
+        "x": "https://twitter.com/nipunn1313",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/nipunn1313"
+      },
+      "talks": [
+        {
+          "title": "Technical Leadership in the world of AI Coding Agents",
+          "eventName": "All Things Web at Convex",
+          "eventSlug": "2025-03-19-all-things-web-at-convex",
+          "eventUrl": "https://allthingsweb.dev/2025-03-19-all-things-web-at-convex",
+          "date": "2025-03-20T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Pierre Burgy",
+      "title": "CEO",
+      "bio": "Pierre Burgy is the CEO of Strapi, the leading open-source headless CMS. He's passionate about building developer tools and empowering teams to create amazing digital experiences with JavaScript and TypeScript.",
+      "links": {
+        "x": "https://twitter.com/pierre_burgy",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/pierre-burgy-strapi-88671673"
+      },
+      "talks": [
+        {
+          "title": "What We Learned from Building a Vibe Coding Tool",
+          "eventName": "Pre Next.js Conf / Ship AI Meetup",
+          "eventSlug": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "eventUrl": "https://allthingsweb.dev/2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "date": "2025-10-22T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Pillippa Pérez Pons",
+      "title": "Software Engineer at Doordash",
+      "bio": "​I'm Pillippa Perez Pons, a Frontend Software Engineer at Doordash, I am passionate about developing innovative web applications that enhance user experiences and improve efficiency. Originally from Chile, I have been living in the Bay Area for the past three years, embracing the vibrant tech community here.",
+      "links": {
+        "x": "https://twitter.com/_pilliin_",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/ignaciapons"
+      },
+      "talks": [
+        {
+          "title": "​A World Without Limits: Making Videos Accessible to All with React and Cloudflare",
+          "eventName": "React Bay Area at Cisco Meraki",
+          "eventSlug": "2024-09-24-react-bay-area-at-cisco-meraki",
+          "eventUrl": "https://allthingsweb.dev/2024-09-24-react-bay-area-at-cisco-meraki",
+          "date": "2024-09-25T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Ram Senthamarai",
+      "title": "Senior Machine Learning Engineer",
+      "bio": "Ram Senthamarai is a Senior Machine Learning Engineer at Sentry, specializing in context engineering and grounding AI systems in reality. He works on innovative ML solutions for developer tools and debugging platforms.",
+      "links": {
+        "x": null,
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/ramsenth"
+      },
+      "talks": [
+        {
+          "title": "Context Engineering: How We Ground Seer in Reality",
+          "eventName": "Pre Next.js Conf / Ship AI Meetup",
+          "eventSlug": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "eventUrl": "https://allthingsweb.dev/2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+          "date": "2025-10-22T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Raouf Chebri",
+      "title": "DevRel",
+      "bio": "Raouf Chebri is a Developer Advocate at Neon and enjoys helping developers be more productive. Raouf has over a decade of experience in the tech industry and loves to connect with developers and talk about AI and modern application development. Raouf enjoys Mexican food, skiing, and riding his bike for hours in the Alps. ",
+      "links": {
+        "x": "https://twitter.com/_raoufai",
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "TCP vs. WebSockets vs. HTTP for Postgres queries",
+          "eventName": "Pre Next.js Conf Meetup",
+          "eventSlug": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "eventUrl": "https://allthingsweb.dev/2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "date": "2024-10-24T00:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Rhys Sullivan",
+      "title": "Product Engineer at Vercel",
+      "bio": "Rhys is a product engineer at Vercel who, over the course of 2024, built his Twitter audience from 0 to 10k followers. During this time, he had multiple viral tweets with over 1M+ views, created http://ShipTalkers.dev—a viral Twitter app with 250k+ views and 80k+ users in just three days—and gained deep expertise in leveraging Twitter to launch successful products. Previously, he worked as a software engineer at http://Dosu.dev and at Microsoft on Teams.",
+      "links": {
+        "x": "https://twitter.com/RhysSullivan",
+        "bluesky": "https://bsky.app/profile/rhys.dev",
+        "linkedin": "https://www.linkedin.com/in/rhyssullivan"
+      },
+      "talks": [
+        {
+          "title": "From Zero to Viral: Leveraging Tech Twitter for Career and Product Growth",
+          "eventName": "All Things Web at Sanity",
+          "eventSlug": "2025-01-28-all-things-web-at-sanity",
+          "eventUrl": "https://allthingsweb.dev/2025-01-28-all-things-web-at-sanity",
+          "date": "2025-01-29T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Ryan Vogel",
+      "title": "Devrel @ Neon",
+      "bio": "Ryan is a developer advocate at Neon. He also co-hosts the NextDev.fm podcast and founder of Mandarin 3D Prints, a 3D printing service.",
+      "links": {
+        "x": "https://twitter.com/ryandavogel",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/theryanvogel"
+      },
+      "talks": [
+        {
+          "title": "NextDev.fm Live",
+          "eventName": "NextDev.fm Live",
+          "eventSlug": "2025-06-02-nextdevfm-live",
+          "eventUrl": "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+          "date": "2025-06-03T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Sean Strong",
+      "title": "Partnerships @ Anthropic",
+      "bio": "Sean is the head of technical partnerships at Anthropic. Sean started his career as a software engineer at Apple and then moved on to found two startups. He also previously worked as an investor for Pear VC.",
+      "links": {
+        "x": null,
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/seantstrong"
+      },
+      "talks": [
+        {
+          "title": "How to build AI Agents",
+          "eventName": "AI x All Things Web",
+          "eventSlug": "2025-04-03-ai-x-all-things-web",
+          "eventUrl": "https://allthingsweb.dev/2025-04-03-ai-x-all-things-web",
+          "date": "2025-04-04T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Simon Farshid",
+      "title": "Founder & CEO, assistant-ui",
+      "bio": "Founder and CEO of assistant-ui, the open-source React toolkit for AI chat.",
+      "links": {
+        "x": "https://twitter.com/@simonfarshid",
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "Fireside chat with Michael Arnaldi, creator of Effect",
+          "eventName": "Effect San Francisco 🇺🇸",
+          "eventSlug": "2026-06-26-all-things-effect-w-michael-arnaldi",
+          "eventUrl": "https://allthingsweb.dev/2026-06-26-all-things-effect-w-michael-arnaldi",
+          "date": "2026-10-01T00:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Simon Sturmer",
+      "title": "Director of Product Engineering",
+      "bio": "Simon is a software engineer, founder, speaker, and father from Kansas City.",
+      "links": {
+        "x": "https://twitter.com/sstur_",
+        "bluesky": "https://bsky.app/profile/sstur.com",
+        "linkedin": "https://www.linkedin.com/in/sstur"
+      },
+      "talks": [
+        {
+          "title": "Local first with React Native",
+          "eventName": "All Things Web at Convex",
+          "eventSlug": "2024-12-03-all-things-web-at-convex",
+          "eventUrl": "https://allthingsweb.dev/2024-12-03-all-things-web-at-convex",
+          "date": "2024-12-04T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Steve Heffernan",
+      "title": "Founder of Mux",
+      "bio": "Steve Heffernan is the creator of Video.js and a founder of Mux.",
+      "links": {
+        "x": "https://twitter.com/heff",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/heffernan"
+      },
+      "talks": [
+        {
+          "title": "Custom component-based media players",
+          "eventName": "React Bay Area at Mux",
+          "eventSlug": "2024-08-27-react-bay-area-at-mux",
+          "eventUrl": "https://allthingsweb.dev/2024-08-27-react-bay-area-at-mux",
+          "date": "2024-08-28T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Sébastien Morel",
+      "title": "CTO",
+      "bio": "Sébastien is a passionate and accomplished tech leader and problem-solver with extensive experience in architecture, performance optimizations, development, and system administration. CTO at Crystallize, a super-fast, super modern, super sexy, and super-powerful Headless eCommerce, he's in charge (among others) of the Developer eXperience initiative. Previously, he led and grew his former web agency for 18 years, working on more than 150 projects that were successfully and proudly implemented, deployed, and maintained. Sébastien is also an open-source maintainer and is active in several communities.",
+      "links": {
+        "x": "https://twitter.com/Plopix",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/sebastienmorel"
+      },
+      "talks": [
+        {
+          "title": "Implementing a shopping cart with React 19",
+          "eventName": "React Bay Area at Mux",
+          "eventSlug": "2024-08-27-react-bay-area-at-mux",
+          "eventUrl": "https://allthingsweb.dev/2024-08-27-react-bay-area-at-mux",
+          "date": "2024-08-28T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Ted Nyman",
+      "title": "CEO at Cased",
+      "bio": "Ted Nyman is the CEO of Cased, a platform for agent-enabled infrastructure and IaC. Previously, Ted served as CTO and worked as a systems engineer at GitHub.",
+      "links": {
+        "x": "https://twitter.com/tnm",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/tedny"
+      },
+      "talks": [
+        {
+          "title": "NextDev.fm Live",
+          "eventName": "NextDev.fm Live",
+          "eventSlug": "2025-06-02-nextdevfm-live",
+          "eventUrl": "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+          "date": "2025-06-03T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Tom Occhino",
+      "title": "Chief Product Officer at Vercel",
+      "bio": "​Tom is the Chief Product Officer at Vercel leading Engineering, Product, and Design. Previously he spent over 12 years at Facebook where he led development of the company’s core JavaScript Infra, shaped its open source program, and was responsible for the creation and development of React and React Native. He enjoys traveling, dance music, fancy cocktails, and simple food.",
+      "links": {
+        "x": "https://twitter.com/tomocchino",
+        "bluesky": "https://bsky.app/profile/tomocchino.com",
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "History of React",
+          "eventName": "All Things Web @ Vercel HQ 👀",
+          "eventSlug": "2024-11-12-all-things-web-at-vercel",
+          "eventUrl": "https://allthingsweb.dev/2024-11-12-all-things-web-at-vercel",
+          "date": "2024-11-13T01:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Tony Dang",
+      "title": "Web Developer",
+      "bio": "Tony Dang is a web developer from the California Bay Area. He's excited about all things web - from Remix to SvelteKit, and even beyond to non-JS web technologies such as Phoenix, Laravel, Rails, and Django.",
+      "links": {
+        "x": "https://twitter.com/thisistonydang",
+        "bluesky": null,
+        "linkedin": "https://www.linkedin.com/in/thisistonydang"
+      },
+      "talks": [
+        {
+          "title": "Enhancing User Authentication with Passkeys",
+          "eventName": "Remix Bay Area at Solv",
+          "eventSlug": "2024-05-14-remix-bay-area-at-solv",
+          "eventUrl": "https://allthingsweb.dev/2024-05-14-remix-bay-area-at-solv",
+          "date": "2024-05-15T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "Tony Holdstock-Brown",
+      "title": "CEO & co-founder",
+      "bio": "​Tony is the CEO and co-founder of Inngest.",
+      "links": {
+        "x": "https://twitter.com/itstonyhb",
+        "bluesky": null,
+        "linkedin": null
+      },
+      "talks": [
+        {
+          "title": "Bringing state to Next.js Serverless Functions with Inngest",
+          "eventName": "Pre Next.js Conf Meetup",
+          "eventSlug": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "eventUrl": "https://allthingsweb.dev/2024-10-23-pre-nextjs-conf-meetup-at-mux",
+          "date": "2024-10-24T00:30:00.000Z"
+        }
+      ]
+    }
+  ]
+}

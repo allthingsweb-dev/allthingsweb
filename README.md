@@ -15,6 +15,8 @@
 
 - `app`: the Next.js web application
 - `atw-cli`: the CLI tool
+- `core`: the Effect domain models and public contract, shared by the coming Workers site and the CLI
+- `infra`: Cloudflare infrastructure as code, with Alchemy
 
 ### 🛠️ Installation
 
