@@ -1,21 +1,21 @@
 /**
  * Each event is all things/<topic>, and lists write it at/<topic>
- * (brand/foundations.md, "Name"). Events are named on Luma by people, not
- * by the brand, so the topic is derived from the name by one fixed rule:
+ * (brand/foundations.md, "Name"). An organizer may set the topic on the site
+ * (`events.topic`); otherwise it is derived from the name, which people write
+ * on Luma, not the brand, by one fixed rule:
  *
  * 1. Emoji and other pictographs go, then a trailing "!", "?" or ".".
  * 2. A leading "All Things " goes: "All Things Agent Setups" → "Agent Setups".
  * 3. A trailing venue goes, since the place is said beside the name:
  *    "React Bay Area at Mux" → "React Bay Area", "… @ Vercel HQ" likewise.
  * 4. A trailing city goes: "Effect San Francisco" → "Effect".
- * 5. What is left, lowercased, is the topic if it reads as one: at most
- *    24 characters of letters, digits, spaces and . & + # ' (a hyphen only
- *    inside a word), and not another "all things".
+ * 5. What is left, lowercased, is the topic if it reads as one
+ *    ({@link isTopic}).
  *
  * A name that yields no topic, such as "Pre Next.js Conf / Ship AI Meetup"
  * (a slash of its own) or "TypeScript AI: The official conference
- * after-party" (a subtitle), is shown as written instead: the slash and
- * the lockup belong to topics only.
+ * after-party" (a subtitle), is shown as written unless the site sets one:
+ * the slash and the lockup belong to topics only.
  */
 
 /**
@@ -27,12 +27,39 @@
 const pictographs =
   /\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|\u{FE0E}|\u{FE0F}|\u{200D}|\u{20E3}|[\u{E0020}-\u{E007F}]/gu;
 
-/** The longest topic the lockup sets; longer names read better as written. */
+/** The longest topic the lockup sets, in characters; longer names read better as written. */
 export const maxTopicLength = 24;
 
-/** Starts with a letter or digit; a hyphen joins two of them. */
+/**
+ * Starts with a letter or digit; a space joins two words, a hyphen two
+ * letters or digits. Letters are Unicode's Alphabetic characters and digits
+ * are 0 to 9: what Postgres's builtin "pg_c_utf8" collation calls
+ * [[:alpha:]] and [[:digit:]], so the CHECK on `events.topic` reads it the
+ * same way in every database.
+ */
 const topicShape =
-  /^[\p{L}\p{N}](?:[\p{L}\p{N} .&+#']|(?<=[\p{L}\p{N}])-(?=[\p{L}\p{N}]))*$/u;
+  /^[\p{Alphabetic}0-9](?:[\p{Alphabetic}0-9.&+#']|(?<=[^ ]) (?=[^ ])|(?<=[\p{Alphabetic}0-9])-(?=[\p{Alphabetic}0-9]))*$/u;
+
+/**
+ * Whether `topic` reads as one: at most {@link maxTopicLength} characters,
+ * lowercase, in Unicode's composed form (NFC), of letters, digits, single
+ * spaces and . & + # ' (a hyphen only inside a word), and not another "all
+ * things". topicOf returns only topics, and the database holds
+ * `events.topic` to the same rule with a CHECK constraint
+ * (migrations/0002_event_topic.ts; tests/lockup.test.ts requires both to
+ * agree).
+ */
+export function isTopic(topic: string): boolean {
+  return (
+    // Code points, as Postgres's char_length counts them: the shape admits
+    // no emoji or other sequence that splitting by code point would break.
+    Array.from(topic).length <= maxTopicLength &&
+    topic === topic.normalize("NFC") &&
+    topic === topic.toLowerCase() &&
+    !topic.includes("all things") &&
+    topicShape.test(topic)
+  );
+}
 
 /** The event's name without emoji, its spacing tidied: how lists show it. */
 export function displayName(name: string): string {
@@ -43,7 +70,7 @@ export function displayName(name: string): string {
     .trim();
 }
 
-/** The event's topic, such as "effect" for "Effect San Francisco 🇺🇸", if it has one. */
+/** The topic the event's name yields, such as "effect" for "Effect San Francisco 🇺🇸", if any. */
 export function topicOf(name: string): string | undefined {
   const topic = displayName(name)
     .replace(/[!?.]+$/, "")
@@ -52,10 +79,16 @@ export function topicOf(name: string): string | undefined {
     .replace(/\s+(?:in\s+)?(?:san francisco|sf)$/i, "")
     .trim()
     .toLowerCase();
-  const reads =
-    topic.length > 0 &&
-    topic.length <= maxTopicLength &&
-    topicShape.test(topic) &&
-    !topic.includes("all things");
-  return reads ? topic : undefined;
+  return isTopic(topic) ? topic : undefined;
+}
+
+/**
+ * The event's topic: the one the site set (`events.topic`, which the Luma
+ * sync never writes), else the one its name yields.
+ */
+export function eventTopic(event: {
+  readonly name: string;
+  readonly topic: string | null;
+}): string | undefined {
+  return event.topic ?? topicOf(event.name);
 }

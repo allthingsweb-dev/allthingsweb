@@ -4,7 +4,10 @@ import { PGlite } from "@electric-sql/pglite";
 import { Cause, Effect, Exit, Schema } from "effect";
 import * as Migrator from "effect/sql/Migrator";
 import { SqlClient } from "effect/sql/SqlClient";
-import { baseline, neonAuth } from "../migrations/0001_baseline.ts";
+import baselineMigration, {
+  baseline,
+  neonAuth,
+} from "../migrations/0001_baseline.ts";
 import { migrations } from "../migrations/index.ts";
 import { statements } from "../migrations/statements.ts";
 import * as Migrations from "../src/migrator.ts";
@@ -80,14 +83,39 @@ const recorded = (db: PGlite) =>
     }),
   );
 
-/** A migration a later change could add. */
+/** A migration's key in the record: its id, padded, and its name. */
+const keyOf = ({ id, name }: Migrations.MigrationId): string =>
+  `${String(id).padStart(4, "0")}_${name}`;
+
+/** Every migration here, in id order, as the migrator reports them. */
+const all: ReadonlyArray<Migrations.MigrationId> = Object.keys(migrations)
+  .toSorted()
+  .map((key) => ({ id: Number(key.slice(0, 4)), name: key.slice(5) }));
+
+/** Migrations as the record holds them. */
+const records = (ids: ReadonlyArray<Migrations.MigrationId>) =>
+  ids.map(({ id, name }) => ({ migration_id: id, name }));
+
+/**
+ * The baseline alone: what production was stamped at on 2026-10-04, before
+ * any later migration ran there.
+ */
+const baselineOnly = Migrator.fromRecord({
+  "0001_baseline": baselineMigration,
+});
+
+/** A migration a later change could add, with the next id. */
 const addColumn = statements([
   `ALTER TABLE "public"."events" ADD COLUMN "capacity_note" text`,
 ]);
+const next: Migrations.MigrationId = {
+  id: all.length + 1,
+  name: "capacity_note",
+};
 
 const withNext = Migrator.fromRecord({
   ...migrations,
-  "0002_capacity_note": addColumn,
+  [keyOf(next)]: addColumn,
 });
 
 const production = (
@@ -102,6 +130,7 @@ const isPlatformObject = (line: string) =>
   SchemaSnapshot.platformObjects.some(({ prefix }) => line.startsWith(prefix));
 
 const fromMigrations = await Effect.runPromise(expectedSchema());
+const fromBaseline = await Effect.runPromise(expectedSchema(baselineOnly));
 
 describe("core/migrations", () => {
   test("index.ts lists each migration file, with ids counting up from 1", async () => {
@@ -323,7 +352,10 @@ describe("against the app's drizzle history", () => {
       expect(mutated).not.toEqual(baseline);
       const db = keep(
         await migratedDatabase(
-          Migrator.fromRecord({ "0001_baseline": statements(mutated) }),
+          Migrator.fromRecord({
+            ...migrations,
+            "0001_baseline": statements(mutated),
+          }),
         ),
       );
       expect(SchemaSnapshot.diff(fromMigrations, await snapshotOf(db))).toEqual(
@@ -337,32 +369,33 @@ describe("against the app's drizzle history", () => {
 });
 
 describe("the migrator", () => {
-  test("applies the baseline once; a second run is a no-op", async () => {
+  test("applies every migration once; a second run is a no-op", async () => {
     const db = keep(await PGlite.create());
-    expect(await run(db, Migrations.run())).toEqual([
-      { id: 1, name: "baseline" },
-    ]);
+    expect(await run(db, Migrations.run())).toEqual(all);
     expect(await run(db, Migrations.run())).toEqual([]);
     expect(await run(db, Migrations.plan())).toEqual({
-      applied: [{ id: 1, name: "baseline" }],
+      applied: all,
       pending: [],
       provisioned: true,
     });
-    expect(await recorded(db)).toEqual([{ migration_id: 1, name: "baseline" }]);
+    expect(await recorded(db)).toEqual(records(all));
     expect(await snapshotOf(db)).toEqual(fromMigrations);
   });
 
-  test("applies a later migration after the baseline, and only it", async () => {
+  test("applies a later migration, and only it", async () => {
     const db = keep(await migratedDatabase());
     expect(await run(db, Migrations.plan(withNext))).toMatchObject({
-      pending: [{ id: 2, name: "capacity_note" }],
+      pending: [next],
     });
-    expect(await run(db, Migrations.run(withNext))).toEqual([
-      { id: 2, name: "capacity_note" },
-    ]);
+    expect(await run(db, Migrations.run(withNext))).toEqual([next]);
+    const position = fromMigrations.filter((line) =>
+      line.startsWith("column public.events #"),
+    ).length;
     expect(SchemaSnapshot.diff(fromMigrations, await snapshotOf(db))).toEqual({
       missing: [],
-      unexpected: ["column public.events #019 capacity_note text"],
+      unexpected: [
+        `column public.events #${String(position + 1).padStart(3, "0")} capacity_note text`,
+      ],
     });
   });
 
@@ -370,7 +403,7 @@ describe("the migrator", () => {
     const db = keep(await PGlite.create());
     expect(await run(db, Migrations.plan())).toEqual({
       applied: [],
-      pending: [{ id: 1, name: "baseline" }],
+      pending: all,
       provisioned: false,
     });
     expect(
@@ -420,30 +453,38 @@ describe("the migrator", () => {
     expect(await snapshotOf(db)).toEqual(before);
   });
 
-  test("stamps a database already at the baseline without running it", async () => {
-    // Production: the baseline's schema, built without the migrator.
+  test("stamps a database already at the baseline without running it, then migrates it", async () => {
+    // Production on 2026-10-04: the baseline's schema, built without the
+    // migrator, stamped before any later migration existed.
     const db = await provisioned(baseline);
     await db.exec(
       `INSERT INTO "public"."redirects" (slug, destination_url, updated_at) VALUES ('kept', 'https://example.com', now())`,
     );
     const before = await snapshotOf(db);
 
-    expect(await run(db, Migrations.stamp(fromMigrations))).toEqual([
-      { id: 1, name: "baseline" },
-    ]);
+    expect(await run(db, Migrations.stamp(fromBaseline, baselineOnly))).toEqual(
+      [{ id: 1, name: "baseline" }],
+    );
     expect(await recorded(db)).toEqual([{ migration_id: 1, name: "baseline" }]);
     // The baseline did not run: it would have failed on the existing tables.
     expect(await snapshotOf(db)).toEqual(before);
     expect((await db.query(`SELECT slug FROM redirects`)).rows).toEqual([
       { slug: "kept" },
     ]);
+    expect(await run(db, Migrations.stamp(fromBaseline, baselineOnly))).toEqual(
+      [],
+    );
 
-    // Stamping again records nothing; migrating continues from the stamp.
+    // Then, as `bun run migrate` does on production after each merge: the
+    // later migrations run, and the schema is what they all create.
+    expect(await run(db, Migrations.plan())).toMatchObject({
+      pending: all.slice(1),
+    });
+    expect(await run(db, Migrations.run())).toEqual(all.slice(1));
+    expect(await snapshotOf(db)).toEqual(fromMigrations);
     expect(await run(db, Migrations.stamp(fromMigrations))).toEqual([]);
     expect(await run(db, Migrations.run())).toEqual([]);
-    expect(await run(db, Migrations.run(withNext))).toEqual([
-      { id: 2, name: "capacity_note" },
-    ]);
+    expect(await run(db, Migrations.run(withNext))).toEqual([next]);
   });
 
   test("refuses to stamp a database whose schema differs, recording nothing", async () => {
@@ -470,12 +511,51 @@ describe("the migrator", () => {
 
   test("refuses migrations whose ids skip a number", async () => {
     const db = keep(await migratedDatabase());
+    const skipped = { id: next.id + 1, name: "skipped" };
     const gap = Migrator.fromRecord({
       ...migrations,
-      "0003_skipped": addColumn,
+      [keyOf(skipped)]: addColumn,
     });
     const failure = failureOf(await runExit(db, Migrations.run(gap)));
     expect(failure).toMatchObject({ kind: "BadState" });
-    expect(String(failure)).toContain("3_skipped should have id 2");
+    expect(String(failure)).toContain(
+      `${skipped.id}_skipped should have id ${next.id}`,
+    );
+  });
+});
+
+describe("0002_event_topic", () => {
+  test("sets the topics of the published events whose names yield none, and only theirs", async () => {
+    // At the baseline, as production is: the five events as production
+    // holds them, one whose name yields a topic, and one only the site knows.
+    const db = keep(await migratedDatabase(baselineOnly));
+    await db.exec(`
+      INSERT INTO events (slug, name, tagline, start_date, end_date, attendee_limit, luma_event_id, updated_at) VALUES
+        ('2026-03-31-all-things-web-workos', 'Dev Setup Demos - Show your agents.md!', '', now(), now(), 0, 'evt-wJxtorPCscwoGS4', now()),
+        ('2025-11-06-typescript-ai', 'TypeScript AI: The official conference after-party', '', now(), now(), 0, 'evt-ITMJYP0vdkjXbMr', now()),
+        ('2025-11-04-after-party', 'After Party - All Things React Native', '', now(), now(), 0, 'evt-TpDFOGNSBwCxU72', now()),
+        ('2025-10-21-pre-nextjs-conf-ship-ai-meetup', 'Pre Next.js Conf / Ship AI Meetup', '', now(), now(), 0, 'evt-lPPnQypydANrkrJ', now()),
+        ('2025-04-03-ai-x-all-things-web', 'AI x All Things Web', '', now(), now(), 0, 'evt-hMrMdGcrk8XOnuF', now()),
+        ('2026-01-20-all-things-expo', 'All Things Expo!', '', now(), now(), 0, 'evt-3nNZK4pu7n7TNbC', now()),
+        ('website-only', 'Website only', '', now(), now(), 0, NULL, now());
+    `);
+    expect(await run(db, Migrations.run())).toEqual(all.slice(1));
+    expect(
+      (await db.query(`SELECT name, topic FROM events ORDER BY slug`)).rows,
+    ).toEqual([
+      { name: "AI x All Things Web", topic: "ai" },
+      { name: "Pre Next.js Conf / Ship AI Meetup", topic: "ship ai" },
+      {
+        name: "After Party - All Things React Native",
+        topic: "react native after-party",
+      },
+      {
+        name: "TypeScript AI: The official conference after-party",
+        topic: "typescript ai afterparty",
+      },
+      { name: "All Things Expo!", topic: null },
+      { name: "Dev Setup Demos - Show your agents.md!", topic: "dev setups" },
+      { name: "Website only", topic: null },
+    ]);
   });
 });

@@ -27,6 +27,8 @@ interface EventRow {
   readonly street?: string | null;
   readonly luma?: string | null;
   readonly draft?: boolean;
+  /** The topic the site set, for a name that yields none. */
+  readonly topic?: string;
 }
 
 function insertEvents(rows: ReadonlyArray<EventRow>): string {
@@ -46,10 +48,11 @@ function insertEvents(rows: ReadonlyArray<EventRow>): string {
       literal(row.luma ?? null),
       "false",
       String(row.draft ?? false),
+      literal(row.topic ?? null),
       "now()",
     ].join(", ")})`;
   });
-  return `INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, street_address, short_location, full_address, luma_event_id, is_hackathon, is_draft, updated_at) VALUES\n  ${values.join(",\n  ")};`;
+  return `INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, street_address, short_location, full_address, luma_event_id, is_hackathon, is_draft, topic, updated_at) VALUES\n  ${values.join(",\n  ")};`;
 }
 
 /**
@@ -72,6 +75,7 @@ export const past = [
     id: "e0000000-0000-4000-8000-000000000202",
     slug: "2025-11-02-pre-next-js-conf-ship-ai-meetup",
     name: "Pre Next.js Conf / Ship AI Meetup",
+    topic: "ship ai",
     start: new Date("2025-11-02T09:30:00Z"),
     street: "Standard Deviant Brewing Pier 70, 1070 Maryland St",
     listDate: "11.02.25",

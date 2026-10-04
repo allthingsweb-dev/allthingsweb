@@ -1,5 +1,6 @@
 import * as Migrator from "effect/sql/Migrator";
 import baselineMigration from "./0001_baseline.ts";
+import eventTopicMigration from "./0002_event_topic.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -10,6 +11,7 @@ import type { Migration } from "./statements.ts";
  */
 export const migrations: Readonly<Record<string, Migration>> = {
   "0001_baseline": baselineMigration,
+  "0002_event_topic": eventTopicMigration,
 };
 
 /** The migrations, in id order, for the migrator. */
