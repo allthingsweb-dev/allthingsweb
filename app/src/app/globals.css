@@ -48,6 +48,21 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@theme inline {
+  /* Duration, delay and play state are variables so each column can set them
+     without fighting the animation shorthand; `inline` resolves them on the
+     column rather than on :root. */
+  --animate-hero-scroll: hero-scroll var(--hero-scroll-duration, 80s) linear
+    var(--hero-scroll-delay, 0s) infinite var(--hero-scroll-state, running);
+
+  /* Moves a column that repeats its images once by exactly one copy. */
+  @keyframes hero-scroll {
+    to {
+      transform: translateY(-50%);
+    }
+  }
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
