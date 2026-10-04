@@ -121,7 +121,7 @@ const getEvent = (slug: string) =>
   Effect.gen(function* () {
     const { origin } = yield* Site;
     const row = yield* Events.use((events) => events.getPublished(slug));
-    return succeed(Mappers.toEvent(row, origin, yield* DateTime.now));
+    return succeed(yield* Mappers.toEvent(row, origin, yield* DateTime.now));
   }).pipe(
     // Not found is an answer, not a failure: the CLI keys its exit code off it.
     Effect.catchTag("EventNotFound", (error) =>

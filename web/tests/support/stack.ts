@@ -38,3 +38,13 @@ export const testStack = <const Name extends string>(
       return Object.fromEntries(urls);
     }),
   );
+
+/**
+ * The most the Worker's bundle may weigh gzipped. Today it is about 820 KB,
+ * 229 KB gzipped: Effect is a third of it, the MCP SDK and the zod it brings
+ * another third, and @effect/sql-pg most of the rest; the pages (templates,
+ * tokens and the foundations as HTML) are 14 KB. The 21 KB left is room for
+ * the site's remaining pages. Workers may be 3 MB gzipped, but every byte is
+ * parsed on a cold start: raise this only on purpose.
+ */
+export const bundleBudget = 250_000;

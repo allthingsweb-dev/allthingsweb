@@ -189,9 +189,8 @@ describe("core answers as the app's MCP tools do", () => {
     expect(appResult.isError).toBeUndefined();
     const event = await runCore(
       Events.use((events) => events.getPublished(slug)).pipe(
-        Effect.map((row) =>
-          valid(Contract.Event, Mappers.toEvent(row, origin, now)),
-        ),
+        Effect.flatMap((row) => Mappers.toEvent(row, origin, now)),
+        Effect.map((found) => valid(Contract.Event, found)),
       ),
     );
     expect(ignoringAttachOrder(event)).toEqual(
@@ -242,10 +241,9 @@ describe("core's helpers agree with the app's", () => {
     "<h2>Heading</h2>text   \t\n\n\n\nmore",
     "plain < text > with & stray marks",
     "",
-  ])("rich text %j", (html) => {
-    expect(htmlToPlainText(sanitizeRichText(html))).toBe(
-      appPlainText(appSanitize(html)),
-    );
+  ])("rich text %j", async (html) => {
+    const sanitized = await Effect.runPromise(sanitizeRichText(html));
+    expect(htmlToPlainText(sanitized)).toBe(appPlainText(appSanitize(html)));
   });
 
   test.each([

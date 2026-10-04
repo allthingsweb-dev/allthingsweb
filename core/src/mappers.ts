@@ -1,4 +1,4 @@
-import { DateTime, Schema } from "effect";
+import { DateTime, Effect, Schema } from "effect";
 import * as Contract from "./contract.ts";
 import { htmlToPlainText, sanitizeRichText } from "./rich-text.ts";
 import type * as Rows from "./rows.ts";
@@ -104,21 +104,27 @@ export function toEventSummary(
 }
 
 /** An event as get_event shows it: the summary plus talks, as plain text, and hosts. */
-export function toEvent(
+export const toEvent = (
   event: Rows.EventDetails,
   origin: string,
   now: DateTime.Utc,
-): Contract.Event {
-  return {
-    ...toEventSummary(event, origin, now),
-    talks: event.talks.map((talk) => ({
+): Effect.Effect<Contract.Event> =>
+  Effect.forEach(event.talks, (talk) =>
+    Effect.map(sanitizeRichText(talk.description), (description) => ({
       title: talk.title,
-      description: htmlToPlainText(sanitizeRichText(talk.description)),
+      description: htmlToPlainText(description),
       speakers: talk.speakers.map(talkSpeaker),
     })),
-    hosts: event.hosts.map((host) => ({ name: host.name, about: host.about })),
-  };
-}
+  ).pipe(
+    Effect.map((talks) => ({
+      ...toEventSummary(event, origin, now),
+      talks,
+      hosts: event.hosts.map((host) => ({
+        name: host.name,
+        about: host.about,
+      })),
+    })),
+  );
 
 /**
  * The directory as list_speakers shows it: each speaker with their talks,
