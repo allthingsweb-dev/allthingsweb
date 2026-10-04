@@ -4,30 +4,26 @@ import { PauseIcon, PlayIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { community } from "@/lib/community";
 import type { Image } from "@/lib/events";
-import { distributeIntoColumns } from "@/lib/masonry";
+import { placeInColumns } from "@/lib/masonry";
 
-// Two columns on phones, three from md and four from lg. Each column scrolls
-// at its own pace and starts at a different point so they never line up.
-const columns = [
-  {
-    alwaysShown: true,
-    className: "flex [--hero-scroll-duration:80s]",
-  },
-  {
-    alwaysShown: true,
-    className: "flex [--hero-scroll-duration:70s] [--hero-scroll-delay:-5s]",
-  },
-  {
-    alwaysShown: false,
-    className:
-      "hidden md:flex [--hero-scroll-duration:60s] [--hero-scroll-delay:-10s]",
-  },
-  {
-    alwaysShown: false,
-    className:
-      "hidden lg:flex [--hero-scroll-duration:90s] [--hero-scroll-delay:-15s]",
-  },
+// Two columns on phones, three from md and four from lg, matching the grid
+// below. Every layout shows every photo, so a phone's two columns are as tall
+// as the hero even on the narrowest screens. Class names stay literal so
+// Tailwind can see them.
+const layouts = [
+  { columns: 2, hide: "hidden", show: "block" },
+  { columns: 3, hide: "md:hidden", show: "md:block" },
+  { columns: 4, hide: "lg:hidden", show: "lg:block" },
 ] as const;
+
+// Each column scrolls at its own pace from its own starting point so the
+// columns never line up.
+const columnClasses = [
+  "flex [--hero-scroll-duration:80s]",
+  "flex [--hero-scroll-duration:70s] [--hero-scroll-delay:-5s]",
+  "hidden md:flex [--hero-scroll-duration:60s] [--hero-scroll-delay:-10s]",
+  "hidden lg:flex [--hero-scroll-duration:90s] [--hero-scroll-delay:-15s]",
+];
 
 export function LandingHero({ images }: { images: Image[] }) {
   return (
@@ -63,47 +59,53 @@ export function LandingHero({ images }: { images: Image[] }) {
       {/* Painted behind the copy but read after it, so the heading and links
           come first. Each photo's first copy carries its alt text. */}
       <div className="absolute inset-0 -z-10 grid grid-cols-2 items-start gap-x-1 md:grid-cols-3 lg:grid-cols-4">
-        {distributeIntoColumns(images, columns).map(
-          ({ column, items }, columnIndex) => (
-            <div
-              key={columnIndex}
-              className={`${column.className} flex-col animate-hero-scroll group-has-checked/hero:[--hero-scroll-state:paused] motion-reduce:animate-none`}
-            >
-              {/* The column repeats once so scrolling by half of it loops seamlessly. */}
-              {[0, 1].map((copy) =>
-                items.map((image, index) => (
-                  // Bottom padding rather than a flex gap keeps both copies the same height.
-                  <div key={`${copy}-${index}`} className="pb-1">
-                    <div
-                      className="relative w-full"
-                      style={{
-                        aspectRatio:
-                          image.width && image.height
-                            ? `${image.width} / ${image.height}`
-                            : "1 / 1",
-                      }}
-                    >
-                      <NextImage
-                        src={image.url}
-                        placeholder={image.placeholder ? "blur" : "empty"}
-                        blurDataURL={image.placeholder ?? undefined}
-                        fill
-                        className="object-cover"
-                        // Only columns shown at every width preload, so phones
-                        // never fetch images from columns they hide.
-                        preload={
-                          column.alwaysShown && copy === 0 && index === 0
-                        }
-                        alt={copy === 0 ? image.alt : ""}
-                        sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw"
-                      />
-                    </div>
+        {placeInColumns(
+          images,
+          layouts.map((layout) => layout.columns),
+        ).map((placements, columnIndex) => (
+          <div
+            key={columnIndex}
+            className={`${columnClasses[columnIndex]} flex-col animate-hero-scroll group-has-checked/hero:[--hero-scroll-state:paused] motion-reduce:animate-none`}
+          >
+            {/* The column repeats once so scrolling by half of it loops seamlessly. */}
+            {[0, 1].map((copy) =>
+              placements.map(({ item: image, index, shownAt }) => (
+                // Bottom padding rather than a flex gap keeps both copies the same height.
+                <div
+                  key={`${copy}-${index}`}
+                  className={`pb-1 ${layouts
+                    .map((layout, layoutIndex) =>
+                      shownAt[layoutIndex] ? layout.show : layout.hide,
+                    )
+                    .join(" ")}`}
+                >
+                  <div
+                    className="relative w-full"
+                    style={{
+                      aspectRatio:
+                        image.width && image.height
+                          ? `${image.width} / ${image.height}`
+                          : "1 / 1",
+                    }}
+                  >
+                    <NextImage
+                      src={image.url}
+                      placeholder={image.placeholder ? "blur" : "empty"}
+                      blurDataURL={image.placeholder ?? undefined}
+                      fill
+                      className="object-cover"
+                      // The first row of the phone layout tops a column at
+                      // every width, so only those photos preload.
+                      preload={copy === 0 && index < layouts[0].columns}
+                      alt={copy === 0 ? image.alt : ""}
+                      sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 25vw"
+                    />
                   </div>
-                )),
-              )}
-            </div>
-          ),
-        )}
+                </div>
+              )),
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Lets anyone stop the motion without JavaScript (WCAG 2.2.2). */}

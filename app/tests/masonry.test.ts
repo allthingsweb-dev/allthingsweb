@@ -1,26 +1,45 @@
 import { describe, expect, test } from "bun:test";
-import { distributeIntoColumns } from "../src/lib/masonry";
+import { placeInColumns, type Placement } from "../src/lib/masonry";
+
+const shownIn = (columns: Placement<string>[][], layout: number) =>
+  columns.map((column) =>
+    column
+      .filter((placement) => placement.shownAt[layout])
+      .map((placement) => placement.item),
+  );
 
 describe("masonry columns", () => {
-  test("deals items round-robin so columns stay balanced and ordered", () => {
-    expect(
-      distributeIntoColumns([1, 2, 3, 4, 5, 6, 7], ["a", "b", "c"]),
-    ).toEqual([
-      { column: "a", items: [1, 4, 7] },
-      { column: "b", items: [2, 5] },
-      { column: "c", items: [3, 6] },
+  const items = ["a", "b", "c", "d", "e", "f", "g"];
+  const columns = placeInColumns(items, [2, 3]);
+
+  test("deals every item round-robin, in order, under each column count", () => {
+    expect(shownIn(columns, 0)).toEqual([
+      ["a", "c", "e", "g"],
+      ["b", "d", "f"],
+      [],
+    ]);
+    expect(shownIn(columns, 1)).toEqual([
+      ["a", "d", "g"],
+      ["b", "e"],
+      ["c", "f"],
+    ]);
+  });
+
+  test("lists an item once per column, flagged for each layout", () => {
+    expect(columns[0]).toEqual([
+      { item: "a", index: 0, shownAt: [true, true] },
+      { item: "c", index: 2, shownAt: [true, false] },
+      { item: "d", index: 3, shownAt: [false, true] },
+      { item: "e", index: 4, shownAt: [true, false] },
+      { item: "g", index: 6, shownAt: [true, true] },
     ]);
   });
 
   test("keeps empty columns when there are fewer items than columns", () => {
-    expect(distributeIntoColumns(["x"], [1, 2, 3])).toEqual([
-      { column: 1, items: ["x"] },
-      { column: 2, items: [] },
-      { column: 3, items: [] },
-    ]);
+    expect(shownIn(placeInColumns(["a"], [3]), 0)).toEqual([["a"], [], []]);
   });
 
-  test("returns no columns when there are none to fill", () => {
-    expect(distributeIntoColumns([1, 2], [])).toEqual([]);
+  test("returns no columns without column counts", () => {
+    expect(placeInColumns(items, [])).toEqual([]);
   });
 });

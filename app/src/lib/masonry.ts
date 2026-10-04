@@ -1,13 +1,24 @@
+export type Placement<Item> = {
+  item: Item;
+  index: number;
+  /** Whether the item sits in this column under each of the column counts. */
+  shownAt: boolean[];
+};
+
 /**
- * Deals items into the given columns round-robin, so neighbouring items land
- * side by side and every column stays within one item of the others.
+ * Deals items round-robin into columns for several column counts at once (one
+ * per breakpoint), so a single set of columns serves every layout. Column `c`
+ * lists, in order, each item that lands in it under any of the counts.
  */
-export function distributeIntoColumns<Item, Column>(
+export function placeInColumns<Item>(
   items: readonly Item[],
-  columns: readonly Column[],
-): { column: Column; items: Item[] }[] {
-  return columns.map((column, columnIndex) => ({
-    column,
-    items: items.filter((_, index) => index % columns.length === columnIndex),
-  }));
+  columnCounts: readonly number[],
+): Placement<Item>[][] {
+  const columnTotal = Math.max(0, ...columnCounts);
+  return Array.from({ length: columnTotal }, (_, column) =>
+    items.flatMap((item, index) => {
+      const shownAt = columnCounts.map((count) => index % count === column);
+      return shownAt.includes(true) ? [{ item, index, shownAt }] : [];
+    }),
+  );
 }
