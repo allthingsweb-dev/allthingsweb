@@ -58,7 +58,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           bun alchemy deploy --stage "$STAGE" --yes --no-input | tee deploy.log
-          url=$(grep -oE "https://[a-z0-9-]+\.allthings\.workers\.dev" deploy.log | tail -1)
+          # The stack returns the Web Worker's URL as its webUrl output.
+          url=$(sed -nE "s/^ *webUrl: '(https:[^']+)'.*/\1/p" deploy.log | tail -1)
           test -n "$url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed \`$STAGE\`: $url" >> "$GITHUB_STEP_SUMMARY"
