@@ -1,93 +1,23 @@
-import { PGlite } from "@electric-sql/pglite";
-import { PgliteClient } from "@effect/sql-pglite";
-import { DateTime, Layer, Schema } from "effect";
+import type { PGlite } from "@electric-sql/pglite";
+import { DateTime, Layer } from "effect";
 import * as TestClock from "effect/testing/TestClock";
+import { migratedDatabase } from "../../scripts/pglite.ts";
 
 /**
- * An in-process Postgres with the production schema: the app's drizzle
- * migrations, replayed in journal order, then tests/seed.sql. Tests therefore
- * follow every schema change the app ships, without a server or a network.
+ * An in-process Postgres with the production schema: core's migrations,
+ * applied by the migrator production will use, then tests/seed.sql. Tests run
+ * without a server or a network. tests/migrations.test.ts holds those
+ * migrations to production's catalog and to the app's drizzle history.
  */
 
-const migrations = new URL("../../../app/migrations/", import.meta.url);
+export {
+  expectedSchema,
+  migratedDatabase,
+  sqlLayer,
+} from "../../scripts/pglite.ts";
 
 /** The instant every test reads the catalog at. */
 export const now = DateTime.makeUnsafe("2026-10-03T19:00:00Z");
-
-const Journal = Schema.Struct({
-  entries: Schema.Array(Schema.Struct({ idx: Schema.Int, tag: Schema.String })),
-});
-
-/**
- * Statements that cannot replay on an empty database, each with the reason
- * its omission leaves the schema unchanged. Every entry must still match a
- * statement, so the list cannot go stale silently.
- */
-const unreplayable: ReadonlyArray<{
-  readonly tag: string;
-  readonly statement: string;
-  readonly reason: string;
-}> = [
-  {
-    tag: "0005_skinny_madelyne_pryor",
-    statement: `ALTER TABLE "hack_users" ADD CONSTRAINT "hack_users_hack_id_user_id_pk" PRIMARY KEY("hack_id","user_id");`,
-    reason:
-      "It adds the key before its column exists; 0009 adds the same key, and 0014 drops the table.",
-  },
-];
-
-/** drizzle-kit's migrator runs each file as statements split at this marker. */
-const breakpoint = "--> statement-breakpoint";
-
-/** The SQL of the migration recorded as `tag` in the journal. */
-const readMigration = (tag: string): Promise<string> =>
-  Bun.file(new URL(`${tag}.sql`, migrations)).text();
-
-/**
- * Applies the app's migrations to an empty database, one statement at a time
- * through `exec`: PGlite's here, a real server's client in web's tests.
- */
-export async function migrate(
-  exec: (statement: string) => Promise<unknown>,
-): Promise<void> {
-  const journal = Schema.decodeUnknownSync(Journal)(
-    await Bun.file(new URL("meta/_journal.json", migrations)).json(),
-  );
-  const entries = journal.entries.toSorted((a, b) => a.idx - b.idx);
-
-  // Neon Auth creates neon_auth.users_sync before any migration ran, and 0001
-  // already references it. 0010 records that table's definition (IF NOT
-  // EXISTS), so running it first stands in for Neon.
-  await exec(`CREATE SCHEMA neon_auth;`);
-  await exec(await readMigration("0010_wakeful_reptil"));
-
-  const skipped = new Set<string>();
-  for (const { tag } of entries) {
-    for (const part of (await readMigration(tag)).split(breakpoint)) {
-      const statement = part.trim();
-      if (statement === "") continue;
-      const known = unreplayable.find(
-        (entry) => entry.tag === tag && entry.statement === statement,
-      );
-      if (known !== undefined) {
-        skipped.add(`${known.tag}: ${known.statement}`);
-        continue;
-      }
-      try {
-        await exec(statement);
-      } catch (cause) {
-        throw new Error(`Migration ${tag} failed at: ${statement}`, { cause });
-      }
-    }
-  }
-  for (const entry of unreplayable) {
-    if (!skipped.has(`${entry.tag}: ${entry.statement}`)) {
-      throw new Error(
-        `Migration ${entry.tag} no longer contains the skipped statement; update tests/support/database.ts.`,
-      );
-    }
-  }
-}
 
 /** The SQL of tests/seed.sql. */
 export const readSeed = (): Promise<string> =>
@@ -95,14 +25,15 @@ export const readSeed = (): Promise<string> =>
 
 /** A migrated database holding tests/seed.sql. */
 export async function seededDatabase(): Promise<PGlite> {
-  const db = await PGlite.create();
-  await migrate((statement) => db.exec(statement));
-  await db.exec(await readSeed());
+  const db = await migratedDatabase();
+  try {
+    await db.exec(await readSeed());
+  } catch (cause) {
+    await db.close();
+    throw cause;
+  }
   return db;
 }
-
-/** `SqlClient` over `db`. The caller keeps ownership of `db` and closes it. */
-export const sqlLayer = (db: PGlite) => PgliteClient.layer({ liveClient: db });
 
 /** A clock stopped at `instant`. */
 export const clockAt = (instant: DateTime.Utc) =>

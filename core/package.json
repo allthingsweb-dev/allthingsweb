@@ -7,13 +7,15 @@
     "check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "fixtures": "bun scripts/fixtures.ts"
+    "fixtures": "bun scripts/fixtures.ts",
+    "migrate": "bun --no-env-file scripts/migrate.ts"
   },
   "dependencies": {
     "@effect/sql-pg": "4.0.0",
     "effect": "4.0.0"
   },
   "devDependencies": {
+    "@effect/platform-bun": "4.0.0",
     "@effect/sql-pglite": "4.0.0",
     "@electric-sql/pglite": "0.5.8",
     "@types/bun": "1.4.2",

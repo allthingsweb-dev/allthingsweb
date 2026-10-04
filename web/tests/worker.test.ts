@@ -19,7 +19,7 @@ import { bundleBudget, testStack } from "./support/stack.ts";
 
 /**
  * The Worker, bundled as it deploys and running in workerd, against the app
- * it replaces. Both read one database: the production schema (the app's
+ * it replaces. Both read one database: the production schema (core's
  * migrations) with core's seed, in PGlite. The app reads it in process; the
  * Worker connects over TCP with @effect/sql-pg, as it will to Hyperdrive.
  */

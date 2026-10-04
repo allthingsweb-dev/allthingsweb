@@ -28,6 +28,7 @@
         "effect": "4.0.0",
       },
       "devDependencies": {
+        "@effect/platform-bun": "4.0.0",
         "@effect/sql-pglite": "4.0.0",
         "@electric-sql/pglite": "0.5.8",
         "@types/bun": "1.4.2",
