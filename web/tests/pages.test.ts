@@ -103,6 +103,17 @@ describe("/brand", () => {
     });
   }
 
+  it("is not acceptable to a client that refuses every coding", async (url) => {
+    const response = await fetch(`${url}/brand`, {
+      headers: { "accept-encoding": "*;q=0" },
+      decompress: false,
+    });
+    expect(response.status).toBe(406);
+    expect(response.headers.get("content-encoding")).toBeNull();
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    expect(await response.text()).not.toContain("<html");
+  });
+
   it("is valid HTML", async (url) => {
     const { html } = await brand(url);
     const validator = new HtmlValidate({

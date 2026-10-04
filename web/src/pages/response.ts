@@ -37,38 +37,54 @@ function weights(acceptEncoding: string): Map<string, number> {
 }
 
 /**
- * The encoding to send to a client that accepts `acceptEncoding`: Brotli,
- * else gzip, else none. A coding the client weighs 0 is refused, and `*`
- * stands for any coding it doesn't name. Setting Content-Encoding is how a
- * Worker asks the runtime to compress a body; a client that sends no
- * Accept-Encoding gets the HTML as is.
+ * The coding to send to a client that accepts `acceptEncoding`: Brotli,
+ * else gzip, else `identity` (the HTML as is), or `undefined` when the
+ * client refuses all three. A coding the client weighs 0 is refused, and
+ * `*` stands for any coding it doesn't name. Identity is acceptable unless
+ * refused that way (RFC 9110, 12.5.3), so a client that sends no
+ * Accept-Encoding gets the HTML as is. Setting Content-Encoding is how a
+ * Worker asks the runtime to compress a body.
  */
 export function contentEncoding(
   acceptEncoding: string | undefined,
-): "br" | "gzip" | undefined {
+): "br" | "gzip" | "identity" | undefined {
   const accepted = weights(acceptEncoding ?? "");
-  const wildcard = accepted.get("*") ?? 0;
-  const acceptable = (coding: string) => (accepted.get(coding) ?? wildcard) > 0;
-  if (acceptable("br")) return "br";
-  if (acceptable("gzip")) return "gzip";
+  const wildcard = accepted.get("*");
+  const weight = (coding: string) => accepted.get(coding) ?? wildcard;
+  if ((weight("br") ?? 0) > 0) return "br";
+  if ((weight("gzip") ?? 0) > 0) return "gzip";
+  if ((weight("identity") ?? 1) > 0) return "identity";
   return undefined;
 }
 
-/** A page's HTML, compressed when the client accepts it. */
+const headers = {
+  "cache-control": CacheControl.page,
+  "content-security-policy": contentSecurityPolicy,
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "x-content-type-options": "nosniff",
+  vary: "accept-encoding",
+} as const;
+
+/**
+ * A page's HTML, compressed when the client accepts it. A client that
+ * refuses every coding we have, identity included, gets 406 Not Acceptable.
+ */
 export function htmlResponse(
   html: string,
   acceptEncoding: string | undefined,
 ): HttpServerResponse.HttpServerResponse {
   const encoding = contentEncoding(acceptEncoding);
+  if (encoding === undefined) {
+    return HttpServerResponse.text("Not Acceptable: br, gzip or identity", {
+      status: 406,
+      headers: { "cache-control": CacheControl.failure, vary: headers.vary },
+    });
+  }
   return HttpServerResponse.text(html, {
     contentType: "text/html; charset=utf-8",
-    headers: {
-      "cache-control": CacheControl.page,
-      "content-security-policy": contentSecurityPolicy,
-      "referrer-policy": "strict-origin-when-cross-origin",
-      "x-content-type-options": "nosniff",
-      vary: "accept-encoding",
-      ...(encoding === undefined ? {} : { "content-encoding": encoding }),
-    },
+    headers:
+      encoding === "identity"
+        ? headers
+        : { ...headers, "content-encoding": encoding },
   });
 }
