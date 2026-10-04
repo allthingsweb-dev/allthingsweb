@@ -1,0 +1,29 @@
+{
+  "name": "allthings-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fmt": "prettier --write .",
+    "check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@effect/sql-pg": "4.0.0",
+    "@modelcontextprotocol/server": "2.2.0",
+    "allthings-core": "workspace:*",
+    "effect": "4.0.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@effect/platform-bun": "4.0.0",
+    "@effect/platform-node": "4.0.0",
+    "@electric-sql/pglite": "0.5.8",
+    "@electric-sql/pglite-socket": "0.2.11",
+    "@types/bun": "1.4.2",
+    "alchemy": "2.0.0-beta.80",
+    "prettier": "3.6.2",
+    "typescript": "7.0.2"
+  }
+}

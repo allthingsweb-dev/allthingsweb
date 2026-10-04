@@ -43,8 +43,13 @@ const breakpoint = "--> statement-breakpoint";
 const readMigration = (tag: string): Promise<string> =>
   Bun.file(new URL(`${tag}.sql`, migrations)).text();
 
-/** Applies the app's migrations to an empty database. */
-export async function migrate(db: PGlite): Promise<void> {
+/**
+ * Applies the app's migrations to an empty database, one statement at a time
+ * through `exec`: PGlite's here, a real server's client in web's tests.
+ */
+export async function migrate(
+  exec: (statement: string) => Promise<unknown>,
+): Promise<void> {
   const journal = Schema.decodeUnknownSync(Journal)(
     await Bun.file(new URL("meta/_journal.json", migrations)).json(),
   );
@@ -53,8 +58,8 @@ export async function migrate(db: PGlite): Promise<void> {
   // Neon Auth creates neon_auth.users_sync before any migration ran, and 0001
   // already references it. 0010 records that table's definition (IF NOT
   // EXISTS), so running it first stands in for Neon.
-  await db.exec(`CREATE SCHEMA neon_auth;`);
-  await db.exec(await readMigration("0010_wakeful_reptil"));
+  await exec(`CREATE SCHEMA neon_auth;`);
+  await exec(await readMigration("0010_wakeful_reptil"));
 
   const skipped = new Set<string>();
   for (const { tag } of entries) {
@@ -69,7 +74,7 @@ export async function migrate(db: PGlite): Promise<void> {
         continue;
       }
       try {
-        await db.exec(statement);
+        await exec(statement);
       } catch (cause) {
         throw new Error(`Migration ${tag} failed at: ${statement}`, { cause });
       }
@@ -84,11 +89,15 @@ export async function migrate(db: PGlite): Promise<void> {
   }
 }
 
+/** The SQL of tests/seed.sql. */
+export const readSeed = (): Promise<string> =>
+  Bun.file(new URL("../seed.sql", import.meta.url)).text();
+
 /** A migrated database holding tests/seed.sql. */
 export async function seededDatabase(): Promise<PGlite> {
   const db = await PGlite.create();
-  await migrate(db);
-  await db.exec(await Bun.file(new URL("../seed.sql", import.meta.url)).text());
+  await migrate((statement) => db.exec(statement));
+  await db.exec(await readSeed());
   return db;
 }
 
