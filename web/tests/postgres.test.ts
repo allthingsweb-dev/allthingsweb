@@ -2,8 +2,11 @@ import { describe, expect, test as bunTest } from "bun:test";
 import { SQL } from "bun";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
-import { migrate, readSeed } from "allthings-core/tests/support/database.ts";
+import { PgClient } from "@effect/sql-pg";
+import * as Migrations from "allthings-core/src/migrator.ts";
+import { readSeed } from "allthings-core/tests/support/database.ts";
 import * as Effect from "effect/Effect";
+import * as Redacted from "effect/Redacted";
 import { mcpRequest, rpcMessage } from "./support/http.ts";
 import { testStack } from "./support/stack.ts";
 
@@ -33,7 +36,11 @@ if (serverUrl === undefined) {
   const sql = new SQL(url.href);
   try {
     await admin.unsafe(`CREATE DATABASE ${database}`);
-    await migrate((statement) => sql.unsafe(statement));
+    await Effect.runPromise(
+      Migrations.run().pipe(
+        Effect.provide(PgClient.layer({ url: Redacted.make(url.href) })),
+      ),
+    );
     await sql.unsafe(await readSeed());
   } catch (cause) {
     // Leave nothing behind on a server that is reused.

@@ -1,5 +1,5 @@
-import { PGlite } from "@electric-sql/pglite";
-import { migrate } from "allthings-core/tests/support/database.ts";
+import type { PGlite } from "@electric-sql/pglite";
+import { migratedDatabase } from "allthings-core/tests/support/database.ts";
 
 /**
  * A catalog for the home page, written relative to the moment the tests
@@ -172,8 +172,7 @@ export async function catalogDatabase(
   now: Date,
   withUpcoming: boolean,
 ): Promise<PGlite> {
-  const db = await PGlite.create();
-  await migrate((statement) => db.exec(statement));
+  const db = await migratedDatabase();
   await db.exec(catalog(now, withUpcoming));
   return db;
 }

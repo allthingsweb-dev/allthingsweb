@@ -13,7 +13,6 @@ on:
       - "bun.lock"
       - "app/src/app/api/v1/**"
       - "app/src/lib/**"
-      - "app/migrations/**"
       - "app/package.json"
       - "app/bun.lock"
       - ".github/workflows/web.yaml"
@@ -29,7 +28,6 @@ on:
       - "bun.lock"
       - "app/src/app/api/v1/**"
       - "app/src/lib/**"
-      - "app/migrations/**"
       - "app/package.json"
       - "app/bun.lock"
       - ".github/workflows/web.yaml"
@@ -70,7 +68,7 @@ jobs:
           bun-version: 1.3.14
 
       # The parity tests run the app's v1 routes and MCP tools next to the
-      # Worker, and replay its migrations.
+      # Worker.
       - name: 📥 Download app deps
         working-directory: app
         run: bun install --frozen-lockfile
