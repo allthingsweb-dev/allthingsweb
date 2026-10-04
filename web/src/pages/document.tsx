@@ -1,23 +1,16 @@
 import type { PropsWithChildren } from "@kitajs/html";
-import { dataTheme } from "allthings-brand/src/css.ts";
-import { type Mode, roleColor, tokens } from "allthings-brand/src/tokens.ts";
+import { roleColor, tokens } from "allthings-brand/src/tokens.ts";
+import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
 import { hosts, socials } from "../links.ts";
+import { choices, type Theme } from "./theme.ts";
 
 /**
- * The frame of every page: the document, the header with the wordmark, and
- * the footer that signs off with the hosts and the socials. Pages are
- * server-rendered HTML with no JavaScript; the cursor blinks in CSS.
+ * The frame of every page: the document, the header with the wordmark and
+ * the mode, and the footer that signs off with the hosts and the socials.
+ * Pages are server-rendered HTML with no JavaScript; the cursor blinks in
+ * CSS, and the mode is chosen with links (see theme.ts).
  */
-
-/** A page's mode, when it fixes one; otherwise it follows the system. */
-export type Theme = (typeof dataTheme)[Mode];
-
-const themes: ReadonlyArray<Theme> = Object.values(dataTheme);
-
-export function isTheme(value: string | null): value is Theme {
-  return themes.some((theme) => theme === value);
-}
 
 /** Each mode's ground, for the browser's own chrome. */
 const themeColor = {
@@ -63,17 +56,55 @@ export function Wordmark() {
   );
 }
 
-function Footer() {
+/**
+ * The mode: the system's, Paper or Night. Each choice is a link to
+ * `?theme=` on this page, which the Worker remembers and redirects from;
+ * the current one says so with aria-current. Crawlers are asked not to
+ * follow them.
+ */
+function ModeSwitch({ theme }: { readonly theme: Theme | undefined }) {
+  const current = theme ?? "system";
+  return (
+    <nav class="modes at-type-meta" aria-labelledby="mode">
+      <span id="mode">mode</span>
+      <ul>
+        {choices.map(({ choice, label }) => (
+          <li>
+            <a
+              href={`?theme=${choice}`}
+              rel="nofollow"
+              aria-current={choice === current ? "true" : undefined}
+              safe
+            >
+              {label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/**
+ * The hosts sign off with their portraits from their speaker profiles, or
+ * the brand's blank avatar where there is none. The originals are large
+ * (684 to 2160 px) and shown at 36, so they load lazily, last, and off the
+ * main thread; resized variants come with the image pipeline.
+ */
+function Footer({ portraits }: { readonly portraits: PortraitsById }) {
   return (
     <footer class="site-footer">
       <div class="hosts">
         <span class="portraits">
           {hosts.map((host) => (
             <img
-              src={host.portrait ?? built.marks.avatar.src}
+              src={portraits.get(host.profileId)?.url ?? built.marks.avatar.src}
               alt=""
               width="36"
               height="36"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
             />
           ))}
         </span>
@@ -98,7 +129,10 @@ export interface DocumentProps {
   /** The page's own title; the document title adds nothing to it. */
   readonly title: string;
   readonly description: string;
+  /** The mode the visitor fixed, if any (see theme.ts). */
   readonly theme: Theme | undefined;
+  /** The hosts' portraits, by profile id, for the footer. */
+  readonly portraits: PortraitsById;
 }
 
 /** A whole HTML document around `children`, the page's <main>. */
@@ -106,6 +140,7 @@ export function Document({
   title,
   description,
   theme,
+  portraits,
   children,
 }: PropsWithChildren<DocumentProps>): string {
   const fonts = built.fonts.filter((font) => font.preload);
@@ -134,9 +169,10 @@ export function Document({
         <div class="page">
           <header class="site-header">
             <Wordmark />
+            <ModeSwitch theme={theme} />
           </header>
           <main>{children}</main>
-          <Footer />
+          <Footer portraits={portraits} />
         </div>
       </body>
     </html>

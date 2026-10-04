@@ -2,12 +2,13 @@ import * as Database from "allthings-core/src/database.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Events } from "allthings-core/src/events.ts";
 import { Home } from "allthings-core/src/home.ts";
+import { Portraits } from "allthings-core/src/portraits.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
 import { Effect, Layer } from "effect";
 import { V1Data } from "./v1/data.ts";
 
 /** Every repository a request may read from. */
-export type Repositories = Events | Home | Speakers | V1Data;
+export type Repositories = Events | Home | Portraits | Speakers | V1Data;
 
 /**
  * The repositories over one Postgres pool, at `DATABASE_URL`. Provide it to
@@ -25,6 +26,7 @@ export const repositories: Layer.Layer<Repositories, DataSourceError> =
       Layer.mergeAll(
         Events.layer,
         Home.layer,
+        Portraits.layer,
         Speakers.layer,
         V1Data.layer,
       ).pipe(Layer.provide(Database.layer)),

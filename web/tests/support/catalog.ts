@@ -1,15 +1,41 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { migratedDatabase } from "allthings-core/tests/support/database.ts";
+import { hosts } from "../../src/links.ts";
 
 /**
  * A catalog for the home page, written relative to the moment the tests
  * start: the Worker reads the wall clock in workerd, so evenings ahead are
  * always days ahead of it, and past ones are fixed dates in the past. Ids
- * are readable: e… events, c… hosts, d… images.
+ * are readable: e… events, c… hosts, d… images, b… profiles.
  */
 
 export const mediaPhoto = (name: string) =>
   `https://media.allthings.dev/events/home/${name}.jpg`;
+
+/** Erik's portrait, as his profile holds it, on the media origin. */
+export const erikPortrait = "https://media.allthings.dev/profiles/erik.jpg";
+
+/**
+ * The hosts' profiles, under the ids links.ts names: Erik's with a photo on
+ * the media origin, Andre's with none, so his blank avatar shows beside
+ * Erik's portrait. Another profile with Andre's full name has a photo: were
+ * profiles matched by name, it would show.
+ */
+export const hostProfiles = `
+  INSERT INTO images (id, url, placeholder, alt, width, height, updated_at) VALUES
+    ('d0000000-0000-4000-8000-000000000401', '${erikPortrait}', '', 'Erik Thorelli smiles at the camera', 2160, 2160, now()),
+    ('d0000000-0000-4000-8000-000000000402', 'https://media.allthings.dev/profiles/not-andre.jpg', '', 'Someone else', 400, 400, now());
+  INSERT INTO profiles (id, name, title, image, bio, profile_type, updated_at) VALUES
+    ('${hosts[0].profileId}', 'Erik Thorelli', '', 'd0000000-0000-4000-8000-000000000401', '', 'organizer', now()),
+    ('${hosts[1].profileId}', 'Andre Landgraf', '', NULL, '', 'organizer', now()),
+    ('b0000000-0000-4000-8000-000000000401', 'Andre Landgraf', '', 'd0000000-0000-4000-8000-000000000402', '', 'member', now());`;
+
+/** A migrated database holding only the hosts' profiles. */
+export async function hostsDatabase(): Promise<PGlite> {
+  const db = await migratedDatabase();
+  await db.exec(hostProfiles);
+  return db;
+}
 
 const days = (from: Date, count: number) =>
   new Date(from.getTime() + count * 24 * 60 * 60 * 1000);
@@ -168,6 +194,7 @@ export function catalog(now: Date, withUpcoming: boolean): string {
       ('e0000000-0000-4000-8000-000000000203', 'd0000000-0000-4000-8000-000000000204', '2026-01-02T00:00:04Z', now()),
       ('e0000000-0000-4000-8000-000000000204', 'd0000000-0000-4000-8000-000000000205', '2026-01-02T00:00:05Z', now()),
       ('e0000000-0000-4000-8000-000000000302', 'd0000000-0000-4000-8000-000000000206', '2026-01-02T00:00:06Z', now());`,
+    hostProfiles,
   ].join("\n");
 }
 

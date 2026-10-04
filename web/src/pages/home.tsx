@@ -1,9 +1,11 @@
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import { eventUrl } from "allthings-core/src/mappers.ts";
+import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
 import { everyEvening, lumaCalendar } from "../links.ts";
 import { Document } from "./document.tsx";
+import type { Theme } from "./theme.ts";
 import { clockTime, day, listDate } from "./time.ts";
 
 /**
@@ -18,6 +20,9 @@ export interface HomeProps {
   readonly home: HomeView;
   /** Event pages and "every evening" are on the site at this origin. */
   readonly origin: string;
+  readonly theme: Theme | undefined;
+  /** The hosts' portraits, for the footer. */
+  readonly portraits: PortraitsById;
 }
 
 /** The cursor means "not yet happened": upcoming and live evenings carry it. */
@@ -189,13 +194,20 @@ function Mosaic({ photos }: { readonly photos: ReadonlyArray<Rows.Photo> }) {
   );
 }
 
-export function homePage({ home, origin }: HomeProps): string {
+/** The whole home page for `home`, in the visitor's mode, signed off by the hosts. */
+export function homePage({
+  home,
+  origin,
+  theme,
+  portraits,
+}: HomeProps): string {
   const { next, afterThat, recently, photos } = home;
   return Document({
     title: "all things/_",
     description:
       "Evenings for people who build software. In the neighborhoods of San Francisco.",
-    theme: undefined,
+    theme,
+    portraits,
     children: (
       <div class="home">
         <section
@@ -212,7 +224,7 @@ export function homePage({ home, origin }: HomeProps): string {
           {photos.length === 0 ? "" : <Mosaic photos={photos} />}
         </section>
         <div class="band">
-          <div class="pitch">
+          <div class="pitch at-type-lead">
             <p>Evenings for people who build software.</p>
             <p class="pitch-place">In the neighborhoods of San Francisco.</p>
           </div>
@@ -269,12 +281,20 @@ export function homePage({ home, origin }: HomeProps): string {
   });
 }
 
-/** The home page when its data can't be read: said plainly, never cached. */
-export function unavailablePage(): string {
+/**
+ * The home page when its data can't be read: said plainly, never cached.
+ * The hosts' portraits weren't read either, so the blank avatar stands in.
+ */
+export function unavailablePage({
+  theme,
+}: {
+  readonly theme: Theme | undefined;
+}): string {
   return Document({
     title: "all things/_",
     description: "Evenings for people who build software in San Francisco.",
-    theme: undefined,
+    theme,
+    portraits: new Map(),
     children: (
       <div class="intro">
         <p class="at-type-meta">temporarily unavailable</p>

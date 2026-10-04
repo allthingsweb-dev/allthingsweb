@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import { DateTime } from "effect";
-import { homePage, hostNames, lockupSize } from "../src/pages/home.tsx";
+import { hosts } from "../src/links.ts";
+import {
+  type HomeProps,
+  homePage,
+  hostNames,
+  lockupSize,
+} from "../src/pages/home.tsx";
 import { clockTime, day, listDate } from "../src/pages/time.ts";
 import { htmlProblems } from "./support/pages.ts";
 
@@ -108,8 +114,18 @@ const view = (overrides: Partial<HomeView> = {}): HomeView => ({
   ...overrides,
 });
 
-const render = (home: HomeView) =>
-  homePage({ home, origin: "https://allthingsweb.dev" });
+/** The home page for `home`, in the system's mode and without portraits unless `options` say otherwise. */
+const render = (
+  home: HomeView,
+  options: Partial<Pick<HomeProps, "theme" | "portraits">> = {},
+) =>
+  homePage({
+    home,
+    origin: "https://allthingsweb.dev",
+    theme: undefined,
+    portraits: new Map(),
+    ...options,
+  });
 
 describe("the home page", () => {
   test("hides After that when nothing else is announced", () => {
@@ -193,6 +209,37 @@ describe("the home page", () => {
     expect(html).toContain("&quot;Acme&quot; &amp; &lt;Co&gt;");
   });
 
+  test("sets the two sentences in the lead role", () => {
+    expect(render(view())).toContain(
+      '<div class="pitch at-type-lead"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
+    );
+  });
+
+  test("signs off with each host's portrait by profile id, else the blank avatar", () => {
+    const html = render(view(), {
+      portraits: new Map([[hosts[1].profileId, photo("andre")]]),
+    });
+    const sources = [
+      ...(
+        /<span class="portraits">(.*?)<\/span>/.exec(html)?.[1] ?? ""
+      ).matchAll(/<img src="([^"]+)"/g),
+    ].map(([, src]) => src);
+    expect(sources).toHaveLength(2);
+    expect(sources[0]).toMatch(/^\/assets\/avatar\.[0-9a-f]{16}\.svg$/);
+    expect(sources[1]).toBe(photo("andre").url);
+  });
+
+  test("renders the visitor's mode and marks it current in the switch", () => {
+    const html = render(view(), { theme: "dark" });
+    expect(html).toStartWith(
+      '<!doctype html><html lang="en" data-theme="dark">',
+    );
+    expect(html).toContain(
+      '<a href="?theme=dark" rel="nofollow" aria-current="true">night</a>',
+    );
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+  });
+
   test.each([
     ["one upcoming", view()],
     ["nothing ahead", view({ next: undefined })],
@@ -229,7 +276,7 @@ describe("hostNames", () => {
       ["Mux", "Strapi", "BigCommerce", "Neon", "Inngest"],
       "Mux, Strapi, BigCommerce, Neon & Inngest",
     ],
-  ])("%j reads %j", (hosts, text) => {
-    expect(hostNames(hosts)).toBe(text);
+  ])("%j reads %j", (names, text) => {
+    expect(hostNames(names)).toBe(text);
   });
 });

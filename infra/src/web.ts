@@ -14,8 +14,9 @@ import { compatibility } from "../../web/src/compatibility.ts";
  * to come, with Hyperdrive in front of Neon: until then the Worker answers
  * data requests the way the app does when its database is down (a 500 on
  * the v1 API, "temporarily unavailable" from the MCP tools, a 503 page for
- * home), while initialize, tools/list and get_community work. `ORIGIN`
- * stays the current site, where the event pages and the code of conduct are.
+ * home, and blank avatars in place of the hosts' portraits, uncached), while
+ * initialize, tools/list and get_community work. `ORIGIN` stays the current
+ * site, where the event pages and the code of conduct are.
  */
 export const Web = Cloudflare.Worker("Web", {
   main: "../web/src/worker.ts",

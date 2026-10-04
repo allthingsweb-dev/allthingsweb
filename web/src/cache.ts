@@ -23,3 +23,29 @@ export const CacheControl = {
 } as const;
 
 export type CacheControl = (typeof CacheControl)[keyof typeof CacheControl];
+
+/** One of the lifetimes above, by name. */
+export type CacheControlName = keyof typeof CacheControl;
+
+/**
+ * The same lifetimes for one visitor's browser alone, for a page in the mode
+ * that visitor fixed with the `theme` cookie (see pages/theme.ts). Pages are
+ * also sent with `Vary: Cookie`, which keeps standard caches from mixing up
+ * modes, but some shared caches ignore Vary (Cloudflare's honors only
+ * Accept-Encoding); `private` keeps every such copy out of them, so the
+ * only page a shared cache can hold is the one that follows the system.
+ * Should the Worker cache pages itself (the Cache API), its key must
+ * include the mode.
+ */
+export const PrivateCacheControl = {
+  publicData: "private, max-age=60",
+  page: "private, max-age=300",
+  notFound: "private, max-age=60",
+  failure: "no-store",
+} as const satisfies Record<CacheControlName, string>;
+
+/**
+ * A response that sets one visitor's preference, such as their mode: never
+ * stored, so every choice reaches the Worker.
+ */
+export const preferenceCacheControl = "no-store";

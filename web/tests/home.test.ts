@@ -1,13 +1,16 @@
 import { describe, expect } from "bun:test";
-import type { PGlite } from "@electric-sql/pglite";
-import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
-import { CacheControl } from "../src/cache.ts";
+import { CacheControl, PrivateCacheControl } from "../src/cache.ts";
 import { mediaOrigin } from "../src/links.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
-import { catalogDatabase, mediaPhoto, past } from "./support/catalog.ts";
+import {
+  catalogDatabase,
+  erikPortrait,
+  mediaPhoto,
+  past,
+} from "./support/catalog.ts";
 import {
   cssBudget,
   gzipped,
@@ -18,35 +21,29 @@ import {
   stylesheetUrls,
   subresources,
 } from "./support/pages.ts";
+import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
 
 /**
  * The home page, served by the Worker in workerd, reading PGlite over TCP
  * as it will read Hyperdrive. Two catalogs, written relative to now: one
- * with evenings announced, one without (as production is today).
+ * with evenings announced, one without (as production is today). A third
+ * has lost its profiles, so only the hosts' portraits fail to read.
  */
 
 const origin = "https://allthings.dev";
 const startedAt = new Date();
 
-async function serve(db: PGlite) {
-  const server = new PGLiteSocketServer({ db, port: 0, maxConnections: 8 });
-  await server.start();
-  return {
-    url: `postgres://postgres:postgres@${server.getServerConn()}/postgres`,
-    stop: async () => {
-      await server.stop();
-      await db.close();
-    },
-  };
-}
-
 const announced = await serve(await catalogDatabase(startedAt, true));
 const quiet = await serve(await catalogDatabase(startedAt, false));
+const withoutProfiles = await catalogDatabase(startedAt, true);
+await withoutProfiles.exec("DROP TABLE profiles CASCADE");
+const noProfiles = await serve(withoutProfiles);
 
 const Stack = testStack("allthings-web-home-test", {
   Announced: { ORIGIN: origin, DATABASE_URL: announced.url },
   Quiet: { ORIGIN: origin, DATABASE_URL: quiet.url },
+  NoProfiles: { ORIGIN: origin, DATABASE_URL: noProfiles.url },
   // Nothing listens on the discard port, so every connection is refused.
   Unreachable: {
     ORIGIN: origin,
@@ -62,12 +59,14 @@ const workers = beforeAll(deploy(Stack));
 afterAll(
   destroy(Stack).pipe(
     Effect.ensuring(
-      Effect.promise(() => Promise.all([announced.stop(), quiet.stop()])),
+      Effect.promise(() =>
+        Promise.all([announced.stop(), quiet.stop(), noProfiles.stop()]),
+      ),
     ),
   ),
 );
 
-type Worker = "Announced" | "Quiet" | "Unreachable";
+type Worker = "Announced" | "Quiet" | "NoProfiles" | "Unreachable";
 
 /** A test that gets the running Workers' URLs. */
 const it = (
@@ -93,14 +92,16 @@ const it = (
         return run({
           Announced: url("Announced"),
           Quiet: url("Quiet"),
+          NoProfiles: url("NoProfiles"),
           Unreachable: url("Unreachable"),
         });
       }),
     ),
   );
 
-const home = async (url: string) => {
-  const response = await fetch(`${url}/`);
+/** / fetched with `init`, and its HTML. */
+const home = async (url: string, init?: RequestInit) => {
+  const response = await fetch(`${url}/`, init);
   return { response, html: await response.text() };
 };
 
@@ -115,6 +116,18 @@ function section(html: string, id: string): string {
     ? ""
     : html.slice(start, html.indexOf("</section>", start));
 }
+
+/** The photo mosaic beside the hero, or "" when the page has none. */
+function mosaic(html: string): string {
+  const start = html.indexOf('<div class="mosaic');
+  return start === -1 ? "" : html.slice(start, html.indexOf("</div>", start));
+}
+
+/** The footer's portraits. */
+const portraits = (html: string) =>
+  /<span class="portraits">(.*?)<\/span>/
+    .exec(html)?.[1]
+    ?.match(/<img [^>]*>/g) ?? [];
 
 /** San Francisco's wall clock, as an oracle independent of the Worker's code. */
 const inSanFrancisco = (date: Date, options: Intl.DateTimeFormatOptions) =>
@@ -136,7 +149,7 @@ describe("/ with evenings announced", () => {
     expect(response.headers.get("content-security-policy")).toBe(
       contentSecurityPolicy,
     );
-    expect(response.headers.get("vary")).toBe("accept-encoding");
+    expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
   });
 
   it("leads with the next evening: when, the lockup, where, who hosts, and I'm in", async ({
@@ -236,7 +249,7 @@ describe("/ with evenings announced", () => {
     Announced,
   }) => {
     const { html } = await home(Announced);
-    const images = html.match(/<img src="https:[^>]*>/g) ?? [];
+    const images = mosaic(html).match(/<img [^>]*>/g) ?? [];
     expect(images).toEqual([
       `<img src="${mediaPhoto("effect")}" alt="Michael Arnaldi on stage at CodeRabbit" width="1600" height="1200" loading="lazy" decoding="async"/>`,
       `<img src="${mediaPhoto("pier-70")}" alt="The crowd at Pier 70" width="1200" height="900" loading="lazy" decoding="async"/>`,
@@ -279,7 +292,7 @@ describe("/ with nothing announced", () => {
     const { html } = await home(Quiet);
     const rows = section(html, "recently").match(/<li>/g) ?? [];
     expect(rows).toHaveLength(3);
-    expect(html.match(/<img src="https:/g)).toHaveLength(3);
+    expect(mosaic(html).match(/<img /g)).toHaveLength(3);
   });
 });
 
@@ -353,5 +366,86 @@ describe("/ as a page", () => {
     );
     expect(html).toContain("The evenings didn’t load. Try again in a minute.");
     expect(await htmlProblems(html)).toEqual([]);
+  });
+});
+
+const blankAvatar = /^<img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt=""/;
+
+describe("/'s footer", () => {
+  it("signs off with the portrait from each host's profile, by id, and the blank avatar where there is none", async ({
+    Announced,
+  }) => {
+    const { response, html } = await home(Announced);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    expect(html).toContain("<p>hosted by Erik &amp; Andre</p>");
+    const [erik, andre, ...more] = portraits(html);
+    expect(erik).toBe(
+      `<img src="${erikPortrait}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
+    );
+    expect(andre).toMatch(blankAvatar);
+    expect(more).toEqual([]);
+    // Another profile is named Andre Landgraf and has a photo.
+    expect(html).not.toContain("not-andre");
+  });
+
+  it("shows the blank avatars, and is never stored, when only the portraits can't be read", async ({
+    NoProfiles,
+  }) => {
+    const { response, html } = await home(NoProfiles);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    expect(html).toContain('<h1 id="next" class="hero-name lockup-l">');
+    const images = portraits(html);
+    expect(images).toHaveLength(2);
+    for (const image of images) expect(image).toMatch(blankAvatar);
+  });
+
+  it("shows the blank avatars when nothing can be read", async ({
+    Unreachable,
+  }) => {
+    const { html } = await home(Unreachable);
+    const images = portraits(html);
+    expect(images).toHaveLength(2);
+    for (const image of images) expect(image).toMatch(blankAvatar);
+  });
+});
+
+describe("/ in a mode", () => {
+  it("remembers ?theme=dark and comes back to /", async ({ Announced }) => {
+    const response = await fetch(`${Announced}/?theme=dark`, {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("/");
+    expect(response.headers.get("set-cookie")).toStartWith("theme=dark;");
+    await response.arrayBuffer();
+  });
+
+  it("renders the mode its cookie fixes, for that visitor's browser alone", async ({
+    Announced,
+  }) => {
+    const { response, html } = await home(Announced, {
+      headers: { cookie: "theme=dark" },
+    });
+    expect(html).toStartWith(
+      '<!doctype html><html lang="en" data-theme="dark">',
+    );
+    expect(response.headers.get("cache-control")).toBe(
+      PrivateCacheControl.publicData,
+    );
+    expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
+  });
+
+  it("keeps the mode when the evenings can't be read", async ({
+    Unreachable,
+  }) => {
+    const { response, html } = await home(Unreachable, {
+      headers: { cookie: "theme=light" },
+    });
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    expect(html).toStartWith(
+      '<!doctype html><html lang="en" data-theme="light">',
+    );
   });
 });

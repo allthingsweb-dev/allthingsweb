@@ -115,6 +115,12 @@ export const Photo = Schema.Struct({
   height: Schema.Int,
 });
 
+/** A profile's photo, from `profiles.image`, with the profile's id. */
+export const Portrait = Schema.Struct({
+  profileId: Schema.String,
+  ...Photo.fields,
+});
+
 /** What the home page reads, in one statement. */
 export const HomeRow = Schema.Struct({
   /** Every event that hasn't ended, soonest first, up to the limit. */
@@ -140,4 +146,5 @@ export type DirectoryRow = typeof DirectoryRow.Type;
 export type Redirect = typeof Redirect.Type;
 export type Listing = typeof Listing.Type;
 export type Photo = typeof Photo.Type;
+export type Portrait = typeof Portrait.Type;
 export type HomeRow = typeof HomeRow.Type;
