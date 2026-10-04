@@ -7,7 +7,6 @@ import { compatibility } from "../../src/compatibility.ts";
 export interface WorkerEnv {
   readonly ORIGIN: string;
   readonly DATABASE_URL?: string;
-  readonly LEGACY_MEDIA_ORIGIN?: string;
 }
 
 /**

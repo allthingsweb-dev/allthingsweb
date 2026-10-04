@@ -3,7 +3,6 @@ import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { CacheControl } from "../cache.ts";
 import { repositories } from "../database.ts";
-import { Site } from "../site.ts";
 import { V1Data } from "./data.ts";
 import { eventDetailsJson, eventJson, speakersJson } from "./json.ts";
 import { isPostgresUuid } from "./uuid.ts";
@@ -35,10 +34,9 @@ const events = HttpRouter.add(
   "GET",
   "/api/v1/events",
   Effect.gen(function* () {
-    const { legacyMediaOrigin } = yield* Site;
     const rows = yield* V1Data.use((data) => data.listPublishedEvents);
     return yield* respond(
-      { events: rows.map((row) => eventJson(row, legacyMediaOrigin)) },
+      { events: rows.map(eventJson) },
       200,
       CacheControl.publicData,
     );
@@ -53,11 +51,10 @@ const events = HttpRouter.add(
 /** One event by its id, a uuid; drafts are not found. */
 const event = (id: string) =>
   Effect.gen(function* () {
-    const { legacyMediaOrigin } = yield* Site;
     const row = yield* V1Data.use((data) => data.findEvent(id));
     if (Option.isNone(row) || row.value.isDraft) return yield* notFound;
     return yield* respond(
-      { event: eventDetailsJson(row.value, legacyMediaOrigin) },
+      { event: eventDetailsJson(row.value) },
       200,
       CacheControl.publicData,
     );
@@ -86,10 +83,9 @@ const speakers = HttpRouter.add(
   "GET",
   "/api/v1/speakers",
   Effect.gen(function* () {
-    const { legacyMediaOrigin } = yield* Site;
     const rows = yield* V1Data.use((data) => data.directory);
     return yield* respond(
-      { speakers: speakersJson(rows, legacyMediaOrigin) },
+      { speakers: speakersJson(rows) },
       200,
       CacheControl.publicData,
     );

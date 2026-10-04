@@ -6,7 +6,6 @@ import { imagesTable, profilesTable } from "@/lib/schema";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
 import { eq } from "drizzle-orm";
-import { signImage } from "@/lib/image-signing";
 import { appMediaStore, removeStoredObject } from "@/lib/media-store";
 
 function slugifyName(value: string): string {
@@ -15,18 +14,6 @@ function slugifyName(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
-
-async function signImageUrl(url: string | null): Promise<string | null> {
-  if (!url) return null;
-  const signed = await signImage({
-    url,
-    alt: "",
-    placeholder: "",
-    width: 0,
-    height: 0,
-  });
-  return signed.url;
 }
 
 async function deleteImageFromStorage(imageId: string) {
@@ -143,7 +130,7 @@ export async function POST(request: NextRequest) {
         .from(imagesTable)
         .where(eq(imagesTable.id, imageId))
         .limit(1);
-      imageUrl = await signImageUrl(image[0]?.url ?? null);
+      imageUrl = image[0]?.url ?? null;
     }
 
     return NextResponse.json(
@@ -274,7 +261,7 @@ export async function PUT(request: NextRequest) {
         .from(imagesTable)
         .where(eq(imagesTable.id, profile.image))
         .limit(1);
-      imageUrl = await signImageUrl(image[0]?.url ?? null);
+      imageUrl = image[0]?.url ?? null;
     }
 
     return NextResponse.json({ profile: { ...profile, imageUrl } });

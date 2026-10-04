@@ -15,7 +15,6 @@ import {
 } from "@/lib/schema";
 import { Event, Image } from "@/lib/events";
 import { getLumaUrl } from "@/lib/luma";
-import { signImage, signImages } from "@/lib/image-signing";
 import { blankAvatar } from "@/lib/blank-avatar";
 
 export type Host = {
@@ -74,14 +73,13 @@ async function getExpandedEventFromQuery(
   eventRow: any,
 ): Promise<ExpandedEvent> {
   const event = eventRow.events;
-  const previewImageRaw = eventRow.images || {
+  const previewImage = eventRow.images || {
     url: "/hero-image-rocket.png",
     alt: `${event.name} preview`,
     placeholder: null,
     width: 1200,
     height: 630,
   };
-  const previewImagePromise = signImage(previewImageRaw);
 
   // Hosts
   const hostsPromise: Promise<Host[]> = (async () => {
@@ -94,24 +92,18 @@ async function getExpandedEventFromQuery(
       .leftJoin(imagesTable, eq(hostsTable.squareLogoLight, imagesTable.id))
       .leftJoin(darkLogos, eq(hostsTable.squareLogoDark, darkLogos.id));
 
-    return Promise.all(
-      hostsQuery.map(async ({ host, light, dark }) => {
-        // A host with one logo variant uses it for both; with none, the
-        // brand's blank avatar.
-        const fallback = blankAvatar(host.name);
-        const [squareLogoLight, squareLogoDark] = await Promise.all([
-          signImage(light ?? dark ?? fallback),
-          signImage(dark ?? light ?? fallback),
-        ]);
-        return {
-          id: host.id,
-          name: host.name,
-          about: host.about,
-          squareLogoLight,
-          squareLogoDark,
-        };
-      }),
-    );
+    return hostsQuery.map(({ host, light, dark }) => {
+      // A host with one logo variant uses it for both; with none, the
+      // brand's blank avatar.
+      const fallback = blankAvatar(host.name);
+      return {
+        id: host.id,
+        name: host.name,
+        about: host.about,
+        squareLogoLight: light ?? dark ?? fallback,
+        squareLogoDark: dark ?? light ?? fallback,
+      };
+    });
   })();
 
   // Talks (with speakers)
@@ -139,29 +131,23 @@ async function getExpandedEventFromQuery(
             )
             .leftJoin(imagesTable, eq(profilesTable.image, imagesTable.id));
 
-          const speakers: Speaker[] = await Promise.all(
-            speakersQuery
-              .filter((speakerRow) => speakerRow.profiles)
-              .map(async (speakerRow) => {
-                const profile = speakerRow.profiles!;
-                const imageRaw = speakerRow.images ?? blankAvatar(profile.name);
-
-                const image = await signImage(imageRaw);
-
-                return {
-                  id: profile.id,
-                  name: profile.name,
-                  title: profile.title,
-                  image,
-                  bio: profile.bio,
-                  socials: {
-                    twitter: profile.twitterHandle || undefined,
-                    bluesky: profile.blueskyHandle || undefined,
-                    linkedin: profile.linkedinHandle || undefined,
-                  },
-                };
-              }),
-          );
+          const speakers: Speaker[] = speakersQuery
+            .filter((speakerRow) => speakerRow.profiles)
+            .map((speakerRow) => {
+              const profile = speakerRow.profiles!;
+              return {
+                id: profile.id,
+                name: profile.name,
+                title: profile.title,
+                image: speakerRow.images ?? blankAvatar(profile.name),
+                bio: profile.bio,
+                socials: {
+                  twitter: profile.twitterHandle || undefined,
+                  bluesky: profile.blueskyHandle || undefined,
+                  linkedin: profile.linkedinHandle || undefined,
+                },
+              };
+            });
 
           return {
             id: talk.id,
@@ -181,15 +167,10 @@ async function getExpandedEventFromQuery(
       .where(eq(eventImagesTable.eventId, event.id))
       .leftJoin(imagesTable, eq(eventImagesTable.imageId, imagesTable.id));
 
-    const imagesRaw: Image[] = imagesQuery
-      .filter((row) => row.images)
-      .map((row) => row.images!);
-
-    return signImages(imagesRaw);
+    return imagesQuery.filter((row) => row.images).map((row) => row.images!);
   })();
 
-  const [previewImage, hosts, talks, images] = await Promise.all([
-    previewImagePromise,
+  const [hosts, talks, images] = await Promise.all([
     hostsPromise,
     talksPromise,
     imagesPromise,

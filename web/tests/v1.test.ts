@@ -1,15 +1,8 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
-import { Option } from "effect";
-import { mediaUrl } from "../src/v1/media.ts";
 import { isPostgresUuid } from "../src/v1/uuid.ts";
 
 /** The v1 API's helpers, against what they stand in for. */
-
-const app = new URL("../../app/", import.meta.url);
-const { toMediaUrl } = (await import(
-  new URL("src/lib/media.ts", app).href
-)) as { toMediaUrl: (storedUrl: string, storageOrigin: string) => string };
 
 const db = await PGlite.create();
 afterAll(() => db.close());
@@ -50,33 +43,5 @@ describe("isPostgresUuid", () => {
     "",
   ])("%j as Postgres reads it", async (value) => {
     expect(isPostgresUuid(value)).toBe(await postgresReadsUuid(value));
-  });
-});
-
-describe("mediaUrl", () => {
-  const origin = "https://bucket.s3.us-west-1.amazonaws.com";
-
-  test.each([
-    `${origin}/events/e1/cover.png`,
-    `${origin}/people/Erik%20Pe%C3%B1a.jpg`,
-    `${origin}/people/Erik Peña.jpg`,
-    `${origin}/people/देवनागरी.png`,
-    `${origin}/a/../b.png`,
-    `${origin}/a/%2E%2E/b.png`,
-    `${origin}/a%2Fb.png`,
-    `${origin}/.hidden.png`,
-    `${origin}/bad%zz.png`,
-    `${origin}/`,
-    `${origin}`,
-    `${origin}x/a.png`,
-    "https://media.allthings.dev/events/e1/cover.png",
-    "/hero-image-rocket.png",
-  ])("%j as the app maps it", (url) => {
-    expect(mediaUrl(url, Option.some(origin))).toBe(toMediaUrl(url, origin));
-  });
-
-  test("leaves URLs alone without a legacy origin", () => {
-    const url = `${origin}/events/e1/cover.png`;
-    expect(mediaUrl(url, Option.none())).toBe(url);
   });
 });

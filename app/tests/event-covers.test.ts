@@ -306,7 +306,7 @@ describe("event cover ingestion", () => {
       deps({
         newId: () => "not-a-uuid",
         remove: async () => {
-          throw new Error("S3 unavailable");
+          throw new Error("Storage unavailable");
         },
       }),
     );

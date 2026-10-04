@@ -1,5 +1,5 @@
 import { sanitizeRichText } from "allthings-core/src/rich-text.ts";
-import { DateTime, type Option } from "effect";
+import { DateTime } from "effect";
 import type {
   DirectoryRow,
   EventDetailsRow,
@@ -7,7 +7,6 @@ import type {
   ImageRow,
   SpeakerRow,
 } from "./data.ts";
-import { mediaUrl } from "./media.ts";
 
 /**
  * The v1 API's response bodies: the app's internal shapes as
@@ -106,13 +105,10 @@ export interface SpeakerJson {
 
 const iso = DateTime.formatIso;
 
-/** Image URLs are rewritten for the legacy bucket, if there is one. */
-export type LegacyMediaOrigin = Option.Option<string>;
-
-function image(row: ImageRow, legacy: LegacyMediaOrigin): ImageJson {
+function image(row: ImageRow): ImageJson {
   return {
     id: row.id,
-    url: mediaUrl(row.url, legacy),
+    url: row.url,
     placeholder: row.placeholder,
     alt: row.alt,
     width: row.width,
@@ -150,7 +146,7 @@ function lumaEventUrl(lumaEventId: string | null): string | null {
 }
 
 /** An event as /api/v1/events lists it: its row, cover and Luma page. */
-export function eventJson(row: EventRow, legacy: LegacyMediaOrigin): EventJson {
+export function eventJson(row: EventRow): EventJson {
   return {
     id: row.id,
     name: row.name,
@@ -169,7 +165,7 @@ export function eventJson(row: EventRow, legacy: LegacyMediaOrigin): EventJson {
     previewImage:
       row.previewImage === null
         ? defaultCover(row.name)
-        : image(row.previewImage, legacy),
+        : image(row.previewImage),
     recordingUrl: row.recordingUrl,
     createdAt: iso(row.createdAt),
     updatedAt: iso(row.updatedAt),
@@ -192,14 +188,11 @@ function handles(
  * An event as /api/v1/events/:id answers it: the listed shape plus talks with
  * sanitized descriptions and their speakers, hosts and photos.
  */
-export function eventDetailsJson(
-  row: EventDetailsRow,
-  legacy: LegacyMediaOrigin,
-): EventDetailsJson {
+export function eventDetailsJson(row: EventDetailsRow): EventDetailsJson {
   const photo = (value: ImageRow | null, name: string) =>
-    value === null ? blankAvatar(name) : image(value, legacy);
+    value === null ? blankAvatar(name) : image(value);
   return {
-    ...eventJson(row, legacy),
+    ...eventJson(row),
     talks: row.talks.map((talk) => ({
       id: talk.id,
       title: talk.title,
@@ -227,7 +220,7 @@ export function eventDetailsJson(
         host.name,
       ),
     })),
-    images: row.images.map((value) => image(value, legacy)),
+    images: row.images.map((value) => image(value)),
   };
 }
 
@@ -237,7 +230,6 @@ export function eventDetailsJson(
  */
 export function speakersJson(
   rows: ReadonlyArray<DirectoryRow>,
-  legacy: LegacyMediaOrigin,
 ): Array<SpeakerJson> {
   const speakers = new Map<
     string,
@@ -255,9 +247,7 @@ export function speakersJson(
     id: profile.id,
     name: profile.name,
     image:
-      profile.image === null
-        ? blankAvatar(profile.name)
-        : image(profile.image, legacy),
+      profile.image === null ? blankAvatar(profile.name) : image(profile.image),
     title: profile.title,
     bio: profile.bio,
     type: profile.profileType,

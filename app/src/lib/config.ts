@@ -5,7 +5,6 @@ import { instanceConfig } from "./instance/config";
 import { integrationsConfig } from "./integrations/config";
 import { lumaConfig } from "./luma/config";
 import { mediaConfig } from "./media-store/config";
-import { storageConfig } from "./storage/config";
 
 export const mainConfig = {
   instance: instanceConfig,
@@ -13,7 +12,6 @@ export const mainConfig = {
     databaseUrl: databaseConfig.databaseUrl,
     neonAuth: authConfig,
   },
-  s3: storageConfig,
   media: mediaConfig,
   resend: {
     apiKey: integrationsConfig.resendApiKey,

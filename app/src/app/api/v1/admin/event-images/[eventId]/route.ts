@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stackServerApp } from "@/lib/stack";
 import { isAdmin, getEventImages } from "@/lib/admin";
-import { signImage } from "@/lib/image-signing";
 
 export async function GET(
   request: NextRequest,
@@ -32,31 +31,9 @@ export async function GET(
     // Get existing images for the event
     const images = await getEventImages(eventId);
 
-    // Sign all image URLs for secure access
-    const signedImages = await Promise.all(
-      images.map(async (image) => {
-        const signedImage = await signImage({
-          url: image.imageUrl,
-          alt: image.imageAlt,
-          placeholder: image.imagePlaceholder,
-          width: image.imageWidth,
-          height: image.imageHeight,
-        });
-
-        return {
-          imageId: image.imageId,
-          imageUrl: signedImage.url,
-          imageAlt: image.imageAlt,
-          imageWidth: image.imageWidth,
-          imageHeight: image.imageHeight,
-          imagePlaceholder: image.imagePlaceholder,
-        };
-      }),
-    );
-
     return NextResponse.json({
-      images: signedImages,
-      count: signedImages.length,
+      images,
+      count: images.length,
     });
   } catch (error) {
     console.error("Error fetching event images:", error);
