@@ -1,0 +1,21 @@
+{
+  "name": "allthings-core",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fmt": "prettier --write .",
+    "check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "fixtures": "bun scripts/fixtures.ts"
+  },
+  "dependencies": {
+    "effect": "4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "prettier": "3.6.2",
+    "typescript": "7.0.2",
+    "zod": "4.6.5"
+  }
+}
