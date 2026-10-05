@@ -7,6 +7,7 @@ import {
 } from "allthings-core/src/people-directory.ts";
 import type { StageRole } from "allthings-core/src/people.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
+import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
 import { built } from "../assets.ts";
 import { eventPath, personAnchor } from "../links.ts";
@@ -64,17 +65,18 @@ const portraitSizes = {
  * beside it, so it says nothing more to a screen reader. The organizers'
  * load at once; everyone's below them as they come into view.
  */
-function Portrait({
-  person,
+export function Portrait({
+  photo,
   organizer,
   images,
+  eager,
 }: {
-  readonly person: Person;
+  readonly photo: Rows.Photo | null;
   readonly organizer: boolean;
   readonly images: ImageMode;
+  readonly eager: true | undefined;
 }) {
-  const eager = organizer ? true : undefined;
-  if (person.photo === null || !hasSource(person.photo, images)) {
+  if (photo === null || !hasSource(photo, images)) {
     const { src, width, height } = built.marks.avatar;
     return (
       <img
@@ -90,7 +92,7 @@ function Portrait({
   }
   return (
     <SquarePhoto
-      photo={person.photo}
+      photo={photo}
       mode={images}
       {...portraitSizes[organizer ? "organizer" : "speaker"]}
       alt=""
@@ -195,7 +197,12 @@ function PersonEntry({
 }) {
   return (
     <li class="person" id={personAnchor(person.id)}>
-      <Portrait person={person} organizer={organizer} images={images} />
+      <Portrait
+        photo={person.photo}
+        organizer={organizer}
+        images={images}
+        eager={organizer ? true : undefined}
+      />
       <div class="person-text">
         <h3 class="person-name" safe>
           {person.name}

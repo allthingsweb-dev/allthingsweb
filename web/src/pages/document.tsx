@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from "@kitajs/html";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
-import { hosts, socials } from "../links.ts";
+import { aboutPath, hosts, socials } from "../links.ts";
 import { Metadata, type PageMeta } from "./metadata.tsx";
 import { type ImageMode, Portrait } from "./picture.tsx";
 import { choices, type Theme } from "./theme.ts";
@@ -69,7 +69,8 @@ function ModeSwitch({
  * The hosts sign off with their portraits from their speaker profiles, or
  * the brand's blank avatar where there is none. The originals are large
  * (684 to 2160 px, megabytes) and shown at 36, so with variants they come
- * at 36 and 72 pixels (see picture.tsx).
+ * at 36 and 72 pixels (see picture.tsx). Who they are, and what all things
+ * is, is on the about page their names link to.
  */
 function Footer({
   portraits,
@@ -90,7 +91,11 @@ function Footer({
             />
           ))}
         </span>
-        <p safe>{`hosted by ${hosts[0].name} & ${hosts[1].name}`}</p>
+        <p>
+          <a href={aboutPath} safe>
+            {`hosted by ${hosts[0].name} & ${hosts[1].name}`}
+          </a>
+        </p>
       </div>
       <nav aria-label="all things elsewhere">
         <ul class="socials at-type-meta">

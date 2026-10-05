@@ -198,7 +198,9 @@ describe("/events", () => {
 
   it("signs off with the hosts' portraits", async ({ Announced }) => {
     const { html } = await events(Announced);
-    expect(html).toContain("<p>hosted by Erik &amp; Andre</p>");
+    expect(html).toContain(
+      '<p><a href="/about">hosted by Erik &amp; Andre</a></p>',
+    );
     expect(html).toContain(`<img src="${erikPortrait}"`);
   });
 
