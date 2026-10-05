@@ -82,11 +82,11 @@ Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so
 | ---------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
 | `schedule` | `"off"`: no Cron Trigger at all                       | `"hourly"`: `0 * * * *`, once the app's cron stops at the cutover   |
 | `mode`     | `"dry-run"`: writes nothing, logs what it would write | `"write"`, after a few hours of dry runs look right in Workers Logs |
-| `plan`     | `"free"`: within the Workers Free plan's subrequests  | `"paid"`: the app's own limits, on Workers Paid                     |
+| `plan`     | `"paid"`: the app's own limits, on Workers Paid       | unchanged                                                           |
 
 Each run logs one JSON line per step and one summary line (`source: "luma-sync"`).
 
-**On Workers Free.** The allthings account is on Workers Free, which allows a Cron Trigger run:
+**On Workers Free.** The allthings account is on Workers Paid now. On Workers Free, which it was on until October 2026, a Cron Trigger run gets:
 
 - **10 ms of CPU.** Reading the calendar (30-odd events) and converting images will very likely take more. If so, the runtime stops the run with "exceeded CPU": events not written, or images left for later. Each step stays consistent.
 - **50 subrequests to the internet.** That covers Luma's feed, cover lookups, image downloads and their redirects. `plan: "free"` keeps a run to two images of each kind, at most 37 subrequests; the rest wait for later runs.
