@@ -25,6 +25,12 @@ import {
  * input limit; Images' monthly allowance used up), the original is sent as
  * it is, briefly cached, so the page still shows the photo and a later
  * request tries again.
+ *
+ * Originals stream through and are never held whole: a browser asks for
+ * several variants at once, and originals of 20 MB and more would exceed
+ * the isolate's memory. So when Images has read an original and refused
+ * it, the Worker fetches it again to send it, from the media origin's edge
+ * cache; if that fetch fails too, the failure is what the page gets.
  */
 
 /** What the Worker uses of the Images binding (workerd's `ImagesBinding`). */
