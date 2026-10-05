@@ -62,6 +62,24 @@ describe("About", () => {
     expect(about.guests).toBe(118 + guestCountFloor + 98);
   });
 
+  test("counts only our evenings, never one we only share", async () => {
+    const shared = await seededDatabase();
+    try {
+      const before = await Effect.runPromise(readAbout([grace, ada], shared));
+      await shared.exec(`
+        INSERT INTO sponsors (id, name, about, updated_at) VALUES
+          ('c0000000-0000-4000-8000-000000000900', 'Mastra', 'Agents.', now());
+        UPDATE events SET curation = 'shared', organized_by = 'c0000000-0000-4000-8000-000000000900'
+          WHERE slug = '2026-08-12-react-at-acme';`);
+      const after = await Effect.runPromise(readAbout([grace, ada], shared));
+      expect(after.evenings).toBe(before.evenings - 1);
+      // React at Acme's 118 guests are no longer ours to count.
+      expect(after.guests).toBe(before.guests - 118);
+    } finally {
+      await shared.close();
+    }
+  });
+
   test("finds the first evening, and where each former name first appeared", async () => {
     const about = await read();
     expect(about.first).toMatchObject({

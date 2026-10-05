@@ -29,8 +29,8 @@ await db.exec(`
   UPDATE events SET
     created_at = '2026-01-01T00:00:00Z',
     updated_at = '2026-02-01T00:00:00Z';
-  INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, is_draft, created_at, updated_at) VALUES
-    ('e0000000-0000-4000-8000-000000000401', '2024-10-05-hackathon & more', '</title><item>Hack & tell</item>', 'Bring "<b>" ideas', '2024-10-05T16:00:00Z', '2024-10-06T02:00:00Z', 100, true, false, '2026-09-16T00:00:00Z', '2026-09-17T00:00:00Z');
+  INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, program, is_draft, created_at, updated_at) VALUES
+    ('e0000000-0000-4000-8000-000000000401', '2024-10-05-hackathon & more', '</title><item>Hack & tell</item>', 'Bring "<b>" ideas', '2024-10-05T16:00:00Z', '2024-10-06T02:00:00Z', 100, true, 'hackathon', false, '2026-09-16T00:00:00Z', '2026-09-17T00:00:00Z');
 `);
 const database = await serve(db);
 

@@ -182,6 +182,24 @@ export type SelectTalk = typeof talksTable.$inferSelect;
 export type InsertTalkSpeaker = typeof talkSpeakersTable.$inferInsert;
 export type SelectTalkSpeaker = typeof talkSpeakersTable.$inferSelect;
 
+/**
+ * What kind of evening an event is: a lineup on stage, an open floor of
+ * community demos, a social evening, or a hackathon.
+ * core/migrations/0008_event_program.ts is the same change.
+ */
+export const eventPrograms = [
+  "talks",
+  "open-floor",
+  "social",
+  "hackathon",
+] as const;
+
+/**
+ * Whose evening an event is: ours, or someone else's we share with our
+ * community. core/migrations/0009_event_curation.ts is the same change.
+ */
+export const eventCurations = ["ours", "shared"] as const;
+
 export const eventsTable = pgTable(
   "events",
   {
@@ -217,9 +235,32 @@ export const eventsTable = pgTable(
     lumaGuestCount: integer("luma_guest_count"),
     /** Guests checked in at the door, as Luma counts them; Luma-owned. */
     lumaCheckedInCount: integer("luma_checked_in_count"),
+    /** What kind of evening it is; `is_hackathon` must agree. */
+    program: text("program", { enum: eventPrograms })
+      .notNull()
+      .default("talks"),
+    /** Ours, or shared: someone else's evening we recommend. */
+    curation: text("curation", { enum: eventCurations })
+      .notNull()
+      .default("ours"),
+    /** Who organizes a shared event; only a shared one has one. */
+    organizedBy: uuid("organized_by").references(() => hostsTable.id),
   },
   () => [
     check("events_luma_guest_count_check", sql`"luma_guest_count" >= 0`),
+    check(
+      "events_program_check",
+      sql`"program" IN ('talks', 'open-floor', 'social', 'hackathon')`,
+    ),
+    check(
+      "events_program_hackathon_check",
+      sql`("program" = 'hackathon') = "is_hackathon"`,
+    ),
+    check("events_curation_check", sql`"curation" IN ('ours', 'shared')`),
+    check(
+      "events_curation_organizer_check",
+      sql`("curation" = 'shared') = ("organized_by" IS NOT NULL)`,
+    ),
     check(
       "events_luma_checked_in_count_check",
       sql`"luma_checked_in_count" >= 0`,

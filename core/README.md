@@ -26,6 +26,24 @@ dry run also proves the role's grants:
 DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") bun run sync:rehearse
 ```
 
+## Image ingestion
+
+`src/ingest/` is the image half of the app's hourly sync (`app/src/lib/event-covers`, `profile-photos`, `post-images`) as an Effect service, `ImageIngest`. It fills in three kinds of missing image:
+
+- each event without a cover gets its Luma cover
+- each profile without a photo gets the one at its `photo_source_url`
+- each post gets its image and its author's avatar
+
+**Downloads** are HTTPS only, from a per-kind host list, with every redirect checked first, a 15 MiB cap, and a check that the bytes are an image.
+
+**Processing** goes through `Pictures`. In the Worker that is Cloudflare's Images binding, because the app's sharp, heic-convert and openimg don't run in Workers. HEIC, HEIF, WebP and AVIF are stored as JPEG (the app stores PNG), and other formats keep their bytes.
+
+**Storing** an image means putting it in the `MediaBucket` under a new key. Then one statement records it in `images` and sets it on its row, only while the row still has none. An object stored for nothing is deleted again.
+
+Each phase starts nothing new after its budget, and `pending` is the dry run: it lists what would be fetched and fetches nothing.
+
+`tests/ingest-parity.test.ts` runs each phase and the app's on copies of one database, with the same downloads, processing, ids and time. It requires the same rows, the same objects stored and deleted, and the same results.
+
 ## Who took part
 
 `event_people` holds a person's part in an event as a whole: an all things
@@ -60,13 +78,65 @@ bun run luma:people --create usr-… --link usr-…=<profile id>             # w
 docs.luma.com documents, and the import against `tests/seed.sql`; nothing in
 the tests reaches Luma.
 
+## What kind of evening
+
+`events.program` says what an evening was: `talks` (a lineup on stage), an
+`open-floor` (community demos with no fixed lineup), `social` (a hangout,
+trivia, an after-party) or a `hackathon`. It's `talks` unless an organizer
+says otherwise, and `is_hackathon`, which the public API still publishes,
+must agree with it. Only an evening of talks is asked for talks, and the
+event page says an open floor was open to anyone before any demos it knows.
+
+`core/backfill/programs.json` names every event's program, each sourced to
+its Luma page, with a note wherever the evening had no lineup. Run it from
+`core/`; it lists any event the file doesn't name:
+
+```sh
+DATABASE_URL=… bun run programs --dry-run   # do everything, print it, roll back
+DATABASE_URL=… bun run programs             # write
+```
+
+## Ours, or shared
+
+`events.curation` says whose evening an event is: `ours`, or `shared`,
+someone else's evening we share with our community because we think it's
+good. A shared event names who organizes it, `events.organized_by`, a
+company in `sponsors` (the table that already holds companies with their
+sites and handles, so pages link out and drafts tag them); the database
+holds a shared event to having one, and only it. `Rows.Curation` is the
+discriminated type: `{ kind: "ours" }` or `{ kind: "shared", organizer }`.
+
+What follows from it:
+
+- A shared evening is named as written, never all things/<topic>
+  (`eventTopic`), on its page, in lists, in feeds and on its card.
+- /events and home list it in the same rows, marked "shared · by Mastra".
+  Home's hero is always our next evening, and its photos are of ours.
+- Its page says who organizes it, linked to their site, and has no "your
+  hosts". Its structured data names the organizer, not us.
+- /about's numbers count our evenings alone, and the people page lists who
+  was on stage at ours; people from a shared evening are on its page.
+- Completeness asks a shared evening for no organizers, MC or topic.
+- Promotion drafts recommend it, by its organizer, and say why; it gets no
+  Luma description or Meetup listing of ours.
+
+`core/backfill/curation.json` names the shared evenings and their
+organizers, sourced; an organizer the database lacks is added, one it has is
+kept as it is. Run it from `core/`:
+
+```sh
+DATABASE_URL=… bun run curation --dry-run   # do everything, print it, roll back
+DATABASE_URL=… bun run curation             # write
+```
+
 ## Completeness
 
 `src/completeness.ts` lists what each published event's record lacks. It's
 a pure function over what one statement reads, so the same rows always give
 the same report:
 
-- talks, and each talk's speakers and description; hackathons need no talks
+- talks, for an evening of talks (see "What kind of evening", below), and
+  each listed talk's speakers and description
 - the event's people and an organizer among them
 - everyone named on the event: title, bio, photo, links
 - hosts, with their logo and about, and their website and X, Bluesky or
@@ -82,7 +152,7 @@ judged.
 ```sh
 DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") bun run completeness          # table, then each event's gaps
 DATABASE_URL=… bun run completeness --json   # the same, for tools
-DATABASE_URL=… bun run completeness --check  # also fail if an event that ended in the last 30 days has no talks
+DATABASE_URL=… bun run completeness --check  # also fail if an evening of talks that ended in the last 30 days has none
 ```
 
 It only reads, so the read-only `site_reader` role is enough. The admin MCP

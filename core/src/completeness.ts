@@ -5,7 +5,8 @@ import type { DataSourceError } from "./errors.ts";
 import { eventTopic } from "./lockup.ts";
 import { defaultTagline } from "./luma/sync.ts";
 import { eventStatus, httpUrlOrNull } from "./mappers.ts";
-import { orDataSourceError } from "./sql.ts";
+import * as Rows from "./rows.ts";
+import { curationJson, orDataSourceError } from "./sql.ts";
 
 /**
  * What each published event's record lacks: talks, the people around it and
@@ -18,7 +19,10 @@ import { orDataSourceError } from "./sql.ts";
 
 /** Everything a gap can be about, with whether a complete record needs it. */
 export const gapKinds = {
-  /** A hackathon has demos and winners instead, and is not asked for talks. */
+  /**
+   * Only an evening of talks is asked for them: an open floor, a social
+   * evening and a hackathon never had a lineup.
+   */
   talks: { required: true, label: "no talks" },
   "talk-speakers": { required: true, label: "talk without speakers" },
   "talk-description": { required: true, label: "talk without description" },
@@ -80,7 +84,8 @@ export const EventRecord = Schema.Struct({
   fullAddress: Schema.NullOr(Schema.String),
   lumaEventId: Schema.NullOr(Schema.String),
   recordingUrl: Schema.NullOr(Schema.String),
-  isHackathon: Schema.Boolean,
+  program: Rows.EventProgram,
+  curation: Rows.Curation,
   hasCover: Schema.Boolean,
   lumaGuestCount: Schema.NullOr(Schema.Int),
   photos: Schema.Int,
@@ -116,6 +121,10 @@ export interface EventCompleteness {
   readonly slug: string;
   readonly name: string;
   readonly status: "upcoming" | "live" | "past";
+  /** What kind of evening it is, which decides whether talks are asked for. */
+  readonly program: Rows.EventProgram;
+  /** Ours, or someone else's evening we share, which has no people of ours. */
+  readonly curation: Rows.Curation["kind"];
   readonly startDate: DateTime.Utc;
   readonly endDate: DateTime.Utc;
   readonly talks: number;
@@ -144,7 +153,9 @@ export function eventCompleteness(
   const status = eventStatus(event, now);
   const gaps: Array<Gap> = [];
 
-  if (event.talks.length === 0 && !event.isHackathon) gaps.push(gap("talks"));
+  if (event.talks.length === 0 && event.program === "talks") {
+    gaps.push(gap("talks"));
+  }
   for (const talk of event.talks) {
     if (talk.speakers.length === 0) {
       gaps.push(gap("talk-speakers", talk.title));
@@ -154,9 +165,12 @@ export function eventCompleteness(
     }
   }
 
-  if (event.people.length === 0) gaps.push(gap("people"));
-  else if (!event.people.some(({ role }) => role === "organizer")) {
-    gaps.push(gap("organizer"));
+  // A shared evening is someone else's: it has no organizers or MC of ours.
+  if (event.curation.kind === "ours") {
+    if (event.people.length === 0) gaps.push(gap("people"));
+    else if (!event.people.some(({ role }) => role === "organizer")) {
+      gaps.push(gap("organizer"));
+    }
   }
 
   // Everyone named on the event, once each: speakers first, as listed.
@@ -198,7 +212,10 @@ export function eventCompleteness(
 
   const address = event.fullAddress ?? event.streetAddress;
   if (address === null || isBlank(address)) gaps.push(gap("venue"));
-  if (eventTopic(event) === undefined) gaps.push(gap("topic"));
+  // A shared evening is named as written, never all things/<topic>.
+  if (event.curation.kind === "ours" && eventTopic(event) === undefined) {
+    gaps.push(gap("topic"));
+  }
   if (event.tagline.trim() === defaultTagline || isBlank(event.tagline)) {
     gaps.push(gap("tagline"));
   }
@@ -220,6 +237,8 @@ export function eventCompleteness(
     slug: event.slug,
     name: event.name,
     status,
+    program: event.program,
+    curation: event.curation.kind,
     startDate: event.startDate,
     endDate: event.endDate,
     talks: event.talks.length,
@@ -249,8 +268,8 @@ export const requiredGaps = (report: EventCompleteness): ReadonlyArray<Gap> =>
 export const recentWindow = Duration.days(30);
 
 /**
- * Events that ended within `window` before `now` and have no talks: what a
- * weekly check fails on. Events further back are reported but don't fail
+ * Evenings of talks that ended within `window` before `now` and have none
+ * (no other program is asked for talks): what a weekly check fails on. Events further back are reported but don't fail
  * it, so one old gap can't keep the check red for good.
  */
 export function mustHaveTalks(
@@ -291,7 +310,7 @@ const make = Effect.gen(function* () {
         e.start_date AS "startDate", e.end_date AS "endDate",
         e.street_address AS "streetAddress", e.full_address AS "fullAddress",
         e.luma_event_id AS "lumaEventId", e.recording_url AS "recordingUrl",
-        e.is_hackathon AS "isHackathon",
+        e.program, ${sql.literal(curationJson("e"))} AS curation,
         e.preview_image IS NOT NULL AS "hasCover",
         e.luma_guest_count AS "lumaGuestCount",
         (SELECT count(*)::int FROM event_images ei WHERE ei.event_id = e.id) AS photos,

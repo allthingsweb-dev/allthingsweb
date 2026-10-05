@@ -23,6 +23,7 @@ import {
   firstName,
   handleOf,
   notFoundPage,
+  openFloorLine,
 } from "../src/pages/event.tsx";
 import { fullDate, timeRange } from "../src/pages/time.ts";
 import type { ImageMode } from "../src/pages/picture.tsx";
@@ -70,6 +71,8 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   guests: null,
   rsvpUrl: "https://lu.ma/event/evt-effect",
   seats: 200,
+  program: "talks",
+  curation: { kind: "ours" },
   recordingUrl: null,
   talks: [],
   schedule: [],
@@ -380,6 +383,112 @@ describe("the ledger", () => {
 
   test("leaves the schedule out when there is none", () => {
     expect(labels(render(event()))).not.toContain("Schedule");
+  });
+
+  test("says an open floor was open to anyone, in its tense, before the demos it knows", async () => {
+    const demo = {
+      id: "a1",
+      title: "My agents.md",
+      format: "talk" as const,
+      description: null,
+      speakers: [speaker()],
+    };
+    const past = render(
+      event({ status: "past", program: "open-floor", talks: [demo] }),
+    );
+    expect(labels(past)).toContain("On stage");
+    expect(past).toContain(
+      `<div class="stage"><p class="stage-open at-type-lead">${openFloorLine("past")}</p><section class="stage-talk">`,
+    );
+    expect(openFloorLine("past")).toBe(
+      "Open floor: anyone could get up and show what they were building.",
+    );
+    expect(await htmlProblems(past)).toEqual([]);
+    // With no demos known, the floor is still said to have been open.
+    const ahead = render(event({ program: "open-floor" }));
+    expect(labels(ahead)).toContain("On stage");
+    expect(ahead).toContain(
+      "Open floor: anyone can get up and show what they’re building.",
+    );
+  });
+
+  test("says who organizes an evening we only share, links out, and never calls it ours", async () => {
+    const html = render(
+      event({
+        name: "TypeScript AI Demo Day",
+        topic: undefined,
+        hosts: [],
+        curation: {
+          kind: "shared",
+          organizer: {
+            name: "Mastra",
+            websiteUrl: "https://mastra.ai",
+            twitterHandle: "mastra",
+            blueskyHandle: null,
+            linkedinHandle: null,
+          },
+        },
+      }),
+    );
+    expect(labels(html)).toContain("Organized by");
+    expect(labels(html)).not.toContain("Hosted by");
+    expect(html).toContain(
+      '<p class="fact-head"><a href="https://mastra.ai/">Mastra</a></p><p>Not one of our evenings: we share it because we think it’s good.</p>',
+    );
+    expect(html).not.toContain("your hosts");
+    expect(html).toContain("<span>TypeScript AI Demo Day</span>");
+    expect(html).not.toContain('all things<span class="slash">/</span><wbr/>');
+    expect(html).toContain(
+      '"organizer":{"@type":"Organization","name":"Mastra","url":"https://mastra.ai/"}',
+    );
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+
+  test("keeps a shared evening's co-hosts and MC, and names an organizer without a site with no url", () => {
+    const person = {
+      id: "p1",
+      name: "Grace Hopper",
+      title: "Admiral",
+      portrait: null,
+    };
+    const html = render(
+      event({
+        coHosts: [person],
+        mcs: [{ ...person, id: "p2", name: "Ada Lovelace" }],
+        curation: {
+          kind: "shared",
+          organizer: {
+            name: "Mastra",
+            websiteUrl: null,
+            twitterHandle: null,
+            blueskyHandle: null,
+            linkedinHandle: null,
+          },
+        },
+      }),
+    );
+    expect(html).toContain("Grace Hopper");
+    expect(html).toContain("Ada Lovelace");
+    expect(html).toContain(
+      '"organizer":{"@type":"Organization","name":"Mastra"}',
+    );
+  });
+
+  test("gives a social evening or a hackathon no stage of its own, talks or not", () => {
+    const talk = {
+      id: "a1",
+      title: "Opening words",
+      format: "talk" as const,
+      description: null,
+      speakers: [speaker()],
+    };
+    for (const program of ["social", "hackathon"] as const) {
+      expect(labels(render(event({ program })))).not.toContain("On stage");
+      expect(labels(render(event({ program, talks: [talk] })))).not.toContain(
+        "On stage",
+      );
+    }
+    expect(labels(render(event({ talks: [talk] })))).toContain("On stage");
   });
 
   test("escapes what it prints", async () => {

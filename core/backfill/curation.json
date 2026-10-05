@@ -1,0 +1,21 @@
+{
+  "organizers": [
+    {
+      "name": "Mastra",
+      "about": "Ship AI agents that reason, remember, and act in TypeScript. Mastra provides memory, tools, MCP, and observability to go from prototype to production.",
+      "website": "https://mastra.ai",
+      "twitterHandle": "mastra",
+      "sources": ["https://mastra.ai"]
+    }
+  ],
+  "events": [
+    {
+      "slug": "2026-04-09-typescript-ai-demo-day-evt-IpKgpcPJEOjvroH",
+      "organizer": "Mastra",
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=GAnFq9qw-z0"
+      ]
+    }
+  ]
+}

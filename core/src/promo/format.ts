@@ -25,6 +25,10 @@ const momentNames: Readonly<Record<Moment, string>> = {
   recap: "recap",
 };
 
+/** Why an evening we only share has no Luma or Meetup draft of ours. */
+const notOurs =
+  "None: this evening is shared, not ours. Its organizer's page is theirs to write.";
+
 /** "(212 / 280)": a draft's length as its platform counts it, and the limit. */
 const measure = (channel: Channel, text: string) =>
   `(${lengthOn(channel, text)} / ${limits[channel]})`;
@@ -36,10 +40,13 @@ export function formatDrafts(
 ): string {
   const sections = selected.map((channel) => {
     if (channel === "luma") {
-      return `## luma: description ${measure("luma", drafts.luma)}\n\n${drafts.luma}`;
+      return drafts.luma === null
+        ? `## luma\n\n${notOurs}`
+        : `## luma: description ${measure("luma", drafts.luma)}\n\n${drafts.luma}`;
     }
     if (channel === "meetup") {
       const { meetup } = drafts;
+      if (meetup === null) return `## meetup\n\n${notOurs}`;
       return [
         "## meetup",
         `title: ${meetup.title}`,
@@ -82,14 +89,19 @@ export function draftsJson(
     title: drafts.title,
     gaps: drafts.gaps,
     ...(selected.includes("luma")
-      ? { luma: measured("luma", drafts.luma) }
+      ? {
+          luma: drafts.luma === null ? null : measured("luma", drafts.luma),
+        }
       : {}),
     ...(selected.includes("meetup")
       ? {
-          meetup: {
-            ...drafts.meetup,
-            description: measured("meetup", drafts.meetup.description),
-          },
+          meetup:
+            drafts.meetup === null
+              ? null
+              : {
+                  ...drafts.meetup,
+                  description: measured("meetup", drafts.meetup.description),
+                },
         }
       : {}),
     social: Object.fromEntries(

@@ -6,6 +6,8 @@ import eventPeopleMigration from "./0004_event_people.ts";
 import eventPostsMigration from "./0005_event_posts.ts";
 import eventExtrasMigration from "./0006_event_extras.ts";
 import hostLinksMigration from "./0007_host_links.ts";
+import eventProgramMigration from "./0008_event_program.ts";
+import eventCurationMigration from "./0009_event_curation.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -22,6 +24,8 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0005_event_posts": eventPostsMigration,
   "0006_event_extras": eventExtrasMigration,
   "0007_host_links": hostLinksMigration,
+  "0008_event_program": eventProgramMigration,
+  "0009_event_curation": eventCurationMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

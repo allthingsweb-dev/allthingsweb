@@ -16,6 +16,8 @@
     "lineups": "bun --no-env-file scripts/lineups.ts",
     "people": "bun --no-env-file scripts/people.ts",
     "event-extras": "bun --no-env-file scripts/event-extras.ts",
+    "programs": "bun --no-env-file scripts/programs.ts",
+    "curation": "bun --no-env-file scripts/curation.ts",
     "promo": "bun --no-env-file scripts/promo.ts",
     "promo:cover": "bun --no-env-file scripts/meetup-cover.ts",
     "reencode": "bun --no-env-file scripts/reencode-originals.ts",

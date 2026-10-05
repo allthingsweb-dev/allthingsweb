@@ -1,5 +1,5 @@
 import type { EventPage } from "allthings-core/src/event-page.ts";
-import { eventUrl } from "allthings-core/src/mappers.ts";
+import { eventUrl, httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
 import { socials } from "../links.ts";
 
@@ -18,10 +18,13 @@ const organizationName = "all things";
 interface OrganizationRef {
   readonly "@type": "Organization";
   readonly name: string;
-  readonly url: string;
+  /** Its own site: left out when none is on record, never another page. */
+  readonly url?: string;
 }
 
 export interface Organization extends OrganizationRef {
+  /** The site's own address. */
+  readonly url: string;
   readonly "@context": typeof context;
   readonly description: string;
   /** Its profiles elsewhere, the footer's socials. */
@@ -65,10 +68,25 @@ export interface Event {
   readonly offers?: Offer;
 }
 
+/** Who organizes an evening we only share, with their site if on record. */
+const sharedOrganizer = (organizer: {
+  readonly name: string;
+  readonly websiteUrl: string | null;
+}): OrganizationRef => {
+  const url = httpUrlOrNull(organizer.websiteUrl);
+  return {
+    "@type": "Organization",
+    name: organizer.name,
+    ...(url === null ? {} : { url }),
+  };
+};
+
 /** What a page may say about itself in its head. */
 export type StructuredData = Organization | Event;
 
-const organizer = (origin: string): OrganizationRef => ({
+const organizer = (
+  origin: string,
+): OrganizationRef & { readonly url: string } => ({
   "@type": "Organization",
   name: organizationName,
   url: origin,
@@ -118,7 +136,11 @@ export function eventStructuredData(event: EventPage, origin: string): Event {
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     isAccessibleForFree: true,
-    organizer: organizer(origin),
+    // A shared evening is someone else's: it names them, never us.
+    organizer:
+      event.curation.kind === "shared"
+        ? sharedOrganizer(event.curation.organizer)
+        : organizer(origin),
     ...(venue === null
       ? {}
       : {

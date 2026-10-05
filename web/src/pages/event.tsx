@@ -13,6 +13,7 @@ import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
+import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { built } from "../assets.ts";
 import {
   eventPath,
@@ -45,9 +46,9 @@ import { day, fullDate, timeRange } from "./time.ts";
  * then a ruled list that names every fact once, each on its own row under a
  * small label: when, where, who hosts, how to get in (or, once it is over,
  * the recording), its schedule and any notes of its own (a hackathon's
- * awards, theme and teams), who is on stage, the photos, what people posted
- * about it, and what comes next. A row whose facts are unknown is left out
- * rather than shown empty.
+ * awards, theme and teams), who is on stage (or that the floor was open to
+ * anyone), the photos, what people posted about it, and what comes next. A
+ * row whose facts are unknown is left out rather than shown empty.
  *
  * The page is in its event's mode (Night for evenings, Paper for daytime
  * events) unless the visitor fixed one with the mode switch.
@@ -425,6 +426,65 @@ function HostedAt({
   );
 }
 
+/**
+ * Who organizes an evening we only share, linked to their site, and what
+ * sharing it means; any hosting companies follow, as on our own evenings.
+ */
+function OrganizedBy({
+  organizer,
+  event,
+  images,
+}: {
+  readonly organizer: Rows.Organizer;
+  readonly event: EventPage;
+  readonly images: ImageMode;
+}) {
+  const site = httpUrlOrNull(organizer.websiteUrl);
+  return (
+    <Fact label="Organized by">
+      <>
+        {site === null ? (
+          <p class="fact-head" safe>
+            {organizer.name}
+          </p>
+        ) : (
+          <p class="fact-head">
+            <a href={site} safe>
+              {organizer.name}
+            </a>
+          </p>
+        )}
+        <p>{sharedNote}</p>
+        {event.hosts.length === 0 ? (
+          ""
+        ) : (
+          <p>
+            hosted at <HostNames names={event.hosts} sites={event.hostSites} />
+          </p>
+        )}
+        {event.coHosts.length === 0 ? (
+          ""
+        ) : (
+          <People
+            label={event.coHosts.length === 1 ? "co-host" : "co-hosts"}
+            people={event.coHosts}
+            images={images}
+          />
+        )}
+        {event.mcs.length === 0 ? (
+          ""
+        ) : (
+          <People label="mc" people={event.mcs} images={images} />
+        )}
+      </>
+    </Fact>
+  );
+}
+
+/** What sharing an evening means, wherever the page says it is shared. */
+export const sharedNote =
+  "Not one of our evenings: we share it because we think it’s good.";
+
 /** How to get in: seats on Luma and "I'm in". */
 function Seats({
   rsvpUrl,
@@ -634,16 +694,36 @@ function NoteFact({ note }: { readonly note: Note }) {
   );
 }
 
+/**
+ * What an open floor is, in the evening's tense: there was no lineup, so
+ * the demos the page lists, if any, are only the ones we know of.
+ */
+export function openFloorLine(status: EventPage["status"]): string {
+  return status === "past"
+    ? "Open floor: anyone could get up and show what they were building."
+    : "Open floor: anyone can get up and show what they’re building.";
+}
+
 function OnStage({
   talks,
+  openFloor,
   images,
 }: {
   readonly talks: ReadonlyArray<Talk>;
+  /** Said when the evening was an open floor, before any demos we know. */
+  readonly openFloor: string | null;
   readonly images: ImageMode;
 }) {
   return (
     <Fact label="On stage">
       <div class="stage">
+        {openFloor === null ? (
+          ""
+        ) : (
+          <p class="stage-open at-type-lead" safe>
+            {openFloor}
+          </p>
+        )}
         {talks.map((talk) => (
           <TalkEntry talk={talk} images={images} />
         ))}
@@ -917,7 +997,15 @@ export function eventPage({
           ) : (
             <Where venue={event.venue} hostingCompanies={event.hosts} />
           )}
-          <HostedAt event={event} portraits={portraits} images={images} />
+          {event.curation.kind === "shared" ? (
+            <OrganizedBy
+              organizer={event.curation.organizer}
+              event={event}
+              images={images}
+            />
+          ) : (
+            <HostedAt event={event} portraits={portraits} images={images} />
+          )}
           {!past && event.rsvpUrl !== null ? (
             <Seats
               rsvpUrl={event.rsvpUrl}
@@ -940,10 +1028,16 @@ export function eventPage({
           {event.notes.map((note) => (
             <NoteFact note={note} />
           ))}
-          {event.talks.length === 0 ? (
+          {event.program === "open-floor" ? (
+            <OnStage
+              talks={event.talks}
+              openFloor={openFloorLine(event.status)}
+              images={images}
+            />
+          ) : event.program !== "talks" || event.talks.length === 0 ? (
             ""
           ) : (
-            <OnStage talks={event.talks} images={images} />
+            <OnStage talks={event.talks} openFloor={null} images={images} />
           )}
           {past && photos.length > 0 ? (
             <Photos photos={photos} images={images} />

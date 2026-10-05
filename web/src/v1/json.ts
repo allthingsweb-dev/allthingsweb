@@ -1,3 +1,4 @@
+import type * as Rows from "allthings-core/src/rows.ts";
 import { sanitizeRichText } from "allthings-core/src/rich-text.ts";
 import { DateTime, Effect } from "effect";
 import type {
@@ -57,6 +58,12 @@ export interface EventJson {
   readonly topic: string | null;
   readonly lumaGuestCount: number | null;
   readonly lumaCheckedInCount: number | null;
+  /** What kind of evening it is: talks, open-floor, social or hackathon. */
+  readonly program: Rows.EventProgram;
+  /** Ours, or someone else's evening we share. */
+  readonly curation: Rows.Curation["kind"];
+  /** The hosting company that organizes a shared evening, by id. */
+  readonly organizedBy: string | null;
   readonly lumaEventUrl: string | null;
 }
 
@@ -175,6 +182,9 @@ export function eventJson(row: EventRow): EventJson {
     topic: row.topic,
     lumaGuestCount: row.lumaGuestCount,
     lumaCheckedInCount: row.lumaCheckedInCount,
+    program: row.program,
+    curation: row.curation,
+    organizedBy: row.organizedBy,
     lumaEventUrl: lumaEventUrl(row.lumaEventId),
   };
 }

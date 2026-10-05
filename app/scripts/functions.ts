@@ -26,6 +26,11 @@ import { and, eq } from "drizzle-orm";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { createLumaClient } from "../src/lib/luma";
+import { programForHackathonFlag } from "../src/lib/event-program";
+
+/** `{ program }` when there is one to set, else nothing. */
+const withProgram = (program: InsertEvent["program"] | undefined) =>
+  program === undefined ? {} : { program };
 
 // Enhanced event types that accept string dates
 export interface CreateEventInput {
@@ -73,6 +78,7 @@ function ensureDate(date: string | Date): Date {
 function prepareEventForInsert(event: CreateEventInput): InsertEvent {
   return {
     ...event,
+    ...withProgram(programForHackathonFlag(event.isHackathon, undefined)),
     startDate: ensureDate(event.startDate),
     endDate: ensureDate(event.endDate),
   };
@@ -117,6 +123,8 @@ export async function updateEvent(slug: string, eventData: UpdateEventInput) {
     throw new Error("Event not found");
   }
   const preparedEventData = prepareEventForUpdate(eventData);
+  const program = programForHackathonFlag(eventData.isHackathon, event.program);
+  if (program !== undefined) preparedEventData.program = program;
   const res = await db
     .update(eventsTable)
     .set(preparedEventData)
