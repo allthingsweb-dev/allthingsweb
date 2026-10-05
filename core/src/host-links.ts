@@ -4,9 +4,11 @@ import { HttpUrl } from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
 
 /**
- * Hosting companies' own websites and X, Bluesky and LinkedIn handles,
- * researched from their official sites and profiles (core/backfill/hosts.json)
- * and written to `sponsors` in one transaction. Every fact carries the
+ * Hosting companies' own websites, X, Bluesky and LinkedIn handles and Luma
+ * accounts, researched from their official sites and profiles
+ * (core/backfill/hosts.json) and written to `sponsors` in one transaction.
+ * A company the database doesn't hold yet is added when the file says what
+ * it does (`about`). Every fact carries the
  * source it was read from; a fact that could not be confirmed is left out,
  * or kept under `held` with its reason, and never written.
  *
@@ -27,6 +29,8 @@ export const xHandlePattern = /^[A-Za-z0-9_]{1,15}$/;
 export const blueskyHandlePattern =
   /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/;
 export const linkedinHandlePattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
+/** Luma's user ids (migrations/0010_host_luma_user.ts). */
+export const lumaUserIdPattern = /^usr-[A-Za-z0-9]+$/;
 
 export const HostLinksEntry = Schema.Struct({
   /** The host's name as stored (`sponsors.name`, unique). */
@@ -43,6 +47,26 @@ export const HostLinksEntry = Schema.Struct({
   linkedinHandle: Schema.optionalKey(
     fact(Schema.String.check(Schema.isPattern(linkedinHandlePattern))),
   ),
+  /**
+   * The company's Luma account, for the people import: a host with this id
+   * is the company, attached to the event, not a person.
+   */
+  lumaUserId: Schema.optionalKey(
+    fact(Schema.String.check(Schema.isPattern(lumaUserIdPattern))),
+  ),
+  /**
+   * What the company does, in its own words: given for a company the
+   * database doesn't hold yet, which is then added with it.
+   */
+  about: Schema.optionalKey(
+    fact(
+      Schema.String.check(
+        Schema.isPattern(/^\S(?:[\s\S]*\S)?$/, {
+          message: "must say something, without leading or trailing space",
+        }),
+      ),
+    ),
+  ),
   /** Facts found but not confirmed well enough to write, each with why. */
   held: Schema.optionalKey(
     Schema.Array(
@@ -52,6 +76,7 @@ export const HostLinksEntry = Schema.Struct({
           "twitterHandle",
           "blueskyHandle",
           "linkedinHandle",
+          "lumaUserId",
         ]),
         value: Schema.String,
         sources: Schema.Array(Url),
@@ -95,6 +120,7 @@ const HostRow = Schema.Struct({
   twitter_handle: Schema.NullOr(Schema.String),
   bluesky_handle: Schema.NullOr(Schema.String),
   linkedin_handle: Schema.NullOr(Schema.String),
+  luma_user_id: Schema.NullOr(Schema.String),
 });
 
 const columns = [
@@ -102,6 +128,7 @@ const columns = [
   ["twitterHandle", "twitter_handle"],
   ["blueskyHandle", "bluesky_handle"],
   ["linkedinHandle", "linkedin_handle"],
+  ["lumaUserId", "luma_user_id"],
 ] as const;
 
 /**
@@ -134,16 +161,26 @@ export const applyHostLinks = (file: HostLinksFile, dryRun: boolean) =>
     const work = Effect.gen(function* () {
       const lines: Array<string> = [];
       for (const entry of file) {
-        const rows = yield* sql`
-          SELECT id, website_url, twitter_handle, bluesky_handle, linkedin_handle
+        const select = sql`
+          SELECT id, website_url, twitter_handle, bluesky_handle, linkedin_handle,
+            luma_user_id
           FROM sponsors WHERE name = ${entry.name}
           FOR UPDATE`.pipe(
           Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(HostRow))),
         );
-        const [row] = rows;
+        let [row] = yield* select;
+        if (row === undefined && entry.about !== undefined) {
+          // A company the database doesn't hold yet: added, with what the
+          // file says of it, then set as any other.
+          yield* sql`
+            INSERT INTO sponsors (name, about, updated_at)
+            VALUES (${entry.name}, ${entry.about.value}, now())`;
+          lines.push(`${entry.name}: added`);
+          [row] = yield* select;
+        }
         if (row === undefined) {
           return yield* new HostLinksError({
-            reason: `No hosting company is stored as "${entry.name}".`,
+            reason: `No hosting company is stored as "${entry.name}", and the file gives no about to add it with.`,
           });
         }
         const changes = columns.flatMap(([field, column]) => {
@@ -167,6 +204,7 @@ export const applyHostLinks = (file: HostLinksFile, dryRun: boolean) =>
             twitter_handle = COALESCE(${entry.twitterHandle?.value ?? null}, twitter_handle),
             bluesky_handle = COALESCE(${entry.blueskyHandle?.value ?? null}, bluesky_handle),
             linkedin_handle = COALESCE(${entry.linkedinHandle?.value ?? null}, linkedin_handle),
+            luma_user_id = COALESCE(${entry.lumaUserId?.value ?? null}, luma_user_id),
             updated_at = now()
           WHERE id = ${row.id}`;
         lines.push(`${entry.name}: ${changes.join(", ")}`);

@@ -110,6 +110,52 @@ describe("applyHostLinks", () => {
     expect(await hostsIn(db)).toEqual(before);
   });
 
+  test("adds a company it doesn't hold when the file says what it does, with its Luma account", async () => {
+    const db = await fresh();
+    const exit = await apply(db, [
+      {
+        name: "Initech",
+        about: { value: "Software, mostly TPS reports.", source },
+        website: { value: "https://initech.example", source },
+        lumaUserId: {
+          value: "usr-initech1",
+          source: "https://luma.com/user/usr-initech1",
+        },
+      },
+      { name: "Acme", lumaUserId: { value: "usr-acme1", source } },
+    ]);
+    expect(Exit.isSuccess(exit) ? exit.value : exit).toEqual([
+      "Initech: added",
+      "Initech: website_url ∅ → https://initech.example, luma_user_id ∅ → usr-initech1",
+      "Acme: luma_user_id ∅ → usr-acme1",
+    ]);
+    const rows = (
+      await db.query<{
+        name: string;
+        about: string;
+        luma_user_id: string | null;
+      }>(
+        `SELECT name, about, luma_user_id FROM sponsors WHERE name IN ('Initech', 'Acme') ORDER BY name`,
+      )
+    ).rows;
+    expect(rows).toEqual([
+      { name: "Acme", about: expect.any(String), luma_user_id: "usr-acme1" },
+      {
+        name: "Initech",
+        about: "Software, mostly TPS reports.",
+        luma_user_id: "usr-initech1",
+      },
+    ]);
+    // One company per Luma account.
+    expect(
+      Exit.isFailure(
+        await apply(db, [
+          { name: "Globex", lumaUserId: { value: "usr-acme1", source } },
+        ]),
+      ),
+    ).toBe(true);
+  });
+
   test("writes nothing when a host isn't stored, is listed twice, or a fact is both held and set", async () => {
     const db = await fresh();
     const before = await hostsIn(db);
@@ -119,7 +165,7 @@ describe("applyHostLinks", () => {
           ...file,
           { name: "Initech", website: { value: "https://i.example", source } },
         ],
-        'No hosting company is stored as "Initech".',
+        'No hosting company is stored as "Initech", and the file gives no about to add it with.',
       ],
       [[...file, { name: "Acme" }], "Hosts listed more than once: Acme"],
       [

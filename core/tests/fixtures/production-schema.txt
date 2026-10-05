@@ -133,6 +133,7 @@ column public.sponsors #008 website_url text
 column public.sponsors #009 twitter_handle text
 column public.sponsors #010 bluesky_handle text
 column public.sponsors #011 linkedin_handle text
+column public.sponsors #012 luma_user_id text
 column public.talk_speakers #001 talk_id uuid not null
 column public.talk_speakers #002 speaker_id uuid not null
 column public.talk_speakers #003 created_at timestamp with time zone not null default now()
@@ -207,6 +208,8 @@ constraint public.sponsors sponsors_square_logo_dark_images_id_fk FOREIGN KEY (s
 constraint public.sponsors sponsors_square_logo_light_images_id_fk FOREIGN KEY (square_logo_light) REFERENCES images(id) ON DELETE SET NULL
 constraint public.sponsors sponsors_bluesky_handle_check CHECK ((bluesky_handle ~ '^([a-z0-9]([a-z0-9-]*[a-z0-9])?[.])+[a-z]{2,}$'::text))
 constraint public.sponsors sponsors_linkedin_handle_check CHECK ((linkedin_handle ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$'::text))
+constraint public.sponsors sponsors_luma_user_id_check CHECK ((luma_user_id ~ '^usr-[A-Za-z0-9]+$'::text))
+constraint public.sponsors sponsors_luma_user_id_unique UNIQUE (luma_user_id)
 constraint public.sponsors sponsors_twitter_handle_check CHECK ((twitter_handle ~ '^[A-Za-z0-9_]{1,15}$'::text))
 constraint public.sponsors sponsors_website_url_check CHECK ((website_url ~ '^https://[A-Za-z0-9.-]+(/[^[:space:]]*)?$'::text))
 constraint public.talk_speakers talk_speakers_role_check CHECK ((role = ANY (ARRAY['speaker'::text, 'moderator'::text])))
@@ -240,6 +243,7 @@ index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_user_id_
 index public.profiles CREATE UNIQUE INDEX profiles_luma_user_id_unique ON public.profiles USING btree (luma_user_id)
 index public.profiles CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
 index public.redirects CREATE UNIQUE INDEX redirects_slug_unique ON public.redirects USING btree (slug)
+index public.sponsors CREATE UNIQUE INDEX sponsors_luma_user_id_unique ON public.sponsors USING btree (luma_user_id)
 index public.sponsors CREATE UNIQUE INDEX sponsors_name_unique ON public.sponsors USING btree (name)
 index public.sponsors CREATE UNIQUE INDEX sponsors_pkey ON public.sponsors USING btree (id)
 index public.talk_speakers CREATE UNIQUE INDEX talk_speakers_talk_id_speaker_id_pk ON public.talk_speakers USING btree (talk_id, speaker_id)
