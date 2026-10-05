@@ -1,0 +1,76 @@
+import { BunRuntime, BunServices } from "@effect/platform-bun";
+import { Console, DateTime, Duration, Effect, Layer } from "effect";
+import { Command, Flag } from "effect/cli";
+import {
+  Completeness,
+  mustHaveTalks,
+  recentWindow,
+} from "../src/completeness.ts";
+import { formatReport, reportJson } from "../src/completeness-report.ts";
+import * as Database from "../src/database.ts";
+
+/**
+ * Prints what each published event's record lacks (src/completeness.ts),
+ * reading the Postgres at DATABASE_URL. It only reads: production's
+ * read-only site_reader role is enough.
+ *
+ *   bun run completeness           a table of every event, then each one's gaps
+ *   bun run completeness --json    the same as JSON
+ *   bun run completeness --check   also fail if an event that ended in the
+ *                                  last 30 days (--within) has no talks
+ *
+ * DATABASE_URL comes from the environment only; .env files are not read:
+ *
+ *   DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") \
+ *     bun run completeness
+ */
+
+const jsonFlag = Flag.Boolean("json").pipe(
+  Flag.withDescription("Print the report as JSON."),
+  Flag.withDefault(false),
+);
+
+const checkFlag = Flag.Boolean("check").pipe(
+  Flag.withDescription(
+    "Fail if an event that ended recently has no talks (see --within).",
+  ),
+  Flag.withDefault(false),
+);
+
+const withinFlag = Flag.Int("within").pipe(
+  Flag.withDescription("Days --check looks back."),
+  Flag.withDefault(Duration.toDays(recentWindow)),
+);
+
+const command = Command.make(
+  "completeness",
+  { json: jsonFlag, check: checkFlag, within: withinFlag },
+  ({ json, check, within }) =>
+    Effect.gen(function* () {
+      const reports = yield* Completeness.use((c) => c.report);
+      yield* Console.log(
+        json
+          ? JSON.stringify(reportJson(reports), null, 2)
+          : formatReport(reports),
+      );
+      const missing = check
+        ? mustHaveTalks(reports, yield* DateTime.now, Duration.days(within))
+        : [];
+      if (missing.length > 0) {
+        yield* Effect.fail(
+          new Error(
+            `Events that ended in the last ${within} days without talks: ${missing.map((r) => r.slug).join(", ")}`,
+          ),
+        );
+      }
+    }).pipe(
+      Effect.provide(Completeness.layer.pipe(Layer.provide(Database.layer))),
+    ),
+).pipe(
+  Command.withDescription("Report what each published event's record lacks."),
+);
+
+Command.run(command, { version: "1.0.0" }).pipe(
+  Effect.provide(BunServices.layer),
+  BunRuntime.runMain,
+);
