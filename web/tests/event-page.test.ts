@@ -63,6 +63,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
       "CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA",
   },
   hosts: ["CodeRabbit"],
+  hostSites: {},
   organizers: [],
   coHosts: [],
   mcs: [],
@@ -215,6 +216,27 @@ describe("the ledger", () => {
     const html = render(event({ hosts: ["Mux", "Strapi", "Neon"] }));
     expect(html).toContain('<p class="fact-head">Mux, Strapi &amp; Neon</p>');
     expect(html).toContain('<span class="at-type-meta">your hosts</span>');
+  });
+
+  test("links each hosting company with a site on record to it", () => {
+    const html = render(
+      event({
+        hosts: ["Mux", "Strapi", "Neon"],
+        hostSites: { Mux: "https://www.mux.com", Neon: "https://neon.com" },
+      }),
+    );
+    expect(html).toContain(
+      '<p class="fact-head"><a href="https://www.mux.com">Mux</a>, <span>Strapi</span> &amp; <a href="https://neon.com">Neon</a></p>',
+    );
+    const escaped = render(
+      event({
+        hosts: ['"Acme" & <Co>'],
+        hostSites: { '"Acme" & <Co>': 'https://acme.example/?a="1"&b=<2>' },
+      }),
+    );
+    expect(escaped).toContain(
+      '<a href="https://acme.example/?a=&#34;1&#34;&b=<2>">&quot;Acme&quot; &amp; &lt;Co&gt;</a>',
+    );
   });
 
   test("asks for seats only while there is a Luma page and the evening is ahead", () => {

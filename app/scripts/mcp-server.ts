@@ -504,7 +504,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "get_completeness_report",
         description:
-          "What each published event's record lacks (talks, people and their bios, photos and links, hosts and logos, photos, recording, venue, topic), as core's completeness report computes it from the database. Read-only.",
+          "What each published event's record lacks (talks, people and their bios, photos and links, hosts with their logos and links, photos, recording, venue, topic), as core's completeness report computes it from the database. Read-only.",
         inputSchema: {
           type: "object",
           properties: {

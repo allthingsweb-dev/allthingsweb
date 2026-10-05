@@ -4,7 +4,12 @@ import * as SqlSchema from "effect/sql/SqlSchema";
 import type { DataSourceError, EventNotFound } from "../errors.ts";
 import { type EventPage, EventPages } from "../event-page.ts";
 import { orDataSourceError } from "../sql.ts";
-import { type Handles, type PromoDrafts, promoDrafts } from "./drafts.ts";
+import {
+  type Handles,
+  type HostLinks,
+  type PromoDrafts,
+  promoDrafts,
+} from "./drafts.ts";
 import { DraftTooLong } from "./limits.ts";
 
 /**
@@ -37,6 +42,14 @@ const HandlesRow = Schema.Struct({
   linkedin: Schema.NullOr(Schema.String),
 });
 
+const HostLinksRow = Schema.Struct({
+  name: Schema.String,
+  website: Schema.NullOr(Schema.String),
+  x: Schema.NullOr(Schema.String),
+  bluesky: Schema.NullOr(Schema.String),
+  linkedin: Schema.NullOr(Schema.String),
+});
+
 /** Everyone the page names: hosts of the evening and everyone on stage. */
 export const peopleOf = (event: EventPage): ReadonlyArray<string> => [
   ...new Set([
@@ -59,6 +72,28 @@ const make = Effect.gen(function* () {
       WHERE id IN ${sql.in(ids)}`,
   });
 
+  const findHostLinks = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: HostLinksRow,
+    execute: (eventId) => sql`
+      SELECT s.name, s.website_url AS website, s.twitter_handle AS x,
+        s.bluesky_handle AS bluesky, s.linkedin_handle AS linkedin
+      FROM event_sponsors es
+      JOIN sponsors s ON s.id = es.sponsor_id
+      WHERE es.event_id = ${eventId}`,
+  });
+
+  /** The evening's hosting companies' sites and handles, by name. */
+  const hostLinksOf = (event: EventPage) =>
+    orDataSourceError(findHostLinks(event.id)).pipe(
+      Effect.map(
+        (rows) =>
+          new Map<string, HostLinks>(
+            rows.map(({ name, ...links }) => [name, links] as const),
+          ),
+      ),
+    );
+
   const handlesOf = (event: EventPage) => {
     const [first, ...rest] = peopleOf(event);
     if (first === undefined) return Effect.succeed(new Map<string, Handles>());
@@ -77,9 +112,12 @@ const make = Effect.gen(function* () {
       Effect.gen(function* () {
         const event = yield* pages.read(slug, photoOrigin);
         const handles = yield* handlesOf(event);
+        const hosts = yield* hostLinksOf(event);
         return yield* Effect.suspend(() => {
           try {
-            return Effect.succeed(promoDrafts({ event, handles, origin }));
+            return Effect.succeed(
+              promoDrafts({ event, handles, hosts, origin }),
+            );
           } catch (error) {
             return error instanceof DraftTooLong
               ? Effect.fail(error)

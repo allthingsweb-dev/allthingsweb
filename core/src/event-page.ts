@@ -116,6 +116,11 @@ export interface EventPage {
   readonly venue: Venue | null;
   /** The hosting companies' names, in the order they were attached. */
   readonly hosts: ReadonlyArray<string>;
+  /**
+   * Each hosting company's own website, by its name, where one is on
+   * record as an http(s) URL; "Hosted at" links the name to it.
+   */
+  readonly hostSites: Readonly<Record<string, string>>;
   /** Its organizers, in their order; none when none are recorded. */
   readonly organizers: ReadonlyArray<Person>;
   /** People who co-host it, in their order. */
@@ -189,6 +194,7 @@ export const EventPageRow = Schema.Struct({
   attendeeLimit: Schema.Int,
   lumaGuestCount: Schema.NullOr(Schema.Int),
   hosts: Schema.Array(Schema.String),
+  hostSites: Schema.Record(Schema.String, Schema.String),
   people: Schema.Array(Rows.EventPerson),
   talks: Schema.Array(TalkRow),
   photos: Schema.Array(Rows.Photo),
@@ -360,6 +366,12 @@ export const toEventPage = (
         updatedAt: row.updatedAt,
         venue: toVenue(row),
         hosts: row.hosts,
+        hostSites: Object.fromEntries(
+          Object.entries(row.hostSites).flatMap(([name, url]) => {
+            const site = httpUrlOrNull(url);
+            return site === null ? [] : [[name, site] as const];
+          }),
+        ),
         organizers: peopleIn(row, "organizer", `${photoOrigin}/`),
         coHosts: peopleIn(row, "co-host", `${photoOrigin}/`),
         mcs: peopleIn(row, "mc", `${photoOrigin}/`),
@@ -442,6 +454,12 @@ const make = Effect.gen(function* () {
           JOIN sponsors s ON s.id = es.sponsor_id
           WHERE es.event_id = ev.id
         ), '[]'::json) AS hosts,
+        COALESCE((
+          SELECT json_object_agg(s.name, s.website_url)
+          FROM event_sponsors es
+          JOIN sponsors s ON s.id = es.sponsor_id
+          WHERE es.event_id = ev.id AND s.website_url IS NOT NULL
+        ), '{}'::json) AS "hostSites",
         COALESCE((
           SELECT json_agg(json_build_object(
             'role', ep.role,

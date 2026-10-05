@@ -49,19 +49,49 @@ export type InsertImage = typeof imagesTable.$inferInsert;
 export type SelectImage = typeof imagesTable.$inferSelect;
 
 // Hosting companies. The tables keep their original `sponsors` names.
-export const hostsTable = pgTable("sponsors", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull().unique(),
-  about: text("about").notNull(),
-  squareLogoDark: uuid("square_logo_dark").references(() => imagesTable.id, {
-    onDelete: "set null",
-  }),
-  squareLogoLight: uuid("square_logo_light").references(() => imagesTable.id, {
-    onDelete: "set null",
-  }),
-  createdAt,
-  updatedAt,
-});
+export const hostsTable = pgTable(
+  "sponsors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull().unique(),
+    about: text("about").notNull(),
+    squareLogoDark: uuid("square_logo_dark").references(() => imagesTable.id, {
+      onDelete: "set null",
+    }),
+    squareLogoLight: uuid("square_logo_light").references(
+      () => imagesTable.id,
+      { onDelete: "set null" },
+    ),
+    createdAt,
+    updatedAt,
+    /** The company's own site, https only. */
+    websiteUrl: text("website_url"),
+    /** Its X handle, without the @. */
+    twitterHandle: text("twitter_handle"),
+    /** Its Bluesky handle, a domain such as "sentry.io". */
+    blueskyHandle: text("bluesky_handle"),
+    /** Its LinkedIn company page, the part after linkedin.com/company/. */
+    linkedinHandle: text("linkedin_handle"),
+  },
+  () => [
+    check(
+      "sponsors_website_url_check",
+      sql`"website_url" ~ '^https://[A-Za-z0-9.-]+(/[^[:space:]]*)?$'`,
+    ),
+    check(
+      "sponsors_twitter_handle_check",
+      sql`"twitter_handle" ~ '^[A-Za-z0-9_]{1,15}$'`,
+    ),
+    check(
+      "sponsors_bluesky_handle_check",
+      sql`"bluesky_handle" ~ '^([a-z0-9]([a-z0-9-]*[a-z0-9])?[.])+[a-z]{2,}$'`,
+    ),
+    check(
+      "sponsors_linkedin_handle_check",
+      sql`"linkedin_handle" ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$'`,
+    ),
+  ],
+);
 
 export type InsertHost = typeof hostsTable.$inferInsert;
 export type SelectHost = typeof hostsTable.$inferSelect;

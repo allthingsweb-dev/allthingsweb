@@ -1,6 +1,6 @@
 import { DateTime } from "effect";
 import type { EventPage, Person, Speaker, Talk } from "../event-page.ts";
-import { eventUrl } from "../mappers.ts";
+import { eventUrl, httpUrlOrNull } from "../mappers.ts";
 import type { StageRole } from "../people.ts";
 import { htmlToPlainText } from "../rich-text.ts";
 import { fitOn, type Platform } from "./limits.ts";
@@ -32,10 +32,17 @@ export interface Handles {
 }
 
 /** What the drafts are made from. */
+/** A hosting company's own site and handles, as stored. */
+export interface HostLinks extends Handles {
+  readonly website: string | null;
+}
+
 export interface PromoInput {
   readonly event: EventPage;
   /** Each person's stored handles, by profile id. */
   readonly handles: ReadonlyMap<string, Handles>;
+  /** Each hosting company's site and handles, by its name. */
+  readonly hosts: ReadonlyMap<string, HostLinks>;
   /** The site's origin, for the evening's page and the people page. */
   readonly origin: string;
 }
@@ -157,6 +164,22 @@ function nameOn(
   return person.name;
 }
 
+/** How a hosting company reads in a post on `channel`: tagged where a handle is stored. */
+function hostOn(
+  channel: SocialChannel,
+  name: string,
+  hosts: ReadonlyMap<string, HostLinks>,
+): string {
+  const stored = hosts.get(name);
+  const handle =
+    channel === "x"
+      ? xHandle(stored?.x ?? null)
+      : channel === "bluesky"
+        ? blueskyHandle(stored?.bluesky ?? null)
+        : null;
+  return handle === null ? name : `@${handle}`;
+}
+
 const formatNames = {
   talk: "a talk",
   panel: "a panel",
@@ -200,8 +223,11 @@ function stagePhrase(
  * Where, said before the evening: "hosted at CodeRabbit in East Cut", or
  * the place alone when no company hosts it.
  */
-function wherePhrase(event: EventPage): string | null {
-  const place = placePhrase(event);
+function wherePhrase(
+  event: EventPage,
+  hostName: (name: string) => string = (name) => name,
+): string | null {
+  const place = placePhrase(event, hostName);
   return event.hosts.length > 0 && place !== null
     ? `hosted at ${place}`
     : place;
@@ -224,8 +250,14 @@ const knowsWhere = (event: EventPage): boolean =>
   (event.venue?.neighborhood ?? null) !== null;
 
 /** Where, in one phrase: "CodeRabbit in East Cut". */
-function placePhrase(event: EventPage): string | null {
-  const host = event.hosts.length > 0 ? listOf(event.hosts) : venueName(event);
+function placePhrase(
+  event: EventPage,
+  hostName: (name: string) => string = (name) => name,
+): string | null {
+  const host =
+    event.hosts.length > 0
+      ? listOf(event.hosts.map(hostName))
+      : venueName(event);
   const neighborhood = event.venue?.neighborhood ?? null;
   if (host !== null && neighborhood !== null)
     return `${host} in ${neighborhood}`;
@@ -309,8 +341,9 @@ function socialDrafts(
     nameOn(channel, person, handles);
   const stage = stagePhrase(event.talks, name);
   const stageNames = stagePhrase(event.talks, (person) => person.name);
-  const place = placePhrase(event);
-  const where = wherePhrase(event);
+  const hostName = (host: string) => hostOn(channel, host, input.hosts);
+  const place = placePhrase(event, hostName);
+  const where = wherePhrase(event, hostName);
   const when = `${dayOf(event.startsAt)}, ${clockOf(event.startsAt)}`;
   const luma = event.rsvpUrl;
   const page = eventUrl(origin, event.slug);
@@ -430,6 +463,15 @@ const blankLined = (text: string) =>
     .filter((line) => line !== "")
     .join("\n\n");
 
+/** A hosting company's name, bold, and linked to its own site where one is stored. */
+function linkedHost(
+  name: string,
+  hosts: ReadonlyMap<string, HostLinks>,
+): string {
+  const site = httpUrlOrNull(hosts.get(name)?.website ?? null);
+  return site === null ? `**${md(name)}**` : `**[${md(name)}](${site})**`;
+}
+
 /** A person's name, bold and linked to where they are: X, Bluesky, LinkedIn or the people page. */
 function linkedName(
   person: Pick<Person, "id" | "name">,
@@ -495,7 +537,7 @@ function descriptionBody(
   const hosted =
     event.hosts.length === 0
       ? null
-      : `Hosted at ${listOf(event.hosts.map((host) => `**${md(host)}**`))}${neighborhood === null ? "" : ` in ${neighborhood}`}.`;
+      : `Hosted at ${listOf(event.hosts.map((host) => linkedHost(host, input.hosts)))}${neighborhood === null ? "" : ` in ${neighborhood}`}.`;
   return paragraphs(
     taglineOf(event) === null ? null : md(taglineOf(event) ?? ""),
     hosted,
@@ -589,6 +631,7 @@ function meetupDraft(input: PromoInput): MeetupDraft {
 export function promoGaps({
   event,
   handles,
+  hosts,
 }: PromoInput): ReadonlyArray<string> {
   const untagged = [
     ...new Map(
@@ -617,11 +660,22 @@ export function promoGaps({
       (speaker) =>
         `${speaker.name} has no X or Bluesky handle on record, so posts name them untagged.`,
     ),
-    ...(event.hosts.length === 0
-      ? []
-      : [
-          "Hosting companies have no handles or links on record, so drafts name them in bold, untagged and unlinked.",
-        ]),
+    ...event.hosts.flatMap((name) => {
+      const stored = hosts.get(name);
+      return [
+        ...(httpUrlOrNull(stored?.website ?? null) === null
+          ? [
+              `${name} has no website on record, so descriptions name it unlinked.`,
+            ]
+          : []),
+        ...(xHandle(stored?.x ?? null) === null &&
+        blueskyHandle(stored?.bluesky ?? null) === null
+          ? [
+              `${name} has no X or Bluesky handle on record, so posts name it untagged.`,
+            ]
+          : []),
+      ];
+    }),
   ];
 }
 

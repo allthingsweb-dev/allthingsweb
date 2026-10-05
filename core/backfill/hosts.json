@@ -1,0 +1,297 @@
+[
+  {
+    "name": "AWS GenAI Loft",
+    "held": [
+      {
+        "field": "website",
+        "value": "https://builder.aws.com/connect/events/builder-lofts/san-francisco",
+        "sources": [
+          "https://builder.aws.com/connect/events/builder-lofts/san-francisco",
+          "https://aws.amazon.com/startups/lp/aws-gen-ai-lofts"
+        ],
+        "reason": "needs Erik: the San Francisco GenAI Loft is now branded the AWS Builder Loft and its old page is gone; confirm the Builder Loft page is the right link for the host we named"
+      }
+    ]
+  },
+  {
+    "name": "BigCommerce",
+    "website": {
+      "value": "https://www.bigcommerce.com",
+      "source": "https://www.bigcommerce.com/"
+    },
+    "twitterHandle": {
+      "value": "BigCommerce",
+      "source": "https://www.bigcommerce.com/"
+    },
+    "linkedinHandle": {
+      "value": "bigcommerce",
+      "source": "https://www.bigcommerce.com/"
+    }
+  },
+  {
+    "name": "Cisco Meraki",
+    "website": {
+      "value": "https://meraki.cisco.com",
+      "source": "https://documentation.meraki.com/"
+    },
+    "twitterHandle": {
+      "value": "meraki",
+      "source": "https://documentation.meraki.com/"
+    },
+    "linkedinHandle": {
+      "value": "cisco-meraki",
+      "source": "https://www.linkedin.com/company/cisco-meraki"
+    }
+  },
+  {
+    "name": "Clerk",
+    "website": {
+      "value": "https://clerk.com",
+      "source": "https://clerk.com/"
+    },
+    "twitterHandle": {
+      "value": "clerk",
+      "source": "https://clerk.com/"
+    },
+    "blueskyHandle": {
+      "value": "clerk.com",
+      "source": "https://bsky.app/profile/clerk.com"
+    },
+    "linkedinHandle": {
+      "value": "clerkinc",
+      "source": "https://clerk.com/"
+    }
+  },
+  {
+    "name": "CodeRabbit",
+    "website": {
+      "value": "https://www.coderabbit.ai",
+      "source": "https://www.coderabbit.ai/"
+    },
+    "twitterHandle": {
+      "value": "coderabbitai",
+      "source": "https://www.coderabbit.ai/"
+    },
+    "blueskyHandle": {
+      "value": "coderabbitai.bsky.social",
+      "source": "https://www.coderabbit.ai/"
+    },
+    "linkedinHandle": {
+      "value": "coderabbitai",
+      "source": "https://www.coderabbit.ai/"
+    }
+  },
+  {
+    "name": "Convex",
+    "website": {
+      "value": "https://www.convex.dev",
+      "source": "https://www.convex.dev/"
+    },
+    "twitterHandle": {
+      "value": "convex",
+      "source": "https://www.convex.dev/"
+    },
+    "blueskyHandle": {
+      "value": "convex.dev",
+      "source": "https://bsky.app/profile/convex.dev"
+    },
+    "linkedinHandle": {
+      "value": "convex-dev",
+      "source": "https://www.convex.dev/"
+    }
+  },
+  {
+    "name": "Discord",
+    "website": {
+      "value": "https://discord.com",
+      "source": "https://discord.com/"
+    },
+    "twitterHandle": {
+      "value": "discord",
+      "source": "https://discord.com/"
+    },
+    "blueskyHandle": {
+      "value": "discord.com",
+      "source": "https://bsky.app/profile/discord.com"
+    },
+    "linkedinHandle": {
+      "value": "discord",
+      "source": "https://www.linkedin.com/company/discord"
+    }
+  },
+  {
+    "name": "Inngest",
+    "website": {
+      "value": "https://www.inngest.com",
+      "source": "https://www.inngest.com/"
+    },
+    "twitterHandle": {
+      "value": "inngest",
+      "source": "https://www.inngest.com/"
+    },
+    "blueskyHandle": {
+      "value": "inngest.com",
+      "source": "https://www.inngest.com/"
+    },
+    "linkedinHandle": {
+      "value": "inngest-inc",
+      "source": "https://www.inngest.com/"
+    }
+  },
+  {
+    "name": "Mintlify",
+    "website": {
+      "value": "https://www.mintlify.com",
+      "source": "https://www.mintlify.com/"
+    },
+    "twitterHandle": {
+      "value": "mintlify",
+      "source": "https://www.mintlify.com/"
+    },
+    "linkedinHandle": {
+      "value": "mintlify",
+      "source": "https://www.mintlify.com/"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "mintlify.bsky.social",
+        "sources": ["https://bsky.app/profile/mintlify.bsky.social"],
+        "reason": "named Mintlify, but mintlify.com doesn't link it, it doesn't link mintlify.com, and it is no domain handle"
+      }
+    ]
+  },
+  {
+    "name": "Mux",
+    "website": {
+      "value": "https://www.mux.com",
+      "source": "https://www.mux.com/"
+    },
+    "twitterHandle": {
+      "value": "MuxHQ",
+      "source": "https://www.mux.com/"
+    },
+    "blueskyHandle": {
+      "value": "mux.com",
+      "source": "https://bsky.app/profile/mux.com"
+    },
+    "linkedinHandle": {
+      "value": "mux",
+      "source": "https://www.mux.com/"
+    }
+  },
+  {
+    "name": "Neon",
+    "website": {
+      "value": "https://neon.com",
+      "source": "https://neon.com/"
+    },
+    "twitterHandle": {
+      "value": "neondatabase",
+      "source": "https://neon.com/"
+    },
+    "blueskyHandle": {
+      "value": "neon.com",
+      "source": "https://bsky.app/profile/neon.com"
+    },
+    "linkedinHandle": {
+      "value": "neondatabase",
+      "source": "https://neon.com/"
+    }
+  },
+  {
+    "name": "Sanity",
+    "website": {
+      "value": "https://www.sanity.io",
+      "source": "https://www.sanity.io/"
+    },
+    "twitterHandle": {
+      "value": "sanity_io",
+      "source": "https://www.sanity.io/"
+    },
+    "blueskyHandle": {
+      "value": "sanity.io",
+      "source": "https://www.sanity.io/"
+    },
+    "linkedinHandle": {
+      "value": "sanity-io",
+      "source": "https://www.sanity.io/"
+    }
+  },
+  {
+    "name": "Sentry",
+    "website": {
+      "value": "https://sentry.io",
+      "source": "https://sentry.io/welcome/"
+    },
+    "twitterHandle": {
+      "value": "sentry",
+      "source": "https://sentry.io/welcome/"
+    },
+    "blueskyHandle": {
+      "value": "sentry.io",
+      "source": "https://bsky.app/profile/sentry.io"
+    },
+    "linkedinHandle": {
+      "value": "getsentry",
+      "source": "https://sentry.io/welcome/"
+    }
+  },
+  {
+    "name": "Strapi",
+    "website": {
+      "value": "https://strapi.io",
+      "source": "https://strapi.io/"
+    },
+    "twitterHandle": {
+      "value": "strapijs",
+      "source": "https://strapi.io/"
+    },
+    "linkedinHandle": {
+      "value": "strapi",
+      "source": "https://strapi.io/"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "strapijs.bsky.social",
+        "sources": ["https://bsky.app/profile/strapijs.bsky.social"],
+        "reason": "probably Strapi's, but neither strapi.io links it nor it strapi.io, and it is no domain handle"
+      }
+    ]
+  },
+  {
+    "name": "Vapi",
+    "website": {
+      "value": "https://vapi.ai",
+      "source": "https://vapi.ai/"
+    },
+    "twitterHandle": {
+      "value": "Vapi_AI",
+      "source": "https://vapi.ai/"
+    },
+    "linkedinHandle": {
+      "value": "vapi-ai",
+      "source": "https://vapi.ai/"
+    }
+  },
+  {
+    "name": "Vercel",
+    "website": {
+      "value": "https://vercel.com",
+      "source": "https://vercel.com/"
+    },
+    "twitterHandle": {
+      "value": "vercel",
+      "source": "https://vercel.com/"
+    },
+    "blueskyHandle": {
+      "value": "vercel.com",
+      "source": "https://vercel.com/"
+    },
+    "linkedinHandle": {
+      "value": "vercel",
+      "source": "https://vercel.com/"
+    }
+  }
+]

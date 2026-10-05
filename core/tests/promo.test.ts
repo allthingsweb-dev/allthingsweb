@@ -141,7 +141,12 @@ describe("every draft fits its platform", () => {
         speakers: crowd,
       })),
     };
-    const drafts = promoDrafts({ event, handles: new Map(), origin: "o" });
+    const drafts = promoDrafts({
+      event,
+      handles: new Map(),
+      hosts: new Map(),
+      origin: "o",
+    });
     for (const [platform, name, text] of everyDraft(drafts)) {
       expect({ name, fits: fits(platform, text) }).toEqual({
         name,
@@ -227,7 +232,7 @@ describe("Meetup", () => {
     expect(meetup.description).not.toMatch(/[^\n]\n[^\n]/);
   });
 
-  test("names are bold and linked; hosts bold", async () => {
+  test("names are bold and linked, hosts to their sites", async () => {
     const { meetup, luma } = await read("2026-08-12-react-at-acme");
     for (const text of [meetup.description, luma]) {
       expect(text).toContain("**[Ada Lovelace](https://x.com/ada)**");
@@ -237,7 +242,9 @@ describe("Meetup", () => {
       expect(text).toContain(
         "**[Grace Hopper](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000002)**",
       );
-      expect(text).toContain("Hosted at **Globex** and **Acme**");
+      expect(text).toContain(
+        "Hosted at **Globex** and **[Acme](https://acme.example/)**",
+      );
       expect(text).toContain("**[all things](https://luma.com/allthingsweb)**");
     }
   });
@@ -293,6 +300,17 @@ describe("Meetup", () => {
 });
 
 describe("social", () => {
+  test("hosting companies are tagged by their stored handles", async () => {
+    const { social, gaps } = await read("2026-08-12-react-at-acme");
+    expect(social.x.announce).toContain("hosted at Globex and @acme");
+    expect(social.bluesky.announce).toContain("hosted at Globex and Acme");
+    expect(social.linkedin.announce).toContain("hosted at Globex and Acme");
+    expect(gaps).toContain(
+      "Globex has no website on record, so descriptions name it unlinked.",
+    );
+    expect(gaps.join("\n")).not.toContain("Acme has no website");
+  });
+
   test("people are tagged by their stored handles on X and Bluesky", async () => {
     const { social } = await read("2026-08-12-react-at-acme");
     expect(social.x.announce).toContain("@ada");

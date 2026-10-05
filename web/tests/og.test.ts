@@ -39,6 +39,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
     mapQuery: null,
   },
   hosts: ["CodeRabbit"],
+  hostSites: {},
   organizers: [],
   coHosts: [],
   mcs: [],

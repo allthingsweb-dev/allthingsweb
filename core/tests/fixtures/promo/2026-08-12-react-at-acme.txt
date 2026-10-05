@@ -3,13 +3,14 @@
 ## gaps in the record
 
 - Grace Hopper has no X or Bluesky handle on record, so posts name them untagged.
-- Hosting companies have no handles or links on record, so drafts name them in bold, untagged and unlinked.
+- Globex has no website on record, so descriptions name it unlinked.
+- Globex has no X or Bluesky handle on record, so posts name it untagged.
 
-## luma: description (857 / 5000)
+## luma: description (882 / 5000)
 
 Server components in practice
 
-Hosted at **Globex** and **Acme**.
+Hosted at **Globex** and **[Acme](https://acme.example/)**.
 
 **On stage**
 
@@ -65,13 +66,13 @@ settings to set by hand:
 - [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
 - [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
 
-description (981 / 5000):
+description (1006 / 5000):
 
 **Seats are on Luma: [lu.ma/event/evt-react](https://lu.ma/event/evt-react).** The list here on Meetup is a waitlist only.
 
 Server components in practice
 
-Hosted at **Globex** and **Acme**.
+Hosted at **Globex** and **[Acme](https://acme.example/)**.
 
 **On stage**
 
@@ -107,27 +108,27 @@ MC: **[Linus](https://x.com/linus)**.
 
 **[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
-## x: announce (131 / 280)
+## x: announce (132 / 280)
 
 all things/react: talks by @linus, Grace Hopper and @ada.
 
-Wed Aug 12, 6:00 PM, hosted at Globex and Acme.
+Wed Aug 12, 6:00 PM, hosted at Globex and @acme.
 
 https://lu.ma/event/evt-react
 
-## x: day-of (145 / 280)
+## x: day-of (146 / 280)
 
 Tonight: all things/react.
 
 On stage: talks by @linus, Grace Hopper and @ada.
 
-Doors 6:00 PM, hosted at Globex and Acme.
+Doors 6:00 PM, hosted at Globex and @acme.
 
 https://lu.ma/event/evt-react
 
-## x: recap (227 / 280)
+## x: recap (228 / 280)
 
-Thank you for coming to all things/react at Globex and Acme, all 118 of you.
+Thank you for coming to all things/react at Globex and @acme, all 118 of you.
 
 On stage: talks by @linus, Grace Hopper and @ada.
 
