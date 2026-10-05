@@ -24,8 +24,8 @@ import { testStack } from "./support/stack.ts";
  * TCP as it will read Hyperdrive: the home page's catalog with talks
  * added. Erik has a photo, a bio and a talk; Andre's profile has neither
  * title nor bio. Ada speaks next week and spoke in March, Grace's profile
- * is empty, Zed's photo is on another origin, and a draft's speaker must
- * never show.
+ * is empty and her talk was a panel, Zed's photo is on another origin, Mia
+ * MCs next week without a talk, and a draft's people must never show.
  */
 
 const origin = "https://allthings.dev";
@@ -43,7 +43,12 @@ const talks = `
     ('b0000000-0000-4000-8000-000000000501', 'Ada Lovelace', 'Engineer', 'd0000000-0000-4000-8000-000000000501', 'ada', 'ada.bsky.social', 'ada-lovelace', 'Ada writes compilers for the analytical engine, mostly at night. She also teaches.', 'member', now()),
     ('b0000000-0000-4000-8000-000000000502', 'Grace Hopper', '', NULL, NULL, NULL, NULL, '', 'member', now()),
     ('b0000000-0000-4000-8000-000000000503', 'Zed Nobody', 'Hacker', 'd0000000-0000-4000-8000-000000000502', NULL, NULL, NULL, 'Hacks.', 'member', now()),
-    ('b0000000-0000-4000-8000-000000000504', 'Draft Speaker', 'Ghost', NULL, NULL, NULL, NULL, 'Hidden.', 'member', now());
+    ('b0000000-0000-4000-8000-000000000504', 'Draft Speaker', 'Ghost', NULL, NULL, NULL, NULL, 'Hidden.', 'member', now()),
+    ('b0000000-0000-4000-8000-000000000505', 'Mia MC', '', NULL, NULL, NULL, NULL, '', 'member', now()),
+    ('b0000000-0000-4000-8000-000000000506', 'Draft Host', '', NULL, NULL, NULL, NULL, '', 'member', now());
+  INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
+    ('e0000000-0000-4000-8000-000000000101', 'b0000000-0000-4000-8000-000000000505', 'mc', 0, 'site', now()),
+    ('e0000000-0000-4000-8000-000000000301', 'b0000000-0000-4000-8000-000000000506', 'co-host', 0, 'luma', now());
   INSERT INTO talks (id, title, description, updated_at) VALUES
     ('a0000000-0000-4000-8000-000000000501', 'Effect in production', '', now()),
     ('a0000000-0000-4000-8000-000000000502', 'Typed errors', '', now()),
@@ -58,6 +63,7 @@ const talks = `
     ('a0000000-0000-4000-8000-000000000504', 'b0000000-0000-4000-8000-000000000503', now(), now()),
     ('a0000000-0000-4000-8000-000000000505', 'b0000000-0000-4000-8000-000000000504', now(), now()),
     ('a0000000-0000-4000-8000-000000000506', '${hosts[0].profileId}', now(), now());
+  UPDATE talks SET format = 'panel' WHERE id = 'a0000000-0000-4000-8000-000000000503';
   INSERT INTO event_talks (event_id, talk_id, created_at, updated_at) VALUES
     ('e0000000-0000-4000-8000-000000000101', 'a0000000-0000-4000-8000-000000000501', now(), now()),
     ('e0000000-0000-4000-8000-000000000201', 'a0000000-0000-4000-8000-000000000502', now(), now()),
@@ -158,7 +164,7 @@ describe("/people", () => {
     );
   });
 
-  it("puts the organizers first, then every speaker, latest on stage first", async ({
+  it("puts the organizers first, then every speaker, latest on stage first, then co-hosts and MCs", async ({
     People,
   }) => {
     const { html } = await people(People);
@@ -171,8 +177,25 @@ describe("/people", () => {
       "Grace Hopper",
       "Zed Nobody",
     ]);
+    expect([...entries(section(html, "co-hosts")).keys()]).toEqual(["Mia MC"]);
     expect(html.indexOf('id="organizers"')).toBeLessThan(
       html.indexOf('id="speakers"'),
+    );
+    expect(html.indexOf('id="speakers"')).toBeLessThan(
+      html.indexOf('id="co-hosts"'),
+    );
+  });
+
+  it("names a part by its capacity: a panelist, an MC", async ({ People }) => {
+    const { html } = await people(People);
+    expect(entries(section(html, "speakers")).get("Grace Hopper")).toContain(
+      '<span class="talk-title">Shipping AI</span><span class="talk-evening">at<span class="slash">/</span><span>ship ai</span><span class="talk-role at-type-meta"> · panelist</span></span>',
+    );
+    expect(entries(section(html, "co-hosts")).get("Mia MC")).toContain(
+      `<a class="talk" href="${origin}/next-effect-sf">`,
+    );
+    expect(entries(section(html, "co-hosts")).get("Mia MC")).toContain(
+      '<span class="talk-title">MC</span><span class="talk-evening">at<span class="slash">/</span><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span>',
     );
   });
 
@@ -252,9 +275,10 @@ describe("/people", () => {
     expect(html).not.toContain("elsewhere.example");
   });
 
-  it("never shows a draft's speaker or talk", async ({ People }) => {
+  it("never shows a draft's people or talks", async ({ People }) => {
     const { html } = await people(People);
     expect(html).not.toContain("Draft Speaker");
+    expect(html).not.toContain("Draft Host");
     expect(html).not.toContain("A secret");
   });
 

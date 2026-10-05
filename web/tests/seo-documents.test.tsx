@@ -325,8 +325,11 @@ const details = (
   recordingUrl: null,
   isHackathon: false,
   previewImage: null,
+  lumaGuestCount: null,
+  lumaCheckedInCount: null,
   talks: [],
   hosts: [],
+  people: [],
   images: [],
   ...overrides,
 });
@@ -340,6 +343,7 @@ const speaker = (id: string, name: string, title: string) => ({
   blueskyHandle: null,
   linkedinHandle: null,
   image: null,
+  role: "speaker" as const,
 });
 
 describe("structured data", () => {
@@ -351,9 +355,16 @@ describe("structured data", () => {
           id: "t1",
           title: "Effect 4",
           description: "",
+          format: "talk",
           speakers: [michael, speaker("b2", "Kit", "")],
         },
-        { id: "t2", title: "Fireside", description: "", speakers: [michael] },
+        {
+          id: "t2",
+          title: "Fireside",
+          description: "",
+          format: "talk",
+          speakers: [michael],
+        },
       ],
     });
     expect(eventStructuredData(event, origin)).toEqual({

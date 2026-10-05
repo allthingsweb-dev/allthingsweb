@@ -4,7 +4,7 @@ import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { Events } from "allthings-core/src/events.ts";
 import { Home } from "allthings-core/src/home.ts";
-import { People } from "allthings-core/src/people.ts";
+import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
 import { Portraits } from "allthings-core/src/portraits.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
 import { Context, Effect, Layer, Option, Redacted } from "effect";
@@ -17,7 +17,7 @@ export type Repositories =
   | Events
   | FeedData
   | Home
-  | People
+  | PeopleDirectory
   | Portraits
   | Speakers
   | V1Data;
@@ -88,7 +88,7 @@ export const repositories: Layer.Layer<Repositories, DataSourceError> =
         Events.layer,
         FeedData.layer,
         Home.layer,
-        People.layer,
+        PeopleDirectory.layer,
         Portraits.layer,
         Speakers.layer,
         V1Data.layer,

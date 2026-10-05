@@ -55,6 +55,8 @@ export interface EventJson {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly topic: string | null;
+  readonly lumaGuestCount: number | null;
+  readonly lumaCheckedInCount: number | null;
   readonly lumaEventUrl: string | null;
 }
 
@@ -171,6 +173,8 @@ export function eventJson(row: EventRow): EventJson {
     createdAt: iso(row.createdAt),
     updatedAt: iso(row.updatedAt),
     topic: row.topic,
+    lumaGuestCount: row.lumaGuestCount,
+    lumaCheckedInCount: row.lumaCheckedInCount,
     lumaEventUrl: lumaEventUrl(row.lumaEventId),
   };
 }

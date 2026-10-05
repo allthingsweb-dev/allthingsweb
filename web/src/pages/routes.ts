@@ -1,7 +1,7 @@
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { Home } from "allthings-core/src/home.ts";
-import { People } from "allthings-core/src/people.ts";
+import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Effect, Layer } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
@@ -150,13 +150,13 @@ const home = dataPage(
 );
 
 /**
- * The people page: the organizers (the hosts links.ts names), then every
- * speaker.
+ * The people page: the organizers (the hosts links.ts names first), then
+ * every speaker, then everyone who co-hosted or MC'd an evening.
  */
 const people = dataPage(
   "/people",
   "the people page",
-  People.use((repository) =>
+  PeopleDirectory.use((repository) =>
     repository.read(
       hosts.map((host) => host.profileId),
       mediaOrigin,

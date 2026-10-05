@@ -15,7 +15,10 @@ export interface EventsShape {
     ReadonlyArray<Rows.Event>,
     DataSourceError
   >;
-  /** One published event with its talks, speakers, hosts and photos. */
+  /**
+   * One published event with its talks and their speakers, its hosts, its
+   * people (organizers, co-hosts, MC) and its photos.
+   */
   readonly getPublished: (
     slug: string,
   ) => Effect.Effect<Rows.EventDetails, EventNotFound | DataSourceError>;
@@ -46,19 +49,25 @@ const make = Effect.gen(function* () {
 
   // Talks, speakers, hosts and photos are listed in the order they were
   // attached: the join row's created_at, then id. The app reads them without
-  // ORDER BY, which leaves their order to the query planner.
+  // ORDER BY, which leaves their order to the query planner. People come by
+  // role (organizers, co-hosts, the MC), then their position in it.
   const findPublished = SqlSchema.findOneOption({
     Request: Schema.String,
     Result: Rows.EventDetails,
     execute: (slug) => sql`
       SELECT ${eventColumns},
+        e.luma_guest_count AS "lumaGuestCount",
+        e.luma_checked_in_count AS "lumaCheckedInCount",
         COALESCE((
           SELECT json_agg(json_build_object(
             'id', t.id,
             'title', t.title,
             'description', t.description,
+            'format', t.format,
             'speakers', COALESCE((
-              SELECT json_agg(${sql.literal(profileJson)} ORDER BY ts.created_at, p.id)
+              SELECT json_agg(
+                (${sql.literal(profileJson)})::jsonb || jsonb_build_object('role', ts.role)
+                ORDER BY ts.created_at, p.id)
               FROM talk_speakers ts
               JOIN profiles p ON p.id = ts.speaker_id
               WHERE ts.talk_id = t.id
@@ -80,6 +89,16 @@ const make = Effect.gen(function* () {
           JOIN sponsors s ON s.id = es.sponsor_id
           WHERE es.event_id = e.id
         ), '[]'::json) AS hosts,
+        COALESCE((
+          SELECT json_agg(json_build_object(
+            'role', ep.role,
+            'profile', ${sql.literal(profileJson)}
+          ) ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], ep.role),
+            ep.position, ep.created_at, p.id)
+          FROM event_people ep
+          JOIN profiles p ON p.id = ep.profile_id
+          WHERE ep.event_id = e.id
+        ), '[]'::json) AS people,
         COALESCE((
           SELECT json_agg(json_build_object(
             'url', img.url,

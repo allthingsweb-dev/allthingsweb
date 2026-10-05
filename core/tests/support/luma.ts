@@ -26,6 +26,8 @@ export type Reply =
 export interface Request {
   readonly url: string;
   readonly accept: string | undefined;
+  /** The Luma API key it carried, if any. */
+  readonly apiKey: string | undefined;
   /** The Clock's time when it was sent. */
   readonly at: number;
 }
@@ -35,16 +37,36 @@ export interface Request {
  * with the last one.
  */
 export function fakeLuma(replies: ReadonlyArray<Reply>) {
+  return fakeLumaBy(() => "", { "": replies });
+}
+
+/**
+ * Answers each request from the replies listed under its `key`, in turn:
+ * the nth request with that key gets the nth reply, and every one after the
+ * last gets the last. Requests sent at once are answered by what they ask
+ * for, not by the order they arrive in.
+ */
+export function fakeLumaBy(
+  key: (url: URL) => string,
+  replies: Readonly<Record<string, ReadonlyArray<Reply>>>,
+) {
   const requests: Array<Request> = [];
+  const asked = new Map<string, number>();
   const client = HttpClient.make((request, url) =>
     Effect.gen(function* () {
       requests.push({
         url: url.href,
         accept: request.headers["accept"],
+        apiKey: request.headers["x-luma-api-key"],
         at: yield* Clock.currentTimeMillis,
       });
-      const reply = replies[Math.min(requests.length, replies.length) - 1];
-      if (reply === undefined) throw new Error("fakeLuma needs a reply.");
+      const which = key(url);
+      const listed = replies[which] ?? [];
+      const n = (asked.get(which) ?? 0) + 1;
+      asked.set(which, n);
+      const reply = listed[Math.min(n, listed.length) - 1];
+      if (reply === undefined)
+        throw new Error(`fakeLuma needs a reply for "${which}".`);
       if (reply === "hang") return yield* Effect.never;
       if (reply === "drop") {
         return yield* new HttpClientError.HttpClientError({

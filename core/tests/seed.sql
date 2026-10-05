@@ -27,6 +27,10 @@ INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limi
   -- recording URL that must not be published.
   ('e0000000-0000-4000-8000-000000000006', '2025-12-02-café-night', 'Café night', 'Coffee and code', '2025-12-03T02:00:00Z', '2025-12-03T05:00:00Z', 40, NULL, NULL, '500 Coffee Ave, Oakland, CA', NULL, false, false, NULL, 'javascript:alert(1)', now());
 
+-- Luma counted React at Acme's guests; no other event has counts.
+UPDATE events SET luma_guest_count = 118, luma_checked_in_count = 97
+  WHERE id = 'e0000000-0000-4000-8000-000000000001';
+
 INSERT INTO profiles (id, name, title, image, twitter_handle, bluesky_handle, linkedin_handle, bio, profile_type, updated_at) VALUES
   ('b0000000-0000-4000-8000-000000000001', 'Ada Lovelace', 'Engineer', 'd0000000-0000-4000-8000-000000000005', 'ada', 'ada.bsky.social', 'ada-lovelace', 'Writes compilers.', 'member', now()),
   ('b0000000-0000-4000-8000-000000000002', 'Grace Hopper', 'Admiral', NULL, NULL, NULL, 'grace hopper', '', 'organizer', now()),
