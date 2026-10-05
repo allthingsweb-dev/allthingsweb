@@ -1,5 +1,5 @@
 import type { EventPage } from "allthings-core/src/event-page.ts";
-import { eventUrl } from "allthings-core/src/mappers.ts";
+import { eventUrl, httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
 import { socials } from "../links.ts";
 
@@ -118,7 +118,17 @@ export function eventStructuredData(event: EventPage, origin: string): Event {
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     isAccessibleForFree: true,
-    organizer: organizer(origin),
+    // A shared evening is someone else's: it names them, never us.
+    organizer:
+      event.curation.kind === "shared"
+        ? {
+            "@type": "Organization",
+            name: event.curation.organizer.name,
+            url:
+              httpUrlOrNull(event.curation.organizer.websiteUrl) ??
+              eventUrl(origin, event.slug),
+          }
+        : organizer(origin),
     ...(venue === null
       ? {}
       : {

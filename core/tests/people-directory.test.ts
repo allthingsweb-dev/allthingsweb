@@ -231,6 +231,27 @@ describe("PeopleDirectory", () => {
     expect(new Set(everyone).size).toBe(everyone.length);
   });
 
+  test("lists only who was on stage at our evenings, never one we only share", async () => {
+    const shared = await seededDatabase();
+    try {
+      const before = await readFrom(shared, []);
+      await shared.exec(`
+        INSERT INTO sponsors (id, name, about, updated_at) VALUES
+          ('c0000000-0000-4000-8000-000000000900', 'Mastra', 'Agents.', now());
+        UPDATE events SET curation = 'shared', organized_by = 'c0000000-0000-4000-8000-000000000900'
+          WHERE slug = '2026-08-12-react-at-acme';`);
+      const after = await readFrom(shared, []);
+      const parts = (view: typeof before) =>
+        view.speakers.flatMap((person) =>
+          person.parts.map((part) => part.evening.slug),
+        );
+      expect(parts(before)).toContain("2026-08-12-react-at-acme");
+      expect(parts(after)).not.toContain("2026-08-12-react-at-acme");
+    } finally {
+      await shared.close();
+    }
+  });
+
   test("shows a photo only from the photo origin", async () => {
     const database = await seededDatabase();
     try {

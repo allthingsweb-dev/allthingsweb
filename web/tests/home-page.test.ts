@@ -86,6 +86,7 @@ const evening = (overrides: Partial<Evening> = {}): Evening => ({
   neighborhood: "East Cut",
   hosts: ["CodeRabbit"],
   rsvpUrl: "https://lu.ma/event/evt-effect",
+  curation: { kind: "ours" },
   ...overrides,
 });
 

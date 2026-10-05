@@ -10,8 +10,10 @@ import * as Rows from "./rows.ts";
 
 /**
  * Who the people page shows, read as of the `Clock`: the organizers first,
- * then everyone who has been or will be on stage at a published evening,
- * then everyone who co-hosted or MC'd one without a talk. Everything shown
+ * then everyone who has been or will be on stage at one of our published
+ * evenings, then everyone who co-hosted or MC'd one without a talk. People
+ * from evenings we only share are in the network, on those evenings' pages,
+ * but not here. Everything shown
  * comes from the people's own profiles and the evenings they took part in;
  * what a profile leaves empty is left out, never filled in.
  */
@@ -159,7 +161,8 @@ const partEvening = (
 ): PartEvening => ({
   slug: row.slug,
   name: displayName(row.name),
-  topic: eventTopic(row),
+  // The directory reads only our evenings (see findPeople).
+  topic: eventTopic({ ...row, curation: { kind: "ours" } }),
   status: eventStatus(row, now),
   startsAt: row.startDate,
 });
@@ -297,14 +300,14 @@ const make = Effect.gen(function* () {
         JOIN talks t ON t.id = ts.talk_id
         JOIN event_talks et ON et.talk_id = t.id
         JOIN events e ON e.id = et.event_id
-        WHERE e.is_draft = false
+        WHERE e.is_draft = false AND e.curation = 'ours'
       ),
       parts AS (
         SELECT ep.profile_id, ep.role,
           e.id AS event_id, e.slug, e.name, e.topic, e.start_date, e.end_date
         FROM event_people ep
         JOIN events e ON e.id = ep.event_id
-        WHERE e.is_draft = false
+        WHERE e.is_draft = false AND e.curation = 'ours'
       )
       SELECT p.id, p.name, p.title, p.bio,
         p.twitter_handle AS "twitterHandle",

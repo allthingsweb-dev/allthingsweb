@@ -96,6 +96,39 @@ DATABASE_URL=… bun run programs --dry-run   # do everything, print it, roll ba
 DATABASE_URL=… bun run programs             # write
 ```
 
+## Ours, or shared
+
+`events.curation` says whose evening an event is: `ours`, or `shared`,
+someone else's evening we share with our community because we think it's
+good. A shared event names who organizes it, `events.organized_by`, a
+company in `sponsors` (the table that already holds companies with their
+sites and handles, so pages link out and drafts tag them); the database
+holds a shared event to having one, and only it. `Rows.Curation` is the
+discriminated type: `{ kind: "ours" }` or `{ kind: "shared", organizer }`.
+
+What follows from it:
+
+- A shared evening is named as written, never all things/<topic>
+  (`eventTopic`), on its page, in lists, in feeds and on its card.
+- /events and home list it in the same rows, marked "shared · by Mastra".
+  Home's hero is always our next evening, and its photos are of ours.
+- Its page says who organizes it, linked to their site, and has no "your
+  hosts". Its structured data names the organizer, not us.
+- /about's numbers count our evenings alone, and the people page lists who
+  was on stage at ours; people from a shared evening are on its page.
+- Completeness asks a shared evening for no organizers, MC or topic.
+- Promotion drafts recommend it, by its organizer, and say why; it gets no
+  Luma description or Meetup listing of ours.
+
+`core/backfill/curation.json` names the shared evenings and their
+organizers, sourced; an organizer the database lacks is added, one it has is
+kept as it is. Run it from `core/`:
+
+```sh
+DATABASE_URL=… bun run curation --dry-run   # do everything, print it, roll back
+DATABASE_URL=… bun run curation             # write
+```
+
 ## Completeness
 
 `src/completeness.ts` lists what each published event's record lacks. It's

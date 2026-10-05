@@ -12,7 +12,12 @@ import { type StageRole, stageRole } from "./people.ts";
 import { neighborhoodOf } from "./places.ts";
 import { type SafeHtml, sanitizeRichText } from "./rich-text.ts";
 import * as Rows from "./rows.ts";
-import { listingJson, orDataSourceError, profileJson } from "./sql.ts";
+import {
+  curationJson,
+  listingJson,
+  orDataSourceError,
+  profileJson,
+} from "./sql.ts";
 
 /**
  * What an event's page shows, read as of the `Clock` in one statement: every
@@ -154,6 +159,8 @@ export interface EventPage {
   readonly seats: number | null;
   /** What kind of evening it is: talks, an open floor, social, a hackathon. */
   readonly program: Rows.EventProgram;
+  /** Ours, or someone else's evening we share, with who organizes it. */
+  readonly curation: Rows.Curation;
   readonly recordingUrl: string | null;
   readonly talks: ReadonlyArray<Talk>;
   /** Its schedule, in order; none when none is recorded. */
@@ -227,6 +234,7 @@ export const EventPageRow = Schema.Struct({
   attendeeLimit: Schema.Int,
   lumaGuestCount: Schema.NullOr(Schema.Int),
   program: Rows.EventProgram,
+  curation: Rows.Curation,
   hosts: Schema.Array(Schema.String),
   hostSites: Schema.Record(Schema.String, Schema.String),
   people: Schema.Array(Rows.EventPerson),
@@ -426,6 +434,7 @@ export const toEventPage = (
         rsvpUrl: rsvpUrl(row.lumaEventId),
         seats: row.attendeeLimit > 0 ? row.attendeeLimit : null,
         program: row.program,
+        curation: row.curation,
         recordingUrl: httpUrlOrNull(row.recordingUrl),
         talks,
         schedule: row.schedule.map(
@@ -504,6 +513,7 @@ const make = Effect.gen(function* () {
         ev.recording_url AS "recordingUrl",
         ev.attendee_limit AS "attendeeLimit",
         ev.luma_guest_count AS "lumaGuestCount", ev.program,
+        ${sql.literal(curationJson("ev"))} AS curation,
         COALESCE((
           SELECT json_agg(s.name ORDER BY es.created_at, s.id)
           FROM event_sponsors es

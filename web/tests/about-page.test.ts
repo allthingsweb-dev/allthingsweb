@@ -19,6 +19,7 @@ const evening = (slug: string, name: string, iso: string): Evening => ({
   neighborhood: "Union Square",
   hosts: [],
   rsvpUrl: null,
+  curation: { kind: "ours" },
 });
 
 const remix = evening(

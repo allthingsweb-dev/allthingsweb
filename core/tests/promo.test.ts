@@ -4,6 +4,7 @@ import { DataSourceError, EventNotFound } from "../src/errors.ts";
 import { type EventPage, EventPages, type Speaker } from "../src/event-page.ts";
 import {
   blueskyHandle,
+  type MeetupDraft,
   mdUrl,
   type PromoDrafts,
   promoDrafts,
@@ -55,13 +56,30 @@ const layer = Promo.layer.pipe(
   Layer.provideMerge(clockLayer),
 );
 
-const read = (slug: string) =>
+const readAny = (slug: string) =>
   Effect.runPromise(
     Effect.provide(
       Promo.use((promo) => promo.drafts(slug, options)),
       layer,
     ),
   );
+
+/** Drafts for one of our evenings, which has its Luma and Meetup drafts. */
+type OursDrafts = PromoDrafts & {
+  readonly luma: string;
+  readonly meetup: MeetupDraft;
+};
+
+const ours = (drafts: PromoDrafts): OursDrafts => {
+  const { luma, meetup } = drafts;
+  if (luma === null || meetup === null) {
+    throw new Error(`${drafts.title} has no Luma or Meetup draft`);
+  }
+  return { ...drafts, luma, meetup };
+};
+
+const read = async (slug: string): Promise<OursDrafts> =>
+  ours(await readAny(slug));
 
 const slugs = [
   "2026-08-12-react-at-acme",
@@ -72,7 +90,7 @@ const slugs = [
 
 /** Every draft in `drafts`, with the platform that counts it. */
 const everyDraft = (
-  drafts: PromoDrafts,
+  drafts: OursDrafts,
 ): ReadonlyArray<readonly [Platform, string, string]> => [
   ["luma", "luma", drafts.luma],
   ["meetup", "meetup", drafts.meetup.description],
@@ -148,7 +166,7 @@ describe("every draft fits its platform", () => {
       hosts: new Map(),
       origin: "o",
     });
-    for (const [platform, name, text] of everyDraft(drafts)) {
+    for (const [platform, name, text] of everyDraft(ours(drafts))) {
       expect({ name, fits: fits(platform, text) }).toEqual({
         name,
         fits: true,
@@ -405,5 +423,54 @@ describe("errors", () => {
       ),
     );
     expect(error).toBeInstanceOf(DataSourceError);
+  });
+});
+
+describe("an evening we only share", () => {
+  test("is recommended, by its organizer, and never drafted as ours", async () => {
+    const shared = await seededDatabase();
+    try {
+      await shared.exec(`
+        INSERT INTO sponsors (id, name, about, website_url, twitter_handle, bluesky_handle, updated_at) VALUES
+          ('c0000000-0000-4000-8000-000000000900', 'Mastra', 'Agents in TypeScript.', 'https://mastra.ai', 'mastra', 'mastra.ai', now());
+        UPDATE events SET curation = 'shared', organized_by = 'c0000000-0000-4000-8000-000000000900'
+          WHERE slug = '2026-11-05-upcoming';
+      `);
+      const drafts = await Effect.runPromise(
+        Effect.provide(
+          Promo.use((promo) => promo.drafts("2026-11-05-upcoming", options)),
+          Promo.layer.pipe(
+            Layer.provideMerge(sqlLayer(shared)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      );
+      expect(drafts.title).toBe("Upcoming meetup");
+      expect(drafts.luma).toBeNull();
+      expect(drafts.meetup).toBeNull();
+      expect(drafts.social.x.announce).toStartWith(
+        "Upcoming meetup, by @mastra",
+      );
+      expect(drafts.social.bluesky.announce).toStartWith(
+        "Upcoming meetup, by @mastra.ai",
+      );
+      expect(drafts.social.linkedin.announce).toContain(
+        "Not one of ours: we're sharing it because we think it's good.",
+      );
+      for (const channel of ["x", "bluesky", "linkedin", "discord"] as const) {
+        for (const moment of ["announce", "dayOf", "recap"] as const) {
+          const text = drafts.social[channel][moment];
+          expect(text).not.toContain("all things/");
+          expect(text).not.toContain("see you");
+          expect(text).not.toContain("Thank you for coming");
+          expect(text).not.toContain("If you're in");
+        }
+      }
+      expect(formatDrafts(drafts)).toContain(
+        "## luma\n\nNone: this evening is shared, not ours.",
+      );
+    } finally {
+      await shared.close();
+    }
   });
 });

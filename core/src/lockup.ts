@@ -84,11 +84,15 @@ export function topicOf(name: string): string | undefined {
 
 /**
  * The event's topic: the one the site set (`events.topic`, which the Luma
- * sync never writes), else the one its name yields.
+ * sync never writes), else the one its name yields. A shared event has
+ * none: it is someone else's evening, never all things/anything, so it is
+ * named as written.
  */
 export function eventTopic(event: {
   readonly name: string;
   readonly topic: string | null;
+  readonly curation: { readonly kind: "ours" | "shared" };
 }): string | undefined {
+  if (event.curation.kind === "shared") return undefined;
   return event.topic ?? topicOf(event.name);
 }

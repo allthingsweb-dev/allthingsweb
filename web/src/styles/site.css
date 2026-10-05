@@ -463,6 +463,14 @@ main > section,
   letter-spacing: 0;
 }
 
+/* A shared evening's mark sits under its name, as quiet as the date. */
+.row .shared {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+  text-decoration: none;
+}
+
 .row .place {
   color: var(--at-link);
   text-align: right;

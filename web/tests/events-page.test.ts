@@ -23,6 +23,7 @@ const evening = (
   neighborhood: "East Cut",
   hosts: [],
   rsvpUrl: null,
+  curation: { kind: "ours" },
   ...overrides,
 });
 
@@ -127,6 +128,33 @@ describe("the evenings index", () => {
     for (const row of [...y2024, ...rows(section(html, "evenings-2026"))]) {
       expect(row).not.toContain("at-cursor");
     }
+  });
+
+  test("lists an evening we only share in the same rows, named as written and marked", async () => {
+    const html = render({
+      ahead: [
+        evening("2026-12-01-demo-day", "2026-12-02T17:00:00Z", {
+          name: "TypeScript AI Demo Day",
+          topic: undefined,
+          status: "upcoming",
+          curation: {
+            kind: "shared",
+            organizer: {
+              name: "Mastra",
+              websiteUrl: "https://mastra.ai",
+              twitterHandle: "mastra",
+              blueskyHandle: null,
+              linkedinHandle: null,
+            },
+          },
+        }),
+      ],
+      past: [],
+    });
+    expect(html).toContain(
+      '<span class="name at-type-list-name"><span>TypeScript AI Demo Day</span><span class="at-cursor" aria-hidden="true">_</span><span class="shared at-type-meta">shared · by Mastra</span></span>',
+    );
+    expect(await htmlProblems(html)).toEqual([]);
   });
 
   test("leaves out Upcoming when nothing is announced", async () => {

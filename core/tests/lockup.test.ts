@@ -128,26 +128,44 @@ const setOnTheSite = [
   ["AI x All Things Web", "ai"],
 ] as const;
 
+const ours = { kind: "ours" } as const;
+
 describe("eventTopic", () => {
   test.each(setOnTheSite)(
     "%j, whose name yields no topic, is at/%s as the site sets it",
     (name, topic) => {
       expect(topicOf(name)).toBeUndefined();
       expect(isTopic(topic)).toBe(true);
-      expect(eventTopic({ name, topic })).toBe(topic);
+      expect(eventTopic({ name, topic, curation: ours })).toBe(topic);
     },
   );
 
   test("prefers the topic the site sets to the one the name yields", () => {
     expect(
-      eventTopic({ name: "All Things Web at Vapi", topic: "voice ai" }),
+      eventTopic({
+        name: "All Things Web at Vapi",
+        topic: "voice ai",
+        curation: ours,
+      }),
     ).toBe("voice ai");
   });
 
   test("falls back to the name's topic, or none", () => {
-    expect(eventTopic({ name: "All Things Expo!", topic: null })).toBe("expo");
     expect(
-      eventTopic({ name: "AI x All Things Web", topic: null }),
+      eventTopic({ name: "All Things Expo!", topic: null, curation: ours }),
+    ).toBe("expo");
+    expect(
+      eventTopic({ name: "AI x All Things Web", topic: null, curation: ours }),
+    ).toBeUndefined();
+  });
+
+  test("gives a shared event none: it is someone else's, named as written", () => {
+    const shared = { kind: "shared" } as const;
+    expect(
+      eventTopic({ name: "All Things Expo!", topic: null, curation: shared }),
+    ).toBeUndefined();
+    expect(
+      eventTopic({ name: "Demo Day", topic: "demo day", curation: shared }),
     ).toBeUndefined();
   });
 });

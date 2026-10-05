@@ -61,6 +61,28 @@ export const EventProgram = Schema.Literals([
   "hackathon",
 ]);
 
+/**
+ * Who organizes a shared event: a company (`events.organized_by`, a
+ * `sponsors` row), with its own site and handles, where pages link out.
+ */
+export const Organizer = Schema.Struct({
+  name: Schema.String,
+  websiteUrl: Schema.NullOr(Schema.String),
+  twitterHandle: Schema.NullOr(Schema.String),
+  blueskyHandle: Schema.NullOr(Schema.String),
+  linkedinHandle: Schema.NullOr(Schema.String),
+});
+
+/**
+ * Whose evening an event is (`events.curation`): ours, or someone else's we
+ * share with our community because we think it's good, with who organizes
+ * it. The database holds the two together.
+ */
+export const Curation = Schema.Union([
+  Schema.Struct({ kind: Schema.Literal("ours") }),
+  Schema.Struct({ kind: Schema.Literal("shared"), organizer: Organizer }),
+]);
+
 /** How a talk is held (`talks.format`): see src/people.ts. */
 export const TalkFormat = Schema.Literals(["talk", "panel", "fireside"]);
 
@@ -147,6 +169,7 @@ export const Listing = Schema.Struct({
   fullAddress: Schema.NullOr(Schema.String),
   lumaEventId: Schema.NullOr(Schema.String),
   hosts: Schema.Array(Schema.String),
+  curation: Curation,
 });
 
 /** A photo from one of our evenings, from `event_images`. */
@@ -171,6 +194,8 @@ export const Portrait = Schema.Struct({
 
 /** What the home page reads, in one statement. */
 export const HomeRow = Schema.Struct({
+  /** Our soonest event that hasn't ended, if one is announced. */
+  next: Schema.NullOr(Listing),
   /** Every event that hasn't ended, soonest first, up to the limit. */
   ahead: Schema.Array(Listing),
   /** The latest events that have ended, latest first, up to the limit. */
@@ -188,6 +213,8 @@ export type Image = typeof Image.Type;
 export type Event = typeof Event.Type;
 export type Profile = typeof Profile.Type;
 export type EventProgram = typeof EventProgram.Type;
+export type Organizer = typeof Organizer.Type;
+export type Curation = typeof Curation.Type;
 export type TalkFormat = typeof TalkFormat.Type;
 export type SpeakerRole = typeof SpeakerRole.Type;
 export type EventRole = typeof EventRole.Type;

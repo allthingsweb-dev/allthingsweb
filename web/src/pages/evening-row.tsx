@@ -7,7 +7,8 @@ import { listDate } from "./time.ts";
  * An evening as every list shows it (brand/foundations.md, "Layout"): a
  * light date, the name heavy with its slash, and the neighborhood bolder
  * than the date but clearly secondary. Home and the evenings index share
- * it, so a row reads the same wherever it is.
+ * it, so a row reads the same wherever it is. An evening we only share is
+ * named as written and marked as shared, with who organizes it.
  */
 
 /** The cursor means "not yet happened": upcoming and live evenings carry it. */
@@ -47,6 +48,13 @@ export function EveningName({
   );
 }
 
+/**
+ * How a shared evening is marked wherever it is listed: someone else's,
+ * which we share, and whose.
+ */
+export const sharedMark = (organizer: string): string =>
+  `shared · by ${organizer}`;
+
 /** One evening, linking to its page on this site. */
 export function EveningRow({ evening }: { readonly evening: Evening }) {
   return (
@@ -61,6 +69,13 @@ export function EveningRow({ evening }: { readonly evening: Evening }) {
         </time>
         <span class="name at-type-list-name">
           <EveningName evening={evening} />
+          {evening.curation.kind === "shared" ? (
+            <span class="shared at-type-meta" safe>
+              {sharedMark(evening.curation.organizer.name)}
+            </span>
+          ) : (
+            ""
+          )}
         </span>
         {evening.neighborhood === null ? (
           ""

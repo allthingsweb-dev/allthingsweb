@@ -47,6 +47,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   rsvpUrl: null,
   seats: null,
   program: "talks",
+  curation: { kind: "ours" },
   recordingUrl: null,
   talks: [],
   schedule: [],

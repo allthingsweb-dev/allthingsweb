@@ -72,6 +72,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   rsvpUrl: "https://lu.ma/event/evt-effect",
   seats: 200,
   program: "talks",
+  curation: { kind: "ours" },
   recordingUrl: null,
   talks: [],
   schedule: [],
@@ -409,6 +410,38 @@ describe("the ledger", () => {
     expect(ahead).toContain(
       "Open floor: anyone can get up and show what they’re building.",
     );
+  });
+
+  test("says who organizes an evening we only share, links out, and never calls it ours", async () => {
+    const html = render(
+      event({
+        name: "TypeScript AI Demo Day",
+        topic: undefined,
+        hosts: [],
+        curation: {
+          kind: "shared",
+          organizer: {
+            name: "Mastra",
+            websiteUrl: "https://mastra.ai",
+            twitterHandle: "mastra",
+            blueskyHandle: null,
+            linkedinHandle: null,
+          },
+        },
+      }),
+    );
+    expect(labels(html)).toContain("Organized by");
+    expect(labels(html)).not.toContain("Hosted by");
+    expect(html).toContain(
+      '<p class="fact-head"><a href="https://mastra.ai/">Mastra</a></p><p>Not one of our evenings: we share it because we think it’s good.</p>',
+    );
+    expect(html).not.toContain("your hosts");
+    expect(html).toContain("<span>TypeScript AI Demo Day</span>");
+    expect(html).not.toContain('all things<span class="slash">/</span><wbr/>');
+    expect(html).toContain(
+      '"organizer":{"@type":"Organization","name":"Mastra","url":"https://mastra.ai/"}',
+    );
+    expect(await htmlProblems(html)).toEqual([]);
   });
 
   test("gives a social evening or a hackathon no stage of its own, talks or not", () => {

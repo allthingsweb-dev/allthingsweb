@@ -340,6 +340,7 @@ const details = (overrides: Partial<EventPage> = {}): EventPage => ({
   rsvpUrl: "https://lu.ma/event/evt-abc123",
   seats: null,
   program: "talks",
+  curation: { kind: "ours" },
   recordingUrl: null,
   talks: [],
   schedule: [],

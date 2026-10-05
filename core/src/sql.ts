@@ -27,6 +27,24 @@ export const imageJson = (column: ImageColumn): string =>
 export const profileJson: string = `json_build_object('id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio, 'twitterHandle', p.twitter_handle, 'blueskyHandle', p.bluesky_handle, 'linkedinHandle', p.linkedin_handle, 'image', ${imageJson("p.image")})`;
 
 /**
+ * Whose evening the event aliased `alias` is, as a JSON object matching
+ * `rows.Curation`: ours, or shared with who organizes it.
+ */
+export const curationJson = (
+  alias: "e" | "ev",
+): string => `CASE WHEN ${alias}.curation = 'shared' THEN json_build_object(
+    'kind', 'shared',
+    'organizer', (
+      SELECT json_build_object(
+        'name', o.name, 'websiteUrl', o.website_url,
+        'twitterHandle', o.twitter_handle, 'blueskyHandle', o.bluesky_handle,
+        'linkedinHandle', o.linkedin_handle
+      )
+      FROM sponsors o WHERE o.id = ${alias}.organized_by
+    )
+  ) ELSE json_build_object('kind', 'ours') END`;
+
+/**
  * The event aliased `e` as lists show it, a JSON object matching
  * `rows.Listing`: its hosts' names in the order they were attached.
  */
@@ -40,7 +58,8 @@ export const listingJson: string = `json_build_object(
       FROM event_sponsors es
       JOIN sponsors s ON s.id = es.sponsor_id
       WHERE es.event_id = e.id
-    ), '[]'::json)
+    ), '[]'::json),
+    'curation', ${curationJson("e")}
   )`;
 
 /** Folds SQL and decoding failures into the one error callers handle. */

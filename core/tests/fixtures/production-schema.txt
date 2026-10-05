@@ -90,6 +90,8 @@ column public.events #019 topic text
 column public.events #020 luma_guest_count integer
 column public.events #021 luma_checked_in_count integer
 column public.events #022 program text not null default 'talks'::text
+column public.events #023 curation text not null default 'ours'::text
+column public.events #024 organized_by uuid
 column public.images #001 id uuid not null default gen_random_uuid()
 column public.images #002 url text not null
 column public.images #003 placeholder text not null
@@ -177,9 +179,12 @@ constraint public.event_sponsors event_sponsors_sponsor_id_sponsors_id_fk FOREIG
 constraint public.event_talks event_talks_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_talks event_talks_event_id_talk_id_pk PRIMARY KEY (event_id, talk_id)
 constraint public.event_talks event_talks_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id)
+constraint public.events events_curation_check CHECK ((curation = ANY (ARRAY['ours'::text, 'shared'::text])))
+constraint public.events events_curation_organizer_check CHECK (((curation = 'shared'::text) = (organized_by IS NOT NULL)))
 constraint public.events events_luma_checked_in_count_check CHECK ((luma_checked_in_count >= 0))
 constraint public.events events_luma_event_id_unique UNIQUE (luma_event_id)
 constraint public.events events_luma_guest_count_check CHECK ((luma_guest_count >= 0))
+constraint public.events events_organized_by_sponsors_id_fk FOREIGN KEY (organized_by) REFERENCES sponsors(id)
 constraint public.events events_pkey PRIMARY KEY (id)
 constraint public.events events_preview_image_images_id_fk FOREIGN KEY (preview_image) REFERENCES images(id) ON DELETE SET NULL
 constraint public.events events_program_check CHECK ((program = ANY (ARRAY['talks'::text, 'open-floor'::text, 'social'::text, 'hackathon'::text])))
