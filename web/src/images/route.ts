@@ -21,9 +21,9 @@ import {
  * names the photo's version, so browsers and caches keep it for a year.
  *
  * When the variant can't be made (no `IMAGES` binding, as in tests that
- * don't bind one; a photo the binding refuses, such as one over its 20 MB
- * input limit; Images' monthly allowance used up), the original is sent as
- * it is, briefly cached, so the page still shows the photo and a later
+ * don't bind one; an original over {@link maxResizeBytes}; a photo the
+ * binding refuses; Images' monthly allowance used up), the original is sent
+ * as it is, briefly cached, so the page still shows the photo and a later
  * request tries again.
  *
  * Memory: an isolate has 128 MB, a browser asks for several variants at
@@ -33,7 +33,8 @@ import {
  *   pipes its body natively with backpressure; no body passes through an
  *   Effect stream, which reads ahead of a slow client.
  * - An original is sent as it is, untouched, when its Content-Length says
- *   it is over the binding's limit or doesn't say: it is piped, never read.
+ *   it is over {@link maxResizeBytes} or doesn't say: it is piped, never
+ *   read.
  * - The binding takes an original whole before it resizes it, so the
  *   originals being resized at once in an isolate add up to at most
  *   {@link transformBudgetBytes}. A request beyond that checks again every
@@ -130,14 +131,22 @@ export class WaitUntil extends Context.Reference<
   },
 }) {}
 
-/** The Images binding reads at most 20 MB; larger originals go as they are. */
-const maxInputBytes = 20_000_000;
+/**
+ * The largest original the Worker resizes; larger ones go as they are. The
+ * binding reads up to 20 MB, but handing it one costs the request memory
+ * (or CPU: Cloudflare reports both as error 1102) in step with its size.
+ * Measured on a preview, sequential requests for fresh variants failed
+ * with 1102 about half the time for 15 to 20 MB originals and one time in
+ * eight at 9 to 10 MB, and never for 6.65 MB (20 of 20, and 12 of 12 at
+ * once). Uploads are re-encoded under this (core/scripts/reencode-originals.ts).
+ */
+export const maxResizeBytes = 8_000_000;
 
 /**
- * The most original bytes an isolate hands the Images binding at once: two
- * originals at the limit, with room left in its 128 MB for everything else.
+ * The most original bytes an isolate hands the Images binding at once:
+ * three originals at {@link maxResizeBytes}.
  */
-export const transformBudgetBytes = 2 * maxInputBytes;
+export const transformBudgetBytes = 3 * maxResizeBytes;
 
 const permitBytes = 1_000_000;
 
@@ -301,7 +310,7 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
     if (
       Option.isNone(images) ||
       !Number.isFinite(length) ||
-      length > maxInputBytes ||
+      length > maxResizeBytes ||
       response.body === null
     ) {
       return asOriginal(response.body, contentType);
