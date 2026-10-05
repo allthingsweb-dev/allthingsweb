@@ -6,13 +6,23 @@ import {
   PostSources,
   type ResolvedPost,
 } from "./sources.ts";
-import { type AddResult, EventPostWriter, PostEventNotFound } from "./store.ts";
+import {
+  type AddResult,
+  EventPostWriter,
+  PostEventNotFound,
+  type PostStatus,
+} from "./store.ts";
 
 /**
- * Adds the post at `url` to the event with `slug`, approved: the one path
- * the CLI, the admin MCP tool and backfills share. A post already stored is
- * reported as it is, without asking its platform when its URL alone says
- * which post it is. A dry run reads the post and writes nothing.
+ * Adds the post at `url` to the event with `slug`: the one path the CLI,
+ * the admin MCP tool and backfills share. A post already stored is reported
+ * as it is, without asking its platform when its URL alone says which post
+ * it is. A dry run reads the post and writes nothing.
+ *
+ * An organizer's post is approved as it is added. Anything that finds posts
+ * on its own, such as a search of X once a key exists, adds them with
+ * `status: "pending"`: they wait for an organizer, and pages never show
+ * them until one approves.
  */
 
 /** One post to add, as a backfill file lists it. */
@@ -37,7 +47,11 @@ export type AddPostResult =
 export const addPost = (
   slug: string,
   url: string,
-  options: { readonly manual?: ManualPost; readonly dryRun?: boolean } = {},
+  options: {
+    readonly manual?: ManualPost;
+    readonly dryRun?: boolean;
+    readonly status?: PostStatus;
+  } = {},
 ): Effect.Effect<
   AddPostResult,
   PostSourceError | PostEventNotFound | DataSourceError,
@@ -56,5 +70,5 @@ export const addPost = (
     const resolved = yield* writer.find(post.url);
     if (resolved !== null) return resolved;
     if (options.dryRun === true) return { _tag: "WouldAdd", post } as const;
-    return yield* writer.add(slug, post);
+    return yield* writer.add(slug, post, options.status ?? "approved");
   });

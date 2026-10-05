@@ -3,6 +3,7 @@ import type {
   EventPage,
   Note,
   Person,
+  Post,
   ScheduleItem,
   Speaker,
   Talk,
@@ -42,8 +43,9 @@ import { day, fullDate, timeRange } from "./time.ts";
  * then a ruled list that names every fact once, each on its own row under a
  * small label: when, where, who hosts, how to get in (or, once it is over,
  * the recording), its schedule and any notes of its own (a hackathon's
- * awards, theme and teams), who is on stage, the photos, and what comes
- * next. A row whose facts are unknown is left out rather than shown empty.
+ * awards, theme and teams), who is on stage, the photos, what people posted
+ * about it, and what comes next. A row whose facts are unknown is left out
+ * rather than shown empty.
  *
  * The page is in its event's mode (Night for evenings, Paper for daytime
  * events) unless the visitor fixed one with the mode switch.
@@ -639,6 +641,155 @@ function Photos({
   );
 }
 
+/** How the page names a post's platform. */
+const platformNames: Readonly<Record<Post["platform"], string>> = {
+  x: "X",
+  bluesky: "Bluesky",
+  linkedin: "LinkedIn",
+  other: "the web",
+};
+
+/**
+ * How wide site.css shows a post's photo: the post's column beside its
+ * 36 px avatar (12 px gap), at most 480 px; on phones the page width less
+ * its 16 px margins and the avatar.
+ */
+const postPhotoSizes = "(max-width: 760px) calc(100vw - 80px), 480px";
+
+/** The author's avatar, 36 px square, or the brand's blank avatar. */
+function PostAvatar({
+  avatar,
+  images,
+}: {
+  readonly avatar: Rows.Photo | null;
+  readonly images: ImageMode;
+}) {
+  if (avatar === null || !hasSource(avatar, images)) {
+    return (
+      <img
+        src={built.marks.avatar.src}
+        alt=""
+        width="36"
+        height="36"
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
+  return (
+    <SquarePhoto
+      photo={avatar}
+      mode={images}
+      side={36}
+      sides={[36, 72]}
+      alt=""
+    />
+  );
+}
+
+/**
+ * One post: who wrote it, what it says, its photo, and when and where, which
+ * links to the post itself. Text only, as it was posted: no embed, no
+ * script, nothing loaded from the platform.
+ */
+function PostEntry({
+  post,
+  images,
+}: {
+  readonly post: Post;
+  readonly images: ImageMode;
+}) {
+  const author =
+    post.authorUrl === null ? (
+      <span class="post-author" safe>
+        {post.authorName}
+      </span>
+    ) : (
+      <a class="post-author" href={post.authorUrl}>
+        <span safe>{post.authorName}</span>
+      </a>
+    );
+  return (
+    <li class="post">
+      <PostAvatar avatar={post.avatar} images={images} />
+      <div class="post-body">
+        <p class="post-by">
+          {author}
+          {post.authorHandle === null ? (
+            ""
+          ) : (
+            <span class="post-handle" safe>
+              {`@${post.authorHandle.replace(/^@/, "")}`}
+            </span>
+          )}
+        </p>
+        <p class="post-text" safe>
+          {post.text}
+        </p>
+        {post.image !== null && hasSource(post.image, images) ? (
+          <Photo photo={post.image} mode={images} sizes={postPhotoSizes} />
+        ) : (
+          ""
+        )}
+        <p class="post-link at-type-meta">
+          <a href={post.url}>
+            <time datetime={DateTime.formatIso(post.postedAt)} safe>
+              {day(post.postedAt)}
+            </time>
+            <span safe>{` on ${platformNames[post.platform]}`}</span>
+            <span aria-hidden="true"> →</span>
+          </a>
+        </p>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * Where more posts about the evening are, when the page lists only some:
+ * a search of X for its Luma page, which posts about it link.
+ */
+export function morePostsUrl(rsvpUrl: string | null): string | null {
+  return rsvpUrl === null
+    ? null
+    : `https://x.com/search?q=${encodeURIComponent(rsvpUrl)}&f=live`;
+}
+
+/** What people posted about the evening, earliest first. */
+function Posts({
+  posts,
+  more,
+  rsvpUrl,
+  images,
+}: {
+  readonly posts: ReadonlyArray<Post>;
+  readonly more: number;
+  readonly rsvpUrl: string | null;
+  readonly images: ImageMode;
+}) {
+  const moreUrl = more > 0 ? morePostsUrl(rsvpUrl) : null;
+  return (
+    <Fact label="Posts">
+      <>
+        <ul class="posts">
+          {posts.map((post) => (
+            <PostEntry post={post} images={images} />
+          ))}
+        </ul>
+        {moreUrl === null ? (
+          ""
+        ) : (
+          <p class="fact-links">
+            <a href={moreUrl}>
+              more on X <span aria-hidden="true">→</span>
+            </a>
+          </p>
+        )}
+      </>
+    </Fact>
+  );
+}
+
 /** After an evening: the next one, or the open slot and the calendar. */
 function Next({ next }: { readonly next: Evening | undefined }) {
   if (next === undefined) {
@@ -751,12 +902,20 @@ export function eventPage({
           ) : (
             <OnStage talks={event.talks} images={images} />
           )}
-          {/* Posts about the evening on socials go here, once the X
-              integration lands. */}
           {past && photos.length > 0 ? (
             <Photos photos={photos} images={images} />
           ) : (
             ""
+          )}
+          {event.posts.length === 0 ? (
+            ""
+          ) : (
+            <Posts
+              posts={event.posts}
+              more={event.morePosts}
+              rsvpUrl={event.rsvpUrl}
+              images={images}
+            />
           )}
           {past ? <Next next={event.next} /> : ""}
         </dl>

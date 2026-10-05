@@ -342,6 +342,8 @@ const details = (overrides: Partial<EventPage> = {}): EventPage => ({
   schedule: [],
   notes: [],
   photos: [],
+  posts: [],
+  morePosts: 0,
   next: undefined,
   ...overrides,
 });

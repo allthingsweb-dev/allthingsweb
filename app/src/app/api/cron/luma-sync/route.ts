@@ -20,8 +20,9 @@ const coverStartDeadlineMs = 35_000;
 const coverCancelDeadlineMs = 50_000;
 // Profile photos run first but may only start new work for this long.
 const photoWindowMs = 10_000;
-// Then images of posts about events, in a window of their own.
-const postImageWindowMs = 5_000;
+// Then images of posts about events, in a window of their own: long enough
+// for a whole backfill (each image is capped at 8 s, a run at 40 images).
+const postImageWindowMs = 20_000;
 
 const listingPaths = ["/", "/api/v1/events", "/rss", "/sitemap.xml"];
 

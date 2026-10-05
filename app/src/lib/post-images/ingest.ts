@@ -27,7 +27,15 @@ export type PostImageDependencies = Omit<
 export type PostImageResult = {
   ingested: string[];
   failed: { url: string; error: string }[];
+  /** Images still to copy when the run stopped: the next run takes them. */
+  remaining: number;
 };
+
+/** The most images one run copies, whatever time is left. */
+export const maxImagesPerRun = 40;
+
+/** How long one image may take, download to save, before it is skipped. */
+export const imageTimeoutMs = 8_000;
 
 /** The two images a post can carry: its source column and its image column. */
 const kinds = {
@@ -84,7 +92,9 @@ async function missing(
 
 /**
  * Records the image and sets it on the post in one statement, only while
- * the post still has none.
+ * the post still has none. It never waits on a lock (`nowait`): a post
+ * another run holds fails this one at once, within the image's timeout,
+ * and is tried again next run.
  */
 async function saveImage(
   database: PostImageDependencies["database"],
@@ -97,7 +107,7 @@ async function saveImage(
     with target as (
       select ${eventPostsTable.id} from ${eventPostsTable}
       where ${eventPostsTable.id} = ${item.id} and ${target} is null
-      for update
+      for update nowait
     ), image as (
       insert into ${imagesTable}
         (id, url, alt, placeholder, width, height, created_at, updated_at)
@@ -116,29 +126,106 @@ async function saveImage(
   return result.rows.length > 0;
 }
 
-/** Copies every post image still missing, within the budget. */
+/**
+ * `work`, or a rejection once `signal` aborts, whichever comes first, so
+ * a step that can't be cancelled (such as processing an image) still can't
+ * hold a run past its bound. What it leaves running is abandoned.
+ */
+export function untilAborted<A>(
+  work: Promise<A>,
+  signal: AbortSignal,
+): Promise<A> {
+  if (signal.aborted) {
+    // Still observe `work`, so a rejection it settles with later is handled.
+    work.catch(() => undefined);
+    return Promise.reject(abortError(signal));
+  }
+  return new Promise<A>((resolve, reject) => {
+    const abort = () => reject(abortError(signal));
+    signal.addEventListener("abort", abort, { once: true });
+    work
+      .finally(() => signal.removeEventListener("abort", abort))
+      .then(resolve, (error: unknown) =>
+        reject(error instanceof Error ? error : new Error(String(error))),
+      );
+  });
+}
+
+const abortError = (signal: AbortSignal): Error =>
+  signal.reason instanceof Error ? signal.reason : new Error("Aborted");
+
+/** How often the hourly sync runs: each run starts the queue further on. */
+const runEveryMs = 3_600_000;
+
+/**
+ * `items` from where this run starts: oldest first, but each hourly run
+ * starts `maxItems` further on, wrapping around. Without it, images that
+ * keep failing would fill every run and the ones after them never come up.
+ */
+export function rotate<A>(
+  items: ReadonlyArray<A>,
+  now: number,
+  maxItems: number,
+): ReadonlyArray<A> {
+  if (items.length <= maxItems) return items;
+  const start = (Math.floor(now / runEveryMs) * maxItems) % items.length;
+  return [...items.slice(start), ...items.slice(0, start)];
+}
+
+/**
+ * Copies post images still missing: at most `maxItems` of them (each run
+ * starting further along the queue, see `rotate`), none started after
+ * `budgetMs`, each given `itemTimeoutMs`, processing included, before it
+ * is skipped and left for a later run. `remaining` counts what is still
+ * missing afterwards, failures included, so the summary says when a
+ * backlog remains.
+ */
 export async function ingestPostImages(
   deps: PostImageDependencies,
   {
-    budgetMs = 10_000,
+    budgetMs = 20_000,
     signal = new AbortController().signal,
-  }: { budgetMs?: number; signal?: AbortSignal } = {},
+    maxItems = maxImagesPerRun,
+    itemTimeoutMs = imageTimeoutMs,
+  }: {
+    budgetMs?: number;
+    signal?: AbortSignal;
+    maxItems?: number;
+    itemTimeoutMs?: number;
+  } = {},
 ): Promise<PostImageResult> {
   const deadline = deps.now() + budgetMs;
-  const result: PostImageResult = { ingested: [], failed: [] };
-  for (const item of await missing(deps.database)) {
-    if (deps.now() >= deadline || signal.aborted) break;
+  const items = await missing(deps.database);
+  const result: PostImageResult = {
+    ingested: [],
+    failed: [],
+    remaining: items.length,
+  };
+  for (const [index, item] of rotate(items, deps.now(), maxItems).entries()) {
+    if (index >= maxItems || deps.now() >= deadline || signal.aborted) break;
+    const itemSignal = AbortSignal.any([
+      signal,
+      AbortSignal.timeout(itemTimeoutMs),
+    ]);
     let unusedKey: string | null = null;
     try {
-      const image = await deps.process(
-        await deps.download(item.source, { signal }),
+      const image = await untilAborted(
+        deps.download(item.source, { signal: itemSignal }).then(deps.process),
+        itemSignal,
       );
       const imageId = deps.newId();
       const key = postImageKey(item.id, item.kind, imageId, image.format);
-      const url = await deps.store(key, image, { signal });
+      const url = await deps.store(key, image, { signal: itemSignal });
       unusedKey = key;
-      signal.throwIfAborted();
-      if (await saveImage(deps.database, item, { imageId, url, image })) {
+      itemSignal.throwIfAborted();
+      const saved = await saveImage(deps.database, item, {
+        imageId,
+        url,
+        image,
+      });
+      // Saved, or set meanwhile by someone else: either way, no longer missing.
+      result.remaining -= 1;
+      if (saved) {
         unusedKey = null;
         result.ingested.push(key);
       }

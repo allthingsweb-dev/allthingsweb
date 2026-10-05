@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { EventPage, Speaker } from "allthings-core/src/event-page.ts";
+import type {
+  EventPage,
+  Post,
+  Speaker,
+} from "allthings-core/src/event-page.ts";
 import type { SafeHtml } from "allthings-core/src/rich-text.ts";
 import { DateTime } from "effect";
 import { googleMaps } from "../src/links.ts";
@@ -70,6 +74,8 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   schedule: [],
   notes: [],
   photos: [],
+  posts: [],
+  morePosts: 0,
   next: undefined,
   ...overrides,
 });
@@ -642,6 +648,177 @@ describe("the event page's images as variants", () => {
 
   test("loads nothing from the media origin, and is valid HTML", async () => {
     expect(html).not.toContain("media.allthings.dev");
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+});
+
+describe("posts about the evening", () => {
+  const media = (name: string, width = 1200, height = 800) => ({
+    url: `https://media.allthings.dev/posts/${name}.jpg`,
+    alt: name,
+    width,
+    height,
+    version: "1767323045",
+  });
+  const post = (overrides: Partial<Post> = {}): Post => ({
+    url: "https://x.com/i/status/2105474023287341382",
+    platform: "x",
+    authorName: "Andre Landgraf",
+    authorHandle: "andrelandgraf",
+    authorUrl: "https://x.com/andrelandgraf",
+    postedAt: at("2026-10-01T01:44:59Z"),
+    text: "Effect 4.0 shipped IRL! 🔥",
+    image: media("stage"),
+    avatar: media("andre", 200, 200),
+    ...overrides,
+  });
+  const bluesky = post({
+    url: "https://bsky.app/profile/did:plc:x/post/3abc",
+    platform: "bluesky",
+    authorName: "Simon",
+    authorHandle: "simon.example",
+    authorUrl: null,
+    postedAt: at("2026-10-01T05:00:00Z"),
+    text: "Thanks, CodeRabbit!\nSee you next time.",
+    image: null,
+    avatar: null,
+  });
+
+  test("come after the photos and before what's next, for any evening that has them", () => {
+    const photos = [media("room")];
+    expect(
+      labels(render(event({ status: "past", photos, posts: [post()] }))),
+    ).toEqual(["When", "Where", "Hosted at", "Photos", "Posts", "Next"]);
+    // An announcement shows before the evening, too.
+    expect(labels(render(event({ posts: [post()] })))).toContain("Posts");
+    expect(labels(render(event({ status: "past" })))).not.toContain("Posts");
+  });
+
+  test("keep their place among every row an evening can have", () => {
+    const html = render(
+      event({
+        status: "past",
+        rsvpUrl: null,
+        recordingUrl: "https://youtu.be/abc",
+        schedule: [{ time: "5 pm", title: "Doors open", description: null }],
+        notes: [
+          { label: "Awards", body: "<p>A PS5</p>" as SafeHtml },
+          { label: "Theme", body: "<p>Two hours</p>" as SafeHtml },
+        ],
+        talks: [
+          {
+            id: "a1",
+            title: "A talk",
+            format: "talk",
+            description: null,
+            speakers: [speaker()],
+          },
+        ],
+        photos: [media("room")],
+        posts: [post()],
+      }),
+    );
+    expect(labels(html)).toEqual([
+      "When",
+      "Where",
+      "Hosted at",
+      "Recording",
+      "Schedule",
+      "Awards",
+      "Theme",
+      "On stage",
+      "Photos",
+      "Posts",
+      "Next",
+    ]);
+    // Seats, while the evening is ahead, take the recording's place.
+    expect(
+      labels(
+        render(
+          event({
+            schedule: [
+              { time: "5 pm", title: "Doors open", description: null },
+            ],
+            posts: [post()],
+          }),
+        ),
+      ),
+    ).toEqual(["When", "Where", "Hosted at", "Seats", "Schedule", "Posts"]);
+  });
+
+  test("say who posted, what, and when and where, linking to the post", () => {
+    const html = render(event({ posts: [post(), bluesky] }));
+    expect(html).toContain(
+      '<a class="post-author" href="https://x.com/andrelandgraf"><span>Andre Landgraf</span></a><span class="post-handle">@andrelandgraf</span>',
+    );
+    expect(html).toContain(
+      '<p class="post-text">Effect 4.0 shipped IRL! 🔥</p>',
+    );
+    expect(html).toContain(
+      '<a href="https://x.com/i/status/2105474023287341382"><time datetime="2026-10-01T01:44:59.000Z">Wed Sep 30</time><span> on X</span><span aria-hidden="true"> →</span></a>',
+    );
+    // No profile link: the name alone. Line breaks stay as posted.
+    expect(html).toContain(
+      '<span class="post-author">Simon</span><span class="post-handle">@simon.example</span>',
+    );
+    expect(html).toContain(
+      '<p class="post-text">Thanks, CodeRabbit!\nSee you next time.</p>',
+    );
+    expect(html).toContain("<span> on Bluesky</span>");
+  });
+
+  test("show the blank avatar for an author without one", () => {
+    const html = render(event({ posts: [bluesky] }));
+    expect(html).toMatch(
+      /<li class="post"><img src="[^"]*avatar[^"]*" alt="" width="36" height="36" loading="lazy" decoding="async"\/>/,
+    );
+  });
+
+  test("link to more on X only past the limit, and only with a Luma page", () => {
+    const more = event({ posts: [post()], morePosts: 3 });
+    expect(render(more)).toContain(
+      '<a href="https://x.com/search?q=https%3A%2F%2Flu.ma%2Fevent%2Fevt-effect&f=live">more on X <span aria-hidden="true">→</span></a>',
+    );
+    expect(render(event({ posts: [post()] }))).not.toContain("more on X");
+    expect(render(event({ ...more, rsvpUrl: null }))).not.toContain(
+      "more on X",
+    );
+  });
+
+  test("escape what was posted", async () => {
+    const html = render(
+      event({
+        posts: [
+          post({
+            authorName: "<b>x</b>",
+            authorHandle: "<i>",
+            text: "<script>alert(1)</script> & more",
+          }),
+        ],
+      }),
+    );
+    const body = html.slice(html.indexOf("<body>"));
+    expect(body).not.toContain("<script>alert");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; more");
+    expect(html).toContain("&lt;b&gt;x&lt;/b&gt;");
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+
+  test("show their photos and avatars as variants, never from the platforms or the media origin", async () => {
+    const html = render(
+      event({ status: "past", posts: [post(), bluesky] }),
+      undefined,
+      "variants",
+    );
+    expect(html).toContain(
+      '<img src="/img/480/jpeg/1767323045/posts/stage.jpg" srcset="/img/240/jpeg/1767323045/posts/stage.jpg 240w, /img/360/jpeg/1767323045/posts/stage.jpg 360w, /img/480/jpeg/1767323045/posts/stage.jpg 480w, /img/720/jpeg/1767323045/posts/stage.jpg 720w, /img/960/jpeg/1767323045/posts/stage.jpg 960w, /img/1200/jpeg/1767323045/posts/stage.jpg 1200w" sizes="(max-width: 760px) calc(100vw - 80px), 480px" alt="stage" width="1200" height="800" loading="lazy" decoding="async"/>',
+    );
+    expect(html).toContain(
+      '<img src="/img/36x36/jpeg/1767323045/posts/andre.jpg" srcset="/img/36x36/jpeg/1767323045/posts/andre.jpg 1x, /img/72x72/jpeg/1767323045/posts/andre.jpg 2x" alt="" width="36" height="36" loading="lazy" decoding="async"/>',
+    );
+    expect(html).not.toContain("media.allthings.dev");
+    expect(html).not.toContain("pbs.twimg.com");
+    expect(html).not.toContain("<script src");
     expect(await htmlProblems(html)).toEqual([]);
   });
 });
