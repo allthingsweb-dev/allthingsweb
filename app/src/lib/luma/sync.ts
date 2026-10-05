@@ -91,7 +91,7 @@ export async function syncPublicLumaEvents(
       }),
   );
   // An event left alone is read as the statement found it, which is as it
-  // stays; every feed event is either written or stored.
+  // stays.
   const rows = await database
     .with(written)
     .select({
@@ -113,15 +113,18 @@ export async function syncPublicLumaEvents(
     );
   const byLumaId = new Map(rows.map((row) => [row.lumaEventId, row]));
   // In feed order, as the pages to refresh have always been listed.
-  const synced = events.map((event) => {
-    const row = byLumaId.get(event.lumaEventId);
-    if (!row) {
-      throw new Error(
-        `Luma event ${event.lumaEventId} was neither written nor stored`,
-      );
-    }
-    return row;
-  });
+  const synced = events.map(
+    (event) =>
+      byLumaId.get(event.lumaEventId) ?? {
+        // Inserted by a concurrent sync after this statement's snapshot.
+        // ON CONFLICT checks the committed row, so it skipped the update
+        // only because that row holds what this sync would write: this draft
+        // flag, and the slug that the same name, start and Luma id give.
+        slug: eventSlug(event),
+        isDraft: event.isDraft,
+        changed: false,
+      },
+  );
 
   return {
     syncedCount: synced.length,

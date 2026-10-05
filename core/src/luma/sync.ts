@@ -189,8 +189,12 @@ const make = Effect.gen(function* () {
     const at = DateTime.formatIso(now);
     // The data-modifying CTE returns only the rows it wrote; an event already
     // up to date is read from `events` as the statement found it, which is
-    // as it stays. Every feed event is a new or a stored one, so each gets
-    // exactly one row, in feed order.
+    // as it stays. One more case: a concurrent sync inserted the event after
+    // this statement's snapshot, so neither sees it here. ON CONFLICT checks
+    // the committed row, so it skipped the update only because that row
+    // holds what this sync would write: its draft flag, and the slug that
+    // the same name, start and Luma id give. Each feed event gets one row,
+    // in feed order.
     return sql`
       WITH incoming AS (
         SELECT * FROM jsonb_to_recordset(${incoming}::jsonb) AS r(
@@ -226,8 +230,8 @@ const make = Effect.gen(function* () {
             ${venue("short_location")}, ${venue("full_address")})
         RETURNING e.luma_event_id, e.slug, e.is_draft
       )
-      SELECT COALESCE(w.slug, stored.slug) AS slug,
-        COALESCE(w.is_draft, stored.is_draft) AS "isDraft",
+      SELECT COALESCE(w.slug, stored.slug, i.slug) AS slug,
+        COALESCE(w.is_draft, stored.is_draft, i.is_draft) AS "isDraft",
         w.luma_event_id IS NOT NULL AS changed
       FROM incoming i
       LEFT JOIN written w ON w.luma_event_id = i.luma_event_id
