@@ -173,6 +173,41 @@ const asOriginal = (
     }),
   );
 
+/**
+ * The original of `variant` from `media`, when it is there as a raster
+ * image: `undefined` when the media origin has no such photo. Only the
+ * key's own object is fetched, never where a redirect points, and its body
+ * is left unread, so the Worker never holds a whole original in memory.
+ */
+const fetchOriginal = (variant: Variant, media: string) =>
+  Effect.gen(function* () {
+    const original = yield* Effect.tryPromise({
+      try: () =>
+        fetch(`${media}/${encodeKey(variant.key)}`, { redirect: "manual" }),
+      catch: (cause) => new FetchFailed({ cause }),
+    });
+    const contentType =
+      (original.headers.get("content-type") ?? "")
+        .split(";")[0]
+        ?.trim()
+        .toLowerCase() ?? "";
+    const found = original.status === 200;
+    // Only raster images are made into variants or sent from this origin,
+    // so the media origin can't put a page here.
+    if (found && rasterTypes.has(contentType)) {
+      return { response: original, contentType };
+    }
+    yield* Effect.promise(() => original.body?.cancel() ?? Promise.resolve());
+    if (original.status === 404 || original.status === 410) return undefined;
+    return yield* Effect.fail(
+      new FetchFailed({
+        cause: found
+          ? `the media origin sent ${contentType}`
+          : `the media origin answered ${original.status}`,
+      }),
+    );
+  });
+
 /** The variant, made from the original at `media` and stored at `cacheKey`. */
 const serve = (variant: Variant, media: string, cacheKey: string) =>
   Effect.gen(function* () {
@@ -188,53 +223,25 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
     }
 
     const started = Date.now();
-    // Only the key's own object, never where a redirect points.
-    const original = yield* Effect.tryPromise({
-      try: () =>
-        fetch(`${media}/${encodeKey(variant.key)}`, { redirect: "manual" }),
-      catch: (cause) => new FetchFailed({ cause }),
-    });
-    if (original.status === 404 || original.status === 410) {
-      yield* Effect.promise(() => original.body?.cancel() ?? Promise.resolve());
-      return notFound;
-    }
-    if (original.status !== 200) {
-      yield* Effect.promise(() => original.body?.cancel() ?? Promise.resolve());
-      return yield* Effect.fail(
-        new FetchFailed({
-          cause: `the media origin answered ${original.status}`,
-        }),
-      );
-    }
-    const contentType =
-      (original.headers.get("content-type") ?? "")
-        .split(";")[0]
-        ?.trim()
-        .toLowerCase() ?? "";
-    // Only raster images are made into variants or sent from this origin,
-    // so the media origin can't put a page here.
-    if (!rasterTypes.has(contentType)) {
-      yield* Effect.promise(() => original.body?.cancel() ?? Promise.resolve());
-      return yield* Effect.fail(
-        new FetchFailed({ cause: `the media origin sent ${contentType}` }),
-      );
-    }
+    const original = yield* fetchOriginal(variant, media);
+    if (original === undefined) return notFound;
+    const { response, contentType } = original;
 
     const images = yield* Images;
-    const length = Number(original.headers.get("content-length") ?? Number.NaN);
-    if (Option.isNone(images) || length > maxInputBytes) {
-      return asOriginal(original.body, contentType);
+    const length = Number(response.headers.get("content-length") ?? Number.NaN);
+    if (
+      Option.isNone(images) ||
+      length > maxInputBytes ||
+      response.body === null
+    ) {
+      return asOriginal(response.body, contentType);
     }
-    const bytes = yield* Effect.tryPromise({
-      try: () => original.arrayBuffer(),
-      catch: (cause) => new FetchFailed({ cause }),
-    });
-    if (bytes.byteLength > maxInputBytes) return asOriginal(bytes, contentType);
 
+    // The original streams into Images as it arrives.
     const made = yield* Effect.tryPromise({
       try: () =>
         images.value
-          .input(new Response(bytes).body ?? new ReadableStream())
+          .input(response.body ?? new ReadableStream())
           .transform(transformOf(variant.size))
           .output({ format: formats[variant.format] }),
       catch: (cause) => new TransformFailed({ cause }),
@@ -247,7 +254,12 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
         ).pipe(Effect.as(Option.none<ImageTransformationResult>())),
       ),
     );
-    if (Option.isNone(made)) return asOriginal(bytes, contentType);
+    if (Option.isNone(made)) {
+      // Images read the first copy; the media origin's edge has another.
+      const again = yield* fetchOriginal(variant, media);
+      if (again === undefined) return notFound;
+      return asOriginal(again.response.body, again.contentType);
+    }
 
     const headers = {
       // What Images made: AVIF it can't encode in time comes as WebP.

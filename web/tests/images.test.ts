@@ -40,6 +40,11 @@ const media = serveMedia({
   "events/home/mux.jpg": { body: png(1024, 768), type: "image/png" },
   "profiles/erik.jpg": { body: png(2160, 2160), type: "image/png" },
   "events/home/broken.jpg": { body: "not an image", type: "image/jpeg" },
+  // Over the 20 MB the Images binding reads.
+  "events/home/huge.png": {
+    body: new Uint8Array(20_000_001),
+    type: "image/png",
+  },
   "events/home/page.jpg": { body: "<!doctype html>", type: "text/html" },
   "events/home/moved.jpg": {
     body: "",
@@ -313,8 +318,24 @@ describe("/img/", () => {
       expect(response.headers.get("cache-control")).toBe("public, max-age=300");
       expect(response.headers.get("x-content-type-options")).toBe("nosniff");
       expect(new TextDecoder().decode(body)).toBe("not an image");
-      expect(media.fetches("events/home/broken.jpg")).toBe(attempt);
+      // Images read the first copy; the original is fetched again to send.
+      expect(media.fetches("events/home/broken.jpg")).toBe(attempt * 2);
     }
+  });
+
+  it("sends an original over the binding's input limit as it is, without trying", async ({
+    Variants,
+  }) => {
+    const { response, body } = await get(
+      Variants,
+      "/img/480/webp/1/events/home/huge.png",
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(response.headers.get("cache-control")).toBe("public, max-age=300");
+    expect(response.headers.get("server-timing")).toBe('img;desc="original"');
+    expect(body.byteLength).toBe(20_000_001);
+    expect(media.fetches("events/home/huge.png")).toBe(1);
   });
 
   it("never sends anything but an image from the media origin", async ({
