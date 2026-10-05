@@ -5,6 +5,7 @@ import { MediaBucket } from "allthings-core/src/ingest/media-bucket.ts";
 import { Pictures } from "allthings-core/src/ingest/pictures.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { ConfigProvider, Effect, Layer, Redacted } from "effect";
 import { FetchHttpClient } from "effect/http";
 import type { ExecutionContext } from "../app.ts";
@@ -68,7 +69,7 @@ export const syncLayer = (
   env: SyncEnv & Readonly<Record<string, unknown>>,
   fetch: typeof globalThis.fetch = globalThis.fetch,
 ) =>
-  Layer.mergeAll(LumaSync.layer, ImageIngest.layer).pipe(
+  Layer.mergeAll(LumaSync.layer, ShortSlugs.layer, ImageIngest.layer).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, CoverSource.layer)),
     Layer.provide(
       Layer.mergeAll(

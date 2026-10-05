@@ -3,6 +3,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { ImageIngest, NewImageId } from "allthings-core/src/ingest/ingest.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import {
   clockAt,
   migratedDatabase,
@@ -87,7 +88,11 @@ async function run(
   );
   const bucket = fakeBucket();
   const logged: Array<Record<string, unknown>> = [];
-  const layer = Layer.mergeAll(LumaSync.layer, ImageIngest.layer).pipe(
+  const layer = Layer.mergeAll(
+    LumaSync.layer,
+    ShortSlugs.layer,
+    ImageIngest.layer,
+  ).pipe(
     Layer.provide(
       Layer.mergeAll(
         Luma.layer.pipe(
@@ -118,12 +123,13 @@ const count = async (db: PGlite, sql: string) =>
   Number((await db.query<{ n: number }>(sql)).rows[0]?.n);
 
 describe("a sync run that writes", () => {
-  test("syncs events, then stores photos, post images and covers, logging each step", async () => {
+  test("syncs events and gives them short links, then stores photos, post images and covers, logging each step", async () => {
     const { db, report, logged, bucket } = await run("write", syncLimits.paid);
     try {
       expect(report.ok).toBe(true);
       expect(Object.keys(report.steps)).toEqual([
         "events",
+        "slugs",
         "photos",
         "posts",
         "covers",
@@ -132,6 +138,18 @@ describe("a sync run that writes", () => {
         status: "done",
         syncedCount: 24,
       });
+      expect(report.steps["slugs"]).toMatchObject({
+        status: "done",
+        given: expect.arrayContaining([
+          { slug: "secret-venue-night", shortSlug: "secret-venue-night" },
+        ]),
+      });
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE is_draft = false AND short_slug IS NULL",
+        ),
+      ).toBe(0);
       expect(report.steps["photos"]).toMatchObject({
         status: "done",
         ingested: ["One", "Two", "Three"],
@@ -152,6 +170,7 @@ describe("a sync run that writes", () => {
       expect(logged.map((entry) => entry["step"])).toEqual([
         "start",
         "events",
+        "slugs",
         "photos",
         "posts",
         "covers",
@@ -182,7 +201,7 @@ describe("a sync run that writes", () => {
     }
   });
 
-  test("stores no images when Luma's calendar can't be read, as the app's cron", async () => {
+  test("gives no links and stores no images when Luma's calendar can't be read, as the app's cron", async () => {
     const { db, report, bucket } = await run("write", syncLimits.paid, [
       { status: 404 },
     ]);
@@ -210,6 +229,16 @@ describe("a dry run", () => {
         syncedCount: 24,
         changedCount: 23,
       });
+      expect(report.steps["slugs"]).toMatchObject({
+        status: "done",
+        written: null,
+      });
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE short_slug IS NOT NULL",
+        ),
+      ).toBe(0);
       expect(report.steps["images"]).toMatchObject({
         status: "done",
         photos: ["One", "Two", "Three"],

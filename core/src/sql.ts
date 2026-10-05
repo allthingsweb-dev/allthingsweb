@@ -45,11 +45,20 @@ export const curationJson = (
   ) ELSE json_build_object('kind', 'ours') END`;
 
 /**
+ * Where the event aliased `alias` is on this site: its short link
+ * (allthings.dev/effect, src/short-slugs.ts), or its long slug until it has
+ * one. Pages link and redirect to it; the v1 API and the MCP tools keep the
+ * long slug, as the app publishes it.
+ */
+export const siteSlug = (alias: "e" | "ev"): string =>
+  `COALESCE(${alias}.short_slug, ${alias}.slug)`;
+
+/**
  * The event aliased `e` as lists show it, a JSON object matching
  * `rows.Listing`: its hosts' names in the order they were attached.
  */
 export const listingJson: string = `json_build_object(
-    'id', e.id, 'slug', e.slug, 'name', e.name, 'topic', e.topic,
+    'id', e.id, 'slug', ${siteSlug("e")}, 'name', e.name, 'topic', e.topic,
     'startDate', e.start_date, 'endDate', e.end_date,
     'streetAddress', e.street_address, 'shortLocation', e.short_location,
     'fullAddress', e.full_address, 'lumaEventId', e.luma_event_id,

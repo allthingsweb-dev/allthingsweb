@@ -74,7 +74,7 @@ The file's header has the commands.
 
 ## The Luma sync
 
-The Sync Worker runs what the app's cron runs every hour. It syncs `events` from Luma's calendar first. Then it stores the images still missing: profile photos, post images, event covers. Every step writes only what is missing or changed, so a run cut short leaves nothing half done, and the next run carries on. It answers no requests.
+The Sync Worker runs what the app's cron runs every hour. It syncs `events` from Luma's calendar first, then gives new evenings their short links. Then it stores the images still missing: profile photos, post images, event covers. Every step writes only what is missing or changed, so a run cut short leaves nothing half done, and the next run carries on. It answers no requests.
 
 Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so each change is a one-line pull request:
 

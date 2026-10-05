@@ -100,6 +100,51 @@ DATABASE_URL=… bun run programs --dry-run   # do everything, print it, roll ba
 DATABASE_URL=… bun run programs             # write
 ```
 
+## Short links
+
+The lockup is the link (brand/foundations.md, "Name"): all things/effect
+lives at allthings.dev/effect. `src/short-slugs.ts` is the rule, taking
+evenings in the order they start:
+
+1. An evening's base is its topic as a URL segment (react native →
+   `react-native`, web show & tell → `web-show-and-tell`), or its name
+   when the name yields no topic.
+2. It takes the first of these that no other evening holds and no page is
+   at: the base, then the base with its month in San Francisco
+   (`web-2024-11`), then the day (`web-2024-11-12`), then a count.
+3. A shared evening is someone else's, never all things/anything, so its
+   link is under `shared/` (`shared/typescript-ai-demo-day`). The bare root
+   is the lockup's alone, and a shared name can't take a topic ours might
+   want.
+
+A link, once given, is that evening's for good. The first evening of a
+topic keeps the bare one, and a later evening of the same topic is dated,
+so nothing printed, posted or put in a QR code ever comes to mean another
+evening. `event_slugs` records every link given (its key holds each to one
+evening), and `events.short_slug` is the one in use. `events.slug`, the
+app's long slug, stays as the app serves it.
+
+The Worker serves an evening at its link: its pages, lists, sitemap, feed,
+canonical URL, card, structured data, calendar file and promotion drafts
+all use it. Its long slug, and any link it had before, redirect there
+(301): Luma's descriptions, posts and QR codes link the long ones. An
+evening without a link yet is served at its long slug. The v1 API and the
+MCP tools keep the long slug as the app publishes it, and `get_event` takes
+either.
+
+`src/slugs.ts` gives every published evening without a link its own; drafts
+get none, so a cancelled evening holds no link. The hourly sync does it
+after the events (web/src/sync/run.ts). To run it now, from `core/`:
+
+```sh
+DATABASE_URL=… bun run slugs --dry-run   # the links it would give
+DATABASE_URL=… bun run slugs             # give them
+```
+
+To move an evening to another link, add the new one to `event_slugs` for
+it, then set `events.short_slug` to it (a foreign key holds the link to
+the evening's own); the old one keeps redirecting.
+
 ## Ours, or shared
 
 `events.curation` says whose evening an event is: `ours`, or `shared`,

@@ -14,6 +14,7 @@ import {
 import { ImageIngest } from "../src/ingest/ingest.ts";
 import { Luma } from "../src/luma/luma.ts";
 import { LumaSync } from "../src/luma/sync.ts";
+import { ShortSlugs } from "../src/slugs.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
 import { configFrom, fakeLuma, fixture, settle } from "./support/luma.ts";
 import {
@@ -30,8 +31,8 @@ import {
  * the hourly sync's writes run as it and must succeed, while everything
  * outside its grants must be refused.
  *
- * The sync's writes are core's event sync and the app's three image
- * ingestions (event covers, profile photos, post images), whose statements
+ * The sync's writes are core's event sync, its short links and the app's
+ * three image ingestions (event covers, profile photos, post images), whose statements
  * the Worker's port keeps. The app's are loaded at runtime, as in
  * luma-parity.test.ts, with downloads, processing and storage faked: only
  * their SQL matters here.
@@ -140,6 +141,23 @@ describe("site_sync", () => {
     if (Exit.isSuccess(exit)) expect(exit.value.syncedCount).toBeGreaterThan(0);
   });
 
+  test("gives evenings their short links", async () => {
+    const result = await Effect.runPromise(
+      ShortSlugs.use((slugs) => slugs.assign({ dryRun: false })).pipe(
+        Effect.provide(
+          ShortSlugs.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(
+              clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(result.written).toBeGreaterThan(0);
+    expect(result.written).toBe(result.given.length);
+  });
+
   test("stores missing covers, profile photos and post images", async () => {
     const covers = await ingestMissingCovers(fakes());
     expect(covers.failed).toEqual([]);
@@ -237,6 +255,8 @@ describe("site_sync", () => {
     for (const statement of [
       "UPDATE events SET slug = 'x'",
       "UPDATE events SET tagline = 'x'",
+      "DELETE FROM event_slugs",
+      "UPDATE event_slugs SET event_id = event_id",
       "UPDATE events SET topic = 'x'",
       "UPDATE events SET recording_url = 'x'",
       "UPDATE profiles SET name = 'x'",

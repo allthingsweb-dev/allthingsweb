@@ -1,19 +1,22 @@
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { Clock, Context, Duration, Effect, Exit } from "effect";
 
 /**
  * One run of the hourly sync, as the app's cron runs it
  * (app/src/app/api/cron/luma-sync/route.ts): events from Luma's calendar
- * first, then the images still missing (profile photos, post images, event
- * covers), each image phase in its own time window. Every step writes only
- * what is missing or changed, so a run repeated, or one cut short, leaves
- * the database as consistent as before and the next run carries on.
+ * first, then short links for the evenings without one (which the app's
+ * cron does not give), then the images still missing (profile photos, post
+ * images, event covers), each image phase in its own time window. Every
+ * step writes only what is missing or changed, so a run repeated, or one
+ * cut short, leaves the database as consistent as before and the next run
+ * carries on.
  *
  * - `write` writes, as the app's cron does.
  * - `dry-run` writes nothing: the event sync is rehearsed (its statement in
- *   a transaction that rolls back) and the image phases list what they
- *   would fetch, without fetching it.
+ *   a transaction that rolls back), the links it would give are listed, and
+ *   the image phases list what they would fetch, without fetching it.
  *
  * Each step logs one JSON line, and the run one summary line, for Workers
  * Logs to index.
@@ -128,7 +131,17 @@ const skipped = (name: string, reason: string) =>
     reason,
   } as const);
 
-/** A run that writes, as the app's cron does. */
+/**
+ * Short links for the evenings without one (core's src/slugs.ts), as a step
+ * reports them: each evening's long slug and its new link.
+ */
+const slugs = (assigner: ShortSlugs["Service"], dryRun: boolean) =>
+  Effect.map(assigner.assign({ dryRun }), ({ given, written }) => ({
+    written,
+    given: given.map(({ slug, shortSlug }) => ({ slug, shortSlug })),
+  }));
+
+/** A run that writes, as the app's cron does, and gives short links. */
 const write = (limits: SyncLimits) =>
   Effect.gen(function* () {
     const sync = yield* LumaSync;
@@ -150,9 +163,11 @@ const write = (limits: SyncLimits) =>
         publishedCount,
       })),
     );
-    // The app stops when the events fail: images then wait for a run
-    // that reads the calendar.
+    // The app stops when the events fail: links and images then wait for
+    // a run that reads the calendar.
     if (steps["events"].status !== "done") return steps;
+
+    steps["slugs"] = yield* step("slugs", slugs(yield* ShortSlugs, false));
 
     const photosLeft = yield* windowLeft(limits.photos.window);
     steps["photos"] =
@@ -230,6 +245,7 @@ const dryRun = Effect.gen(function* () {
       })),
     })),
   );
+  steps["slugs"] = yield* step("slugs", slugs(yield* ShortSlugs, true));
   steps["images"] = yield* step(
     "images",
     Effect.map(ingest.pending, (pending) => ({

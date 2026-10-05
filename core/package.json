@@ -10,6 +10,7 @@
     "fixtures": "bun scripts/fixtures.ts",
     "migrate": "bun --no-env-file scripts/migrate.ts",
     "luma:people": "bun --no-env-file scripts/luma-people.ts",
+    "slugs": "bun --no-env-file scripts/slugs.ts",
     "completeness": "bun --no-env-file scripts/completeness.ts",
     "posts": "bun --no-env-file scripts/posts.ts",
     "hosts": "bun --no-env-file scripts/hosts.ts",

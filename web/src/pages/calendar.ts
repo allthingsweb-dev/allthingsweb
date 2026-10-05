@@ -1,5 +1,5 @@
 import type { EventPage } from "allthings-core/src/event-page.ts";
-import { eventUrl } from "allthings-core/src/mappers.ts";
+import { eventPathOf, eventUrl } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
 
 /**
@@ -11,7 +11,7 @@ import { DateTime } from "effect";
 
 /** Where the evening's page is, under the calendar's own name for it. */
 export const calendarPath = (slug: string): `/${string}` =>
-  `/${encodeURIComponent(slug)}/calendar.ics`;
+  `${eventPathOf(slug)}/calendar.ics`;
 
 /** Who made the file, as RFC 5545 asks: a name no other product uses. */
 const productId = "-//all things//event page//EN";

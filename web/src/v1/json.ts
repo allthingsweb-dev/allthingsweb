@@ -64,6 +64,8 @@ export interface EventJson {
   readonly curation: Rows.Curation["kind"];
   /** The hosting company that organizes a shared evening, by id. */
   readonly organizedBy: string | null;
+  /** Its short link on the site (allthings.dev/effect), once it has one. */
+  readonly shortSlug: string | null;
   readonly lumaEventUrl: string | null;
 }
 
@@ -185,6 +187,7 @@ export function eventJson(row: EventRow): EventJson {
     program: row.program,
     curation: row.curation,
     organizedBy: row.organizedBy,
+    shortSlug: row.shortSlug,
     lumaEventUrl: lumaEventUrl(row.lumaEventId),
   };
 }
