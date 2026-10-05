@@ -1047,6 +1047,84 @@ main > section,
   aspect-ratio: 4 / 3;
 }
 
+/* What people posted about the evening: who, what, then when and where,
+   which links to the post. Text as posted, no embeds. */
+.posts {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.post {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+  max-width: 68ch;
+}
+
+.post > img,
+.post > picture img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  background: var(--at-surface);
+}
+
+.post-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.post-by {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  line-height: 1.25;
+}
+
+.post-author {
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.post-author:hover {
+  text-decoration: underline 2px;
+}
+
+.post-handle {
+  color: var(--at-meta);
+  overflow-wrap: anywhere;
+}
+
+/* Line breaks as posted; long links break rather than overflow. */
+.post-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.post-body picture,
+.post-body > img {
+  display: block;
+  max-width: 480px;
+}
+
+/* A tall photo is cropped to a landscape-ish frame; the post has it whole. */
+.post-body picture img,
+.post-body > img {
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: cover;
+  background: var(--at-surface);
+}
+
 .next-name {
   font-size: 40px;
   font-weight: 800;

@@ -28,6 +28,33 @@ import { listingJson, orDataSourceError, profileJson } from "./sql.ts";
  */
 export const guestCountFloor = 20;
 
+/**
+ * The most posts about an evening its page lists, earliest first. Past
+ * this, the page links to more on X.
+ */
+export const postLimit = 8;
+
+/** The most characters of a post's text a page prints; the rest is a link away. */
+export const postTextLimit = 560;
+
+/** A post about the evening on a social platform, as the page shows it. */
+export interface Post {
+  /** The post itself, where the page links. */
+  readonly url: string;
+  readonly platform: "x" | "bluesky" | "linkedin" | "other";
+  readonly authorName: string;
+  readonly authorHandle: string | null;
+  /** The author's profile, when it is an http(s) URL. */
+  readonly authorUrl: string | null;
+  readonly postedAt: DateTime.Utc;
+  /** Plain text, cut at {@link postTextLimit} with an ellipsis. */
+  readonly text: string;
+  /** Its first image, once copied to the photo origin. */
+  readonly image: Rows.Photo | null;
+  /** Its author's avatar, once copied to the photo origin. */
+  readonly avatar: Rows.Photo | null;
+}
+
 /** Where the evening happens, as far as it is known. */
 export interface Venue {
   /** The local name of its neighborhood, when the venue is a known one. */
@@ -111,6 +138,13 @@ export interface EventPage {
    * show them as variants sized for the layout (web/src/images/).
    */
   readonly photos: ReadonlyArray<Rows.Photo>;
+  /**
+   * Approved posts about the evening, earliest first, at most
+   * {@link postLimit}. Hidden and pending ones never show.
+   */
+  readonly posts: ReadonlyArray<Post>;
+  /** Approved posts past {@link postLimit}, which the page doesn't list. */
+  readonly morePosts: number;
   /** The live or next evening other than this one, if one is announced. */
   readonly next: Evening | undefined;
 }
@@ -122,6 +156,19 @@ const TalkRow = Schema.Struct({
   description: Schema.String,
   format: Rows.TalkFormat,
   speakers: Schema.Array(Rows.TalkSpeaker),
+});
+
+/** A post about the evening, nested in the page's row. */
+const PostRow = Schema.Struct({
+  url: Schema.String,
+  platform: Schema.Literals(["x", "bluesky", "linkedin", "other"]),
+  authorName: Schema.String,
+  authorHandle: Schema.NullOr(Schema.String),
+  authorUrl: Schema.NullOr(Schema.String),
+  postedAt: Schema.DateTimeUtcFromString,
+  text: Schema.String,
+  image: Schema.NullOr(Rows.Photo),
+  avatar: Schema.NullOr(Rows.Photo),
 });
 
 /** What the page reads, in one statement. */
@@ -145,6 +192,8 @@ export const EventPageRow = Schema.Struct({
   people: Schema.Array(Rows.EventPerson),
   talks: Schema.Array(TalkRow),
   photos: Schema.Array(Rows.Photo),
+  posts: Schema.Array(PostRow),
+  postCount: Schema.Int,
   next: Schema.NullOr(Rows.Listing),
 });
 
@@ -238,6 +287,38 @@ const peopleIn = (
     .filter((person) => person.role === role)
     .map((person) => toPerson(person.profile, photoPrefix));
 
+const graphemes = new Intl.Segmenter("en", { granularity: "grapheme" });
+
+/**
+ * `text` trimmed to at most `limit` characters as people see them (an
+ * emoji or an accented letter is one), cut at a word where one ends near
+ * the limit, with an ellipsis when anything was cut.
+ */
+export function excerpt(text: string, limit: number = postTextLimit): string {
+  const chars = Array.from(graphemes.segment(text.trim()), (g) => g.segment);
+  if (chars.length <= limit) return chars.join("");
+  const cut = chars.slice(0, limit - 1).join("");
+  const space = cut.search(/\s\S*$/u);
+  return `${(space > cut.length * 0.8 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
+
+/** A post as the page shows it: links only when http(s). */
+function toPost(post: typeof PostRow.Type): Post | null {
+  const url = httpUrlOrNull(post.url);
+  if (url === null) return null;
+  return {
+    url,
+    platform: post.platform,
+    authorName: post.authorName,
+    authorHandle: present(post.authorHandle),
+    authorUrl: httpUrlOrNull(post.authorUrl),
+    postedAt: post.postedAt,
+    text: excerpt(post.text),
+    image: post.image,
+    avatar: post.avatar,
+  };
+}
+
 /** Text left once tags are dropped: whether sanitized HTML says anything. */
 const saysSomething = (html: SafeHtml): boolean =>
   html.replace(/<[^>]*>|&nbsp;|\s/g, "") !== "";
@@ -291,6 +372,11 @@ export const toEventPage = (
         recordingUrl: httpUrlOrNull(row.recordingUrl),
         talks,
         photos: row.photos,
+        posts: row.posts.flatMap((post) => {
+          const shown = toPost(post);
+          return shown === null ? [] : [shown];
+        }),
+        morePosts: Math.max(0, row.postCount - row.posts.length),
         next: row.next === null ? undefined : toEvening(row.next, now),
       }),
     ),
@@ -316,6 +402,20 @@ const Request = Schema.Struct({
 
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
+
+  /**
+   * The image `column` references, as a `Rows.Photo` in JSON, when it is
+   * on the photo origin; else NULL.
+   */
+  const photoOf = (
+    column: ReturnType<typeof sql.literal>,
+    photoPrefix: string,
+  ) => sql`(
+    SELECT json_build_object('url', i.url, 'alt', i.alt, 'width', i.width,
+      'height', i.height,
+      'version', floor(extract(epoch FROM i.updated_at))::bigint::text)
+    FROM images i
+    WHERE i.id = ${column} AND starts_with(i.url, ${photoPrefix}))`;
 
   // Talks, speakers, hosts and photos in the order they were attached (the
   // join row's created_at, then id), and people by role, then position, as
@@ -384,6 +484,25 @@ const make = Effect.gen(function* () {
             WHERE ei.event_id = ev.id AND starts_with(img.url, ${photoPrefix})
           ) x
         ), '[]'::json) AS photos,
+        COALESCE((
+          SELECT json_agg(json_build_object(
+            'url', p.url, 'platform', p.platform,
+            'authorName', p.author_name, 'authorHandle', p.author_handle,
+            'authorUrl', p.author_url, 'postedAt', p.posted_at, 'text', p.text,
+            'image', ${photoOf(sql.literal("p.image"), photoPrefix)},
+            'avatar', ${photoOf(sql.literal("p.author_avatar"), photoPrefix)}
+          ) ORDER BY p.posted_at, p.id)
+          FROM (
+            SELECT * FROM event_posts
+            WHERE event_id = ev.id AND status = 'approved'
+            ORDER BY posted_at, id
+            LIMIT ${postLimit}
+          ) p
+        ), '[]'::json) AS posts,
+        (
+          SELECT count(*)::int FROM event_posts
+          WHERE event_id = ev.id AND status = 'approved'
+        ) AS "postCount",
         (
           SELECT ${sql.literal(listingJson)}
           FROM events e

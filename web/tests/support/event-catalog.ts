@@ -112,7 +112,14 @@ export function eventCatalog(now: Date): string {
       ('e0000000-0000-4000-8000-000000000501', '${hosts[0].profileId}', 'organizer', 1, 'luma', now(), now()),
       ('e0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000501', 'co-host', 0, 'luma', now(), now()),
       ('e0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000502', 'co-host', 1, 'luma', now(), now()),
-      ('e0000000-0000-4000-8000-000000000503', 'b0000000-0000-4000-8000-000000000502', 'mc', 0, 'site', now(), now());`;
+      ('e0000000-0000-4000-8000-000000000503', 'b0000000-0000-4000-8000-000000000502', 'mc', 0, 'site', now(), now());
+    -- Posts about the past evening: two approved (one with its photo and
+    -- avatar copied to the media origin), one hidden, one pending.
+    INSERT INTO event_posts (event_id, platform, url, author_name, author_handle, author_url, author_avatar, posted_at, text, image, status, updated_at) VALUES
+      ('e0000000-0000-4000-8000-000000000503', 'x', 'https://x.com/i/status/1884000000000000001', 'Ada Lovelace', 'ada', 'https://x.com/ada', 'd0000000-0000-4000-8000-000000000504', '2025-01-29T02:30:00Z', 'Compilers, together, at Sanity.', 'd0000000-0000-4000-8000-000000000502', 'approved', now()),
+      ('e0000000-0000-4000-8000-000000000503', 'bluesky', 'https://bsky.app/profile/did:plc:grace/post/3abc', 'Grace Hopper', 'grace.example', NULL, NULL, '2025-01-29T05:00:00Z', 'Thanks, Sanity!', NULL, 'approved', now()),
+      ('e0000000-0000-4000-8000-000000000503', 'x', 'https://x.com/i/status/1884000000000000003', 'Taken Down', 'gone', NULL, NULL, '2025-01-29T03:00:00Z', 'Hidden by an organizer.', NULL, 'hidden', now()),
+      ('e0000000-0000-4000-8000-000000000503', 'x', 'https://x.com/i/status/1884000000000000004', 'Awaiting Review', 'later', NULL, NULL, '2025-01-29T04:00:00Z', 'Found by a search.', NULL, 'pending', now());`;
 }
 
 /** A migrated database holding the event catalog as of `now`. */
