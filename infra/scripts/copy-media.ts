@@ -14,16 +14,19 @@
  * <file>` appends each copied object (key, size, MD5, SHA-256) to <file> as a
  * JSON line. `--concurrency <n>` (default 8) bounds requests in flight.
  *
- * Credentials come from the environment only, as R2 API tokens' S3 access
- * keys: read-only for the source, object write for the target, each limited
- * to its bucket. Pass them without printing them, e.g.
+ * It needs no token made by hand, only the logins a maintainer already has
+ * (scripts/cloudflare-logins.ts):
  *
- *   SOURCE_ACCOUNT_ID=… TARGET_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 \
- *   SOURCE_ACCESS_KEY_ID=$(op read "op://Private/allthings media source/username") \
- *   SOURCE_SECRET_ACCESS_KEY=$(op read "op://Private/allthings media source/credential") \
- *   TARGET_ACCESS_KEY_ID=$(op read "op://Private/allthings media target/username") \
- *   TARGET_SECRET_ACCESS_KEY=$(op read "op://Private/allthings media target/credential") \
- *     bun scripts/copy-media.ts plan
+ * - The source is read through Cloudflare's REST API with wrangler's login
+ *   (`bunx wrangler login`) on the account that holds the bucket now: the
+ *   only account it reaches, or SOURCE_ACCOUNT_ID.
+ * - The target is written over R2's S3 API with a token the cf CLI's login
+ *   on the allthings account (CF_PROFILE, default "allthings") creates for
+ *   this run alone: read and write on the target bucket's objects, nothing
+ *   else. It lives only in memory and is deleted when the run ends, however
+ *   it ends.
+ *
+ *   bun scripts/copy-media.ts plan
  *
  * SOURCE_BUCKET and TARGET_BUCKET default to allthings-media.
  */
@@ -38,24 +41,16 @@ import {
   type Outcome,
   plan,
   pooled,
+  apiBucket,
   publicOrigin,
   s3Bucket,
 } from "../src/media-copy.ts";
-import { MEDIA_BUCKET } from "../src/media.ts";
-
-const required = (name: string): string => {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} is required (see this file's header)`);
-  return value;
-};
-
-const bucketFromEnv = (side: "SOURCE" | "TARGET") =>
-  s3Bucket({
-    accountId: required(`${side}_ACCOUNT_ID`),
-    bucket: process.env[`${side}_BUCKET`] || MEDIA_BUCKET,
-    accessKeyId: required(`${side}_ACCESS_KEY_ID`),
-    secretAccessKey: required(`${side}_SECRET_ACCESS_KEY`),
-  });
+import { ALLTHINGS_ACCOUNT, MEDIA_BUCKET } from "../src/media.ts";
+import {
+  createBucketToken,
+  wranglerAccount,
+  wranglerToken,
+} from "./cloudflare-logins.ts";
 
 const listAll = async (bucket: Bucket): Promise<Listed[]> => {
   const objects: Listed[] = [];
@@ -85,12 +80,73 @@ async function main(): Promise<void> {
     throw new Error("--concurrency must be a whole number of at least 1");
   }
 
-  const source = bucketFromEnv("SOURCE");
-  const target = bucketFromEnv("TARGET");
-  if (source.label === target.label) {
-    throw new Error(`source and target are the same bucket: ${source.label}`);
+  const sourceBucket = process.env["SOURCE_BUCKET"] || MEDIA_BUCKET;
+  const targetBucket = process.env["TARGET_BUCKET"] || MEDIA_BUCKET;
+  const sourceAccount =
+    process.env["SOURCE_ACCOUNT_ID"] || (await wranglerAccount());
+  if (sourceAccount === ALLTHINGS_ACCOUNT && sourceBucket === targetBucket) {
+    throw new Error(
+      `source and target are the same bucket: ${sourceBucket} in ${sourceAccount}`,
+    );
   }
+  let login: Promise<string> | undefined;
+  const source = apiBucket({
+    accountId: sourceAccount,
+    bucket: sourceBucket,
+    token: (fresh) => {
+      if (fresh || login === undefined) login = wranglerToken();
+      return login;
+    },
+  });
+  const token = await createBucketToken({
+    accountId: ALLTHINGS_ACCOUNT,
+    bucket: targetBucket,
+    profile: process.env["CF_PROFILE"] || "allthings",
+    name: `allthings media copy ${new Date().toISOString()}`,
+  });
+  // Interrupted (Ctrl-C), the token is still deleted before the script stops.
+  const interrupted = () => {
+    void token.revoke().finally(() => process.exit(130));
+  };
+  process.once("SIGINT", interrupted);
+  process.once("SIGTERM", interrupted);
+  try {
+    const target = s3Bucket({
+      accountId: ALLTHINGS_ACCOUNT,
+      bucket: targetBucket,
+      accessKeyId: token.accessKeyId,
+      secretAccessKey: token.secretAccessKey,
+    });
+    await untilAccepted(target);
+    await copy(command, values, concurrency, source, target);
+  } finally {
+    process.off("SIGINT", interrupted);
+    process.off("SIGTERM", interrupted);
+    await token.revoke();
+    console.log("deleted this run's R2 token");
+  }
+}
 
+/** A new token takes a few seconds to work everywhere: waits for R2 to accept it. */
+async function untilAccepted(target: Bucket): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await target.list()[Symbol.asyncIterator]().next();
+      return;
+    } catch (error) {
+      if (attempt === 10) throw error;
+      await Bun.sleep(3_000);
+    }
+  }
+}
+
+async function copy(
+  command: "plan" | "copy" | "verify",
+  values: { readonly record?: string; readonly public?: string },
+  concurrency: number,
+  source: Bucket,
+  target: Bucket,
+): Promise<void> {
   const [sourceObjects, targetObjects] = await Promise.all([
     listAll(source),
     listAll(target),

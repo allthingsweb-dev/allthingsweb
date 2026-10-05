@@ -367,6 +367,131 @@ export const s3Bucket = (config: S3Bucket): Bucket => {
   };
 };
 
+/** An object as Cloudflare's REST API lists it. */
+interface ApiObject {
+  readonly key: string;
+  readonly size: number;
+  readonly etag: string;
+  readonly http_metadata?: Readonly<Record<string, string>>;
+  readonly custom_metadata?: Readonly<Record<string, string>>;
+}
+
+/** An object's metadata as the headers an S3 GET would send with it. */
+export const headersOfApiObject = (
+  object: Pick<ApiObject, "http_metadata" | "custom_metadata">,
+): Record<string, string> => {
+  const http = object.http_metadata ?? {};
+  const named: Record<string, string | undefined> = {
+    "content-type": http["contentType"],
+    "content-language": http["contentLanguage"],
+    "content-disposition": http["contentDisposition"],
+    "content-encoding": http["contentEncoding"],
+    "cache-control": http["cacheControl"],
+    expires:
+      http["cacheExpiry"] === undefined
+        ? undefined
+        : new Date(http["cacheExpiry"]).toUTCString(),
+  };
+  const headers: Record<string, string> = {};
+  for (const [name, value] of Object.entries(named)) {
+    if (value !== undefined && value !== "") headers[name] = value;
+  }
+  for (const [name, value] of Object.entries(object.custom_metadata ?? {})) {
+    headers[`x-amz-meta-${name.toLowerCase()}`] = value;
+  }
+  return headers;
+};
+
+/** Where Cloudflare's REST API keeps a bucket's objects. */
+export interface ApiBucket {
+  readonly accountId: string;
+  readonly bucket: string;
+  /**
+   * A bearer token that may read the bucket, such as wrangler's own OAuth
+   * login (`wrangler auth token`). `fresh` asks for a new one: OAuth tokens
+   * expire within the hour, and a run may outlast one.
+   */
+  readonly token: (fresh: boolean) => Promise<string>;
+  /** The fetch to use; the runtime's by default. */
+  readonly fetch?: typeof fetch;
+}
+
+/**
+ * A bucket read through Cloudflare's REST API, which a maintainer's own
+ * login may use: no R2 token needs creating for it. It only reads; storing
+ * fails. The bytes come back exactly as stored, their ETag their MD5.
+ */
+export const apiBucket = (config: ApiBucket): Bucket => {
+  const send = config.fetch ?? fetch;
+  const base = `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/r2/buckets/${encodeURIComponent(config.bucket)}/objects`;
+  const label = `${config.bucket} (account ${config.accountId})`;
+  /** Metadata from the listing, as headers, by key. */
+  const listed = new Map<string, Record<string, string>>();
+  /** `url`, retried once with a fresh token if the first is refused. */
+  const authorized = async (url: string): Promise<Response> => {
+    for (const fresh of [false, true]) {
+      const response = await send(url, {
+        headers: { authorization: `Bearer ${await config.token(fresh)}` },
+      });
+      if (response.status !== 401 || fresh) return response;
+      await response.body?.cancel();
+    }
+    throw new Error("unreachable");
+  };
+  const fail = async (what: string, response: Response) =>
+    new Error(
+      `${what} in ${label}: ${response.status} ${(await response.text()).slice(0, 200)}`,
+    );
+
+  return {
+    label,
+    async *list() {
+      let cursor: string | undefined;
+      do {
+        const url = new URL(base);
+        url.searchParams.set("per_page", "1000");
+        if (cursor !== undefined) url.searchParams.set("cursor", cursor);
+        const response = await authorized(url.href);
+        if (!response.ok) throw await fail("Listing", response);
+        const page = (await response.json()) as {
+          readonly result: ReadonlyArray<ApiObject>;
+          readonly result_info?: {
+            readonly cursor?: string;
+            readonly is_truncated?: boolean;
+          };
+        };
+        for (const object of page.result) {
+          listed.set(object.key, headersOfApiObject(object));
+          yield {
+            key: object.key,
+            size: object.size,
+            etag: normalizeEtag(object.etag),
+          };
+        }
+        cursor =
+          page.result_info?.is_truncated === true
+            ? page.result_info.cursor
+            : undefined;
+      } while (cursor !== undefined);
+    },
+    async get(key) {
+      const response = await authorized(
+        `${base}/${key.split("/").map(encodeURIComponent).join("/")}`,
+      );
+      if (response.status === 404) return undefined;
+      if (!response.ok) throw await fail(`Reading ${key}`, response);
+      return {
+        bytes: new Uint8Array(await response.arrayBuffer()),
+        etag: normalizeEtag(response.headers.get("etag") ?? ""),
+        headers: listed.get(key) ?? keptHeaders(response.headers),
+      };
+    },
+    putNew() {
+      return Promise.reject(new Error(`${label} is only read`));
+    },
+  };
+};
+
 /** The public origin's copy of each object, for checking what visitors get. */
 export const publicOrigin = (
   origin: string,

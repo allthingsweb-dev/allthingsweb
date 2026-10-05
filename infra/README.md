@@ -55,7 +55,7 @@ The hourly Luma sync writes production as `site_sync`, a second login role made 
 
 The move of allthings.dev into the allthings account is itself the cutover: an R2 custom domain only serves from the zone's own account. [`docs/r2-migration.md`](docs/r2-migration.md) is the runbook, from enabling R2 to retiring the old bucket.
 
-[`scripts/copy-media.ts`](scripts/copy-media.ts) copies the bucket between accounts over R2's S3 API, so the allthings account's bucket holds every object before `media.allthings.dev` switches to it. It never overwrites or deletes: the source keeps every original, and a rerun copies only what the target still lacks.
+[`scripts/copy-media.ts`](scripts/copy-media.ts) copies the bucket between accounts, so the allthings account's bucket holds every object before `media.allthings.dev` switches to it. It never overwrites or deletes: the source keeps every original, and a rerun copies only what the target still lacks.
 
 Each copy is checked three times:
 
@@ -63,7 +63,14 @@ Each copy is checked three times:
 - R2 refuses the upload unless the bytes match the Content-MD5 sent with them.
 - The ETag R2 stores must be that MD5.
 
-`verify` reads every object from both buckets, and optionally from the public origin, and compares SHA-256s and headers. Credentials are R2 API tokens limited to one bucket each (read for the source, write for the target), passed through the environment and never printed. The file's header has the commands.
+`verify` reads every object from both buckets, and optionally from the public origin, and compares SHA-256s and headers.
+
+It needs no token made by hand ([`scripts/cloudflare-logins.ts`](scripts/cloudflare-logins.ts)):
+
+- It reads the source through Cloudflare's REST API with wrangler's login on the account that holds it now.
+- It writes the target over R2's S3 API with a token that the cf CLI's `allthings` login creates for the run alone, limited to the bucket's objects. The token is kept in memory and deleted when the run ends.
+
+The file's header has the commands.
 
 ## The Luma sync
 

@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
+  apiBucket,
   type Bucket,
   compareOne,
   copyOne,
+  headersOfApiObject,
   type Listed,
   md5Hex,
   parseListPage,
@@ -253,5 +255,121 @@ describe("pooled", () => {
     }
     expect(most).toBe(2);
     expect(results.toSorted((a, b) => a - b)).toEqual([10, 20, 30, 40, 50]);
+  });
+});
+
+describe("apiBucket", () => {
+  const listing = (keys: Array<string>, cursor?: string) =>
+    Response.json({
+      success: true,
+      result: keys.map((key) => ({
+        key,
+        size: 5,
+        etag: md5Hex(bytes("photo")),
+        http_metadata: {
+          contentType: "image/jpeg",
+          cacheControl: "public, max-age=60",
+        },
+        custom_metadata: { By: "erik" },
+      })),
+      result_info:
+        cursor === undefined
+          ? { is_truncated: false }
+          : { is_truncated: true, cursor },
+    });
+
+  const fake = () => {
+    const asked: Array<{ url: string; token: string | null }> = [];
+    let tokens = 0;
+    const bucket = apiBucket({
+      accountId: "acct",
+      bucket: "allthings-media",
+      token: async (fresh) => (fresh ? `token-${++tokens}` : "token-0"),
+      fetch: Object.assign(
+        async (input: string | URL | Request, init?: RequestInit) => {
+          const url =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
+          const token = new Headers(init?.headers).get("authorization");
+          asked.push({ url, token });
+          if (token === "Bearer token-0" && url.includes("expired")) {
+            return new Response("expired", { status: 401 });
+          }
+          if (url.endsWith("/objects?per_page=1000")) {
+            return listing(["a.jpg"], "next");
+          }
+          if (url.endsWith("cursor=next")) return listing(["b/é.jpg"]);
+          if (url.includes("/objects/")) {
+            return url.endsWith("missing.jpg")
+              ? new Response(null, { status: 404 })
+              : new Response(bytes("photo"), {
+                  headers: { etag: `"${md5Hex(bytes("photo"))}"` },
+                });
+          }
+          return new Response(null, { status: 500 });
+        },
+        { preconnect: fetch.preconnect },
+      ),
+    });
+    return { bucket, asked };
+  };
+
+  test("lists every page, and reads bytes with the listing's metadata as headers", async () => {
+    const { bucket, asked } = fake();
+    expect(await listed(bucket)).toEqual([
+      { key: "a.jpg", size: 5, etag: md5Hex(bytes("photo")) },
+      { key: "b/é.jpg", size: 5, etag: md5Hex(bytes("photo")) },
+    ]);
+    const object = await bucket.get("b/é.jpg");
+    expect(object?.bytes).toEqual(bytes("photo"));
+    expect(object?.headers).toEqual({
+      "content-type": "image/jpeg",
+      "cache-control": "public, max-age=60",
+      "x-amz-meta-by": "erik",
+    });
+    expect(asked.at(-1)?.url).toBe(
+      "https://api.cloudflare.com/client/v4/accounts/acct/r2/buckets/allthings-media/objects/b/%C3%A9.jpg",
+    );
+    expect(await bucket.get("missing.jpg")).toBeUndefined();
+  });
+
+  test("asks for a fresh token once when one is refused", async () => {
+    const { bucket, asked } = fake();
+    await bucket.get("expired.jpg");
+    expect(asked.map(({ token }) => token)).toEqual([
+      "Bearer token-0",
+      "Bearer token-1",
+    ]);
+  });
+
+  test("never stores", async () => {
+    const { bucket } = fake();
+    await expect(bucket.putNew("a", bytes("x"), "", {})).rejects.toThrow(
+      "only read",
+    );
+  });
+});
+
+describe("headersOfApiObject", () => {
+  test("names R2's metadata as an S3 GET would send it", () => {
+    expect(
+      headersOfApiObject({
+        http_metadata: {
+          contentType: "image/png",
+          contentDisposition: "inline",
+          contentEncoding: "",
+          cacheExpiry: "2030-01-01T00:00:00.000Z",
+        },
+        custom_metadata: { Source: "luma" },
+      }),
+    ).toEqual({
+      "content-type": "image/png",
+      "content-disposition": "inline",
+      expires: "Tue, 01 Jan 2030 00:00:00 GMT",
+      "x-amz-meta-source": "luma",
+    });
   });
 });
