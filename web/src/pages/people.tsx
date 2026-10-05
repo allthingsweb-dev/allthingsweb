@@ -268,6 +268,7 @@ export function peoplePage({
 }: PeopleProps): string {
   const { organizers, speakers, coHosts } = people;
   return Document({
+    section: "people",
     meta: {
       title: gatheringTitle("people"),
       description:
