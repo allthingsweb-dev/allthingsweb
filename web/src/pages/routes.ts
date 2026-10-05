@@ -492,10 +492,15 @@ export const retiredPaths = [
 ] as const;
 
 const retired = retiredPaths.map((route) => {
-  // "/logos/*" names every path under /logos/: the one asked for is the
-  // route's start and the rest.
+  // "/logos/*" names /logos and every path under it: the one asked for is
+  // the route's start and the rest, if any.
+  const start = route.endsWith("/*") ? route.slice(0, -2) : undefined;
   const location = ({ "*": rest }: PageRequest["params"]): `/${string}` =>
-    rest === undefined ? route : rootPath(`${route.slice(1, -1)}${rest}`);
+    start === undefined
+      ? route
+      : rest === undefined || rest === ""
+        ? rootPath(start)
+        : rootPath(`${start}/${rest}`);
   return page(
     route,
     (request) => nothingAt(location(request.params), 410, request),

@@ -171,6 +171,22 @@ describe("legacy URLs", () => {
     );
   });
 
+  it("names a retired folder by its own path, never its route's", async (url) => {
+    for (const path of ["/logos", "/logos/"]) {
+      const response = await fetch(`${url}${path}`, { redirect: "manual" });
+      const html = await response.text();
+      expect(response.status).toBe(410);
+      expect(html).toContain(
+        '<link rel="canonical" href="https://allthings.dev/logos"/>',
+      );
+    }
+    const choice = await fetch(`${url}/logos?theme=dark`, {
+      redirect: "manual",
+    });
+    await choice.arrayBuffer();
+    expect(choice.headers.get("location")).toBe("/logos");
+  });
+
   it("never sends a trailing slash to another host", async (url) => {
     const response = await fetch(`${url}//elsewhere.example/`, {
       redirect: "manual",
