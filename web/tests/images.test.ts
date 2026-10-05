@@ -4,6 +4,7 @@ import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, immutable } from "../src/cache.ts";
 import { parseVariant } from "../src/images/variants.ts";
+import { maxResizeBytes } from "../src/images/route.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
 import { catalogDatabase } from "./support/catalog.ts";
 import { dimensions, png, serveMedia } from "./support/media.ts";
@@ -35,6 +36,13 @@ const db = await catalogDatabase(new Date(), true);
 await db.exec("UPDATE images SET updated_at = '2026-01-02T03:04:05Z'");
 const database = await serve(db);
 
+/** An original over what the Worker resizes, sent as it is. */
+const over = new Uint8Array(25_000_000);
+/** A real photo just under what the Worker resizes: about 7 MB of noise. */
+const near = png(1600, 1450, { noise: true });
+/** A real photo over what the Worker resizes, but under the binding's limit. */
+const between = png(2400, 2100, { noise: true });
+
 const media = serveMedia({
   "events/home/effect.jpg": { body: png(1600, 1200), type: "image/png" },
   "events/home/pier-70.jpg": { body: png(1200, 900), type: "image/png" },
@@ -47,6 +55,20 @@ const media = serveMedia({
     type: "image/png",
   },
   "events/home/page.jpg": { body: "<!doctype html>", type: "text/html" },
+  "events/large/between.png": { body: between, type: "image/png" },
+  // Sent without a Content-Length, so its size isn't known.
+  "events/home/unsized.png": {
+    body: png(1024, 768),
+    type: "image/png",
+    chunked: true,
+  },
+  // Large originals, as a browser asks for a page of them at once.
+  ...Object.fromEntries(
+    [1, 2, 3, 4].flatMap((n) => [
+      [`events/large/over-${n}.png`, { body: over, type: "image/png" }],
+      [`events/large/near-${n}.png`, { body: near, type: "image/png" }],
+    ]),
+  ),
   "events/home/moved.jpg": {
     body: "",
     type: "text/plain",
@@ -370,6 +392,73 @@ describe("/img/", () => {
     expect(response.headers.get("server-timing")).toBe('img;desc="original"');
     expect(body.byteLength).toBe(20_000_001);
     expect(media.fetches("events/home/huge.png")).toBe(1);
+  });
+
+  it("sends an original whose size it isn't told as it is, without resizing it", async ({
+    Variants,
+  }) => {
+    const { response, body } = await get(
+      Variants,
+      `/img/480/webp/${fresh}/events/home/unsized.png`,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("server-timing")).toBe('img;desc="original"');
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(body).toEqual(png(1024, 768));
+    // Fetched once: the binding never saw it, so nothing fell back.
+    expect(media.fetches("events/home/unsized.png")).toBe(1);
+  });
+
+  it(
+    "serves a page of large originals at once: those over the limit whole, the rest resized",
+    async ({ Variants }) => {
+      expect(near.byteLength).toBeGreaterThan(6_000_000);
+      expect(near.byteLength).toBeLessThan(maxResizeBytes);
+      const results = await Promise.all(
+        [1, 2, 3, 4].flatMap((n) => [
+          get(Variants, `/img/240/avif/${fresh}/events/large/over-${n}.png`),
+          get(Variants, `/img/240/avif/${fresh}/events/large/near-${n}.png`),
+        ]),
+      );
+      results.forEach(({ response, body }, index) => {
+        expect(response.status).toBe(200);
+        if (index % 2 === 0) {
+          expect(response.headers.get("server-timing")).toBe(
+            'img;desc="original"',
+          );
+          expect(body.byteLength).toBe(over.byteLength);
+        } else if (response.headers.get("content-type") === "image/avif") {
+          expect(dimensions(body)?.width).toBe(240);
+        } else {
+          // One that waited past the budget comes as the original.
+          expect(response.headers.get("server-timing")).toBe(
+            'img;desc="original"',
+          );
+          expect(body).toEqual(near);
+        }
+      });
+      // At least the first to take the budget was resized.
+      expect(
+        results.filter(
+          ({ response }) =>
+            response.headers.get("content-type") === "image/avif",
+        ).length,
+      ).toBeGreaterThan(0);
+    },
+    { timeout: 120_000 },
+  );
+
+  it("sends a photo over what it resizes as it is, though the binding could read it", async ({
+    Variants,
+  }) => {
+    expect(between.byteLength).toBeGreaterThan(maxResizeBytes);
+    expect(between.byteLength).toBeLessThan(20_000_000);
+    const { response, body } = await get(
+      Variants,
+      `/img/240/avif/${fresh}/events/large/between.png`,
+    );
+    expect(response.headers.get("server-timing")).toBe('img;desc="original"');
+    expect(body.byteLength).toBe(between.byteLength);
   });
 
   it("never sends anything but an image from the media origin", async ({

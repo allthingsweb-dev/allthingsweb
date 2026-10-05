@@ -29,9 +29,15 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
 
 /**
  * A `width` × `height` PNG: a gradient, so it doesn't compress to nothing
- * and a resized copy differs from it.
+ * and a resized copy differs from it, or with `noise`, a pattern that
+ * hardly compresses at all, about 3 bytes a pixel, for originals that are
+ * large on the wire.
  */
-export function png(width: number, height: number): Uint8Array<ArrayBuffer> {
+export function png(
+  width: number,
+  height: number,
+  { noise = false }: { readonly noise?: boolean } = {},
+): Uint8Array<ArrayBuffer> {
   const header = new Uint8Array(13);
   const view = new DataView(header.buffer);
   view.setUint32(0, width);
@@ -41,7 +47,12 @@ export function png(width: number, height: number): Uint8Array<ArrayBuffer> {
   for (let y = 0; y < height; y++) {
     const row = y * (width * 3 + 1);
     for (let x = 0; x < width; x++) {
-      rows.set([(x * 255) / width, (y * 255) / height, 128], row + 1 + x * 3);
+      rows.set(
+        noise
+          ? [(x * 7919 + y * 104_729) % 251, (x * y) % 241, (x ^ y) % 239]
+          : [(x * 255) / width, (y * 255) / height, 128],
+        row + 1 + x * 3,
+      );
     }
   }
   const parts = [
@@ -125,6 +136,20 @@ export function dimensions(
   return undefined;
 }
 
+/** `body` as a stream of 64 KB chunks, so no length is known up front. */
+function inChunks(body: Uint8Array | string): ReadableStream<Uint8Array> {
+  const bytes =
+    typeof body === "string" ? new TextEncoder().encode(body) : body;
+  let at = 0;
+  return new ReadableStream({
+    pull(controller) {
+      if (at >= bytes.byteLength) return controller.close();
+      controller.enqueue(bytes.slice(at, at + 65_536));
+      at += 65_536;
+    },
+  });
+}
+
 /** What the stand-in serves at a key. */
 export interface MediaFile {
   readonly body: Uint8Array | string;
@@ -132,6 +157,8 @@ export interface MediaFile {
   /** Answers with this status instead, e.g. a redirect. */
   readonly status?: number;
   readonly location?: string;
+  /** Sent in chunks, without a Content-Length. */
+  readonly chunked?: true;
 }
 
 /**
@@ -154,7 +181,8 @@ export function serveMedia(files: Readonly<Record<string, MediaFile>>) {
         .join("/");
       const file = files[key];
       if (file === undefined) return new Response("Not Found", { status: 404 });
-      return new Response(file.body, {
+      const body = file.chunked === true ? inChunks(file.body) : file.body;
+      return new Response(body, {
         status: file.status ?? 200,
         headers: {
           "content-type": file.type,
