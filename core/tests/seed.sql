@@ -88,3 +88,12 @@ INSERT INTO event_images (event_id, image_id, created_at, updated_at) VALUES
 INSERT INTO redirects (slug, destination_url, comment, updated_at) VALUES
   ('discord', 'https://discord.gg/B3Sm4b5mfD', 'Community chat', now()),
   ('Luma', 'https://luma.com/allthingsweb', NULL, now());
+
+-- Posts about React at Acme: an approved one whose photo was copied into the
+-- bucket, an approved one without images, a hidden one and a pending one;
+-- only the approved ones show.
+INSERT INTO event_posts (id, event_id, platform, url, author_name, author_handle, author_url, author_avatar_source_url, author_avatar, posted_at, text, image_source_url, image, status, added_at, updated_at) VALUES
+  ('f0000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/i/status/1900000000000000001', 'Ada Lovelace', 'ada', 'https://x.com/ada', 'https://pbs.twimg.com/profile_images/1/ada.jpg', 'd0000000-0000-4000-8000-000000000005', '2026-08-13T02:30:00Z', 'Server components, live at Acme.', 'https://pbs.twimg.com/media/stage.jpg', 'd0000000-0000-4000-8000-000000000004', 'approved', '2026-08-14T00:00:01Z', now()),
+  ('f0000000-0000-4000-8000-000000000002', 'e0000000-0000-4000-8000-000000000001', 'bluesky', 'https://bsky.app/profile/did:plc:grace/post/3abc', 'Grace Hopper', 'grace.example', 'https://bsky.app/profile/grace.example', NULL, NULL, '2026-08-13T05:00:00Z', E'Thanks, Acme!\nSee you next month.', NULL, NULL, 'approved', '2026-08-14T00:00:02Z', now()),
+  ('f0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/i/status/1900000000000000003', 'Taken Down', 'gone', 'https://x.com/gone', NULL, NULL, '2026-08-13T03:00:00Z', 'Hidden by an organizer.', NULL, NULL, 'hidden', '2026-08-14T00:00:03Z', now()),
+  ('f0000000-0000-4000-8000-000000000004', 'e0000000-0000-4000-8000-000000000001', 'linkedin', 'https://www.linkedin.com/feed/update/urn:li:activity:7360000000000000000/', 'Awaiting Review', NULL, NULL, NULL, NULL, '2026-08-13T04:00:00Z', 'Found by a search; not approved yet.', NULL, NULL, 'pending', '2026-08-14T00:00:04Z', now());

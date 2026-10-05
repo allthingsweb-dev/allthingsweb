@@ -1,0 +1,38 @@
+{
+  "code": 200,
+  "message": "OK",
+  "tweet": {
+    "url": "https://x.com/andrelandgraf/status/2105474023287341382",
+    "id": "2105474023287341382",
+    "text": "Effect 4.0 shipped IRL! 🔥",
+    "author": {
+      "id": "3705998175",
+      "name": "Andre Landgraf",
+      "screen_name": "andrelandgraf",
+      "avatar_url": "https://pbs.twimg.com/profile_images/1971260572223275016/FG_T-KCm_200x200.jpg",
+      "url": "https://x.com/andrelandgraf"
+    },
+    "created_at": "Thu Oct 01 01:44:59 +0000 2026",
+    "created_timestamp": 1790819099,
+    "likes": 48,
+    "media": {
+      "all": [
+        {
+          "type": "photo",
+          "id": "2105474017520140289",
+          "url": "https://pbs.twimg.com/media/HTgldrIaQAEgAXJ.jpg?name=orig",
+          "width": 2048,
+          "height": 1536
+        }
+      ],
+      "photos": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HTgldrIaQAEgAXJ.jpg?name=orig",
+          "width": 2048,
+          "height": 1536
+        }
+      ]
+    }
+  }
+}

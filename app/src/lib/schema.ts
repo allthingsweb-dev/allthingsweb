@@ -8,6 +8,7 @@ import {
   integer,
   primaryKey,
   check,
+  index,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersSync as usersSyncTable } from "drizzle-orm/neon";
@@ -258,6 +259,75 @@ export const eventPeopleTable = pgTable(
 
 export type InsertEventPerson = typeof eventPeopleTable.$inferInsert;
 export type SelectEventPerson = typeof eventPeopleTable.$inferSelect;
+
+/** Where a post about an event was published. */
+export const eventPostPlatforms = [
+  "x",
+  "bluesky",
+  "linkedin",
+  "other",
+] as const;
+
+/**
+ * Whether a post shows on its event's page: approved posts do; hidden ones
+ * were taken down; pending ones wait for an organizer (a future candidate
+ * search adds them so; nothing publishes itself).
+ */
+export const eventPostStatuses = ["approved", "hidden", "pending"] as const;
+
+/**
+ * Posts about an event on social platforms, as core's posts tool
+ * (core/src/posts/) stores them: the text and author at the canonical URL,
+ * with images copied into the media bucket by the hourly sync from their
+ * source URLs, never linked to directly.
+ */
+export const eventPostsTable = pgTable(
+  "event_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    platform: text("platform", { enum: eventPostPlatforms }).notNull(),
+    /** The post's canonical URL; one row per post. */
+    url: text("url").notNull().unique(),
+    authorName: text("author_name").notNull(),
+    authorHandle: text("author_handle"),
+    authorUrl: text("author_url"),
+    authorAvatarSourceUrl: text("author_avatar_source_url"),
+    authorAvatar: uuid("author_avatar").references(() => imagesTable.id, {
+      onDelete: "set null",
+    }),
+    postedAt: timestamp("posted_at", { withTimezone: true }).notNull(),
+    /** Plain text. */
+    text: text("text").notNull(),
+    imageSourceUrl: text("image_source_url"),
+    image: uuid("image").references(() => imagesTable.id, {
+      onDelete: "set null",
+    }),
+    status: text("status", { enum: eventPostStatuses })
+      .notNull()
+      .default("approved"),
+    addedAt: timestamp("added_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt,
+  },
+  (table) => [
+    index("event_posts_event_id_idx").on(table.eventId),
+    check(
+      "event_posts_platform_check",
+      sql`"platform" IN ('x', 'bluesky', 'linkedin', 'other')`,
+    ),
+    check(
+      "event_posts_status_check",
+      sql`"status" IN ('approved', 'hidden', 'pending')`,
+    ),
+  ],
+);
+
+export type InsertEventPost = typeof eventPostsTable.$inferInsert;
+export type SelectEventPost = typeof eventPostsTable.$inferSelect;
 
 export const eventTalksTable = pgTable(
   "event_talks",

@@ -8,6 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { completenessReport } from "./completeness.js";
+import { addEventPost } from "./event-posts.js";
 import {
   createEvent,
   getEventBySlug,
@@ -93,6 +94,14 @@ const UpdateTalkSchema = z.object({
 const InsertHostSchema = z.object({
   name: z.string(),
   about: z.string(), // Required in schema
+});
+
+const AddEventPostSchema = z.object({
+  slug: z.string().min(1),
+  url: z.string().min(1),
+  authorName: z.string().optional(),
+  authorUrl: z.string().optional(),
+  text: z.string().optional(),
 });
 
 const server = new Server(
@@ -500,6 +509,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: [],
         },
       },
+      {
+        name: "add_event_post",
+        description:
+          "Add a social post about an event to its page, approved. Reads X and Bluesky posts from public sources; a LinkedIn post needs authorName and text (and takes authorUrl). Adding a post that is already there changes nothing.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            slug: { type: "string", description: "The event's slug" },
+            url: {
+              type: "string",
+              description: "The post's URL on X, Bluesky or LinkedIn",
+            },
+            authorName: {
+              type: "string",
+              description: "LinkedIn only: the author's name",
+            },
+            authorUrl: {
+              type: "string",
+              description: "LinkedIn only: the author's profile URL",
+            },
+            text: {
+              type: "string",
+              description: "LinkedIn only: the post's text",
+            },
+          },
+          required: ["slug", "url"],
+        },
+      },
       // Administrator tools
       {
         name: "add_user_to_admins",
@@ -869,6 +906,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_completeness_report": {
         const { slug } = (args ?? {}) as { slug?: string };
         const result = await completenessReport(slug);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "add_event_post": {
+        const result = await addEventPost(AddEventPostSchema.parse(args ?? {}));
         return {
           content: [
             {

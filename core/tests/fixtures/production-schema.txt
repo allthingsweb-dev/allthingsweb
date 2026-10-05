@@ -20,6 +20,22 @@ column public.event_people #004 "position" integer not null
 column public.event_people #005 source text not null
 column public.event_people #006 created_at timestamp with time zone not null default now()
 column public.event_people #007 updated_at timestamp with time zone not null
+column public.event_posts #001 id uuid not null default gen_random_uuid()
+column public.event_posts #002 event_id uuid not null
+column public.event_posts #003 platform text not null
+column public.event_posts #004 url text not null
+column public.event_posts #005 author_name text not null
+column public.event_posts #006 author_handle text
+column public.event_posts #007 author_url text
+column public.event_posts #008 author_avatar_source_url text
+column public.event_posts #009 author_avatar uuid
+column public.event_posts #010 posted_at timestamp with time zone not null
+column public.event_posts #011 text text not null
+column public.event_posts #012 image_source_url text
+column public.event_posts #013 image uuid
+column public.event_posts #014 status text not null default 'approved'::text
+column public.event_posts #015 added_at timestamp with time zone not null default now()
+column public.event_posts #016 updated_at timestamp with time zone not null
 column public.event_review_sessions #001 id uuid not null default gen_random_uuid()
 column public.event_review_sessions #002 event_id uuid not null
 column public.event_review_sessions #003 provider text not null default 'discord'::text
@@ -120,6 +136,13 @@ constraint public.event_people event_people_position_check CHECK (("position" >=
 constraint public.event_people event_people_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint public.event_people event_people_role_check CHECK ((role = ANY (ARRAY['organizer'::text, 'co-host'::text, 'mc'::text])))
 constraint public.event_people event_people_source_check CHECK ((source = ANY (ARRAY['luma'::text, 'site'::text])))
+constraint public.event_posts event_posts_author_avatar_images_id_fk FOREIGN KEY (author_avatar) REFERENCES images(id) ON DELETE SET NULL
+constraint public.event_posts event_posts_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_posts event_posts_image_images_id_fk FOREIGN KEY (image) REFERENCES images(id) ON DELETE SET NULL
+constraint public.event_posts event_posts_pkey PRIMARY KEY (id)
+constraint public.event_posts event_posts_platform_check CHECK ((platform = ANY (ARRAY['x'::text, 'bluesky'::text, 'linkedin'::text, 'other'::text])))
+constraint public.event_posts event_posts_status_check CHECK ((status = ANY (ARRAY['approved'::text, 'hidden'::text, 'pending'::text])))
+constraint public.event_posts event_posts_url_unique UNIQUE (url)
 constraint public.event_review_sessions event_review_sessions_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
 constraint public.event_review_sessions event_review_sessions_event_id_unique UNIQUE (event_id)
 constraint public.event_review_sessions event_review_sessions_pkey PRIMARY KEY (id)
@@ -163,6 +186,9 @@ index neon_auth.users_sync CREATE UNIQUE INDEX users_sync_pkey ON neon_auth.user
 index public.administrators CREATE UNIQUE INDEX administrators_pkey ON public.administrators USING btree (id)
 index public.event_images CREATE UNIQUE INDEX event_images_event_id_image_id_pk ON public.event_images USING btree (event_id, image_id)
 index public.event_people CREATE UNIQUE INDEX event_people_event_id_profile_id_role_pk ON public.event_people USING btree (event_id, profile_id, role)
+index public.event_posts CREATE INDEX event_posts_event_id_idx ON public.event_posts USING btree (event_id)
+index public.event_posts CREATE UNIQUE INDEX event_posts_pkey ON public.event_posts USING btree (id)
+index public.event_posts CREATE UNIQUE INDEX event_posts_url_unique ON public.event_posts USING btree (url)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_event_id_unique ON public.event_review_sessions USING btree (event_id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_pkey ON public.event_review_sessions USING btree (id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_thread_id_unique ON public.event_review_sessions USING btree (thread_id)
@@ -185,6 +211,7 @@ relation neon_auth.users_sync kind=r persistence=p rls=f force_rls=f replica_ide
 relation public.administrators kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_images kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_people kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_posts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_review_sessions kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=

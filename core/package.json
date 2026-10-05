@@ -11,6 +11,7 @@
     "migrate": "bun --no-env-file scripts/migrate.ts",
     "luma:people": "bun --no-env-file scripts/luma-people.ts",
     "completeness": "bun --no-env-file scripts/completeness.ts",
+    "posts": "bun --no-env-file scripts/posts.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts"
   },
   "dependencies": {
