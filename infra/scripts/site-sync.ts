@@ -24,9 +24,8 @@
  */
 import {
   connectionStringFor,
-  loginRoleStatement,
   newPassword,
-  roleExists,
+  provisionLoginRole,
   storeConnectionString,
 } from "./login-role.ts";
 
@@ -175,12 +174,12 @@ async function main(): Promise<void> {
 
   const password = newPassword();
   const sql = new Bun.SQL(owner);
-  const exists = await roleExists(sql, SITE_SYNC);
-  await sql.begin(async (transaction) => {
-    await transaction.unsafe(loginRoleStatement(SITE_SYNC, password, exists));
+  const created = await sql.begin(async (transaction) => {
+    const isNew = await provisionLoginRole(transaction, SITE_SYNC, password);
     for (const statement of grantStatements()) {
       await transaction.unsafe(statement);
     }
+    return isNew;
   });
   await sql.end();
 
@@ -193,7 +192,7 @@ async function main(): Promise<void> {
       "The hourly Luma sync's connection to production (its Worker's Hyperdrive). Rotate with infra/scripts/site-sync.ts in allthingsweb-dev/allthingsweb.",
   });
   console.log(
-    `✓ ${SITE_SYNC} ${exists ? "has a new password" : "created"}, column grants on ${Object.keys(SITE_SYNC_GRANTS).length} tables; NEON_SYNC_URL and 1Password ("${item}" in ${vault}) updated`,
+    `✓ ${SITE_SYNC} ${created ? "created" : "has a new password"}, column grants on ${Object.keys(SITE_SYNC_GRANTS).length} tables; NEON_SYNC_URL and 1Password ("${item}" in ${vault}) updated`,
   );
 }
 

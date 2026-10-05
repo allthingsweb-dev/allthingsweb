@@ -21,9 +21,8 @@
  */
 import {
   connectionStringFor,
-  loginRoleStatement,
   newPassword,
-  roleExists,
+  provisionLoginRole,
   storeConnectionString,
 } from "./login-role.ts";
 
@@ -54,15 +53,17 @@ async function main(): Promise<void> {
 
   const password = newPassword();
   const sql = new Bun.SQL(owner);
-  const exists = await roleExists(sql, SITE_READER);
-  await sql.unsafe(loginRoleStatement(SITE_READER, password, exists));
-  await sql.unsafe(`GRANT USAGE ON SCHEMA public TO ${SITE_READER}`);
-  await sql.unsafe(
-    `GRANT SELECT ON ${SITE_TABLES.map((t) => `public.${t}`).join(", ")} TO ${SITE_READER}`,
-  );
-  await sql.unsafe(
-    `ALTER ROLE ${SITE_READER} SET default_transaction_read_only = on`,
-  );
+  const created = await sql.begin(async (transaction) => {
+    const isNew = await provisionLoginRole(transaction, SITE_READER, password);
+    await transaction.unsafe(`GRANT USAGE ON SCHEMA public TO ${SITE_READER}`);
+    await transaction.unsafe(
+      `GRANT SELECT ON ${SITE_TABLES.map((t) => `public.${t}`).join(", ")} TO ${SITE_READER}`,
+    );
+    await transaction.unsafe(
+      `ALTER ROLE ${SITE_READER} SET default_transaction_read_only = on`,
+    );
+    return isNew;
+  });
   await sql.end();
 
   await storeConnectionString({
@@ -74,7 +75,7 @@ async function main(): Promise<void> {
       "Read-only connection to production for Hyperdrive on every non-prod stage. Rotate with infra/scripts/site-reader.ts in allthingsweb-dev/allthingsweb.",
   });
   console.log(
-    `✓ ${SITE_READER} ${exists ? "has a new password" : "created"}, SELECT on ${SITE_TABLES.length} tables; NEON_READER_URL and 1Password ("${item}" in ${vault}) updated`,
+    `✓ ${SITE_READER} ${created ? "created" : "has a new password"}, SELECT on ${SITE_TABLES.length} tables; NEON_READER_URL and 1Password ("${item}" in ${vault}) updated`,
   );
 }
 

@@ -34,27 +34,85 @@ export async function run(
 /** A new password. base64url is only letters, digits, "-" and "_": safe inside a SQL literal. */
 export const newPassword = (): string => randomBytes(24).toString("base64url");
 
-/**
- * Creates `role` as a login role with no attributes beyond LOGIN, or gives it
- * `password` if it exists. NOINHERIT: it never acts with another role's
- * privileges, even if someone grants it membership.
- */
-export const loginRoleStatement = (
-  role: string,
-  password: string,
-  exists: boolean,
-): string =>
-  exists
-    ? `ALTER ROLE ${role} WITH LOGIN PASSWORD '${password}'`
-    : `CREATE ROLE ${role} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOINHERIT PASSWORD '${password}'`;
-
-/** Whether `role` exists, asked as the owner. */
-export async function roleExists(sql: Bun.SQL, role: string): Promise<boolean> {
-  const [row] = await sql`
-    SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = ${role}) AS exists`;
-  return (row as { exists: boolean }).exists;
+/** What provisionLoginRole needs of a connection: Bun.SQL's `unsafe`, or a transaction's. */
+export interface Statements {
+  unsafe(query: string, values?: ReadonlyArray<unknown>): Promise<unknown>;
 }
 
+const rows = async <A>(
+  sql: Statements,
+  query: string,
+  values: ReadonlyArray<unknown>,
+): Promise<ReadonlyArray<A>> => (await sql.unsafe(query, values)) as A[];
+
+/**
+ * Leaves `role` a login role with `password` and nothing more, whether it is
+ * new or not, run as the owner (in a transaction, so a refusal changes
+ * nothing):
+ *
+ * - created with no attributes beyond LOGIN; an existing role loses
+ *   CREATEDB, CREATEROLE and INHERIT. NOINHERIT: it never acts with another
+ *   role's privileges automatically.
+ * - every membership it holds is revoked, so it can't SET ROLE to one
+ *   either.
+ * - then checked: SUPERUSER, BYPASSRLS and REPLICATION, which only a
+ *   superuser may change, must already be off, or it fails.
+ *
+ * Whether the role was created rather than reset.
+ */
+export async function provisionLoginRole(
+  sql: Statements,
+  role: string,
+  password: string,
+): Promise<boolean> {
+  const existing = await rows(
+    sql,
+    "SELECT 1 FROM pg_roles WHERE rolname = $1",
+    [role],
+  );
+  await sql.unsafe(
+    existing.length > 0
+      ? `ALTER ROLE ${role} WITH LOGIN NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD '${password}'`
+      : `CREATE ROLE ${role} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOREPLICATION NOINHERIT PASSWORD '${password}'`,
+  );
+  const memberships = await rows<{ rolname: string }>(
+    sql,
+    `SELECT g.rolname FROM pg_auth_members m
+       JOIN pg_roles g ON g.oid = m.roleid
+       JOIN pg_roles u ON u.oid = m.member
+     WHERE u.rolname = $1`,
+    [role],
+  );
+  for (const { rolname } of memberships) {
+    await sql.unsafe(`REVOKE "${rolname}" FROM ${role}`);
+  }
+  const [attributes] = await rows<Record<string, unknown>>(
+    sql,
+    `SELECT rolcanlogin, rolsuper, rolinherit, rolcreaterole, rolcreatedb,
+       rolbypassrls, rolreplication,
+       (SELECT count(*) FROM pg_auth_members m WHERE m.member = r.oid)::int AS memberships
+     FROM pg_roles r WHERE rolname = $1`,
+    [role],
+  );
+  const expected = {
+    rolcanlogin: true,
+    rolsuper: false,
+    rolinherit: false,
+    rolcreaterole: false,
+    rolcreatedb: false,
+    rolbypassrls: false,
+    rolreplication: false,
+    memberships: 0,
+  };
+  for (const [name, value] of Object.entries(expected)) {
+    if (attributes?.[name] !== value) {
+      throw new Error(
+        `${role} has ${name} = ${String(attributes?.[name])}, not ${String(value)}; only a superuser can change that`,
+      );
+    }
+  }
+  return existing.length === 0;
+}
 /** The owner's connection string for `role` instead, direct rather than pooled (Hyperdrive pools). */
 export function connectionStringFor(
   owner: string,
@@ -69,12 +127,13 @@ export function connectionStringFor(
 }
 
 /**
- * Writes `value` to the repository secret `secret`, then to the 1Password
- * item `item` in `vault` (1Password's own API Credential template, passed as
- * a file only this user can read and removed right after: op ignores the
- * values of a template piped on stdin). The secret comes first, so a
- * 1Password that refuses still leaves CI working; the error says which
- * store has the value.
+ * Writes `value` to the repository secret `secret`, then to a new 1Password
+ * item `item` in `vault`, and only then archives the items it replaces, so
+ * 1Password always holds a working value (1Password's own API Credential
+ * template, passed as a file only this user can read and removed right
+ * after: op ignores the values of a template piped on stdin). The role's
+ * password has already changed when this runs, so each failure says which
+ * store has the new value and to rerun the script.
  */
 export async function storeConnectionString(options: {
   value: string;
@@ -83,11 +142,31 @@ export async function storeConnectionString(options: {
   vault: string;
   notes: string;
 }): Promise<void> {
-  await run(
-    ["gh", "secret", "set", options.secret, "--repo", repo],
-    options.value,
-  );
   try {
+    await run(
+      ["gh", "secret", "set", options.secret, "--repo", repo],
+      options.value,
+    );
+  } catch (cause) {
+    throw new Error(
+      `The role's password has changed, but ${options.secret} and 1Password ("${options.item}") still hold the old one. Rerun this script once GitHub secret writes work.`,
+      { cause },
+    );
+  }
+  try {
+    const replaced = (
+      JSON.parse(
+        await run([
+          "op",
+          "item",
+          "list",
+          "--vault",
+          options.vault,
+          "--format",
+          "json",
+        ]),
+      ) as Array<{ id: string; title: string }>
+    ).filter((existing) => existing.title === options.item);
     const template = JSON.parse(
       await run(["op", "item", "template", "get", "API Credential"]),
     ) as { title?: string; fields: Array<{ id: string; value?: string }> };
@@ -103,15 +182,6 @@ export async function storeConnectionString(options: {
       await run([
         "op",
         "item",
-        "delete",
-        options.item,
-        "--vault",
-        options.vault,
-        "--archive",
-      ]).catch(() => undefined);
-      await run([
-        "op",
-        "item",
         "create",
         "--vault",
         options.vault,
@@ -121,9 +191,20 @@ export async function storeConnectionString(options: {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+    for (const { id } of replaced) {
+      await run([
+        "op",
+        "item",
+        "delete",
+        id,
+        "--vault",
+        options.vault,
+        "--archive",
+      ]);
+    }
   } catch (cause) {
     throw new Error(
-      `${options.secret} is updated, but 1Password ("${options.item}") is not: ${cause instanceof Error ? cause.message : String(cause)}. Rerun to rotate again once 1Password answers.`,
+      `${options.secret} has the new value, but 1Password ("${options.item}") may not: ${cause instanceof Error ? cause.message : String(cause)}. Rerun this script once 1Password answers.`,
       { cause },
     );
   }

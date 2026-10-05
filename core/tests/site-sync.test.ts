@@ -7,7 +7,10 @@ import {
   SITE_SYNC_GRANTS,
   SITE_SYNC_SETTINGS,
 } from "../../infra/scripts/site-sync.ts";
-import { loginRoleStatement } from "../../infra/scripts/login-role.ts";
+import {
+  provisionLoginRole,
+  type Statements,
+} from "../../infra/scripts/login-role.ts";
 import { Luma } from "../src/luma/luma.ts";
 import { LumaSync } from "../src/luma/sync.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
@@ -62,12 +65,18 @@ const missingImages = `
     ('70000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/a/status/1', 'Ada', 'https://pbs.twimg.com/profile_images/1/a.jpg', '2024-07-30T02:00:00Z', 'What a night', 'https://pbs.twimg.com/media/1.jpg', '2024-07-30T02:00:00Z');
 `;
 
+/** The script's connection, as the owner: PGlite behind Bun.SQL's `unsafe`. */
+const owner = (database: PGlite): Statements => ({
+  unsafe: async (query, values) =>
+    (await database.query(query, values === undefined ? [] : [...values])).rows,
+});
+
 let db: PGlite;
 beforeEach(async () => {
   db = await migratedDatabase();
   await db.exec(stored);
   await db.exec(missingImages);
-  await db.exec(loginRoleStatement(SITE_SYNC, "test-only", false));
+  await provisionLoginRole(owner(db), SITE_SYNC, "test-only");
   for (const statement of grantStatements()) await db.exec(statement);
   await db.exec(`SET ROLE ${SITE_SYNC}`);
 });
@@ -248,5 +257,41 @@ describe("site_sync", () => {
       [SITE_SYNC],
     );
     expect(tables.rows).toEqual([]);
+  });
+});
+
+describe("provisioning site_sync again", () => {
+  test("takes back whatever the role was given since", async () => {
+    await db.exec("RESET ROLE");
+    await db.exec(`CREATE ROLE writer`);
+    await db.exec(`GRANT DELETE ON events TO writer`);
+    await db.exec(`GRANT writer TO ${SITE_SYNC}`);
+    await db.exec(`ALTER ROLE ${SITE_SYNC} INHERIT CREATEDB CREATEROLE`);
+
+    expect(await provisionLoginRole(owner(db), SITE_SYNC, "rotated")).toBe(
+      false,
+    );
+    const { rows } = await db.query(
+      `SELECT rolinherit, rolcreatedb, rolcreaterole,
+         (SELECT count(*) FROM pg_auth_members m WHERE m.member = r.oid)::int AS memberships
+       FROM pg_roles r WHERE rolname = $1`,
+      [SITE_SYNC],
+    );
+    expect(rows[0]).toEqual({
+      rolinherit: false,
+      rolcreatedb: false,
+      rolcreaterole: false,
+      memberships: 0,
+    });
+    await db.exec(`SET ROLE ${SITE_SYNC}`);
+    expect(await refusal("DELETE FROM events")).toContain("permission denied");
+  });
+
+  test("refuses a role it can't make safe", async () => {
+    await db.exec("RESET ROLE");
+    await db.exec(`ALTER ROLE ${SITE_SYNC} BYPASSRLS`);
+    await expect(
+      provisionLoginRole(owner(db), SITE_SYNC, "rotated"),
+    ).rejects.toThrow("rolbypassrls");
   });
 });
