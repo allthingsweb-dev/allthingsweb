@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { syncPublicLumaEvents } from "@/lib/luma/sync";
 import { ingestMissingLumaCovers } from "@/lib/event-covers/runtime";
 import { ingestMissingProfilePhotos } from "@/lib/profile-photos/runtime";
+import { ingestMissingPostImages } from "@/lib/post-images/runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,8 @@ const coverStartDeadlineMs = 35_000;
 const coverCancelDeadlineMs = 50_000;
 // Profile photos run first but may only start new work for this long.
 const photoWindowMs = 10_000;
+// Then images of posts about events, in a window of their own.
+const postImageWindowMs = 5_000;
 
 const listingPaths = ["/", "/api/v1/events", "/rss", "/sitemap.xml"];
 
@@ -76,6 +79,25 @@ export async function GET(request: Request) {
       // Speakers and organizers appear across event pages, /speakers and /about.
       revalidatePath("/", "layout");
     }
+    // Post images next, in their own short window: event pages show only
+    // the bucket's copies, never the platforms' URLs.
+    const postImagesAt = Date.now() - startedAt;
+    const postImageBudgetMs = Math.min(
+      postImageWindowMs,
+      coverStartDeadlineMs - postImagesAt,
+    );
+    const postImages =
+      postImageBudgetMs <= 0
+        ? { skipped: "No time left for post images in this run" }
+        : await ingestMissingPostImages({
+            budgetMs: postImageBudgetMs,
+            signal: AbortSignal.timeout(coverCancelDeadlineMs - postImagesAt),
+          }).catch((error: unknown) => {
+            captureException(error);
+            return {
+              skipped: `Post image ingestion failed: ${error instanceof Error ? error.message : String(error)}`,
+            };
+          });
     // Covers are best effort: a failure here must not hide a successful sync.
     const elapsedMs = Date.now() - startedAt;
     const coverBudgetMs = coverStartDeadlineMs - elapsedMs;
@@ -102,7 +124,7 @@ export async function GET(request: Request) {
     // JSON so nested failures are logged in full, not as [Object].
     console.info(
       "Luma calendar sync completed",
-      JSON.stringify({ ...result, covers, photos }),
+      JSON.stringify({ ...result, covers, photos, postImages }),
     );
 
     return NextResponse.json({
@@ -110,6 +132,7 @@ export async function GET(request: Request) {
       ...result,
       covers,
       photos,
+      postImages,
     });
   } catch (error) {
     captureException(error);

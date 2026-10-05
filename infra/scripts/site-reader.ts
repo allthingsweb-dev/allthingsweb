@@ -38,6 +38,7 @@ export const SITE_TABLES = [
   "images",
   "event_images",
   "event_people",
+  "event_posts",
   "redirects",
 ] as const;
 

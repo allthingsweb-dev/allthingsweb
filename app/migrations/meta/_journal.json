@@ -120,6 +120,13 @@
       "when": 1791168851668,
       "tag": "0016_event_people",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791177758664,
+      "tag": "0017_event_posts",
+      "breakpoints": true
     }
   ]
 }
