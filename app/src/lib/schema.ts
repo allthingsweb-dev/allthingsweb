@@ -72,6 +72,12 @@ export const hostsTable = pgTable(
     blueskyHandle: text("bluesky_handle"),
     /** Its LinkedIn company page, the part after linkedin.com/company/. */
     linkedinHandle: text("linkedin_handle"),
+    /**
+     * Its Luma account, so the people import attaches it to the events Luma
+     * lists it as a host of. core/migrations/0010_host_luma_user.ts is the
+     * same change.
+     */
+    lumaUserId: text("luma_user_id").unique(),
   },
   () => [
     check(
@@ -89,6 +95,10 @@ export const hostsTable = pgTable(
     check(
       "sponsors_linkedin_handle_check",
       sql`"linkedin_handle" ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$'`,
+    ),
+    check(
+      "sponsors_luma_user_id_check",
+      sql`"luma_user_id" ~ '^usr-[A-Za-z0-9]+$'`,
     ),
   ],
 );
