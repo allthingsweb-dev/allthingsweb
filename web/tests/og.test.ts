@@ -96,6 +96,8 @@ describe("an event's card", () => {
       },
       { hosts: ["Mux", "Strapi", "BigCommerce", "Neon", "Inngest", "Vercel"] },
       { topic: "a".repeat(80) },
+      { topic: "pre next.js conf meetup" },
+      { topic: "future of web hackathon", mode: "paper" as const },
     ]) {
       for (const run of layout(overrides)) {
         const font = measured[run.font];
@@ -104,6 +106,9 @@ describe("an event's card", () => {
           run.left + textWidth(font, run.text, run.size),
         ).toBeLessThanOrEqual(cardWidth - 60);
         expect(run.top).toBeGreaterThanOrEqual(60);
+        // The lockup keeps its distance from the meta line above it.
+        if (run.font === "lockup")
+          expect(run.top).toBeGreaterThanOrEqual(72 + 26 + 40);
         expect(run.top + run.size).toBeLessThanOrEqual(cardHeight - 40);
       }
     }

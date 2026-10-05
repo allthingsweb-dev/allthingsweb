@@ -134,6 +134,8 @@ function wrap(
 /** The lockup's sizes, largest first: the first its words fit at is used. */
 const lockupSizes = [132, 112, 96, 80, 64] as const;
 const metaSize = 26;
+/** The least room between the meta line and the lockup's top. */
+const lockupGap = 40;
 const labelSizes = [40, 34, 28] as const;
 const smallestLabel = 28;
 
@@ -183,16 +185,32 @@ export function layoutCard(
   const words = facts.topic ?? facts.name;
   const maxLines = facts.topic === undefined ? 3 : 2;
   const cursorWidth = (size: number) => textWidth(metrics.lockup, "_", size);
-  const sized = lockupSizes.map((size) => ({
-    size,
-    lines: wrap(metrics.lockup, words, size, measure - cursorWidth(size)),
-  }));
-  const chosen = sized.find(({ lines }) => lines.length <= maxLines) ??
+  const lastBaseline = labelBaseline - labelSize - 56;
+  // The lockup's top may come no nearer the meta line than this.
+  const ceiling = margin + metaSize + lockupGap;
+  const sized = lockupSizes.map((size) => {
+    const lines = wrap(
+      metrics.lockup,
+      words,
+      size,
+      measure - cursorWidth(size),
+    );
+    const rows = facts.topic === undefined ? lines.length : lines.length + 1;
+    const lineHeight = Math.round(size * 0.92);
+    const firstBaseline = lastBaseline - (rows - 1) * lineHeight;
+    return {
+      size,
+      lines,
+      fits:
+        lines.length <= maxLines &&
+        top("lockup", size, firstBaseline) >= ceiling,
+    };
+  });
+  const chosen = sized.find(({ fits }) => fits) ??
     sized[sized.length - 1] ?? { size: 64, lines: [] };
   const lines = chosen.lines.slice(0, maxLines);
   const { size } = chosen;
   const lineHeight = Math.round(size * 0.92);
-  const lastBaseline = labelBaseline - labelSize - 56;
   const rows = facts.topic === undefined ? lines.length : lines.length + 1;
   let baseline = lastBaseline - (rows - 1) * lineHeight;
   const lockupLeft = margin - Math.round(size * 0.04);
