@@ -12,6 +12,7 @@ import type {
 import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
+import type { SafeHtml } from "allthings-core/src/rich-text.ts";
 import { DateTime } from "effect";
 import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { built } from "../assets.ts";
@@ -45,10 +46,11 @@ import { day, fullDate, timeRange } from "./time.ts";
  * /<slug>: an evening's page, the Ledger (design round EP1-B). The lockup,
  * then a ruled list that names every fact once, each on its own row under a
  * small label: when, where, who hosts, how to get in (or, once it is over,
- * the recording), its schedule and any notes of its own (a hackathon's
- * awards, theme and teams), who is on stage (or that the floor was open to
- * anyone), the photos, what people posted about it, and what comes next. A
- * row whose facts are unknown is left out rather than shown empty.
+ * the recording), what it is about, its schedule and any notes of its own
+ * (a hackathon's awards, theme and teams), who is on stage (or that the
+ * floor was open to anyone), the photos, what people posted about it, and
+ * what comes next. A row whose facts are unknown is left out rather than
+ * shown empty.
  *
  * The page is in its event's mode (Night for evenings, Paper for daytime
  * events) unless the visitor fixed one with the mode switch.
@@ -683,6 +685,20 @@ function Schedule({
   );
 }
 
+/**
+ * What the evening is about, in its own words: the site's description, or
+ * the one on Luma.
+ */
+function About({ about }: { readonly about: SafeHtml }) {
+  // Sanitized by core (rich-text.ts): formatting and safe links only.
+  const safeAbout = about;
+  return (
+    <Fact label="About">
+      <div class="event-about">{safeAbout}</div>
+    </Fact>
+  );
+}
+
 /** A row of the event's own, such as its awards, under the note's label. */
 function NoteFact({ note }: { readonly note: Note }) {
   // Sanitized by core (rich-text.ts): formatting and safe links only.
@@ -1021,6 +1037,7 @@ export function eventPage({
           ) : (
             ""
           )}
+          {event.about === null ? "" : <About about={event.about} />}
           {event.schedule.length === 0 ? (
             ""
           ) : (

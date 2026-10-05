@@ -3,6 +3,8 @@ import { CoverSource } from "allthings-core/src/ingest/covers.ts";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { MediaBucket } from "allthings-core/src/ingest/media-bucket.ts";
 import { Pictures } from "allthings-core/src/ingest/pictures.ts";
+import { LumaApi } from "allthings-core/src/luma/api.ts";
+import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ConfigProvider, Effect, Layer, Redacted } from "effect";
@@ -68,8 +70,12 @@ export const syncLayer = (
   env: SyncEnv & Readonly<Record<string, unknown>>,
   fetch: typeof globalThis.fetch = globalThis.fetch,
 ) =>
-  Layer.mergeAll(LumaSync.layer, ImageIngest.layer).pipe(
-    Layer.provide(Layer.mergeAll(Luma.layer, CoverSource.layer)),
+  Layer.mergeAll(
+    LumaSync.layer,
+    LumaDescriptions.layer,
+    ImageIngest.layer,
+  ).pipe(
+    Layer.provide(Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer)),
     Layer.provide(
       Layer.mergeAll(
         PgClient.layer({

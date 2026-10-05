@@ -10,7 +10,7 @@ import {
   requiredGaps,
 } from "../src/completeness.ts";
 import { formatReport, reportJson } from "../src/completeness-report.ts";
-import { defaultTagline } from "../src/luma/sync.ts";
+import { defaultTagline } from "../src/tagline.ts";
 import {
   clockLayer,
   now,
@@ -47,6 +47,9 @@ const complete: EventRecord = {
   name: "All Things Effect",
   topic: null,
   tagline: "Typed errors, on a rooftop",
+  description: null,
+  lumaDescription: "<p>Michael Arnaldi joins us on the rooftop.</p>",
+  lumaSummary: "Michael Arnaldi joins us on the rooftop.",
   startDate: at("2026-09-02T00:30:00Z"),
   endDate: at("2026-09-02T03:30:00Z"),
   streetAddress: "201 Spear St",
@@ -234,7 +237,7 @@ describe("what an event lacks", () => {
     ).toEqual(["host-website: Acme"]);
   });
 
-  test("venue, lockup topic, tagline and cover", () => {
+  test("venue, lockup topic, description, tagline and cover", () => {
     expect(
       gapsOf({ ...complete, fullAddress: null, streetAddress: "  " }),
     ).toEqual(["venue"]);
@@ -249,9 +252,27 @@ describe("what an event lacks", () => {
         topic: "dev setups",
       }),
     ).toEqual([]);
-    expect(gapsOf({ ...complete, tagline: defaultTagline })).toEqual([
-      "tagline",
-    ]);
+    // The site's description, or Luma's: either one will do.
+    expect(
+      gapsOf({ ...complete, lumaDescription: "<p> </p>", lumaSummary: null }),
+    ).toEqual(["description"]);
+    expect(
+      gapsOf({
+        ...complete,
+        description: "<p>Our own words.</p>",
+        lumaDescription: null,
+      }),
+    ).toEqual([]);
+    // A placeholder tagline is a gap only without a summary to stand in.
+    expect(gapsOf({ ...complete, tagline: defaultTagline })).toEqual([]);
+    for (const tagline of [
+      defaultTagline,
+      "All Things Sync at All Things Web",
+    ]) {
+      expect(gapsOf({ ...complete, tagline, lumaSummary: null })).toEqual([
+        "tagline",
+      ]);
+    }
     expect(gapsOf({ ...complete, hasCover: false })).toEqual(["cover"]);
   });
 
@@ -394,6 +415,7 @@ describe("Completeness", () => {
       "person-bio",
       "person-photo",
       "hosts",
+      "description",
       "cover",
       "photos",
       "recording",
@@ -444,11 +466,11 @@ describe("Completeness", () => {
     );
     expect(rule).toStartWith("----------  --------  ---------  ");
     expect(rest.slice(0, 5)).toEqual([
-      "2026-11-05  upcoming  talks      2026-11-05-upcoming           1         1       0      0       0       -     4         1",
-      "2026-10-03  live      hackathon  2026-10-03-hack-day           1         1       0      0       0       -     4         1",
-      "2026-10-03  live      talks      2026-10-03-ends-now           1         1       0      0       0       -     5         2",
+      "2026-11-05  upcoming  talks      2026-11-05-upcoming           1         1       0      0       0       -     5         1",
+      "2026-10-03  live      hackathon  2026-10-03-hack-day           1         1       0      0       0       -     5         1",
+      "2026-10-03  live      talks      2026-10-03-ends-now           1         1       0      0       0       -     6         2",
       "2026-08-12  past      talks      2026-08-12-react-at-acme      2         3       0      2       2     118     6         2",
-      "2025-12-02  past      talks      2025-12-02-café-night         2         3       0      0       0       -     7         2",
+      "2025-12-02  past      talks      2025-12-02-café-night         2         3       0      0       0       -     8         2",
     ]);
     expect(text).toContain(
       [

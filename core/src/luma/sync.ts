@@ -3,6 +3,7 @@ import { SqlClient } from "effect/sql/SqlClient";
 import type { SqlError } from "effect/sql/SqlError";
 import { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
+import { defaultTagline } from "../tagline.ts";
 import {
   calendarTimeZone,
   type FeedEvent,
@@ -24,8 +25,12 @@ import { venueArchive } from "./venue-archive.ts";
  * - The site, once the event exists: slug, tagline, attendee limit, and every
  *   other column and related row (talks, hosts, photos, recording, flags).
  *   The sync writes slug, tagline and attendee limit for new events only.
- * - The site alone: the topic (all things/<topic>, src/lockup.ts). The sync
- *   never writes it, for new events either: they start without one.
+ * - The site alone: the topic (all things/<topic>, src/lockup.ts) and the
+ *   description. The sync never writes them, for new events either: they
+ *   start without them.
+ * - Luma's API, not the feed: Luma's description and its summary, which
+ *   the description import writes (src/luma/descriptions.ts). The sync
+ *   never writes them.
  *
  * Nothing is deleted: an event that leaves the feed stays as it is, and a
  * cancelled one becomes a draft. Events without a Luma id are never touched.
@@ -46,9 +51,6 @@ import { venueArchive } from "./venue-archive.ts";
  * Clock's now, so the same feed on the same rows at the same time writes the
  * same rows. Only a new event's id is generated, by Postgres.
  */
-
-/** A new event's tagline until an organizer writes one. */
-export const defaultTagline = "See Luma for event details and registration.";
 
 /** The `events` columns the sync derives from one feed event. */
 export interface EventRow {

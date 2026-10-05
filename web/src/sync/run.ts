@@ -1,19 +1,23 @@
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
+import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { Clock, Context, Duration, Effect, Exit } from "effect";
 
 /**
  * One run of the hourly sync, as the app's cron runs it
  * (app/src/app/api/cron/luma-sync/route.ts): events from Luma's calendar
- * first, then the images still missing (profile photos, post images, event
- * covers), each image phase in its own time window. Every step writes only
- * what is missing or changed, so a run repeated, or one cut short, leaves
- * the database as consistent as before and the next run carries on.
+ * first, then their descriptions from Luma's API (which the app's cron does
+ * not import), then the images still missing (profile photos, post images,
+ * event covers), each image phase in its own time window. Every step
+ * writes only what is missing or changed, so a run repeated, or one cut
+ * short, leaves the database as consistent as before and the next run
+ * carries on.
  *
  * - `write` writes, as the app's cron does.
  * - `dry-run` writes nothing: the event sync is rehearsed (its statement in
- *   a transaction that rolls back) and the image phases list what they
- *   would fetch, without fetching it.
+ *   a transaction that rolls back), the description import lists what it
+ *   would change, and the image phases list what they would fetch, without
+ *   fetching it.
  *
  * Each step logs one JSON line, and the run one summary line, for Workers
  * Logs to index.
@@ -42,6 +46,8 @@ export interface SyncLimits {
     readonly maxItems?: number;
   };
   readonly covers: { readonly maxItems?: number };
+  /** Events asked about for their descriptions; every published one by default. */
+  readonly descriptions: { readonly maxEvents?: number };
 }
 
 export const syncLimits = {
@@ -52,11 +58,13 @@ export const syncLimits = {
     photos: { window: "10 seconds" },
     posts: { window: "20 seconds", maxItems: 40 },
     covers: {},
+    descriptions: {},
   },
   /**
-   * Within 50 subrequests: the feed is one, and each image at most six (a
-   * cover lookup and its fallback, a download and three redirects), so two
-   * of each kind is at most 37.
+   * Within 50 subrequests: the feed is one, each description one, and each
+   * image at most six (a cover lookup and its fallback, a download and
+   * three redirects), so two descriptions and two images of each kind are
+   * at most 39.
    */
   free: {
     startBefore: "35 seconds",
@@ -64,6 +72,7 @@ export const syncLimits = {
     photos: { window: "10 seconds", maxItems: 2 },
     posts: { window: "20 seconds", maxItems: 2 },
     covers: { maxItems: 2 },
+    descriptions: { maxEvents: 2 },
   },
 } as const satisfies Record<string, SyncLimits>;
 
@@ -128,7 +137,35 @@ const skipped = (name: string, reason: string) =>
     reason,
   } as const);
 
-/** A run that writes, as the app's cron does. */
+/**
+ * The description import (core's src/luma/descriptions.ts) within
+ * `limits`, as a step reports it: which events it changed, each with its
+ * summary.
+ */
+const descriptions = (
+  importer: LumaDescriptions["Service"],
+  limits: SyncLimits,
+  dryRun: boolean,
+) =>
+  Effect.gen(function* () {
+    const { maxEvents } = limits.descriptions;
+    const result = yield* importer.run({
+      dryRun,
+      ...(maxEvents === undefined ? {} : { maxEvents }),
+    });
+    if (result._tag === "Skipped") return { skipped: result.reason };
+    return {
+      asked: result.asked,
+      unavailable: result.unavailable,
+      written: result.written,
+      changes: result.changes.map((change) => ({
+        slug: change.slug,
+        summary: change.after.summary,
+      })),
+    };
+  });
+
+/** A run that writes, as the app's cron does, and imports descriptions. */
 const write = (limits: SyncLimits) =>
   Effect.gen(function* () {
     const sync = yield* LumaSync;
@@ -150,9 +187,14 @@ const write = (limits: SyncLimits) =>
         publishedCount,
       })),
     );
-    // The app stops when the events fail: images then wait for a run
-    // that reads the calendar.
+    // The app stops when the events fail: descriptions and images then
+    // wait for a run that reads the calendar.
     if (steps["events"].status !== "done") return steps;
+
+    steps["descriptions"] = yield* step(
+      "descriptions",
+      descriptions(yield* LumaDescriptions, limits, false),
+    );
 
     const photosLeft = yield* windowLeft(limits.photos.window);
     steps["photos"] =
@@ -210,45 +252,50 @@ const write = (limits: SyncLimits) =>
   });
 
 /** A run that writes nothing and reports what `write` would do now. */
-const dryRun = Effect.gen(function* () {
-  const sync = yield* LumaSync;
-  const ingest = yield* ImageIngest;
-  const steps: Record<string, StepReport> = {};
-  steps["events"] = yield* step(
-    "events",
-    Effect.map(sync.rehearse, (rehearsal) => ({
-      syncedCount: rehearsal.syncedCount,
-      changedCount: rehearsal.changedCount,
-      publishedCount: rehearsal.publishedCount,
-      created: rehearsal.created.map(({ slug, fields }) => ({
-        slug,
-        name: fields["name"],
+const dryRun = (limits: SyncLimits) =>
+  Effect.gen(function* () {
+    const sync = yield* LumaSync;
+    const ingest = yield* ImageIngest;
+    const steps: Record<string, StepReport> = {};
+    steps["events"] = yield* step(
+      "events",
+      Effect.map(sync.rehearse, (rehearsal) => ({
+        syncedCount: rehearsal.syncedCount,
+        changedCount: rehearsal.changedCount,
+        publishedCount: rehearsal.publishedCount,
+        created: rehearsal.created.map(({ slug, fields }) => ({
+          slug,
+          name: fields["name"],
+        })),
+        updated: rehearsal.updated.map(({ slug, changes }) => ({
+          slug,
+          changes,
+        })),
       })),
-      updated: rehearsal.updated.map(({ slug, changes }) => ({
-        slug,
-        changes,
+    );
+    steps["descriptions"] = yield* step(
+      "descriptions",
+      descriptions(yield* LumaDescriptions, limits, true),
+    );
+    steps["images"] = yield* step(
+      "images",
+      Effect.map(ingest.pending, (pending) => ({
+        covers: pending.coversLookedUp
+          ? pending.covers.map(({ slug }) => slug)
+          : "skipped: no LUMA_API_KEY",
+        photos: pending.photos.map(({ name }) => name),
+        posts: pending.posts.map(({ postId, kind }) => `${postId} ${kind}`),
       })),
-    })),
-  );
-  steps["images"] = yield* step(
-    "images",
-    Effect.map(ingest.pending, (pending) => ({
-      covers: pending.coversLookedUp
-        ? pending.covers.map(({ slug }) => slug)
-        : "skipped: no LUMA_API_KEY",
-      photos: pending.photos.map(({ name }) => name),
-      posts: pending.posts.map(({ postId, kind }) => `${postId} ${kind}`),
-    })),
-  );
-  return steps;
-});
+    );
+    return steps;
+  });
 
 /** One run in `mode`, within `limits`, logged and reported. Never fails. */
 export const runSync = (mode: SyncMode, limits: SyncLimits) =>
   Effect.gen(function* () {
     const started = yield* Clock.currentTimeMillis;
     yield* log({ step: "start", mode });
-    const steps = yield* mode === "write" ? write(limits) : dryRun;
+    const steps = yield* mode === "write" ? write(limits) : dryRun(limits);
     const report: SyncReport = {
       mode,
       ok: Object.values(steps).every((outcome) => outcome.status !== "failed"),

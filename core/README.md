@@ -53,6 +53,37 @@ speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
 panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
 `Events.getPublished` returns all of it, with Luma's guest counts.
 
+## Luma descriptions
+
+The feed's DESCRIPTION is only a link to the event's page, so each
+evening's words come from Luma's API (`description_md`, the Markdown of
+Luma's editor). `src/luma/description.ts` makes it rich text the way talk
+descriptions are kept: headings become bold paragraphs, images, rules and
+raw HTML go, and the rest passes `sanitizeRichText`. It also takes a
+one-line summary: the leading sentences, up to 200 characters, of the
+first paragraph that reads as prose.
+
+`src/luma/descriptions.ts` writes both to `events.luma_description` and
+`luma_summary`, which Luma owns: each import makes them what Luma has now.
+`events.description` is the site's own, for an organizer to say it
+differently, and nothing from Luma writes it. The event page's "About" row
+shows the site's description when it says something, and Luma's otherwise.
+The tagline stays the site's too: while it is a placeholder ("See Luma for
+event details and registration.", or the first sync's "<name> at All Things
+Web"), the summary stands in for it on the page, in its structured data
+and in the feed (`src/tagline.ts`).
+
+The hourly sync imports descriptions after the events (web/src/sync/run.ts).
+To run it now, for every event, from `core/`:
+
+```sh
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:descriptions --dry-run   # ask Luma, print what would change
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:descriptions             # write it
+```
+
+`tests/luma-descriptions.test.ts` runs the conversion, the client against
+fixtures and the import against `tests/seed.sql`; nothing reaches Luma.
+
 ## Luma people import
 
 The calendar feed names no hosts and counts no guests. `src/luma/api.ts`
@@ -145,8 +176,9 @@ the same report:
 - everyone named on the event: title, bio, photo, links
 - hosts, with their logo and about, and their website and X, Bluesky or
   LinkedIn
-- venue address, the lockup's topic, the Luma sync's placeholder tagline,
-  a cover
+- venue address, the lockup's topic, a description (the site's or
+  Luma's), a tagline that is no placeholder or a summary to stand in for
+  it, a cover
 - for past events: photos, a recording link, and Luma's guest count
 
 Links, cover, recording and guest count are optional; the rest is

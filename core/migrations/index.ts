@@ -9,6 +9,7 @@ import hostLinksMigration from "./0007_host_links.ts";
 import eventProgramMigration from "./0008_event_program.ts";
 import eventCurationMigration from "./0009_event_curation.ts";
 import hostLumaUserMigration from "./0010_host_luma_user.ts";
+import eventDescriptionMigration from "./0011_event_description.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -28,6 +29,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0008_event_program": eventProgramMigration,
   "0009_event_curation": eventCurationMigration,
   "0010_host_luma_user": hostLumaUserMigration,
+  "0011_event_description": eventDescriptionMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

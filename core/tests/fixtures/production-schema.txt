@@ -92,6 +92,9 @@ column public.events #021 luma_checked_in_count integer
 column public.events #022 program text not null default 'talks'::text
 column public.events #023 curation text not null default 'ours'::text
 column public.events #024 organized_by uuid
+column public.events #025 luma_description text
+column public.events #026 luma_summary text
+column public.events #027 description text
 column public.images #001 id uuid not null default gen_random_uuid()
 column public.images #002 url text not null
 column public.images #003 placeholder text not null
