@@ -317,6 +317,7 @@ describe("a past evening", () => {
       "Recording",
       "On stage",
       "Photos",
+      "Posts",
       "Next",
     ]);
     expect(html).not.toContain("I’m in");
@@ -362,6 +363,30 @@ describe("a past evening", () => {
       `<img src="${eventPhoto("stage")}" alt="Ada on stage" width="1200" height="1600"`,
     );
     expect(photos).not.toContain("elsewhere.example");
+  });
+
+  it("lists its approved posts, earliest first, with their photos on the media origin", async ({
+    Events,
+  }) => {
+    const { html } = await page(Events, slugs.past);
+    const posts = row(html, "Posts");
+    expect(
+      [...posts.matchAll(/<p class="post-text">([^<]+)<\/p>/g)].map(
+        ([, text]) => text,
+      ),
+    ).toEqual(["Compilers, together, at Sanity.", "Thanks, Sanity!"]);
+    expect(posts).toContain(
+      `<img src="${eventPhoto("stage")}" alt="Ada on stage" width="1200" height="1600" loading="lazy" decoding="async"/>`,
+    );
+    expect(posts).toContain(
+      `<li class="post"><img src="${speakerPortrait}" alt="" width="36" height="36" loading="lazy" decoding="async"/>`,
+    );
+    expect(posts).toContain(
+      '<a href="https://x.com/i/status/1884000000000000001"><time datetime="2025-01-29T02:30:00.000Z">Tue Jan 28</time><span> on X</span><span aria-hidden="true"> →</span></a>',
+    );
+    expect(posts).not.toContain("Hidden by an organizer.");
+    expect(posts).not.toContain("Found by a search.");
+    expect(posts).not.toContain("more on X");
   });
 
   it("points to the live evening as next", async ({ Events }) => {

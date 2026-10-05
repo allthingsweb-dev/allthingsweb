@@ -5,7 +5,9 @@ import { DataSourceError, EventNotFound } from "../src/errors.ts";
 import {
   type EventPage,
   EventPages,
+  excerpt,
   guestCountFloor,
+  postLimit,
   toVenue,
 } from "../src/event-page.ts";
 import { clockAt, now, seededDatabase, sqlLayer } from "./support/database.ts";
@@ -320,6 +322,96 @@ describe("EventPages", () => {
     } finally {
       await broken.close();
     }
+  });
+});
+
+describe("posts about the evening", () => {
+  test("lists the approved ones, earliest first, with their copied images", async () => {
+    const { posts, morePosts } = await read("2026-08-12-react-at-acme");
+    expect(morePosts).toBe(0);
+    expect(posts).toEqual([
+      {
+        url: "https://x.com/i/status/1900000000000000001",
+        platform: "x",
+        authorName: "Ada Lovelace",
+        authorHandle: "ada",
+        authorUrl: "https://x.com/ada",
+        postedAt: at("2026-08-13T02:30:00Z"),
+        text: "Server components, live at Acme.",
+        image: {
+          url: "https://storage.example/photos/stage.jpg",
+          alt: "The stage",
+          width: 1600,
+          height: 900,
+          version: expect.stringMatching(/^[0-9]+$/),
+        },
+        avatar: {
+          url: "https://storage.example/people/ada.jpg",
+          alt: "Ada Lovelace",
+          width: 400,
+          height: 400,
+          version: expect.stringMatching(/^[0-9]+$/),
+        },
+      },
+      {
+        url: "https://bsky.app/profile/did:plc:grace/post/3abc",
+        platform: "bluesky",
+        authorName: "Grace Hopper",
+        authorHandle: "grace.example",
+        authorUrl: "https://bsky.app/profile/grace.example",
+        postedAt: at("2026-08-13T05:00:00Z"),
+        text: "Thanks, Acme!\nSee you next month.",
+        image: null,
+        avatar: null,
+      },
+    ]);
+  });
+
+  test("an evening without posts has none", async () => {
+    const page = await read("2025-12-02-café-night");
+    expect(page.posts).toEqual([]);
+    expect(page.morePosts).toBe(0);
+  });
+
+  test(`lists at most ${postLimit}, counts the rest, and keeps images on the photo origin only`, async () => {
+    const database = await seededDatabase();
+    try {
+      await database.exec(`
+        INSERT INTO images (id, url, placeholder, alt, width, height, updated_at) VALUES
+          ('d0000000-0000-4000-8000-000000000300', 'https://pbs.twimg.com/media/elsewhere.jpg', '', 'Elsewhere', 800, 600, now());
+        INSERT INTO event_posts (event_id, platform, url, author_name, posted_at, text, image, author_url, status, updated_at)
+        SELECT 'e0000000-0000-4000-8000-000000000006', 'x', 'https://x.com/i/status/' || n,
+          'Poster ' || n, '2025-12-03T06:00:00Z'::timestamptz + n * interval '1 minute',
+          'Post ' || n, 'd0000000-0000-4000-8000-000000000300', 'javascript:alert(1)',
+          'approved', now()
+        FROM generate_series(1, ${postLimit + 3}) AS n;
+      `);
+      const { posts, morePosts } = await Effect.runPromise(
+        readPage("2025-12-02-café-night", now, database),
+      );
+      expect(posts.map((post) => post.text)).toEqual(
+        Array.from({ length: postLimit }, (_, index) => `Post ${index + 1}`),
+      );
+      expect(morePosts).toBe(3);
+      expect(posts.every((post) => post.image === null)).toBe(true);
+      expect(posts.every((post) => post.authorUrl === null)).toBe(true);
+    } finally {
+      await database.close();
+    }
+  });
+
+  test.each([
+    ["short", 20, "short"],
+    ["  trimmed  ", 20, "trimmed"],
+    ["one two three four five", 20, "one two three four…"],
+    // No word ends near the limit: cut where it falls.
+    ["one two three four five", 12, "one two thr…"],
+    ["abcdefghijklmnopqrstuvwxyz", 10, "abcdefghi…"],
+    ["😀😀😀😀😀😀", 4, "😀😀😀…"],
+    // A flag and a family are one character each.
+    ["🇺🇸🇺🇸👨‍👩‍👧🇺🇸", 3, "🇺🇸🇺🇸…"],
+  ])("excerpt(%j, %i) is %j", (text, limit, expected) => {
+    expect(excerpt(text, limit)).toBe(expected);
   });
 });
 

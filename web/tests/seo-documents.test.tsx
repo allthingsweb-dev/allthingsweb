@@ -338,6 +338,8 @@ const details = (overrides: Partial<EventPage> = {}): EventPage => ({
   recordingUrl: null,
   talks: [],
   photos: [],
+  posts: [],
+  morePosts: 0,
   next: undefined,
   ...overrides,
 });

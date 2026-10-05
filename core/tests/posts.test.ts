@@ -408,6 +408,12 @@ describe("adding posts", () => {
     expect(await rows(db)).toHaveLength(1);
   });
 
+  test("a post found by a search waits as pending", async () => {
+    const db = await database();
+    await add(db, "2026-08-12-react-at-acme", xUrl, { status: "pending" });
+    expect(await rows(db)).toMatchObject([{ status: "pending" }]);
+  });
+
   test("a dry run reads the post and writes nothing", async () => {
     const db = await database();
     const { exit } = await add(db, "2026-08-12-react-at-acme", xUrl, {
