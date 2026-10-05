@@ -617,7 +617,7 @@ function meetupDraft(input: PromoInput): MeetupDraft {
       `Event chat: Discord, ${discordInvite}.`,
       "Comments: off.",
       "Co-host: add Andre Landgraf.",
-      "Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it.",
+      `Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it (bun run promo:cover ${event.slug}).`,
       "Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.",
       "After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.",
     ],

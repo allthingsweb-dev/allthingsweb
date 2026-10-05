@@ -170,6 +170,12 @@ DATABASE_URL=… bun run promo <slug> --channel x --channel meetup # only these
 DATABASE_URL=… bun run promo <slug> --json                       # with each draft's length and limit
 ```
 
+Meetup crops covers to 16:9, which would cut a square Luma cover.
+`bun run promo:cover <slug> [--out <file>]` writes the evening's stored
+cover centered on black in the smallest exact 16:9 frame that holds it,
+unscaled (`scripts/pad-cover.ts`), by default to the system's temporary
+directory.
+
 It only reads. The admin MCP server's `get_promo_drafts` runs the same
 script. `tests/promo.test.ts` keeps each seeded evening's drafts as golden
 files in `tests/fixtures/promo/`; after an intended change, regenerate them
