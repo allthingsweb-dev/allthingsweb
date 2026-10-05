@@ -35,6 +35,14 @@ NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential") \
 
 `alchemy destroy` needs no `NEON_READER_URL`.
 
+The hourly Luma sync writes production as `site_sync`, a second login role made the same way by [`scripts/site-sync.ts`](scripts/site-sync.ts):
+
+- It holds only the column privileges the sync's statements use: upserting events from Luma's feed, and storing missing covers, profile photos and post images.
+- It has no `DELETE`, and no access to any table the sync doesn't touch.
+- Its statements, lock waits and idle transactions time out at 30 seconds or less.
+
+[`core/tests/site-sync.test.ts`](../core/tests/site-sync.test.ts) runs the sync as the role and checks everything else is refused. The connection string is in the `NEON_SYNC_URL` repository secret and the "allthings site_sync" 1Password item.
+
 `prod` (media, the upload Worker and the Vercel env) still lives in the account that holds the allthings.dev domain, and a maintainer deploys it with the `default` profile until the domain moves to the allthings account.
 
 ## CI credentials

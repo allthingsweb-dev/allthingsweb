@@ -116,6 +116,30 @@ The admin MCP server's `add_event_post` runs the same script.
 `tests/posts.test.ts` runs against recorded answers; nothing in the tests
 reaches X, FixTweet or Bluesky.
 
+## Schedules and notes
+
+Some events' pages say more than the record: a hackathon's schedule, its
+awards, theme and how teams form. `event_schedule_items` holds an event's
+schedule in order, each step's time as the organizers wrote it ("1 - 7 pm",
+"~7:00 pm"); `event_notes` holds rows of the page under their own label
+("Awards", "Theme"), with bodies in editor HTML that are sanitized as talk
+descriptions are. `EventPages` reads both, and the Worker's event page shows
+a Schedule row and a row per note.
+
+`core/backfill/event-extras.json` carries what the app's own pages for four
+events said (three hackathons at Sentry and NextDev.fm Live), with the pages
+as sources. Who hosted NextDev.fm Live and who was its guest is in
+`core/backfill/lineups.json`: a fireside chat its hosts moderated.
+
+For each event the file names, it is the whole schedule and the whole set
+of notes: applying replaces anything else, and changes nothing where the
+database already matches. Run it from `core/`:
+
+```sh
+DATABASE_URL=… bun run event-extras --dry-run   # do everything, print it, roll back
+DATABASE_URL=… bun run event-extras             # write
+```
+
 ## Promotion drafts
 
 `src/promo/` drafts an evening's promotion from its record, in the brand's
@@ -134,6 +158,12 @@ DATABASE_URL=… bun run promo <slug>                              # every draft
 DATABASE_URL=… bun run promo <slug> --channel x --channel meetup # only these
 DATABASE_URL=… bun run promo <slug> --json                       # with each draft's length and limit
 ```
+
+Meetup crops covers to 16:9, which would cut a square Luma cover.
+`bun run promo:cover <slug> [--out <file>]` writes the evening's stored
+cover centered on black in the smallest exact 16:9 frame that holds it,
+unscaled (`scripts/pad-cover.ts`), by default to the system's temporary
+directory.
 
 It only reads. The admin MCP server's `get_promo_drafts` runs the same
 script. `tests/promo.test.ts` keeps each seeded evening's drafts as golden
