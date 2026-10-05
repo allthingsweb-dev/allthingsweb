@@ -374,6 +374,31 @@ describe("/img/", () => {
   });
 });
 
+describe("/people with variants", () => {
+  it("offers the organizers' portraits as squares from this site alone", async ({
+    Variants,
+  }) => {
+    const response = await fetch(`${Variants}/people`);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toBe(
+      contentSecurityPolicy.variants,
+    );
+    expect(html).toContain(
+      `<img class="portrait" src="/img/160x160/jpeg/${version}/profiles/erik.jpg" srcset="/img/160x160/jpeg/${version}/profiles/erik.jpg 160w, /img/320x320/jpeg/${version}/profiles/erik.jpg 320w"`,
+    );
+    for (const path of [...subresources(html), ...imageUrls(html)]) {
+      expect(path).toMatch(/^\/(?!\/)/);
+    }
+    const { response: variant, body } = await get(
+      Variants,
+      `/img/320x320/webp/${version}/profiles/erik.jpg`,
+    );
+    expect(variant.status).toBe(200);
+    expect(dimensions(body)).toEqual({ width: 320, height: 320 });
+  });
+});
+
 describe("/ without variants", () => {
   it("links the originals, which only its policy allows", async ({
     Originals,

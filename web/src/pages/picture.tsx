@@ -3,8 +3,8 @@ import {
   type Format,
   type Size,
   type Source,
+  type Square,
   sourceOf,
-  squares,
   variantPath,
   type Width,
   widths,
@@ -72,21 +72,35 @@ interface ImgProps {
   readonly alt: string;
   readonly width: string;
   readonly height: string;
+  readonly class?: string | undefined;
+  /** Loaded at once, as what the page leads with is. */
+  readonly eager?: true | undefined;
   /** Loaded after everything else, as the footer's portraits are. */
   readonly last?: true | undefined;
 }
 
-/** An image that loads lazily and decodes off the main thread. */
-function Img({ src, srcset, sizes, alt, width, height, last }: ImgProps) {
+/** An image that loads lazily, unless `eager`, and decodes off the main thread. */
+function Img({
+  src,
+  srcset,
+  sizes,
+  alt,
+  width,
+  height,
+  class: className,
+  eager,
+  last,
+}: ImgProps) {
   return (
     <img
+      class={className}
       src={src}
       srcset={srcset}
       sizes={sizes}
       alt={alt}
       width={width}
       height={height}
-      loading="lazy"
+      loading={eager === undefined ? "lazy" : undefined}
       decoding="async"
       fetchpriority={last === undefined ? undefined : "low"}
     />
@@ -141,13 +155,86 @@ export function Photo({ photo, mode, sizes }: PhotoProps) {
   );
 }
 
-const squareSrcset = (source: Source, format: Format) =>
-  squares
-    .map(
-      (side, index) =>
-        `${path(source, { kind: "square", side }, format)} ${index + 1}x`,
-    )
-    .join(", ");
+/** The squares a photo is offered at: those it fills without enlarging. */
+function squaresOf(
+  photo: Rows.Photo,
+  sides: ReadonlyArray<Square>,
+): ReadonlyArray<Square> {
+  const fitting = sides.filter(
+    (side) => side <= Math.min(photo.width, photo.height),
+  );
+  return fitting.length === 0 ? sides.slice(0, 1) : fitting;
+}
+
+export interface SquarePhotoProps {
+  readonly photo: Rows.Photo;
+  readonly mode: ImageMode;
+  /** How many CSS pixels square it is shown at most: its width and height. */
+  readonly side: number;
+  /**
+   * The squares offered. With `sizes`, each by its width; without, the
+   * first at 1x, the next at 2x, and so on.
+   */
+  readonly sides: ReadonlyArray<Square>;
+  readonly sizes?: string | undefined;
+  readonly alt: string;
+  readonly class?: string | undefined;
+  readonly eager?: true | undefined;
+  readonly last?: true | undefined;
+}
+
+/**
+ * A photo cropped square to fill its box: a portrait. In "variants", a
+ * <picture> offering the squares in AVIF, WebP and JPEG; in "originals",
+ * the original, however large. A photo without a source shows nothing, so
+ * the caller can show the blank avatar instead (see `hasSource`).
+ */
+export function SquarePhoto({
+  photo,
+  mode,
+  side,
+  sides,
+  sizes,
+  ...rest
+}: SquarePhotoProps) {
+  const img = { ...rest, width: String(side), height: String(side) };
+  if (mode === "originals") return <Img src={photo.url} {...img} />;
+  const source = sourceOf(photo);
+  if (source === undefined) return "";
+  const offered = squaresOf(photo, sides);
+  const srcset = (format: Format) =>
+    offered
+      .map(
+        (square, index) =>
+          `${path(source, { kind: "square", side: square }, format)} ${sizes === undefined ? `${index + 1}x` : `${square}w`}`,
+      )
+      .join(", ");
+  return (
+    <picture>
+      {sourceFormats.map((format) => (
+        <source
+          type={`image/${format}`}
+          srcset={srcset(format)}
+          sizes={sizes}
+        />
+      ))}
+      <Img
+        src={path(
+          source,
+          { kind: "square", side: offered[0] ?? sides[0] ?? 36 },
+          "jpeg",
+        )}
+        srcset={srcset("jpeg")}
+        sizes={sizes}
+        {...img}
+      />
+    </picture>
+  );
+}
+
+/** Whether a page in `mode` can show `photo` (else the blank avatar). */
+export const hasSource = (photo: Rows.Photo, mode: ImageMode): boolean =>
+  mode === "originals" || sourceOf(photo) !== undefined;
 
 export interface PortraitProps {
   readonly photo: Rows.Photo | undefined;
@@ -158,28 +245,20 @@ export interface PortraitProps {
 
 /**
  * A portrait in the footer: 36 CSS pixels square, cropped to fill, loaded
- * lazily, last and off the main thread. In "variants", at 1x and 2x in
- * AVIF, WebP and JPEG; in "originals", the original, however large.
+ * lazily, last and off the main thread, at 1x and 2x.
  */
 export function Portrait({ photo, mode, blank }: PortraitProps) {
-  const img = { alt: "", width: "36", height: "36", last: true } as const;
-  if (photo === undefined) return <Img src={blank} {...img} />;
-  if (mode === "originals") return <Img src={photo.url} {...img} />;
-  const source = sourceOf(photo);
-  if (source === undefined) return <Img src={blank} {...img} />;
+  if (photo === undefined || !hasSource(photo, mode)) {
+    return <Img src={blank} alt="" width="36" height="36" last />;
+  }
   return (
-    <picture>
-      {sourceFormats.map((format) => (
-        <source
-          type={`image/${format}`}
-          srcset={squareSrcset(source, format)}
-        />
-      ))}
-      <Img
-        src={path(source, { kind: "square", side: squares[0] }, "jpeg")}
-        srcset={squareSrcset(source, "jpeg")}
-        {...img}
-      />
-    </picture>
+    <SquarePhoto
+      photo={photo}
+      mode={mode}
+      side={36}
+      sides={[36, 72]}
+      alt=""
+      last
+    />
   );
 }
