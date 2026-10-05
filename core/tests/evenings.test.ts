@@ -77,6 +77,7 @@ describe("Evenings", () => {
       neighborhood: null,
       hosts: ["Globex", "Acme"],
       rsvpUrl: "https://lu.ma/event/evt-react",
+      curation: { kind: "ours" },
     });
     expect(
       ahead.find((evening) => evening.slug === "2026-11-05-same-start"),

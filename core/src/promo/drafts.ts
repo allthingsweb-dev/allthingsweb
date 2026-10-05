@@ -1,5 +1,6 @@
 import { DateTime } from "effect";
 import type { EventPage, Person, Speaker, Talk } from "../event-page.ts";
+import type { Organizer } from "../rows.ts";
 import { eventUrl, httpUrlOrNull } from "../mappers.ts";
 import type { StageRole } from "../people.ts";
 import { htmlToPlainText } from "../rich-text.ts";
@@ -16,6 +17,10 @@ import { fitOn, type Platform } from "./limits.ts";
  * neighborhood by its local name; no hype words, exclamation marks or
  * emoji in our own words. "see you at/<topic>" follows a commitment, so it
  * closes only the day-of message to the Discord, never a post that asks.
+ *
+ * An evening we only share is someone else's: its posts recommend it, by
+ * its organizer, and say why; it gets no Luma description or Meetup
+ * listing of ours.
  */
 
 /** Where people talk between evenings. */
@@ -77,9 +82,13 @@ export interface PromoDrafts {
   readonly title: string;
   /** What the record lacks that the drafts would say: fix these first. */
   readonly gaps: ReadonlyArray<string>;
-  /** Markdown, for Luma's description. */
-  readonly luma: string;
-  readonly meetup: MeetupDraft;
+  /**
+   * Markdown, for Luma's description; null for an evening we only share,
+   * whose Luma page is its organizer's to write.
+   */
+  readonly luma: string | null;
+  /** Null for an evening we only share: it isn't ours to list. */
+  readonly meetup: MeetupDraft | null;
   readonly social: Readonly<
     Record<SocialChannel, Readonly<Record<Moment, string>>>
   >;
@@ -443,6 +452,90 @@ function socialDrafts(
   return { announce, dayOf: dayOfDraft, recap };
 }
 
+/** Why we post about an evening that isn't ours, in our own words. */
+export const sharedReason =
+  "Not one of ours: we're sharing it because we think it's good.";
+
+/** How a shared evening's organizer reads in a post on `channel`. */
+function organizerOn(channel: SocialChannel, organizer: Organizer): string {
+  const handle =
+    channel === "x"
+      ? xHandle(organizer.twitterHandle)
+      : channel === "bluesky"
+        ? blueskyHandle(organizer.blueskyHandle)
+        : null;
+  return handle === null ? organizer.name : `@${handle}`;
+}
+
+/**
+ * Posts for an evening we only share, as a recommendation: whose it is and
+ * why we pass it on, never "join us", "if you're in" or "thank you for
+ * coming", which only the hosts can say.
+ */
+function sharedSocialDrafts(
+  channel: SocialChannel,
+  input: PromoInput,
+  organizer: Organizer,
+): Readonly<Record<Moment, string>> {
+  const { event, handles, origin } = input;
+  const platform: Platform = channel;
+  const by = organizerOn(channel, organizer);
+  const name = (person: Pick<Person, "id" | "name">) =>
+    nameOn(channel, person, handles);
+  const stage = stagePhrase(event.talks, name);
+  const stageNames = stagePhrase(event.talks, (person) => person.name);
+  const hostName = (host: string) => hostOn(channel, host, input.hosts);
+  const where = wherePhrase(event, hostName);
+  const when = `${dayOf(event.startsAt)}, ${clockOf(event.startsAt)}`;
+  const page = eventUrl(origin, event.slug);
+  // Where to take a seat, or the evening's page when Luma has none.
+  const luma = event.rsvpUrl ?? page;
+  const title = channel === "discord" ? `**${event.name}**` : event.name;
+  const heading = `${title}, by ${by}`;
+  const longForm = channel === "linkedin" || channel === "discord";
+
+  const announce = fitOn(platform, [
+    paragraphs(
+      stage === null ? `${heading}.` : `${heading}: ${stage}.`,
+      longForm ? taglineOf(event) : null,
+      sharedReason,
+      `${when}${where === null ? "" : `, ${where}`}.`,
+      luma,
+    ),
+    paragraphs(
+      stage === null ? `${heading}.` : `${heading}: ${stage}.`,
+      sharedReason,
+      `${when}.`,
+      luma,
+    ),
+    paragraphs(
+      stageNames === null ? `${heading}.` : `${heading}: ${stageNames}.`,
+      `${when}.`,
+      luma,
+    ),
+    paragraphs(`${heading}, ${when}.`, luma),
+  ]);
+
+  const doors = `Doors ${clockOf(event.startsAt)}${where === null ? "" : `, ${where}`}.`;
+  const dayOfDraft = fitOn(platform, [
+    paragraphs(
+      `${todayWord(event)}: ${heading}.`,
+      stage === null ? null : `On stage: ${stage}.`,
+      doors,
+      luma,
+    ),
+    paragraphs(`${todayWord(event)}: ${heading}.`, doors, luma),
+    paragraphs(`${todayWord(event)}: ${heading}.`, luma),
+  ]);
+
+  const recap = fitOn(platform, [
+    paragraphs(`From ${heading}${stage === null ? "." : `: ${stage}.`}`, page),
+    paragraphs(`From ${heading}.`, page),
+  ]);
+
+  return { announce, dayOf: dayOfDraft, recap };
+}
+
 /** " · panel" after a talk's title, unless the title already says so. */
 const formatSuffix = (talk: Talk): string => {
   const format = formatNames[talk.format].replace(/^a /, "");
@@ -687,6 +780,17 @@ export function promoGaps({
     ...(event.talks.length === 0
       ? ["No talks are on record, so nothing says who is on stage."]
       : []),
+    ...(event.curation.kind === "shared"
+      ? untaggedOn(
+          event.curation.organizer.name,
+          {
+            x: event.curation.organizer.twitterHandle,
+            bluesky: event.curation.organizer.blueskyHandle,
+            linkedin: event.curation.organizer.linkedinHandle,
+          },
+          "it",
+        )
+      : []),
     ...speakers.flatMap((speaker) =>
       untaggedOn(speaker.name, handles.get(speaker.id), "them"),
     ),
@@ -706,6 +810,22 @@ export function promoGaps({
 
 /** Every draft for `input`'s evening. */
 export function promoDrafts(input: PromoInput): PromoDrafts {
+  const { curation } = input.event;
+  if (curation.kind === "shared") {
+    const { organizer } = curation;
+    return {
+      title: titleOf(input.event),
+      gaps: promoGaps(input),
+      luma: null,
+      meetup: null,
+      social: {
+        x: sharedSocialDrafts("x", input, organizer),
+        bluesky: sharedSocialDrafts("bluesky", input, organizer),
+        linkedin: sharedSocialDrafts("linkedin", input, organizer),
+        discord: sharedSocialDrafts("discord", input, organizer),
+      },
+    };
+  }
   return {
     title: titleOf(input.event),
     gaps: promoGaps(input),

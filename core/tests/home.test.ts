@@ -66,6 +66,7 @@ describe("Home", () => {
       neighborhood: null,
       hosts: [],
       rsvpUrl: null,
+      curation: { kind: "ours" },
     });
     expect(slugs(home.afterThat)).toEqual([
       "2026-10-03-hack-day",
@@ -90,6 +91,7 @@ describe("Home", () => {
       neighborhood: null,
       hosts: ["Globex", "Acme"],
       rsvpUrl: "https://lu.ma/event/evt-react",
+      curation: { kind: "ours" },
     });
     const effect = await read({ at: at("2026-11-07T00:00:00Z") });
     expect(effect.next).toMatchObject({
@@ -214,6 +216,40 @@ describe("Home", () => {
       "The stage",
       "Coffee at Café night",
     ]);
+  });
+
+  test("leads with our next evening, never one we only share, which it lists marked", async () => {
+    const shared = await seededDatabase();
+    try {
+      await shared.exec(`
+        INSERT INTO sponsors (id, name, about, website_url, twitter_handle, updated_at) VALUES
+          ('c0000000-0000-4000-8000-000000000900', 'Mastra', 'Agents in TypeScript.', 'https://mastra.ai', 'mastra', now());
+        UPDATE events SET curation = 'shared', organized_by = 'c0000000-0000-4000-8000-000000000900'
+          WHERE slug IN ('2026-10-03-ends-now', '2026-08-12-react-at-acme');
+      `);
+      const home = await read({ database: shared });
+      expect(home.next?.slug).toBe("2026-10-03-hack-day");
+      expect(slugs(home.afterThat)).toEqual([
+        "2026-10-03-ends-now",
+        "2026-11-05-upcoming",
+      ]);
+      expect(home.afterThat[0]?.curation).toEqual({
+        kind: "shared",
+        organizer: {
+          name: "Mastra",
+          websiteUrl: "https://mastra.ai",
+          twitterHandle: "mastra",
+          blueskyHandle: null,
+          linkedinHandle: null,
+        },
+      });
+      // Shared, it is named as written: no all things/<topic>.
+      expect(home.afterThat[0]?.topic).toBeUndefined();
+      // Photos are of our evenings alone.
+      expect(home.photos.map((photo) => photo.alt)).not.toContain("The stage");
+    } finally {
+      await shared.close();
+    }
   });
 
   test("fails as DataSourceError when the database does", async () => {

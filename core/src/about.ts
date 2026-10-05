@@ -14,8 +14,8 @@ import { listingJson } from "./sql.ts";
  * What the about page says about all things, read as of the `Clock` in one
  * statement: how many evenings it has held and who came, where each of the
  * names it went by first appeared, and its organizers as their profiles
- * have them. Every number is counted from the data, at published evenings
- * that have ended; nothing is typed in.
+ * have them. Every number is counted from the data, at our published
+ * evenings that have ended (never ones we only share); nothing is typed in.
  */
 
 /**
@@ -155,6 +155,7 @@ const make = Effect.gen(function* () {
       WITH held AS (
         SELECT e.* FROM events e
         WHERE e.is_draft = false AND e.end_date < ${now}
+          AND e.curation = 'ours'
       )
       SELECT
         (SELECT count(*)::int FROM held) AS evenings,

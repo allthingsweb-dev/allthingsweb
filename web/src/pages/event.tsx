@@ -13,6 +13,7 @@ import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
+import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { built } from "../assets.ts";
 import {
   eventPath,
@@ -424,6 +425,65 @@ function HostedAt({
     </Fact>
   );
 }
+
+/**
+ * Who organizes an evening we only share, linked to their site, and what
+ * sharing it means; any hosting companies follow, as on our own evenings.
+ */
+function OrganizedBy({
+  organizer,
+  event,
+  images,
+}: {
+  readonly organizer: Rows.Organizer;
+  readonly event: EventPage;
+  readonly images: ImageMode;
+}) {
+  const site = httpUrlOrNull(organizer.websiteUrl);
+  return (
+    <Fact label="Organized by">
+      <>
+        {site === null ? (
+          <p class="fact-head" safe>
+            {organizer.name}
+          </p>
+        ) : (
+          <p class="fact-head">
+            <a href={site} safe>
+              {organizer.name}
+            </a>
+          </p>
+        )}
+        <p>{sharedNote}</p>
+        {event.hosts.length === 0 ? (
+          ""
+        ) : (
+          <p>
+            hosted at <HostNames names={event.hosts} sites={event.hostSites} />
+          </p>
+        )}
+        {event.coHosts.length === 0 ? (
+          ""
+        ) : (
+          <People
+            label={event.coHosts.length === 1 ? "co-host" : "co-hosts"}
+            people={event.coHosts}
+            images={images}
+          />
+        )}
+        {event.mcs.length === 0 ? (
+          ""
+        ) : (
+          <People label="mc" people={event.mcs} images={images} />
+        )}
+      </>
+    </Fact>
+  );
+}
+
+/** What sharing an evening means, wherever the page says it is shared. */
+export const sharedNote =
+  "Not one of our evenings: we share it because we think it’s good.";
 
 /** How to get in: seats on Luma and "I'm in". */
 function Seats({
@@ -937,7 +997,15 @@ export function eventPage({
           ) : (
             <Where venue={event.venue} hostingCompanies={event.hosts} />
           )}
-          <HostedAt event={event} portraits={portraits} images={images} />
+          {event.curation.kind === "shared" ? (
+            <OrganizedBy
+              organizer={event.curation.organizer}
+              event={event}
+              images={images}
+            />
+          ) : (
+            <HostedAt event={event} portraits={portraits} images={images} />
+          )}
           {!past && event.rsvpUrl !== null ? (
             <Seats
               rsvpUrl={event.rsvpUrl}

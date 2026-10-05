@@ -148,6 +148,13 @@
       "when": 1791228143253,
       "tag": "0020_event_program",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791229095409,
+      "tag": "0021_event_curation",
+      "breakpoints": true
     }
   ]
 }

@@ -12,8 +12,9 @@ import { listingJson } from "./sql.ts";
 
 /**
  * What the home page shows, read as of the `Clock`. Home says each thing
- * once (brand/foundations.md, "Layout"): the next evening is the hero, real
- * photos sit beside it, and the lists below show only other evenings.
+ * once (brand/foundations.md, "Layout"): our next evening is the hero, real
+ * photos of ours sit beside it, and the lists below show only other
+ * evenings, ours and the ones we share, marked as such.
  */
 
 /** "After that" lists at most this many evenings after the next one. */
@@ -39,12 +40,17 @@ export interface Evening {
   readonly hosts: ReadonlyArray<string>;
   /** Where "I'm in" goes: the event's Luma page. */
   readonly rsvpUrl: string | null;
+  /** Ours, or someone else's evening we share, with who organizes it. */
+  readonly curation: Rows.Curation;
 }
 
 export interface HomeView {
-  /** The live or next evening, if one is announced. */
+  /**
+   * Our live or next evening, if one is announced: the hero is always one
+   * of ours, never one we only share.
+   */
   readonly next: Evening | undefined;
-  /** The evenings announced after it, soonest first. */
+  /** The other evenings announced, ours and shared, soonest first. */
   readonly afterThat: ReadonlyArray<Evening>;
   /** The latest evenings that have ended, latest first. */
   readonly recently: ReadonlyArray<Evening>;
@@ -69,16 +75,18 @@ export function toEvening(listing: Rows.Listing, now: DateTime.Utc): Evening {
     ]),
     hosts: listing.hosts,
     rsvpUrl: rsvpUrl(listing.lumaEventId),
+    curation: listing.curation,
   };
 }
 
 export function toHome(row: Rows.HomeRow, now: DateTime.Utc): HomeView {
-  const [next, ...afterThat] = row.ahead.map((listing) =>
-    toEvening(listing, now),
-  );
+  const next = row.next === null ? undefined : toEvening(row.next, now);
   return {
     next,
-    afterThat,
+    afterThat: row.ahead
+      .filter((listing) => listing.slug !== next?.slug)
+      .slice(0, afterThatLimit)
+      .map((listing) => toEvening(listing, now)),
     recently: row.recent.map((listing) => toEvening(listing, now)),
     photos: row.photos,
   };
@@ -106,12 +114,22 @@ const make = Effect.gen(function* () {
   const listing = sql.literal(listingJson);
 
   // An event is live through its end, so "ahead" is everything that hasn't
-  // ended (as eventStatus has it). Ids break ties between equal starts.
+  // ended (as eventStatus has it). "Next" is the soonest of ours; "ahead"
+  // holds enough to list the rest after it. Ids break ties between equal
+  // starts.
   const findHome = SqlSchema.findOne({
     Request,
     Result: Rows.HomeRow,
     execute: ({ now, photoPrefix }) => sql`
       SELECT
+        (
+          SELECT ${listing}
+          FROM events e
+          WHERE e.is_draft = false AND e.end_date >= ${now}
+            AND e.curation = 'ours'
+          ORDER BY e.start_date, e.id
+          LIMIT 1
+        ) AS next,
         COALESCE((
           SELECT json_agg(x.listing ORDER BY x.start_date, x.id)
           FROM (
@@ -147,6 +165,7 @@ const make = Effect.gen(function* () {
               JOIN event_images ei ON ei.event_id = e.id
               JOIN images img ON img.id = ei.image_id
               WHERE e.is_draft = false AND e.end_date < ${now}
+                AND e.curation = 'ours'
                 AND starts_with(img.url, ${photoPrefix})
               ORDER BY e.id, ei.created_at, img.id
             ) first_photos

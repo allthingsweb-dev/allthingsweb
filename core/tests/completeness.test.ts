@@ -54,6 +54,7 @@ const complete: EventRecord = {
   lumaEventId: "evt-effect",
   recordingUrl: "https://www.youtube.com/watch?v=abc",
   program: "talks",
+  curation: { kind: "ours" },
   hasCover: true,
   lumaGuestCount: 183,
   photos: 12,
@@ -91,6 +92,7 @@ describe("what an event lacks", () => {
       name: complete.name,
       status: "past",
       program: "talks",
+      curation: "ours",
       startDate: complete.startDate,
       endDate: complete.endDate,
       talks: 1,
@@ -130,6 +132,29 @@ describe("what an event lacks", () => {
         talks: [{ title: "A demo", description: "", speakers: [] }],
       }),
     ).toEqual(["talk-speakers: A demo", "talk-description: A demo"]);
+  });
+
+  test("a shared evening needs no people of ours, and no topic", () => {
+    const shared = {
+      ...complete,
+      topic: null,
+      name: "TypeScript AI Demo Day",
+      curation: {
+        kind: "shared",
+        organizer: {
+          name: "Mastra",
+          websiteUrl: "https://mastra.ai",
+          twitterHandle: "mastra",
+          blueskyHandle: null,
+          linkedinHandle: null,
+        },
+      },
+      people: [],
+    } as const;
+    expect(gapsOf(shared)).toEqual([]);
+    expect(eventCompleteness(shared, after).curation).toBe("shared");
+    // Its talks are still checked.
+    expect(gapsOf({ ...shared, talks: [] })).toEqual(["talks"]);
   });
 
   test("its people, and an organizer among them", () => {

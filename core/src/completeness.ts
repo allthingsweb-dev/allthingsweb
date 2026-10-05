@@ -6,7 +6,7 @@ import { eventTopic } from "./lockup.ts";
 import { defaultTagline } from "./luma/sync.ts";
 import { eventStatus, httpUrlOrNull } from "./mappers.ts";
 import * as Rows from "./rows.ts";
-import { orDataSourceError } from "./sql.ts";
+import { curationJson, orDataSourceError } from "./sql.ts";
 
 /**
  * What each published event's record lacks: talks, the people around it and
@@ -85,6 +85,7 @@ export const EventRecord = Schema.Struct({
   lumaEventId: Schema.NullOr(Schema.String),
   recordingUrl: Schema.NullOr(Schema.String),
   program: Rows.EventProgram,
+  curation: Rows.Curation,
   hasCover: Schema.Boolean,
   lumaGuestCount: Schema.NullOr(Schema.Int),
   photos: Schema.Int,
@@ -122,6 +123,8 @@ export interface EventCompleteness {
   readonly status: "upcoming" | "live" | "past";
   /** What kind of evening it is, which decides whether talks are asked for. */
   readonly program: Rows.EventProgram;
+  /** Ours, or someone else's evening we share, which has no people of ours. */
+  readonly curation: Rows.Curation["kind"];
   readonly startDate: DateTime.Utc;
   readonly endDate: DateTime.Utc;
   readonly talks: number;
@@ -162,9 +165,12 @@ export function eventCompleteness(
     }
   }
 
-  if (event.people.length === 0) gaps.push(gap("people"));
-  else if (!event.people.some(({ role }) => role === "organizer")) {
-    gaps.push(gap("organizer"));
+  // A shared evening is someone else's: it has no organizers or MC of ours.
+  if (event.curation.kind === "ours") {
+    if (event.people.length === 0) gaps.push(gap("people"));
+    else if (!event.people.some(({ role }) => role === "organizer")) {
+      gaps.push(gap("organizer"));
+    }
   }
 
   // Everyone named on the event, once each: speakers first, as listed.
@@ -206,7 +212,10 @@ export function eventCompleteness(
 
   const address = event.fullAddress ?? event.streetAddress;
   if (address === null || isBlank(address)) gaps.push(gap("venue"));
-  if (eventTopic(event) === undefined) gaps.push(gap("topic"));
+  // A shared evening is named as written, never all things/<topic>.
+  if (event.curation.kind === "ours" && eventTopic(event) === undefined) {
+    gaps.push(gap("topic"));
+  }
   if (event.tagline.trim() === defaultTagline || isBlank(event.tagline)) {
     gaps.push(gap("tagline"));
   }
@@ -229,6 +238,7 @@ export function eventCompleteness(
     name: event.name,
     status,
     program: event.program,
+    curation: event.curation.kind,
     startDate: event.startDate,
     endDate: event.endDate,
     talks: event.talks.length,
@@ -300,7 +310,7 @@ const make = Effect.gen(function* () {
         e.start_date AS "startDate", e.end_date AS "endDate",
         e.street_address AS "streetAddress", e.full_address AS "fullAddress",
         e.luma_event_id AS "lumaEventId", e.recording_url AS "recordingUrl",
-        e.program,
+        e.program, ${sql.literal(curationJson("e"))} AS curation,
         e.preview_image IS NOT NULL AS "hasCover",
         e.luma_guest_count AS "lumaGuestCount",
         (SELECT count(*)::int FROM event_images ei WHERE ei.event_id = e.id) AS photos,
