@@ -7,11 +7,13 @@ import type { Theme } from "./theme.ts";
  * What every page says about itself in its head, for browsers, search
  * engines and link previews, from one description of the page.
  *
- * Every URL here is absolute and on the configured origin (`ORIGIN`, the
- * production site): a page served on a preview host still names its
- * production address as canonical. None of them is loaded: canonical and
- * alternate links and meta tags only point, so the Content-Security-Policy
- * has nothing to allow for them.
+ * The page's own address is absolute and on the configured origin
+ * (`ORIGIN`, the production site): a page served on a preview host still
+ * names its production address as canonical and in link previews. The
+ * feed is linked root-relative, like every link within the site (see
+ * links.ts), so each stage links to its own. None of them is loaded:
+ * canonical and alternate links and meta tags only point, so the
+ * Content-Security-Policy has nothing to allow for them.
  *
  * Pages name no image for link previews (og:image) yet: the current site's
  * preview images carry the old name, and its routes that draw them go away
@@ -120,7 +122,7 @@ export function Metadata({ meta, origin, theme }: MetadataProps) {
       <link
         rel="alternate"
         type="application/rss+xml"
-        href={`${origin}${rssPath}`}
+        href={rssPath}
         title={homeTitle}
       />
       <meta property="og:type" content="website" />

@@ -19,7 +19,7 @@ import type { ImageMode } from "./picture.tsx";
 
 export interface EventsProps {
   readonly evenings: EveningsView;
-  /** Event pages are on the site at this origin. */
+  /** The production origin, which the page's canonical URL is made from. */
   readonly origin: string;
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
@@ -55,12 +55,10 @@ function EveningList({
   id,
   title,
   evenings,
-  origin,
 }: {
   readonly id: string;
   readonly title: string;
   readonly evenings: ReadonlyArray<Evening>;
-  readonly origin: string;
 }) {
   return (
     <section class="list" aria-labelledby={id}>
@@ -71,7 +69,7 @@ function EveningList({
       </div>
       <ol>
         {evenings.map((evening) => (
-          <EveningRow evening={evening} origin={origin} />
+          <EveningRow evening={evening} />
         ))}
       </ol>
     </section>
@@ -114,19 +112,13 @@ export function eventsPage({
           {ahead.length === 0 ? (
             ""
           ) : (
-            <EveningList
-              id="upcoming"
-              title="Upcoming"
-              evenings={ahead}
-              origin={origin}
-            />
+            <EveningList id="upcoming" title="Upcoming" evenings={ahead} />
           )}
           {byYear(past).map(({ year: when, evenings: inYear }) => (
             <EveningList
               id={`evenings-${when}`}
               title={String(when)}
               evenings={inYear}
-              origin={origin}
             />
           ))}
         </div>

@@ -13,7 +13,12 @@ import {
   LumaUnavailable,
   retryAfter,
 } from "../src/luma/luma.ts";
-import { eventSlug, LumaSync, toEventRow } from "../src/luma/sync.ts";
+import {
+  eventSlug,
+  fillUnseen,
+  LumaSync,
+  toEventRow,
+} from "../src/luma/sync.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
 import {
   configFrom,
@@ -385,6 +390,50 @@ describe("asking Luma", () => {
   });
 });
 
+describe("events a sync did not see", () => {
+  // An event another sync inserted after the statement's snapshot comes back
+  // without a slug, which is read again.
+  const seen = {
+    lumaEventId: "evt-seen",
+    slug: "seen",
+    isDraft: false,
+    changed: true,
+  };
+  const unseen = {
+    lumaEventId: "evt-unseen",
+    slug: null,
+    isDraft: true,
+    changed: false,
+  };
+
+  test("take the stored slug, in feed order", () => {
+    expect(
+      fillUnseen(
+        [unseen, seen],
+        [{ lumaEventId: "evt-unseen", slug: "renamed-since" }],
+      ),
+    ).toEqual([
+      {
+        lumaEventId: "evt-unseen",
+        slug: "renamed-since",
+        isDraft: true,
+        changed: false,
+      },
+      seen,
+    ]);
+  });
+
+  test("keep what the statement returned for the others", () => {
+    expect(
+      fillUnseen([seen], [{ lumaEventId: "evt-seen", slug: "other" }]),
+    ).toEqual([seen]);
+  });
+
+  test("leave the summary undefined while one is still missing", () => {
+    expect(fillUnseen([seen, unseen], [])).toBeUndefined();
+  });
+});
+
 describe("syncing", () => {
   const sync = (db: PGlite, at: DateTime.Utc, body: string) => {
     const luma = fakeLuma([{ body }]);
@@ -420,20 +469,17 @@ describe("syncing", () => {
       ]);
       expect(first).toEqual(second);
       expect(withoutIds(await events(a))).toEqual(withoutIds(await events(b)));
-      // Again, later: only updated_at moves.
+      // Again, an hour later: nothing changed on Luma, so nothing is
+      // written, updated_at included.
       const before = await events(a);
       const later = DateTime.add(start, { hours: 1 });
-      expect(Exit.isSuccess(await sync(a, later, calendar))).toBe(true);
-      const synced = new Set(
-        (await parse(calendar)).map((event) => event.lumaEventId),
-      );
-      expect(await events(a)).toEqual(
-        before.map((row) =>
-          synced.has(String(row["luma_event_id"]))
-            ? { ...row, updated_at: DateTime.toDateUtc(later) }
-            : row,
-        ),
-      );
+      const again = await sync(a, later, calendar);
+      expect(Exit.isSuccess(again) && again.value).toMatchObject({
+        syncedCount: 24,
+        changedCount: 0,
+        publishedCount: 21,
+      });
+      expect(await events(a)).toEqual(before);
     } finally {
       await Promise.all([a.close(), b.close()]);
     }
@@ -446,6 +492,9 @@ describe("syncing", () => {
       const exit = await sync(db, start, calendar);
       expect(Exit.isSuccess(exit) && exit.value).toMatchObject({
         syncedCount: 24,
+        // All but the secret venue night, stored as Luma shows it (its
+        // venue hidden, the stored one kept): new or changed.
+        changedCount: 23,
         publishedCount: 21,
       });
       // A stored event keeps its slug, and the pages to refresh say so.

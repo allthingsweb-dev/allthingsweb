@@ -1,4 +1,3 @@
-import { eventUrl } from "allthings-core/src/mappers.ts";
 import {
   type EveningRole,
   type Part,
@@ -10,6 +9,7 @@ import type { StageRole } from "allthings-core/src/people.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { DateTime } from "effect";
 import { built } from "../assets.ts";
+import { eventPath, personAnchor } from "../links.ts";
 import { Document } from "./document.tsx";
 import { EveningName } from "./evening-row.tsx";
 import { gatheringTitle } from "./metadata.tsx";
@@ -28,7 +28,7 @@ import { listDate } from "./time.ts";
 
 export interface PeopleProps {
   readonly people: PeopleView;
-  /** Event pages are on the site at this origin. */
+  /** The production origin, which the page's canonical URL is made from. */
   readonly origin: string;
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
@@ -139,13 +139,7 @@ const eveningRoleLabel: Readonly<Record<EveningRole, string>> = {
  * their capacity, unless they spoke), or their part in the evening, then
  * the evening, linking to it.
  */
-function Parts({
-  parts,
-  origin,
-}: {
-  readonly parts: ReadonlyArray<Part>;
-  readonly origin: string;
-}) {
+function Parts({ parts }: { readonly parts: ReadonlyArray<Part> }) {
   if (parts.length === 0) return "";
   return (
     <ul class="talks">
@@ -154,7 +148,7 @@ function Parts({
           part.kind === "talk" ? stageLabel[part.role] : undefined;
         return (
           <li>
-            <a class="talk" href={eventUrl(origin, part.evening.slug)}>
+            <a class="talk" href={eventPath(part.evening.slug)}>
               <time
                 class="date at-type-meta"
                 datetime={DateTime.formatIso(part.evening.startsAt)}
@@ -192,17 +186,15 @@ function Parts({
  */
 function PersonEntry({
   person,
-  origin,
   organizer,
   images,
 }: {
   readonly person: Person;
-  readonly origin: string;
   readonly organizer: boolean;
   readonly images: ImageMode;
 }) {
   return (
-    <li class="person">
+    <li class="person" id={personAnchor(person.id)}>
       <Portrait person={person} organizer={organizer} images={images} />
       <div class="person-text">
         <h3 class="person-name" safe>
@@ -223,7 +215,7 @@ function PersonEntry({
           </p>
         )}
         <Links person={person} />
-        <Parts parts={person.parts} origin={origin} />
+        <Parts parts={person.parts} />
       </div>
     </li>
   );
@@ -234,14 +226,12 @@ function Group({
   id,
   title,
   people,
-  origin,
   organizers,
   images,
 }: {
   readonly id: string;
   readonly title: string;
   readonly people: ReadonlyArray<Person>;
-  readonly origin: string;
   readonly organizers: boolean;
   readonly images: ImageMode;
 }) {
@@ -253,12 +243,7 @@ function Group({
       </h2>
       <ul>
         {people.map((person) => (
-          <PersonEntry
-            person={person}
-            origin={origin}
-            organizer={organizers}
-            images={images}
-          />
+          <PersonEntry person={person} organizer={organizers} images={images} />
         ))}
       </ul>
     </section>
@@ -292,7 +277,6 @@ export function peoplePage({
           id="organizers"
           title="Organizers"
           people={organizers}
-          origin={origin}
           organizers
           images={images}
         />
@@ -300,7 +284,6 @@ export function peoplePage({
           id="speakers"
           title="Speakers"
           people={speakers}
-          origin={origin}
           organizers={false}
           images={images}
         />
@@ -308,7 +291,6 @@ export function peoplePage({
           id="co-hosts"
           title="Co-hosts and MCs"
           people={coHosts}
-          origin={origin}
           organizers={false}
           images={images}
         />

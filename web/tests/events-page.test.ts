@@ -94,7 +94,7 @@ describe("the evenings index", () => {
     expect(upcoming).toContain(">Upcoming</h2>");
     const [live, next, ...more] = rows(upcoming);
     expect(more).toEqual([]);
-    expect(live).toContain(`href="${origin}/live-now"`);
+    expect(live).toContain(`href="/live-now"`);
     expect(live).toContain(
       'at<span class="slash">/</span><span>effect</span><span class="at-cursor" aria-hidden="true">_</span>',
     );
@@ -117,7 +117,7 @@ describe("the evenings index", () => {
     ]);
     const y2024 = rows(section(html, "evenings-2024"));
     expect(y2024).toHaveLength(2);
-    expect(y2024[0]).toContain(`href="${origin}/2024-12-31-new-years-eve"`);
+    expect(y2024[0]).toContain(`href="/2024-12-31-new-years-eve"`);
     expect(y2024[0]).toContain(
       'datetime="2025-01-01T05:00:00.000Z">12.31.24</time>',
     );
@@ -164,7 +164,7 @@ describe("the evenings index", () => {
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).toContain("&quot;Acme&quot; &amp; &lt;Co&gt;");
-    expect(html).toContain(`href="${origin}/caf%C3%A9%20night"`);
+    expect(html).toContain(`href="/caf%C3%A9%20night"`);
   });
 
   test.each([

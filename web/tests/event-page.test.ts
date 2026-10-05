@@ -288,7 +288,7 @@ describe("the ledger", () => {
       '<a href="https://www.linkedin.com/in/ada-lovelace"><span>linkedin</span><span class="visually-hidden">, Ada Lovelace on LinkedIn</span></a>',
     );
     expect(html).toContain(
-      '<div class="speaker-who"><h3 class="at-type-list-name">Grace</h3></div></article>',
+      '<div class="speaker-who"><h3 class="at-type-list-name"><a href="/people#p-b2">Grace</a></h3></div></article>',
     );
   });
 
@@ -427,7 +427,7 @@ describe("the calendar file", () => {
 
 describe("who took part", () => {
   const person = (name: string, title: string | null = null) => ({
-    id: name,
+    id: name.toLowerCase().replaceAll(" ", "-"),
     name,
     title,
     portrait: null,
@@ -461,10 +461,10 @@ describe("who took part", () => {
     );
     expect(html).toContain('<p class="at-type-meta">co-hosts</p>');
     expect(html).toContain(
-      '<span class="event-person-name">Michael Arnaldi</span><span class="event-person-title">Creator of Effect</span>',
+      '<a class="event-person-name" href="/people#p-michael-arnaldi"><span>Michael Arnaldi</span></a><span class="event-person-title">Creator of Effect</span>',
     );
     expect(html).toContain(
-      '<span class="event-person-name">Mirela Prifti</span></p>',
+      '<a class="event-person-name" href="/people#p-mirela-prifti"><span>Mirela Prifti</span></a></p>',
     );
     expect(html).toContain('<p class="at-type-meta">mc</p>');
     expect(render(event({ coHosts: [person("Dan Goosewin")] }))).toContain(
@@ -516,10 +516,10 @@ describe("who took part", () => {
       '<section class="stage-talk"><p class="at-type-meta">fireside chat</p><h2',
     );
     expect(html).toContain(
-      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name">Simon</h3>',
+      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name"><a href="/people#p-m">Simon</a></h3>',
     );
     expect(html).toContain(
-      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name">Michael</h3>',
+      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name"><a href="/people#p-g">Michael</a></h3>',
     );
     // A talk's speaker is just its speaker.
     expect(html).toContain(

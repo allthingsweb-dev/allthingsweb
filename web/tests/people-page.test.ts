@@ -115,6 +115,19 @@ describe("the people page's portraits as variants", () => {
 });
 
 describe("the people page", () => {
+  test("gives each person an anchor from their profile's id, never their name", async () => {
+    const html = render({
+      organizers: [person("Erik", { id: "717803b9", parts: [] })],
+      speakers: [person("Ada", { id: "b0000001" })],
+      coHosts: [person("Ada", { id: "b0000002", parts: [] })],
+    });
+    expect(html).toContain('<li class="person" id="p-717803b9">');
+    expect(html).toContain('<li class="person" id="p-b0000001">');
+    // Two people may share a name; their anchors still differ.
+    expect(html).toContain('<li class="person" id="p-b0000002">');
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+
   test("shows organizers' bios whole and speakers' short", () => {
     const html = render(view);
     const whole =
@@ -151,7 +164,7 @@ describe("the people page", () => {
     expect(html).toContain(
       '<span class="talk-evening"><span>TypeScript AI: The official conference after-party</span><span class="at-cursor" aria-hidden="true">_</span></span>',
     );
-    expect(html).toContain(`<a class="talk" href="${origin}/party">`);
+    expect(html).toContain(`<a class="talk" href="/party">`);
   });
 
   test("names each part: a talk in its capacity unless spoken, an evening role by its name", () => {
@@ -199,7 +212,7 @@ describe("the people page", () => {
       '<h2 id="co-hosts" class="list-title at-type-meta">Co-hosts and MCs</h2>',
     );
     expect(html).toContain(
-      `<a class="talk" href="${origin}/c"><time class="date at-type-meta" datetime="2026-03-08T07:30:00.000Z">03.07.26</time><span class="talk-title">MC</span>`,
+      `<a class="talk" href="/c"><time class="date at-type-meta" datetime="2026-03-08T07:30:00.000Z">03.07.26</time><span class="talk-title">MC</span>`,
     );
     expect(html).toContain('<span class="talk-title">co-host</span>');
   });

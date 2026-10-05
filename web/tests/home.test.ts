@@ -194,7 +194,7 @@ describe("/ with evenings announced", () => {
     expect(after).toContain(">After that</h2>");
     const rows = [...after.matchAll(/<li>[\s\S]*?<\/li>/g)].map(([row]) => row);
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toContain(`href="${origin}/then-js-trivia-night"`);
+    expect(rows[0]).toContain(`href="/then-js-trivia-night"`);
     expect(rows[0]).toContain(
       'at<span class="slash">/</span><span>js trivia night</span><span class="at-cursor" aria-hidden="true">_</span>',
     );
@@ -217,7 +217,7 @@ describe("/ with evenings announced", () => {
     expect(rows).toHaveLength(3);
     past.slice(0, 3).forEach((evening, index) => {
       const row = rows[index] ?? "";
-      expect(row).toContain(`href="${origin}/${evening.slug}"`);
+      expect(row).toContain(`href="/${evening.slug}"`);
       expect(text(row, /<time[^>]*>([^<]*)<\/time>/)).toBe(evening.listDate);
       expect(row).toContain(`datetime="${evening.start.toISOString()}"`);
       expect(row).not.toContain("at-cursor");

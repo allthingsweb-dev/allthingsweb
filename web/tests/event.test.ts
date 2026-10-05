@@ -196,17 +196,19 @@ describe("an upcoming evening", () => {
     );
     // Grace moderates; Ada is the fireside's guest.
     expect(stage).toContain(
-      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name">Grace Hopper</h3>',
+      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name"><a href="/people#p-b0000000-0000-4000-8000-000000000502">Grace Hopper</a></h3>',
     );
     expect(stage).toContain(
-      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name">Ada Lovelace</h3>',
+      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name"><a href="/people#p-b0000000-0000-4000-8000-000000000501">Ada Lovelace</a></h3>',
     );
     expect(stage).toContain(
       '<div class="stage-description"><p>Typed errors &amp; <strong>services</strong>.</p></div>',
     );
     expect(stage).not.toContain("<script");
     expect(stage).toContain(`<img src="${speakerPortrait}" alt=""`);
-    expect(stage).toContain('<h3 class="at-type-list-name">Ada Lovelace</h3>');
+    expect(stage).toContain(
+      '<h3 class="at-type-list-name"><a href="/people#p-b0000000-0000-4000-8000-000000000501">Ada Lovelace</a></h3>',
+    );
     expect(stage).toContain(
       '<p class="speaker-title">Engineer, Analytical Engines</p>',
     );
@@ -234,12 +236,14 @@ describe("an upcoming evening", () => {
     );
     expect(hosted).toContain('<p class="at-type-meta">co-hosts</p>');
     expect(
-      [...hosted.matchAll(/<span class="event-person-name">([^<]+)</g)].map(
-        ([, name]) => name,
-      ),
+      [
+        ...hosted.matchAll(
+          /<a class="event-person-name" href="[^"]+"><span>([^<]+)</g,
+        ),
+      ].map(([, name]) => name),
     ).toEqual(["Ada Lovelace", "Grace Hopper"]);
     expect(hosted).toContain(
-      '<span class="event-person-name">Ada Lovelace</span><span class="event-person-title">Engineer, Analytical Engines</span>',
+      '<a class="event-person-name" href="/people#p-b0000000-0000-4000-8000-000000000501"><span>Ada Lovelace</span></a><span class="event-person-title">Engineer, Analytical Engines</span>',
     );
     expect(hosted).not.toContain(">mc<");
     // The footer still signs off with Erik and Andre.
@@ -331,13 +335,15 @@ describe("a past evening", () => {
     const { html } = await page(Events, slugs.past);
     const stage = row(html, "On stage");
     expect(
-      [...stage.matchAll(/<h3 class="at-type-list-name">([^<]+)</g)].map(
-        ([, name]) => name,
-      ),
+      [
+        ...stage.matchAll(
+          /<h3 class="at-type-list-name"><a href="[^"]+">([^<]+)</g,
+        ),
+      ].map(([, name]) => name),
     ).toEqual(["Grace Hopper", "Ada Lovelace"]);
     // Grace has no photo, title, bio or links: the blank avatar, and only her name.
     expect(stage).toMatch(
-      /<article class="speaker"><img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt="" width="168" height="168" loading="lazy" decoding="async"\/><div class="speaker-who"><h3 class="at-type-list-name">Grace Hopper<\/h3><\/div><\/article>/,
+      /<article class="speaker"><img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt="" width="168" height="168" loading="lazy" decoding="async"\/><div class="speaker-who"><h3 class="at-type-list-name"><a href="\/people#p-b0000000-0000-4000-8000-000000000502">Grace Hopper<\/a><\/h3><\/div><\/article>/,
     );
     expect(stage).not.toContain("stage-description");
   });
@@ -359,7 +365,7 @@ describe("a past evening", () => {
   it("points to the live evening as next", async ({ Events }) => {
     const { html } = await page(Events, slugs.past);
     expect(row(html, "Next")).toContain(
-      `<a href="${origin}/${slugs.live}">at<span class="slash">/</span><span>live</span><span class="at-cursor" aria-hidden="true">_</span></a>`,
+      `<a href="/${slugs.live}">at<span class="slash">/</span><span>live</span><span class="at-cursor" aria-hidden="true">_</span></a>`,
     );
     expect(row(html, "Next")).toContain(">Now · Potrero Hill</time>");
   });

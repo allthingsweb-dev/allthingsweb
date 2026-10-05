@@ -395,6 +395,50 @@ const eventPages = [
   ["not found", "/no-such-evening"],
 ] as const;
 
+describe("links within the site", () => {
+  const site = "https://allthings.dev";
+  for (const path of [
+    "/",
+    "/events",
+    "/people",
+    "/brand",
+    ...eventPages.map(([, eventPage]) => eventPage),
+  ]) {
+    it(`${path} links within the stage it is served from: no absolute link to the site outside its head`, async (url) => {
+      const html = await (await fetch(`${url}${path}`)).text();
+      const [head = "", body = ""] = html.split("</head>");
+      expect(body.length).toBeGreaterThan(0);
+      expect(body.match(/href="https?:\/\/[^"]*"/g) ?? []).not.toContainEqual(
+        expect.stringMatching(new RegExp(`^href="${site}(?:[/?#"])`)),
+      );
+      expect(body).not.toContain(`"${site}`);
+      // The head still names the production site: canonical and link previews.
+      expect(head).toContain(`<link rel="canonical" href="${site}`);
+    });
+  }
+});
+
+describe("names on event pages", () => {
+  it("link to an entry that exists on /people, for everyone on stage and every co-host and MC", async (url) => {
+    const people = await (await fetch(`${url}/people`)).text();
+    const anchors = new Set(
+      [...people.matchAll(/<li class="person" id="([^"]+)">/g)].map(
+        ([, id]) => id,
+      ),
+    );
+    const linked = new Set<string>();
+    for (const slug of [slugs.upcoming, slugs.past]) {
+      const html = await (await fetch(`${url}/${slug}`)).text();
+      for (const [, id = ""] of html.matchAll(/href="\/people#([^"]+)"/g)) {
+        linked.add(id);
+      }
+    }
+    // Ada and Grace: on stage, a co-host and an MC between the two pages.
+    expect(linked.size).toBe(2);
+    for (const id of linked) expect(anchors).toContain(id);
+  });
+});
+
 describe("event pages", () => {
   for (const [name, path] of eventPages) {
     it(`${name} is valid HTML, with one h1, landmarks and headings in order`, async (url) => {

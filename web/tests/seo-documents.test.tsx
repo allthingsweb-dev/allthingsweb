@@ -513,7 +513,7 @@ describe("page metadata", () => {
         expect.arrayContaining([
           `<meta name="description" content="${description}"/>`,
           `<link rel="canonical" href="${canonical}"/>`,
-          '<link rel="alternate" type="application/rss+xml" href="https://allthings.dev/rss" title="all things/_"/>',
+          '<link rel="alternate" type="application/rss+xml" href="/rss" title="all things/_"/>',
           '<meta property="og:type" content="website"/>',
           '<meta property="og:site_name" content="all things"/>',
           '<meta property="og:locale" content="en_US"/>',
@@ -556,7 +556,8 @@ describe("page metadata", () => {
           /(?:href|content)="(https?:[^"]*)"/g,
         ),
       ].map(([, url]) => new URL(url ?? "").origin);
-      expect(urls.length).toBeGreaterThan(2);
+      // The canonical URL and og:url; the feed is linked root-relative.
+      expect(urls.length).toBeGreaterThanOrEqual(2);
       expect(new Set(urls)).toEqual(new Set([origin]));
     }
   });

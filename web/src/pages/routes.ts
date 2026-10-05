@@ -13,16 +13,11 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { CacheControl } from "../cache.ts";
 import { type Repositories, repositories } from "../database.ts";
 import { Images } from "../images/route.ts";
-import { hosts, mediaOrigin } from "../links.ts";
+import { eventPath, hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { brandPage } from "./brand.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
-import {
-  eventPage,
-  eventPagePath,
-  eventUnavailablePage,
-  notFoundPage,
-} from "./event.tsx";
+import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
 import { peoplePage } from "./people.tsx";
@@ -237,8 +232,8 @@ const brand = page("/brand", ({ theme, acceptEncoding, images }) =>
 );
 
 /** An event's page, at its slug: encoded, so it is always one segment. */
-const eventPath = (params: PageRequest["params"]): `/${string}` =>
-  eventPagePath(params["slug"] ?? "");
+const eventLocation = (params: PageRequest["params"]): `/${string}` =>
+  eventPath(params["slug"] ?? "");
 
 /** The event at `slug`, or none when no published event has it. */
 const readEvent = (slug: string) =>
@@ -258,7 +253,7 @@ const event = page(
   ({ theme, acceptEncoding, params, images }) =>
     Effect.gen(function* () {
       const { origin } = yield* Site;
-      const path = eventPath(params);
+      const path = eventLocation(params);
       return yield* Effect.all(
         [readEvent(params["slug"] ?? ""), footer(hostPortraits)],
         { concurrency: "unbounded" },
@@ -302,7 +297,7 @@ const event = page(
         ),
       );
     }),
-  eventPath,
+  eventLocation,
 );
 
 /** A plain-text answer, for the files and redirects pages link to. */

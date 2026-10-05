@@ -29,8 +29,8 @@ const MediaOrigin = Schema.String.check(
 /** Site-wide settings, read once per isolate from the Worker's bindings. */
 export interface SiteShape {
   /**
-   * The production site: public links (event pages, the code of conduct),
-   * canonical URLs, the sitemap and the feeds are built from it, and only a
+   * The production site: canonical URLs and link previews, the sitemap, the
+   * feed's items, calendar files and structured data name it, and only a
    * request to its host may be crawled (see seo/robots.ts). Every other
    * host the Worker answers on, such as a preview stage, is not production.
    */

@@ -8,7 +8,8 @@ Effect SQL, and the migrations that define the schema.
 `src/luma/` is the app's hourly Luma calendar sync (`app/src/lib/luma/`) as
 Effect services, for a Worker cron to run: `Luma` reads the calendar's public
 iCalendar feed over `HttpClient` (retrying 429, 5xx, timeouts and dropped
-connections), and `LumaSync` writes it to `events` in one statement. Which
+connections), and `LumaSync` writes it to `events` in one statement, touching
+only the events Luma changed, so `updated_at` says when it last did. Which
 columns Luma owns, and which the site does, is written down in
 `src/luma/sync.ts`. `tests/luma-parity.test.ts` runs the app's sync and
 core's on copies of one database with the same feed and requires the same
