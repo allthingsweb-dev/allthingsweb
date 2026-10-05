@@ -61,21 +61,21 @@
     "night": {
       "$value": {
         "colorSpace": "srgb",
-        "components": [0.109804, 0.070588, 0.211765]
+        "components": [0.105882, 0.090196, 0.160784]
       },
       "$description": "Dark ground."
     },
     "nightRaised": {
       "$value": {
         "colorSpace": "srgb",
-        "components": [0.164706, 0.113725, 0.309804]
+        "components": [0.141176, 0.12549, 0.2]
       },
       "$description": "Surfaces on Night."
     },
     "ruleNight": {
       "$value": {
         "colorSpace": "srgb",
-        "components": [0.227451, 0.168627, 0.4]
+        "components": [0.2, 0.180392, 0.282353]
       },
       "$description": "Hairline rules on Night."
     },

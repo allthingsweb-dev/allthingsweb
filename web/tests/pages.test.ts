@@ -189,11 +189,15 @@ describe("/brand", () => {
     const { html } = await brand(url);
     const lc = (text: string, ground: string) =>
       `Lc ${Math.abs(apcaContrast(text, ground)).toFixed(1)}`;
+    const hex = (name: string) =>
+      colors(tokens).find((color) => color.name === name)?.hex ?? "";
+    const grounds = [hex("paper"), hex("night")];
+    expect(grounds).not.toContain("");
     for (const color of colors(tokens)) {
       const kebab = color.name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
       expect(html).toContain(`<code>--at-color-${kebab}</code>`);
       expect(html).toContain(`<span>${color.hex}</span>`);
-      for (const ground of ["#F4F1EC", "#1C1236"]) {
+      for (const ground of grounds) {
         if (ground !== color.hex) expect(html).toContain(lc(color.hex, ground));
       }
     }

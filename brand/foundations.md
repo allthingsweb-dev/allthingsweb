@@ -69,21 +69,23 @@ Contrast is designed with APCA, the perceptual model being explored for WCAG 3, 
 
 | Token | Hex | On Paper | On Night | Use |
 | --- | --- | --- | --- | --- |
-| Paper | #F4F1EC | — | Lc 97.6 · 15.7:1 | Light ground; text on Night |
+| Paper | #F4F1EC | — | Lc 97.6 · 15.5:1 | Light ground; text on Night |
 | Ink | #141210 | Lc 97.1 · 16.6:1 | — | Text on Paper |
 | Bridge | #C0362C | Lc 68.1 · 4.9:1 | — | The slash; text only at 24px+ |
 | Bridge Deep | #9A2B22 | Lc 77.3 · 6.8:1 | — | Small orange text; Paper buttons |
 | Violet | #5B34D6 | Lc 75.9 · 6.4:1 | — | Neighborhoods and links on Paper |
 | Karl text | #5E5A55 | Lc 75.5 · 6.1:1 | — | Dates and meta on Paper |
 | Karl | #E6E2DC | — | — | Quiet surfaces on Paper (named for the fog) |
-| Night | #1C1236 | — | — | Dark ground |
-| Night raised | #2A1D4F | — | — | Surfaces on Night |
-| Mist | #E3DCF7 | — | Lc 86.3 · 13.3:1 | Secondary text on Night |
-| Dusk | #D9D3E0 | — | Lc 80.0 · 12.1:1 | Dates and meta on Night |
-| Lavender | #DACFFF | — | Lc 80.0 · 12.1:1 | Neighborhoods and links on Night |
-| Glow | #FF6A3D | — | Lc 46.8 · 6.2:1 | The slash and display at 36px+ only |
+| Night | #1B1729 | — | — | Dark ground |
+| Night raised | #242033 | — | — | Surfaces on Night |
+| Mist | #E3DCF7 | — | Lc 86.3 · 13.2:1 | Secondary text on Night |
+| Dusk | #D9D3E0 | — | Lc 79.9 · 11.9:1 | Dates and meta on Night |
+| Lavender | #DACFFF | — | Lc 80.0 · 11.9:1 | Neighborhoods and links on Night |
+| Glow | #FF6A3D | — | Lc 46.8 · 6.1:1 | The slash and display at 36px+ only |
 
 Buttons: white on Bridge Deep (Lc 90.3, 7.7:1) on Paper, and white on Bridge (Lc 81.7, 5.5:1) on Night. Violet fills take white text (Lc 89.0, 7.2:1).
+
+**Night is muted and grained.** A large, saturated dark ground tires the eyes and makes light text seem to glow, which readability scores don't measure. So Night keeps its violet hue at low chroma (OKLCH 0.22 / 0.035 / 293), and carries a fine, fixed grain ([`texture/grain.svg`](texture/grain.svg)) that gives it Paper's printed feel. Paper has no texture.
 
 **One mode per event, everywhere.** Evening events are Night; daytime events (hackathons, brunches) are Paper. An event's cover, page, slides and posts all share its mode.
 

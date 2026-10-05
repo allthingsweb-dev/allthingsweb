@@ -1,6 +1,6 @@
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { themeCss } from "allthings-brand/src/css.ts";
+import { type Textures, themeCss } from "allthings-brand/src/css.ts";
 import { tokens } from "allthings-brand/src/tokens.ts";
 import { Marked, Renderer, type Tokens } from "marked";
 
@@ -148,11 +148,18 @@ async function buildFonts(): Promise<{
   return { css: faces.join("\n"), fonts };
 }
 
+/** Night's grain (brand/texture/grain.svg), under its hashed name. */
+async function buildTextures(): Promise<Textures> {
+  const grain = await Bun.file(join(root, "brand/texture/grain.svg")).bytes();
+  return { night: await writeAsset("grain", "svg", grain) };
+}
+
 /** The site's one stylesheet: the faces, the theme from the tokens, then the site's own rules. */
 async function buildStylesheet(fontFaces: string): Promise<string> {
   const site = await Bun.file(join(web, "src/styles/site.css")).text();
   const source = join(dist, "site.css");
-  await Bun.write(source, [fontFaces, themeCss(tokens), site].join("\n"));
+  const theme = themeCss(tokens, await buildTextures());
+  await Bun.write(source, [fontFaces, theme, site].join("\n"));
   const result = await Bun.build({
     entrypoints: [source],
     minify: true,
