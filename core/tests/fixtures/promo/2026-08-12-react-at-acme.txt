@@ -1,0 +1,226 @@
+# all things/react
+
+## gaps in the record
+
+- Grace Hopper has no X or Bluesky handle on record, so posts name them untagged.
+- Hosting companies have no handles or links on record, so drafts name them in bold, untagged and unlinked.
+
+## luma: description (857 / 5000)
+
+Server components in practice
+
+Hosted at **Globex** and **Acme**.
+
+**On stage**
+
+**Effect in production**
+
+Typed errors
+
+and services.
+
+**[Linus](https://x.com/linus)**
+
+Kernel.
+
+**Server components**
+
+Why RSC & streaming matter.
+
+- One
+
+- Two
+
+**[Grace Hopper](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000002)**, Admiral
+
+**[Ada Lovelace](https://x.com/ada)**, Engineer
+
+Writes compilers.
+
+Your host: **[Grace Hopper](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000002)**.
+
+Co-host: **[Unattached](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000007)**.
+
+MC: **[Linus](https://x.com/linus)**.
+
+**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+
+## meetup
+
+title: all things/react
+
+venue: Globex
+
+event chat: https://discord.gg/B3Sm4b5mfD
+
+topics: React, Artificial Intelligence, Software Development, Web Development, JavaScript
+
+settings to set by hand:
+- [ ] Attendee limit: 1 (Meetup's minimum), so everyone else lands on the waitlist and takes their seat on Luma.
+- [ ] Location: pick "Globex" from Meetup's place search, not a bare street address.
+- [ ] Event chat: Discord, https://discord.gg/B3Sm4b5mfD.
+- [ ] Comments: off.
+- [ ] Co-host: add Andre Landgraf.
+- [ ] Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it.
+- [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
+- [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
+
+description (981 / 5000):
+
+**Seats are on Luma: [lu.ma/event/evt-react](https://lu.ma/event/evt-react).** The list here on Meetup is a waitlist only.
+
+Server components in practice
+
+Hosted at **Globex** and **Acme**.
+
+**On stage**
+
+**Effect in production**
+
+Typed errors
+
+and services.
+
+**[Linus](https://x.com/linus)**
+
+Kernel.
+
+**Server components**
+
+Why RSC & streaming matter.
+
+- One
+
+- Two
+
+**[Grace Hopper](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000002)**, Admiral
+
+**[Ada Lovelace](https://x.com/ada)**, Engineer
+
+Writes compilers.
+
+Your host: **[Grace Hopper](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000002)**.
+
+Co-host: **[Unattached](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000007)**.
+
+MC: **[Linus](https://x.com/linus)**.
+
+**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+
+## x: announce (131 / 280)
+
+all things/react: talks by @linus, Grace Hopper and @ada.
+
+Wed Aug 12, 6:00 PM, hosted at Globex and Acme.
+
+https://lu.ma/event/evt-react
+
+## x: day-of (145 / 280)
+
+Tonight: all things/react.
+
+On stage: talks by @linus, Grace Hopper and @ada.
+
+Doors 6:00 PM, hosted at Globex and Acme.
+
+https://lu.ma/event/evt-react
+
+## x: recap (227 / 280)
+
+Thank you for coming to all things/react at Globex and Acme, all 118 of you.
+
+On stage: talks by @linus, Grace Hopper and @ada.
+
+Thanks for posting about it, @ada.
+
+2 photos and 2 posts from the evening: https://allthings.example/2026-08-12-react-at-acme
+
+## bluesky: announce (148 / 300)
+
+all things/react: talks by Linus, Grace Hopper and @ada.bsky.social.
+
+Wed Aug 12, 6:00 PM, hosted at Globex and Acme.
+
+https://lu.ma/event/evt-react
+
+## bluesky: day-of (162 / 300)
+
+Tonight: all things/react.
+
+On stage: talks by Linus, Grace Hopper and @ada.bsky.social.
+
+Doors 6:00 PM, hosted at Globex and Acme.
+
+https://lu.ma/event/evt-react
+
+## bluesky: recap (275 / 300)
+
+Thank you for coming to all things/react at Globex and Acme, all 118 of you.
+
+On stage: talks by Linus, Grace Hopper and @ada.bsky.social.
+
+Thanks for posting about it, @grace.example.
+
+2 photos and 2 posts from the evening: https://allthings.example/2026-08-12-react-at-acme
+
+## linkedin: announce (257 / 3000)
+
+all things/react: talks by Linus, Grace Hopper and Ada Lovelace.
+
+Server components in practice
+
+- Effect in production: Linus
+- Server components: Grace Hopper and Ada Lovelace
+
+Wed Aug 12, 6:00 PM, hosted at Globex and Acme.
+
+https://lu.ma/event/evt-react
+
+## linkedin: day-of (158 / 3000)
+
+Tonight: all things/react.
+
+On stage: talks by Linus, Grace Hopper and Ada Lovelace.
+
+Doors 6:00 PM, hosted at Globex and Acme.
+
+https://lu.ma/event/evt-react
+
+## linkedin: recap (225 / 3000)
+
+Thank you for coming to all things/react at Globex and Acme, all 118 of you.
+
+On stage: talks by Linus, Grace Hopper and Ada Lovelace.
+
+2 photos and 2 posts from the evening: https://allthings.example/2026-08-12-react-at-acme
+
+## discord: announce (261 / 2000)
+
+**all things/react**: talks by Linus, Grace Hopper and Ada Lovelace.
+
+Server components in practice
+
+- Effect in production: Linus
+- Server components: Grace Hopper and Ada Lovelace
+
+Wed Aug 12, 6:00 PM, hosted at Globex and Acme.
+
+https://lu.ma/event/evt-react
+
+## discord: day-of (162 / 2000)
+
+**Tonight: all things/react**
+
+If you're in: doors 6:00 PM, hosted at Globex and Acme.
+
+On stage: talks by Linus, Grace Hopper and Ada Lovelace.
+
+see you at/react
+
+## discord: recap (225 / 2000)
+
+Thank you for coming to all things/react at Globex and Acme, all 118 of you.
+
+On stage: talks by Linus, Grace Hopper and Ada Lovelace.
+
+2 photos and 2 posts from the evening: https://allthings.example/2026-08-12-react-at-acme
