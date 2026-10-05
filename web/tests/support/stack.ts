@@ -88,11 +88,17 @@ export const testStack = <const Name extends string>(
   );
 
 /**
- * The most the Worker's bundle may weigh gzipped. Today it is about 820 KB,
- * 229 KB gzipped: Effect is a third of it, the MCP SDK and the zod it brings
- * another third, and @effect/sql-pg most of the rest; the pages (templates,
- * tokens and the foundations as HTML) are 14 KB. The 21 KB left is room for
- * the site's remaining pages. Workers may be 3 MB gzipped, but every byte is
- * parsed on a cold start: raise this only on purpose.
+ * What the Worker's modules may weigh gzipped (see support/bundle.ts).
+ *
+ * - `startup`: the entry and every module it imports statically, which
+ *   every cold start parses. Today about 160 KB: Effect is most of it,
+ *   then @effect/sql-pg; the pages are about 25 KB.
+ * - `lazy`: each module loaded on first use, with `import()`. The MCP
+ *   server (its SDK and zod) is about 86 KB and serves only `/mcp`;
+ *   /brand and the foundations are a few KB.
+ *
+ * Workers may be 3 MB gzipped, but every byte of the startup modules is
+ * parsed on a cold start: raise these only on purpose. When the test
+ * fails, it lists what the cold start is made of.
  */
-export const bundleBudget = 250_000;
+export const bundleBudgets = { startup: 250_000, lazy: 120_000 } as const;

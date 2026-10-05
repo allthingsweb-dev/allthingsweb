@@ -17,7 +17,6 @@ import { Images } from "../images/route.ts";
 import { aboutPath, eventPath, hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { aboutPage } from "./about.tsx";
-import { brandPage } from "./brand.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
@@ -241,6 +240,9 @@ const events = dataPage(
 const brand = page("/brand", ({ theme, acceptEncoding, images }) =>
   Effect.gen(function* () {
     const { origin } = yield* Site;
+    // The style guide, foundations and all, is loaded when it is first
+    // asked for, so no other page's cold start parses it.
+    const { brandPage } = yield* Effect.promise(() => import("./brand.tsx"));
     const { portraits, read } = yield* footer(
       hostPortraits.pipe(Effect.provide(repositories)),
     );

@@ -1,17 +1,14 @@
-import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import { Context, Effect, Layer } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
-import packageJson from "../../package.json" with { type: "json" };
-import { Site } from "../site.ts";
-import { registerTools } from "./tools.ts";
+import type { Site } from "../site.ts";
 
 /**
- * The MCP server: the official SDK's web-standard handler, as the app serves
- * it through mcp-handler. Every request gets a fresh server (stateless, no
- * sessions); requests from 2025-era clients, such as the CLI, are served by
- * the SDK's stateless fallback, exactly as today.
+ * `/mcp`: the MCP server (server.ts). It is loaded with a dynamic import
+ * the first time an isolate serves `/mcp`, so its SDK and zod stay out of
+ * the code every cold start parses; the handler is then kept for the
+ * isolate's life, as it was built at startup before.
  */
 export class Mcp extends Context.Service<
   Mcp,
@@ -23,18 +20,15 @@ export class Mcp extends Context.Service<
       // The isolate's services (Site, config), for running tool programs.
       const context = yield* Effect.context<Site>();
       const run = Effect.runPromiseWith(context);
-      const handler = createMcpHandler(
-        () => {
-          const server = new McpServer({
-            name: "all-things-web",
-            version: packageJson.version,
-          });
-          registerTools(server, run);
-          return server;
+      let handler: Promise<(request: Request) => Promise<Response>> | undefined;
+      return Mcp.of({
+        fetch: async (request) => {
+          handler ??= import("./server.ts").then(({ mcpHandler }) =>
+            mcpHandler(run),
+          );
+          return (await handler)(request);
         },
-        { legacy: "stateless" },
-      );
-      return Mcp.of({ fetch: (request) => handler.fetch(request) });
+      });
     }),
   );
 }
