@@ -267,14 +267,18 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
       return asOriginal(again.response.body, again.contentType);
     }
 
+    // What Images made: AVIF it can't encode in time comes as WebP. That
+    // is sent, but briefly and never stored, so a later request can make
+    // the format the URL names.
+    const madeType = made.value.contentType();
+    const asNamed = madeType === formats[variant.format];
     const headers = {
-      // What Images made: AVIF it can't encode in time comes as WebP.
-      "content-type": made.value.contentType(),
-      "cache-control": immutable,
+      "content-type": madeType,
+      "cache-control": asNamed ? immutable : originalCacheControl,
       "x-content-type-options": "nosniff",
     };
     let body = made.value.response().body;
-    if (Option.isSome(cache) && body !== null) {
+    if (Option.isSome(cache) && asNamed && body !== null) {
       const [sent, stored] = body.tee();
       body = sent;
       const waitUntil = yield* WaitUntil;

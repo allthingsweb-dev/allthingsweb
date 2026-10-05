@@ -3,6 +3,7 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, immutable } from "../src/cache.ts";
+import { parseVariant } from "../src/images/variants.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
 import { catalogDatabase } from "./support/catalog.ts";
 import { dimensions, png, serveMedia } from "./support/media.ts";
@@ -90,6 +91,7 @@ type Worker = "Variants" | "Originals";
 const it = (
   name: string,
   run: (urls: Record<Worker, string>) => Promise<void>,
+  options?: { readonly timeout: number },
 ) =>
   test(
     name,
@@ -110,6 +112,7 @@ const it = (
         return run({ Variants: url("Variants"), Originals: url("Originals") });
       }),
     ),
+    options,
   );
 
 /** GET `path`, and its body. */
@@ -193,36 +196,67 @@ describe("/ with variants", () => {
     expect(gzipped(html)).toBeLessThanOrEqual(htmlBudget);
   });
 
-  it("names only variants that exist, each in its format, at its size, cached for good", async ({
-    Variants,
-  }) => {
-    const html = await (await fetch(`${Variants}/`)).text();
-    const urls = [...new Set(imageUrls(html))].filter((url) =>
-      url.startsWith("/img/"),
-    );
-    // 3 photos: 6, 6 and 5 widths; Erik: 2 squares; 3 formats each.
-    expect(urls).toHaveLength((6 + 6 + 5 + 2) * 3);
-    const originals: Record<string, number> = {
-      "events/home/effect.jpg": 1600,
-      "events/home/pier-70.jpg": 1200,
-      "events/home/mux.jpg": 1024,
-      "profiles/erik.jpg": 2160,
-    };
-    for (const url of urls) {
-      const [, size = "", format = "", , ...key] = url.split("/").slice(1);
-      const { response, body } = await get(Variants, url);
-      expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toBe(`image/${format}`);
-      expect(response.headers.get("cache-control")).toBe(immutable);
-      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-      const side = /^(\d+)x\1$/.exec(size)?.[1];
-      const width = Number(side ?? size);
-      const original = originals[key.join("/")] ?? 0;
-      // A width is never enlarged; local squares fit inside their box.
-      expect(dimensions(body)?.width).toBe(Math.min(width, original));
-      if (side !== undefined) expect(dimensions(body)?.height).toBe(width);
-    }
-  });
+  it(
+    "names only variants that exist, each in its format, at its size, cached for good",
+    async ({ Variants }) => {
+      const html = await (await fetch(`${Variants}/`)).text();
+      const urls = [...new Set(imageUrls(html))].filter((url) =>
+        url.startsWith("/img/"),
+      );
+      // 3 photos: 6, 6 and 5 widths; Erik: 2 squares; 3 formats each.
+      expect(urls).toHaveLength((6 + 6 + 5 + 2) * 3);
+      const originals: Record<string, number> = {
+        "events/home/effect.jpg": 1600,
+        "events/home/pier-70.jpg": 1200,
+        "events/home/mux.jpg": 1024,
+        "profiles/erik.jpg": 2160,
+      };
+      const variants = urls.map((url) => ({ url, variant: parseVariant(url) }));
+      for (const { variant } of variants) {
+        expect(variant?.version).toBe(version);
+        expect(Object.keys(originals)).toContain(variant?.key ?? "");
+      }
+      // Making every one would take minutes of Sharp: one of each size,
+      // the formats taken in turn, all at once.
+      const sizes = new Map<string, (typeof variants)[number]>();
+      for (const entry of variants) {
+        const [, , size = ""] = entry.url.split("/");
+        if (!sizes.has(size)) sizes.set(size, entry);
+      }
+      expect(sizes.size).toBe(6 + 2);
+      const formatsMade = new Set<string>();
+      await Promise.all(
+        [...sizes.values()].map(async ({ url, variant }, index) => {
+          const format = (["avif", "webp", "jpeg"] as const)[index % 3];
+          const path = url.replace(`/${variant?.format}/`, `/${format}/`);
+          const { response, body } = await get(Variants, path);
+          expect(response.status).toBe(200);
+          expect(response.headers.get("content-type")).toBe(`image/${format}`);
+          expect(response.headers.get("cache-control")).toBe(immutable);
+          expect(response.headers.get("x-content-type-options")).toBe(
+            "nosniff",
+          );
+          formatsMade.add(format ?? "");
+          const size = variant?.size;
+          const original = originals[variant?.key ?? ""] ?? 0;
+          if (size?.kind === "width") {
+            // A width is never enlarged.
+            expect(dimensions(body)?.width).toBe(
+              Math.min(size.width, original),
+            );
+          } else {
+            // Local squares fit inside their box.
+            expect(dimensions(body)).toEqual({
+              width: size?.side ?? 0,
+              height: size?.side ?? 0,
+            });
+          }
+        }),
+      );
+      expect(formatsMade.size).toBe(3);
+    },
+    { timeout: 60_000 },
+  );
 });
 
 describe("/img/", () => {

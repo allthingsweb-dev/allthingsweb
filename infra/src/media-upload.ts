@@ -46,11 +46,18 @@ export default {
     switch (request.method) {
       case "PUT": {
         const contentType = request.headers.get("content-type");
-        const object = await env.MEDIA.put(
-          key,
-          request.body,
-          contentType ? { httpMetadata: { contentType } } : {},
-        );
+        // An object never changes under its key: the site caches variants
+        // of it for a year under URLs derived from the key (web/src/images).
+        // A replacement goes under a new key, with its `images` row updated.
+        const object = await env.MEDIA.put(key, request.body, {
+          onlyIf: new Headers({ "if-none-match": "*" }),
+          ...(contentType ? { httpMetadata: { contentType } } : {}),
+        });
+        if (object === null) {
+          return new Response("An object already exists at this key", {
+            status: 409,
+          });
+        }
         return Response.json(
           { key: object.key, size: object.size },
           { status: 201 },
