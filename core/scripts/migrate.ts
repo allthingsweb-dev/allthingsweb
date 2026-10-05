@@ -37,14 +37,15 @@ const list = (
 
 /**
  * The migrator turns a failed migration into a defect; this surfaces the
- * reason (for a stamp, the schema diff) as the command's error.
+ * reason (for a stamp, the schema diff; for a statement, Postgres's error,
+ * such as a migration's own RAISE) as the command's error.
  */
 const surfaceFailure = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   Effect.catchDefect(effect, (defect) =>
     Effect.fail(
       new Error(
-        defect instanceof Error && defect.cause instanceof Error
-          ? `${defect.message}: ${defect.cause.message}`
+        defect instanceof Error
+          ? Migrations.failureMessage(defect)
           : Cause.pretty(Cause.die(defect)),
       ),
     ),

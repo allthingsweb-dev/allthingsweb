@@ -39,7 +39,10 @@ until then (see below).
   `app/src/lib/schema.ts`, run `bun run db:generate --name <name>` in `app/`
   for the migration and its snapshot, and append any data statements to the
   generated SQL by hand. Only the test replays those files: production, now
-  stamped, takes migrations from here alone.
+  stamped, takes migrations from here alone. One exception: a migration that
+  only brings production back to what `app/migrations` already creates (one
+  of the hand-applied differences the test lists) ships here alone, and its
+  entry leaves that list.
 - Add the lines the migration creates to
   `tests/fixtures/production-schema.txt`, which is production's catalog once
   every migration here has run (`bun run migrate`, below).

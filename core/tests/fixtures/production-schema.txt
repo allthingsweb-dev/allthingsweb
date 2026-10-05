@@ -107,6 +107,7 @@ constraint public.event_review_sessions event_review_sessions_event_id_unique UN
 constraint public.event_review_sessions event_review_sessions_pkey PRIMARY KEY (id)
 constraint public.event_review_sessions event_review_sessions_thread_id_unique UNIQUE (thread_id)
 constraint public.event_sponsors event_sponsors_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_sponsors event_sponsors_event_id_sponsor_id_pk PRIMARY KEY (event_id, sponsor_id)
 constraint public.event_sponsors event_sponsors_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
 constraint public.event_talks event_talks_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_talks event_talks_event_id_talk_id_pk PRIMARY KEY (event_id, talk_id)
@@ -129,6 +130,7 @@ constraint public.sponsors sponsors_pkey PRIMARY KEY (id)
 constraint public.sponsors sponsors_square_logo_dark_images_id_fk FOREIGN KEY (square_logo_dark) REFERENCES images(id) ON DELETE SET NULL
 constraint public.sponsors sponsors_square_logo_light_images_id_fk FOREIGN KEY (square_logo_light) REFERENCES images(id) ON DELETE SET NULL
 constraint public.talk_speakers talk_speakers_speaker_id_profiles_id_fk FOREIGN KEY (speaker_id) REFERENCES profiles(id)
+constraint public.talk_speakers talk_speakers_talk_id_speaker_id_pk PRIMARY KEY (talk_id, speaker_id)
 constraint public.talk_speakers talk_speakers_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id)
 constraint public.talks talks_pkey PRIMARY KEY (id)
 enum public.profile_type ('organizer', 'member')
@@ -139,6 +141,7 @@ index public.event_images CREATE UNIQUE INDEX event_images_event_id_image_id_pk 
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_event_id_unique ON public.event_review_sessions USING btree (event_id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_pkey ON public.event_review_sessions USING btree (id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_thread_id_unique ON public.event_review_sessions USING btree (thread_id)
+index public.event_sponsors CREATE UNIQUE INDEX event_sponsors_event_id_sponsor_id_pk ON public.event_sponsors USING btree (event_id, sponsor_id)
 index public.event_talks CREATE UNIQUE INDEX event_talks_event_id_talk_id_pk ON public.event_talks USING btree (event_id, talk_id)
 index public.events CREATE UNIQUE INDEX events_luma_event_id_unique ON public.events USING btree (luma_event_id)
 index public.events CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)
@@ -150,6 +153,7 @@ index public.profiles CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING
 index public.redirects CREATE UNIQUE INDEX redirects_slug_unique ON public.redirects USING btree (slug)
 index public.sponsors CREATE UNIQUE INDEX sponsors_name_unique ON public.sponsors USING btree (name)
 index public.sponsors CREATE UNIQUE INDEX sponsors_pkey ON public.sponsors USING btree (id)
+index public.talk_speakers CREATE UNIQUE INDEX talk_speakers_talk_id_speaker_id_pk ON public.talk_speakers USING btree (talk_id, speaker_id)
 index public.talks CREATE UNIQUE INDEX talks_pkey ON public.talks USING btree (id)
 relation neon_auth.users_sync kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.administrators kind=r persistence=p rls=f force_rls=f replica_identity=d options=

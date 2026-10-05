@@ -230,17 +230,6 @@ const handApplied: ReadonlyArray<{
   },
   {
     reason:
-      "Production has no primary keys on event_sponsors and talk_speakers; 0000 creates them.",
-    baseline: [],
-    drizzle: [
-      "constraint public.event_sponsors event_sponsors_event_id_sponsor_id_pk PRIMARY KEY (event_id, sponsor_id)",
-      "index public.event_sponsors CREATE UNIQUE INDEX event_sponsors_event_id_sponsor_id_pk ON public.event_sponsors USING btree (event_id, sponsor_id)",
-      "constraint public.talk_speakers talk_speakers_talk_id_speaker_id_pk PRIMARY KEY (talk_id, speaker_id)",
-      "index public.talk_speakers CREATE UNIQUE INDEX talk_speakers_talk_id_speaker_id_pk ON public.talk_speakers USING btree (talk_id, speaker_id)",
-    ],
-  },
-  {
-    reason:
       "Production sets REPLICA IDENTITY FULL on events and images; no migration does.",
     baseline: [
       "relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=",
@@ -557,5 +546,84 @@ describe("0002_event_topic", () => {
       { name: "Dev Setup Demos - Show your agents.md!", topic: "dev setups" },
       { name: "Website only", topic: null },
     ]);
+  });
+});
+
+describe("0003_join_table_keys", () => {
+  /** The migrations before 0003, as production had them applied. */
+  const beforeKeys = Migrator.fromRecord(
+    Object.fromEntries(
+      Object.entries(migrations).filter(([key]) => key < "0003"),
+    ),
+  );
+
+  /** An event, a host, a talk and a speaker to join. */
+  const parents = `
+    INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, updated_at) VALUES
+      ('e0000000-0000-4000-8000-000000000001', 'night', 'Night', '', now(), now(), 0, now());
+    INSERT INTO sponsors (id, name, about, updated_at) VALUES
+      ('c0000000-0000-4000-8000-000000000001', 'Acme', '', now()),
+      ('c0000000-0000-4000-8000-000000000002', 'Globex', '', now());
+    INSERT INTO talks (id, title, description, updated_at) VALUES
+      ('a0000000-0000-4000-8000-000000000001', 'Talk', '', now());
+    INSERT INTO profiles (id, name, title, bio, profile_type, updated_at) VALUES
+      ('b0000000-0000-4000-8000-000000000001', 'Ada', '', '', 'member', now());`;
+
+  const counts = async (db: PGlite) =>
+    (
+      await db.query(
+        `SELECT (SELECT count(*)::int FROM event_sponsors) AS hosts, (SELECT count(*)::int FROM talk_speakers) AS speakers`,
+      )
+    ).rows;
+
+  test("refuses duplicate pairs, listing every one, and changes nothing", async () => {
+    const db = keep(await migratedDatabase(beforeKeys));
+    await db.exec(`${parents}
+      INSERT INTO event_sponsors (event_id, sponsor_id, updated_at) VALUES
+        ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', now()),
+        ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', now()),
+        ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002', now());
+      INSERT INTO talk_speakers (talk_id, speaker_id, updated_at) VALUES
+        ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', now()),
+        ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', now()),
+        ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', now());`);
+    const before = await snapshotOf(db);
+
+    const exit = await runExit(db, Migrations.run());
+    // What `bun run migrate` prints for it.
+    const defect = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined;
+    if (!(defect instanceof Migrator.MigrationError)) {
+      throw new Error(`expected a MigrationError, got ${String(defect)}`);
+    }
+    expect(Migrations.failureMessage(defect)).toContain(
+      [
+        "Duplicate rows stop the join tables' primary keys; nothing was changed. Keep one row of each pair, delete the rest by hand, then migrate again:",
+        "event_sponsors: event_id e0000000-0000-4000-8000-000000000001, sponsor_id c0000000-0000-4000-8000-000000000001 (2 rows)",
+        "talk_speakers: talk_id a0000000-0000-4000-8000-000000000001, speaker_id b0000000-0000-4000-8000-000000000001 (3 rows)",
+      ].join("\n"),
+    );
+    expect(await recorded(db)).toEqual(records(all.slice(0, 2)));
+    expect(await snapshotOf(db)).toEqual(before);
+    expect(await counts(db)).toEqual([{ hosts: 3, speakers: 3 }]);
+  });
+
+  test("keys both tables when every pair is unique, keeping every row", async () => {
+    const db = keep(await migratedDatabase(beforeKeys));
+    await db.exec(`${parents}
+      INSERT INTO event_sponsors (event_id, sponsor_id, updated_at) VALUES
+        ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', now()),
+        ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002', now());
+      INSERT INTO talk_speakers (talk_id, speaker_id, updated_at) VALUES
+        ('a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', now());`);
+
+    expect(await run(db, Migrations.run())).toEqual(all.slice(2));
+    expect(await snapshotOf(db)).toEqual(fromMigrations);
+    expect(await counts(db)).toEqual([{ hosts: 2, speakers: 1 }]);
+    // A second attach of the same host now fails.
+    await expect(
+      db.exec(
+        `INSERT INTO event_sponsors (event_id, sponsor_id, updated_at) VALUES ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', now())`,
+      ),
+    ).rejects.toThrow("event_sponsors_event_id_sponsor_id_pk");
   });
 });
