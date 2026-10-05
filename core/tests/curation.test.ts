@@ -161,6 +161,27 @@ describe("applying curation", () => {
   });
 });
 
+describe("the file's shape", () => {
+  test("refuses a website the database would refuse", () => {
+    const decodes = (website: string) =>
+      Schema.decodeUnknownExit(CurationFile)({
+        organizers: [
+          {
+            name: "Mastra",
+            about: "Agents.",
+            website,
+            twitterHandle: null,
+            sources,
+          },
+        ],
+        events: [],
+      })._tag === "Success";
+    expect(decodes("https://mastra.ai")).toBe(true);
+    expect(decodes("https://mastra.ai/agents?ref=x")).toBe(true);
+    expect(decodes("https://mastra.ai?ref=demo")).toBe(false);
+  });
+});
+
 describe("core/backfill/curation.json", () => {
   test("decodes, names each thing once, and shares TypeScript AI Demo Day by Mastra", async () => {
     const decoded = Schema.decodeUnknownSync(

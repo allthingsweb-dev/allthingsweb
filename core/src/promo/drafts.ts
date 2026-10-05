@@ -487,8 +487,9 @@ function sharedSocialDrafts(
   const hostName = (host: string) => hostOn(channel, host, input.hosts);
   const where = wherePhrase(event, hostName);
   const when = `${dayOf(event.startsAt)}, ${clockOf(event.startsAt)}`;
-  const luma = event.rsvpUrl;
   const page = eventUrl(origin, event.slug);
+  // Where to take a seat, or the evening's page when Luma has none.
+  const luma = event.rsvpUrl ?? page;
   const title = channel === "discord" ? `**${event.name}**` : event.name;
   const heading = `${title}, by ${by}`;
   const longForm = channel === "linkedin" || channel === "discord";

@@ -444,6 +444,36 @@ describe("the ledger", () => {
     expect(await htmlProblems(html)).toEqual([]);
   });
 
+  test("keeps a shared evening's co-hosts and MC, and names an organizer without a site with no url", () => {
+    const person = {
+      id: "p1",
+      name: "Grace Hopper",
+      title: "Admiral",
+      portrait: null,
+    };
+    const html = render(
+      event({
+        coHosts: [person],
+        mcs: [{ ...person, id: "p2", name: "Ada Lovelace" }],
+        curation: {
+          kind: "shared",
+          organizer: {
+            name: "Mastra",
+            websiteUrl: null,
+            twitterHandle: null,
+            blueskyHandle: null,
+            linkedinHandle: null,
+          },
+        },
+      }),
+    );
+    expect(html).toContain("Grace Hopper");
+    expect(html).toContain("Ada Lovelace");
+    expect(html).toContain(
+      '"organizer":{"@type":"Organization","name":"Mastra"}',
+    );
+  });
+
   test("gives a social evening or a hackathon no stage of its own, talks or not", () => {
     const talk = {
       id: "a1",

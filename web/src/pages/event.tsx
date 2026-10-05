@@ -433,9 +433,11 @@ function HostedAt({
 function OrganizedBy({
   organizer,
   event,
+  images,
 }: {
   readonly organizer: Rows.Organizer;
   readonly event: EventPage;
+  readonly images: ImageMode;
 }) {
   const site = httpUrlOrNull(organizer.websiteUrl);
   return (
@@ -459,6 +461,20 @@ function OrganizedBy({
           <p>
             hosted at <HostNames names={event.hosts} sites={event.hostSites} />
           </p>
+        )}
+        {event.coHosts.length === 0 ? (
+          ""
+        ) : (
+          <People
+            label={event.coHosts.length === 1 ? "co-host" : "co-hosts"}
+            people={event.coHosts}
+            images={images}
+          />
+        )}
+        {event.mcs.length === 0 ? (
+          ""
+        ) : (
+          <People label="mc" people={event.mcs} images={images} />
         )}
       </>
     </Fact>
@@ -982,7 +998,11 @@ export function eventPage({
             <Where venue={event.venue} hostingCompanies={event.hosts} />
           )}
           {event.curation.kind === "shared" ? (
-            <OrganizedBy organizer={event.curation.organizer} event={event} />
+            <OrganizedBy
+              organizer={event.curation.organizer}
+              event={event}
+              images={images}
+            />
           ) : (
             <HostedAt event={event} portraits={portraits} images={images} />
           )}

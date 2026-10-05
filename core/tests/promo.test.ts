@@ -469,6 +469,24 @@ describe("an evening we only share", () => {
       expect(formatDrafts(drafts)).toContain(
         "## luma\n\nNone: this evening is shared, not ours.",
       );
+      // Without a Luma page, posts link the evening's page instead.
+      await shared.exec(
+        "UPDATE events SET luma_event_id = NULL WHERE slug = '2026-11-05-upcoming'",
+      );
+      const noLuma = await Effect.runPromise(
+        Effect.provide(
+          Promo.use((promo) => promo.drafts("2026-11-05-upcoming", options)),
+          Promo.layer.pipe(
+            Layer.provideMerge(sqlLayer(shared)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      );
+      for (const moment of ["announce", "dayOf"] as const) {
+        expect(noLuma.social.x[moment]).toContain(
+          "https://allthings.example/2026-11-05-upcoming",
+        );
+      }
     } finally {
       await shared.close();
     }

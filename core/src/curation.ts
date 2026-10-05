@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { HttpUrl } from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
+import { websitePattern, xHandlePattern } from "./host-links.ts";
 
 /**
  * Evenings we share with our community but don't host
@@ -27,9 +28,10 @@ export const CurationFile = Schema.Struct({
     Schema.Struct({
       name: Text,
       about: Text,
-      website: Url,
+      /** In the shape sponsors_website_url_check takes, so it never fails the write. */
+      website: Url.check(Schema.isPattern(websitePattern)),
       twitterHandle: Schema.NullOr(
-        Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_]{1,15}$/)),
+        Schema.String.check(Schema.isPattern(xHandlePattern)),
       ),
       sources: Sources,
     }),
