@@ -100,6 +100,32 @@ describe("legacy URLs", () => {
     return Promise.resolve();
   });
 
+  it("answers every route a wildcard entry covers as that entry says", async (url) => {
+    // Routes without parameters, such as /admin/raw/talks under /admin/*: one
+    // example per entry would not show that each of them answers alike.
+    const covered = appRoutes.flatMap((route) => {
+      const entry = routeEntryFor(route);
+      return entry?.pattern.includes("*") === true && !route.includes("[")
+        ? [{ route, entry }]
+        : [];
+    });
+    expect(covered.length).toBeGreaterThan(10);
+    // One at a time: the test database takes only a few connections.
+    const wrong = [];
+    for (const { route, entry } of covered) {
+      const response = await fetch(`${url}${route}`, { redirect: "manual" });
+      await response.arrayBuffer();
+      if (response.status !== entry.worker.status) {
+        wrong.push({
+          route,
+          expected: entry.worker.status,
+          answer: response.status,
+        });
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
   it("answers for every file in the app's public folder as its entry says", async (url) => {
     expect(publicFiles.length).toBeGreaterThan(40);
     // One at a time: the test database takes only a few connections.
