@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import sharp from "sharp";
-import { fileSlug, readAtMost } from "../scripts/cover-file.ts";
+import { fetchHttps, fileSlug, readAtMost } from "../scripts/cover-file.ts";
 import { padCover, wideFrame } from "../scripts/pad-cover.ts";
 
 /** Meetup's cover padding (scripts/pad-cover.ts), on images Sharp draws. */
@@ -153,5 +153,56 @@ describe("padCover limits", () => {
   test("refuses a cover that would pad past the frame limit", async () => {
     const strip = await png(20000, 1);
     await expect(padCover(strip)).rejects.toThrow(/over 80000000 pixels/);
+  });
+});
+
+describe("fetchHttps", () => {
+  const redirectingTo = (hops: Record<string, string>) =>
+    (async (input: string | URL | Request) => {
+      const url = input instanceof Request ? input.url : input.toString();
+      const next = hops[url];
+      return next === undefined
+        ? new Response("cover")
+        : new Response(null, { status: 302, headers: { location: next } });
+    }) as typeof fetch;
+
+  test("follows https redirects", async () => {
+    const response = await fetchHttps(
+      "https://a.example/cover.png",
+      new AbortController().signal,
+      redirectingTo({
+        "https://a.example/cover.png": "https://b.example/c.png",
+      }),
+    );
+    expect(await response.text()).toBe("cover");
+  });
+
+  test("refuses a redirect to plain http, and plain http itself", async () => {
+    const signal = new AbortController().signal;
+    await expect(
+      fetchHttps(
+        "https://a.example/cover.png",
+        signal,
+        redirectingTo({
+          "https://a.example/cover.png": "http://b.example/c.png",
+        }),
+      ),
+    ).rejects.toThrow("not https: http://b.example/c.png");
+    await expect(
+      fetchHttps("http://a.example/cover.png", signal, redirectingTo({})),
+    ).rejects.toThrow("not https");
+  });
+
+  test("gives up on a redirect loop", async () => {
+    await expect(
+      fetchHttps(
+        "https://a.example/1",
+        new AbortController().signal,
+        redirectingTo({
+          "https://a.example/1": "https://a.example/2",
+          "https://a.example/2": "https://a.example/1",
+        }),
+      ),
+    ).rejects.toThrow("more than 5 redirects");
   });
 });

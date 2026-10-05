@@ -51,3 +51,31 @@ export function fileSlug(slug: string): string {
     })
     .join("");
 }
+
+/** The most redirects a cover download follows. */
+const maxRedirects = 5;
+
+/**
+ * Fetches `raw` over https only: each redirect is followed by hand and only
+ * to another https URL, so nothing is ever read over plain http.
+ */
+export async function fetchHttps(
+  raw: string,
+  signal: AbortSignal,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Response> {
+  let url = new URL(raw);
+  for (let hops = 0; ; hops += 1) {
+    if (url.protocol !== "https:") throw new Error(`not https: ${url.href}`);
+    const response = await fetchImpl(url, { signal, redirect: "manual" });
+    const location = response.headers.get("location");
+    if (response.status < 300 || response.status >= 400 || location === null) {
+      return response;
+    }
+    if (hops >= maxRedirects) {
+      throw new Error(`more than ${maxRedirects} redirects from ${raw}`);
+    }
+    await response.body?.cancel();
+    url = new URL(location, url);
+  }
+}

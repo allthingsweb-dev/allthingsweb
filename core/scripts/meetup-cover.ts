@@ -1,3 +1,4 @@
+import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BunRuntime, BunServices } from "@effect/platform-bun";
@@ -6,7 +7,7 @@ import { Argument, Command, Flag } from "effect/cli";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import * as Database from "../src/database.ts";
-import { fileSlug, readAtMost } from "./cover-file.ts";
+import { fetchHttps, fileSlug, readAtMost } from "./cover-file.ts";
 import { padCover } from "./pad-cover.ts";
 
 /**
@@ -17,8 +18,9 @@ import { padCover } from "./pad-cover.ts";
  *
  *   bun run promo:cover <slug> [--out <file>]
  *
- * The JPEG goes to --out, by default meetup-cover-<slug>.jpg in the
- * system's temporary directory, a scratch copy to upload and forget.
+ * The JPEG goes to --out, by default meetup-cover-<slug>.jpg in a fresh
+ * directory under the system's temporary one, a scratch copy to upload and
+ * forget. The cover is fetched over https only, redirects included.
  * DATABASE_URL comes from the environment only.
  */
 
@@ -46,9 +48,7 @@ const coverOf = Effect.gen(function* () {
 const download = (raw: string) =>
   Effect.tryPromise({
     try: async (signal) => {
-      const url = new URL(raw);
-      if (url.protocol !== "https:") throw new Error(`not https: ${raw}`);
-      const response = await fetch(url, { signal });
+      const response = await fetchHttps(raw, signal);
       if (!response.ok) throw new Error(`${response.status} from ${raw}`);
       const length = Number(response.headers.get("content-length") ?? 0);
       if (length > maxCoverBytes) throw new Error(`${raw} is ${length} bytes`);
@@ -103,9 +103,15 @@ const command = Command.make(
             message: `Could not pad the cover: ${describe(cause)}`,
           }),
       });
-      const file = Option.getOrElse(out, () =>
-        join(tmpdir(), `meetup-cover-${fileSlug(slug)}.jpg`),
-      );
+      // A fresh directory per run by default, so runs never share a file.
+      const file = Option.isSome(out)
+        ? out.value
+        : join(
+            yield* Effect.promise(() =>
+              mkdtemp(join(tmpdir(), "meetup-cover-")),
+            ),
+            `meetup-cover-${fileSlug(slug)}.jpg`,
+          );
       yield* Effect.promise(() => Bun.write(file, padded.bytes));
       yield* Console.log(
         `wrote ${file}: ${padded.width} × ${padded.height}, from ${url}`,
