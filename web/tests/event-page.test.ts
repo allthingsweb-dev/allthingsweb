@@ -455,10 +455,10 @@ describe("who took part", () => {
     );
     expect(html).toContain('<p class="at-type-meta">co-hosts</p>');
     expect(html).toContain(
-      '<span class="person-name">Michael Arnaldi</span><span class="person-title">Creator of Effect</span>',
+      '<span class="event-person-name">Michael Arnaldi</span><span class="event-person-title">Creator of Effect</span>',
     );
     expect(html).toContain(
-      '<span class="person-name">Mirela Prifti</span></p>',
+      '<span class="event-person-name">Mirela Prifti</span></p>',
     );
     expect(html).toContain('<p class="at-type-meta">mc</p>');
     expect(render(event({ coHosts: [person("Dan Goosewin")] }))).toContain(
@@ -466,7 +466,7 @@ describe("who took part", () => {
     );
     const none = render(event());
     expect(none).not.toContain("co-host");
-    expect(none).not.toContain('class="people"');
+    expect(none).not.toContain('class="event-people"');
   });
 
   test("says how many are going while it is ahead, and how many went after", () => {
@@ -507,7 +507,7 @@ describe("who took part", () => {
       }),
     );
     expect(html).toContain(
-      '<section class="talk"><p class="at-type-meta">fireside chat</p><h2',
+      '<section class="stage-talk"><p class="at-type-meta">fireside chat</p><h2',
     );
     expect(html).toContain(
       '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name">Simon</h3>',
@@ -517,7 +517,7 @@ describe("who took part", () => {
     );
     // A talk's speaker is just its speaker.
     expect(html).toContain(
-      '<section class="talk"><h2 class="talk-title at-type-lead">A talk</h2>',
+      '<section class="stage-talk"><h2 class="stage-title at-type-lead">A talk</h2>',
     );
     expect(html.match(/speaker-role/g)).toHaveLength(2);
   });

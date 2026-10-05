@@ -192,7 +192,7 @@ describe("an upcoming evening", () => {
     const { html } = await page(Events, slugs.upcoming);
     const stage = row(html, "On stage");
     expect(stage).toContain(
-      '<section class="talk"><p class="at-type-meta">fireside chat</p><h2 class="talk-title at-type-lead">A fireside chat on Effect</h2>',
+      '<section class="stage-talk"><p class="at-type-meta">fireside chat</p><h2 class="stage-title at-type-lead">A fireside chat on Effect</h2>',
     );
     // Grace moderates; Ada is the fireside's guest.
     expect(stage).toContain(
@@ -202,7 +202,7 @@ describe("an upcoming evening", () => {
       '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name">Ada Lovelace</h3>',
     );
     expect(stage).toContain(
-      '<div class="talk-description"><p>Typed errors &amp; <strong>services</strong>.</p></div>',
+      '<div class="stage-description"><p>Typed errors &amp; <strong>services</strong>.</p></div>',
     );
     expect(stage).not.toContain("<script");
     expect(stage).toContain(`<img src="${speakerPortrait}" alt=""`);
@@ -234,12 +234,12 @@ describe("an upcoming evening", () => {
     );
     expect(hosted).toContain('<p class="at-type-meta">co-hosts</p>');
     expect(
-      [...hosted.matchAll(/<span class="person-name">([^<]+)</g)].map(
+      [...hosted.matchAll(/<span class="event-person-name">([^<]+)</g)].map(
         ([, name]) => name,
       ),
     ).toEqual(["Ada Lovelace", "Grace Hopper"]);
     expect(hosted).toContain(
-      '<span class="person-name">Ada Lovelace</span><span class="person-title">Engineer, Analytical Engines</span>',
+      '<span class="event-person-name">Ada Lovelace</span><span class="event-person-title">Engineer, Analytical Engines</span>',
     );
     expect(hosted).not.toContain(">mc<");
     // The footer still signs off with Erik and Andre.
@@ -322,7 +322,7 @@ describe("a past evening", () => {
       '<p class="fact-head">Sanity &amp; Clerk</p>',
     );
     expect(row(html, "Hosted at")).toContain(
-      '<p class="at-type-meta">mc</p><ul><li class="person">',
+      '<p class="at-type-meta">mc</p><ul><li class="event-person">',
     );
     expect(row(html, "When")).toContain("<p>146 went.</p>");
   });
@@ -339,7 +339,7 @@ describe("a past evening", () => {
     expect(stage).toMatch(
       /<article class="speaker"><img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt="" width="168" height="168" loading="lazy" decoding="async"\/><div class="speaker-who"><h3 class="at-type-list-name">Grace Hopper<\/h3><\/div><\/article>/,
     );
-    expect(stage).not.toContain("talk-description");
+    expect(stage).not.toContain("stage-description");
   });
 
   it("shows its photos on the media origin, sized and lazy", async ({

@@ -261,22 +261,22 @@ function People({
   readonly people: ReadonlyArray<Person>;
 }) {
   return (
-    <div class="people">
+    <div class="event-people">
       <p class="at-type-meta" safe>
         {label}
       </p>
       <ul>
         {people.map((person) => (
-          <li class="person">
+          <li class="event-person">
             <Portrait person={person} size={44} />
             <p>
-              <span class="person-name" safe>
+              <span class="event-person-name" safe>
                 {person.name}
               </span>
               {person.title === null ? (
                 ""
               ) : (
-                <span class="person-title" safe>
+                <span class="event-person-title" safe>
                   {person.title}
                 </span>
               )}
@@ -454,19 +454,19 @@ function TalkEntry({ talk }: { readonly talk: Talk }) {
   // Sanitized by core (rich-text.ts): formatting and safe links only.
   const safeDescription = talk.description;
   return (
-    <section class="talk">
+    <section class="stage-talk">
       {talk.format === "talk" ? (
         ""
       ) : (
         <p class="at-type-meta">{formatNames[talk.format]}</p>
       )}
-      <h2 class="talk-title at-type-lead" safe>
+      <h2 class="stage-title at-type-lead" safe>
         {talk.title}
       </h2>
       {safeDescription === null ? (
         ""
       ) : (
-        <div class="talk-description">{safeDescription}</div>
+        <div class="stage-description">{safeDescription}</div>
       )}
       {talk.speakers.length === 0 ? (
         ""
@@ -484,7 +484,7 @@ function TalkEntry({ talk }: { readonly talk: Talk }) {
 function OnStage({ talks }: { readonly talks: ReadonlyArray<Talk> }) {
   return (
     <Fact label="On stage">
-      <div class="talks">
+      <div class="stage">
         {talks.map((talk) => (
           <TalkEntry talk={talk} />
         ))}

@@ -3,6 +3,7 @@ import { Evenings } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
 import { Home } from "allthings-core/src/home.ts";
 import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
+import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
 import { Effect, Layer, Option } from "effect";
@@ -23,6 +24,7 @@ import {
 } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
+import { peoplePage } from "./people.tsx";
 import { htmlResponse } from "./response.ts";
 import { chooseTheme, isChoice, type Theme, themeOf } from "./theme.ts";
 
@@ -162,6 +164,38 @@ const home = dataPage(
   "the home page",
   Home.use((repository) => repository.read(mediaOrigin)),
   (view, props) => homePage({ home: view, ...props }),
+);
+
+/**
+ * The people page: the organizers (the hosts links.ts names first), then
+ * every speaker, then everyone who co-hosted or MC'd an evening.
+ */
+const people = dataPage(
+  "/people",
+  "the people page",
+  PeopleDirectory.use((repository) =>
+    repository.read(
+      hosts.map((host) => host.profileId),
+      mediaOrigin,
+    ),
+  ),
+  (view, props) => peoplePage({ people: view, ...props }),
+);
+
+/**
+ * /speakers, where the current site lists speakers, is the people page now.
+ * The move is permanent and changes only with a deploy, so it is cached as
+ * a page is.
+ */
+const speakers = HttpRouter.add(
+  "GET",
+  "/speakers",
+  Effect.succeed(
+    HttpServerResponse.redirect("/people", {
+      status: 301,
+      headers: { "cache-control": CacheControl.page },
+    }),
+  ),
 );
 
 /** The evenings index: every published evening. */
@@ -329,6 +363,8 @@ const shortLink = HttpRouter.add(
 export const pageRoutes = Layer.mergeAll(
   home,
   events,
+  people,
+  speakers,
   brand,
   event,
   calendar,
