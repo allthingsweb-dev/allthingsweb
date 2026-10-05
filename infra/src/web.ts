@@ -19,19 +19,22 @@ export const Database = Cloudflare.Hyperdrive.Connection("Database", {
 /**
  * The all things Worker (web/): the public API, the MCP server, the home
  * page, the evenings index, each event's page, the people and about pages
- * and /brand today, the whole site after the cutover. Alchemy bundles ../web/src/worker.ts with
- * web's own dependencies and uploads ../web/dist/public as its static
- * assets, so first `bun install` at the repository root and `bun run build`
- * in web/: the Worker imports what the build writes, and the asset layer
- * serves the hashed stylesheet, fonts and marks before the Worker runs.
+ * and /brand today, the whole site after the cutover. Alchemy bundles
+ * ../web/src/worker.ts with web's own dependencies and uploads
+ * ../web/dist/public as its static assets, so first `bun install` at the
+ * repository root and `bun run build` in web/: the Worker imports what the
+ * build writes, and the asset layer serves the hashed stylesheet, fonts and
+ * marks before the Worker runs.
  *
  * Not deployed to prod yet; see alchemy.run.ts. It reads data through the
  * `HYPERDRIVE` binding, which every request connects to anew (see
- * web/src/database.ts), so deploying needs `NEON_READER_URL`. `ORIGIN` stays
- * the current site, which canonical URLs and the feeds name; pages link
- * within the stage that serves them. It is also the production host: robots.txt lets crawlers in only there, so
- * every stage stays out of search results until the cutover sets `ORIGIN`
- * to the domain this Worker serves.
+ * web/src/database.ts), so deploying needs `NEON_READER_URL`. `ORIGIN`
+ * stays the current site, which canonical URLs and the feeds name; pages
+ * link within the stage that serves them. It is also the production host:
+ * robots.txt lets crawlers in only there, so every stage stays out of
+ * search results until the cutover sets `ORIGIN` to the domain this Worker
+ * serves. `EDGE_CACHE` turns on the Worker's own cache in each data center
+ * (web/src/edge-cache.ts), so a warm page never waits on the database.
  * `IMAGES` makes the photos' variants (web/src/images/route.ts) from the
  * originals on the media origin; it has no resource of its own, and
  * transformations are billed to the account (5,000 unique ones a month
@@ -43,6 +46,7 @@ export const Web = Cloudflare.Worker("Web", {
   assets: "../web/dist/public",
   env: {
     ORIGIN: "https://allthingsweb.dev",
+    EDGE_CACHE: "site",
     HYPERDRIVE: Database,
     IMAGES: Cloudflare.Images.Images("IMAGES"),
   },
