@@ -7,6 +7,8 @@ import { DataSourceError } from "./errors.ts";
  * to the database in one transaction: the talks each event lacked, with
  * their speakers and roles, the people around each event, and profiles for
  * people the site has none for. Every fact in the file carries its sources.
+ * An entry marked `hold` (with the reason) stays in the file and is never
+ * applied ({@link applicable}); the run lists what it held.
  *
  * Applying is safe to repeat. Where an event already has a talk with the
  * same title, that talk takes the file's format and speaker roles and gains
@@ -14,6 +16,12 @@ import { DataSourceError } from "./errors.ts";
  * has their exact name (several stop the run); event_people rows that exist
  * stay. A dry run does all of it, reports, and rolls back.
  */
+
+/**
+ * Why an entry waits, such as "needs Erik: title unknown". A held entry is
+ * kept in the file, with its sources, and never applied.
+ */
+const Hold = Schema.optionalKey(Schema.String.check(Schema.isNonEmpty()));
 
 const Url = Schema.String.check(Schema.isPattern(/^https:\/\/\S+$/));
 const Sources = Schema.Array(Url).check(Schema.isMinLength(1));
@@ -32,6 +40,7 @@ export const Person = Schema.Union([
         photoSourceUrl: Schema.optionalKey(Url),
       }),
     ),
+    hold: Hold,
     sources: Sources,
   }),
   Schema.Struct({
@@ -44,6 +53,7 @@ export const Person = Schema.Union([
       linkedinHandle: Schema.NullOr(Schema.String),
       photoSourceUrl: Schema.NullOr(Url),
     }),
+    hold: Hold,
     sources: Sources,
   }),
 ]);
@@ -56,6 +66,7 @@ export const Lineups = Schema.Struct({
     Schema.Struct({
       lumaEventId: Schema.String,
       name: Schema.String,
+      hold: Hold,
       /** Set where the event has no recording link yet. */
       recordingUrl: Schema.optionalKey(Url),
       talks: Schema.Array(
@@ -71,6 +82,7 @@ export const Lineups = Schema.Struct({
           ).check(Schema.isMinLength(1)),
           sources: Sources,
           confidence: Confidence,
+          hold: Hold,
         }),
       ),
       people: Schema.Array(
@@ -78,6 +90,7 @@ export const Lineups = Schema.Struct({
           person: Schema.String,
           role: Schema.Literals(["organizer", "co-host", "mc"]),
           sources: Sources,
+          hold: Hold,
         }),
       ),
     }),
@@ -92,6 +105,72 @@ export function undefinedPeople(lineups: Lineups): ReadonlyArray<string> {
     ...event.people.map((p) => p.person),
   ]);
   return [...new Set(named)].filter((key) => !(key in lineups.people));
+}
+
+/**
+ * The part of `lineups` to apply: every event, talk and event person not
+ * held, and the people they name. An event left with nothing to apply is
+ * dropped. A person no applied entry names is kept
+ * only to fill in an existing profile, unless held; a profile to create is
+ * never made for held entries alone.
+ */
+export function applicable(lineups: Lineups): Lineups {
+  const events = lineups.events
+    .filter((event) => event.hold === undefined)
+    .map((event) => ({
+      ...event,
+      talks: event.talks.filter((talk) => talk.hold === undefined),
+      people: event.people.filter((person) => person.hold === undefined),
+    }))
+    .filter(
+      (event) =>
+        event.talks.length > 0 ||
+        event.people.length > 0 ||
+        event.recordingUrl !== undefined,
+    );
+  const named = new Set(
+    events.flatMap((event) => [
+      ...event.talks.flatMap((talk) => talk.speakers.map((s) => s.person)),
+      ...event.people.map((p) => p.person),
+    ]),
+  );
+  const people = Object.fromEntries(
+    Object.entries(lineups.people).filter(
+      ([key, person]) =>
+        named.has(key) ||
+        (person.hold === undefined &&
+          "profileId" in person &&
+          person.fill !== undefined),
+    ),
+  );
+  return { people, events };
+}
+
+/** Every held entry, as "<what>: <why>", in file order. */
+export function heldEntries(lineups: Lineups): ReadonlyArray<string> {
+  const held: Array<string> = [];
+  for (const [key, person] of Object.entries(lineups.people)) {
+    if (person.hold !== undefined) held.push(`person ${key}: ${person.hold}`);
+  }
+  for (const event of lineups.events) {
+    if (event.hold !== undefined) {
+      held.push(`event ${event.name}: ${event.hold}`);
+      continue;
+    }
+    for (const talk of event.talks) {
+      if (talk.hold !== undefined) {
+        held.push(`talk "${talk.title}" (${event.name}): ${talk.hold}`);
+      }
+    }
+    for (const person of event.people) {
+      if (person.hold !== undefined) {
+        held.push(
+          `${person.role} ${person.person} (${event.name}): ${person.hold}`,
+        );
+      }
+    }
+  }
+  return held;
 }
 
 /** A lineup that cannot be applied as written; nothing was written. */
@@ -118,13 +197,14 @@ class RolledBack extends Schema.TaggedError<RolledBack>()("RolledBack", {
  * doing everything. Fails, writing nothing, on an unknown event or profile,
  * or a new person whose name several profiles have.
  */
-export const applyLineups = (lineups: Lineups, dryRun: boolean) =>
+export const applyLineups = (file: Lineups, dryRun: boolean) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
-    const lines: Array<string> = [];
+    const lines: Array<string> = heldEntries(file).map((h) => `held: ${h}`);
+    const lineups = applicable(file);
     const fail = (reason: string) => Effect.fail(new LineupError({ reason }));
 
-    const missing = undefinedPeople(lineups);
+    const missing = undefinedPeople(file);
     if (missing.length > 0) {
       return yield* fail(
         `People not defined in the file: ${missing.join(", ")}`,

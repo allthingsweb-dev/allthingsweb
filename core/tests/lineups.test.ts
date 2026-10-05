@@ -2,7 +2,9 @@ import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { Effect, Exit, Schema } from "effect";
 import {
+  applicable,
   applyLineups,
+  heldEntries,
   LineupError,
   Lineups,
   undefinedPeople,
@@ -237,14 +239,146 @@ describe("applying lineups", () => {
   });
 });
 
-describe("core/backfill/lineups.json", () => {
-  test("decodes, and names only people it defines", async () => {
-    const text = await Bun.file(
-      new URL("../backfill/lineups.json", import.meta.url),
-    ).text();
-    const decoded = Schema.decodeUnknownSync(Schema.fromJsonString(Lineups))(
-      text,
+describe("held entries", () => {
+  const held: Lineups = {
+    ...lineups,
+    people: {
+      ...lineups.people,
+      wait: {
+        create: {
+          name: "Waiting Person",
+          title: "",
+          bio: "",
+          twitterHandle: null,
+          blueskyHandle: null,
+          linkedinHandle: null,
+          photoSourceUrl: null,
+        },
+        sources: source,
+      },
+    },
+    events: [
+      {
+        ...lineups.events[0]!,
+        talks: [
+          ...lineups.events[0]!.talks,
+          {
+            title: "Untitled",
+            format: "talk",
+            description: "",
+            speakers: [{ person: "wait", role: "speaker" }],
+            sources: source,
+            confidence: "medium",
+            hold: "needs Erik: title unknown",
+          },
+        ],
+        people: [
+          ...lineups.events[0]!.people,
+          {
+            person: "kay",
+            role: "co-host",
+            sources: source,
+            hold: "needs Erik: unconfirmed",
+          },
+        ],
+      },
+      {
+        lumaEventId: "evt-none",
+        name: "A held event",
+        hold: "needs Erik: partner event",
+        talks: [],
+        people: [],
+      },
+    ],
+  };
+
+  test("are kept out of what is applied, with whom only they name", () => {
+    const subset = applicable(held);
+    expect(Object.keys(subset.people).toSorted()).toEqual([
+      "ada",
+      "grace",
+      "kay",
+      "linus",
+    ]);
+    expect(subset.events.map((e) => e.name)).toEqual(["React at Acme"]);
+    expect(subset.events[0]?.talks.map((t) => t.title)).toEqual([
+      "A fireside",
+      "effect in production",
+    ]);
+    expect(subset.events[0]?.people.map((p) => p.role)).toEqual(["mc"]);
+    expect(heldEntries(held)).toEqual([
+      'talk "Untitled" (React at Acme): needs Erik: title unknown',
+      "co-host kay (React at Acme): needs Erik: unconfirmed",
+      "event A held event: needs Erik: partner event",
+    ]);
+  });
+
+  test("are listed, and never written", async () => {
+    const db = await database();
+    const exit = await apply(db, held);
+    expect(Exit.isSuccess(exit)).toBe(true);
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value.lines.slice(0, 3)).toEqual(
+        heldEntries(held).map((h) => `held: ${h}`),
+      );
+    }
+    const waiting = await db.query(
+      `SELECT 1 FROM profiles WHERE name = 'Waiting Person'`,
     );
-    expect(undefinedPeople(decoded)).toEqual([]);
+    expect(waiting.rows).toEqual([]);
+    expect(
+      (await state(db)).talks.map((t) => (t as { title: string }).title),
+    ).not.toContain("Untitled");
+  });
+});
+
+describe("core/backfill/lineups.json", () => {
+  const file = async () =>
+    Schema.decodeUnknownSync(Schema.fromJsonString(Lineups))(
+      await Bun.file(
+        new URL("../backfill/lineups.json", import.meta.url),
+      ).text(),
+    );
+
+  test("decodes, and names only people it defines", async () => {
+    expect(undefinedPeople(await file())).toEqual([]);
+  });
+
+  test("applies only the confirmed entries; the rest wait for Erik", async () => {
+    const decoded = await file();
+    const subset = applicable(decoded);
+    expect(
+      subset.events.map((event) => [
+        event.name,
+        event.talks.map((t) => t.title),
+        event.people.map((p) => `${p.role} ${p.person}`),
+      ]),
+    ).toEqual([
+      [
+        "Effect San Francisco",
+        ["Fireside chat with Michael Arnaldi, creator of Effect"],
+        ["mc simon-farshid"],
+      ],
+      [
+        "Dev Setup Demos - Show your agents.md!",
+        ["My most used slash commands and custom subagents for development"],
+        [],
+      ],
+    ]);
+    expect(Object.keys(subset.people).toSorted()).toEqual([
+      "arthur-stockman",
+      "michael-arnaldi",
+      "mirela-prifti",
+      "sebastian-lorenz",
+      "simon-farshid",
+    ]);
+    expect(
+      subset.events
+        .flatMap((event) => event.talks)
+        .every((talk) => talk.confidence === "high"),
+    ).toBe(true);
+    expect(heldEntries(decoded).every((h) => h.includes("needs Erik"))).toBe(
+      true,
+    );
   });
 });

@@ -379,7 +379,8 @@
             "https://x.com/samgoodwin89/status/2105806892807389585",
             "https://effect.website/blog/this-week-in-effect/138"
           ],
-          "confidence": "medium"
+          "confidence": "medium",
+          "hold": "needs Erik: Sam spoke about Alchemy (Erik confirms), but no source gives the talk's title; 'Alchemy' is a placeholder"
         }
       ],
       "people": [
@@ -439,7 +440,8 @@
             "https://bsky.app/profile/andrelandgraf.com/post/3mfn4xikzms2b",
             "https://bsky.app/profile/andrelandgraf.com/post/3mfpmeas6zc22"
           ],
-          "confidence": "medium"
+          "confidence": "medium",
+          "hold": "needs Erik: medium confidence; the other panelists and the moderator are unknown"
         }
       ],
       "people": []
@@ -447,6 +449,7 @@
     {
       "lumaEventId": "evt-IpKgpcPJEOjvroH",
       "name": "TypeScript AI Demo Day",
+      "hold": "needs Erik: a partner event (Mastra); keep it published, which adds 16 profiles, or unpublish it?",
       "recordingUrl": "https://www.youtube.com/watch?v=IgLN0abipOk",
       "talks": [
         {
