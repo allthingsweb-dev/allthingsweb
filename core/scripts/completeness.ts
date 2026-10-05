@@ -38,7 +38,12 @@ const checkFlag = Flag.Boolean("check").pipe(
 );
 
 const withinFlag = Flag.Int("within").pipe(
-  Flag.withDescription("Days --check looks back."),
+  Flag.withDescription("Days --check looks back, at least 1."),
+  // Zero or fewer days would look back at nothing, and always pass.
+  Flag.filter(
+    (days) => days >= 1,
+    (days) => `--within must be at least 1 day, not ${days}`,
+  ),
   Flag.withDefault(Duration.toDays(recentWindow)),
 );
 

@@ -24,6 +24,8 @@ export async function completenessReport(
       cwd: core,
       env: process.env,
       maxBuffer: 32 * 1024 * 1024,
+      // A stalled database fails the tool call instead of hanging it.
+      timeout: 120_000,
     },
   );
   const reports = JSON.parse(stdout) as ReadonlyArray<{
