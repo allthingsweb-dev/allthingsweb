@@ -34,10 +34,10 @@ export const widths = [240, 360, 480, 720, 960, 1200] as const;
 
 /**
  * The squares portraits are offered at: the footer's 36 CSS pixels at 1x
- * and 2x; /people's speakers (64 to 72) and organizers (96 to 160) at 1x
- * to 3x.
+ * and 2x; event pages' 44 (hosts) and 72 to 168 (speakers), and /people's
+ * 64 to 72 (speakers) and 96 to 160 (organizers), at 1x to 3x.
  */
-export const squares = [36, 72, 144, 160, 216, 320] as const;
+export const squares = [36, 72, 144, 160, 168, 216, 320, 336] as const;
 
 export type Width = (typeof widths)[number];
 export type Square = (typeof squares)[number];

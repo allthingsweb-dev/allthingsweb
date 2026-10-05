@@ -399,6 +399,27 @@ describe("/people with variants", () => {
   });
 });
 
+describe("an event's page with variants", () => {
+  it("shows the evening's photos as variants from this site alone", async ({
+    Variants,
+  }) => {
+    const response = await fetch(`${Variants}/2026-03-07-all-things-effect`);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toBe(
+      contentSecurityPolicy.variants,
+    );
+    // Its photo on another origin is left out.
+    expect(html.match(/<li><picture>/g)).toHaveLength(1);
+    expect(html).toContain(
+      `<img src="/img/480/jpeg/${version}/events/home/effect.jpg"`,
+    );
+    for (const path of [...subresources(html), ...imageUrls(html)]) {
+      expect(path).toMatch(/^\/(?!\/)/);
+    }
+  });
+});
+
 describe("/ without variants", () => {
   it("links the originals, which only its policy allows", async ({
     Originals,

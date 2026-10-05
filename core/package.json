@@ -9,7 +9,8 @@
     "test": "bun test",
     "fixtures": "bun scripts/fixtures.ts",
     "migrate": "bun --no-env-file scripts/migrate.ts",
-    "luma:people": "bun --no-env-file scripts/luma-people.ts"
+    "luma:people": "bun --no-env-file scripts/luma-people.ts",
+    "completeness": "bun --no-env-file scripts/completeness.ts"
   },
   "dependencies": {
     "@effect/sql-pg": "4.0.0",

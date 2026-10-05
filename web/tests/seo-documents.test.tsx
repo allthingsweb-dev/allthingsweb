@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { roleColor, tokens } from "allthings-brand/src/tokens.ts";
-import type * as Rows from "allthings-core/src/rows.ts";
+import type { EventPage, Speaker } from "allthings-core/src/event-page.ts";
 import { DateTime } from "effect";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { socials } from "../src/links.ts";
@@ -308,42 +308,46 @@ describe("the RSS feed", () => {
   });
 });
 
-/** A published event with everything its page shows. */
-const details = (
-  overrides: Partial<Rows.EventDetails> = {},
-): Rows.EventDetails => ({
+/** A published event as its page shows it. */
+const details = (overrides: Partial<EventPage> = {}): EventPage => ({
   id: "e0000000-0000-4000-8000-000000000101",
   slug: "2026-11-05-all-things-effect",
   name: "All Things Effect",
+  topic: "effect",
   tagline: "Effect, in person.",
-  startDate: at("2026-11-06T01:30:00Z"),
-  endDate: at("2026-11-06T04:30:00Z"),
-  streetAddress: "201 Spear St 12th floor",
-  shortLocation: "CodeRabbit",
-  fullAddress: "201 Spear St 12th floor, San Francisco, CA 94105, USA",
-  lumaEventId: "evt-abc123",
-  recordingUrl: null,
-  isHackathon: false,
-  previewImage: null,
-  lumaGuestCount: null,
-  lumaCheckedInCount: null,
-  talks: [],
+  status: "upcoming",
+  mode: "night",
+  startsAt: at("2026-11-06T01:30:00Z"),
+  endsAt: at("2026-11-06T04:30:00Z"),
+  updatedAt: at("2026-10-01T00:00:00Z"),
+  venue: {
+    neighborhood: "East Cut",
+    name: "CodeRabbit",
+    address: "201 Spear St 12th floor, San Francisco, CA 94105, USA",
+    mapQuery: "201 Spear St 12th floor, San Francisco, CA 94105, USA",
+  },
   hosts: [],
-  people: [],
-  images: [],
+  organizers: [],
+  coHosts: [],
+  mcs: [],
+  guests: null,
+  rsvpUrl: "https://lu.ma/event/evt-abc123",
+  seats: null,
+  recordingUrl: null,
+  talks: [],
+  photos: [],
+  next: undefined,
   ...overrides,
 });
 
-const speaker = (id: string, name: string, title: string) => ({
+const speaker = (id: string, name: string, title: string | null): Speaker => ({
   id,
   name,
   title,
-  bio: "",
-  twitterHandle: null,
-  blueskyHandle: null,
-  linkedinHandle: null,
-  image: null,
-  role: "speaker" as const,
+  bio: null,
+  links: { x: null, bluesky: null, linkedin: null },
+  portrait: null,
+  role: "speaker",
 });
 
 describe("structured data", () => {
@@ -354,16 +358,16 @@ describe("structured data", () => {
         {
           id: "t1",
           title: "Effect 4",
-          description: "",
           format: "talk",
-          speakers: [michael, speaker("b2", "Kit", "")],
+          description: null,
+          speakers: [michael, speaker("b2", "Kit", null)],
         },
         {
           id: "t2",
           title: "Fireside",
-          description: "",
-          format: "talk",
-          speakers: [michael],
+          format: "fireside",
+          description: null,
+          speakers: [{ ...michael, role: "guest" }],
         },
       ],
     });
@@ -408,7 +412,7 @@ describe("structured data", () => {
 
   test("leaves out what an event doesn't have, and names the address when there is no venue", () => {
     const bare = eventStructuredData(
-      details({ shortLocation: null, fullAddress: null, lumaEventId: null }),
+      details({ venue: null, rsvpUrl: null }),
       origin,
     );
     expect(bare).not.toHaveProperty("location");
@@ -416,7 +420,17 @@ describe("structured data", () => {
     expect(bare).not.toHaveProperty("offers");
     expect(bare).not.toHaveProperty("image");
     expect(
-      eventStructuredData(details({ shortLocation: null }), origin).location,
+      eventStructuredData(
+        details({
+          venue: {
+            neighborhood: null,
+            name: null,
+            address: "201 Spear St 12th floor, San Francisco, CA 94105, USA",
+            mapQuery: "201 Spear St 12th floor, San Francisco, CA 94105, USA",
+          },
+        }),
+        origin,
+      ).location,
     ).toEqual({
       "@type": "Place",
       name: "201 Spear St 12th floor, San Francisco, CA 94105, USA",

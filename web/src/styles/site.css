@@ -658,6 +658,314 @@ main > section,
   text-underline-offset: 0.18em;
 }
 
+/* An event: its lockup, then the ledger, where each fact has its own row
+   under a small label (design round EP1-B). */
+
+.event {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(32px, 4vw, 56px);
+  container-type: inline-size;
+}
+
+.event-name {
+  font-weight: 800;
+  font-stretch: 112%;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  overflow-wrap: break-word;
+}
+
+.event-name-l {
+  font-size: min(112px, 15.5cqi);
+}
+
+.event-name-m {
+  font-size: min(80px, 11cqi);
+}
+
+.event-name-s {
+  font-size: min(56px, 9cqi);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+.ledger {
+  border-top: 3px solid var(--at-text);
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
+  column-gap: var(--at-grid-gutter);
+  row-gap: 8px;
+  align-items: baseline;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--at-rule);
+}
+
+.fact dt {
+  grid-column: span 3;
+}
+
+/* Photos have no text to share a baseline with. */
+.fact:has(.photos) {
+  align-items: start;
+}
+
+.fact dd {
+  grid-column: span 9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The fact itself, in the label role. */
+.fact-head {
+  font-size: clamp(30px, 3vw, 40px);
+  font-weight: 700;
+  font-stretch: 75%;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.fact-head.place {
+  color: var(--at-link);
+}
+
+.venue,
+.fact-links,
+.speaker-links {
+  font-weight: 600;
+}
+
+.hosted,
+.act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.your-hosts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.your-hosts p {
+  display: flex;
+  flex-direction: column;
+}
+
+.host-names {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.host-portraits {
+  display: flex;
+}
+
+.host-portraits img,
+.event-person img,
+.speaker img,
+.photos img {
+  object-fit: cover;
+  background: var(--at-surface);
+}
+
+.host-portraits img {
+  width: 44px;
+  height: 44px;
+}
+
+.host-portraits img + img {
+  margin-left: -9px;
+  box-shadow: 0 0 0 2px var(--at-ground);
+}
+
+/* Co-hosts and the MC, under the hosting company and your hosts. */
+.event-people {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.event-people ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 14px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.event-person img {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+}
+
+.event-person p {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.event-person-name {
+  font-weight: 700;
+}
+
+.event-person-title {
+  font-size: 16px;
+  color: var(--at-meta);
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.stage-talk {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stage-title {
+  font-size: clamp(24px, 2.4vw, 30px);
+  max-width: 30em;
+}
+
+.stage-description {
+  max-width: 68ch;
+  color: var(--at-meta);
+}
+
+.stage-description > * + * {
+  margin-top: 0.6em;
+}
+
+.stage-description :is(ul, ol) {
+  margin-bottom: 0;
+  padding-left: 1.2em;
+}
+
+.speakers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 40px;
+  margin-top: 16px;
+}
+
+.speaker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.speaker img {
+  width: 168px;
+  height: 168px;
+  margin-bottom: 8px;
+}
+
+.speaker-who {
+  display: contents;
+}
+
+/* A speaker alone on stage takes the row: portrait beside the words. */
+.speakers:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.speaker:only-child {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: 24px;
+  row-gap: 10px;
+  align-items: start;
+}
+
+.speaker:only-child img {
+  grid-row: span 2;
+  margin: 0;
+}
+
+.speaker:only-child .speaker-who {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.speaker-bio {
+  max-width: 62ch;
+}
+
+.speaker-title,
+.speaker-links {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.speaker-title {
+  font-weight: 500;
+  color: var(--at-meta);
+}
+
+.speaker-links {
+  order: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photos img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
+.next-name {
+  font-size: 40px;
+  font-weight: 800;
+  font-stretch: 112%;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.next-name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.next-name a:hover {
+  text-decoration: underline 2px;
+}
+
 /* Palette */
 
 .swatches {
@@ -914,6 +1222,57 @@ th {
 }
 
 @media (max-width: 760px) {
+  .fact {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 0;
+  }
+
+  .act {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .act .button {
+    justify-content: space-between;
+  }
+
+  .speakers {
+    gap: 28px;
+  }
+
+  .speaker,
+  .speaker:only-child {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: 10px 14px;
+    align-items: start;
+  }
+
+  .speaker img,
+  .speaker:only-child img {
+    grid-row: auto;
+    width: 72px;
+    height: 72px;
+    margin: 0;
+  }
+
+  .speaker-who {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .speaker-bio {
+    grid-column: 1 / -1;
+  }
+
+  .photos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .type-row .spec,
   .type-row .specimen,
   .with-photos .hero-text,

@@ -48,6 +48,36 @@ bun run luma:people --create usr-… --link usr-…=<profile id>             # w
 docs.luma.com documents, and the import against `tests/seed.sql`; nothing in
 the tests reaches Luma.
 
+## Completeness
+
+`src/completeness.ts` lists what each published event's record lacks. It's
+a pure function over what one statement reads, so the same rows always give
+the same report:
+
+- talks, and each talk's speakers and description; hackathons need no talks
+- the event's people and an organizer among them
+- everyone named on the event: title, bio, photo, links
+- hosts, with their logo and about
+- venue address, the lockup's topic, the Luma sync's placeholder tagline,
+  a cover
+- for past events: photos, a recording link, and Luma's guest count
+
+Links, cover, recording and guest count are optional; the rest is
+required. Nothing reads text for meaning, so a description's tense is not
+judged.
+
+```sh
+DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") bun run completeness          # table, then each event's gaps
+DATABASE_URL=… bun run completeness --json   # the same, for tools
+DATABASE_URL=… bun run completeness --check  # also fail if an event that ended in the last 30 days has no talks
+```
+
+It only reads, so the read-only `site_reader` role is enough. The admin MCP
+server (`app/scripts/mcp-server.ts`) serves the same JSON as
+`get_completeness_report`. `.github/workflows/completeness.yaml` runs
+`--check` against production every Monday and puts the report in the run's
+summary.
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's

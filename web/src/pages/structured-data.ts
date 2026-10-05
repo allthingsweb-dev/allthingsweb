@@ -1,5 +1,5 @@
-import { eventUrl, rsvpUrl } from "allthings-core/src/mappers.ts";
-import type * as Rows from "allthings-core/src/rows.ts";
+import type { EventPage } from "allthings-core/src/event-page.ts";
+import { eventUrl } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
 import { socials } from "../links.ts";
 
@@ -93,29 +93,28 @@ export function organization(
  * up. It names no image until event covers are rendered (the site has no
  * images of its own yet), and every evening is free and in person.
  */
-export function eventStructuredData(
-  event: Rows.EventDetails,
-  origin: string,
-): Event {
+export function eventStructuredData(event: EventPage, origin: string): Event {
   const performers = new Map<string, Person>();
   for (const speaker of event.talks.flatMap((talk) => talk.speakers)) {
     if (performers.has(speaker.id)) continue;
     performers.set(speaker.id, {
       "@type": "Person",
       name: speaker.name,
-      ...(speaker.title === "" ? {} : { jobTitle: speaker.title }),
+      ...(speaker.title === null ? {} : { jobTitle: speaker.title }),
     });
   }
-  const venue = event.shortLocation ?? event.fullAddress;
-  const signUp = rsvpUrl(event.lumaEventId);
+  // The venue by name, else by its address, which is also its address.
+  const address = event.venue?.mapQuery ?? null;
+  const venue = event.venue?.name ?? address;
+  const signUp = event.rsvpUrl;
   return {
     "@context": context,
     "@type": "Event",
     name: event.name,
     description: event.tagline,
     url: eventUrl(origin, event.slug),
-    startDate: DateTime.formatIso(event.startDate),
-    endDate: DateTime.formatIso(event.endDate),
+    startDate: DateTime.formatIso(event.startsAt),
+    endDate: DateTime.formatIso(event.endsAt),
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     isAccessibleForFree: true,
@@ -126,9 +125,7 @@ export function eventStructuredData(
           location: {
             "@type": "Place",
             name: venue,
-            ...(event.fullAddress === null
-              ? {}
-              : { address: event.fullAddress }),
+            ...(address === null ? {} : { address }),
           },
         }),
     ...(performers.size === 0 ? {} : { performer: [...performers.values()] }),

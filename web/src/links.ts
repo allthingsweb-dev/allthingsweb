@@ -63,3 +63,10 @@ export const hosts: readonly [Host, Host] = [
   // Andre Landgraf
   { name: "Andre", profileId: "9527ccf6-8056-4225-b695-cb2a6e1ea50e" },
 ];
+
+/**
+ * A place on Google Maps: its search for `query`, such as a venue's
+ * address, as Google's Maps URLs document it. A plain outbound link.
+ */
+export const googleMaps = (query: string): string =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;

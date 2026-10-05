@@ -16,6 +16,8 @@ export const Image = Schema.Struct({
   placeholder: Schema.String,
   width: Schema.Int,
   height: Schema.Int,
+  /** As `Photo.version`: `updated_at` in whole seconds, as digits. */
+  version: Schema.String,
 });
 
 /** A published `events` row with its preview image, if it has one. */
