@@ -240,9 +240,11 @@ describe("the home page", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="dark">',
     );
-    expect(html).toContain(
-      '<a href="?theme=dark" rel="nofollow" aria-current="true">night</a>',
+    expect(html).toContain('<summary aria-label="mode: night">');
+    expect(html).toMatch(
+      /<a href="\?theme=dark" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>night<\/span><\/a>/,
     );
+    // The mode's choice alone: home is no section of the header.
     expect(html.match(/aria-current/g)).toHaveLength(1);
   });
 

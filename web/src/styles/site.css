@@ -101,9 +101,9 @@ main {
 .site-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px 24px;
+  gap: 8px 16px;
   border-top: 3px solid var(--at-text);
   padding-top: 14px;
 }
@@ -116,44 +116,113 @@ main {
   letter-spacing: -0.03em;
   line-height: 1;
   text-decoration: none;
+  white-space: nowrap;
 }
 
-/* The mode: links, the current one in the text color and underlined. */
-
-.modes {
+/* The site's sections and the mode, together at the header's end. */
+.site-tools {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 0.6em;
+  align-items: center;
+  gap: 12px;
 }
 
-#mode::after {
-  content: ":" / "";
+/*
+ * Where the wordmark, sections and mode don't fit in one line, the
+ * sections and mode take the line below, the sections at its start and the
+ * mode at its end, rather than wrapping word by word.
+ */
+@media (max-width: 480px) {
+  .site-tools {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
 }
 
-.modes ul {
+.site-nav ul {
   display: flex;
+  gap: 0 14px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.modes a {
+/* Links in the meta voice; the page's own section in the text color, underlined. */
+.site-nav a {
   /* 24px tall, the least WCAG 2.2 allows for a target. */
   display: inline-block;
-  padding: 2px 0;
+  padding: 4px 0;
   color: var(--at-meta);
   text-decoration: none;
 }
 
-.modes a:hover {
+.site-nav a:hover {
   color: var(--at-link);
   text-decoration: underline;
 }
 
-.modes a[aria-current] {
+.site-nav a[aria-current] {
   color: var(--at-text);
   text-decoration: underline 2px;
+  text-underline-offset: 0.2em;
+}
+
+/* The mode: one icon that opens on the three choices (a <details>, no script). */
+.mode {
+  position: relative;
+}
+
+.mode summary {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--at-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.mode summary::-webkit-details-marker {
+  display: none;
+}
+
+.mode summary:hover,
+.mode[open] summary {
+  color: var(--at-link);
+}
+
+.mode-icon {
+  display: block;
+  flex: none;
+}
+
+.mode ul {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1;
+  min-width: 9em;
+  margin: 4px 0 0;
+  padding: 6px 0;
+  border: 1px solid var(--at-rule);
+  background: var(--at-ground);
+  list-style: none;
+}
+
+.mode a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  color: var(--at-meta);
+  text-decoration: none;
+}
+
+.mode a:hover {
+  color: var(--at-link);
+}
+
+.mode a[aria-current] {
+  color: var(--at-text);
 }
 
 .site-footer {
@@ -214,8 +283,7 @@ main {
 }
 
 /* After each item but the last, so a wrapped line never starts with one. */
-.socials li:not(:last-child)::after,
-.modes li:not(:last-child)::after {
+.socials li:not(:last-child)::after {
   content: "\b7" / "";
   padding: 0 0.6em;
 }

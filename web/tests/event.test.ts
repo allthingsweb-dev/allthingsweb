@@ -449,8 +449,9 @@ describe("the mode", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="light">',
     );
-    expect(html).toContain(
-      '<a href="?theme=light" rel="nofollow" aria-current="true">paper</a>',
+    expect(html).toContain('<summary aria-label="mode: paper">');
+    expect(html).toMatch(
+      /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );
     expect(response.headers.get("cache-control")).toBe(
       PrivateCacheControl.publicData,
@@ -459,8 +460,9 @@ describe("the mode", () => {
 
   it("names the event's own mode as the first choice", async ({ Events }) => {
     const { html } = await page(Events, slugs.upcoming);
-    expect(html).toContain(
-      '<a href="?theme=system" rel="nofollow" aria-current="true">event</a>',
+    expect(html).toContain('<summary aria-label="mode: event">');
+    expect(html).toMatch(
+      /<a href="\?theme=system" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>event<\/span><\/a>/,
     );
   });
 

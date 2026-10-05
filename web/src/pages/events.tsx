@@ -87,6 +87,7 @@ export function eventsPage({
 }: EventsProps): string {
   const { ahead, past } = evenings;
   return Document({
+    section: "events",
     meta: {
       title: gatheringTitle("every evening"),
       description:

@@ -241,6 +241,7 @@ export function aboutPage({
   images,
 }: AboutProps): string {
   return Document({
+    section: "about",
     meta: {
       title: gatheringTitle("about"),
       description: siteDescription,

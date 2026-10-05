@@ -972,6 +972,7 @@ export function eventPage({
   const photos = showable(event.photos, images);
   const tagline = event.tagline.trim();
   return Document({
+    section: "events",
     meta: {
       title: eventTitle(event),
       description:

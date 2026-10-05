@@ -177,10 +177,15 @@ describe("the mode", () => {
       '<!doctype html><html lang="en" data-theme="light">',
     );
     expect(fixed).toContain('<meta name="color-scheme" content="light"/>');
-    expect(fixed).toContain(
-      '<a href="?theme=light" rel="nofollow" aria-current="true">paper</a>',
+    expect(fixed).toContain('<summary aria-label="mode: paper">');
+    expect(fixed).toMatch(
+      /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );
-    expect(fixed).toContain('<a href="?theme=system" rel="nofollow">event</a>');
+    expect(fixed).toMatch(
+      /<a href="\?theme=system" rel="nofollow"><svg[^]*?<\/svg><span>event<\/span><\/a>/,
+    );
+    // An evening's page belongs to the evenings.
+    expect(fixed).toContain('<a href="/events" aria-current="page">events</a>');
   });
 });
 
