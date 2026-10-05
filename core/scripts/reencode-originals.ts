@@ -26,10 +26,11 @@ import {
  * DATABASE_URL (the database owner's connection string), MEDIA_UPLOAD_URL and
  * MEDIA_UPLOAD_TOKEN (the upload Worker the app stores media through) come
  * from the environment only; .env files are not read. Pass them without
- * printing them, e.g.
+ * printing them, e.g. (with BRANCH_ID, PROJECT_ID, OWNER_ROLE and DATABASE
+ * replaced by production's):
  *
- *   DATABASE_URL=$(bunx neonctl@latest connection-string <branch> \
- *     --project-id <project> --role-name <owner role> --database-name <database>) \
+ *   DATABASE_URL=$(bunx neonctl@latest connection-string BRANCH_ID \
+ *     --project-id PROJECT_ID --role-name OWNER_ROLE --database-name DATABASE) \
  *   MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run reencode --dry-run
  */
 
