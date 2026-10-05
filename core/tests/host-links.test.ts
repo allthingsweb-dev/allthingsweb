@@ -185,6 +185,39 @@ describe("applyHostLinks", () => {
         ],
         "Facts both held and set (drop one): Acme blueskyHandle",
       ],
+      [
+        [
+          {
+            name: "Initech",
+            about: { value: "Unconfirmed.", source },
+            held: [
+              {
+                field: "about",
+                value: "Unconfirmed.",
+                sources: [source],
+                reason: "not on its own site",
+              },
+            ],
+          },
+        ],
+        "Facts both held and set (drop one): Initech about",
+      ],
+      [
+        [
+          {
+            name: "Initech",
+            held: [
+              {
+                field: "about",
+                value: "Unconfirmed.",
+                sources: [source],
+                reason: "not on its own site",
+              },
+            ],
+          },
+        ],
+        'No hosting company is stored as "Initech", and the file gives no about to add it with.',
+      ],
     ] as const) {
       const exit = await apply(db, links);
       expect(Exit.isFailure(exit)).toBe(true);

@@ -77,6 +77,7 @@ export const HostLinksEntry = Schema.Struct({
           "blueskyHandle",
           "linkedinHandle",
           "lumaUserId",
+          "about",
         ]),
         value: Schema.String,
         sources: Schema.Array(Url),
