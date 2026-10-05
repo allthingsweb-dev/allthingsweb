@@ -350,9 +350,10 @@ describe("the Worker, from its bindings", () => {
        WHERE id = 'b0000000-0000-4000-8000-000000000001'`,
     );
     const server = await serve(db);
-    const originalFetch = globalThis.fetch;
     const fetched: Array<string> = [];
-    globalThis.fetch = Object.assign(
+    // Given to the run, not put on globalThis: Effect keeps the first fetch it
+    // finds there for the process.
+    const fakeFetch = Object.assign(
       async (input: string | URL | Request) => {
         const url =
           typeof input === "string"
@@ -367,32 +368,39 @@ describe("the Worker, from its bindings", () => {
             ? new Response(imageBytes("jpeg", "ada"))
             : new Response(null, { status: 404 });
       },
-      { preconnect: originalFetch.preconnect },
+      { preconnect: globalThis.fetch.preconnect },
     );
     const put: Array<string> = [];
     try {
-      const report = await scheduledRun({
-        HYPERDRIVE: { connectionString: server.url },
-        MEDIA: {
-          put: async (key) => {
-            put.push(key);
-            return { key };
+      const report = await scheduledRun(
+        {
+          HYPERDRIVE: { connectionString: server.url },
+          MEDIA: {
+            put: async (key) => {
+              put.push(key);
+              return { key };
+            },
+            delete: async () => undefined,
           },
-          delete: async () => undefined,
-        },
-        MEDIA_ORIGIN: "https://media.allthings.dev",
-        IMAGES: {
-          info: async () => ({ format: "image/jpeg", width: 400, height: 400 }),
-          input: () => ({
-            transform: () => ({
-              output: async () => ({ response: () => new Response("p") }),
+          MEDIA_ORIGIN: "https://media.allthings.dev",
+          IMAGES: {
+            info: async () => ({
+              format: "image/jpeg",
+              width: 400,
+              height: 400,
             }),
-            output: async () => ({ response: () => new Response("j") }),
-          }),
+            input: () => ({
+              transform: () => ({
+                output: async () => ({ response: () => new Response("p") }),
+              }),
+              output: async () => ({ response: () => new Response("j") }),
+            }),
+          },
+          SYNC_MODE: "write",
+          SYNC_PLAN: "paid",
         },
-        SYNC_MODE: "write",
-        SYNC_PLAN: "paid",
-      });
+        fakeFetch,
+      );
       expect(report).toMatchObject({ mode: "write", ok: true });
       expect(report.steps["events"]).toMatchObject({ syncedCount: 24 });
       expect(report.steps["photos"]).toMatchObject({
@@ -404,7 +412,6 @@ describe("the Worker, from its bindings", () => {
       expect(put[0]).toStartWith("profiles/ada-lovelace-");
       expect(fetched[0]).toStartWith("https://api.luma.com/ics/get");
     } finally {
-      globalThis.fetch = originalFetch;
       await server.stop();
     }
   });

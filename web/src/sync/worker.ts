@@ -64,7 +64,10 @@ export const limitsOf = (env: Pick<SyncEnv, "SYNC_PLAN">): SyncLimits =>
  * belongs to the run and closes with it: workerd ties a socket to the
  * invocation that opened it, and Hyperdrive pools across invocations.
  */
-export const syncLayer = (env: SyncEnv & Readonly<Record<string, unknown>>) =>
+export const syncLayer = (
+  env: SyncEnv & Readonly<Record<string, unknown>>,
+  fetch: typeof globalThis.fetch = globalThis.fetch,
+) =>
   Layer.mergeAll(LumaSync.layer, ImageIngest.layer).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, CoverSource.layer)),
     Layer.provide(
@@ -75,7 +78,9 @@ export const syncLayer = (env: SyncEnv & Readonly<Record<string, unknown>>) =>
           // ../database.ts); Hyperdrive makes the TLS connection to Neon.
           ssl: false,
         }),
-        FetchHttpClient.layer,
+        FetchHttpClient.layer.pipe(
+          Layer.provide(Layer.succeed(FetchHttpClient.Fetch, fetch)),
+        ),
         Layer.succeed(MediaBucket, mediaBucket(env.MEDIA, env.MEDIA_ORIGIN)),
         Layer.succeed(Pictures, pictures(env.IMAGES)),
         ConfigProvider.layer(ConfigProvider.fromUnknown(env)),
@@ -86,10 +91,12 @@ export const syncLayer = (env: SyncEnv & Readonly<Record<string, unknown>>) =>
 /** One scheduled run, as the Cron Trigger starts it. */
 export const scheduledRun = (
   env: SyncEnv & Readonly<Record<string, unknown>>,
+  /** How it reaches Luma and the image hosts: the runtime's fetch, or a test's. */
+  fetch: typeof globalThis.fetch = globalThis.fetch,
 ): Promise<SyncReport> =>
   Effect.runPromise(
     runSync(modeOf(env), limitsOf(env)).pipe(
-      Effect.provide(syncLayer(env)),
+      Effect.provide(syncLayer(env, fetch)),
       Effect.scoped,
     ),
   );
