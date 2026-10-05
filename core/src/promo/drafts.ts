@@ -207,10 +207,25 @@ function wherePhrase(event: EventPage): string | null {
     : place;
 }
 
+/** A name that only says the venue isn't known yet: "TBA", "TBD". */
+const unknownVenue = /^(tba|tbd|to be (announced|determined))\.?$/i;
+
+/** The venue's name, unless it is a stand-in for one. */
+const venueName = (event: EventPage): string | null => {
+  const name = event.venue?.name ?? null;
+  return name === null || unknownVenue.test(name.trim()) ? null : name;
+};
+
+/** Whether the record says anything about where: a host, a venue's name, an address or a neighborhood. */
+const knowsWhere = (event: EventPage): boolean =>
+  event.hosts.length > 0 ||
+  venueName(event) !== null ||
+  (event.venue?.address ?? null) !== null ||
+  (event.venue?.neighborhood ?? null) !== null;
+
 /** Where, in one phrase: "CodeRabbit in East Cut". */
 function placePhrase(event: EventPage): string | null {
-  const host =
-    event.hosts.length > 0 ? listOf(event.hosts) : (event.venue?.name ?? null);
+  const host = event.hosts.length > 0 ? listOf(event.hosts) : venueName(event);
   const neighborhood = event.venue?.neighborhood ?? null;
   if (host !== null && neighborhood !== null)
     return `${host} in ${neighborhood}`;
@@ -542,7 +557,7 @@ function meetupDraft(input: PromoInput): MeetupDraft {
       ? null
       : `**Seats are on Luma: [${luma.replace(/^https:\/\//, "")}](${luma}).** The list here on Meetup is a waitlist only.`;
   const venue =
-    event.hosts[0] ?? event.venue?.name ?? event.venue?.address ?? null;
+    event.hosts[0] ?? venueName(event) ?? event.venue?.address ?? null;
   return {
     title: titleOf(event),
     description: fitOn(
@@ -592,7 +607,7 @@ export function promoGaps({
     ...(event.rsvpUrl === null
       ? ["No Luma event is linked, so nothing says where to take a seat."]
       : []),
-    ...(event.hosts.length === 0 && event.venue === null
+    ...(!knowsWhere(event)
       ? ["No host or venue is on record, so nothing says where."]
       : []),
     ...(event.talks.length === 0

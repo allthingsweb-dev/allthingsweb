@@ -267,6 +267,23 @@ describe("Meetup", () => {
     );
   });
 
+  test("a venue named TBA is no venue", async () => {
+    const drafts = await read("2026-11-05-upcoming");
+    expect(drafts.meetup.venue).toBeNull();
+    expect(drafts.meetup.checklist.join("\n")).toContain(
+      "Location: none on record yet",
+    );
+    for (const [, name, text] of everyDraft(drafts)) {
+      expect({ name, saysTba: text.includes("TBA") }).toEqual({
+        name,
+        saysTba: false,
+      });
+    }
+    expect(drafts.gaps).toContain(
+      "No host or venue is on record, so nothing says where.",
+    );
+  });
+
   test("the venue is the host's named place", async () => {
     const { meetup } = await read("2026-08-12-react-at-acme");
     expect(meetup.venue).toBe("Globex");

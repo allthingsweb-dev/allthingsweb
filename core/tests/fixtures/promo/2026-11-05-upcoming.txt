@@ -1,5 +1,9 @@
 # all things/upcoming meetup
 
+## gaps in the record
+
+- No host or venue is on record, so nothing says where.
+
 ## luma: description (403 / 5000)
 
 Soon
@@ -24,7 +28,7 @@ Writes compilers.
 
 title: all things/upcoming meetup
 
-venue: TBA
+venue: (none on record)
 
 event chat: https://discord.gg/B3Sm4b5mfD
 
@@ -32,7 +36,7 @@ topics: Artificial Intelligence, Software Development, Web Development, JavaScri
 
 settings to set by hand:
 - [ ] Attendee limit: 1 (Meetup's minimum), so everyone else lands on the waitlist and takes their seat on Luma.
-- [ ] Location: pick "TBA" from Meetup's place search, not a bare street address.
+- [ ] Location: none on record yet; set the venue before publishing.
 - [ ] Event chat: Discord, https://discord.gg/B3Sm4b5mfD.
 - [ ] Comments: off.
 - [ ] Co-host: add Andre Landgraf.
@@ -62,109 +66,109 @@ Writes compilers.
 
 **[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
-## x: announce (127 / 280)
+## x: announce (122 / 280)
 
 all things/upcoming meetup: a fireside chat with @future, moderated by @ada.
 
-Thu Nov 5, 6:00 PM, TBA.
+Thu Nov 5, 6:00 PM.
 
 https://lu.ma/event/evt%20with%20space
 
-## x: day-of (142 / 280)
+## x: day-of (137 / 280)
 
 Tonight: all things/upcoming meetup.
 
 On stage: a fireside chat with @future, moderated by @ada.
 
-Doors 6:00 PM, TBA.
+Doors 6:00 PM.
 
 https://lu.ma/event/evt%20with%20space
 
-## x: recap (143 / 280)
+## x: recap (136 / 280)
 
-Thank you for coming to all things/upcoming meetup at TBA.
+Thank you for coming to all things/upcoming meetup.
 
 On stage: a fireside chat with @future, moderated by @ada.
 
 https://allthings.example/2026-11-05-upcoming
 
-## bluesky: announce (161 / 300)
+## bluesky: announce (156 / 300)
 
 all things/upcoming meetup: a fireside chat with Future Speaker, moderated by @ada.bsky.social.
 
-Thu Nov 5, 6:00 PM, TBA.
+Thu Nov 5, 6:00 PM.
 
 https://lu.ma/event/evt%20with%20space
 
-## bluesky: day-of (176 / 300)
+## bluesky: day-of (171 / 300)
 
 Tonight: all things/upcoming meetup.
 
 On stage: a fireside chat with Future Speaker, moderated by @ada.bsky.social.
 
-Doors 6:00 PM, TBA.
+Doors 6:00 PM.
 
 https://lu.ma/event/evt%20with%20space
 
-## bluesky: recap (184 / 300)
+## bluesky: recap (177 / 300)
 
-Thank you for coming to all things/upcoming meetup at TBA.
+Thank you for coming to all things/upcoming meetup.
 
 On stage: a fireside chat with Future Speaker, moderated by @ada.bsky.social.
 
 https://allthings.example/2026-11-05-upcoming
 
-## linkedin: announce (163 / 3000)
+## linkedin: announce (158 / 3000)
 
 all things/upcoming meetup: a fireside chat with Future Speaker, moderated by Ada Lovelace.
 
 Soon
 
-Thu Nov 5, 6:00 PM, TBA.
+Thu Nov 5, 6:00 PM.
 
 https://lu.ma/event/evt%20with%20space
 
-## linkedin: day-of (172 / 3000)
+## linkedin: day-of (167 / 3000)
 
 Tonight: all things/upcoming meetup.
 
 On stage: a fireside chat with Future Speaker, moderated by Ada Lovelace.
 
-Doors 6:00 PM, TBA.
+Doors 6:00 PM.
 
 https://lu.ma/event/evt%20with%20space
 
-## linkedin: recap (180 / 3000)
+## linkedin: recap (173 / 3000)
 
-Thank you for coming to all things/upcoming meetup at TBA.
+Thank you for coming to all things/upcoming meetup.
 
 On stage: a fireside chat with Future Speaker, moderated by Ada Lovelace.
 
 https://allthings.example/2026-11-05-upcoming
 
-## discord: announce (167 / 2000)
+## discord: announce (162 / 2000)
 
 **all things/upcoming meetup**: a fireside chat with Future Speaker, moderated by Ada Lovelace.
 
 Soon
 
-Thu Nov 5, 6:00 PM, TBA.
+Thu Nov 5, 6:00 PM.
 
 https://lu.ma/event/evt%20with%20space
 
-## discord: day-of (177 / 2000)
+## discord: day-of (172 / 2000)
 
 **Tonight: all things/upcoming meetup**
 
-If you're in: doors 6:00 PM, TBA.
+If you're in: doors 6:00 PM.
 
 On stage: a fireside chat with Future Speaker, moderated by Ada Lovelace.
 
 see you at/upcoming meetup
 
-## discord: recap (180 / 2000)
+## discord: recap (173 / 2000)
 
-Thank you for coming to all things/upcoming meetup at TBA.
+Thank you for coming to all things/upcoming meetup.
 
 On stage: a fireside chat with Future Speaker, moderated by Ada Lovelace.
 
