@@ -79,6 +79,32 @@ server (`app/scripts/mcp-server.ts`) serves the same JSON as
 `--check` against production every Monday and puts the report in the run's
 summary.
 
+## Posts about events
+
+`event_posts` holds posts about each event on X, Bluesky and LinkedIn. Each
+row has the post's canonical URL (unique), its plain text, its author, when
+it was posted, and a status: `approved` shows, `hidden` was taken down,
+`pending` waits for an organizer. Nothing approves itself. Images are kept
+as their source URLs, and the app's hourly sync copies them into the media
+bucket (`app/src/lib/post-images/`). Pages show only those copies.
+
+`src/posts/` reads a post from public sources that need no key. X posts
+come through the FixTweet API (api.fxtwitter.com), Bluesky posts through
+the public AppView. LinkedIn serves nothing public, so its text and author
+come from whoever adds the post; the time comes from the post's id. Then it
+stores the post, approved. Adding a post that is already there changes
+nothing.
+
+```sh
+DATABASE_URL=… bun run posts add <event slug> <post url> [--dry-run]
+DATABASE_URL=… bun run posts add <slug> <linkedin url> --author-name "…" --text "…" [--author-url …]
+DATABASE_URL=… bun run posts apply [--dry-run]   # every post in backfill/posts.json
+```
+
+The admin MCP server's `add_event_post` runs the same script.
+`tests/posts.test.ts` runs against recorded answers; nothing in the tests
+reaches X, FixTweet or Bluesky.
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's
