@@ -13,6 +13,7 @@ import { migratedDatabase } from "../../scripts/pglite.ts";
 export {
   expectedSchema,
   migratedDatabase,
+  migratedTemplate,
   sqlLayer,
 } from "../../scripts/pglite.ts";
 

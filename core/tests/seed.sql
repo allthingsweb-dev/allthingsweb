@@ -77,6 +77,10 @@ INSERT INTO sponsors (id, name, about, square_logo_dark, square_logo_light, upda
   ('c0000000-0000-4000-8000-000000000001', 'Acme', 'Space and pizza.', NULL, 'd0000000-0000-4000-8000-000000000002', now()),
   ('c0000000-0000-4000-8000-000000000002', 'Globex', 'Drinks.', NULL, NULL, now());
 
+-- Acme's site and X handle are on record; Globex has no links.
+UPDATE sponsors SET website_url = 'https://acme.example', twitter_handle = 'acme'
+  WHERE id = 'c0000000-0000-4000-8000-000000000001';
+
 INSERT INTO event_sponsors (event_id, sponsor_id, created_at, updated_at) VALUES
   ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002', '2026-01-03T00:00:01Z', now()),
   ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', '2026-01-03T00:00:02Z', now());

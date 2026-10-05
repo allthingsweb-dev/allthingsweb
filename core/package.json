@@ -12,9 +12,13 @@
     "luma:people": "bun --no-env-file scripts/luma-people.ts",
     "completeness": "bun --no-env-file scripts/completeness.ts",
     "posts": "bun --no-env-file scripts/posts.ts",
+    "hosts": "bun --no-env-file scripts/hosts.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts",
+    "event-extras": "bun --no-env-file scripts/event-extras.ts",
     "promo": "bun --no-env-file scripts/promo.ts",
-    "reencode": "bun --no-env-file scripts/reencode-originals.ts"
+    "promo:cover": "bun --no-env-file scripts/meetup-cover.ts",
+    "reencode": "bun --no-env-file scripts/reencode-originals.ts",
+    "sync:rehearse": "bun --no-env-file scripts/sync-rehearsal.ts"
   },
   "dependencies": {
     "@effect/sql-pg": "4.0.0",

@@ -13,6 +13,12 @@ column public.event_images #001 event_id uuid not null
 column public.event_images #002 image_id uuid not null
 column public.event_images #003 created_at timestamp with time zone not null default now()
 column public.event_images #004 updated_at timestamp with time zone not null
+column public.event_notes #001 event_id uuid not null
+column public.event_notes #002 "position" integer not null
+column public.event_notes #003 label text not null
+column public.event_notes #004 body text not null
+column public.event_notes #005 created_at timestamp with time zone not null default now()
+column public.event_notes #006 updated_at timestamp with time zone not null
 column public.event_people #001 event_id uuid not null
 column public.event_people #002 profile_id uuid not null
 column public.event_people #003 role text not null
@@ -47,6 +53,13 @@ column public.event_review_sessions #008 status text not null default 'pending':
 column public.event_review_sessions #009 approval_message_id text
 column public.event_review_sessions #010 created_at timestamp with time zone not null default now()
 column public.event_review_sessions #011 updated_at timestamp with time zone not null
+column public.event_schedule_items #001 event_id uuid not null
+column public.event_schedule_items #002 "position" integer not null
+column public.event_schedule_items #003 "time" text not null
+column public.event_schedule_items #004 title text not null
+column public.event_schedule_items #005 description text not null default ''::text
+column public.event_schedule_items #006 created_at timestamp with time zone not null default now()
+column public.event_schedule_items #007 updated_at timestamp with time zone not null
 column public.event_sponsors #001 event_id uuid not null
 column public.event_sponsors #002 sponsor_id uuid not null
 column public.event_sponsors #003 created_at timestamp with time zone not null default now()
@@ -113,6 +126,10 @@ column public.sponsors #004 square_logo_dark uuid
 column public.sponsors #005 square_logo_light uuid
 column public.sponsors #006 created_at timestamp with time zone not null default now()
 column public.sponsors #007 updated_at timestamp with time zone not null
+column public.sponsors #008 website_url text
+column public.sponsors #009 twitter_handle text
+column public.sponsors #010 bluesky_handle text
+column public.sponsors #011 linkedin_handle text
 column public.talk_speakers #001 talk_id uuid not null
 column public.talk_speakers #002 speaker_id uuid not null
 column public.talk_speakers #003 created_at timestamp with time zone not null default now()
@@ -130,6 +147,9 @@ constraint public.administrators administrators_user_id_users_sync_id_fk FOREIGN
 constraint public.event_images event_images_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_images event_images_event_id_image_id_pk PRIMARY KEY (event_id, image_id)
 constraint public.event_images event_images_image_id_images_id_fk FOREIGN KEY (image_id) REFERENCES images(id)
+constraint public.event_notes event_notes_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_notes event_notes_event_id_position_pk PRIMARY KEY (event_id, "position")
+constraint public.event_notes event_notes_position_check CHECK (("position" >= 0))
 constraint public.event_people event_people_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_people event_people_event_id_profile_id_role_pk PRIMARY KEY (event_id, profile_id, role)
 constraint public.event_people event_people_position_check CHECK (("position" >= 0))
@@ -147,6 +167,9 @@ constraint public.event_review_sessions event_review_sessions_event_id_events_id
 constraint public.event_review_sessions event_review_sessions_event_id_unique UNIQUE (event_id)
 constraint public.event_review_sessions event_review_sessions_pkey PRIMARY KEY (id)
 constraint public.event_review_sessions event_review_sessions_thread_id_unique UNIQUE (thread_id)
+constraint public.event_schedule_items event_schedule_items_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_schedule_items event_schedule_items_event_id_position_pk PRIMARY KEY (event_id, "position")
+constraint public.event_schedule_items event_schedule_items_position_check CHECK (("position" >= 0))
 constraint public.event_sponsors event_sponsors_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_sponsors event_sponsors_event_id_sponsor_id_pk PRIMARY KEY (event_id, sponsor_id)
 constraint public.event_sponsors event_sponsors_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
@@ -174,6 +197,10 @@ constraint public.sponsors sponsors_name_unique UNIQUE (name)
 constraint public.sponsors sponsors_pkey PRIMARY KEY (id)
 constraint public.sponsors sponsors_square_logo_dark_images_id_fk FOREIGN KEY (square_logo_dark) REFERENCES images(id) ON DELETE SET NULL
 constraint public.sponsors sponsors_square_logo_light_images_id_fk FOREIGN KEY (square_logo_light) REFERENCES images(id) ON DELETE SET NULL
+constraint public.sponsors sponsors_bluesky_handle_check CHECK ((bluesky_handle ~ '^([a-z0-9]([a-z0-9-]*[a-z0-9])?[.])+[a-z]{2,}$'::text))
+constraint public.sponsors sponsors_linkedin_handle_check CHECK ((linkedin_handle ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$'::text))
+constraint public.sponsors sponsors_twitter_handle_check CHECK ((twitter_handle ~ '^[A-Za-z0-9_]{1,15}$'::text))
+constraint public.sponsors sponsors_website_url_check CHECK ((website_url ~ '^https://[A-Za-z0-9.-]+(/[^[:space:]]*)?$'::text))
 constraint public.talk_speakers talk_speakers_role_check CHECK ((role = ANY (ARRAY['speaker'::text, 'moderator'::text])))
 constraint public.talk_speakers talk_speakers_speaker_id_profiles_id_fk FOREIGN KEY (speaker_id) REFERENCES profiles(id)
 constraint public.talk_speakers talk_speakers_talk_id_speaker_id_pk PRIMARY KEY (talk_id, speaker_id)
@@ -185,6 +212,7 @@ index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.u
 index neon_auth.users_sync CREATE UNIQUE INDEX users_sync_pkey ON neon_auth.users_sync USING btree (id)
 index public.administrators CREATE UNIQUE INDEX administrators_pkey ON public.administrators USING btree (id)
 index public.event_images CREATE UNIQUE INDEX event_images_event_id_image_id_pk ON public.event_images USING btree (event_id, image_id)
+index public.event_notes CREATE UNIQUE INDEX event_notes_event_id_position_pk ON public.event_notes USING btree (event_id, "position")
 index public.event_people CREATE UNIQUE INDEX event_people_event_id_profile_id_role_pk ON public.event_people USING btree (event_id, profile_id, role)
 index public.event_posts CREATE INDEX event_posts_event_id_idx ON public.event_posts USING btree (event_id)
 index public.event_posts CREATE UNIQUE INDEX event_posts_pkey ON public.event_posts USING btree (id)
@@ -192,6 +220,7 @@ index public.event_posts CREATE UNIQUE INDEX event_posts_url_unique ON public.ev
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_event_id_unique ON public.event_review_sessions USING btree (event_id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_pkey ON public.event_review_sessions USING btree (id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_thread_id_unique ON public.event_review_sessions USING btree (thread_id)
+index public.event_schedule_items CREATE UNIQUE INDEX event_schedule_items_event_id_position_pk ON public.event_schedule_items USING btree (event_id, "position")
 index public.event_sponsors CREATE UNIQUE INDEX event_sponsors_event_id_sponsor_id_pk ON public.event_sponsors USING btree (event_id, sponsor_id)
 index public.event_talks CREATE UNIQUE INDEX event_talks_event_id_talk_id_pk ON public.event_talks USING btree (event_id, talk_id)
 index public.events CREATE UNIQUE INDEX events_luma_event_id_unique ON public.events USING btree (luma_event_id)
@@ -210,9 +239,11 @@ index public.talks CREATE UNIQUE INDEX talks_pkey ON public.talks USING btree (i
 relation neon_auth.users_sync kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.administrators kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_images kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_people kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_posts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_review_sessions kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_schedule_items kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=

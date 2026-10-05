@@ -35,7 +35,7 @@ settings to set by hand:
 - [ ] Event chat: Discord, https://discord.gg/B3Sm4b5mfD.
 - [ ] Comments: off.
 - [ ] Co-host: add Andre Landgraf.
-- [ ] Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it.
+- [ ] Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it (bun run promo:cover 2026-10-03-hack-day).
 - [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
 - [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
 

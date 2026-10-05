@@ -26,7 +26,7 @@ export type WorkerAnswer =
       readonly status: 301 | 307 | 308;
       readonly location: string;
     }
-  | { readonly status: 400 | 404 | 405 };
+  | { readonly status: 400 | 404 | 405 | 410 };
 
 interface Entry {
   /**
@@ -63,6 +63,7 @@ const html = { status: 200, type: "text/html" } as const;
 const json = { status: 200, type: "application/json" } as const;
 const png = { status: 200, type: "image/png" } as const;
 const notFound = { status: 404 } as const;
+const gone = { status: 410 } as const;
 
 export const legacyUrls: ReadonlyArray<LegacyUrl> = [
   // Pages
@@ -98,9 +99,9 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
     source: "app routes with pages of their own",
     example: `/${slugs.hackathon}`,
     worker: html,
-    today: "their own pages: agendas, prizes, award copy",
-    pending:
-      "they render as every evening's page; their own copy (agendas, prizes, awards) is not carried over",
+    // Their schedules, awards, themes and the rest are the event's
+    // schedule and notes (core/backfill/event-extras.json).
+    today: "their own pages: schedules, prizes, themes, teams",
   },
   {
     pattern: "/[slug] (a draft, or no event)",
@@ -274,9 +275,9 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
       pattern,
       source: "app/public",
       example,
-      worker: notFound,
+      // Images of the old name, retired with it.
+      worker: gone,
       today: "200, an image in the old brand",
-      pending: "retire (410): images of the old name",
     }),
   ),
   ...(
@@ -295,7 +296,7 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
       worker: notFound,
       today,
       pending:
-        "sign-in, profiles and the admin aren't on the Worker: retire (410), or keep the app for them at another host",
+        "sign-in, profiles and the admin aren't on the Worker: Erik decides whether they are retired (410) or kept at another host",
     }),
   ),
   {
@@ -305,7 +306,7 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
     worker: notFound,
     today: "401 without the cron secret",
     pending:
-      "the sync runs as the Worker's cron trigger after the cutover; retire (410)",
+      "410 at the cutover, when the sync runs as the Worker's cron trigger",
   },
   ...(
     [
@@ -326,9 +327,9 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
       pattern: path,
       source,
       example: path,
-      worker: notFound,
+      // Sentry's leftovers, retired with the app.
+      worker: gone,
       today,
-      pending: "retire (410): Sentry's leftovers",
     }),
   ),
 ];

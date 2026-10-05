@@ -1,5 +1,6 @@
-import { Context, DateTime, Effect, Layer, Schema } from "effect";
+import { Cause, Context, Data, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import type { SqlError } from "effect/sql/SqlError";
 import { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
 import {
@@ -144,6 +145,13 @@ const Stored = Schema.Array(
   Schema.Struct({ lumaEventId: Schema.String, slug: Schema.String }),
 );
 
+const StoredFields = Schema.Array(
+  Schema.Struct({
+    lumaEventId: Schema.String,
+    fields: Schema.Record(Schema.String, Schema.Unknown),
+  }),
+);
+
 /**
  * `synced` with the slugs of the events the statement did not see taken
  * from `stored`, read afterwards; undefined while one is still missing.
@@ -172,12 +180,116 @@ export function summarize(synced: ReadonlyArray<SyncedEvent>): SyncSummary {
   };
 }
 
+/** Luma's columns of one stored event, as JSON: name, dates, draft flag, venue. */
+export type EventFields = Readonly<Record<string, unknown>>;
+
+/** What a sync would write, found by writing it and rolling back. */
+export interface SyncRehearsal extends SyncSummary {
+  /** Events the feed has and `events` doesn't, as they would be inserted. */
+  readonly created: ReadonlyArray<{
+    readonly lumaEventId: string;
+    readonly slug: string;
+    readonly fields: EventFields;
+  }>;
+  /** Stored events Luma changed: each changed column, before and after. */
+  readonly updated: ReadonlyArray<{
+    readonly lumaEventId: string;
+    readonly slug: string;
+    readonly changes: Readonly<
+      Record<string, { readonly before: unknown; readonly after: unknown }>
+    >;
+  }>;
+}
+
+/**
+ * The rehearsal of a sync from what its statement returned (`synced`) and
+ * Luma's columns of the events it touched, read before and after it in the
+ * same transaction.
+ */
+export function rehearsalOf(
+  synced: ReadonlyArray<SyncedEvent>,
+  before: ReadonlyMap<string, EventFields>,
+  after: ReadonlyMap<string, EventFields>,
+): SyncRehearsal {
+  const created: Array<SyncRehearsal["created"][number]> = [];
+  const updated: Array<SyncRehearsal["updated"][number]> = [];
+  for (const row of synced) {
+    if (!row.changed) continue;
+    const was = before.get(row.lumaEventId);
+    const is = after.get(row.lumaEventId) ?? {};
+    if (was === undefined) {
+      created.push({
+        lumaEventId: row.lumaEventId,
+        slug: row.slug,
+        fields: is,
+      });
+      continue;
+    }
+    const changes: Record<string, { before: unknown; after: unknown }> = {};
+    for (const column of new Set([...Object.keys(was), ...Object.keys(is)])) {
+      if (JSON.stringify(was[column]) !== JSON.stringify(is[column])) {
+        changes[column] = { before: was[column], after: is[column] };
+      }
+    }
+    updated.push({ lumaEventId: row.lumaEventId, slug: row.slug, changes });
+  }
+  return {
+    ...summarize(synced),
+    created,
+    updated,
+  };
+}
+
+/** Carries a rehearsal out of the transaction it rolls back. */
+export class Rehearsed extends Data.TaggedError("Rehearsed")<{
+  readonly rehearsal: SyncRehearsal;
+}> {}
+
+/**
+ * The rehearsal a rolled-back transaction carried out as its failure.
+ * A rollback that fails is a defect beside that failure: then nothing says
+ * the database was left as it was, so the rehearsal fails, defect and all,
+ * instead of reporting.
+ */
+export const concludeRehearsal = (
+  transaction: Effect.Effect<never, Rehearsed | SqlError | DataSourceError>,
+): Effect.Effect<SyncRehearsal, DataSourceError> =>
+  Effect.catchCause(transaction, (cause) =>
+    Cause.hasDies(cause)
+      ? // Cause.map, unlike Effect.mapError, keeps the defect.
+        Effect.failCause(
+          Cause.map(cause, (error) =>
+            error._tag === "DataSourceError"
+              ? error
+              : new DataSourceError({ cause: error }),
+          ),
+        )
+      : Effect.failCause(cause).pipe(
+          Effect.catchTag("Rehearsed", ({ rehearsal }) =>
+            Effect.succeed(rehearsal),
+          ),
+          Effect.catchTag("SqlError", (error) =>
+            Effect.fail(new DataSourceError({ cause: error })),
+          ),
+        ),
+  );
+
 export interface LumaSyncShape {
   /**
    * Reads the calendar and writes what changed to `events`, all or
    * nothing.
    */
   readonly run: Effect.Effect<SyncSummary, LumaError | DataSourceError>;
+  /**
+   * The dry run: reads the calendar and runs `run`'s very statement inside
+   * a transaction that always rolls back, so it reports exactly what `run`
+   * would write now (every created event, and every changed column of the
+   * others) and leaves `events` as it was. Its rows are locked only for
+   * the moment between the statement and the rollback, and it reads one
+   * snapshot throughout (REPEATABLE READ), so an edit committed meanwhile
+   * never shows as a change the sync makes.
+   */
+  readonly rehearse: Effect.Effect<SyncRehearsal, LumaError | DataSourceError>;
 }
 
 const make = Effect.gen(function* () {
@@ -289,26 +401,75 @@ const make = Effect.gen(function* () {
       orDataSourceError,
     );
 
+  /** `synced` with every stored slug. */
+  const withSlugs = (synced: typeof Synced.Type) =>
+    Effect.gen(function* () {
+      // Only after an overlapping sync: a read, so the write stays one
+      // statement and the summary still lists every stored slug.
+      const unseen = synced
+        .filter((row) => row.slug === null)
+        .map((row) => row.lumaEventId);
+      const stored = unseen.length === 0 ? [] : yield* readStored(unseen);
+      const filled = fillUnseen(synced, stored);
+      if (filled === undefined) {
+        return yield* new DataSourceError({
+          cause: new Error("A synced Luma event is no longer stored"),
+        });
+      }
+      return filled;
+    });
+
   const run = Effect.gen(function* () {
     const events = yield* luma.calendarEvents;
     const now = yield* DateTime.now;
     const synced = yield* write(events.map(toEventRow), now);
-    // Only after an overlapping sync: a read, so the write stays one
-    // statement and the summary still lists every stored slug.
-    const unseen = synced
-      .filter((row) => row.slug === null)
-      .map((row) => row.lumaEventId);
-    const stored = unseen.length === 0 ? [] : yield* readStored(unseen);
-    const filled = fillUnseen(synced, stored);
-    if (filled === undefined) {
-      return yield* new DataSourceError({
-        cause: new Error("A synced Luma event is no longer stored"),
-      });
-    }
-    return summarize(filled);
+    return summarize(yield* withSlugs(synced));
   }).pipe(Effect.withSpan("LumaSync.run"));
 
-  return LumaSync.of({ run });
+  /** Luma's columns of these events as stored, by Luma id. */
+  const readFields = (lumaEventIds: ReadonlyArray<string>) =>
+    sql`
+      SELECT luma_event_id AS "lumaEventId", jsonb_build_object(
+        'name', name, 'startDate', start_date, 'endDate', end_date,
+        'isDraft', is_draft, 'streetAddress', street_address,
+        'shortLocation', short_location, 'fullAddress', full_address) AS fields
+      FROM events
+      WHERE luma_event_id IN (
+        SELECT jsonb_array_elements_text(${JSON.stringify(lumaEventIds)}::jsonb))`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(StoredFields)),
+      Effect.map(
+        (rows) =>
+          new Map<string, EventFields>(
+            rows.map((row) => [row.lumaEventId, row.fields]),
+          ),
+      ),
+      orDataSourceError,
+    );
+
+  const rehearse = Effect.gen(function* () {
+    const events = yield* luma.calendarEvents;
+    const now = yield* DateTime.now;
+    const rows = events.map(toEventRow);
+    return yield* Effect.gen(function* () {
+      // One snapshot for both reads and the statement, so an edit committed
+      // meanwhile can't show as a change the sync makes. It takes no locks
+      // beyond the statement's own; a row edited meanwhile that the
+      // statement would write fails the rehearsal, which can simply run again.
+      yield* sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`.pipe(
+        orDataSourceError,
+      );
+      const before = yield* readFields(rows.map((row) => row.lumaEventId));
+      const synced = yield* withSlugs(yield* write(rows, now));
+      const after = yield* readFields(
+        synced.filter((row) => row.changed).map((row) => row.lumaEventId),
+      );
+      return yield* new Rehearsed({
+        rehearsal: rehearsalOf(synced, before, after),
+      });
+    }).pipe(sql.withTransaction, concludeRehearsal);
+  }).pipe(Effect.withSpan("LumaSync.rehearse"));
+
+  return LumaSync.of({ run, rehearse });
 });
 
 export class LumaSync extends Context.Service<LumaSync, LumaSyncShape>()(

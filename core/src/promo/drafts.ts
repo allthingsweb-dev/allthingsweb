@@ -1,6 +1,6 @@
 import { DateTime } from "effect";
 import type { EventPage, Person, Speaker, Talk } from "../event-page.ts";
-import { eventUrl } from "../mappers.ts";
+import { eventUrl, httpUrlOrNull } from "../mappers.ts";
 import type { StageRole } from "../people.ts";
 import { htmlToPlainText } from "../rich-text.ts";
 import { fitOn, type Platform } from "./limits.ts";
@@ -32,10 +32,17 @@ export interface Handles {
 }
 
 /** What the drafts are made from. */
+/** A hosting company's own site and handles, as stored. */
+export interface HostLinks extends Handles {
+  readonly website: string | null;
+}
+
 export interface PromoInput {
   readonly event: EventPage;
   /** Each person's stored handles, by profile id. */
   readonly handles: ReadonlyMap<string, Handles>;
+  /** Each hosting company's site and handles, by its name. */
+  readonly hosts: ReadonlyMap<string, HostLinks>;
   /** The site's origin, for the evening's page and the people page. */
   readonly origin: string;
 }
@@ -157,6 +164,22 @@ function nameOn(
   return person.name;
 }
 
+/** How a hosting company reads in a post on `channel`: tagged where a handle is stored. */
+function hostOn(
+  channel: SocialChannel,
+  name: string,
+  hosts: ReadonlyMap<string, HostLinks>,
+): string {
+  const stored = hosts.get(name);
+  const handle =
+    channel === "x"
+      ? xHandle(stored?.x ?? null)
+      : channel === "bluesky"
+        ? blueskyHandle(stored?.bluesky ?? null)
+        : null;
+  return handle === null ? name : `@${handle}`;
+}
+
 const formatNames = {
   talk: "a talk",
   panel: "a panel",
@@ -200,8 +223,11 @@ function stagePhrase(
  * Where, said before the evening: "hosted at CodeRabbit in East Cut", or
  * the place alone when no company hosts it.
  */
-function wherePhrase(event: EventPage): string | null {
-  const place = placePhrase(event);
+function wherePhrase(
+  event: EventPage,
+  hostName: (name: string) => string = (name) => name,
+): string | null {
+  const place = placePhrase(event, hostName);
   return event.hosts.length > 0 && place !== null
     ? `hosted at ${place}`
     : place;
@@ -224,8 +250,14 @@ const knowsWhere = (event: EventPage): boolean =>
   (event.venue?.neighborhood ?? null) !== null;
 
 /** Where, in one phrase: "CodeRabbit in East Cut". */
-function placePhrase(event: EventPage): string | null {
-  const host = event.hosts.length > 0 ? listOf(event.hosts) : venueName(event);
+function placePhrase(
+  event: EventPage,
+  hostName: (name: string) => string = (name) => name,
+): string | null {
+  const host =
+    event.hosts.length > 0
+      ? listOf(event.hosts.map(hostName))
+      : venueName(event);
   const neighborhood = event.venue?.neighborhood ?? null;
   if (host !== null && neighborhood !== null)
     return `${host} in ${neighborhood}`;
@@ -309,8 +341,9 @@ function socialDrafts(
     nameOn(channel, person, handles);
   const stage = stagePhrase(event.talks, name);
   const stageNames = stagePhrase(event.talks, (person) => person.name);
-  const place = placePhrase(event);
-  const where = wherePhrase(event);
+  const hostName = (host: string) => hostOn(channel, host, input.hosts);
+  const place = placePhrase(event, hostName);
+  const where = wherePhrase(event, hostName);
   const when = `${dayOf(event.startsAt)}, ${clockOf(event.startsAt)}`;
   const luma = event.rsvpUrl;
   const page = eventUrl(origin, event.slug);
@@ -419,6 +452,21 @@ const formatSuffix = (talk: Talk): string => {
     : ` · ${format}`;
 };
 
+/**
+ * A URL as a Markdown link destination, the URI unchanged. One with a
+ * parenthesis or whitespace, which would end a bare destination, goes in
+ * angle brackets (CommonMark's <…> form), where only "<", ">" and line
+ * breaks can't appear, so those few are percent-encoded.
+ */
+export const mdUrl = (url: string) =>
+  /[()<>\s]/.test(url)
+    ? `<${url.replace(
+        /[<>\n\r]/g,
+        (char) =>
+          `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
+      )}>`
+    : url;
+
 /** Markdown's own characters in a name or title, escaped. */
 const md = (text: string) => text.replace(/([\\`*_[\]<>#])/g, "\\$1");
 
@@ -429,6 +477,17 @@ const blankLined = (text: string) =>
     .map((line) => line.trim())
     .filter((line) => line !== "")
     .join("\n\n");
+
+/** A hosting company's name, bold, and linked to its own site where one is stored. */
+function linkedHost(
+  name: string,
+  hosts: ReadonlyMap<string, HostLinks>,
+): string {
+  const site = httpUrlOrNull(hosts.get(name)?.website ?? null);
+  return site === null
+    ? `**${md(name)}**`
+    : `**[${md(name)}](${mdUrl(site)})**`;
+}
 
 /** A person's name, bold and linked to where they are: X, Bluesky, LinkedIn or the people page. */
 function linkedName(
@@ -448,7 +507,7 @@ function linkedName(
         : /^[A-Za-z0-9-]{3,100}$/.test(linkedin)
           ? `https://www.linkedin.com/in/${linkedin}`
           : `${origin}/people#p-${person.id}`;
-  return `**[${md(person.name)}](${url})**`;
+  return `**[${md(person.name)}](${mdUrl(url)})**`;
 }
 
 /** The one stage role a description names: the rest go without saying. */
@@ -495,7 +554,7 @@ function descriptionBody(
   const hosted =
     event.hosts.length === 0
       ? null
-      : `Hosted at ${listOf(event.hosts.map((host) => `**${md(host)}**`))}${neighborhood === null ? "" : ` in ${neighborhood}`}.`;
+      : `Hosted at ${listOf(event.hosts.map((host) => linkedHost(host, input.hosts)))}${neighborhood === null ? "" : ` in ${neighborhood}`}.`;
   return paragraphs(
     taglineOf(event) === null ? null : md(taglineOf(event) ?? ""),
     hosted,
@@ -575,11 +634,31 @@ function meetupDraft(input: PromoInput): MeetupDraft {
       `Event chat: Discord, ${discordInvite}.`,
       "Comments: off.",
       "Co-host: add Andre Landgraf.",
-      "Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it.",
+      `Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it (bun run promo:cover ${event.slug}).`,
       "Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.",
       "After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.",
     ],
   };
+}
+
+/**
+ * Each platform `name` can't be tagged on, said once: both together, or
+ * the one that is missing.
+ */
+function untaggedOn(
+  name: string,
+  stored: Handles | undefined,
+  pronoun: "it" | "them",
+): ReadonlyArray<string> {
+  const missing = [
+    ...(xHandle(stored?.x ?? null) === null ? ["X"] : []),
+    ...(blueskyHandle(stored?.bluesky ?? null) === null ? ["Bluesky"] : []),
+  ];
+  if (missing.length === 0) return [];
+  const on = missing.join(" or ");
+  return [
+    `${name} has no ${on} handle on record, so ${missing.length === 2 ? "posts" : `${on} posts`} name ${pronoun} untagged.`,
+  ];
 }
 
 /**
@@ -589,20 +668,15 @@ function meetupDraft(input: PromoInput): MeetupDraft {
 export function promoGaps({
   event,
   handles,
+  hosts,
 }: PromoInput): ReadonlyArray<string> {
-  const untagged = [
+  const speakers = [
     ...new Map(
       event.talks
         .flatMap((talk) => talk.speakers)
         .map((speaker) => [speaker.id, speaker] as const),
     ).values(),
-  ].filter((speaker) => {
-    const stored = handles.get(speaker.id);
-    return (
-      xHandle(stored?.x ?? null) === null &&
-      blueskyHandle(stored?.bluesky ?? null) === null
-    );
-  });
+  ];
   return [
     ...(event.rsvpUrl === null
       ? ["No Luma event is linked, so nothing says where to take a seat."]
@@ -613,15 +687,20 @@ export function promoGaps({
     ...(event.talks.length === 0
       ? ["No talks are on record, so nothing says who is on stage."]
       : []),
-    ...untagged.map(
-      (speaker) =>
-        `${speaker.name} has no X or Bluesky handle on record, so posts name them untagged.`,
+    ...speakers.flatMap((speaker) =>
+      untaggedOn(speaker.name, handles.get(speaker.id), "them"),
     ),
-    ...(event.hosts.length === 0
-      ? []
-      : [
-          "Hosting companies have no handles or links on record, so drafts name them in bold, untagged and unlinked.",
-        ]),
+    ...event.hosts.flatMap((name) => {
+      const stored = hosts.get(name);
+      return [
+        ...(httpUrlOrNull(stored?.website ?? null) === null
+          ? [
+              `${name} has no website on record, so descriptions name it unlinked.`,
+            ]
+          : []),
+        ...untaggedOn(name, stored, "it"),
+      ];
+    }),
   ];
 }
 

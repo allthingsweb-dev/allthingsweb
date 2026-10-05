@@ -11,6 +11,7 @@ import {
   mediaZone,
   productionRole,
 } from "./src/media.ts";
+import { Sync } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
 import { Web } from "./src/web.ts";
@@ -54,6 +55,9 @@ export default Alchemy.Stack(
         Output.map((hash) => hash?.bundle ?? "unbuilt"),
       ),
     });
+
+    // The hourly Luma sync, its schedule off until the cutover (src/sync.ts).
+    yield* Sync;
 
     // The app on Vercel uploads through the Worker and links to the domain.
     // Development gets the token too, so admin scripts can upload from a
