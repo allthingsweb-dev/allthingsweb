@@ -327,6 +327,51 @@ describe("post image ingestion", () => {
     expect((await run(3_600_000)).ingested).toHaveLength(1);
   });
 
+  test("a post another run holds fails at once, and its upload is removed", async () => {
+    await insertPost({ authorAvatarSourceUrl: null });
+    let calls = 0;
+    const d = deps({
+      database: {
+        // The two reads of what is missing, then the save, which finds the
+        // row locked: Postgres refuses at once under NOWAIT.
+        execute: (query) =>
+          ++calls <= 2
+            ? db.execute(query)
+            : Promise.reject(
+                new Error(
+                  'could not obtain lock on row in relation "event_posts"',
+                ),
+              ),
+      },
+    });
+    const result = await ingestPostImages(d);
+    expect(result.ingested).toEqual([]);
+    expect(result.failed).toEqual([
+      {
+        url: expect.any(String),
+        error: 'could not obtain lock on row in relation "event_posts"',
+      },
+    ]);
+    expect(result.remaining).toBe(1);
+    expect(d.removed).toEqual(d.stored);
+  });
+
+  test("untilAborted observes work it gave up on before starting", async () => {
+    const controller = new AbortController();
+    controller.abort(new Error("timed out"));
+    let observed = false;
+    const work = Promise.reject(new Error("late failure"));
+    const original = work.catch.bind(work);
+    work.catch = ((handler: (reason: unknown) => unknown) => {
+      observed = true;
+      return original(handler);
+    }) as typeof work.catch;
+    await expect(untilAborted(work, controller.signal)).rejects.toThrow(
+      "timed out",
+    );
+    expect(observed).toBe(true);
+  });
+
   test("untilAborted rejects once the signal aborts, and passes results on", async () => {
     const controller = new AbortController();
     const pending = untilAborted(new Promise(() => {}), controller.signal);

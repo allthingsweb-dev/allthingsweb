@@ -92,7 +92,9 @@ async function missing(
 
 /**
  * Records the image and sets it on the post in one statement, only while
- * the post still has none.
+ * the post still has none. It never waits on a lock (`nowait`): a post
+ * another run holds fails this one at once, within the image's timeout,
+ * and is tried again next run.
  */
 async function saveImage(
   database: PostImageDependencies["database"],
@@ -105,7 +107,7 @@ async function saveImage(
     with target as (
       select ${eventPostsTable.id} from ${eventPostsTable}
       where ${eventPostsTable.id} = ${item.id} and ${target} is null
-      for update
+      for update nowait
     ), image as (
       insert into ${imagesTable}
         (id, url, alt, placeholder, width, height, created_at, updated_at)
@@ -133,7 +135,11 @@ export function untilAborted<A>(
   work: Promise<A>,
   signal: AbortSignal,
 ): Promise<A> {
-  if (signal.aborted) return Promise.reject(abortError(signal));
+  if (signal.aborted) {
+    // Still observe `work`, so a rejection it settles with later is handled.
+    work.catch(() => undefined);
+    return Promise.reject(abortError(signal));
+  }
   return new Promise<A>((resolve, reject) => {
     const abort = () => reject(abortError(signal));
     signal.addEventListener("abort", abort, { once: true });
