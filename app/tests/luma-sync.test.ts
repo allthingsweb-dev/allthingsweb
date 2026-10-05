@@ -203,6 +203,7 @@ describe("Luma synchronization against Postgres", () => {
     isDraft: true,
     recordingUrl: "https://example.com/recording",
     isHackathon: true,
+    program: "hackathon" as const,
     // Set on the site; the sync never writes it.
     topic: "web",
   };

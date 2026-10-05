@@ -1,8 +1,8 @@
 name: Event completeness
 
 # Every Monday, core's completeness report (core/src/completeness.ts) reads
-# production as the read-only site_reader role and fails if an evening that
-# ended in the last 30 days has no talks. The full report is the run's
+# production as the read-only site_reader role and fails if an evening of
+# talks (events.program) that ended in the last 30 days has none. The full report is the run's
 # summary either way.
 on:
   schedule:
