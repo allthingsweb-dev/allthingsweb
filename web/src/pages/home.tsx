@@ -1,3 +1,4 @@
+import { columns, sizes, space } from "allthings-brand/src/layout.ts";
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
@@ -120,14 +121,20 @@ function OpenSlot() {
 
 /**
  * How wide the mosaic's tiles are, as site.css lays them out: the mosaic
- * spans 4 of the hero's 12 columns (24 px gutters) on a page at most 1440 px
- * wide with margins of 4.5vw (16 to 64 px), and the whole page width from
- * 760 px down. A wide tile is the mosaic's width; the others half of it,
- * less the 10 px gap. That is 422 and 206 px at 1440, 341 and 166 at 375.
+ * spans 4 of the hero's columns, and the whole page width where the hero
+ * stacks. A wide tile is the mosaic's width; the others half of it, less
+ * the gap between them.
  */
+const mosaicColumns = 4;
 const tileSizes = {
-  wide: "(max-width: 760px) 91vw, (max-width: 1440px) calc(30.4vw - 16px), 422px",
-  half: "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(15.2vw - 13px), 206px",
+  wide: sizes(
+    { span: mosaicColumns, parts: 1, gap: 0 },
+    { below: "l", span: columns, parts: 1, gap: 0 },
+  ),
+  half: sizes(
+    { span: mosaicColumns, parts: 2, gap: space(3) },
+    { below: "l", span: columns, parts: 2, gap: space(3) },
+  ),
 } as const;
 
 /** Whether the mosaic of `count` tiles shows the one at `index` wide. */

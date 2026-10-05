@@ -271,9 +271,9 @@ describe("the home page's photos as variants", () => {
       .map((width) => `/img/${width}/${path} ${width}w`)
       .join(", ");
   const wide =
-    "(max-width: 760px) 91vw, (max-width: 1440px) calc(30.4vw - 16px), 422px";
+    "(max-width: 767.98px) 91vw, (max-width: 1439.98px) calc(30.33vw - 16px), 421px";
   const half =
-    "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(15.2vw - 13px), 206px";
+    "(max-width: 767.98px) calc(45.5vw - 6px), (max-width: 1439.98px) calc(15.17vw - 14px), 205px";
 
   test("offers each photo in AVIF, WebP and JPEG at every width it has, at its own size and with its alt", () => {
     const [first] = tiles(variants(view({ photos: [photo("a", 1024, 768)] })));
