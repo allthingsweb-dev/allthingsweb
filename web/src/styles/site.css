@@ -474,7 +474,8 @@ main > section,
 /* The evenings index: the title and the actions hold still beside the
    lists, which run the width of seven columns, as home's do. */
 
-.evenings {
+.evenings,
+.about {
   display: grid;
   grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
   column-gap: var(--at-grid-gutter);
@@ -482,7 +483,8 @@ main > section,
   align-items: start;
 }
 
-.evenings-head {
+.evenings-head,
+.about-head {
   grid-column: span 5;
   position: sticky;
   top: 24px;
@@ -496,7 +498,8 @@ main > section,
   white-space: nowrap;
 }
 
-.evenings-lists {
+.evenings-lists,
+.about-parts {
   grid-column: 6 / span 7;
   display: flex;
   flex-direction: column;
@@ -506,6 +509,76 @@ main > section,
 .evenings-lists .list {
   border-top: 2px solid var(--at-text);
   padding-top: 14px;
+}
+
+/* About: the lockup and the two sentences hold still beside its parts,
+   as the evenings index's title does beside its lists. */
+
+.about-part {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-top: 2px solid var(--at-text);
+  padding-top: 14px;
+}
+
+.about-part > p {
+  max-width: 62ch;
+}
+
+.about-lead {
+  font-size: clamp(24px, 2.4vw, 30px);
+}
+
+.tally {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: 20px var(--at-grid-gutter);
+}
+
+.tally div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
+}
+
+.tally dd {
+  font-size: clamp(40px, 4.5vw, 56px);
+  font-weight: 800;
+  font-stretch: 112%;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--at-rule);
+}
+
+.about .organizers {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about .organizers .person {
+  padding: 8px 0 16px;
+}
+
+/* The two sentences sit under the lockup, not at the column's end. */
+.about-head .pitch {
+  align-self: start;
+}
+
+.person-name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.person-name a:hover {
+  text-decoration: underline 2px;
 }
 
 /* People: the organizers large, side by side, then every speaker in two
@@ -1215,11 +1288,14 @@ th {
   .pitch,
   .lists,
   .evenings-head,
-  .evenings-lists {
+  .evenings-lists,
+  .about-head,
+  .about-parts {
     grid-column: 1 / -1;
   }
 
-  .evenings-head {
+  .evenings-head,
+  .about-head {
     position: static;
   }
 
@@ -1334,21 +1410,25 @@ th {
 /* On phones the index's rows stack the date and place over the name, as
    home's paired lists do, so a name keeps the whole width. */
 @media (max-width: 600px) {
-  .evenings .row {
+  .evenings .row,
+  .about .row {
     grid-template-columns: 1fr auto;
     grid-template-areas: "date place" "name name";
     row-gap: 4px;
   }
 
-  .evenings .row .date {
+  .evenings .row .date,
+  .about .row .date {
     grid-area: date;
   }
 
-  .evenings .row .place {
+  .evenings .row .place,
+  .about .row .place {
     grid-area: place;
   }
 
-  .evenings .row .name {
+  .evenings .row .name,
+  .about .row .name {
     grid-area: name;
   }
 }

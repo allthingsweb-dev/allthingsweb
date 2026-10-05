@@ -16,7 +16,7 @@ import {
   PrivateCacheControl,
   preferenceCacheControl,
 } from "../src/cache.ts";
-import { mediaOrigin, socials } from "../src/links.ts";
+import { hosts, mediaOrigin, socials } from "../src/links.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
 import { themeCookieMaxAge } from "../src/pages/theme.ts";
 import { erikPortrait } from "./support/catalog.ts";
@@ -222,7 +222,9 @@ describe("/brand", () => {
   it("signs off with the hosts' portraits from their profiles, by id, and the socials in order", async (url) => {
     const { response, html } = await brand(url);
     expect(response.headers.get("cache-control")).toBe(CacheControl.page);
-    expect(html).toContain("<p>hosted by Erik &amp; Andre</p>");
+    expect(html).toContain(
+      '<p><a href="/about">hosted by Erik &amp; Andre</a></p>',
+    );
     const [erik, andre, ...more] = portraits(html);
     expect(erik).toBe(
       `<img src="${erikPortrait}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
@@ -401,6 +403,7 @@ describe("links within the site", () => {
     "/",
     "/events",
     "/people",
+    "/about",
     "/brand",
     ...eventPages.map(([, eventPage]) => eventPage),
   ]) {
@@ -414,6 +417,101 @@ describe("links within the site", () => {
       expect(body).not.toContain(`"${site}`);
       // The head still names the production site: canonical and link previews.
       expect(head).toContain(`<link rel="canonical" href="${site}`);
+    });
+  }
+});
+
+describe("/about", () => {
+  const about = async (url: string, init?: RequestInit) => {
+    const response = await fetch(`${url}/about`, init);
+    return { response, html: await response.text() };
+  };
+
+  it("answers with HTML cached like public data, linked from every footer", async (url) => {
+    const { response, html } = await about(url);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    expect(response.headers.get("content-security-policy")).toBe(
+      contentSecurityPolicy,
+    );
+    const brandHtml = await (await fetch(`${url}/brand`)).text();
+    for (const page of [html, brandHtml]) {
+      expect(page).toContain(
+        '<p><a href="/about">hosted by Erik &amp; Andre</a></p>',
+      );
+    }
+  });
+
+  it("counts the evenings held, who was on stage, who hosted, and who came, from the data", async (url) => {
+    const { html } = await about(url);
+    // The past evening at Sanity and the hackathon; the live evening and
+    // the draft don't count yet or at all.
+    expect(
+      [
+        ...html.matchAll(/<dt class="at-type-meta">([^<]+)<\/dt><dd>([^<]+)</g),
+      ].map(([, label, value]) => [label, value]),
+    ).toEqual([
+      ["evenings", "2"],
+      ["people on stage", "2"],
+      ["hosting companies", "2"],
+      ["guests, as Luma counted them", "146"],
+    ]);
+    expect(html).toContain(
+      'since <time datetime="2025-01-29T01:00:00.000Z">Tue Jan 28, 2025</time>',
+    );
+    expect(html).toContain("they went by All Things Web.");
+    expect(html).toContain(`<a class="row" href="/${slugs.past}">`);
+  });
+
+  it("shows the organizers from their profiles, by id", async (url) => {
+    const { html } = await about(url);
+    expect(html).toContain(
+      `<img class="portrait" src="${erikPortrait}" alt=""`,
+    );
+    expect(html).toContain(
+      `<h3 class="person-name"><a href="/people#p-${hosts[0].profileId}">Erik Thorelli</a></h3>`,
+    );
+    expect(html).toContain(
+      `<h3 class="person-name"><a href="/people#p-${hosts[1].profileId}">Andre Landgraf</a></h3>`,
+    );
+    // Another profile is named Andre Landgraf and has a photo.
+    expect(html).not.toContain("not-andre");
+  });
+
+  it("is valid HTML, with one h1, landmarks and headings in order, and runs no JavaScript", async (url) => {
+    const { html } = await about(url);
+    expect(await htmlProblems(html)).toEqual([]);
+    for (const landmark of ["header", "main", "footer"]) {
+      expect(html.match(new RegExp(`<${landmark}[ >]`, "g"))).toHaveLength(1);
+    }
+    const levels = headingLevels(html);
+    expect(levels[0]).toBe(1);
+    expect(levels.filter((level) => level === 1)).toHaveLength(1);
+    levels.forEach((level, index) => {
+      expect(level).toBeLessThanOrEqual((levels[index - 1] ?? 0) + 1);
+    });
+    expect(html).not.toMatch(/<script|\son[a-z]+=|javascript:/i);
+    for (const src of subresources(html).filter(
+      (path) => !/^\/(?!\/)/.test(path),
+    )) {
+      expect(src).toStartWith(`${mediaOrigin}/`);
+    }
+  });
+
+  for (const cookie of [undefined, "theme=light", "theme=dark"]) {
+    it(`gzips within budget${cookie === undefined ? "" : ` with ${cookie}`}`, async (url) => {
+      const { response, html } = await about(
+        url,
+        cookie === undefined ? {} : { headers: { cookie } },
+      );
+      const css = await (await fetch(`${url}${stylesheetOf(html)}`)).text();
+      expect(gzipped(html)).toBeLessThanOrEqual(htmlBudget);
+      expect(gzipped(css)).toBeLessThanOrEqual(cssBudget);
+      if (cookie !== undefined) {
+        expect(response.headers.get("cache-control")).toBe(
+          PrivateCacheControl.publicData,
+        );
+      }
     });
   }
 });

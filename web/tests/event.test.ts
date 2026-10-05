@@ -247,7 +247,9 @@ describe("an upcoming evening", () => {
     );
     expect(hosted).not.toContain(">mc<");
     // The footer still signs off with Erik and Andre.
-    expect(html).toContain("<p>hosted by Erik &amp; Andre</p>");
+    expect(html).toContain(
+      '<p><a href="/about">hosted by Erik &amp; Andre</a></p>',
+    );
   });
 
   it("describes itself as a schema.org Event in its head", async ({

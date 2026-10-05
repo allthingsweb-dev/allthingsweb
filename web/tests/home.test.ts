@@ -382,7 +382,9 @@ describe("/'s footer", () => {
   }) => {
     const { response, html } = await home(Announced);
     expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
-    expect(html).toContain("<p>hosted by Erik &amp; Andre</p>");
+    expect(html).toContain(
+      '<p><a href="/about">hosted by Erik &amp; Andre</a></p>',
+    );
     const [erik, andre, ...more] = portraits(html);
     expect(erik).toBe(
       `<img src="${erikPortrait}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
