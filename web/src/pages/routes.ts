@@ -7,7 +7,7 @@ import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
-import { Duration, Effect, Layer, Option } from "effect";
+import { DateTime, Duration, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
@@ -304,7 +304,9 @@ const event = page(
       ).pipe(
         Effect.provide(repositories),
         Effect.timed,
-        Effect.map(([took, [found, { portraits, read }]]) => {
+        Effect.bindTo("timed"),
+        Effect.bind("now", () => DateTime.now),
+        Effect.map(({ timed: [took, [found, { portraits, read }]], now }) => {
           const db = Duration.toMillis(took);
           return Option.match(found, {
             onNone: () =>
@@ -321,7 +323,14 @@ const event = page(
               ),
             onSome: (view) =>
               htmlResponse(
-                eventPage({ event: view, origin, theme, portraits, images }),
+                eventPage({
+                  event: view,
+                  origin,
+                  theme,
+                  portraits,
+                  images,
+                  now,
+                }),
                 acceptEncoding,
                 {
                   cacheControl: read ? "publicData" : "failure",

@@ -60,6 +60,8 @@ export interface EventPageProps {
   readonly portraits: PortraitsById;
   /** How photos are shown (see picture.tsx). */
   readonly images: ImageMode;
+  /** When the page is made: its card names the year of an evening in another. */
+  readonly now: DateTime.DateTime;
 }
 
 /**
@@ -800,6 +802,7 @@ export function eventPage({
   theme,
   portraits,
   images,
+  now,
 }: EventPageProps): string {
   const past = event.status === "past";
   const photos = showable(event.photos, images);
@@ -812,7 +815,7 @@ export function eventPage({
           ? "An evening for people who build software, in San Francisco."
           : tagline,
       path: eventPath(event.slug),
-      image: eventCard(event, eventTitle(event)),
+      image: eventCard(event, eventTitle(event), now),
       structuredData: [eventStructuredData(event, origin)],
     },
     origin,
