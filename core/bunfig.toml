@@ -1,0 +1,3 @@
+[test]
+# Makes the migrated database the tests restore, before any test runs.
+preload = ["./tests/preload.ts"]
