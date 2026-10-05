@@ -28,8 +28,8 @@ import {
  * from the environment only; .env files are not read. Pass them without
  * printing them, e.g.
  *
- *   DATABASE_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
- *     --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
+ *   DATABASE_URL=$(bunx neonctl@latest connection-string <branch> \
+ *     --project-id <project> --role-name <owner role> --database-name <database>) \
  *   MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run reencode --dry-run
  */
 
@@ -58,8 +58,10 @@ const httpMedia = (uploadUrl: string, token: Redacted.Redacted): Media => ({
     const response = await fetch(url, { method: "HEAD" });
     if (response.status === 404) return undefined;
     if (!response.ok) throw new Error(`HEAD ${url}: ${response.status}`);
+    // Without a length, an oversized image would silently not be found.
     const length = response.headers.get("content-length");
-    return length === null ? undefined : Number(length);
+    if (length === null) throw new Error(`HEAD ${url}: no content-length`);
+    return Number(length);
   },
   get: async (url) => {
     const response = await fetch(url);

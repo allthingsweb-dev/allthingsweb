@@ -259,14 +259,10 @@ export async function PUT(request: NextRequest) {
 
     let imageId = existingProfile.image;
 
-    // Handle image upload if provided
+    // Handle image upload if provided. The old image is removed only once
+    // the profile points at the new one, so a replacement that can't be
+    // stored (one over the size limit, say) leaves the profile as it was.
     if (imageFile && imageFile.size > 0) {
-      // Delete old image if exists
-      if (existingProfile.image) {
-        await deleteImageFromStorage(existingProfile.image);
-      }
-
-      // Upload new image
       const uuid = randomUUID();
 
       // Process image using our new utility
@@ -310,6 +306,10 @@ export async function PUT(request: NextRequest) {
       .where(eq(profilesTable.id, existingProfile.id))
       .returning();
 
+    if (existingProfile.image && existingProfile.image !== imageId) {
+      await deleteImageFromStorage(existingProfile.image);
+    }
+
     // Get the image URL for the response
     let imageUrl: string | null = null;
     if (imageId) {
@@ -329,6 +329,9 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof MediaTooLargeError) {
+      return NextResponse.json({ error: error.message }, { status: 413 });
+    }
     console.error("Error updating profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },
