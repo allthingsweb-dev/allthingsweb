@@ -1,0 +1,215 @@
+{
+  "events": [
+    {
+      "slug": "2024-10-05-hackathon-at-sentry",
+      "schedule": [
+        {
+          "time": "11:30 am",
+          "title": "Doors open",
+          "description": "Get to know your fellow hackers and form teams."
+        },
+        {
+          "time": "12:30 pm",
+          "title": "Kick-off presentation",
+          "description": "Get ready for a day of coding, networking, and fun!"
+        },
+        {
+          "time": "1 - 7 pm",
+          "title": "Hacking time",
+          "description": "Focus on your project, ask for help, and enjoy the snacks."
+        },
+        {
+          "time": "7 pm",
+          "title": "Presentations & awards ceremony",
+          "description": "Show off your project and vote for the best ones!"
+        },
+        {
+          "time": "8 pm",
+          "title": "Closing doors",
+          "description": "Thank you for joining us! We hope you had a great time."
+        }
+      ],
+      "notes": [
+        {
+          "label": "Awards",
+          "body": "<p>At the end of the event, we'll vote for the most creative and most impactful projects. The winning teams will score some awesome prizes! Here's what's up for grabs: Syntax &amp; Sentry swag and $80 in Sentry credits per person on the winning teams!</p>"
+        },
+        {
+          "label": "Theme",
+          "body": "<p>The theme of the hackathon is \"Open Source\". We'd love for you to use open-source tools, maybe even give back to the community during the event! But feel free to work on whatever sparks your interest. And don't forget—two prizes are up for grabs: most creative and most impactful!</p>"
+        },
+        {
+          "label": "Teams",
+          "body": "<p>No need to stress about finding a team before the event! We'll kick things off with some fun ice breakers and team building. You can bring friends, team up on the spot, or fly solo if that's more your style. Teaming up isn't mandatory, but it's an awesome way to make new friends!</p>"
+        },
+        {
+          "label": "Our host",
+          "body": "<p>This hackathon is made possible by Sentry! We are huge fans of Sentry and are very excited to have Sentry host and sponsor this event.</p><p>Sentry is the debuggability platform built for how modern developers work. Over 4 million developers worldwide trust Sentry's opinionated approach to debugging—favoring action over dashboards—which gives them the context and code level visibility they need to solve issues fast. Sentry users spend more time building and less time firefighting.</p>"
+        }
+      ],
+      "sources": [
+        "https://allthingsweb.dev/2024-10-05-hackathon-at-sentry",
+        "https://github.com/allthingsweb-dev/allthingsweb/blob/0eb9ef20d502b502648737acf26e1828cbbd5247/app/src/app/2024-10-05-hackathon-at-sentry/page.tsx"
+      ]
+    },
+    {
+      "slug": "2025-04-26-hackathon-at-sentry",
+      "schedule": [
+        {
+          "time": "10:30 am",
+          "title": "Doors open",
+          "description": "Get to know your fellow hackers and form teams."
+        },
+        {
+          "time": "11:00 am",
+          "title": "Kick-off presentation",
+          "description": "Get ready for a day of coding, networking, and fun!"
+        },
+        {
+          "time": "1 - 7:30 pm",
+          "title": "Hacking time",
+          "description": "Focus on your project, ask for help, and enjoy the snacks."
+        },
+        {
+          "time": "7:30 pm",
+          "title": "Presentations & awards ceremony",
+          "description": "Show off your project and vote for the best ones!"
+        },
+        {
+          "time": "8:30 pm",
+          "title": "Closing doors",
+          "description": "Thank you for joining us! We hope you had a great time."
+        }
+      ],
+      "notes": [
+        {
+          "label": "Awards",
+          "body": "<p>At the end of the event, we'll vote for the most creative and most impactful projects. The winning teams will score some awesome prizes! Stay tuned for more details!</p>"
+        },
+        {
+          "label": "Theme",
+          "body": "<p>\"Future of Web\" is the theme for this hackathon. Let's imagine the future of web UI, interactions, and AI. Please feel free to work on whatever else sparks your interest though.</p>"
+        },
+        {
+          "label": "Teams",
+          "body": "<p>It's not required to bring a team, though you can bring friends, team up on the spot, or fly solo if that's more your style. We'll kick things off with some fun icebreakers and socializing. Teaming up isn't mandatory, but it's an awesome way to make new friends!</p>"
+        },
+        {
+          "label": "Our host",
+          "body": "<p>This hackathon is made possible by Sentry! We are huge fans of Sentry and are very excited to have Sentry host and sponsor this event.</p><p>Sentry is the debuggability platform built for how modern developers work. Over 4 million developers worldwide trust Sentry's opinionated approach to debugging—favoring action over dashboards—which gives them the context and code level visibility they need to solve issues fast. Sentry users spend more time building and less time firefighting.</p>"
+        }
+      ],
+      "sources": [
+        "https://allthingsweb.dev/2025-04-26-hackathon-at-sentry",
+        "https://github.com/allthingsweb-dev/allthingsweb/blob/0eb9ef20d502b502648737acf26e1828cbbd5247/app/src/app/2025-04-26-hackathon-at-sentry/page.tsx"
+      ]
+    },
+    {
+      "slug": "2025-06-02-nextdevfm-live",
+      "schedule": [
+        {
+          "time": "5:00 pm",
+          "title": "Doors open",
+          "description": "Arrive, grab some snacks and drinks, and get to know everyone."
+        },
+        {
+          "time": "6:00 pm",
+          "title": "Live podcast episode",
+          "description": "Ted Nyman interviewed by Ryan Vogel and Dan Goosewin."
+        },
+        {
+          "time": "~7:00 pm",
+          "title": "Hang out & chat",
+          "description": "Stick around, chat, and enjoy the evening together."
+        },
+        {
+          "time": "8:00 - 8:30 pm",
+          "title": "Winding down",
+          "description": "Keep hanging out until we close up."
+        },
+        {
+          "time": "8:30 pm",
+          "title": "Doors close",
+          "description": "We'll probably grab a drink or some food after—join us if you like!"
+        }
+      ],
+      "notes": [
+        {
+          "label": "Podcast",
+          "body": "<p>A live episode of <a href=\"https://nextdev.fm\">NextDev.fm</a> (<a href=\"https://twitter.com/nextdevfm\">@nextdevfm</a>).</p><p>We are hanging out with Dan and Ryan as they chat with Ted Nyman - CEO Cased, prev CTO &amp; Systems Eng GitHub - about their journey in tech - and, of course, all things web. It's going to be a good one. Don't miss it!</p>"
+        }
+      ],
+      "sources": [
+        "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+        "https://github.com/allthingsweb-dev/allthingsweb/blob/0eb9ef20d502b502648737acf26e1828cbbd5247/app/src/app/2025-06-02-nextdevfm-live/page.tsx"
+      ]
+    },
+    {
+      "slug": "2025-09-23-lightning-hackathon-at-sentry",
+      "schedule": [
+        {
+          "time": "5:00 pm",
+          "title": "Doors open",
+          "description": "Food & drinks available. Time to form teams (5-6 PM)!"
+        },
+        {
+          "time": "5:30 pm",
+          "title": "Kick-off presentation",
+          "description": "Welcome and introduction to the lightning hackathon format."
+        },
+        {
+          "time": "5:45 - 7:45 pm",
+          "title": "Hacking time ⚡",
+          "description": "Just 2 hours to build something amazing! Use any tech or tools you like."
+        },
+        {
+          "time": "7:45 pm",
+          "title": "Submission deadline",
+          "description": "Time's up! All projects must be submitted."
+        },
+        {
+          "time": "7:45 - 8:00 pm",
+          "title": "Judges select finalists",
+          "description": "Judges will select the top 20 hacks to present."
+        },
+        {
+          "time": "8:00 - 9:00 pm",
+          "title": "Presentations",
+          "description": "Exactly 2 minutes per team, no Q&A. We'll cut the mic at 2 minutes!"
+        },
+        {
+          "time": "9:15 pm",
+          "title": "Awards ceremony",
+          "description": "Vote for winners and PS5 giveaway among presenting teams!"
+        },
+        {
+          "time": "9:30 pm",
+          "title": "Doors close",
+          "description": "Thank you for joining us for this lightning-fast hackathon!"
+        }
+      ],
+      "notes": [
+        {
+          "label": "Awards",
+          "body": "<p>After presentations, we'll vote for the winners! We're giving away a <strong>PS5</strong> among all presenting teams, plus plenty of merch for all winners. Every team that presents has a chance to win the PS5!</p>"
+        },
+        {
+          "label": "Theme",
+          "body": "<p><strong>\"Give your best in 2 hours\"</strong></p><p>Create anything you want with any tech or tools you like - by hand, with AI, or a mix of both! <strong>The challenge:</strong> make the most of just two hours. Be resourceful and show us what you can do in this lightning-fast format!</p>"
+        },
+        {
+          "label": "Teams",
+          "body": "<p>You'll have limited time to form teams (5-6 PM), so come ready to connect quickly! Teaming up is optional. Teams can have between 1 and 3 members. Come solo and meet new people, or bring friends - either way works!</p>"
+        },
+        {
+          "label": "Our host",
+          "body": "<p>This lightning hackathon is hosted and made possible by Sentry! We're thrilled to partner with Sentry for this fast-paced, two-hour coding challenge at their San Francisco office.</p><p>Sentry is the debuggability platform built for how modern developers work. Over 4 million developers worldwide trust Sentry's opinionated approach to debugging—favoring action over dashboards—which gives them the context and code-level visibility they need to solve issues fast. With Sentry, developers spend more time building and less time firefighting.</p>"
+        }
+      ],
+      "sources": [
+        "https://allthingsweb.dev/2025-09-23-lightning-hackathon-at-sentry",
+        "https://github.com/allthingsweb-dev/allthingsweb/blob/0eb9ef20d502b502648737acf26e1828cbbd5247/app/src/app/2025-09-23-lightning-hackathon-at-sentry/page.tsx"
+      ]
+    }
+  ]
+}

@@ -71,6 +71,8 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   seats: 200,
   recordingUrl: null,
   talks: [],
+  schedule: [],
+  notes: [],
   photos: [],
   posts: [],
   morePosts: 0,
@@ -304,6 +306,58 @@ describe("the ledger", () => {
     expect(html).toContain(
       '<div class="speaker-who"><h3 class="at-type-list-name"><a href="/people#p-b2">Grace</a></h3></div></article>',
     );
+  });
+
+  test("shows the schedule, then each note under its label, before the stage", async () => {
+    const html = render(
+      event({
+        schedule: [
+          { time: "5:00 pm", title: "Doors open", description: null },
+          { time: "~7 pm", title: "<b>Hang out</b>", description: "a & b" },
+        ],
+        notes: [
+          {
+            label: "Awards",
+            body: "<p>A <strong>PS5</strong></p>" as SafeHtml,
+          },
+          { label: "Theme", body: "<p>Two hours</p>" as SafeHtml },
+        ],
+        talks: [
+          {
+            id: "a1",
+            title: "Live episode",
+            format: "fireside",
+            description: null,
+            speakers: [speaker()],
+          },
+        ],
+      }),
+    );
+    expect(labels(html)).toEqual([
+      "When",
+      "Where",
+      "Hosted at",
+      "Seats",
+      "Schedule",
+      "Awards",
+      "Theme",
+      "On stage",
+    ]);
+    expect(html).toContain(
+      '<span class="schedule-time at-type-meta">5:00 pm</span><div class="schedule-step"><p class="schedule-title">Doors open</p></div>',
+    );
+    // Schedule text is escaped; a note's sanitized body is not.
+    expect(html).toContain(
+      '<p class="schedule-title">&lt;b&gt;Hang out&lt;/b&gt;</p><p class="schedule-description">a &amp; b</p>',
+    );
+    expect(html).toContain(
+      '<div class="note"><p>A <strong>PS5</strong></p></div>',
+    );
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+
+  test("leaves the schedule out when there is none", () => {
+    expect(labels(render(event()))).not.toContain("Schedule");
   });
 
   test("escapes what it prints", async () => {
@@ -646,6 +700,58 @@ describe("posts about the evening", () => {
     // An announcement shows before the evening, too.
     expect(labels(render(event({ posts: [post()] })))).toContain("Posts");
     expect(labels(render(event({ status: "past" })))).not.toContain("Posts");
+  });
+
+  test("keep their place among every row an evening can have", () => {
+    const html = render(
+      event({
+        status: "past",
+        rsvpUrl: null,
+        recordingUrl: "https://youtu.be/abc",
+        schedule: [{ time: "5 pm", title: "Doors open", description: null }],
+        notes: [
+          { label: "Awards", body: "<p>A PS5</p>" as SafeHtml },
+          { label: "Theme", body: "<p>Two hours</p>" as SafeHtml },
+        ],
+        talks: [
+          {
+            id: "a1",
+            title: "A talk",
+            format: "talk",
+            description: null,
+            speakers: [speaker()],
+          },
+        ],
+        photos: [media("room")],
+        posts: [post()],
+      }),
+    );
+    expect(labels(html)).toEqual([
+      "When",
+      "Where",
+      "Hosted at",
+      "Recording",
+      "Schedule",
+      "Awards",
+      "Theme",
+      "On stage",
+      "Photos",
+      "Posts",
+      "Next",
+    ]);
+    // Seats, while the evening is ahead, take the recording's place.
+    expect(
+      labels(
+        render(
+          event({
+            schedule: [
+              { time: "5 pm", title: "Doors open", description: null },
+            ],
+            posts: [post()],
+          }),
+        ),
+      ),
+    ).toEqual(["When", "Where", "Hosted at", "Seats", "Schedule", "Posts"]);
   });
 
   test("say who posted, what, and when and where, linking to the post", () => {

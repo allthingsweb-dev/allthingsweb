@@ -459,43 +459,83 @@ const rootPath = (path: string): `/${string}` =>
   `/${path.replace(/^[/\\]+/, "")}`;
 
 /**
+ * The site's own page for a path with nothing at it: not found (404), cached
+ * only briefly, or gone for good (410).
+ */
+const nothingAt = (
+  path: `/${string}`,
+  status: 404 | 410,
+  { theme, acceptEncoding, images }: PageRequest,
+) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      notFoundPage({ origin, path, theme, portraits, images, status }),
+      acceptEncoding,
+      {
+        cacheControl: !read ? "failure" : status === 410 ? "page" : "notFound",
+        theme,
+        images,
+        status,
+      },
+    );
+  });
+
+/**
+ * What the current site served that is retired with it (410): images in
+ * the old brand, and Sentry's example page, example API and tunnel.
+ */
+export const retiredPaths = [
+  "/logos/*",
+  "/hero-image-404.png",
+  "/hero-image-goodbye.png",
+  "/hero-image-hackathon.png",
+  "/hero-image-meetup.png",
+  "/hero-image-rocket.png",
+  "/sentry-example-page",
+  "/api/sentry-example-api",
+  "/monitoring",
+] as const;
+
+const retired = retiredPaths.map((route) => {
+  // "/logos/*" names /logos and every path under it: the one asked for is
+  // the route's start and the rest, if any.
+  const start = route.endsWith("/*") ? route.slice(0, -2) : undefined;
+  const location = ({ "*": rest }: PageRequest["params"]): `/${string}` =>
+    start === undefined
+      ? route
+      : rest === undefined || rest === ""
+        ? rootPath(start)
+        : rootPath(`${start}/${rest}`);
+  return page(
+    route,
+    (request) => nothingAt(location(request.params), 410, request),
+    location,
+  );
+});
+
+/**
  * Every other path. One with a trailing slash is the page without it, as
  * the current site redirects it (308); the rest are not found, with the
  * site's own page, cached only briefly.
  */
 const elsewhere = page(
   "/*",
-  ({ theme, acceptEncoding, images, params }) =>
+  (request) =>
     Effect.gen(function* () {
-      const path = `/${params["*"] ?? ""}`;
+      const path = `/${request.params["*"] ?? ""}`;
       if (path.length > 1 && path.endsWith("/")) {
-        const request = yield* HttpServerRequest.HttpServerRequest;
-        const { search } = new URL(request.url, "http://localhost");
+        const { url } = yield* HttpServerRequest.HttpServerRequest;
+        const { search } = new URL(url, "http://localhost");
         return HttpServerResponse.redirect(
           `${rootPath(path.replace(/\/+$/, ""))}${search}`,
           { status: 308, headers: { "cache-control": CacheControl.page } },
         );
       }
-      const { origin } = yield* Site;
-      const { portraits, read } = yield* footer(
-        hostPortraits.pipe(Effect.provide(repositories)),
-      );
-      return htmlResponse(
-        notFoundPage({
-          origin,
-          path: rootPath(path),
-          theme,
-          portraits,
-          images,
-        }),
-        acceptEncoding,
-        {
-          cacheControl: read ? "notFound" : "failure",
-          theme,
-          images,
-          status: 404,
-        },
-      );
+      return yield* nothingAt(rootPath(path), 404, request);
     }),
   ({ "*": rest = "" }) => rootPath(rest),
 );
@@ -512,5 +552,6 @@ export const pageRoutes = Layer.mergeAll(
   calendar,
   shortLink,
   nextImage,
+  ...retired,
   elsewhere,
 );

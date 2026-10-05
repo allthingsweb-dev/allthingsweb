@@ -95,6 +95,22 @@ export interface Talk {
   readonly speakers: ReadonlyArray<Speaker>;
 }
 
+/** A step of the event's schedule. */
+export interface ScheduleItem {
+  /** As the organizers wrote it: "1 - 7 pm", "~7:00 pm". */
+  readonly time: string;
+  readonly title: string;
+  /** Null when it says nothing. */
+  readonly description: string | null;
+}
+
+/** A row of the page under its own label, such as a hackathon's awards. */
+export interface Note {
+  readonly label: string;
+  /** Sanitized. */
+  readonly body: SafeHtml;
+}
+
 /** A published event as its page shows it. */
 export interface EventPage {
   readonly id: string;
@@ -133,6 +149,10 @@ export interface EventPage {
   readonly seats: number | null;
   readonly recordingUrl: string | null;
   readonly talks: ReadonlyArray<Talk>;
+  /** Its schedule, in order; none when none is recorded. */
+  readonly schedule: ReadonlyArray<ScheduleItem>;
+  /** Rows of its own, such as "Awards" and "Theme", in order. */
+  readonly notes: ReadonlyArray<Note>;
   /**
    * Every photo attached on the photo origin, in the order attached: pages
    * show them as variants sized for the layout (web/src/images/).
@@ -156,6 +176,17 @@ const TalkRow = Schema.Struct({
   description: Schema.String,
   format: Rows.TalkFormat,
   speakers: Schema.Array(Rows.TalkSpeaker),
+});
+
+const ScheduleItemRow = Schema.Struct({
+  time: Schema.String,
+  title: Schema.String,
+  description: Schema.String,
+});
+
+const NoteRow = Schema.Struct({
+  label: Schema.String,
+  body: Schema.String,
 });
 
 /** A post about the evening, nested in the page's row. */
@@ -191,6 +222,8 @@ export const EventPageRow = Schema.Struct({
   hosts: Schema.Array(Schema.String),
   people: Schema.Array(Rows.EventPerson),
   talks: Schema.Array(TalkRow),
+  schedule: Schema.Array(ScheduleItemRow),
+  notes: Schema.Array(NoteRow),
   photos: Schema.Array(Rows.Photo),
   posts: Schema.Array(PostRow),
   postCount: Schema.Int,
@@ -332,22 +365,30 @@ export const toEventPage = (
   now: DateTime.Utc,
   photoOrigin: string,
 ): Effect.Effect<EventPage> =>
-  Effect.forEach(row.talks, (talk) =>
-    Effect.map(
-      sanitizeRichText(talk.description),
-      (description): Talk => ({
-        id: talk.id,
-        title: talk.title,
-        format: talk.format,
-        description: saysSomething(description) ? description : null,
-        speakers: talk.speakers.map((speaker) =>
-          toSpeaker(speaker, talk.format, `${photoOrigin}/`),
-        ),
-      }),
+  Effect.all([
+    Effect.forEach(row.talks, (talk) =>
+      Effect.map(
+        sanitizeRichText(talk.description),
+        (description): Talk => ({
+          id: talk.id,
+          title: talk.title,
+          format: talk.format,
+          description: saysSomething(description) ? description : null,
+          speakers: talk.speakers.map((speaker) =>
+            toSpeaker(speaker, talk.format, `${photoOrigin}/`),
+          ),
+        }),
+      ),
     ),
-  ).pipe(
+    Effect.forEach(row.notes, (note) =>
+      Effect.map(
+        sanitizeRichText(note.body),
+        (body): Note => ({ label: note.label.trim(), body }),
+      ),
+    ),
+  ]).pipe(
     Effect.map(
-      (talks): EventPage => ({
+      ([talks, notes]): EventPage => ({
         id: row.id,
         slug: row.slug,
         name: displayName(row.name),
@@ -371,6 +412,17 @@ export const toEventPage = (
         seats: row.attendeeLimit > 0 ? row.attendeeLimit : null,
         recordingUrl: httpUrlOrNull(row.recordingUrl),
         talks,
+        schedule: row.schedule.map(
+          (item): ScheduleItem => ({
+            time: item.time.trim(),
+            title: item.title.trim(),
+            description: present(item.description),
+          }),
+        ),
+        // A note without a label or anything to say would be an empty row.
+        notes: notes.filter(
+          (note) => note.label !== "" && saysSomething(note.body),
+        ),
         photos: row.photos,
         posts: row.posts.flatMap((post) => {
           const shown = toPost(post);
@@ -418,8 +470,8 @@ const make = Effect.gen(function* () {
     WHERE i.id = ${column} AND starts_with(i.url, ${photoPrefix}))`;
 
   // Talks, speakers, hosts and photos in the order they were attached (the
-  // join row's created_at, then id), and people by role, then position, as
-  // Events.getPublished lists them.
+  // join row's created_at, then id), people by role, then position, as
+  // Events.getPublished lists them, and the schedule and notes by position.
   // "Next" is what home leads with: the soonest event that hasn't ended.
   const findPage = SqlSchema.findOneOption({
     Request,
@@ -471,6 +523,19 @@ const make = Effect.gen(function* () {
           JOIN talks t ON t.id = et.talk_id
           WHERE et.event_id = ev.id
         ), '[]'::json) AS talks,
+        COALESCE((
+          SELECT json_agg(json_build_object(
+            'time', si.time, 'title', si.title, 'description', si.description
+          ) ORDER BY si.position)
+          FROM event_schedule_items si
+          WHERE si.event_id = ev.id
+        ), '[]'::json) AS schedule,
+        COALESCE((
+          SELECT json_agg(json_build_object('label', n.label, 'body', n.body)
+            ORDER BY n.position)
+          FROM event_notes n
+          WHERE n.event_id = ev.id
+        ), '[]'::json) AS notes,
         COALESCE((
           SELECT json_agg(json_build_object(
             'url', x.url, 'alt', x.alt, 'width', x.width, 'height', x.height,

@@ -354,6 +354,27 @@
         "https://github.com/kitlangton",
         "https://x.com/kitlangton"
       ]
+    },
+    "ted-nyman": {
+      "profileId": "419b7781-718b-41cc-aa7a-a3a4a334cf74",
+      "sources": [
+        "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+        "https://github.com/allthingsweb-dev/allthingsweb/blob/0eb9ef20d502b502648737acf26e1828cbbd5247/app/src/app/2025-06-02-nextdevfm-live/page.tsx"
+      ]
+    },
+    "ryan-vogel": {
+      "profileId": "2fb6b3b8-2bf7-437f-83e2-bc60ad00890a",
+      "sources": [
+        "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+        "https://github.com/allthingsweb-dev/allthingsweb/blob/0eb9ef20d502b502648737acf26e1828cbbd5247/app/src/app/2025-06-02-nextdevfm-live/page.tsx"
+      ]
+    },
+    "dan-goosewin": {
+      "profileId": "8b86e373-0709-4086-97e7-4e83102a6564",
+      "sources": [
+        "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+        "https://github.com/allthingsweb-dev/allthingsweb/blob/0eb9ef20d502b502648737acf26e1828cbbd5247/app/src/app/2025-06-02-nextdevfm-live/page.tsx"
+      ]
     }
   },
   "events": [
@@ -720,6 +741,37 @@
           "sources": [
             "https://www.youtube.com/watch?v=5eoGrvoLG1Q",
             "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "people": []
+    },
+    {
+      "lumaEventId": "evt-YgL8QkcPVOTymoN",
+      "name": "NextDev.fm Live",
+      "talks": [
+        {
+          "title": "NextDev.fm Live",
+          "format": "fireside",
+          "description": "",
+          "speakers": [
+            {
+              "person": "ted-nyman",
+              "role": "speaker"
+            },
+            {
+              "person": "ryan-vogel",
+              "role": "moderator"
+            },
+            {
+              "person": "dan-goosewin",
+              "role": "moderator"
+            }
+          ],
+          "sources": [
+            "https://allthingsweb.dev/2025-06-02-nextdevfm-live",
+            "https://github.com/allthingsweb-dev/allthingsweb/blob/0eb9ef20d502b502648737acf26e1828cbbd5247/app/src/app/2025-06-02-nextdevfm-live/page.tsx"
           ],
           "confidence": "high"
         }
