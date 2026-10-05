@@ -15,7 +15,7 @@ Status (Oct 5): Phase 1 is done. R2 and Workers Paid are on in the allthings acc
 
 So for zero downtime, the new bucket must be **full, verified, and already attached to media.allthings.dev before the move happens**. If R2 is still off on Oct 11, the move takes media offline. The image rows store absolute `https://media.allthings.dev/...` URLs, so there is no host to fall back to.
 
-Critical path: Erik enables R2 → at least one day of copying and verifying → the domain move (earliest Oct 11). That date is the registrar's 10-day rule; the domain was registered Sep 30.
+Critical path: attach media.allthings.dev to the pending zone → copy and verify the delta since Phase 1 → the domain move (earliest Oct 11), then re-home the apex/www redirect right after activation. That date is the registrar's 10-day rule; the domain was registered Sep 30.
 
 ## What this change adds
 
