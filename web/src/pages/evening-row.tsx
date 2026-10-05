@@ -19,23 +19,31 @@ export function Cursor() {
   );
 }
 
-/** at/<topic> in lists, or the name as written when it has no topic. */
-function ListName({ evening }: { readonly evening: Evening }) {
+/**
+ * at/<topic>, or the name as written when it has no topic, with the cursor
+ * until the evening has happened: how lists and lines of text name an
+ * evening.
+ */
+export function EveningName({
+  evening,
+}: {
+  readonly evening: Pick<Evening, "name" | "topic" | "status">;
+}) {
   const cursor = evening.status === "past" ? "" : <Cursor />;
   if (evening.topic === undefined) {
     return (
-      <span class="name at-type-list-name">
+      <>
         <span safe>{evening.name}</span>
         {cursor}
-      </span>
+      </>
     );
   }
   return (
-    <span class="name at-type-list-name">
+    <>
       at<span class="slash">/</span>
       <span safe>{evening.topic}</span>
       {cursor}
-    </span>
+    </>
   );
 }
 
@@ -57,7 +65,9 @@ export function EveningRow({
         >
           {listDate(evening.startsAt)}
         </time>
-        <ListName evening={evening} />
+        <span class="name at-type-list-name">
+          <EveningName evening={evening} />
+        </span>
         {evening.neighborhood === null ? (
           ""
         ) : (
