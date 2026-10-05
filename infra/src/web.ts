@@ -1,5 +1,20 @@
 import * as Cloudflare from "alchemy/Cloudflare";
 import { compatibility } from "../../web/src/compatibility.ts";
+import { Reader } from "./reader.ts";
+
+/**
+ * Hyperdrive in front of production's Neon database, as its read-only
+ * `reader` role (see reader.ts). Each stage has its own, named after it and
+ * destroyed with it. Previews only read, so query results are cached for 60
+ * seconds and may be served up to 15 seconds stale while they refresh. Five
+ * origin connections, Hyperdrive's minimum, keep every open stage together
+ * well inside Neon's connection limit.
+ */
+export const Database = Cloudflare.Hyperdrive.Connection("Database", {
+  origin: Reader,
+  caching: { maxAge: 60, staleWhileRevalidate: 15 },
+  originConnectionLimit: 5,
+});
 
 /**
  * The all things Worker (web/): the public API, the MCP server, the home
@@ -10,13 +25,10 @@ import { compatibility } from "../../web/src/compatibility.ts";
  * build writes, and the asset layer serves the hashed stylesheet, fonts and
  * marks before the Worker runs.
  *
- * Not deployed to prod yet; see alchemy.run.ts. Its data bindings are still
- * to come, with Hyperdrive in front of Neon: until then the Worker answers
- * data requests the way the app does when its database is down (a 500 on
- * the v1 API, "temporarily unavailable" from the MCP tools, a 503 page for
- * home, and blank avatars in place of the hosts' portraits, uncached), while
- * initialize, tools/list and get_community work. `ORIGIN` stays the current
- * site, where the event pages and the code of conduct are.
+ * Not deployed to prod yet; see alchemy.run.ts. It reads data through the
+ * `HYPERDRIVE` binding, which every request connects to anew (see
+ * web/src/database.ts), so deploying needs `NEON_READER_URL`. `ORIGIN` stays
+ * the current site, where the event pages and the code of conduct are.
  */
 export const Web = Cloudflare.Worker("Web", {
   main: "../web/src/worker.ts",
@@ -24,5 +36,6 @@ export const Web = Cloudflare.Worker("Web", {
   assets: "../web/dist/public",
   env: {
     ORIGIN: "https://allthingsweb.dev",
+    HYPERDRIVE: Database,
   },
 });

@@ -12,8 +12,9 @@ export default Alchemy.Stack(
   { providers: Cloudflare.providers(), state: Cloudflare.state() },
   Effect.gen(function* () {
     // Every stage but prod (PR previews, staging, personal stages) runs only
-    // the Worker replacing the app, in the allthings account. Prod keeps the
-    // media the app on Vercel uses until the Worker serves the site.
+    // the Worker replacing the app, reading production through its own
+    // Hyperdrive, in the allthings account. Prod keeps the media the app on
+    // Vercel uses until the Worker serves the site.
     if (!(yield* isProduction)) {
       const web = yield* Web;
       return { webUrl: web.url.as<string>() };

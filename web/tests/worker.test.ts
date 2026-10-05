@@ -15,13 +15,14 @@ import {
 } from "./support/http.ts";
 import { normalizeJsonSchema } from "./support/json-schema.ts";
 import { ignoringAttachOrder, type Json } from "./support/order.ts";
-import { bundleBudget, testStack } from "./support/stack.ts";
+import { bundleBudget, hyperdriveTo, testStack } from "./support/stack.ts";
 
 /**
  * The Worker, bundled as it deploys and running in workerd, against the app
  * it replaces. Both read one database: the production schema (core's
  * migrations) with core's seed, in PGlite. The app reads it in process; the
- * Worker connects over TCP with @effect/sql-pg, as it will to Hyperdrive.
+ * Worker connects over TCP with @effect/sql-pg through its Hyperdrive
+ * binding, as it deploys.
  */
 
 const origin = "https://allthingsweb.dev";
@@ -34,12 +35,16 @@ const app = await loadApp(db, { origin });
 const Stack = testStack("allthings-web-test", {
   Web: {
     ORIGIN: origin,
-    DATABASE_URL: `postgres://postgres:postgres@${postgres.getServerConn()}/postgres`,
+    HYPERDRIVE: hyperdriveTo(
+      `postgres://postgres:postgres@${postgres.getServerConn()}/postgres`,
+    ),
   },
   // Nothing listens on the discard port, so every connection is refused.
   Unreachable: {
     ORIGIN: origin,
-    DATABASE_URL: "postgres://postgres:postgres@127.0.0.1:9/postgres",
+    HYPERDRIVE: hyperdriveTo(
+      "postgres://postgres:postgres@127.0.0.1:9/postgres",
+    ),
   },
   Unconfigured: { ORIGIN: origin },
 });

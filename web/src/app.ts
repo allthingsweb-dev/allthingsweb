@@ -1,5 +1,6 @@
 import { ConfigProvider, Layer } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
+import { Hyperdrive } from "./database.ts";
 import { Mcp, mcpRoute } from "./mcp/endpoint.ts";
 import { pageRoutes } from "./pages/routes.ts";
 import { Site } from "./site.ts";
@@ -11,7 +12,8 @@ export const routes = Layer.mergeAll(v1Routes, mcpRoute, pageRoutes);
 /**
  * The Worker as a fetch handler, built once per isolate from its bindings.
  * Settings are read through Effect's `Config` from `env`; requests that read
- * data open their own database pool (see database.ts).
+ * data open their own database pool, on the `HYPERDRIVE` binding when there
+ * is one (see database.ts).
  */
 export function makeHandler(
   env: Readonly<Record<string, unknown>>,
@@ -20,7 +22,12 @@ export function makeHandler(
     Site.layer,
     Mcp.layer.pipe(Layer.provide(Site.layer)),
   ).pipe(
-    Layer.provideMerge(ConfigProvider.layer(ConfigProvider.fromUnknown(env))),
+    Layer.provideMerge(
+      Layer.mergeAll(
+        ConfigProvider.layer(ConfigProvider.fromUnknown(env)),
+        Hyperdrive.layer(env),
+      ),
+    ),
   );
   const { handler } = HttpRouter.toWebHandler(
     routes.pipe(Layer.provideMerge(services)),
