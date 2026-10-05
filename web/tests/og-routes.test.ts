@@ -10,9 +10,9 @@ import { testStack } from "./support/stack.ts";
 
 /**
  * Link-preview cards and QR codes, served by the Worker in workerd against
- * the event catalog. Alchemy's local Images binding draws no text, so an
- * event's card falls back to the site's here; drawing it is checked on a
- * deployed preview (the PR has samples).
+ * the event catalog. Alchemy's local Images binding rasterizes text but
+ * skips draws, so a card drawn here is its ground alone: what the words
+ * look like is checked on a deployed preview (the PR has samples).
  */
 
 const origin = "https://allthings.dev";
@@ -105,16 +105,24 @@ describe("pages' cards", () => {
     });
   }
 
+  it("draw an event's card on its ground, kept a day", async ({ Cards }) => {
+    const { response, body } = await get(`${Cards}/og/${slugs.past}.png`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+    );
+    const view = new DataView(body.buffer);
+    expect([view.getUint32(16), view.getUint32(20)]).toEqual([1200, 630]);
+  });
+
   it("send the site's card, never kept, when the event's can't be drawn", async ({
-    Cards,
     NoImages,
   }) => {
-    for (const url of [Cards, NoImages]) {
-      const { response } = await get(`${url}/og/${slugs.past}.png`);
-      expect(response.status).toBe(302);
-      expect(response.headers.get("location")).toBe(ogCards.home.src);
-      expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
-    }
+    const { response } = await get(`${NoImages}/og/${slugs.past}.png`);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(ogCards.home.src);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
   });
 
   for (const path of [
