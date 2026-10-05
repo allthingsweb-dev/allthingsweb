@@ -340,3 +340,70 @@ describe("a post image's time", () => {
     }
   });
 });
+
+describe("a run's share", () => {
+  test("covers and photos try at most maxItems each, oldest profiles and newest events first", async () => {
+    const db = await migratedDatabase();
+    try {
+      await db.exec(await fixture("stored.sql"));
+      await db.exec(
+        `UPDATE profiles SET photo_source_url = 'https://avatars.githubusercontent.com/u/1'
+         WHERE id = 'b0000000-0000-4000-8000-000000000001';
+         INSERT INTO profiles (id, name, title, bio, profile_type, photo_source_url, created_at, updated_at) VALUES
+           ('b0000000-0000-4000-8000-000000000002', 'Grace', '', '', 'member', 'https://avatars.githubusercontent.com/u/2', '2024-06-03T00:00:00Z', now())`,
+      );
+      const missing = await db.query<{ luma_event_id: string }>(
+        "SELECT luma_event_id FROM events WHERE preview_image IS NULL AND luma_event_id IS NOT NULL",
+      );
+      const cover = "https://images.lumacdn.com/c.png";
+      const bucket = fakeBucket();
+      const [covers, photos] = await Effect.runPromise(
+        ImageIngest.use((ingest) =>
+          Effect.all([
+            ingest.covers({ budget: "1 minute", maxItems: 1 }),
+            ingest.profilePhotos({ budget: "1 minute", maxItems: 1 }),
+          ]),
+        ).pipe(
+          Effect.provide(
+            ImageIngest.layer.pipe(
+              Layer.provide(
+                Layer.mergeAll(
+                  bucket.layer,
+                  fakeCovers(
+                    Object.fromEntries(
+                      missing.rows.map(({ luma_event_id }) => [
+                        luma_event_id,
+                        cover,
+                      ]),
+                    ),
+                  ),
+                  fakePictures,
+                  fakeHosts({
+                    [cover]: imageBytes("png", "cover"),
+                    "https://avatars.githubusercontent.com/u/1": imageBytes(
+                      "png",
+                      "ada",
+                    ),
+                    "https://avatars.githubusercontent.com/u/2": imageBytes(
+                      "png",
+                      "grace",
+                    ),
+                  }).layer,
+                ),
+              ),
+              Layer.provideMerge(sqlLayer(db)),
+              Layer.provideMerge(
+                clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(missing.rows.length).toBeGreaterThan(1);
+      expect(covers.ingested).toHaveLength(1);
+      expect(photos.ingested).toEqual(["Ada Lovelace"]);
+    } finally {
+      await db.close();
+    }
+  });
+});
