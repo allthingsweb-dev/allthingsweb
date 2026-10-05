@@ -8,6 +8,11 @@ import { compatibility } from "../../src/compatibility.ts";
 export interface WorkerEnv {
   readonly ORIGIN: string;
   readonly DATABASE_URL?: string;
+  /**
+   * Turns on the Worker's own cache under this name (see worker.ts); each
+   * test Worker that sets it needs its own.
+   */
+  readonly EDGE_CACHE?: string;
   /** The origin of a `HYPERDRIVE` binding, as the Worker deploys. */
   readonly HYPERDRIVE?: Cloudflare.Hyperdrive.PublicOrigin;
   /**

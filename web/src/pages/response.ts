@@ -2,6 +2,7 @@ import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import {
   CacheControl,
   type CacheControlName,
+  edgeCacheControlHeader,
   PrivateCacheControl,
 } from "../cache.ts";
 import { mediaOrigin } from "../links.ts";
@@ -92,6 +93,12 @@ export interface HtmlOptions {
   readonly images: ImageMode;
   /** 200 unless said otherwise. */
   readonly status?: number;
+  /**
+   * How long reading its data took, in milliseconds, for Server-Timing.
+   * Rendering is CPU alone, which workerd's clock doesn't count (it moves
+   * only on I/O, against timing attacks), so it isn't reported.
+   */
+  readonly db?: number;
 }
 
 /**
@@ -101,7 +108,7 @@ export interface HtmlOptions {
 export function htmlResponse(
   html: string,
   acceptEncoding: string | undefined,
-  { cacheControl, theme, images, status = 200 }: HtmlOptions,
+  { cacheControl, theme, images, status = 200, db }: HtmlOptions,
 ): HttpServerResponse.HttpServerResponse {
   const encoding = contentEncoding(acceptEncoding);
   if (encoding === undefined) {
@@ -123,6 +130,13 @@ export function htmlResponse(
         theme === undefined
           ? CacheControl[cacheControl]
           : PrivateCacheControl[cacheControl],
+      // The Worker's cache keeps a page in a fixed mode under that mode.
+      ...(theme === undefined || cacheControl === "failure"
+        ? {}
+        : { [edgeCacheControlHeader]: CacheControl[cacheControl] }),
+      ...(db === undefined
+        ? {}
+        : { "server-timing": `db;dur=${db.toFixed(1)}` }),
       ...(encoding === "identity" ? {} : { "content-encoding": encoding }),
     },
   });

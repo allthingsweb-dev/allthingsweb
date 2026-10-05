@@ -7,7 +7,7 @@ import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
-import { Effect, Layer, Option } from "effect";
+import { Duration, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
@@ -135,13 +135,15 @@ const dataPage = <A>(
         concurrency: "unbounded",
       }).pipe(
         Effect.provide(repositories),
-        Effect.map(([data, { portraits, read: complete }]) =>
+        Effect.timed,
+        Effect.map(([took, [data, { portraits, read: complete }]]) =>
           htmlResponse(
             render(data, { origin, theme, portraits, images }),
             acceptEncoding,
             {
               cacheControl: complete ? "publicData" : "failure",
               theme,
+              db: Duration.toMillis(took),
               images,
             },
           ),
@@ -278,8 +280,10 @@ const event = page(
         { concurrency: "unbounded" },
       ).pipe(
         Effect.provide(repositories),
-        Effect.map(([found, { portraits, read }]) =>
-          Option.match(found, {
+        Effect.timed,
+        Effect.map(([took, [found, { portraits, read }]]) => {
+          const db = Duration.toMillis(took);
+          return Option.match(found, {
             onNone: () =>
               htmlResponse(
                 notFoundPage({ origin, path, theme, portraits, images }),
@@ -289,6 +293,7 @@ const event = page(
                   theme,
                   images,
                   status: 404,
+                  db,
                 },
               ),
             onSome: (view) =>
@@ -299,10 +304,11 @@ const event = page(
                   cacheControl: read ? "publicData" : "failure",
                   theme,
                   images,
+                  db,
                 },
               ),
-          }),
-        ),
+          });
+        }),
         Effect.catchCause((cause) =>
           Effect.logError("Error rendering an event page:", cause).pipe(
             Effect.as(
