@@ -13,12 +13,15 @@ const reviewLine = (review: Review): string => {
   if (review._tag === "Created") {
     return `  new profile: ${review.name} (${review.lumaUserId})`;
   }
+  if (review._tag === "Company") {
+    return `  hosting company: ${review.name} (${review.lumaUserId})`;
+  }
   return `  not imported: ${review.name ?? "(no name)"} (${review.lumaUserId}): ${review.reason}`;
 };
 
-/** "1 event", "2 events". */
-const count = (n: number, noun: string): string =>
-  `${n} ${noun}${n === 1 ? "" : "s"}`;
+/** "1 event", "2 events"; "1 hosting company", "2 hosting companies". */
+const count = (n: number, noun: string, plural = `${noun}s`): string =>
+  `${n} ${n === 1 ? noun : plural}`;
 
 export function formatImport(result: PeopleImport): string {
   if (result._tag === "Skipped") return `Skipped: ${result.reason}.`;
@@ -29,11 +32,11 @@ export function formatImport(result: PeopleImport): string {
         ? ""
         : `: ${result.unavailable.join(", ")}`
     }.`,
-    `${written === null ? "Would write" : "Planned"}: ${count(plan.people.length, "host")} across ${count(plan.replacedEventIds.length, "event")}, ${count(plan.links.length, "profile")} to link, ${plan.newProfiles.length} to create, guest counts for ${count(plan.guestCounts.length, "event")}.`,
+    `${written === null ? "Would write" : "Planned"}: ${count(plan.people.length, "host")} and ${count(plan.hosts.length, "hosting company", "hosting companies")} across ${count(plan.replacedEventIds.length, "event")}, ${count(plan.links.length, "profile")} to link, ${plan.newProfiles.length} to create, guest counts for ${count(plan.guestCounts.length, "event")}.`,
   ];
   if (written !== null) {
     lines.push(
-      `Wrote: ${count(written.written, "host row")} added or reordered, ${written.removed} removed, ${count(written.linked, "profile")} linked, ${written.created} created, guest counts changed for ${count(written.counted, "event")}.`,
+      `Wrote: ${count(written.written, "host row")} added or reordered, ${written.removed} removed, ${count(written.hosted, "hosting company", "hosting companies")} attached, ${count(written.linked, "profile")} linked, ${written.created} created, guest counts changed for ${count(written.counted, "event")}.`,
     );
   }
   const byEvent = Map.groupBy(plan.review, (review) => review.lumaEventId);

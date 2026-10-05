@@ -165,13 +165,14 @@ describe("the lockup", () => {
 });
 
 describe("the mode", () => {
-  test("is the event's unless the visitor fixed one", () => {
-    expect(render(event())).toStartWith(
-      '<!doctype html><html lang="en" data-theme="dark">',
-    );
-    expect(render(event({ mode: "paper" }))).toStartWith(
-      '<!doctype html><html lang="en" data-theme="light">',
-    );
+  test("is the visitor's, the system's until they choose, whatever the event's own mode", () => {
+    // An evening (Night artwork) and a daytime event (Paper) alike follow
+    // the system: neither has a mode of its own on the page.
+    for (const mode of ["night", "paper"] as const) {
+      const html = render(event({ mode }));
+      expect(html).toStartWith('<!doctype html><html lang="en"><head>');
+      expect(html).toContain('<summary aria-label="mode: system">');
+    }
     const fixed = render(event(), "light");
     expect(fixed).toStartWith(
       '<!doctype html><html lang="en" data-theme="light">',
@@ -182,8 +183,9 @@ describe("the mode", () => {
       /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );
     expect(fixed).toMatch(
-      /<a href="\?theme=system" rel="nofollow"><svg[^]*?<\/svg><span>event<\/span><\/a>/,
+      /<a href="\?theme=system" rel="nofollow"><svg[^]*?<\/svg><span>system<\/span><\/a>/,
     );
+    expect(fixed).not.toContain("<span>event</span>");
     // An evening's page belongs to the evenings.
     expect(fixed).toContain('<a href="/events" aria-current="page">events</a>');
   });

@@ -87,7 +87,9 @@ Buttons: white on Bridge Deep (Lc 90.3, 7.7:1) on Paper, and white on Bridge (Lc
 
 **Night is muted and grained.** A large, saturated dark ground tires the eyes and makes light text seem to glow, which readability scores don't measure. So Night keeps its violet hue at low chroma (OKLCH 0.22 / 0.035 / 293), and carries a fine, fixed grain ([`texture/grain.svg`](texture/grain.svg)) that gives it Paper's printed feel. Paper has no texture.
 
-**One mode per event, everywhere.** Evening events are Night; daytime events (hackathons, brunches) are Paper. An event's cover, page, slides and posts all share its mode. Which one is set by when it starts in San Francisco: from 5 AM up to 4 PM is daytime, and 4 PM or later (or the small hours) is an evening.
+**The site is in the visitor's mode.** Every page follows the mode the visitor chose (system, Paper or Night), and the system's until they choose; a page never switches to a mode of its own.
+
+**An event's artwork has its mode.** Evening events are Night; daytime events (hackathons, brunches) are Paper. An event's cover, link-preview card, slides and posts share its mode; its page does not. Which one is set by when it starts in San Francisco: from 5 AM up to 4 PM is daytime, and 4 PM or later (or the small hours) is an evening.
 
 ## Typography
 
@@ -128,7 +130,7 @@ Sizes are the largest. The wordmark, event lockup, label and lead shrink on narr
 ## People and channels
 
 - Socials sit in a quiet line of words in the footer (luma · discord · youtube · github · x · bluesky · linkedin) and on the history page, never in a hero.
-- Luma and Discord are actions: "subscribe on luma" beside "every evening →", and "talk between evenings → discord".
+- Luma and Discord are actions on home: "subscribe on luma" beside "every evening →", and "talk between evenings → discord". Every evening's index says where to follow along in the same quiet line of words as the footer, under its title: luma calendar · discord · x.
 - The organizers are visible everywhere: "hosted by Erik & Andre" with portraits in every footer, organizers first on the people page, and "your hosts" beside the hosting company on every event page.
 
 ## Accessibility

@@ -179,12 +179,13 @@ describe("/events", () => {
     expect(html).not.toContain("Draft");
   });
 
-  it("offers Luma and Discord as actions", async ({ Announced }) => {
+  it("says where to follow along: luma calendar, discord and x", async ({
+    Announced,
+  }) => {
     const { html } = await events(Announced);
-    expect(html).toContain(`<a href="${lumaCalendar}">subscribe on luma</a>`);
-    expect(html).toContain(
-      `<a href="${discord}">talk between evenings <span aria-hidden="true">→</span> discord</a>`,
-    );
+    expect(html).toContain(`<a href="${lumaCalendar}">luma calendar</a>`);
+    expect(html).toContain(`<a href="${discord}">discord</a>`);
+    expect(html).toContain('<a href="https://x.com/allthingswebdev">x</a>');
   });
 
   it("leaves out Upcoming when nothing is announced, and still lists the rest", async ({

@@ -17,7 +17,10 @@ import {
  *
  * Who owns what:
  * - Luma: event_people rows whose source is 'luma', and each event's
- *   luma_guest_count and luma_checked_in_count. An import replaces an
+ *   luma_guest_count and luma_checked_in_count. A host that is a hosting
+ *   company's Luma account (sponsors.luma_user_id) attaches the company to
+ *   the event (event_sponsors); the import only ever adds those, so one an
+ *   organizer attached, or one Luma stops listing, stays. An import replaces an
  *   event's Luma rows with the hosts Luma lists now; an event Luma does not
  *   show (403, 404) or lists no hosts for keeps them. Counts are written for
  *   events our calendar manages only, and only when they change.
@@ -55,6 +58,13 @@ const Stored = Schema.Struct({
       profileType: Schema.Literals(["organizer", "member"]),
     }),
   ),
+  companies: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      name: Schema.String,
+      lumaUserId: Schema.String,
+    }),
+  ),
 });
 
 /** What the write changed, row by row. */
@@ -63,6 +73,7 @@ const Written = Schema.Struct({
   created: Schema.Int,
   written: Schema.Int,
   removed: Schema.Int,
+  hosted: Schema.Int,
   counted: Schema.Int,
 });
 export type Written = typeof Written.Type;
@@ -123,7 +134,13 @@ const make = Effect.gen(function* () {
         SELECT json_agg(json_build_object('id', p.id, 'name', p.name,
           'lumaUserId', p.luma_user_id, 'profileType', p.profile_type) ORDER BY p.id)
         FROM profiles p
-      ), '[]'::json) AS profiles`.pipe(
+      ), '[]'::json) AS profiles,
+      COALESCE((
+        SELECT json_agg(json_build_object('id', s.id, 'name', s.name,
+          'lumaUserId', s.luma_user_id) ORDER BY s.id)
+        FROM sponsors s
+        WHERE s.luma_user_id IS NOT NULL
+      ), '[]'::json) AS companies`.pipe(
     Effect.flatMap(([row]) => Schema.decodeUnknownEffect(Stored)(row)),
     orDataSourceError,
   );
@@ -153,6 +170,9 @@ const make = Effect.gen(function* () {
       })),
     );
     const replaced = json(plan.replacedEventIds);
+    const hosts = json(
+      plan.hosts.map((h) => ({ event_id: h.eventId, sponsor_id: h.companyId })),
+    );
     const counts = json(
       plan.guestCounts.map((c) => ({
         event_id: c.eventId,
@@ -212,6 +232,12 @@ const make = Effect.gen(function* () {
             WHERE pl.event_id = ep.event_id AND pl.profile_id = ep.profile_id
               AND pl.role = ep.role)
         RETURNING 1
+      ), hosted AS (
+        INSERT INTO event_sponsors (event_id, sponsor_id, created_at, updated_at)
+        SELECT h.event_id, h.sponsor_id, ${at}::timestamptz, ${at}::timestamptz
+        FROM jsonb_to_recordset(${hosts}::jsonb) AS h(event_id uuid, sponsor_id uuid)
+        ON CONFLICT (event_id, sponsor_id) DO NOTHING
+        RETURNING 1
       ), counted AS (
         UPDATE events e SET
           luma_guest_count = c.guest_count,
@@ -229,6 +255,7 @@ const make = Effect.gen(function* () {
         (SELECT count(*) FROM created)::int AS created,
         (SELECT count(*) FROM written)::int AS written,
         (SELECT count(*) FROM removed)::int AS removed,
+        (SELECT count(*) FROM hosted)::int AS hosted,
         (SELECT count(*) FROM counted)::int AS counted`.pipe(
       Effect.flatMap(([row]) => Schema.decodeUnknownEffect(Written)(row)),
       orDataSourceError,
@@ -268,7 +295,12 @@ const make = Effect.gen(function* () {
               unavailable.push(event.lumaEventId);
             }
           }
-          const plan = planPeople(fetched, stored.profiles, decisions);
+          const plan = planPeople(
+            fetched,
+            stored.profiles,
+            decisions,
+            stored.companies,
+          );
           if (plan.problems.length > 0) {
             return yield* new PeopleDecisionError({ problems: plan.problems });
           }

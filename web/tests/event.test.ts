@@ -97,7 +97,7 @@ function row(html: string, label: string): string {
 }
 
 describe("an upcoming evening", () => {
-  it("answers with HTML cached like public data, in Night", async ({
+  it("answers with HTML cached like public data, in the system's mode", async ({
     Events,
   }) => {
     const { response, html } = await page(Events, slugs.upcoming);
@@ -110,10 +110,8 @@ describe("an upcoming evening", () => {
       contentSecurityPolicy.originals,
     );
     expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
-    expect(html).toStartWith(
-      '<!doctype html><html lang="en" data-theme="dark">',
-    );
-    expect(html).toContain('<meta name="color-scheme" content="dark"/>');
+    expect(html).toStartWith('<!doctype html><html lang="en"><head>');
+    expect(html).toContain('<meta name="color-scheme" content="light dark"/>');
     expect(html).toContain("<title>all things/effect</title>");
   });
 
@@ -272,13 +270,11 @@ describe("an upcoming evening", () => {
 });
 
 describe("a morning without a venue or a Luma page", () => {
-  it("is Paper, and leaves out the rows it has nothing for", async ({
+  it("follows the system though it is a daytime event, and leaves out the rows it has nothing for", async ({
     Events,
   }) => {
     const { html } = await page(Events, slugs.bare);
-    expect(html).toStartWith(
-      '<!doctype html><html lang="en" data-theme="light">',
-    );
+    expect(html).toStartWith('<!doctype html><html lang="en"><head>');
     expect(labels(html)).toEqual(["When", "Hosted by"]);
     expect(html).not.toContain("google.com/maps");
   });
@@ -399,13 +395,11 @@ describe("a past evening", () => {
 });
 
 describe("a past daytime hackathon", () => {
-  it("is Paper, under the topic the site set, hosted by Erik and Andre alone", async ({
+  it("follows the system, under the topic the site set, hosted by Erik and Andre alone", async ({
     Events,
   }) => {
     const { html } = await page(Events, slugs.hackathon);
-    expect(html).toStartWith(
-      '<!doctype html><html lang="en" data-theme="light">',
-    );
+    expect(html).toStartWith('<!doctype html><html lang="en"><head>');
     expect(html).toContain("<title>all things/web hackathon</title>");
     expect(html).toContain('class="event-name event-name-m"');
     expect(labels(html)).toEqual([
@@ -458,11 +452,14 @@ describe("the mode", () => {
     );
   });
 
-  it("names the event's own mode as the first choice", async ({ Events }) => {
+  it("follows the system until the visitor chooses, on an evening's page as on any", async ({
+    Events,
+  }) => {
     const { html } = await page(Events, slugs.upcoming);
-    expect(html).toContain('<summary aria-label="mode: event">');
+    expect(html).toStartWith('<!doctype html><html lang="en"><head>');
+    expect(html).toContain('<summary aria-label="mode: system">');
     expect(html).toMatch(
-      /<a href="\?theme=system" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>event<\/span><\/a>/,
+      /<a href="\?theme=system" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>system<\/span><\/a>/,
     );
   });
 

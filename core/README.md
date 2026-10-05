@@ -64,8 +64,12 @@ and writes `event_people` (its own rows only), `profiles.luma_user_id`, and
 `events.luma_guest_count` and `luma_checked_in_count`, in one statement.
 
 Hosts are matched by Luma user id, then by exact name with a review line.
-Nothing is created without an organizer's decision: Luma's hosts include
-companies' accounts and people under other names. Run it from `core/`:
+A host whose Luma user id is a hosting company's (`sponsors.luma_user_id`,
+from `backfill/hosts.json`) is that company: it is attached to the event as
+a hosting company (`event_sponsors`, only ever added), never matched to a
+person. Nothing is created without an organizer's decision: Luma's hosts
+include companies' accounts not yet on record and people under other names.
+Run it from `core/`:
 
 ```sh
 DATABASE_URL=… LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
@@ -213,8 +217,11 @@ DATABASE_URL=… bun run event-extras             # write
 
 ## Hosting companies' links
 
-Each hosting company (`sponsors`) may store its own website and its X,
-Bluesky and LinkedIn handles, each checked for its shape by the database.
+Each hosting company (`sponsors`) may store its own website, its X, Bluesky
+and LinkedIn handles and its Luma account, each checked for its shape by the
+database (the Luma account is also unique: one company per account; the
+people import attaches the company to the events Luma lists it as a host
+of).
 The event page links a host's name to its site, promotion drafts tag and
 link hosts, and the completeness report flags a host without a website or
 without any handle.
@@ -222,7 +229,8 @@ without any handle.
 `backfill/hosts.json` holds them as researched from each company's
 official site and profiles, every fact with the URL it was read from.
 What could not be confirmed is left out, or kept under `held` with its
-reason, and never written.
+reason, and never written. A company the database doesn't hold yet is added
+when its entry says what it does (`about`, sourced).
 
 ```sh
 DATABASE_URL=… bun run hosts --dry-run   # what would change, rolled back

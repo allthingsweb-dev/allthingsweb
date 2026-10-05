@@ -163,11 +163,12 @@ describe("the evenings index", () => {
     expect(await htmlProblems(html)).toEqual([]);
   });
 
-  test("offers Luma and Discord as the foundations word them", () => {
+  test("says where to follow along in one quiet line: luma calendar · discord · x", () => {
     const html = render(view);
     expect(html).toContain(
-      `<p class="list-links"><a href="${lumaCalendar}">subscribe on luma</a> · <a href="${discord}">talk between evenings <span aria-hidden="true">→</span> discord</a></p>`,
+      `<ul class="socials at-type-meta"><li><a href="${lumaCalendar}">luma calendar</a></li><li><a href="${discord}">discord</a></li><li><a href="https://x.com/allthingswebdev">x</a></li></ul>`,
     );
+    expect(html).not.toContain("subscribe on luma");
   });
 
   test("has one h1 and headings in order", () => {
