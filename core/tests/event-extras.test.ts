@@ -170,6 +170,45 @@ describe("applying event extras", () => {
   });
 });
 
+describe("the file's shape", () => {
+  const decodes = (event: unknown) =>
+    Schema.decodeUnknownExit(EventExtras)({ events: [event] })._tag ===
+    "Success";
+  const valid = {
+    slug: "2026-10-03-hack-day",
+    schedule: [{ time: "9 am", title: "Doors open", description: "" }],
+    notes: [{ label: "Awards", body: "<p>Swag</p>" }],
+    sources,
+  };
+
+  test("takes what says something", () => {
+    expect(decodes(valid)).toBe(true);
+  });
+
+  test.each([
+    [
+      "a blank time",
+      { ...valid, schedule: [{ ...valid.schedule[0], time: "  " }] },
+    ],
+    [
+      "a blank title",
+      { ...valid, schedule: [{ ...valid.schedule[0], title: " " }] },
+    ],
+    [
+      "a blank label",
+      { ...valid, notes: [{ ...valid.notes[0], label: "\t" }] },
+    ],
+    [
+      "a padded label",
+      { ...valid, notes: [{ ...valid.notes[0], label: " Awards" }] },
+    ],
+    ["a blank body", { ...valid, notes: [{ ...valid.notes[0], body: "\n" }] }],
+    ["a blank slug", { ...valid, slug: " " }],
+  ])("refuses %s", (_, event) => {
+    expect(decodes(event)).toBe(false);
+  });
+});
+
 describe("core/backfill/event-extras.json", () => {
   const file = async () =>
     Schema.decodeUnknownSync(Schema.fromJsonString(EventExtras))(

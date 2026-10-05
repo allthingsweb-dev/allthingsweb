@@ -2,6 +2,7 @@ import { describe, expect } from "bun:test";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
+import { CacheControl } from "../src/cache.ts";
 import { eventDatabase } from "./support/event-catalog.ts";
 import {
   fileEntryFor,
@@ -156,6 +157,18 @@ describe("legacy URLs", () => {
       "text/html; charset=utf-8",
     );
     expect(await response.text()).toContain("404 · not found");
+  });
+
+  it("says what is retired is gone, under the address asked for", async (url) => {
+    const response = await fetch(`${url}/logos/logo-1.91x1.png`);
+    expect(response.status).toBe(410);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.page);
+    const html = await response.text();
+    expect(html).toContain("410 · gone");
+    expect(html).not.toContain("404");
+    expect(html).toContain(
+      '<link rel="canonical" href="https://allthings.dev/logos/logo-1.91x1.png"/>',
+    );
   });
 
   it("never sends a trailing slash to another host", async (url) => {

@@ -776,18 +776,41 @@ export interface StandInProps {
   readonly images: ImageMode;
 }
 
-/** Nothing published lives at this address: said plainly, with ways on. */
+/** Why nothing is at an address: there never was, or it is gone. */
+const nothingHere = {
+  404: {
+    status: "404 · not found",
+    title: "not found",
+    lead: "No evening lives at this address.",
+  },
+  410: {
+    status: "410 · gone",
+    title: "gone",
+    lead: "What lived at this address is gone for good.",
+  },
+} as const;
+
+/**
+ * Nothing published lives at this address, or what did is gone (410): said
+ * plainly, with ways on.
+ */
 export function notFoundPage({
   origin,
   path,
   theme,
   portraits,
   images,
-}: StandInProps & { readonly portraits: PortraitsById }): string {
+  status = 404,
+}: StandInProps & {
+  readonly portraits: PortraitsById;
+  /** 410 for what the site retired; 404 otherwise. */
+  readonly status?: 404 | 410;
+}): string {
+  const said = nothingHere[status];
   return Document({
     meta: {
-      title: gatheringTitle("not found"),
-      description: "No evening lives at this address.",
+      title: gatheringTitle(said.title),
+      description: said.lead,
       path,
     },
     origin,
@@ -796,12 +819,12 @@ export function notFoundPage({
     images,
     children: (
       <div class="intro">
-        <p class="at-type-meta">404 · not found</p>
+        <p class="at-type-meta">{said.status}</p>
         <h1 class="lockup at-type-event-lockup">
           all things<span class="slash">/</span>
           <Cursor />
         </h1>
-        <p class="lead at-type-lead">No evening lives at this address.</p>
+        <p class="lead at-type-lead">{said.lead}</p>
         <p class="fact-links">
           <a href={everyEvening}>
             every evening <span aria-hidden="true">→</span>

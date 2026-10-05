@@ -15,7 +15,15 @@ import { DataSourceError } from "./errors.ts";
 
 /** An https URL with a domain-name host, as the public contract accepts, and no whitespace. */
 const Url = HttpUrl.check(Schema.isPattern(/^https:\/\/\S+$/));
-const NonEmpty = Schema.String.check(Schema.isNonEmpty());
+/**
+ * Text that says something, as written: not blank, and without the leading
+ * or trailing space the page would trim away.
+ */
+const NonEmpty = Schema.String.check(
+  Schema.isPattern(/^\S(?:[\s\S]*\S)?$/, {
+    message: "must say something, without leading or trailing space",
+  }),
+);
 
 export const ScheduleItem = Schema.Struct({
   /** As written: "1 - 7 pm", "~7:00 pm". */

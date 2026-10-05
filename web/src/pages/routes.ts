@@ -464,7 +464,7 @@ const nothingAt = (
       hostPortraits.pipe(Effect.provide(repositories)),
     );
     return htmlResponse(
-      notFoundPage({ origin, path, theme, portraits, images }),
+      notFoundPage({ origin, path, theme, portraits, images, status }),
       acceptEncoding,
       {
         cacheControl: !read ? "failure" : status === 410 ? "page" : "notFound",
