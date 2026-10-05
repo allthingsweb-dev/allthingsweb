@@ -10,6 +10,14 @@ export interface WorkerEnv {
   readonly DATABASE_URL?: string;
   /** The origin of a `HYPERDRIVE` binding, as the Worker deploys. */
   readonly HYPERDRIVE?: Cloudflare.Hyperdrive.PublicOrigin;
+  /**
+   * An `IMAGES` binding, as the Worker deploys. Locally, Alchemy's runtime
+   * makes variants with Sharp: it reads the size but not the fit, so a
+   * square comes out fitted inside the square rather than cropped to it.
+   */
+  readonly IMAGES?: true;
+  /** Where the Worker fetches the originals of image variants. */
+  readonly MEDIA_ORIGIN?: string;
 }
 
 /**
@@ -48,7 +56,11 @@ export const testStack = <const Name extends string>(
     Effect.gen(function* () {
       const urls = [];
       for (const [worker, env] of Object.entries<WorkerEnv>(workers)) {
-        const { HYPERDRIVE: origin, ...settings } = env;
+        const { HYPERDRIVE: origin, IMAGES: images, ...rest } = env;
+        const settings =
+          images === undefined
+            ? rest
+            : { ...rest, IMAGES: Cloudflare.Images.Images("IMAGES") };
         const { url } = yield* Cloudflare.Worker(worker, {
           main: new URL("../../src/worker.ts", import.meta.url).pathname,
           compatibility,

@@ -107,7 +107,7 @@ describe("/brand", () => {
     );
     expect(response.headers.get("cache-control")).toBe(CacheControl.page);
     expect(response.headers.get("content-security-policy")).toBe(
-      contentSecurityPolicy,
+      contentSecurityPolicy.originals,
     );
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("vary")).toBe("accept-encoding, cookie");

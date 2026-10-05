@@ -121,7 +121,7 @@ describe("/events", () => {
     );
     expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
     expect(response.headers.get("content-security-policy")).toBe(
-      contentSecurityPolicy,
+      contentSecurityPolicy.originals,
     );
     expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
   });

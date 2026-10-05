@@ -2,16 +2,18 @@ import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { Home } from "allthings-core/src/home.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import type * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { type Repositories, repositories } from "../database.ts";
+import { Images } from "../images/route.ts";
 import { hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { brandPage } from "./brand.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
+import type { ImageMode } from "./picture.tsx";
 import { htmlResponse } from "./response.ts";
 import { chooseTheme, isChoice, type Theme, themeOf } from "./theme.ts";
 
@@ -25,6 +27,8 @@ interface PageRequest {
   /** The mode the visitor's cookie fixes, if any. */
   readonly theme: Theme | undefined;
   readonly acceptEncoding: string | undefined;
+  /** Variants when the Worker has its Images binding, else originals. */
+  readonly images: ImageMode;
 }
 
 /**
@@ -50,6 +54,7 @@ const page = <E, R>(
       return yield* render({
         theme: themeOf(request.cookies),
         acceptEncoding: request.headers["accept-encoding"],
+        images: Option.isSome(yield* Images) ? "variants" : "originals",
       });
     }),
   );
@@ -102,10 +107,11 @@ const dataPage = <A>(
       readonly origin: string;
       readonly theme: Theme | undefined;
       readonly portraits: PortraitsById;
+      readonly images: ImageMode;
     },
   ) => string,
 ) =>
-  page(path, ({ theme, acceptEncoding }) =>
+  page(path, ({ theme, acceptEncoding, images }) =>
     Effect.gen(function* () {
       const { origin } = yield* Site;
       return yield* Effect.all([read, footer(hostPortraits)], {
@@ -114,20 +120,25 @@ const dataPage = <A>(
         Effect.provide(repositories),
         Effect.map(([data, { portraits, read: complete }]) =>
           htmlResponse(
-            render(data, { origin, theme, portraits }),
+            render(data, { origin, theme, portraits, images }),
             acceptEncoding,
-            { cacheControl: complete ? "publicData" : "failure", theme },
+            {
+              cacheControl: complete ? "publicData" : "failure",
+              theme,
+              images,
+            },
           ),
         ),
         Effect.catchCause((cause) =>
           Effect.logError(`Error rendering ${name}:`, cause).pipe(
             Effect.as(
               htmlResponse(
-                unavailablePage({ origin, path, theme }),
+                unavailablePage({ origin, path, theme, images }),
                 acceptEncoding,
                 {
                   cacheControl: "failure",
                   theme,
+                  images,
                   status: 503,
                 },
               ),
@@ -159,16 +170,16 @@ const events = dataPage(
  * portraits in its footer, which it reads on every request it reaches. It is
  * cached as a page, so a new portrait may take a day to reach the edge.
  */
-const brand = page("/brand", ({ theme, acceptEncoding }) =>
+const brand = page("/brand", ({ theme, acceptEncoding, images }) =>
   Effect.gen(function* () {
     const { origin } = yield* Site;
     const { portraits, read } = yield* footer(
       hostPortraits.pipe(Effect.provide(repositories)),
     );
     return htmlResponse(
-      brandPage({ origin, theme, portraits }),
+      brandPage({ origin, theme, portraits, images }),
       acceptEncoding,
-      { cacheControl: read ? "page" : "failure", theme },
+      { cacheControl: read ? "page" : "failure", theme, images },
     );
   }),
 );

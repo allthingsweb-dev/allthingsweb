@@ -32,6 +32,10 @@ export const Database = Cloudflare.Hyperdrive.Connection("Database", {
  * is also the production host: robots.txt lets crawlers in only there, so
  * every stage stays out of search results until the cutover sets `ORIGIN`
  * to the domain this Worker serves.
+ * `IMAGES` makes the photos' variants (web/src/images/route.ts) from the
+ * originals on the media origin; it has no resource of its own, and
+ * transformations are billed to the account (5,000 unique ones a month
+ * free).
  */
 export const Web = Cloudflare.Worker("Web", {
   main: "../web/src/worker.ts",
@@ -40,5 +44,6 @@ export const Web = Cloudflare.Worker("Web", {
   env: {
     ORIGIN: "https://allthingsweb.dev",
     HYPERDRIVE: Database,
+    IMAGES: Cloudflare.Images.Images("IMAGES"),
   },
 });

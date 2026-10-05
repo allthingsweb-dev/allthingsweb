@@ -29,7 +29,13 @@ const evening = (
 const origin = "https://allthingsweb.dev";
 
 const render = (evenings: EveningsView) =>
-  eventsPage({ evenings, origin, theme: undefined, portraits: new Map() });
+  eventsPage({
+    evenings,
+    origin,
+    theme: undefined,
+    portraits: new Map(),
+    images: "originals",
+  });
 
 /** The list section headed `id`, or "" when the page has none. */
 function section(html: string, id: string): string {

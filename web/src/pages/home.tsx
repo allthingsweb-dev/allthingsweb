@@ -8,6 +8,7 @@ import { Document } from "./document.tsx";
 import { Cursor, EveningRow } from "./evening-row.tsx";
 import { homeTitle, siteDescription } from "./metadata.tsx";
 import { organization } from "./structured-data.ts";
+import { type ImageMode, Photo, showable } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 import { clockTime, day } from "./time.ts";
 
@@ -26,6 +27,8 @@ export interface HomeProps {
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
   readonly portraits: PortraitsById;
+  /** How photos are shown (see picture.tsx). */
+  readonly images: ImageMode;
 }
 
 /**
@@ -121,17 +124,36 @@ function OpenSlot() {
   );
 }
 
-function Mosaic({ photos }: { readonly photos: ReadonlyArray<Rows.Photo> }) {
+/**
+ * How wide the mosaic's tiles are, as site.css lays them out: the mosaic
+ * spans 4 of the hero's 12 columns (24 px gutters) on a page at most 1440 px
+ * wide with margins of 4.5vw (16 to 64 px), and the whole page width from
+ * 760 px down. A wide tile is the mosaic's width; the others half of it,
+ * less the 10 px gap. That is 422 and 206 px at 1440, 341 and 166 at 375.
+ */
+const tileSizes = {
+  wide: "(max-width: 760px) 91vw, (max-width: 1440px) calc(30.4vw - 16px), 422px",
+  half: "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(15.2vw - 13px), 206px",
+} as const;
+
+/** Whether the mosaic of `count` tiles shows the one at `index` wide. */
+const isWide = (index: number, count: number) =>
+  index === 0 || (count === 2 && index === 1);
+
+function Mosaic({
+  photos,
+  images,
+}: {
+  readonly photos: ReadonlyArray<Rows.Photo>;
+  readonly images: ImageMode;
+}) {
   return (
     <div class={`mosaic tiles-${photos.length}`}>
-      {photos.map((photo) => (
-        <img
-          src={photo.url}
-          alt={photo.alt}
-          width={String(photo.width)}
-          height={String(photo.height)}
-          loading="lazy"
-          decoding="async"
+      {photos.map((photo, index) => (
+        <Photo
+          photo={photo}
+          mode={images}
+          sizes={tileSizes[isWide(index, photos.length) ? "wide" : "half"]}
         />
       ))}
     </div>
@@ -144,8 +166,10 @@ export function homePage({
   origin,
   theme,
   portraits,
+  images,
 }: HomeProps): string {
-  const { next, afterThat, recently, photos } = home;
+  const { next, afterThat, recently } = home;
+  const photos = showable(home.photos, images);
   return Document({
     meta: {
       title: homeTitle,
@@ -156,6 +180,7 @@ export function homePage({
     origin,
     theme,
     portraits,
+    images,
     children: (
       <div class="home">
         <section
@@ -169,7 +194,11 @@ export function homePage({
               <Hero next={next} origin={origin} />
             )}
           </div>
-          {photos.length === 0 ? "" : <Mosaic photos={photos} />}
+          {photos.length === 0 ? (
+            ""
+          ) : (
+            <Mosaic photos={photos} images={images} />
+          )}
         </section>
         <div class="band">
           <div class="pitch at-type-lead">
@@ -238,17 +267,20 @@ export function unavailablePage({
   origin,
   path,
   theme,
+  images,
 }: {
   readonly origin: string;
   /** The page that couldn't be read, which stays its canonical URL. */
   readonly path: `/${string}`;
   readonly theme: Theme | undefined;
+  readonly images: ImageMode;
 }): string {
   return Document({
     meta: { title: homeTitle, description: siteDescription, path },
     origin,
     theme,
     portraits: new Map(),
+    images,
     children: (
       <div class="intro">
         <p class="at-type-meta">temporarily unavailable</p>

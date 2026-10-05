@@ -5,22 +5,31 @@ import {
   PrivateCacheControl,
 } from "../cache.ts";
 import { mediaOrigin } from "../links.ts";
+import type { ImageMode } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
+
+const policy = (imgSrc: string) =>
+  [
+    "default-src 'none'",
+    "style-src 'self'",
+    "font-src 'self'",
+    `img-src ${imgSrc}`,
+    "base-uri 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'none'",
+  ].join("; ");
 
 /**
  * How pages are sent. They run no scripts and load nothing from other
- * origins but event photos from the media origin, and the
- * Content-Security-Policy makes browsers hold them to it.
+ * origins, and the Content-Security-Policy makes browsers hold them to it.
+ * Photos come from this site as variants; only a Worker that can't make
+ * them (see picture.tsx) links the originals on the media origin, and only
+ * its pages may load images from there.
  */
-export const contentSecurityPolicy = [
-  "default-src 'none'",
-  "style-src 'self'",
-  "font-src 'self'",
-  `img-src 'self' ${mediaOrigin}`,
-  "base-uri 'none'",
-  "form-action 'none'",
-  "frame-ancestors 'none'",
-].join("; ");
+export const contentSecurityPolicy: Readonly<Record<ImageMode, string>> = {
+  variants: policy("'self'"),
+  originals: policy(`'self' ${mediaOrigin}`),
+};
 
 /**
  * Each coding in an Accept-Encoding header with its weight (RFC 9110,
@@ -65,7 +74,6 @@ export function contentEncoding(
 }
 
 const headers = {
-  "content-security-policy": contentSecurityPolicy,
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
   // Every page renders the mode its visitor's `theme` cookie fixes.
@@ -80,6 +88,8 @@ export interface HtmlOptions {
   readonly cacheControl: CacheControlName;
   /** The mode the page was rendered in, from the visitor's cookie. */
   readonly theme: Theme | undefined;
+  /** How the page shows photos, which its policy allows. */
+  readonly images: ImageMode;
   /** 200 unless said otherwise. */
   readonly status?: number;
 }
@@ -91,7 +101,7 @@ export interface HtmlOptions {
 export function htmlResponse(
   html: string,
   acceptEncoding: string | undefined,
-  { cacheControl, theme, status = 200 }: HtmlOptions,
+  { cacheControl, theme, images, status = 200 }: HtmlOptions,
 ): HttpServerResponse.HttpServerResponse {
   const encoding = contentEncoding(acceptEncoding);
   if (encoding === undefined) {
@@ -108,6 +118,7 @@ export function htmlResponse(
     contentType: "text/html; charset=utf-8",
     headers: {
       ...headers,
+      "content-security-policy": contentSecurityPolicy[images],
       "cache-control":
         theme === undefined
           ? CacheControl[cacheControl]

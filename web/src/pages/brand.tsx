@@ -13,6 +13,7 @@ import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
 import { Document } from "./document.tsx";
 import { lockup } from "./metadata.tsx";
+import type { ImageMode } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 
 /**
@@ -393,10 +394,17 @@ export interface BrandProps {
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
   readonly portraits: PortraitsById;
+  /** How photos are shown (see picture.tsx). */
+  readonly images: ImageMode;
 }
 
 /** The whole of /brand, in the visitor's mode, signed off by the hosts. */
-export function brandPage({ origin, theme, portraits }: BrandProps): string {
+export function brandPage({
+  origin,
+  theme,
+  portraits,
+  images,
+}: BrandProps): string {
   return Document({
     meta: {
       title: lockup("brand"),
@@ -407,6 +415,7 @@ export function brandPage({ origin, theme, portraits }: BrandProps): string {
     origin,
     theme,
     portraits,
+    images,
     children: brandContent(),
   });
 }

@@ -439,13 +439,20 @@ describe("page metadata", () => {
     origin,
     theme: undefined,
     portraits: new Map(),
+    images: "variants",
   });
-  const brand = brandPage({ origin, theme: undefined, portraits: new Map() });
+  const brand = brandPage({
+    origin,
+    theme: undefined,
+    portraits: new Map(),
+    images: "variants",
+  });
   const index = eventsPage({
     evenings: { ahead: [], past: [] },
     origin,
     theme: undefined,
     portraits: new Map(),
+    images: "variants",
   });
 
   /** The head's tags, in order. */
@@ -537,6 +544,7 @@ describe("page metadata", () => {
       origin,
       theme: undefined,
       portraits: new Map(),
+      images: "variants",
       children: <p>body</p>,
     });
     // Text is escaped; a quoted attribute ends only at its quote.

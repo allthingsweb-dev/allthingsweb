@@ -8,8 +8,10 @@
 export const lumaCalendar = "https://luma.com/allthingsweb";
 
 /**
- * Where event photos are served from (R2). It is the one other origin a
- * page may load from, and only images; the Content-Security-Policy says so.
+ * Where event photos are served from (R2). Pages load them as variants from
+ * this site (see images/variants.ts); only a Worker without its Images
+ * binding links them here, and then its Content-Security-Policy allows
+ * images from this one other origin.
  */
 export const mediaOrigin = "https://media.allthings.dev";
 
