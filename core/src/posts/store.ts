@@ -80,6 +80,17 @@ const make = Effect.gen(function* () {
       FROM event_posts p JOIN events e ON e.id = p.event_id
       WHERE p.url = ${url}`;
 
+  /** The stored post with canonical URL `url`, if there is one. */
+  const stored = (url: string) =>
+    Effect.gen(function* () {
+      const rows = yield* sql<{ post: unknown }>`
+        SELECT (${existingByUrl(url)}) AS post`;
+      const post = rows[0]?.post ?? null;
+      if (post === null) return null;
+      const existing = yield* Schema.decodeUnknownEffect(Existing)(post);
+      return { _tag: "Exists", ...existing } satisfies AddResult;
+    });
+
   const find = (url: string) =>
     Effect.gen(function* () {
       const ref = parsePostUrl(url);
@@ -90,12 +101,7 @@ const make = Effect.gen(function* () {
       ) {
         return null;
       }
-      const rows = yield* sql<{ post: unknown }>`
-        SELECT (${existingByUrl(canonicalUrl(ref))}) AS post`;
-      const post = rows[0]?.post ?? null;
-      if (post === null) return null;
-      const existing = yield* Schema.decodeUnknownEffect(Existing)(post);
-      return { _tag: "Exists", ...existing } satisfies AddResult;
+      return yield* stored(canonicalUrl(ref));
     }).pipe(orDataSourceError);
 
   const add = (
@@ -134,8 +140,13 @@ const make = Effect.gen(function* () {
       }
       if (written.addedId === null) {
         // Another writer added the same post between this statement's
-        // snapshot and its insert.
-        return yield* Effect.die(new Error(`${post.url} was added meanwhile`));
+        // snapshot and its insert: report the row that won, as for any
+        // post already there.
+        const winner = yield* stored(post.url);
+        if (winner !== null) return winner;
+        return yield* Effect.die(
+          new Error(`${post.url} was neither added nor found`),
+        );
       }
       return {
         _tag: "Added",

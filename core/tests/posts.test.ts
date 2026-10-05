@@ -378,6 +378,36 @@ describe("adding posts", () => {
     expect(await rows(db)).toHaveLength(1);
   });
 
+  test("a post another writer adds at the same moment is reported, not failed", async () => {
+    const db = await database();
+    // Stand in for a concurrent writer: the first insert of a post adds the
+    // same post itself, hidden, just before this one lands.
+    await db.exec(`
+      CREATE FUNCTION race() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF pg_trigger_depth() = 1 THEN
+          INSERT INTO event_posts (event_id, platform, url, author_name,
+            posted_at, text, status, updated_at)
+          VALUES (NEW.event_id, NEW.platform, NEW.url, 'Someone else',
+            NEW.posted_at, NEW.text, 'hidden', now());
+        END IF;
+        RETURN NEW;
+      END $$;
+      CREATE TRIGGER race BEFORE INSERT ON event_posts
+        FOR EACH ROW EXECUTE FUNCTION race();
+    `);
+    const { exit } = await add(db, "2026-08-12-react-at-acme", xUrl);
+    expect(exit).toMatchObject(
+      Exit.succeed({
+        _tag: "Exists",
+        url: "https://x.com/i/status/2105474023287341382",
+        eventSlug: "2026-08-12-react-at-acme",
+        status: "hidden",
+      }),
+    );
+    expect(await rows(db)).toHaveLength(1);
+  });
+
   test("a dry run reads the post and writes nothing", async () => {
     const db = await database();
     const { exit } = await add(db, "2026-08-12-react-at-acme", xUrl, {
