@@ -6,6 +6,7 @@ import { Argument, Command, Flag } from "effect/cli";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import * as Database from "../src/database.ts";
+import { fileSlug, readAtMost } from "./cover-file.ts";
 import { padCover } from "./pad-cover.ts";
 
 /**
@@ -51,11 +52,7 @@ const download = (raw: string) =>
       if (!response.ok) throw new Error(`${response.status} from ${raw}`);
       const length = Number(response.headers.get("content-length") ?? 0);
       if (length > maxCoverBytes) throw new Error(`${raw} is ${length} bytes`);
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.byteLength > maxCoverBytes) {
-        throw new Error(`${raw} is ${bytes.byteLength} bytes`);
-      }
-      return bytes;
+      return readAtMost(response, maxCoverBytes, raw);
     },
     catch: (cause) =>
       new CoverError({
@@ -66,10 +63,6 @@ const download = (raw: string) =>
 /** What went wrong, in words. */
 const describe = (cause: unknown): string =>
   cause instanceof Error ? cause.message : String(cause);
-
-/** A file name for `slug` in ASCII: "é" is stored differently across systems. */
-const asciiSlug = (slug: string) =>
-  slug.normalize("NFD").replace(/[^A-Za-z0-9-]/g, "");
 
 const command = Command.make(
   "promo:cover",
@@ -111,7 +104,7 @@ const command = Command.make(
           }),
       });
       const file = Option.getOrElse(out, () =>
-        join(tmpdir(), `meetup-cover-${asciiSlug(slug)}.jpg`),
+        join(tmpdir(), `meetup-cover-${fileSlug(slug)}.jpg`),
       );
       yield* Effect.promise(() => Bun.write(file, padded.bytes));
       yield* Console.log(

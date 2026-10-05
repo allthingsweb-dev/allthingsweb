@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import sharp from "sharp";
+import { fileSlug, readAtMost } from "../scripts/cover-file.ts";
 import { padCover, wideFrame } from "../scripts/pad-cover.ts";
 
 /** Meetup's cover padding (scripts/pad-cover.ts), on images Sharp draws. */
@@ -95,5 +96,62 @@ describe("padCover", () => {
       .toBuffer();
     const padded = await padCover(new Uint8Array(sideways));
     expect([padded.width, padded.height]).toEqual([720, 405]);
+  });
+});
+
+describe("readAtMost", () => {
+  const streamOf = (sizes: ReadonlyArray<number>) =>
+    new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (const size of sizes) controller.enqueue(new Uint8Array(size));
+          controller.close();
+        },
+      }),
+    );
+
+  test("reads a body within the limit whole", async () => {
+    const bytes = await readAtMost(streamOf([3, 4]), 7, "cover");
+    expect(bytes.byteLength).toBe(7);
+  });
+
+  test("stops at the first chunk past the limit, whatever content-length said", async () => {
+    let pulled = 0;
+    const endless = new Response(
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          pulled += 1;
+          controller.enqueue(new Uint8Array(1024));
+        },
+      }),
+      { headers: { "content-length": "10" } },
+    );
+    await expect(readAtMost(endless, 4096, "cover")).rejects.toThrow(
+      "cover is over 4096 bytes",
+    );
+    expect(pulled).toBeLessThan(10);
+  });
+});
+
+describe("fileSlug", () => {
+  test("keeps letters, digits and hyphens, and escapes the rest by byte", () => {
+    expect(fileSlug("2025-12-02-café-night")).toBe(
+      "2025-12-02-caf_c3_a9-night",
+    );
+    expect(fileSlug("a_b")).toBe("a_5fb");
+  });
+
+  test("gives different slugs different names", () => {
+    const slugs = ["café-night", "cafe-night", "caf_c3_a9-night", "café-night"];
+    // "e" + combining accent is the same slug as "é" once normalized.
+    expect(new Set(slugs.map(fileSlug)).size).toBe(3);
+    expect(fileSlug("café-night")).toBe(fileSlug("café-night"));
+  });
+});
+
+describe("padCover limits", () => {
+  test("refuses a cover that would pad past the frame limit", async () => {
+    const strip = await png(20000, 1);
+    await expect(padCover(strip)).rejects.toThrow(/over 80000000 pixels/);
   });
 });
