@@ -6,7 +6,13 @@ export function appMediaStore() {
   return mediaStore(mainConfig.media);
 }
 
-export { keySlug, type MediaStore } from "./store";
+export {
+  keySlug,
+  maxMediaBytes,
+  MediaTooLargeError,
+  type MediaStore,
+  tooLargeMessage,
+} from "./store";
 
 /** Deletes the stored object behind an image URL; other URLs are left alone. */
 export async function removeStoredObject(url: string): Promise<void> {

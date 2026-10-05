@@ -7,7 +7,10 @@ export type MediaStoreConfig = {
 };
 
 export type MediaStore = {
-  /** Stores the object and returns its public URL. */
+  /**
+   * Stores the object and returns its public URL. An object over
+   * {@link maxMediaBytes} is refused with a {@link MediaTooLargeError}.
+   */
   put: (
     key: string,
     body: Uint8Array,
@@ -18,6 +21,31 @@ export type MediaStore = {
   /** The key of a stored object's URL, or null for any other URL. */
   keyOf: (url: string) => string | null;
 };
+
+/**
+ * The most bytes an image may be: what Cloudflare's Images binding reads
+ * to make the site's resized variants of it. A larger one gets none, and
+ * pages load it whole.
+ */
+export const maxMediaBytes = 20_000_000;
+
+/** What an uploader is told about an image over {@link maxMediaBytes}. */
+export function tooLargeMessage(name: string, bytes: number): string {
+  // Rounded up, so an image just over the limit never reads as 20.0 MB.
+  const megabytes = (Math.ceil(bytes / 100_000) / 10).toFixed(1);
+  return `${name} is ${megabytes} MB, over the 20 MB an image may be. Save it as a JPEG, or scale it down, and upload it again.`;
+}
+
+/** An image over {@link maxMediaBytes}: never stored. */
+export class MediaTooLargeError extends Error {
+  constructor(
+    readonly key: string,
+    readonly bytes: number,
+  ) {
+    super(tooLargeMessage(key, bytes));
+    this.name = "MediaTooLargeError";
+  }
+}
 
 const encodeKey = (key: string) =>
   key.split("/").map(encodeURIComponent).join("/");
@@ -59,6 +87,9 @@ export function mediaStore(
 
   return {
     put: async (key, body, contentType, options = {}) => {
+      if (body.byteLength > maxMediaBytes) {
+        throw new MediaTooLargeError(key, body.byteLength);
+      }
       await send("PUT", key, { body, contentType, ...options });
       return `${publicUrl}/${encodeKey(key)}`;
     },

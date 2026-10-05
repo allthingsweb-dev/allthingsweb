@@ -5,7 +5,11 @@ import { profilesTable, profileUsersTable, imagesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
-import { appMediaStore, removeStoredObject } from "@/lib/media-store";
+import {
+  appMediaStore,
+  MediaTooLargeError,
+  removeStoredObject,
+} from "@/lib/media-store";
 import { profilePhotoKey } from "@/lib/profile-photos/ingest";
 
 // Deletes an image from both the media store and the database
@@ -199,6 +203,9 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
+    if (error instanceof MediaTooLargeError) {
+      return NextResponse.json({ error: error.message }, { status: 413 });
+    }
     console.error("Error creating profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },

@@ -11,7 +11,8 @@
     "migrate": "bun --no-env-file scripts/migrate.ts",
     "luma:people": "bun --no-env-file scripts/luma-people.ts",
     "completeness": "bun --no-env-file scripts/completeness.ts",
-    "lineups": "bun --no-env-file scripts/lineups.ts"
+    "lineups": "bun --no-env-file scripts/lineups.ts",
+    "reencode": "bun --no-env-file scripts/reencode-originals.ts"
   },
   "dependencies": {
     "@effect/sql-pg": "4.0.0",
@@ -24,6 +25,7 @@
     "@electric-sql/pglite": "0.5.8",
     "@types/bun": "1.4.2",
     "prettier": "3.6.2",
+    "sharp": "0.35.5",
     "typescript": "7.0.2",
     "zod": "4.6.5"
   }
