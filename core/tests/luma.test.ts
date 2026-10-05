@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { DateTime, Duration, Effect, Exit, Layer } from "effect";
+import { Cause, DateTime, Duration, Effect, Exit, Layer } from "effect";
 import { DataSourceError } from "../src/errors.ts";
 import {
   type FeedEvent,
@@ -14,9 +14,11 @@ import {
   retryAfter,
 } from "../src/luma/luma.ts";
 import {
+  concludeRehearsal,
   eventSlug,
   fillUnseen,
   LumaSync,
+  Rehearsed,
   toEventRow,
 } from "../src/luma/sync.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
@@ -702,6 +704,47 @@ describe("rehearsing a sync", () => {
       expect(await everything(db)).toEqual(before);
     } finally {
       await db.close();
+    }
+  });
+});
+
+describe("concluding a rehearsal", () => {
+  const rehearsal = {
+    syncedCount: 1,
+    changedCount: 0,
+    publishedCount: 1,
+    slugs: ["a"],
+    created: [],
+    updated: [],
+  };
+
+  test("reports what the rolled-back transaction carried out", async () => {
+    const exit = await Effect.runPromiseExit(
+      concludeRehearsal(Effect.fail(new Rehearsed({ rehearsal }))),
+    );
+    expect(Exit.isSuccess(exit) && exit.value).toEqual(rehearsal);
+  });
+
+  test("fails, keeping the defect, when the rollback failed", async () => {
+    const exit = await Effect.runPromiseExit(
+      concludeRehearsal(
+        Effect.failCause(
+          Cause.combine(
+            Cause.fail(new Rehearsed({ rehearsal })),
+            Cause.die(new Error("ROLLBACK failed")),
+          ),
+        ),
+      ),
+    );
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      expect(Cause.hasDies(exit.cause)).toBe(true);
+      expect(
+        exit.cause.reasons.some(
+          (reason) =>
+            reason._tag === "Fail" && reason.error instanceof DataSourceError,
+        ),
+      ).toBe(true);
     }
   });
 });

@@ -1,5 +1,6 @@
-import { Context, Data, DateTime, Effect, Layer, Schema } from "effect";
+import { Cause, Context, Data, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import type { SqlError } from "effect/sql/SqlError";
 import { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
 import {
@@ -240,9 +241,38 @@ export function rehearsalOf(
 }
 
 /** Carries a rehearsal out of the transaction it rolls back. */
-class Rehearsed extends Data.TaggedError("Rehearsed")<{
+export class Rehearsed extends Data.TaggedError("Rehearsed")<{
   readonly rehearsal: SyncRehearsal;
 }> {}
+
+/**
+ * The rehearsal a rolled-back transaction carried out as its failure.
+ * A rollback that fails is a defect beside that failure: then nothing says
+ * the database was left as it was, so the rehearsal fails, defect and all,
+ * instead of reporting.
+ */
+export const concludeRehearsal = (
+  transaction: Effect.Effect<never, Rehearsed | SqlError | DataSourceError>,
+): Effect.Effect<SyncRehearsal, DataSourceError> =>
+  Effect.catchCause(transaction, (cause) =>
+    Cause.hasDies(cause)
+      ? // Cause.map, unlike Effect.mapError, keeps the defect.
+        Effect.failCause(
+          Cause.map(cause, (error) =>
+            error._tag === "DataSourceError"
+              ? error
+              : new DataSourceError({ cause: error }),
+          ),
+        )
+      : Effect.failCause(cause).pipe(
+          Effect.catchTag("Rehearsed", ({ rehearsal }) =>
+            Effect.succeed(rehearsal),
+          ),
+          Effect.catchTag("SqlError", (error) =>
+            Effect.fail(new DataSourceError({ cause: error })),
+          ),
+        ),
+  );
 
 export interface LumaSyncShape {
   /**
@@ -427,15 +457,7 @@ const make = Effect.gen(function* () {
       return yield* new Rehearsed({
         rehearsal: rehearsalOf(synced, before, after),
       });
-    }).pipe(
-      sql.withTransaction,
-      Effect.catchTag("Rehearsed", ({ rehearsal }) =>
-        Effect.succeed(rehearsal),
-      ),
-      Effect.catchTag("SqlError", (cause) =>
-        Effect.fail(new DataSourceError({ cause })),
-      ),
-    );
+    }).pipe(sql.withTransaction, concludeRehearsal);
   }).pipe(Effect.withSpan("LumaSync.rehearse"));
 
   return LumaSync.of({ run, rehearse });
