@@ -219,10 +219,12 @@ export interface Marks {
 }
 
 const generated = join(root, "app/public/brand");
+/** What brand/marks/og.py generates: link-preview cards and their fonts. */
+const og = join(root, "brand/og");
 
 /** Copies one generated mark under its hashed name. */
-async function mark(file: string): Promise<Image> {
-  const bytes = await Bun.file(join(generated, file)).bytes();
+async function mark(file: string, from = generated): Promise<Image> {
+  const bytes = await Bun.file(join(from, file)).bytes();
   const [name = file, extension = ""] = file.split(".");
   const size =
     extension === "svg"
@@ -306,6 +308,73 @@ async function buildMarks(): Promise<Marks> {
   };
 }
 
+/** Link-preview cards brand/marks generates (og.py), 1200 x 630. */
+export interface OgCards {
+  readonly home: Image;
+  readonly events: Image;
+  readonly people: Image;
+  readonly about: Image;
+  readonly codeOfConduct: Image;
+  readonly brand: Image;
+  readonly notFound: Image;
+  /** An event card's grounds, which the Worker sets its words on. */
+  readonly eventNight: Image;
+  readonly eventPaper: Image;
+}
+
+/** The fonts the Worker has Images set an event card's words in. */
+export interface OgFonts {
+  readonly lockup: string;
+  readonly label: string;
+  readonly meta: string;
+}
+
+/** A font's advances and ascent, in thousandths of the size (og.py). */
+export interface OgFontMetrics {
+  readonly ascent: number;
+  readonly advances: Readonly<Record<string, number>>;
+}
+
+export type OgMetrics = Readonly<Record<keyof OgFonts, OgFontMetrics>>;
+
+async function buildOg(): Promise<{ cards: OgCards; fonts: OgFonts }> {
+  const font = async (name: string) =>
+    writeAsset(name, "ttf", await Bun.file(join(og, `${name}.ttf`)).bytes());
+  // The Worker reads the metrics only when it draws a card, so they stay
+  // out of the build manifest every request loads.
+  const metrics = JSON.parse(
+    await Bun.file(join(og, "og-metrics.json")).text(),
+  ) as Record<string, OgFontMetrics>;
+  const byRole: OgMetrics = {
+    lockup: metrics["og-lockup"] ?? fail("og-lockup"),
+    label: metrics["og-label"] ?? fail("og-label"),
+    meta: metrics["og-meta"] ?? fail("og-meta"),
+  };
+  await Bun.write(join(dist, "og-metrics.json"), `${JSON.stringify(byRole)}\n`);
+  return {
+    cards: {
+      home: await mark("og-home.png", og),
+      events: await mark("og-events.png", og),
+      people: await mark("og-people.png", og),
+      about: await mark("og-about.png", og),
+      codeOfConduct: await mark("og-code-of-conduct.png", og),
+      brand: await mark("og-brand.png", og),
+      notFound: await mark("og-not-found.png", og),
+      eventNight: await mark("og-event-night.png", og),
+      eventPaper: await mark("og-event-paper.png", og),
+    },
+    fonts: {
+      lockup: await font("og-lockup"),
+      label: await font("og-label"),
+      meta: await font("og-meta"),
+    },
+  };
+}
+
+function fail(name: string): never {
+  throw new Error(`app/public/brand/og-metrics.json has no ${name}`);
+}
+
 function escapeAttribute(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -383,6 +452,7 @@ export interface BuildManifest {
   readonly stylesheet: string;
   readonly fonts: ReadonlyArray<Font>;
   readonly marks: Marks;
+  readonly og: { readonly cards: OgCards; readonly fonts: OgFonts };
 }
 
 /** What the Worker reads from dist/foundations.json: the foundations as HTML. */
@@ -408,6 +478,7 @@ export async function build(): Promise<BuildManifest> {
     stylesheet: await buildStylesheet(fontFaces),
     fonts,
     marks: await buildMarks(),
+    og: await buildOg(),
   };
   const foundations: Foundations = {
     html: foundationsHtml(

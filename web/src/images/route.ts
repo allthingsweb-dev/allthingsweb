@@ -49,10 +49,27 @@ import {
 /** What the Worker uses of the Images binding (workerd's `ImagesBinding`). */
 export interface ImagesBinding {
   readonly input: (stream: ReadableStream<Uint8Array>) => ImageTransformer;
+  /**
+   * Text rasterized into an image (og/route.ts draws event cards with it).
+   * Alchemy's local runtime has none, so it may be missing.
+   */
+  readonly text?: (content: string, options: TextOptions) => ImageTransformer;
 }
 
-interface ImageTransformer {
+/** How `text` sets its words: a font file by URL, its color and size in pixels. */
+export interface TextOptions {
+  readonly font: { readonly url: string };
+  readonly color: string;
+  readonly size: number;
+}
+
+export interface ImageTransformer {
   readonly transform: (transform: ImageTransform) => ImageTransformer;
+  /** Draws `overlay` over the image with its top left at `top`, `left`. */
+  readonly draw: (
+    overlay: ImageTransformer,
+    options: { readonly top: number; readonly left: number },
+  ) => ImageTransformer;
   readonly output: (options: {
     readonly format: string;
   }) => Promise<ImageTransformationResult>;

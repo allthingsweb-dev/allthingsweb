@@ -3,6 +3,7 @@ import * as HttpRouter from "effect/http/HttpRouter";
 import { Hyperdrive } from "./database.ts";
 import { imageRoutes, Images, WaitUntil } from "./images/route.ts";
 import { Mcp, mcpRoute } from "./mcp/endpoint.ts";
+import { Assets, ogRoutes } from "./og/route.ts";
 import { pageRoutes } from "./pages/routes.ts";
 import { seoRoutes } from "./seo/routes.ts";
 import { Site } from "./site.ts";
@@ -15,6 +16,7 @@ export const routes = Layer.mergeAll(
   pageRoutes,
   seoRoutes,
   imageRoutes,
+  ogRoutes,
 );
 
 /** What the Worker uses of a request's `ExecutionContext`. */
@@ -43,6 +45,7 @@ export function makeHandler(
         ConfigProvider.layer(ConfigProvider.fromUnknown(env)),
         Hyperdrive.layer(env),
         Images.layer(env),
+        Assets.layer(env),
       ),
     ),
   );

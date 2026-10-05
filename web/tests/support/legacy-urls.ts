@@ -26,7 +26,7 @@ export type WorkerAnswer =
       readonly status: 301 | 307 | 308;
       readonly location: string;
     }
-  | { readonly status: 404 | 405 };
+  | { readonly status: 400 | 404 | 405 };
 
 interface Entry {
   /**
@@ -220,40 +220,50 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
     worker: { status: 405 },
     today: "405; MCP clients POST",
   },
-  // Not decided: the Worker says not found until the organizers decide.
+  // Link-preview cards, drawn in the old brand: the new brand's, for good.
   ...(
     [
-      ["/api/v1/preview.png", "the site's link-preview image"],
-      ["/api/v1/[slug]/preview.png", "each event's link-preview image"],
-      ["/api/v1/[slug]/thumbnail.png", "each event's thumbnail"],
-      ["/api/v1/speakers.png", "the speakers page's link-preview image"],
+      ["/api/v1/preview.png", "the site's link-preview image", "/og/home.png"],
+      [
+        "/api/v1/[slug]/preview.png",
+        "each event's link-preview image",
+        `/og/${slugs.past}.png`,
+      ],
+      [
+        "/api/v1/[slug]/thumbnail.png",
+        "each event's thumbnail",
+        `/og/${slugs.past}.png`,
+      ],
+      [
+        "/api/v1/speakers.png",
+        "the speakers page's link-preview image",
+        "/og/people.png",
+      ],
     ] as const
   ).map(
-    ([pattern, what]): LegacyUrl => ({
+    ([pattern, what, location]): LegacyUrl => ({
       pattern,
       source: "app route, every page's og:image",
       example: pattern.replace("[slug]", slugs.past),
-      worker: notFound,
+      worker: { status: 301, location },
       today: `200, ${what}, drawn in the old brand`,
-      pending:
-        "retire (410), or answer with the brand's covers once they are rendered",
     }),
   ),
-  ...(
-    [
-      ["/api/v1/qr.png", "400 without its parameters"],
-      ["/api/v1/[slug]/qr.png", "200, a QR code to the event"],
-    ] as const
-  ).map(
-    ([pattern, today]): LegacyUrl => ({
-      pattern,
-      source: "app route",
-      example: pattern.replace("[slug]", slugs.past),
-      worker: notFound,
-      today,
-      pending: "retire (410), or draw QR codes on the Worker",
-    }),
-  ),
+  // QR codes, now in the brand's colors (og/qr.ts).
+  {
+    pattern: "/api/v1/qr.png",
+    source: "app route",
+    example: "/api/v1/qr.png",
+    worker: { status: 400 },
+    today: "400 without its parameters",
+  },
+  {
+    pattern: "/api/v1/[slug]/qr.png",
+    source: "app route",
+    example: `/api/v1/${slugs.past}/qr.png`,
+    worker: png,
+    today: "200, a QR code to the event",
+  },
   ...(
     [
       ["/logos/*", "/logos/logo-1.91x1.png"],

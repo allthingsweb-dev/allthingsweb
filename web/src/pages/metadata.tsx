@@ -15,10 +15,10 @@ import type { Theme } from "./theme.ts";
  * canonical and alternate links and meta tags only point, so the
  * Content-Security-Policy has nothing to allow for them.
  *
- * Pages name no image for link previews (og:image) yet: the current site's
- * preview images carry the old name, and its routes that draw them go away
- * with it. Covers rendered from the brand's templates will fill it in, and
- * Twitter's card is the plain summary until then.
+ * Every page names its link-preview card (og:image, and X's large card),
+ * 1200 x 630 and absolute on the origin like the page's own address: the
+ * brand's cards for pages that don't change with data (brand/marks/og.py),
+ * and each event's own, drawn by the Worker (og/route.ts).
  */
 
 /**
@@ -49,6 +49,16 @@ export const siteDescription =
  */
 export const rssPath = "/rss";
 
+/** A link-preview card: where it is on the site, its size, and what it says. */
+export interface OgImage {
+  /** Root-relative, as `/assets/og-home.<hash>.png`; made absolute on the origin. */
+  readonly src: `/${string}`;
+  readonly width: number;
+  readonly height: number;
+  /** What the card shows, for people who can't see it. */
+  readonly alt: string;
+}
+
 /** A page, as its head describes it. */
 export interface PageMeta {
   readonly title: Title;
@@ -56,6 +66,8 @@ export interface PageMeta {
   readonly description: string;
   /** Where the page is on the site; its canonical URL is this on the origin. */
   readonly path: `/${string}`;
+  /** Its link-preview card. */
+  readonly image: OgImage;
   /** schema.org data about what the page is about, if any. */
   readonly structuredData?: ReadonlyArray<StructuredData>;
 }
@@ -112,6 +124,7 @@ export interface MetadataProps {
  */
 export function Metadata({ meta, origin, theme }: MetadataProps) {
   const canonical = `${origin}${meta.path}`;
+  const image = `${origin}${meta.image.src}`;
   // A title holds names as people wrote them, which the type can't vouch for.
   const unsafeTitle: string = meta.title;
   return (
@@ -131,8 +144,15 @@ export function Metadata({ meta, origin, theme }: MetadataProps) {
       <meta property="og:title" content={meta.title} />
       <meta property="og:description" content={meta.description} />
       <meta property="og:url" content={canonical} />
-      <meta name="twitter:card" content="summary" />
+      <meta property="og:image" content={image} />
+      <meta property="og:image:type" content="image/png" />
+      <meta property="og:image:width" content={String(meta.image.width)} />
+      <meta property="og:image:height" content={String(meta.image.height)} />
+      <meta property="og:image:alt" content={meta.image.alt} />
+      <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:site" content={`@${xHandle}`} />
+      <meta name="twitter:image" content={image} />
+      <meta name="twitter:image:alt" content={meta.image.alt} />
       <ThemeColor theme={theme} />
       {(meta.structuredData ?? []).map((data) => (
         <JsonLd data={data} />

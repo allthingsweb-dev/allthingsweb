@@ -19,6 +19,7 @@ import { isProductionHost, robotsTxt } from "../src/seo/robots.ts";
 import { rssXml } from "../src/seo/rss.ts";
 import { sitemapXml, sitePages } from "../src/seo/sitemap.ts";
 import { escapeXml } from "../src/seo/xml.ts";
+import { ogCards } from "../src/og/cards.ts";
 import { htmlProblems } from "./support/pages.ts";
 
 /**
@@ -493,24 +494,27 @@ describe("page metadata", () => {
     /<head>(.*)<\/head>/.exec(html)?.[1]?.match(/<[^>]+>/g) ?? [];
 
   test("says the same things about every page, from one description", () => {
-    for (const [html, title, path, description] of [
+    for (const [html, title, path, description, card] of [
       [
         home,
         "all things/_",
         "/",
         "Evenings for people who build software. In the neighborhoods of San Francisco.",
+        ogCards.home,
       ],
       [
         index,
         "every evening · all things/_",
         "/events",
         "Every all things evening, ahead and past. In the neighborhoods of San Francisco.",
+        ogCards.events,
       ],
       [
         brand,
         "all things/brand",
         "/brand",
         "The all things/_ brand: palette, type, marks and the rules they follow.",
+        ogCards.brand,
       ],
     ] as const) {
       const canonical = `${origin}${path}`;
@@ -526,15 +530,22 @@ describe("page metadata", () => {
           `<meta property="og:title" content="${title}"/>`,
           `<meta property="og:description" content="${description}"/>`,
           `<meta property="og:url" content="${canonical}"/>`,
-          '<meta name="twitter:card" content="summary"/>',
+          `<meta property="og:image" content="${origin}${card.src}"/>`,
+          '<meta property="og:image:type" content="image/png"/>',
+          '<meta property="og:image:width" content="1200"/>',
+          '<meta property="og:image:height" content="630"/>',
+          `<meta property="og:image:alt" content="${card.alt}"/>`,
+          '<meta name="twitter:card" content="summary_large_image"/>',
           '<meta name="twitter:site" content="@allthingswebdev"/>',
+          `<meta name="twitter:image" content="${origin}${card.src}"/>`,
+          `<meta name="twitter:image:alt" content="${card.alt}"/>`,
           `<meta name="theme-color" content="${roleColor(tokens, "paper", "ground").hex}" media="(prefers-color-scheme: light)"/>`,
           `<meta name="theme-color" content="${roleColor(tokens, "night", "ground").hex}" media="(prefers-color-scheme: dark)"/>`,
         ]),
       );
-      // No preview image until covers are rendered (see metadata.tsx).
-      expect(html).not.toContain("og:image");
-      expect(html).not.toContain("twitter:image");
+      // The brand's card, 1200 x 630, for every page that doesn't change with data.
+      expect(card.src).toMatch(/^\/assets\/og-[a-z-]+\.[0-9a-f]{16}\.png$/);
+      expect([card.width, card.height]).toEqual([1200, 630]);
     }
   });
 
@@ -574,6 +585,7 @@ describe("page metadata", () => {
         title: lockup("</title><b>x</b>"),
         description: hostile,
         path: "/",
+        image: { ...ogCards.home, alt: hostile },
       },
       origin,
       theme: undefined,
