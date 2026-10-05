@@ -137,16 +137,11 @@ export function untilAborted<A>(
   return new Promise<A>((resolve, reject) => {
     const abort = () => reject(abortError(signal));
     signal.addEventListener("abort", abort, { once: true });
-    work.then(
-      (value) => {
-        signal.removeEventListener("abort", abort);
-        resolve(value);
-      },
-      (error: unknown) => {
-        signal.removeEventListener("abort", abort);
-        reject(error instanceof Error ? error : new Error(String(error)));
-      },
-    );
+    work
+      .finally(() => signal.removeEventListener("abort", abort))
+      .then(resolve, (error: unknown) =>
+        reject(error instanceof Error ? error : new Error(String(error))),
+      );
   });
 }
 
