@@ -68,12 +68,14 @@ first paragraph that reads as prose.
 `events.description` is the site's own, for an organizer to say it
 differently, and nothing from Luma writes it. The event page's "About" row
 shows the site's description when it says something, and Luma's otherwise.
-The tagline stays the site's too: while it is a placeholder ("See Luma for
-event details and registration.", or the first sync's "<name> at All Things
-Web"), the summary stands in for it on the page, in its structured data
-and in the feed (`src/tagline.ts`).
+The tagline stays the site's too: while it is the sync's placeholder ("See
+Luma for event details and registration."), the summary stands in for it
+on the page, in its structured data and in the feed (`src/tagline.ts`).
+The four "<name> at All Things Web" taglines the app's first sync wrote
+became that placeholder in the migration.
 
-The hourly sync imports descriptions after the events (web/src/sync/run.ts).
+The hourly sync imports descriptions after the events and images, in a
+window of their own (web/src/sync/run.ts).
 To run it now, for every event, from `core/`:
 
 ```sh

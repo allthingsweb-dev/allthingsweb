@@ -140,9 +140,13 @@ export interface EventCompleteness {
   readonly gaps: ReadonlyArray<Gap>;
 }
 
-/** Blank, or only whitespace and empty markup such as `<p></p>`. */
+/**
+ * Blank, or only whitespace and empty markup such as `<p></p>`: no-break
+ * spaces count, named (`&nbsp;`) or numbered (`&#160;`, `&#xA0;`), as the
+ * page reads them.
+ */
 const isBlank = (text: string): boolean =>
-  text.replace(/<[^>]*>|&nbsp;|\s/gu, "") === "";
+  text.replace(/<[^>]*>|&nbsp;?|&#(?:0*160|[xX]0*[aA]0);?|\s/gu, "") === "";
 
 const gap = (kind: GapKind, subject: string | null = null): Gap => ({
   kind,

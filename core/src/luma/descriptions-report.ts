@@ -12,7 +12,7 @@ const count = (n: number, noun: string): string =>
 
 /** A description's opening words and its length, on one line. */
 const glimpse = (html: string | null): string => {
-  if (html === null) return "none";
+  if (html === null || html === "") return "none";
   // Only to show which description it is: tags go, entities stay.
   const text = html
     .replace(/<[^>]*>/g, " ")

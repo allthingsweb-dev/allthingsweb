@@ -8,15 +8,8 @@ import {
 /** An evening in one line: the organizers' tagline, else Luma's summary. */
 
 describe("a placeholder tagline", () => {
-  test("is blank, the sync's, or the first sync's '<name> at All Things Web'", () => {
-    for (const tagline of [
-      "",
-      "  ",
-      defaultTagline,
-      ` ${defaultTagline} `,
-      "All Things Sync at All Things Web",
-      "All Things Web @ WorkOS at All Things Web",
-    ]) {
+  test("is blank or the sync's", () => {
+    for (const tagline of ["", "  ", defaultTagline, ` ${defaultTagline} `]) {
       expect(isPlaceholderTagline(tagline)).toBe(true);
     }
   });
@@ -26,6 +19,7 @@ describe("a placeholder tagline", () => {
       "Join us for the first All Things Web event of 2025!",
       "See Luma for details",
       "Typed errors, on a rooftop",
+      "Come build with us at All Things Web",
     ]) {
       expect(isPlaceholderTagline(tagline)).toBe(false);
     }

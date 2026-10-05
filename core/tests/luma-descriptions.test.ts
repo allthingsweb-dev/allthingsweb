@@ -377,7 +377,7 @@ describe("the import", () => {
     );
   });
 
-  test("follows Luma: an edited description replaces the stored one, a removed one clears it", async () => {
+  test("follows Luma: an edited description replaces the stored one, a removed one empties it", async () => {
     const db = await database();
     await importInto(db);
     await importInto(db, {
@@ -395,7 +395,8 @@ describe("the import", () => {
         luma_description,
       ]),
     ).toEqual([
-      [null, null],
+      [null, ""],
+      // The draft is never asked about.
       [null, null],
       [
         "Rescheduled to a later evening, in the same place.",
@@ -434,15 +435,24 @@ describe("the import", () => {
     expect(await stored(db)).toEqual(before);
   });
 
-  test("asks about events without a description first, then the latest", async () => {
+  test("asks about events never asked about first, then the latest, so one without a description holds no place", async () => {
     const db = await database();
-    const { requests } = await importInto(db, undefined, { maxEvents: 1 });
+    const { requests } = await importInto(
+      db,
+      {
+        "evt-react": [answer("evt-react", "")],
+        "evt-upcoming": [answer("evt-upcoming", "")],
+      },
+      { maxEvents: 1 },
+    );
     expect(
       requests.map(({ url }) => new URL(url).searchParams.get("event_id")),
     ).toEqual(["evt-upcoming"]);
+    // Luma has none for it: an evening never asked about, though it ended
+    // earlier, goes first next time.
+    expect((await stored(db))[2]?.luma_description).toBe("");
     await db.exec(
-      `UPDATE events SET luma_description = '<p>x</p>' WHERE luma_event_id = 'evt-upcoming';
-       UPDATE events SET end_date = '2026-12-01T00:00:00Z' WHERE luma_event_id = 'evt-react'`,
+      `UPDATE events SET luma_description = NULL WHERE luma_event_id = 'evt-react'`,
     );
     const again = await importInto(db, undefined, { maxEvents: 1 });
     expect(

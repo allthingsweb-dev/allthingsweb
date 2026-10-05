@@ -10,18 +10,14 @@
 export const defaultTagline = "See Luma for event details and registration.";
 
 /**
- * Whether `tagline` is a placeholder, not anyone's words: blank,
- * {@link defaultTagline}, or "<name> at All Things Web", which the app's
- * first Luma sync (2026-02, before the calendar feed) wrote for an event it
- * had nothing to say about.
+ * Whether `tagline` is a placeholder, not anyone's words: blank, or
+ * {@link defaultTagline}. (The app's first Luma sync wrote "<name> at All
+ * Things Web" instead; migrations/0011_event_description.ts made those
+ * four the sync's placeholder.)
  */
 export function isPlaceholderTagline(tagline: string): boolean {
   const text = tagline.trim();
-  return (
-    text === "" ||
-    text === defaultTagline ||
-    text.endsWith(" at All Things Web")
-  );
+  return text === "" || text === defaultTagline;
 }
 
 /**

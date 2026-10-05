@@ -359,9 +359,10 @@ describe("EventPages", () => {
       expect(
         await tagline("See Luma for event details and registration.", "Talks."),
       ).toBe("Talks.");
-      expect(await tagline("React at Acme at All Things Web", "Talks.")).toBe(
-        "Talks.",
-      );
+      // Words that only end like the first sync's are an organizer's.
+      expect(
+        await tagline("Come build with us at All Things Web", "Talks."),
+      ).toBe("Come build with us at All Things Web");
       expect(
         await tagline("See Luma for event details and registration.", null),
       ).toBe("");

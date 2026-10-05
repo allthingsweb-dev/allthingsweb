@@ -14,8 +14,10 @@ import { descriptionHtml, descriptionSummary } from "./description.ts";
  * Who owns what:
  * - Luma: `events.luma_description` and `events.luma_summary`. Each import
  *   makes them Luma's description as it is now, as sanitized rich text, and
- *   its one-line summary (src/luma/description.ts), or NULL where Luma has
- *   none. An event Luma does not show us (403, 404) keeps what it has.
+ *   its one-line summary (src/luma/description.ts). Where Luma has none,
+ *   the description is empty and the summary NULL; a NULL description means
+ *   the event was never asked about. An event Luma does not show us (403,
+ *   404) keeps what it has.
  * - The site: `events.description` and `events.tagline`, which the import
  *   never reads or writes. Pages show the site's description before Luma's,
  *   and the summary only while the tagline is a placeholder
@@ -66,6 +68,10 @@ export interface Fetched {
   readonly description: Option.Option<Description>;
 }
 
+/** What is stored for a description: empty where Luma has none. */
+export const storedHtml = (description: Description): string =>
+  description.html ?? "";
+
 /** The events whose stored description or summary isn't Luma's now. */
 export function planDescriptions(
   fetched: ReadonlyArray<Fetched>,
@@ -73,7 +79,7 @@ export function planDescriptions(
   return fetched.flatMap(({ event, description }) => {
     if (Option.isNone(description)) return [];
     const after = description.value;
-    return after.html === event.lumaDescription &&
+    return storedHtml(after) === event.lumaDescription &&
       after.summary === event.lumaSummary
       ? []
       : [
@@ -105,8 +111,9 @@ export interface DescriptionsOptions {
   /** Plan only: ask Luma, write nothing. */
   readonly dryRun: boolean;
   /**
-   * Ask about at most this many events: those without Luma's description
-   * first, then the latest to end. Every published event otherwise.
+   * Ask about at most this many events: those never asked about first,
+   * then the latest to end, so one Luma has no description for can't hold
+   * a place for good. Every published event otherwise.
    */
   readonly maxEvents?: number;
 }
@@ -150,7 +157,7 @@ const make = Effect.gen(function* () {
     const rows = JSON.stringify(
       changes.map((change) => ({
         event_id: change.eventId,
-        luma_description: change.after.html,
+        luma_description: storedHtml(change.after),
         luma_summary: change.after.summary,
       })),
     );

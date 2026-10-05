@@ -141,16 +141,16 @@ const count = async (db: PGlite, sql: string) =>
   Number((await db.query<{ n: number }>(sql)).rows[0]?.n);
 
 describe("a sync run that writes", () => {
-  test("syncs events and their descriptions, then stores photos, post images and covers, logging each step", async () => {
+  test("syncs events, stores photos, post images and covers, then imports descriptions, logging each step", async () => {
     const { db, report, logged, bucket } = await run("write", syncLimits.paid);
     try {
       expect(report.ok).toBe(true);
       expect(Object.keys(report.steps)).toEqual([
         "events",
-        "descriptions",
         "photos",
         "posts",
         "covers",
+        "descriptions",
       ]);
       expect(report.steps["events"]).toMatchObject({
         status: "done",
@@ -191,10 +191,10 @@ describe("a sync run that writes", () => {
       expect(logged.map((entry) => entry["step"])).toEqual([
         "start",
         "events",
-        "descriptions",
         "photos",
         "posts",
         "covers",
+        "descriptions",
         "summary",
       ]);
       expect(logged.every((entry) => entry["source"] === "luma-sync")).toBe(

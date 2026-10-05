@@ -265,10 +265,7 @@ describe("what an event lacks", () => {
     ).toEqual([]);
     // A placeholder tagline is a gap only without a summary to stand in.
     expect(gapsOf({ ...complete, tagline: defaultTagline })).toEqual([]);
-    for (const tagline of [
-      defaultTagline,
-      "All Things Sync at All Things Web",
-    ]) {
+    for (const tagline of [defaultTagline, " "]) {
       expect(gapsOf({ ...complete, tagline, lumaSummary: null })).toEqual([
         "tagline",
       ]);

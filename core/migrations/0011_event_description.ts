@@ -12,15 +12,31 @@ import { statements } from "./statements.ts";
  *   differently. Nothing from Luma ever writes it. Pages show it when it
  *   says something, and Luma's otherwise.
  *
- * All three start empty; the first import fills in Luma's. site_sync, the
- * role the hourly sync writes as, may read and write Luma's two where it
- * exists (infra/scripts/site-sync.ts); site_reader reads every column of
- * `events` already.
+ * All three start empty; the first import fills in Luma's.
+ *
+ * The app's first Luma sync (2026-02, before the calendar feed) wrote
+ * "<name> at All Things Web" as the tagline of an event it had nothing to
+ * say about. Those four, found by Luma id and their exact text, become the
+ * sync's own placeholder, which Luma's summary stands in for
+ * (src/tagline.ts). Where they don't exist (tests, a fresh database),
+ * nothing changes.
+ *
+ * site_sync, the role the hourly sync writes as, may read and write Luma's
+ * two where it exists (infra/scripts/site-sync.ts); site_reader reads every
+ * column of `events` already.
  */
 export const eventDescription: ReadonlyArray<string> = [
   `ALTER TABLE "public"."events" ADD COLUMN "luma_description" text`,
   `ALTER TABLE "public"."events" ADD COLUMN "luma_summary" text`,
   `ALTER TABLE "public"."events" ADD COLUMN "description" text`,
+  // All Things Sync
+  `UPDATE "public"."events" SET "tagline" = 'See Luma for event details and registration.' WHERE "luma_event_id" = 'evt-oZuT52GZDnYkAcL' AND "tagline" = 'All Things Sync at All Things Web'`,
+  // All Things Taste
+  `UPDATE "public"."events" SET "tagline" = 'See Luma for event details and registration.' WHERE "luma_event_id" = 'evt-7umBlxzGzTfOXAw' AND "tagline" = 'All Things Taste at All Things Web'`,
+  // Effect San Francisco 🇺🇸
+  `UPDATE "public"."events" SET "tagline" = 'See Luma for event details and registration.' WHERE "luma_event_id" = 'evt-CIXBbu7ySP61MNP' AND "tagline" = 'All Things Effect w/ Michael Arnaldi at All Things Web'`,
+  // Dev Setup Demos - Show your agents.md!
+  `UPDATE "public"."events" SET "tagline" = 'See Luma for event details and registration.' WHERE "luma_event_id" = 'evt-wJxtorPCscwoGS4' AND "tagline" = 'All Things Web @ WorkOS at All Things Web'`,
   `DO $grant$
   BEGIN
     IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'site_sync') THEN
