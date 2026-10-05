@@ -18,6 +18,7 @@ import { aboutPath, eventPath, hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { aboutPage } from "./about.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
+import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
@@ -254,6 +255,26 @@ const brand = page("/brand", ({ theme, acceptEncoding, images }) =>
   }),
 );
 
+/**
+ * The code of conduct changes only when the Worker is deployed, but for the
+ * hosts' portraits in its footer; it is cached as a page, as /brand is.
+ */
+const codeOfConduct = page(
+  codeOfConductPath,
+  ({ theme, acceptEncoding, images }) =>
+    Effect.gen(function* () {
+      const { origin } = yield* Site;
+      const { portraits, read } = yield* footer(
+        hostPortraits.pipe(Effect.provide(repositories)),
+      );
+      return htmlResponse(
+        codeOfConductPage({ origin, theme, portraits, images }),
+        acceptEncoding,
+        { cacheControl: read ? "page" : "failure", theme, images },
+      );
+    }),
+);
+
 /** An event's page, at its slug: encoded, so it is always one segment. */
 const eventLocation = (params: PageRequest["params"]): `/${string}` =>
   eventPath(params["slug"] ?? "");
@@ -398,6 +419,78 @@ const shortLink = HttpRouter.add(
   ),
 );
 
+/**
+ * `/_next/image?url=…`: the current site's resized images, which search
+ * engines and link previews still hold. A photo on the media origin is
+ * redirected to for good; anything else is not found. Both answer as plain
+ * text: Cloudflare blocks a `/_next/image` response to anything but an
+ * `<img>` unless it is an image or plain text.
+ */
+const nextImage = HttpRouter.add(
+  "GET",
+  "/_next/image",
+  Effect.gen(function* () {
+    const { url } = yield* HttpServerRequest.ParsedSearchParams;
+    const target = typeof url === "string" ? URL.parse(url) : null;
+    if (target === null || target.origin !== mediaOrigin) {
+      return plain("Not Found", 404, CacheControl.notFound);
+    }
+    return HttpServerResponse.text("Moved Permanently", {
+      status: 301,
+      headers: { location: target.href, "cache-control": CacheControl.page },
+    });
+  }),
+);
+
+/**
+ * Leading slashes as one, and backslashes, which browsers read as slashes,
+ * dropped there: a path never reads as another host's ("//x", "/\\x").
+ */
+const rootPath = (path: string): `/${string}` =>
+  `/${path.replace(/^[/\\]+/, "")}`;
+
+/**
+ * Every other path. One with a trailing slash is the page without it, as
+ * the current site redirects it (308); the rest are not found, with the
+ * site's own page, cached only briefly.
+ */
+const elsewhere = page(
+  "/*",
+  ({ theme, acceptEncoding, images, params }) =>
+    Effect.gen(function* () {
+      const path = `/${params["*"] ?? ""}`;
+      if (path.length > 1 && path.endsWith("/")) {
+        const request = yield* HttpServerRequest.HttpServerRequest;
+        const { search } = new URL(request.url, "http://localhost");
+        return HttpServerResponse.redirect(
+          `${rootPath(path.replace(/\/+$/, ""))}${search}`,
+          { status: 308, headers: { "cache-control": CacheControl.page } },
+        );
+      }
+      const { origin } = yield* Site;
+      const { portraits, read } = yield* footer(
+        hostPortraits.pipe(Effect.provide(repositories)),
+      );
+      return htmlResponse(
+        notFoundPage({
+          origin,
+          path: rootPath(path),
+          theme,
+          portraits,
+          images,
+        }),
+        acceptEncoding,
+        {
+          cacheControl: read ? "notFound" : "failure",
+          theme,
+          images,
+          status: 404,
+        },
+      );
+    }),
+  ({ "*": rest = "" }) => rootPath(rest),
+);
+
 export const pageRoutes = Layer.mergeAll(
   home,
   events,
@@ -405,7 +498,10 @@ export const pageRoutes = Layer.mergeAll(
   speakers,
   about,
   brand,
+  codeOfConduct,
   event,
   calendar,
   shortLink,
+  nextImage,
+  elsewhere,
 );

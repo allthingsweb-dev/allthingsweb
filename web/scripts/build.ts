@@ -1,7 +1,7 @@
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { type Textures, themeCss } from "allthings-brand/src/css.ts";
-import { tokens } from "allthings-brand/src/tokens.ts";
+import { roleColor, tokens } from "allthings-brand/src/tokens.ts";
 import { Marked, Renderer, type Tokens } from "marked";
 import { immutable } from "../src/cache.ts";
 
@@ -16,6 +16,9 @@ import { immutable } from "../src/cache.ts";
  *   bundles it.
  * - `dist/foundations.json` holds brand/foundations.md as HTML, for /brand
  *   alone: the Worker loads it with that page, never on a cold start.
+ * - Files the current site serves under fixed names (its icons, /brand/*,
+ *   /manifest.webmanifest) are written under those names too, so links to
+ *   them keep working after the cutover (see fixedNames).
  *
  * The same sources always build the same files, byte for byte.
  */
@@ -228,12 +231,69 @@ async function mark(file: string): Promise<Image> {
   return { src: await writeAsset(name, extension, bytes), ...size };
 }
 
-async function buildMarks(): Promise<Marks> {
-  // Browsers ask for /favicon.ico by that name, so it can't be hashed.
+/**
+ * Files the current site serves under fixed names, which browsers, link
+ * previews and other sites ask for by those names: its icons, now the
+ * brand's (the names its pages linked; app/src/app/layout.tsx), and every
+ * generated mark under /brand/, as app/public/brand serves them. They can't
+ * be hashed, so the asset layer serves them as they are named.
+ */
+export const fixedNames: ReadonlyArray<readonly [string, string]> = [
+  ["favicon.ico", "favicon.ico"],
+  ["apple-touch-icon.png", "apple-touch-icon.png"],
+  ["favicon-16.png", "icon-16.png"],
+  ["favicon-32.png", "icon-32.png"],
+  ["android-chrome-192.png", "icon-192.png"],
+  ["android-chrome-512.png", "icon-512.png"],
+];
+
+/**
+ * The web app manifest at /manifest.webmanifest, where the current site's
+ * pages point browsers: the brand's name, its Paper ground, and the icons
+ * above.
+ */
+export function webManifest(ground: string): string {
+  return `${JSON.stringify(
+    {
+      name: "all things",
+      short_name: "all things",
+      description:
+        "Evenings for people who build software. In the neighborhoods of San Francisco.",
+      start_url: "/",
+      display: "browser",
+      background_color: ground,
+      theme_color: ground,
+      icons: [
+        { src: "/android-chrome-192.png", sizes: "192x192", type: "image/png" },
+        { src: "/android-chrome-512.png", sizes: "512x512", type: "image/png" },
+      ],
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+async function buildFixedNames(): Promise<void> {
+  for (const [published, source] of fixedNames) {
+    await Bun.write(
+      join(publicDir, published),
+      Bun.file(join(generated, source)),
+    );
+  }
+  for await (const file of new Bun.Glob("*").scan({ cwd: generated })) {
+    await Bun.write(
+      join(publicDir, "brand", file),
+      Bun.file(join(generated, file)),
+    );
+  }
   await Bun.write(
-    join(publicDir, "favicon.ico"),
-    Bun.file(join(generated, "favicon.ico")),
+    join(publicDir, "manifest.webmanifest"),
+    webManifest(roleColor(tokens, "paper", "ground").hex),
   );
+}
+
+async function buildMarks(): Promise<Marks> {
+  await buildFixedNames();
   return {
     wordmark: await mark("wordmark.svg"),
     wordmarkNight: await mark("wordmark-night.svg"),
@@ -334,6 +394,10 @@ const headers = `# Content-hashed files never change under their name.
 /assets/*
   Cache-Control: ${immutable}
   X-Content-Type-Options: nosniff
+
+# The web app manifest, by its registered type.
+/manifest.webmanifest
+  Content-Type: application/manifest+json
 `;
 
 export async function build(): Promise<BuildManifest> {
