@@ -48,7 +48,12 @@ export function makeHandler(
   );
   const { handler } = HttpRouter.toWebHandler(
     routes.pipe(Layer.provideMerge(services)),
-    { disableLogger: true },
+    {
+      disableLogger: true,
+      // "/about/" is not "/about": the catch-all in pages/routes.ts redirects
+      // it, as the current site does, so a page has one address.
+      routerConfig: { ignoreTrailingSlash: false },
+    },
   );
   return (request, context) =>
     handler(

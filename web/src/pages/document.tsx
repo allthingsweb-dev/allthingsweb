@@ -161,6 +161,7 @@ export function Document({
         <link rel="stylesheet" href={built.stylesheet} />
         <link rel="icon" href={built.marks.favicon.src} type="image/svg+xml" />
         <link rel="apple-touch-icon" href={built.marks.appleTouchIcon.src} />
+        <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body>
         <div class="page">

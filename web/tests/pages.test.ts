@@ -614,9 +614,11 @@ describe("static assets", () => {
       png: "image/png",
     };
     const css = await (await fetch(`${url}${stylesheetOf(html)}`)).text();
+    // The web app manifest keeps the name the current site gave it (see
+    // fixedNames in scripts/build.ts); everything else is hashed.
     const files = new Set(
-      [...subresources(html), ...stylesheetUrls(css)].filter((path) =>
-        path.startsWith("/"),
+      [...subresources(html), ...stylesheetUrls(css)].filter(
+        (path) => path.startsWith("/") && path !== "/manifest.webmanifest",
       ),
     );
     for (const path of files) {
