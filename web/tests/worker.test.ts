@@ -15,7 +15,8 @@ import {
 } from "./support/http.ts";
 import { normalizeJsonSchema } from "./support/json-schema.ts";
 import { ignoringAttachOrder, type Json } from "./support/order.ts";
-import { bundleBudget, hyperdriveTo, testStack } from "./support/stack.ts";
+import { budgetProblems } from "./support/bundle.ts";
+import { bundleBudgets, hyperdriveTo, testStack } from "./support/stack.ts";
 
 /**
  * The Worker, bundled as it deploys and running in workerd, against the app
@@ -469,12 +470,12 @@ describe("MCP", () => {
 });
 
 describe("bundle", () => {
-  it(`gzips to at most ${bundleBudget} bytes`, async () => {
+  it("stays within its budgets", async () => {
     // Where Alchemy writes the bundle it uploads, for the Worker named Web.
-    const bundle = Bun.file(
-      new URL("../.alchemy/bundles/Web/worker.js", import.meta.url),
+    const problems = await budgetProblems(
+      new URL("../.alchemy/bundles/Web", import.meta.url).pathname,
+      bundleBudgets,
     );
-    const size = Bun.gzipSync(await bundle.bytes(), { level: 9 }).byteLength;
-    expect(size).toBeLessThanOrEqual(bundleBudget);
+    expect(problems).toBeUndefined();
   });
 });
