@@ -556,9 +556,6 @@ main > section,
 
 .tally dd {
   order: -1;
-}
-
-.tally dd {
   font-size: clamp(40px, 4.5vw, 56px);
   font-weight: 800;
   font-stretch: 112%;

@@ -27,7 +27,7 @@ const remix = evening(
   "2024-03-27T00:00:00Z",
 );
 const react = evening(
-  "2014-07-30-react-bay-area-at-sanity",
+  "2024-07-30-react-bay-area-at-sanity",
   "React Bay Area at Sanity",
   "2024-07-31T00:00:00Z",
 );
@@ -158,7 +158,7 @@ describe("the about page", () => {
       ),
     ).toEqual([
       "/2024-03-26-remix-bay-area-at-solv",
-      "/2014-07-30-react-bay-area-at-sanity",
+      "/2024-07-30-react-bay-area-at-sanity",
       "/2024-11-04",
     ]);
     expect(history).toContain(
