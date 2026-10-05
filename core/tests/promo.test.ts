@@ -310,6 +310,13 @@ describe("social", () => {
       "Globex has no website on record, so descriptions name it unlinked.",
     );
     expect(gaps.join("\n")).not.toContain("Acme has no website");
+    // Each platform a host can't be tagged on is named.
+    expect(gaps).toContain(
+      "Acme has no Bluesky handle on record, so Bluesky posts name it untagged.",
+    );
+    expect(gaps).toContain(
+      "Globex has no X or Bluesky handle on record, so posts name it untagged.",
+    );
   });
 
   test("people are tagged by their stored handles on X and Bluesky", async () => {

@@ -642,6 +642,26 @@ function meetupDraft(input: PromoInput): MeetupDraft {
 }
 
 /**
+ * Each platform `name` can't be tagged on, said once: both together, or
+ * the one that is missing.
+ */
+function untaggedOn(
+  name: string,
+  stored: Handles | undefined,
+  pronoun: "it" | "them",
+): ReadonlyArray<string> {
+  const missing = [
+    ...(xHandle(stored?.x ?? null) === null ? ["X"] : []),
+    ...(blueskyHandle(stored?.bluesky ?? null) === null ? ["Bluesky"] : []),
+  ];
+  if (missing.length === 0) return [];
+  const on = missing.join(" or ");
+  return [
+    `${name} has no ${on} handle on record, so ${missing.length === 2 ? "posts" : `${on} posts`} name ${pronoun} untagged.`,
+  ];
+}
+
+/**
  * What the evening's record lacks that its drafts need: without these, a
  * draft leaves out its link, its place or a tag rather than guess.
  */
@@ -650,19 +670,13 @@ export function promoGaps({
   handles,
   hosts,
 }: PromoInput): ReadonlyArray<string> {
-  const untagged = [
+  const speakers = [
     ...new Map(
       event.talks
         .flatMap((talk) => talk.speakers)
         .map((speaker) => [speaker.id, speaker] as const),
     ).values(),
-  ].filter((speaker) => {
-    const stored = handles.get(speaker.id);
-    return (
-      xHandle(stored?.x ?? null) === null &&
-      blueskyHandle(stored?.bluesky ?? null) === null
-    );
-  });
+  ];
   return [
     ...(event.rsvpUrl === null
       ? ["No Luma event is linked, so nothing says where to take a seat."]
@@ -673,9 +687,8 @@ export function promoGaps({
     ...(event.talks.length === 0
       ? ["No talks are on record, so nothing says who is on stage."]
       : []),
-    ...untagged.map(
-      (speaker) =>
-        `${speaker.name} has no X or Bluesky handle on record, so posts name them untagged.`,
+    ...speakers.flatMap((speaker) =>
+      untaggedOn(speaker.name, handles.get(speaker.id), "them"),
     ),
     ...event.hosts.flatMap((name) => {
       const stored = hosts.get(name);
@@ -685,12 +698,7 @@ export function promoGaps({
               `${name} has no website on record, so descriptions name it unlinked.`,
             ]
           : []),
-        ...(xHandle(stored?.x ?? null) === null &&
-        blueskyHandle(stored?.bluesky ?? null) === null
-          ? [
-              `${name} has no X or Bluesky handle on record, so posts name it untagged.`,
-            ]
-          : []),
+        ...untaggedOn(name, stored, "it"),
       ];
     }),
   ];

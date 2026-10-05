@@ -3,6 +3,7 @@
 ## gaps in the record
 
 - No Luma event is linked, so nothing says where to take a seat.
+- Linus has no Bluesky handle on record, so Bluesky posts name them untagged.
 - Grace Hopper has no X or Bluesky handle on record, so posts name them untagged.
 
 ## luma: description (535 / 5000)

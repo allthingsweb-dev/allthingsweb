@@ -3,6 +3,7 @@
 ## gaps in the record
 
 - No host or venue is on record, so nothing says where.
+- Future Speaker has no Bluesky handle on record, so Bluesky posts name them untagged.
 
 ## luma: description (403 / 5000)
 
