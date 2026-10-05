@@ -166,6 +166,17 @@ main {
   padding-top: 16px;
 }
 
+/* "hosted by" reads as the sign-off it is, and links to the about page. */
+.hosts p a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.hosts p a:hover {
+  color: var(--at-link);
+  text-decoration: underline;
+}
+
 .hosts {
   display: flex;
   align-items: center;
@@ -532,14 +543,19 @@ main > section,
 
 .tally {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 136px), 1fr));
   gap: 20px var(--at-grid-gutter);
 }
 
+/* Each number over its label, the numbers level however the labels wrap. */
 .tally div {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   gap: 6px;
+}
+
+.tally dd {
+  order: -1;
 }
 
 .tally dd {
