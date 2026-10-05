@@ -1,17 +1,20 @@
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { Home } from "allthings-core/src/home.ts";
+import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Effect, Layer } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
-import type * as HttpServerResponse from "effect/http/HttpServerResponse";
+import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
+import { CacheControl } from "../cache.ts";
 import { type Repositories, repositories } from "../database.ts";
 import { hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { brandPage } from "./brand.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
+import { peoplePage } from "./people.tsx";
 import { htmlResponse } from "./response.ts";
 import { chooseTheme, isChoice, type Theme, themeOf } from "./theme.ts";
 
@@ -146,6 +149,38 @@ const home = dataPage(
   (view, props) => homePage({ home: view, ...props }),
 );
 
+/**
+ * The people page: the organizers (the hosts links.ts names first), then
+ * every speaker, then everyone who co-hosted or MC'd an evening.
+ */
+const people = dataPage(
+  "/people",
+  "the people page",
+  PeopleDirectory.use((repository) =>
+    repository.read(
+      hosts.map((host) => host.profileId),
+      mediaOrigin,
+    ),
+  ),
+  (view, props) => peoplePage({ people: view, ...props }),
+);
+
+/**
+ * /speakers, where the current site lists speakers, is the people page now.
+ * The move is permanent and changes only with a deploy, so it is cached as
+ * a page is.
+ */
+const speakers = HttpRouter.add(
+  "GET",
+  "/speakers",
+  Effect.succeed(
+    HttpServerResponse.redirect("/people", {
+      status: 301,
+      headers: { "cache-control": CacheControl.page },
+    }),
+  ),
+);
+
 /** The evenings index: every published evening. */
 const events = dataPage(
   "/events",
@@ -173,4 +208,4 @@ const brand = page("/brand", ({ theme, acceptEncoding }) =>
   }),
 );
 
-export const pageRoutes = Layer.mergeAll(home, events, brand);
+export const pageRoutes = Layer.mergeAll(home, events, people, speakers, brand);

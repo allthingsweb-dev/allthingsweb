@@ -46,7 +46,7 @@ export function eventUrl(origin: string, slug: string): string {
 }
 
 /** Profiles store handles; links are built from them as the site shows them. */
-function personLinks(
+export function personLinks(
   profile: Pick<
     Rows.Profile,
     "twitterHandle" | "blueskyHandle" | "linkedinHandle"
