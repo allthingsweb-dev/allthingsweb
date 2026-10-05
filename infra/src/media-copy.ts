@@ -285,10 +285,36 @@ const element = (xml: string, name: string): string | undefined => {
   return match?.[1] === undefined ? undefined : decodeXml(match[1]);
 };
 
+/**
+ * Where the next page of a listing starts, or undefined after the last. A
+ * listing that says there is more but gives no way on, or the way it just
+ * came, is refused: the first would leave the copy and the checks working
+ * from part of the bucket, the second would list the same page forever.
+ */
+export function nextPage(
+  truncated: boolean,
+  next: string | undefined,
+  previous: string | undefined,
+  label: string,
+): string | undefined {
+  if (!truncated) return undefined;
+  if (next === undefined || next === "") {
+    throw new Error(`Listing ${label} stopped without saying where to go on`);
+  }
+  if (next === previous) {
+    throw new Error(`Listing ${label} gave the same page twice`);
+  }
+  return next;
+}
+
 /** One page of a ListObjectsV2 answer, asked for with encoding-type=url. */
 export const parseListPage = (
   xml: string,
-): { objects: Listed[]; next: string | undefined } => {
+): {
+  objects: Listed[];
+  truncated: boolean;
+  next: string | undefined;
+} => {
   const objects = [...xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)].map(
     ([, contents = ""]) => ({
       key: decodeURIComponent(element(contents, "Key") ?? ""),
@@ -299,6 +325,7 @@ export const parseListPage = (
   const truncated = element(xml, "IsTruncated") === "true";
   return {
     objects,
+    truncated,
     next: truncated ? element(xml, "NextContinuationToken") : undefined,
   };
 };
@@ -338,7 +365,7 @@ export const s3Bucket = (config: S3Bucket): Bucket => {
         if (!response.ok) throw await fail("Listing", response);
         const page = parseListPage(await response.text());
         yield* page.objects;
-        token = page.next;
+        token = nextPage(page.truncated, page.next, token, label);
       } while (token !== undefined);
     },
     async get(key) {
@@ -468,10 +495,12 @@ export const apiBucket = (config: ApiBucket): Bucket => {
             etag: normalizeEtag(object.etag),
           };
         }
-        cursor =
-          page.result_info?.is_truncated === true
-            ? page.result_info.cursor
-            : undefined;
+        cursor = nextPage(
+          page.result_info?.is_truncated === true,
+          page.result_info?.cursor,
+          cursor,
+          label,
+        );
       } while (cursor !== undefined);
     },
     async get(key) {

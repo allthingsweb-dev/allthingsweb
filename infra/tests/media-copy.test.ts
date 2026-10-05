@@ -7,6 +7,7 @@ import {
   headersOfApiObject,
   type Listed,
   md5Hex,
+  nextPage,
   parseListPage,
   plan,
   pooled,
@@ -226,6 +227,7 @@ describe("parseListPage", () => {
         },
         { key: "events/a&b.jpg", size: 5, etag: "abc-2" },
       ],
+      truncated: true,
       next: "tok&en",
     });
   });
@@ -235,7 +237,26 @@ describe("parseListPage", () => {
       parseListPage(
         "<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>",
       ),
-    ).toEqual({ objects: [], next: undefined });
+    ).toEqual({ objects: [], truncated: false, next: undefined });
+  });
+});
+
+describe("nextPage", () => {
+  test("goes on where the listing says, and stops after the last page", () => {
+    expect(nextPage(true, "b", "a", "bucket")).toBe("b");
+    expect(nextPage(false, undefined, "a", "bucket")).toBeUndefined();
+  });
+
+  test("refuses a listing that says there is more but gives no new way on", () => {
+    expect(() => nextPage(true, undefined, "a", "bucket")).toThrow(
+      "stopped without saying where to go on",
+    );
+    expect(() => nextPage(true, "", undefined, "bucket")).toThrow(
+      "stopped without saying where to go on",
+    );
+    expect(() => nextPage(true, "a", "a", "bucket")).toThrow(
+      "gave the same page twice",
+    );
   });
 });
 
@@ -371,5 +392,26 @@ describe("headersOfApiObject", () => {
       expires: "Tue, 01 Jan 2030 00:00:00 GMT",
       "x-amz-meta-source": "luma",
     });
+  });
+});
+
+describe("apiBucket's listing", () => {
+  test("fails, rather than copying from part of the bucket, when a page gives no cursor", async () => {
+    const bucket = apiBucket({
+      accountId: "acct",
+      bucket: "allthings-media",
+      token: async () => "token",
+      fetch: Object.assign(
+        async () =>
+          Response.json({
+            result: [{ key: "a.jpg", size: 1, etag: "x" }],
+            result_info: { is_truncated: true },
+          }),
+        { preconnect: fetch.preconnect },
+      ),
+    });
+    await expect(listed(bucket)).rejects.toThrow(
+      "stopped without saying where to go on",
+    );
   });
 });
