@@ -5,6 +5,7 @@ import { DataSourceError, EventNotFound } from "../src/errors.ts";
 import {
   type EventPage,
   EventPages,
+  guestCountFloor,
   photoLimit,
   toVenue,
 } from "../src/event-page.ts";
@@ -317,6 +318,32 @@ describe("EventPages", () => {
       expect(error).toBeInstanceOf(DataSourceError);
     } finally {
       await broken.close();
+    }
+  });
+});
+
+describe("the guest count", () => {
+  test(`is said from ${guestCountFloor} guests, and below that left unsaid`, async () => {
+    expect(guestCountFloor).toBe(20);
+    const database = await seededDatabase();
+    try {
+      const guests = async (count: number | null) => {
+        await database.query(
+          "UPDATE events SET luma_guest_count = $1 WHERE slug = '2026-08-12-react-at-acme'",
+          [count],
+        );
+        const page = await Effect.runPromise(
+          readPage("2026-08-12-react-at-acme", now, database),
+        );
+        return page.guests;
+      };
+      expect(await guests(guestCountFloor - 1)).toBeNull();
+      expect(await guests(guestCountFloor)).toBe(guestCountFloor);
+      expect(await guests(guestCountFloor + 1)).toBe(guestCountFloor + 1);
+      expect(await guests(0)).toBeNull();
+      expect(await guests(null)).toBeNull();
+    } finally {
+      await database.close();
     }
   });
 });

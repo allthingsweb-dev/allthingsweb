@@ -13,8 +13,39 @@ export const lumaCalendar = "https://luma.com/allthingsweb";
  */
 export const mediaOrigin = "https://media.allthings.dev";
 
+/**
+ * An event's page on this site: its slug, encoded, so it is always one
+ * segment. Links within the site are root-relative, so every stage's pages
+ * link within that stage; only what names the production site itself (the
+ * canonical URL, link previews, the sitemap, the feed and structured data)
+ * is absolute, on `ORIGIN`.
+ */
+export const eventPath = (slug: string): `/${string}` =>
+  `/${encodeURIComponent(slug)}`;
+
 /** Every evening, listed: this site's evenings index (pages/events.tsx). */
 export const everyEvening = "/events";
+
+/** Where everyone who organized, spoke at or co-hosted an evening is listed. */
+export const peoplePage = "/people";
+
+/**
+ * A person's entry on the people page, by their profile's id: ids are
+ * stable where names are not, so a link to someone never breaks or moves
+ * to someone else of the same name.
+ */
+export const personAnchor = (profileId: string): string =>
+  // Ids are uuids; anything else is spelled out, so an anchor is always a
+  // plain token and two ids never share one.
+  `p-${Array.from(profileId, (character) =>
+    /[A-Za-z0-9-]/.test(character)
+      ? character
+      : `_${character.codePointAt(0)?.toString(16) ?? ""}_`,
+  ).join("")}`;
+
+/** The link to a person's entry on the people page. */
+export const personUrl = (profileId: string): string =>
+  `${peoplePage}#${personAnchor(profileId)}`;
 
 /** The community's Discord, where people talk between evenings. */
 export const discord = "https://discord.gg/B3Sm4b5mfD";

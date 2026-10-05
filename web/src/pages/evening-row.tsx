@@ -1,6 +1,6 @@
 import type { Evening } from "allthings-core/src/home.ts";
-import { eventUrl } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
+import { eventPath } from "../links.ts";
 import { listDate } from "./time.ts";
 
 /**
@@ -47,17 +47,11 @@ export function EveningName({
   );
 }
 
-/** One evening, linking to its page on the site at `origin`. */
-export function EveningRow({
-  evening,
-  origin,
-}: {
-  readonly evening: Evening;
-  readonly origin: string;
-}) {
+/** One evening, linking to its page on this site. */
+export function EveningRow({ evening }: { readonly evening: Evening }) {
   return (
     <li>
-      <a class="row" href={eventUrl(origin, evening.slug)}>
+      <a class="row" href={eventPath(evening.slug)}>
         <time
           class="date at-type-meta"
           datetime={DateTime.formatIso(evening.startsAt)}

@@ -1,9 +1,8 @@
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
-import { eventUrl } from "allthings-core/src/mappers.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
-import { everyEvening, lumaCalendar } from "../links.ts";
+import { eventPath, everyEvening, lumaCalendar } from "../links.ts";
 import { Document } from "./document.tsx";
 import { Cursor, EveningRow } from "./evening-row.tsx";
 import { homeTitle, siteDescription } from "./metadata.tsx";
@@ -21,7 +20,7 @@ import { clockTime, day } from "./time.ts";
 
 export interface HomeProps {
   readonly home: HomeView;
-  /** Event pages are on the site at this origin. */
+  /** The production origin, which the page's canonical URL is made from. */
   readonly origin: string;
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
@@ -43,13 +42,7 @@ export function hostNames(hosts: ReadonlyArray<string>): string {
   return `${hosts.slice(0, -1).join(", ")} & ${hosts.at(-1) ?? ""}`;
 }
 
-function Hero({
-  next,
-  origin,
-}: {
-  readonly next: Evening;
-  readonly origin: string;
-}) {
+function Hero({ next }: { readonly next: Evening }) {
   const label = [
     ...(next.neighborhood === null ? [] : [next.neighborhood]),
     ...(next.hosts.length === 0 ? [] : [hostNames(next.hosts)]),
@@ -84,7 +77,7 @@ function Hero({
               {label}
             </p>
           )}
-          <a class="button" href={next.rsvpUrl ?? eventUrl(origin, next.slug)}>
+          <a class="button" href={next.rsvpUrl ?? eventPath(next.slug)}>
             I’m in
             {next.rsvpUrl === null ? (
               ""
@@ -163,11 +156,7 @@ export function homePage({
           aria-labelledby="next"
         >
           <div class="hero-text">
-            {next === undefined ? (
-              <OpenSlot />
-            ) : (
-              <Hero next={next} origin={origin} />
-            )}
+            {next === undefined ? <OpenSlot /> : <Hero next={next} />}
           </div>
           {photos.length === 0 ? "" : <Mosaic photos={photos} />}
         </section>
@@ -188,7 +177,7 @@ export function homePage({
                 </div>
                 <ol>
                   {afterThat.map((evening) => (
-                    <EveningRow evening={evening} origin={origin} />
+                    <EveningRow evening={evening} />
                   ))}
                 </ol>
               </section>
@@ -217,7 +206,7 @@ export function homePage({
                 </div>
                 <ol>
                   {recently.map((evening) => (
-                    <EveningRow evening={evening} origin={origin} />
+                    <EveningRow evening={evening} />
                   ))}
                 </ol>
               </section>

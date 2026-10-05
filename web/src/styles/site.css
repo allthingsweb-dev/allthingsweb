@@ -821,6 +821,18 @@ main > section,
   font-weight: 700;
 }
 
+/* Names link to their people entries, and read as names until hovered. */
+.event-person-name,
+.speaker h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.event-person-name:hover,
+.speaker h3 a:hover {
+  text-decoration: underline 2px;
+}
+
 .event-person-title {
   font-size: 16px;
   color: var(--at-meta);

@@ -238,7 +238,8 @@ describe("page metadata", () => {
       );
       const head = /<head>(.*)<\/head>/.exec(body)?.[1] ?? "";
       const tags = head.match(/<(?:meta|link) [^>]*https?:[^>]*>/g) ?? [];
-      expect(tags.length).toBeGreaterThan(2);
+      // The canonical URL and og:url; the feed is linked root-relative.
+      expect(tags.length).toBeGreaterThanOrEqual(2);
       for (const tag of tags) {
         expect(tag).toMatch(
           /^<(?:meta (?:name|property)="[^"]+" content="https:\/\/allthings\.dev[/"]|link rel="(?:canonical|alternate)")/,

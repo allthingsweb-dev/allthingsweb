@@ -142,9 +142,14 @@ function section(html: string, id: string): string {
 /** Each person's entry in `html`, by name. */
 function entries(html: string): Map<string, string> {
   return new Map(
-    [...html.matchAll(/<li class="person">[\s\S]*?<\/div><\/li>/g)].map(
-      ([entry]) => [/<h3[^>]*>([^<]*)<\/h3>/.exec(entry)?.[1] ?? "", entry],
-    ),
+    [
+      ...html.matchAll(
+        /<li class="person" id="p-[^"]+">[\s\S]*?<\/div><\/li>/g,
+      ),
+    ].map(([entry]) => [
+      /<h3[^>]*>([^<]*)<\/h3>/.exec(entry)?.[1] ?? "",
+      entry,
+    ]),
   );
 }
 
@@ -168,6 +173,12 @@ describe("/people", () => {
     People,
   }) => {
     const { html } = await people(People);
+    // Each entry is anchored by the profile's id, which event pages link to.
+    for (const host of hosts) {
+      expect(section(html, "organizers")).toContain(
+        `<li class="person" id="p-${host.profileId}">`,
+      );
+    }
     expect([...entries(section(html, "organizers")).keys()]).toEqual([
       "Erik Thorelli",
       "Andre Landgraf",
@@ -192,7 +203,7 @@ describe("/people", () => {
       '<span class="talk-title">Shipping AI</span><span class="talk-evening">at<span class="slash">/</span><span>ship ai</span><span class="talk-role at-type-meta"> · panelist</span></span>',
     );
     expect(entries(section(html, "co-hosts")).get("Mia MC")).toContain(
-      `<a class="talk" href="${origin}/next-effect-sf">`,
+      `<a class="talk" href="/next-effect-sf">`,
     );
     expect(entries(section(html, "co-hosts")).get("Mia MC")).toContain(
       '<span class="talk-title">MC</span><span class="talk-evening">at<span class="slash">/</span><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span>',
@@ -247,8 +258,9 @@ describe("/people", () => {
       ...ada.matchAll(/<a class="talk" href="([^"]+)">([\s\S]*?)<\/a>/g),
     ];
     expect(adaTalks.map(([, href]) => href)).toEqual([
-      `${origin}/next-effect-sf`,
-      `${origin}/2026-03-07-all-things-effect`,
+      // Within the site, root-relative.
+      "/next-effect-sf",
+      "/2026-03-07-all-things-effect",
     ]);
     // Next week's evening carries the cursor; March's doesn't.
     expect(adaTalks[0]?.[2]).toContain(

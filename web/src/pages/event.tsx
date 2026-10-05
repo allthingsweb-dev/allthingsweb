@@ -7,12 +7,18 @@ import type {
   Venue,
 } from "allthings-core/src/event-page.ts";
 import type { Evening } from "allthings-core/src/home.ts";
-import { eventUrl } from "allthings-core/src/mappers.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
 import { built } from "../assets.ts";
-import { everyEvening, googleMaps, hosts, lumaCalendar } from "../links.ts";
+import {
+  eventPath,
+  everyEvening,
+  googleMaps,
+  hosts,
+  lumaCalendar,
+  personUrl,
+} from "../links.ts";
 import { calendarPath } from "./calendar.ts";
 import { Document } from "./document.tsx";
 import { Cursor } from "./evening-row.tsx";
@@ -35,7 +41,7 @@ import { day, fullDate, timeRange } from "./time.ts";
 
 export interface EventPageProps {
   readonly event: EventPage;
-  /** Other events' pages and "every evening" are on the site at this origin. */
+  /** The production origin: the page's canonical URL and structured data are on it. */
   readonly origin: string;
   /** The mode the visitor fixed, if any. */
   readonly theme: Theme | undefined;
@@ -270,9 +276,9 @@ function People({
           <li class="event-person">
             <Portrait person={person} size={44} />
             <p>
-              <span class="event-person-name" safe>
-                {person.name}
-              </span>
+              <a class="event-person-name" href={personUrl(person.id)}>
+                <span safe>{person.name}</span>
+              </a>
               {person.title === null ? (
                 ""
               ) : (
@@ -421,8 +427,10 @@ function SpeakerCard({ speaker }: { readonly speaker: Speaker }) {
         ) : (
           <p class="speaker-role at-type-meta">{speaker.role}</p>
         )}
-        <h3 class="at-type-list-name" safe>
-          {speaker.name}
+        <h3 class="at-type-list-name">
+          <a href={personUrl(speaker.id)} safe>
+            {speaker.name}
+          </a>
         </h3>
         {speaker.title === null ? (
           ""
@@ -519,13 +527,7 @@ function Photos({ photos }: { readonly photos: ReadonlyArray<Rows.Photo> }) {
 }
 
 /** After an evening: the next one, or the open slot and the calendar. */
-function Next({
-  next,
-  origin,
-}: {
-  readonly next: Evening | undefined;
-  readonly origin: string;
-}) {
+function Next({ next }: { readonly next: Evening | undefined }) {
   if (next === undefined) {
     return (
       <Fact label="Next">
@@ -550,7 +552,7 @@ function Next({
     <Fact label="Next">
       <>
         <p class="next-name">
-          <a href={eventUrl(origin, next.slug)}>
+          <a href={eventPath(next.slug)}>
             {next.topic === undefined ? (
               <span safe>{next.name}</span>
             ) : (
@@ -572,10 +574,6 @@ function Next({
   );
 }
 
-/** Where an event's page is on the site: its slug, encoded, as one segment. */
-export const eventPagePath = (slug: string): `/${string}` =>
-  `/${encodeURIComponent(slug)}`;
-
 /** The whole page for `event`, in its mode unless the visitor fixed one. */
 export function eventPage({
   event,
@@ -592,7 +590,7 @@ export function eventPage({
         tagline === ""
           ? "An evening for people who build software, in San Francisco."
           : tagline,
-      path: eventPagePath(event.slug),
+      path: eventPath(event.slug),
       structuredData: [eventStructuredData(event, origin)],
     },
     origin,
@@ -632,7 +630,7 @@ export function eventPage({
           ) : (
             ""
           )}
-          {past ? <Next next={event.next} origin={origin} /> : ""}
+          {past ? <Next next={event.next} /> : ""}
         </dl>
       </article>
     ),

@@ -23,6 +23,13 @@ import { listingJson, orDataSourceError, profileJson } from "./sql.ts";
 /** The page shows at most this many of an evening's photos. */
 export const photoLimit = 6;
 
+/**
+ * The fewest guests the page counts. Luma's counts for our earliest
+ * evenings (4, 6, 18) are artifacts of moving to it, not who came, so a
+ * smaller count is left unsaid rather than shown wrong.
+ */
+export const guestCountFloor = 20;
+
 /** Where the evening happens, as far as it is known. */
 export interface Venue {
   /** The local name of its neighborhood, when the venue is a known one. */
@@ -90,7 +97,10 @@ export interface EventPage {
   readonly coHosts: ReadonlyArray<Person>;
   /** Its MC, if it has one (or more). */
   readonly mcs: ReadonlyArray<Person>;
-  /** Guests going, or who went once it is over, as Luma counts them. */
+  /**
+   * Guests going, or who went once it is over, as Luma counts them; null
+   * below {@link guestCountFloor}.
+   */
   readonly guests: number | null;
   /** Where "I'm in" goes: the event's Luma page. */
   readonly rsvpUrl: string | null;
@@ -271,7 +281,7 @@ export const toEventPage = (
         coHosts: peopleIn(row, "co-host", `${photoOrigin}/`),
         mcs: peopleIn(row, "mc", `${photoOrigin}/`),
         guests:
-          row.lumaGuestCount !== null && row.lumaGuestCount > 0
+          row.lumaGuestCount !== null && row.lumaGuestCount >= guestCountFloor
             ? row.lumaGuestCount
             : null,
         rsvpUrl: rsvpUrl(row.lumaEventId),

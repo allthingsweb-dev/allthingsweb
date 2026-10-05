@@ -109,7 +109,8 @@ const linked = (html: string) =>
     (row) =>
       /<a class="row" href="([^"]+)"/
         .exec(row)?.[1]
-        ?.replace(`${origin}/`, "") ?? "",
+        // Rows link within the site, root-relative.
+        ?.replace(/^\//, "") ?? "",
   );
 
 describe("/events", () => {

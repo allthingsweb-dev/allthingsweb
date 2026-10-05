@@ -28,8 +28,8 @@ export const Database = Cloudflare.Hyperdrive.Connection("Database", {
  * Not deployed to prod yet; see alchemy.run.ts. It reads data through the
  * `HYPERDRIVE` binding, which every request connects to anew (see
  * web/src/database.ts), so deploying needs `NEON_READER_URL`. `ORIGIN` stays
- * the current site, where the event pages and the code of conduct are. It
- * is also the production host: robots.txt lets crawlers in only there, so
+ * the current site, which canonical URLs and the feeds name; pages link
+ * within the stage that serves them. It is also the production host: robots.txt lets crawlers in only there, so
  * every stage stays out of search results until the cutover sets `ORIGIN`
  * to the domain this Worker serves.
  */
