@@ -12,8 +12,10 @@ import { immutable } from "../src/cache.ts";
  *   asset layer answers for these files before the Worker runs. Everything
  *   under `/assets/` is named by a hash of its content, so `_headers` lets
  *   browsers and the edge keep it for a year without asking again.
- * - `dist/build.json` tells the Worker those hashed paths and holds
- *   brand/foundations.md as HTML. The Worker bundles it.
+ * - `dist/build.json` tells the Worker those hashed paths. The Worker
+ *   bundles it.
+ * - `dist/foundations.json` holds brand/foundations.md as HTML, for /brand
+ *   alone: the Worker loads it with that page, never on a cold start.
  *
  * The same sources always build the same files, byte for byte.
  */
@@ -321,7 +323,11 @@ export interface BuildManifest {
   readonly stylesheet: string;
   readonly fonts: ReadonlyArray<Font>;
   readonly marks: Marks;
-  readonly foundations: string;
+}
+
+/** What the Worker reads from dist/foundations.json: the foundations as HTML. */
+export interface Foundations {
+  readonly html: string;
 }
 
 const headers = `# Content-hashed files never change under their name.
@@ -338,14 +344,17 @@ export async function build(): Promise<BuildManifest> {
     stylesheet: await buildStylesheet(fontFaces),
     fonts,
     marks: await buildMarks(),
-    foundations: foundationsHtml(
+  };
+  const foundations: Foundations = {
+    html: foundationsHtml(
       await Bun.file(join(root, "brand/foundations.md")).text(),
     ),
   };
   const manifest: BuildManifest = {
     // Every hashed name pages link to is in the manifest, so a change to
     // what any of them is built from (a mark, a font, the stylesheet) is a
-    // new build too, beside a change to the code.
+    // new build too, beside a change to the code (the foundations are among
+    // the build sources).
     build: contentHash(`${await buildHash()}${JSON.stringify(assets)}`),
     ...assets,
   };
@@ -353,6 +362,10 @@ export async function build(): Promise<BuildManifest> {
   await Bun.write(
     join(dist, "build.json"),
     `${JSON.stringify(manifest, null, 2)}\n`,
+  );
+  await Bun.write(
+    join(dist, "foundations.json"),
+    `${JSON.stringify(foundations)}\n`,
   );
   return manifest;
 }

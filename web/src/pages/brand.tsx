@@ -11,6 +11,7 @@ import {
 } from "allthings-brand/src/tokens.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
+import { foundations } from "../foundations.ts";
 import { Document } from "./document.tsx";
 import { lockup } from "./metadata.tsx";
 import type { ImageMode } from "./picture.tsx";
@@ -359,7 +360,7 @@ let content: string | undefined;
  */
 function brandContent(): string {
   if (content === undefined) {
-    const safeFoundations = built.foundations;
+    const safeFoundations = foundations.html;
     const rendered = (
       <>
         <div class="intro">

@@ -32,7 +32,8 @@ import {
   subresources,
 } from "./support/pages.ts";
 import { serve } from "./support/socket.ts";
-import { bundleBudget, testStack } from "./support/stack.ts";
+import { budgetProblems } from "./support/bundle.ts";
+import { bundleBudgets, testStack } from "./support/stack.ts";
 
 /**
  * The site's pages, served by the Worker in workerd with its static assets,
@@ -593,13 +594,13 @@ describe("event pages", () => {
 });
 
 describe("the Worker", () => {
-  it(`bundles to at most ${bundleBudget} bytes gzipped`, async () => {
+  it(`starts from at most ${bundleBudgets.startup} bytes gzipped, and loads no module over ${bundleBudgets.lazy} on first use`, async () => {
     // Where Alchemy wrote the bundle it just ran, as it deploys it.
-    const bundle = Bun.file(
-      new URL("../.alchemy/bundles/Pages/worker.js", import.meta.url),
+    const problems = await budgetProblems(
+      new URL("../.alchemy/bundles/Pages", import.meta.url).pathname,
+      bundleBudgets,
     );
-    expect(await bundle.exists()).toBe(true);
-    expect(gzipped(await bundle.text())).toBeLessThanOrEqual(bundleBudget);
+    expect(problems).toBeUndefined();
   });
 });
 

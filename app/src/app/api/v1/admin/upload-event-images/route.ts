@@ -6,7 +6,12 @@ import { eventsTable, imagesTable, eventImagesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { processImage } from "@/lib/image-processor";
-import { appMediaStore } from "@/lib/media-store";
+import {
+  appMediaStore,
+  maxMediaBytes,
+  MediaTooLargeError,
+  tooLargeMessage,
+} from "@/lib/media-store";
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,11 +65,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Larger images get no resized variants on the site, so they are
+    // refused before anything is processed or stored.
+    if (imageFile.size > maxMediaBytes) {
+      return NextResponse.json(
+        { error: tooLargeMessage(imageFile.name, imageFile.size) },
+        { status: 413 },
+      );
+    }
+
     try {
-      // Process image using our new utility
+      // Formats browsers can't show (HEIC from phones) become JPEG: a photo
+      // as PNG is several times larger, often over the limit.
       const processedImage = await processImage(imageFile, imageFile.name, {
         convertUnsupportedFormats: true,
-        conversionFormat: "PNG",
+        conversionFormat: "JPEG",
       });
 
       // Generate unique filename with proper extension
@@ -116,6 +131,12 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (error) {
+      if (error instanceof MediaTooLargeError) {
+        return NextResponse.json(
+          { error: tooLargeMessage(imageFile.name, error.bytes) },
+          { status: 413 },
+        );
+      }
       console.error(`Error uploading ${imageFile.name}:`, error);
 
       // Provide more specific error messages
