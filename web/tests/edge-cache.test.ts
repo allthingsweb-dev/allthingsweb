@@ -178,6 +178,15 @@ describe("edgeKey", () => {
     );
   });
 
+  test("reads the cookie as the page does: escapes decoded, the first of a repeated name", () => {
+    expect(edgeKey(get("/", { cookie: "theme=%6Cight" }), build)).toBe(
+      `${site}/__edge/${build}/light/`,
+    );
+    expect(
+      edgeKey(get("/", { cookie: "theme=dark; theme=light" }), build),
+    ).toBe(`${site}/__edge/${build}/dark/`);
+  });
+
   test("reads a mode it doesn't know as the system's, as pages do", () => {
     expect(edgeKey(get("/", { cookie: "theme=sepia" }), build)).toBe(
       edgeKey(get("/"), build),

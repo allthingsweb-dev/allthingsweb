@@ -1,3 +1,4 @@
+import * as Cookies from "effect/http/Cookies";
 import { edgeCacheControlHeader } from "./cache.ts";
 import { contentEncoding } from "./pages/response.ts";
 import { themeOf } from "./pages/theme.ts";
@@ -113,22 +114,12 @@ export function freshness(age: number, policy: EdgePolicy): Freshness {
  */
 export function edgeKey(request: Request, build: string): string {
   const url = new URL(request.url);
-  const mode = themeOf(cookiesOf(request.headers.get("cookie"))) ?? "system";
+  // Read as the page reads it (Effect's parser), so the key's mode is the
+  // page's, escapes and repeated names included.
+  const mode =
+    themeOf(Cookies.parseHeader(request.headers.get("cookie") ?? "")) ??
+    "system";
   return `${url.origin}/__edge/${build}/${mode}${url.pathname}${url.search}`;
-}
-
-/** The cookies a Cookie header names, the first of each name winning. */
-function cookiesOf(header: string | null): Record<string, string> {
-  const cookies: Record<string, string> = {};
-  for (const pair of (header ?? "").split(";")) {
-    const at = pair.indexOf("=");
-    if (at === -1) continue;
-    const name = pair.slice(0, at).trim();
-    if (name !== "" && !(name in cookies)) {
-      cookies[name] = pair.slice(at + 1).trim();
-    }
-  }
-  return cookies;
 }
 
 /** The part of the Cache API this cache uses. */
