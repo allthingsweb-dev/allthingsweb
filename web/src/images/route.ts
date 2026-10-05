@@ -1,4 +1,4 @@
-import { Context, Data, Effect, Layer, Option } from "effect";
+import { Context, Data, Effect, Layer, Option, Semaphore } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
@@ -26,11 +26,23 @@ import {
  * it is, briefly cached, so the page still shows the photo and a later
  * request tries again.
  *
- * Originals stream through and are never held whole: a browser asks for
- * several variants at once, and originals of 20 MB and more would exceed
- * the isolate's memory. So when Images has read an original and refused
- * it, the Worker fetches it again to send it, from the media origin's edge
- * cache; if that fetch fails too, the failure is what the page gets.
+ * Memory: an isolate has 128 MB, a browser asks for several variants at
+ * once, and an original may be tens of megabytes. So:
+ *
+ * - Every response is handed to the runtime as a web `Response`, which
+ *   pipes its body natively with backpressure; no body passes through an
+ *   Effect stream, which reads ahead of a slow client.
+ * - An original is sent as it is, untouched, when its Content-Length says
+ *   it is over the binding's limit or doesn't say: it is piped, never read.
+ * - The binding takes an original whole before it resizes it, so the
+ *   originals being resized at once in an isolate add up to at most
+ *   {@link transformBudgetBytes}. A request beyond that checks again every
+ *   {@link budgetPoll} (workerd cancels a request that waits on another
+ *   request's promise as hung, so it can't simply queue), and after
+ *   {@link budgetWait} sends the original as it is instead.
+ * - When Images has read an original and refused it, the Worker fetches it
+ *   again to send it, from the media origin's edge cache; if that fetch
+ *   fails too, the failure is what the page gets.
  */
 
 /** What the Worker uses of the Images binding (workerd's `ImagesBinding`). */
@@ -121,6 +133,49 @@ export class WaitUntil extends Context.Reference<
 /** The Images binding reads at most 20 MB; larger originals go as they are. */
 const maxInputBytes = 20_000_000;
 
+/**
+ * The most original bytes an isolate hands the Images binding at once: two
+ * originals at the limit, with room left in its 128 MB for everything else.
+ */
+export const transformBudgetBytes = 2 * maxInputBytes;
+
+const permitBytes = 1_000_000;
+
+/**
+ * Megabytes of the budget, shared by every request the isolate serves.
+ * Requests in one isolate share its memory, so they share this too.
+ */
+const transformBudget = Semaphore.makeUnsafe(
+  transformBudgetBytes / permitBytes,
+);
+
+/** How often a request waiting for the budget checks it again. */
+const budgetPoll = "50 millis";
+
+/** How long a request waits for the budget before it sends the original. */
+const budgetWait = 15_000;
+
+/**
+ * Takes `permits` of the budget, checking every {@link budgetPoll}: true
+ * once taken, false when {@link budgetWait} passes first.
+ */
+const takeBudget = (permits: number) =>
+  Effect.gen(function* () {
+    const deadline = Date.now() + budgetWait;
+    while (!(yield* Semaphore.takeIfAvailable(transformBudget, permits))) {
+      if (Date.now() > deadline) return false;
+      yield* Effect.sleep(budgetPoll);
+    }
+    return true;
+  });
+
+/** The budget an original of `length` bytes takes while it is resized. */
+const permitsFor = (length: number) =>
+  Math.min(
+    transformBudgetBytes / permitBytes,
+    Math.max(1, Math.ceil(length / permitBytes)),
+  );
+
 /** Originals sent as they are, when no variant could be made. */
 const originalCacheControl = "public, max-age=300";
 
@@ -156,6 +211,13 @@ const badGateway = HttpServerResponse.text("Bad Gateway", {
   headers: { "cache-control": CacheControl.failure },
 });
 
+/**
+ * `response`, as the runtime sends it: its body piped natively, never
+ * through an Effect stream.
+ */
+const native = (response: Response): HttpServerResponse.HttpServerResponse =>
+  HttpServerResponse.raw(response);
+
 /** `response` with how it was served, for the browser's timing panel. */
 function withTiming(response: Response, timing: string): Response {
   const headers = new Headers(response.headers);
@@ -165,10 +227,10 @@ function withTiming(response: Response, timing: string): Response {
 
 /** The original as it is, a raster image of `contentType`. */
 const asOriginal = (
-  body: ReadableStream<Uint8Array> | ArrayBuffer | null,
+  body: ReadableStream<Uint8Array> | null,
   contentType: string,
 ): HttpServerResponse.HttpServerResponse =>
-  HttpServerResponse.fromWeb(
+  native(
     new Response(body, {
       headers: {
         "content-type": contentType,
@@ -224,7 +286,7 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
         cache.value.match(cacheKey),
       ).pipe(Effect.orElseSucceed(() => undefined));
       if (hit !== undefined) {
-        return HttpServerResponse.fromWeb(withTiming(hit, 'img;desc="hit"'));
+        return native(withTiming(hit, 'img;desc="hit"'));
       }
     }
 
@@ -234,16 +296,22 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
     const { response, contentType } = original;
 
     const images = yield* Images;
+    // An original whose size isn't known is never handed to the binding.
     const length = Number(response.headers.get("content-length") ?? Number.NaN);
     if (
       Option.isNone(images) ||
+      !Number.isFinite(length) ||
       length > maxInputBytes ||
       response.body === null
     ) {
       return asOriginal(response.body, contentType);
     }
 
-    // The original streams into Images as it arrives.
+    // The original's body waits, unread, until the budget has room for it.
+    const permits = permitsFor(length);
+    if (!(yield* takeBudget(permits))) {
+      return asOriginal(response.body, contentType);
+    }
     const made = yield* Effect.tryPromise({
       try: () =>
         images.value
@@ -252,6 +320,7 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
           .output({ format: formats[variant.format] }),
       catch: (cause) => new TransformFailed({ cause }),
     }).pipe(
+      Effect.ensuring(Semaphore.release(transformBudget, permits)),
       Effect.map(Option.some),
       Effect.catchTag("TransformFailed", (error) =>
         Effect.logWarning(
@@ -289,7 +358,7 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
           .catch(() => undefined),
       );
     }
-    return HttpServerResponse.fromWeb(
+    return native(
       new Response(body, {
         headers: {
           ...headers,
