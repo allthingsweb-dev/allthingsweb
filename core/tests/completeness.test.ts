@@ -64,7 +64,17 @@ const complete: EventRecord = {
       speakers: [person("a")],
     },
   ],
-  hosts: [{ name: "CodeRabbit", about: "Rooftop and pizza.", hasLogo: true }],
+  hosts: [
+    {
+      name: "CodeRabbit",
+      about: "Rooftop and pizza.",
+      hasLogo: true,
+      websiteUrl: "https://www.coderabbit.ai",
+      twitterHandle: "coderabbitai",
+      blueskyHandle: null,
+      linkedinHandle: null,
+    },
+  ],
   people: [{ role: "organizer", person: person("o") }],
 };
 
@@ -148,9 +158,41 @@ describe("what an event lacks", () => {
     expect(
       gapsOf({
         ...complete,
-        hosts: [{ name: "Acme", about: "", hasLogo: false }],
+        hosts: [
+          {
+            name: "Acme",
+            about: "",
+            hasLogo: false,
+            websiteUrl: null,
+            twitterHandle: null,
+            blueskyHandle: null,
+            linkedinHandle: null,
+          },
+        ],
       }),
-    ).toEqual(["host-logo: Acme", "host-about: Acme"]);
+    ).toEqual([
+      "host-logo: Acme",
+      "host-about: Acme",
+      "host-website: Acme",
+      "host-links: Acme",
+    ]);
+    // A website that is no http(s) URL is never linked; any one handle is a link.
+    expect(
+      gapsOf({
+        ...complete,
+        hosts: [
+          {
+            name: "Acme",
+            about: "Space.",
+            hasLogo: true,
+            websiteUrl: "javascript:alert(1)",
+            twitterHandle: null,
+            blueskyHandle: " ",
+            linkedinHandle: "acme",
+          },
+        ],
+      }),
+    ).toEqual(["host-website: Acme"]);
   });
 
   test("venue, lockup topic, tagline and cover", () => {
@@ -207,7 +249,14 @@ describe("what an event lacks", () => {
       Object.entries(gapKinds)
         .filter(([, kind]) => !kind.required)
         .map(([name]) => name),
-    ).toEqual(["person-links", "cover", "recording", "guest-count"]);
+    ).toEqual([
+      "person-links",
+      "host-website",
+      "host-links",
+      "cover",
+      "recording",
+      "guest-count",
+    ]);
   });
 });
 
@@ -290,6 +339,8 @@ describe("Completeness", () => {
       { kind: "person-bio", subject: "Grace Hopper" },
       { kind: "person-photo", subject: "Grace Hopper" },
       { kind: "host-logo", subject: "Globex" },
+      { kind: "host-website", subject: "Globex" },
+      { kind: "host-links", subject: "Globex" },
     ]);
     expect(
       reports
@@ -336,6 +387,8 @@ describe("Completeness", () => {
         "person-photo: Unattached",
         "person-links: Unattached",
         "host-logo: Globex",
+        "host-website: Globex",
+        "host-links: Globex",
       ]);
     } finally {
       await database.close();
@@ -353,7 +406,7 @@ describe("Completeness", () => {
       "2026-11-05  upcoming  2026-11-05-upcoming           1         1       0      0       0       -     4         1",
       "2026-10-03  live      2026-10-03-hack-day           1         1       0      0       0       -     4         1",
       "2026-10-03  live      2026-10-03-ends-now           1         1       0      0       0       -     5         2",
-      "2026-08-12  past      2026-08-12-react-at-acme      2         3       0      2       2     118     6         0",
+      "2026-08-12  past      2026-08-12-react-at-acme      2         3       0      2       2     118     6         2",
       "2025-12-02  past      2025-12-02-café-night         2         3       0      0       0       -     7         2",
     ]);
     expect(text).toContain(

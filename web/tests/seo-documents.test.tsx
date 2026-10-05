@@ -332,6 +332,7 @@ const details = (overrides: Partial<EventPage> = {}): EventPage => ({
     mapQuery: "201 Spear St 12th floor, San Francisco, CA 94105, USA",
   },
   hosts: [],
+  hostSites: {},
   organizers: [],
   coHosts: [],
   mcs: [],

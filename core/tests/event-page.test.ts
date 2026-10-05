@@ -91,6 +91,8 @@ describe("EventPages", () => {
         mapQuery: "1 Market St, San Francisco, CA 94105",
       },
       hosts: ["Globex", "Acme"],
+      // Only Acme has a site on record.
+      hostSites: { Acme: "https://acme.example/" },
       rsvpUrl: "https://lu.ma/event/evt-react",
       seats: 120,
       recordingUrl: "https://www.youtube.com/watch?v=abc123",
