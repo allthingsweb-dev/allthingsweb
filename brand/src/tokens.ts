@@ -206,9 +206,10 @@ function referenceIssues(file: TokenFileShape): ReadonlyArray<string> {
     );
   }
   const { gridColumns, ledgerColumns } = file.$extensions["dev.allthings"];
-  if (ledgerColumns >= gridColumns) {
+  // A ledger's facts take most of the grid; its labels are the narrow side.
+  if (ledgerColumns * 2 >= gridColumns) {
     issues.push(
-      `ledgerColumns: ${ledgerColumns} leaves none of the ${gridColumns} columns to the content`,
+      `ledgerColumns: ${ledgerColumns} of ${gridColumns} leaves the content no more columns than the labels`,
     );
   }
   file.$extensions["dev.allthings"].contrast.forEach((pair, index) => {

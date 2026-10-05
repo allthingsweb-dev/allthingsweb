@@ -5,7 +5,8 @@
  * ever come from the layout tokens (--at-layout-*, --at-space-*,
  * --at-size-*, --at-measure-*, ...), and breakpoints from their custom
  * media queries (--at-below-*): web/tests/styles.test.ts fails on any
- * other, but for 1px and 0.
+ * other, but for a 1px hairline, and em for what follows the type: its
+ * tracking, an underline's offset, and inline code's size.
  */
 
 *,
@@ -288,7 +289,7 @@ main {
 /* After each item but the last, so a wrapped line never starts with one. */
 .socials li:not(:last-child)::after {
   content: "\b7" / "";
-  padding: 0 0.6em;
+  padding: 0 var(--at-space-2);
 }
 
 .socials a {
@@ -753,7 +754,7 @@ main > section,
 
 .person-links li:not(:last-child)::after {
   content: "\b7" / "";
-  padding: 0 0.6em;
+  padding: 0 var(--at-space-2);
 }
 
 .person-links a {
@@ -1020,12 +1021,12 @@ main > section,
 }
 
 .stage-description > * + * {
-  margin-top: 0.6em;
+  margin-top: var(--at-space-3);
 }
 
 .stage-description :is(ul, ol) {
   margin-bottom: 0;
-  padding-left: 1.2em;
+  padding-left: var(--at-space-5);
 }
 
 /* The schedule: each step's time as written, then what happens. */
@@ -1059,7 +1060,7 @@ main > section,
 }
 
 .note > * + * {
-  margin-top: 0.6em;
+  margin-top: var(--at-space-3);
 }
 
 /*
@@ -1452,7 +1453,7 @@ th {
 
 .prose ul {
   margin: 0;
-  padding-left: 1.2em;
+  padding-left: var(--at-space-5);
 }
 
 .prose li + li {

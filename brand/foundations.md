@@ -114,7 +114,7 @@ Sizes are the largest. The wordmark, event lockup, label and lead shrink on narr
   - The grid: 12 columns with 24px gutters. In a ledger, each fact's label takes 3 columns and the fact the other 9.
   - Spacing on a 4px scale, three rule weights (1, 2 and 3px), portrait and tile sizes, and the breakpoints (480, 600, 768 and 1024px).
   - Reading measures: 68 characters to a line of reading copy, 36 to a lead.
-- The site's stylesheet writes no length of its own but a 1px hairline: no inline styles, no magic widths, no breakpoint of a page's own. A test fails the build on any other.
+- The site's stylesheet writes no length of its own but a 1px hairline, and em where a length follows the type (tracking, an underline's offset, inline code's size): no inline styles, no magic widths, no breakpoint of a page's own. A test fails the build on any other.
 - Reading copy keeps its measure and gives the rest of the row to what sits beside it. Speakers on a stage share the row rather than squeezing into narrow fixed columns.
 - Asymmetry is deliberate: neighboring blocks may sit on different cuts of the grid and align to different edges.
 - Lists of events: a light date, the name heavy with its slash, and the place bolder than the date but clearly secondary.

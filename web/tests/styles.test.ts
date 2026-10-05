@@ -97,16 +97,21 @@ const lengthsIn = (value: string): ReadonlyArray<string> =>
 /** The one length a page may write itself: a hairline, as `.visually-hidden` is. */
 const hairline = "1px";
 
+/** What may follow the type in em: its tracking, underline offset and size. */
+const typeRelative = /^(?:letter-spacing|text-underline-offset|font-size)$/;
+
 /** What sets a box's size, or a grid's tracks. */
 const sizing =
   /^(?:(?:min-|max-)?(?:width|height|inline-size|block-size)|flex-basis|grid-(?:template|auto)-(?:columns|rows))$/;
 
 describe("site.css's lengths", () => {
-  test("come from the layout tokens, but for a hairline", () => {
+  test("come from the layout tokens, but for a hairline and type-relative em", () => {
     const loose = values.flatMap(({ property, value }) =>
       lengthsIn(value)
         .filter((length) => length !== hairline)
-        .filter((length) => !(length.endsWith("em") && !sizing.test(property)))
+        .filter(
+          (length) => !(length.endsWith("em") && typeRelative.test(property)),
+        )
         .map((length) => `${property}: ${length}`),
     );
     expect(loose).toEqual([]);

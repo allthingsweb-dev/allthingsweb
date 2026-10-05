@@ -54,8 +54,12 @@ describe("the layout tokens", () => {
   test("leave the ledger's content most of the grid", () => {
     const decode = Schema.decodeUnknownExit(TokenFile);
     const file = structuredClone(source);
-    file.$extensions["dev.allthings"].ledgerColumns = 12;
-    expect(decode(file)._tag).toBe("Failure");
+    for (const labels of [6, 11, 12]) {
+      file.$extensions["dev.allthings"].ledgerColumns = labels;
+      expect(decode(file)._tag).toBe("Failure");
+    }
+    file.$extensions["dev.allthings"].ledgerColumns = 5;
+    expect(decode(file)._tag).toBe("Success");
   });
 
   test("reject a fluid length with neither a viewport nor a container share", () => {
