@@ -258,8 +258,8 @@ export const requiredGaps = (report: EventCompleteness): ReadonlyArray<Gap> =>
 export const recentWindow = Duration.days(30);
 
 /**
- * Events that ended within `window` before `now` and have no talks: what a
- * weekly check fails on. Events further back are reported but don't fail
+ * Evenings of talks that ended within `window` before `now` and have none
+ * (no other program is asked for talks): what a weekly check fails on. Events further back are reported but don't fail
  * it, so one old gap can't keep the check red for good.
  */
 export function mustHaveTalks(

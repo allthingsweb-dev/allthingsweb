@@ -966,7 +966,7 @@ export function eventPage({
               openFloor={openFloorLine(event.status)}
               images={images}
             />
-          ) : event.talks.length === 0 ? (
+          ) : event.program !== "talks" || event.talks.length === 0 ? (
             ""
           ) : (
             <OnStage talks={event.talks} openFloor={null} images={images} />

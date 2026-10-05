@@ -411,10 +411,21 @@ describe("the ledger", () => {
     );
   });
 
-  test("gives a social evening or a hackathon no stage of its own", () => {
+  test("gives a social evening or a hackathon no stage of its own, talks or not", () => {
+    const talk = {
+      id: "a1",
+      title: "Opening words",
+      format: "talk" as const,
+      description: null,
+      speakers: [speaker()],
+    };
     for (const program of ["social", "hackathon"] as const) {
       expect(labels(render(event({ program })))).not.toContain("On stage");
+      expect(labels(render(event({ program, talks: [talk] })))).not.toContain(
+        "On stage",
+      );
     }
+    expect(labels(render(event({ talks: [talk] })))).toContain("On stage");
   });
 
   test("escapes what it prints", async () => {

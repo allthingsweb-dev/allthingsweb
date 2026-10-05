@@ -16,8 +16,9 @@ import * as Database from "../src/database.ts";
  *
  *   bun run completeness           a table of every event, then each one's gaps
  *   bun run completeness --json    the same as JSON
- *   bun run completeness --check   also fail if an event that ended in the
- *                                  last 30 days (--within) has no talks
+ *   bun run completeness --check   also fail if an evening of talks that
+ *                                  ended in the last 30 days (--within)
+ *                                  has none
  *
  * DATABASE_URL comes from the environment only; .env files are not read:
  *
@@ -32,7 +33,7 @@ const jsonFlag = Flag.Boolean("json").pipe(
 
 const checkFlag = Flag.Boolean("check").pipe(
   Flag.withDescription(
-    "Fail if an event that ended recently has no talks (see --within).",
+    "Fail if an evening of talks that ended recently has none (see --within).",
   ),
   Flag.withDefault(false),
 );
@@ -64,7 +65,7 @@ const command = Command.make(
       if (missing.length > 0) {
         yield* Effect.fail(
           new Error(
-            `Events that ended in the last ${within} days without talks: ${missing.map((r) => r.slug).join(", ")}`,
+            `Evenings of talks that ended in the last ${within} days without any: ${missing.map((r) => r.slug).join(", ")}`,
           ),
         );
       }

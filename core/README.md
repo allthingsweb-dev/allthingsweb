@@ -119,7 +119,7 @@ judged.
 ```sh
 DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") bun run completeness          # table, then each event's gaps
 DATABASE_URL=… bun run completeness --json   # the same, for tools
-DATABASE_URL=… bun run completeness --check  # also fail if an event that ended in the last 30 days has no talks
+DATABASE_URL=… bun run completeness --check  # also fail if an evening of talks that ended in the last 30 days has none
 ```
 
 It only reads, so the read-only `site_reader` role is enough. The admin MCP
