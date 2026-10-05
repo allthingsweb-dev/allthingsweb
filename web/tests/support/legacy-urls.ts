@@ -45,7 +45,7 @@ interface Entry {
 export type LegacyUrl = Entry &
   (
     | {
-        /** What the current site answers, where it differs in kind. */
+        /** What the current site answers, when it is not a plain 200. */
         readonly today?: string;
         readonly pending?: undefined;
       }
@@ -107,18 +107,21 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
     source: "app route",
     example: `/${slugs.draft}`,
     worker: notFound,
+    today: "404",
   },
   {
     pattern: "/[page]/ (a trailing slash)",
     source: "Next's trailing-slash redirect",
     example: "/about/",
     worker: { status: 308, location: "/about" },
+    today: "308 to the path without it",
   },
   {
     pattern: "/r/[id]",
     source: "app route, redirects table",
     example: "/r/discord",
     worker: { status: 307, location: redirects.discord },
+    today: "307 to its destination",
   },
   // Feeds and files for machines
   {
@@ -189,6 +192,7 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
     source: "Next's image optimizer",
     example: `/_next/image?url=${encodeURIComponent("https://elsewhere.example/a.jpg")}&w=640&q=75`,
     worker: notFound,
+    today: "400",
   },
   // The public API and MCP
   {
@@ -214,6 +218,7 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
     source: "app route",
     example: "/mcp",
     worker: { status: 405 },
+    today: "405; MCP clients POST",
   },
   // Not decided: the Worker says not found until the organizers decide.
   ...(
