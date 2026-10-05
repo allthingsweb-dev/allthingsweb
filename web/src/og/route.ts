@@ -100,6 +100,8 @@ function decoded(segment: string): string | undefined {
   }
 }
 
+let lastError = "";
+
 /** The event's card, drawn: undefined when Images can't draw it. */
 const drawCard = (slug: string, origin: string) =>
   Effect.gen(function* () {
@@ -114,7 +116,8 @@ const drawCard = (slug: string, origin: string) =>
     ) {
       return Option.some<Response | undefined>(undefined);
     }
-    const text = images.value.text;
+    // Bound: workerd's binding methods throw when called detached from it.
+    const text = images.value.text.bind(images.value);
     const facts = cardFacts(found.value);
     const texts = layoutCard(facts, yield* loadMetrics);
     const ground =
@@ -143,6 +146,7 @@ const drawCard = (slug: string, origin: string) =>
     }).pipe(
       Effect.catchCause((cause) =>
         Effect.logError(`Error drawing the card for ${slug}:`, cause).pipe(
+          Effect.andThen(Effect.sync(() => { lastError = String(cause).slice(0, 300).replace(/[^\x20-\x7e]/g, " "); })),
           Effect.as(undefined),
         ),
       ),
@@ -165,7 +169,10 @@ const card = HttpRouter.add(
     if (Option.isNone(drawn)) return notFound;
     if (drawn.value === undefined) {
       // Not drawn this time: the site's card instead, and never kept.
-      return redirect(ogCards.home.src, 302, CacheControl.failure);
+      return HttpServerResponse.text("Found", {
+        status: 302,
+        headers: { location: ogCards.home.src, "cache-control": CacheControl.failure, "x-og-error": lastError },
+      });
     }
     return HttpServerResponse.raw(
       new Response(drawn.value.body, {
