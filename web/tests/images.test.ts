@@ -405,6 +405,8 @@ describe("/img/", () => {
     expect(response.headers.get("server-timing")).toBe('img;desc="original"');
     expect(response.headers.get("content-type")).toBe("image/png");
     expect(body).toEqual(png(1024, 768));
+    // Fetched once: the binding never saw it, so nothing fell back.
+    expect(media.fetches("events/home/unsized.png")).toBe(1);
   });
 
   it(
