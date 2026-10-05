@@ -302,6 +302,13 @@ describe("toVenue", () => {
     });
   });
 
+  test("matches the venue's name as a whole word", () => {
+    expect(venue("Mux", "Muxworks, 1 Main St, San Francisco")).toMatchObject({
+      name: "Mux",
+      address: "Muxworks, 1 Main St, San Francisco",
+    });
+  });
+
   test("falls back to the street address, and trims what it prints", () => {
     expect(venue("  Little Skillet ", null, " 360 Ritch Street ")).toEqual({
       neighborhood: "SoMa",

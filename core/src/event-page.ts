@@ -129,8 +129,9 @@ const present = (text: string | null): string | null => {
  * The venue from the event's three location fields, each said once. Luma
  * writes the full address as "<venue>, <address>", so a name the address
  * starts with is printed beside the rest of it. A "name" that is the start
- * of the address itself, or a street address ("201 Spear St"), is no name. The map looks up the
- * address as stored, the venue's name included, which places it best.
+ * of the address itself, such as a street address ("201 Spear St"), is no
+ * name. The map looks up the address as stored, the venue's name included,
+ * which places it best.
  */
 export function toVenue(
   event: Pick<EventPageRow, "streetAddress" | "shortLocation" | "fullAddress">,
@@ -146,11 +147,15 @@ export function toVenue(
   if (name !== null && address !== null) {
     const lowerName = name.toLowerCase();
     const lowerAddress = address.toLowerCase();
+    // Whole words only: "Mux" doesn't start "Muxworks, 1 Main St".
+    const startsWithName =
+      lowerAddress.startsWith(lowerName) &&
+      !/[\p{L}\p{N}]/u.test(lowerAddress.charAt(lowerName.length));
     // A street number starts an address, never a venue's name.
     const isVenue = !/^\d/.test(name);
-    if (isVenue && lowerAddress.startsWith(`${lowerName},`)) {
+    if (startsWithName && isVenue && lowerAddress.startsWith(`${lowerName},`)) {
       address = address.slice(name.length + 1).trim();
-    } else if (lowerAddress.startsWith(lowerName)) {
+    } else if (startsWithName) {
       name = null;
     }
   }
