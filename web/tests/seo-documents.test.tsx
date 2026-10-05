@@ -17,7 +17,7 @@ import {
 import type { FeedEvent } from "../src/seo/data.ts";
 import { isProductionHost, robotsTxt } from "../src/seo/robots.ts";
 import { rssXml } from "../src/seo/rss.ts";
-import { sitemapXml } from "../src/seo/sitemap.ts";
+import { sitemapXml, sitePages } from "../src/seo/sitemap.ts";
 import { escapeXml } from "../src/seo/xml.ts";
 import { htmlProblems } from "./support/pages.ts";
 
@@ -195,6 +195,7 @@ describe("the sitemap", () => {
     expect(urlsOf(xml)).toEqual([
       { loc: "https://allthings.dev/" },
       { loc: "https://allthings.dev/events" },
+      { loc: "https://allthings.dev/people" },
       { loc: "https://allthings.dev/brand" },
       {
         loc: "https://allthings.dev/2026-11-05-all-things-effect",
@@ -212,7 +213,7 @@ describe("the sitemap", () => {
       urls.map(({ loc, lastmod }) => [loc, lastmod]);
     const appUrls = urlsOf(app.generateSiteMap(events.map(toApp), origin));
     // The app's own pages differ: these are this site's.
-    expect(pairs(urlsOf(xml).slice(3))).toEqual(
+    expect(pairs(urlsOf(xml).slice(sitePages.length))).toEqual(
       pairs(appUrls.slice(-events.length)),
     );
   });
@@ -224,6 +225,7 @@ describe("the sitemap", () => {
     expect(urlsOf(empty).map((url) => url.loc)).toEqual([
       "https://allthings.dev/",
       "https://allthings.dev/events",
+      "https://allthings.dev/people",
       "https://allthings.dev/brand",
     ]);
   });

@@ -9,6 +9,7 @@ import { DateTime } from "effect";
 import { built } from "../assets.ts";
 import { Document } from "./document.tsx";
 import { EveningName } from "./evening-row.tsx";
+import { gatheringTitle } from "./metadata.tsx";
 import type { Theme } from "./theme.ts";
 import { listDate } from "./time.ts";
 
@@ -167,9 +168,13 @@ export function peoplePage({
 }: PeopleProps): string {
   const { organizers, speakers } = people;
   return Document({
-    title: "people · all things/_",
-    description:
-      "The organizers of all things, and everyone who has been on stage at its evenings in San Francisco.",
+    meta: {
+      title: gatheringTitle("people"),
+      description:
+        "The organizers of all things, and everyone who has been on stage at its evenings in San Francisco.",
+      path: "/people",
+    },
+    origin,
     theme,
     portraits,
     children: (
