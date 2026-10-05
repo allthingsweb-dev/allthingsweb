@@ -105,6 +105,30 @@ The admin MCP server's `add_event_post` runs the same script.
 `tests/posts.test.ts` runs against recorded answers; nothing in the tests
 reaches X, FixTweet or Bluesky.
 
+## Promotion drafts
+
+`src/promo/` drafts an evening's promotion from its record, in the brand's
+voice (`brand/foundations.md`): the Luma description with every speaker
+and their bio, the Meetup cross-post (seats-on-Luma notice, five topics,
+the host's named place, and a checklist of the settings Meetup only takes
+by hand), and posts for X, Bluesky, LinkedIn and Discord to announce the
+evening, on the day, and after. People are tagged by their stored handles;
+the recap counts photos and approved posts and thanks those who posted.
+Each draft is the richest of its candidates that fits its platform's limit
+(`src/promo/limits.ts`), and what the record lacks is listed first as gaps.
+Drafts only: nothing posts.
+
+```sh
+DATABASE_URL=… bun run promo <slug>                              # every draft, as text
+DATABASE_URL=… bun run promo <slug> --channel x --channel meetup # only these
+DATABASE_URL=… bun run promo <slug> --json                       # with each draft's length and limit
+```
+
+It only reads. The admin MCP server's `get_promo_drafts` runs the same
+script. `tests/promo.test.ts` keeps each seeded evening's drafts as golden
+files in `tests/fixtures/promo/`; after an intended change, regenerate them
+with `UPDATE_GOLDEN=1 bun test tests/promo.test.ts` and read the diff.
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's
