@@ -21,7 +21,7 @@ const ascii = (text: string) => Array.from(new TextEncoder().encode(text));
 
 /** Bytes that begin like an image of `format`, then `tag`, so each image is distinct. */
 export function imageBytes(
-  format: "png" | "jpeg" | "gif" | "webp" | "avif",
+  format: "png" | "jpeg" | "gif" | "webp" | "avif" | "heic",
   tag: string,
 ): Uint8Array {
   const head = {
@@ -30,6 +30,7 @@ export function imageBytes(
     gif: ascii("GIF89a"),
     webp: [...ascii("RIFF"), 0, 0, 0, 0, ...ascii("WEBP")],
     avif: [0, 0, 0, 20, ...ascii("ftypavif"), 0, 0, 0, 0, ...ascii("mif1")],
+    heic: [0, 0, 0, 20, ...ascii("ftypheic"), 0, 0, 0, 0, ...ascii("mif1")],
   }[format];
   return new Uint8Array([...head, ...ascii(`:${tag}`)]);
 }
@@ -41,7 +42,9 @@ const formatOf = (bytes: Uint8Array): string | undefined => {
   if (starts([0xff, 0xd8, 0xff])) return "jpeg";
   if (starts(ascii("GIF8"))) return "gif";
   if (starts(ascii("RIFF")) && starts(ascii("WEBP"), 8)) return "webp";
-  if (starts(ascii("ftyp"), 4)) return "avif";
+  if (starts(ascii("ftyp"), 4)) {
+    return starts(ascii("heic"), 8) ? "heic" : "avif";
+  }
   return undefined;
 };
 

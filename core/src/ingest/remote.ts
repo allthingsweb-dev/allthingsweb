@@ -7,7 +7,8 @@ import { looksLikeImage } from "./signature.ts";
  * (app/src/lib/remote-images): HTTPS on an allowed host only, every redirect
  * checked against the same hosts before it is followed, at most 3 of them,
  * the body capped at 15 MiB while it streams, and the bytes required to be
- * a PNG, JPEG, GIF, WebP or AVIF image.
+ * a PNG, JPEG, GIF, WebP, AVIF or HEIC image (unlike the app, which
+ * refuses HEIC; `Pictures` stores it as JPEG).
  */
 
 /** Hosts Luma serves event covers from: its CDN, and Unsplash for covers picked in Luma. */
@@ -145,7 +146,7 @@ export const downloadImage = (
       const bytes = yield* readAtMost(response.stream, maxImageBytes);
       if (!looksLikeImage(bytes)) {
         return yield* new DownloadError({
-          reason: "Not a PNG, JPEG, GIF, WebP or AVIF image",
+          reason: "Not a PNG, JPEG, GIF, WebP, AVIF or HEIC image",
         });
       }
       return bytes;

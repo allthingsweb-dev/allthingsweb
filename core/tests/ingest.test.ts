@@ -71,6 +71,14 @@ describe("downloading an image", () => {
     expect(failure(exit)).toBe("Redirect location is not a URL");
   });
 
+  test("takes HEIC, which is stored as JPEG", async () => {
+    const heic = imageBytes("heic", "phone");
+    const { exit } = await download("https://pbs.twimg.com/a.heic", {
+      "https://pbs.twimg.com/a.heic": heic,
+    });
+    expect(Exit.isSuccess(exit) && exit.value).toEqual(heic);
+  });
+
   test("gives up after three redirects", async () => {
     const { exit, asked } = await download("https://pbs.twimg.com/0", {
       "https://pbs.twimg.com/0": "/1",
@@ -111,7 +119,7 @@ describe("downloading an image", () => {
           })
         ).exit,
       ),
-    ).toBe("Not a PNG, JPEG, GIF, WebP or AVIF image");
+    ).toBe("Not a PNG, JPEG, GIF, WebP, AVIF or HEIC image");
   });
 });
 
@@ -130,8 +138,8 @@ describe("processing an image", () => {
     }
   });
 
-  test("stores WebP and AVIF as JPEG, measured after converting", async () => {
-    for (const format of ["webp", "avif"] as const) {
+  test("stores WebP, AVIF and HEIC as JPEG, measured after converting", async () => {
+    for (const format of ["webp", "avif", "heic"] as const) {
       const stored = await process(imageBytes(format, "photo"));
       expect(stored).toMatchObject({ format: "jpeg", width: 500, height: 50 });
       expect(looksLikeImage(stored.bytes)).toBe(true);
