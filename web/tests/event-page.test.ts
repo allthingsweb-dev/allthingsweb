@@ -82,7 +82,15 @@ const render = (
   view: EventPage,
   theme?: "light" | "dark",
   images: ImageMode = "originals",
-) => eventPage({ event: view, origin, theme, portraits: new Map(), images });
+) =>
+  eventPage({
+    event: view,
+    origin,
+    theme,
+    portraits: new Map(),
+    images,
+    now: at("2026-09-01T00:00:00Z"),
+  });
 
 /** The ledger's labels, in order. */
 const labels = (html: string) =>

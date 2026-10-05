@@ -4,7 +4,8 @@ import type { OgFontMetrics, OgFonts, OgMetrics } from "../../scripts/build.ts";
 import { built } from "../assets.ts";
 import { hostNames } from "../pages/home.tsx";
 import type { OgImage } from "../pages/metadata.tsx";
-import { clockTime, day } from "../pages/time.ts";
+import type { DateTime } from "effect";
+import { clockTime, day, year } from "../pages/time.ts";
 
 /**
  * An event's link-preview card, as the foundations want covers:
@@ -40,20 +41,37 @@ export interface CardFacts {
   readonly name: string;
   /** Whether the cursor follows: the evening is ahead or on now. */
   readonly ahead: boolean;
-  /** "THU OCT 16 · 6:00 PM". */
+  /** "THU OCT 16 · 6:00 PM", with the year when it isn't this one. */
   readonly when: string;
   /** "EAST CUT · CODERABBIT", or "" when neither is known. */
   readonly label: string;
 }
 
-export function cardFacts(event: EventPage): CardFacts {
+/**
+ * "Thu Oct 16 · 6:00 PM", or "Tue Mar 26, 2024 · 5:00 PM" for an evening
+ * in another year than `now`'s (in San Francisco): a card shared on its
+ * own says which year it means.
+ */
+export function cardWhen(
+  startsAt: DateTime.DateTime,
+  now: DateTime.DateTime,
+): string {
+  const date =
+    year(startsAt) === year(now)
+      ? day(startsAt)
+      : `${day(startsAt)}, ${year(startsAt)}`;
+  return `${date} · ${clockTime(startsAt)}`;
+}
+
+/** What `event`'s card says as of `now`. */
+export function cardFacts(event: EventPage, now: DateTime.DateTime): CardFacts {
   return {
     slug: event.slug,
     mode: event.mode,
     topic: event.topic,
     name: event.name,
     ahead: event.status !== "past",
-    when: `${day(event.startsAt)} · ${clockTime(event.startsAt)}`.toUpperCase(),
+    when: cardWhen(event.startsAt, now).toUpperCase(),
     label: [
       ...(event.venue?.neighborhood === undefined ||
       event.venue.neighborhood === null
@@ -287,15 +305,23 @@ export const cardVersion = (facts: CardFacts): string =>
 export const cardPath = (slug: string): `/${string}` =>
   `/og/${encodeURIComponent(slug)}.png`;
 
-/** The event's card, as its page names it, and what it says in words. */
-export function eventCard(event: EventPage, title: string): OgImage {
+/**
+ * The event's card as of `now`, as its page names it, and what it says in
+ * words. A new year changes what an older evening's card says, and so its
+ * version.
+ */
+export function eventCard(
+  event: EventPage,
+  title: string,
+  now: DateTime.DateTime,
+): OgImage {
   return {
-    src: `${cardPath(event.slug)}?v=${cardVersion(cardFacts(event))}`,
+    src: `${cardPath(event.slug)}?v=${cardVersion(cardFacts(event, now))}`,
     width: cardWidth,
     height: cardHeight,
     alt: [
       title,
-      `${day(event.startsAt)} · ${clockTime(event.startsAt)}`,
+      cardWhen(event.startsAt, now),
       ...(event.venue?.neighborhood === undefined ||
       event.venue.neighborhood === null
         ? []
