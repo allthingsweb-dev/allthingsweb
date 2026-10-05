@@ -9,6 +9,7 @@ import { homeTitle, siteDescription } from "./metadata.tsx";
 import { organization } from "./structured-data.ts";
 import { type ImageMode, Photo, showable } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
+import { ogCards } from "../og/cards.ts";
 import { clockTime, day } from "./time.ts";
 
 /**
@@ -168,6 +169,7 @@ export function homePage({
       title: homeTitle,
       description: siteDescription,
       path: "/",
+      image: ogCards.home,
       structuredData: [organization(origin, siteDescription)],
     },
     origin,
@@ -265,7 +267,12 @@ export function unavailablePage({
   readonly images: ImageMode;
 }): string {
   return Document({
-    meta: { title: homeTitle, description: siteDescription, path },
+    meta: {
+      title: homeTitle,
+      description: siteDescription,
+      path,
+      image: ogCards.home,
+    },
     origin,
     theme,
     portraits: new Map(),

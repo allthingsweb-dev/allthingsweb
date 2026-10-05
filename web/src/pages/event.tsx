@@ -36,6 +36,8 @@ import {
 } from "./picture.tsx";
 import { eventStructuredData } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
+import { ogCards } from "../og/cards.ts";
+import { eventCard } from "../og/event-card.ts";
 import { day, fullDate, timeRange } from "./time.ts";
 
 /**
@@ -857,6 +859,7 @@ export function eventPage({
           ? "An evening for people who build software, in San Francisco."
           : tagline,
       path: eventPath(event.slug),
+      image: eventCard(event, eventTitle(event)),
       structuredData: [eventStructuredData(event, origin)],
     },
     origin,
@@ -971,6 +974,7 @@ export function notFoundPage({
       title: gatheringTitle(said.title),
       description: said.lead,
       path,
+      image: ogCards.notFound,
     },
     origin,
     theme,
@@ -1011,6 +1015,7 @@ export function eventUnavailablePage({
       title: homeTitle,
       description: "Evenings for people who build software in San Francisco.",
       path,
+      image: ogCards.home,
     },
     origin,
     theme,

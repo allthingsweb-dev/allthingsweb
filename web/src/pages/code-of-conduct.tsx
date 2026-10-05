@@ -2,6 +2,7 @@ import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { Document } from "./document.tsx";
 import { gatheringTitle } from "./metadata.tsx";
 import type { ImageMode } from "./picture.tsx";
+import { ogCards } from "../og/cards.ts";
 import type { Theme } from "./theme.ts";
 
 /**
@@ -34,6 +35,7 @@ export function codeOfConductPage({
       description:
         "How we keep all things welcoming, respectful, and community first, and how to report a concern.",
       path: codeOfConductPath,
+      image: ogCards.codeOfConduct,
     },
     origin,
     theme,
