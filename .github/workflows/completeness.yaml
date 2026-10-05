@@ -2,8 +2,9 @@ name: Event completeness
 
 # Every Monday, core's completeness report (core/src/completeness.ts) reads
 # production as the read-only site_reader role and fails if an evening of
-# talks (events.program) that ended in the last 30 days has none. The full report is the run's
-# summary either way.
+# talks (events.program) that ended in the last 30 days has none, or if any
+# published evening has no venue. The full report is the run's summary
+# either way.
 on:
   schedule:
     - cron: "0 16 * * 1"
@@ -35,7 +36,7 @@ jobs:
         working-directory: core
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
-      - name: 📋 Report, and check recent evenings have talks
+      - name: 📋 Report, and check recent evenings have talks and every evening a venue
         working-directory: core
         env:
           DATABASE_URL: ${{ secrets.NEON_READER_URL }}
