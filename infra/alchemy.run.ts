@@ -2,7 +2,15 @@ import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
-import { MEDIA_DOMAIN, Media, isProduction } from "./src/media.ts";
+import {
+  MEDIA_BUCKET,
+  MEDIA_DOMAIN,
+  MEDIA_ZONE,
+  Media,
+  isProduction,
+  mediaZone,
+  productionRole,
+} from "./src/media.ts";
 import { Sync } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
@@ -21,7 +29,23 @@ export default Alchemy.Stack(
       return { webUrl: web.url.as<string>() };
     }
 
+    // Prod follows allthings.dev between accounts (see productionRole): where
+    // the zone is active it serves; in the allthings account before then it
+    // only holds the bucket the media is copied into.
+    const { accountId, zone } = yield* mediaZone;
+    const role = productionRole(accountId, zone);
+    if (role instanceof Error) return yield* Effect.die(role);
     yield* Media;
+    if (role === "stage") {
+      return {
+        mediaBucket: MEDIA_BUCKET,
+        mediaDomain:
+          zone === undefined
+            ? `not attached until ${MEDIA_ZONE} is added to this account`
+            : `attached; serves once ${MEDIA_ZONE} is active here`,
+      };
+    }
+
     const upload = yield* MediaUpload;
     const token = yield* Alchemy.makeRandom("MediaUploadToken");
     yield* MediaUploadCheck({
@@ -53,7 +77,7 @@ export default Alchemy.Stack(
     });
 
     return {
-      mediaBucket: "allthings-media",
+      mediaBucket: MEDIA_BUCKET,
       mediaUploadUrl: upload.url.as<string>(),
     };
   }),

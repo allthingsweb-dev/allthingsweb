@@ -11,9 +11,11 @@
     "deploy": "alchemy deploy"
   },
   "dependencies": {
+    "@distilled.cloud/cloudflare": "1.0.0-rc.13",
     "@effect/platform-bun": "4.0.0",
     "@effect/platform-node": "4.0.0",
     "alchemy": "2.0.0-beta.80",
+    "aws4fetch": "1.0.20",
     "effect": "4.0.0"
   },
   "devDependencies": {
