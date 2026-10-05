@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { HttpUrl } from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
 
 /**
@@ -23,7 +24,8 @@ import { DataSourceError } from "./errors.ts";
  */
 const Hold = Schema.optionalKey(Schema.String.check(Schema.isNonEmpty()));
 
-const Url = Schema.String.check(Schema.isPattern(/^https:\/\/\S+$/));
+/** An https URL with a domain-name host, as the public contract accepts, and no whitespace. */
+const Url = HttpUrl.check(Schema.isPattern(/^https:\/\/\S+$/));
 const Sources = Schema.Array(Url).check(Schema.isMinLength(1));
 
 /** Someone a lineup names: an existing profile, or one to create. */
@@ -146,6 +148,21 @@ export function applicable(lineups: Lineups): Lineups {
   return { people, events };
 }
 
+/** Held people an entry that is not held names: a contradiction. */
+export function heldButNamed(lineups: Lineups): ReadonlyArray<string> {
+  const named = new Set(
+    applicable({ people: {}, events: lineups.events }).events.flatMap(
+      (event) => [
+        ...event.talks.flatMap((talk) => talk.speakers.map((s) => s.person)),
+        ...event.people.map((p) => p.person),
+      ],
+    ),
+  );
+  return Object.entries(lineups.people)
+    .filter(([key, person]) => person.hold !== undefined && named.has(key))
+    .map(([key]) => key);
+}
+
 /** Every held entry, as "<what>: <why>", in file order. */
 export function heldEntries(lineups: Lineups): ReadonlyArray<string> {
   const held: Array<string> = [];
@@ -208,6 +225,12 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
     if (missing.length > 0) {
       return yield* fail(
         `People not defined in the file: ${missing.join(", ")}`,
+      );
+    }
+    const contradicted = heldButNamed(file);
+    if (contradicted.length > 0) {
+      return yield* fail(
+        `Held people named by entries that are not held (hold those entries too): ${contradicted.join(", ")}`,
       );
     }
 

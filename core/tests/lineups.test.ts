@@ -313,6 +313,49 @@ describe("held entries", () => {
     ]);
   });
 
+  test("a held person named by an entry that is not held stops the run", async () => {
+    const db = await database();
+    const before = await state(db);
+    const exit = await apply(db, {
+      ...lineups,
+      people: {
+        ...lineups.people,
+        kay: { ...lineups.people["kay"]!, hold: "needs Erik: unconfirmed" },
+      },
+    });
+    expect(exit).toEqual(
+      Exit.fail(
+        new LineupError({
+          reason:
+            "Held people named by entries that are not held (hold those entries too): kay",
+        }),
+      ),
+    );
+    expect(await state(db)).toEqual(before);
+  });
+
+  test.each([
+    "https://:bad",
+    "http://example.com/a.jpg",
+    "https://localhost/a.jpg",
+    "https://example.com/a b.jpg",
+  ])("%s is not a URL a lineup may carry", (url) => {
+    expect(() =>
+      Schema.decodeUnknownSync(Lineups)({
+        people: {},
+        events: [
+          {
+            lumaEventId: "evt-x",
+            name: "X",
+            recordingUrl: url,
+            talks: [],
+            people: [],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
   test("are listed, and never written", async () => {
     const db = await database();
     const exit = await apply(db, held);
