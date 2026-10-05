@@ -16,6 +16,7 @@ import { EveningName } from "./evening-row.tsx";
 import { gatheringTitle } from "./metadata.tsx";
 import { hasSource, type ImageMode, SquarePhoto } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
+import { ogCards } from "../og/cards.ts";
 import { listDate } from "./time.ts";
 
 /**
@@ -272,6 +273,7 @@ export function peoplePage({
       description:
         "The organizers of all things, and everyone who has been on stage at its evenings in San Francisco.",
       path: "/people",
+      image: ogCards.people,
     },
     origin,
     theme,

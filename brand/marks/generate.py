@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import resvg_py
+from og import build_og
 import uharfbuzz as hb
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
@@ -31,6 +32,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 TOKENS = ROOT / "brand/all-things.tokens.json"
 OUT = ROOT / "app/public/brand"
+# Link-preview cards and what the Worker draws event cards with (og.py).
+OG_OUT = ROOT / "brand/og"
 
 # Archivo variable font, pinned to a google/fonts commit and verified by hash.
 FONT_URL = (
@@ -39,6 +42,14 @@ FONT_URL = (
 )
 FONT_SHA256 = "0e094a7d3c7c4c25cf1310c4b30014f1dae9332220b1c2c88f4fa996f0b05053"
 FONT_CACHE = HERE / ".cache/Archivo[wdth,wght].ttf"
+
+# Geist Mono, for meta on link-preview cards, pinned the same way.
+MONO_URL = (
+    "https://github.com/google/fonts/raw/9e25e2ba265e5298f70f6182dd4e8a3ebf1b9123"
+    "/ofl/geistmono/GeistMono%5Bwght%5D.ttf"
+)
+MONO_SHA256 = "d00e590b8eb3a59acc329b2d044fd143ae935090b7da33199ebee27cc7de8196"
+MONO_CACHE = HERE / ".cache/GeistMono[wght].ttf"
 
 # The cursor is the regular-weight underscore, as on the site.
 CURSOR_WEIGHT = 400
@@ -76,6 +87,11 @@ class Brand:
     cursor_blink_ms: float
 
 
+def hex_color_of(name: str) -> str:
+    components = json.loads(TOKENS.read_text())["color"][name]["$value"]["components"]
+    return "#" + "".join(f"{round(c * 255):02X}" for c in components)
+
+
 def load_brand() -> Brand:
     tokens = json.loads(TOKENS.read_text())
 
@@ -98,16 +114,18 @@ def load_brand() -> Brand:
     )
 
 
-def load_font() -> bytes:
-    if not FONT_CACHE.exists():
-        FONT_CACHE.parent.mkdir(parents=True, exist_ok=True)
-        with urllib.request.urlopen(FONT_URL, timeout=60) as response:
-            FONT_CACHE.write_bytes(response.read())
-    data = FONT_CACHE.read_bytes()
+def load_font(
+    url: str = FONT_URL, sha256: str = FONT_SHA256, cache: Path = FONT_CACHE
+) -> bytes:
+    if not cache.exists():
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        with urllib.request.urlopen(url, timeout=60) as response:
+            cache.write_bytes(response.read())
+    data = cache.read_bytes()
     digest = hashlib.sha256(data).hexdigest()
-    if digest != FONT_SHA256:
-        FONT_CACHE.unlink()
-        sys.exit(f"Archivo download has sha256 {digest}, expected {FONT_SHA256}")
+    if digest != sha256:
+        cache.unlink()
+        sys.exit(f"{cache.name} download has sha256 {digest}, expected {sha256}")
     return data
 
 
@@ -288,9 +306,10 @@ def ico(svg_text: str) -> bytes:
     return out.getvalue()
 
 
-def build() -> dict[str, bytes]:
+def build() -> dict[Path, bytes]:
     brand = load_brand()
-    setter = Typesetter(load_font(), brand.width)
+    archivo = load_font()
+    setter = Typesetter(archivo, brand.width)
     c = brand.colors
     on_paper = {"text": c["ink"], "accent": c["bridge"]}
     on_night = {"text": c["paper"], "accent": c["glow"]}
@@ -348,17 +367,31 @@ def build() -> dict[str, bytes]:
     files.update({name: png(favicon, size) for name, size in ICON_SIZES.items()})
     files.update({name: png(icon, size) for name, size in LARGE_ICON_SIZES.items()})
     files["avatar.png"] = png(avatar, 512)
+    colors = {
+        name: hex_color_of(name)
+        for name in json.loads(TOKENS.read_text())["color"]
+        if name != "$type"
+    }
+    og = build_og(
+        {"archivo": archivo, "mono": load_font(MONO_URL, MONO_SHA256, MONO_CACHE)},
+        colors,
+        lambda svg_text: bytes(resvg_py.svg_to_bytes(svg_string=svg_text)),
+    )
     return {
-        name: content.encode() if isinstance(content, str) else content
-        for name, content in files.items()
+        **{
+            OUT / name: content.encode() if isinstance(content, str) else content
+            for name, content in files.items()
+        },
+        **{OG_OUT / name: content for name, content in og.items()},
     }
 
 
 def matches(path: Path, data: bytes) -> bool:
-    """SVGs must match exactly; images by pixels, since zlib builds differ."""
+    """Images must match by pixels, since zlib builds differ; anything else
+    (SVGs, fonts, metrics) exactly."""
     if not path.exists():
         return False
-    if path.suffix == ".svg":
+    if path.suffix not in (".png", ".ico"):
         return path.read_bytes() == data
 
     def frames(image: Image.Image) -> list[tuple[tuple[int, int], bytes]]:
@@ -382,18 +415,20 @@ def main() -> None:
 
     files = build()
     if args.check:
-        stale = [n for n, data in files.items() if not matches(OUT / n, data)]
+        stale = [
+            str(path.relative_to(ROOT))
+            for path, data in files.items()
+            if not matches(path, data)
+        ]
         if stale:
-            sys.exit(
-                f"Stale marks in app/public/brand: {', '.join(stale)}. Run `uv run generate.py`."
-            )
+            sys.exit(f"Stale marks: {', '.join(stale)}. Run `uv run generate.py`.")
         print(f"{len(files)} marks are up to date")
         return
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    for name, data in files.items():
-        (OUT / name).write_bytes(data)
-    print(f"Wrote {len(files)} marks to {OUT.relative_to(ROOT)}")
+    for path, data in files.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    print(f"Wrote {len(files)} marks to app/public/brand and brand/og")
 
 
 if __name__ == "__main__":

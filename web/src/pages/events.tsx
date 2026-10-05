@@ -7,6 +7,7 @@ import { gatheringTitle } from "./metadata.tsx";
 import { EveningRow } from "./evening-row.tsx";
 import type { Theme } from "./theme.ts";
 import { year } from "./time.ts";
+import { ogCards } from "../og/cards.ts";
 import type { ImageMode } from "./picture.tsx";
 
 /**
@@ -91,6 +92,7 @@ export function eventsPage({
       description:
         "Every all things evening, ahead and past. In the neighborhoods of San Francisco.",
       path: "/events",
+      image: ogCards.events,
     },
     origin,
     theme,

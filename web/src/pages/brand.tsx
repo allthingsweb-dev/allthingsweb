@@ -15,6 +15,7 @@ import { foundations } from "../foundations.ts";
 import { Document } from "./document.tsx";
 import { lockup } from "./metadata.tsx";
 import type { ImageMode } from "./picture.tsx";
+import { ogCards } from "../og/cards.ts";
 import type { Theme } from "./theme.ts";
 
 /**
@@ -412,6 +413,7 @@ export function brandPage({
       description:
         "The all things/_ brand: palette, type, marks and the rules they follow.",
       path: "/brand",
+      image: ogCards.brand,
     },
     origin,
     theme,
