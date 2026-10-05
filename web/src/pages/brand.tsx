@@ -12,6 +12,7 @@ import {
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
 import { Document } from "./document.tsx";
+import { lockup } from "./metadata.tsx";
 import type { Theme } from "./theme.ts";
 
 /**
@@ -387,17 +388,23 @@ function brandContent(): string {
 }
 
 export interface BrandProps {
+  /** The production origin, for the canonical URL. */
+  readonly origin: string;
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
   readonly portraits: PortraitsById;
 }
 
 /** The whole of /brand, in the visitor's mode, signed off by the hosts. */
-export function brandPage({ theme, portraits }: BrandProps): string {
+export function brandPage({ origin, theme, portraits }: BrandProps): string {
   return Document({
-    title: "all things/brand",
-    description:
-      "The all things/_ brand: palette, type, marks and the rules they follow.",
+    meta: {
+      title: lockup("brand"),
+      description:
+        "The all things/_ brand: palette, type, marks and the rules they follow.",
+      path: "/brand",
+    },
+    origin,
     theme,
     portraits,
     children: brandContent(),

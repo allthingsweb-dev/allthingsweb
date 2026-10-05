@@ -5,6 +5,8 @@ import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
 import { everyEvening, lumaCalendar } from "../links.ts";
 import { Document } from "./document.tsx";
+import { homeTitle, siteDescription } from "./metadata.tsx";
+import { organization } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
 import { clockTime, day, listDate } from "./time.ts";
 
@@ -203,9 +205,13 @@ export function homePage({
 }: HomeProps): string {
   const { next, afterThat, recently, photos } = home;
   return Document({
-    title: "all things/_",
-    description:
-      "Evenings for people who build software. In the neighborhoods of San Francisco.",
+    meta: {
+      title: homeTitle,
+      description: siteDescription,
+      path: "/",
+      structuredData: [organization(origin, siteDescription)],
+    },
+    origin,
     theme,
     portraits,
     children: (
@@ -286,13 +292,15 @@ export function homePage({
  * The hosts' portraits weren't read either, so the blank avatar stands in.
  */
 export function unavailablePage({
+  origin,
   theme,
 }: {
+  readonly origin: string;
   readonly theme: Theme | undefined;
 }): string {
   return Document({
-    title: "all things/_",
-    description: "Evenings for people who build software in San Francisco.",
+    meta: { title: homeTitle, description: siteDescription, path: "/" },
+    origin,
     theme,
     portraits: new Map(),
     children: (
