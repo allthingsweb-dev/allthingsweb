@@ -4,6 +4,7 @@ import eventTopicMigration from "./0002_event_topic.ts";
 import joinTableKeysMigration from "./0003_join_table_keys.ts";
 import eventPeopleMigration from "./0004_event_people.ts";
 import eventPostsMigration from "./0005_event_posts.ts";
+import eventExtrasMigration from "./0006_event_extras.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -18,6 +19,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0003_join_table_keys": joinTableKeysMigration,
   "0004_event_people": eventPeopleMigration,
   "0005_event_posts": eventPostsMigration,
+  "0006_event_extras": eventExtrasMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

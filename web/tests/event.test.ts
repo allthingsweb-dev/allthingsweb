@@ -383,11 +383,34 @@ describe("a past daytime hackathon", () => {
     );
     expect(html).toContain("<title>all things/web hackathon</title>");
     expect(html).toContain('class="event-name event-name-m"');
-    expect(labels(html)).toEqual(["When", "Where", "Hosted by", "Next"]);
+    expect(labels(html)).toEqual([
+      "When",
+      "Where",
+      "Hosted by",
+      "Schedule",
+      "Awards",
+      "Theme",
+      "Next",
+    ]);
     expect(row(html, "When")).toContain(
       "<p>10:30 AM–8:30 PM, San Francisco time</p>",
     );
     expect(row(html, "Where")).toContain('<p class="fact-head place">FiDi</p>');
+  });
+
+  it("shows its schedule and its notes as the database has them", async ({
+    Events,
+  }) => {
+    const { html } = await page(Events, slugs.hackathon);
+    expect(row(html, "Schedule")).toContain(
+      '<li><span class="schedule-time at-type-meta">10:30 am</span><div class="schedule-step"><p class="schedule-title">Doors open</p><p class="schedule-description">Get to know your fellow hackers and form teams.</p></div></li><li><span class="schedule-time at-type-meta">1 - 7:30 pm</span><div class="schedule-step"><p class="schedule-title">Hacking time</p></div></li>',
+    );
+    expect(row(html, "Awards")).toContain(
+      '<div class="note"><p>Two awards: the most <strong>creative</strong> and the most impactful.</p></div>',
+    );
+    expect(row(html, "Theme")).toContain(
+      '<div class="note"><p>Future of Web</p></div>',
+    );
   });
 });
 

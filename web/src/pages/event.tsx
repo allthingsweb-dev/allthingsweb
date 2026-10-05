@@ -1,7 +1,9 @@
 import { dataTheme } from "allthings-brand/src/css.ts";
 import type {
   EventPage,
+  Note,
   Person,
+  ScheduleItem,
   Speaker,
   Talk,
   Venue,
@@ -39,8 +41,9 @@ import { day, fullDate, timeRange } from "./time.ts";
  * /<slug>: an evening's page, the Ledger (design round EP1-B). The lockup,
  * then a ruled list that names every fact once, each on its own row under a
  * small label: when, where, who hosts, how to get in (or, once it is over,
- * the recording), who is on stage, the photos, and what comes next. A row
- * whose facts are unknown is left out rather than shown empty.
+ * the recording), its schedule and any notes of its own (a hackathon's
+ * awards, theme and teams), who is on stage, the photos, and what comes
+ * next. A row whose facts are unknown is left out rather than shown empty.
  *
  * The page is in its event's mode (Night for evenings, Paper for daytime
  * events) unless the visitor fixed one with the mode switch.
@@ -544,6 +547,50 @@ function TalkEntry({
   );
 }
 
+/** The event's schedule: each step's time as written, then what happens. */
+function Schedule({
+  schedule,
+}: {
+  readonly schedule: ReadonlyArray<ScheduleItem>;
+}) {
+  return (
+    <Fact label="Schedule">
+      <ol class="schedule">
+        {schedule.map((item) => (
+          <li>
+            <span class="schedule-time at-type-meta" safe>
+              {item.time}
+            </span>
+            <div class="schedule-step">
+              <p class="schedule-title" safe>
+                {item.title}
+              </p>
+              {item.description === null ? (
+                ""
+              ) : (
+                <p class="schedule-description" safe>
+                  {item.description}
+                </p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Fact>
+  );
+}
+
+/** A row of the event's own, such as its awards, under the note's label. */
+function NoteFact({ note }: { readonly note: Note }) {
+  // Sanitized by core (rich-text.ts): formatting and safe links only.
+  const safeBody = note.body;
+  return (
+    <Fact label={note.label}>
+      <div class="note">{safeBody}</div>
+    </Fact>
+  );
+}
+
 function OnStage({
   talks,
   images,
@@ -691,6 +738,14 @@ export function eventPage({
           ) : (
             ""
           )}
+          {event.schedule.length === 0 ? (
+            ""
+          ) : (
+            <Schedule schedule={event.schedule} />
+          )}
+          {event.notes.map((note) => (
+            <NoteFact note={note} />
+          ))}
           {event.talks.length === 0 ? (
             ""
           ) : (

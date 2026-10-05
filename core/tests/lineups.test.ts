@@ -407,13 +407,17 @@ describe("core/backfill/lineups.json", () => {
         ["My most used slash commands and custom subagents for development"],
         [],
       ],
+      ["NextDev.fm Live", ["NextDev.fm Live"], []],
     ]);
     expect(Object.keys(subset.people).toSorted()).toEqual([
       "arthur-stockman",
+      "dan-goosewin",
       "michael-arnaldi",
       "mirela-prifti",
+      "ryan-vogel",
       "sebastian-lorenz",
       "simon-farshid",
+      "ted-nyman",
     ]);
     expect(
       subset.events

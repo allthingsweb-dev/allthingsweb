@@ -12,8 +12,8 @@ import { clockAt, now, seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
  * Event pages against the migrated production schema: tests/seed.sql, plus
- * six more photos for React at Acme, one more on another origin, and a
- * topic the site set.
+ * six more photos for React at Acme, one more on another origin, a topic
+ * the site set, and Hack day's schedule and notes.
  */
 
 const db = await seededDatabase();
@@ -36,6 +36,15 @@ await db.exec(`
       )
       .join(",\n    ")};
   UPDATE events SET topic = 'coffee & code' WHERE slug = '2025-12-02-café-night';
+  -- Hack day's schedule and notes, written out of order.
+  INSERT INTO event_schedule_items (event_id, position, time, title, description, updated_at) VALUES
+    ('e0000000-0000-4000-8000-000000000003', 1, ' 1 - 7 pm ', ' Hacking time ', '  ', now()),
+    ('e0000000-0000-4000-8000-000000000003', 0, '9 am', 'Doors open', 'Form teams.', now());
+  INSERT INTO event_notes (event_id, position, label, body, updated_at) VALUES
+    ('e0000000-0000-4000-8000-000000000003', 2, 'Theme', '<p>Open <strong>source</strong></p><script>alert(1)</script>', now()),
+    ('e0000000-0000-4000-8000-000000000003', 0, ' Awards ', '<p>Swag &amp; <a href="https://prizes.example/">credits</a></p>', now()),
+    ('e0000000-0000-4000-8000-000000000003', 1, 'Empty', '<p> </p>', now()),
+    ('e0000000-0000-4000-8000-000000000003', 3, '  ', '<p>No label</p>', now());
 `);
 afterAll(() => db.close());
 
@@ -267,6 +276,35 @@ describe("EventPages", () => {
     expect(page.talks).toEqual([
       expect.objectContaining({ title: "Hacking live", description: null }),
     ]);
+  });
+
+  test("reads the schedule and notes in their order, trimmed and sanitized", async () => {
+    const page = await read("2026-10-03-hack-day");
+    expect(page.schedule).toEqual([
+      { time: "9 am", title: "Doors open", description: "Form teams." },
+      // A description that says nothing is none.
+      { time: "1 - 7 pm", title: "Hacking time", description: null },
+    ]);
+    // Notes keep formatting and safe links only; one without a label or
+    // anything to say is left out.
+    expect(
+      page.notes.map((note) => ({
+        label: note.label,
+        body: String(note.body),
+      })),
+    ).toEqual([
+      {
+        label: "Awards",
+        body: '<p>Swag &amp; <a href="https://prizes.example/" target="_blank" rel="noopener noreferrer">credits</a></p>',
+      },
+      { label: "Theme", body: "<p>Open <strong>source</strong></p>" },
+    ]);
+  });
+
+  test("reads no schedule and no notes where none are recorded", async () => {
+    const page = await read("2026-08-12-react-at-acme");
+    expect(page.schedule).toEqual([]);
+    expect(page.notes).toEqual([]);
   });
 
   test("reads an upcoming evening, its Luma id encoded", async () => {

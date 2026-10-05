@@ -25,7 +25,10 @@ export const slugs = {
   live: "live-now",
   /** Past, with photos, a recording and a talk two people gave. */
   past: "2025-01-28-all-things-web-at-sanity",
-  /** A past daytime hackathon, without talks, photos or a recording. */
+  /**
+   * A past daytime hackathon, without talks, photos or a recording, with a
+   * schedule and notes.
+   */
   hackathon: "2025-04-26-hackathon-at-sentry",
   /** Upcoming, in the morning, without a venue or a Luma page. */
   bare: "2099-morning-without-a-venue",
@@ -112,7 +115,14 @@ export function eventCatalog(now: Date): string {
       ('e0000000-0000-4000-8000-000000000501', '${hosts[0].profileId}', 'organizer', 1, 'luma', now(), now()),
       ('e0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000501', 'co-host', 0, 'luma', now(), now()),
       ('e0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000502', 'co-host', 1, 'luma', now(), now()),
-      ('e0000000-0000-4000-8000-000000000503', 'b0000000-0000-4000-8000-000000000502', 'mc', 0, 'site', now(), now());`;
+      ('e0000000-0000-4000-8000-000000000503', 'b0000000-0000-4000-8000-000000000502', 'mc', 0, 'site', now(), now());
+    -- The hackathon's schedule and notes, as its page had them.
+    INSERT INTO event_schedule_items (event_id, position, time, title, description, updated_at) VALUES
+      ('e0000000-0000-4000-8000-000000000504', 0, '10:30 am', 'Doors open', 'Get to know your fellow hackers and form teams.', now()),
+      ('e0000000-0000-4000-8000-000000000504', 1, '1 - 7:30 pm', 'Hacking time', '', now());
+    INSERT INTO event_notes (event_id, position, label, body, updated_at) VALUES
+      ('e0000000-0000-4000-8000-000000000504', 0, 'Awards', '<p>Two awards: the most <strong>creative</strong> and the most impactful.</p>', now()),
+      ('e0000000-0000-4000-8000-000000000504', 1, 'Theme', '<p>Future of Web</p>', now());`;
 }
 
 /** A migrated database holding the event catalog as of `now`. */
