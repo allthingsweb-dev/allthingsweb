@@ -4,8 +4,11 @@ import { SourceError } from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Redacted from "effect/Redacted";
 
-/** Neon's read-only role on the production branch. */
-export const READER_ROLE = "reader";
+/**
+ * The read-only role on production's branch, created by scripts/site-reader.ts.
+ * Not Neon's "reader", which is a member of neon_superuser and can write.
+ */
+export const READER_ROLE = "site_reader";
 
 const invalid = (reason: string) =>
   Effect.fail(

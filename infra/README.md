@@ -14,7 +14,7 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
 - **Media:** `prod` only. An R2 bucket served on `media.allthings.dev`, kept even if removed from the stack.
 - **Upload Worker:** `prod` only. Stores and deletes media for the app while it runs on Vercel. The bucket is a binding and callers present a token Alchemy generates. Every deploy proves uploads work by storing and deleting one object.
 - **Web Worker:** `web/` (the public API, the MCP server, the home page and `/brand`), on every stage but `prod`; previews run nothing else. Alchemy bundles it with web's dependencies and uploads `web/dist/public` as its static assets, so run `bun install` at the repository root and `bun run build` in `web/` before planning or deploying.
-- **Hyperdrive:** every stage but `prod`. The Web Worker's `HYPERDRIVE` binding, in front of production's Neon database as its read-only `reader` role, from `NEON_READER_URL` (see [Accounts and stages](#accounts-and-stages)).
+- **Hyperdrive:** every stage but `prod`. The Web Worker's `HYPERDRIVE` binding, in front of production's Neon database as the read-only `site_reader` role, from `NEON_READER_URL` (see [Accounts and stages](#accounts-and-stages)).
 - **Vercel env:** `prod` deploys write `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` to every Vercel environment (the token is sensitive except in development, where Vercel doesn't allow it) with the Vercel CLI, so it needs to be signed in (`bunx vercel login`).
 
 ## Accounts and stages
@@ -25,10 +25,10 @@ allthings has its own Cloudflare account (`af627f300cd00c4dca56aacf05bea050`), s
 - **`staging`:** main, deployed on every merge.
 - **Your own stage:** `bun run deploy --profile allthings` from a machine signed in with `bun alchemy profile edit --profile allthings --add Cloudflare`, with `NEON_READER_URL` in the environment (below).
 
-Each stage's Hyperdrive connects to production's Neon branch as `reader`, a role that can only read, so nothing outside prod can write production's data. The stack refuses a `NEON_READER_URL` for any other role. Previews only read, so Hyperdrive caches query results for 60 seconds and may serve them up to 15 seconds stale while it refreshes them; each stage holds at most about 5 connections to Neon. CI deploys with the `NEON_READER_URL` repository secret, a direct (not pooled) connection string. On your machine, pass the same string without printing it:
+Each stage's Hyperdrive connects to production's Neon branch as `site_reader`, which may only `SELECT` the tables the public site reads and starts every transaction read-only, so nothing outside prod can write production's data or read anything else. The stack refuses a `NEON_READER_URL` for any other role, including Neon's own `reader`, which belongs to `neon_superuser` and can write. [`scripts/site-reader.ts`](scripts/site-reader.ts) creates the role or rotates its password, and stores the connection string in the repository secret and 1Password. Previews only read, so Hyperdrive caches query results for 60 seconds and may serve them up to 15 seconds stale while it refreshes them; each stage holds at most about 5 connections to Neon. CI deploys with the `NEON_READER_URL` repository secret, a direct (not pooled) connection string. On your machine, pass the same string without printing it:
 
 ```sh
-NEON_READER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r --project-id wispy-sea-75401301 --role-name reader --database-name neondb) \
+NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential") \
   bun run deploy --profile allthings
 ```
 
