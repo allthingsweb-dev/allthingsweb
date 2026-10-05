@@ -77,7 +77,10 @@ Run from `infra/` once this has merged. Nothing is passed by hand: the copy uses
    - Check in the dashboard that the bucket's custom domain shows media.allthings.dev.
    - If R2 refuses a pending zone, the deploy fails here and changes nothing else. Then the attach happens in Phase 4 instead, and the window is longer (see Downtime).
 2. Ask organizers not to upload media for the next hour.
-3. Run `copy` and then `verify` (the delta since Phase 1).
+3. Run `copy` and then `verify` (the delta since Phase 1). Both must exit 0 before the move.
+   - A key never changes: the upload Worker refuses a key that exists (409), and every key carries a new UUID. So the delta should only add objects.
+   - A conflict means something wrote outside that path, or deleted a key and stored another object under it. The copy never overwrites, so it stops there.
+   - Do not submit the move until it is resolved. Compare the two objects, delete the staged one in the allthings account's dashboard (R2 → allthings-media), and rerun `copy` and `verify`.
 4. Warm the caches by loading every event, people and home page on staging, so the `/img` variants are in the Web Worker's edge cache. Vercel's image cache is warm from normal traffic.
 5. Pick a time with no evening on the calendar within 24 hours.
 
