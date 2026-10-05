@@ -1,9 +1,9 @@
-import { makeHandler } from "./app.ts";
+import { type ExecutionContext, makeHandler } from "./app.ts";
 import { built } from "./assets.ts";
-import { dataCenterCache, edgeCached, type WaitUntil } from "./edge-cache.ts";
+import { dataCenterCache, edgeCached } from "./edge-cache.ts";
 
 let handle:
-  | ((request: Request, context: WaitUntil) => Promise<Response>)
+  | ((request: Request, context: ExecutionContext) => Promise<Response>)
   | undefined;
 
 /**
@@ -18,7 +18,7 @@ export default {
   fetch(
     request: Request,
     env: Readonly<Record<string, unknown>>,
-    context: WaitUntil,
+    context: ExecutionContext,
   ): Promise<Response> {
     if (handle === undefined) {
       const app = makeHandler(env);
@@ -26,7 +26,7 @@ export default {
       const name = env["EDGE_CACHE"];
       handle =
         cache === undefined || typeof name !== "string" || name === ""
-          ? (incoming) => app(incoming)
+          ? app
           : edgeCached(app, {
               cache,
               build: `${name}/${built.build}`,

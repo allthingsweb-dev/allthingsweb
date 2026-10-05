@@ -105,7 +105,8 @@ const make = Effect.gen(function* () {
             'alt', img.alt,
             'placeholder', img.placeholder,
             'width', img.width,
-            'height', img.height
+            'height', img.height,
+            'version', floor(extract(epoch FROM img.updated_at))::bigint::text
           ) ORDER BY ei.created_at, img.id)
           FROM event_images ei
           JOIN images img ON img.id = ei.image_id

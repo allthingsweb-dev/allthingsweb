@@ -31,8 +31,10 @@ import { themeOf } from "./pages/theme.ts";
  *   the build's content hash, so a page never outlives the stylesheet and
  *   templates it was built with.
  *
- * Every answer says how it was served in `Server-Timing`:
- * `cache;desc="hit"|"stale"|"miss"|"bypass"` with the lookup's duration.
+ * Every answer says how it was served in `Server-Timing`, as photo variants
+ * say theirs (`img;desc=...`): `cache;desc="hit"|"stale"|"miss"|"bypass"`
+ * with the lookup's duration. Photo variants keep their own cache, under
+ * their own URLs, and pass through untouched (see `ownCachePrefixes`).
  */
 
 /** How long a kept copy is fresh, and how long after that it may be served stale. */
@@ -255,19 +257,27 @@ function aged(
 }
 
 /**
+ * Paths with a cache of their own, which this one leaves alone: photo
+ * variants (images/route.ts) are kept in the same Cache API under their
+ * own URLs, and stream originals too large to hold.
+ */
+export const ownCachePrefixes: ReadonlyArray<string> = ["/img/"];
+
+/**
  * `handle` behind the cache. Only GET requests are looked up; the rest,
- * and anything the cache can't reach, go straight to `handle`.
+ * paths with their own cache, and anything the cache can't reach go
+ * straight to `handle`, which gets the request's context as it would.
  */
 export function edgeCached(
-  handle: (request: Request) => Promise<Response>,
+  handle: (request: Request, context: WaitUntil) => Promise<Response>,
   { cache, build, now }: EdgeCacheOptions,
 ): (request: Request, context: WaitUntil) => Promise<Response> {
   /** Keys this isolate is rebuilding, so a burst rebuilds once. */
   const rebuilding = new Set<string>();
 
   /** Builds the page and keeps it, if it may be kept. */
-  const rebuild = async (request: Request, key: string) => {
-    const response = await handle(request);
+  const rebuild = async (request: Request, key: string, context: WaitUntil) => {
+    const response = await handle(request, context);
     const policy = edgePolicy(
       response.headers.get(edgeCacheControlHeader) ??
         response.headers.get("cache-control"),
@@ -295,12 +305,16 @@ export function edgeCached(
   return async (request, context) => {
     // A client refusing every coding gets the page's own answer (406).
     const acceptEncoding = request.headers.get("accept-encoding") ?? undefined;
+    const { pathname } = new URL(request.url);
+    if (ownCachePrefixes.some((prefix) => pathname.startsWith(prefix))) {
+      return handle(request, context);
+    }
     if (
       request.method !== "GET" ||
       contentEncoding(acceptEncoding) === undefined
     ) {
       return withTiming(
-        withoutInternalHeaders(await handle(request)),
+        withoutInternalHeaders(await handle(request, context)),
         "cache",
         "bypass",
         0,
@@ -321,7 +335,11 @@ export function edgeCached(
           rebuilding.add(key);
           context.waitUntil(
             // A GET has no body, so its URL and headers are the whole request.
-            rebuild(new Request(request.url, { headers: request.headers }), key)
+            rebuild(
+              new Request(request.url, { headers: request.headers }),
+              key,
+              context,
+            )
               .then(({ response, store }) =>
                 Promise.all([response.body?.cancel(), store]),
               )
@@ -332,7 +350,7 @@ export function edgeCached(
         return withTiming(served(copy, request), "cache", "stale", lookup);
       }
     }
-    const { response, store } = await rebuild(request, key);
+    const { response, store } = await rebuild(request, key, context);
     if (store !== undefined) context.waitUntil(store);
     return withTiming(response, "cache", "miss", lookup);
   };

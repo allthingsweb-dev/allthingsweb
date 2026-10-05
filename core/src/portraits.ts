@@ -40,7 +40,8 @@ const make = Effect.gen(function* () {
     Request,
     Result: Rows.Portrait,
     execute: ({ profileIds, photoPrefix }) => sql`
-      SELECT p.id AS "profileId", i.url, i.alt, i.width, i.height
+      SELECT p.id AS "profileId", i.url, i.alt, i.width, i.height,
+        floor(extract(epoch FROM i.updated_at))::bigint::text AS version
       FROM profiles p
       JOIN images i ON i.id = p.image
       WHERE p.id IN ${sql.in(profileIds)}

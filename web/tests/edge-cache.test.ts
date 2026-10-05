@@ -336,3 +336,20 @@ describe("the edge cache", () => {
     expect(state(response)).toBe("miss");
   });
 });
+
+describe("photo variants", () => {
+  test("keep their own cache: the page cache leaves /img/ alone", async () => {
+    const { fetch, memory, app } = setup(() => ({
+      cacheControl: "public, max-age=31536000, immutable",
+      headers: { "server-timing": 'img;desc="hit";dur=2' },
+    }));
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { response } = await fetch(get("/img/w640/avif/1/events/a.jpg"));
+      expect(response.headers.get("server-timing")).toBe(
+        'img;desc="hit";dur=2',
+      );
+    }
+    expect(memory.entries.size).toBe(0);
+    expect(app.calls()).toBe(2);
+  });
+});

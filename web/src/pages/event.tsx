@@ -24,6 +24,13 @@ import { Document } from "./document.tsx";
 import { Cursor } from "./evening-row.tsx";
 import { hostNames } from "./home.tsx";
 import { gatheringTitle, homeTitle, lockup, type Title } from "./metadata.tsx";
+import {
+  hasSource,
+  type ImageMode,
+  Photo,
+  showable,
+  SquarePhoto,
+} from "./picture.tsx";
 import { eventStructuredData } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
 import { day, fullDate, timeRange } from "./time.ts";
@@ -47,6 +54,8 @@ export interface EventPageProps {
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for "your hosts" and the footer. */
   readonly portraits: PortraitsById;
+  /** How photos are shown (see picture.tsx). */
+  readonly images: ImageMode;
 }
 
 /**
@@ -192,22 +201,48 @@ function Where({
   );
 }
 
-/** A portrait, or the brand's blank avatar for someone without one. */
+/**
+ * The squares site.css shows portraits at: hosts, co-hosts and MCs at 44
+ * px; speakers at 168, 72 on phones. Each is offered up to 3x.
+ */
+const portraitSizes = {
+  small: { side: 44, sides: [72, 144], sizes: "44px" },
+  speaker: {
+    side: 168,
+    sides: [72, 144, 168, 216, 336],
+    sizes: "(max-width: 760px) 72px, 168px",
+  },
+} as const;
+
+/** A portrait, cropped square, or the brand's blank avatar for someone without one. */
 function Portrait({
-  person,
+  portrait,
   size,
+  images,
 }: {
-  readonly person: Pick<Person, "portrait">;
-  readonly size: number;
+  readonly portrait: Rows.Photo | null;
+  readonly size: keyof typeof portraitSizes;
+  readonly images: ImageMode;
 }) {
+  const { side } = portraitSizes[size];
+  if (portrait === null || !hasSource(portrait, images)) {
+    return (
+      <img
+        src={built.marks.avatar.src}
+        alt=""
+        width={String(side)}
+        height={String(side)}
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
   return (
-    <img
-      src={person.portrait?.url ?? built.marks.avatar.src}
+    <SquarePhoto
+      photo={portrait}
+      mode={images}
+      {...portraitSizes[size]}
       alt=""
-      width={String(size)}
-      height={String(size)}
-      loading="lazy"
-      decoding="async"
     />
   );
 }
@@ -220,9 +255,11 @@ function Portrait({
 function YourHosts({
   organizers,
   portraits,
+  images,
 }: {
   readonly organizers: ReadonlyArray<Person>;
   readonly portraits: PortraitsById;
+  readonly images: ImageMode;
 }) {
   const people: ReadonlyArray<Pick<Person, "portrait">> =
     organizers.length > 0
@@ -238,7 +275,7 @@ function YourHosts({
     <div class="your-hosts">
       <span class="host-portraits">
         {people.map((person) => (
-          <Portrait person={person} size={44} />
+          <Portrait portrait={person.portrait} size="small" images={images} />
         ))}
       </span>
       <p>
@@ -262,9 +299,11 @@ export function firstName(name: string): string {
 function People({
   label,
   people,
+  images,
 }: {
   readonly label: string;
   readonly people: ReadonlyArray<Person>;
+  readonly images: ImageMode;
 }) {
   return (
     <div class="event-people">
@@ -274,7 +313,7 @@ function People({
       <ul>
         {people.map((person) => (
           <li class="event-person">
-            <Portrait person={person} size={44} />
+            <Portrait portrait={person.portrait} size="small" images={images} />
             <p>
               <a class="event-person-name" href={personUrl(person.id)}>
                 <span safe>{person.name}</span>
@@ -297,9 +336,11 @@ function People({
 function HostedAt({
   event,
   portraits,
+  images,
 }: {
   readonly event: EventPage;
   readonly portraits: PortraitsById;
+  readonly images: ImageMode;
 }) {
   const companies = event.hosts;
   return (
@@ -313,7 +354,11 @@ function HostedAt({
               {hostNames(companies)}
             </p>
           )}
-          <YourHosts organizers={event.organizers} portraits={portraits} />
+          <YourHosts
+            organizers={event.organizers}
+            portraits={portraits}
+            images={images}
+          />
         </div>
         {event.coHosts.length === 0 ? (
           ""
@@ -321,9 +366,14 @@ function HostedAt({
           <People
             label={event.coHosts.length === 1 ? "co-host" : "co-hosts"}
             people={event.coHosts}
+            images={images}
           />
         )}
-        {event.mcs.length === 0 ? "" : <People label="mc" people={event.mcs} />}
+        {event.mcs.length === 0 ? (
+          ""
+        ) : (
+          <People label="mc" people={event.mcs} images={images} />
+        )}
       </>
     </Fact>
   );
@@ -410,17 +460,16 @@ function SpeakerLinks({ speaker }: { readonly speaker: Speaker }) {
   );
 }
 
-function SpeakerCard({ speaker }: { readonly speaker: Speaker }) {
+function SpeakerCard({
+  speaker,
+  images,
+}: {
+  readonly speaker: Speaker;
+  readonly images: ImageMode;
+}) {
   return (
     <article class="speaker">
-      <img
-        src={speaker.portrait?.url ?? built.marks.avatar.src}
-        alt=""
-        width="168"
-        height="168"
-        loading="lazy"
-        decoding="async"
-      />
+      <Portrait portrait={speaker.portrait} size="speaker" images={images} />
       <div class="speaker-who">
         {speaker.role === "speaker" ? (
           ""
@@ -458,7 +507,13 @@ const formatNames = {
   fireside: "fireside chat",
 } as const;
 
-function TalkEntry({ talk }: { readonly talk: Talk }) {
+function TalkEntry({
+  talk,
+  images,
+}: {
+  readonly talk: Talk;
+  readonly images: ImageMode;
+}) {
   // Sanitized by core (rich-text.ts): formatting and safe links only.
   const safeDescription = talk.description;
   return (
@@ -481,7 +536,7 @@ function TalkEntry({ talk }: { readonly talk: Talk }) {
       ) : (
         <div class="speakers">
           {talk.speakers.map((speaker) => (
-            <SpeakerCard speaker={speaker} />
+            <SpeakerCard speaker={speaker} images={images} />
           ))}
         </div>
       )}
@@ -489,12 +544,18 @@ function TalkEntry({ talk }: { readonly talk: Talk }) {
   );
 }
 
-function OnStage({ talks }: { readonly talks: ReadonlyArray<Talk> }) {
+function OnStage({
+  talks,
+  images,
+}: {
+  readonly talks: ReadonlyArray<Talk>;
+  readonly images: ImageMode;
+}) {
   return (
     <Fact label="On stage">
       <div class="stage">
         {talks.map((talk) => (
-          <TalkEntry talk={talk} />
+          <TalkEntry talk={talk} images={images} />
         ))}
       </div>
     </Fact>
@@ -502,23 +563,28 @@ function OnStage({ talks }: { readonly talks: ReadonlyArray<Talk> }) {
 }
 
 /**
- * The evening's photos, at their own proportions. They are the originals,
- * loaded lazily; resized variants come with the image pipeline (/img/…).
+ * How wide site.css shows a photo: a third of the ledger's 9 of 12 columns
+ * (24 px gutters, 10 px gaps) on a page at most 1440 px wide with margins
+ * of 4.5vw (16 to 64 px), and half the page width from 760 px down. That
+ * is 319 px at 1440 and 166 at 375.
  */
-function Photos({ photos }: { readonly photos: ReadonlyArray<Rows.Photo> }) {
+const photoSizes =
+  "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(22.75vw - 9px), 320px";
+
+/** Every photo of the evening, loaded as it is scrolled to. */
+function Photos({
+  photos,
+  images,
+}: {
+  readonly photos: ReadonlyArray<Rows.Photo>;
+  readonly images: ImageMode;
+}) {
   return (
     <Fact label="Photos">
       <ul class="photos">
         {photos.map((photo) => (
           <li>
-            <img
-              src={photo.url}
-              alt={photo.alt}
-              width={String(photo.width)}
-              height={String(photo.height)}
-              loading="lazy"
-              decoding="async"
-            />
+            <Photo photo={photo} mode={images} sizes={photoSizes} />
           </li>
         ))}
       </ul>
@@ -580,8 +646,10 @@ export function eventPage({
   origin,
   theme,
   portraits,
+  images,
 }: EventPageProps): string {
   const past = event.status === "past";
+  const photos = showable(event.photos, images);
   const tagline = event.tagline.trim();
   return Document({
     meta: {
@@ -597,6 +665,7 @@ export function eventPage({
     theme,
     pageTheme: dataTheme[event.mode],
     portraits,
+    images,
     children: (
       <article class="event">
         <Lockup event={event} />
@@ -607,7 +676,7 @@ export function eventPage({
           ) : (
             <Where venue={event.venue} hostingCompanies={event.hosts} />
           )}
-          <HostedAt event={event} portraits={portraits} />
+          <HostedAt event={event} portraits={portraits} images={images} />
           {!past && event.rsvpUrl !== null ? (
             <Seats
               rsvpUrl={event.rsvpUrl}
@@ -622,11 +691,15 @@ export function eventPage({
           ) : (
             ""
           )}
-          {event.talks.length === 0 ? "" : <OnStage talks={event.talks} />}
+          {event.talks.length === 0 ? (
+            ""
+          ) : (
+            <OnStage talks={event.talks} images={images} />
+          )}
           {/* Posts about the evening on socials go here, once the X
               integration lands. */}
-          {past && event.photos.length > 0 ? (
-            <Photos photos={event.photos} />
+          {past && photos.length > 0 ? (
+            <Photos photos={photos} images={images} />
           ) : (
             ""
           )}
@@ -644,6 +717,8 @@ export interface StandInProps {
   /** The address that was asked for, which stays the canonical one. */
   readonly path: `/${string}`;
   readonly theme: Theme | undefined;
+  /** How photos are shown (see picture.tsx). */
+  readonly images: ImageMode;
 }
 
 /** Nothing published lives at this address: said plainly, with ways on. */
@@ -652,6 +727,7 @@ export function notFoundPage({
   path,
   theme,
   portraits,
+  images,
 }: StandInProps & { readonly portraits: PortraitsById }): string {
   return Document({
     meta: {
@@ -662,6 +738,7 @@ export function notFoundPage({
     origin,
     theme,
     portraits,
+    images,
     children: (
       <div class="intro">
         <p class="at-type-meta">404 · not found</p>
@@ -690,6 +767,7 @@ export function eventUnavailablePage({
   origin,
   path,
   theme,
+  images,
 }: StandInProps): string {
   return Document({
     meta: {
@@ -700,6 +778,7 @@ export function eventUnavailablePage({
     origin,
     theme,
     portraits: new Map(),
+    images,
     children: (
       <div class="intro">
         <p class="at-type-meta">temporarily unavailable</p>

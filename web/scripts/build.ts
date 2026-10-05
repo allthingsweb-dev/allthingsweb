@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { type Textures, themeCss } from "allthings-brand/src/css.ts";
 import { tokens } from "allthings-brand/src/tokens.ts";
 import { Marked, Renderer, type Tokens } from "marked";
+import { immutable } from "../src/cache.ts";
 
 /**
  * Builds everything the Worker serves besides its own code, into web/dist:
@@ -23,7 +24,7 @@ const dist = join(web, "dist");
 const publicDir = join(dist, "public");
 
 /** Cache-Control for content-hashed files: a changed file gets a new name. */
-export const immutable = "public, max-age=31536000, immutable";
+export { immutable };
 
 /** The first 16 hex digits of the SHA-256 of `bytes`. */
 function contentHash(bytes: Uint8Array | string): string {
@@ -333,17 +334,20 @@ export async function build(): Promise<BuildManifest> {
   await rm(dist, { recursive: true, force: true });
   await mkdir(publicDir, { recursive: true });
   const { css: fontFaces, fonts } = await buildFonts();
-  const stylesheet = await buildStylesheet(fontFaces);
-  const manifest: BuildManifest = {
-    // The stylesheet's name is in the hash, so a change to what it is built
-    // from (such as the fonts) is a new build too.
-    build: contentHash(`${await buildHash()}${stylesheet}`),
-    stylesheet,
+  const assets = {
+    stylesheet: await buildStylesheet(fontFaces),
     fonts,
     marks: await buildMarks(),
     foundations: foundationsHtml(
       await Bun.file(join(root, "brand/foundations.md")).text(),
     ),
+  };
+  const manifest: BuildManifest = {
+    // Every hashed name pages link to is in the manifest, so a change to
+    // what any of them is built from (a mark, a font, the stylesheet) is a
+    // new build too, beside a change to the code.
+    build: contentHash(`${await buildHash()}${JSON.stringify(assets)}`),
+    ...assets,
   };
   await Bun.write(join(publicDir, "_headers"), headers);
   await Bun.write(

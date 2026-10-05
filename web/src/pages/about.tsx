@@ -2,7 +2,6 @@ import type { AboutView, Organizer } from "allthings-core/src/about.ts";
 import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { DateTime } from "effect";
-import { built } from "../assets.ts";
 import {
   aboutPath,
   discord,
@@ -14,6 +13,8 @@ import {
 } from "../links.ts";
 import { Document } from "./document.tsx";
 import { gatheringTitle, siteDescription } from "./metadata.tsx";
+import { Portrait } from "./people.tsx";
+import type { ImageMode } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 import { fullDate, listDate } from "./time.ts";
 
@@ -32,6 +33,8 @@ export interface AboutProps {
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
   readonly portraits: PortraitsById;
+  /** How photos are shown (see picture.tsx). */
+  readonly images: ImageMode;
 }
 
 /** "6,123": a count as the page prints it, whatever the runtime's locale. */
@@ -168,29 +171,24 @@ const linkOrder = ["x", "bluesky", "linkedin"] as const satisfies ReadonlyArray<
 >;
 
 /** An organizer, whole, as their profile has them. */
-function OrganizerEntry({ organizer }: { readonly organizer: Organizer }) {
-  const { src, width, height } =
-    organizer.photo === null
-      ? built.marks.avatar
-      : {
-          src: organizer.photo.url,
-          width: organizer.photo.width,
-          height: organizer.photo.height,
-        };
+function OrganizerEntry({
+  organizer,
+  images,
+}: {
+  readonly organizer: Organizer;
+  readonly images: ImageMode;
+}) {
   const links = linkOrder.flatMap((key) => {
     const href = organizer.links[key];
     return href === null ? [] : [{ href, name: key }];
   });
   return (
     <li class="person">
-      <img
-        class="portrait"
-        src={src}
-        alt=""
-        width={String(width)}
-        height={String(height)}
-        loading="lazy"
-        decoding="async"
+      <Portrait
+        photo={organizer.photo}
+        organizer
+        images={images}
+        eager={undefined}
       />
       <div class="person-text">
         <h3 class="person-name">
@@ -239,6 +237,7 @@ export function aboutPage({
   origin,
   theme,
   portraits,
+  images,
 }: AboutProps): string {
   return Document({
     meta: {
@@ -249,6 +248,7 @@ export function aboutPage({
     origin,
     theme,
     portraits,
+    images,
     children: (
       <div class="about">
         <div class="about-head">
@@ -285,7 +285,7 @@ export function aboutPage({
             <Part id="organizers" title="Organizers">
               <ul class="organizers">
                 {about.organizers.map((organizer) => (
-                  <OrganizerEntry organizer={organizer} />
+                  <OrganizerEntry organizer={organizer} images={images} />
                 ))}
               </ul>
             </Part>

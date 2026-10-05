@@ -70,7 +70,13 @@ const view = (overrides: Partial<AboutView> = {}): AboutView => ({
 });
 
 const render = (about: AboutView, theme?: "light" | "dark") =>
-  aboutPage({ about, origin, theme, portraits: new Map() });
+  aboutPage({
+    about,
+    origin,
+    theme,
+    portraits: new Map(),
+    images: "originals",
+  });
 
 /** The part headed `id`, or "" when the page has none. */
 function part(html: string, id: string): string {
@@ -267,4 +273,27 @@ describe("the about page", () => {
       }
     },
   );
+});
+
+describe("the about page's portraits as variants", () => {
+  test("offers the organizers at 160 and 320 pixels square, loaded as they're scrolled to", () => {
+    const photo = {
+      url: "https://media.allthings.dev/profiles/erik.png",
+      alt: "Erik",
+      width: 1200,
+      height: 1200,
+      version: "1767323045",
+    };
+    const html = aboutPage({
+      about: view({ organizers: [organizer("Erik", { photo })] }),
+      origin,
+      theme: undefined,
+      portraits: new Map(),
+      images: "variants",
+    });
+    expect(html).toContain(
+      '<img class="portrait" src="/img/160x160/jpeg/1767323045/profiles/erik.png" srcset="/img/160x160/jpeg/1767323045/profiles/erik.png 160w, /img/320x320/jpeg/1767323045/profiles/erik.png 320w" sizes="(max-width: 600px) 96px, 160px" alt="" width="160" height="160" loading="lazy" decoding="async"/>',
+    );
+    expect(html).not.toContain("media.allthings.dev");
+  });
 });

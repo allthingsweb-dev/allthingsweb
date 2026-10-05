@@ -13,6 +13,7 @@ import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { CacheControl } from "../cache.ts";
 import { type Repositories, repositories } from "../database.ts";
+import { Images } from "../images/route.ts";
 import { aboutPath, eventPath, hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { aboutPage } from "./about.tsx";
@@ -22,6 +23,7 @@ import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
 import { peoplePage } from "./people.tsx";
+import type { ImageMode } from "./picture.tsx";
 import { htmlResponse } from "./response.ts";
 import { chooseTheme, isChoice, type Theme, themeOf } from "./theme.ts";
 
@@ -35,6 +37,8 @@ interface PageRequest {
   /** The mode the visitor's cookie fixes, if any. */
   readonly theme: Theme | undefined;
   readonly acceptEncoding: string | undefined;
+  /** Variants when the Worker has its Images binding, else originals. */
+  readonly images: ImageMode;
   /** The route's parameters, such as an event's `slug`. */
   readonly params: Readonly<Record<string, string | undefined>>;
 }
@@ -66,6 +70,7 @@ const page = <E, R>(
       return yield* render({
         theme: themeOf(request.cookies),
         acceptEncoding: request.headers["accept-encoding"],
+        images: Option.isSome(yield* Images) ? "variants" : "originals",
         params,
       });
     }),
@@ -119,10 +124,11 @@ const dataPage = <A>(
       readonly origin: string;
       readonly theme: Theme | undefined;
       readonly portraits: PortraitsById;
+      readonly images: ImageMode;
     },
   ) => string,
 ) =>
-  page(path, ({ theme, acceptEncoding }) =>
+  page(path, ({ theme, acceptEncoding, images }) =>
     Effect.gen(function* () {
       const { origin } = yield* Site;
       return yield* Effect.all([read, footer(hostPortraits)], {
@@ -132,12 +138,13 @@ const dataPage = <A>(
         Effect.timed,
         Effect.map(([took, [data, { portraits, read: complete }]]) =>
           htmlResponse(
-            render(data, { origin, theme, portraits }),
+            render(data, { origin, theme, portraits, images }),
             acceptEncoding,
             {
               cacheControl: complete ? "publicData" : "failure",
               theme,
               db: Duration.toMillis(took),
+              images,
             },
           ),
         ),
@@ -145,11 +152,12 @@ const dataPage = <A>(
           Effect.logError(`Error rendering ${name}:`, cause).pipe(
             Effect.as(
               htmlResponse(
-                unavailablePage({ origin, path, theme }),
+                unavailablePage({ origin, path, theme, images }),
                 acceptEncoding,
                 {
                   cacheControl: "failure",
                   theme,
+                  images,
                   status: 503,
                 },
               ),
@@ -230,16 +238,16 @@ const events = dataPage(
  * portraits in its footer, which it reads on every request it reaches. It is
  * cached as a page, so a new portrait may take a day to reach the edge.
  */
-const brand = page("/brand", ({ theme, acceptEncoding }) =>
+const brand = page("/brand", ({ theme, acceptEncoding, images }) =>
   Effect.gen(function* () {
     const { origin } = yield* Site;
     const { portraits, read } = yield* footer(
       hostPortraits.pipe(Effect.provide(repositories)),
     );
     return htmlResponse(
-      brandPage({ origin, theme, portraits }),
+      brandPage({ origin, theme, portraits, images }),
       acceptEncoding,
-      { cacheControl: read ? "page" : "failure", theme },
+      { cacheControl: read ? "page" : "failure", theme, images },
     );
   }),
 );
@@ -263,7 +271,7 @@ const readEvent = (slug: string) =>
  */
 const event = page(
   "/:slug",
-  ({ theme, acceptEncoding, params }) =>
+  ({ theme, acceptEncoding, params, images }) =>
     Effect.gen(function* () {
       const { origin } = yield* Site;
       const path = eventLocation(params);
@@ -278,20 +286,26 @@ const event = page(
           return Option.match(found, {
             onNone: () =>
               htmlResponse(
-                notFoundPage({ origin, path, theme, portraits }),
+                notFoundPage({ origin, path, theme, portraits, images }),
                 acceptEncoding,
                 {
                   cacheControl: read ? "notFound" : "failure",
                   theme,
+                  images,
                   status: 404,
                   db,
                 },
               ),
             onSome: (view) =>
               htmlResponse(
-                eventPage({ event: view, origin, theme, portraits }),
+                eventPage({ event: view, origin, theme, portraits, images }),
                 acceptEncoding,
-                { cacheControl: read ? "publicData" : "failure", theme, db },
+                {
+                  cacheControl: read ? "publicData" : "failure",
+                  theme,
+                  images,
+                  db,
+                },
               ),
           });
         }),
@@ -299,9 +313,9 @@ const event = page(
           Effect.logError("Error rendering an event page:", cause).pipe(
             Effect.as(
               htmlResponse(
-                eventUnavailablePage({ origin, path, theme }),
+                eventUnavailablePage({ origin, path, theme, images }),
                 acceptEncoding,
-                { cacheControl: "failure", theme, status: 503 },
+                { cacheControl: "failure", theme, images, status: 503 },
               ),
             ),
           ),

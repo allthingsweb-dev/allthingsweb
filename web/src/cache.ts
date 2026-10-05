@@ -22,6 +22,13 @@ export const CacheControl = {
   failure: "no-store",
 } as const;
 
+/**
+ * Cache-Control for a response that never changes under its URL: the
+ * content-hashed static assets, and image variants, whose URLs name the
+ * photo's version. A changed file or photo gets a new URL.
+ */
+export const immutable = "public, max-age=31536000, immutable";
+
 export type CacheControl = (typeof CacheControl)[keyof typeof CacheControl];
 
 /** One of the lifetimes above, by name. */

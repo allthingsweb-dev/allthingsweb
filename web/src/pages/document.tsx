@@ -3,6 +3,7 @@ import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
 import { aboutPath, hosts, socials } from "../links.ts";
 import { Metadata, type PageMeta } from "./metadata.tsx";
+import { type ImageMode, Portrait } from "./picture.tsx";
 import { choices, type Theme } from "./theme.ts";
 
 /**
@@ -67,24 +68,26 @@ function ModeSwitch({
 /**
  * The hosts sign off with their portraits from their speaker profiles, or
  * the brand's blank avatar where there is none. The originals are large
- * (684 to 2160 px) and shown at 36, so they load lazily, last, and off the
- * main thread; resized variants come with the image pipeline. Who they
- * are, and what all things is, is on the about page their names link to.
+ * (684 to 2160 px, megabytes) and shown at 36, so with variants they come
+ * at 36 and 72 pixels (see picture.tsx). Who they are, and what all things
+ * is, is on the about page their names link to.
  */
-function Footer({ portraits }: { readonly portraits: PortraitsById }) {
+function Footer({
+  portraits,
+  images,
+}: {
+  readonly portraits: PortraitsById;
+  readonly images: ImageMode;
+}) {
   return (
     <footer class="site-footer">
       <div class="hosts">
         <span class="portraits">
           {hosts.map((host) => (
-            <img
-              src={portraits.get(host.profileId)?.url ?? built.marks.avatar.src}
-              alt=""
-              width="36"
-              height="36"
-              loading="lazy"
-              decoding="async"
-              fetchpriority="low"
+            <Portrait
+              photo={portraits.get(host.profileId)}
+              mode={images}
+              blank={built.marks.avatar.src}
             />
           ))}
         </span>
@@ -123,6 +126,8 @@ export interface DocumentProps {
   readonly pageTheme?: Theme | undefined;
   /** The hosts' portraits, by profile id, for the footer. */
   readonly portraits: PortraitsById;
+  /** How photos are shown (see picture.tsx). */
+  readonly images: ImageMode;
 }
 
 /** A whole HTML document around `children`, the page's <main>. */
@@ -132,6 +137,7 @@ export function Document({
   theme,
   pageTheme,
   portraits,
+  images,
   children,
 }: PropsWithChildren<DocumentProps>): string {
   // What the page renders in: the visitor's choice, else the page's own.
@@ -163,7 +169,7 @@ export function Document({
             <ModeSwitch theme={theme} pageTheme={pageTheme} />
           </header>
           <main>{children}</main>
-          <Footer portraits={portraits} />
+          <Footer portraits={portraits} images={images} />
         </div>
       </body>
     </html>

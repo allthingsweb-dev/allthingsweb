@@ -35,6 +35,10 @@ export const Database = Cloudflare.Hyperdrive.Connection("Database", {
  * search results until the cutover sets `ORIGIN` to the domain this Worker
  * serves. `EDGE_CACHE` turns on the Worker's own cache in each data center
  * (web/src/edge-cache.ts), so a warm page never waits on the database.
+ * `IMAGES` makes the photos' variants (web/src/images/route.ts) from the
+ * originals on the media origin; it has no resource of its own, and
+ * transformations are billed to the account (5,000 unique ones a month
+ * free).
  */
 export const Web = Cloudflare.Worker("Web", {
   main: "../web/src/worker.ts",
@@ -44,5 +48,6 @@ export const Web = Cloudflare.Worker("Web", {
     ORIGIN: "https://allthingsweb.dev",
     EDGE_CACHE: "site",
     HYPERDRIVE: Database,
+    IMAGES: Cloudflare.Images.Images("IMAGES"),
   },
 });

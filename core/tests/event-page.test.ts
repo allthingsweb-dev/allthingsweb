@@ -6,19 +6,18 @@ import {
   type EventPage,
   EventPages,
   guestCountFloor,
-  photoLimit,
   toVenue,
 } from "../src/event-page.ts";
 import { clockAt, now, seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
  * Event pages against the migrated production schema: tests/seed.sql, plus
- * more photos for React at Acme than a page shows, one of them on another
- * origin, and a topic the site set.
+ * six more photos for React at Acme, one more on another origin, and a
+ * topic the site set.
  */
 
 const db = await seededDatabase();
-const extraPhotos = Array.from({ length: photoLimit }, (_, index) => index);
+const extraPhotos = Array.from({ length: 6 }, (_, index) => index);
 await db.exec(`
   INSERT INTO images (id, url, placeholder, alt, width, height, updated_at) VALUES
     ('d0000000-0000-4000-8000-000000000200', 'https://elsewhere.example/photo.jpg', '', 'Elsewhere', 800, 600, now()),
@@ -128,6 +127,7 @@ describe("EventPages", () => {
           alt: "Ada Lovelace",
           width: 400,
           height: 400,
+          version: expect.stringMatching(/^[0-9]+$/),
         },
         role: "speaker",
       },
@@ -178,6 +178,7 @@ describe("EventPages", () => {
             alt: "Ada Lovelace",
             width: 400,
             height: 400,
+            version: expect.stringMatching(/^[0-9]+$/),
           },
         },
       ]);
@@ -199,19 +200,19 @@ describe("EventPages", () => {
     }
   });
 
-  test("shows the first photos on the photo origin, in the order they were attached, up to the limit", async () => {
+  test("shows every photo on the photo origin, in the order they were attached", async () => {
     const { photos } = await read("2026-08-12-react-at-acme");
-    expect(photos).toHaveLength(photoLimit);
     expect(photos.map((photo) => photo.alt)).toEqual([
       "The stage",
       "The crowd",
-      ...extraPhotos.slice(0, photoLimit - 2).map((index) => `More ${index}`),
+      ...extraPhotos.map((index) => `More ${index}`),
     ]);
     expect(photos[0]).toEqual({
       url: "https://storage.example/photos/stage.jpg",
       alt: "The stage",
       width: 1600,
       height: 900,
+      version: expect.stringMatching(/^[0-9]+$/),
     });
   });
 

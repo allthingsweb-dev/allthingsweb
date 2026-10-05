@@ -7,6 +7,7 @@ import { gatheringTitle } from "./metadata.tsx";
 import { EveningRow } from "./evening-row.tsx";
 import type { Theme } from "./theme.ts";
 import { year } from "./time.ts";
+import type { ImageMode } from "./picture.tsx";
 
 /**
  * /events: every evening, in the rows home lists them in. The evenings
@@ -23,6 +24,8 @@ export interface EventsProps {
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
   readonly portraits: PortraitsById;
+  /** How photos are shown (see picture.tsx). */
+  readonly images: ImageMode;
 }
 
 export interface YearOfEvenings {
@@ -79,6 +82,7 @@ export function eventsPage({
   origin,
   theme,
   portraits,
+  images,
 }: EventsProps): string {
   const { ahead, past } = evenings;
   return Document({
@@ -91,6 +95,7 @@ export function eventsPage({
     origin,
     theme,
     portraits,
+    images,
     children: (
       <div class="evenings">
         <div class="evenings-head">

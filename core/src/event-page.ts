@@ -20,9 +20,6 @@ import { listingJson, orDataSourceError, profileJson } from "./sql.ts";
  * read: their slugs are not found, as unknown ones are.
  */
 
-/** The page shows at most this many of an evening's photos. */
-export const photoLimit = 6;
-
 /**
  * The fewest guests the page counts. Luma's counts for our earliest
  * evenings (4, 6, 18) are artifacts of moving to it, not who came, so a
@@ -108,7 +105,10 @@ export interface EventPage {
   readonly seats: number | null;
   readonly recordingUrl: string | null;
   readonly talks: ReadonlyArray<Talk>;
-  /** The first photos attached, up to the limit, on the photo origin. */
+  /**
+   * Every photo attached on the photo origin, in the order attached: pages
+   * show them as variants sized for the layout (web/src/images/).
+   */
   readonly photos: ReadonlyArray<Rows.Photo>;
   /** The live or next evening other than this one, if one is announced. */
   readonly next: Evening | undefined;
@@ -208,6 +208,7 @@ function toPerson(profile: Rows.Profile, photoPrefix: string): Person {
             alt: image.alt,
             width: image.width,
             height: image.height,
+            version: image.version,
           },
   };
 }
@@ -371,15 +372,15 @@ const make = Effect.gen(function* () {
         ), '[]'::json) AS talks,
         COALESCE((
           SELECT json_agg(json_build_object(
-            'url', x.url, 'alt', x.alt, 'width', x.width, 'height', x.height
+            'url', x.url, 'alt', x.alt, 'width', x.width, 'height', x.height,
+            'version', x.version
           ) ORDER BY x.created_at, x.id)
           FROM (
-            SELECT img.url, img.alt, img.width, img.height, ei.created_at, img.id
+            SELECT img.url, img.alt, img.width, img.height, ei.created_at, img.id,
+              floor(extract(epoch FROM img.updated_at))::bigint::text AS version
             FROM event_images ei
             JOIN images img ON img.id = ei.image_id
             WHERE ei.event_id = ev.id AND starts_with(img.url, ${photoPrefix})
-            ORDER BY ei.created_at, img.id
-            LIMIT ${photoLimit}
           ) x
         ), '[]'::json) AS photos,
         (

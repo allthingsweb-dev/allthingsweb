@@ -38,7 +38,10 @@ const read = (
   );
 
 describe("Portraits", () => {
-  test("reads each profile's photo by id", async () => {
+  test("reads each profile's photo by id, versioned by when its row last changed", async () => {
+    await db.exec(
+      "UPDATE images SET updated_at = '2026-01-02T03:04:05.678Z' WHERE id = 'd0000000-0000-4000-8000-000000000005'",
+    );
     const portraits = await Effect.runPromise(read([ada, grace]));
     expect([...portraits]).toEqual([
       [
@@ -48,6 +51,7 @@ describe("Portraits", () => {
           alt: "Ada Lovelace",
           width: 400,
           height: 400,
+          version: "1767323045",
         },
       ],
     ]);
