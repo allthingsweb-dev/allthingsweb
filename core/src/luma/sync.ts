@@ -128,43 +128,36 @@ export interface SyncedEvent {
 }
 
 /**
- * One row per feed event, in feed order. `slug` and `isDraft` are NULL for
- * an event the statement neither wrote nor saw: see `write`.
+ * One row per feed event, in feed order. `slug` is NULL for an event the
+ * statement neither wrote nor saw: see `write`.
  */
 const Synced = Schema.Array(
   Schema.Struct({
     lumaEventId: Schema.String,
     slug: Schema.NullOr(Schema.String),
-    isDraft: Schema.NullOr(Schema.Boolean),
+    isDraft: Schema.Boolean,
     changed: Schema.Boolean,
   }),
 );
 
 const Stored = Schema.Array(
-  Schema.Struct({
-    lumaEventId: Schema.String,
-    slug: Schema.String,
-    isDraft: Schema.Boolean,
-  }),
+  Schema.Struct({ lumaEventId: Schema.String, slug: Schema.String }),
 );
 
 /**
- * `synced` with the events the statement did not see taken from `stored`,
- * read afterwards; undefined while one is still missing.
+ * `synced` with the slugs of the events the statement did not see taken
+ * from `stored`, read afterwards; undefined while one is still missing.
  */
 export function fillUnseen(
   synced: typeof Synced.Type,
   stored: typeof Stored.Type,
 ): ReadonlyArray<SyncedEvent> | undefined {
-  const byLumaId = new Map(stored.map((row) => [row.lumaEventId, row]));
+  const slugs = new Map(stored.map((row) => [row.lumaEventId, row.slug]));
   const filled: Array<SyncedEvent> = [];
   for (const row of synced) {
-    const { slug, isDraft } =
-      row.slug !== null && row.isDraft !== null
-        ? { slug: row.slug, isDraft: row.isDraft }
-        : (byLumaId.get(row.lumaEventId) ?? { slug: null, isDraft: null });
-    if (slug === null || isDraft === null) return undefined;
-    filled.push({ ...row, slug, isDraft });
+    const slug = row.slug ?? slugs.get(row.lumaEventId);
+    if (slug === undefined) return undefined;
+    filled.push({ ...row, slug });
   }
   return filled;
 }
@@ -230,12 +223,13 @@ const make = Effect.gen(function* () {
       })),
     );
     const at = DateTime.formatIso(now);
-    // The data-modifying CTE returns only the rows it wrote; an event already
-    // up to date is read from `events` as the statement found it, which is
-    // as it stays. Each feed event gets one row, in feed order. Only an event
-    // another sync inserted after this statement's snapshot is in neither
-    // (ON CONFLICT saw it, found nothing to change, and skipped it): its slug
-    // and draft flag come back NULL, for `readStored` to fill in.
+    // One row per feed event, in feed order. Its draft flag is the feed's:
+    // the statement inserts it, writes it, or skips the event because the
+    // committed row (which ON CONFLICT checks) already holds it. Its slug,
+    // which syncs never change, is the written row's, else the stored one as
+    // the statement's snapshot has it (a slug edited on the site meanwhile
+    // shows on the next run). Only an event another sync inserted after the
+    // snapshot is in neither: its slug comes back NULL, for `readStored`.
     return sql`
       WITH incoming AS (
         SELECT * FROM jsonb_to_recordset(${incoming}::jsonb) AS r(
@@ -269,11 +263,11 @@ const make = Effect.gen(function* () {
           IS DISTINCT FROM (excluded.name, excluded.start_date, excluded.end_date,
             excluded.is_draft, ${venue("street_address")},
             ${venue("short_location")}, ${venue("full_address")})
-        RETURNING e.luma_event_id, e.slug, e.is_draft
+        RETURNING e.luma_event_id, e.slug
       )
       SELECT i.luma_event_id AS "lumaEventId",
         COALESCE(w.slug, stored.slug) AS slug,
-        COALESCE(w.is_draft, stored.is_draft) AS "isDraft",
+        i.is_draft AS "isDraft",
         w.luma_event_id IS NOT NULL AS changed
       FROM incoming i
       LEFT JOIN written w ON w.luma_event_id = i.luma_event_id
@@ -284,10 +278,10 @@ const make = Effect.gen(function* () {
     );
   };
 
-  /** The stored slug and draft flag of these events, as committed now. */
+  /** The stored slugs of these events, as committed now. */
   const readStored = (lumaEventIds: ReadonlyArray<string>) =>
     sql`
-      SELECT luma_event_id AS "lumaEventId", slug, is_draft AS "isDraft"
+      SELECT luma_event_id AS "lumaEventId", slug
       FROM events
       WHERE luma_event_id IN (
         SELECT jsonb_array_elements_text(${JSON.stringify(lumaEventIds)}::jsonb))`.pipe(
@@ -302,7 +296,7 @@ const make = Effect.gen(function* () {
     // Only after an overlapping sync: a read, so the write stays one
     // statement and the summary still lists every stored slug.
     const unseen = synced
-      .filter((row) => row.slug === null || row.isDraft === null)
+      .filter((row) => row.slug === null)
       .map((row) => row.lumaEventId);
     const stored = unseen.length === 0 ? [] : yield* readStored(unseen);
     const filled = fillUnseen(synced, stored);

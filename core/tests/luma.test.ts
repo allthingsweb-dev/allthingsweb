@@ -392,7 +392,7 @@ describe("asking Luma", () => {
 
 describe("events a sync did not see", () => {
   // An event another sync inserted after the statement's snapshot comes back
-  // without a slug or draft flag, and is read again.
+  // without a slug, which is read again.
   const seen = {
     lumaEventId: "evt-seen",
     slug: "seen",
@@ -402,15 +402,15 @@ describe("events a sync did not see", () => {
   const unseen = {
     lumaEventId: "evt-unseen",
     slug: null,
-    isDraft: null,
+    isDraft: true,
     changed: false,
   };
 
-  test("take the stored slug and draft flag, in feed order", () => {
+  test("take the stored slug, in feed order", () => {
     expect(
       fillUnseen(
         [unseen, seen],
-        [{ lumaEventId: "evt-unseen", slug: "renamed-since", isDraft: true }],
+        [{ lumaEventId: "evt-unseen", slug: "renamed-since" }],
       ),
     ).toEqual([
       {
@@ -425,10 +425,7 @@ describe("events a sync did not see", () => {
 
   test("keep what the statement returned for the others", () => {
     expect(
-      fillUnseen(
-        [seen],
-        [{ lumaEventId: "evt-seen", slug: "other", isDraft: true }],
-      ),
+      fillUnseen([seen], [{ lumaEventId: "evt-seen", slug: "other" }]),
     ).toEqual([seen]);
   });
 

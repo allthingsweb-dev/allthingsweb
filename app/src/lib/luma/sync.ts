@@ -90,19 +90,17 @@ export async function syncPublicLumaEvents(
       .returning({
         lumaEventId: eventsTable.lumaEventId,
         slug: eventsTable.slug,
-        isDraft: eventsTable.isDraft,
       }),
   );
-  // An event left alone is read as the statement found it, which is as it
-  // stays. Only an event another sync inserted after this statement's
-  // snapshot is in neither (ON CONFLICT saw it, found nothing to change, and
-  // skipped it); it is read again below.
+  // An event's slug, which syncs never change, is the written row's, else the
+  // stored one as the statement's snapshot has it (a slug edited on the site
+  // meanwhile shows on the next run). Only an event another sync inserted
+  // after the snapshot is in neither; its slug is read again below.
   const rows = await database
     .with(written)
     .select({
       lumaEventId: sql<string>`coalesce(${written.lumaEventId}, ${eventsTable.lumaEventId})`,
       slug: sql<string>`coalesce(${written.slug}, ${eventsTable.slug})`,
-      isDraft: sql<boolean>`coalesce(${written.isDraft}, ${eventsTable.isDraft})`,
       changed: sql<boolean>`${written.lumaEventId} is not null`,
     })
     .from(written)
@@ -123,21 +121,12 @@ export async function syncPublicLumaEvents(
   if (unseen.length > 0) {
     // A read, so the write stays one statement.
     const stored = await database
-      .select({
-        lumaEventId: eventsTable.lumaEventId,
-        slug: eventsTable.slug,
-        isDraft: eventsTable.isDraft,
-      })
+      .select({ lumaEventId: eventsTable.lumaEventId, slug: eventsTable.slug })
       .from(eventsTable)
       .where(inArray(eventsTable.lumaEventId, unseen));
-    for (const { lumaEventId, slug, isDraft } of stored) {
+    for (const { lumaEventId, slug } of stored) {
       if (lumaEventId !== null) {
-        byLumaId.set(lumaEventId, {
-          lumaEventId,
-          slug,
-          isDraft,
-          changed: false,
-        });
+        byLumaId.set(lumaEventId, { lumaEventId, slug, changed: false });
       }
     }
   }
@@ -149,7 +138,10 @@ export async function syncPublicLumaEvents(
         `Luma event ${event.lumaEventId} was synced but is no longer stored`,
       );
     }
-    return row;
+    // The feed's draft flag: the statement inserted it, wrote it, or skipped
+    // the event because the committed row (which ON CONFLICT checks)
+    // already held it.
+    return { ...row, isDraft: event.isDraft };
   });
 
   return {
