@@ -57,8 +57,11 @@ describe("Evenings", () => {
     expect(past.every((evening) => evening.status === "past")).toBe(true);
   });
 
-  test("moves an evening to the past the millisecond after it ends", async () => {
-    const after = await read(at("2026-10-03T19:00:00.001Z"));
+  test("moves an evening to the past the minute after it ends: pages read as of the minute", async () => {
+    // Ends now ends at 19:00:00; through 19:00:59.999 the page reads as of 19:00.
+    const sameMinute = await read(at("2026-10-03T19:00:59.999Z"));
+    expect(slugs(sameMinute.ahead)[0]).toBe("2026-10-03-ends-now");
+    const after = await read(at("2026-10-03T19:01:00.000Z"));
     expect(slugs(after.ahead)[0]).toBe("2026-10-03-hack-day");
     expect(slugs(after.past)[0]).toBe("2026-10-03-ends-now");
   });

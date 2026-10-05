@@ -154,10 +154,16 @@ describe("Home", () => {
     );
   });
 
-  test("an evening is ahead through its last millisecond", async () => {
+  test("an evening is ahead through the minute it ends in: pages read as of the minute", async () => {
     const end = await read({ at: at("2026-10-03T19:00:00.000Z") });
     expect(end.next?.slug).toBe("2026-10-03-ends-now");
-    const after = await read({ at: at("2026-10-03T19:00:00.001Z") });
+    // The page reads as of 19:00 until 19:01, so it is still live.
+    const sameMinute = await read({ at: at("2026-10-03T19:00:59.999Z") });
+    expect(sameMinute.next).toMatchObject({
+      slug: "2026-10-03-ends-now",
+      status: "live",
+    });
+    const after = await read({ at: at("2026-10-03T19:01:00.000Z") });
     expect(after.next?.slug).toBe("2026-10-03-hack-day");
     expect(after.recently[0]?.slug).toBe("2026-10-03-ends-now");
   });
