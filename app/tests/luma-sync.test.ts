@@ -5,6 +5,7 @@ import {
   beforeEach,
   describe,
   expect,
+  setSystemTime,
   test,
 } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
@@ -319,6 +320,65 @@ describe("Luma synchronization against Postgres", () => {
       .where(eq(eventsTable.lumaEventId, "evt-0"));
     expect(imported.slug).toBe("2024-07-30-all-things-web-evt-0");
     expect(imported.attendeeLimit).toBe(0);
+  });
+
+  test("writes only events Luma changed, so updated_at says when", async () => {
+    try {
+      const [original] = await db.insert(eventsTable).values(seed).returning();
+      respond(calendar(event(), event("evt-other")));
+      setSystemTime(new Date("2026-10-04T19:00:00Z"));
+      expect(await syncPublicLumaEvents(db)).toMatchObject({
+        syncedCount: 2,
+        changedCount: 2,
+        slugs: ["existing-url", "2026-09-15-all-things-web-evt-other"],
+      });
+      const first = await db
+        .select()
+        .from(eventsTable)
+        .orderBy(eventsTable.slug);
+      expect(first.map((row) => row.updatedAt)).toEqual([
+        new Date("2026-10-04T19:00:00Z"),
+        new Date("2026-10-04T19:00:00Z"),
+      ]);
+      expect(first[1].id).toBe(original.id);
+
+      // The same feed an hour later: nothing is written.
+      setSystemTime(new Date("2026-10-04T20:00:00Z"));
+      expect(await syncPublicLumaEvents(db)).toMatchObject({
+        syncedCount: 2,
+        changedCount: 0,
+        publishedCount: 2,
+        slugs: ["existing-url", "2026-09-15-all-things-web-evt-other"],
+      });
+      expect(
+        await db.select().from(eventsTable).orderBy(eventsTable.slug),
+      ).toEqual(first);
+
+      // One event renamed: it alone is written.
+      respond(
+        calendar(
+          event().replace("SUMMARY:All Things Web", "SUMMARY:Renamed"),
+          event("evt-other"),
+        ),
+      );
+      setSystemTime(new Date("2026-10-04T21:00:00Z"));
+      expect(await syncPublicLumaEvents(db)).toMatchObject({
+        syncedCount: 2,
+        changedCount: 1,
+      });
+      expect(
+        await db.select().from(eventsTable).orderBy(eventsTable.slug),
+      ).toEqual([
+        first[0],
+        {
+          ...first[1],
+          name: "Renamed",
+          updatedAt: new Date("2026-10-04T21:00:00Z"),
+        },
+      ]);
+    } finally {
+      setSystemTime();
+    }
   });
 
   test("failed, malformed or empty feeds leave all database records untouched", async () => {

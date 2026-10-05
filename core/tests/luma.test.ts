@@ -419,20 +419,17 @@ describe("syncing", () => {
       ]);
       expect(first).toEqual(second);
       expect(withoutIds(await events(a))).toEqual(withoutIds(await events(b)));
-      // Again, later: only updated_at moves.
+      // Again, an hour later: nothing changed on Luma, so nothing is
+      // written, updated_at included.
       const before = await events(a);
       const later = DateTime.add(start, { hours: 1 });
-      expect(Exit.isSuccess(await sync(a, later, calendar))).toBe(true);
-      const synced = new Set(
-        (await parse(calendar)).map((event) => event.lumaEventId),
-      );
-      expect(await events(a)).toEqual(
-        before.map((row) =>
-          synced.has(String(row["luma_event_id"]))
-            ? { ...row, updated_at: DateTime.toDateUtc(later) }
-            : row,
-        ),
-      );
+      const again = await sync(a, later, calendar);
+      expect(Exit.isSuccess(again) && again.value).toMatchObject({
+        syncedCount: 24,
+        changedCount: 0,
+        publishedCount: 21,
+      });
+      expect(await events(a)).toEqual(before);
     } finally {
       await Promise.all([a.close(), b.close()]);
     }
@@ -445,6 +442,9 @@ describe("syncing", () => {
       const exit = await sync(db, start, calendar);
       expect(Exit.isSuccess(exit) && exit.value).toMatchObject({
         syncedCount: 24,
+        // All but the secret venue night, stored as Luma shows it (its
+        // venue hidden, the stored one kept): new or changed.
+        changedCount: 23,
         publishedCount: 21,
       });
       // A stored event keeps its slug, and the pages to refresh say so.

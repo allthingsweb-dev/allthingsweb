@@ -16,7 +16,7 @@ import { venueArchive } from "./venue-archive.ts";
  *
  * Who owns what, per `events` row:
  * - Luma: name, start and end, and whether it is a draft (cancelled, private
- *   and confidential events are). Each sync writes them.
+ *   and confidential events are). A sync writes them when Luma changed one.
  * - Luma while it shows a venue: street address, venue name, full address.
  *   When it shows none, the stored venue stays, or, while a field still holds
  *   Luma's placeholder, comes back from the venue archive.
@@ -35,8 +35,13 @@ import { venueArchive } from "./venue-archive.ts";
  * row as it was without a transaction, in one round trip (neon-http had no
  * interactive transactions, and none is needed over Hyperdrive either).
  *
+ * A stored event is written only when one of Luma's columns would change
+ * (venue fields as merged above), so updated_at says when Luma last changed
+ * it: a sync of an unchanged calendar writes nothing, and the sitemap, feeds
+ * and caches that read updated_at stay put.
+ *
  * Written values depend only on the feed, the stored rows and the `Clock`:
- * created_at (new events) and updated_at (every synced event) are the
+ * created_at (new events) and updated_at (every event written) are the
  * Clock's now, so the same feed on the same rows at the same time writes the
  * same rows. Only a new event's id is generated, by Postgres.
  */
@@ -103,29 +108,39 @@ export function toEventRow(event: FeedEvent): EventRow {
 
 /** What a sync did, as the app's cron reports it. */
 export interface SyncSummary {
-  /** Events in the feed, each written. */
+  /** Events in the feed, each synced (written or already up to date). */
   readonly syncedCount: number;
-  /** Of those, the events on the site. */
+  /** Of those, the events created or changed: the rows written. */
+  readonly changedCount: number;
+  /** Of the synced events, the ones on the site. */
   readonly publishedCount: number;
   /** Every synced event's stored slug, in feed order: the pages to refresh. */
   readonly slugs: ReadonlyArray<string>;
 }
 
-const Written = Schema.Array(
-  Schema.Struct({ slug: Schema.String, isDraft: Schema.Boolean }),
+const Synced = Schema.Array(
+  Schema.Struct({
+    slug: Schema.String,
+    isDraft: Schema.Boolean,
+    changed: Schema.Boolean,
+  }),
 );
 
-/** The summary of the rows the statement returned. */
-export function summarize(written: typeof Written.Type): SyncSummary {
+/** The summary of the rows the statement returned, one per feed event. */
+export function summarize(synced: typeof Synced.Type): SyncSummary {
   return {
-    syncedCount: written.length,
-    publishedCount: written.filter((row) => !row.isDraft).length,
-    slugs: written.map((row) => row.slug),
+    syncedCount: synced.length,
+    changedCount: synced.filter((row) => row.changed).length,
+    publishedCount: synced.filter((row) => !row.isDraft).length,
+    slugs: synced.map((row) => row.slug),
   };
 }
 
 export interface LumaSyncShape {
-  /** Reads the calendar and writes it to `events`, all or nothing. */
+  /**
+   * Reads the calendar and writes what changed to `events`, all or
+   * nothing.
+   */
   readonly run: Effect.Effect<SyncSummary, LumaError | DataSourceError>;
 }
 
@@ -172,6 +187,10 @@ const make = Effect.gen(function* () {
       })),
     );
     const at = DateTime.formatIso(now);
+    // The data-modifying CTE returns only the rows it wrote; an event already
+    // up to date is read from `events` as the statement found it, which is
+    // as it stays. Every feed event is a new or a stored one, so each gets
+    // exactly one row, in feed order.
     return sql`
       WITH incoming AS (
         SELECT * FROM jsonb_to_recordset(${incoming}::jsonb) AS r(
@@ -181,27 +200,40 @@ const make = Effect.gen(function* () {
       ), archive AS (
         SELECT * FROM jsonb_to_recordset(${archive}::jsonb) AS a(
           luma_event_id text, street_address text, short_location text, full_address text)
+      ), written AS (
+        INSERT INTO events AS e (
+          luma_event_id, name, start_date, end_date, is_draft, slug, tagline,
+          attendee_limit, street_address, short_location, full_address,
+          created_at, updated_at)
+        SELECT luma_event_id, name, start_date, end_date, is_draft, slug,
+          ${defaultTagline}, 0, street_address, short_location, full_address,
+          ${at}::timestamptz, ${at}::timestamptz
+        FROM incoming
+        ORDER BY ord
+        ON CONFLICT (luma_event_id) DO UPDATE SET
+          name = excluded.name,
+          start_date = excluded.start_date,
+          end_date = excluded.end_date,
+          is_draft = excluded.is_draft,
+          street_address = ${venue("street_address")},
+          short_location = ${venue("short_location")},
+          full_address = ${venue("full_address")},
+          updated_at = excluded.updated_at
+        WHERE (e.name, e.start_date, e.end_date, e.is_draft,
+            e.street_address, e.short_location, e.full_address)
+          IS DISTINCT FROM (excluded.name, excluded.start_date, excluded.end_date,
+            excluded.is_draft, ${venue("street_address")},
+            ${venue("short_location")}, ${venue("full_address")})
+        RETURNING e.luma_event_id, e.slug, e.is_draft
       )
-      INSERT INTO events AS e (
-        luma_event_id, name, start_date, end_date, is_draft, slug, tagline,
-        attendee_limit, street_address, short_location, full_address,
-        created_at, updated_at)
-      SELECT luma_event_id, name, start_date, end_date, is_draft, slug,
-        ${defaultTagline}, 0, street_address, short_location, full_address,
-        ${at}::timestamptz, ${at}::timestamptz
-      FROM incoming
-      ORDER BY ord
-      ON CONFLICT (luma_event_id) DO UPDATE SET
-        name = excluded.name,
-        start_date = excluded.start_date,
-        end_date = excluded.end_date,
-        is_draft = excluded.is_draft,
-        street_address = ${venue("street_address")},
-        short_location = ${venue("short_location")},
-        full_address = ${venue("full_address")},
-        updated_at = excluded.updated_at
-      RETURNING e.slug, e.is_draft AS "isDraft"`.pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(Written)),
+      SELECT COALESCE(w.slug, stored.slug) AS slug,
+        COALESCE(w.is_draft, stored.is_draft) AS "isDraft",
+        w.luma_event_id IS NOT NULL AS changed
+      FROM incoming i
+      LEFT JOIN written w ON w.luma_event_id = i.luma_event_id
+      LEFT JOIN events stored ON stored.luma_event_id = i.luma_event_id
+      ORDER BY i.ord`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Synced)),
       orDataSourceError,
     );
   };
