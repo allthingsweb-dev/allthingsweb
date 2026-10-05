@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import { completenessReport } from "./completeness.js";
 import { addEventPost } from "./event-posts.js";
+import { promoChannels, promoDrafts } from "./promo.js";
 import {
   createEvent,
   getEventBySlug,
@@ -102,6 +103,12 @@ const AddEventPostSchema = z.object({
   authorName: z.string().optional(),
   authorUrl: z.string().optional(),
   text: z.string().optional(),
+});
+
+const GetPromoDraftsSchema = z.object({
+  slug: z.string().min(1),
+  channels: z.array(z.enum(promoChannels)).optional(),
+  json: z.boolean().optional(),
 });
 
 const server = new Server(
@@ -537,6 +544,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["slug", "url"],
         },
       },
+      // Promotion
+      {
+        name: "get_promo_drafts",
+        description:
+          "Drafts for promoting a published event, made from its record: the Luma description with speakers and bios, the Meetup cross-post with the settings to set by hand, and X, Bluesky, LinkedIn and Discord posts to announce it, on the day and after. Each fits its platform's limit. Drafts only: nothing is posted. Read-only.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            slug: { type: "string", description: "The event's slug" },
+            channels: {
+              type: "array",
+              items: { type: "string", enum: [...promoChannels] },
+              description: "Only these drafts; all by default",
+            },
+            json: {
+              type: "boolean",
+              description:
+                "Return JSON with each draft's length and limit instead of text",
+            },
+          },
+          required: ["slug"],
+        },
+      },
       // Administrator tools
       {
         name: "add_user_to_admins",
@@ -926,6 +956,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             },
           ],
         };
+      }
+
+      case "get_promo_drafts": {
+        const text = await promoDrafts(GetPromoDraftsSchema.parse(args ?? {}));
+        return { content: [{ type: "text", text }] };
       }
 
       case "list_admins": {

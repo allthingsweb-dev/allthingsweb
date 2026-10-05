@@ -1,0 +1,148 @@
+# all things/hack day
+
+## gaps in the record
+
+- No Luma event is linked, so nothing says where to take a seat.
+- No host or venue is on record, so nothing says where.
+
+## luma: description (314 / 5000)
+
+Build something
+
+**On stage**
+
+**Hacking live**
+
+**[Ada Lovelace](https://x.com/ada)**, Engineer
+
+Writes compilers.
+
+**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+
+## meetup
+
+title: all things/hack day
+
+venue: (none on record)
+
+event chat: https://discord.gg/B3Sm4b5mfD
+
+topics: Artificial Intelligence, Software Development, Web Development, JavaScript, Open Source
+
+settings to set by hand:
+- [ ] Attendee limit: 1 (Meetup's minimum), so everyone else lands on the waitlist and takes their seat on Luma.
+- [ ] Location: none on record yet; set the venue before publishing.
+- [ ] Event chat: Discord, https://discord.gg/B3Sm4b5mfD.
+- [ ] Comments: off.
+- [ ] Co-host: add Andre Landgraf.
+- [ ] Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it.
+- [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
+- [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
+
+description (314 / 5000):
+
+Build something
+
+**On stage**
+
+**Hacking live**
+
+**[Ada Lovelace](https://x.com/ada)**, Engineer
+
+Writes compilers.
+
+**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+
+## x: announce (57 / 280)
+
+all things/hack day: a talk by @ada.
+
+Sat Oct 3, 9:00 AM.
+
+## x: day-of (70 / 280)
+
+Today: all things/hack day.
+
+On stage: a talk by @ada.
+
+Doors 9:00 AM.
+
+## x: recap (96 / 280)
+
+Thank you for coming to all things/hack day.
+
+On stage: a talk by @ada.
+
+https://allthings.example/2026-10-03-hack-day
+
+## bluesky: announce (69 / 300)
+
+all things/hack day: a talk by @ada.bsky.social.
+
+Sat Oct 3, 9:00 AM.
+
+## bluesky: day-of (82 / 300)
+
+Today: all things/hack day.
+
+On stage: a talk by @ada.bsky.social.
+
+Doors 9:00 AM.
+
+## bluesky: recap (130 / 300)
+
+Thank you for coming to all things/hack day.
+
+On stage: a talk by @ada.bsky.social.
+
+https://allthings.example/2026-10-03-hack-day
+
+## linkedin: announce (82 / 3000)
+
+all things/hack day: a talk by Ada Lovelace.
+
+Build something
+
+Sat Oct 3, 9:00 AM.
+
+## linkedin: day-of (78 / 3000)
+
+Today: all things/hack day.
+
+On stage: a talk by Ada Lovelace.
+
+Doors 9:00 AM.
+
+## linkedin: recap (126 / 3000)
+
+Thank you for coming to all things/hack day.
+
+On stage: a talk by Ada Lovelace.
+
+https://allthings.example/2026-10-03-hack-day
+
+## discord: announce (86 / 2000)
+
+**all things/hack day**: a talk by Ada Lovelace.
+
+Build something
+
+Sat Oct 3, 9:00 AM.
+
+## discord: day-of (116 / 2000)
+
+**Today: all things/hack day**
+
+If you're in: doors 9:00 AM.
+
+On stage: a talk by Ada Lovelace.
+
+see you at/hack day
+
+## discord: recap (126 / 2000)
+
+Thank you for coming to all things/hack day.
+
+On stage: a talk by Ada Lovelace.
+
+https://allthings.example/2026-10-03-hack-day

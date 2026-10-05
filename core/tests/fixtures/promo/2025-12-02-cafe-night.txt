@@ -1,0 +1,186 @@
+# all things/café night
+
+## gaps in the record
+
+- No Luma event is linked, so nothing says where to take a seat.
+- Grace Hopper has no X or Bluesky handle on record, so posts name them untagged.
+
+## luma: description (535 / 5000)
+
+**On stage**
+
+**Coffee & code**
+
+Café \<3 web
+
+Quote
+
+End
+
+**[Linus](https://x.com/linus)**
+
+Kernel.
+
+**Server components**
+
+Why RSC & streaming matter.
+
+- One
+
+- Two
+
+**[Grace Hopper](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000002)**, Admiral
+
+**[Ada Lovelace](https://x.com/ada)**, Engineer
+
+Writes compilers.
+
+**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+
+## meetup
+
+title: all things/café night
+
+venue: 500 Coffee Ave, Oakland, CA
+
+event chat: https://discord.gg/B3Sm4b5mfD
+
+topics: Artificial Intelligence, Software Development, Web Development, JavaScript, Open Source
+
+settings to set by hand:
+- [ ] Attendee limit: 1 (Meetup's minimum), so everyone else lands on the waitlist and takes their seat on Luma.
+- [ ] Location: pick "500 Coffee Ave, Oakland, CA" from Meetup's place search, not a bare street address.
+- [ ] Event chat: Discord, https://discord.gg/B3Sm4b5mfD.
+- [ ] Comments: off.
+- [ ] Co-host: add Andre Landgraf.
+- [ ] Cover: the Luma cover padded to 16:9 on black, so Meetup's crop keeps all of it.
+- [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
+- [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
+
+description (535 / 5000):
+
+**On stage**
+
+**Coffee & code**
+
+Café \<3 web
+
+Quote
+
+End
+
+**[Linus](https://x.com/linus)**
+
+Kernel.
+
+**Server components**
+
+Why RSC & streaming matter.
+
+- One
+
+- Two
+
+**[Grace Hopper](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000002)**, Admiral
+
+**[Ada Lovelace](https://x.com/ada)**, Engineer
+
+Writes compilers.
+
+**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+
+## x: announce (83 / 280)
+
+all things/café night: talks by @linus, Grace Hopper and @ada.
+
+Tue Dec 2, 6:00 PM.
+
+## x: day-of (98 / 280)
+
+Tonight: all things/café night.
+
+On stage: talks by @linus, Grace Hopper and @ada.
+
+Doors 6:00 PM.
+
+## x: recap (122 / 280)
+
+Thank you for coming to all things/café night.
+
+On stage: talks by @linus, Grace Hopper and @ada.
+
+https://allthings.example/2025-12-02-caf%C3%A9-night
+
+## bluesky: announce (94 / 300)
+
+all things/café night: talks by Linus, Grace Hopper and @ada.bsky.social.
+
+Tue Dec 2, 6:00 PM.
+
+## bluesky: day-of (109 / 300)
+
+Tonight: all things/café night.
+
+On stage: talks by Linus, Grace Hopper and @ada.bsky.social.
+
+Doors 6:00 PM.
+
+## bluesky: recap (162 / 300)
+
+Thank you for coming to all things/café night.
+
+On stage: talks by Linus, Grace Hopper and @ada.bsky.social.
+
+https://allthings.example/2025-12-02-caf%C3%A9-night
+
+## linkedin: announce (165 / 3000)
+
+all things/café night: talks by Linus, Grace Hopper and Ada Lovelace.
+
+- Coffee & code: Linus
+- Server components: Grace Hopper and Ada Lovelace
+
+Tue Dec 2, 6:00 PM.
+
+## linkedin: day-of (105 / 3000)
+
+Tonight: all things/café night.
+
+On stage: talks by Linus, Grace Hopper and Ada Lovelace.
+
+Doors 6:00 PM.
+
+## linkedin: recap (158 / 3000)
+
+Thank you for coming to all things/café night.
+
+On stage: talks by Linus, Grace Hopper and Ada Lovelace.
+
+https://allthings.example/2025-12-02-caf%C3%A9-night
+
+## discord: announce (169 / 2000)
+
+**all things/café night**: talks by Linus, Grace Hopper and Ada Lovelace.
+
+- Coffee & code: Linus
+- Server components: Grace Hopper and Ada Lovelace
+
+Tue Dec 2, 6:00 PM.
+
+## discord: day-of (145 / 2000)
+
+**Tonight: all things/café night**
+
+If you're in: doors 6:00 PM.
+
+On stage: talks by Linus, Grace Hopper and Ada Lovelace.
+
+see you at/café night
+
+## discord: recap (158 / 2000)
+
+Thank you for coming to all things/café night.
+
+On stage: talks by Linus, Grace Hopper and Ada Lovelace.
+
+https://allthings.example/2025-12-02-caf%C3%A9-night
