@@ -26,6 +26,24 @@ dry run also proves the role's grants:
 DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") bun run sync:rehearse
 ```
 
+## Image ingestion
+
+`src/ingest/` is the image half of the app's hourly sync (`app/src/lib/event-covers`, `profile-photos`, `post-images`) as an Effect service, `ImageIngest`. It fills in three kinds of missing image:
+
+- each event without a cover gets its Luma cover
+- each profile without a photo gets the one at its `photo_source_url`
+- each post gets its image and its author's avatar
+
+**Downloads** are HTTPS only, from a per-kind host list, with every redirect checked first, a 15 MiB cap, and a check that the bytes are an image.
+
+**Processing** goes through `Pictures`. In the Worker that is Cloudflare's Images binding, because the app's sharp, heic-convert and openimg don't run in Workers. HEIC, HEIF, WebP and AVIF are stored as JPEG (the app stores PNG), and other formats keep their bytes.
+
+**Storing** an image means putting it in the `MediaBucket` under a new key. Then one statement records it in `images` and sets it on its row, only while the row still has none. An object stored for nothing is deleted again.
+
+Each phase starts nothing new after its budget, and `pending` is the dry run: it lists what would be fetched and fetches nothing.
+
+`tests/ingest-parity.test.ts` runs each phase and the app's on copies of one database, with the same downloads, processing, ids and time. It requires the same rows, the same objects stored and deleted, and the same results.
+
 ## Who took part
 
 `event_people` holds a person's part in an event as a whole: an all things

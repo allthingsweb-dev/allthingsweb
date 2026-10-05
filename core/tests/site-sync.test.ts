@@ -11,10 +11,18 @@ import {
   provisionLoginRole,
   type Statements,
 } from "../../infra/scripts/login-role.ts";
+import { ImageIngest } from "../src/ingest/ingest.ts";
 import { Luma } from "../src/luma/luma.ts";
 import { LumaSync } from "../src/luma/sync.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
 import { configFrom, fakeLuma, fixture, settle } from "./support/luma.ts";
+import {
+  fakeBucket,
+  fakeCovers,
+  fakeHosts,
+  fakePictures,
+  imageBytes,
+} from "./support/ingest.ts";
 
 /**
  * site_sync (infra/scripts/site-sync.ts) on a copy of production's schema:
@@ -151,6 +159,54 @@ describe("site_sync", () => {
            + (SELECT count(*) FROM events WHERE luma_event_id IS NOT NULL AND preview_image IS NULL)
            AS missing`);
     expect(Number(rows[0]?.missing)).toBe(0);
+  });
+
+  test("runs core's image ingestion, the Worker's", async () => {
+    const missing = await db.query<{ luma_event_id: string }>(
+      "SELECT luma_event_id FROM events WHERE preview_image IS NULL AND luma_event_id IS NOT NULL",
+    );
+    const cover = "https://images.lumacdn.com/c.png";
+    const layer = ImageIngest.layer.pipe(
+      Layer.provide(
+        Layer.mergeAll(
+          fakeBucket().layer,
+          fakeCovers(
+            Object.fromEntries(
+              missing.rows.map(({ luma_event_id }) => [luma_event_id, cover]),
+            ),
+          ),
+          fakePictures,
+          fakeHosts({
+            [cover]: imageBytes("png", "cover"),
+            "https://avatars.githubusercontent.com/u/1": imageBytes(
+              "png",
+              "ada",
+            ),
+            "https://pbs.twimg.com/profile_images/1/a.jpg": imageBytes(
+              "jpeg",
+              "a",
+            ),
+            "https://pbs.twimg.com/media/1.jpg": imageBytes("jpeg", "night"),
+          }).layer,
+        ),
+      ),
+      Layer.provideMerge(sqlLayer(db)),
+      Layer.provideMerge(clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z"))),
+    );
+    const [covers, photos, posts] = await Effect.runPromise(
+      ImageIngest.use((ingest) =>
+        Effect.all([
+          ingest.covers({ budget: "40 seconds" }),
+          ingest.profilePhotos({ budget: "20 seconds" }),
+          ingest.postImages({ budget: "20 seconds" }),
+        ]),
+      ).pipe(Effect.provide(layer)),
+    );
+    expect(covers.failed).toEqual([]);
+    expect(covers.ingested).toHaveLength(missing.rows.length);
+    expect(photos).toEqual({ ingested: ["Ada Lovelace"], failed: [] });
+    expect(posts).toMatchObject({ failed: [], remaining: 0 });
+    expect(posts.ingested).toHaveLength(2);
   });
 
   test("may delete nothing", async () => {
