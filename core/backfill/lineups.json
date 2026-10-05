@@ -338,6 +338,22 @@
         "https://luma.com/tsai",
         "https://www.youtube.com/watch?v=5eoGrvoLG1Q"
       ]
+    },
+    "kit-langton": {
+      "create": {
+        "name": "Kit Langton",
+        "title": "",
+        "bio": "",
+        "twitterHandle": "kitlangton",
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": "https://avatars.githubusercontent.com/u/7587245"
+      },
+      "sources": [
+        "https://kitlangton.com",
+        "https://github.com/kitlangton",
+        "https://x.com/kitlangton"
+      ]
     }
   },
   "events": [
@@ -381,6 +397,29 @@
           ],
           "confidence": "medium",
           "hold": "needs Erik: Sam spoke about Alchemy (Erik confirms), but no source gives the talk's title; 'Alchemy' is a placeholder"
+        },
+        {
+          "title": "Panel",
+          "format": "panel",
+          "description": "",
+          "speakers": [
+            {
+              "person": "michael-arnaldi",
+              "role": "speaker"
+            },
+            {
+              "person": "kit-langton",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://x.com/anselm_io/status/2105496294739599657",
+            "https://x.com/MichaelArnaldi/status/2105775425209172403",
+            "https://x.com/anselm_io/status/2105673447443738748",
+            "https://x.com/dexhorthy/status/2105473314672234652"
+          ],
+          "confidence": "medium",
+          "hold": "needs Erik: Anselm Eickhoff's post quotes *someone* on the Effect meetup panel, and Michael Arnaldi replied that it was him (high); Anselm adds that Kit Langton is pictured on the panel (medium). dex's post puts @RhysSullivan, @kitlangton and @thefubhy (Sebastian Lorenz) at the meetup, with no stage role. The panel's title ('Panel' is a placeholder), its other panelists and its moderator are unknown, and whether it was the fireside's segment."
         }
       ],
       "people": [

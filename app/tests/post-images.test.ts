@@ -146,7 +146,11 @@ describe("post image ingestion", () => {
     await insertPost({ imageSourceUrl: null, authorAvatarSourceUrl: "" });
     await ingestPostImages(deps());
     const again = deps();
-    expect(await ingestPostImages(again)).toEqual({ ingested: [], failed: [] });
+    expect(await ingestPostImages(again)).toEqual({
+      ingested: [],
+      failed: [],
+      remaining: 0,
+    });
     expect(again.stored).toEqual([]);
   });
 
@@ -206,8 +210,47 @@ describe("post image ingestion", () => {
         return new Uint8Array([1]);
       },
     });
-    expect(
-      (await ingestPostImages(d, { budgetMs: 5_000 })).ingested,
-    ).toHaveLength(1);
+    const result = await ingestPostImages(d, { budgetMs: 5_000 });
+    expect(result.ingested).toHaveLength(1);
+    // The avatar waits for the next run, and the summary says so.
+    expect(result.remaining).toBe(1);
+  });
+
+  test("copies at most maxItems in one run, and counts the rest", async () => {
+    for (let i = 0; i < 3; i++) await insertPost();
+    const result = await ingestPostImages(deps(), { maxItems: 4 });
+    expect(result.ingested).toHaveLength(4);
+    expect(result.remaining).toBe(2);
+    const next = await ingestPostImages(deps(), { maxItems: 4 });
+    expect(next.ingested).toHaveLength(2);
+    expect(next.remaining).toBe(0);
+  });
+
+  test("skips an image that takes longer than its own timeout, and goes on", async () => {
+    const slow = await insertPost({ authorAvatarSourceUrl: null });
+    await insertPost({ authorAvatarSourceUrl: null });
+    const result = await ingestPostImages(
+      deps({
+        download: (url, { signal }) =>
+          url === slow.imageSourceUrl
+            ? new Promise<Uint8Array>((_, reject) => {
+                signal.addEventListener("abort", () =>
+                  reject(
+                    new Error(`Download timed out: ${String(signal.reason)}`),
+                  ),
+                );
+              })
+            : Promise.resolve(new Uint8Array([1])),
+      }),
+      { itemTimeoutMs: 20 },
+    );
+    expect(result.ingested).toHaveLength(1);
+    expect(result.failed).toEqual([
+      {
+        url: slow.imageSourceUrl!,
+        error: expect.stringContaining("timed out"),
+      },
+    ]);
+    expect(result.remaining).toBe(0);
   });
 });

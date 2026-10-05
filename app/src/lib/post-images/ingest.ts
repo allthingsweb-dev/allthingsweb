@@ -27,7 +27,15 @@ export type PostImageDependencies = Omit<
 export type PostImageResult = {
   ingested: string[];
   failed: { url: string; error: string }[];
+  /** Images still to copy when the run stopped: the next run takes them. */
+  remaining: number;
 };
+
+/** The most images one run copies, whatever time is left. */
+export const maxImagesPerRun = 40;
+
+/** How long one image may take, download to save, before it is skipped. */
+export const imageTimeoutMs = 8_000;
 
 /** The two images a post can carry: its source column and its image column. */
 const kinds = {
@@ -116,28 +124,50 @@ async function saveImage(
   return result.rows.length > 0;
 }
 
-/** Copies every post image still missing, within the budget. */
+/**
+ * Copies post images still missing, oldest first: at most `maxItems` of
+ * them, none started after `budgetMs`, each given `itemTimeoutMs` before
+ * it is skipped (a skipped image is tried again next run). What is left is
+ * counted, so the run's summary says when a backlog remains.
+ */
 export async function ingestPostImages(
   deps: PostImageDependencies,
   {
-    budgetMs = 10_000,
+    budgetMs = 20_000,
     signal = new AbortController().signal,
-  }: { budgetMs?: number; signal?: AbortSignal } = {},
+    maxItems = maxImagesPerRun,
+    itemTimeoutMs = imageTimeoutMs,
+  }: {
+    budgetMs?: number;
+    signal?: AbortSignal;
+    maxItems?: number;
+    itemTimeoutMs?: number;
+  } = {},
 ): Promise<PostImageResult> {
   const deadline = deps.now() + budgetMs;
-  const result: PostImageResult = { ingested: [], failed: [] };
-  for (const item of await missing(deps.database)) {
-    if (deps.now() >= deadline || signal.aborted) break;
+  const items = await missing(deps.database);
+  const result: PostImageResult = {
+    ingested: [],
+    failed: [],
+    remaining: items.length,
+  };
+  for (const [index, item] of items.entries()) {
+    if (index >= maxItems || deps.now() >= deadline || signal.aborted) break;
+    result.remaining -= 1;
+    const itemSignal = AbortSignal.any([
+      signal,
+      AbortSignal.timeout(itemTimeoutMs),
+    ]);
     let unusedKey: string | null = null;
     try {
       const image = await deps.process(
-        await deps.download(item.source, { signal }),
+        await deps.download(item.source, { signal: itemSignal }),
       );
       const imageId = deps.newId();
       const key = postImageKey(item.id, item.kind, imageId, image.format);
-      const url = await deps.store(key, image, { signal });
+      const url = await deps.store(key, image, { signal: itemSignal });
       unusedKey = key;
-      signal.throwIfAborted();
+      itemSignal.throwIfAborted();
       if (await saveImage(deps.database, item, { imageId, url, image })) {
         unusedKey = null;
         result.ingested.push(key);
