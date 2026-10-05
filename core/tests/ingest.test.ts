@@ -17,7 +17,7 @@ import {
   fakePictures,
   imageBytes,
 } from "./support/ingest.ts";
-import { configFrom, fakeLumaBy, fixture } from "./support/luma.ts";
+import { configFrom, fakeLumaBy, fixture, settle } from "./support/luma.ts";
 
 const download = (url: string, answers: Parameters<typeof fakeHosts>[0]) => {
   const hosts = fakeHosts(answers);
@@ -62,6 +62,13 @@ describe("downloading an image", () => {
     expect(
       failure((await download("http://pbs.twimg.com/a.png", {})).exit),
     ).toBe("URL is not on an allowed host: http://pbs.twimg.com");
+  });
+
+  test("fails an item, not the run, on a redirect to no URL", async () => {
+    const { exit } = await download("https://pbs.twimg.com/a", {
+      "https://pbs.twimg.com/a": "http://[",
+    });
+    expect(failure(exit)).toBe("Redirect location is not a URL");
   });
 
   test("gives up after three redirects", async () => {
@@ -264,6 +271,62 @@ describe("the dry run", () => {
       expect(pending.posts).toEqual([]);
       expect(hosts.asked).toEqual([]);
       expect(bucket.log.put).toEqual([]);
+    } finally {
+      await db.close();
+    }
+  });
+});
+
+describe("a post image's time", () => {
+  test("covers storing it too: a bucket that hangs fails the item, and the run goes on", async () => {
+    const db = await migratedDatabase();
+    try {
+      await db.exec(await fixture("stored.sql"));
+      await db.exec(
+        `INSERT INTO event_posts (id, event_id, platform, url, author_name, posted_at, text, image_source_url, added_at, updated_at) VALUES
+           ('70000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/1', 'Ada', now(), 't', 'https://pbs.twimg.com/1.jpg', '2024-01-01T00:00:00Z', now()),
+           ('70000000-0000-4000-8000-000000000002', 'e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/2', 'Grace', now(), 't', 'https://pbs.twimg.com/2.jpg', '2024-01-02T00:00:00Z', now())`,
+      );
+      const hosts = fakeHosts({
+        "https://pbs.twimg.com/1.jpg": imageBytes("jpeg", "one"),
+        "https://pbs.twimg.com/2.jpg": imageBytes("jpeg", "two"),
+      });
+      const bucket = fakeBucket((key) =>
+        key.includes("-000000000001-")
+          ? new Promise<void>(() => undefined)
+          : Promise.resolve(),
+      );
+      const result = await Effect.runPromise(
+        settle(
+          ImageIngest.use((ingest) =>
+            ingest.postImages({ budget: "1 minute", itemTimeout: "8 seconds" }),
+          ),
+        ).pipe(
+          Effect.provide(
+            ImageIngest.layer.pipe(
+              Layer.provide(
+                Layer.mergeAll(
+                  bucket.layer,
+                  fakeCovers({}),
+                  fakePictures,
+                  hosts.layer,
+                ),
+              ),
+              Layer.provideMerge(sqlLayer(db)),
+              Layer.provideMerge(
+                clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(result.failed.map(({ url }) => url)).toEqual([
+        "https://pbs.twimg.com/1.jpg",
+      ]);
+      expect(result.ingested).toHaveLength(1);
+      expect(result.ingested[0]).toContain(
+        "70000000-0000-4000-8000-000000000002",
+      );
     } finally {
       await db.close();
     }

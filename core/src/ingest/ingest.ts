@@ -286,18 +286,28 @@ const make = Effect.gen(function* () {
       readonly stored: StoredImage;
     }) => Effect.Effect<boolean, unknown>;
     readonly onUnused: (key: string, error: unknown) => Effect.Effect<void>;
-    readonly fetchTimeout?: Duration.Input;
+    /** How long downloading, processing and storing may take together. */
+    readonly itemTimeout?: Duration.Input;
   }) =>
     Effect.gen(function* () {
       const newId = yield* NewImageId;
-      const fetched = fetchImage(options.source, options.hosts);
-      const stored = yield* options.fetchTimeout === undefined
-        ? fetched
-        : fetched.pipe(Effect.timeout(options.fetchTimeout));
+      const deadline =
+        options.itemTimeout === undefined
+          ? undefined
+          : (yield* Clock.currentTimeMillis) +
+            Duration.toMillis(options.itemTimeout);
+      /** `effect`, given what is left of the item's time. */
+      const inTime = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+        deadline === undefined
+          ? effect
+          : Effect.flatMap(Clock.currentTimeMillis, (now) =>
+              Effect.timeout(effect, Math.max(0, deadline - now)),
+            );
+      const stored = yield* inTime(fetchImage(options.source, options.hosts));
       const imageId = newId();
       const key = options.keyOf(imageId, stored.format);
       return yield* Effect.acquireUseRelease(
-        store(key, stored),
+        inTime(store(key, stored)),
         (url) => options.save({ imageId, url, stored }),
         (_url, exit) =>
           Exit.isSuccess(exit) && exit.value
@@ -455,7 +465,7 @@ const make = Effect.gen(function* () {
         yield* ingestOne({
           source: item.source,
           hosts: postImageHosts,
-          fetchTimeout: itemTimeout,
+          itemTimeout,
           keyOf: (imageId, format) => {
             stored = postImageKey(item.id, item.kind, imageId, format);
             return stored;

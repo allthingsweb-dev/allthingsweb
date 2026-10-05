@@ -120,7 +120,16 @@ export const downloadImage = (
             reason: "Redirected too many times",
           });
         }
-        url = yield* allowedUrl(new URL(location, url).href, hosts);
+        const base = url;
+        const next = yield* Effect.try({
+          try: () => new URL(location, base).href,
+          catch: (cause) =>
+            new DownloadError({
+              reason: "Redirect location is not a URL",
+              cause,
+            }),
+        });
+        url = yield* allowedUrl(next, hosts);
         continue;
       }
       if (response.status < 200 || response.status >= 300) {
