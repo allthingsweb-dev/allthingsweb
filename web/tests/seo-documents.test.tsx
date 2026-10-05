@@ -6,6 +6,7 @@ import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { socials } from "../src/links.ts";
 import { brandPage } from "../src/pages/brand.tsx";
 import { Document } from "../src/pages/document.tsx";
+import { eventsPage } from "../src/pages/events.tsx";
 import { homePage } from "../src/pages/home.tsx";
 import { lockup } from "../src/pages/metadata.tsx";
 import {
@@ -193,6 +194,7 @@ describe("the sitemap", () => {
   test("lists the site's pages, then each event as given, with when it last changed", () => {
     expect(urlsOf(xml)).toEqual([
       { loc: "https://allthings.dev/" },
+      { loc: "https://allthings.dev/events" },
       { loc: "https://allthings.dev/brand" },
       {
         loc: "https://allthings.dev/2026-11-05-all-things-effect",
@@ -210,7 +212,7 @@ describe("the sitemap", () => {
       urls.map(({ loc, lastmod }) => [loc, lastmod]);
     const appUrls = urlsOf(app.generateSiteMap(events.map(toApp), origin));
     // The app's own pages differ: these are this site's.
-    expect(pairs(urlsOf(xml).slice(2))).toEqual(
+    expect(pairs(urlsOf(xml).slice(3))).toEqual(
       pairs(appUrls.slice(-events.length)),
     );
   });
@@ -221,6 +223,7 @@ describe("the sitemap", () => {
     expect(XMLValidator.validate(empty)).toBe(true);
     expect(urlsOf(empty).map((url) => url.loc)).toEqual([
       "https://allthings.dev/",
+      "https://allthings.dev/events",
       "https://allthings.dev/brand",
     ]);
   });
@@ -438,6 +441,12 @@ describe("page metadata", () => {
     portraits: new Map(),
   });
   const brand = brandPage({ origin, theme: undefined, portraits: new Map() });
+  const index = eventsPage({
+    evenings: { ahead: [], past: [] },
+    origin,
+    theme: undefined,
+    portraits: new Map(),
+  });
 
   /** The head's tags, in order. */
   const head = (html: string) =>
@@ -450,6 +459,12 @@ describe("page metadata", () => {
         "all things/_",
         "/",
         "Evenings for people who build software. In the neighborhoods of San Francisco.",
+      ],
+      [
+        index,
+        "every evening · all things/_",
+        "/events",
+        "Every all things evening, ahead and past. In the neighborhoods of San Francisco.",
       ],
       [
         brand,
@@ -496,11 +511,12 @@ describe("page metadata", () => {
         "Evenings for people who build software. In the neighborhoods of San Francisco.",
       ),
     ]);
+    expect(blocks(index)).toEqual([]);
     expect(blocks(brand)).toEqual([]);
   });
 
   test("names only the configured origin in its head", () => {
-    for (const html of [home, brand]) {
+    for (const html of [home, index, brand]) {
       const urls = [
         ...(/<head>(.*)<\/head>/.exec(html)?.[1] ?? "").matchAll(
           /(?:href|content)="(https?:[^"]*)"/g,

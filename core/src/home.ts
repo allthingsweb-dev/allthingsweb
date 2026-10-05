@@ -7,6 +7,7 @@ import { displayName, eventTopic } from "./lockup.ts";
 import { eventStatus, rsvpUrl } from "./mappers.ts";
 import { neighborhoodOf } from "./places.ts";
 import * as Rows from "./rows.ts";
+import { listingJson } from "./sql.ts";
 
 /**
  * What the home page shows, read as of the `Clock`. Home says each thing
@@ -101,18 +102,7 @@ const Request = Schema.Struct({
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  const listing = sql.literal(`json_build_object(
-    'id', e.id, 'slug', e.slug, 'name', e.name, 'topic', e.topic,
-    'startDate', e.start_date, 'endDate', e.end_date,
-    'streetAddress', e.street_address, 'shortLocation', e.short_location,
-    'fullAddress', e.full_address, 'lumaEventId', e.luma_event_id,
-    'hosts', COALESCE((
-      SELECT json_agg(s.name ORDER BY es.created_at, s.id)
-      FROM event_sponsors es
-      JOIN sponsors s ON s.id = es.sponsor_id
-      WHERE es.event_id = e.id
-    ), '[]'::json)
-  )`);
+  const listing = sql.literal(listingJson);
 
   // An event is live through its end, so "ahead" is everything that hasn't
   // ended (as eventStatus has it). Ids break ties between equal starts.

@@ -19,11 +19,17 @@ import type { Theme } from "./theme.ts";
  * Twitter's card is the plain summary until then.
  */
 
-/** Every page's title is a lockup: all things/<what the page is>. */
-export type Title = `all things/${string}`;
+/**
+ * Every page's title carries the lockup: all things/<what the page is>,
+ * or, for a page that gathers others, its name before the open slot.
+ */
+export type Title = `all things/${string}` | `${string} · all things/_`;
 
 /** all things/`slot`. */
 export const lockup = (slot: string): Title => `all things/${slot}`;
+
+/** `name` · all things/_, for a page that gathers others, such as every evening. */
+export const gatheringTitle = (name: string): Title => `${name} · all things/_`;
 
 /** The home page's title, with the slot left open: all things/_. */
 export const homeTitle: Title = lockup("_");

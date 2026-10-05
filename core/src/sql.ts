@@ -26,6 +26,23 @@ export const imageJson = (column: ImageColumn): string =>
 /** The profile aliased `p`, as a JSON object matching `rows.Profile`. */
 export const profileJson: string = `json_build_object('id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio, 'twitterHandle', p.twitter_handle, 'blueskyHandle', p.bluesky_handle, 'linkedinHandle', p.linkedin_handle, 'image', ${imageJson("p.image")})`;
 
+/**
+ * The event aliased `e` as lists show it, a JSON object matching
+ * `rows.Listing`: its hosts' names in the order they were attached.
+ */
+export const listingJson: string = `json_build_object(
+    'id', e.id, 'slug', e.slug, 'name', e.name, 'topic', e.topic,
+    'startDate', e.start_date, 'endDate', e.end_date,
+    'streetAddress', e.street_address, 'shortLocation', e.short_location,
+    'fullAddress', e.full_address, 'lumaEventId', e.luma_event_id,
+    'hosts', COALESCE((
+      SELECT json_agg(s.name ORDER BY es.created_at, s.id)
+      FROM event_sponsors es
+      JOIN sponsors s ON s.id = es.sponsor_id
+      WHERE es.event_id = e.id
+    ), '[]'::json)
+  )`;
+
 /** Folds SQL and decoding failures into the one error callers handle. */
 export const orDataSourceError = <A, R>(
   effect: Effect.Effect<A, SqlError | Schema.SchemaError, R>,

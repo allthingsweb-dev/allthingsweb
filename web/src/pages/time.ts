@@ -35,8 +35,13 @@ function local(instant: DateTime.DateTime): DateTime.DateTime.PartsWithWeekday {
 
 /** "09.30.26": dates in lists. */
 export function listDate(instant: DateTime.DateTime): string {
-  const { month, day: date, year } = local(instant);
-  return `${twoDigits(month)}.${twoDigits(date)}.${twoDigits(year % 100)}`;
+  const { month, day: date, year: fullYear } = local(instant);
+  return `${twoDigits(month)}.${twoDigits(date)}.${twoDigits(fullYear % 100)}`;
+}
+
+/** 2026: the year an evening happened in, in San Francisco. */
+export function year(instant: DateTime.DateTime): number {
+  return local(instant).year;
 }
 
 /** "Wed Sep 30": the day of an evening. */

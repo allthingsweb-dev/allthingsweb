@@ -1,14 +1,16 @@
 import type { DataSourceError } from "allthings-core/src/errors.ts";
+import { Evenings } from "allthings-core/src/evenings.ts";
 import { Home } from "allthings-core/src/home.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Effect, Layer } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import type * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
-import { repositories } from "../database.ts";
+import { type Repositories, repositories } from "../database.ts";
 import { hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { brandPage } from "./brand.tsx";
+import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
 import { htmlResponse } from "./response.ts";
 import { chooseTheme, isChoice, type Theme, themeOf } from "./theme.ts";
@@ -84,42 +86,72 @@ const hostPortraits = Portraits.use((repository) =>
 );
 
 /**
- * The home page reads the database on every request it reaches, and is
- * cached like the API's public data. Once pages are keyed by data version,
- * it can be cached until the data changes instead. Its evenings and the
- * hosts' portraits are read at once, over the request's pool.
+ * A page of public data at `path`, read on every request it reaches over
+ * the request's pool, at once with the hosts' portraits, and cached like
+ * the API's public data. Once pages are keyed by data version, they can be
+ * cached until the data changes instead. When the data can't be read, the
+ * page says so plainly (503) and is never stored.
  */
-const home = page("/", ({ theme, acceptEncoding }) =>
-  Effect.gen(function* () {
-    const { origin } = yield* Site;
-    return yield* Effect.all(
-      [
-        Home.use((repository) => repository.read(mediaOrigin)),
-        footer(hostPortraits),
-      ],
-      { concurrency: "unbounded" },
-    ).pipe(
-      Effect.provide(repositories),
-      Effect.map(([view, { portraits, read }]) =>
-        htmlResponse(
-          homePage({ home: view, origin, theme, portraits }),
-          acceptEncoding,
-          { cacheControl: read ? "publicData" : "failure", theme },
-        ),
-      ),
-      Effect.catchCause((cause) =>
-        Effect.logError("Error rendering the home page:", cause).pipe(
-          Effect.as(
-            htmlResponse(unavailablePage({ origin, theme }), acceptEncoding, {
-              cacheControl: "failure",
-              theme,
-              status: 503,
-            }),
+const dataPage = <A>(
+  path: `/${string}`,
+  name: string,
+  read: Effect.Effect<A, DataSourceError, Repositories>,
+  render: (
+    data: A,
+    page: {
+      readonly origin: string;
+      readonly theme: Theme | undefined;
+      readonly portraits: PortraitsById;
+    },
+  ) => string,
+) =>
+  page(path, ({ theme, acceptEncoding }) =>
+    Effect.gen(function* () {
+      const { origin } = yield* Site;
+      return yield* Effect.all([read, footer(hostPortraits)], {
+        concurrency: "unbounded",
+      }).pipe(
+        Effect.provide(repositories),
+        Effect.map(([data, { portraits, read: complete }]) =>
+          htmlResponse(
+            render(data, { origin, theme, portraits }),
+            acceptEncoding,
+            { cacheControl: complete ? "publicData" : "failure", theme },
           ),
         ),
-      ),
-    );
-  }),
+        Effect.catchCause((cause) =>
+          Effect.logError(`Error rendering ${name}:`, cause).pipe(
+            Effect.as(
+              htmlResponse(
+                unavailablePage({ origin, path, theme }),
+                acceptEncoding,
+                {
+                  cacheControl: "failure",
+                  theme,
+                  status: 503,
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+    }),
+  );
+
+/** The home page: the next evening, the ones after it and the latest. */
+const home = dataPage(
+  "/",
+  "the home page",
+  Home.use((repository) => repository.read(mediaOrigin)),
+  (view, props) => homePage({ home: view, ...props }),
+);
+
+/** The evenings index: every published evening. */
+const events = dataPage(
+  "/events",
+  "the evenings index",
+  Evenings.use((repository) => repository.read),
+  (evenings, props) => eventsPage({ evenings, ...props }),
 );
 
 /**
@@ -141,4 +173,4 @@ const brand = page("/brand", ({ theme, acceptEncoding }) =>
   }),
 );
 
-export const pageRoutes = Layer.mergeAll(home, brand);
+export const pageRoutes = Layer.mergeAll(home, events, brand);
