@@ -1,6 +1,9 @@
 # Moving media to the allthings account
 
-Status: prepared, nothing copied. Blocked on R2 being enabled in the allthings account (`af627f300cd00c4dca56aacf05bea050`).
+Status (Oct 5): Phase 1 is done. R2 and Workers Paid are on in the allthings account (`af627f300cd00c4dca56aacf05bea050`).
+
+- The staged bucket holds all 317 objects (1,372,325,671 bytes), copied in 97 s, and `verify` found every object identical.
+- allthings.dev is a pending zone there: `f65e1c6d54e9d2e850cf025190ef8915`, nameservers max/rosalie.ns.cloudflare.com, no records.
 
 ## The one thing to know
 
@@ -12,7 +15,7 @@ Status: prepared, nothing copied. Blocked on R2 being enabled in the allthings a
 
 So for zero downtime, the new bucket must be **full, verified, and already attached to media.allthings.dev before the move happens**. If R2 is still off on Oct 11, the move takes media offline. The image rows store absolute `https://media.allthings.dev/...` URLs, so there is no host to fall back to.
 
-Critical path: Erik enables R2 → at least one day of copying and verifying → the domain move (earliest Oct 11). That date is the registrar's 10-day rule; the domain was registered Sep 30.
+Critical path: attach media.allthings.dev to the pending zone → copy and verify the delta since Phase 1 → the domain move (earliest Oct 11), then re-home the apex/www redirect right after activation. That date is the registrar's 10-day rule; the domain was registered Sep 30.
 
 ## What this change adds
 
@@ -46,14 +49,15 @@ Critical path: Erik enables R2 → at least one day of copying and verifying →
 
 ## Erik-only steps
 
-1. **Workers Paid and R2** on the allthings account (`ops/cloudflare-paid-and-r2.sh`).
-2. **Zone in the allthings account** (needed for the registrar move anyway). Add allthings.dev as a website on the Free plan, and turn DNSSEC off on the current zone.
-   - Export the current zone's DNS records and import the ones that aren't media into the new zone (email routing and anything else esthor/domains manages).
-   - media.allthings.dev's record is created by R2 when the domain is attached. Don't import it.
-3. **The move.** Submit it from the personal account (Manage Domain → Configuration), then accept it in the allthings account within 5 days.
-4. **Optional, your call:** an Advanced Certificate (ACM, about $10/month, cancel after) ordered on the pending zone.
+1. ~~**Workers Paid and R2** on the allthings account~~ (done Oct 5).
+2. **The move.** Submit it from the personal account (Manage Domain → Configuration), then accept it in the allthings account within 5 days. Cloudflare has no API for it.
+3. **Optional, your call:** an Advanced Certificate (ACM, about $10/month, cancel after) ordered on the pending zone.
    - Per Cloudflare's docs, it deploys the moment the zone turns active. That removes the remaining TLS gap (see Downtime).
    - It's a cost and taste call, so I haven't decided it.
+
+The zone is already added, and DNSSEC is already off: the .dev registry holds no DS record. The live zone has no ordinary records to recreate. Its apex and www are Wrangler custom domains for esthor/domains' redirect Worker, which [esthor/domains#232](https://github.com/esthor/domains/pull/232) re-homes to the allthings account right after the move.
+
+`ops/rotate-alchemy-oauth.sh` signs both Alchemy profiles in again. That fixes the `allthings` profile's refresh, which fails since its OAuth client dropped a scope. Until then, prod deploys to the allthings account run with a short-lived account token from the cf CLI's `allthings` login, created and deleted per deploy, as Phase 1's did.
 
 No R2 token is created or stored by hand. The copy runs with the logins a maintainer already has: `bunx wrangler login` on the personal account, and the cf CLI's `allthings` profile.
 
@@ -61,7 +65,7 @@ No R2 token is created or stored by hand. The copy runs with the logins a mainta
 
 Run from `infra/` once this has merged. Nothing is passed by hand: the copy uses the two logins above, and prints no credential.
 
-**Phase 1: as soon as R2 is on (well before Oct 11)**
+**Phase 1: as soon as R2 is on** (done Oct 5: deploy 21 s, plan 25 s, copy 97 s, verify 71 s)
 
 1. `bun run deploy --stage prod --profile allthings`. This stages the bucket only. The output says the domain isn't attached until the zone is added.
 2. `bun scripts/copy-media.ts plan`. This gives the inventory (counts, MB); conflicts must be 0.
@@ -69,31 +73,40 @@ Run from `infra/` once this has merged. Nothing is passed by hand: the copy uses
 
 **Phase 2: the day of the move, before submitting it**
 
-1. Erik step 2 (zone added, pending; DNSSEC off; records imported).
-2. `bun run deploy --stage prod --profile allthings` again. This attaches media.allthings.dev to the new bucket on the pending zone.
+1. `bun run deploy --stage prod --profile allthings` again. The zone is now in the account, so this attaches media.allthings.dev to the new bucket on the pending zone.
    - Check in the dashboard that the bucket's custom domain shows media.allthings.dev.
    - If R2 refuses a pending zone, the deploy fails here and changes nothing else. Then the attach happens in Phase 4 instead, and the window is longer (see Downtime).
-3. Ask organizers not to upload media for the next hour.
-4. Run `copy` and then `verify` (the delta since Phase 1).
-5. Warm the caches by loading every event, people and home page on staging, so the `/img` variants are in the Web Worker's edge cache. Vercel's image cache is warm from normal traffic.
-6. Pick a time with no evening on the calendar within 24 hours.
+2. Ask organizers not to upload media for the next hour.
+3. Run `copy` and then `verify` (the delta since Phase 1). Both must exit 0 before the move.
+   - A key never changes: the upload Worker refuses a key that exists (409), and every key carries a new UUID. So the delta should only add objects.
+   - A conflict means something wrote outside that path, or deleted a key and stored another object under it. The copy never overwrites, so it stops there.
+   - Do not submit the move until it is resolved. Compare the two objects, delete the staged one in the allthings account's dashboard (R2 → allthings-media), and rerun `copy` and `verify`.
+4. Warm the caches by loading every event, people and home page on staging, so the `/img` variants are in the Web Worker's edge cache. Vercel's image cache is warm from normal traffic.
+5. Pick a time with no evening on the calendar within 24 hours.
 
 **Phase 3: the move**
 
-Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account, and media.allthings.dev now serves the new bucket.
+Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account, and media.allthings.dev now serves the new bucket. `dig +short NS allthings.dev` then answers max/rosalie.
 
 **Phase 4: right after activation**
 
 1. Run these checks:
    - `curl -sI https://media.allthings.dev/<a few keys>` must return 200 with a valid certificate.
    - `verify --public https://media.allthings.dev` must exit 0.
-2. `bun run deploy --stage prod --profile allthings` (now "serve"), with `NEON_SYNC_URL` and `LUMA_API_KEY` passed as `infra/README.md` shows. This brings up:
+2. Re-home the apex/www redirect: [esthor/domains#232](https://github.com/esthor/domains/pull/232), steps 3–5 of its README section.
+   - Deploy `wrangler.allthings.jsonc` and repeat its eight redirect checks.
+   - Delete the personal-account Worker.
+   - Move Terraform's state to the new zone (`state rm`, then the `--expect-import` plan, then apply).
+
+   Until the deploy, allthings.dev and www don't answer: Worker custom domains need an active zone.
+
+3. `bun run deploy --stage prod --profile allthings` (now "serve"), with `NEON_SYNC_URL` and `LUMA_API_KEY` passed as `infra/README.md` shows. This brings up:
    - the upload Worker in the allthings account (new URL and token), which runs its put/delete check
    - the sync Worker, its schedule still off
    - `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` written to Vercel
-3. **Redeploy production on Vercel.** Changed env only reaches new deployments. Until then, uploads still go to the old bucket.
-4. Run `copy` again for anything uploaded to the old bucket before the redeploy, then `verify --public`.
-5. Run an end-to-end check: one upload through the admin, visible on media.allthings.dev and as an `/img` variant.
+4. **Redeploy production on Vercel.** Changed env only reaches new deployments. Until then, uploads still go to the old bucket.
+5. Run `copy` again for anything uploaded to the old bucket before the redeploy, then `verify --public`.
+6. Run an end-to-end check: one upload through the admin, visible on media.allthings.dev and as an `/img` variant.
 
 **Phase 5: after**
 
