@@ -1,4 +1,14 @@
 import { dataTheme } from "allthings-brand/src/css.ts";
+import {
+  below,
+  columns,
+  contentVw,
+  ledgerColumns,
+  media,
+  portrait as portraitSide,
+  sizes,
+  space,
+} from "allthings-brand/src/layout.ts";
 import type {
   EventPage,
   Note,
@@ -212,15 +222,20 @@ function Where({
 }
 
 /**
- * The squares site.css shows portraits at: hosts, co-hosts and MCs at 44
- * px; speakers at 168, 72 on phones. Each is offered up to 3x.
+ * The squares site.css shows portraits at, from the layout tokens: hosts,
+ * co-hosts and MCs small; speakers extra large, medium on phones. Each is
+ * offered up to 3x.
  */
 const portraitSizes = {
-  small: { side: 44, sides: [72, 144], sizes: "44px" },
+  small: {
+    side: portraitSide.s,
+    sides: [72, 144],
+    sizes: `${portraitSide.s}px`,
+  },
   speaker: {
-    side: 168,
+    side: portraitSide.xl,
     sides: [72, 144, 168, 216, 336],
-    sizes: "(max-width: 760px) 72px, 168px",
+    sizes: `${below("l")} ${portraitSide.m}px, ${portraitSide.xl}px`,
   },
 } as const;
 
@@ -640,7 +655,7 @@ function TalkEntry({
       {talk.speakers.length === 0 ? (
         ""
       ) : (
-        <div class="speakers">
+        <div class="stage-speakers">
           {talk.speakers.map((speaker) => (
             <SpeakerCard speaker={speaker} images={images} />
           ))}
@@ -733,13 +748,13 @@ function OnStage({
 }
 
 /**
- * How wide site.css shows a photo: a third of the ledger's 9 of 12 columns
- * (24 px gutters, 10 px gaps) on a page at most 1440 px wide with margins
- * of 4.5vw (16 to 64 px), and half the page width from 760 px down. That
- * is 319 px at 1440 and 166 at 375.
+ * How wide site.css shows a photo: a third of the ledger's content columns,
+ * and half the page's width where the ledger stacks.
  */
-const photoSizes =
-  "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(22.75vw - 9px), 320px";
+const photoSizes = sizes(
+  { span: columns - ledgerColumns, parts: 3, gap: space(3) },
+  { below: "l", span: columns, parts: 2, gap: space(3) },
+);
 
 /** Every photo of the evening, loaded as it is scrolled to. */
 function Photos({
@@ -771,13 +786,12 @@ const platformNames: Readonly<Record<Post["platform"], string>> = {
 };
 
 /**
- * How wide site.css shows a post's photo: the post's column beside its
- * 36 px avatar (12 px gap), at most 480 px; on phones the page width less
- * its 16 px margins and the avatar.
+ * How wide site.css shows a post's photo: at most the media size; where the
+ * ledger stacks, the page's width less the author's avatar and its gap.
  */
-const postPhotoSizes = "(max-width: 760px) calc(100vw - 80px), 480px";
+const postPhotoSizes = `${below("l")} calc(${contentVw}vw - ${portraitSide.xs + space(3)}px), ${media}px`;
 
-/** The author's avatar, 36 px square, or the brand's blank avatar. */
+/** The author's avatar, extra small, or the brand's blank avatar. */
 function PostAvatar({
   avatar,
   images,
@@ -790,8 +804,8 @@ function PostAvatar({
       <img
         src={built.marks.avatar.src}
         alt=""
-        width="36"
-        height="36"
+        width={String(portraitSide.xs)}
+        height={String(portraitSide.xs)}
         loading="lazy"
         decoding="async"
       />
@@ -801,7 +815,7 @@ function PostAvatar({
     <SquarePhoto
       photo={avatar}
       mode={images}
-      side={36}
+      side={portraitSide.xs}
       sides={[36, 72]}
       alt=""
     />

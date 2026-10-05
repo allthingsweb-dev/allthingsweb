@@ -104,9 +104,18 @@ One family, Archivo, used at three widths, plus Geist Mono for meta.
 | Body | 18 / 1.55 | 400 | 100% | 0 | 90 |
 | Meta (Geist Mono, caps) | 14 / 1.5 | 500 | — | +6% | 75 |
 
+Sizes are the largest. The wordmark, event lockup, label and lead shrink on narrow screens, each down to a floor its token sets.
+
 ## Layout
 
 - A 12-column grid, flush left, ragged right. Rules instead of boxes; sharp corners.
+- Every length comes from the layout tokens in [`all-things.tokens.json`](all-things.tokens.json):
+  - The page: at most 1440px wide, with a margin of 4.5% of the screen, from 16px on phones to 64px.
+  - The grid: 12 columns with 24px gutters. In a ledger, each fact's label takes 3 columns and the fact the other 9.
+  - Spacing on a 4px scale, three rule weights (1, 2 and 3px), portrait and tile sizes, and the breakpoints (480, 600, 768 and 1024px).
+  - Reading measures: 68 characters to a line of reading copy, 36 to a lead.
+- The site's stylesheet writes no length of its own but a 1px hairline: no inline styles, no magic widths, no breakpoint of a page's own. A test fails the build on any other.
+- Reading copy keeps its measure and gives the rest of the row to what sits beside it. Speakers on a stage share the row rather than squeezing into narrow fixed columns.
 - Asymmetry is deliberate: neighboring blocks may sit on different cuts of the grid and align to different edges.
 - Lists of events: a light date, the name heavy with its slash, and the place bolder than the date but clearly secondary.
 - Home says each thing once: the next event is the hero, real photos sit beside it, and the lists below show only other events ("after that", "recently").

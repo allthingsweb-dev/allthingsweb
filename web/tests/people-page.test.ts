@@ -82,21 +82,21 @@ describe("the people page's portraits as variants", () => {
     "variants",
   );
 
-  test("offer organizers at 160 and 320 pixels square, loaded at once", () => {
-    const sizes = "(max-width: 600px) 96px, 160px";
+  test("offer organizers at 168 and 336 pixels square, loaded at once", () => {
+    const sizes = "(max-width: 599.98px) 96px, 168px";
     expect(html).toContain(
       [
         "<picture>",
-        `<source type="image/avif" srcset="${squares("erik", "avif", [160, 320])}" sizes="${sizes}"/>`,
-        `<source type="image/webp" srcset="${squares("erik", "webp", [160, 320])}" sizes="${sizes}"/>`,
-        `<img class="portrait" src="/img/160x160/jpeg/1767323045/profiles/erik.png" srcset="${squares("erik", "jpeg", [160, 320])}" sizes="${sizes}" alt="" width="160" height="160" decoding="async"/>`,
+        `<source type="image/avif" srcset="${squares("erik", "avif", [168, 336])}" sizes="${sizes}"/>`,
+        `<source type="image/webp" srcset="${squares("erik", "webp", [168, 336])}" sizes="${sizes}"/>`,
+        `<img class="portrait" src="/img/168x168/jpeg/1767323045/profiles/erik.png" srcset="${squares("erik", "jpeg", [168, 336])}" sizes="${sizes}" alt="" width="168" height="168" decoding="async"/>`,
         "</picture>",
       ].join(""),
     );
   });
 
   test("offer everyone else at 72 to 216 pixels square, loaded as they're scrolled to", () => {
-    const sizes = "(max-width: 600px) 64px, 72px";
+    const sizes = "72px";
     expect(html).toContain(
       `<img class="portrait" src="/img/72x72/jpeg/1767323045/profiles/ada.png" srcset="${squares("ada", "jpeg", [72, 144, 216])}" sizes="${sizes}" alt="" width="72" height="72" loading="lazy" decoding="async"/>`,
     );

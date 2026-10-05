@@ -774,7 +774,7 @@ describe("the event page's images as variants", () => {
     const tiles = html.match(/<li><picture>.*?<\/picture><\/li>/g) ?? [];
     expect(tiles).toHaveLength(9);
     const sizes =
-      "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(22.75vw - 9px), 320px";
+      "(max-width: 767.98px) calc(45.5vw - 6px), (max-width: 1439.98px) calc(22.75vw - 10px), 318px";
     expect(tiles[0]).toContain(
       `<img src="/img/480/jpeg/1767323045/events/p0.jpg" srcset="/img/240/jpeg/1767323045/events/p0.jpg 240w, /img/360/jpeg/1767323045/events/p0.jpg 360w, /img/480/jpeg/1767323045/events/p0.jpg 480w, /img/720/jpeg/1767323045/events/p0.jpg 720w, /img/960/jpeg/1767323045/events/p0.jpg 960w, /img/1200/jpeg/1767323045/events/p0.jpg 1200w" sizes="${sizes}" alt="p0" width="1600" height="1200" loading="lazy" decoding="async"/>`,
     );
@@ -783,7 +783,7 @@ describe("the event page's images as variants", () => {
 
   test("offers speakers at 72 to 336 pixels square and hosts at 72 and 144", () => {
     expect(html).toContain(
-      '<img src="/img/72x72/jpeg/1767323045/events/ada.jpg" srcset="/img/72x72/jpeg/1767323045/events/ada.jpg 72w, /img/144x144/jpeg/1767323045/events/ada.jpg 144w, /img/168x168/jpeg/1767323045/events/ada.jpg 168w, /img/216x216/jpeg/1767323045/events/ada.jpg 216w, /img/336x336/jpeg/1767323045/events/ada.jpg 336w" sizes="(max-width: 760px) 72px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
+      '<img src="/img/72x72/jpeg/1767323045/events/ada.jpg" srcset="/img/72x72/jpeg/1767323045/events/ada.jpg 72w, /img/144x144/jpeg/1767323045/events/ada.jpg 144w, /img/168x168/jpeg/1767323045/events/ada.jpg 168w, /img/216x216/jpeg/1767323045/events/ada.jpg 216w, /img/336x336/jpeg/1767323045/events/ada.jpg 336w" sizes="(max-width: 767.98px) 72px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
     );
     expect(html).toContain(
       '<img src="/img/72x72/jpeg/1767323045/events/erik.jpg" srcset="/img/72x72/jpeg/1767323045/events/erik.jpg 72w, /img/144x144/jpeg/1767323045/events/erik.jpg 144w" sizes="44px" alt="" width="44" height="44" loading="lazy" decoding="async"/>',
@@ -955,7 +955,7 @@ describe("posts about the evening", () => {
       "variants",
     );
     expect(html).toContain(
-      '<img src="/img/480/jpeg/1767323045/posts/stage.jpg" srcset="/img/240/jpeg/1767323045/posts/stage.jpg 240w, /img/360/jpeg/1767323045/posts/stage.jpg 360w, /img/480/jpeg/1767323045/posts/stage.jpg 480w, /img/720/jpeg/1767323045/posts/stage.jpg 720w, /img/960/jpeg/1767323045/posts/stage.jpg 960w, /img/1200/jpeg/1767323045/posts/stage.jpg 1200w" sizes="(max-width: 760px) calc(100vw - 80px), 480px" alt="stage" width="1200" height="800" loading="lazy" decoding="async"/>',
+      '<img src="/img/480/jpeg/1767323045/posts/stage.jpg" srcset="/img/240/jpeg/1767323045/posts/stage.jpg 240w, /img/360/jpeg/1767323045/posts/stage.jpg 360w, /img/480/jpeg/1767323045/posts/stage.jpg 480w, /img/720/jpeg/1767323045/posts/stage.jpg 720w, /img/960/jpeg/1767323045/posts/stage.jpg 960w, /img/1200/jpeg/1767323045/posts/stage.jpg 1200w" sizes="(max-width: 767.98px) calc(91vw - 48px), 480px" alt="stage" width="1200" height="800" loading="lazy" decoding="async"/>',
     );
     expect(html).toContain(
       '<img src="/img/36x36/jpeg/1767323045/posts/andre.jpg" srcset="/img/36x36/jpeg/1767323045/posts/andre.jpg 1x, /img/72x72/jpeg/1767323045/posts/andre.jpg 2x" alt="" width="36" height="36" loading="lazy" decoding="async"/>',

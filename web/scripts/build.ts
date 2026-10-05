@@ -1,6 +1,10 @@
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { type Textures, themeCss } from "allthings-brand/src/css.ts";
+import {
+  expandCustomMedia,
+  type Textures,
+  themeCss,
+} from "allthings-brand/src/css.ts";
 import { roleColor, tokens } from "allthings-brand/src/tokens.ts";
 import { Marked, Renderer, type Tokens } from "marked";
 import { immutable } from "../src/cache.ts";
@@ -165,7 +169,11 @@ async function buildStylesheet(fontFaces: string): Promise<string> {
   const site = await Bun.file(join(web, "src/styles/site.css")).text();
   const source = join(dist, "site.css");
   const theme = themeCss(tokens, await buildTextures());
-  await Bun.write(source, [fontFaces, theme, site].join("\n"));
+  // The breakpoints are custom media queries, which browsers don't read yet.
+  await Bun.write(
+    source,
+    expandCustomMedia([fontFaces, theme, site].join("\n")),
+  );
   const result = await Bun.build({
     entrypoints: [source],
     minify: true,

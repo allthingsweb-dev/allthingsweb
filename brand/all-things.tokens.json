@@ -146,7 +146,10 @@
       "$extensions": {
         "dev.allthings": {
           "width": "112%",
-          "letterSpacingEm": -0.045
+          "letterSpacingEm": -0.045,
+          "fluid": {
+            "viewport": 17
+          }
         }
       }
     },
@@ -168,7 +171,10 @@
       "$extensions": {
         "dev.allthings": {
           "width": "112%",
-          "letterSpacingEm": -0.04
+          "letterSpacingEm": -0.04,
+          "fluid": {
+            "viewport": 12
+          }
         }
       }
     },
@@ -191,7 +197,14 @@
         "dev.allthings": {
           "width": "75%",
           "letterSpacingEm": -0.01,
-          "textTransform": "uppercase"
+          "textTransform": "uppercase",
+          "fluid": {
+            "min": {
+              "value": 28,
+              "unit": "px"
+            },
+            "viewport": 4
+          }
         }
       }
     },
@@ -213,7 +226,14 @@
       "$extensions": {
         "dev.allthings": {
           "width": "100%",
-          "letterSpacingEm": -0.01
+          "letterSpacingEm": -0.01,
+          "fluid": {
+            "min": {
+              "value": 22,
+              "unit": "px"
+            },
+            "viewport": 3
+          }
         }
       }
     },
@@ -309,19 +329,475 @@
   },
   "layout": {
     "$type": "dimension",
-    "gutter": {
+    "page": {
       "$value": {
-        "value": 24,
+        "value": 1440,
         "unit": "px"
       },
-      "$description": "Gutter of the 12-column grid."
+      "$description": "The widest the page grows, its margins included."
     },
     "margin": {
       "$value": {
         "value": 64,
         "unit": "px"
       },
-      "$description": "Page margin at desktop widths."
+      "$description": "The page's margin: 4.5% of the screen, from 16px on phones to 64px.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "min": {
+              "value": 16,
+              "unit": "px"
+            },
+            "viewport": 4.5
+          }
+        }
+      }
+    },
+    "gutter": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      },
+      "$description": "Gutter of the 12-column grid, and between tiles and cards."
+    },
+    "top": {
+      "$value": {
+        "value": 40,
+        "unit": "px"
+      },
+      "$description": "Above the header's rule.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "min": {
+              "value": 16,
+              "unit": "px"
+            },
+            "viewport": 3
+          }
+        }
+      }
+    },
+    "region": {
+      "$value": {
+        "value": 88,
+        "unit": "px"
+      },
+      "$description": "Between the header, the page and the footer, and between a page's main parts.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "min": {
+              "value": 48,
+              "unit": "px"
+            },
+            "viewport": 7
+          }
+        }
+      }
+    },
+    "section": {
+      "$value": {
+        "value": 72,
+        "unit": "px"
+      },
+      "$description": "Between the sections of a page.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "min": {
+              "value": 48,
+              "unit": "px"
+            },
+            "viewport": 5
+          }
+        }
+      }
+    },
+    "block": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "Between an event's lockup, its ledger and what's next.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "min": {
+              "value": 32,
+              "unit": "px"
+            },
+            "viewport": 4
+          }
+        }
+      }
+    }
+  },
+  "space": {
+    "1": {
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      },
+      "$description": "The tightest step: a name and its title, a target's padding."
+    },
+    "2": {
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      },
+      "$description": "Between a label and what it labels; within a card."
+    },
+    "3": {
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      },
+      "$description": "Under a rule, before what it heads; a portrait and its name."
+    },
+    "4": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      },
+      "$description": "Between the links of a nav; a list's cells."
+    },
+    "5": {
+      "$value": {
+        "value": 20,
+        "unit": "px"
+      },
+      "$description": "Between a lockup and its lead; a person's portrait and words."
+    },
+    "6": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      },
+      "$description": "A ledger row's padding; between a section's title and body."
+    },
+    "7": {
+      "$value": {
+        "value": 28,
+        "unit": "px"
+      },
+      "$description": "Between posts; a button's padding."
+    },
+    "8": {
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      },
+      "$description": "Between the columns of paired lists."
+    },
+    "10": {
+      "$value": {
+        "value": 40,
+        "unit": "px"
+      },
+      "$description": "Between speakers on stage; between a band's rows."
+    },
+    "12": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      },
+      "$description": "Between talks on stage; between the parts of a page's main column."
+    },
+    "14": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "Below the footer."
+    },
+    "$type": "dimension"
+  },
+  "stroke": {
+    "$type": "dimension",
+    "hairline": {
+      "$value": {
+        "value": 1,
+        "unit": "px"
+      },
+      "$description": "Rules between rows, borders of tiles."
+    },
+    "rule": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "The rule over a section; underlines on hover."
+    },
+    "heavy": {
+      "$value": {
+        "value": 3,
+        "unit": "px"
+      },
+      "$description": "The rule over the header and the ledger; the focus ring."
+    }
+  },
+  "size": {
+    "$type": "dimension",
+    "portraitXs": {
+      "$value": {
+        "value": 36,
+        "unit": "px"
+      },
+      "$description": "Overlapping portraits in the footer; a post's author."
+    },
+    "portraitS": {
+      "$value": {
+        "value": 44,
+        "unit": "px"
+      },
+      "$description": "Hosts, co-hosts and MCs on an event."
+    },
+    "portraitM": {
+      "$value": {
+        "value": 72,
+        "unit": "px"
+      },
+      "$description": "Speakers on /people, and on an event on phones."
+    },
+    "portraitL": {
+      "$value": {
+        "value": 96,
+        "unit": "px"
+      },
+      "$description": "The organizers on /people on phones."
+    },
+    "portraitXl": {
+      "$value": {
+        "value": 168,
+        "unit": "px"
+      },
+      "$description": "Speakers on an event; the organizers on /people."
+    },
+    "target": {
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      },
+      "$description": "The smallest square control: the mode's icon."
+    },
+    "button": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "A button's height."
+    },
+    "dateColumn": {
+      "$value": {
+        "value": 88,
+        "unit": "px"
+      },
+      "$description": "The date column of a list of evenings or talks."
+    },
+    "tileS": {
+      "$value": {
+        "value": 136,
+        "unit": "px"
+      },
+      "$description": "The narrowest a small column gets: a schedule's times, a tally's figures."
+    },
+    "tileM": {
+      "$value": {
+        "value": 240,
+        "unit": "px"
+      },
+      "$description": "The narrowest a card gets before the row wraps: co-hosts, swatches, marks."
+    },
+    "tileL": {
+      "$value": {
+        "value": 320,
+        "unit": "px"
+      },
+      "$description": "The narrowest a speaker on stage gets before the row wraps."
+    },
+    "media": {
+      "$value": {
+        "value": 480,
+        "unit": "px"
+      },
+      "$description": "The widest a post's photo is shown."
+    },
+    "markWide": {
+      "$value": {
+        "value": 720,
+        "unit": "px"
+      },
+      "$description": "The widest the wordmark's specimen is shown."
+    },
+    "markSmall": {
+      "$value": {
+        "value": 96,
+        "unit": "px"
+      },
+      "$description": "The small marks' specimens."
+    }
+  },
+  "fontSize": {
+    "$type": "dimension",
+    "small": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      },
+      "$description": "Small copy: bios, talk titles, tables, captions."
+    },
+    "title": {
+      "$value": {
+        "value": 28,
+        "unit": "px"
+      },
+      "$description": "Small titles: the wordmark in the header, the next evening's date label, swatch samples."
+    },
+    "figure": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The about page's tally.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "min": {
+              "value": 40,
+              "unit": "px"
+            },
+            "viewport": 4.5
+          }
+        }
+      }
+    },
+    "heroL": {
+      "$value": {
+        "value": 156,
+        "unit": "px"
+      },
+      "$description": "Home's lockup for a short topic, filling its column.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "container": 19.5
+          }
+        }
+      }
+    },
+    "heroM": {
+      "$value": {
+        "value": 112,
+        "unit": "px"
+      },
+      "$description": "Home's lockup for a medium topic.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "container": 14
+          }
+        }
+      }
+    },
+    "heroS": {
+      "$value": {
+        "value": 72,
+        "unit": "px"
+      },
+      "$description": "Home's lockup for a long topic.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "container": 9.5
+          }
+        }
+      }
+    },
+    "eventL": {
+      "$value": {
+        "value": 112,
+        "unit": "px"
+      },
+      "$description": "An event's lockup for a short topic, filling the page.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "container": 15.5
+          }
+        }
+      }
+    },
+    "eventM": {
+      "$value": {
+        "value": 80,
+        "unit": "px"
+      },
+      "$description": "An event's lockup for a medium topic.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "container": 11
+          }
+        }
+      }
+    },
+    "eventS": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "An event's lockup for a long topic.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "container": 9
+          }
+        }
+      }
+    }
+  },
+  "measure": {
+    "$type": "number",
+    "prose": {
+      "$value": 68,
+      "$description": "Characters to a line of reading copy: descriptions, bios, posts and prose."
+    },
+    "lead": {
+      "$value": 36,
+      "$description": "Characters to a line of lead copy."
+    }
+  },
+  "breakpoint": {
+    "$type": "dimension",
+    "s": {
+      "$value": {
+        "value": 480,
+        "unit": "px"
+      },
+      "$description": "Below it, the header's sections and mode take a line of their own."
+    },
+    "m": {
+      "$value": {
+        "value": 600,
+        "unit": "px"
+      },
+      "$description": "Below it, a person's portrait sits beside their name alone, and list rows stack."
+    },
+    "l": {
+      "$value": {
+        "value": 768,
+        "unit": "px"
+      },
+      "$description": "Below it, the ledger and paired columns stack."
+    },
+    "xl": {
+      "$value": {
+        "value": 1024,
+        "unit": "px"
+      },
+      "$description": "Below it, a page's title and its lists stack."
     }
   },
   "motion": {
@@ -418,6 +894,7 @@
   "$extensions": {
     "dev.allthings": {
       "gridColumns": 12,
+      "ledgerColumns": 3,
       "contrast": [
         {
           "text": "{color.ink}",
