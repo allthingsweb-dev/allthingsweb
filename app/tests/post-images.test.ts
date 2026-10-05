@@ -16,6 +16,8 @@ import {
   ingestPostImages,
   postImageKey,
   type PostImageDependencies,
+  rotate,
+  untilAborted,
 } from "../src/lib/post-images/ingest";
 
 const client = new PGlite();
@@ -251,6 +253,87 @@ describe("post image ingestion", () => {
         error: expect.stringContaining("timed out"),
       },
     ]);
-    expect(result.remaining).toBe(0);
+    // The skipped image is still missing: the next run tries it again.
+    expect(result.remaining).toBe(1);
+  });
+
+  test("bounds processing too, which can't be cancelled", async () => {
+    await insertPost({ authorAvatarSourceUrl: null });
+    await insertPost({ authorAvatarSourceUrl: null });
+    let calls = 0;
+    const result = await ingestPostImages(
+      deps({
+        process: (bytes) =>
+          ++calls === 1
+            ? new Promise(() => {})
+            : Promise.resolve({
+                bytes,
+                width: 1200,
+                height: 800,
+                format: "jpeg",
+                placeholder: "",
+              }),
+      }),
+      { itemTimeoutMs: 20 },
+    );
+    expect(result.failed).toHaveLength(1);
+    expect(result.ingested).toHaveLength(1);
+    expect(result.remaining).toBe(1);
+  });
+
+  test("starts each hourly run further along the queue", () => {
+    const queue = ["a", "b", "c", "d", "e"];
+    const hour = 3_600_000;
+    expect(rotate(queue, 0, 2)).toEqual(["a", "b", "c", "d", "e"]);
+    expect(rotate(queue, hour, 2)).toEqual(["c", "d", "e", "a", "b"]);
+    expect(rotate(queue, 2 * hour + 59_000, 2)).toEqual([
+      "e",
+      "a",
+      "b",
+      "c",
+      "d",
+    ]);
+    // A queue a run can finish is taken in order.
+    expect(rotate(queue, hour, 5)).toEqual(queue);
+  });
+
+  test("failures never keep later images from their turn", async () => {
+    for (let i = 0; i < 3; i++) {
+      await insertPost({ authorAvatarSourceUrl: null });
+    }
+    const failing = new Set(
+      (
+        await db
+          .select()
+          .from(eventPostsTable)
+          .orderBy(eventPostsTable.addedAt, eventPostsTable.id)
+      )
+        .slice(0, 2)
+        .map((post) => post.imageSourceUrl),
+    );
+    const run = (now: number) =>
+      ingestPostImages(
+        deps({
+          now: () => now,
+          download: async (url) => {
+            if (failing.has(url)) throw new Error("Image download failed: 404");
+            return new Uint8Array([1]);
+          },
+        }),
+        { maxItems: 2 },
+      );
+    // The first run tries the two failing ones; the next gets to the third.
+    expect((await run(0)).ingested).toHaveLength(0);
+    expect((await run(3_600_000)).ingested).toHaveLength(1);
+  });
+
+  test("untilAborted rejects once the signal aborts, and passes results on", async () => {
+    const controller = new AbortController();
+    const pending = untilAborted(new Promise(() => {}), controller.signal);
+    controller.abort(new Error("timed out"));
+    await expect(pending).rejects.toThrow("timed out");
+    expect(
+      await untilAborted(Promise.resolve(1), new AbortController().signal),
+    ).toBe(1);
   });
 });

@@ -125,10 +125,59 @@ async function saveImage(
 }
 
 /**
- * Copies post images still missing, oldest first: at most `maxItems` of
- * them, none started after `budgetMs`, each given `itemTimeoutMs` before
- * it is skipped (a skipped image is tried again next run). What is left is
- * counted, so the run's summary says when a backlog remains.
+ * `work`, or a rejection once `signal` aborts, whichever comes first, so
+ * a step that can't be cancelled (such as processing an image) still can't
+ * hold a run past its bound. What it leaves running is abandoned.
+ */
+export function untilAborted<A>(
+  work: Promise<A>,
+  signal: AbortSignal,
+): Promise<A> {
+  if (signal.aborted) return Promise.reject(abortError(signal));
+  return new Promise<A>((resolve, reject) => {
+    const abort = () => reject(abortError(signal));
+    signal.addEventListener("abort", abort, { once: true });
+    work.then(
+      (value) => {
+        signal.removeEventListener("abort", abort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", abort);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+}
+
+const abortError = (signal: AbortSignal): Error =>
+  signal.reason instanceof Error ? signal.reason : new Error("Aborted");
+
+/** How often the hourly sync runs: each run starts the queue further on. */
+const runEveryMs = 3_600_000;
+
+/**
+ * `items` from where this run starts: oldest first, but each hourly run
+ * starts `maxItems` further on, wrapping around. Without it, images that
+ * keep failing would fill every run and the ones after them never come up.
+ */
+export function rotate<A>(
+  items: ReadonlyArray<A>,
+  now: number,
+  maxItems: number,
+): ReadonlyArray<A> {
+  if (items.length <= maxItems) return items;
+  const start = (Math.floor(now / runEveryMs) * maxItems) % items.length;
+  return [...items.slice(start), ...items.slice(0, start)];
+}
+
+/**
+ * Copies post images still missing: at most `maxItems` of them (each run
+ * starting further along the queue, see `rotate`), none started after
+ * `budgetMs`, each given `itemTimeoutMs`, processing included, before it
+ * is skipped and left for a later run. `remaining` counts what is still
+ * missing afterwards, failures included, so the summary says when a
+ * backlog remains.
  */
 export async function ingestPostImages(
   deps: PostImageDependencies,
@@ -151,24 +200,31 @@ export async function ingestPostImages(
     failed: [],
     remaining: items.length,
   };
-  for (const [index, item] of items.entries()) {
+  for (const [index, item] of rotate(items, deps.now(), maxItems).entries()) {
     if (index >= maxItems || deps.now() >= deadline || signal.aborted) break;
-    result.remaining -= 1;
     const itemSignal = AbortSignal.any([
       signal,
       AbortSignal.timeout(itemTimeoutMs),
     ]);
     let unusedKey: string | null = null;
     try {
-      const image = await deps.process(
-        await deps.download(item.source, { signal: itemSignal }),
+      const image = await untilAborted(
+        deps.download(item.source, { signal: itemSignal }).then(deps.process),
+        itemSignal,
       );
       const imageId = deps.newId();
       const key = postImageKey(item.id, item.kind, imageId, image.format);
       const url = await deps.store(key, image, { signal: itemSignal });
       unusedKey = key;
       itemSignal.throwIfAborted();
-      if (await saveImage(deps.database, item, { imageId, url, image })) {
+      const saved = await saveImage(deps.database, item, {
+        imageId,
+        url,
+        image,
+      });
+      // Saved, or set meanwhile by someone else: either way, no longer missing.
+      result.remaining -= 1;
+      if (saved) {
         unusedKey = null;
         result.ingested.push(key);
       }
