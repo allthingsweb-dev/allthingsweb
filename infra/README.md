@@ -39,6 +39,8 @@ NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential") \
 
 ## Moving media
 
+The move of allthings.dev into the allthings account is itself the cutover: an R2 custom domain only serves from the zone's own account. [`docs/r2-migration.md`](docs/r2-migration.md) is the runbook, from enabling R2 to retiring the old bucket.
+
 [`scripts/copy-media.ts`](scripts/copy-media.ts) copies the bucket between accounts over R2's S3 API, so the allthings account's bucket holds every object before `media.allthings.dev` switches to it. It never overwrites or deletes: the source keeps every original, and a rerun copies only what the target still lacks.
 
 Each copy is checked three times:
