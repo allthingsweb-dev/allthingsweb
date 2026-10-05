@@ -30,13 +30,6 @@ export const hostProfiles = `
     ('${hosts[1].profileId}', 'Andre Landgraf', '', NULL, '', 'organizer', now()),
     ('b0000000-0000-4000-8000-000000000401', 'Andre Landgraf', '', 'd0000000-0000-4000-8000-000000000402', '', 'member', now());`;
 
-/** A migrated database holding only the hosts' profiles. */
-export async function hostsDatabase(): Promise<PGlite> {
-  const db = await migratedDatabase();
-  await db.exec(hostProfiles);
-  return db;
-}
-
 const days = (from: Date, count: number) =>
   new Date(from.getTime() + count * 24 * 60 * 60 * 1000);
 
