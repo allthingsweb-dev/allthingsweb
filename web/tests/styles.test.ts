@@ -104,17 +104,34 @@ const typeRelative = /^(?:letter-spacing|text-underline-offset|font-size)$/;
 const sizing =
   /^(?:(?:min-|max-)?(?:width|height|inline-size|block-size)|flex-basis|grid-(?:template|auto)-(?:columns|rows))$/;
 
+/** A length in em, and not in rem. */
+const em = /^-?(?:\d+(?:\.\d+)?|\.\d+)em$/;
+
+/** The declarations' lengths that come from no token: all but a hairline and type-relative em. */
+const looseLengths = (
+  declarations: ReadonlyArray<{ property: string; value: string }>,
+): ReadonlyArray<string> =>
+  declarations.flatMap(({ property, value }) =>
+    lengthsIn(value)
+      .filter((length) => length !== hairline)
+      .filter((length) => !(em.test(length) && typeRelative.test(property)))
+      .map((length) => `${property}: ${length}`),
+  );
+
 describe("site.css's lengths", () => {
   test("come from the layout tokens, but for a hairline and type-relative em", () => {
-    const loose = values.flatMap(({ property, value }) =>
-      lengthsIn(value)
-        .filter((length) => length !== hairline)
-        .filter(
-          (length) => !(length.endsWith("em") && typeRelative.test(property)),
-        )
-        .map((length) => `${property}: ${length}`),
-    );
-    expect(loose).toEqual([]);
+    expect(looseLengths(values)).toEqual([]);
+  });
+
+  test("are caught in rem, and in em outside the type", () => {
+    expect(
+      looseLengths([
+        { property: "font-size", value: " 2rem" },
+        { property: "margin", value: " 100em" },
+        { property: "letter-spacing", value: " -0.03em" },
+        { property: "border", value: " 1px solid var(--at-rule)" },
+      ]),
+    ).toEqual(["font-size: 2rem", "margin: 100em"]);
   });
 
   test("size boxes with no width of their own", () => {
