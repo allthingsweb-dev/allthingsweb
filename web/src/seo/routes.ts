@@ -18,18 +18,26 @@ import { sitemapXml } from "./sitemap.ts";
  * for good as it does today.
  */
 
-const text = (body: string, contentType: string, cacheControl: CacheControl) =>
+const text = (
+  body: string,
+  contentType: string,
+  cacheControl: CacheControl,
+  headers: Readonly<Record<string, string>> = {},
+) =>
   HttpServerResponse.text(body, {
     contentType,
     headers: {
       "cache-control": cacheControl,
       "x-content-type-options": "nosniff",
+      ...headers,
     },
   });
 
 /**
  * robots.txt for the host the request reached (see robots.ts). It changes
- * only with deploys and differs only by host, which caches key on anyway.
+ * only with deploys and differs only by host. Cloudflare's cache keys on
+ * the host anyway; `Vary: Host` says so to any other shared cache, which
+ * could otherwise keep crawlers out of production for a day.
  */
 const robots = HttpRouter.add(
   "GET",
@@ -41,6 +49,7 @@ const robots = HttpRouter.add(
       robotsTxt(request.originalUrl, origin),
       "text/plain; charset=utf-8",
       CacheControl.page,
+      { vary: "host" },
     );
   }),
 );

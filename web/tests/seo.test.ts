@@ -114,6 +114,7 @@ describe("robots.txt", () => {
     );
     expect(response.headers.get("cache-control")).toBe(CacheControl.page);
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("vary")).toBe("host");
     expect(body).toBe(
       "User-agent: *\nAllow: /\n\nSitemap: https://allthings.dev/sitemap.xml\n",
     );
@@ -132,6 +133,7 @@ describe("robots.txt", () => {
       );
       expect(response.status).toBe(200);
       expect(response.headers.get("cache-control")).toBe(CacheControl.page);
+      expect(response.headers.get("vary")).toBe("host");
       expect(body).toBe("User-agent: *\nDisallow: /\n");
     }
   });
