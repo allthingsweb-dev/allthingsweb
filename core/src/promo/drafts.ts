@@ -452,6 +452,17 @@ const formatSuffix = (talk: Talk): string => {
     : ` · ${format}`;
 };
 
+/**
+ * A URL as a Markdown link destination: the characters that would end or
+ * break it, percent-encoded, which leaves the address the same.
+ */
+export const mdUrl = (url: string) =>
+  url.replace(
+    /[()<> \t\n\r]/g,
+    (char) =>
+      `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
+  );
+
 /** Markdown's own characters in a name or title, escaped. */
 const md = (text: string) => text.replace(/([\\`*_[\]<>#])/g, "\\$1");
 
@@ -469,7 +480,9 @@ function linkedHost(
   hosts: ReadonlyMap<string, HostLinks>,
 ): string {
   const site = httpUrlOrNull(hosts.get(name)?.website ?? null);
-  return site === null ? `**${md(name)}**` : `**[${md(name)}](${site})**`;
+  return site === null
+    ? `**${md(name)}**`
+    : `**[${md(name)}](${mdUrl(site)})**`;
 }
 
 /** A person's name, bold and linked to where they are: X, Bluesky, LinkedIn or the people page. */
@@ -490,7 +503,7 @@ function linkedName(
         : /^[A-Za-z0-9-]{3,100}$/.test(linkedin)
           ? `https://www.linkedin.com/in/${linkedin}`
           : `${origin}/people#p-${person.id}`;
-  return `**[${md(person.name)}](${url})**`;
+  return `**[${md(person.name)}](${mdUrl(url)})**`;
 }
 
 /** The one stage role a description names: the rest go without saying. */

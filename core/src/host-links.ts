@@ -65,6 +65,16 @@ export type HostLinksEntry = typeof HostLinksEntry.Type;
 export const HostLinksFile = Schema.Array(HostLinksEntry);
 export type HostLinksFile = typeof HostLinksFile.Type;
 
+/**
+ * The file's JSON text, decoded strictly: a field the schema doesn't know,
+ * such as a misspelled "websiteUrl", fails the run instead of being
+ * dropped and reported as unchanged.
+ */
+export const decodeHostLinksFile = Schema.decodeUnknownEffect(
+  Schema.fromJsonString(HostLinksFile),
+  { onExcessProperty: "error" },
+);
+
 /** A file that cannot be applied as written; nothing was written. */
 export class HostLinksError extends Schema.TaggedError<HostLinksError>()(
   "HostLinksError",

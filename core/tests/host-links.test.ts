@@ -1,10 +1,11 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { Effect, Exit, Schema } from "effect";
+import { Effect, Exit } from "effect";
 import {
   applyHostLinks,
+  decodeHostLinksFile,
   HostLinksError,
-  HostLinksFile,
+  type HostLinksFile,
 } from "../src/host-links.ts";
 import { seededDatabase, sqlLayer } from "./support/database.ts";
 
@@ -167,14 +168,28 @@ describe("applyHostLinks", () => {
   });
 });
 
+describe("decodeHostLinksFile", () => {
+  test("refuses a field it doesn't know, such as a misspelled one", async () => {
+    const exit = await Effect.runPromiseExit(
+      decodeHostLinksFile(
+        JSON.stringify([
+          {
+            name: "Acme",
+            websiteUrl: { value: "https://acme.example", source },
+          },
+        ]),
+      ),
+    );
+    expect(Exit.isFailure(exit)).toBe(true);
+  });
+});
+
 describe("backfill/hosts.json", () => {
   test("decodes: every fact has a source, every value its column's shape", async () => {
     const text = await Bun.file(
       new URL("../backfill/hosts.json", import.meta.url),
     ).text();
-    const links = Schema.decodeUnknownSync(
-      Schema.fromJsonString(HostLinksFile),
-    )(text);
+    const links = await Effect.runPromise(decodeHostLinksFile(text));
     expect(links.length).toBeGreaterThan(0);
     expect(new Set(links.map((entry) => entry.name)).size).toBe(links.length);
   });

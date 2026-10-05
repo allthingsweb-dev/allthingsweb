@@ -4,6 +4,7 @@ import { DataSourceError, EventNotFound } from "../src/errors.ts";
 import { type EventPage, EventPages, type Speaker } from "../src/event-page.ts";
 import {
   blueskyHandle,
+  mdUrl,
   type PromoDrafts,
   promoDrafts,
   xHandle,
@@ -346,6 +347,13 @@ describe("limits", () => {
     const long = "x".repeat(limits.x + 1);
     expect(fitOn("x", [long, "short"])).toBe("short");
     expect(() => fitOn("x", [long])).toThrow(DraftTooLong);
+  });
+
+  test("a link destination keeps its parentheses from ending it", () => {
+    expect(mdUrl("https://en.example/wiki/Acme_(company)")).toBe(
+      "https://en.example/wiki/Acme_%28company%29",
+    );
+    expect(mdUrl("https://acme.example/")).toBe("https://acme.example/");
   });
 
   test("handles", () => {

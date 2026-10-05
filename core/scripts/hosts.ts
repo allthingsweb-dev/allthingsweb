@@ -1,8 +1,8 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
-import { Console, Effect, Schema } from "effect";
+import { Console, Effect } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import * as Database from "../src/database.ts";
-import { applyHostLinks, HostLinksFile } from "../src/host-links.ts";
+import { applyHostLinks, decodeHostLinksFile } from "../src/host-links.ts";
 
 /**
  * Applies hosting companies' sourced websites and handles
@@ -32,9 +32,7 @@ const command = Command.make(
       const text = yield* Effect.promise(() =>
         Bun.file(new URL(`../${file}`, import.meta.url)).text(),
       );
-      const links = yield* Schema.decodeUnknownEffect(
-        Schema.fromJsonString(HostLinksFile),
-      )(text);
+      const links = yield* decodeHostLinksFile(text);
       const lines = yield* applyHostLinks(links, dryRun);
       yield* Console.log(lines.join("\n"));
     }).pipe(Effect.provide(Database.layer)),
