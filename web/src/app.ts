@@ -3,11 +3,12 @@ import * as HttpRouter from "effect/http/HttpRouter";
 import { Hyperdrive } from "./database.ts";
 import { Mcp, mcpRoute } from "./mcp/endpoint.ts";
 import { pageRoutes } from "./pages/routes.ts";
+import { seoRoutes } from "./seo/routes.ts";
 import { Site } from "./site.ts";
 import { v1Routes } from "./v1/routes.ts";
 
 /** Every route the Worker serves. */
-export const routes = Layer.mergeAll(v1Routes, mcpRoute, pageRoutes);
+export const routes = Layer.mergeAll(v1Routes, mcpRoute, pageRoutes, seoRoutes);
 
 /**
  * The Worker as a fetch handler, built once per isolate from its bindings.
