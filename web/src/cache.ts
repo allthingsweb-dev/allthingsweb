@@ -45,6 +45,14 @@ export const PrivateCacheControl = {
 } as const satisfies Record<CacheControlName, string>;
 
 /**
+ * The header a response names the public lifetimes in that the Worker's
+ * own cache keeps it by, when they differ from what visitors are told: a
+ * page in a fixed mode is sent `private`, but the Worker's cache keys it by
+ * that mode (see edge-cache.ts). It never leaves the Worker.
+ */
+export const edgeCacheControlHeader = "x-edge-cache-control";
+
+/**
  * A response that sets one visitor's preference, such as their mode: never
  * stored, so every choice reaches the Worker.
  */

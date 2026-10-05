@@ -278,8 +278,45 @@ export function foundationsHtml(markdown: string): string {
   return marked.parse(markdown, { async: false });
 }
 
+/**
+ * What the Worker's responses are made from: its code, core's, the brand's
+ * tokens and foundations, and the locked dependencies. A change to any of
+ * them is a new build.
+ */
+const buildSources = [
+  "web/src/**/*",
+  "core/src/**/*",
+  "brand/src/**/*",
+  "brand/all-things.tokens.json",
+  "brand/foundations.md",
+  "bun.lock",
+] as const;
+
+/**
+ * The first 16 hex digits of the SHA-256 of every build source, by path
+ * and content, in path order. The Worker's own cache keys pages by it, so a
+ * deploy never serves a page built by another (edge-cache.ts).
+ */
+export async function buildHash(): Promise<string> {
+  const paths = new Set<string>();
+  for (const pattern of buildSources) {
+    for await (const path of new Bun.Glob(pattern).scan({ cwd: root })) {
+      paths.add(path);
+    }
+  }
+  const hasher = new Bun.CryptoHasher("sha256");
+  for (const path of [...paths].toSorted()) {
+    hasher.update(`${path}\0`);
+    hasher.update(await Bun.file(join(root, path)).bytes());
+    hasher.update("\0");
+  }
+  return hasher.digest("hex").slice(0, 16);
+}
+
 /** What the Worker reads from dist/build.json. */
 export interface BuildManifest {
+  /** The build's content hash (see buildHash). */
+  readonly build: string;
   readonly stylesheet: string;
   readonly fonts: ReadonlyArray<Font>;
   readonly marks: Marks;
@@ -296,8 +333,12 @@ export async function build(): Promise<BuildManifest> {
   await rm(dist, { recursive: true, force: true });
   await mkdir(publicDir, { recursive: true });
   const { css: fontFaces, fonts } = await buildFonts();
+  const stylesheet = await buildStylesheet(fontFaces);
   const manifest: BuildManifest = {
-    stylesheet: await buildStylesheet(fontFaces),
+    // The stylesheet's name is in the hash, so a change to what it is built
+    // from (such as the fonts) is a new build too.
+    build: contentHash(`${await buildHash()}${stylesheet}`),
+    stylesheet,
     fonts,
     marks: await buildMarks(),
     foundations: foundationsHtml(
