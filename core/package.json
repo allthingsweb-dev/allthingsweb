@@ -14,7 +14,8 @@
     "posts": "bun --no-env-file scripts/posts.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts",
     "promo": "bun --no-env-file scripts/promo.ts",
-    "reencode": "bun --no-env-file scripts/reencode-originals.ts"
+    "reencode": "bun --no-env-file scripts/reencode-originals.ts",
+    "sync:rehearse": "bun --no-env-file scripts/sync-rehearsal.ts"
   },
   "dependencies": {
     "@effect/sql-pg": "4.0.0",

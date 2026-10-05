@@ -15,6 +15,17 @@ columns Luma owns, and which the site does, is written down in
 core's on copies of one database with the same feed and requires the same
 rows; nothing in the tests reaches Luma.
 
+`LumaSync.rehearse` is the dry run. It runs the same statement in a
+transaction that always rolls back, and reports every event the sync would
+create and every column it would change, before and after. Nothing is
+committed. `bun run sync:rehearse` prints that report for the database at
+`DATABASE_URL`. Run it as `site_sync`, the role the sync writes as, so the
+dry run also proves the role's grants:
+
+```sh
+DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") bun run sync:rehearse
+```
+
 ## Who took part
 
 `event_people` holds a person's part in an event as a whole: an all things

@@ -575,3 +575,133 @@ describe("syncing", () => {
     }
   });
 });
+
+describe("rehearsing a sync", () => {
+  const layerFor = (db: PGlite, at: DateTime.Utc, body: string) =>
+    LumaSync.layer.pipe(
+      Layer.provide(
+        Luma.layer.pipe(
+          Layer.provide(
+            Layer.mergeAll(fakeLuma([{ body }]).layer, configFrom()),
+          ),
+        ),
+      ),
+      Layer.provideMerge(sqlLayer(db)),
+      Layer.provideMerge(clockAt(at)),
+    );
+  const rehearse = (db: PGlite, at: DateTime.Utc, body: string) =>
+    Effect.runPromiseExit(
+      LumaSync.use((service) => service.rehearse).pipe(
+        Effect.provide(layerFor(db, at, body)),
+      ),
+    );
+  const run = (db: PGlite, at: DateTime.Utc, body: string) =>
+    Effect.runPromiseExit(
+      LumaSync.use((service) => service.run).pipe(
+        Effect.provide(layerFor(db, at, body)),
+      ),
+    );
+  const everything = async (db: PGlite) =>
+    (
+      await db.query<Record<string, unknown>>(
+        "SELECT * FROM events ORDER BY luma_event_id NULLS FIRST, slug",
+      )
+    ).rows;
+  const luma = async (db: PGlite) =>
+    new Map(
+      (
+        await db.query<{ luma_event_id: string; fields: unknown }>(
+          `SELECT luma_event_id, jsonb_build_object(
+             'name', name, 'startDate', start_date, 'endDate', end_date,
+             'isDraft', is_draft, 'streetAddress', street_address,
+             'shortLocation', short_location, 'fullAddress', full_address) AS fields
+           FROM events WHERE luma_event_id IS NOT NULL`,
+        )
+      ).rows.map((row) => [row.luma_event_id, row.fields]),
+    );
+
+  test("reports exactly what the sync then writes, and writes nothing", async () => {
+    const db = await migratedDatabase();
+    try {
+      await db.exec(stored);
+      const before = await everything(db);
+      const lumaBefore = await luma(db);
+
+      const rehearsed = await rehearse(db, start, calendar);
+      if (!Exit.isSuccess(rehearsed)) throw new Error(String(rehearsed.cause));
+      expect(await everything(db)).toEqual(before);
+
+      const ran = await run(db, start, calendar);
+      if (!Exit.isSuccess(ran)) throw new Error(String(ran.cause));
+      const { created, updated, ...summary } = rehearsed.value;
+      expect(summary).toEqual(ran.value);
+      expect(created.length + updated.length).toBe(ran.value.changedCount);
+
+      const lumaAfter = await luma(db);
+      for (const event of created) {
+        expect(lumaBefore.has(event.lumaEventId)).toBe(false);
+        expect(event.fields).toEqual(
+          lumaAfter.get(event.lumaEventId) as Record<string, unknown>,
+        );
+      }
+      for (const event of updated) {
+        const was = lumaBefore.get(event.lumaEventId) as Record<
+          string,
+          unknown
+        >;
+        const is = lumaAfter.get(event.lumaEventId) as Record<string, unknown>;
+        expect(Object.keys(event.changes).length).toBeGreaterThan(0);
+        for (const [column, change] of Object.entries(event.changes)) {
+          expect(change).toEqual({ before: was[column], after: is[column] });
+        }
+        for (const column of Object.keys(is)) {
+          if (!(column in event.changes))
+            expect(is[column]).toEqual(was[column]);
+        }
+      }
+      // The Sentry evening, renamed on Luma, is one of them.
+      expect(
+        updated.find((event) => event.slug === "sentry-summer-2024")?.changes[
+          "name"
+        ],
+      ).toEqual({
+        before: "Old Sentry title",
+        after: "All Things Web at Sentry 🚀",
+      });
+
+      // Once synced, there is nothing left to write.
+      const again = await rehearse(
+        db,
+        DateTime.add(start, { hours: 1 }),
+        calendar,
+      );
+      expect(Exit.isSuccess(again) && again.value).toMatchObject({
+        changedCount: 0,
+        created: [],
+        updated: [],
+      });
+    } finally {
+      await db.close();
+    }
+  });
+
+  test("fails as the sync would, and writes nothing", async () => {
+    const db = await migratedDatabase();
+    try {
+      await db.exec(
+        `INSERT INTO events (slug, name, tagline, start_date, end_date, attendee_limit, updated_at)
+         VALUES ('2026-10-14-venue-to-be-announced-evt-noVenue', 'Taken', 'Taken', now(), now(), 1, now())`,
+      );
+      const before = await everything(db);
+      const exit = await rehearse(db, start, calendar);
+      expect(
+        Exit.isFailure(exit) && exit.cause.reasons[0]?._tag === "Fail"
+          ? exit.cause.reasons[0].error
+          : undefined,
+      ).toBeInstanceOf(DataSourceError);
+      expect(await everything(db)).toEqual(before);
+    } finally {
+      await db.close();
+    }
+  });
+});
