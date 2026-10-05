@@ -15,7 +15,12 @@ export const Origin = HttpUrl.check(
 
 /** Site-wide settings, read once per isolate from the Worker's bindings. */
 export interface SiteShape {
-  /** Public links (event pages, the code of conduct) are built from it. */
+  /**
+   * The production site: public links (event pages, the code of conduct),
+   * canonical URLs, the sitemap and the feeds are built from it, and only a
+   * request to its host may be crawled (see seo/robots.ts). Every other
+   * host the Worker answers on, such as a preview stage, is not production.
+   */
   readonly origin: string;
 }
 

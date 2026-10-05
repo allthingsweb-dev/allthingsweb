@@ -13,15 +13,35 @@ export const htmlBudget = 14_000;
 // stays under two initial windows.
 export const cssBudget = 8_000;
 
-/** The page's subresources: what <link>, <script> and <img> load. */
+/**
+ * Links that only point somewhere, for search engines and feed readers:
+ * a browser loads nothing for them.
+ */
+const pointers = /^<link rel="(?:canonical|alternate)"/;
+
+/**
+ * The page's subresources: what <link>, <script> and <img> load. Every
+ * <link> counts but the pointers above, so a new kind of link is held to
+ * the same rule as a stylesheet until it is known not to load.
+ */
 export function subresources(html: string): Array<string> {
-  const tags = html.match(/<(?:link|script|img|source|iframe)\b[^>]*>/g) ?? [];
+  const tags = (
+    html.match(/<(?:link|script|img|source|iframe)\b[^>]*>/g) ?? []
+  ).filter((tag) => !pointers.test(tag));
   return tags.flatMap((tag) =>
     [...tag.matchAll(/\s(?:href|src|srcset)="([^"]*)"/g)].map(
       ([, value]) => value ?? "",
     ),
   );
 }
+
+/**
+ * `html` without its JSON-LD: data blocks, which browsers never run and
+ * whose "<" are all escaped (pages/structured-data.ts). What is left is
+ * what a test of "runs no JavaScript" reads.
+ */
+export const withoutStructuredData = (html: string) =>
+  html.replace(/<script type="application\/ld\+json">[^<]*<\/script>/g, "");
 
 /** What the stylesheet loads with url(). */
 export const stylesheetUrls = (css: string): Array<string> =>

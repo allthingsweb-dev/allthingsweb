@@ -20,6 +20,7 @@ import {
   stylesheetOf,
   stylesheetUrls,
   subresources,
+  withoutStructuredData,
 } from "./support/pages.ts";
 import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
@@ -333,7 +334,11 @@ describe("/ as a page", () => {
           expect(path).toMatch(/^\/(?!\/)/);
         }
       }
-      expect(html).not.toMatch(/<script|\son[a-z]+=|javascript:/i);
+      // Its one script element is the JSON-LD data block, which never runs.
+      expect(html).toContain('<script type="application/ld+json">');
+      expect(withoutStructuredData(html)).not.toMatch(
+        /<script|\son[a-z]+=|javascript:/i,
+      );
     });
 
     it(`gzips to at most ${htmlBudget} bytes of HTML and ${cssBudget} of CSS (${worker})`, async (urls) => {

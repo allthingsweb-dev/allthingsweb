@@ -3,6 +3,7 @@ import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { discord, lumaCalendar } from "../links.ts";
 import { Document } from "./document.tsx";
+import { gatheringTitle } from "./metadata.tsx";
 import { EveningRow } from "./evening-row.tsx";
 import type { Theme } from "./theme.ts";
 import { year } from "./time.ts";
@@ -83,9 +84,13 @@ export function eventsPage({
 }: EventsProps): string {
   const { ahead, past } = evenings;
   return Document({
-    title: "every evening · all things/_",
-    description:
-      "Every all things evening, ahead and past. In the neighborhoods of San Francisco.",
+    meta: {
+      title: gatheringTitle("every evening"),
+      description:
+        "Every all things evening, ahead and past. In the neighborhoods of San Francisco.",
+      path: "/events",
+    },
+    origin,
     theme,
     portraits,
     children: (

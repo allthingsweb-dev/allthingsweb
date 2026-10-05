@@ -7,12 +7,14 @@ import { Home } from "allthings-core/src/home.ts";
 import { Portraits } from "allthings-core/src/portraits.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
 import { Context, Effect, Layer, Option, Redacted } from "effect";
+import { FeedData } from "./seo/data.ts";
 import { V1Data } from "./v1/data.ts";
 
 /** Every repository a request may read from. */
 export type Repositories =
   | Evenings
   | Events
+  | FeedData
   | Home
   | Portraits
   | Speakers
@@ -82,6 +84,7 @@ export const repositories: Layer.Layer<Repositories, DataSourceError> =
       Layer.mergeAll(
         Evenings.layer,
         Events.layer,
+        FeedData.layer,
         Home.layer,
         Portraits.layer,
         Speakers.layer,
