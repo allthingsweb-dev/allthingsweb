@@ -5,8 +5,9 @@ import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
 import { everyEvening, lumaCalendar } from "../links.ts";
 import { Document } from "./document.tsx";
+import { Cursor, EveningRow } from "./evening-row.tsx";
 import type { Theme } from "./theme.ts";
-import { clockTime, day, listDate } from "./time.ts";
+import { clockTime, day } from "./time.ts";
 
 /**
  * /: the round-5 home. Each thing is said once. The next evening is the
@@ -18,20 +19,11 @@ import { clockTime, day, listDate } from "./time.ts";
 
 export interface HomeProps {
   readonly home: HomeView;
-  /** Event pages and "every evening" are on the site at this origin. */
+  /** Event pages are on the site at this origin. */
   readonly origin: string;
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
   readonly portraits: PortraitsById;
-}
-
-/** The cursor means "not yet happened": upcoming and live evenings carry it. */
-function Cursor() {
-  return (
-    <span class="at-cursor" aria-hidden="true">
-      _
-    </span>
-  );
 }
 
 /**
@@ -43,60 +35,10 @@ export function lockupSize(evening: Evening): "l" | "m" | "s" {
   return evening.topic.length <= "all things/".length ? "l" : "m";
 }
 
-/** at/<topic> in lists, or the name as written when it has no topic. */
-function ListName({ evening }: { readonly evening: Evening }) {
-  const cursor = evening.status === "past" ? "" : <Cursor />;
-  if (evening.topic === undefined) {
-    return (
-      <span class="name at-type-list-name">
-        <span safe>{evening.name}</span>
-        {cursor}
-      </span>
-    );
-  }
-  return (
-    <span class="name at-type-list-name">
-      at<span class="slash">/</span>
-      <span safe>{evening.topic}</span>
-      {cursor}
-    </span>
-  );
-}
-
 /** The hosts as the label line names them: "Convex & Clerk", "A, B & C". */
 export function hostNames(hosts: ReadonlyArray<string>): string {
   if (hosts.length <= 2) return hosts.join(" & ");
   return `${hosts.slice(0, -1).join(", ")} & ${hosts.at(-1) ?? ""}`;
-}
-
-function EveningRow({
-  evening,
-  origin,
-}: {
-  readonly evening: Evening;
-  readonly origin: string;
-}) {
-  return (
-    <li>
-      <a class="row" href={eventUrl(origin, evening.slug)}>
-        <time
-          class="date at-type-meta"
-          datetime={DateTime.formatIso(evening.startsAt)}
-          safe
-        >
-          {listDate(evening.startsAt)}
-        </time>
-        <ListName evening={evening} />
-        {evening.neighborhood === null ? (
-          ""
-        ) : (
-          <span class="place at-type-list-place" safe>
-            {evening.neighborhood}
-          </span>
-        )}
-      </a>
-    </li>
-  );
 }
 
 function Hero({
@@ -254,7 +196,7 @@ export function homePage({
                     Recently
                   </h2>
                   <p class="list-links">
-                    <a href={everyEvening(origin)}>
+                    <a href={everyEvening}>
                       every evening <span aria-hidden="true">→</span>
                     </a>
                     {next === undefined ? (

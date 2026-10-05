@@ -18,12 +18,12 @@ export const Database = Cloudflare.Hyperdrive.Connection("Database", {
 
 /**
  * The all things Worker (web/): the public API, the MCP server, the home
- * page and /brand today, the whole site after the cutover. Alchemy bundles
- * ../web/src/worker.ts with web's own dependencies and uploads
- * ../web/dist/public as its static assets, so first `bun install` at the
- * repository root and `bun run build` in web/: the Worker imports what the
- * build writes, and the asset layer serves the hashed stylesheet, fonts and
- * marks before the Worker runs.
+ * page, the evenings index and /brand today, the whole site after the
+ * cutover. Alchemy bundles ../web/src/worker.ts with web's own
+ * dependencies and uploads ../web/dist/public as its static assets, so
+ * first `bun install` at the repository root and `bun run build` in web/:
+ * the Worker imports what the build writes, and the asset layer serves the
+ * hashed stylesheet, fonts and marks before the Worker runs.
  *
  * Not deployed to prod yet; see alchemy.run.ts. It reads data through the
  * `HYPERDRIVE` binding, which every request connects to anew (see

@@ -233,7 +233,7 @@ describe("/ with evenings announced", () => {
     expect(rows[2]).toContain("<span>react bay area</span>");
     expect(rows[2]).toContain(">FiDi</span>");
     expect(recently).not.toContain(past[3].slug);
-    expect(recently).toContain(`<a href="${origin}/">every evening`);
+    expect(recently).toContain('<a href="/events">every evening');
     expect(recently).toContain(
       '<a href="https://luma.com/allthingsweb">subscribe on luma</a>',
     );

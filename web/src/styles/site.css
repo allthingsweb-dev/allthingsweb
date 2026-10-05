@@ -471,6 +471,43 @@ main > section,
   grid-area: name;
 }
 
+/* The evenings index: the title and the actions hold still beside the
+   lists, which run the width of seven columns, as home's do. */
+
+.evenings {
+  display: grid;
+  grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
+  column-gap: var(--at-grid-gutter);
+  row-gap: 40px;
+  align-items: start;
+}
+
+.evenings-head {
+  grid-column: span 5;
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Each action reads whole: "talk between evenings → discord" never parts. */
+.evenings-head .list-links a {
+  white-space: nowrap;
+}
+
+.evenings-lists {
+  grid-column: 6 / span 7;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.evenings-lists .list {
+  border-top: 2px solid var(--at-text);
+  padding-top: 14px;
+}
+
 /* Palette */
 
 .swatches {
@@ -711,8 +748,14 @@ th {
 
 @media (max-width: 1023px) {
   .pitch,
-  .lists {
+  .lists,
+  .evenings-head,
+  .evenings-lists {
     grid-column: 1 / -1;
+  }
+
+  .evenings-head {
+    position: static;
   }
 
   .band {
@@ -730,5 +773,27 @@ th {
 
   .lists.two {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* On phones the index's rows stack the date and place over the name, as
+   home's paired lists do, so a name keeps the whole width. */
+@media (max-width: 600px) {
+  .evenings .row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "date place" "name name";
+    row-gap: 4px;
+  }
+
+  .evenings .row .date {
+    grid-area: date;
+  }
+
+  .evenings .row .place {
+    grid-area: place;
+  }
+
+  .evenings .row .name {
+    grid-area: name;
   }
 }
