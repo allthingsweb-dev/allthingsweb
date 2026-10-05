@@ -339,6 +339,7 @@ const details = (overrides: Partial<EventPage> = {}): EventPage => ({
   guests: null,
   rsvpUrl: "https://lu.ma/event/evt-abc123",
   seats: null,
+  program: "talks",
   recordingUrl: null,
   talks: [],
   schedule: [],

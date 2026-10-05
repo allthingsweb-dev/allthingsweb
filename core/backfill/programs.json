@@ -1,0 +1,208 @@
+{
+  "events": [
+    {
+      "slug": "2024-03-26-remix-bay-area-at-solv",
+      "program": "talks",
+      "sources": ["https://allthingsweb.dev/2024-03-26-remix-bay-area-at-solv"]
+    },
+    {
+      "slug": "2024-05-14-remix-bay-area-at-solv",
+      "program": "talks",
+      "sources": ["https://allthingsweb.dev/2024-05-14-remix-bay-area-at-solv"]
+    },
+    {
+      "slug": "2014-07-30-react-bay-area-at-sanity",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-7zxJdkIDI78lDO3"]
+    },
+    {
+      "slug": "2024-08-13-remix-bay-area-at-little-skillet",
+      "program": "social",
+      "note": "a casual hangout at Little Skillet",
+      "sources": [
+        "https://allthingsweb.dev/2024-08-13-remix-bay-area-at-little-skillet"
+      ]
+    },
+    {
+      "slug": "2024-08-27-react-bay-area-at-mux",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-TNS8NeNJwSPDKu5"]
+    },
+    {
+      "slug": "2024-09-24-react-bay-area-at-cisco-meraki",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-HtDmTqndK1vA1Z4"]
+    },
+    {
+      "slug": "2024-10-05-hackathon-at-sentry",
+      "program": "hackathon",
+      "sources": ["https://lu.ma/event/evt-dbF3WPClKyxWQ7n"]
+    },
+    {
+      "slug": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-8L3ror8OqcxgcXq"]
+    },
+    {
+      "slug": "2024-11-04",
+      "program": "social",
+      "note": "chicken & waffles and time to chat at Little Skillet",
+      "sources": ["https://lu.ma/event/evt-dH8tlJFEIQe9eT2"]
+    },
+    {
+      "slug": "2024-11-12-all-things-web-at-vercel",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-7CaqG4UZsbIQb6s"]
+    },
+    {
+      "slug": "2024-12-03-all-things-web-at-convex",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-deGtRGSvYsWMqAc"]
+    },
+    {
+      "slug": "2025-01-28-all-things-web-at-sanity",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-KkE3Vi4Bxry4yFV"]
+    },
+    {
+      "slug": "2025-02-25-all-things-web-at-sentry",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-R7t4c0PuzyjnYAf"]
+    },
+    {
+      "slug": "2025-03-12-all-things-web-hack-evening",
+      "program": "open-floor",
+      "note": "hack on your own project, then a show & tell for anyone who wants to present",
+      "sources": ["https://lu.ma/event/evt-4tdtev7Ap2qLcPW"]
+    },
+    {
+      "slug": "2025-03-19-all-things-web-at-convex",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-xWl1tkPwl1b8zbI"]
+    },
+    {
+      "slug": "2025-04-03-ai-x-all-things-web",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-hMrMdGcrk8XOnuF"]
+    },
+    {
+      "slug": "2025-04-26-hackathon-at-sentry",
+      "program": "hackathon",
+      "sources": ["https://lu.ma/event/evt-qObtKnNENF3bDio"]
+    },
+    {
+      "slug": "2025-05-13-all-things-web-show-and-tell",
+      "program": "open-floor",
+      "note": "attendees take the spotlight with 2–5 minute demos",
+      "sources": ["https://lu.ma/event/evt-nOKkZn5xVC11i6d"]
+    },
+    {
+      "slug": "2025-05-28-all-things-web-at-vapi",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-BASdmswlkMShs5c"]
+    },
+    {
+      "slug": "2025-06-02-nextdevfm-live",
+      "program": "talks",
+      "note": "a live podcast episode: a fireside chat on stage",
+      "sources": ["https://lu.ma/event/evt-YgL8QkcPVOTymoN"]
+    },
+    {
+      "slug": "2025-07-23-all-things-web-show-and-tell",
+      "program": "open-floor",
+      "note": "attendees take the spotlight with 2–5 minute demos",
+      "sources": ["https://lu.ma/event/evt-TI4Rc7MwnlmlrvP"]
+    },
+    {
+      "slug": "2025-09-23-lightning-hackathon-at-sentry",
+      "program": "hackathon",
+      "sources": ["https://lu.ma/event/evt-3WAjTY15pqdB1mb"]
+    },
+    {
+      "slug": "2025-09-30-agents-for-web-dev",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-s9SEHLVbphwdAPZ"]
+    },
+    {
+      "slug": "2025-10-07-js-trivia-night-evt-2DtcNjNsqEqpgp6",
+      "program": "social",
+      "note": "trivia, teams of humans against one of AI models",
+      "sources": ["https://lu.ma/event/evt-2DtcNjNsqEqpgp6"]
+    },
+    {
+      "slug": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-lPPnQypydANrkrJ"]
+    },
+    {
+      "slug": "2025-11-04-all-things-react-native",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-gVIQ04BaqjGAyAM"]
+    },
+    {
+      "slug": "2025-11-04-after-party-all-things-react-native-evt-TpDFOGNSBwCxU72",
+      "program": "social",
+      "note": "an after-party with no schedule",
+      "sources": ["https://lu.ma/event/evt-TpDFOGNSBwCxU72"]
+    },
+    {
+      "slug": "2025-11-06-typescript-ai-the-official-conference-after-party-evt-ITMJYP0vdkjXbMr",
+      "program": "social",
+      "note": "a conference after-party",
+      "sources": ["https://lu.ma/event/evt-ITMJYP0vdkjXbMr"]
+    },
+    {
+      "slug": "2026-01-20-all-things-expo-evt-3nNZK4pu7n7TNbC",
+      "program": "talks",
+      "note": "speakers from Expo and an SDK launch",
+      "sources": ["https://lu.ma/event/evt-3nNZK4pu7n7TNbC"]
+    },
+    {
+      "slug": "2026-02-25-devtool-ax-demos",
+      "program": "talks",
+      "note": "a fixed lineup of lightning demos from named speakers, then a panel",
+      "sources": ["https://lu.ma/event/evt-tMlbKr2pQktx6Qx"]
+    },
+    {
+      "slug": "2026-03-31-all-things-web-workos",
+      "program": "open-floor",
+      "note": "everyone invited to give three-minute demos of their setups",
+      "sources": ["https://lu.ma/event/evt-wJxtorPCscwoGS4"]
+    },
+    {
+      "slug": "2026-04-09-typescript-ai-demo-day-evt-IpKgpcPJEOjvroH",
+      "program": "talks",
+      "note": "a scheduled lineup of teams on stage",
+      "sources": ["https://lu.ma/event/evt-IpKgpcPJEOjvroH"]
+    },
+    {
+      "slug": "2026-04-29-js-trivia-night",
+      "program": "social",
+      "note": "trivia (a draft)",
+      "sources": ["https://lu.ma/event/evt-2Oqsa9ejlNcsWf8"]
+    },
+    {
+      "slug": "2026-04-30-all-things-sync",
+      "program": "talks",
+      "note": "talks from ElectricSQL, Jazz and Convex, then a panel",
+      "sources": ["https://lu.ma/event/evt-oZuT52GZDnYkAcL"]
+    },
+    {
+      "slug": "2026-06-26-all-things-effect-w-michael-arnaldi",
+      "program": "talks",
+      "sources": ["https://lu.ma/event/evt-CIXBbu7ySP61MNP"]
+    },
+    {
+      "slug": "2026-08-27-all-things-taste",
+      "program": "talks",
+      "note": "a draft whose Luma page says nothing yet: talks until it does",
+      "sources": ["https://lu.ma/event/evt-7umBlxzGzTfOXAw"]
+    },
+    {
+      "slug": "2026-09-15-all-things-agent-setups-evt-yqRYriugnX9wi2u",
+      "program": "open-floor",
+      "note": "three-minute demos of the setups people use; community and open floor, Erik says",
+      "sources": ["https://lu.ma/event/evt-yqRYriugnX9wi2u"]
+    }
+  ]
+}

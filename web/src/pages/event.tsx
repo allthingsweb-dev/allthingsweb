@@ -45,9 +45,9 @@ import { day, fullDate, timeRange } from "./time.ts";
  * then a ruled list that names every fact once, each on its own row under a
  * small label: when, where, who hosts, how to get in (or, once it is over,
  * the recording), its schedule and any notes of its own (a hackathon's
- * awards, theme and teams), who is on stage, the photos, what people posted
- * about it, and what comes next. A row whose facts are unknown is left out
- * rather than shown empty.
+ * awards, theme and teams), who is on stage (or that the floor was open to
+ * anyone), the photos, what people posted about it, and what comes next. A
+ * row whose facts are unknown is left out rather than shown empty.
  *
  * The page is in its event's mode (Night for evenings, Paper for daytime
  * events) unless the visitor fixed one with the mode switch.
@@ -634,16 +634,36 @@ function NoteFact({ note }: { readonly note: Note }) {
   );
 }
 
+/**
+ * What an open floor is, in the evening's tense: there was no lineup, so
+ * the demos the page lists, if any, are only the ones we know of.
+ */
+export function openFloorLine(status: EventPage["status"]): string {
+  return status === "past"
+    ? "Open floor: anyone could get up and show what they were building."
+    : "Open floor: anyone can get up and show what they’re building.";
+}
+
 function OnStage({
   talks,
+  openFloor,
   images,
 }: {
   readonly talks: ReadonlyArray<Talk>;
+  /** Said when the evening was an open floor, before any demos we know. */
+  readonly openFloor: string | null;
   readonly images: ImageMode;
 }) {
   return (
     <Fact label="On stage">
       <div class="stage">
+        {openFloor === null ? (
+          ""
+        ) : (
+          <p class="stage-open at-type-lead" safe>
+            {openFloor}
+          </p>
+        )}
         {talks.map((talk) => (
           <TalkEntry talk={talk} images={images} />
         ))}
@@ -940,10 +960,16 @@ export function eventPage({
           {event.notes.map((note) => (
             <NoteFact note={note} />
           ))}
-          {event.talks.length === 0 ? (
+          {event.program === "open-floor" ? (
+            <OnStage
+              talks={event.talks}
+              openFloor={openFloorLine(event.status)}
+              images={images}
+            />
+          ) : event.talks.length === 0 ? (
             ""
           ) : (
-            <OnStage talks={event.talks} images={images} />
+            <OnStage talks={event.talks} openFloor={null} images={images} />
           )}
           {past && photos.length > 0 ? (
             <Photos photos={photos} images={images} />

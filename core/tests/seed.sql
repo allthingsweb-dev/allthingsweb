@@ -17,8 +17,6 @@ INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limi
   ('e0000000-0000-4000-8000-000000000001', '2026-08-12-react-at-acme', 'React at Acme', 'Server components in practice', '2026-08-13T01:00:00Z', '2026-08-13T04:00:00Z', 120, '1 Market St', 'Acme HQ', '1 Market St, San Francisco, CA 94105', 'evt-react', false, false, 'd0000000-0000-4000-8000-000000000001', 'https://www.youtube.com/watch?v=abc123', now()),
   -- A draft: never listed, never found, its speaker never in the directory.
   ('e0000000-0000-4000-8000-000000000002', '2026-09-01-draft-night', 'Draft night', 'Not announced', '2026-09-02T01:00:00Z', '2026-09-02T04:00:00Z', 50, NULL, 'Secret', NULL, 'evt-draft', false, true, NULL, NULL, now()),
-  -- Live at the test clock, a hackathon, without a venue or Luma page.
-  ('e0000000-0000-4000-8000-000000000003', '2026-10-03-hack-day', 'Hack day', 'Build something', '2026-10-03T16:00:00Z', '2026-10-04T01:00:00Z', 80, NULL, NULL, NULL, NULL, true, false, NULL, NULL, now()),
   -- Upcoming, with a venue name but no address, and a Luma id that needs encoding.
   ('e0000000-0000-4000-8000-000000000004', '2026-11-05-upcoming', 'Upcoming meetup', 'Soon', '2026-11-06T02:00:00Z', '2026-11-06T05:00:00Z', 100, NULL, 'TBA', NULL, 'evt with space', false, false, NULL, NULL, now()),
   -- Ends exactly at the test clock: still live, and already in the directory.
@@ -26,6 +24,9 @@ INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limi
   -- Past, with a slug that needs encoding, an address but no venue name, and a
   -- recording URL that must not be published.
   ('e0000000-0000-4000-8000-000000000006', '2025-12-02-café-night', 'Café night', 'Coffee and code', '2025-12-03T02:00:00Z', '2025-12-03T05:00:00Z', 40, NULL, NULL, '500 Coffee Ave, Oakland, CA', NULL, false, false, NULL, 'javascript:alert(1)', now());
+-- Live at the test clock, a hackathon, without a venue or Luma page.
+INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, street_address, short_location, full_address, luma_event_id, is_hackathon, program, is_draft, preview_image, recording_url, updated_at) VALUES
+  ('e0000000-0000-4000-8000-000000000003', '2026-10-03-hack-day', 'Hack day', 'Build something', '2026-10-03T16:00:00Z', '2026-10-04T01:00:00Z', 80, NULL, NULL, NULL, NULL, true, 'hackathon', false, NULL, NULL, now());
 
 -- Luma counted React at Acme's guests; no other event has counts.
 UPDATE events SET luma_guest_count = 118, luma_checked_in_count = 97

@@ -152,6 +152,8 @@ export interface EventPage {
   readonly rsvpUrl: string | null;
   /** How many seats it has, when that is known. */
   readonly seats: number | null;
+  /** What kind of evening it is: talks, an open floor, social, a hackathon. */
+  readonly program: Rows.EventProgram;
   readonly recordingUrl: string | null;
   readonly talks: ReadonlyArray<Talk>;
   /** Its schedule, in order; none when none is recorded. */
@@ -224,6 +226,7 @@ export const EventPageRow = Schema.Struct({
   recordingUrl: Schema.NullOr(Schema.String),
   attendeeLimit: Schema.Int,
   lumaGuestCount: Schema.NullOr(Schema.Int),
+  program: Rows.EventProgram,
   hosts: Schema.Array(Schema.String),
   hostSites: Schema.Record(Schema.String, Schema.String),
   people: Schema.Array(Rows.EventPerson),
@@ -422,6 +425,7 @@ export const toEventPage = (
             : null,
         rsvpUrl: rsvpUrl(row.lumaEventId),
         seats: row.attendeeLimit > 0 ? row.attendeeLimit : null,
+        program: row.program,
         recordingUrl: httpUrlOrNull(row.recordingUrl),
         talks,
         schedule: row.schedule.map(
@@ -499,7 +503,7 @@ const make = Effect.gen(function* () {
         ev.luma_event_id AS "lumaEventId",
         ev.recording_url AS "recordingUrl",
         ev.attendee_limit AS "attendeeLimit",
-        ev.luma_guest_count AS "lumaGuestCount",
+        ev.luma_guest_count AS "lumaGuestCount", ev.program,
         COALESCE((
           SELECT json_agg(s.name ORDER BY es.created_at, s.id)
           FROM event_sponsors es

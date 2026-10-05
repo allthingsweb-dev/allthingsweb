@@ -5,6 +5,7 @@ import type { DataSourceError } from "./errors.ts";
 import { eventTopic } from "./lockup.ts";
 import { defaultTagline } from "./luma/sync.ts";
 import { eventStatus, httpUrlOrNull } from "./mappers.ts";
+import * as Rows from "./rows.ts";
 import { orDataSourceError } from "./sql.ts";
 
 /**
@@ -18,7 +19,10 @@ import { orDataSourceError } from "./sql.ts";
 
 /** Everything a gap can be about, with whether a complete record needs it. */
 export const gapKinds = {
-  /** A hackathon has demos and winners instead, and is not asked for talks. */
+  /**
+   * Only an evening of talks is asked for them: an open floor, a social
+   * evening and a hackathon never had a lineup.
+   */
   talks: { required: true, label: "no talks" },
   "talk-speakers": { required: true, label: "talk without speakers" },
   "talk-description": { required: true, label: "talk without description" },
@@ -80,7 +84,7 @@ export const EventRecord = Schema.Struct({
   fullAddress: Schema.NullOr(Schema.String),
   lumaEventId: Schema.NullOr(Schema.String),
   recordingUrl: Schema.NullOr(Schema.String),
-  isHackathon: Schema.Boolean,
+  program: Rows.EventProgram,
   hasCover: Schema.Boolean,
   lumaGuestCount: Schema.NullOr(Schema.Int),
   photos: Schema.Int,
@@ -116,6 +120,8 @@ export interface EventCompleteness {
   readonly slug: string;
   readonly name: string;
   readonly status: "upcoming" | "live" | "past";
+  /** What kind of evening it is, which decides whether talks are asked for. */
+  readonly program: Rows.EventProgram;
   readonly startDate: DateTime.Utc;
   readonly endDate: DateTime.Utc;
   readonly talks: number;
@@ -144,7 +150,9 @@ export function eventCompleteness(
   const status = eventStatus(event, now);
   const gaps: Array<Gap> = [];
 
-  if (event.talks.length === 0 && !event.isHackathon) gaps.push(gap("talks"));
+  if (event.talks.length === 0 && event.program === "talks") {
+    gaps.push(gap("talks"));
+  }
   for (const talk of event.talks) {
     if (talk.speakers.length === 0) {
       gaps.push(gap("talk-speakers", talk.title));
@@ -220,6 +228,7 @@ export function eventCompleteness(
     slug: event.slug,
     name: event.name,
     status,
+    program: event.program,
     startDate: event.startDate,
     endDate: event.endDate,
     talks: event.talks.length,
@@ -291,7 +300,7 @@ const make = Effect.gen(function* () {
         e.start_date AS "startDate", e.end_date AS "endDate",
         e.street_address AS "streetAddress", e.full_address AS "fullAddress",
         e.luma_event_id AS "lumaEventId", e.recording_url AS "recordingUrl",
-        e.is_hackathon AS "isHackathon",
+        e.program,
         e.preview_image IS NOT NULL AS "hasCover",
         e.luma_guest_count AS "lumaGuestCount",
         (SELECT count(*)::int FROM event_images ei WHERE ei.event_id = e.id) AS photos,

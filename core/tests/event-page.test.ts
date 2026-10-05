@@ -268,6 +268,7 @@ describe("EventPages", () => {
     const page = await read("2026-10-03-hack-day");
     expect(page).toMatchObject({
       status: "live",
+      program: "hackathon",
       // 9 AM in San Francisco.
       mode: "paper",
       venue: null,
@@ -308,6 +309,7 @@ describe("EventPages", () => {
   test("reads no schedule and no notes where none are recorded", async () => {
     const page = await read("2026-08-12-react-at-acme");
     expect(page.schedule).toEqual([]);
+    expect(page.program).toBe("talks");
     expect(page.notes).toEqual([]);
   });
 

@@ -53,7 +53,7 @@ const complete: EventRecord = {
   fullAddress: "201 Spear St, San Francisco, CA 94105",
   lumaEventId: "evt-effect",
   recordingUrl: "https://www.youtube.com/watch?v=abc",
-  isHackathon: false,
+  program: "talks",
   hasCover: true,
   lumaGuestCount: 183,
   photos: 12,
@@ -90,6 +90,7 @@ describe("what an event lacks", () => {
       slug: complete.slug,
       name: complete.name,
       status: "past",
+      program: "talks",
       startDate: complete.startDate,
       endDate: complete.endDate,
       talks: 1,
@@ -114,8 +115,21 @@ describe("what an event lacks", () => {
     ).toEqual(["talk-speakers: Panel", "talk-description: Panel"]);
   });
 
-  test("a hackathon is not asked for talks", () => {
-    expect(gapsOf({ ...complete, isHackathon: true, talks: [] })).toEqual([]);
+  test("only an evening of talks is asked for talks", () => {
+    expect(gapsOf({ ...complete, talks: [] })).toEqual(["talks"]);
+    for (const program of ["open-floor", "social", "hackathon"] as const) {
+      expect(gapsOf({ ...complete, program, talks: [] })).toEqual([]);
+    }
+  });
+
+  test("still checks what an open floor's known demos say", () => {
+    expect(
+      gapsOf({
+        ...complete,
+        program: "open-floor",
+        talks: [{ title: "A demo", description: "", speakers: [] }],
+      }),
+    ).toEqual(["talk-speakers: A demo", "talk-description: A demo"]);
   });
 
   test("its people, and an organizer among them", () => {
@@ -280,7 +294,9 @@ describe("the weekly check", () => {
       ended("2026-09-03T19:00:00Z"),
       ended("2026-09-03T18:59:59Z"),
       ended("2026-09-20T00:00:00Z", { talks: complete.talks }),
-      ended("2026-09-21T00:00:00Z", { isHackathon: true }),
+      ended("2026-09-21T00:00:00Z", { program: "hackathon" }),
+      ended("2026-09-22T00:00:00Z", { program: "open-floor" }),
+      ended("2026-09-23T00:00:00Z", { program: "social" }),
       // Not over yet.
       ended("2026-10-03T20:00:00Z"),
     ];
@@ -399,15 +415,15 @@ describe("Completeness", () => {
     const text = formatReport(await report());
     const [header, rule, ...rest] = text.split("\n");
     expect(header).toBe(
-      "date        status    event                     talks  speakers  people  hosts  photos  guests  gaps  optional",
+      "date        status    program    event                     talks  speakers  people  hosts  photos  guests  gaps  optional",
     );
-    expect(rule).toStartWith("----------  --------  ");
+    expect(rule).toStartWith("----------  --------  ---------  ");
     expect(rest.slice(0, 5)).toEqual([
-      "2026-11-05  upcoming  2026-11-05-upcoming           1         1       0      0       0       -     4         1",
-      "2026-10-03  live      2026-10-03-hack-day           1         1       0      0       0       -     4         1",
-      "2026-10-03  live      2026-10-03-ends-now           1         1       0      0       0       -     5         2",
-      "2026-08-12  past      2026-08-12-react-at-acme      2         3       0      2       2     118     6         2",
-      "2025-12-02  past      2025-12-02-café-night         2         3       0      0       0       -     7         2",
+      "2026-11-05  upcoming  talks      2026-11-05-upcoming           1         1       0      0       0       -     4         1",
+      "2026-10-03  live      hackathon  2026-10-03-hack-day           1         1       0      0       0       -     4         1",
+      "2026-10-03  live      talks      2026-10-03-ends-now           1         1       0      0       0       -     5         2",
+      "2026-08-12  past      talks      2026-08-12-react-at-acme      2         3       0      2       2     118     6         2",
+      "2025-12-02  past      talks      2025-12-02-café-night         2         3       0      0       0       -     7         2",
     ]);
     expect(text).toContain(
       [

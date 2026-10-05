@@ -49,6 +49,18 @@ export const Profile = Schema.Struct({
   image: Schema.NullOr(Image),
 });
 
+/**
+ * What kind of evening an event is (`events.program`): a lineup on stage,
+ * an open floor of community demos, a social evening, or a hackathon. Only
+ * an evening of talks is expected to have talks.
+ */
+export const EventProgram = Schema.Literals([
+  "talks",
+  "open-floor",
+  "social",
+  "hackathon",
+]);
+
 /** How a talk is held (`talks.format`): see src/people.ts. */
 export const TalkFormat = Schema.Literals(["talk", "panel", "fireside"]);
 
@@ -175,6 +187,7 @@ export const Redirect = Schema.Struct({
 export type Image = typeof Image.Type;
 export type Event = typeof Event.Type;
 export type Profile = typeof Profile.Type;
+export type EventProgram = typeof EventProgram.Type;
 export type TalkFormat = typeof TalkFormat.Type;
 export type SpeakerRole = typeof SpeakerRole.Type;
 export type EventRole = typeof EventRole.Type;

@@ -23,6 +23,7 @@ import {
   firstName,
   handleOf,
   notFoundPage,
+  openFloorLine,
 } from "../src/pages/event.tsx";
 import { fullDate, timeRange } from "../src/pages/time.ts";
 import type { ImageMode } from "../src/pages/picture.tsx";
@@ -70,6 +71,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   guests: null,
   rsvpUrl: "https://lu.ma/event/evt-effect",
   seats: 200,
+  program: "talks",
   recordingUrl: null,
   talks: [],
   schedule: [],
@@ -380,6 +382,39 @@ describe("the ledger", () => {
 
   test("leaves the schedule out when there is none", () => {
     expect(labels(render(event()))).not.toContain("Schedule");
+  });
+
+  test("says an open floor was open to anyone, in its tense, before the demos it knows", async () => {
+    const demo = {
+      id: "a1",
+      title: "My agents.md",
+      format: "talk" as const,
+      description: null,
+      speakers: [speaker()],
+    };
+    const past = render(
+      event({ status: "past", program: "open-floor", talks: [demo] }),
+    );
+    expect(labels(past)).toContain("On stage");
+    expect(past).toContain(
+      `<div class="stage"><p class="stage-open at-type-lead">${openFloorLine("past")}</p><section class="stage-talk">`,
+    );
+    expect(openFloorLine("past")).toBe(
+      "Open floor: anyone could get up and show what they were building.",
+    );
+    expect(await htmlProblems(past)).toEqual([]);
+    // With no demos known, the floor is still said to have been open.
+    const ahead = render(event({ program: "open-floor" }));
+    expect(labels(ahead)).toContain("On stage");
+    expect(ahead).toContain(
+      "Open floor: anyone can get up and show what they’re building.",
+    );
+  });
+
+  test("gives a social evening or a hackathon no stage of its own", () => {
+    for (const program of ["social", "hackathon"] as const) {
+      expect(labels(render(event({ program })))).not.toContain("On stage");
+    }
   });
 
   test("escapes what it prints", async () => {

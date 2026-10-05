@@ -78,13 +78,32 @@ bun run luma:people --create usr-… --link usr-…=<profile id>             # w
 docs.luma.com documents, and the import against `tests/seed.sql`; nothing in
 the tests reaches Luma.
 
+## What kind of evening
+
+`events.program` says what an evening was: `talks` (a lineup on stage), an
+`open-floor` (community demos with no fixed lineup), `social` (a hangout,
+trivia, an after-party) or a `hackathon`. It's `talks` unless an organizer
+says otherwise, and `is_hackathon`, which the public API still publishes,
+must agree with it. Only an evening of talks is asked for talks, and the
+event page says an open floor was open to anyone before any demos it knows.
+
+`core/backfill/programs.json` names every event's program, each sourced to
+its Luma page, with a note wherever the evening had no lineup. Run it from
+`core/`; it lists any event the file doesn't name:
+
+```sh
+DATABASE_URL=… bun run programs --dry-run   # do everything, print it, roll back
+DATABASE_URL=… bun run programs             # write
+```
+
 ## Completeness
 
 `src/completeness.ts` lists what each published event's record lacks. It's
 a pure function over what one statement reads, so the same rows always give
 the same report:
 
-- talks, and each talk's speakers and description; hackathons need no talks
+- talks, for an evening of talks (see "What kind of evening", below), and
+  each listed talk's speakers and description
 - the event's people and an organizer among them
 - everyone named on the event: title, bio, photo, links
 - hosts, with their logo and about, and their website and X, Bluesky or

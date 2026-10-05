@@ -72,6 +72,7 @@ export function formatReport(
     [
       "date",
       "status",
+      "program",
       "event",
       "talks",
       "speakers",
@@ -87,6 +88,7 @@ export function formatReport(
       return [
         localDate(r.startDate),
         r.status,
+        r.program,
         r.slug,
         String(r.talks),
         String(r.speakers),
@@ -98,7 +100,7 @@ export function formatReport(
         String(r.gaps.length - required),
       ];
     }),
-    new Set([3, 4, 5, 6, 7, 8, 9, 10]),
+    new Set([4, 5, 6, 7, 8, 9, 10, 11]),
   );
   const complete = reports.filter((r) => requiredGaps(r).length === 0).length;
   const details = reports

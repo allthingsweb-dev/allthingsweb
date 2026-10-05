@@ -1,3 +1,4 @@
+import * as Rows from "allthings-core/src/rows.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Context, DateTime, Effect, Layer, type Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
@@ -47,6 +48,7 @@ export const EventRow = Schema.Struct({
   topic: Schema.NullOr(Schema.String),
   lumaGuestCount: Schema.NullOr(Schema.Int),
   lumaCheckedInCount: Schema.NullOr(Schema.Int),
+  program: Rows.EventProgram,
   previewImage: Schema.NullOr(ImageRow),
 });
 
@@ -169,7 +171,7 @@ const make = Effect.gen(function* () {
     e.recording_url AS "recordingUrl",
     e.created_at AS "createdAt", e.updated_at AS "updatedAt", e.topic,
     e.luma_guest_count AS "lumaGuestCount",
-    e.luma_checked_in_count AS "lumaCheckedInCount",
+    e.luma_checked_in_count AS "lumaCheckedInCount", e.program,
     ${imageJson("e.preview_image")} AS "previewImage"`);
 
   // The app orders by start only; the id makes ties deterministic.
