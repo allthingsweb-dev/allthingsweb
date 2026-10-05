@@ -381,6 +381,59 @@ describe("Luma synchronization against Postgres", () => {
     }
   });
 
+  test("reads again an event the statement did not report, as another sync inserted it", async () => {
+    await db.insert(eventsTable).values(seed);
+    respond(calendar(event(), event("evt-other")));
+    await syncPublicLumaEvents(db);
+    // Since the first sync, an organizer gave the event a new slug.
+    await db
+      .update(eventsTable)
+      .set({ slug: "renamed-since" })
+      .where(eq(eventsTable.lumaEventId, "evt-other"));
+    // What a statement whose snapshot predates another sync's insert of
+    // evt-other returns: no row for it.
+    const hiding = new Proxy(db, {
+      get(target, property, receiver) {
+        if (property !== "with") return Reflect.get(target, property, receiver);
+        const chain = (builder: object): object =>
+          new Proxy(builder, {
+            get(inner, key, innerReceiver) {
+              const value: unknown = Reflect.get(inner, key, innerReceiver);
+              if (key === "then") {
+                return (
+                  resolve: (rows: unknown) => unknown,
+                  reject: (error: unknown) => unknown,
+                ) =>
+                  (inner as Promise<Array<{ lumaEventId: string }>>).then(
+                    (rows) =>
+                      resolve(
+                        rows.filter((row) => row.lumaEventId !== "evt-other"),
+                      ),
+                    reject,
+                  );
+              }
+              return typeof value === "function"
+                ? (...args: Array<unknown>) => {
+                    const result: unknown = value.apply(inner, args);
+                    return typeof result === "object" && result !== null
+                      ? chain(result)
+                      : result;
+                  }
+                : value;
+            },
+          });
+        return (...args: Parameters<typeof target.with>) =>
+          chain(target.with(...args));
+      },
+    });
+    expect(await syncPublicLumaEvents(hiding)).toEqual({
+      syncedCount: 2,
+      changedCount: 0,
+      publishedCount: 2,
+      slugs: ["existing-url", "renamed-since"],
+    });
+  });
+
   test("failed, malformed or empty feeds leave all database records untouched", async () => {
     const originals = await db.insert(eventsTable).values(seed).returning();
     for (const [body, status] of [

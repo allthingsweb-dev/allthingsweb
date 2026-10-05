@@ -30,7 +30,10 @@ function eventSlug(event: PublicLumaEvent): string {
  * nothing. core/src/luma/sync.ts is the same sync, row for row.
  */
 export async function syncPublicLumaEvents(
-  database: Pick<PgDatabase<PgQueryResultHKT>, "$with" | "with" | "insert">,
+  database: Pick<
+    PgDatabase<PgQueryResultHKT>,
+    "$with" | "with" | "insert" | "select"
+  >,
   calendarId?: string,
 ) {
   // Validate the complete feed before making a single atomic database write.
@@ -91,7 +94,9 @@ export async function syncPublicLumaEvents(
       }),
   );
   // An event left alone is read as the statement found it, which is as it
-  // stays.
+  // stays. Only an event another sync inserted after this statement's
+  // snapshot is in neither (ON CONFLICT saw it, found nothing to change, and
+  // skipped it); it is read again below.
   const rows = await database
     .with(written)
     .select({
@@ -112,19 +117,40 @@ export async function syncPublicLumaEvents(
       ),
     );
   const byLumaId = new Map(rows.map((row) => [row.lumaEventId, row]));
+  const unseen = events
+    .map((event) => event.lumaEventId)
+    .filter((id) => !byLumaId.has(id));
+  if (unseen.length > 0) {
+    // A read, so the write stays one statement.
+    const stored = await database
+      .select({
+        lumaEventId: eventsTable.lumaEventId,
+        slug: eventsTable.slug,
+        isDraft: eventsTable.isDraft,
+      })
+      .from(eventsTable)
+      .where(inArray(eventsTable.lumaEventId, unseen));
+    for (const { lumaEventId, slug, isDraft } of stored) {
+      if (lumaEventId !== null) {
+        byLumaId.set(lumaEventId, {
+          lumaEventId,
+          slug,
+          isDraft,
+          changed: false,
+        });
+      }
+    }
+  }
   // In feed order, as the pages to refresh have always been listed.
-  const synced = events.map(
-    (event) =>
-      byLumaId.get(event.lumaEventId) ?? {
-        // Inserted by a concurrent sync after this statement's snapshot.
-        // ON CONFLICT checks the committed row, so it skipped the update
-        // only because that row holds what this sync would write: this draft
-        // flag, and the slug that the same name, start and Luma id give.
-        slug: eventSlug(event),
-        isDraft: event.isDraft,
-        changed: false,
-      },
-  );
+  const synced = events.map((event) => {
+    const row = byLumaId.get(event.lumaEventId);
+    if (!row) {
+      throw new Error(
+        `Luma event ${event.lumaEventId} was synced but is no longer stored`,
+      );
+    }
+    return row;
+  });
 
   return {
     syncedCount: synced.length,

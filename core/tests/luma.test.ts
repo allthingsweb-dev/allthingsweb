@@ -13,7 +13,12 @@ import {
   LumaUnavailable,
   retryAfter,
 } from "../src/luma/luma.ts";
-import { eventSlug, LumaSync, toEventRow } from "../src/luma/sync.ts";
+import {
+  eventSlug,
+  fillUnseen,
+  LumaSync,
+  toEventRow,
+} from "../src/luma/sync.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
 import {
   configFrom,
@@ -382,6 +387,53 @@ describe("asking Luma", () => {
   ])("Retry-After %j", (header, millis) => {
     const delay = retryAfter(header, start);
     expect(delay === null ? null : Duration.toMillis(delay)).toBe(millis);
+  });
+});
+
+describe("events a sync did not see", () => {
+  // An event another sync inserted after the statement's snapshot comes back
+  // without a slug or draft flag, and is read again.
+  const seen = {
+    lumaEventId: "evt-seen",
+    slug: "seen",
+    isDraft: false,
+    changed: true,
+  };
+  const unseen = {
+    lumaEventId: "evt-unseen",
+    slug: null,
+    isDraft: null,
+    changed: false,
+  };
+
+  test("take the stored slug and draft flag, in feed order", () => {
+    expect(
+      fillUnseen(
+        [unseen, seen],
+        [{ lumaEventId: "evt-unseen", slug: "renamed-since", isDraft: true }],
+      ),
+    ).toEqual([
+      {
+        lumaEventId: "evt-unseen",
+        slug: "renamed-since",
+        isDraft: true,
+        changed: false,
+      },
+      seen,
+    ]);
+  });
+
+  test("keep what the statement returned for the others", () => {
+    expect(
+      fillUnseen(
+        [seen],
+        [{ lumaEventId: "evt-seen", slug: "other", isDraft: true }],
+      ),
+    ).toEqual([seen]);
+  });
+
+  test("leave the summary undefined while one is still missing", () => {
+    expect(fillUnseen([seen, unseen], [])).toBeUndefined();
   });
 });
 

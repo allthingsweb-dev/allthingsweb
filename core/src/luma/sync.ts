@@ -1,6 +1,6 @@
 import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
-import type { DataSourceError } from "../errors.ts";
+import { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
 import {
   calendarTimeZone,
@@ -118,16 +118,59 @@ export interface SyncSummary {
   readonly slugs: ReadonlyArray<string>;
 }
 
+/** A feed event as the sync left it. */
+export interface SyncedEvent {
+  readonly lumaEventId: string;
+  readonly slug: string;
+  readonly isDraft: boolean;
+  /** Whether the sync wrote it. */
+  readonly changed: boolean;
+}
+
+/**
+ * One row per feed event, in feed order. `slug` and `isDraft` are NULL for
+ * an event the statement neither wrote nor saw: see `write`.
+ */
 const Synced = Schema.Array(
   Schema.Struct({
-    slug: Schema.String,
-    isDraft: Schema.Boolean,
+    lumaEventId: Schema.String,
+    slug: Schema.NullOr(Schema.String),
+    isDraft: Schema.NullOr(Schema.Boolean),
     changed: Schema.Boolean,
   }),
 );
 
-/** The summary of the rows the statement returned, one per feed event. */
-export function summarize(synced: typeof Synced.Type): SyncSummary {
+const Stored = Schema.Array(
+  Schema.Struct({
+    lumaEventId: Schema.String,
+    slug: Schema.String,
+    isDraft: Schema.Boolean,
+  }),
+);
+
+/**
+ * `synced` with the events the statement did not see taken from `stored`,
+ * read afterwards; undefined while one is still missing.
+ */
+export function fillUnseen(
+  synced: typeof Synced.Type,
+  stored: typeof Stored.Type,
+): ReadonlyArray<SyncedEvent> | undefined {
+  const byLumaId = new Map(stored.map((row) => [row.lumaEventId, row]));
+  const filled: Array<SyncedEvent> = [];
+  for (const row of synced) {
+    const { slug, isDraft } =
+      row.slug !== null && row.isDraft !== null
+        ? { slug: row.slug, isDraft: row.isDraft }
+        : (byLumaId.get(row.lumaEventId) ?? { slug: null, isDraft: null });
+    if (slug === null || isDraft === null) return undefined;
+    filled.push({ ...row, slug, isDraft });
+  }
+  return filled;
+}
+
+/** The summary of the synced events, one per feed event. */
+export function summarize(synced: ReadonlyArray<SyncedEvent>): SyncSummary {
   return {
     syncedCount: synced.length,
     changedCount: synced.filter((row) => row.changed).length,
@@ -189,12 +232,10 @@ const make = Effect.gen(function* () {
     const at = DateTime.formatIso(now);
     // The data-modifying CTE returns only the rows it wrote; an event already
     // up to date is read from `events` as the statement found it, which is
-    // as it stays. One more case: a concurrent sync inserted the event after
-    // this statement's snapshot, so neither sees it here. ON CONFLICT checks
-    // the committed row, so it skipped the update only because that row
-    // holds what this sync would write: its draft flag, and the slug that
-    // the same name, start and Luma id give. Each feed event gets one row,
-    // in feed order.
+    // as it stays. Each feed event gets one row, in feed order. Only an event
+    // another sync inserted after this statement's snapshot is in neither
+    // (ON CONFLICT saw it, found nothing to change, and skipped it): its slug
+    // and draft flag come back NULL, for `readStored` to fill in.
     return sql`
       WITH incoming AS (
         SELECT * FROM jsonb_to_recordset(${incoming}::jsonb) AS r(
@@ -230,8 +271,9 @@ const make = Effect.gen(function* () {
             ${venue("short_location")}, ${venue("full_address")})
         RETURNING e.luma_event_id, e.slug, e.is_draft
       )
-      SELECT COALESCE(w.slug, stored.slug, i.slug) AS slug,
-        COALESCE(w.is_draft, stored.is_draft, i.is_draft) AS "isDraft",
+      SELECT i.luma_event_id AS "lumaEventId",
+        COALESCE(w.slug, stored.slug) AS slug,
+        COALESCE(w.is_draft, stored.is_draft) AS "isDraft",
         w.luma_event_id IS NOT NULL AS changed
       FROM incoming i
       LEFT JOIN written w ON w.luma_event_id = i.luma_event_id
@@ -242,10 +284,34 @@ const make = Effect.gen(function* () {
     );
   };
 
+  /** The stored slug and draft flag of these events, as committed now. */
+  const readStored = (lumaEventIds: ReadonlyArray<string>) =>
+    sql`
+      SELECT luma_event_id AS "lumaEventId", slug, is_draft AS "isDraft"
+      FROM events
+      WHERE luma_event_id IN (
+        SELECT jsonb_array_elements_text(${JSON.stringify(lumaEventIds)}::jsonb))`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Stored)),
+      orDataSourceError,
+    );
+
   const run = Effect.gen(function* () {
     const events = yield* luma.calendarEvents;
     const now = yield* DateTime.now;
-    return summarize(yield* write(events.map(toEventRow), now));
+    const synced = yield* write(events.map(toEventRow), now);
+    // Only after an overlapping sync: a read, so the write stays one
+    // statement and the summary still lists every stored slug.
+    const unseen = synced
+      .filter((row) => row.slug === null || row.isDraft === null)
+      .map((row) => row.lumaEventId);
+    const stored = unseen.length === 0 ? [] : yield* readStored(unseen);
+    const filled = fillUnseen(synced, stored);
+    if (filled === undefined) {
+      return yield* new DataSourceError({
+        cause: new Error("A synced Luma event is no longer stored"),
+      });
+    }
+    return summarize(filled);
   }).pipe(Effect.withSpan("LumaSync.run"));
 
   return LumaSync.of({ run });
