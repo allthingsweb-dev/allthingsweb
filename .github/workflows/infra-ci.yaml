@@ -45,3 +45,7 @@ jobs:
       - name: 🔍 Type check
         working-directory: infra
         run: bun run typecheck
+
+      - name: 🧪 Test
+        working-directory: infra
+        run: bun run test

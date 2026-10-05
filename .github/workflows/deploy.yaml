@@ -2,7 +2,8 @@ name: Deploy
 
 # Deploys the Worker replacing the app to the allthings Cloudflare account:
 # a pr-<number> stage per pull request (removed when it closes) and a staging
-# stage for main. Prod stays a maintainer deploy until it moves accounts.
+# stage for main, each reading production's data through its own Hyperdrive.
+# Prod stays a maintainer deploy until it moves accounts.
 on:
   push:
     branches: ["main"]
@@ -56,6 +57,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # The origin of the stage's Hyperdrive: production's Neon database
+          # as its read-only role. Destroying a stage doesn't need it.
+          NEON_READER_URL: ${{ secrets.NEON_READER_URL }}
         run: |
           bun alchemy deploy --stage "$STAGE" --yes --no-input | tee deploy.log
           # The stack returns the Web Worker's URL as its webUrl output.
