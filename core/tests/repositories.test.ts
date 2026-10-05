@@ -132,12 +132,19 @@ const zed: Rows.Profile = {
   image: null,
 };
 
-const serverComponents = {
+/** A profile as a talk's speaker, presenting unless said otherwise. */
+const speaking = (
+  profile: Rows.Profile,
+  role: Rows.SpeakerRole = "speaker",
+): Rows.TalkSpeaker => ({ ...profile, role });
+
+const serverComponents: Rows.Talk = {
   id: "a0000000-0000-4000-8000-000000000001",
   title: "Server components",
   description:
     "<p>Why <strong>RSC</strong> &amp; streaming matter.</p><ul><li>One</li><li>Two</li></ul>",
-  speakers: [grace, ada],
+  format: "talk",
+  speakers: [speaking(grace), speaking(ada)],
 };
 
 describe("Events", () => {
@@ -192,7 +199,8 @@ describe("Events", () => {
         title: "Effect in production",
         description:
           '<p>Typed errors<br>and services.</p><script>alert(1)</script><img src="x" onerror="alert(1)">',
-        speakers: [linus],
+        format: "talk",
+        speakers: [speaking(linus)],
       },
       serverComponents,
     ]);
@@ -214,6 +222,51 @@ describe("Events", () => {
     ]);
     expect(event.images).toEqual([stage, crowd]);
     expect(event.previewImage).toEqual(cover);
+    expect(event.people).toEqual([]);
+    expect(event.lumaGuestCount).toBe(118);
+    expect(event.lumaCheckedInCount).toBe(97);
+  });
+
+  test("gets an event's people by role, then position, and who moderated a fireside", async () => {
+    const database = await seededDatabase();
+    try {
+      await database.exec(`
+        UPDATE events SET luma_guest_count = 183, luma_checked_in_count = 141
+          WHERE id = 'e0000000-0000-4000-8000-000000000001';
+        UPDATE talks SET format = 'fireside'
+          WHERE id = 'a0000000-0000-4000-8000-000000000001';
+        UPDATE talk_speakers SET role = 'moderator'
+          WHERE talk_id = 'a0000000-0000-4000-8000-000000000001'
+            AND speaker_id = 'b0000000-0000-4000-8000-000000000002';
+        -- Attached out of order: the role, then the position, decide.
+        INSERT INTO event_people (event_id, profile_id, role, position, source, created_at, updated_at) VALUES
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000006', 'mc', 0, 'site', '2026-01-05T00:00:01Z', now()),
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003', 'co-host', 1, 'luma', '2026-01-05T00:00:02Z', now()),
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'co-host', 0, 'luma', '2026-01-05T00:00:03Z', now()),
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'organizer', 0, 'luma', '2026-01-05T00:00:04Z', now()),
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'mc', 1, 'site', '2026-01-05T00:00:05Z', now());
+      `);
+      const event = await run(
+        Events.use((events) => events.getPublished("2026-08-12-react-at-acme")),
+        { database },
+      );
+      expect(event.people).toEqual([
+        { role: "organizer", profile: grace },
+        { role: "co-host", profile: ada },
+        { role: "co-host", profile: linus },
+        { role: "mc", profile: zed },
+        { role: "mc", profile: grace },
+      ]);
+      expect(event.talks[1]).toEqual({
+        ...serverComponents,
+        format: "fireside",
+        speakers: [speaking(grace, "moderator"), speaking(ada)],
+      });
+      expect(event.lumaGuestCount).toBe(183);
+      expect(event.lumaCheckedInCount).toBe(141);
+    } finally {
+      await database.close();
+    }
   });
 
   test("gets an event without talks, hosts or photos as empty lists", async () => {
@@ -223,6 +276,9 @@ describe("Events", () => {
     expect(event.talks.map((talk) => talk.title)).toEqual(["Next month"]);
     expect(event.hosts).toEqual([]);
     expect(event.images).toEqual([]);
+    expect(event.people).toEqual([]);
+    expect(event.lumaGuestCount).toBeNull();
+    expect(event.lumaCheckedInCount).toBeNull();
   });
 
   test("a talk given at two events appears at both", async () => {
