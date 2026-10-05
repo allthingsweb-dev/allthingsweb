@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { mediaStore, type MediaStoreConfig } from "@/lib/media-store/store";
+import {
+  maxMediaBytes,
+  mediaStore,
+  type MediaStoreConfig,
+  MediaTooLargeError,
+} from "@/lib/media-store/store";
 
 const config: MediaStoreConfig = {
   publicUrl: "https://media.example.dev",
@@ -55,6 +60,24 @@ describe("media store", () => {
     await expect(
       mediaStore(config, impl).put("a.png", new Uint8Array(), "image/png"),
     ).rejects.toThrow("Media PUT a.png failed: 401");
+  });
+
+  test("refuses an image over 20 MB, saying so, without sending it", async () => {
+    const { impl, calls } = recordingFetch(201);
+    const store = mediaStore(config, impl);
+    const tooLarge = store.put(
+      "events/e1/photo.png",
+      new Uint8Array(maxMediaBytes + 1),
+      "image/png",
+    );
+    await expect(tooLarge).rejects.toBeInstanceOf(MediaTooLargeError);
+    await expect(tooLarge).rejects.toThrow(
+      "events/e1/photo.png is 20.1 MB, over the 20 MB an image may be. Save it as a JPEG, or scale it down, and upload it again.",
+    );
+    expect(calls).toHaveLength(0);
+    // 20 MB itself is stored.
+    await store.put("a.jpg", new Uint8Array(maxMediaBytes), "image/jpeg");
+    expect(calls).toHaveLength(1);
   });
 
   test("refuses to upload without the Worker's URL and token", async () => {
