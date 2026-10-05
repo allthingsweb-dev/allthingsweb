@@ -342,6 +342,39 @@ function People({
   );
 }
 
+/**
+ * The hosting companies, as hostNames lists them ("Mux, Strapi & Neon"),
+ * each name linked to its own site where one is on record. Only used when
+ * at least one is; otherwise the names print as plain text.
+ */
+function HostNames({
+  names,
+  sites,
+}: {
+  readonly names: ReadonlyArray<string>;
+  readonly sites: Readonly<Record<string, string>>;
+}) {
+  return (
+    <>
+      {names.map((name, index) => {
+        const site = sites[name];
+        return (
+          <>
+            {index === 0 ? "" : index === names.length - 1 ? " &amp; " : ", "}
+            {site === undefined ? (
+              <span safe>{name}</span>
+            ) : (
+              <a href={site} safe>
+                {name}
+              </a>
+            )}
+          </>
+        );
+      })}
+    </>
+  );
+}
+
 function HostedAt({
   event,
   portraits,
@@ -358,6 +391,10 @@ function HostedAt({
         <div class="hosted">
           {companies.length === 0 ? (
             ""
+          ) : companies.some((name) => event.hostSites[name] !== undefined) ? (
+            <p class="fact-head">
+              <HostNames names={companies} sites={event.hostSites} />
+            </p>
           ) : (
             <p class="fact-head" safe>
               {hostNames(companies)}

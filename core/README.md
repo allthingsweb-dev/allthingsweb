@@ -15,6 +15,17 @@ columns Luma owns, and which the site does, is written down in
 core's on copies of one database with the same feed and requires the same
 rows; nothing in the tests reaches Luma.
 
+`LumaSync.rehearse` is the dry run. It runs the same statement in a
+transaction that always rolls back, and reports every event the sync would
+create and every column it would change, before and after. Nothing is
+committed. `bun run sync:rehearse` prints that report for the database at
+`DATABASE_URL`. Run it as `site_sync`, the role the sync writes as, so the
+dry run also proves the role's grants:
+
+```sh
+DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") bun run sync:rehearse
+```
+
 ## Image ingestion
 
 `src/ingest/` is the image half of the app's hourly sync (`app/src/lib/event-covers`, `profile-photos`, `post-images`) as an Effect service, `ImageIngest`. It fills in three kinds of missing image:
@@ -76,7 +87,8 @@ the same report:
 - talks, and each talk's speakers and description; hackathons need no talks
 - the event's people and an organizer among them
 - everyone named on the event: title, bio, photo, links
-- hosts, with their logo and about
+- hosts, with their logo and about, and their website and X, Bluesky or
+  LinkedIn
 - venue address, the lockup's topic, the Luma sync's placeholder tagline,
   a cover
 - for past events: photos, a recording link, and Luma's guest count
@@ -147,6 +159,26 @@ DATABASE_URL=… bun run event-extras --dry-run   # do everything, print it, rol
 DATABASE_URL=… bun run event-extras             # write
 ```
 
+## Hosting companies' links
+
+Each hosting company (`sponsors`) may store its own website and its X,
+Bluesky and LinkedIn handles, each checked for its shape by the database.
+The event page links a host's name to its site, promotion drafts tag and
+link hosts, and the completeness report flags a host without a website or
+without any handle.
+
+`backfill/hosts.json` holds them as researched from each company's
+official site and profiles, every fact with the URL it was read from.
+What could not be confirmed is left out, or kept under `held` with its
+reason, and never written.
+
+```sh
+DATABASE_URL=… bun run hosts --dry-run   # what would change, rolled back
+DATABASE_URL=… bun run hosts             # write it, in one transaction
+```
+
+Applying is safe to repeat; a column the file doesn't name is left as it is.
+
 ## Promotion drafts
 
 `src/promo/` drafts an evening's promotion from its record, in the brand's
@@ -154,7 +186,8 @@ voice (`brand/foundations.md`): the Luma description with every speaker
 and their bio, the Meetup cross-post (seats-on-Luma notice, five topics,
 the host's named place, and a checklist of the settings Meetup only takes
 by hand), and posts for X, Bluesky, LinkedIn and Discord to announce the
-evening, on the day, and after. People are tagged by their stored handles;
+evening, on the day, and after. People and hosting companies are tagged
+by their stored handles, and descriptions link hosts to their sites;
 the recap counts photos and approved posts and thanks those who posted.
 Each draft is the richest of its candidates that fits its platform's limit
 (`src/promo/limits.ts`), and what the record lacks is listed first as gaps.

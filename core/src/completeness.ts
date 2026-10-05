@@ -31,6 +31,11 @@ export const gapKinds = {
   hosts: { required: true, label: "no hosting company" },
   "host-logo": { required: true, label: "host without logo" },
   "host-about": { required: true, label: "host without about" },
+  "host-website": { required: false, label: "host without website" },
+  "host-links": {
+    required: false,
+    label: "host without X, Bluesky or LinkedIn",
+  },
   photos: { required: true, label: "no photos" },
   venue: { required: true, label: "no venue address" },
   topic: { required: true, label: "no topic for the lockup" },
@@ -91,6 +96,10 @@ export const EventRecord = Schema.Struct({
       name: Schema.String,
       about: Schema.String,
       hasLogo: Schema.Boolean,
+      websiteUrl: Schema.NullOr(Schema.String),
+      twitterHandle: Schema.NullOr(Schema.String),
+      blueskyHandle: Schema.NullOr(Schema.String),
+      linkedinHandle: Schema.NullOr(Schema.String),
     }),
   ),
   people: Schema.Array(
@@ -176,6 +185,15 @@ export function eventCompleteness(
   for (const host of event.hosts) {
     if (!host.hasLogo) gaps.push(gap("host-logo", host.name));
     if (isBlank(host.about)) gaps.push(gap("host-about", host.name));
+    // A stored value that is no http(s) URL is never linked, so it counts
+    // as none.
+    if (httpUrlOrNull(host.websiteUrl) === null) {
+      gaps.push(gap("host-website", host.name));
+    }
+    const links = [host.twitterHandle, host.blueskyHandle, host.linkedinHandle];
+    if (links.every((handle) => handle === null || isBlank(handle))) {
+      gaps.push(gap("host-links", host.name));
+    }
   }
 
   const address = event.fullAddress ?? event.streetAddress;
@@ -296,7 +314,11 @@ const make = Effect.gen(function* () {
           SELECT json_agg(json_build_object(
             'name', s.name,
             'about', s.about,
-            'hasLogo', s.square_logo_light IS NOT NULL OR s.square_logo_dark IS NOT NULL
+            'hasLogo', s.square_logo_light IS NOT NULL OR s.square_logo_dark IS NOT NULL,
+            'websiteUrl', s.website_url,
+            'twitterHandle', s.twitter_handle,
+            'blueskyHandle', s.bluesky_handle,
+            'linkedinHandle', s.linkedin_handle
           ) ORDER BY es.created_at, s.id)
           FROM event_sponsors es
           JOIN sponsors s ON s.id = es.sponsor_id

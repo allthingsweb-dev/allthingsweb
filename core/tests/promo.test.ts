@@ -4,6 +4,7 @@ import { DataSourceError, EventNotFound } from "../src/errors.ts";
 import { type EventPage, EventPages, type Speaker } from "../src/event-page.ts";
 import {
   blueskyHandle,
+  mdUrl,
   type PromoDrafts,
   promoDrafts,
   xHandle,
@@ -141,7 +142,12 @@ describe("every draft fits its platform", () => {
         speakers: crowd,
       })),
     };
-    const drafts = promoDrafts({ event, handles: new Map(), origin: "o" });
+    const drafts = promoDrafts({
+      event,
+      handles: new Map(),
+      hosts: new Map(),
+      origin: "o",
+    });
     for (const [platform, name, text] of everyDraft(drafts)) {
       expect({ name, fits: fits(platform, text) }).toEqual({
         name,
@@ -227,7 +233,7 @@ describe("Meetup", () => {
     expect(meetup.description).not.toMatch(/[^\n]\n[^\n]/);
   });
 
-  test("names are bold and linked; hosts bold", async () => {
+  test("names are bold and linked, hosts to their sites", async () => {
     const { meetup, luma } = await read("2026-08-12-react-at-acme");
     for (const text of [meetup.description, luma]) {
       expect(text).toContain("**[Ada Lovelace](https://x.com/ada)**");
@@ -237,7 +243,9 @@ describe("Meetup", () => {
       expect(text).toContain(
         "**[Grace Hopper](https://allthings.example/people#p-b0000000-0000-4000-8000-000000000002)**",
       );
-      expect(text).toContain("Hosted at **Globex** and **Acme**");
+      expect(text).toContain(
+        "Hosted at **Globex** and **[Acme](https://acme.example/)**",
+      );
       expect(text).toContain("**[all things](https://luma.com/allthingsweb)**");
     }
   });
@@ -293,6 +301,24 @@ describe("Meetup", () => {
 });
 
 describe("social", () => {
+  test("hosting companies are tagged by their stored handles", async () => {
+    const { social, gaps } = await read("2026-08-12-react-at-acme");
+    expect(social.x.announce).toContain("hosted at Globex and @acme");
+    expect(social.bluesky.announce).toContain("hosted at Globex and Acme");
+    expect(social.linkedin.announce).toContain("hosted at Globex and Acme");
+    expect(gaps).toContain(
+      "Globex has no website on record, so descriptions name it unlinked.",
+    );
+    expect(gaps.join("\n")).not.toContain("Acme has no website");
+    // Each platform a host can't be tagged on is named.
+    expect(gaps).toContain(
+      "Acme has no Bluesky handle on record, so Bluesky posts name it untagged.",
+    );
+    expect(gaps).toContain(
+      "Globex has no X or Bluesky handle on record, so posts name it untagged.",
+    );
+  });
+
   test("people are tagged by their stored handles on X and Bluesky", async () => {
     const { social } = await read("2026-08-12-react-at-acme");
     expect(social.x.announce).toContain("@ada");
@@ -328,6 +354,16 @@ describe("limits", () => {
     const long = "x".repeat(limits.x + 1);
     expect(fitOn("x", [long, "short"])).toBe("short");
     expect(() => fitOn("x", [long])).toThrow(DraftTooLong);
+  });
+
+  test("a link destination keeps its parentheses from ending it", () => {
+    expect(mdUrl("https://en.example/wiki/Acme_(company)")).toBe(
+      "<https://en.example/wiki/Acme_(company)>",
+    );
+    expect(mdUrl("https://acme.example/a<b>")).toBe(
+      "<https://acme.example/a%3Cb%3E>",
+    );
+    expect(mdUrl("https://acme.example/")).toBe("https://acme.example/");
   });
 
   test("handles", () => {
