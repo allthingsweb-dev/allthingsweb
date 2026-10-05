@@ -285,7 +285,9 @@ export interface LumaSyncShape {
    * a transaction that always rolls back, so it reports exactly what `run`
    * would write now (every created event, and every changed column of the
    * others) and leaves `events` as it was. Its rows are locked only for
-   * the moment between the statement and the rollback.
+   * the moment between the statement and the rollback, and it reads one
+   * snapshot throughout (REPEATABLE READ), so an edit committed meanwhile
+   * never shows as a change the sync makes.
    */
   readonly rehearse: Effect.Effect<SyncRehearsal, LumaError | DataSourceError>;
 }
@@ -449,6 +451,13 @@ const make = Effect.gen(function* () {
     const now = yield* DateTime.now;
     const rows = events.map(toEventRow);
     return yield* Effect.gen(function* () {
+      // One snapshot for both reads and the statement, so an edit committed
+      // meanwhile can't show as a change the sync makes. It takes no locks
+      // beyond the statement's own; a row edited meanwhile that the
+      // statement would write fails the rehearsal, which can simply run again.
+      yield* sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`.pipe(
+        orDataSourceError,
+      );
       const before = yield* readFields(rows.map((row) => row.lumaEventId));
       const synced = yield* withSlugs(yield* write(rows, now));
       const after = yield* readFields(
