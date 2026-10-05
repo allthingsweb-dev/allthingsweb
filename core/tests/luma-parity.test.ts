@@ -176,9 +176,12 @@ async function database(seed: string): Promise<PGlite> {
   return db;
 }
 
+type Tables = Awaited<ReturnType<typeof contents>>;
+
 /**
  * Runs `runs` on both sides, in order, from `seed`, comparing outcomes and
- * whole databases after each. Returns core's outcomes for further checks.
+ * whole databases after each. Returns core's outcomes, and the database
+ * before the first run and after each, for further checks.
  */
 async function parity(seed: string, runs: ReadonlyArray<Run>) {
   const [appDb, coreDb] = await Promise.all([database(seed), database(seed)]);
@@ -190,6 +193,7 @@ async function parity(seed: string, runs: ReadonlyArray<Run>) {
     );
     const generated = (id: string) => !seeded.has(id);
     const outcomes: Array<Outcome> = [];
+    const tables: Array<Tables> = [await contents(coreDb, generated)];
     for (const run of runs) {
       const appRun = await runApp(appDb, run);
       const coreRun = await runCore(coreDb, run);
@@ -199,18 +203,39 @@ async function parity(seed: string, runs: ReadonlyArray<Run>) {
       for (const [index, request] of appRun.sent.entries()) {
         expect(coreRun.sent[index]).toMatchObject(request);
       }
-      expect(await contents(coreDb, generated)).toEqual(
-        await contents(appDb, generated),
-      );
+      const after = await contents(coreDb, generated);
+      expect(after).toEqual(await contents(appDb, generated));
       outcomes.push(coreRun.outcome);
+      tables.push(after);
     }
-    return outcomes;
+    return { outcomes, tables };
   } finally {
     await Promise.all([appDb.close(), coreDb.close()]);
   }
 }
 
 const ok = (body: string): Reply => ({ body });
+
+/** The `events` rows Luma knows, by Luma id. */
+const lumaEvents = (tables: Tables | undefined) =>
+  new Map(
+    (tables?.["events"] ?? []).flatMap((row) => {
+      const event = row as Record<string, unknown>;
+      const id = event["luma_event_id"];
+      return typeof id === "string" ? [[id, event] as const] : [];
+    }),
+  );
+
+/** The Luma ids of the events whose rows differ between `a` and `b`. */
+const changedBetween = (a: Tables | undefined, b: Tables | undefined) => {
+  const [before, after] = [lumaEvents(a), lumaEvents(b)];
+  return [...after.keys()]
+    .filter((id) => !Bun.deepEquals(before.get(id), after.get(id)))
+    .toSorted();
+};
+
+/** updated_at as `contents` reads it. */
+const stamp = (iso: string) => iso.replace(/Z$/, "+00:00");
 
 /** The calendar a month later: renamed, rescheduled, cancelled, moved. */
 const later = calendar
@@ -230,12 +255,14 @@ const later = calendar
 
 describe("core's Luma sync writes what the app's writes", () => {
   test("the first sync of a whole calendar", async () => {
-    const [outcome] = await parity("", [
+    const {
+      outcomes: [outcome],
+    } = await parity("", [
       { at: "2026-10-04T19:00:00Z", replies: [ok(calendar)] },
     ]);
     expect(outcome).toMatchObject({
       ok: true,
-      summary: { syncedCount: 24, publishedCount: 21 },
+      summary: { syncedCount: 24, changedCount: 24, publishedCount: 21 },
     });
   });
 
@@ -249,18 +276,95 @@ describe("core's Luma sync writes what the app's writes", () => {
   });
 
   test("syncs over stored events: Luma's fields change, the site's stay, nothing is deleted", async () => {
-    const outcomes = await parity(stored, [
+    const { outcomes, tables } = await parity(stored, [
       { at: "2026-10-04T19:00:00Z", replies: [ok(calendar)] },
-      // Again, unchanged: only updated_at moves.
+      // Again, unchanged: nothing is written, updated_at included.
       { at: "2026-10-04T20:00:00Z", replies: [ok(calendar)] },
       // A month on, Luma's calendar has changed.
       { at: "2026-11-04T20:00:00Z", replies: [ok(later)] },
     ]);
-    expect(outcomes.every((outcome) => outcome.ok)).toBe(true);
+    expect(outcomes).toMatchObject([
+      // Every event but the secret venue night, which is stored as Luma
+      // shows it: Luma hides its venue and the stored one stays.
+      { ok: true, summary: { syncedCount: 24, changedCount: 23 } },
+      { ok: true, summary: { syncedCount: 24, changedCount: 0 } },
+      { ok: true, summary: { syncedCount: 24, changedCount: 4 } },
+    ]);
+    const [seeded, first, second, third] = tables;
+    const firstEvents = lumaEvents(first);
+    // Written for their venue alone: the archive restores Meraki's, and an
+    // unknown placeholder is cleared.
+    for (const id of ["evt-HtDmTqndK1vA1Z4", "evt-blankVenue"]) {
+      expect(firstEvents.get(id)?.["updated_at"]).toBe(
+        stamp("2026-10-04T19:00:00Z"),
+      );
+    }
+    expect(changedBetween(seeded, first)).not.toContain("evt-hiddenVenue");
+    expect(second).toEqual(first);
+    expect(changedBetween(second, third)).toEqual([
+      "evt-hiddenVenue",
+      "evt-noVenue",
+      "evt-online",
+      "evt-private",
+    ]);
+    for (const id of changedBetween(second, third)) {
+      expect(lumaEvents(third).get(id)?.["updated_at"]).toBe(
+        stamp("2026-11-04T20:00:00Z"),
+      );
+    }
+  });
+
+  test("a change to one of Luma's fields writes that event alone", async () => {
+    const renamed = calendar.replace(
+      "SUMMARY:Secret venue night",
+      "SUMMARY:Secret venue night revealed",
+    );
+    const { outcomes, tables } = await parity(stored, [
+      { at: "2026-10-04T19:00:00Z", replies: [ok(calendar)] },
+      { at: "2026-10-04T20:00:00Z", replies: [ok(renamed)] },
+    ]);
+    expect(outcomes[1]).toMatchObject({
+      ok: true,
+      summary: { syncedCount: 24, changedCount: 1, publishedCount: 21 },
+    });
+    const [, first, second] = tables;
+    expect(changedBetween(first, second)).toEqual(["evt-hiddenVenue"]);
+    expect(lumaEvents(second).get("evt-hiddenVenue")).toEqual({
+      ...lumaEvents(first).get("evt-hiddenVenue"),
+      name: "Secret venue night revealed",
+      updated_at: stamp("2026-10-04T20:00:00Z"),
+    });
+    // Nothing else moved, in any table.
+    expect({ ...second, events: [] }).toEqual({ ...first, events: [] });
+  });
+
+  test("venues already restored, cleared or kept are not written again", async () => {
+    // As the first sync leaves them: Meraki's placeholders restored from the
+    // archive (its venue label edited by hand), the unknown one cleared.
+    const settled = `${stored}
+      UPDATE events SET street_address = '500 Terry A Francois Blvd',
+        full_address = 'Cisco Meraki, 500 Terry A Francois Blvd, San Francisco, CA 94158'
+      WHERE luma_event_id = 'evt-HtDmTqndK1vA1Z4';
+      UPDATE events SET street_address = NULL, short_location = NULL, full_address = NULL
+      WHERE luma_event_id = 'evt-blankVenue';`;
+    const { outcomes, tables } = await parity(settled, [
+      { at: "2026-10-04T19:00:00Z", replies: [ok(calendar)] },
+    ]);
+    expect(outcomes).toMatchObject([
+      { ok: true, summary: { syncedCount: 24, changedCount: 21 } },
+    ]);
+    const changed = changedBetween(tables[0], tables[1]);
+    for (const id of [
+      "evt-HtDmTqndK1vA1Z4",
+      "evt-blankVenue",
+      "evt-hiddenVenue",
+    ]) {
+      expect(changed).not.toContain(id);
+    }
   });
 
   test("a slug taken by a site-only event fails the whole sync", async () => {
-    const outcomes = await parity(
+    const { outcomes } = await parity(
       `INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, created_at, updated_at)
        VALUES ('e0000000-0000-4000-8000-000000000001', '2026-10-14-venue-to-be-announced-evt-noVenue', 'Taken', 'Taken', '2026-10-15T01:30:00Z', '2026-10-15T04:30:00Z', 10, '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z')`,
       [{ at: "2026-10-04T19:00:00Z", replies: [ok(calendar)] }],
@@ -282,7 +386,9 @@ describe("core's Luma sync writes what the app's writes", () => {
         "END:VEVENT",
       ].join("\n");
     });
-    const [outcome] = await parity(stored, [
+    const {
+      outcomes: [outcome],
+    } = await parity(stored, [
       {
         at: "2026-10-04T19:00:00Z",
         replies: [
@@ -294,7 +400,7 @@ describe("core's Luma sync writes what the app's writes", () => {
     ]);
     expect(outcome).toMatchObject({
       ok: true,
-      summary: { syncedCount: 150, publishedCount: 100 },
+      summary: { syncedCount: 150, changedCount: 150, publishedCount: 100 },
     });
   });
 
@@ -464,7 +570,7 @@ describe("core's Luma sync writes what the app's writes", () => {
       },
     ],
   ])("%s fails on both, writing nothing", async (_, run) => {
-    const outcomes = await parity(stored, [run]);
+    const { outcomes } = await parity(stored, [run]);
     expect(outcomes).toEqual([{ ok: false }]);
   });
 });
