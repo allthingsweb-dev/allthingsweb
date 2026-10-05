@@ -1,0 +1,49 @@
+{
+  "platform": "luma",
+  "id": "evt-partner",
+  "user_id": "usr-Partner1",
+  "calendar_id": "cal-Partner1",
+  "start_at": "2026-11-06T02:00:00.000Z",
+  "duration_interval": "PT3H",
+  "end_at": "2026-11-06T05:00:00.000Z",
+  "created_at": "2026-09-01T17:00:00.000Z",
+  "timezone": "America/Los_Angeles",
+  "name": "Partner after-party",
+  "cover_url": "https://images.lumacdn.com/event-covers/party.png",
+  "url": "https://luma.com/partner-party",
+  "visibility": "public",
+  "location_type": "offline",
+  "location_visibility": "guests-only",
+  "waitlist_status": "disabled",
+  "registration_open": true,
+  "require_approval": true,
+  "spots_remaining": null,
+  "display_price": null,
+  "access": "view",
+  "geo_address_json": {
+    "address": "San Francisco",
+    "city": "San Francisco",
+    "region": "California",
+    "country": "United States",
+    "city_state": "San Francisco, California",
+    "full_address": null,
+    "google_maps_place_id": null,
+    "apple_maps_place_id": null,
+    "description": null
+  },
+  "coordinate": { "longitude": -122.4, "latitude": 37.8 },
+  "description": "After the conference.",
+  "description_md": "After the conference.",
+  "hosts": [
+    {
+      "id": "usr-Hamilton1",
+      "name": "Margaret Hamilton",
+      "avatar_url": "https://images.lumacdn.com/avatars/mh/margaret.jpg"
+    },
+    {
+      "id": "usr-Future1",
+      "name": "Future Speaker",
+      "avatar_url": "https://images.lumacdn.com/avatars/fs/future.jpg"
+    }
+  ]
+}

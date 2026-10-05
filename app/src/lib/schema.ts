@@ -67,35 +67,65 @@ export type SelectHost = typeof hostsTable.$inferSelect;
 
 export const profileTypeEnum = pgEnum("profile_type", ["organizer", "member"]);
 
-export const profilesTable = pgTable("profiles", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  title: text("title").notNull(),
-  image: uuid("image").references(() => imagesTable.id, {
-    onDelete: "set null",
-  }),
-  twitterHandle: text("twitter_handle"),
-  blueskyHandle: text("bluesky_handle"),
-  linkedinHandle: text("linkedin_handle"),
-  /** Where to fetch the profile's photo from (GitHub, X, YC); the hourly sync
-   * stores it in the bucket and sets `image`. */
-  photoSourceUrl: text("photo_source_url"),
-  bio: text("bio").notNull(),
-  profileType: profileTypeEnum("profile_type").notNull(),
-  createdAt,
-  updatedAt,
-});
+export const profilesTable = pgTable(
+  "profiles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    title: text("title").notNull(),
+    image: uuid("image").references(() => imagesTable.id, {
+      onDelete: "set null",
+    }),
+    twitterHandle: text("twitter_handle"),
+    blueskyHandle: text("bluesky_handle"),
+    linkedinHandle: text("linkedin_handle"),
+    /** Where to fetch the profile's photo from (GitHub, X, YC); the hourly sync
+     * stores it in the bucket and sets `image`. */
+    photoSourceUrl: text("photo_source_url"),
+    bio: text("bio").notNull(),
+    profileType: profileTypeEnum("profile_type").notNull(),
+    createdAt,
+    updatedAt,
+    /**
+     * The person's Luma user id (usr-…): how core's Luma people import
+     * (core/src/luma/people.ts) recognizes them as a host of an event.
+     */
+    lumaUserId: text("luma_user_id").unique(),
+  },
+  () => [
+    check(
+      "profiles_luma_user_id_check",
+      sql`"luma_user_id" ~ '^usr-[A-Za-z0-9]+$'`,
+    ),
+  ],
+);
 
 export type InsertProfile = typeof profilesTable.$inferInsert;
 export type SelectProfile = typeof profilesTable.$inferSelect;
 
-export const talksTable = pgTable("talks", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  createdAt,
-  updatedAt,
-});
+/** How a talk is held: a presentation, a panel, or a fireside chat. */
+export const talkFormats = ["talk", "panel", "fireside"] as const;
+
+export const talksTable = pgTable(
+  "talks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    createdAt,
+    updatedAt,
+    format: text("format", { enum: talkFormats }).notNull().default("talk"),
+  },
+  () => [
+    check("talks_format_check", sql`"format" IN ('talk', 'panel', 'fireside')`),
+  ],
+);
+
+/**
+ * A speaker's part in a talk: on stage presenting (or as a panel's or
+ * fireside's guest), or moderating it.
+ */
+export const talkSpeakerRoles = ["speaker", "moderator"] as const;
 
 export const talkSpeakersTable = pgTable(
   "talk_speakers",
@@ -108,8 +138,12 @@ export const talkSpeakersTable = pgTable(
       .references(() => profilesTable.id),
     createdAt,
     updatedAt,
+    role: text("role", { enum: talkSpeakerRoles }).notNull().default("speaker"),
   },
-  (table) => [primaryKey({ columns: [table.talkId, table.speakerId] })],
+  (table) => [
+    primaryKey({ columns: [table.talkId, table.speakerId] }),
+    check("talk_speakers_role_check", sql`"role" IN ('speaker', 'moderator')`),
+  ],
 );
 
 export type InsertTalk = typeof talksTable.$inferInsert;
@@ -148,8 +182,17 @@ export const eventsTable = pgTable(
      * (core/src/lockup.ts), as core/migrations/0002_event_topic.ts adds it.
      */
     topic: text("topic"),
+    /** Guests going ("went", once it is over), as Luma counts them; Luma-owned. */
+    lumaGuestCount: integer("luma_guest_count"),
+    /** Guests checked in at the door, as Luma counts them; Luma-owned. */
+    lumaCheckedInCount: integer("luma_checked_in_count"),
   },
   () => [
+    check("events_luma_guest_count_check", sql`"luma_guest_count" >= 0`),
+    check(
+      "events_luma_checked_in_count_check",
+      sql`"luma_checked_in_count" >= 0`,
+    ),
     check(
       "events_topic_check",
       sql`char_length("topic") <= 24
@@ -175,6 +218,46 @@ export const eventHostsTable = pgTable(
   },
   (table) => [primaryKey({ columns: [table.eventId, table.hostId] })],
 );
+
+/**
+ * A person's part in an event as a whole, apart from its talks: an all things
+ * organizer, a co-host, or the MC. Who spoke, and in what capacity, is on
+ * talk_speakers.
+ */
+export const eventPersonRoles = ["organizer", "co-host", "mc"] as const;
+
+/** Who wrote a row of event_people: core's Luma people import, or the site. */
+export const eventPersonSources = ["luma", "site"] as const;
+
+export const eventPeopleTable = pgTable(
+  "event_people",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profilesTable.id),
+    role: text("role", { enum: eventPersonRoles }).notNull(),
+    /** Order among the event's people in the same role, from 0. */
+    position: integer("position").notNull(),
+    source: text("source", { enum: eventPersonSources }).notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.profileId, table.role] }),
+    check(
+      "event_people_role_check",
+      sql`"role" IN ('organizer', 'co-host', 'mc')`,
+    ),
+    check("event_people_position_check", sql`"position" >= 0`),
+    check("event_people_source_check", sql`"source" IN ('luma', 'site')`),
+  ],
+);
+
+export type InsertEventPerson = typeof eventPeopleTable.$inferInsert;
+export type SelectEventPerson = typeof eventPeopleTable.$inferSelect;
 
 export const eventTalksTable = pgTable(
   "event_talks",
