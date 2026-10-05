@@ -16,10 +16,11 @@ import {
   PrivateCacheControl,
   preferenceCacheControl,
 } from "../src/cache.ts";
-import { socials } from "../src/links.ts";
+import { mediaOrigin, socials } from "../src/links.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
 import { themeCookieMaxAge } from "../src/pages/theme.ts";
-import { erikPortrait, hostsDatabase } from "./support/catalog.ts";
+import { erikPortrait } from "./support/catalog.ts";
+import { eventDatabase, slugs } from "./support/event-catalog.ts";
 import {
   cssBudget,
   gzipped,
@@ -35,11 +36,12 @@ import { bundleBudget, testStack } from "./support/stack.ts";
 
 /**
  * The site's pages, served by the Worker in workerd with its static assets,
- * as they deploy. /brand reads only the hosts' portraits, from a database
- * holding just their profiles; without one, the blank avatars stand in.
+ * as they deploy. /brand reads only the hosts' portraits; without a
+ * database, the blank avatars stand in. Event pages read the evenings of
+ * support/event-catalog.ts, which holds the hosts' profiles too.
  */
 
-const database = await serve(await hostsDatabase());
+const database = await serve(await eventDatabase(new Date()));
 
 const Stack = testStack("allthings-web-pages-test", {
   Pages: { ORIGIN: "https://allthings.dev", DATABASE_URL: database.url },
@@ -380,6 +382,66 @@ describe("the mode switch", () => {
       expect(html).not.toMatch(/<script|\son[a-z]+=|javascript:/i);
       expect(await htmlProblems(html)).toEqual([]);
     });
+  }
+});
+
+/** Every kind of event page the catalog has, and the page for none. */
+const eventPages = [
+  ["an upcoming evening", `/${slugs.upcoming}`],
+  ["a live evening", `/${slugs.live}`],
+  ["a past evening with photos", `/${slugs.past}`],
+  ["a past hackathon", `/${slugs.hackathon}`],
+  ["a morning without a venue", `/${slugs.bare}`],
+  ["not found", "/no-such-evening"],
+] as const;
+
+describe("event pages", () => {
+  for (const [name, path] of eventPages) {
+    it(`${name} is valid HTML, with one h1, landmarks and headings in order`, async (url) => {
+      const html = await (await fetch(`${url}${path}`)).text();
+      expect(await htmlProblems(html)).toEqual([]);
+      expect(html).toStartWith('<!doctype html><html lang="en"');
+      for (const landmark of ["header", "main", "footer"]) {
+        expect(html.match(new RegExp(`<${landmark}[ >]`, "g"))).toHaveLength(1);
+      }
+      const levels = headingLevels(html);
+      expect(levels.filter((level) => level === 1)).toHaveLength(1);
+      expect(levels[0]).toBe(1);
+      levels.forEach((level, index) => {
+        expect(level).toBeLessThanOrEqual((levels[index - 1] ?? 0) + 1);
+      });
+      // Every link says where it goes: text a screen reader can read.
+      for (const [, inner = ""] of html.matchAll(/<a [^>]*>(.*?)<\/a>/g)) {
+        expect(
+          inner
+            .replace(/<span aria-hidden="true">[^<]*<\/span>/g, "")
+            .replace(/<[^>]+>/g, "")
+            .trim(),
+        ).not.toBe("");
+      }
+    });
+
+    it(`${name} loads only this site's files and the media origin's images, and runs no JavaScript`, async (url) => {
+      const html = await (await fetch(`${url}${path}`)).text();
+      const elsewhere = subresources(html).filter(
+        (src) => !/^\/(?!\/)/.test(src),
+      );
+      for (const src of elsewhere) expect(src).toStartWith(`${mediaOrigin}/`);
+      expect(html).not.toMatch(/<script|\son[a-z]+=|javascript:/i);
+    });
+
+    for (const cookie of [undefined, "theme=light", "theme=dark"]) {
+      it(`${name} gzips within budget${cookie === undefined ? "" : ` with ${cookie}`}`, async (url) => {
+        const response = await fetch(
+          `${url}${path}`,
+          cookie === undefined ? {} : { headers: { cookie } },
+        );
+        const html = await response.text();
+        const css = await (await fetch(`${url}${stylesheetOf(html)}`)).text();
+        expect(gzipped(html)).toBeLessThanOrEqual(htmlBudget);
+        expect(gzipped(css)).toBeLessThanOrEqual(cssBudget);
+      });
+    }
   }
 });
 

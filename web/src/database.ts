@@ -2,9 +2,11 @@ import { PgClient } from "@effect/sql-pg";
 import * as Database from "allthings-core/src/database.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
+import { EventPages } from "allthings-core/src/event-page.ts";
 import { Events } from "allthings-core/src/events.ts";
 import { Home } from "allthings-core/src/home.ts";
 import { Portraits } from "allthings-core/src/portraits.ts";
+import { Redirects } from "allthings-core/src/redirects.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
 import { Context, Effect, Layer, Option, Redacted } from "effect";
 import { V1Data } from "./v1/data.ts";
@@ -12,9 +14,11 @@ import { V1Data } from "./v1/data.ts";
 /** Every repository a request may read from. */
 export type Repositories =
   | Evenings
+  | EventPages
   | Events
   | Home
   | Portraits
+  | Redirects
   | Speakers
   | V1Data;
 
@@ -81,9 +85,11 @@ export const repositories: Layer.Layer<Repositories, DataSourceError> =
     Layer.build(
       Layer.mergeAll(
         Evenings.layer,
+        EventPages.layer,
         Events.layer,
         Home.layer,
         Portraits.layer,
+        Redirects.layer,
         Speakers.layer,
         V1Data.layer,
       ).pipe(

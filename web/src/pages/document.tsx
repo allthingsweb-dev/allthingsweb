@@ -60,26 +60,37 @@ export function Wordmark() {
  * The mode: the system's, Paper or Night. Each choice is a link to
  * `?theme=` on this page, which the Worker remembers and redirects from;
  * the current one says so with aria-current. Crawlers are asked not to
- * follow them.
+ * follow them. On a page with a mode of its own, such as an event's, the
+ * first choice is that mode rather than the system's, and says so.
  */
-function ModeSwitch({ theme }: { readonly theme: Theme | undefined }) {
+function ModeSwitch({
+  theme,
+  pageTheme,
+}: {
+  readonly theme: Theme | undefined;
+  readonly pageTheme: Theme | undefined;
+}) {
   const current = theme ?? "system";
   return (
     <nav class="modes at-type-meta" aria-labelledby="mode">
       <span id="mode">mode</span>
       <ul>
-        {choices.map(({ choice, label }) => (
-          <li>
-            <a
-              href={`?theme=${choice}`}
-              rel="nofollow"
-              aria-current={choice === current ? "true" : undefined}
-              safe
-            >
-              {label}
-            </a>
-          </li>
-        ))}
+        {choices.map(({ choice, label: name }) => {
+          const label =
+            choice === "system" && pageTheme !== undefined ? "event" : name;
+          return (
+            <li>
+              <a
+                href={`?theme=${choice}`}
+                rel="nofollow"
+                aria-current={choice === current ? "true" : undefined}
+                safe
+              >
+                {label}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
@@ -131,6 +142,11 @@ export interface DocumentProps {
   readonly description: string;
   /** The mode the visitor fixed, if any (see theme.ts). */
   readonly theme: Theme | undefined;
+  /**
+   * The page's own mode, when the visitor fixed none: an event's (see
+   * core's mode.ts). Without one, the page follows the system.
+   */
+  readonly pageTheme?: Theme | undefined;
   /** The hosts' portraits, by profile id, for the footer. */
   readonly portraits: PortraitsById;
 }
@@ -140,18 +156,21 @@ export function Document({
   title,
   description,
   theme,
+  pageTheme,
   portraits,
   children,
 }: PropsWithChildren<DocumentProps>): string {
+  // What the page renders in: the visitor's choice, else the page's own.
+  const shown = theme ?? pageTheme;
   const fonts = built.fonts.filter((font) => font.preload);
   const page = (
-    <html lang="en" data-theme={theme}>
+    <html lang="en" data-theme={shown}>
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title safe>{title}</title>
         <meta name="description" content={description} />
-        <ThemeColor theme={theme} />
+        <ThemeColor theme={shown} />
         {fonts.map((font) => (
           <link
             rel="preload"
@@ -169,7 +188,7 @@ export function Document({
         <div class="page">
           <header class="site-header">
             <Wordmark />
-            <ModeSwitch theme={theme} />
+            <ModeSwitch theme={theme} pageTheme={pageTheme} />
           </header>
           <main>{children}</main>
           <Footer portraits={portraits} />

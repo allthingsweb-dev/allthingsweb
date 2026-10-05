@@ -56,3 +56,31 @@ export function clockTime(instant: DateTime.DateTime): string {
   const twelveHour = hour % 12 === 0 ? 12 : hour % 12;
   return `${twelveHour}:${twoDigits(minute)} ${hour < 12 ? "AM" : "PM"}`;
 }
+
+/** "Wed Sep 30, 2026": the day of an evening, on its own page. */
+export function fullDate(instant: DateTime.DateTime): string {
+  return `${day(instant)}, ${local(instant).year}`;
+}
+
+/** Whether two instants fall on the same day in San Francisco. */
+function sameDay(a: DateTime.DateTime, b: DateTime.DateTime): boolean {
+  const [x, y] = [local(a), local(b)];
+  return x.year === y.year && x.month === y.month && x.day === y.day;
+}
+
+/**
+ * "5:30–8:30 PM", "10:30 AM–8:30 PM", or, past midnight, "8:00 PM – Wed
+ * Nov 5, 1:00 AM": when an evening starts and ends, each said once.
+ */
+export function timeRange(
+  start: DateTime.DateTime,
+  end: DateTime.DateTime,
+): string {
+  const [from, to] = [clockTime(start), clockTime(end)];
+  if (!sameDay(start, end)) return `${from} – ${day(end)}, ${to}`;
+  const [fromClock = "", fromHalf] = from.split(" ");
+  const [toClock = "", toHalf] = to.split(" ");
+  return fromHalf === toHalf
+    ? `${fromClock}–${toClock} ${toHalf ?? ""}`
+    : `${from}–${to}`;
+}

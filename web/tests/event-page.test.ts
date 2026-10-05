@@ -1,0 +1,402 @@
+import { describe, expect, test } from "bun:test";
+import type { EventPage, Speaker } from "allthings-core/src/event-page.ts";
+import type { SafeHtml } from "allthings-core/src/rich-text.ts";
+import { DateTime } from "effect";
+import { googleMaps } from "../src/links.ts";
+import {
+  calendarFile,
+  calendarFileName,
+  calendarPath,
+  calendarTitle,
+  foldLine,
+  icsInstant,
+  icsText,
+} from "../src/pages/calendar.ts";
+import {
+  eventLockupSize,
+  eventPage,
+  handleOf,
+  lockupText,
+  notFoundPage,
+} from "../src/pages/event.tsx";
+import { fullDate, timeRange } from "../src/pages/time.ts";
+import { htmlProblems } from "./support/pages.ts";
+
+/** The event page and its calendar file, as pure functions of fixed data. */
+
+const at = (iso: string) => DateTime.makeUnsafe(iso);
+const origin = "https://allthings.dev";
+
+const speaker = (overrides: Partial<Speaker> = {}): Speaker => ({
+  id: "b1",
+  name: "Ada Lovelace",
+  title: "Engineer",
+  bio: "Writes compilers.",
+  links: { x: null, bluesky: null, linkedin: null },
+  portrait: null,
+  ...overrides,
+});
+
+const event = (overrides: Partial<EventPage> = {}): EventPage => ({
+  id: "e0000000-0000-4000-8000-000000000001",
+  slug: "2026-09-30-all-things-effect",
+  name: "Effect San Francisco",
+  topic: "effect",
+  tagline: "All Things Effect",
+  status: "upcoming",
+  mode: "night",
+  startsAt: at("2026-10-01T00:30:00Z"),
+  endsAt: at("2026-10-01T03:30:00Z"),
+  updatedAt: at("2026-09-01T12:00:00Z"),
+  venue: {
+    neighborhood: "East Cut",
+    name: null,
+    address: "201 Spear St 12th floor, San Francisco, CA 94105, USA",
+    mapQuery:
+      "CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA",
+  },
+  hosts: ["CodeRabbit"],
+  rsvpUrl: "https://lu.ma/event/evt-effect",
+  seats: 200,
+  recordingUrl: null,
+  talks: [],
+  photos: [],
+  next: undefined,
+  ...overrides,
+});
+
+const render = (view: EventPage, theme?: "light" | "dark") =>
+  eventPage({ event: view, origin, theme, portraits: new Map() });
+
+/** The ledger's labels, in order. */
+const labels = (html: string) =>
+  [...html.matchAll(/<dt class="at-type-meta">([^<]+)<\/dt>/g)].map(
+    ([, label]) => label,
+  );
+
+describe("times on an event page", () => {
+  test.each([
+    // An evening, already the next day in UTC.
+    [
+      "2026-10-01T00:30:00Z",
+      "2026-10-01T03:30:00Z",
+      "Wed Sep 30, 2026",
+      "5:30–8:30 PM",
+    ],
+    // Morning to evening.
+    [
+      "2025-04-26T17:30:00Z",
+      "2025-04-27T03:30:00Z",
+      "Sat Apr 26, 2025",
+      "10:30 AM–8:30 PM",
+    ],
+    // Past midnight: the day it ends is said too.
+    [
+      "2025-11-05T04:00:00Z",
+      "2025-11-05T09:00:00Z",
+      "Tue Nov 4, 2025",
+      "8:00 PM – Wed Nov 5, 1:00 AM",
+    ],
+    // Noon to the afternoon.
+    [
+      "2026-07-04T19:00:00Z",
+      "2026-07-04T21:00:00Z",
+      "Sat Jul 4, 2026",
+      "12:00–2:00 PM",
+    ],
+  ])("%s to %s is %s, %s", (start, end, date, range) => {
+    expect(fullDate(at(start))).toBe(date);
+    expect(timeRange(at(start), at(end))).toBe(range);
+  });
+});
+
+describe("the lockup", () => {
+  test.each([
+    ["effect", "l", "all things/effect"],
+    ["observables", "l", "all things/observables"],
+    ["react native", "m", "all things/react native"],
+  ] as const)("at/%s is set %s and titled %s", (topic, size, title) => {
+    expect(eventLockupSize({ topic })).toBe(size);
+    expect(lockupText({ topic, name: "Anything" })).toBe(title);
+  });
+
+  test("a name without a topic is set small, as written, with the cursor until it has happened", () => {
+    const name = "TypeScript AI: The official conference after-party";
+    const upcoming = render(event({ topic: undefined, name }));
+    expect(upcoming).toContain(
+      `<h1 class="event-name event-name-s"><span>${name}</span><span class="at-cursor" aria-hidden="true">_</span></h1>`,
+    );
+    expect(upcoming).toContain(`<title>${name}</title>`);
+    const past = render(event({ topic: undefined, name, status: "past" }));
+    expect(past).toContain(
+      `<h1 class="event-name event-name-s"><span>${name}</span></h1>`,
+    );
+  });
+});
+
+describe("the mode", () => {
+  test("is the event's unless the visitor fixed one", () => {
+    expect(render(event())).toStartWith(
+      '<!doctype html><html lang="en" data-theme="dark">',
+    );
+    expect(render(event({ mode: "paper" }))).toStartWith(
+      '<!doctype html><html lang="en" data-theme="light">',
+    );
+    const fixed = render(event(), "light");
+    expect(fixed).toStartWith(
+      '<!doctype html><html lang="en" data-theme="light">',
+    );
+    expect(fixed).toContain('<meta name="color-scheme" content="light"/>');
+    expect(fixed).toContain(
+      '<a href="?theme=light" rel="nofollow" aria-current="true">paper</a>',
+    );
+    expect(fixed).toContain('<a href="?theme=system" rel="nofollow">event</a>');
+  });
+});
+
+describe("the ledger", () => {
+  test("says where in the neighborhood's name, the venue's, and the address on the map", () => {
+    const html = render(
+      event({
+        hosts: ["Convex"],
+        venue: {
+          neighborhood: "Potrero Hill",
+          name: "Convex HQ",
+          address: "444 De Haro St #218, San Francisco, CA 94107, USA",
+          mapQuery: "444 De Haro St #218, San Francisco, CA 94107, USA",
+        },
+      }),
+    );
+    expect(html).toContain(
+      `<p class="fact-head place">Potrero Hill</p><p class="venue">Convex HQ</p><p><a href="${googleMaps("444 De Haro St #218, San Francisco, CA 94107, USA")}"><span>444 De Haro St #218, San Francisco, CA 94107, USA</span>`,
+    );
+  });
+
+  test("leads with the venue's name without a known neighborhood, and links no map without an address", () => {
+    const html = render(
+      event({
+        venue: {
+          neighborhood: null,
+          name: "TBA",
+          address: null,
+          mapQuery: null,
+        },
+      }),
+    );
+    expect(html).toContain(
+      '<dt class="at-type-meta">Where</dt><dd><p class="fact-head">TBA</p></dd>',
+    );
+    expect(html).not.toContain("google.com/maps");
+  });
+
+  test("encodes the map's query", () => {
+    expect(googleMaps("Café & Bar, 1 Post St #3 ?")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Caf%C3%A9%20%26%20Bar%2C%201%20Post%20St%20%233%20%3F",
+    );
+  });
+
+  test("names several hosting companies in one line, and the hosts beside them", () => {
+    const html = render(event({ hosts: ["Mux", "Strapi", "Neon"] }));
+    expect(html).toContain('<p class="fact-head">Mux, Strapi &amp; Neon</p>');
+    expect(html).toContain('<span class="at-type-meta">your hosts</span>');
+  });
+
+  test("asks for seats only while there is a Luma page and the evening is ahead", () => {
+    expect(labels(render(event({ rsvpUrl: null })))).not.toContain("Seats");
+    const unknownSeats = render(event({ seats: null }));
+    expect(unknownSeats).toContain(
+      '<dt class="at-type-meta">Seats</dt><dd><div class="act"><a class="button"',
+    );
+    expect(labels(render(event({ status: "past" })))).not.toContain("Seats");
+  });
+
+  test("offers the recording once the evening is over, and only then", () => {
+    const recordingUrl = "https://youtu.be/abc";
+    expect(labels(render(event({ status: "past", recordingUrl })))).toContain(
+      "Recording",
+    );
+    expect(labels(render(event({ recordingUrl })))).not.toContain("Recording");
+    expect(labels(render(event({ status: "past" })))).not.toContain(
+      "Recording",
+    );
+  });
+
+  test("shows photos only once the evening is over", () => {
+    const photos = [
+      {
+        url: "https://media.allthings.dev/events/a.jpg",
+        alt: "The room",
+        width: 1600,
+        height: 1200,
+      },
+    ];
+    expect(labels(render(event({ photos })))).not.toContain("Photos");
+    expect(labels(render(event({ photos, status: "past" })))).toContain(
+      "Photos",
+    );
+  });
+
+  test("after an evening, opens the slot when nothing is announced", () => {
+    const html = render(event({ status: "past" }));
+    expect(labels(html)).toEqual(["When", "Where", "Hosted at", "Next"]);
+    expect(html).toContain(
+      '<p class="next-name">all things<span class="slash">/</span><span class="at-cursor" aria-hidden="true">_</span></p>',
+    );
+    expect(html).toContain(
+      '<a href="https://luma.com/allthingsweb">subscribe on luma</a>',
+    );
+  });
+
+  test("lists every speaker with only what is known about them", () => {
+    const html = render(
+      event({
+        talks: [
+          {
+            id: "a1",
+            title: "Two people, one talk",
+            description: "<p>Hi</p>" as SafeHtml,
+            speakers: [
+              speaker({
+                links: {
+                  x: "https://twitter.com/@ada",
+                  bluesky: "https://bsky.app/profile/ada.bsky.social",
+                  linkedin: "https://www.linkedin.com/in/ada-lovelace",
+                },
+              }),
+              speaker({ id: "b2", name: "Grace", title: null, bio: null }),
+            ],
+          },
+        ],
+      }),
+    );
+    expect(html).toContain(
+      '<a href="https://bsky.app/profile/ada.bsky.social"><span>@ada.bsky.social</span><span class="visually-hidden">, Ada Lovelace on Bluesky</span></a>',
+    );
+    expect(html).toContain(
+      '<a href="https://www.linkedin.com/in/ada-lovelace"><span>linkedin</span><span class="visually-hidden">, Ada Lovelace on LinkedIn</span></a>',
+    );
+    expect(html).toContain(
+      '<div class="speaker-who"><h3 class="at-type-list-name">Grace</h3></div></article>',
+    );
+  });
+
+  test("escapes what it prints", async () => {
+    const html = render(
+      event({
+        topic: undefined,
+        name: "<script>alert(1)</script>",
+        hosts: ['"Acme" & <Co>'],
+        talks: [
+          {
+            id: "a1",
+            title: "<b>bold</b>",
+            description: null,
+            speakers: [speaker({ name: "<i>x</i>", bio: "a < b" })],
+          },
+        ],
+      }),
+    );
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<b>bold");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).toContain("&quot;Acme&quot; &amp; &lt;Co&gt;");
+    expect(html).toContain("&lt;i&gt;x&lt;/i&gt;");
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+
+  test.each([
+    ["upcoming", event()],
+    ["live", event({ status: "live" })],
+    ["past", event({ status: "past", recordingUrl: "https://youtu.be/x" })],
+    ["bare", event({ venue: null, hosts: [], rsvpUrl: null, seats: null })],
+  ])("is valid HTML: %s", async (_, view) => {
+    expect(await htmlProblems(render(view))).toEqual([]);
+  });
+
+  test("not found is valid HTML", async () => {
+    expect(
+      await htmlProblems(
+        notFoundPage({ theme: undefined, portraits: new Map() }),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("handleOf", () => {
+  test.each([
+    ["https://twitter.com/ada", "ada"],
+    ["https://twitter.com/@ada", "ada"],
+    ["https://bsky.app/profile/ada.bsky.social", "ada.bsky.social"],
+    ["https://www.linkedin.com/in/grace%20hopper", "grace hopper"],
+  ])("%s is %s", (url, handle) => {
+    expect(handleOf(url)).toBe(handle);
+  });
+});
+
+describe("the calendar file", () => {
+  test("is the event, built from its record alone", () => {
+    expect(calendarFile(event(), origin)).toBe(
+      [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//all things//event page//EN",
+        "CALSCALE:GREGORIAN",
+        "BEGIN:VEVENT",
+        "UID:e0000000-0000-4000-8000-000000000001@allthings.dev",
+        "DTSTAMP:20260901T120000Z",
+        "DTSTART:20261001T003000Z",
+        "DTEND:20261001T033000Z",
+        "SUMMARY:see you at/effect",
+        "LOCATION:CodeRabbit\\, 201 Spear St 12th floor\\, San Francisco\\, CA 94105\\, ",
+        " USA",
+        "DESCRIPTION:https://allthings.dev/2026-09-30-all-things-effect",
+        "URL:https://allthings.dev/2026-09-30-all-things-effect",
+        "END:VEVENT",
+        "END:VCALENDAR",
+        "",
+      ].join("\r\n"),
+    );
+  });
+
+  test("names an event without a topic as written, and leaves out an unknown place", () => {
+    const file = calendarFile(
+      event({ topic: undefined, name: "Demo day; v2", venue: null }),
+      origin,
+    );
+    expect(file).toContain("\r\nSUMMARY:Demo day\\; v2\r\n");
+    expect(file).not.toContain("LOCATION");
+    expect(calendarTitle({ topic: "react native", name: "x" })).toBe(
+      "see you at/react native",
+    );
+  });
+
+  test("escapes text and writes instants in UTC", () => {
+    expect(icsText("a\\b;c,d\ne")).toBe("a\\\\b\\;c\\,d\\ne");
+    expect(icsInstant(at("2026-03-08T07:30:00.123Z"))).toBe("20260308T073000Z");
+  });
+
+  test("folds lines at 75 octets without splitting a character", () => {
+    const line = `SUMMARY:${"é".repeat(60)}`;
+    const folded = foldLine(line);
+    const parts = folded.split("\r\n");
+    expect(parts.length).toBeGreaterThan(1);
+    for (const part of parts) {
+      expect(new TextEncoder().encode(part).byteLength).toBeLessThanOrEqual(75);
+    }
+    expect(parts.slice(1).every((part) => part.startsWith(" "))).toBe(true);
+    expect(
+      parts.map((part, index) => (index === 0 ? part : part.slice(1))).join(""),
+    ).toBe(line);
+    expect(foldLine("short")).toBe("short");
+  });
+
+  test("lives beside the event's page, under a plain file name", () => {
+    expect(calendarPath("2025-12-02-café-night")).toBe(
+      "/2025-12-02-caf%C3%A9-night/calendar.ics",
+    );
+    expect(calendarFileName("2025-12-02-café-night")).toBe(
+      "2025-12-02-cafe-night.ics",
+    );
+    expect(calendarFileName("¿?")).toBe("evening.ics");
+  });
+});
