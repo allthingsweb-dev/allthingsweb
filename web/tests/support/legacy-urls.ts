@@ -323,37 +323,74 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
   ),
 ];
 
-const wildcard = /\[\.\.\.[^\]]+\]|\[[^\]]+\]|\*/g;
+/** Each path `entry`'s pattern names, without what follows " (". */
+const alternativesOf = (entry: LegacyUrl): ReadonlyArray<string> =>
+  entry.pattern
+    .split(", ")
+    .map((alternative) => alternative.split(" (")[0] ?? "");
 
-/** The paths `entry`'s pattern names: each alternative as an expression. */
-const alternativesOf = (entry: LegacyUrl) =>
-  entry.pattern.split(", ").map((alternative) => {
-    const path = alternative.split(" (")[0] ?? "";
-    return {
-      expression: new RegExp(
-        `^${path
-          .replace(/[.+?^${}()|\\]/g, "\\$&")
-          .replace(wildcard, (part) =>
-            part.startsWith("[") && !part.startsWith("[...") ? "[^/]+" : ".+",
-          )}$`,
-      ),
-      /** How much of it is spelled out, to prefer "/favicon.ico" to "/[slug]". */
-      literal: path.replace(wildcard, "").length,
-    };
-  });
+/** "[...name]", any number of segments; "[name]", one. */
+const parameterKind = (segment: string) =>
+  segment.startsWith("[...") && segment.endsWith("]")
+    ? "rest"
+    : segment.startsWith("[") && segment.endsWith("]")
+      ? "one"
+      : undefined;
 
-/** The most specific entry whose pattern names `path`, if any does. */
-export function entryFor(path: string): LegacyUrl | undefined {
-  let best: { entry: LegacyUrl; literal: number } | undefined;
-  for (const entry of legacyUrls) {
-    for (const { expression, literal } of alternativesOf(entry)) {
-      if (
-        expression.test(path) &&
-        (best === undefined || literal > best.literal)
-      ) {
-        best = { entry, literal };
-      }
-    }
+/**
+ * Whether `alternative` names the app route `route` itself: segment by
+ * segment, a parameter only where the route has one of its kind (whatever
+ * its name), and a final "*" for any routes beneath. So "/[slug]" never
+ * stands in for a route of its own, such as "/about".
+ */
+function namesRoute(alternative: string, route: string): boolean {
+  const pattern = alternative.split("/");
+  const segments = route.split("/");
+  if (pattern.at(-1) === "*") {
+    const base = pattern.slice(0, -1);
+    return (
+      segments.length > base.length &&
+      base.every((segment, index) => segment === segments[index])
+    );
   }
-  return best?.entry;
+  return (
+    pattern.length === segments.length &&
+    pattern.every((segment, index) => {
+      const other = segments[index] ?? "";
+      const kind = parameterKind(segment);
+      return kind === undefined
+        ? segment === other
+        : kind === parameterKind(other);
+    })
+  );
 }
+
+/** The entry for the app route `route` (as "/api/v1/[slug]/qr.png"), if any. */
+export const routeEntryFor = (route: string): LegacyUrl | undefined =>
+  legacyUrls.find((entry) =>
+    alternativesOf(entry).some((alternative) => namesRoute(alternative, route)),
+  );
+
+/**
+ * The entry for the file at `path` in app/public, if any: one whose pattern
+ * spells it out, "*" standing for any characters, but never a parameter,
+ * which names what the database holds, not a file.
+ */
+export const fileEntryFor = (path: string): LegacyUrl | undefined =>
+  legacyUrls.find((entry) =>
+    alternativesOf(entry).some((alternative) => {
+      if (alternative.includes("[")) return false;
+      const [first = "", ...rest] = alternative.split("*");
+      let at = first.length;
+      if (!path.startsWith(first)) return false;
+      for (const [index, part] of rest.entries()) {
+        const found =
+          index === rest.length - 1
+            ? path.length - part.length
+            : path.indexOf(part, at + 1);
+        if (found <= at || !path.startsWith(part, found)) return false;
+        at = found + part.length;
+      }
+      return at === path.length;
+    }),
+  );

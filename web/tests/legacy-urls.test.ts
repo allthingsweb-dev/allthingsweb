@@ -3,7 +3,11 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { eventDatabase } from "./support/event-catalog.ts";
-import { entryFor, legacyUrls } from "./support/legacy-urls.ts";
+import {
+  fileEntryFor,
+  legacyUrls,
+  routeEntryFor,
+} from "./support/legacy-urls.ts";
 import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
 
@@ -25,6 +29,14 @@ const publicFiles = Array.from(
   new Bun.Glob("**/*").scanSync(`${app}public`),
   (file) => `/${file}`,
 ).toSorted();
+
+/** The type a public file is served as, by its extension. */
+const fileTypes: Readonly<Record<string, string>> = {
+  ico: "image/vnd.microsoft.icon",
+  jpg: "image/jpeg",
+  png: "image/png",
+  svg: "image/svg+xml",
+};
 
 /**
  * Every URL the current site answers keeps working on the Worker, served or
@@ -82,24 +94,33 @@ describe("legacy URLs", () => {
 
   it("names every route in the app's tree", () => {
     expect(appRoutes.length).toBeGreaterThan(40);
-    expect(appRoutes.filter((route) => entryFor(route) === undefined)).toEqual(
-      [],
-    );
+    expect(
+      appRoutes.filter((route) => routeEntryFor(route) === undefined),
+    ).toEqual([]);
     return Promise.resolve();
   });
 
   it("answers for every file in the app's public folder as its entry says", async (url) => {
     expect(publicFiles.length).toBeGreaterThan(40);
     // One at a time: the test database takes only a few connections.
-    const answers = [];
+    const wrong = [];
     for (const path of publicFiles) {
       const response = await fetch(`${url}${path}`, { redirect: "manual" });
       await response.arrayBuffer();
-      answers.push([path, response.status, entryFor(path)?.worker.status]);
+      const status = fileEntryFor(path)?.worker.status;
+      const type =
+        status === 200
+          ? fileTypes[path.split(".").at(-1) ?? ""]
+          : "text/html; charset=utf-8";
+      const answer = {
+        status: response.status,
+        type: response.headers.get("content-type"),
+      };
+      if (answer.status !== status || answer.type !== type) {
+        wrong.push({ path, expected: { status, type }, answer });
+      }
     }
-    expect(
-      answers.filter(([, status, expected]) => status !== expected),
-    ).toEqual([]);
+    expect(wrong).toEqual([]);
   });
 
   it("answers what isn't found with the site's own page", async (url) => {
