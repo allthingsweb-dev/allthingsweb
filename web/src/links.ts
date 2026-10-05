@@ -26,6 +26,9 @@ export const eventPath = (slug: string): `/${string}` =>
 /** Every evening, listed: this site's evenings index (pages/events.tsx). */
 export const everyEvening = "/events";
 
+/** What all things is, where it came from and who organizes it. */
+export const aboutPath = "/about";
+
 /** Where everyone who organized, spoke at or co-hosted an evening is listed. */
 export const peoplePage = "/people";
 

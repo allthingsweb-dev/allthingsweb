@@ -1,5 +1,6 @@
 import { PgClient } from "@effect/sql-pg";
 import * as Database from "allthings-core/src/database.ts";
+import { About } from "allthings-core/src/about.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
@@ -15,6 +16,7 @@ import { V1Data } from "./v1/data.ts";
 
 /** Every repository a request may read from. */
 export type Repositories =
+  | About
   | Evenings
   | EventPages
   | Events
@@ -88,6 +90,7 @@ export const repositories: Layer.Layer<Repositories, DataSourceError> =
   Layer.effectContext(
     Layer.build(
       Layer.mergeAll(
+        About.layer,
         Evenings.layer,
         EventPages.layer,
         Events.layer,

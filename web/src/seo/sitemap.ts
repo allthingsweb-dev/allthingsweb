@@ -15,7 +15,13 @@ import { escapeXml } from "./xml.ts";
  * here and not served fails. They change with deploys or with what is
  * announced, not with any one row, so they carry no lastmod.
  */
-export const sitePages = ["/", "/events", "/people", "/brand"] as const;
+export const sitePages = [
+  "/",
+  "/events",
+  "/people",
+  "/about",
+  "/brand",
+] as const;
 
 const url = (loc: string, lastmod?: DateTime.Utc) =>
   lastmod === undefined

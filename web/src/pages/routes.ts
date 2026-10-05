@@ -1,3 +1,4 @@
+import { About } from "allthings-core/src/about.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
@@ -12,8 +13,9 @@ import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { CacheControl } from "../cache.ts";
 import { type Repositories, repositories } from "../database.ts";
-import { eventPath, hosts, mediaOrigin } from "../links.ts";
+import { aboutPath, eventPath, hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
+import { aboutPage } from "./about.tsx";
 import { brandPage } from "./brand.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
@@ -175,6 +177,23 @@ const people = dataPage(
     ),
   ),
   (view, props) => peoplePage({ people: view, ...props }),
+);
+
+/**
+ * The about page: what all things is, what it has done so far and where it
+ * came from, its organizers (the hosts links.ts names), and how to take
+ * part.
+ */
+const about = dataPage(
+  aboutPath,
+  "the about page",
+  About.use((repository) =>
+    repository.read(
+      hosts.map((host) => host.profileId),
+      mediaOrigin,
+    ),
+  ),
+  (view, props) => aboutPage({ about: view, ...props }),
 );
 
 /**
@@ -360,6 +379,7 @@ export const pageRoutes = Layer.mergeAll(
   events,
   people,
   speakers,
+  about,
   brand,
   event,
   calendar,
