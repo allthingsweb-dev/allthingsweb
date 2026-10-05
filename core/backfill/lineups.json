@@ -1,0 +1,688 @@
+{
+  "people": {
+    "michael-arnaldi": {
+      "profileId": "e0a891dd-df9f-4ca2-8cef-db8bb3e1f605",
+      "sources": [
+        "https://luma.com/all-things-effect",
+        "https://x.com/simonfarshid/status/2105443650071343462"
+      ]
+    },
+    "simon-farshid": {
+      "profileId": "623074e2-4763-4deb-b627-f7ce3cb67665",
+      "sources": [
+        "https://luma.com/all-things-effect",
+        "https://x.com/simonfarshid/status/2105443650071343462"
+      ]
+    },
+    "mirela-prifti": {
+      "profileId": "181d776e-1c8d-4af1-a0dc-ca6600a46c1c",
+      "fill": {
+        "title": "Community Manager, Effect",
+        "twitterHandle": "MirelaPriftix",
+        "linkedinHandle": "mirelaprifti",
+        "photoSourceUrl": "https://avatars.githubusercontent.com/u/57798527"
+      },
+      "sources": [
+        "https://effect.website/blog/this-week-in-effect/138",
+        "https://github.com/mirelaprifti",
+        "https://luma.com/all-things-effect"
+      ]
+    },
+    "sebastian-lorenz": {
+      "profileId": "9cbafec7-981f-498b-83a3-9aaefd935868",
+      "fill": {
+        "twitterHandle": "thefubhy",
+        "photoSourceUrl": "https://avatars.githubusercontent.com/u/1172528"
+      },
+      "sources": [
+        "https://github.com/fubhy",
+        "https://luma.com/all-things-effect",
+        "https://effect.website/blog/releases/effect/40"
+      ]
+    },
+    "sam-goodwin": {
+      "create": {
+        "name": "Sam Goodwin",
+        "title": "Alchemy",
+        "bio": "",
+        "twitterHandle": "samgoodwin89",
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": "https://avatars.githubusercontent.com/u/38672686"
+      },
+      "sources": [
+        "https://x.com/samgoodwin89",
+        "https://github.com/sam-goodwin",
+        "https://x.com/samgoodwin89/status/2105806892807389585"
+      ]
+    },
+    "arthur-stockman": {
+      "create": {
+        "name": "Arthur Stockman",
+        "title": "",
+        "bio": "",
+        "twitterHandle": "StockmanArthur",
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": "https://avatars.githubusercontent.com/u/173043553"
+      },
+      "sources": [
+        "https://x.com/StockmanArthur/status/2039400115757355048",
+        "https://github.com/ArthurDevel"
+      ]
+    },
+    "matt-biilmann": {
+      "create": {
+        "name": "Matt Biilmann",
+        "title": "CEO & Co-founder, Netlify",
+        "bio": "",
+        "twitterHandle": "biilmann",
+        "blueskyHandle": "biilmann.blog",
+        "linkedinHandle": null,
+        "photoSourceUrl": "https://avatars.githubusercontent.com/u/6515"
+      },
+      "sources": [
+        "https://github.com/biilmann",
+        "https://bsky.app/profile/biilmann.blog",
+        "https://luma.com/fq56wfwr"
+      ]
+    },
+    "mika-sagindyk": {
+      "create": {
+        "name": "Mika Sagindyk",
+        "title": "Co-founder & CEO, 2027.dev (Agent Arena)",
+        "bio": "",
+        "twitterHandle": "heymikasagi",
+        "blueskyHandle": null,
+        "linkedinHandle": "mika-sagindyk",
+        "photoSourceUrl": "https://images.lumacdn.com/avatars/t6/3887a6ca-3c2a-4603-8aa9-b1cd78c1c19d.jpg"
+      },
+      "sources": [
+        "https://www.linkedin.com/in/mika-sagindyk/",
+        "https://luma.com/fq56wfwr"
+      ]
+    },
+    "michael-grinich": {
+      "create": {
+        "name": "Michael Grinich",
+        "title": "CEO, WorkOS",
+        "bio": "",
+        "twitterHandle": "grinich",
+        "blueskyHandle": null,
+        "linkedinHandle": "grinich",
+        "photoSourceUrl": null
+      },
+      "sources": ["https://luma.com/tsai", "https://x.com/grinich"]
+    },
+    "sam-bhagwat": {
+      "create": {
+        "name": "Sam Bhagwat",
+        "title": "CEO, Mastra",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=GAnFq9qw-z0"
+      ]
+    },
+    "shane-thomas": {
+      "create": {
+        "name": "Shane Thomas",
+        "title": "CPO, Mastra",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=GAnFq9qw-z0"
+      ]
+    },
+    "abhi-aiyer": {
+      "create": {
+        "name": "Abhi Aiyer",
+        "title": "CTO, Mastra",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=GAnFq9qw-z0"
+      ]
+    },
+    "rostislav-melkumyan": {
+      "create": {
+        "name": "Rostislav Melkumyan",
+        "title": "Senior Software Engineer, Sanity",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=EEXI_0Jo_bQ"
+      ]
+    },
+    "neel-rao": {
+      "create": {
+        "name": "Neel Rao",
+        "title": "Member of Technical Staff, OpenAI",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=nD2tRxeSnlI"
+      ]
+    },
+    "greg-pstrucha": {
+      "create": {
+        "name": "Greg Pstrucha",
+        "title": "Staff Engineer, Sentry",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=WNJHMoHTrBU"
+      ]
+    },
+    "ivan-burazin": {
+      "create": {
+        "name": "Ivan Burazin",
+        "title": "CEO, Daytona",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=036fzynwLD8"
+      ]
+    },
+    "nicholas-pipitone": {
+      "create": {
+        "name": "Nicholas Pipitone",
+        "title": "CTO, ZeroEntropy",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=1JBBegZrvDI"
+      ]
+    },
+    "nikhil-gupta": {
+      "create": {
+        "name": "Nikhil Gupta",
+        "title": "CTO, Vapi",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=ikN5e2HjTfo"
+      ]
+    },
+    "kiet-ho": {
+      "create": {
+        "name": "Kiet Ho",
+        "title": "Co-Founder, Superset",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=ORc7-DeCp2o"
+      ]
+    },
+    "jeff-huber": {
+      "create": {
+        "name": "Jeff Huber",
+        "title": "CEO, Chroma",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=RvkbPPZbPgc"
+      ]
+    },
+    "tyler-slaton": {
+      "create": {
+        "name": "Tyler Slaton",
+        "title": "Senior Founding Engineer, CopilotKit",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=a-K_qFUmda0"
+      ]
+    },
+    "mateo-torres": {
+      "create": {
+        "name": "Mateo Torres",
+        "title": "Developer Relations, Arcade",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=Abw9gutRLOQ"
+      ]
+    },
+    "kevin-whinnery": {
+      "create": {
+        "name": "Kevin Whinnery",
+        "title": "Head of Marketing & DevRel, Stainless",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=1YygZ62qsA0"
+      ]
+    },
+    "david-cusatis": {
+      "create": {
+        "name": "David Cusatis",
+        "title": "Co-Founder & Chief Architect, Range",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://www.youtube.com/watch?v=5eoGrvoLG1Q"
+      ]
+    }
+  },
+  "events": [
+    {
+      "lumaEventId": "evt-CIXBbu7ySP61MNP",
+      "name": "Effect San Francisco",
+      "talks": [
+        {
+          "title": "Fireside chat with Michael Arnaldi, creator of Effect",
+          "format": "fireside",
+          "description": "",
+          "speakers": [
+            {
+              "person": "michael-arnaldi",
+              "role": "speaker"
+            },
+            {
+              "person": "simon-farshid",
+              "role": "moderator"
+            }
+          ],
+          "sources": [
+            "https://luma.com/all-things-effect",
+            "https://x.com/simonfarshid/status/2105443650071343462"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Alchemy",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "sam-goodwin",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://x.com/samgoodwin89/status/2105806892807389585",
+            "https://effect.website/blog/this-week-in-effect/138"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "people": [
+        {
+          "person": "simon-farshid",
+          "role": "mc",
+          "sources": [
+            "https://luma.com/all-things-effect",
+            "https://x.com/simonfarshid/status/2105443650071343462"
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-wJxtorPCscwoGS4",
+      "name": "Dev Setup Demos - Show your agents.md!",
+      "talks": [
+        {
+          "title": "My most used slash commands and custom subagents for development",
+          "format": "talk",
+          "description": "A Claude Code setup that kicks off a 30-minute session that runs autonomously, with minimal corrections at the end. Setup: https://github.com/ArthurDevel/workos-devmeetup-setup",
+          "speakers": [
+            {
+              "person": "arthur-stockman",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://x.com/StockmanArthur/status/2039400115757355048",
+            "https://github.com/ArthurDevel/workos-devmeetup-setup"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "people": []
+    },
+    {
+      "lumaEventId": "evt-tMlbKr2pQktx6Qx",
+      "name": "DevTool AX Demos",
+      "talks": [
+        {
+          "title": "Panel & open discussion",
+          "format": "panel",
+          "description": "",
+          "speakers": [
+            {
+              "person": "matt-biilmann",
+              "role": "speaker"
+            },
+            {
+              "person": "mika-sagindyk",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://luma.com/fq56wfwr",
+            "https://bsky.app/profile/andrelandgraf.com/post/3mfn4xikzms2b",
+            "https://bsky.app/profile/andrelandgraf.com/post/3mfpmeas6zc22"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "people": []
+    },
+    {
+      "lumaEventId": "evt-IpKgpcPJEOjvroH",
+      "name": "TypeScript AI Demo Day",
+      "recordingUrl": "https://www.youtube.com/watch?v=IgLN0abipOk",
+      "talks": [
+        {
+          "title": "From Framework to Platform: The Mastra Keynote at TypeScript AI Demo Day",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "sam-bhagwat",
+              "role": "speaker"
+            },
+            {
+              "person": "shane-thomas",
+              "role": "speaker"
+            },
+            {
+              "person": "abhi-aiyer",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=GAnFq9qw-z0",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Most Agent Failures Are Context Failures",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "rostislav-melkumyan",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=EEXI_0Jo_bQ",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Harness Engineering: How OpenAI Builds Apps Without Writing a Line of Code",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "neel-rao",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=nD2tRxeSnlI",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Claude Code Skills Are a Massive Security Threat",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "greg-pstrucha",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=WNJHMoHTrBU",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Why Sandboxes Aren't Enough: Ivan Burazin on Building Daytona for Agents",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "ivan-burazin",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=036fzynwLD8",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Make Your Agents Fight",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "nicholas-pipitone",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=1JBBegZrvDI",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Why Every Business Needs a Voice Interface",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "nikhil-gupta",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=ikN5e2HjTfo",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "The Death of UI: Why Language Is the Final Interface",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "michael-grinich",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=azoM7uz8Jhs",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "5-Step Framework for Scaling Up Your Coding Agents",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "kiet-ho",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=ORc7-DeCp2o",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "RAG is Dead: Jeff Huber (Chroma) on Building Agentic Search",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "jeff-huber",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=RvkbPPZbPgc",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "The Three Flavors of Generative UI",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "tyler-slaton",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=a-K_qFUmda0",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "How to Distill an Agent's Behavior Into a Workflow",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "mateo-torres",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=Abw9gutRLOQ",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Three Generations of MCP Server Design",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "kevin-whinnery",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=1YygZ62qsA0",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Compliance, Reliability, Observability: David Cusatis on Scaling Agents at Range",
+          "format": "talk",
+          "description": "",
+          "speakers": [
+            {
+              "person": "david-cusatis",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://www.youtube.com/watch?v=5eoGrvoLG1Q",
+            "https://luma.com/tsai"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "people": []
+    }
+  ]
+}
