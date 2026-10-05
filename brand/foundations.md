@@ -119,7 +119,7 @@ One family, Archivo, used at three widths, plus Geist Mono for meta.
 ## People and channels
 
 - Socials sit in a quiet line of words in the footer (luma · discord · youtube · github · x · bluesky · linkedin) and on the history page, never in a hero.
-- Luma and Discord are actions: "subscribe on luma" beside "every evening →", and "talk between evenings → discord".
+- Luma and Discord are actions on home: "subscribe on luma" beside "every evening →", and "talk between evenings → discord". Every evening's index says where to follow along in the same quiet line of words as the footer, under its title: luma calendar · discord · x.
 - The organizers are visible everywhere: "hosted by Erik & Andre" with portraits in every footer, organizers first on the people page, and "your hosts" beside the hosting company on every event page.
 
 ## Accessibility
