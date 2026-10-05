@@ -32,7 +32,7 @@ jobs:
 
       - name: 📥 Download deps
         working-directory: tools/pr-header
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 💄 Format check
         working-directory: tools/pr-header

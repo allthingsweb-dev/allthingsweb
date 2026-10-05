@@ -7,12 +7,14 @@ on:
       - "infra/**"
       - "web/src/compatibility.ts"
       - ".github/workflows/infra-ci.yaml"
+      - ".github/scripts/bun-install.sh"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - "infra/**"
       - "web/src/compatibility.ts"
       - ".github/workflows/infra-ci.yaml"
+      - ".github/scripts/bun-install.sh"
 
 permissions:
   contents: read
@@ -34,7 +36,7 @@ jobs:
 
       - name: 📥 Download deps
         working-directory: infra
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 💄 Format check
         working-directory: infra

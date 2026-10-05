@@ -9,6 +9,7 @@ on:
       - "package.json"
       - "bun.lock"
       - ".github/workflows/brand.yaml"
+      - ".github/scripts/bun-install.sh"
   pull_request:
     paths:
       - "brand/**"
@@ -16,6 +17,7 @@ on:
       - "package.json"
       - "bun.lock"
       - ".github/workflows/brand.yaml"
+      - ".github/scripts/bun-install.sh"
 
 permissions:
   contents: read
@@ -41,7 +43,7 @@ jobs:
           bun-version: 1.3.14
 
       - name: 📥 Download deps
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 💄 Format check
         working-directory: brand

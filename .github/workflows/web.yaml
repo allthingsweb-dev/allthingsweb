@@ -16,6 +16,7 @@ on:
       - "app/package.json"
       - "app/bun.lock"
       - ".github/workflows/web.yaml"
+      - ".github/scripts/bun-install.sh"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -31,6 +32,7 @@ on:
       - "app/package.json"
       - "app/bun.lock"
       - ".github/workflows/web.yaml"
+      - ".github/scripts/bun-install.sh"
 
 permissions:
   contents: read
@@ -71,10 +73,10 @@ jobs:
       # Worker.
       - name: 📥 Download app deps
         working-directory: app
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 📥 Download web and core deps
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 💄 Format check
         working-directory: web

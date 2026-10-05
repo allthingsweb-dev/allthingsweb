@@ -43,8 +43,8 @@ jobs:
 
       - name: 📥 Download deps
         run: |
-          bun install --frozen-lockfile
-          (cd infra && bun install --frozen-lockfile)
+          bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
+          (cd infra && bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh")
 
       - name: 🧱 Build web
         working-directory: web
@@ -83,8 +83,8 @@ jobs:
 
       - name: 📥 Download deps
         run: |
-          bun install --frozen-lockfile
-          (cd infra && bun install --frozen-lockfile)
+          bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
+          (cd infra && bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh")
 
       - name: 🧹 Destroy
         working-directory: infra
