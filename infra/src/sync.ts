@@ -16,16 +16,16 @@ import { Writer } from "./reader.ts";
  *   event sync rehearsed, the images it would fetch); "write" writes.
  *   Turning the schedule on in dry-run first shows an hour's work in Workers
  *   Logs before it writes anything.
- * - `plan`: the account's Workers plan. "free" keeps each run within the
- *   Free plan's 50 subrequests (two images of each kind per run, the rest in
- *   later runs). Its 10 ms of CPU per run is likely too little for the
- *   calendar's 30-odd events and image conversions, so "paid" (the app's
- *   own limits) needs Workers Paid. See infra/README.md.
+ * - `plan`: the account's Workers plan. "paid" (the allthings account is on
+ *   Workers Paid) runs with the app's own limits. "free" would keep each run
+ *   within the Free plan's 50 subrequests (two images of each kind per run,
+ *   the rest in later runs), though its 10 ms of CPU per run is likely too
+ *   little for the calendar and image conversions. See infra/README.md.
  */
 export const SYNC = {
   schedule: "off",
   mode: "dry-run",
-  plan: "free",
+  plan: "paid",
 } as const satisfies {
   schedule: "off" | "hourly";
   mode: "dry-run" | "write";
