@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { completenessReport } from "./completeness.js";
 import {
   createEvent,
   getEventBySlug,
@@ -483,6 +484,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["eventId"],
         },
       },
+      // Data quality
+      {
+        name: "get_completeness_report",
+        description:
+          "What each published event's record lacks (talks, people and their bios, photos and links, hosts and logos, photos, recording, venue, topic), as core's completeness report computes it from the database. Read-only.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            slug: {
+              type: "string",
+              description: "Only this event's report (its slug)",
+            },
+          },
+          required: [],
+        },
+      },
       // Administrator tools
       {
         name: "add_user_to_admins",
@@ -839,6 +856,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "remove_user_from_admins": {
         const { userId } = args as { userId: string };
         const result = await removeUserFromAdmins(userId);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "get_completeness_report": {
+        const { slug } = (args ?? {}) as { slug?: string };
+        const result = await completenessReport(slug);
         return {
           content: [
             {
