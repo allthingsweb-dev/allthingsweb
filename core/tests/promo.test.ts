@@ -351,7 +351,10 @@ describe("limits", () => {
 
   test("a link destination keeps its parentheses from ending it", () => {
     expect(mdUrl("https://en.example/wiki/Acme_(company)")).toBe(
-      "https://en.example/wiki/Acme_%28company%29",
+      "<https://en.example/wiki/Acme_(company)>",
+    );
+    expect(mdUrl("https://acme.example/a<b>")).toBe(
+      "<https://acme.example/a%3Cb%3E>",
     );
     expect(mdUrl("https://acme.example/")).toBe("https://acme.example/");
   });

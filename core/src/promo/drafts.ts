@@ -453,15 +453,19 @@ const formatSuffix = (talk: Talk): string => {
 };
 
 /**
- * A URL as a Markdown link destination: the characters that would end or
- * break it, percent-encoded, which leaves the address the same.
+ * A URL as a Markdown link destination, the URI unchanged. One with a
+ * parenthesis or whitespace, which would end a bare destination, goes in
+ * angle brackets (CommonMark's <…> form), where only "<", ">" and line
+ * breaks can't appear, so those few are percent-encoded.
  */
 export const mdUrl = (url: string) =>
-  url.replace(
-    /[()<> \t\n\r]/g,
-    (char) =>
-      `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
-  );
+  /[()<>\s]/.test(url)
+    ? `<${url.replace(
+        /[<>\n\r]/g,
+        (char) =>
+          `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
+      )}>`
+    : url;
 
 /** Markdown's own characters in a name or title, escaped. */
 const md = (text: string) => text.replace(/([\\`*_[\]<>#])/g, "\\$1");
