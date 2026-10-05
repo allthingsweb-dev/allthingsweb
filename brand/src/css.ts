@@ -41,10 +41,22 @@ function fontFamily(families: ReadonlyArray<string>): string {
     .join(", ");
 }
 
-/** A mode's roles, such as `--at-ground: var(--at-color-paper);`. */
-function roleDeclarations(file: TokenFile, mode: Mode): ReadonlyArray<string> {
+/** Each mode's background texture, as a URL; a mode without one has none. */
+export type Textures = Partial<Record<Mode, string>>;
+
+/**
+ * A mode's roles, such as `--at-ground: var(--at-color-paper);`, and its
+ * `--at-texture`, which pages layer over the ground.
+ */
+function roleDeclarations(
+  file: TokenFile,
+  mode: Mode,
+  textures: Textures,
+): ReadonlyArray<string> {
+  const texture = textures[mode];
   return [
     `color-scheme: ${dataTheme[mode]};`,
+    `--at-texture: ${texture === undefined ? "none" : `url("${texture}")`};`,
     ...themeRoles(file, mode).map(
       (role) =>
         `--at-${kebab(role.name)}: var(--at-color-${kebab(role.color.name)});`,
@@ -52,7 +64,7 @@ function roleDeclarations(file: TokenFile, mode: Mode): ReadonlyArray<string> {
   ];
 }
 
-export function themeCss(file: TokenFile): string {
+export function themeCss(file: TokenFile, textures: Textures = {}): string {
   const extension = file.$extensions["dev.allthings"];
   const root = block(":root", [
     ...colors(file).map(
@@ -70,14 +82,17 @@ export function themeCss(file: TokenFile): string {
   const themes = [
     block(
       `:root,\n[data-theme="${dataTheme[light]}"]`,
-      roleDeclarations(file, light),
+      roleDeclarations(file, light, textures),
     ),
-    block(`[data-theme="${dataTheme[dark]}"]`, roleDeclarations(file, dark)),
+    block(
+      `[data-theme="${dataTheme[dark]}"]`,
+      roleDeclarations(file, dark, textures),
+    ),
     [
       "@media (prefers-color-scheme: dark) {",
       block(
         `:root:not([data-theme="${dataTheme[light]}"])`,
-        roleDeclarations(file, dark),
+        roleDeclarations(file, dark, textures),
       )
         .split("\n")
         .map((line) => `  ${line}`)

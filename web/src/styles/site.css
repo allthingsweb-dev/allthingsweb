@@ -17,7 +17,9 @@ html {
 
 :root,
 [data-theme] {
+  /* Night layers its grain over the ground; Paper has no texture. */
   background-color: var(--at-ground);
+  background-image: var(--at-texture);
   color: var(--at-text);
 }
 

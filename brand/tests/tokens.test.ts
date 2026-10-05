@@ -26,7 +26,7 @@ describe("all things/_ design tokens", () => {
       bridgeDeep: "#9A2B22",
       violet: "#5B34D6",
       karlText: "#5E5A55",
-      night: "#1C1236",
+      night: "#1B1729",
       mist: "#E3DCF7",
       dusk: "#D9D3E0",
       lavender: "#DACFFF",
@@ -178,6 +178,19 @@ describe("the theme CSS", () => {
     expect(css).toContain(
       '@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {\n    color-scheme: dark;',
     );
+  });
+
+  test("gives Night its texture in every place Night applies, and Paper none", () => {
+    const textured = themeCss(tokens, { night: "/assets/grain.svg" });
+    const night = '--at-texture: url("/assets/grain.svg");';
+    expect(textured.split(night)).toHaveLength(3);
+    expect(textured).toContain(
+      ':root,\n[data-theme="light"] {\n  color-scheme: light;\n  --at-texture: none;',
+    );
+    expect(textured).toContain(
+      `[data-theme="dark"] {\n  color-scheme: dark;\n  ${night}`,
+    );
+    expect(css).not.toContain("url(");
   });
 
   test("stops the cursor for people who prefer reduced motion", () => {
