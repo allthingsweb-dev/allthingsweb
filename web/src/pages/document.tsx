@@ -104,23 +104,12 @@ function ModeIcon({ choice }: { readonly choice: Choice }) {
  * remembers and redirects from (theme.ts), so choosing reloads the page
  * closed. The summary's accessible name says what it is and what is
  * chosen; the current choice says so with aria-current. Crawlers are asked
- * not to follow the links. On a page with a mode of its own, such as an
- * event's, the system's choice is that mode, and says so.
+ * not to follow the links.
  */
-function ModeSwitch({
-  theme,
-  pageTheme,
-}: {
-  readonly theme: Theme | undefined;
-  readonly pageTheme: Theme | undefined;
-}) {
+function ModeSwitch({ theme }: { readonly theme: Theme | undefined }) {
   const current = theme ?? "system";
-  const nameOf = (choice: Choice, name: string) =>
-    choice === "system" && pageTheme !== undefined ? "event" : name;
-  const currentName = nameOf(
-    current,
-    choices.find(({ choice }) => choice === current)?.label ?? current,
-  );
+  const currentName =
+    choices.find(({ choice }) => choice === current)?.label ?? current;
   return (
     <details class="mode">
       <summary aria-label={`mode: ${currentName}`}>
@@ -135,7 +124,7 @@ function ModeSwitch({
               aria-current={choice === current ? "true" : undefined}
             >
               <ModeIcon choice={choice} />
-              <span safe>{nameOf(choice, label)}</span>
+              <span safe>{label}</span>
             </a>
           </li>
         ))}
@@ -198,11 +187,6 @@ export interface DocumentProps {
   readonly origin: string;
   /** The mode the visitor fixed, if any (see theme.ts). */
   readonly theme: Theme | undefined;
-  /**
-   * The page's own mode, when the visitor fixed none: an event's (see
-   * core's mode.ts). Without one, the page follows the system.
-   */
-  readonly pageTheme?: Theme | undefined;
   /** The hosts' portraits, by profile id, for the footer. */
   readonly portraits: PortraitsById;
   /** How photos are shown (see picture.tsx). */
@@ -220,14 +204,13 @@ export function Document({
   meta,
   origin,
   theme,
-  pageTheme,
   portraits,
   images,
   section,
   children,
 }: PropsWithChildren<DocumentProps>): string {
-  // What the page renders in: the visitor's choice, else the page's own.
-  const shown = theme ?? pageTheme;
+  // Every page is in the visitor's mode, the system's until they choose.
+  const shown = theme;
   const fonts = built.fonts.filter((font) => font.preload);
   const page = (
     <html lang="en" data-theme={shown}>
@@ -255,7 +238,7 @@ export function Document({
             <Wordmark />
             <div class="site-tools">
               <SiteNav section={section} />
-              <ModeSwitch theme={theme} pageTheme={pageTheme} />
+              <ModeSwitch theme={theme} />
             </div>
           </header>
           <main>{children}</main>
