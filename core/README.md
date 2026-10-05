@@ -106,6 +106,30 @@ The admin MCP server's `add_event_post` runs the same script.
 `tests/posts.test.ts` runs against recorded answers; nothing in the tests
 reaches X, FixTweet or Bluesky.
 
+## Schedules and notes
+
+Some events' pages say more than the record: a hackathon's schedule, its
+awards, theme and how teams form. `event_schedule_items` holds an event's
+schedule in order, each step's time as the organizers wrote it ("1 - 7 pm",
+"~7:00 pm"); `event_notes` holds rows of the page under their own label
+("Awards", "Theme"), with bodies in editor HTML that are sanitized as talk
+descriptions are. `EventPages` reads both, and the Worker's event page shows
+a Schedule row and a row per note.
+
+`core/backfill/event-extras.json` carries what the app's own pages for four
+events said (three hackathons at Sentry and NextDev.fm Live), with the pages
+as sources. Who hosted NextDev.fm Live and who was its guest is in
+`core/backfill/lineups.json`: a fireside chat its hosts moderated.
+
+For each event the file names, it is the whole schedule and the whole set
+of notes: applying replaces anything else, and changes nothing where the
+database already matches. Run it from `core/`:
+
+```sh
+DATABASE_URL=… bun run event-extras --dry-run   # do everything, print it, roll back
+DATABASE_URL=… bun run event-extras             # write
+```
+
 ## Hosting companies' links
 
 Each hosting company (`sponsors`) may store its own website and its X,

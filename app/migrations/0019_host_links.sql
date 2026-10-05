@@ -1,4 +1,4 @@
--- A hosting company's website and its X, Bluesky and LinkedIn handles; core/migrations/0006_host_links.ts is the same change.
+-- A hosting company's website and its X, Bluesky and LinkedIn handles; core/migrations/0007_host_links.ts is the same change.
 ALTER TABLE "sponsors" ADD COLUMN "website_url" text;--> statement-breakpoint
 ALTER TABLE "sponsors" ADD COLUMN "twitter_handle" text;--> statement-breakpoint
 ALTER TABLE "sponsors" ADD COLUMN "bluesky_handle" text;--> statement-breakpoint

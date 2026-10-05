@@ -4,7 +4,7 @@ import { statements } from "./statements.ts";
  * A hosting company's own website and its X, Bluesky and LinkedIn handles,
  * stored as profiles store people's, so pages link a host's name to its
  * site and promotion drafts tag it. Ships with the app's drizzle migration
- * 0018_host_links, which makes the same schema.
+ * 0019_host_links, which makes the same schema.
  *
  * Each is optional and checked for its shape: an https URL, an X handle
  * without the @, a Bluesky domain handle, a LinkedIn company slug. The

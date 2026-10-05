@@ -1,8 +1,10 @@
 import { dataTheme } from "allthings-brand/src/css.ts";
 import type {
   EventPage,
+  Note,
   Person,
   Post,
+  ScheduleItem,
   Speaker,
   Talk,
   Venue,
@@ -42,9 +44,10 @@ import { day, fullDate, timeRange } from "./time.ts";
  * /<slug>: an evening's page, the Ledger (design round EP1-B). The lockup,
  * then a ruled list that names every fact once, each on its own row under a
  * small label: when, where, who hosts, how to get in (or, once it is over,
- * the recording), who is on stage, the photos, what people posted about
- * it, and what comes next. A row
- * whose facts are unknown is left out rather than shown empty.
+ * the recording), its schedule and any notes of its own (a hackathon's
+ * awards, theme and teams), who is on stage, the photos, what people posted
+ * about it, and what comes next. A row whose facts are unknown is left out
+ * rather than shown empty.
  *
  * The page is in its event's mode (Night for evenings, Paper for daytime
  * events) unless the visitor fixed one with the mode switch.
@@ -60,6 +63,8 @@ export interface EventPageProps {
   readonly portraits: PortraitsById;
   /** How photos are shown (see picture.tsx). */
   readonly images: ImageMode;
+  /** When the page is made: its card names the year of an evening in another. */
+  readonly now: DateTime.DateTime;
 }
 
 /**
@@ -585,6 +590,50 @@ function TalkEntry({
   );
 }
 
+/** The event's schedule: each step's time as written, then what happens. */
+function Schedule({
+  schedule,
+}: {
+  readonly schedule: ReadonlyArray<ScheduleItem>;
+}) {
+  return (
+    <Fact label="Schedule">
+      <ol class="schedule">
+        {schedule.map((item) => (
+          <li>
+            <span class="schedule-time at-type-meta" safe>
+              {item.time}
+            </span>
+            <div class="schedule-step">
+              <p class="schedule-title" safe>
+                {item.title}
+              </p>
+              {item.description === null ? (
+                ""
+              ) : (
+                <p class="schedule-description" safe>
+                  {item.description}
+                </p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Fact>
+  );
+}
+
+/** A row of the event's own, such as its awards, under the note's label. */
+function NoteFact({ note }: { readonly note: Note }) {
+  // Sanitized by core (rich-text.ts): formatting and safe links only.
+  const safeBody = note.body;
+  return (
+    <Fact label={note.label}>
+      <div class="note">{safeBody}</div>
+    </Fact>
+  );
+}
+
 function OnStage({
   talks,
   images,
@@ -837,6 +886,7 @@ export function eventPage({
   theme,
   portraits,
   images,
+  now,
 }: EventPageProps): string {
   const past = event.status === "past";
   const photos = showable(event.photos, images);
@@ -849,7 +899,7 @@ export function eventPage({
           ? "An evening for people who build software, in San Francisco."
           : tagline,
       path: eventPath(event.slug),
-      image: eventCard(event, eventTitle(event)),
+      image: eventCard(event, eventTitle(event), now),
       structuredData: [eventStructuredData(event, origin)],
     },
     origin,
@@ -882,6 +932,14 @@ export function eventPage({
           ) : (
             ""
           )}
+          {event.schedule.length === 0 ? (
+            ""
+          ) : (
+            <Schedule schedule={event.schedule} />
+          )}
+          {event.notes.map((note) => (
+            <NoteFact note={note} />
+          ))}
           {event.talks.length === 0 ? (
             ""
           ) : (
@@ -920,18 +978,41 @@ export interface StandInProps {
   readonly images: ImageMode;
 }
 
-/** Nothing published lives at this address: said plainly, with ways on. */
+/** Why nothing is at an address: there never was, or it is gone. */
+const nothingHere = {
+  404: {
+    status: "404 · not found",
+    title: "not found",
+    lead: "No evening lives at this address.",
+  },
+  410: {
+    status: "410 · gone",
+    title: "gone",
+    lead: "What lived at this address is gone for good.",
+  },
+} as const;
+
+/**
+ * Nothing published lives at this address, or what did is gone (410): said
+ * plainly, with ways on.
+ */
 export function notFoundPage({
   origin,
   path,
   theme,
   portraits,
   images,
-}: StandInProps & { readonly portraits: PortraitsById }): string {
+  status = 404,
+}: StandInProps & {
+  readonly portraits: PortraitsById;
+  /** 410 for what the site retired; 404 otherwise. */
+  readonly status?: 404 | 410;
+}): string {
+  const said = nothingHere[status];
   return Document({
     meta: {
-      title: gatheringTitle("not found"),
-      description: "No evening lives at this address.",
+      title: gatheringTitle(said.title),
+      description: said.lead,
       path,
       image: ogCards.notFound,
     },
@@ -941,12 +1022,12 @@ export function notFoundPage({
     images,
     children: (
       <div class="intro">
-        <p class="at-type-meta">404 · not found</p>
+        <p class="at-type-meta">{said.status}</p>
         <h1 class="lockup at-type-event-lockup">
           all things<span class="slash">/</span>
           <Cursor />
         </h1>
-        <p class="lead at-type-lead">No evening lives at this address.</p>
+        <p class="lead at-type-lead">{said.lead}</p>
         <p class="fact-links">
           <a href={everyEvening}>
             every evening <span aria-hidden="true">→</span>

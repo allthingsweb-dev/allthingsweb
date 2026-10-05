@@ -18,7 +18,7 @@ import { DataSourceError } from "./errors.ts";
 /** An https URL with a domain-name host, as the public contract accepts, and no whitespace. */
 const Url = HttpUrl.check(Schema.isPattern(/^https:\/\/\S+$/));
 
-/** A value with where it was read. Each pattern is the column's CHECK (migrations/0006_host_links.ts). */
+/** A value with where it was read. Each pattern is the column's CHECK (migrations/0007_host_links.ts). */
 const fact = <S extends Schema.Top>(value: S) =>
   Schema.Struct({ value, source: Url });
 

@@ -1,5 +1,5 @@
 import { EventPages } from "allthings-core/src/event-page.ts";
-import { Context, Effect, Layer, Option } from "effect";
+import { Context, DateTime, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
@@ -116,7 +116,7 @@ const drawCard = (slug: string, origin: string) =>
     }
     // Bound: workerd's binding methods throw when called detached from it.
     const text = images.value.text.bind(images.value);
-    const facts = cardFacts(found.value);
+    const facts = cardFacts(found.value, yield* DateTime.now);
     const texts = layoutCard(facts, yield* loadMetrics);
     const ground =
       facts.mode === "night"

@@ -48,6 +48,8 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   seats: null,
   recordingUrl: null,
   talks: [],
+  schedule: [],
+  notes: [],
   photos: [],
   posts: [],
   morePosts: 0,
@@ -55,10 +57,48 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   ...overrides,
 });
 
+/** The moment the tests make cards at: the evening's year. */
+const now = DateTime.makeUnsafe("2026-09-01T00:00:00Z");
+
 const layout = (overrides: Partial<EventPage> = {}) =>
-  layoutCard(cardFacts(event(overrides)), measured);
+  layoutCard(cardFacts(event(overrides), now), measured);
 
 describe("an event's card", () => {
+  test("names the year of an evening in another year, and only then", () => {
+    const march2024 = { startsAt: DateTime.makeUnsafe("2024-03-27T00:00:00Z") };
+    expect(layout(march2024)[0]?.text).toBe("TUE MAR 26, 2024 · 5:00 PM");
+    expect(layout()[0]?.text).toBe("WED SEP 30 · 5:30 PM");
+    // An evening next year says so too.
+    const nextYear = { startsAt: DateTime.makeUnsafe("2027-01-15T02:00:00Z") };
+    expect(layout(nextYear)[0]?.text).toBe("THU JAN 14, 2027 · 6:00 PM");
+    // In San Francisco's year: 11 PM on New Year's Eve there is already next year in UTC.
+    const lastNight = DateTime.makeUnsafe("2027-01-01T07:00:00Z");
+    expect(cardFacts(event(), lastNight).when).toBe("WED SEP 30 · 5:30 PM");
+    const card = eventCard(event(march2024), "all things/effect", now);
+    expect(card.alt).toBe(
+      "all things/effect · Tue Mar 26, 2024 · 5:00 PM · East Cut · CodeRabbit",
+    );
+  });
+
+  test("changes its version when the year comes to be said", () => {
+    const thisYear = eventCard(event(), "all things/effect", now);
+    const nextYear = eventCard(
+      event(),
+      "all things/effect",
+      DateTime.makeUnsafe("2027-03-01T00:00:00Z"),
+    );
+    expect(nextYear.src).not.toBe(thisYear.src);
+    expect(nextYear.alt).toContain("Wed Sep 30, 2026");
+    // Within the year, the same.
+    expect(
+      eventCard(
+        event(),
+        "all things/effect",
+        DateTime.makeUnsafe("2026-12-31T20:00:00Z"),
+      ).src,
+    ).toBe(thisYear.src);
+  });
+
   test("says when, all things/<topic> with the cursor ahead, and where and who hosts", () => {
     const texts = layout();
     expect(texts.map(({ text, font }) => [font, text])).toEqual([
@@ -148,19 +188,19 @@ describe("an event's card", () => {
   });
 
   test("is named by its page with a version that changes when what it says does", () => {
-    const card = eventCard(event(), "all things/effect");
+    const card = eventCard(event(), "all things/effect", now);
     expect(card).toEqual({
-      src: `/og/2026-09-30-all-things-effect.png?v=${cardVersion(cardFacts(event()))}`,
+      src: `/og/2026-09-30-all-things-effect.png?v=${cardVersion(cardFacts(event(), now))}`,
       width: 1200,
       height: 630,
       alt: "all things/effect · Wed Sep 30 · 5:30 PM · East Cut · CodeRabbit",
     });
-    expect(cardVersion(cardFacts(event({ hosts: ["Clerk"] })))).not.toBe(
-      cardVersion(cardFacts(event())),
+    expect(cardVersion(cardFacts(event({ hosts: ["Clerk"] }), now))).not.toBe(
+      cardVersion(cardFacts(event(), now)),
     );
     // What the card doesn't say doesn't change it.
-    expect(cardVersion(cardFacts(event({ tagline: "Another" })))).toBe(
-      cardVersion(cardFacts(event())),
+    expect(cardVersion(cardFacts(event({ tagline: "Another" }), now))).toBe(
+      cardVersion(cardFacts(event(), now)),
     );
   });
 });

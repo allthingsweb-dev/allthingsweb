@@ -1,6 +1,6 @@
 {
-  "id": "63fb0fc3-8082-40c4-ba5d-58b5678ec5f2",
-  "prevId": "9240b1fd-d69f-408a-a0b2-5fa5bfb3cb69",
+  "id": "71bb7b9b-8543-4324-91be-ec41d7f8d4bd",
+  "prevId": "63fb0fc3-8082-40c4-ba5d-58b5678ec5f2",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -980,6 +980,30 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        },
+        "website_url": {
+          "name": "website_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "twitter_handle": {
+          "name": "twitter_handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bluesky_handle": {
+          "name": "bluesky_handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "linkedin_handle": {
+          "name": "linkedin_handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -1012,7 +1036,24 @@
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "sponsors_website_url_check": {
+          "name": "sponsors_website_url_check",
+          "value": "\"website_url\" ~ '^https://[A-Za-z0-9.-]+(/[^[:space:]]*)?$'"
+        },
+        "sponsors_twitter_handle_check": {
+          "name": "sponsors_twitter_handle_check",
+          "value": "\"twitter_handle\" ~ '^[A-Za-z0-9_]{1,15}$'"
+        },
+        "sponsors_bluesky_handle_check": {
+          "name": "sponsors_bluesky_handle_check",
+          "value": "\"bluesky_handle\" ~ '^([a-z0-9]([a-z0-9-]*[a-z0-9])?[.])+[a-z]{2,}$'"
+        },
+        "sponsors_linkedin_handle_check": {
+          "name": "sponsors_linkedin_handle_check",
+          "value": "\"linkedin_handle\" ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$'"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.images": {

@@ -356,6 +356,53 @@ export const eventPostsTable = pgTable(
   ],
 );
 
+/**
+ * An event's schedule, in position order; `time` is as written ("1 - 7 pm",
+ * "~7:00 pm"). core/migrations/0006_event_extras.ts is the same change.
+ */
+export const eventScheduleItemsTable = pgTable(
+  "event_schedule_items",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    /** Order in the event's schedule, from 0. */
+    position: integer("position").notNull(),
+    time: text("time").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.position] }),
+    check("event_schedule_items_position_check", sql`"position" >= 0`),
+  ],
+);
+
+/**
+ * A row of an event's page under `label` ("Awards", "Theme"), in position
+ * order; `body` is editor HTML, as talk descriptions are.
+ */
+export const eventNotesTable = pgTable(
+  "event_notes",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    /** Order among the event's notes, from 0. */
+    position: integer("position").notNull(),
+    label: text("label").notNull(),
+    body: text("body").notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.position] }),
+    check("event_notes_position_check", sql`"position" >= 0`),
+  ],
+);
+
 export type InsertEventPost = typeof eventPostsTable.$inferInsert;
 export type SelectEventPost = typeof eventPostsTable.$inferSelect;
 
