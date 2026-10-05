@@ -17,6 +17,12 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
 - **Images:** the Web Worker's `IMAGES` binding, on every stage but `prod`. It resizes and re-encodes the photos on `media.allthings.dev` into the variants the pages load (`/img/…`, see [`web/src/images/variants.ts`](../web/src/images/variants.ts)), and the Worker keeps each in the edge cache. It is a binding, not a resource: transformations are billed to the allthings account per unique transformation per month, the first 5,000 free. Past those, new variants fail and the Worker sends the originals instead.
 - **Hyperdrive:** every stage but `prod`. The Web Worker's `HYPERDRIVE` binding, in front of production's Neon database as the read-only `site_reader` role, from `NEON_READER_URL` (see [Accounts and stages](#accounts-and-stages)).
 - **Vercel env:** `prod` deploys write `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` to every Vercel environment (the token is sensitive except in development, where Vercel doesn't allow it) with the Vercel CLI, so it needs to be signed in (`bunx vercel login`).
+- **Sync Worker:** `prod` only. The hourly Luma sync ([`web/src/sync/`](../web/src/sync/worker.ts)), off Vercel's cron and outside the site's Worker. It has its own bindings:
+  - a `Writer` Hyperdrive in front of production as `site_sync`, from `NEON_SYNC_URL`, which never caches
+  - the media bucket and the Images binding
+  - `LUMA_API_KEY` as a secret
+
+  It ships off: see [The Luma sync](#the-luma-sync).
 
 ## Accounts and stages
 
@@ -44,6 +50,44 @@ The hourly Luma sync writes production as `site_sync`, a second login role made 
 [`core/tests/site-sync.test.ts`](../core/tests/site-sync.test.ts) runs the sync as the role and checks everything else is refused. The connection string is in the `NEON_SYNC_URL` repository secret and the "allthings site_sync" 1Password item.
 
 `prod` (media, the upload Worker and the Vercel env) still lives in the account that holds the allthings.dev domain, and a maintainer deploys it with the `default` profile until the domain moves to the allthings account.
+
+## The Luma sync
+
+The Sync Worker runs what the app's cron runs every hour. It syncs `events` from Luma's calendar first. Then it stores the images still missing: profile photos, post images, event covers. Every step writes only what is missing or changed, so a run cut short leaves nothing half done, and the next run carries on. It answers no requests.
+
+Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so each change is a one-line pull request:
+
+| `SYNC.`    | Now                                                   | Then                                                                |
+| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
+| `schedule` | `"off"`: no Cron Trigger at all                       | `"hourly"`: `0 * * * *`, once the app's cron stops at the cutover   |
+| `mode`     | `"dry-run"`: writes nothing, logs what it would write | `"write"`, after a few hours of dry runs look right in Workers Logs |
+| `plan`     | `"free"`: within the Workers Free plan's subrequests  | `"paid"`: the app's own limits, on Workers Paid                     |
+
+Each run logs one JSON line per step and one summary line (`source: "luma-sync"`).
+
+**On Workers Free.** The allthings account is on Workers Free, which allows a Cron Trigger run:
+
+- **10 ms of CPU.** Reading the calendar (30-odd events) and converting images will very likely take more. If so, the runtime stops the run with "exceeded CPU": events not written, or images left for later. Each step stays consistent.
+- **50 subrequests to the internet.** That covers Luma's feed, cover lookups, image downloads and their redirects. `plan: "free"` keeps a run to two images of each kind, at most 37 subrequests; the rest wait for later runs.
+- **1,000 subrequests to Cloudflare services** (Hyperdrive, R2, Images), which a run stays well within.
+
+On Workers Paid, a run hourly or less often gets up to 15 minutes of CPU and 10,000 subrequests, and `plan: "paid"` lifts the per-kind limits.
+
+**Deploying prod.** It now also needs `NEON_SYNC_URL` and `LUMA_API_KEY`, passed without printing them:
+
+```sh
+NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential") \
+LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+  bun run deploy --stage prod
+```
+
+**The dry run, from a maintainer's machine.** [`web/scripts/sync-dry-run.ts`](../web/scripts/sync-dry-run.ts) runs the same program in `dry-run` mode against the database at `DATABASE_URL`, and writes nothing. The event sync is rehearsed in a transaction that rolls back, and the image phases list what they'd fetch. Run it as `site_sync`, which also proves the role's grants:
+
+```sh
+cd web && DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") \
+  LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+  bun scripts/sync-dry-run.ts
+```
 
 ## CI credentials
 

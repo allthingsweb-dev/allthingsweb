@@ -82,6 +82,8 @@ export interface PostImageResult {
 
 /** What a run would ingest, read without downloading or writing anything. */
 export interface PendingImages {
+  /** Whether covers are looked up at all: not without LUMA_API_KEY, as in the app. */
+  readonly coversLookedUp: boolean;
   readonly covers: ReadonlyArray<{
     readonly slug: string;
     readonly lumaEventId: string;
@@ -187,10 +189,14 @@ export interface ImageIngestShape {
   /** Covers for events without one, newest events first, starting none after `budget`. */
   readonly covers: (options: {
     readonly budget: Duration.Input;
+    /** The most events one run tries; all of them by default, as in the app. */
+    readonly maxItems?: number;
   }) => Effect.Effect<CoverResult, DataSourceError>;
   /** Photos for profiles without one, oldest profiles first. */
   readonly profilePhotos: (options: {
     readonly budget: Duration.Input;
+    /** The most profiles one run tries; all of them by default, as in the app. */
+    readonly maxItems?: number;
   }) => Effect.Effect<PhotoResult, DataSourceError>;
   /** Post images and avatars, at most `maxItems` (40), each given `itemTimeout` (8 s). */
   readonly postImages: (options: {
@@ -362,7 +368,10 @@ const make = Effect.gen(function* () {
     orDataSourceError,
   );
 
-  const covers: ImageIngestShape["covers"] = ({ budget }) =>
+  const covers: ImageIngestShape["covers"] = ({
+    budget,
+    maxItems = Number.POSITIVE_INFINITY,
+  }) =>
     Effect.gen(function* () {
       const result = {
         ingested: [] as string[],
@@ -373,8 +382,8 @@ const make = Effect.gen(function* () {
       if (find === undefined) return result;
       const deadline =
         (yield* Clock.currentTimeMillis) + Duration.toMillis(budget);
-      for (const event of yield* missingCovers) {
-        if (!(yield* before(deadline))) break;
+      for (const [index, event] of (yield* missingCovers).entries()) {
+        if (index >= maxItems || !(yield* before(deadline))) break;
         const fail = (error: unknown) =>
           Effect.sync(() => {
             result.failed.push({ slug: event.slug, error: messageOf(error) });
@@ -403,7 +412,10 @@ const make = Effect.gen(function* () {
       return result;
     }).pipe(Effect.withSpan("ImageIngest.covers"));
 
-  const profilePhotos: ImageIngestShape["profilePhotos"] = ({ budget }) =>
+  const profilePhotos: ImageIngestShape["profilePhotos"] = ({
+    budget,
+    maxItems = Number.POSITIVE_INFINITY,
+  }) =>
     Effect.gen(function* () {
       const result = {
         ingested: [] as string[],
@@ -411,8 +423,8 @@ const make = Effect.gen(function* () {
       };
       const deadline =
         (yield* Clock.currentTimeMillis) + Duration.toMillis(budget);
-      for (const profile of yield* missingPhotos) {
-        if (!(yield* before(deadline))) break;
+      for (const [index, profile] of (yield* missingPhotos).entries()) {
+        if (index >= maxItems || !(yield* before(deadline))) break;
         const fail = (error: unknown) =>
           Effect.sync(() => {
             result.failed.push({ name: profile.name, error: messageOf(error) });
@@ -513,6 +525,7 @@ const make = Effect.gen(function* () {
       missingPostImages,
     ]);
     return {
+      coversLookedUp: Option.isSome(coverSource.find),
       covers: missing.map(({ slug, lumaEventId }) => ({ slug, lumaEventId })),
       photos: photos.map(({ name, source }) => ({ name, source })),
       posts: posts.map(({ id, kind, source }) => ({
