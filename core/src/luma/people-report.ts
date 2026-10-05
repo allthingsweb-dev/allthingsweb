@@ -16,20 +16,24 @@ const reviewLine = (review: Review): string => {
   return `  not imported: ${review.name ?? "(no name)"} (${review.lumaUserId}): ${review.reason}`;
 };
 
+/** "1 event", "2 events". */
+const count = (n: number, noun: string): string =>
+  `${n} ${noun}${n === 1 ? "" : "s"}`;
+
 export function formatImport(result: PeopleImport): string {
   if (result._tag === "Skipped") return `Skipped: ${result.reason}.`;
   const { plan, written } = result;
   const lines = [
-    `Asked Luma about ${result.asked} published events; ${result.unavailable.length} not shown to us${
+    `Asked Luma about ${count(result.asked, "published event")}; ${result.unavailable.length} not shown to us${
       result.unavailable.length === 0
         ? ""
         : `: ${result.unavailable.join(", ")}`
     }.`,
-    `${written === null ? "Would write" : "Planned"}: ${plan.people.length} hosts across ${plan.replacedEventIds.length} events, ${plan.links.length} profiles matched by name, ${plan.newProfiles.length} new profiles, guest counts for ${plan.guestCounts.length} events.`,
+    `${written === null ? "Would write" : "Planned"}: ${count(plan.people.length, "host")} across ${count(plan.replacedEventIds.length, "event")}, ${count(plan.links.length, "profile")} to link, ${plan.newProfiles.length} to create, guest counts for ${count(plan.guestCounts.length, "event")}.`,
   ];
   if (written !== null) {
     lines.push(
-      `Wrote: ${written.written} host rows added or reordered, ${written.removed} removed, ${written.linked} profiles linked, ${written.created} created, ${written.counted} events' guest counts changed.`,
+      `Wrote: ${count(written.written, "host row")} added or reordered, ${written.removed} removed, ${count(written.linked, "profile")} linked, ${written.created} created, guest counts changed for ${count(written.counted, "event")}.`,
     );
   }
   const byEvent = Map.groupBy(plan.review, (review) => review.lumaEventId);

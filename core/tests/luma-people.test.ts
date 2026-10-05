@@ -768,8 +768,8 @@ describe("the import", () => {
     expect(formatImport(result)).toBe(
       [
         "Asked Luma about 2 published events; 0 not shown to us.",
-        "Planned: 6 hosts across 2 events, 3 profiles matched by name, 2 new profiles, guest counts for 1 events.",
-        "Wrote: 6 host rows added or reordered, 0 removed, 3 profiles linked, 2 created, 1 events' guest counts changed.",
+        "Planned: 6 hosts across 2 events, 3 profiles to link, 2 to create, guest counts for 1 event.",
+        "Wrote: 6 host rows added or reordered, 0 removed, 3 profiles linked, 2 created, guest counts changed for 1 event.",
         "To review:",
         "evt-react",
         "  matched by name: Grace Hopper (usr-Hopper1) is profile b0000000-0000-4000-8000-000000000002",
