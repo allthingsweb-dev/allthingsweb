@@ -1,4 +1,3 @@
-import { dataTheme } from "allthings-brand/src/css.ts";
 import type {
   EventPage,
   Note,
@@ -50,8 +49,9 @@ import { day, fullDate, timeRange } from "./time.ts";
  * anyone), the photos, what people posted about it, and what comes next. A
  * row whose facts are unknown is left out rather than shown empty.
  *
- * The page is in its event's mode (Night for evenings, Paper for daytime
- * events) unless the visitor fixed one with the mode switch.
+ * Like every page, it is in the visitor's mode, the system's until they
+ * choose one (brand/foundations.md, "Color"); the event's own mode is its
+ * artwork's alone.
  */
 
 export interface EventPageProps {
@@ -985,7 +985,6 @@ export function eventPage({
     },
     origin,
     theme,
-    pageTheme: dataTheme[event.mode],
     portraits,
     images,
     children: (

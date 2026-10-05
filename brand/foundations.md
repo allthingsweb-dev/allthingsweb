@@ -87,7 +87,9 @@ Buttons: white on Bridge Deep (Lc 90.3, 7.7:1) on Paper, and white on Bridge (Lc
 
 **Night is muted and grained.** A large, saturated dark ground tires the eyes and makes light text seem to glow, which readability scores don't measure. So Night keeps its violet hue at low chroma (OKLCH 0.22 / 0.035 / 293), and carries a fine, fixed grain ([`texture/grain.svg`](texture/grain.svg)) that gives it Paper's printed feel. Paper has no texture.
 
-**One mode per event, everywhere.** Evening events are Night; daytime events (hackathons, brunches) are Paper. An event's cover, page, slides and posts all share its mode. Which one is set by when it starts in San Francisco: from 5 AM up to 4 PM is daytime, and 4 PM or later (or the small hours) is an evening.
+**The site is in the visitor's mode.** Every page follows the mode the visitor chose (system, Paper or Night), and the system's until they choose; a page never switches to a mode of its own.
+
+**An event's artwork has its mode.** Evening events are Night; daytime events (hackathons, brunches) are Paper. An event's cover, link-preview card, slides and posts share its mode; its page does not. Which one is set by when it starts in San Francisco: from 5 AM up to 4 PM is daytime, and 4 PM or later (or the small hours) is an evening.
 
 ## Typography
 

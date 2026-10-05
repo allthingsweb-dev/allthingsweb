@@ -13,8 +13,8 @@ import {
  *
  * Paper is the default. Night applies under `prefers-color-scheme: dark`
  * unless the page asks for Paper with `data-theme="light"`, and wherever
- * `data-theme="dark"` is set: on <html> for a whole page, such as an
- * evening's event page, or on any element for a part of one.
+ * `data-theme="dark"` is set: on <html> for a whole page, when the visitor
+ * chose Night, or on any element for a part of one.
  */
 
 /** The `data-theme` value of each mode. */
