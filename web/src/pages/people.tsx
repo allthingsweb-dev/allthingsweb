@@ -7,12 +7,14 @@ import {
 } from "allthings-core/src/people-directory.ts";
 import type { StageRole } from "allthings-core/src/people.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
+import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
 import { built } from "../assets.ts";
 import { eventPath, personAnchor } from "../links.ts";
 import { Document } from "./document.tsx";
 import { EveningName } from "./evening-row.tsx";
 import { gatheringTitle } from "./metadata.tsx";
+import { hasSource, type ImageMode, SquarePhoto } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 import { listDate } from "./time.ts";
 
@@ -32,6 +34,8 @@ export interface PeopleProps {
   readonly theme: Theme | undefined;
   /** The hosts' portraits, for the footer. */
   readonly portraits: PortraitsById;
+  /** How photos are shown (see picture.tsx). */
+  readonly images: ImageMode;
 }
 
 /** A person's links in the order shown, each named as the footer names it. */
@@ -40,33 +44,60 @@ const linkOrder = ["x", "bluesky", "linkedin"] as const satisfies ReadonlyArray<
 >;
 
 /**
- * Their photo, or the blank avatar. The name is right beside it, so it
- * says nothing more to a screen reader.
+ * How large site.css shows portraits: organizers 160 px square (96 on
+ * phones), everyone else 72 (64 on phones), each offered up to 3x.
  */
-function Portrait({
-  person,
-  lazy,
+const portraitSizes = {
+  organizer: {
+    side: 160,
+    sides: [160, 320],
+    sizes: "(max-width: 600px) 96px, 160px",
+  },
+  speaker: {
+    side: 72,
+    sides: [72, 144, 216],
+    sizes: "(max-width: 600px) 64px, 72px",
+  },
+} as const;
+
+/**
+ * Their photo, cropped square, or the blank avatar. The name is right
+ * beside it, so it says nothing more to a screen reader. The organizers'
+ * load at once; everyone's below them as they come into view.
+ */
+export function Portrait({
+  photo,
+  organizer,
+  images,
+  eager,
 }: {
-  readonly person: Person;
-  readonly lazy: boolean;
+  readonly photo: Rows.Photo | null;
+  readonly organizer: boolean;
+  readonly images: ImageMode;
+  readonly eager: true | undefined;
 }) {
-  const { src, width, height } =
-    person.photo === null
-      ? built.marks.avatar
-      : {
-          src: person.photo.url,
-          width: person.photo.width,
-          height: person.photo.height,
-        };
+  if (photo === null || !hasSource(photo, images)) {
+    const { src, width, height } = built.marks.avatar;
+    return (
+      <img
+        class="portrait"
+        src={src}
+        alt=""
+        width={String(width)}
+        height={String(height)}
+        loading={eager ? undefined : "lazy"}
+        decoding="async"
+      />
+    );
+  }
   return (
-    <img
-      class="portrait"
-      src={src}
+    <SquarePhoto
+      photo={photo}
+      mode={images}
+      {...portraitSizes[organizer ? "organizer" : "speaker"]}
       alt=""
-      width={String(width)}
-      height={String(height)}
-      loading={lazy ? "lazy" : undefined}
-      decoding="async"
+      class="portrait"
+      eager={eager}
     />
   );
 }
@@ -158,13 +189,20 @@ function Parts({ parts }: { readonly parts: ReadonlyArray<Part> }) {
 function PersonEntry({
   person,
   organizer,
+  images,
 }: {
   readonly person: Person;
   readonly organizer: boolean;
+  readonly images: ImageMode;
 }) {
   return (
     <li class="person" id={personAnchor(person.id)}>
-      <Portrait person={person} lazy={!organizer} />
+      <Portrait
+        photo={person.photo}
+        organizer={organizer}
+        images={images}
+        eager={organizer ? true : undefined}
+      />
       <div class="person-text">
         <h3 class="person-name" safe>
           {person.name}
@@ -196,11 +234,13 @@ function Group({
   title,
   people,
   organizers,
+  images,
 }: {
   readonly id: string;
   readonly title: string;
   readonly people: ReadonlyArray<Person>;
   readonly organizers: boolean;
+  readonly images: ImageMode;
 }) {
   if (people.length === 0) return "";
   return (
@@ -210,7 +250,7 @@ function Group({
       </h2>
       <ul>
         {people.map((person) => (
-          <PersonEntry person={person} organizer={organizers} />
+          <PersonEntry person={person} organizer={organizers} images={images} />
         ))}
       </ul>
     </section>
@@ -223,6 +263,7 @@ export function peoplePage({
   origin,
   theme,
   portraits,
+  images,
 }: PeopleProps): string {
   const { organizers, speakers, coHosts } = people;
   return Document({
@@ -235,6 +276,7 @@ export function peoplePage({
     origin,
     theme,
     portraits,
+    images,
     children: (
       <div class="people">
         <h1 class="lockup at-type-event-lockup">people</h1>
@@ -243,18 +285,21 @@ export function peoplePage({
           title="Organizers"
           people={organizers}
           organizers
+          images={images}
         />
         <Group
           id="speakers"
           title="Speakers"
           people={speakers}
           organizers={false}
+          images={images}
         />
         <Group
           id="co-hosts"
           title="Co-hosts and MCs"
           people={coHosts}
           organizers={false}
+          images={images}
         />
       </div>
     ),

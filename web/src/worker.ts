@@ -1,6 +1,8 @@
-import { makeHandler } from "./app.ts";
+import { type ExecutionContext, makeHandler } from "./app.ts";
 
-let handle: ((request: Request) => Promise<Response>) | undefined;
+let handle:
+  | ((request: Request, context: ExecutionContext) => Promise<Response>)
+  | undefined;
 
 /**
  * The all things Worker. Bindings are fixed for an isolate's lifetime, so the
@@ -10,8 +12,9 @@ export default {
   fetch(
     request: Request,
     env: Readonly<Record<string, unknown>>,
+    context: ExecutionContext,
   ): Promise<Response> {
     handle ??= makeHandler(env);
-    return handle(request);
+    return handle(request, context);
   },
 };

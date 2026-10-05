@@ -176,20 +176,26 @@ describe("Home", () => {
   });
 
   test("shows the first photo on the photo origin of each of the latest evenings that have ended", async () => {
-    expect((await read()).photos).toEqual([
-      {
-        url: "https://storage.example/photos/stage.jpg",
-        alt: "The stage",
-        width: 1600,
-        height: 900,
-      },
-      {
-        url: "https://storage.example/photos/cafe.jpg",
-        alt: "Coffee at Café night",
-        width: 1200,
-        height: 800,
-      },
-    ]);
+    // The stage's row was last changed at 2026-01-02T03:04:05.678Z.
+    await db.exec(
+      "UPDATE images SET updated_at = '2026-01-02T03:04:05.678Z' WHERE id = 'd0000000-0000-4000-8000-000000000004'",
+    );
+    const [stage, cafe, ...more] = (await read()).photos;
+    expect(stage).toEqual({
+      url: "https://storage.example/photos/stage.jpg",
+      alt: "The stage",
+      width: 1600,
+      height: 900,
+      version: "1767323045",
+    });
+    expect(cafe).toEqual({
+      url: "https://storage.example/photos/cafe.jpg",
+      alt: "Coffee at Café night",
+      width: 1200,
+      height: 800,
+      version: expect.stringMatching(/^[0-9]+$/),
+    });
+    expect(more).toEqual([]);
     // Before React at Acme ends, only Café night has photos to show.
     const before = await read({ at: at("2026-08-01T00:00:00Z") });
     expect(before.photos.map((photo) => photo.alt)).toEqual([

@@ -5,6 +5,7 @@ import type {
 } from "allthings-core/src/people-directory.ts";
 import { DateTime } from "effect";
 import { peoplePage } from "../src/pages/people.tsx";
+import type { ImageMode } from "../src/pages/picture.tsx";
 import { headingLevels, htmlProblems } from "./support/pages.ts";
 
 /** The people page as a pure function of fixed data. */
@@ -35,14 +36,83 @@ const person = (name: string, overrides: Partial<Person> = {}): Person => ({
   ...overrides,
 });
 
-const render = (people: PeopleView) =>
-  peoplePage({ people, origin, theme: undefined, portraits: new Map() });
+const render = (people: PeopleView, images: ImageMode = "originals") =>
+  peoplePage({
+    people,
+    origin,
+    theme: undefined,
+    portraits: new Map(),
+    images,
+  });
+
+const photo = (name: string, side = 1200) => ({
+  url: `https://media.allthings.dev/profiles/${name}.png`,
+  alt: name,
+  width: side,
+  height: side,
+  version: "1767323045",
+});
 
 const view: PeopleView = {
   organizers: [person("Erik"), person("Andre", { parts: [] })],
   speakers: [person("Ada")],
   coHosts: [],
 };
+
+describe("the people page's portraits as variants", () => {
+  const squares = (name: string, format: string, sides: Array<number>) =>
+    sides
+      .map(
+        (side) =>
+          `/img/${side}x${side}/${format}/1767323045/profiles/${name}.png ${side}w`,
+      )
+      .join(", ");
+  const html = render(
+    {
+      organizers: [person("erik", { photo: photo("erik") })],
+      speakers: [
+        person("ada", { photo: photo("ada") }),
+        person("kit", { photo: photo("kit", 100) }),
+        person("zed", {
+          photo: { ...photo("zed"), url: "https://elsewhere.example/zed.png" },
+        }),
+      ],
+      coHosts: [],
+    },
+    "variants",
+  );
+
+  test("offer organizers at 160 and 320 pixels square, loaded at once", () => {
+    const sizes = "(max-width: 600px) 96px, 160px";
+    expect(html).toContain(
+      [
+        "<picture>",
+        `<source type="image/avif" srcset="${squares("erik", "avif", [160, 320])}" sizes="${sizes}"/>`,
+        `<source type="image/webp" srcset="${squares("erik", "webp", [160, 320])}" sizes="${sizes}"/>`,
+        `<img class="portrait" src="/img/160x160/jpeg/1767323045/profiles/erik.png" srcset="${squares("erik", "jpeg", [160, 320])}" sizes="${sizes}" alt="" width="160" height="160" decoding="async"/>`,
+        "</picture>",
+      ].join(""),
+    );
+  });
+
+  test("offer everyone else at 72 to 216 pixels square, loaded as they're scrolled to", () => {
+    const sizes = "(max-width: 600px) 64px, 72px";
+    expect(html).toContain(
+      `<img class="portrait" src="/img/72x72/jpeg/1767323045/profiles/ada.png" srcset="${squares("ada", "jpeg", [72, 144, 216])}" sizes="${sizes}" alt="" width="72" height="72" loading="lazy" decoding="async"/>`,
+    );
+    // A photo smaller than every square comes at the smallest.
+    expect(html).toContain(`srcset="${squares("kit", "avif", [72])}"`);
+  });
+
+  test("show the blank avatar for a photo the Worker can't make variants of, and load nothing from elsewhere", async () => {
+    expect(html).not.toContain("elsewhere.example");
+    expect(html).not.toContain("media.allthings.dev");
+    expect(
+      html.match(/<img class="portrait" src="\/assets\/avatar\./g),
+    ).toHaveLength(1);
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+});
 
 describe("the people page", () => {
   test("gives each person an anchor from their profile's id, never their name", async () => {

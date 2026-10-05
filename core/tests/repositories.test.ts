@@ -53,6 +53,8 @@ const image = (
   width,
   height,
   placeholder,
+  // The seed sets updated_at to now(), so only its form is known.
+  version: expect.stringMatching(/^[0-9]+$/),
 });
 
 const cover = image(

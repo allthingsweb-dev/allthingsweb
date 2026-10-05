@@ -165,7 +165,7 @@ describe("/people", () => {
     );
     expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
     expect(response.headers.get("content-security-policy")).toBe(
-      contentSecurityPolicy,
+      contentSecurityPolicy.originals,
     );
   });
 
@@ -246,7 +246,7 @@ describe("/people", () => {
     const speakers = entries(section(html, "speakers"));
     const ada = speakers.get("Ada Lovelace") ?? "";
     expect(ada).toContain(
-      `<img class="portrait" src="${adaPortrait}" alt="" width="400" height="400" loading="lazy" decoding="async"/>`,
+      `<img class="portrait" src="${adaPortrait}" alt="" width="72" height="72" loading="lazy" decoding="async"/>`,
     );
     expect(ada).toContain(
       '<p class="person-bio">Ada writes compilers for the analytical engine, mostly at night.</p>',

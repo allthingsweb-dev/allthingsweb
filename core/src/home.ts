@@ -133,13 +133,15 @@ const make = Effect.gen(function* () {
         ), '[]'::json) AS recent,
         COALESCE((
           SELECT json_agg(json_build_object(
-            'url', p.url, 'alt', p.alt, 'width', p.width, 'height', p.height
+            'url', p.url, 'alt', p.alt, 'width', p.width, 'height', p.height,
+            'version', p.version
           ) ORDER BY p.start_date DESC, p.event_id)
           FROM (
             SELECT * FROM (
               SELECT DISTINCT ON (e.id)
                 e.id AS event_id, e.start_date,
-                img.url, img.alt, img.width, img.height
+                img.url, img.alt, img.width, img.height,
+                floor(extract(epoch FROM img.updated_at))::bigint::text AS version
               FROM events e
               JOIN event_images ei ON ei.event_id = e.id
               JOIN images img ON img.id = ei.image_id

@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { type Textures, themeCss } from "allthings-brand/src/css.ts";
 import { tokens } from "allthings-brand/src/tokens.ts";
 import { Marked, Renderer, type Tokens } from "marked";
+import { immutable } from "../src/cache.ts";
 
 /**
  * Builds everything the Worker serves besides its own code, into web/dist:
@@ -23,7 +24,7 @@ const dist = join(web, "dist");
 const publicDir = join(dist, "public");
 
 /** Cache-Control for content-hashed files: a changed file gets a new name. */
-export const immutable = "public, max-age=31536000, immutable";
+export { immutable };
 
 /** The first 16 hex digits of the SHA-256 of `bytes`. */
 function contentHash(bytes: Uint8Array | string): string {

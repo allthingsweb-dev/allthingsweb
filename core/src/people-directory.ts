@@ -312,7 +312,8 @@ const make = Effect.gen(function* () {
         p.linkedin_handle AS "linkedinHandle",
         (
           SELECT json_build_object(
-            'url', i.url, 'alt', i.alt, 'width', i.width, 'height', i.height
+            'url', i.url, 'alt', i.alt, 'width', i.width, 'height', i.height,
+            'version', floor(extract(epoch FROM i.updated_at))::bigint::text
           )
           FROM images i
           WHERE i.id = p.image AND starts_with(i.url, ${photoPrefix})

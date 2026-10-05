@@ -21,6 +21,7 @@ import {
   notFoundPage,
 } from "../src/pages/event.tsx";
 import { fullDate, timeRange } from "../src/pages/time.ts";
+import type { ImageMode } from "../src/pages/picture.tsx";
 import { htmlProblems } from "./support/pages.ts";
 
 /** The event page and its calendar file, as pure functions of fixed data. */
@@ -71,8 +72,11 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   ...overrides,
 });
 
-const render = (view: EventPage, theme?: "light" | "dark") =>
-  eventPage({ event: view, origin, theme, portraits: new Map() });
+const render = (
+  view: EventPage,
+  theme?: "light" | "dark",
+  images: ImageMode = "originals",
+) => eventPage({ event: view, origin, theme, portraits: new Map(), images });
 
 /** The ledger's labels, in order. */
 const labels = (html: string) =>
@@ -234,6 +238,7 @@ describe("the ledger", () => {
         alt: "The room",
         width: 1600,
         height: 1200,
+        version: "1767323045",
       },
     ];
     expect(labels(render(event({ photos })))).not.toContain("Photos");
@@ -333,6 +338,7 @@ describe("the ledger", () => {
           origin,
           path: "/nothing",
           theme: undefined,
+          images: "originals",
           portraits: new Map(),
         }),
       ),
@@ -525,4 +531,63 @@ describe("who took part", () => {
 
 test("handleOf keeps a handle whose percent-encoding is malformed", () => {
   expect(handleOf("https://twitter.com/@bad%E0%A4%A")).toBe("bad%E0%A4%A");
+});
+
+describe("the event page's images as variants", () => {
+  const photo = (name: string, width = 1600, height = 1200) => ({
+    url: `https://media.allthings.dev/events/${name}.jpg`,
+    alt: name,
+    width,
+    height,
+    version: "1767323045",
+  });
+  const photos = Array.from({ length: 9 }, (_, index) => photo(`p${index}`));
+  const html = render(
+    event({
+      status: "past",
+      photos: [
+        ...photos,
+        { ...photo("elsewhere"), url: "https://elsewhere.example/x.jpg" },
+      ],
+      organizers: [
+        { id: "e", name: "Erik", title: null, portrait: photo("erik") },
+      ],
+      talks: [
+        {
+          id: "t",
+          title: "A talk",
+          format: "talk",
+          description: null,
+          speakers: [speaker({ portrait: photo("ada", 800, 800) })],
+        },
+      ],
+    }),
+    undefined,
+    "variants",
+  );
+
+  test("shows every photo the Worker can make variants of, sized for its tile, lazily", () => {
+    const tiles = html.match(/<li><picture>.*?<\/picture><\/li>/g) ?? [];
+    expect(tiles).toHaveLength(9);
+    const sizes =
+      "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(22.75vw - 9px), 320px";
+    expect(tiles[0]).toContain(
+      `<img src="/img/480/jpeg/1767323045/events/p0.jpg" srcset="/img/240/jpeg/1767323045/events/p0.jpg 240w, /img/360/jpeg/1767323045/events/p0.jpg 360w, /img/480/jpeg/1767323045/events/p0.jpg 480w, /img/720/jpeg/1767323045/events/p0.jpg 720w, /img/960/jpeg/1767323045/events/p0.jpg 960w, /img/1200/jpeg/1767323045/events/p0.jpg 1200w" sizes="${sizes}" alt="p0" width="1600" height="1200" loading="lazy" decoding="async"/>`,
+    );
+    expect(html).not.toContain("elsewhere.example");
+  });
+
+  test("offers speakers at 72 to 336 pixels square and hosts at 72 and 144", () => {
+    expect(html).toContain(
+      '<img src="/img/72x72/jpeg/1767323045/events/ada.jpg" srcset="/img/72x72/jpeg/1767323045/events/ada.jpg 72w, /img/144x144/jpeg/1767323045/events/ada.jpg 144w, /img/168x168/jpeg/1767323045/events/ada.jpg 168w, /img/216x216/jpeg/1767323045/events/ada.jpg 216w, /img/336x336/jpeg/1767323045/events/ada.jpg 336w" sizes="(max-width: 760px) 72px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
+    );
+    expect(html).toContain(
+      '<img src="/img/72x72/jpeg/1767323045/events/erik.jpg" srcset="/img/72x72/jpeg/1767323045/events/erik.jpg 72w, /img/144x144/jpeg/1767323045/events/erik.jpg 144w" sizes="44px" alt="" width="44" height="44" loading="lazy" decoding="async"/>',
+    );
+  });
+
+  test("loads nothing from the media origin, and is valid HTML", async () => {
+    expect(html).not.toContain("media.allthings.dev");
+    expect(await htmlProblems(html)).toEqual([]);
+  });
 });

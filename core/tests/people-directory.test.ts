@@ -165,6 +165,7 @@ describe("PeopleDirectory", () => {
         alt: "Ada Lovelace",
         width: 400,
         height: 400,
+        version: expect.stringMatching(/^[0-9]+$/),
       },
       parts: [
         {

@@ -16,6 +16,8 @@ export const Image = Schema.Struct({
   placeholder: Schema.String,
   width: Schema.Int,
   height: Schema.Int,
+  /** As `Photo.version`: `updated_at` in whole seconds, as digits. */
+  version: Schema.String,
 });
 
 /** A published `events` row with its preview image, if it has one. */
@@ -141,6 +143,12 @@ export const Photo = Schema.Struct({
   alt: Schema.String,
   width: Schema.Int,
   height: Schema.Int,
+  /**
+   * The image row's `updated_at` in whole seconds since the epoch, as
+   * digits. It changes whenever the row does, so URLs derived from the photo
+   * can name it and be cached for good.
+   */
+  version: Schema.String,
 });
 
 /** A profile's photo, from `profiles.image`, with the profile's id. */
