@@ -586,10 +586,6 @@ main > section,
 }
 
 /* Each action reads whole: "talk between evenings → discord" never parts. */
-.evenings-head .list-links a {
-  white-space: nowrap;
-}
-
 .evenings-lists,
 .about-parts {
   grid-column: 6 / span 7;
