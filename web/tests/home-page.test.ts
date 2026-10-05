@@ -144,7 +144,7 @@ describe("the home page", () => {
   test("sends I'm in to the event page when it has no Luma page", () => {
     const html = render(view({ next: evening({ rsvpUrl: null }) }));
     expect(html).toContain(
-      '<a class="button" href="https://allthingsweb.dev/2026-09-30-all-things-effect">I’m in<span aria-hidden="true">→</span></a>',
+      '<a class="button" href="/2026-09-30-all-things-effect">I’m in<span aria-hidden="true">→</span></a>',
     );
     expect(html).not.toContain("on Luma");
   });

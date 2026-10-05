@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { hosts, socials } from "../src/links.ts";
+import {
+  eventPath,
+  hosts,
+  personAnchor,
+  personUrl,
+  socials,
+} from "../src/links.ts";
 
-/** Who and where the footer names, held to brand/foundations.md. */
+/** Who and where the footer names, held to brand/foundations.md, and the links within the site. */
 
 const foundations = await Bun.file(
   new URL("../../brand/foundations.md", import.meta.url),
@@ -40,5 +46,25 @@ describe("hosts", () => {
       );
     }
     expect(hosts[0].profileId).not.toBe(hosts[1].profileId);
+  });
+});
+
+describe("personAnchor", () => {
+  test("is the profile's id after p-, and a plain token whatever the id", () => {
+    expect(personAnchor("717803b9-074f-47b9-adb7-ff3f2e520eee")).toBe(
+      "p-717803b9-074f-47b9-adb7-ff3f2e520eee",
+    );
+    expect(personAnchor('<a b="c">')).toBe("p-_3c_a_20_b_3d__22_c_22__3e_");
+    expect(personAnchor("a b")).not.toBe(personAnchor("a_b"));
+    expect(personUrl("b1")).toBe("/people#p-b1");
+  });
+});
+
+describe("eventPath", () => {
+  test("is the slug, encoded, as one root-relative segment", () => {
+    expect(eventPath("2025-12-02-café night")).toBe(
+      "/2025-12-02-caf%C3%A9%20night",
+    );
+    expect(eventPath("a/b")).toBe("/a%2Fb");
   });
 });
