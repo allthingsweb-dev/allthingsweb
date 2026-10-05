@@ -9,6 +9,7 @@ import { Portraits } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
 import { Context, Effect, Layer, Option, Redacted } from "effect";
+import { FeedData } from "./seo/data.ts";
 import { V1Data } from "./v1/data.ts";
 
 /** Every repository a request may read from. */
@@ -16,6 +17,7 @@ export type Repositories =
   | Evenings
   | EventPages
   | Events
+  | FeedData
   | Home
   | Portraits
   | Redirects
@@ -87,6 +89,7 @@ export const repositories: Layer.Layer<Repositories, DataSourceError> =
         Evenings.layer,
         EventPages.layer,
         Events.layer,
+        FeedData.layer,
         Home.layer,
         Portraits.layer,
         Redirects.layer,

@@ -13,6 +13,13 @@ column public.event_images #001 event_id uuid not null
 column public.event_images #002 image_id uuid not null
 column public.event_images #003 created_at timestamp with time zone not null default now()
 column public.event_images #004 updated_at timestamp with time zone not null
+column public.event_people #001 event_id uuid not null
+column public.event_people #002 profile_id uuid not null
+column public.event_people #003 role text not null
+column public.event_people #004 "position" integer not null
+column public.event_people #005 source text not null
+column public.event_people #006 created_at timestamp with time zone not null default now()
+column public.event_people #007 updated_at timestamp with time zone not null
 column public.event_review_sessions #001 id uuid not null default gen_random_uuid()
 column public.event_review_sessions #002 event_id uuid not null
 column public.event_review_sessions #003 provider text not null default 'discord'::text
@@ -51,6 +58,8 @@ column public.events #016 recording_url text
 column public.events #017 created_at timestamp with time zone not null default now()
 column public.events #018 updated_at timestamp with time zone not null
 column public.events #019 topic text
+column public.events #020 luma_guest_count integer
+column public.events #021 luma_checked_in_count integer
 column public.images #001 id uuid not null default gen_random_uuid()
 column public.images #002 url text not null
 column public.images #003 placeholder text not null
@@ -75,6 +84,7 @@ column public.profiles #009 profile_type profile_type not null
 column public.profiles #010 created_at timestamp with time zone not null default now()
 column public.profiles #011 updated_at timestamp with time zone not null
 column public.profiles #012 photo_source_url text
+column public.profiles #013 luma_user_id text
 column public.redirects #001 slug text not null
 column public.redirects #002 destination_url text not null
 column public.redirects #003 comment text
@@ -91,17 +101,25 @@ column public.talk_speakers #001 talk_id uuid not null
 column public.talk_speakers #002 speaker_id uuid not null
 column public.talk_speakers #003 created_at timestamp with time zone not null default now()
 column public.talk_speakers #004 updated_at timestamp with time zone not null
+column public.talk_speakers #005 role text not null default 'speaker'::text
 column public.talks #001 id uuid not null default gen_random_uuid()
 column public.talks #002 title text not null
 column public.talks #003 description text not null
 column public.talks #004 created_at timestamp with time zone not null default now()
 column public.talks #005 updated_at timestamp with time zone not null
+column public.talks #006 format text not null default 'talk'::text
 constraint neon_auth.users_sync users_sync_pkey PRIMARY KEY (id)
 constraint public.administrators administrators_pkey PRIMARY KEY (id)
 constraint public.administrators administrators_user_id_users_sync_id_fk FOREIGN KEY (user_id) REFERENCES neon_auth.users_sync(id)
 constraint public.event_images event_images_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_images event_images_event_id_image_id_pk PRIMARY KEY (event_id, image_id)
 constraint public.event_images event_images_image_id_images_id_fk FOREIGN KEY (image_id) REFERENCES images(id)
+constraint public.event_people event_people_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_people event_people_event_id_profile_id_role_pk PRIMARY KEY (event_id, profile_id, role)
+constraint public.event_people event_people_position_check CHECK (("position" >= 0))
+constraint public.event_people event_people_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
+constraint public.event_people event_people_role_check CHECK ((role = ANY (ARRAY['organizer'::text, 'co-host'::text, 'mc'::text])))
+constraint public.event_people event_people_source_check CHECK ((source = ANY (ARRAY['luma'::text, 'site'::text])))
 constraint public.event_review_sessions event_review_sessions_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
 constraint public.event_review_sessions event_review_sessions_event_id_unique UNIQUE (event_id)
 constraint public.event_review_sessions event_review_sessions_pkey PRIMARY KEY (id)
@@ -112,7 +130,9 @@ constraint public.event_sponsors event_sponsors_sponsor_id_sponsors_id_fk FOREIG
 constraint public.event_talks event_talks_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_talks event_talks_event_id_talk_id_pk PRIMARY KEY (event_id, talk_id)
 constraint public.event_talks event_talks_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id)
+constraint public.events events_luma_checked_in_count_check CHECK ((luma_checked_in_count >= 0))
 constraint public.events events_luma_event_id_unique UNIQUE (luma_event_id)
+constraint public.events events_luma_guest_count_check CHECK ((luma_guest_count >= 0))
 constraint public.events events_pkey PRIMARY KEY (id)
 constraint public.events events_preview_image_images_id_fk FOREIGN KEY (preview_image) REFERENCES images(id) ON DELETE SET NULL
 constraint public.events events_slug_unique UNIQUE (slug)
@@ -123,21 +143,26 @@ constraint public.profile_users profile_users_profile_id_unique UNIQUE (profile_
 constraint public.profile_users profile_users_profile_id_user_id_pk PRIMARY KEY (profile_id, user_id)
 constraint public.profile_users profile_users_user_id_users_sync_id_fk FOREIGN KEY (user_id) REFERENCES neon_auth.users_sync(id)
 constraint public.profiles profiles_image_images_id_fk FOREIGN KEY (image) REFERENCES images(id) ON DELETE SET NULL
+constraint public.profiles profiles_luma_user_id_check CHECK ((luma_user_id ~ '^usr-[A-Za-z0-9]+$'::text))
+constraint public.profiles profiles_luma_user_id_unique UNIQUE (luma_user_id)
 constraint public.profiles profiles_pkey PRIMARY KEY (id)
 constraint public.redirects redirects_slug_unique PRIMARY KEY (slug)
 constraint public.sponsors sponsors_name_unique UNIQUE (name)
 constraint public.sponsors sponsors_pkey PRIMARY KEY (id)
 constraint public.sponsors sponsors_square_logo_dark_images_id_fk FOREIGN KEY (square_logo_dark) REFERENCES images(id) ON DELETE SET NULL
 constraint public.sponsors sponsors_square_logo_light_images_id_fk FOREIGN KEY (square_logo_light) REFERENCES images(id) ON DELETE SET NULL
+constraint public.talk_speakers talk_speakers_role_check CHECK ((role = ANY (ARRAY['speaker'::text, 'moderator'::text])))
 constraint public.talk_speakers talk_speakers_speaker_id_profiles_id_fk FOREIGN KEY (speaker_id) REFERENCES profiles(id)
 constraint public.talk_speakers talk_speakers_talk_id_speaker_id_pk PRIMARY KEY (talk_id, speaker_id)
 constraint public.talk_speakers talk_speakers_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id)
+constraint public.talks talks_format_check CHECK ((format = ANY (ARRAY['talk'::text, 'panel'::text, 'fireside'::text])))
 constraint public.talks talks_pkey PRIMARY KEY (id)
 enum public.profile_type ('organizer', 'member')
 index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at)
 index neon_auth.users_sync CREATE UNIQUE INDEX users_sync_pkey ON neon_auth.users_sync USING btree (id)
 index public.administrators CREATE UNIQUE INDEX administrators_pkey ON public.administrators USING btree (id)
 index public.event_images CREATE UNIQUE INDEX event_images_event_id_image_id_pk ON public.event_images USING btree (event_id, image_id)
+index public.event_people CREATE UNIQUE INDEX event_people_event_id_profile_id_role_pk ON public.event_people USING btree (event_id, profile_id, role)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_event_id_unique ON public.event_review_sessions USING btree (event_id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_pkey ON public.event_review_sessions USING btree (id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_thread_id_unique ON public.event_review_sessions USING btree (thread_id)
@@ -149,6 +174,7 @@ index public.events CREATE UNIQUE INDEX events_slug_unique ON public.events USIN
 index public.images CREATE UNIQUE INDEX images_pkey ON public.images USING btree (id)
 index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_unique ON public.profile_users USING btree (profile_id)
 index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_user_id_pk ON public.profile_users USING btree (profile_id, user_id)
+index public.profiles CREATE UNIQUE INDEX profiles_luma_user_id_unique ON public.profiles USING btree (luma_user_id)
 index public.profiles CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
 index public.redirects CREATE UNIQUE INDEX redirects_slug_unique ON public.redirects USING btree (slug)
 index public.sponsors CREATE UNIQUE INDEX sponsors_name_unique ON public.sponsors USING btree (name)
@@ -158,6 +184,7 @@ index public.talks CREATE UNIQUE INDEX talks_pkey ON public.talks USING btree (i
 relation neon_auth.users_sync kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.administrators kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_images kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_people kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_review_sessions kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=

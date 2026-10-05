@@ -1,5 +1,6 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { migratedDatabase } from "allthings-core/tests/support/database.ts";
+import { hosts } from "../../src/links.ts";
 import { hostProfiles } from "./catalog.ts";
 
 /**
@@ -84,8 +85,10 @@ export function eventCatalog(now: Date): string {
     INSERT INTO talks (id, title, description, updated_at) VALUES
       ('a0000000-0000-4000-8000-000000000501', 'A fireside chat on Effect', '<p>Typed errors &amp; <strong>services</strong>.</p><script>alert(1)</script>', now()),
       ('a0000000-0000-4000-8000-000000000502', 'Compilers, together', '', now());
+    INSERT INTO talk_speakers (talk_id, speaker_id, role, created_at, updated_at) VALUES
+      ('a0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000502', 'moderator', '2026-01-02T00:00:00Z', now()),
+      ('a0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000501', 'speaker', '2026-01-02T00:00:01Z', now());
     INSERT INTO talk_speakers (talk_id, speaker_id, created_at, updated_at) VALUES
-      ('a0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000501', '2026-01-02T00:00:01Z', now()),
       ('a0000000-0000-4000-8000-000000000502', 'b0000000-0000-4000-8000-000000000502', '2026-01-02T00:00:02Z', now()),
       ('a0000000-0000-4000-8000-000000000502', 'b0000000-0000-4000-8000-000000000501', '2026-01-02T00:00:03Z', now());
     INSERT INTO event_talks (event_id, talk_id, created_at, updated_at) VALUES
@@ -98,7 +101,18 @@ export function eventCatalog(now: Date): string {
     INSERT INTO redirects (slug, destination_url, comment, updated_at) VALUES
       ('discord', '${redirects.discord}', 'Community chat', now()),
       ('unsafe', '${redirects.unsafe}', NULL, now());
-    ${hostProfiles}`;
+    ${hostProfiles}
+    -- The upcoming evening: a fireside chat, Luma's guest count, its
+    -- organizers (Andre first) and two co-hosts; the past one has an MC.
+    UPDATE talks SET format = 'fireside' WHERE id = 'a0000000-0000-4000-8000-000000000501';
+    UPDATE events SET luma_guest_count = 183 WHERE id = 'e0000000-0000-4000-8000-000000000501';
+    UPDATE events SET luma_guest_count = 146 WHERE id = 'e0000000-0000-4000-8000-000000000503';
+    INSERT INTO event_people (event_id, profile_id, role, position, source, created_at, updated_at) VALUES
+      ('e0000000-0000-4000-8000-000000000501', '${hosts[1].profileId}', 'organizer', 0, 'luma', now(), now()),
+      ('e0000000-0000-4000-8000-000000000501', '${hosts[0].profileId}', 'organizer', 1, 'luma', now(), now()),
+      ('e0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000501', 'co-host', 0, 'luma', now(), now()),
+      ('e0000000-0000-4000-8000-000000000501', 'b0000000-0000-4000-8000-000000000502', 'co-host', 1, 'luma', now(), now()),
+      ('e0000000-0000-4000-8000-000000000503', 'b0000000-0000-4000-8000-000000000502', 'mc', 0, 'site', now(), now());`;
 }
 
 /** A migrated database holding the event catalog as of `now`. */

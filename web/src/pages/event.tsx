@@ -1,6 +1,7 @@
 import { dataTheme } from "allthings-brand/src/css.ts";
 import type {
   EventPage,
+  Person,
   Speaker,
   Talk,
   Venue,
@@ -16,6 +17,8 @@ import { calendarPath } from "./calendar.ts";
 import { Document } from "./document.tsx";
 import { Cursor } from "./evening-row.tsx";
 import { hostNames } from "./home.tsx";
+import { gatheringTitle, homeTitle, lockup, type Title } from "./metadata.tsx";
+import { eventStructuredData } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
 import { day, fullDate, timeRange } from "./time.ts";
 
@@ -40,9 +43,14 @@ export interface EventPageProps {
   readonly portraits: PortraitsById;
 }
 
-/** all things/<topic> as the page's title, or the name as written. */
-export function lockupText(event: Pick<EventPage, "topic" | "name">): string {
-  return event.topic === undefined ? event.name : `all things/${event.topic}`;
+/**
+ * The page's title: all things/<topic>, or the name as written before the
+ * open slot when the name yields no topic.
+ */
+export function eventTitle(event: Pick<EventPage, "topic" | "name">): Title {
+  return event.topic === undefined
+    ? gatheringTitle(event.name)
+    : lockup(event.topic);
 }
 
 /**
@@ -106,6 +114,11 @@ function When({ event }: { readonly event: EventPage }) {
           </time>
         </p>
         <p safe>{event.status === "live" ? `${range}. On now.` : range}</p>
+        {event.status === "past" && event.guests !== null ? (
+          <p safe>{`${event.guests} went.`}</p>
+        ) : (
+          ""
+        )}
         {event.status === "past" ? (
           ""
         ) : (
@@ -173,51 +186,139 @@ function Where({
   );
 }
 
-/** Erik and Andre, beside the hosting company on every event page. */
-function YourHosts({ portraits }: { readonly portraits: PortraitsById }) {
+/** A portrait, or the brand's blank avatar for someone without one. */
+function Portrait({
+  person,
+  size,
+}: {
+  readonly person: Pick<Person, "portrait">;
+  readonly size: number;
+}) {
+  return (
+    <img
+      src={person.portrait?.url ?? built.marks.avatar.src}
+      alt=""
+      width={String(size)}
+      height={String(size)}
+      loading="lazy"
+      decoding="async"
+    />
+  );
+}
+
+/**
+ * The organizers, beside the hosting company on every event page
+ * (brand/foundations.md, "People and channels"): the event's own, else
+ * Erik and Andre, who sign off every page.
+ */
+function YourHosts({
+  organizers,
+  portraits,
+}: {
+  readonly organizers: ReadonlyArray<Person>;
+  readonly portraits: PortraitsById;
+}) {
+  const people: ReadonlyArray<Pick<Person, "portrait">> =
+    organizers.length > 0
+      ? organizers
+      : hosts.map((host) => ({
+          portrait: portraits.get(host.profileId) ?? null,
+        }));
+  const names =
+    organizers.length > 0
+      ? hostNames(organizers.map((person) => firstName(person.name)))
+      : hostNames(hosts.map((host) => host.name));
   return (
     <div class="your-hosts">
       <span class="host-portraits">
-        {hosts.map((host) => (
-          <img
-            src={portraits.get(host.profileId)?.url ?? built.marks.avatar.src}
-            alt=""
-            width="44"
-            height="44"
-            loading="lazy"
-            decoding="async"
-          />
+        {people.map((person) => (
+          <Portrait person={person} size={44} />
         ))}
       </span>
       <p>
-        <span class="at-type-meta">your hosts</span>
+        <span class="at-type-meta">
+          {organizers.length === 1 ? "your host" : "your hosts"}
+        </span>
         <span class="host-names" safe>
-          {`${hosts[0].name} & ${hosts[1].name}`}
+          {names}
         </span>
       </p>
     </div>
   );
 }
 
-function HostedAt({
-  companies,
-  portraits,
+/** "Erik" for "Erik Thorelli": hosts go by their first names. */
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? name;
+}
+
+/** Co-hosts or the MC: each with their portrait, name and what they do. */
+function People({
+  label,
+  people,
 }: {
-  readonly companies: ReadonlyArray<string>;
-  readonly portraits: PortraitsById;
+  readonly label: string;
+  readonly people: ReadonlyArray<Person>;
 }) {
   return (
+    <div class="people">
+      <p class="at-type-meta" safe>
+        {label}
+      </p>
+      <ul>
+        {people.map((person) => (
+          <li class="person">
+            <Portrait person={person} size={44} />
+            <p>
+              <span class="person-name" safe>
+                {person.name}
+              </span>
+              {person.title === null ? (
+                ""
+              ) : (
+                <span class="person-title" safe>
+                  {person.title}
+                </span>
+              )}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function HostedAt({
+  event,
+  portraits,
+}: {
+  readonly event: EventPage;
+  readonly portraits: PortraitsById;
+}) {
+  const companies = event.hosts;
+  return (
     <Fact label={companies.length === 0 ? "Hosted by" : "Hosted at"}>
-      <div class="hosted">
-        {companies.length === 0 ? (
+      <>
+        <div class="hosted">
+          {companies.length === 0 ? (
+            ""
+          ) : (
+            <p class="fact-head" safe>
+              {hostNames(companies)}
+            </p>
+          )}
+          <YourHosts organizers={event.organizers} portraits={portraits} />
+        </div>
+        {event.coHosts.length === 0 ? (
           ""
         ) : (
-          <p class="fact-head" safe>
-            {hostNames(companies)}
-          </p>
+          <People
+            label={event.coHosts.length === 1 ? "co-host" : "co-hosts"}
+            people={event.coHosts}
+          />
         )}
-        <YourHosts portraits={portraits} />
-      </div>
+        {event.mcs.length === 0 ? "" : <People label="mc" people={event.mcs} />}
+      </>
     </Fact>
   );
 }
@@ -226,14 +327,20 @@ function HostedAt({
 function Seats({
   rsvpUrl,
   seats,
+  guests,
 }: {
   readonly rsvpUrl: string;
   readonly seats: number | null;
+  readonly guests: number | null;
 }) {
+  const counts = [
+    ...(guests === null ? [] : [`${guests} going`]),
+    ...(seats === null ? [] : [`${seats} seats`]),
+  ].join(" · ");
   return (
     <Fact label="Seats">
       <div class="act">
-        {seats === null ? "" : <p safe>{`${seats}, held on Luma.`}</p>}
+        {counts === "" ? "" : <p safe>{counts}</p>}
         <a class="button" href={rsvpUrl}>
           I’m in<span class="visually-hidden">, on Luma</span>
           <span aria-hidden="true">→</span>
@@ -258,8 +365,15 @@ function Recording({ url }: { readonly url: string }) {
 
 /** A profile link's handle, as people write it: "@ada", "ada.bsky.social". */
 export function handleOf(url: string): string {
-  const path = decodeURIComponent(new URL(url).pathname);
-  return path.slice(path.lastIndexOf("/") + 1).replace(/^@/, "");
+  const { pathname } = new URL(url);
+  const segment = pathname.slice(pathname.lastIndexOf("/") + 1);
+  let handle = segment;
+  try {
+    handle = decodeURIComponent(segment);
+  } catch {
+    // Malformed percent-encoding: the segment as written still names them.
+  }
+  return handle.replace(/^@/, "");
 }
 
 function SpeakerLinks({ speaker }: { readonly speaker: Speaker }) {
@@ -302,6 +416,11 @@ function SpeakerCard({ speaker }: { readonly speaker: Speaker }) {
         decoding="async"
       />
       <div class="speaker-who">
+        {speaker.role === "speaker" ? (
+          ""
+        ) : (
+          <p class="speaker-role at-type-meta">{speaker.role}</p>
+        )}
         <h3 class="at-type-list-name" safe>
           {speaker.name}
         </h3>
@@ -325,11 +444,22 @@ function SpeakerCard({ speaker }: { readonly speaker: Speaker }) {
   );
 }
 
+/** How a talk that isn't a plain talk is held, as the page names it. */
+const formatNames = {
+  panel: "panel",
+  fireside: "fireside chat",
+} as const;
+
 function TalkEntry({ talk }: { readonly talk: Talk }) {
   // Sanitized by core (rich-text.ts): formatting and safe links only.
   const safeDescription = talk.description;
   return (
     <section class="talk">
+      {talk.format === "talk" ? (
+        ""
+      ) : (
+        <p class="at-type-meta">{formatNames[talk.format]}</p>
+      )}
       <h2 class="talk-title at-type-lead" safe>
         {talk.title}
       </h2>
@@ -442,6 +572,10 @@ function Next({
   );
 }
 
+/** Where an event's page is on the site: its slug, encoded, as one segment. */
+export const eventPagePath = (slug: string): `/${string}` =>
+  `/${encodeURIComponent(slug)}`;
+
 /** The whole page for `event`, in its mode unless the visitor fixed one. */
 export function eventPage({
   event,
@@ -452,11 +586,16 @@ export function eventPage({
   const past = event.status === "past";
   const tagline = event.tagline.trim();
   return Document({
-    title: lockupText(event),
-    description:
-      tagline === ""
-        ? "An evening for people who build software, in San Francisco."
-        : tagline,
+    meta: {
+      title: eventTitle(event),
+      description:
+        tagline === ""
+          ? "An evening for people who build software, in San Francisco."
+          : tagline,
+      path: eventPagePath(event.slug),
+      structuredData: [eventStructuredData(event, origin)],
+    },
+    origin,
     theme,
     pageTheme: dataTheme[event.mode],
     portraits,
@@ -470,9 +609,13 @@ export function eventPage({
           ) : (
             <Where venue={event.venue} hostingCompanies={event.hosts} />
           )}
-          <HostedAt companies={event.hosts} portraits={portraits} />
+          <HostedAt event={event} portraits={portraits} />
           {!past && event.rsvpUrl !== null ? (
-            <Seats rsvpUrl={event.rsvpUrl} seats={event.seats} />
+            <Seats
+              rsvpUrl={event.rsvpUrl}
+              seats={event.seats}
+              guests={event.guests}
+            />
           ) : (
             ""
           )}
@@ -496,14 +639,29 @@ export function eventPage({
   });
 }
 
+/** What every page that stands in for an event's page is rendered for. */
+export interface StandInProps {
+  /** The production origin, which the page's canonical URL is made from. */
+  readonly origin: string;
+  /** The address that was asked for, which stays the canonical one. */
+  readonly path: `/${string}`;
+  readonly theme: Theme | undefined;
+}
+
 /** Nothing published lives at this address: said plainly, with ways on. */
 export function notFoundPage({
+  origin,
+  path,
   theme,
   portraits,
-}: Omit<EventPageProps, "event" | "origin">): string {
+}: StandInProps & { readonly portraits: PortraitsById }): string {
   return Document({
-    title: "not found · all things/_",
-    description: "No evening lives at this address.",
+    meta: {
+      title: gatheringTitle("not found"),
+      description: "No evening lives at this address.",
+      path,
+    },
+    origin,
     theme,
     portraits,
     children: (
@@ -531,13 +689,17 @@ export function notFoundPage({
  * The hosts' portraits weren't read either, so the blank avatar stands in.
  */
 export function eventUnavailablePage({
+  origin,
+  path,
   theme,
-}: {
-  readonly theme: Theme | undefined;
-}): string {
+}: StandInProps): string {
   return Document({
-    title: "all things/_",
-    description: "Evenings for people who build software in San Francisco.",
+    meta: {
+      title: homeTitle,
+      description: "Evenings for people who build software in San Francisco.",
+      path,
+    },
+    origin,
     theme,
     portraits: new Map(),
     children: (

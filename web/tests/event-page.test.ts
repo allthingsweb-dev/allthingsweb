@@ -15,8 +15,9 @@ import {
 import {
   eventLockupSize,
   eventPage,
+  eventTitle,
+  firstName,
   handleOf,
-  lockupText,
   notFoundPage,
 } from "../src/pages/event.tsx";
 import { fullDate, timeRange } from "../src/pages/time.ts";
@@ -34,6 +35,7 @@ const speaker = (overrides: Partial<Speaker> = {}): Speaker => ({
   bio: "Writes compilers.",
   links: { x: null, bluesky: null, linkedin: null },
   portrait: null,
+  role: "speaker",
   ...overrides,
 });
 
@@ -56,6 +58,10 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
       "CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA",
   },
   hosts: ["CodeRabbit"],
+  organizers: [],
+  coHosts: [],
+  mcs: [],
+  guests: null,
   rsvpUrl: "https://lu.ma/event/evt-effect",
   seats: 200,
   recordingUrl: null,
@@ -117,7 +123,7 @@ describe("the lockup", () => {
     ["react native", "m", "all things/react native"],
   ] as const)("at/%s is set %s and titled %s", (topic, size, title) => {
     expect(eventLockupSize({ topic })).toBe(size);
-    expect(lockupText({ topic, name: "Anything" })).toBe(title);
+    expect(eventTitle({ topic, name: "Anything" })).toBe(title);
   });
 
   test("a name without a topic is set small, as written, with the cursor until it has happened", () => {
@@ -126,7 +132,7 @@ describe("the lockup", () => {
     expect(upcoming).toContain(
       `<h1 class="event-name event-name-s"><span>${name}</span><span class="at-cursor" aria-hidden="true">_</span></h1>`,
     );
-    expect(upcoming).toContain(`<title>${name}</title>`);
+    expect(upcoming).toContain(`<title>${name} · all things/_</title>`);
     const past = render(event({ topic: undefined, name, status: "past" }));
     expect(past).toContain(
       `<h1 class="event-name event-name-s"><span>${name}</span></h1>`,
@@ -254,6 +260,7 @@ describe("the ledger", () => {
           {
             id: "a1",
             title: "Two people, one talk",
+            format: "talk",
             description: "<p>Hi</p>" as SafeHtml,
             speakers: [
               speaker({
@@ -290,14 +297,20 @@ describe("the ledger", () => {
           {
             id: "a1",
             title: "<b>bold</b>",
+            format: "talk",
             description: null,
             speakers: [speaker({ name: "<i>x</i>", bio: "a < b" })],
           },
         ],
       }),
     );
-    expect(html).not.toContain("<script>");
-    expect(html).not.toContain("<b>bold");
+    // Attribute values may hold "<" as text; elements may not.
+    const body = html.slice(html.indexOf("<body>"));
+    expect(body).not.toContain("<script>");
+    expect(body).not.toContain("<b>bold");
+    expect(html.match(/<script type="application\/ld\+json">/g)).toHaveLength(
+      1,
+    );
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).toContain("&quot;Acme&quot; &amp; &lt;Co&gt;");
     expect(html).toContain("&lt;i&gt;x&lt;/i&gt;");
@@ -316,7 +329,12 @@ describe("the ledger", () => {
   test("not found is valid HTML", async () => {
     expect(
       await htmlProblems(
-        notFoundPage({ theme: undefined, portraits: new Map() }),
+        notFoundPage({
+          origin,
+          path: "/nothing",
+          theme: undefined,
+          portraits: new Map(),
+        }),
       ),
     ).toEqual([]);
   });
@@ -399,4 +417,112 @@ describe("the calendar file", () => {
     );
     expect(calendarFileName("¿?")).toBe("evening.ics");
   });
+});
+
+describe("who took part", () => {
+  const person = (name: string, title: string | null = null) => ({
+    id: name,
+    name,
+    title,
+    portrait: null,
+  });
+
+  test("names the event's organizers as your hosts, by first name, else Erik and Andre", () => {
+    const own = render(
+      event({
+        organizers: [person("Andre Landgraf"), person("Erik Thorelli")],
+      }),
+    );
+    expect(own).toContain('<span class="host-names">Andre &amp; Erik</span>');
+    const one = render(event({ organizers: [person("Andre Landgraf")] }));
+    expect(one).toContain('<span class="at-type-meta">your host</span>');
+    expect(one).toContain('<span class="host-names">Andre</span>');
+    expect(render(event())).toContain(
+      '<span class="host-names">Erik &amp; Andre</span>',
+    );
+    expect(firstName("  Sébastien Morel ")).toBe("Sébastien");
+  });
+
+  test("lists co-hosts and the MC with what they do, and leaves out who isn't there", () => {
+    const html = render(
+      event({
+        coHosts: [
+          person("Michael Arnaldi", "Creator of Effect"),
+          person("Mirela Prifti"),
+        ],
+        mcs: [person("Ada Lovelace", "Engineer")],
+      }),
+    );
+    expect(html).toContain('<p class="at-type-meta">co-hosts</p>');
+    expect(html).toContain(
+      '<span class="person-name">Michael Arnaldi</span><span class="person-title">Creator of Effect</span>',
+    );
+    expect(html).toContain(
+      '<span class="person-name">Mirela Prifti</span></p>',
+    );
+    expect(html).toContain('<p class="at-type-meta">mc</p>');
+    expect(render(event({ coHosts: [person("Dan Goosewin")] }))).toContain(
+      '<p class="at-type-meta">co-host</p>',
+    );
+    const none = render(event());
+    expect(none).not.toContain("co-host");
+    expect(none).not.toContain('class="people"');
+  });
+
+  test("says how many are going while it is ahead, and how many went after", () => {
+    expect(render(event({ guests: 183 }))).toContain(
+      "<p>183 going · 200 seats</p>",
+    );
+    expect(render(event({ guests: 183, seats: null }))).toContain(
+      "<p>183 going</p>",
+    );
+    const past = render(event({ guests: 183, status: "past" }));
+    expect(past).toContain("<p>183 went.</p>");
+    expect(past).not.toContain("going");
+    expect(render(event({ status: "past" }))).not.toContain("went");
+  });
+
+  test("names a panel or fireside chat, and each speaker's part in it", () => {
+    const html = render(
+      event({
+        talks: [
+          {
+            id: "a1",
+            title: "With its creator",
+            format: "fireside",
+            description: null,
+            speakers: [
+              speaker({ id: "m", name: "Simon", role: "moderator" }),
+              speaker({ id: "g", name: "Michael", role: "guest" }),
+            ],
+          },
+          {
+            id: "a2",
+            title: "A talk",
+            format: "talk",
+            description: null,
+            speakers: [speaker()],
+          },
+        ],
+      }),
+    );
+    expect(html).toContain(
+      '<section class="talk"><p class="at-type-meta">fireside chat</p><h2',
+    );
+    expect(html).toContain(
+      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name">Simon</h3>',
+    );
+    expect(html).toContain(
+      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name">Michael</h3>',
+    );
+    // A talk's speaker is just its speaker.
+    expect(html).toContain(
+      '<section class="talk"><h2 class="talk-title at-type-lead">A talk</h2>',
+    );
+    expect(html.match(/speaker-role/g)).toHaveLength(2);
+  });
+});
+
+test("handleOf keeps a handle whose percent-encoding is malformed", () => {
+  expect(handleOf("https://twitter.com/@bad%E0%A4%A")).toBe("bad%E0%A4%A");
 });

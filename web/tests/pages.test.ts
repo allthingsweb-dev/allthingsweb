@@ -422,7 +422,12 @@ describe("event pages", () => {
     });
 
     it(`${name} loads only this site's files and the media origin's images, and runs no JavaScript`, async (url) => {
-      const html = await (await fetch(`${url}${path}`)).text();
+      const page = await (await fetch(`${url}${path}`)).text();
+      // Its one script element is JSON-LD data, which never runs.
+      const html = page.replace(
+        /<script type="application\/ld\+json">[^<]*<\/script>/g,
+        "",
+      );
       const elsewhere = subresources(html).filter(
         (src) => !/^\/(?!\/)/.test(src),
       );

@@ -110,6 +110,7 @@ describe("EventPages", () => {
           linkedin: "https://www.linkedin.com/in/grace%20hopper",
         },
         portrait: null,
+        role: "speaker",
       },
       {
         id: "b0000000-0000-4000-8000-000000000001",
@@ -127,8 +128,74 @@ describe("EventPages", () => {
           width: 400,
           height: 400,
         },
+        role: "speaker",
       },
     ]);
+    expect(talks.map((talk) => talk.format)).toEqual(["talk", "talk"]);
+  });
+
+  test("reads who organized and co-hosted it, the MC, and how many went", async () => {
+    const page = await read("2026-08-12-react-at-acme");
+    // Luma counted 118 guests (tests/seed.sql); no people are recorded.
+    expect(page.guests).toBe(118);
+    expect([page.organizers, page.coHosts, page.mcs]).toEqual([[], [], []]);
+    const database = await seededDatabase();
+    try {
+      await database.exec(`
+        UPDATE events SET luma_guest_count = 0 WHERE slug = '2026-08-12-react-at-acme';
+        UPDATE talks SET format = 'fireside' WHERE id = 'a0000000-0000-4000-8000-000000000001';
+        UPDATE talks SET format = 'panel' WHERE id = 'a0000000-0000-4000-8000-000000000002';
+        UPDATE talk_speakers SET role = 'moderator'
+          WHERE talk_id = 'a0000000-0000-4000-8000-000000000001'
+            AND speaker_id = 'b0000000-0000-4000-8000-000000000002';
+        INSERT INTO event_people (event_id, profile_id, role, position, source, created_at, updated_at) VALUES
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003', 'mc', 0, 'site', now(), now()),
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'co-host', 1, 'luma', now(), now()),
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000006', 'co-host', 0, 'luma', now(), now()),
+          ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'organizer', 0, 'site', now(), now());
+      `);
+      const people = await Effect.runPromise(
+        readPage("2026-08-12-react-at-acme", now, database),
+      );
+      expect(people.guests).toBeNull();
+      expect(people.organizers.map((person) => person.name)).toEqual([
+        "Grace Hopper",
+      ]);
+      expect(people.coHosts).toEqual([
+        {
+          id: "b0000000-0000-4000-8000-000000000006",
+          name: "Zed Nobody",
+          title: null,
+          portrait: null,
+        },
+        {
+          id: "b0000000-0000-4000-8000-000000000001",
+          name: "Ada Lovelace",
+          title: "Engineer",
+          portrait: {
+            url: "https://storage.example/people/ada.jpg",
+            alt: "Ada Lovelace",
+            width: 400,
+            height: 400,
+          },
+        },
+      ]);
+      expect(people.mcs.map((person) => person.name)).toEqual(["Linus"]);
+      const [panel, fireside] = people.talks;
+      expect(panel?.format).toBe("panel");
+      expect(panel?.speakers.map((speaker) => speaker.role)).toEqual([
+        "panelist",
+      ]);
+      expect(fireside?.format).toBe("fireside");
+      expect(
+        fireside?.speakers.map((speaker) => [speaker.name, speaker.role]),
+      ).toEqual([
+        ["Grace Hopper", "moderator"],
+        ["Ada Lovelace", "guest"],
+      ]);
+    } finally {
+      await database.close();
+    }
   });
 
   test("shows the first photos on the photo origin, in the order they were attached, up to the limit", async () => {

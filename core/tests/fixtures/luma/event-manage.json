@@ -1,0 +1,95 @@
+{
+  "platform": "luma",
+  "id": "evt-react",
+  "user_id": "usr-Hopper1",
+  "calendar_id": "cal-3AAimKnRVQEId4r",
+  "start_at": "2026-08-13T01:00:00.000Z",
+  "duration_interval": "PT3H",
+  "end_at": "2026-08-13T04:00:00.000Z",
+  "created_at": "2026-06-01T17:00:00.000Z",
+  "timezone": "America/Los_Angeles",
+  "name": "React at Acme",
+  "geo_address_json": {
+    "address": "1 Market St",
+    "city": "San Francisco",
+    "region": "California",
+    "country": "United States",
+    "city_state": "San Francisco, California",
+    "full_address": "1 Market St, San Francisco, CA 94105",
+    "google_maps_place_id": null,
+    "apple_maps_place_id": null,
+    "description": null
+  },
+  "coordinate": { "longitude": -122.3949, "latitude": 37.7941 },
+  "meeting_url": null,
+  "location_type": "offline",
+  "location_visibility": "public",
+  "cover_url": "https://images.lumacdn.com/event-covers/react.png",
+  "url": "https://luma.com/react-at-acme",
+  "visibility": "public",
+  "waitlist_status": "enabled",
+  "registration_open": false,
+  "require_approval": false,
+  "max_capacity": 200,
+  "can_register_for_multiple_tickets": false,
+  "spots_remaining": 17,
+  "display_price": null,
+  "feedback_email": { "enabled": false, "delay": null },
+  "access": "manage",
+  "description": "Server components in practice.",
+  "description_md": "Server components in practice.",
+  "confirmation_email_md": "",
+  "pending_approval_email_md": "",
+  "declined_email_md": "",
+  "hosts": [
+    {
+      "id": "usr-Hopper1",
+      "email": "grace@example.com",
+      "name": "Grace Hopper",
+      "first_name": "Grace",
+      "last_name": "Hopper",
+      "avatar_url": "https://images.lumacdn.com/avatars/gh/grace.jpg"
+    },
+    {
+      "id": "usr-Hamilton1",
+      "email": "margaret@example.com",
+      "name": "Margaret Hamilton",
+      "first_name": "Margaret",
+      "last_name": "Hamilton",
+      "avatar_url": "https://images.lumacdn.com/avatars/mh/margaret.jpg"
+    },
+    {
+      "id": "usr-Lovelace1",
+      "email": "ada@example.com",
+      "name": "  ada   LOVELACE ",
+      "first_name": "Ada",
+      "last_name": "Lovelace",
+      "avatar_url": "https://cdn.lu.ma/avatars-default/avatar_12.png"
+    },
+    {
+      "id": "usr-Johnson1",
+      "email": "katherine@example.com",
+      "name": "Katherine Johnson",
+      "first_name": "Katherine",
+      "last_name": "Johnson",
+      "avatar_url": "https://cdn.lu.ma/avatars-default/avatar_7.png"
+    },
+    {
+      "id": "usr-Nameless1",
+      "email": "someone@example.com",
+      "name": null,
+      "first_name": null,
+      "last_name": null,
+      "avatar_url": "https://cdn.lu.ma/avatars-default/avatar_3.png"
+    }
+  ],
+  "guest_counts": {
+    "approved": { "guests": 183, "tickets": 185 },
+    "pending_approval": { "guests": 0, "tickets": 0 },
+    "waitlist": { "guests": 41, "tickets": 41 },
+    "invited": { "guests": 3, "tickets": 0 },
+    "declined": { "guests": 12, "tickets": 12 },
+    "checked_in": { "guests": 141, "tickets": 142 }
+  },
+  "tax_config": null
+}

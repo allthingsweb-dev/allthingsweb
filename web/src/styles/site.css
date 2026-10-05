@@ -620,6 +620,7 @@ main > section,
 }
 
 .host-portraits img,
+.person img,
 .speaker img,
 .photos img {
   object-fit: cover;
@@ -634,6 +635,50 @@ main > section,
 .host-portraits img + img {
   margin-left: -9px;
   box-shadow: 0 0 0 2px var(--at-ground);
+}
+
+/* Co-hosts and the MC, under the hosting company and your hosts. */
+.people {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.people ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 14px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.person img {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+}
+
+.person p {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.person-name {
+  font-weight: 700;
+}
+
+.person-title {
+  font-size: 16px;
+  color: var(--at-meta);
 }
 
 .talks {

@@ -15,7 +15,12 @@ import { hosts, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { brandPage } from "./brand.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
-import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
+import {
+  eventPage,
+  eventPagePath,
+  eventUnavailablePage,
+  notFoundPage,
+} from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
 import { htmlResponse } from "./response.ts";
@@ -135,11 +140,15 @@ const dataPage = <A>(
         Effect.catchCause((cause) =>
           Effect.logError(`Error rendering ${name}:`, cause).pipe(
             Effect.as(
-              htmlResponse(unavailablePage({ theme }), acceptEncoding, {
-                cacheControl: "failure",
-                theme,
-                status: 503,
-              }),
+              htmlResponse(
+                unavailablePage({ origin, path, theme }),
+                acceptEncoding,
+                {
+                  cacheControl: "failure",
+                  theme,
+                  status: 503,
+                },
+              ),
             ),
           ),
         ),
@@ -169,19 +178,22 @@ const events = dataPage(
  * cached as a page, so a new portrait may take a day to reach the edge.
  */
 const brand = page("/brand", ({ theme, acceptEncoding }) =>
-  footer(hostPortraits.pipe(Effect.provide(repositories))).pipe(
-    Effect.map(({ portraits, read }) =>
-      htmlResponse(brandPage({ theme, portraits }), acceptEncoding, {
-        cacheControl: read ? "page" : "failure",
-        theme,
-      }),
-    ),
-  ),
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      brandPage({ origin, theme, portraits }),
+      acceptEncoding,
+      { cacheControl: read ? "page" : "failure", theme },
+    );
+  }),
 );
 
 /** An event's page, at its slug: encoded, so it is always one segment. */
 const eventPath = (params: PageRequest["params"]): `/${string}` =>
-  `/${encodeURIComponent(params["slug"] ?? "")}`;
+  eventPagePath(params["slug"] ?? "");
 
 /** The event at `slug`, or none when no published event has it. */
 const readEvent = (slug: string) =>
@@ -201,6 +213,7 @@ const event = page(
   ({ theme, acceptEncoding, params }) =>
     Effect.gen(function* () {
       const { origin } = yield* Site;
+      const path = eventPath(params);
       return yield* Effect.all(
         [readEvent(params["slug"] ?? ""), footer(hostPortraits)],
         { concurrency: "unbounded" },
@@ -209,11 +222,15 @@ const event = page(
         Effect.map(([found, { portraits, read }]) =>
           Option.match(found, {
             onNone: () =>
-              htmlResponse(notFoundPage({ theme, portraits }), acceptEncoding, {
-                cacheControl: read ? "notFound" : "failure",
-                theme,
-                status: 404,
-              }),
+              htmlResponse(
+                notFoundPage({ origin, path, theme, portraits }),
+                acceptEncoding,
+                {
+                  cacheControl: read ? "notFound" : "failure",
+                  theme,
+                  status: 404,
+                },
+              ),
             onSome: (view) =>
               htmlResponse(
                 eventPage({ event: view, origin, theme, portraits }),
@@ -225,11 +242,11 @@ const event = page(
         Effect.catchCause((cause) =>
           Effect.logError("Error rendering an event page:", cause).pipe(
             Effect.as(
-              htmlResponse(eventUnavailablePage({ theme }), acceptEncoding, {
-                cacheControl: "failure",
-                theme,
-                status: 503,
-              }),
+              htmlResponse(
+                eventUnavailablePage({ origin, path, theme }),
+                acceptEncoding,
+                { cacheControl: "failure", theme, status: 503 },
+              ),
             ),
           ),
         ),

@@ -7,6 +7,7 @@ import { type Evening, toEvening } from "./home.ts";
 import { displayName, eventTopic } from "./lockup.ts";
 import { eventStatus, httpUrlOrNull, personLinks, rsvpUrl } from "./mappers.ts";
 import { type EventMode, eventMode } from "./mode.ts";
+import { type StageRole, stageRole } from "./people.ts";
 import { neighborhoodOf } from "./places.ts";
 import { type SafeHtml, sanitizeRichText } from "./rich-text.ts";
 import * as Rows from "./rows.ts";
@@ -34,20 +35,28 @@ export interface Venue {
   readonly mapQuery: string | null;
 }
 
-/** Someone on stage, as a talk lists them. */
-export interface Speaker {
+/** Someone who took part, as the page names them. */
+export interface Person {
   readonly id: string;
   readonly name: string;
   readonly title: string | null;
-  readonly bio: string | null;
-  readonly links: Contract.PersonLinks;
   /** Their profile's photo, when it is on the photo origin. */
   readonly portrait: Rows.Photo | null;
+}
+
+/** Someone on stage, as a talk lists them. */
+export interface Speaker extends Person {
+  readonly bio: string | null;
+  readonly links: Contract.PersonLinks;
+  /** Their capacity in the talk: speaker, panelist, guest or moderator. */
+  readonly role: StageRole;
 }
 
 export interface Talk {
   readonly id: string;
   readonly title: string;
+  /** How it is held: a talk, a panel or a fireside chat. */
+  readonly format: Rows.TalkFormat;
   /** Sanitized; null when it says nothing. */
   readonly description: SafeHtml | null;
   /** Everyone who gave it, in the order they were attached. */
@@ -75,6 +84,14 @@ export interface EventPage {
   readonly venue: Venue | null;
   /** The hosting companies' names, in the order they were attached. */
   readonly hosts: ReadonlyArray<string>;
+  /** Its organizers, in their order; none when none are recorded. */
+  readonly organizers: ReadonlyArray<Person>;
+  /** People who co-host it, in their order. */
+  readonly coHosts: ReadonlyArray<Person>;
+  /** Its MC, if it has one (or more). */
+  readonly mcs: ReadonlyArray<Person>;
+  /** Guests going, or who went once it is over, as Luma counts them. */
+  readonly guests: number | null;
   /** Where "I'm in" goes: the event's Luma page. */
   readonly rsvpUrl: string | null;
   /** How many seats it has, when that is known. */
@@ -92,7 +109,8 @@ const TalkRow = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
   description: Schema.String,
-  speakers: Schema.Array(Rows.Profile),
+  format: Rows.TalkFormat,
+  speakers: Schema.Array(Rows.TalkSpeaker),
 });
 
 /** What the page reads, in one statement. */
@@ -111,7 +129,9 @@ export const EventPageRow = Schema.Struct({
   lumaEventId: Schema.NullOr(Schema.String),
   recordingUrl: Schema.NullOr(Schema.String),
   attendeeLimit: Schema.Int,
+  lumaGuestCount: Schema.NullOr(Schema.Int),
   hosts: Schema.Array(Schema.String),
+  people: Schema.Array(Rows.EventPerson),
   talks: Schema.Array(TalkRow),
   photos: Schema.Array(Rows.Photo),
   next: Schema.NullOr(Rows.Listing),
@@ -163,15 +183,13 @@ export function toVenue(
   return { neighborhood, name, address, mapQuery: stored };
 }
 
-/** A speaker from their profile; empty titles and bios read as unknown. */
-function toSpeaker(profile: Rows.Profile, photoPrefix: string): Speaker {
+/** Someone from their profile; an empty title reads as unknown. */
+function toPerson(profile: Rows.Profile, photoPrefix: string): Person {
   const image = profile.image;
   return {
     id: profile.id,
     name: profile.name,
     title: present(profile.title),
-    bio: present(profile.bio),
-    links: personLinks(profile),
     portrait:
       image === null || !image.url.startsWith(photoPrefix)
         ? null
@@ -183,6 +201,30 @@ function toSpeaker(profile: Rows.Profile, photoPrefix: string): Speaker {
           },
   };
 }
+
+/** A speaker in a talk held as `format`; an empty bio reads as unknown. */
+function toSpeaker(
+  speaker: Rows.TalkSpeaker,
+  format: Rows.TalkFormat,
+  photoPrefix: string,
+): Speaker {
+  return {
+    ...toPerson(speaker, photoPrefix),
+    bio: present(speaker.bio),
+    links: personLinks(speaker),
+    role: stageRole(format, speaker.role),
+  };
+}
+
+/** The people with `role` in the event, in their order. */
+const peopleIn = (
+  row: EventPageRow,
+  role: Rows.EventRole,
+  photoPrefix: string,
+): ReadonlyArray<Person> =>
+  row.people
+    .filter((person) => person.role === role)
+    .map((person) => toPerson(person.profile, photoPrefix));
 
 /** Text left once tags are dropped: whether sanitized HTML says anything. */
 const saysSomething = (html: SafeHtml): boolean =>
@@ -203,9 +245,10 @@ export const toEventPage = (
       (description): Talk => ({
         id: talk.id,
         title: talk.title,
+        format: talk.format,
         description: saysSomething(description) ? description : null,
-        speakers: talk.speakers.map((profile) =>
-          toSpeaker(profile, `${photoOrigin}/`),
+        speakers: talk.speakers.map((speaker) =>
+          toSpeaker(speaker, talk.format, `${photoOrigin}/`),
         ),
       }),
     ),
@@ -224,6 +267,13 @@ export const toEventPage = (
         updatedAt: row.updatedAt,
         venue: toVenue(row),
         hosts: row.hosts,
+        organizers: peopleIn(row, "organizer", `${photoOrigin}/`),
+        coHosts: peopleIn(row, "co-host", `${photoOrigin}/`),
+        mcs: peopleIn(row, "mc", `${photoOrigin}/`),
+        guests:
+          row.lumaGuestCount !== null && row.lumaGuestCount > 0
+            ? row.lumaGuestCount
+            : null,
         rsvpUrl: rsvpUrl(row.lumaEventId),
         seats: row.attendeeLimit > 0 ? row.attendeeLimit : null,
         recordingUrl: httpUrlOrNull(row.recordingUrl),
@@ -256,7 +306,8 @@ const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
   // Talks, speakers, hosts and photos in the order they were attached (the
-  // join row's created_at, then id), as Events.getPublished lists them.
+  // join row's created_at, then id), and people by role, then position, as
+  // Events.getPublished lists them.
   // "Next" is what home leads with: the soonest event that hasn't ended.
   const findPage = SqlSchema.findOneOption({
     Request,
@@ -272,6 +323,7 @@ const make = Effect.gen(function* () {
         ev.luma_event_id AS "lumaEventId",
         ev.recording_url AS "recordingUrl",
         ev.attendee_limit AS "attendeeLimit",
+        ev.luma_guest_count AS "lumaGuestCount",
         COALESCE((
           SELECT json_agg(s.name ORDER BY es.created_at, s.id)
           FROM event_sponsors es
@@ -280,11 +332,24 @@ const make = Effect.gen(function* () {
         ), '[]'::json) AS hosts,
         COALESCE((
           SELECT json_agg(json_build_object(
+            'role', ep.role,
+            'profile', ${sql.literal(profileJson)}
+          ) ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], ep.role),
+            ep.position, ep.created_at, p.id)
+          FROM event_people ep
+          JOIN profiles p ON p.id = ep.profile_id
+          WHERE ep.event_id = ev.id
+        ), '[]'::json) AS people,
+        COALESCE((
+          SELECT json_agg(json_build_object(
             'id', t.id,
             'title', t.title,
             'description', t.description,
+            'format', t.format,
             'speakers', COALESCE((
-              SELECT json_agg(${sql.literal(profileJson)} ORDER BY ts.created_at, p.id)
+              SELECT json_agg(
+                (${sql.literal(profileJson)})::jsonb || jsonb_build_object('role', ts.role)
+                ORDER BY ts.created_at, p.id)
               FROM talk_speakers ts
               JOIN profiles p ON p.id = ts.speaker_id
               WHERE ts.talk_id = t.id

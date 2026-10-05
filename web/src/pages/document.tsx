@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from "@kitajs/html";
-import { roleColor, tokens } from "allthings-brand/src/tokens.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
 import { hosts, socials } from "../links.ts";
+import { Metadata, type PageMeta } from "./metadata.tsx";
 import { choices, type Theme } from "./theme.ts";
 
 /**
@@ -11,38 +11,6 @@ import { choices, type Theme } from "./theme.ts";
  * Pages are server-rendered HTML with no JavaScript; the cursor blinks in
  * CSS, and the mode is chosen with links (see theme.ts).
  */
-
-/** Each mode's ground, for the browser's own chrome. */
-const themeColor = {
-  light: roleColor(tokens, "paper", "ground").hex,
-  dark: roleColor(tokens, "night", "ground").hex,
-} as const;
-
-function ThemeColor({ theme }: { readonly theme: Theme | undefined }) {
-  if (theme !== undefined) {
-    return (
-      <>
-        <meta name="color-scheme" content={theme} />
-        <meta name="theme-color" content={themeColor[theme]} />
-      </>
-    );
-  }
-  return (
-    <>
-      <meta name="color-scheme" content="light dark" />
-      <meta
-        name="theme-color"
-        content={themeColor.light}
-        media="(prefers-color-scheme: light)"
-      />
-      <meta
-        name="theme-color"
-        content={themeColor.dark}
-        media="(prefers-color-scheme: dark)"
-      />
-    </>
-  );
-}
 
 /** The master wordmark, all things/_, linking home. */
 export function Wordmark() {
@@ -137,9 +105,10 @@ function Footer({ portraits }: { readonly portraits: PortraitsById }) {
 }
 
 export interface DocumentProps {
-  /** The page's own title; the document title adds nothing to it. */
-  readonly title: string;
-  readonly description: string;
+  /** What the head says about the page (see metadata.tsx). */
+  readonly meta: PageMeta;
+  /** The production origin, which the page's canonical URL is made from. */
+  readonly origin: string;
   /** The mode the visitor fixed, if any (see theme.ts). */
   readonly theme: Theme | undefined;
   /**
@@ -153,8 +122,8 @@ export interface DocumentProps {
 
 /** A whole HTML document around `children`, the page's <main>. */
 export function Document({
-  title,
-  description,
+  meta,
+  origin,
   theme,
   pageTheme,
   portraits,
@@ -168,9 +137,7 @@ export function Document({
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title safe>{title}</title>
-        <meta name="description" content={description} />
-        <ThemeColor theme={shown} />
+        <Metadata meta={meta} origin={origin} theme={shown} />
         {fonts.map((font) => (
           <link
             rel="preload"

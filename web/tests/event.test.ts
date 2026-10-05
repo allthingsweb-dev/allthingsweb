@@ -139,7 +139,7 @@ describe("an upcoming evening", () => {
     expect(row(html, "Hosted at")).toContain(
       '<p class="fact-head">CodeRabbit</p>',
     );
-    expect(row(html, "Seats")).toContain("<p>200, held on Luma.</p>");
+    expect(row(html, "Seats")).toContain("<p>183 going · 200 seats</p>");
     expect(row(html, "Seats")).toContain(
       `<a class="button" href="${lumaPage}">I’m in<span class="visually-hidden">, on Luma</span><span aria-hidden="true">→</span></a>`,
     );
@@ -192,7 +192,14 @@ describe("an upcoming evening", () => {
     const { html } = await page(Events, slugs.upcoming);
     const stage = row(html, "On stage");
     expect(stage).toContain(
-      '<h2 class="talk-title at-type-lead">A fireside chat on Effect</h2>',
+      '<section class="talk"><p class="at-type-meta">fireside chat</p><h2 class="talk-title at-type-lead">A fireside chat on Effect</h2>',
+    );
+    // Grace moderates; Ada is the fireside's guest.
+    expect(stage).toContain(
+      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name">Grace Hopper</h3>',
+    );
+    expect(stage).toContain(
+      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name">Ada Lovelace</h3>',
     );
     expect(stage).toContain(
       '<div class="talk-description"><p>Typed errors &amp; <strong>services</strong>.</p></div>',
@@ -211,17 +218,50 @@ describe("an upcoming evening", () => {
     );
   });
 
-  it("signs the hosts' portraits beside the hosting company", async ({
+  it("names its organizers as your hosts beside the hosting company, then its co-hosts", async ({
     Events,
   }) => {
     const { html } = await page(Events, slugs.upcoming);
     const hosted = row(html, "Hosted at");
-    expect(hosted).toContain(`<img src="${erikPortrait}" alt=""`);
-    expect(hosted).toMatch(/<img src="\/assets\/avatar\.[0-9a-f]{16}\.svg"/);
-    expect(hosted).toContain(
-      '<span class="host-names">Erik &amp; Andre</span>',
+    // Andre is first in this evening's order, and has no photo.
+    expect(hosted).toMatch(
+      new RegExp(
+        `<span class="host-portraits"><img src="/assets/avatar\\.[0-9a-f]{16}\\.svg" alt="" width="44" height="44" loading="lazy" decoding="async"/><img src="${erikPortrait}"`,
+      ),
     );
+    expect(hosted).toContain(
+      '<span class="host-names">Andre &amp; Erik</span>',
+    );
+    expect(hosted).toContain('<p class="at-type-meta">co-hosts</p>');
+    expect(
+      [...hosted.matchAll(/<span class="person-name">([^<]+)</g)].map(
+        ([, name]) => name,
+      ),
+    ).toEqual(["Ada Lovelace", "Grace Hopper"]);
+    expect(hosted).toContain(
+      '<span class="person-name">Ada Lovelace</span><span class="person-title">Engineer, Analytical Engines</span>',
+    );
+    expect(hosted).not.toContain(">mc<");
+    // The footer still signs off with Erik and Andre.
     expect(html).toContain("<p>hosted by Erik &amp; Andre</p>");
+  });
+
+  it("describes itself as a schema.org Event in its head", async ({
+    Events,
+  }) => {
+    const { html } = await page(Events, slugs.upcoming);
+    const json = /<script type="application\/ld\+json">([^<]*)<\/script>/.exec(
+      html,
+    )?.[1];
+    expect(JSON.parse(json ?? "null")).toMatchObject({
+      "@type": "Event",
+      name: "Effect San Francisco",
+      url: `${origin}/${slugs.upcoming}`,
+      offers: { url: lumaPage },
+    });
+    expect(html).toContain(
+      `<link rel="canonical" href="${origin}/${slugs.upcoming}"/>`,
+    );
   });
 });
 
@@ -248,7 +288,8 @@ describe("a live evening", () => {
     );
     expect(row(html, "When")).toContain("San Francisco time. On now.</p>");
     expect(row(html, "Seats")).toContain('href="https://lu.ma/event/evt-live"');
-    expect(row(html, "Seats")).not.toContain("held on Luma");
+    // Neither its seats nor its guests are known.
+    expect(row(html, "Seats")).not.toContain("<p>");
     expect(row(html, "Where")).toContain(
       '<p class="fact-head place">Potrero Hill</p><p class="venue">Convex HQ</p>',
     );
@@ -280,6 +321,10 @@ describe("a past evening", () => {
     expect(row(html, "Hosted at")).toContain(
       '<p class="fact-head">Sanity &amp; Clerk</p>',
     );
+    expect(row(html, "Hosted at")).toContain(
+      '<p class="at-type-meta">mc</p><ul><li class="person">',
+    );
+    expect(row(html, "When")).toContain("<p>146 went.</p>");
   });
 
   it("lists every speaker of a talk two people gave", async ({ Events }) => {
