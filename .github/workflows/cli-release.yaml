@@ -32,7 +32,7 @@ jobs:
                   fi
 
             - name: 📥 Download deps
-              run: bun install --frozen-lockfile
+              run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
               working-directory: atw-cli
 
             - name: 🔨 Compiling the different versions

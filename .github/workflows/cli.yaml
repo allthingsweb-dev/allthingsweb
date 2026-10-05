@@ -9,6 +9,7 @@ on:
       - "app/package.json"
       - "app/bun.lock"
       - ".github/workflows/cli.yaml"
+      - ".github/scripts/bun-install.sh"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -17,6 +18,7 @@ on:
       - "app/package.json"
       - "app/bun.lock"
       - ".github/workflows/cli.yaml"
+      - ".github/scripts/bun-install.sh"
 
 permissions:
   contents: read
@@ -39,11 +41,11 @@ jobs:
       # The contract test compares the CLI's schemas with the app's.
       - name: 📥 Download app deps
         working-directory: app
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 📥 Download CLI deps
         working-directory: atw-cli
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 💄 Format check
         working-directory: atw-cli

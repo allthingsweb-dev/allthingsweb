@@ -24,7 +24,7 @@ jobs:
 
       - name: 📥 Download deps
         working-directory: app
-        run: bun install
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 💄 Format check
         working-directory: app

@@ -30,25 +30,25 @@ jobs:
 
       # oxlint and the root workspace (brand, core, web, tools/xss-scan).
       - name: 📥 Download root deps
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       # Type-aware rules and import checks read every package's types, so
       # each package with its own lockfile gets its dependencies too.
       - name: 📥 Download app deps
         working-directory: app
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 📥 Download CLI deps
         working-directory: atw-cli
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 📥 Download infra deps
         working-directory: infra
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 📥 Download pr-header deps
         working-directory: tools/pr-header
-        run: bun install --frozen-lockfile
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       # web/src imports the manifest its build writes to web/dist.
       - name: 🏗️ Build web
