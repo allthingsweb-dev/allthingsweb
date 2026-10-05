@@ -1,17 +1,10 @@
 [
   {
     "name": "AWS GenAI Loft",
-    "held": [
-      {
-        "field": "website",
-        "value": "https://builder.aws.com/connect/events/builder-lofts/san-francisco",
-        "sources": [
-          "https://builder.aws.com/connect/events/builder-lofts/san-francisco",
-          "https://aws.amazon.com/startups/lp/aws-gen-ai-lofts"
-        ],
-        "reason": "needs Erik: the San Francisco GenAI Loft is now branded the AWS Builder Loft and its old page is gone; confirm the Builder Loft page is the right link for the host we named"
-      }
-    ]
+    "website": {
+      "value": "https://startups.aws.com/lp/aws-gen-ai-loft-san-francisco",
+      "source": "https://startups.aws.com/lp/aws-gen-ai-loft-san-francisco"
+    }
   },
   {
     "name": "BigCommerce",
