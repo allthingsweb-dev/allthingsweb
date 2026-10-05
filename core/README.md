@@ -15,6 +15,40 @@ columns Luma owns, and which the site does, is written down in
 core's on copies of one database with the same feed and requires the same
 rows; nothing in the tests reaches Luma.
 
+## Who took part
+
+`event_people` holds a person's part in an event as a whole: an all things
+organizer, a co-host or the MC. Who was on stage, and in what capacity, is on
+the talks: `talks.format` (a talk, a panel or a fireside chat) and each
+speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
+panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
+`Events.getPublished` returns all of it, with Luma's guest counts.
+
+## Luma people import
+
+The calendar feed names no hosts and counts no guests. `src/luma/api.ts`
+asks Luma's official API (`GET /v1/events/get` on `public-api.luma.com`) with
+a Luma calendar's API key, which needs Luma Plus, in `LUMA_API_KEY`; without
+it the import does nothing. `src/luma/people-sync.ts` asks about every
+published event, matches hosts to profiles as `src/luma/people.ts` plans it,
+and writes `event_people` (its own rows only), `profiles.luma_user_id`, and
+`events.luma_guest_count` and `luma_checked_in_count`, in one statement.
+
+Hosts are matched by Luma user id, then by exact name with a review line.
+Nothing is created without an organizer's decision: Luma's hosts include
+companies' accounts and people under other names. Run it from `core/`:
+
+```sh
+DATABASE_URL=… LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+  bun run luma:people --dry-run                          # ask Luma, print the plan and what to review
+bun run luma:people --create usr-… --link usr-…=<profile id> --dry-run   # decide the hosts it listed
+bun run luma:people --create usr-… --link usr-…=<profile id>             # write
+```
+
+`tests/luma-people.test.ts` runs the client against fixtures in the shape
+docs.luma.com documents, and the import against `tests/seed.sql`; nothing in
+the tests reaches Luma.
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's

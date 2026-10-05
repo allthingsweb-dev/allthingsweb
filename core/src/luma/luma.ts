@@ -52,6 +52,13 @@ export const backoffBase = Duration.seconds(1);
  */
 export const maxRetryAfter = Duration.minutes(1);
 
+/**
+ * What a request to Luma asked for, as its errors name it: the calendar's
+ * feed (the default), or one event from Luma's API (src/luma/api.ts).
+ */
+export const LumaResource = Schema.Literals(["calendar", "event"]);
+export type LumaResource = typeof LumaResource.Type;
+
 /** Luma did not answer, or answered 429 or 5xx: worth another try. */
 export class LumaUnavailable extends Schema.TaggedError<LumaUnavailable>()(
   "LumaUnavailable",
@@ -61,22 +68,24 @@ export class LumaUnavailable extends Schema.TaggedError<LumaUnavailable>()(
     /** How long Luma asked us to wait, if it did. */
     retryAfter: Schema.NullOr(Schema.Duration),
     cause: Schema.optional(Schema.Defect()),
+    resource: Schema.optional(LumaResource),
   },
 ) {
   override get message(): string {
+    const what = `Luma ${this.resource ?? "calendar"} request failed`;
     return this.status === null
-      ? "Luma calendar request failed without a response"
-      : `Luma calendar request failed: ${this.status}`;
+      ? `${what} without a response`
+      : `${what}: ${this.status}`;
   }
 }
 
 /** Luma refused the request (a 4xx other than 429): trying again won't help. */
 export class LumaRejected extends Schema.TaggedError<LumaRejected>()(
   "LumaRejected",
-  { status: Schema.Int },
+  { status: Schema.Int, resource: Schema.optional(LumaResource) },
 ) {
   override get message(): string {
-    return `Luma calendar request failed: ${this.status}`;
+    return `Luma ${this.resource ?? "calendar"} request failed: ${this.status}`;
   }
 }
 
@@ -124,6 +133,72 @@ const isRetryable = (error: LumaError): boolean =>
   (error.retryAfter === null ||
     Duration.isLessThanOrEqualTo(error.retryAfter, maxRetryAfter));
 
+/**
+ * Sends `request` and reads the body of a 2xx answer as text, trying again
+ * after a failure Luma may recover from: no answer within
+ * {@link attemptTimeout}, a dropped connection, 429 or a 5xx, after the
+ * Retry-After Luma sends (up to {@link maxRetryAfter}) or with exponential
+ * backoff, at most {@link maxRetries} times. Other statuses fail at once.
+ */
+export const sendWithRetries = (
+  client: HttpClient.HttpClient,
+  request: HttpClientRequest.HttpClientRequest,
+  resource?: LumaResource,
+): Effect.Effect<string, LumaUnavailable | LumaRejected> => {
+  const onResource = resource === undefined ? {} : { resource };
+  const attempt: Effect.Effect<string, LumaUnavailable | LumaRejected> =
+    Effect.gen(function* () {
+      const response = yield* client.execute(request);
+      if (response.status >= 200 && response.status < 300) {
+        return yield* response.text;
+      }
+      if (response.status === 429 || response.status >= 500) {
+        const now = yield* Clock.currentTimeMillis;
+        return yield* new LumaUnavailable({
+          status: response.status,
+          retryAfter: retryAfter(
+            response.headers["retry-after"],
+            DateTime.makeUnsafe(now),
+          ),
+          ...onResource,
+        });
+      }
+      return yield* new LumaRejected({
+        status: response.status,
+        ...onResource,
+      });
+    }).pipe(
+      Effect.timeout(attemptTimeout),
+      Effect.catchTags({
+        HttpClientError: (cause) =>
+          Effect.fail(
+            new LumaUnavailable({
+              status: null,
+              retryAfter: null,
+              cause,
+              ...onResource,
+            }),
+          ),
+        TimeoutError: (cause) =>
+          Effect.fail(
+            new LumaUnavailable({
+              status: null,
+              retryAfter: null,
+              cause,
+              ...onResource,
+            }),
+          ),
+      }),
+    );
+  return attempt.pipe(
+    Effect.retry({
+      schedule: retrySchedule,
+      times: maxRetries,
+      while: isRetryable,
+    }),
+  );
+};
+
 export interface LumaShape {
   /** Every event on the calendar, past and future, each once. */
   readonly calendarEvents: Effect.Effect<ReadonlyArray<FeedEvent>, LumaError>;
@@ -138,42 +213,7 @@ const make = Effect.gen(function* () {
     HttpClientRequest.accept("text/calendar"),
   );
 
-  const attempt: Effect.Effect<string, LumaError> = Effect.gen(function* () {
-    const response = yield* client.execute(request);
-    if (response.status >= 200 && response.status < 300) {
-      return yield* response.text;
-    }
-    if (response.status === 429 || response.status >= 500) {
-      const now = yield* Clock.currentTimeMillis;
-      return yield* new LumaUnavailable({
-        status: response.status,
-        retryAfter: retryAfter(
-          response.headers["retry-after"],
-          DateTime.makeUnsafe(now),
-        ),
-      });
-    }
-    return yield* new LumaRejected({ status: response.status });
-  }).pipe(
-    Effect.timeout(attemptTimeout),
-    Effect.catchTags({
-      HttpClientError: (cause) =>
-        Effect.fail(
-          new LumaUnavailable({ status: null, retryAfter: null, cause }),
-        ),
-      TimeoutError: (cause) =>
-        Effect.fail(
-          new LumaUnavailable({ status: null, retryAfter: null, cause }),
-        ),
-    }),
-  );
-
-  const calendarEvents = attempt.pipe(
-    Effect.retry({
-      schedule: retrySchedule,
-      times: maxRetries,
-      while: isRetryable,
-    }),
+  const calendarEvents = sendWithRetries(client, request).pipe(
     Effect.flatMap(parseCalendar),
     Effect.withSpan("Luma.calendarEvents"),
   );

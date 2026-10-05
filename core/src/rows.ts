@@ -47,13 +47,35 @@ export const Profile = Schema.Struct({
   image: Schema.NullOr(Image),
 });
 
+/** How a talk is held (`talks.format`): see src/people.ts. */
+export const TalkFormat = Schema.Literals(["talk", "panel", "fireside"]);
+
+/** A speaker's part in a talk (`talk_speakers.role`): see src/people.ts. */
+export const SpeakerRole = Schema.Literals(["speaker", "moderator"]);
+
+/** A person's part in an event as a whole (`event_people.role`). */
+export const EventRole = Schema.Literals(["organizer", "co-host", "mc"]);
+
+/** A talk's speaker: their profile and their part in the talk. */
+export const TalkSpeaker = Schema.Struct({
+  ...Profile.fields,
+  role: SpeakerRole,
+});
+
 /** A `talks` row with its speakers from `talk_speakers`. */
 export const Talk = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
   /** Editor HTML as stored; render it through `sanitizeRichText`. */
   description: Schema.String,
-  speakers: Schema.Array(Profile),
+  format: TalkFormat,
+  speakers: Schema.Array(TalkSpeaker),
+});
+
+/** A row of `event_people`: someone's part in the event, apart from its talks. */
+export const EventPerson = Schema.Struct({
+  role: EventRole,
+  profile: Profile,
 });
 
 /**
@@ -71,8 +93,14 @@ export const Host = Schema.Struct({
 /** A published event with everything its page shows. */
 export const EventDetails = Schema.Struct({
   ...Event.fields,
+  /** Guests going ("went", once it is over), as Luma counted them. */
+  lumaGuestCount: Schema.NullOr(Schema.Int),
+  /** Guests checked in at the door, as Luma counted them. */
+  lumaCheckedInCount: Schema.NullOr(Schema.Int),
   talks: Schema.Array(Talk),
   hosts: Schema.Array(Host),
+  /** Organizers, then co-hosts, then the MC, each in their order. */
+  people: Schema.Array(EventPerson),
   images: Schema.Array(Image),
 });
 
@@ -139,7 +167,12 @@ export const Redirect = Schema.Struct({
 export type Image = typeof Image.Type;
 export type Event = typeof Event.Type;
 export type Profile = typeof Profile.Type;
+export type TalkFormat = typeof TalkFormat.Type;
+export type SpeakerRole = typeof SpeakerRole.Type;
+export type EventRole = typeof EventRole.Type;
+export type TalkSpeaker = typeof TalkSpeaker.Type;
 export type Talk = typeof Talk.Type;
+export type EventPerson = typeof EventPerson.Type;
 export type Host = typeof Host.Type;
 export type EventDetails = typeof EventDetails.Type;
 export type DirectoryRow = typeof DirectoryRow.Type;

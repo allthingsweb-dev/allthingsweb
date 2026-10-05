@@ -288,6 +288,7 @@ describe("asking Luma", () => {
       {
         url: "https://api.luma.com/ics/get?entity=calendar&id=cal-3AAimKnRVQEId4r",
         accept: "text/calendar",
+        apiKey: undefined,
         at: DateTime.toEpochMillis(start),
       },
     ]);

@@ -45,6 +45,8 @@ export const EventRow = Schema.Struct({
   createdAt: Timestamp,
   updatedAt: Timestamp,
   topic: Schema.NullOr(Schema.String),
+  lumaGuestCount: Schema.NullOr(Schema.Int),
+  lumaCheckedInCount: Schema.NullOr(Schema.Int),
   previewImage: Schema.NullOr(ImageRow),
 });
 
@@ -166,6 +168,8 @@ const make = Effect.gen(function* () {
     e.highlight_on_landing_page AS "highlightOnLandingPage",
     e.recording_url AS "recordingUrl",
     e.created_at AS "createdAt", e.updated_at AS "updatedAt", e.topic,
+    e.luma_guest_count AS "lumaGuestCount",
+    e.luma_checked_in_count AS "lumaCheckedInCount",
     ${imageJson("e.preview_image")} AS "previewImage"`);
 
   // The app orders by start only; the id makes ties deterministic.
