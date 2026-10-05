@@ -1115,10 +1115,13 @@ a.post-author:hover {
   max-width: 480px;
 }
 
+/* A tall photo is cropped to a landscape-ish frame; the post has it whole. */
 .post-body picture img,
 .post-body > img {
   width: 100%;
   height: auto;
+  max-height: 360px;
+  object-fit: cover;
   background: var(--at-surface);
 }
 
