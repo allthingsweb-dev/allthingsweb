@@ -425,11 +425,23 @@ describe("/img/", () => {
             'img;desc="original"',
           );
           expect(body.byteLength).toBe(over.byteLength);
-        } else {
-          expect(response.headers.get("content-type")).toBe("image/avif");
+        } else if (response.headers.get("content-type") === "image/avif") {
           expect(dimensions(body)?.width).toBe(240);
+        } else {
+          // One that waited past the budget comes as the original.
+          expect(response.headers.get("server-timing")).toBe(
+            'img;desc="original"',
+          );
+          expect(body).toEqual(near);
         }
       });
+      // At least the first to take the budget was resized.
+      expect(
+        results.filter(
+          ({ response }) =>
+            response.headers.get("content-type") === "image/avif",
+        ).length,
+      ).toBeGreaterThan(0);
     },
     { timeout: 120_000 },
   );
