@@ -53,6 +53,13 @@ speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
 panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
 `Events.getPublished` returns all of it, with Luma's guest counts.
 
+An evening's talks run in order: `event_talks.position`, from 0, and
+`event_talks.starts_at` where the start is known. Pages, the public API,
+promotion drafts and the completeness report all list talks by position;
+a talk attached without one follows, in the order it was attached. A
+lineup in `backfill/lineups.json` sets both per talk (`position`,
+`startsAt` with its offset, "2026-09-30T18:41:00-07:00").
+
 ## Hidden venues
 
 While Luma shows an event's venue to guests only ("location_visibility":

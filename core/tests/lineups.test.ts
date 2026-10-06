@@ -190,6 +190,56 @@ describe("applying lineups", () => {
     expect(await state(db)).toEqual(before);
   });
 
+  test("places talks in the running order, with their starts, new and existing alike", async () => {
+    const db = await database();
+    const [event] = lineups.events;
+    if (event === undefined) throw new Error("fixture");
+    const [fireside, effect] = event.talks;
+    if (fireside === undefined || effect === undefined)
+      throw new Error("fixture");
+    const placed: Lineups = {
+      ...lineups,
+      events: [
+        {
+          ...event,
+          talks: [
+            { ...fireside, position: 1, startsAt: "2026-08-12T19:10:00-07:00" },
+            { ...effect, position: 0, startsAt: "2026-08-12T18:41:00-07:00" },
+          ],
+        },
+      ],
+    };
+    const exit = await apply(db, placed);
+    expect(Exit.isSuccess(exit)).toBe(true);
+    const order = async () =>
+      (
+        await db.query<{
+          title: string;
+          position: number;
+          starts_at: Date | null;
+        }>(`
+          SELECT t.title, et.position, et.starts_at
+          FROM event_talks et JOIN talks t ON t.id = et.talk_id
+          WHERE et.event_id = 'e0000000-0000-4000-8000-000000000001'
+          ORDER BY et.position NULLS LAST, et.created_at, t.id`)
+      ).rows.map((row) => [
+        row.title,
+        row.position,
+        row.starts_at === null ? null : new Date(row.starts_at).toISOString(),
+      ]);
+    expect(await order()).toEqual([
+      ["Effect in production", 0, "2026-08-13T01:41:00.000Z"],
+      ["A fireside", 1, "2026-08-13T02:10:00.000Z"],
+      // Server components isn't in the file: unplaced, after the placed ones.
+      ["Server components", null, null],
+    ]);
+    // Placing an existing talk counts as a change once, then never again.
+    const again = await apply(db, placed);
+    expect(Exit.isSuccess(again) ? again.value.lines : []).toContain(
+      '  talk "effect in production": already as written',
+    );
+  });
+
   test("a dry run does everything, then rolls back", async () => {
     const db = await database();
     const before = await state(db);

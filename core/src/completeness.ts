@@ -339,7 +339,7 @@ const make = Effect.gen(function* () {
               JOIN profiles p ON p.id = ts.speaker_id
               WHERE ts.talk_id = t.id
             ), '[]'::json)
-          ) ORDER BY et.created_at, t.id)
+          ) ORDER BY et.position NULLS LAST, et.created_at, t.id)
           FROM event_talks et
           JOIN talks t ON t.id = et.talk_id
           WHERE et.event_id = e.id

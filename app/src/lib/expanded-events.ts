@@ -1,5 +1,5 @@
 import { sanitizeRichText, type SafeHtml } from "@/lib/safe-html";
-import { eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import {
@@ -112,7 +112,13 @@ async function getExpandedEventFromQuery(
       .select()
       .from(eventTalksTable)
       .where(eq(eventTalksTable.eventId, event.id))
-      .leftJoin(talksTable, eq(eventTalksTable.talkId, talksTable.id));
+      .leftJoin(talksTable, eq(eventTalksTable.talkId, talksTable.id))
+      // The evening's running order; talks without a place follow, as attached.
+      .orderBy(
+        sql`${eventTalksTable.position} NULLS LAST`,
+        asc(eventTalksTable.createdAt),
+        asc(eventTalksTable.talkId),
+      );
 
     return Promise.all(
       talksQuery

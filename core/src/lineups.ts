@@ -76,6 +76,18 @@ export const Lineups = Schema.Struct({
           title: Schema.String.check(Schema.isNonEmpty()),
           format: Schema.Literals(["talk", "panel", "fireside"]),
           description: Schema.String,
+          /** Its place in the evening's running order, from 0. */
+          position: Schema.optionalKey(
+            Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+          ),
+          /** When it started, with its offset: "2026-09-30T18:41:00-07:00". */
+          startsAt: Schema.optionalKey(
+            Schema.String.check(
+              Schema.isPattern(
+                /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/,
+              ),
+            ),
+          ),
           speakers: Schema.Array(
             Schema.Struct({
               person: Schema.String,
@@ -221,6 +233,28 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
     const lineups = applicable(file);
     const fail = (reason: string) => Effect.fail(new LineupError({ reason }));
 
+    /**
+     * Sets a talk's place in the evening's running order and its start where
+     * the file gives them; the count of rows changed (0 or 1).
+     */
+    const place = (
+      eventId: string,
+      talkId: string,
+      talk: { readonly position?: number; readonly startsAt?: string },
+    ) =>
+      talk.position === undefined && talk.startsAt === undefined
+        ? Effect.succeed(0)
+        : sql`
+            UPDATE event_talks SET
+              position = COALESCE(${talk.position ?? null}, position),
+              starts_at = COALESCE(${talk.startsAt ?? null}::timestamptz, starts_at),
+              updated_at = now()
+            WHERE event_id = ${eventId}::uuid AND talk_id = ${talkId}::uuid
+              AND (position, starts_at) IS DISTINCT FROM
+                (COALESCE(${talk.position ?? null}, position),
+                 COALESCE(${talk.startsAt ?? null}::timestamptz, starts_at))
+            RETURNING 1`.pipe(Effect.map((rows) => rows.length));
+
     const missing = undefinedPeople(file);
     if (missing.length > 0) {
       return yield* fail(
@@ -322,6 +356,7 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
             SELECT t.id FROM event_talks et JOIN talks t ON t.id = et.talk_id
             WHERE et.event_id = ${row.id}::uuid AND lower(t.title) = lower(${talk.title})`;
           if (taken !== undefined) {
+            const placed = yield* place(row.id, taken.id, talk);
             // The event already has this talk: bring its format and its
             // speakers' roles in line, add missing speakers, and leave its
             // title and description as the site wrote them.
@@ -342,7 +377,7 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
               speakersChanged += written.length;
             }
             lines.push(
-              changed.length + speakersChanged === 0
+              changed.length + speakersChanged + placed === 0
                 ? `  talk "${talk.title}": already as written`
                 : `  talk "${talk.title}": updated (${talk.format}; ${talk.speakers
                     .map((s) => `${s.person} ${s.role}`)
@@ -356,8 +391,9 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
             RETURNING id`;
           if (created === undefined) return yield* fail(`talk ${talk.title}`);
           yield* sql`
-            INSERT INTO event_talks (event_id, talk_id, created_at, updated_at)
+            INSERT INTO event_talks (event_id, talk_id, position, starts_at, created_at, updated_at)
             VALUES (${row.id}::uuid, ${created.id}::uuid,
+              ${talk.position ?? null}, ${talk.startsAt ?? null}::timestamptz,
               ${stamp()}::timestamptz, now())`;
           for (const speaker of talk.speakers) {
             yield* sql`
