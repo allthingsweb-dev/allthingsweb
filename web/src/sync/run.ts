@@ -1,3 +1,8 @@
+import {
+  type FollowerSource,
+  refreshFollowers,
+} from "allthings-core/src/followers.ts";
+import type { SqlClient } from "effect/sql/SqlClient";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import {
   type CandidateSearches,
@@ -6,7 +11,6 @@ import {
 import type { PostSources } from "allthings-core/src/posts/sources.ts";
 import type { EventPostWriter } from "allthings-core/src/posts/store.ts";
 import type { HttpClient } from "effect/http";
-import type { SqlClient } from "effect/sql/SqlClient";
 import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import {
@@ -17,7 +21,7 @@ import {
   ShortSlugs,
 } from "allthings-core/src/slugs.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
-import { Clock, Context, Duration, Effect, Exit } from "effect";
+import { Clock, Context, DateTime, Duration, Effect, Exit } from "effect";
 
 /**
  * One run of the hourly sync, as the app's cron runs it
@@ -75,6 +79,16 @@ export interface SyncLimits {
     readonly maxEvents?: number;
   };
   /**
+   * X follower counts read (core/src/followers.ts), the missing and oldest
+   * first; a count newer than `staleAfter` is left alone.
+   */
+  readonly followers: {
+    readonly maxProfiles: number;
+    readonly staleAfter: Duration.Input;
+    /** No read runs past this long; what is left waits for later runs. */
+    readonly window: Duration.Input;
+  };
+  /**
    * Evenings searched for posts about them (core/src/posts/candidates.ts):
    * those that ended within `within`, at most `maxEvents`, sending at most
    * `maxRequests` requests, and cut off after `window`.
@@ -97,6 +111,7 @@ export const syncLimits = {
     covers: {},
     venues: {},
     descriptions: { window: "30 seconds" },
+    followers: { maxProfiles: 40, staleAfter: "7 days", window: "30 seconds" },
     postSearch: { within: "7 days", maxEvents: 10, window: "5 minutes" },
   },
   /**
@@ -113,6 +128,7 @@ export const syncLimits = {
     covers: { maxItems: 2 },
     venues: { maxEvents: 2 },
     descriptions: { window: "30 seconds", maxEvents: 2 },
+    followers: { maxProfiles: 2, staleAfter: "7 days", window: "30 seconds" },
     // What the 50 subrequests leave after the steps before it (41).
     postSearch: {
       within: "7 days",
@@ -348,6 +364,10 @@ const write = (limits: SyncLimits) =>
       "descriptions",
       descriptions(yield* LumaDescriptions, limits, false),
     );
+    steps["followers"] = yield* step(
+      "followers",
+      yield* followers(limits, false),
+    );
     steps["post-search"] = yield* step(
       "post-search",
       yield* postSearch(limits),
@@ -389,6 +409,31 @@ const postSearch = (limits: SyncLimits) =>
           ),
         })),
       })),
+      Effect.provideContext(context),
+    );
+  });
+
+/**
+ * Refreshing X follower counts within `limits`, as a step reports it, with
+ * the services the run already has. Reads stop at the end of its window,
+ * counted from when the step starts.
+ */
+const followers = (limits: SyncLimits, dryRun: boolean) =>
+  Effect.gen(function* () {
+    const context = yield* Effect.context<FollowerSource | SqlClient>();
+    return Effect.gen(function* () {
+      const until = DateTime.addDuration(
+        yield* DateTime.now,
+        Duration.fromInputUnsafe(limits.followers.window),
+      );
+      return yield* refreshFollowers({
+        dryRun,
+        maxProfiles: limits.followers.maxProfiles,
+        staleAfter: limits.followers.staleAfter,
+        until,
+      });
+    }).pipe(
+      Effect.map((report) => ({ ...report })),
       Effect.provideContext(context),
     );
   });
@@ -444,6 +489,10 @@ const dryRun = (limits: SyncLimits) =>
     steps["descriptions"] = yield* step(
       "descriptions",
       descriptions(yield* LumaDescriptions, limits, true),
+    );
+    steps["followers"] = yield* step(
+      "followers",
+      yield* followers(limits, true),
     );
     steps["post-search"] = yield* step(
       "post-search",

@@ -67,6 +67,8 @@ interface ColumnGrants {
  *   posts already stored. It only reports what it finds: inserting posts
  *   waits for the database to hold site_sync to pending ones (a column
  *   grant can't limit a value), so an organizer adds them for now.
+ *   Profiles also: the X follower refresh (core/src/followers.ts) reads each
+ *   handle and its snapshot, and writes the new count with when it was read.
  *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
@@ -148,8 +150,17 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "created_at",
       "twitter_handle",
       "bluesky_handle",
+      "x_followers",
+      "x_followers_at",
+      "x_followers_tried_at",
     ],
-    update: ["image", "updated_at"],
+    update: [
+      "image",
+      "updated_at",
+      "x_followers",
+      "x_followers_at",
+      "x_followers_tried_at",
+    ],
   },
   event_posts: {
     select: [

@@ -1,3 +1,4 @@
+import { FollowerSource } from "allthings-core/src/followers.ts";
 import { CandidateSearches } from "allthings-core/src/posts/candidates.ts";
 import { PostSources } from "allthings-core/src/posts/sources.ts";
 import { EventPostWriter } from "allthings-core/src/posts/store.ts";
@@ -76,6 +77,7 @@ const report = await Effect.runPromise(
         ShortSlugs.layer,
         LumaDescriptions.layer,
         ImageIngest.layer,
+        FollowerSource.fxtwitter,
         CandidateSearches.layer,
         PostSources.layer,
         EventPostWriter.layer,

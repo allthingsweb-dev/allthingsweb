@@ -1,4 +1,5 @@
 import { PgClient } from "@effect/sql-pg";
+import { FollowerSource } from "allthings-core/src/followers.ts";
 import { CoverSource } from "allthings-core/src/ingest/covers.ts";
 import { CandidateSearches } from "allthings-core/src/posts/candidates.ts";
 import { PostSources } from "allthings-core/src/posts/sources.ts";
@@ -83,13 +84,14 @@ export const syncLayer = (
     ShortSlugs.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
+    FollowerSource.fxtwitter,
     CandidateSearches.layer,
     PostSources.layer,
     EventPostWriter.layer,
   ).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer)),
-    // Merged, not only provided: the post search reads and writes through
-    // the run's SqlClient and HttpClient itself.
+    // Merged, not only provided: the follower refresh and the post search
+    // read and write through the run's SqlClient and HttpClient themselves.
     Layer.provideMerge(
       Layer.mergeAll(
         PgClient.layer({

@@ -11,6 +11,7 @@ import {
   provisionLoginRole,
   type Statements,
 } from "../../infra/scripts/login-role.ts";
+import { FollowerSource, refreshFollowers } from "../src/followers.ts";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { ImageIngest } from "../src/ingest/ingest.ts";
 import { CandidateSearches, findCandidates } from "../src/posts/candidates.ts";
@@ -224,6 +225,34 @@ describe("site_sync", () => {
     );
     expect(result.written).toBeGreaterThan(0);
     expect(result.written).toBe(result.given.length);
+  });
+
+  test("refreshes X follower counts", async () => {
+    await db.exec("RESET ROLE");
+    await db.exec(
+      `UPDATE profiles SET twitter_handle = 'someone' WHERE id = (SELECT id FROM profiles ORDER BY id LIMIT 1)`,
+    );
+    await db.exec(`SET ROLE ${SITE_SYNC}`);
+    const report = await Effect.runPromise(
+      refreshFollowers({
+        dryRun: false,
+        maxProfiles: 50,
+        staleAfter: "7 days",
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            Layer.succeed(
+              FollowerSource,
+              FollowerSource.of({ read: () => Effect.succeed(42) }),
+            ),
+            sqlLayer(db),
+            clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),
+          ),
+        ),
+      ),
+    );
+    expect(report.failed).toEqual([]);
+    expect(report.refreshed.length).toBeGreaterThan(0);
   });
 
   test("searches past evenings for posts, and reports what it would add", async () => {
