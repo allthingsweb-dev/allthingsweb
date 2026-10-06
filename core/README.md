@@ -431,9 +431,22 @@ DATABASE_URL=… bun run photos add effect a.jpg b.jpg --alt "…" --alt "…" -
 DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run photos add effect a.jpg b.jpg --alt "…" --alt "…"
 ```
 
-The admin MCP server's `add_event_photos` runs the same script.
-`tests/photos.test.ts` runs it against `tests/seed.sql` with a media
-origin that only keeps what it is given.
+To replace one of an evening's photos, say with a retouched copy, name it by
+its position on the page (from 1) or its image id. The new photo is encoded
+and stored as above and takes the old one's place in the order. In the same
+transaction the old link and its `images` row are deleted, and only when
+nothing else points at that row (`imageReferences`, which a test holds to
+the schema's foreign keys); otherwise nothing changes. The old object stays
+in the bucket: nothing deletes one.
+
+```sh
+DATABASE_URL=… bun run photos replace effect 5 retouched.jpg --alt "…" --dry-run   # encode, check, roll back
+DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run photos replace effect 5 retouched.jpg --alt "…"
+```
+
+The admin MCP server's `add_event_photos` and `replace_event_photo` run the
+same script. `tests/photos.test.ts` runs it against `tests/seed.sql` with a
+media origin that only keeps what it is given.
 
 ## Schedules and notes
 

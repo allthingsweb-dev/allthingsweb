@@ -8,7 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { completenessReport } from "./completeness.js";
-import { addEventPhotos } from "./event-photos.js";
+import { addEventPhotos, replaceEventPhoto } from "./event-photos.js";
 import { addEventPost } from "./event-posts.js";
 import { approvePost, hidePost, listPendingPosts } from "./post-review.js";
 import { promoChannels, promoDrafts } from "./promo.js";
@@ -113,6 +113,14 @@ const AddEventPhotosSchema = z.object({
   slug: z.string().min(1),
   files: z.array(z.string().min(1)).min(1),
   alts: z.array(z.string().min(1)).min(1),
+  dryRun: z.boolean().optional(),
+});
+
+const ReplaceEventPhotoSchema = z.object({
+  slug: z.string().min(1),
+  photo: z.string().min(1),
+  file: z.string().min(1),
+  alt: z.string().min(1),
   dryRun: z.boolean().optional(),
 });
 
@@ -586,6 +594,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["slug", "files", "alts"],
+        },
+      },
+      {
+        name: "replace_event_photo",
+        description:
+          "Replace one of an event's photos in its place on the page with a new file, encoded and stored as add_event_photos does. The old photo is named by its image id or its position on the page (from 1). In one transaction the new photo takes the old one's place and the old link and image row are deleted, only when nothing else uses that row; the old object stays in the bucket. Give alt text describing the scene, never naming people from their faces. dryRun checks everything and stores nothing.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            slug: {
+              type: "string",
+              description: "The event's slug or short link",
+            },
+            photo: {
+              type: "string",
+              description:
+                "The photo to replace: its image id, or its position on the page from 1",
+            },
+            file: {
+              type: "string",
+              description: "Absolute path of the new photo",
+            },
+            alt: { type: "string", description: "The new photo's alt text" },
+            dryRun: {
+              type: "boolean",
+              description:
+                "Encode and check everything; store and write nothing",
+            },
+          },
+          required: ["slug", "photo", "file", "alt"],
         },
       },
       {
@@ -1076,6 +1114,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "add_event_photos": {
         const result = await addEventPhotos(
           AddEventPhotosSchema.parse(args ?? {}),
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "replace_event_photo": {
+        const result = await replaceEventPhoto(
+          ReplaceEventPhotoSchema.parse(args ?? {}),
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
