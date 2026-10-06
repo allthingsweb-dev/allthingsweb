@@ -120,8 +120,8 @@ export interface DescriptionsOptions {
   readonly dryRun: boolean;
   /**
    * Ask about at most this many events: those never asked about first,
-   * then the latest to end, so one Luma has no description for can't hold
-   * a place for good. Every published event otherwise.
+   * then the others in turn, hour by hour, so each is asked about again in
+   * time. Every published event otherwise.
    */
   readonly maxEvents?: number;
 }
@@ -146,17 +146,36 @@ const make = Effect.gen(function* () {
   const api = yield* LumaApi;
   const sql = yield* SqlClient;
 
-  const read = (maxEvents: number | null) =>
-    sql`
-      SELECT e.id AS "eventId", e.slug, e.luma_event_id AS "lumaEventId",
-        e.luma_description AS "lumaDescription", e.luma_summary AS "lumaSummary"
-      FROM events e
-      WHERE e.is_draft = false AND e.luma_event_id IS NOT NULL
-      ORDER BY e.luma_description IS NULL DESC, e.end_date DESC, e.id
+  /**
+   * The events to ask about: every published one with a Luma id, or, with
+   * `maxEvents`, those never asked about first, then the rest in turn,
+   * `maxEvents` further down the list (latest to end first) each hour, so
+   * every event is asked about again in time.
+   */
+  const read = (maxEvents: number | null, now: DateTime.Utc) => {
+    const turn =
+      maxEvents === null
+        ? 0
+        : Math.floor(DateTime.toEpochMillis(now) / 3_600_000) * maxEvents;
+    return sql`
+      SELECT e."eventId", e.slug, e."lumaEventId", e."lumaDescription",
+        e."lumaSummary"
+      FROM (
+        SELECT e.id AS "eventId", e.slug, e.luma_event_id AS "lumaEventId",
+          e.luma_description AS "lumaDescription",
+          e.luma_summary AS "lumaSummary",
+          row_number() OVER (ORDER BY e.end_date DESC, e.id) - 1 AS place,
+          count(*) OVER () AS total
+        FROM events e
+        WHERE e.is_draft = false AND e.luma_event_id IS NOT NULL
+      ) e
+      ORDER BY e."lumaDescription" IS NULL DESC,
+        mod(mod(e.place - ${turn}, e.total) + e.total, e.total)
       LIMIT ${maxEvents}`.pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(StoredEvent))),
       orDataSourceError,
     );
+  };
 
   const write = (
     changes: ReadonlyArray<DescriptionChange>,
@@ -199,7 +218,7 @@ const make = Effect.gen(function* () {
         }),
       onSome: (eventDescription) =>
         Effect.gen(function* () {
-          const stored = yield* read(maxEvents ?? null);
+          const stored = yield* read(maxEvents ?? null, yield* DateTime.now);
           const fetched = yield* Effect.forEach(
             stored,
             (event) =>

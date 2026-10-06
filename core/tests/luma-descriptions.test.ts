@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { Effect, Exit, Layer, Option } from "effect";
+import { DateTime, Effect, Exit, Layer, Option } from "effect";
 import {
   LumaApi,
   type LumaApiError,
@@ -17,7 +17,12 @@ import {
   type DescriptionsOptions,
   LumaDescriptions,
 } from "../src/luma/descriptions.ts";
-import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
+import {
+  clockAt,
+  clockLayer,
+  seededDatabase,
+  sqlLayer,
+} from "./support/database.ts";
 import {
   configFrom,
   fakeLumaBy,
@@ -236,9 +241,10 @@ describe("the import", () => {
     },
     options: Partial<DescriptionsOptions> & {
       env?: Record<string, string>;
+      at?: DateTime.Utc;
     } = {},
   ) => {
-    const { env = withKey, ...rest } = options;
+    const { env = withKey, at, ...rest } = options;
     const luma = fakeApi(replies);
     const exit = await Effect.runPromiseExit(
       settle(
@@ -251,7 +257,7 @@ describe("the import", () => {
             Layer.provide(LumaApi.layer),
             Layer.provide(Layer.mergeAll(luma.layer, configFrom(env))),
             Layer.provideMerge(sqlLayer(db)),
-            Layer.provideMerge(clockLayer),
+            Layer.provideMerge(at === undefined ? clockLayer : clockAt(at)),
           ),
         ),
       ),
@@ -437,6 +443,27 @@ describe("the import", () => {
       }),
     ).rejects.toThrow();
     expect(await stored(db)).toEqual(before);
+  });
+
+  test("asks about the rest in turn, hour by hour, so each is asked again in time", async () => {
+    const db = await database();
+    await importInto(db);
+    const askedAt = async (iso: string) =>
+      (
+        await importInto(db, undefined, {
+          maxEvents: 1,
+          at: DateTime.makeUnsafe(iso),
+        })
+      ).requests.map(({ url }) => new URL(url).searchParams.get("event_id"));
+    const first = await askedAt("2026-10-03T19:00:00Z");
+    const next = await askedAt("2026-10-03T20:00:00Z");
+    expect(
+      [...first, ...next].toSorted((a, b) =>
+        String(a).localeCompare(String(b)),
+      ),
+    ).toEqual(["evt-react", "evt-upcoming"]);
+    // The hour after, the first again.
+    expect(await askedAt("2026-10-03T21:00:00Z")).toEqual(first);
   });
 
   test("asks about events never asked about first, then the latest, so one without a description holds no place", async () => {
