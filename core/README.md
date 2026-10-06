@@ -83,8 +83,11 @@ speakers: whoever took part latest first).
 Each profile keeps a snapshot, `x_followers` with `x_followers_at`, read from
 public data: the FixTweet API now, X's own API once the app has keys. The sync
 Worker refreshes the missing and oldest snapshots on its schedule (off until
-the cutover, like the rest of it), a bounded number per run; a handle X
-doesn't know, or a failed read, leaves the snapshot as it was.
+the cutover, like the rest of it), a bounded number per run, reading for
+at most its window (30 s); a handle X doesn't know, or a failed read,
+leaves the snapshot as it was. A count is only ever its handle's: changing
+or clearing `twitter_handle` clears the snapshot (a trigger, in both
+migrations), and a count read while the handle changed is not stored.
 
 ```sh
 DATABASE_URL=… bun run followers --dry-run   # read the counts, write nothing

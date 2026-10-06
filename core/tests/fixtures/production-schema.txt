@@ -406,4 +406,6 @@ relation public.redirects kind=r persistence=p rls=f force_rls=f replica_identit
 relation public.sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.talk_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+routine public.profiles_x_followers_reset() 85adf7be2d92e1bbf1d40cf52eb6599a
 routine public.show_db_tree() afc3f368beed7e4fb52b8c71a7b77586
+trigger CREATE TRIGGER profiles_x_followers_reset BEFORE UPDATE OF twitter_handle ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_x_followers_reset()

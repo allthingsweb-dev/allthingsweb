@@ -4,6 +4,7 @@ import {
   Duration,
   Effect,
   Layer,
+  Option,
   Order,
   Schedule,
   Schema,
@@ -160,6 +161,11 @@ export interface RefreshOptions {
   readonly maxProfiles: number;
   /** A snapshot newer than this is left alone. */
   readonly staleAfter: Duration.Input;
+  /**
+   * Read nothing after this: a read still going is cut off, and what is
+   * left waits for a later run (counted in `remaining`).
+   */
+  readonly until?: DateTime.Utc;
 }
 
 export interface RefreshReport {
@@ -167,7 +173,7 @@ export interface RefreshReport {
   readonly refreshed: ReadonlyArray<string>;
   /** Profiles whose count could not be read, with why. */
   readonly failed: ReadonlyArray<string>;
-  /** Stale profiles left for a later run by `maxProfiles`. */
+  /** Stale profiles left for a later run, by `maxProfiles` or `until`. */
   readonly remaining: number;
 }
 
@@ -182,7 +188,8 @@ const Due = Schema.Struct({
  * Reads the follower counts of profiles whose snapshot is missing or older
  * than `staleAfter`, oldest first, at most `maxProfiles`, and stores each
  * with the time it was read. Each profile is written on its own, so a run
- * cut short keeps what it read.
+ * cut short keeps what it read, and only while its X handle is still the one
+ * read (the database clears a count whose handle changes).
  */
 export const refreshFollowers = (options: RefreshOptions) =>
   Effect.gen(function* () {
@@ -212,29 +219,53 @@ export const refreshFollowers = (options: RefreshOptions) =>
 
     const refreshed: Array<string> = [];
     const failed: Array<string> = [];
-    for (const row of batch) {
+    let unread = 0;
+    for (const [index, row] of batch.entries()) {
       const handle = xHandleOf(row.twitterHandle) ?? "";
-      const read = yield* Effect.result(source.read(handle));
+      // What is left of the run's time, if it has an end.
+      const left =
+        options.until === undefined
+          ? null
+          : DateTime.toEpochMillis(options.until) -
+            DateTime.toEpochMillis(yield* DateTime.now);
+      const read = yield* Effect.result(
+        left === null
+          ? source.read(handle).pipe(Effect.map(Option.some))
+          : source.read(handle).pipe(Effect.timeoutOption(Math.max(0, left))),
+      );
       if (read._tag === "Failure") {
         failed.push(`${row.name} (@${handle}): ${read.failure.reason}`);
         continue;
       }
+      if (Option.isNone(read.success)) {
+        unread = batch.length - index;
+        break;
+      }
+      const count = read.success.value;
       const at = yield* DateTime.now;
       if (!options.dryRun) {
-        yield* sql`
-          UPDATE profiles SET x_followers = ${read.success},
+        const written = yield* sql`
+          UPDATE profiles SET x_followers = ${count},
             x_followers_at = ${DateTime.toDateUtc(at)}
-          WHERE id = ${row.id}::uuid`.pipe(
+          WHERE id = ${row.id}::uuid
+            AND twitter_handle = ${row.twitterHandle}
+          RETURNING 1`.pipe(
           Effect.mapError((cause) => new DataSourceError({ cause })),
         );
+        if (written.length === 0) {
+          failed.push(
+            `${row.name} (@${handle}): the handle changed while it was read`,
+          );
+          continue;
+        }
       }
       refreshed.push(
-        `${row.name} (@${handle}): ${row.xFollowers ?? "∅"} → ${read.success}`,
+        `${row.name} (@${handle}): ${row.xFollowers ?? "∅"} → ${count}`,
       );
     }
     return {
       refreshed,
       failed,
-      remaining: due.length - batch.length,
+      remaining: due.length - batch.length + unread,
     } satisfies RefreshReport;
   });

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { Effect, Exit, Layer, Order } from "effect";
+import { DateTime, Duration, Effect, Exit, Layer, Order } from "effect";
 import {
   byFollowers,
   FollowerReadError,
@@ -235,6 +235,102 @@ describe("refreshFollowers", () => {
       ["Ada Lovelace", 120],
       ["Future Speaker", 2],
       ["Linus", 1],
+    ]);
+  });
+
+  test("a changed or cleared X handle clears its count; other changes keep it", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await refresh(db, { ada: 120, linus: 9000, future: 3 });
+    await db.exec(`
+      UPDATE profiles SET twitter_handle = 'ada_two' WHERE name = 'Ada Lovelace';
+      UPDATE profiles SET twitter_handle = NULL WHERE name = 'Linus';
+      UPDATE profiles SET title = 'Speaker' WHERE name = 'Future Speaker';
+    `);
+    const { rows } = await db.query<{
+      name: string;
+      x_followers: number | null;
+      x_followers_at: Date | null;
+    }>(`SELECT name, x_followers, x_followers_at FROM profiles
+        WHERE name IN ('Ada Lovelace', 'Linus', 'Future Speaker') ORDER BY name`);
+    expect(
+      rows.map((row) => [
+        row.name,
+        row.x_followers,
+        row.x_followers_at !== null,
+      ]),
+    ).toEqual([
+      ["Ada Lovelace", null, false],
+      ["Future Speaker", 3, true],
+      ["Linus", null, false],
+    ]);
+  });
+
+  test("a count read while its handle changed is not stored", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    const changing = Layer.succeed(
+      FollowerSource,
+      FollowerSource.of({
+        read: (handle) =>
+          handle === "ada"
+            ? Effect.promise(() =>
+                db.query(
+                  `UPDATE profiles SET twitter_handle = 'ada_two' WHERE name = 'Ada Lovelace'`,
+                ),
+              ).pipe(Effect.as(120))
+            : Effect.fail(
+                new FollowerReadError({
+                  handle,
+                  reason: "unknown",
+                  retryable: false,
+                }),
+              ),
+      }),
+    );
+    const report = await Effect.runPromise(
+      refreshFollowers({
+        dryRun: false,
+        maxProfiles: 10,
+        staleAfter: "7 days",
+      }).pipe(
+        Effect.provide(Layer.mergeAll(changing, sqlLayer(db), clockLayer)),
+      ),
+    );
+    expect(report.refreshed).toEqual([]);
+    expect(report.failed).toContain(
+      "Ada Lovelace (@ada): the handle changed while it was read",
+    );
+    expect(await snapshots(db)).toContainEqual(["Ada Lovelace", null]);
+  });
+
+  test("stops reading at `until`; what is left waits, counted as remaining", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    const stuck = Layer.succeed(
+      FollowerSource,
+      FollowerSource.of({ read: () => Effect.never }),
+    );
+    // The real clock here: the read is cut off when the time runs out.
+    const report = await Effect.runPromise(
+      Effect.gen(function* () {
+        const until = DateTime.addDuration(
+          yield* DateTime.now,
+          Duration.millis(50),
+        );
+        return yield* refreshFollowers({
+          dryRun: false,
+          maxProfiles: 10,
+          staleAfter: "7 days",
+          until,
+        });
+      }).pipe(Effect.provide(Layer.merge(stuck, sqlLayer(db)))),
+    );
+    expect(report).toEqual({ refreshed: [], failed: [], remaining: 3 });
+    expect(await snapshots(db)).toEqual([
+      ["Ada Lovelace", null],
+      ["Future Speaker", null],
+      ["Linus", null],
     ]);
   });
 

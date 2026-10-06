@@ -14,7 +14,7 @@ import {
   ShortSlugs,
 } from "allthings-core/src/slugs.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
-import { Clock, Context, Duration, Effect, Exit } from "effect";
+import { Clock, Context, DateTime, Duration, Effect, Exit } from "effect";
 
 /**
  * One run of the hourly sync, as the app's cron runs it
@@ -78,6 +78,8 @@ export interface SyncLimits {
   readonly followers: {
     readonly maxProfiles: number;
     readonly staleAfter: Duration.Input;
+    /** No read runs past this long; what is left waits for later runs. */
+    readonly window: Duration.Input;
   };
 }
 
@@ -91,7 +93,7 @@ export const syncLimits = {
     covers: {},
     venues: {},
     descriptions: { window: "30 seconds" },
-    followers: { maxProfiles: 40, staleAfter: "7 days" },
+    followers: { maxProfiles: 40, staleAfter: "7 days", window: "30 seconds" },
   },
   /**
    * Within 50 subrequests: the feed is one, each venue and each
@@ -107,7 +109,7 @@ export const syncLimits = {
     covers: { maxItems: 2 },
     venues: { maxEvents: 2 },
     descriptions: { window: "30 seconds", maxEvents: 2 },
-    followers: { maxProfiles: 2, staleAfter: "7 days" },
+    followers: { maxProfiles: 2, staleAfter: "7 days", window: "30 seconds" },
   },
 } as const satisfies Record<string, SyncLimits>;
 
@@ -345,15 +347,23 @@ const write = (limits: SyncLimits) =>
 
 /**
  * Refreshing X follower counts within `limits`, as a step reports it, with
- * the services the run already has.
+ * the services the run already has. Reads stop at the end of its window,
+ * counted from when the step starts.
  */
 const followers = (limits: SyncLimits, dryRun: boolean) =>
   Effect.gen(function* () {
     const context = yield* Effect.context<FollowerSource | SqlClient>();
-    return refreshFollowers({
-      dryRun,
-      maxProfiles: limits.followers.maxProfiles,
-      staleAfter: limits.followers.staleAfter,
+    return Effect.gen(function* () {
+      const until = DateTime.addDuration(
+        yield* DateTime.now,
+        Duration.fromInputUnsafe(limits.followers.window),
+      );
+      return yield* refreshFollowers({
+        dryRun,
+        maxProfiles: limits.followers.maxProfiles,
+        staleAfter: limits.followers.staleAfter,
+        until,
+      });
     }).pipe(
       Effect.map((report) => ({ ...report })),
       Effect.provideContext(context),
