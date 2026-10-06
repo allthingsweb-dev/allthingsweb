@@ -74,10 +74,12 @@ const talks = `
 
 const db = await catalogDatabase(startedAt, true);
 await db.exec(talks);
-// Erik organized the live evening; Ruth changed her name, so her page moved.
+// Erik organized the live evening, and MC'd it; Ruth changed her name, so
+// her page moved.
 await db.exec(`
   INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
-    ('e0000000-0000-4000-8000-000000000101', '${hosts[0].profileId}', 'organizer', 0, 'site', now());
+    ('e0000000-0000-4000-8000-000000000101', '${hosts[0].profileId}', 'organizer', 0, 'site', now()),
+    ('e0000000-0000-4000-8000-000000000101', '${hosts[0].profileId}', 'mc', 0, 'site', now());
   INSERT INTO profiles (id, name, title, bio, profile_type, updated_at) VALUES
     ('b0000000-0000-4000-8000-000000000507', 'Ruth Old', '', '', 'member', now());
   UPDATE profiles SET name = 'Ruth New' WHERE id = 'b0000000-0000-4000-8000-000000000507';
@@ -453,12 +455,22 @@ describe("/people/<slug>", () => {
     expect(grace).not.toContain("Talks elsewhere");
   });
 
-  it("lists the evenings an organizer hosted", async ({ People }) => {
+  it("lists the evenings an organizer hosted, with an MC part on the evening, not apart", async ({
+    People,
+  }) => {
     const html = await (await fetch(`${People}/people/erik-thorelli`)).text();
     expect(html).toContain(
       '<h2 id="hosted" class="at-type-meta">Hosted · 1 evening</h2>',
     );
-    expect(html).toContain('<span class="talk-title">Hosting evenings</span>');
+    expect(html).toContain(
+      '<span>effect</span><span class="at-cursor" aria-hidden="true">_</span><span class="talk-role at-type-meta"> · MC</span></span>',
+    );
+    // Hosting it says he was there: the MC part is no line of its own.
+    expect(html).not.toContain('<span class="talk-title">MC</span>');
+    const directory = await (await fetch(`${People}/people`)).text();
+    expect(section(directory, "organizers")).not.toContain(
+      '<span class="talk-title">MC</span>',
+    );
   });
 
   it("sends an old address to the new one for good", async ({ People }) => {

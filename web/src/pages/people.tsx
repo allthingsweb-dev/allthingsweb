@@ -134,7 +134,7 @@ const stageLabel: Readonly<Record<StageRole, string | undefined>> = {
 };
 
 /** A part in an evening as a whole, as its line names it. */
-const eveningRoleLabel: Readonly<Record<EveningRole, string>> = {
+export const eveningRoleLabel: Readonly<Record<EveningRole, string>> = {
   "co-host": "co-host",
   mc: "MC",
 };
