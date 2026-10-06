@@ -56,6 +56,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   topic: "effect",
   tagline: "All Things Effect",
   about: null,
+  aboutSource: null,
   status: "upcoming",
   mode: "night",
   startsAt: at("2026-10-01T00:30:00Z"),
@@ -577,6 +578,74 @@ describe("the ledger", () => {
     ]) {
       expect(labels(render(view))).not.toContain("Rules");
     }
+  });
+
+  test("leaves out of Luma's description what On stage shows, and nothing else", async () => {
+    const bio =
+      "Ada writes compilers for the analytical engine, mostly at night, and teaches.";
+    const abstract =
+      "How the engine weaves algebraic patterns, as a loom weaves flowers.";
+    const talk = (title: string) => ({
+      id: title,
+      title,
+      format: "talk" as const,
+      startsAt: null,
+      description: `<p>${abstract}</p>` as SafeHtml,
+      speakers: [speaker({ bio })],
+    });
+    const about =
+      `<p>Doors at 5.</p><p><strong>Engines</strong></p><p>${abstract}</p><p><strong>Ada Lovelace</strong></p><p>${bio}</p>` as SafeHtml;
+    const shown = (view: EventPage) =>
+      /<div class="event-about">([\s\S]*?)<\/div>/.exec(render(view))?.[1] ??
+      null;
+    // One talk: Ada's card shows her bio and the talk's abstract.
+    expect(
+      shown(event({ about, aboutSource: "luma", talks: [talk("Engines")] })),
+    ).toBe("<p>Doors at 5.</p>");
+    // Four talks show their people as rows, bios on /people: hers stays.
+    expect(
+      shown(
+        event({
+          about,
+          aboutSource: "luma",
+          talks: ["Engines", "B", "C", "D"].map(talk),
+        }),
+      ),
+    ).toBe(
+      `<p>Doors at 5.</p><p><strong>Ada Lovelace</strong></p><p>${bio}</p>`,
+    );
+    // An evening with no stage shows its talks nowhere, so nothing goes.
+    expect(
+      shown(
+        event({
+          about,
+          aboutSource: "luma",
+          program: "social",
+          talks: [talk("Engines")],
+        }),
+      ),
+    ).toBe(about);
+    // The site's own words are kept as written.
+    expect(
+      shown(event({ about, aboutSource: "site", talks: [talk("Engines")] })),
+    ).toBe(about);
+    // A description that only repeated the stage leaves no About row.
+    expect(
+      labels(
+        render(
+          event({
+            about: `<p>${bio}</p>` as SafeHtml,
+            aboutSource: "luma",
+            talks: [talk("Engines")],
+          }),
+        ),
+      ),
+    ).not.toContain("About");
+    expect(
+      await htmlProblems(
+        render(event({ about, aboutSource: "luma", talks: [talk("Engines")] })),
+      ),
+    ).toEqual([]);
   });
 
   test("escapes what it prints", async () => {

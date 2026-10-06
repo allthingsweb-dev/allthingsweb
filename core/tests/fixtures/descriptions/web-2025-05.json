@@ -1,0 +1,36 @@
+{
+  "slug": "web-2025-05",
+  "about": "<p>What’s new in Voice? A lot. LLMs are transforming the Voice AI space - and fast, too! Join us on May 28 at Vapi HQ in SF for an evening of cutting-edge tech talks, tasty snacks &amp; drinks, and great conversations about the future of the web and Voice AI. Don’t miss it!</p>\n<p><strong>Talks</strong></p>\n<ul>\n<li><strong>Performance optimizing agent for Next.js</strong><br /><em>Lee Robinson,</em> DX at Vercel</li>\n<li><strong>How I built an open source gemini live with Vapi</strong><br /><em>Elizabeth Trykin, DevRel at Vapi</em></li>\n<li><strong>Giving your voice agents superpowers with MCP</strong><br /><em>Dan Goosewin, SDE Manager at Deaglo</em></li>\n</ul>\n<p><strong>Schedule</strong></p>\n<ul>\n<li><strong>5:00 – 6:00 PM</strong>: Doors open! Grab a snack, enjoy a drink, and meet fellow attendees.</li>\n<li><strong>6:00 – 7:00 PM</strong>: Time for tech talks!</li>\n<li><strong>7:00 – 8:00 PM</strong>: Stick around to chat, connect, and dive deeper into all things web discussions.</li>\n</ul>\n<p><strong>Vapi Office Hours</strong></p>\n<p>A couple of Vapi engineers will be available from 7-8pm to help with support or to answer technical questions .</p>\n<p><strong>About Vapi</strong></p>\n<p>This event is hosted by our friends at Vapi. Vapi is a developer platform for building, testing, and deploying voice AI agents. It provides the infrastructure for businesses and developers to create custom voice assistants that can handle call operations for existing customer support, appointment booking, and sales calls, or for building new products using voice AI like prior authorization and product onboarding assistants. Try Vapi at <a href=\"https://vapi.ai\" target=\"_blank\" rel=\"noopener noreferrer\">vapi.ai</a>.</p>\n<p><strong>About All Things Web</strong></p>\n<p>We are a group of web enthusiasts who love to bring the community together and chat about all things web! Subscribe to <a href=\"https://lu.ma/allthingsweb\" target=\"_blank\" rel=\"noopener noreferrer\">our Luma calendar</a> for upcoming events, visit <a href=\"http://allthingsweb.dev\" target=\"_blank\" rel=\"noopener noreferrer\">allthingsweb.dev</a> to learn more, and <a href=\"https://discord.gg/B3Sm4b5mfD\" target=\"_blank\" rel=\"noopener noreferrer\">join our Discord</a> server to stay connected.</p>\n",
+  "talks": [
+    {
+      "title": "Building a voice-first future",
+      "description": "Voice is the most natural interface for AI - once it feels natural for people to talk to things, they will. At Vapi, we’re building that future by making it dead simple to create real-time voice agents and scale them to production.",
+      "speakers": [
+        {
+          "name": "Elizabeth Trykin",
+          "bio": "Elizabeth works on Developer Experience at Vapi. She got into building things after making an app in high school to help nonverbal kids communicate. Since then, she’s led DevRel at Exa and built tools for biotech automation at Invert. These days, she’s into great DX, writing, running, and hitting Solidcore in the Castro."
+        }
+      ]
+    },
+    {
+      "title": "​Giving your voice agents superpowers with MCP",
+      "description": "In this lightning talk, Dan Goosewin shares how MCP can be used to give your voice agents superpowers, diving into Vapi's capabilities and how they can be used to build voice agents.",
+      "speakers": [
+        {
+          "name": "Dan Goosewin",
+          "bio": "Dan is a DevRel Lead at Vapi and co-hosts the NextDev.fm podcast. He's passionate about software, videogames, finance, entrepreneurship, and ducks. He was formerly at Deaglo."
+        }
+      ]
+    },
+    {
+      "title": "Performance optimizing agent for Next.js",
+      "description": "In this talk, Lee Robinson will be talking about the performance optimizing agent for Next.js and evals for better code generation.",
+      "speakers": [
+        {
+          "name": "Lee Robinson",
+          "bio": "Lee Robinson is the VP of Developer Experience at Vercel. He's a developer, optimist, and community builder. Lee is passionate about teaching about React, Next.js, and the web."
+        }
+      ]
+    }
+  ]
+}

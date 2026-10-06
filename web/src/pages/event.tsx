@@ -44,6 +44,10 @@ import { calendarPath } from "./calendar.ts";
 import { Document } from "./document.tsx";
 import { Cursor } from "./evening-row.tsx";
 import { type LineupDensity, lineupDensity, talkPeople } from "./lineup.ts";
+import {
+  type Stage,
+  withoutStageRepeats,
+} from "allthings-core/src/stage-repeats.ts";
 import { hostNames } from "./home.tsx";
 import { gatheringTitle, homeTitle, lockup, type Title } from "./metadata.tsx";
 import {
@@ -912,6 +916,41 @@ function About({ about }: { readonly about: SafeHtml }) {
   );
 }
 
+/**
+ * What "On stage" shows of the evening's talks, as Luma's description is
+ * checked against it: each talk's title and abstract, and a speaker's bio
+ * only where their card shows it (lineup.ts).
+ */
+export function shownOnStage(event: EventPage): Stage {
+  const { stage } = formats[event.program];
+  if (stage === null) return { talks: [] };
+  const density = lineupDensity(event.talks.length);
+  return {
+    talks: event.talks.map((talk) => {
+      const cards = density !== "list" && talkPeople(talk, density) === "cards";
+      return {
+        title: talk.title,
+        description: talk.description,
+        speakers: talk.speakers.map((speaker) => ({
+          name: speaker.name,
+          bio: cards ? speaker.bio : null,
+        })),
+      };
+    }),
+  };
+}
+
+/**
+ * The About row's words: Luma's description without what "On stage"
+ * already shows (core/src/stage-repeats.ts), or the site's own as written.
+ * Null when nothing is left to say.
+ */
+export function aboutShown(event: EventPage): SafeHtml | null {
+  if (event.about === null || event.aboutSource !== "luma") return event.about;
+  const trimmed = withoutStageRepeats(event.about, shownOnStage(event));
+  return trimmed.replace(/<[^>]*>|&nbsp;|\s/g, "") === "" ? null : trimmed;
+}
+
 /** A row of the event's own, such as its awards, under the note's label. */
 function NoteFact({ note }: { readonly note: Note }) {
   // Sanitized by core (rich-text.ts): formatting and safe links only.
@@ -1225,6 +1264,7 @@ export function eventPage({
   const photos = showable(event.photos, images);
   const tagline = event.tagline.trim();
   const { stage } = formats[event.program];
+  const about = aboutShown(event);
   const rules = rulesFor({
     program: event.program,
     startDate: event.startsAt,
@@ -1279,7 +1319,7 @@ export function eventPage({
           ) : (
             ""
           )}
-          {event.about === null ? "" : <About about={event.about} />}
+          {about === null ? "" : <About about={about} />}
           {event.schedule.length === 0 ? (
             ""
           ) : (

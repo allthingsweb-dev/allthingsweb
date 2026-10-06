@@ -359,7 +359,9 @@ describe("EventPages", () => {
     expect<string | null>((await read(acme)).about).toBe(
       "<p>Server components in practice, with <strong>two talks</strong> and time to talk after.</p>\n",
     );
+    expect((await read(acme)).aboutSource).toBe("luma");
     expect((await read("2026-11-05-upcoming")).about).toBeNull();
+    expect((await read("2026-11-05-upcoming")).aboutSource).toBeNull();
     const database = await seededDatabase();
     try {
       const about = (description: string) =>
@@ -369,14 +371,16 @@ describe("EventPages", () => {
             acme,
           ])
           .then(() => Effect.runPromise(readPage(acme, now, database)))
-          .then((page): string | null => page.about);
+          .then((page): string | null =>
+            page.about === null ? null : `${page.aboutSource}: ${page.about}`,
+          );
       // The site's own wins, sanitized.
       expect(
         await about('<p>Our <em>own</em> words.</p><img src="x" onerror="1">'),
-      ).toBe("<p>Our <em>own</em> words.</p>");
+      ).toBe("site: <p>Our <em>own</em> words.</p>");
       // One that says nothing leaves Luma's.
       expect(await about("<p> </p>")).toStartWith(
-        "<p>Server components in practice",
+        "luma: <p>Server components in practice",
       );
     } finally {
       await database.close();

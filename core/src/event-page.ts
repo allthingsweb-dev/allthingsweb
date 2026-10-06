@@ -147,6 +147,11 @@ export interface EventPage {
    * when it says something, else Luma's. Sanitized; null when neither does.
    */
   readonly about: SafeHtml | null;
+  /**
+   * Whose words `about` is: the site's own, or Luma's as imported, which
+   * the page may trim of what its stage repeats (src/stage-repeats.ts).
+   */
+  readonly aboutSource: "site" | "luma" | null;
   /** At the `Clock`'s now. */
   readonly status: Contract.EventStatus;
   /** Night for an evening, Paper for a daytime event (see mode.ts). */
@@ -401,19 +406,25 @@ const saysSomething = (html: SafeHtml): boolean =>
   html.replace(/<[^>]*>|&nbsp;|\s/g, "") !== "";
 
 /**
- * What the evening is about: the site's description when it says
- * something once sanitized, else Luma's, else null.
+ * What the evening is about, and whose words: the site's description when
+ * it says something once sanitized, else Luma's, else null.
  */
 export const aboutOf = (
   row: Pick<EventPageRow, "description" | "lumaDescription">,
-): Effect.Effect<SafeHtml | null> =>
+): Effect.Effect<{
+  readonly html: SafeHtml | null;
+  readonly source: "site" | "luma" | null;
+}> =>
   Effect.gen(function* () {
-    for (const text of [row.description, row.lumaDescription]) {
+    for (const [source, text] of [
+      ["site", row.description],
+      ["luma", row.lumaDescription],
+    ] as const) {
       if (text === null) continue;
       const html = yield* sanitizeRichText(text);
-      if (saysSomething(html)) return html;
+      if (saysSomething(html)) return { html, source };
     }
-    return null;
+    return { html: null, source: null };
   });
 
 /**
@@ -456,7 +467,8 @@ export const toEventPage = (
         name: displayName(row.name),
         topic: eventTopic(row),
         tagline: eventTagline(row),
-        about,
+        about: about.html,
+        aboutSource: about.source,
         status: eventStatus(row, now),
         mode: eventMode(row.startDate),
         startsAt: row.startDate,
