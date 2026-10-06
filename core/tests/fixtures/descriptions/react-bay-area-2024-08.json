@@ -1,0 +1,26 @@
+{
+  "slug": "react-bay-area-2024-08",
+  "about": "<p><strong>React Bay Area is back!</strong></p>\n<p>Join us on August 27 at the Mux office in San Francisco for tech talks, snacks &amp; drinks, and plenty of chit-chat about all things web!</p>\n<p>This event is sponsored &amp; hosted by Mux. Food is kindly provided by Santiy.</p>\n<p><strong>Talks</strong></p>\n<p>E-commerce Cart Implementation with new hooks of React 19 - Sébastien Morel</p>\n<p><strong>About Sébastien</strong></p>\n<p>Sébastien is a passionate and accomplished tech leader and problem-solver with extensive experience in architecture, performance optimizations, development, and system administration. CTO at Crystallize, a super-fast, super modern, super sexy, and super-powerful Headless eCommerce, he's in charge (among others) of the Developer eXperience initiative. Previously, he led and grew his former web agency for 18 years, working on more than 150 projects that were successfully and proudly implemented, deployed, and maintained. Sébastien is also an open-source maintainer and is active in several communities.</p>\n<p><strong>Twitter/X</strong>: <a href=\"https://twitter.com/Plopix\" target=\"_blank\" rel=\"noopener noreferrer\">@Plopix</a></p>\n<p><strong>Custom component-based media players - Steve Heffernan</strong></p>\n<p>Media players are often the last thing people try to customize in their applications, either because it's intimidating, the native player seems to be fine as it is, or the video/audio platform doesn't allow much customization. Some of us think that's sad and shouldn't be the case. Video and audio should be fun, and fun to work with.</p>\n<p>Media Chrome and Player.style are a few open source projects trying to change that by providing composable player UI components that handle the complex media logic, and a set of professional-grade themes to start from. These themes and components work across media players (Youtube, HTML5 video), and across frameworks (React, Svelte, vanilla HTML). That's possible thanks to web components (with React wrappers), standardized media APIs, and lot of keyboard mashing. I hope you get inspired to upgrade your own player.</p>\n<p><strong>About Steve</strong></p>\n<p>Steve Heffernan is the creator of Video.js and a founder of Mux.</p>\n<p><strong>Twitter/X</strong>: <a href=\"https://twitter.com/heff\" target=\"_blank\" rel=\"noopener noreferrer\">@heff</a></p>\n<p><strong>About React Bay Area</strong></p>\n<p>React Bay Area meetups are back, and we are excited to kick off a new series of monthly events with tech talks &amp; discussions.</p>\n<p>- Follow us on Twitter/X to stay up to date: <a href=\"https://x.com/ReactBayArea\" target=\"_blank\" rel=\"noopener noreferrer\">@ReactBayArea</a><br />- Join our Discord to hang out and chat about all things web: <a href=\"https://discord.gg/B3Sm4b5mfD\" target=\"_blank\" rel=\"noopener noreferrer\">https://discord.gg/B3Sm4b5mfD</a></p>\n<p><strong>Want to Give a Talk?</strong></p>\n<p>Please fill out this super short form, and we'll get back to you! <a href=\"https://forms.gle/N6yeL5eavHK4ThW58\" target=\"_blank\" rel=\"noopener noreferrer\">https://forms.gle/N6yeL5eavHK4ThW58</a></p>\n",
+  "talks": [
+    {
+      "title": "Custom component-based media players",
+      "description": "Media players are often the last thing people try to customize in their applications, either because it's intimidating, the native player seems to be fine as it is, or the video/audio platform doesn't allow much customization. Some of us think that's sad and shouldn't be the case. Video and audio should be fun, and fun to work with.\n\r\nMedia Chrome and Player.style are a few open source projects trying to change that by providing composable player UI components that handle the complex media logic, and a set of professional-grade themes to start from. These themes and components work across media players (Youtube, HTML5 video), and across frameworks (React, Svelte, vanilla HTML). That's possible thanks to web components (with React wrappers), standardized media APIs, and lot of keyboard mashing. I hope you get inspired to upgrade your own player.",
+      "speakers": [
+        {
+          "name": "Steve Heffernan",
+          "bio": "Steve Heffernan is the creator of Video.js and a founder of Mux."
+        }
+      ]
+    },
+    {
+      "title": "Implementing a shopping cart with React 19",
+      "description": "Let's build a shopping cart with the new hooks from React 19. We will start with a simple implementation and slowly iterate our way through different React 19 features and hooks using Next.js.",
+      "speakers": [
+        {
+          "name": "Sébastien Morel",
+          "bio": "Sébastien is a passionate and accomplished tech leader and problem-solver with extensive experience in architecture, performance optimizations, development, and system administration. CTO at Crystallize, a super-fast, super modern, super sexy, and super-powerful Headless eCommerce, he's in charge (among others) of the Developer eXperience initiative. Previously, he led and grew his former web agency for 18 years, working on more than 150 projects that were successfully and proudly implemented, deployed, and maintained. Sébastien is also an open-source maintainer and is active in several communities."
+        }
+      ]
+    }
+  ]
+}

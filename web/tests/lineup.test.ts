@@ -65,6 +65,7 @@ const render = (lineup: ReadonlyArray<Talk>) =>
       topic: "effect",
       tagline: "All Things Effect",
       about: null,
+      aboutSource: null,
       status: "past",
       mode: "night",
       startsAt: at("2026-10-01T00:30:00Z"),

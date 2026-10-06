@@ -1,0 +1,26 @@
+{
+  "slug": "web-2024-11",
+  "about": "<p>Join us for an engaging evening with a talk and AMA with <strong>Tom Occhino</strong>.</p>\n<p>We'll <strong>open the doors from 5:00 to 6:00pm</strong> to check-in and come mingle. (Food and drinks provided by Vercel.)</p>\n<p><strong>Talks start at 6:00pm.</strong></p>\n<p>Wrap-up at 7:30pm and figure out an after-meetup spot for anyone that wants to continue the conversations together into the wee hours of a Tuesday night...</p>\n<p>Huge shoutout to Vercel for hosting us! It should be an amazing evening!</p>\n<p>Note: All attendees will receive a NDA 1 week before the event. It makes our jobs way easier if you sign it before arriving.</p>\n<p><strong>----</strong></p>\n<p><strong>\"An Evening with Tom Occhino\"</strong></p>\n<p>Tom is the Chief Product Officer at Vercel leading Engineering, Product, and Design. Previously he spent over 12 years at Facebook where he led development of the company’s core JavaScript Infra, shaped its open source program, and was <strong>responsible for the creation and development of React and React Native</strong>. He enjoys traveling, dance music, fancy cocktails, and simple food.</p>\n<p><strong>\"History of React\" w/ Tom Occhino</strong></p>\n<p>Tom will give us all a first-hand account of the history of React, from first announcing it to the world in 2013 to the present.</p>\n<p><strong>\"Ask Me Anything\" w/ Tom Occhino</strong></p>\n<p>We have an amazing opportunity to sit down with \"Tomo\" and ask him anything. Part interview. Part group discussions. Come with questions if you've got 'em!</p>\n<p><strong>----</strong></p>\n<p><strong>About All Things Web</strong></p>\n<p>We are a group of web enthusiasts who love to bring the community together and chat about all things web! We organize events for the <a href=\"https://www.meetup.com/reactjs-san-francisco\" target=\"_blank\" rel=\"noopener noreferrer\">React Bay Area</a> and <a href=\"https://www.meetup.com/remix-bay-area/\" target=\"_blank\" rel=\"noopener noreferrer\">Remix Bay Area</a> meetup groups, and you can find all our events on the <a href=\"https://lu.ma/allthingsweb\" target=\"_blank\" rel=\"noopener noreferrer\">All Things Web Luma calendar</a> and <a href=\"http://allthingsweb.dev\" target=\"_blank\" rel=\"noopener noreferrer\">allthingsweb.dev</a>.</p>\n",
+  "talks": [
+    {
+      "title": "History of React",
+      "description": "Tom will give us all a first-hand account of the history of React, from first announcing it to the world in 2013 to the present.",
+      "speakers": [
+        {
+          "name": "Tom Occhino",
+          "bio": "​Tom is the Chief Product Officer at Vercel leading Engineering, Product, and Design. Previously he spent over 12 years at Facebook where he led development of the company’s core JavaScript Infra, shaped its open source program, and was responsible for the creation and development of React and React Native. He enjoys traveling, dance music, fancy cocktails, and simple food."
+        }
+      ]
+    },
+    {
+      "title": "dynamicIO",
+      "description": "In this talk, JJ showcases the power of v0 and Next.js's new \"use cache\" directive, using the experimental dynamicIO feature.",
+      "speakers": [
+        {
+          "name": "JJ Kasper",
+          "bio": "Next.js maintainer and Software Engineer at Vercel."
+        }
+      ]
+    }
+  ]
+}
