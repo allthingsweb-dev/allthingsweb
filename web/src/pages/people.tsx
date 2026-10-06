@@ -1,4 +1,6 @@
 import {
+  type Appearance,
+  appearances,
   type EveningRole,
   type Part,
   type PeopleView,
@@ -139,73 +141,75 @@ export const eveningRoleLabel: Readonly<Record<EveningRole, string>> = {
   mc: "MC",
 };
 
+/** A part as an evening's row names it: "talk: State of Effect 2026", "MC". */
+export function partLabel(part: Part): string {
+  if (part.kind === "role") return eveningRoleLabel[part.role];
+  return `${stageLabel[part.role] ?? "talk"}: ${part.title}`;
+}
+
 /**
- * What the person did at each evening, latest first: a talk's title (and
- * their capacity, unless they spoke), or their part in the evening, then
- * the evening, linking to it.
+ * The evenings a person took part in, latest first, one row each: the
+ * evening, linking to it, then every part they had in it, in core's
+ * order (eveningPartOrder): "talk: State of Effect 2026 · MC".
  */
-export function Parts({ parts }: { readonly parts: ReadonlyArray<Part> }) {
-  if (parts.length === 0) return "";
+export function Appearances({
+  rows,
+}: {
+  readonly rows: ReadonlyArray<Appearance>;
+}) {
+  if (rows.length === 0) return "";
   return (
     <ul class="talks">
-      {parts.map((part) => {
-        const capacity =
-          part.kind === "talk" ? stageLabel[part.role] : undefined;
-        return (
-          <li>
-            <a class="talk" href={eventPath(part.evening.slug)}>
-              <time
-                class="date at-type-meta"
-                datetime={DateTime.formatIso(part.evening.startsAt)}
-                safe
-              >
-                {listDate(part.evening.startsAt)}
-              </time>
-              <span class="talk-title" safe>
-                {part.kind === "talk"
-                  ? part.title
-                  : eveningRoleLabel[part.role]}
+      {rows.map(({ evening, parts }) => (
+        <li>
+          <a class="talk" href={eventPath(evening.slug)}>
+            <time
+              class="date at-type-meta"
+              datetime={DateTime.formatIso(evening.startsAt)}
+              safe
+            >
+              {listDate(evening.startsAt)}
+            </time>
+            <span class="talk-title">
+              <EveningName evening={evening} />
+            </span>
+            {parts.length === 0 ? (
+              ""
+            ) : (
+              <span class="talk-parts" safe>
+                {parts.map(partLabel).join(" · ")}
               </span>
-              <span class="talk-evening">
-                <EveningName evening={part.evening} />
-                {capacity === undefined ? (
-                  ""
-                ) : (
-                  <span class="talk-role at-type-meta" safe>
-                    {` · ${capacity}`}
-                  </span>
-                )}
-              </span>
-            </a>
-          </li>
-        );
-      })}
+            )}
+          </a>
+        </li>
+      ))}
     </ul>
   );
 }
 
 /**
- * How many of a person's appearances /people lists, newest first: their
- * talks and their parts in evenings, as the directory folds them. The rest
- * are on their own page, which lists every one.
+ * How many evenings /people lists for a person, newest first, each one row
+ * with every part they had in it. The rest are on their own page, which
+ * lists every one.
  */
-export const recentParts = 3;
+export const recentEvenings = 3;
 
 /**
- * A person's latest appearances, then, when they have more, a link to
- * their page, which has all of them.
+ * A person's latest evenings, then, when they have more, a link to their
+ * page, which has all of them.
  */
-export function RecentParts({ person }: { readonly person: Person }) {
-  const more = person.parts.length > recentParts;
+export function RecentEvenings({ person }: { readonly person: Person }) {
+  const rows = appearances(person.parts);
+  const more = rows.length > recentEvenings;
   return (
     <>
-      <Parts parts={person.parts.slice(0, recentParts)} />
+      <Appearances rows={rows.slice(0, recentEvenings)} />
       {more ? (
         <p class="list-links">
           <a href={personPath(person.slug)}>
-            <span safe>{`all ${person.parts.length}`}</span>
+            <span safe>{`all ${rows.length}`}</span>
             <span class="visually-hidden" safe>
-              {` of ${person.name}'s`}
+              {` of ${person.name}'s evenings`}
             </span>
             {" on their page "}
             <span aria-hidden="true">→</span>
@@ -261,7 +265,7 @@ function PersonEntry({
           </p>
         )}
         <Links person={person} />
-        <RecentParts person={person} />
+        <RecentEvenings person={person} />
       </div>
     </li>
   );

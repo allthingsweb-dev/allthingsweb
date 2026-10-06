@@ -2,7 +2,11 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { DateTime, Effect, Layer } from "effect";
 import { DataSourceError } from "../src/errors.ts";
 import {
+  appearances,
+  eveningPartOrder,
+  type Part,
   PeopleDirectory,
+  personRows,
   type PeopleView,
   type PersonRow,
   shortBio,
@@ -612,5 +616,78 @@ describe("one person's page", () => {
         `UPDATE profiles SET name = 'Grace Hopper' WHERE id = '${grace}'`,
       );
     }
+  });
+});
+
+describe("appearances", () => {
+  const evening = (slug: string, iso: string) => ({
+    slug,
+    curation: "ours" as const,
+    name: "All Things Effect",
+    topic: "effect",
+    status: "past" as const,
+    startsAt: DateTime.makeUnsafe(iso),
+  });
+  const effect = evening("effect", "2026-10-01T00:30:00Z");
+  const sync = evening("sync", "2026-04-30T00:30:00Z");
+  const talk = (title: string, on = effect): Part => ({
+    kind: "talk",
+    title,
+    role: "speaker",
+    evening: on,
+  });
+  const role = (name: "mc" | "co-host", on = effect): Part => ({
+    kind: "role",
+    role: name,
+    evening: on,
+  });
+
+  test("gives each evening one row, its parts in the one order: talks, co-host, MC", () => {
+    expect(eveningPartOrder).toEqual(["talk", "co-host", "mc"]);
+    const rows = appearances([
+      role("mc"),
+      talk("Alchemy 2.0"),
+      role("co-host"),
+      talk("Fireside chat"),
+      talk("Sync engines", sync),
+    ]);
+    expect(rows.map((row) => row.evening.slug)).toEqual(["effect", "sync"]);
+    expect(
+      rows[0]?.parts.map((part) =>
+        part.kind === "talk" ? part.title : part.role,
+      ),
+    ).toEqual(["Alchemy 2.0", "Fireside chat", "co-host", "mc"]);
+  });
+
+  test("puts an evening someone hosted under Hosted alone, with their talks and parts", () => {
+    const rows = personRows({
+      ...toPerson(
+        {
+          id: "e",
+          slug: "erik-thorelli",
+          name: "Erik Thorelli",
+          title: "",
+          bio: "",
+          twitterHandle: null,
+          blueskyHandle: null,
+          linkedinHandle: null,
+          xFollowers: null,
+          photo: null,
+          organizes: true,
+          talks: [],
+          roles: [],
+          hosted: [],
+        },
+        now,
+      ),
+      parts: [talk("State of Effect 2026"), talk("Sync engines", sync)],
+      organizes: true,
+      hosted: [{ ...effect, roles: ["mc"] }],
+    });
+    expect(rows.hosted).toEqual([
+      { evening: effect, parts: [talk("State of Effect 2026"), role("mc")] },
+    ]);
+    expect(rows.ours.map((row) => row.evening.slug)).toEqual(["sync"]);
+    expect(rows.shared).toEqual([]);
   });
 });

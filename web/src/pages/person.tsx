@@ -2,23 +2,17 @@ import type {
   ExternalTalk,
   ExternalTalkKind,
 } from "allthings-core/src/external-talks.ts";
-import type {
-  HostedEvening,
-  PersonPage,
-} from "allthings-core/src/people-directory.ts";
-import { shortBio } from "allthings-core/src/people-directory.ts";
+import type { PersonPage } from "allthings-core/src/people-directory.ts";
+import { personRows, shortBio } from "allthings-core/src/people-directory.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
-import { DateTime } from "effect";
-import { eventPath, personPath } from "../links.ts";
+import { personPath } from "../links.ts";
 import { Document } from "./document.tsx";
-import { EveningName } from "./evening-row.tsx";
 import { gatheringTitle } from "./metadata.tsx";
-import { eveningRoleLabel, Links, Parts, Portrait } from "./people.tsx";
+import { Appearances, Links, Portrait } from "./people.tsx";
 import type { ImageMode } from "./picture.tsx";
 import { personStructuredData } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
 import { ogCards } from "../og/cards.ts";
-import { listDate } from "./time.ts";
 
 /**
  * /people/<slug>: one person, as their profile has them, beside what they
@@ -58,47 +52,6 @@ function Section({
       </h2>
       {children}
     </section>
-  );
-}
-
-/**
- * The evenings an organizer hosted, latest first, each linking to it, with
- * any part they also had in it (MC) after the evening, as a talk's line
- * names a capacity.
- */
-function Hosted({
-  evenings,
-}: {
-  readonly evenings: ReadonlyArray<HostedEvening>;
-}) {
-  return (
-    <ul class="talks">
-      {evenings.map((evening) => (
-        <li>
-          <a class="talk" href={eventPath(evening.slug)}>
-            <time
-              class="date at-type-meta"
-              datetime={DateTime.formatIso(evening.startsAt)}
-              safe
-            >
-              {listDate(evening.startsAt)}
-            </time>
-            <span class="talk-title">
-              <EveningName evening={evening} />
-              {evening.roles.length === 0 ? (
-                ""
-              ) : (
-                <span class="talk-role at-type-meta" safe>
-                  {evening.roles
-                    .map((role) => ` · ${eveningRoleLabel[role]}`)
-                    .join("")}
-                </span>
-              )}
-            </span>
-          </a>
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -211,11 +164,9 @@ export function personPage({
   images,
 }: PersonProps): string {
   const path = personPath(person.slug);
-  // Our evenings, then the ones we only shared: never one as the other.
-  const ours = person.parts.filter((part) => part.evening.curation === "ours");
-  const shared = person.parts.filter(
-    (part) => part.evening.curation === "shared",
-  );
+  // One row per evening: the hosted ones under Hosted, then our others,
+  // then the ones we only shared, never one as another.
+  const { ours, shared, hosted } = personRows(person);
   return Document({
     section: "people",
     meta: {
@@ -259,14 +210,14 @@ export function personPage({
             ""
           ) : (
             <Section id="at-all-things" title="At all things">
-              <Parts parts={ours} />
+              <Appearances rows={ours} />
             </Section>
           )}
           {shared.length === 0 ? (
             ""
           ) : (
             <Section id="shared" title="At evenings we shared">
-              <Parts parts={shared} />
+              <Appearances rows={shared} />
             </Section>
           )}
           {elsewhere.length === 0 ? (
@@ -286,7 +237,7 @@ export function personPage({
               id="hosted"
               title={`Hosted · ${count(person.hosted.length, "evening", "evenings")}`}
             >
-              <Hosted evenings={person.hosted} />
+              <Appearances rows={hosted} />
             </Section>
           )}
         </div>

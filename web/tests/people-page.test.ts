@@ -5,7 +5,7 @@ import type {
   Person,
 } from "allthings-core/src/people-directory.ts";
 import { DateTime } from "effect";
-import { peoplePage, recentParts } from "../src/pages/people.tsx";
+import { peoplePage, recentEvenings } from "../src/pages/people.tsx";
 import { personPage } from "../src/pages/person.tsx";
 import type { ImageMode } from "../src/pages/picture.tsx";
 import { headingLevels, htmlProblems } from "./support/pages.ts";
@@ -139,14 +139,14 @@ describe("a person's latest appearances", () => {
       })),
     });
   const titles = (html: string) =>
-    [...html.matchAll(/<span class="talk-title">([^<]+)</g)].map(
-      ([, title]) => title,
+    [...html.matchAll(/<span class="talk-parts">([^<]+)</g)].map(
+      ([, parts = ""]) => parts.replace(/^talk: /, ""),
     );
   const page = (count: number) =>
     render({ organizers: [], speakers: [withParts(count)], coHosts: [] });
 
-  test(`lists all of up to ${recentParts}, with no link to more`, async () => {
-    expect(recentParts).toBe(3);
+  test(`lists all of up to ${recentEvenings}, with no link to more`, async () => {
+    expect(recentEvenings).toBe(3);
     for (const count of [2, 3]) {
       const html = page(count);
       expect(titles(html)).toEqual(
@@ -157,11 +157,11 @@ describe("a person's latest appearances", () => {
     }
   });
 
-  test(`lists the newest ${recentParts} of more, and links to the page with all of them`, async () => {
+  test(`lists the newest ${recentEvenings} of more, and links to the page with all of them`, async () => {
     const html = page(4);
     expect(titles(html)).toEqual(["Talk 1", "Talk 2", "Talk 3"]);
     expect(html).toContain(
-      '<p class="list-links"><a href="/people/ada-lovelace"><span>all 4</span><span class="visually-hidden"> of Ada Lovelace&#x27;s</span> on their page <span aria-hidden="true">→</span></a></p>',
+      '<p class="list-links"><a href="/people/ada-lovelace"><span>all 4</span><span class="visually-hidden"> of Ada Lovelace&#x27;s evenings</span> on their page <span aria-hidden="true">→</span></a></p>',
     );
     expect(await htmlProblems(html)).toEqual([]);
     // Their page keeps every one.
@@ -174,6 +174,140 @@ describe("a person's latest appearances", () => {
       images: "originals",
     });
     expect(titles(own)).toEqual(["Talk 1", "Talk 2", "Talk 3", "Talk 4"]);
+  });
+});
+
+describe("one row per evening", () => {
+  const effect = {
+    slug: "effect",
+    curation: "ours" as const,
+    name: "All Things Effect",
+    topic: "effect",
+    status: "past" as const,
+    startsAt: DateTime.makeUnsafe("2026-10-01T00:30:00Z"),
+  };
+  const rows = (html: string) =>
+    [...html.matchAll(/<span class="talk-parts">([^<]+)</g)].map(
+      ([, parts]) => parts,
+    );
+
+  test("a talk and an MC part at one evening are one row, the talk first", () => {
+    const html = render({
+      organizers: [],
+      speakers: [
+        person("Ada Lovelace", {
+          parts: [
+            { kind: "role", role: "mc", evening: effect },
+            {
+              kind: "talk",
+              title: "State of Effect 2026",
+              role: "speaker",
+              evening: effect,
+            },
+          ],
+        }),
+      ],
+      coHosts: [],
+    });
+    expect(rows(html)).toEqual(["talk: State of Effect 2026 · MC"]);
+    expect(html.match(/<a class="talk"/g)).toHaveLength(1);
+  });
+
+  test("two talks at one evening are one row, listing both in their order", () => {
+    const html = render({
+      organizers: [],
+      speakers: [
+        person("Sam Goodwin", {
+          parts: [
+            {
+              kind: "talk",
+              title: "Alchemy 2.0",
+              role: "speaker",
+              evening: effect,
+            },
+            {
+              kind: "talk",
+              title: "Fireside chat",
+              role: "panelist",
+              evening: effect,
+            },
+          ],
+        }),
+      ],
+      coHosts: [],
+    });
+    expect(rows(html)).toEqual(["talk: Alchemy 2.0 · panelist: Fireside chat"]);
+  });
+
+  test(`counts evenings, not parts, against the ${recentEvenings} it lists`, () => {
+    const evening = (slug: string, month: number) => ({
+      ...effect,
+      slug,
+      startsAt: DateTime.makeUnsafe(`2026-0${month}-01T00:30:00Z`),
+    });
+    const parts = (count: number) =>
+      [9, 8, 7, 6].slice(0, count).flatMap((month) => [
+        {
+          kind: "talk" as const,
+          title: `Talk ${month}`,
+          role: "speaker" as const,
+          evening: evening(`e${month}`, month),
+        },
+        {
+          kind: "role" as const,
+          role: "mc" as const,
+          evening: evening(`e${month}`, month),
+        },
+      ]);
+    // Six parts at three evenings: all three, no link.
+    const three = render({
+      organizers: [],
+      speakers: [person("Ada Lovelace", { parts: parts(3) })],
+      coHosts: [],
+    });
+    expect(rows(three)).toHaveLength(3);
+    expect(three).not.toContain("on their page");
+    // Eight at four: the newest three, and all four on their page.
+    const four = render({
+      organizers: [],
+      speakers: [person("Ada Lovelace", { parts: parts(4) })],
+      coHosts: [],
+    });
+    expect(rows(four)).toEqual([
+      "talk: Talk 9 · MC",
+      "talk: Talk 8 · MC",
+      "talk: Talk 7 · MC",
+    ]);
+    expect(four).toContain("<span>all 4</span>");
+  });
+
+  test("an evening someone hosted is one row under Hosted, with their talk and MC part", () => {
+    const html = personPage({
+      person: {
+        ...person("Erik Thorelli", {
+          parts: [
+            {
+              kind: "talk",
+              title: "State of Effect 2026",
+              role: "speaker",
+              evening: effect,
+            },
+          ],
+        }),
+        organizes: true,
+        hosted: [{ ...effect, roles: ["mc"] }],
+      },
+      elsewhere: [],
+      origin,
+      theme: undefined,
+      portraits: new Map(),
+      images: "originals",
+    });
+    expect(rows(html)).toEqual(["talk: State of Effect 2026 · MC"]);
+    expect(html).not.toContain('aria-labelledby="at-all-things"');
+    expect(html).toContain(
+      '<h2 id="hosted" class="at-type-meta">Hosted · 1 evening</h2>',
+    );
   });
 });
 
@@ -226,7 +360,7 @@ describe("the people page", () => {
       ],
     });
     expect(html).toContain(
-      '<span class="talk-evening"><span>TypeScript AI: The official conference after-party</span><span class="at-cursor" aria-hidden="true">_</span></span>',
+      '<span class="talk-title"><span>TypeScript AI: The official conference after-party</span><span class="at-cursor" aria-hidden="true">_</span></span><span class="talk-parts">talk: After hours</span>',
     );
     expect(html).toContain(`<a class="talk" href="/party">`);
   });
@@ -269,17 +403,21 @@ describe("the people page", () => {
         }),
       ],
     });
+    const effect =
+      '<span class="talk-title">at<span class="slash">/</span><span>effect</span></span>';
     expect(html).toContain(
-      '<span class="talk-title">Effect 4</span><span class="talk-evening">at<span class="slash">/</span><span>effect</span><span class="talk-role at-type-meta"> · moderator</span></span>',
+      `${effect}<span class="talk-parts">moderator: Effect 4</span>`,
     );
-    expect(html.match(/talk-role/g)).toHaveLength(1);
+    expect(html).toContain(
+      `${effect}<span class="talk-parts">talk: Typed</span>`,
+    );
     expect(html).toContain(
       '<h2 id="co-hosts" class="list-title at-type-meta">Co-hosts and MCs</h2>',
     );
     expect(html).toContain(
-      `<a class="talk" href="/c"><time class="date at-type-meta" datetime="2026-03-08T07:30:00.000Z">03.07.26</time><span class="talk-title">MC</span>`,
+      `<a class="talk" href="/c"><time class="date at-type-meta" datetime="2026-03-08T07:30:00.000Z">03.07.26</time>${effect}<span class="talk-parts">MC</span>`,
     );
-    expect(html).toContain('<span class="talk-title">co-host</span>');
+    expect(html).toContain('<span class="talk-parts">co-host</span>');
   });
 
   test("has one h1, then a heading per group and per person", () => {
@@ -372,12 +510,12 @@ describe("a person's page", () => {
       new RegExp(
         `<section class="about-part" aria-labelledby="${id}">[\\s\\S]*?</section>`,
       ).exec(html)?.[0] ?? "";
-    expect(section("at-all-things")).toContain(">Ours<");
+    expect(section("at-all-things")).toContain("talk: Ours");
     expect(section("at-all-things")).not.toContain("Theirs");
     expect(section("shared")).toContain(
       '<h2 id="shared" class="at-type-meta">At evenings we shared</h2>',
     );
-    expect(section("shared")).toContain(">Theirs too<");
+    expect(section("shared")).toContain("Theirs too");
     expect(html).toContain(
       "1 talk at all things. 2 talks at evenings all things shared.",
     );
