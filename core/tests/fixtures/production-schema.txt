@@ -5,6 +5,54 @@ column neon_auth.users_sync #004 email text generated always as ((raw_json ->> '
 column neon_auth.users_sync #005 created_at timestamp with time zone generated always as (to_timestamp((trunc((((raw_json ->> 'signed_up_at_millis'::text))::bigint)::double precision) / (1000)::double precision))) stored
 column neon_auth.users_sync #006 updated_at timestamp with time zone
 column neon_auth.users_sync #007 deleted_at timestamp with time zone
+column planning.availability #001 id uuid not null default gen_random_uuid()
+column planning.availability #002 wanted_speaker_id uuid not null
+column planning.availability #003 kind text not null default 'available'::text
+column planning.availability #004 starts_on date
+column planning.availability #005 ends_on date
+column planning.availability #006 note text
+column planning.availability #007 created_at timestamp with time zone not null default now()
+column planning.contacts #001 id uuid not null default gen_random_uuid()
+column planning.contacts #002 name text not null
+column planning.contacts #003 email text
+column planning.contacts #004 url text
+column planning.contacts #005 sponsor_id uuid
+column planning.contacts #006 created_at timestamp with time zone not null default now()
+column planning.contacts #007 updated_at timestamp with time zone not null default now()
+column planning.host_prospects #001 id uuid not null default gen_random_uuid()
+column planning.host_prospects #002 sponsor_id uuid
+column planning.host_prospects #003 company_name text
+column planning.host_prospects #004 contact_id uuid
+column planning.host_prospects #005 status text not null default 'prospect'::text
+column planning.host_prospects #006 note text
+column planning.host_prospects #007 created_at timestamp with time zone not null default now()
+column planning.host_prospects #008 updated_at timestamp with time zone not null default now()
+column planning.ideas #001 id uuid not null default gen_random_uuid()
+column planning.ideas #002 title text not null
+column planning.ideas #003 pitch text not null
+column planning.ideas #004 program text not null
+column planning.ideas #005 topic text
+column planning.ideas #006 status text not null default 'idea'::text
+column planning.ideas #007 event_id uuid
+column planning.ideas #008 inspired_by_event_id uuid
+column planning.ideas #009 created_at timestamp with time zone not null default now()
+column planning.ideas #010 updated_at timestamp with time zone not null default now()
+column planning.notes #001 id uuid not null default gen_random_uuid()
+column planning.notes #002 profile_id uuid
+column planning.notes #003 sponsor_id uuid
+column planning.notes #004 contact_id uuid
+column planning.notes #005 body text not null
+column planning.notes #006 author text
+column planning.notes #007 created_at timestamp with time zone not null default now()
+column planning.wanted_speaker_topics #001 wanted_speaker_id uuid not null
+column planning.wanted_speaker_topics #002 topic text not null
+column planning.wanted_speakers #001 id uuid not null default gen_random_uuid()
+column planning.wanted_speakers #002 profile_id uuid
+column planning.wanted_speakers #003 contact_id uuid
+column planning.wanted_speakers #004 status text not null default 'wanted'::text
+column planning.wanted_speakers #005 note text
+column planning.wanted_speakers #006 created_at timestamp with time zone not null default now()
+column planning.wanted_speakers #007 updated_at timestamp with time zone not null default now()
 column public.administrators #001 id uuid not null default gen_random_uuid()
 column public.administrators #002 user_id text not null
 column public.administrators #003 created_at timestamp with time zone not null default now()
@@ -149,6 +197,50 @@ column public.talks #004 created_at timestamp with time zone not null default no
 column public.talks #005 updated_at timestamp with time zone not null
 column public.talks #006 format text not null default 'talk'::text
 constraint neon_auth.users_sync users_sync_pkey PRIMARY KEY (id)
+constraint planning.availability availability_kind_check CHECK ((kind = ANY (ARRAY['available'::text, 'unavailable'::text])))
+constraint planning.availability availability_order_check CHECK ((starts_on <= ends_on))
+constraint planning.availability availability_pkey PRIMARY KEY (id)
+constraint planning.availability availability_said_check CHECK ((num_nonnulls(starts_on, ends_on, note) > 0))
+constraint planning.availability availability_wanted_speaker_id_wanted_speakers_id_fk FOREIGN KEY (wanted_speaker_id) REFERENCES planning.wanted_speakers(id) ON DELETE CASCADE
+constraint planning.contacts contacts_email_check CHECK ((email ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'::text))
+constraint planning.contacts contacts_name_check CHECK ((btrim(name) <> ''::text))
+constraint planning.contacts contacts_pkey PRIMARY KEY (id)
+constraint planning.contacts contacts_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
+constraint planning.contacts contacts_url_check CHECK ((url ~ '^https://[^[:space:]]+$'::text))
+constraint planning.host_prospects host_prospects_company_check CHECK ((num_nonnulls(sponsor_id, company_name) = 1))
+constraint planning.host_prospects host_prospects_company_name_check CHECK ((btrim(company_name) <> ''::text))
+constraint planning.host_prospects host_prospects_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES planning.contacts(id)
+constraint planning.host_prospects host_prospects_pkey PRIMARY KEY (id)
+constraint planning.host_prospects host_prospects_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
+constraint planning.host_prospects host_prospects_sponsor_id_unique UNIQUE (sponsor_id)
+constraint planning.host_prospects host_prospects_status_check CHECK ((status = ANY (ARRAY['prospect'::text, 'asked'::text, 'confirmed'::text, 'declined'::text])))
+constraint planning.ideas ideas_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.ideas ideas_event_id_unique UNIQUE (event_id)
+constraint planning.ideas ideas_inspired_by_event_id_events_id_fk FOREIGN KEY (inspired_by_event_id) REFERENCES events(id) ON DELETE SET NULL
+constraint planning.ideas ideas_pitch_check CHECK ((btrim(pitch) <> ''::text))
+constraint planning.ideas ideas_pkey PRIMARY KEY (id)
+constraint planning.ideas ideas_program_check CHECK ((program = ANY (ARRAY['talks'::text, 'open-floor'::text, 'social'::text, 'hackathon'::text])))
+constraint planning.ideas ideas_scheduled_event_check CHECK (((status <> 'scheduled'::text) OR (event_id IS NOT NULL)))
+constraint planning.ideas ideas_status_check CHECK ((status = ANY (ARRAY['idea'::text, 'drafting'::text, 'scheduled'::text, 'dropped'::text])))
+constraint planning.ideas ideas_title_check CHECK ((btrim(title) <> ''::text))
+constraint planning.ideas ideas_topic_check CHECK (((char_length(topic) <= 24) AND (topic IS NFC NORMALIZED) AND (topic = lower((topic COLLATE pg_c_utf8))) AND (strpos(topic, 'all things'::text) = 0) AND ((topic COLLATE pg_c_utf8) ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'::text)))
+constraint planning.notes notes_author_check CHECK ((btrim(author) <> ''::text))
+constraint planning.notes notes_body_check CHECK ((btrim(body) <> ''::text))
+constraint planning.notes notes_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES planning.contacts(id)
+constraint planning.notes notes_pkey PRIMARY KEY (id)
+constraint planning.notes notes_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
+constraint planning.notes notes_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
+constraint planning.notes notes_subject_check CHECK ((num_nonnulls(profile_id, sponsor_id, contact_id) = 1))
+constraint planning.wanted_speaker_topics wanted_speaker_topics_topic_check CHECK (((char_length(topic) <= 24) AND (topic IS NFC NORMALIZED) AND (topic = lower((topic COLLATE pg_c_utf8))) AND (strpos(topic, 'all things'::text) = 0) AND ((topic COLLATE pg_c_utf8) ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'::text)))
+constraint planning.wanted_speaker_topics wanted_speaker_topics_wanted_speaker_id_topic_pk PRIMARY KEY (wanted_speaker_id, topic)
+constraint planning.wanted_speaker_topics wanted_speaker_topics_wanted_speaker_id_wanted_speakers_id_fk FOREIGN KEY (wanted_speaker_id) REFERENCES planning.wanted_speakers(id) ON DELETE CASCADE
+constraint planning.wanted_speakers wanted_speakers_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES planning.contacts(id)
+constraint planning.wanted_speakers wanted_speakers_contact_id_unique UNIQUE (contact_id)
+constraint planning.wanted_speakers wanted_speakers_person_check CHECK ((num_nonnulls(profile_id, contact_id) = 1))
+constraint planning.wanted_speakers wanted_speakers_pkey PRIMARY KEY (id)
+constraint planning.wanted_speakers wanted_speakers_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
+constraint planning.wanted_speakers wanted_speakers_profile_id_unique UNIQUE (profile_id)
+constraint planning.wanted_speakers wanted_speakers_status_check CHECK ((status = ANY (ARRAY['wanted'::text, 'asked'::text, 'confirmed'::text, 'declined'::text])))
 constraint public.administrators administrators_pkey PRIMARY KEY (id)
 constraint public.administrators administrators_user_id_users_sync_id_fk FOREIGN KEY (user_id) REFERENCES neon_auth.users_sync(id)
 constraint public.event_images event_images_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
@@ -224,6 +316,23 @@ constraint public.talks talks_pkey PRIMARY KEY (id)
 enum public.profile_type ('organizer', 'member')
 index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at)
 index neon_auth.users_sync CREATE UNIQUE INDEX users_sync_pkey ON neon_auth.users_sync USING btree (id)
+index planning.availability CREATE INDEX availability_wanted_speaker_id_idx ON planning.availability USING btree (wanted_speaker_id)
+index planning.availability CREATE UNIQUE INDEX availability_pkey ON planning.availability USING btree (id)
+index planning.contacts CREATE UNIQUE INDEX contacts_pkey ON planning.contacts USING btree (id)
+index planning.host_prospects CREATE UNIQUE INDEX host_prospects_company_name_unique ON planning.host_prospects USING btree (lower(company_name))
+index planning.host_prospects CREATE UNIQUE INDEX host_prospects_pkey ON planning.host_prospects USING btree (id)
+index planning.host_prospects CREATE UNIQUE INDEX host_prospects_sponsor_id_unique ON planning.host_prospects USING btree (sponsor_id)
+index planning.ideas CREATE UNIQUE INDEX ideas_event_id_unique ON planning.ideas USING btree (event_id)
+index planning.ideas CREATE UNIQUE INDEX ideas_pkey ON planning.ideas USING btree (id)
+index planning.notes CREATE INDEX notes_contact_id_idx ON planning.notes USING btree (contact_id)
+index planning.notes CREATE INDEX notes_profile_id_idx ON planning.notes USING btree (profile_id)
+index planning.notes CREATE INDEX notes_sponsor_id_idx ON planning.notes USING btree (sponsor_id)
+index planning.notes CREATE UNIQUE INDEX notes_pkey ON planning.notes USING btree (id)
+index planning.wanted_speaker_topics CREATE INDEX wanted_speaker_topics_topic_idx ON planning.wanted_speaker_topics USING btree (topic)
+index planning.wanted_speaker_topics CREATE UNIQUE INDEX wanted_speaker_topics_wanted_speaker_id_topic_pk ON planning.wanted_speaker_topics USING btree (wanted_speaker_id, topic)
+index planning.wanted_speakers CREATE UNIQUE INDEX wanted_speakers_contact_id_unique ON planning.wanted_speakers USING btree (contact_id)
+index planning.wanted_speakers CREATE UNIQUE INDEX wanted_speakers_pkey ON planning.wanted_speakers USING btree (id)
+index planning.wanted_speakers CREATE UNIQUE INDEX wanted_speakers_profile_id_unique ON planning.wanted_speakers USING btree (profile_id)
 index public.administrators CREATE UNIQUE INDEX administrators_pkey ON public.administrators USING btree (id)
 index public.event_images CREATE UNIQUE INDEX event_images_event_id_image_id_pk ON public.event_images USING btree (event_id, image_id)
 index public.event_notes CREATE UNIQUE INDEX event_notes_event_id_position_pk ON public.event_notes USING btree (event_id, "position")
@@ -252,6 +361,13 @@ index public.sponsors CREATE UNIQUE INDEX sponsors_pkey ON public.sponsors USING
 index public.talk_speakers CREATE UNIQUE INDEX talk_speakers_talk_id_speaker_id_pk ON public.talk_speakers USING btree (talk_id, speaker_id)
 index public.talks CREATE UNIQUE INDEX talks_pkey ON public.talks USING btree (id)
 relation neon_auth.users_sync kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.availability kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.contacts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.host_prospects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.ideas kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.wanted_speaker_topics kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.wanted_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.administrators kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_images kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=

@@ -16,6 +16,7 @@ import { LumaApi } from "../src/luma/api.ts";
 import { LumaDescriptions } from "../src/luma/descriptions.ts";
 import { Luma } from "../src/luma/luma.ts";
 import { LumaSync } from "../src/luma/sync.ts";
+import { LumaVenues } from "../src/luma/venues.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
 import { configFrom, fakeLuma, fixture, settle } from "./support/luma.ts";
 import {
@@ -32,8 +33,8 @@ import {
  * the hourly sync's writes run as it and must succeed, while everything
  * outside its grants must be refused.
  *
- * The sync's writes are core's event sync, its description import and the
- * app's three image ingestions (event covers, profile photos, post images), whose statements
+ * The sync's writes are core's event sync, its venue fill and description
+ * import, and the app's three image ingestions (event covers, profile photos, post images), whose statements
  * the Worker's port keeps. The app's are loaded at runtime, as in
  * luma-parity.test.ts, with downloads, processing and storage faked: only
  * their SQL matters here.
@@ -122,6 +123,31 @@ const fakes = () => ({
   now: Date.now,
 });
 
+/** Luma's API, faked: every event is at CodeRabbit and has a description. */
+const fakeApi = Layer.succeed(
+  LumaApi,
+  LumaApi.of({
+    eventPeople: Option.none(),
+    eventVenue: Option.some((lumaEventId: string) =>
+      Effect.succeed(
+        Option.some({
+          lumaEventId,
+          location: "CodeRabbit, 201 Spear St, San Francisco",
+          guestsOnly: true,
+        }),
+      ),
+    ),
+    eventDescription: Option.some((lumaEventId: string) =>
+      Effect.succeed(
+        Option.some({
+          lumaEventId,
+          markdown: "An evening of talks, and time to talk after.",
+        }),
+      ),
+    ),
+  }),
+);
+
 describe("site_sync", () => {
   test("runs the event sync", async () => {
     const at = DateTime.makeUnsafe("2026-10-05T12:00:00Z");
@@ -142,24 +168,27 @@ describe("site_sync", () => {
     if (Exit.isSuccess(exit)) expect(exit.value.syncedCount).toBeGreaterThan(0);
   });
 
+  test("fills in the venues the calendar hides", async () => {
+    const layer = LumaVenues.layer.pipe(
+      Layer.provide(fakeApi),
+      Layer.provideMerge(sqlLayer(db)),
+      Layer.provideMerge(clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z"))),
+    );
+    const result = await Effect.runPromise(
+      LumaVenues.use((venues) => venues.run({ dryRun: false })).pipe(
+        Effect.provide(layer),
+      ),
+    );
+    expect(result).toMatchObject({ _tag: "Planned", unavailable: [] });
+    if (result._tag === "Planned") {
+      expect(result.written).toBeGreaterThan(0);
+      expect(result.written).toBe(result.asked);
+    }
+  });
+
   test("runs the description import", async () => {
     const layer = LumaDescriptions.layer.pipe(
-      Layer.provide(
-        Layer.succeed(
-          LumaApi,
-          LumaApi.of({
-            eventPeople: Option.none(),
-            eventDescription: Option.some((lumaEventId: string) =>
-              Effect.succeed(
-                Option.some({
-                  lumaEventId,
-                  markdown: "An evening of talks, and time to talk after.",
-                }),
-              ),
-            ),
-          }),
-        ),
-      ),
+      Layer.provide(fakeApi),
       Layer.provideMerge(sqlLayer(db)),
       Layer.provideMerge(clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z"))),
     );

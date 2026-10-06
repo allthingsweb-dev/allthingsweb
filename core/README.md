@@ -86,6 +86,27 @@ DATABASE_URL=… LUMA_API_KEY=… bun run luma:descriptions             # write 
 `tests/luma-descriptions.test.ts` runs the conversion, the client against
 fixtures and the import against `tests/seed.sql`; nothing reaches Luma.
 
+## Hidden venues
+
+While Luma shows an event's venue to guests only ("location_visibility":
+"guests-only"), its calendar feed hides it: LOCATION is the event's own page
+and DESCRIPTION says "Check event page for more details". The sync takes
+that as no venue, so an event it creates then has none and keeps none (All
+Things Sync, 2026-04-29, at CodeRabbit's rooftop, was one). Luma's API
+gives the address all the same, and `src/luma/venues.ts` fills in each
+published event's missing venue from it, the way the sync writes a venue
+the feed shows. It never replaces a stored venue, and keeps any field an
+organizer wrote. The hourly sync does it after the events
+(web/src/sync/run.ts); to run it now, from `core/`:
+
+```sh
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:venues --dry-run   # ask Luma, print the venues
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:venues             # write them
+```
+
+The completeness check fails on any published evening without a venue,
+however old, since Luma always knows where one was.
+
 ## Luma people import
 
 The calendar feed names no hosts and counts no guests. `src/luma/api.ts`
@@ -190,7 +211,8 @@ judged.
 ```sh
 DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") bun run completeness          # table, then each event's gaps
 DATABASE_URL=… bun run completeness --json   # the same, for tools
-DATABASE_URL=… bun run completeness --check  # also fail if an evening of talks that ended in the last 30 days has none
+DATABASE_URL=… bun run completeness --check  # also fail if an evening of talks that ended in the last 30 days has none,
+                                             # or any published evening, past or upcoming, has no venue
 ```
 
 It only reads, so the read-only `site_reader` role is enough. The admin MCP
@@ -303,6 +325,45 @@ It only reads. The admin MCP server's `get_promo_drafts` runs the same
 script. `tests/promo.test.ts` keeps each seeded evening's drafts as golden
 files in `tests/fixtures/promo/`; after an intended change, regenerate them
 with `UPDATE_GOLDEN=1 bun test tests/promo.test.ts` and read the diff.
+
+## Planning
+
+Every evening starts in `planning`, a Postgres schema of its own
+(`migrations/0012_planning.ts`): ideas for evenings (title, pitch, program,
+topic, and a status from `idea` through `drafting` to `scheduled`, or
+`dropped`, linked to the draft evening it becomes and to a past one it
+builds on), speakers we'd like on stage (a profile, or a contact without
+one) with their topics and when they're free or not, companies we'd like
+to host (one we know, or a new name) with who to talk to and when each last
+hosted, and notes on the people and companies we know.
+
+The schema is public; the rows are private. site_reader and site_sync are
+never granted the schema, so no grant on `public`, not even one on every
+table in it, reaches planning, and `tests/planning-privacy.test.ts` proves
+both roles, made with their scripts' own statements, are refused. The same
+test fails if any seed, fixture or backfill in this repository holds
+planning rows: they live only in the database, written through the CLI.
+
+`src/planning/` is the service, and `bun run plan` its CLI. It writes as the
+database owner, the only role that may use the schema. Each change runs in
+one transaction and prints the row as it now is; every command takes
+`--json`, which the admin MCP server's planning tools (`add_idea`,
+`list_wanted_speakers`, `search_planning`, `audit_planning` and the rest)
+read, so the tools and the CLI can never disagree. People and companies are
+named by id or exact name, events by slug, and a name two rows share is
+refused with both ids. Run it from `core/`:
+
+```sh
+DATABASE_URL=… bun run plan idea add --title "…" --pitch "…" --program social --inspired-by <slug>
+DATABASE_URL=… bun run plan idea update <id> --status drafting --event <draft slug>
+DATABASE_URL=… bun run plan speaker add --profile "Ada Lovelace" --topic effect \
+  --window '{"startsOn":"2027-01-01","note":"free after Dec"}'
+DATABASE_URL=… bun run plan speaker list --topic effect --available-on 2027-01-14
+DATABASE_URL=… bun run plan host add --sponsor CodeRabbit --contact-name "…" --note "…"
+DATABASE_URL=… bun run plan note add --profile "Ada Lovelace" --body "…" --author Erik
+DATABASE_URL=… bun run plan search "trivia"
+DATABASE_URL=… bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
+```
 
 ## Migrations
 

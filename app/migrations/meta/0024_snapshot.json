@@ -1,6 +1,6 @@
 {
-  "id": "271de0b8-2a3d-4937-a3aa-6439e228268b",
-  "prevId": "c16f812e-b391-4be0-9209-1239859ee0fb",
+  "id": "886aaae2-f44a-4160-98d5-797266d2e248",
+  "prevId": "271de0b8-2a3d-4937-a3aa-6439e228268b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -907,6 +907,24 @@
         "organized_by": {
           "name": "organized_by",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "luma_description": {
+          "name": "luma_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "luma_summary": {
+          "name": "luma_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }

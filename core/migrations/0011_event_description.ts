@@ -2,7 +2,7 @@ import { statements } from "./statements.ts";
 
 /**
  * What an evening is about, in words: its description. Ships with the app's
- * drizzle migration 0023_event_description, which makes the same schema.
+ * drizzle migration 0024_event_description, which makes the same schema.
  *
  * - `luma_description`: the description on Luma, as sanitized rich text,
  *   and `luma_summary`, its one line (src/luma/description.ts). Luma owns

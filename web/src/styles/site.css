@@ -1,7 +1,12 @@
 /*
  * The site's own rules, after the faces and the theme the build generates
  * from the brand tokens. Colors only ever come from a mode's roles
- * (--at-ground, --at-text, ...) or, for specimens, a swatch.
+ * (--at-ground, --at-text, ...) or, for specimens, a swatch. Lengths only
+ * ever come from the layout tokens (--at-layout-*, --at-space-*,
+ * --at-size-*, --at-measure-*, ...), and breakpoints from their custom
+ * media queries (--at-below-*): web/tests/styles.test.ts fails on any
+ * other, but for a 1px hairline, and em for what follows the type: its
+ * tracking, an underline's offset, and inline code's size.
  */
 
 *,
@@ -26,7 +31,7 @@ html {
 body {
   margin: 0;
   font-family: var(--at-font-display);
-  font-size: 18px;
+  font-size: var(--at-type-body-size);
   line-height: 1.55;
 }
 
@@ -43,17 +48,17 @@ dd {
 
 a {
   color: var(--at-link);
-  text-decoration-thickness: 1px;
+  text-decoration-thickness: var(--at-stroke-hairline);
   text-underline-offset: 0.18em;
 }
 
 a:hover {
-  text-decoration-thickness: 2px;
+  text-decoration-thickness: var(--at-stroke-rule);
 }
 
 :focus-visible {
-  outline: 3px solid var(--at-link);
-  outline-offset: 3px;
+  outline: var(--at-stroke-heavy) solid var(--at-link);
+  outline-offset: var(--at-stroke-heavy);
 }
 
 img {
@@ -85,17 +90,16 @@ code {
 main {
   display: flex;
   flex-direction: column;
-  gap: clamp(64px, 9vw, 112px);
+  gap: var(--at-layout-region);
 }
 
 .page {
-  --margin: clamp(16px, 4.5vw, var(--at-page-margin));
-  max-width: 1440px;
+  max-width: var(--at-layout-page);
   margin: 0 auto;
-  padding: clamp(16px, 3vw, 40px) var(--margin) 56px;
+  padding: var(--at-layout-top) var(--at-layout-margin) var(--at-space-14);
   display: flex;
   flex-direction: column;
-  gap: clamp(48px, 7vw, 88px);
+  gap: var(--at-layout-region);
 }
 
 .site-header {
@@ -103,14 +107,14 @@ main {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
-  border-top: 3px solid var(--at-text);
-  padding-top: 14px;
+  gap: var(--at-space-2) var(--at-space-4);
+  border-top: var(--at-stroke-heavy) solid var(--at-text);
+  padding-top: var(--at-space-3);
 }
 
 .wordmark {
   color: var(--at-text);
-  font-size: 28px;
+  font-size: var(--at-font-size-title);
   font-weight: 800;
   font-stretch: 112%;
   letter-spacing: -0.03em;
@@ -123,7 +127,7 @@ main {
 .site-tools {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--at-space-3);
 }
 
 /*
@@ -131,7 +135,7 @@ main {
  * sections and mode take the line below, the sections at its start and the
  * mode at its end, rather than wrapping word by word.
  */
-@media (max-width: 480px) {
+@media (--at-below-s) {
   .site-tools {
     flex-basis: 100%;
     justify-content: space-between;
@@ -140,7 +144,7 @@ main {
 
 .site-nav ul {
   display: flex;
-  gap: 0 14px;
+  gap: 0 var(--at-space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -150,7 +154,7 @@ main {
 .site-nav a {
   /* 24px tall, the least WCAG 2.2 allows for a target. */
   display: inline-block;
-  padding: 4px 0;
+  padding: var(--at-space-1) 0;
   color: var(--at-meta);
   text-decoration: none;
 }
@@ -162,7 +166,7 @@ main {
 
 .site-nav a[aria-current] {
   color: var(--at-text);
-  text-decoration: underline 2px;
+  text-decoration: underline var(--at-stroke-rule);
   text-underline-offset: 0.2em;
 }
 
@@ -174,8 +178,8 @@ main {
 .mode summary {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: var(--at-size-target);
+  height: var(--at-size-target);
   color: var(--at-text);
   cursor: pointer;
   list-style: none;
@@ -200,10 +204,10 @@ main {
   top: 100%;
   right: 0;
   z-index: 1;
-  min-width: 9em;
-  margin: 4px 0 0;
-  padding: 6px 0;
-  border: 1px solid var(--at-rule);
+  min-width: max-content;
+  margin: var(--at-space-1) 0 0;
+  padding: var(--at-space-2) 0;
+  border: var(--at-stroke-hairline) solid var(--at-rule);
   background: var(--at-ground);
   list-style: none;
 }
@@ -211,8 +215,8 @@ main {
 .mode a {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: var(--at-space-2);
+  padding: var(--at-space-2) var(--at-space-3);
   color: var(--at-meta);
   text-decoration: none;
 }
@@ -230,9 +234,9 @@ main {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px 32px;
-  border-top: 2px solid var(--at-text);
-  padding-top: 16px;
+  gap: var(--at-space-4) var(--at-space-8);
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+  padding-top: var(--at-space-4);
 }
 
 /* "hosted by" reads as the sign-off it is, and links to the about page. */
@@ -249,7 +253,7 @@ main {
 .hosts {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--at-space-3);
   font-weight: 600;
 }
 
@@ -260,18 +264,18 @@ main {
 /* A portrait is an <img>, or a <picture> holding one. */
 .portraits img {
   display: block;
-  width: 36px;
-  height: 36px;
-  border: 2px solid var(--at-ground);
+  width: var(--at-size-portrait-xs);
+  height: var(--at-size-portrait-xs);
+  border: var(--at-stroke-rule) solid var(--at-ground);
   border-radius: 50%;
   object-fit: cover;
   /* The ground-colored ring parts the overlapping portraits; the rule
      outside it keeps a portrait as dark as Night visible on Night. */
-  box-shadow: 0 0 0 1px var(--at-rule);
+  box-shadow: 0 0 0 var(--at-stroke-hairline) var(--at-rule);
 }
 
 .portraits > * + * {
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--at-space-2));
 }
 
 .socials {
@@ -285,7 +289,7 @@ main {
 /* After each item but the last, so a wrapped line never starts with one. */
 .socials li:not(:last-child)::after {
   content: "\b7" / "";
-  padding: 0 0.6em;
+  padding: 0 var(--at-space-2);
 }
 
 .socials a {
@@ -304,40 +308,30 @@ main > section,
 .prose {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--at-space-6);
 }
 
 .section-title,
 .prose h2 {
-  border-top: 2px solid var(--at-text);
-  padding-top: 14px;
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+  padding-top: var(--at-space-3);
 }
 
 .prose h2 {
-  font-size: clamp(28px, 4vw, 40px);
+  font-size: var(--at-type-label-size);
   font-weight: 800;
   font-stretch: 112%;
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
-.section-title {
-  font-size: clamp(28px, 4vw, 40px);
-}
-
 .intro {
   display: grid;
-  gap: 20px;
-  max-width: 62rem;
-}
-
-.lockup {
-  font-size: min(72px, 12vw);
+  gap: var(--at-space-5);
 }
 
 .lead {
-  font-size: clamp(22px, 3vw, 30px);
-  max-width: 36ch;
+  max-width: var(--at-measure-lead);
 }
 
 /* Home: the next evening and photos, then the sentences and the lists. */
@@ -345,18 +339,18 @@ main > section,
 .home {
   display: flex;
   flex-direction: column;
-  gap: clamp(48px, 5vw, 72px);
+  gap: var(--at-layout-section);
 }
 
 .hero,
 .band {
   display: grid;
   grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
-  column-gap: var(--at-grid-gutter);
+  column-gap: var(--at-layout-gutter);
 }
 
 .hero {
-  row-gap: 40px;
+  row-gap: var(--at-space-10);
 }
 
 .hero-text {
@@ -364,7 +358,7 @@ main > section,
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 40px;
+  gap: var(--at-space-10);
   container-type: inline-size;
 }
 
@@ -382,15 +376,15 @@ main > section,
 }
 
 .lockup-l {
-  font-size: min(156px, 19.5cqi);
+  font-size: var(--at-font-size-hero-l);
 }
 
 .lockup-m {
-  font-size: min(112px, 14cqi);
+  font-size: var(--at-font-size-hero-m);
 }
 
 .lockup-s {
-  font-size: min(72px, 9.5cqi);
+  font-size: var(--at-font-size-hero-s);
   line-height: 0.92;
   letter-spacing: -0.035em;
 }
@@ -400,12 +394,12 @@ main > section,
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px 24px;
-  margin-top: 28px;
+  gap: var(--at-space-4) var(--at-space-6);
+  margin-top: var(--at-space-7);
 }
 
 .hero-label {
-  font-size: clamp(22px, 2vw, 28px);
+  font-size: var(--at-font-size-title);
   font-weight: 700;
   font-stretch: 75%;
   line-height: 1.1;
@@ -416,27 +410,27 @@ main > section,
 .button {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
-  min-height: 56px;
-  padding: 0 28px;
+  gap: var(--at-space-3);
+  min-height: var(--at-size-button);
+  padding: 0 var(--at-space-7);
   background: var(--at-button);
   color: var(--at-button-text);
-  font-size: 20px;
+  font-size: var(--at-type-list-name-size);
   font-weight: 800;
   line-height: 1;
   text-decoration: none;
 }
 
 .button:hover {
-  text-decoration: underline 2px;
+  text-decoration: underline var(--at-stroke-rule);
 }
 
 .mosaic {
-  grid-column: 9 / span 4;
+  grid-column: span 4 / -1;
   align-self: end;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--at-space-3);
 }
 
 /* A tile is an <img>, or a <picture> holding one. */
@@ -466,7 +460,7 @@ main > section,
   align-self: end;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--at-space-1);
   text-wrap: balance;
 }
 
@@ -475,11 +469,11 @@ main > section,
 }
 
 .lists {
-  grid-column: 6 / span 7;
+  grid-column: span 7 / -1;
   display: grid;
-  gap: 40px 32px;
-  border-top: 2px solid var(--at-text);
-  padding-top: 14px;
+  gap: var(--at-space-10) var(--at-space-8);
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+  padding-top: var(--at-space-3);
 }
 
 .lists.two {
@@ -497,15 +491,12 @@ main > section,
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
-  gap: 4px 16px;
-}
-
-.list-head {
-  padding-bottom: 8px;
+  gap: var(--at-space-1) var(--at-space-4);
+  padding-bottom: var(--at-space-2);
 }
 
 .list-links {
-  font-size: 16px;
+  font-size: var(--at-font-size-small);
   font-weight: 600;
   line-height: 1.3;
   color: var(--at-meta);
@@ -513,17 +504,17 @@ main > section,
 
 .row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) auto;
-  column-gap: 16px;
+  grid-template-columns: var(--at-size-date-column) minmax(0, 1fr) auto;
+  column-gap: var(--at-space-4);
   align-items: baseline;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--at-rule);
+  padding: var(--at-space-3) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
   color: inherit;
   text-decoration: none;
 }
 
 .row:hover .name {
-  text-decoration: underline 2px;
+  text-decoration: underline var(--at-stroke-rule);
   text-underline-offset: 0.18em;
 }
 
@@ -534,7 +525,7 @@ main > section,
 /* A shared evening's mark sits under its name, as quiet as the date. */
 .row .shared {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--at-space-1);
   font-weight: 400;
   text-decoration: none;
 }
@@ -548,7 +539,7 @@ main > section,
 .two .row {
   grid-template-columns: 1fr auto;
   grid-template-areas: "date place" "name name";
-  row-gap: 4px;
+  row-gap: var(--at-space-1);
 }
 
 .two .row .date {
@@ -570,8 +561,8 @@ main > section,
 .about {
   display: grid;
   grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
-  column-gap: var(--at-grid-gutter);
-  row-gap: 40px;
+  column-gap: var(--at-layout-gutter);
+  row-gap: var(--at-space-10);
   align-items: start;
 }
 
@@ -579,24 +570,24 @@ main > section,
 .about-head {
   grid-column: span 5;
   position: sticky;
-  top: 24px;
+  top: var(--at-space-6);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--at-space-5);
 }
 
 /* Each action reads whole: "talk between evenings → discord" never parts. */
 .evenings-lists,
 .about-parts {
-  grid-column: 6 / span 7;
+  grid-column: span 7 / -1;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: var(--at-space-12);
 }
 
 .evenings-lists .list {
-  border-top: 2px solid var(--at-text);
-  padding-top: 14px;
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+  padding-top: var(--at-space-3);
 }
 
 /* About: the lockup and the two sentences hold still beside its parts,
@@ -605,35 +596,34 @@ main > section,
 .about-part {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  border-top: 2px solid var(--at-text);
-  padding-top: 14px;
+  gap: var(--at-space-4);
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+  padding-top: var(--at-space-3);
 }
 
 .about-part > p {
-  max-width: 62ch;
-}
-
-.about-lead {
-  font-size: clamp(24px, 2.4vw, 30px);
+  max-width: var(--at-measure-prose);
 }
 
 .tally {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 136px), 1fr));
-  gap: 20px var(--at-grid-gutter);
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--at-size-tile-s)), 1fr)
+  );
+  gap: var(--at-space-5) var(--at-layout-gutter);
 }
 
 /* Each number over its label, the numbers level however the labels wrap. */
 .tally div {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--at-space-2);
 }
 
 .tally dd {
   order: -1;
-  font-size: clamp(40px, 4.5vw, 56px);
+  font-size: var(--at-font-size-figure);
   font-weight: 800;
   font-stretch: 112%;
   line-height: 0.95;
@@ -644,7 +634,7 @@ main > section,
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--at-rule);
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
 .about .organizers {
@@ -654,7 +644,7 @@ main > section,
 }
 
 .about .organizers .person {
-  padding: 8px 0 16px;
+  padding: var(--at-space-2) 0 var(--at-space-4);
 }
 
 /* The two sentences sit under the lockup, not at the column's end. */
@@ -668,7 +658,7 @@ main > section,
 }
 
 .person-name a:hover {
-  text-decoration: underline 2px;
+  text-decoration: underline var(--at-stroke-rule);
 }
 
 /* People: the organizers large, side by side, then every speaker in two
@@ -678,18 +668,18 @@ main > section,
 .people {
   display: flex;
   flex-direction: column;
-  gap: clamp(48px, 6vw, 80px);
+  gap: var(--at-layout-section);
 }
 
 .people-group {
-  border-top: 2px solid var(--at-text);
-  padding-top: 14px;
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+  padding-top: var(--at-space-3);
 }
 
 .people-group > ul {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: var(--at-grid-gutter);
+  column-gap: var(--at-layout-gutter);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -697,16 +687,16 @@ main > section,
 
 .person {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  column-gap: 20px;
+  grid-template-columns: var(--at-size-portrait-m) minmax(0, 1fr);
+  column-gap: var(--at-space-5);
   align-items: start;
-  padding: 24px 0;
-  border-bottom: 1px solid var(--at-rule);
+  padding: var(--at-space-6) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
 .organizers .person {
-  grid-template-columns: 160px minmax(0, 1fr);
-  column-gap: 28px;
+  grid-template-columns: var(--at-size-portrait-xl) minmax(0, 1fr);
+  column-gap: var(--at-space-7);
   border-bottom: 0;
 }
 
@@ -715,24 +705,24 @@ main > section,
   aspect-ratio: 1;
   object-fit: cover;
   background: var(--at-surface);
-  box-shadow: 0 0 0 1px var(--at-rule);
+  box-shadow: 0 0 0 var(--at-stroke-hairline) var(--at-rule);
 }
 
 .person-text {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--at-space-2);
   min-width: 0;
 }
 
 .person-name {
-  font-size: 21px;
+  font-size: var(--at-type-list-name-size);
   font-weight: 700;
   line-height: 1.2;
 }
 
 .organizers .person-name {
-  font-size: clamp(28px, 3vw, 40px);
+  font-size: var(--at-type-label-size);
   font-weight: 800;
   font-stretch: 112%;
   letter-spacing: -0.03em;
@@ -740,13 +730,13 @@ main > section,
 }
 
 .person-bio {
-  max-width: 60ch;
-  font-size: 16px;
+  max-width: var(--at-measure-prose);
+  font-size: var(--at-font-size-small);
   line-height: 1.5;
 }
 
 .organizers .person-bio {
-  font-size: 18px;
+  font-size: var(--at-type-body-size);
   line-height: 1.55;
 }
 
@@ -760,7 +750,7 @@ main > section,
 
 .person-links li:not(:last-child)::after {
   content: "\b7" / "";
-  padding: 0 0.6em;
+  padding: 0 var(--at-space-2);
 }
 
 .person-links a {
@@ -774,21 +764,22 @@ main > section,
 
 /* A talk: its date, its title, then the evening it was given at. */
 .talks {
-  margin: 4px 0 0;
+  max-width: var(--at-measure-prose);
+  margin: var(--at-space-1) 0 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--at-rule);
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
 .talk {
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr);
+  grid-template-columns: var(--at-size-date-column) minmax(0, 1fr);
   grid-template-areas: "date title" ". evening";
-  column-gap: 12px;
-  row-gap: 2px;
+  column-gap: var(--at-space-3);
+  row-gap: var(--at-space-1);
   align-items: baseline;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--at-rule);
+  padding: var(--at-space-2) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
   color: inherit;
   text-decoration: none;
 }
@@ -799,20 +790,20 @@ main > section,
 
 .talk-title {
   grid-area: title;
-  font-size: 16px;
+  font-size: var(--at-font-size-small);
   font-weight: 600;
   line-height: 1.35;
 }
 
 .talk-evening {
   grid-area: evening;
-  font-size: 16px;
+  font-size: var(--at-font-size-small);
   font-weight: 700;
   line-height: 1.35;
 }
 
 .talk:hover .talk-title {
-  text-decoration: underline 2px;
+  text-decoration: underline var(--at-stroke-rule);
   text-underline-offset: 0.18em;
 }
 
@@ -822,7 +813,7 @@ main > section,
 .event {
   display: flex;
   flex-direction: column;
-  gap: clamp(32px, 4vw, 56px);
+  gap: var(--at-layout-block);
   container-type: inline-size;
 }
 
@@ -835,35 +826,35 @@ main > section,
 }
 
 .event-name-l {
-  font-size: min(112px, 15.5cqi);
+  font-size: var(--at-font-size-event-l);
 }
 
 .event-name-m {
-  font-size: min(80px, 11cqi);
+  font-size: var(--at-font-size-event-m);
 }
 
 .event-name-s {
-  font-size: min(56px, 9cqi);
+  font-size: var(--at-font-size-event-s);
   line-height: 0.95;
   letter-spacing: -0.03em;
 }
 
 .ledger {
-  border-top: 3px solid var(--at-text);
+  border-top: var(--at-stroke-heavy) solid var(--at-text);
 }
 
 .fact {
   display: grid;
   grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
-  column-gap: var(--at-grid-gutter);
-  row-gap: 8px;
+  column-gap: var(--at-layout-gutter);
+  row-gap: var(--at-space-2);
   align-items: baseline;
-  padding: 22px 0;
-  border-bottom: 1px solid var(--at-rule);
+  padding: var(--at-space-6) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
 .fact dt {
-  grid-column: span 3;
+  grid-column: span var(--at-ledger-label);
 }
 
 /* Photos have no text to share a baseline with. */
@@ -872,15 +863,15 @@ main > section,
 }
 
 .fact dd {
-  grid-column: span 9;
+  grid-column: span var(--at-ledger-content);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--at-space-2);
 }
 
 /* The fact itself, in the label role. */
 .fact-head {
-  font-size: clamp(30px, 3vw, 40px);
+  font-size: var(--at-type-label-size);
   font-weight: 700;
   font-stretch: 75%;
   line-height: 1;
@@ -904,13 +895,13 @@ main > section,
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px 24px;
+  gap: var(--at-space-4) var(--at-space-6);
 }
 
 .your-hosts {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--at-space-3);
 }
 
 .your-hosts p {
@@ -936,27 +927,30 @@ main > section,
 }
 
 .host-portraits img {
-  width: 44px;
-  height: 44px;
+  width: var(--at-size-portrait-s);
+  height: var(--at-size-portrait-s);
 }
 
 .host-portraits img + img {
-  margin-left: -9px;
-  box-shadow: 0 0 0 2px var(--at-ground);
+  margin-left: calc(-1 * var(--at-space-2));
+  box-shadow: 0 0 0 var(--at-stroke-rule) var(--at-ground);
 }
 
 /* Co-hosts and the MC, under the hosting company and your hosts. */
 .event-people {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
+  gap: var(--at-space-2);
+  margin-top: var(--at-space-4);
 }
 
 .event-people ul {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-  gap: 14px 24px;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--at-size-tile-m)), 1fr)
+  );
+  gap: var(--at-space-4) var(--at-space-6);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -965,13 +959,13 @@ main > section,
 .event-person {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--at-space-3);
 }
 
 .event-person img {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: var(--at-size-portrait-s);
+  height: var(--at-size-portrait-s);
 }
 
 .event-person p {
@@ -993,50 +987,49 @@ main > section,
 
 .event-person-name:hover,
 .speaker h3 a:hover {
-  text-decoration: underline 2px;
+  text-decoration: underline var(--at-stroke-rule);
 }
 
 .event-person-title {
-  font-size: 16px;
+  font-size: var(--at-font-size-small);
   color: var(--at-meta);
 }
 
 .stage {
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: var(--at-space-12);
 }
 
 .stage-talk {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--at-space-3);
 }
 
 .stage-title {
-  font-size: clamp(24px, 2.4vw, 30px);
-  max-width: 30em;
+  max-width: var(--at-measure-prose);
 }
 
 .stage-description {
-  max-width: 68ch;
+  max-width: var(--at-measure-prose);
   color: var(--at-meta);
 }
 
 .stage-description > * + * {
-  margin-top: 0.6em;
+  margin-top: var(--at-space-3);
 }
 
 .stage-description :is(ul, ol) {
   margin-bottom: 0;
-  padding-left: 1.2em;
+  padding-left: var(--at-space-5);
 }
 
 /* The schedule: each step's time as written, then what happens. */
 .schedule {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--at-space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1044,8 +1037,8 @@ main > section,
 
 .schedule li {
   display: grid;
-  grid-template-columns: minmax(8.5em, 2fr) 7fr;
-  column-gap: var(--at-grid-gutter);
+  grid-template-columns: minmax(var(--at-size-tile-s), 2fr) 7fr;
+  column-gap: var(--at-layout-gutter);
   align-items: baseline;
 }
 
@@ -1054,43 +1047,50 @@ main > section,
 }
 
 .schedule-description {
-  max-width: 68ch;
+  max-width: var(--at-measure-prose);
   color: var(--at-meta);
 }
 
 /* The evening in its own words, and rows of its own: prose at a reading measure. */
 .event-about,
 .note {
-  max-width: 68ch;
+  max-width: var(--at-measure-prose);
 }
 
 .event-about > * + *,
 .note > * + * {
-  margin-top: 0.6em;
+  margin-top: var(--at-space-3);
 }
 
 .event-about :is(ul, ol) {
   margin-bottom: 0;
-  padding-left: 1.2em;
+  padding-left: var(--at-space-5);
 }
 
-.speakers {
+/*
+ * The speakers of a talk share the row, each as wide as the row allows,
+ * so their bios keep a readable measure rather than a narrow column.
+ */
+.stage-speakers {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: 40px;
-  margin-top: 16px;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--at-size-tile-l)), 1fr)
+  );
+  gap: var(--at-space-10);
+  margin-top: var(--at-space-4);
 }
 
 .speaker {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--at-space-2);
 }
 
 .speaker img {
-  width: 168px;
-  height: 168px;
-  margin-bottom: 8px;
+  width: var(--at-size-portrait-xl);
+  height: var(--at-size-portrait-xl);
+  margin-bottom: var(--at-space-2);
 }
 
 .speaker-who {
@@ -1098,16 +1098,12 @@ main > section,
 }
 
 /* A speaker alone on stage takes the row: portrait beside the words. */
-.speakers:has(> :only-child) {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .speaker:only-child {
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: var(--at-size-portrait-xl) minmax(0, 1fr);
   grid-template-rows: auto 1fr;
-  column-gap: 24px;
-  row-gap: 10px;
+  column-gap: var(--at-space-6);
+  row-gap: var(--at-space-2);
   align-items: start;
 }
 
@@ -1119,16 +1115,16 @@ main > section,
 .speaker:only-child .speaker-who {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--at-space-1);
 }
 
 .speaker-bio {
-  max-width: 62ch;
+  max-width: var(--at-measure-prose);
 }
 
 .speaker-title,
 .speaker-links {
-  font-size: 16px;
+  font-size: var(--at-font-size-small);
   line-height: 1.4;
 }
 
@@ -1141,7 +1137,7 @@ main > section,
   order: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: var(--at-space-1) var(--at-space-4);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1150,7 +1146,7 @@ main > section,
 .photos {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--at-space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1166,7 +1162,7 @@ main > section,
 .posts {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: var(--at-space-7);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1174,16 +1170,16 @@ main > section,
 
 .post {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
-  column-gap: 12px;
+  grid-template-columns: var(--at-size-portrait-xs) minmax(0, 1fr);
+  column-gap: var(--at-space-3);
   align-items: start;
-  max-width: 68ch;
+  max-width: var(--at-measure-prose);
 }
 
 .post > img,
 .post > picture img {
-  width: 36px;
-  height: 36px;
+  width: var(--at-size-portrait-xs);
+  height: var(--at-size-portrait-xs);
   object-fit: cover;
   background: var(--at-surface);
 }
@@ -1191,14 +1187,14 @@ main > section,
 .post-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--at-space-2);
   min-width: 0;
 }
 
 .post-by {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 8px;
+  gap: 0 var(--at-space-2);
   line-height: 1.25;
 }
 
@@ -1209,7 +1205,7 @@ main > section,
 }
 
 a.post-author:hover {
-  text-decoration: underline 2px;
+  text-decoration: underline var(--at-stroke-rule);
 }
 
 .post-handle {
@@ -1226,21 +1222,21 @@ a.post-author:hover {
 .post-body picture,
 .post-body > img {
   display: block;
-  max-width: 480px;
+  max-width: var(--at-size-media);
 }
 
-/* A tall photo is cropped to a landscape-ish frame; the post has it whole. */
+/* A tall photo is cropped to a landscape frame; the post has it whole. */
 .post-body picture img,
 .post-body > img {
   width: 100%;
   height: auto;
-  max-height: 360px;
+  max-height: calc(var(--at-size-media) * 3 / 4);
   object-fit: cover;
   background: var(--at-surface);
 }
 
 .next-name {
-  font-size: 40px;
+  font-size: var(--at-type-label-size);
   font-weight: 800;
   font-stretch: 112%;
   line-height: 0.95;
@@ -1253,15 +1249,18 @@ a.post-author:hover {
 }
 
 .next-name a:hover {
-  text-decoration: underline 2px;
+  text-decoration: underline var(--at-stroke-rule);
 }
 
 /* Palette */
 
 .swatches {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-  gap: 32px var(--at-grid-gutter);
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--at-size-tile-m)), 1fr)
+  );
+  gap: var(--at-space-8) var(--at-layout-gutter);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1270,55 +1269,51 @@ a.post-author:hover {
 .swatch {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--at-space-2);
 }
 
 .chip {
-  height: 88px;
-  margin-bottom: 8px;
+  aspect-ratio: 3;
+  margin-bottom: var(--at-space-2);
   background: var(--at-swatch);
-  border: 1px solid var(--at-rule);
+  border: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
 .swatch .use {
-  font-size: 16px;
+  font-size: var(--at-font-size-small);
   line-height: 1.4;
 }
 
 .samples {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  margin-top: 6px;
+  margin-top: var(--at-space-2);
 }
 
 .samples > div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-}
-
-.samples dt {
-  font-size: 12px;
+  gap: var(--at-space-1);
+  padding: var(--at-space-2) var(--at-space-3);
 }
 
 .samples dd {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--at-space-1);
 }
 
 /* Figures: token names, hex values and contrast, in mono as written. */
 .figure {
   font-family: var(--at-font-mono);
-  font-size: 14px;
+  font-size: var(--at-type-meta-size);
   line-height: 1.5;
   color: var(--at-meta);
 }
 
 .sample-text {
   color: var(--at-swatch);
-  font-size: 28px;
+  font-size: var(--at-font-size-title);
   font-weight: 700;
   line-height: 1.1;
 }
@@ -1329,8 +1324,8 @@ a.post-author:hover {
 
 .pairs .sample {
   display: inline-block;
-  min-width: 3.2em;
-  padding: 2px 10px;
+  min-width: var(--at-space-12);
+  padding: var(--at-space-1) var(--at-space-2);
   background: var(--at-swatch);
   font-weight: 700;
 }
@@ -1348,33 +1343,21 @@ a.post-author:hover {
 
 .type-row {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  column-gap: var(--at-grid-gutter);
-  row-gap: 8px;
+  grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
+  column-gap: var(--at-layout-gutter);
+  row-gap: var(--at-space-2);
   align-items: baseline;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--at-rule);
+  padding: var(--at-space-4) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
 .type-row .spec {
-  grid-column: span 3;
+  grid-column: span var(--at-ledger-label);
 }
 
 .type-row .specimen {
-  grid-column: span 9;
+  grid-column: span var(--at-ledger-content);
   overflow-wrap: anywhere;
-}
-
-.specimen.at-type-wordmark {
-  font-size: min(168px, 17vw);
-}
-
-.specimen.at-type-event-lockup {
-  font-size: min(72px, 11vw);
-}
-
-.specimen.at-type-label {
-  font-size: min(40px, 8vw);
 }
 
 .specimen.place {
@@ -1386,25 +1369,28 @@ a.post-author:hover {
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
-  gap: 4px 24px;
+  gap: var(--at-space-1) var(--at-space-6);
 }
 
 /* Marks */
 
 .marks {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-  gap: var(--at-grid-gutter);
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--at-size-tile-m)), 1fr)
+  );
+  gap: var(--at-layout-gutter);
 }
 
 .mark-tile {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 24px;
-  min-height: 220px;
-  padding: 24px;
-  border: 1px solid var(--at-rule);
+  gap: var(--at-space-6);
+  min-height: var(--at-size-tile-m);
+  padding: var(--at-space-6);
+  border: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
 .mark-tile img {
@@ -1416,11 +1402,11 @@ a.post-author:hover {
 }
 
 .mark-tile.wide img {
-  width: min(100%, 720px);
+  width: min(100%, var(--at-size-mark-wide));
 }
 
 .mark-tile.small img {
-  width: 96px;
+  width: var(--at-size-mark-small);
 }
 
 /* Tables, in the palette and the foundations */
@@ -1428,21 +1414,21 @@ a.post-author:hover {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 16px;
+  font-size: var(--at-font-size-small);
   line-height: 1.4;
 }
 
 th,
 td {
-  padding: 10px 16px 10px 0;
-  border-bottom: 1px solid var(--at-rule);
+  padding: var(--at-space-2) var(--at-space-4) var(--at-space-2) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
   text-align: left;
   vertical-align: baseline;
 }
 
 th {
   font-family: var(--at-font-mono);
-  font-size: 13px;
+  font-size: var(--at-type-meta-size);
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1456,31 +1442,31 @@ th {
 /* The foundations, as prose */
 
 .prose {
-  gap: 16px;
+  gap: var(--at-space-4);
 }
 
 .prose > :not(h2, h3, .scroll) {
-  max-width: 68ch;
+  max-width: var(--at-measure-prose);
 }
 
 .prose h3 {
-  margin-top: 24px;
-  font-size: 21px;
+  margin-top: var(--at-space-6);
+  font-size: var(--at-type-list-name-size);
   font-weight: 700;
 }
 
 .prose ul {
   margin: 0;
-  padding-left: 1.2em;
+  padding-left: var(--at-space-5);
 }
 
 .prose li + li {
-  margin-top: 6px;
+  margin-top: var(--at-space-2);
 }
 
 .prose blockquote {
-  padding-left: 20px;
-  font-size: clamp(20px, 2.4vw, 24px);
+  padding-left: var(--at-space-5);
+  font-size: var(--at-type-lead-size);
   font-weight: 500;
   line-height: 1.3;
 }
@@ -1494,7 +1480,7 @@ th {
   white-space: nowrap;
 }
 
-@media (max-width: 1023px) {
+@media (--at-below-xl) {
   .pitch,
   .lists,
   .evenings-head,
@@ -1510,21 +1496,21 @@ th {
   }
 
   .band {
-    row-gap: 40px;
+    row-gap: var(--at-space-10);
   }
 }
 
-@media (max-width: 760px) {
+@media (--at-below-l) {
   .fact {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding: 16px 0;
+    padding: var(--at-space-4) 0;
   }
 
   .schedule li {
-    grid-template-columns: 1fr;
-    row-gap: 2px;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--at-space-1);
   }
 
   .act {
@@ -1536,31 +1522,31 @@ th {
     justify-content: space-between;
   }
 
-  .speakers {
-    gap: 28px;
+  .stage-speakers {
+    gap: var(--at-space-7);
   }
 
   .speaker,
   .speaker:only-child {
     display: grid;
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: var(--at-size-portrait-m) minmax(0, 1fr);
     grid-template-rows: none;
-    gap: 10px 14px;
+    gap: var(--at-space-2) var(--at-space-3);
     align-items: start;
   }
 
   .speaker img,
   .speaker:only-child img {
     grid-row: auto;
-    width: 72px;
-    height: 72px;
+    width: var(--at-size-portrait-m);
+    height: var(--at-size-portrait-m);
     margin: 0;
   }
 
   .speaker-who {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--at-space-1);
   }
 
   .speaker-bio {
@@ -1586,15 +1572,14 @@ th {
 
 /* On phones the portrait sits beside the name and title alone, and the
    bio, links and talks take the whole width below them. */
-@media (max-width: 600px) {
+@media (--at-below-m) {
   .person {
-    grid-template-columns: 64px minmax(0, 1fr);
-    column-gap: 16px;
-    row-gap: 8px;
+    column-gap: var(--at-space-4);
+    row-gap: var(--at-space-2);
   }
 
   .organizers .person {
-    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-columns: var(--at-size-portrait-l) minmax(0, 1fr);
   }
 
   .person .portrait {
@@ -1620,16 +1605,14 @@ th {
   .talks {
     grid-column: 1 / -1;
   }
-}
 
-/* On phones the index's rows stack the date and place over the name, as
-   home's paired lists do, so a name keeps the whole width. */
-@media (max-width: 600px) {
+  /* The index's rows stack the date and place over the name, as home's
+     paired lists do, so a name keeps the whole width. */
   .evenings .row,
   .about .row {
     grid-template-columns: 1fr auto;
     grid-template-areas: "date place" "name name";
-    row-gap: 4px;
+    row-gap: var(--at-space-1);
   }
 
   .evenings .row .date,

@@ -1,9 +1,10 @@
 import { DateTime } from "effect";
 
 /**
- * One mode per event, everywhere (brand/foundations.md, "Color"): evening
+ * An event's artwork has one mode (brand/foundations.md, "Color"): evening
  * events are Night, daytime events (hackathons, brunches) are Paper, and an
- * event's page, cover, slides and posts all share it. Which one an event is
+ * event's cover, link-preview card, slides and posts share it. Its page
+ * does not: every page is in the visitor's mode. Which one an event is
  * follows from when it starts on San Francisco's wall clock, by one rule:
  *
  * An event that starts from 5 AM up to 4 PM is a daytime event, Paper.

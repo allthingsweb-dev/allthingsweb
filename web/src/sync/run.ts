@@ -1,24 +1,26 @@
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { Clock, Context, Duration, Effect, Exit } from "effect";
 
 /**
  * One run of the hourly sync, as the app's cron runs it
  * (app/src/app/api/cron/luma-sync/route.ts): events from Luma's calendar
- * first, then the images still missing (profile photos, post images, event
- * covers), each image phase in its own time window, then the events'
- * descriptions from Luma's API (which the app's cron does not import), in
- * a window of their own, so slow answers from Luma never cost the images
- * theirs. Every step writes only what is missing or changed, so a run
- * repeated, or one cut short, leaves the database as consistent as before
- * and the next run carries on.
+ * first, then the venues the calendar hides, from Luma's API, then the
+ * images still missing (profile photos, post images, event covers), each
+ * image phase in its own time window, then the events' descriptions from
+ * Luma's API, in a window of their own, so slow answers from Luma never
+ * cost the images theirs. (The app's cron does neither venues nor
+ * descriptions.) Every step writes only what is missing or changed, so a
+ * run repeated, or one cut short, leaves the database as consistent as
+ * before and the next run carries on.
  *
  * - `write` writes, as the app's cron does.
  * - `dry-run` writes nothing: the event sync is rehearsed (its statement in
- *   a transaction that rolls back), the image phases list what they would
- *   fetch, without fetching it, and the description import lists what it
- *   would change.
+ *   a transaction that rolls back), the venue fill lists the venues it
+ *   would write, the image phases list what they would fetch, without
+ *   fetching it, and the description import lists what it would change.
  *
  * Each step logs one JSON line, and the run one summary line, for Workers
  * Logs to index.
@@ -47,6 +49,8 @@ export interface SyncLimits {
     readonly maxItems?: number;
   };
   readonly covers: { readonly maxItems?: number };
+  /** Events without a venue asked about; every one by default. */
+  readonly venues: { readonly maxEvents?: number };
   readonly descriptions: {
     /** The import is cut off after this long, writing nothing. */
     readonly window: Duration.Input;
@@ -63,13 +67,14 @@ export const syncLimits = {
     photos: { window: "10 seconds" },
     posts: { window: "20 seconds", maxItems: 40 },
     covers: {},
+    venues: {},
     descriptions: { window: "30 seconds" },
   },
   /**
-   * Within 50 subrequests: the feed is one, each description one, and each
-   * image at most six (a cover lookup and its fallback, a download and
-   * three redirects), so two descriptions and two images of each kind are
-   * at most 39.
+   * Within 50 subrequests: the feed is one, each venue and each
+   * description one, and each image at most six (a cover lookup and its
+   * fallback, a download and three redirects), so two venues, two
+   * descriptions and two images of each kind are at most 41.
    */
   free: {
     startBefore: "35 seconds",
@@ -77,6 +82,7 @@ export const syncLimits = {
     photos: { window: "10 seconds", maxItems: 2 },
     posts: { window: "20 seconds", maxItems: 2 },
     covers: { maxItems: 2 },
+    venues: { maxEvents: 2 },
     descriptions: { window: "30 seconds", maxEvents: 2 },
   },
 } as const satisfies Record<string, SyncLimits>;
@@ -143,6 +149,34 @@ const skipped = (name: string, reason: string) =>
   } as const);
 
 /**
+ * The venue fill (core's src/luma/venues.ts) within `limits`, as a step
+ * reports it: each venue it wrote, and the events Luma has none for.
+ */
+const venues = (
+  filler: LumaVenues["Service"],
+  limits: SyncLimits,
+  dryRun: boolean,
+) =>
+  Effect.gen(function* () {
+    const { maxEvents } = limits.venues;
+    const result = yield* filler.run({
+      dryRun,
+      ...(maxEvents === undefined ? {} : { maxEvents }),
+    });
+    if (result._tag === "Skipped") return { skipped: result.reason };
+    return {
+      asked: result.asked,
+      written: result.written,
+      filled: result.filled.map(({ slug, venue }) => ({
+        slug,
+        fullAddress: venue.fullAddress,
+      })),
+      unplaced: result.unplaced,
+      unavailable: result.unavailable,
+    };
+  });
+
+/**
  * The description import (core's src/luma/descriptions.ts) within
  * `limits`, as a step reports it: which events it changed, each with its
  * summary.
@@ -169,7 +203,10 @@ const descriptions = (
     };
   });
 
-/** A run that writes, as the app's cron does, and imports descriptions. */
+/**
+ * A run that writes, as the app's cron does, and fills in hidden venues
+ * and imports descriptions.
+ */
 const write = (limits: SyncLimits) =>
   Effect.gen(function* () {
     const sync = yield* LumaSync;
@@ -191,9 +228,14 @@ const write = (limits: SyncLimits) =>
         publishedCount,
       })),
     );
-    // The app stops when the events fail: images and descriptions then
-    // wait for a run that reads the calendar.
+    // The app stops when the events fail: venues and images then wait
+    // for a run that reads the calendar.
     if (steps["events"].status !== "done") return steps;
+
+    steps["venues"] = yield* step(
+      "venues",
+      venues(yield* LumaVenues, limits, false),
+    );
 
     const photosLeft = yield* windowLeft(limits.photos.window);
     steps["photos"] =
@@ -276,6 +318,10 @@ const dryRun = (limits: SyncLimits) =>
           changes,
         })),
       })),
+    );
+    steps["venues"] = yield* step(
+      "venues",
+      venues(yield* LumaVenues, limits, true),
     );
     steps["images"] = yield* step(
       "images",

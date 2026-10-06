@@ -12,17 +12,19 @@ import { LumaRejected, LumaUnavailable, sendWithRetries } from "./luma.ts";
 
 /**
  * Luma's official API (https://docs.luma.com), for what the calendar feed
- * does not carry: who hosted an event, how many guests it had, and its
+ * does not carry: who hosted an event, how many guests it had, where it is
+ * when the feed hides the venue (Luma shows it to guests only), and its
  * description (the feed's DESCRIPTION is only a link to the event's page).
  * Its key is a Luma calendar's API key, which needs Luma Plus, read from
  * LUMA_API_KEY; without one there is nothing to ask, and
- * {@link LumaApiShape.eventPeople} and {@link LumaApiShape.eventDescription}
- * are `None`.
+ * {@link LumaApiShape.eventPeople}, {@link LumaApiShape.eventVenue} and
+ * {@link LumaApiShape.eventDescription} are `None`.
  *
  * One request per event: `GET /v1/events/get`. For an event our calendar
  * manages (`access: "manage"`) it lists the hosts and counts guests by
  * status; for a public event another calendar manages (`access: "view"`) it
  * lists the hosts the event page shows and no counts. Either way it has the
+ * venue's address, even one the event page shows guests only, and the
  * description, as the Markdown of Luma's editor. Hosts come with their Luma
  * user id, name and avatar; their email is in the response too and is never
  * read.
@@ -69,10 +71,39 @@ export const ApiEvent = Schema.Struct({
   guest_counts: Schema.optionalKey(
     Schema.Struct({ approved: GuestCount, checked_in: GuestCount }),
   ),
+  /** Where it is; null for an event without a place, such as one online. */
+  geo_address_json: Schema.optionalKey(
+    Schema.NullOr(
+      Schema.Struct({
+        full_address: Schema.optionalKey(Schema.NullOr(Schema.String)),
+      }),
+    ),
+  ),
+  /** Who may see the venue: "public", or "guests-only" (the feed hides it). */
+  location_visibility: Schema.optionalKey(Schema.String),
   /** The description in the Markdown of Luma's editor; "" for none. */
   description_md: Schema.optionalKey(Schema.NullOr(Schema.String)),
 });
 export type ApiEvent = typeof ApiEvent.Type;
+
+/** Where an event is, as Luma's API says, whoever the event page shows it to. */
+export interface LumaEventVenue {
+  readonly lumaEventId: string;
+  /** The full address, as the feed writes a venue it shows; null without one. */
+  readonly location: string | null;
+  /** Whether the event page, and so the feed, shows it to guests only. */
+  readonly guestsOnly: boolean;
+}
+
+/** An event's venue from Luma's answer. */
+export function toEventVenue(event: ApiEvent): LumaEventVenue {
+  const location = event.geo_address_json?.full_address?.trim() ?? "";
+  return {
+    lumaEventId: event.id,
+    location: location === "" ? null : location,
+    guestsOnly: event.location_visibility === "guests-only",
+  };
+}
 
 /** An event's description, as Luma's editor wrote it. */
 export interface LumaEventDescription {
@@ -153,6 +184,16 @@ export interface LumaApiShape {
     ) => Effect.Effect<Option.Option<LumaEventPeople>, LumaApiError>
   >;
   /**
+   * The event's venue, or `None` where Luma does not show us the event
+   * (403, or 404 for one deleted). `None` itself when LUMA_API_KEY is not
+   * set.
+   */
+  readonly eventVenue: Option.Option<
+    (
+      lumaEventId: string,
+    ) => Effect.Effect<Option.Option<LumaEventVenue>, LumaApiError>
+  >;
+  /**
    * The event's description, or `None` where Luma does not show us the
    * event (403, or 404 for one deleted). `None` itself when LUMA_API_KEY is
    * not set.
@@ -220,6 +261,15 @@ const make = Effect.gen(function* () {
       )(lumaEventId).pipe(Effect.map(Option.map(toEventPeople))),
   );
 
+  const eventVenue = Option.map(
+    key,
+    (apiKey) => (lumaEventId: string) =>
+      getEvent(
+        apiKey,
+        "LumaApi.eventVenue",
+      )(lumaEventId).pipe(Effect.map(Option.map(toEventVenue))),
+  );
+
   const eventDescription = Option.map(
     key,
     (apiKey) => (lumaEventId: string) =>
@@ -229,7 +279,7 @@ const make = Effect.gen(function* () {
       )(lumaEventId).pipe(Effect.map(Option.map(toEventDescription))),
   );
 
-  return LumaApi.of({ eventPeople, eventDescription });
+  return LumaApi.of({ eventPeople, eventVenue, eventDescription });
 });
 
 export class LumaApi extends Context.Service<LumaApi, LumaApiShape>()(

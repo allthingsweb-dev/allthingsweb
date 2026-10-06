@@ -52,6 +52,35 @@ const ColorToken = Schema.Struct({
 
 const Px = Schema.Struct({ value: Schema.Finite, unit: Schema.Literal("px") });
 
+const Positive = Schema.Finite.check(Schema.isGreaterThan(0));
+
+/**
+ * How a length narrows on a smaller screen, below the token's own value, its
+ * largest: with the viewport, a share of its width (`vw`), never below `min`
+ * when one is given; or with its container, a share of the container's
+ * inline size (`cqi`).
+ */
+const Fluid = Schema.Union([
+  Schema.Struct({ min: Schema.optionalKey(Px), viewport: Positive }),
+  Schema.Struct({ container: Positive }),
+]);
+
+export type Fluid = typeof Fluid.Type;
+
+/** A length; one that narrows with the screen says how in its extension. */
+const DimensionToken = Schema.Struct({
+  $value: Px,
+  $description: Description,
+  $extensions: Schema.optionalKey(
+    Schema.Struct({ "dev.allthings": Schema.Struct({ fluid: Fluid }) }),
+  ),
+});
+
+const NumberToken = Schema.Struct({
+  $value: Positive,
+  $description: Description,
+});
+
 const TypeToken = Schema.Struct({
   $value: Schema.Struct({
     fontFamily: Reference("font"),
@@ -70,6 +99,7 @@ const TypeToken = Schema.Struct({
       ),
       letterSpacingEm: Schema.Finite,
       textTransform: Schema.optionalKey(Schema.Literal("uppercase")),
+      fluid: Schema.optionalKey(Fluid),
     }),
   }),
 });
@@ -101,11 +131,13 @@ const TokenFileShape = Schema.Struct({
     mono: FontToken,
   }),
   type: Group("typography", TypeToken),
-  layout: Schema.Struct({
-    $type: Schema.Literal("dimension"),
-    gutter: Schema.Struct({ $value: Px, $description: Description }),
-    margin: Schema.Struct({ $value: Px, $description: Description }),
-  }),
+  layout: Group("dimension", DimensionToken),
+  space: Group("dimension", DimensionToken),
+  stroke: Group("dimension", DimensionToken),
+  size: Group("dimension", DimensionToken),
+  fontSize: Group("dimension", DimensionToken),
+  measure: Group("number", NumberToken),
+  breakpoint: Group("dimension", DimensionToken),
   motion: Schema.Struct({
     cursorBlink: Schema.Struct({
       $type: Schema.Literal("duration"),
@@ -124,6 +156,8 @@ const TokenFileShape = Schema.Struct({
   $extensions: Schema.Struct({
     "dev.allthings": Schema.Struct({
       gridColumns: Schema.Int.check(Schema.isGreaterThan(0)),
+      /** Of the grid's columns, those a ledger's labels take. */
+      ledgerColumns: Schema.Int.check(Schema.isGreaterThan(0)),
       contrast: Schema.NonEmptyArray(ContrastPair),
     }),
   }),
@@ -169,6 +203,13 @@ function referenceIssues(file: TokenFileShape): ReadonlyArray<string> {
   if (roles("paper") !== roles("night")) {
     issues.push(
       `theme: paper has ${roles("paper")} but night has ${roles("night")}`,
+    );
+  }
+  const { gridColumns, ledgerColumns } = file.$extensions["dev.allthings"];
+  // A ledger's facts take most of the grid; its labels are the narrow side.
+  if (ledgerColumns * 2 >= gridColumns) {
+    issues.push(
+      `ledgerColumns: ${ledgerColumns} of ${gridColumns} leaves the content no more columns than the labels`,
     );
   }
   file.$extensions["dev.allthings"].contrast.forEach((pair, index) => {
@@ -272,6 +313,8 @@ export interface TypeRole {
   /** `font-stretch`, when the role sets one. */
   readonly width: string | undefined;
   readonly uppercase: boolean;
+  /** How the size narrows on smaller screens, when it does. */
+  readonly fluid: Fluid | undefined;
 }
 
 /** The type scale, in the token file's order. */
@@ -289,6 +332,7 @@ export function typeRoles(file: TokenFile): ReadonlyArray<TypeRole> {
       letterSpacingEm: extension.letterSpacingEm,
       width: extension.width,
       uppercase: extension.textTransform === "uppercase",
+      fluid: extension.fluid,
     };
   });
 }
@@ -309,5 +353,69 @@ export function contrastRequirements(
     background: resolveColor(file, pair.background),
     minLc: pair.minLc,
     use: pair.use,
+  }));
+}
+
+/** The groups of lengths: the page's frame, spacing, strokes, boxes, text sizes and breakpoints. */
+export const dimensionGroups = [
+  "layout",
+  "space",
+  "stroke",
+  "size",
+  "fontSize",
+  "breakpoint",
+] as const;
+export type DimensionGroup = (typeof dimensionGroups)[number];
+
+export interface Dimension {
+  /** The token's name in its group, such as `margin` or `portraitXl`. */
+  readonly name: string;
+  /** Its largest size, in CSS pixels. */
+  readonly px: number;
+  /** How it narrows on smaller screens, when it does. */
+  readonly fluid: Fluid | undefined;
+  readonly description: string;
+}
+
+/** The lengths of `group`, in the token file's order. */
+export function dimensions(
+  file: TokenFile,
+  group: DimensionGroup,
+): ReadonlyArray<Dimension> {
+  return tokensOf(file[group]).map(([name, token]) => ({
+    name,
+    px: token.$value.value,
+    fluid: token.$extensions?.["dev.allthings"].fluid,
+    description: token.$description,
+  }));
+}
+
+/** One length of `group` by name; the code that asks for it relies on it. */
+export function dimension(
+  file: TokenFile,
+  group: DimensionGroup,
+  name: string,
+): Dimension {
+  const found = dimensions(file, group).find(
+    (candidate) => candidate.name === name,
+  );
+  if (found === undefined) throw new Error(`No ${group}.${name} token`);
+  return found;
+}
+
+export interface Measure {
+  /** The token's name, such as `prose`. */
+  readonly name: string;
+  /** Characters to a line: `ch`. */
+  readonly characters: number;
+  readonly description: string;
+}
+
+/** The reading measures, in the token file's order. */
+export function measures(file: TokenFile): ReadonlyArray<Measure> {
+  return tokensOf(file.measure).map(([name, token]) => ({
+    name,
+    characters: token.$value,
+    description: token.$description,
   }));
 }

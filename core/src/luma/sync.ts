@@ -21,7 +21,9 @@ import { venueArchive } from "./venue-archive.ts";
  *   and confidential events are). A sync writes them when Luma changed one.
  * - Luma while it shows a venue: street address, venue name, full address.
  *   When it shows none, the stored venue stays, or, while a field still holds
- *   Luma's placeholder, comes back from the venue archive.
+ *   Luma's placeholder, comes back from the venue archive. A venue the feed
+ *   hides from the start (Luma shows it to guests only) is filled in from
+ *   Luma's API instead (src/luma/venues.ts).
  * - The site, once the event exists: slug, tagline, attendee limit, and every
  *   other column and related row (talks, hosts, photos, recording, flags).
  *   The sync writes slug, tagline and attendee limit for new events only.
@@ -93,9 +95,22 @@ export function eventSlug(
   return `${datePrefix}-${name || "event"}-${event.lumaEventId}`;
 }
 
-/** The row `event` asks for. The venue name is the venue up to its first comma. */
+/**
+ * The venue columns a venue as Luma writes it fills (the feed's LOCATION,
+ * or the API's full address): the venue's name is it up to its first comma.
+ */
+export function venueColumns(
+  location: string | null,
+): Pick<EventRow, "streetAddress" | "shortLocation" | "fullAddress"> {
+  return {
+    streetAddress: location,
+    shortLocation: location === null ? null : (location.split(",")[0] ?? null),
+    fullAddress: location,
+  };
+}
+
+/** The row `event` asks for. */
 export function toEventRow(event: FeedEvent): EventRow {
-  const location = event.location;
   return {
     lumaEventId: event.lumaEventId,
     name: event.name,
@@ -103,9 +118,7 @@ export function toEventRow(event: FeedEvent): EventRow {
     endDate: event.endDate,
     isDraft: event.isDraft,
     slug: eventSlug(event),
-    streetAddress: location,
-    shortLocation: location === null ? null : (location.split(",")[0] ?? null),
-    fullAddress: location,
+    ...venueColumns(event.location),
   };
 }
 
