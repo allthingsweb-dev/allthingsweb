@@ -3,6 +3,11 @@ import { DateTime, Duration } from "effect";
 import {
   formats,
   formatsDoc,
+  hackathonRules,
+  hackStarter,
+  judgingCriteria,
+  sizeOf,
+  starterRule,
   offset,
   openSourceProjects,
   programs,
@@ -25,9 +30,10 @@ describe("formats", () => {
     }
   });
 
-  test("each schedule runs in order, inside the evening it starts", () => {
-    for (const program of programs) {
-      const { schedule, duration } = formats[program];
+  test("each size's schedule runs in order, inside the evening it starts", () => {
+    for (const { schedule, duration } of programs.flatMap(
+      (program) => formats[program].sizes,
+    )) {
       expect(schedule[0]?.at).toBe(0);
       const times = schedule.map((step) => step.at);
       expect(times).toEqual(times.toSorted((a, b) => a - b));
@@ -47,6 +53,85 @@ describe("formats", () => {
     expect(programs.filter((p) => formats[p].scheduleRequired)).toEqual([
       "hackathon",
     ]);
+  });
+
+  test("sizes go from the default up, each longer than the one before", () => {
+    for (const program of programs) {
+      const { sizes } = formats[program];
+      expect(sizes.at(-1)?.upTo).toBeNull();
+      sizes.slice(0, -1).forEach((size, index) => {
+        expect(size.upTo).not.toBeNull();
+        const next = sizes[index + 1];
+        if (size.upTo !== null && next !== undefined && next.upTo !== null) {
+          expect(Duration.isLessThan(size.upTo, next.upTo)).toBe(true);
+        }
+      });
+    }
+    expect(programs.filter((p) => formats[p].sizes.length > 1)).toEqual([
+      "hackathon",
+    ]);
+  });
+
+  test("a hackathon is lightning by default, up to four hours, and full-day past that", () => {
+    const { hackathon } = formats;
+    const sizeAt = (minutes: number) =>
+      sizeOf(hackathon, Duration.minutes(minutes)).name;
+    expect(hackathon.sizes[0].name).toBe("lightning");
+    expect([90, 180, 240, 241, 480, 600].map(sizeAt)).toEqual([
+      "lightning",
+      "lightning",
+      "lightning",
+      "full-day",
+      "full-day",
+      "full-day",
+    ]);
+    expect(hackathon.sizes.map((size) => size.allDay)).toEqual([false, true]);
+    expect(hackathon.sizes.map((size) => size.confirm !== null)).toEqual([
+      false,
+      true,
+    ]);
+    // Every other format has one size, whatever the length.
+    expect(sizeOf(formats.talks, Duration.hours(9)).name).toBe("evening");
+  });
+
+  test("a lightning hackathon has 90 minutes to 2 hours of hacking", () => {
+    const { schedule } = formats.hackathon.sizes[0];
+    const hacking = schedule.findIndex((step) => step.title === "Hacking");
+    const minutes =
+      (schedule[hacking + 1]?.at ?? 0) - (schedule[hacking]?.at ?? 0);
+    expect(minutes).toBeGreaterThanOrEqual(90);
+    expect(minutes).toBeLessThanOrEqual(120);
+  });
+
+  test("judging is a generous block, with something to do while it runs", () => {
+    for (const size of formats.hackathon.sizes) {
+      const judging = size.schedule.findIndex((step) =>
+        step.title.startsWith("Judging"),
+      );
+      const step = size.schedule[judging];
+      const next = size.schedule[judging + 1];
+      expect(step).toBeDefined();
+      expect((next?.at ?? 0) - (step?.at ?? 0)).toBeGreaterThanOrEqual(30);
+      expect(step?.title).toMatch(/while everyone eats and/);
+    }
+  });
+
+  test("a hackathon's rules: open source, how it's judged, and the starter", () => {
+    expect(formats.hackathon.rules.map((rule) => rule.id)).toEqual([
+      "open-source",
+      "judging",
+      "starter",
+    ]);
+    expect(judgingCriteria.text).toMatch(/work before how they look/);
+    expect(judgingCriteria.text).toMatch(/useful/);
+    expect(judgingCriteria.text).toMatch(/creative/);
+    expect(starterRule(hackStarter)?.text).toBe(
+      "Start from at/hack v1.0.0 (https://github.com/allthingsweb-dev/hack), or include its files.",
+    );
+    // Without a published version, no starter is asked for.
+    expect(
+      hackathonRules({ ...hackStarter, version: null }).map((rule) => rule.id),
+    ).toEqual(["open-source", "judging"]);
   });
 
   test("every hackathon asks for open source projects", () => {
@@ -73,7 +158,8 @@ describe("rulesFor", () => {
   test("a rule applies from its first day in San Francisco", () => {
     // 11:59 PM on October 5 in San Francisco, then midnight on the 6th.
     expect(hackathon("2026-10-06T06:59:00Z")).toEqual([]);
-    expect(hackathon("2026-10-06T07:00:00Z")).toEqual([openSourceProjects]);
+    expect(hackathon("2026-10-06T07:00:00Z")).toEqual(formats.hackathon.rules);
+    expect(formats.hackathon.rules).toContain(openSourceProjects);
   });
 
   test("never to an evening we only share, or a program without rules", () => {

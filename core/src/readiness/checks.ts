@@ -5,7 +5,14 @@ import {
   type GapKind,
   gapKinds,
 } from "../completeness.ts";
-import { formats, rulesFor, scheduleLines } from "../formats.ts";
+import {
+  formats,
+  hours,
+  rulesFor,
+  scheduleLines,
+  sizeLabel,
+  sizeOf,
+} from "../formats.ts";
 import { eventMode } from "../mode.ts";
 import { neighborhoodOf } from "../places.ts";
 import { sfDay } from "./calendar.ts";
@@ -36,6 +43,8 @@ export const draftCheckKinds = {
   "ends-before-start": "ends before it starts",
   daytime: "starts before 4 PM",
   long: "longer than six hours",
+  length: "a length other than its size's default",
+  size: "a size to confirm",
   "same-day": "another evening the same day",
   "venue-name": "no venue name",
   neighborhood: "no neighborhood for the venue",
@@ -81,7 +90,7 @@ export interface CalendarEvent {
 
 /**
  * The longest an evening runs before it reads as a mistake, unless its
- * format runs through the day.
+ * size runs through the day (a full-day hackathon).
  */
 export const longestEvening = Duration.hours(6);
 
@@ -138,7 +147,9 @@ export function draftChecks(
     );
   }
   const format = formats[record.program];
-  if (!format.allDay) {
+  const length = DateTime.distance(record.startDate, record.endDate);
+  const size = sizeOf(format, length);
+  if (!size.allDay) {
     if (eventMode(record.startDate) === "paper") {
       checks.push(
         check(
@@ -148,7 +159,6 @@ export function draftChecks(
         ),
       );
     }
-    const length = DateTime.distance(record.startDate, record.endDate);
     if (Duration.isGreaterThan(length, longestEvening)) {
       checks.push(
         check(
@@ -158,6 +168,24 @@ export function draftChecks(
         ),
       );
     }
+  }
+
+  // Lengths are defaults: one that departs from its size's is worth a
+  // look, never a stop. A size worth it only as a big deal is confirmed.
+  if (size.confirm !== null) {
+    checks.push(check("size", "advice", size.confirm));
+  }
+  if (
+    DateTime.isGreaterThan(record.endDate, record.startDate) &&
+    !Duration.equals(length, size.duration)
+  ) {
+    checks.push(
+      check(
+        "length",
+        "advice",
+        `Runs ${hours(length)}, doors to close; ${sizeLabel(format, size)} runs ${hours(size.duration)} by default. Keep it if it's meant.`,
+      ),
+    );
   }
 
   const day = sfDay(record.startDate);
@@ -233,7 +261,7 @@ export function draftChecks(
       check(
         "schedule",
         "blocker",
-        `Its page needs a schedule, as every ${format.name}'s does. Start from: ${scheduleLines(format).join("; ")}.`,
+        `Its page needs a schedule, as every ${format.name}'s does. Start from: ${scheduleLines(size).join("; ")}.`,
       ),
     );
   }

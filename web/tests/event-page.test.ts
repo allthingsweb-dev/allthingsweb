@@ -1,4 +1,4 @@
-import { openSourceProjects } from "allthings-core/src/formats.ts";
+import { formats } from "allthings-core/src/formats.ts";
 import { personSlug } from "allthings-core/src/person-slug.ts";
 import { describe, expect, test } from "bun:test";
 import type {
@@ -553,7 +553,7 @@ describe("the ledger", () => {
       "Rules",
     ]);
     expect(html).toContain(
-      `<dt class="at-type-meta">Rules</dt><dd><ul class="rules"><li>${openSourceProjects.text}</li></ul></dd>`,
+      `<dt class="at-type-meta">Rules</dt><dd><ul class="rules">${formats.hackathon.rules.map((rule) => `<li>${rule.text.replaceAll("'", "&#x27;")}</li>`).join("")}</ul></dd>`,
     );
     expect(await htmlProblems(html)).toEqual([]);
     // Held before the rule's first day, an evening of talks, or someone

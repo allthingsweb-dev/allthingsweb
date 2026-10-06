@@ -11,7 +11,7 @@ import {
   requiredGaps,
 } from "../src/completeness.ts";
 import { formatReport, reportJson } from "../src/completeness-report.ts";
-import { openSourceProjects } from "../src/formats.ts";
+import { formats, openSourceProjects } from "../src/formats.ts";
 import { defaultTagline } from "../src/tagline.ts";
 import {
   clockLayer,
@@ -140,11 +140,14 @@ describe("what an event lacks", () => {
       endDate: at("2026-11-08T01:00:00Z"),
       description: "<p>Our own words.</p>",
     };
-    expect(gapsOf(hackathon)).toEqual([
-      "rules: open-source, in Luma's description",
-      "rules: open-source, in the site's description",
-    ]);
-    const carried = `<p>Build something.</p><ul><li>${openSourceProjects.text.toUpperCase()}</li></ul>`;
+    const ids = formats.hackathon.rules.map((rule) => rule.id);
+    expect(ids).toContain(openSourceProjects.id);
+    expect(gapsOf(hackathon)).toEqual(
+      ["Luma's", "the site's"].flatMap((whose) =>
+        ids.map((id) => `rules: ${id}, in ${whose} description`),
+      ),
+    );
+    const carried = `<p>Build something.</p><ul>${formats.hackathon.rules.map((rule) => `<li>${rule.text.toUpperCase()}</li>`).join("")}</ul>`;
     expect(
       gapsOf({
         ...hackathon,
