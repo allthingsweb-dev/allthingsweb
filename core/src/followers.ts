@@ -210,7 +210,9 @@ export const refreshFollowers = (options: RefreshOptions) =>
         FROM profiles
         WHERE twitter_handle IS NOT NULL AND btrim(twitter_handle) <> ''
           AND (x_followers_at IS NULL OR x_followers_at < ${before})
-        ORDER BY x_followers_at NULLS FIRST, id`,
+        -- The least recently tried first: a handle that keeps failing goes
+        -- behind the others instead of taking the same slots every run.
+        ORDER BY x_followers_tried_at NULLS FIRST, x_followers_at NULLS FIRST, id`,
     });
     const due = (yield* orDataSourceError(findDue({ staleBefore }))).filter(
       (row) => xHandleOf(row.twitterHandle) !== null,
@@ -233,14 +235,22 @@ export const refreshFollowers = (options: RefreshOptions) =>
           ? source.read(handle).pipe(Effect.map(Option.some))
           : source.read(handle).pipe(Effect.timeoutOption(Math.max(0, left))),
       );
+      if (read._tag === "Success" && Option.isNone(read.success)) {
+        unread = batch.length - index;
+        break;
+      }
+      if (!options.dryRun) {
+        yield* sql`
+          UPDATE profiles SET x_followers_tried_at = ${DateTime.toDateUtc(yield* DateTime.now)}
+          WHERE id = ${row.id}::uuid AND twitter_handle = ${row.twitterHandle}`.pipe(
+          Effect.mapError((cause) => new DataSourceError({ cause })),
+        );
+      }
       if (read._tag === "Failure") {
         failed.push(`${row.name} (@${handle}): ${read.failure.reason}`);
         continue;
       }
-      if (Option.isNone(read.success)) {
-        unread = batch.length - index;
-        break;
-      }
+      if (Option.isNone(read.success)) continue;
       const count = read.success.value;
       const at = yield* DateTime.now;
       if (!options.dryRun) {

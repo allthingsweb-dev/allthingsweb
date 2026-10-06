@@ -1,5 +1,5 @@
 {
-  "id": "4eb7bada-24fe-441d-aaa5-eb3b7df0df7a",
+  "id": "e9c423d3-fafe-49ed-ad29-128e9cb49793",
   "prevId": "fda26303-f527-4282-bf34-dd5e7ec250a0",
   "version": "7",
   "dialect": "postgresql",
@@ -2181,6 +2181,12 @@
         },
         "x_followers_at": {
           "name": "x_followers_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "x_followers_tried_at": {
+          "name": "x_followers_tried_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

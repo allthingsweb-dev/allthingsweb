@@ -334,6 +334,23 @@ describe("refreshFollowers", () => {
     ]);
   });
 
+  test("handles that keep failing go behind the others, so they never block a count", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    // Only Future Speaker's count can be read; two slots a run.
+    const first = await refresh(db, { future: 2 }, { maxProfiles: 2 });
+    const second = await refresh(db, { future: 2 }, { maxProfiles: 2 });
+    const tried = [
+      ...first.failed,
+      ...first.refreshed,
+      ...second.failed,
+      ...second.refreshed,
+    ];
+    // Between them the two runs ask about all three.
+    expect(new Set(tried.map((line) => line.split(" (@")[0])).size).toBe(3);
+    expect(await snapshots(db)).toContainEqual(["Future Speaker", 2]);
+  });
+
   test("a dry run reads and reports, and writes nothing", async () => {
     const db = await seededDatabase();
     databases.push(db);

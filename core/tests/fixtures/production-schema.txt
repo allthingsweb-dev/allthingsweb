@@ -176,6 +176,7 @@ column public.profiles #012 photo_source_url text
 column public.profiles #013 luma_user_id text
 column public.profiles #014 x_followers integer
 column public.profiles #015 x_followers_at timestamp with time zone
+column public.profiles #016 x_followers_tried_at timestamp with time zone
 column public.redirects #001 slug text not null
 column public.redirects #002 destination_url text not null
 column public.redirects #003 comment text
@@ -406,6 +407,6 @@ relation public.redirects kind=r persistence=p rls=f force_rls=f replica_identit
 relation public.sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.talk_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
-routine public.profiles_x_followers_reset() 85adf7be2d92e1bbf1d40cf52eb6599a
+routine public.profiles_x_followers_reset() ddfe06ea621a50be5270c96c05655c3e
 routine public.show_db_tree() afc3f368beed7e4fb52b8c71a7b77586
 trigger CREATE TRIGGER profiles_x_followers_reset BEFORE UPDATE OF twitter_handle ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_x_followers_reset()

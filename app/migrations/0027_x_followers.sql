@@ -1,6 +1,7 @@
 -- How many follow each person on X, with when it was read; core/migrations/0015_x_followers.ts is the same change.
 ALTER TABLE "profiles" ADD COLUMN "x_followers" integer;--> statement-breakpoint
 ALTER TABLE "profiles" ADD COLUMN "x_followers_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "profiles" ADD COLUMN "x_followers_tried_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "profiles" ADD CONSTRAINT "profiles_x_followers_check" CHECK ("x_followers" >= 0);--> statement-breakpoint
 ALTER TABLE "profiles" ADD CONSTRAINT "profiles_x_followers_at_check" CHECK (("x_followers" IS NULL) = ("x_followers_at" IS NULL));--> statement-breakpoint
 -- A changed or cleared X handle clears its count (not modelled by drizzle; core's 0015 runs the same).
@@ -9,6 +10,7 @@ BEGIN
   IF NEW.twitter_handle IS DISTINCT FROM OLD.twitter_handle THEN
     NEW.x_followers := NULL;
     NEW.x_followers_at := NULL;
+    NEW.x_followers_tried_at := NULL;
   END IF;
   RETURN NEW;
 END

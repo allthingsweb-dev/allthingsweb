@@ -144,6 +144,10 @@ export const profilesTable = pgTable(
      */
     xFollowers: integer("x_followers"),
     xFollowersAt: timestamp("x_followers_at", { withTimezone: true }),
+    /** When a count was last asked for, read or not: the least recent go first. */
+    xFollowersTriedAt: timestamp("x_followers_tried_at", {
+      withTimezone: true,
+    }),
   },
   () => [
     check(

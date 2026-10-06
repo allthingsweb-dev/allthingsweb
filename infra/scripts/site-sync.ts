@@ -146,8 +146,15 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "twitter_handle",
       "x_followers",
       "x_followers_at",
+      "x_followers_tried_at",
     ],
-    update: ["image", "updated_at", "x_followers", "x_followers_at"],
+    update: [
+      "image",
+      "updated_at",
+      "x_followers",
+      "x_followers_at",
+      "x_followers_tried_at",
+    ],
   },
   event_posts: {
     select: [
