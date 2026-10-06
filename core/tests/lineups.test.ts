@@ -797,7 +797,7 @@ describe("core/backfill/lineups.json", () => {
         t.speakers.length,
       ]),
     ).toEqual([
-      ["State of Effect 2026", "talk", 0, "2026-09-30T18:41:00-07:00", 1],
+      ["State of Effect 2026", "talk", 0, "2026-09-30T18:41:00-07:00", 2],
       ["Alchemy 2.0", "talk", 1, "2026-09-30T19:10:00-07:00", 1],
       [
         "Fireside chat with Michael Arnaldi, creator of Effect",
