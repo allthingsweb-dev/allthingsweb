@@ -140,12 +140,18 @@ const footnoteMark = /(?<=[.!?])\*+(?=\s|$)/gu;
 
 /**
  * The leading sentences of `text` that fit in {@link summaryLimit}, or null
- * when `text` doesn't end as a sentence or its first sentence is too short
- * or too long to stand alone.
+ * when it has no complete sentence or its first sentence is too short or
+ * too long to stand alone. An unfinished fragment after the last sentence
+ * ("… Join us. RSVP here") is left out.
  */
 function leadingSentences(text: string): string | null {
-  if (!sentenceEnd.test(text)) return null;
   const sentences = text.split(/(?<=[.!?]["'”’)\]*]*)\s+/u);
+  while (
+    sentences.length > 0 &&
+    !sentenceEnd.test(sentences[sentences.length - 1] ?? "")
+  ) {
+    sentences.pop();
+  }
   const [first] = sentences;
   if (
     first === undefined ||

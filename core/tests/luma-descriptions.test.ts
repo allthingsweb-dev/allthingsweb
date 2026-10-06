@@ -126,6 +126,14 @@ describe("a description's summary", () => {
     ).toBe("Join us at CodeRabbit for all things sync and NO AI IS ALLOWED!");
   });
 
+  test("leaves out an unfinished fragment after the last sentence", () => {
+    expect(
+      descriptionSummary(
+        "Join us for live demos and discussion tonight. RSVP here",
+      ),
+    ).toBe("Join us for live demos and discussion tonight.");
+  });
+
   test("is nothing when no paragraph reads as prose", () => {
     expect(descriptionSummary(null)).toBeNull();
     expect(descriptionSummary("# Schedule\n\n*   6 pm: doors")).toBeNull();
