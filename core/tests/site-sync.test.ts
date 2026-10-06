@@ -154,6 +154,10 @@ const fakeApi = Layer.succeed(
   }),
 );
 
+/** A test account id for `handle`, the same for the same handle. */
+const idOf = (handle: string) =>
+  String(Number.parseInt(Buffer.from(handle).toString("hex").slice(0, 12), 16));
+
 /** The post search's services, with `writer` storing what it finds. */
 const searchServices = (writer: typeof EventPostWriter.layer) =>
   Layer.mergeAll(
@@ -339,7 +343,10 @@ describe("site_sync", () => {
           Layer.mergeAll(
             Layer.succeed(
               FollowerSource,
-              FollowerSource.of({ read: () => Effect.succeed(42) }),
+              FollowerSource.of({
+                read: (handle) =>
+                  Effect.succeed({ id: idOf(handle), handle, followers: 42 }),
+              }),
             ),
             sqlLayer(db),
             clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),

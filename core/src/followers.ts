@@ -27,6 +27,15 @@ import { orDataSourceError } from "./sql.ts";
  * the sync Worker's schedule and the CLI (`bun run followers`) can both
  * run it; a handle X doesn't know, or a failed read, leaves the stored
  * snapshot as it was.
+ *
+ * A profile's X account is known by its numeric user id (`x_user_id`),
+ * which never changes: people change handles, and X lets others take a
+ * handle once it's free. The refresh stores the id the first time it reads
+ * a handle. After that, a handle whose account has another id was taken by
+ * someone else: the refresh never adopts it, but clears it, keeps the id,
+ * and records the lost handle for the completeness report. Where the
+ * source can look an account up by id (X's own API; FixTweet can't), it
+ * reads by id, and a renamed account's new handle is stored as it is.
  */
 
 /** A count as read: how many, and when. */
@@ -66,14 +75,29 @@ export class FollowerReadError extends Schema.TaggedError<FollowerReadError>()(
 const FxUser = Schema.Struct({
   code: Schema.Number,
   user: Schema.Struct({
+    id: Schema.String.check(Schema.isPattern(/^[0-9]{1,20}$/)),
     screen_name: Schema.String,
     followers: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   }),
 });
 
+/** An X account as read: its id, which never changes, its handle now, and how many follow it. */
+export interface XAccount {
+  readonly id: string;
+  readonly handle: string;
+  readonly followers: number;
+}
+
 export interface FollowerSourceShape {
-  /** How many follow `handle` on X now. */
-  readonly read: (handle: string) => Effect.Effect<number, FollowerReadError>;
+  /** The account that has `handle` on X now. */
+  readonly read: (handle: string) => Effect.Effect<XAccount, FollowerReadError>;
+  /**
+   * The account with user id `id`, whatever its handle is now, where the
+   * source can look one up by id.
+   */
+  readonly readById?: (
+    id: string,
+  ) => Effect.Effect<XAccount, FollowerReadError>;
 }
 
 /** Follower counts from the FixTweet API, keyless. */
@@ -121,7 +145,11 @@ export class FollowerSource extends Context.Service<
               retryable: false,
             });
           }
-          return json.user.followers;
+          return {
+            id: json.user.id,
+            handle: json.user.screen_name,
+            followers: json.user.followers,
+          } satisfies XAccount;
         }).pipe(
           Effect.timeout(Duration.seconds(15)),
           Effect.catchTags({
@@ -171,6 +199,10 @@ export interface RefreshOptions {
 export interface RefreshReport {
   /** Profiles whose snapshot was read: `name: before → after`. */
   readonly refreshed: ReadonlyArray<string>;
+  /** Accounts found under a new handle, which was stored: `name: @old → @new`. */
+  readonly renamed: ReadonlyArray<string>;
+  /** Handles X now gives to another account, which were cleared. */
+  readonly lost: ReadonlyArray<string>;
   /** Profiles whose count could not be read, with why. */
   readonly failed: ReadonlyArray<string>;
   /** Stale profiles left for a later run, by `maxProfiles` or `until`. */
@@ -182,6 +214,7 @@ const Due = Schema.Struct({
   name: Schema.String,
   twitterHandle: Schema.String,
   xFollowers: Schema.NullOr(Schema.Int),
+  xUserId: Schema.NullOr(Schema.String),
 });
 
 /**
@@ -206,10 +239,11 @@ export const refreshFollowers = (options: RefreshOptions) =>
       Result: Due,
       execute: ({ staleBefore: before }) => sql`
         SELECT id, name, twitter_handle AS "twitterHandle",
-          x_followers AS "xFollowers"
+          x_followers AS "xFollowers", x_user_id AS "xUserId"
         FROM profiles
         WHERE twitter_handle IS NOT NULL AND btrim(twitter_handle) <> ''
-          AND (x_followers_at IS NULL OR x_followers_at < ${before})
+          AND (x_followers_at IS NULL OR x_followers_at < ${before}
+            OR x_user_id IS NULL)
         -- The least recently tried first: a handle that keeps failing goes
         -- behind the others instead of taking the same slots every run.
         ORDER BY x_followers_tried_at NULLS FIRST, x_followers_at NULLS FIRST, id`,
@@ -220,10 +254,20 @@ export const refreshFollowers = (options: RefreshOptions) =>
     const batch = due.slice(0, Math.max(0, options.maxProfiles));
 
     const refreshed: Array<string> = [];
+    const renamed: Array<string> = [];
+    const lost: Array<string> = [];
     const failed: Array<string> = [];
+    const write = <A, E>(effect: Effect.Effect<A, E>) =>
+      effect.pipe(Effect.mapError((cause) => new DataSourceError({ cause })));
     let unread = 0;
     for (const [index, row] of batch.entries()) {
       const handle = xHandleOf(row.twitterHandle) ?? "";
+      // By id where both are known: the account, whatever its handle now.
+      const byId =
+        row.xUserId !== null && source.readById !== undefined
+          ? source.readById(row.xUserId)
+          : null;
+      const reading = byId ?? source.read(handle);
       // What is left of the run's time, if it has an end.
       const left =
         options.until === undefined
@@ -232,49 +276,113 @@ export const refreshFollowers = (options: RefreshOptions) =>
             DateTime.toEpochMillis(yield* DateTime.now);
       const read = yield* Effect.result(
         left === null
-          ? source.read(handle).pipe(Effect.map(Option.some))
-          : source.read(handle).pipe(Effect.timeoutOption(Math.max(0, left))),
+          ? reading.pipe(Effect.map(Option.some))
+          : reading.pipe(Effect.timeoutOption(Math.max(0, left))),
       );
       if (read._tag === "Success" && Option.isNone(read.success)) {
         unread = batch.length - index;
         break;
       }
+      const at = DateTime.toDateUtc(yield* DateTime.now);
       if (!options.dryRun) {
-        yield* sql`
-          UPDATE profiles SET x_followers_tried_at = ${DateTime.toDateUtc(yield* DateTime.now)}
-          WHERE id = ${row.id}::uuid AND twitter_handle = ${row.twitterHandle}`.pipe(
-          Effect.mapError((cause) => new DataSourceError({ cause })),
-        );
+        yield* write(sql`
+          UPDATE profiles SET x_followers_tried_at = ${at}
+          WHERE id = ${row.id}::uuid AND twitter_handle = ${row.twitterHandle}`);
       }
       if (read._tag === "Failure") {
         failed.push(`${row.name} (@${handle}): ${read.failure.reason}`);
         continue;
       }
       if (Option.isNone(read.success)) continue;
-      const count = read.success.value;
-      const at = yield* DateTime.now;
-      if (!options.dryRun) {
-        const written = yield* sql`
-          UPDATE profiles SET x_followers = ${count},
-            x_followers_at = ${DateTime.toDateUtc(at)}
-          WHERE id = ${row.id}::uuid
-            AND twitter_handle = ${row.twitterHandle}
-          RETURNING 1`.pipe(
-          Effect.mapError((cause) => new DataSourceError({ cause })),
+      const account = read.success.value;
+      const sameHandle = account.handle.toLowerCase() === handle.toLowerCase();
+
+      // The handle now belongs to another account: never adopt it.
+      if (row.xUserId !== null && account.id !== row.xUserId) {
+        if (!options.dryRun) {
+          const cleared = yield* write(
+            sql.withTransaction(
+              Effect.gen(function* () {
+                const rows = yield* sql`
+                  UPDATE profiles SET twitter_handle = NULL, updated_at = now()
+                  WHERE id = ${row.id}::uuid AND twitter_handle = ${row.twitterHandle}
+                  RETURNING 1`;
+                if (rows.length === 0) return false;
+                // The trigger cleared what was known of the account; keep its id.
+                yield* sql`
+                  UPDATE profiles SET x_user_id = ${row.xUserId},
+                    x_handle_lost = ${handle}, x_handle_lost_at = ${at},
+                    x_followers_tried_at = ${at}
+                  WHERE id = ${row.id}::uuid`;
+                return true;
+              }),
+            ),
+          );
+          if (!cleared) {
+            failed.push(
+              `${row.name} (@${handle}): the handle changed while it was read`,
+            );
+            continue;
+          }
+        }
+        lost.push(
+          `${row.name}: @${handle} is now another X account's (${account.id}, not ${row.xUserId}); cleared`,
         );
-        if (written.length === 0) {
+        continue;
+      }
+
+      // Another profile already has this account.
+      const [other] = yield* write(sql<{ name: string }>`
+        SELECT name FROM profiles
+        WHERE x_user_id = ${account.id} AND id <> ${row.id}::uuid`);
+      if (other !== undefined) {
+        failed.push(
+          `${row.name} (@${handle}): ${other.name}'s profile has this X account (${account.id})`,
+        );
+        continue;
+      }
+
+      if (!options.dryRun) {
+        const written = yield* write(
+          sql.withTransaction(
+            Effect.gen(function* () {
+              // Found by id under a new handle: the same account, renamed.
+              if (!sameHandle) {
+                const rows = yield* sql`
+                  UPDATE profiles SET twitter_handle = ${account.handle}, updated_at = now()
+                  WHERE id = ${row.id}::uuid AND twitter_handle = ${row.twitterHandle}
+                  RETURNING 1`;
+                if (rows.length === 0) return false;
+              }
+              const rows = yield* sql`
+                UPDATE profiles SET x_user_id = ${account.id},
+                  x_followers = ${account.followers}, x_followers_at = ${at},
+                  x_followers_tried_at = ${at}
+                WHERE id = ${row.id}::uuid
+                  AND twitter_handle = ${sameHandle ? row.twitterHandle : account.handle}
+                RETURNING 1`;
+              return rows.length > 0;
+            }),
+          ),
+        );
+        if (!written) {
           failed.push(
             `${row.name} (@${handle}): the handle changed while it was read`,
           );
           continue;
         }
       }
+      if (!sameHandle) {
+        renamed.push(`${row.name}: @${handle} → @${account.handle}`);
+      }
       refreshed.push(
-        `${row.name} (@${handle}): ${row.xFollowers ?? "∅"} → ${count}`,
+        `${row.name} (@${account.handle}): ${row.xFollowers ?? "∅"} → ${account.followers}`,
       );
     }
     return {
       refreshed,
+      renamed,
+      lost,
       failed,
       remaining: due.length - batch.length + unread,
     } satisfies RefreshReport;

@@ -44,6 +44,13 @@ export interface EventSignals {
   readonly hosts: ReadonlyArray<string>;
   /** Handles of everyone on its stage or running it, lowercased. */
   readonly xHandles: ReadonlyArray<string>;
+  /**
+   * Their X accounts by user id, which never changes (src/followers.ts):
+   * a post is theirs by its author's id, whatever handle it has now.
+   */
+  readonly xUserIds: ReadonlyArray<string>;
+  /** Each of them once, for X's `from:`: by id where it's known, else by handle. */
+  readonly xFrom: ReadonlyArray<string>;
   readonly blueskyHandles: ReadonlyArray<string>;
 }
 
@@ -53,6 +60,8 @@ export interface FoundPost {
   /** The post's URL, as the post tools take it. */
   readonly url: string;
   readonly authorHandle: string;
+  /** The author's X user id, where the platform gives one. */
+  readonly authorId?: string;
   readonly text: string;
   /** Every link it carries, expanded where the platform says. */
   readonly links: ReadonlyArray<string>;
@@ -100,7 +109,13 @@ export function scoreCandidate(
   signals: EventSignals,
   post: Pick<
     FoundPost,
-    "platform" | "authorHandle" | "text" | "links" | "mentions" | "postedAt"
+    | "platform"
+    | "authorHandle"
+    | "authorId"
+    | "text"
+    | "links"
+    | "mentions"
+    | "postedAt"
   >,
 ): Scored {
   const reasons: Array<string> = [];
@@ -152,7 +167,14 @@ export function scoreCandidate(
 
   const handles =
     post.platform === "x" ? signals.xHandles : signals.blueskyHandles;
-  if (handles.includes(lower(post.authorHandle))) {
+  // An X author is theirs by id where the post gives one: a handle can
+  // change hands.
+  const onStage =
+    post.platform === "x" && post.authorId !== undefined
+      ? signals.xUserIds.includes(post.authorId) ||
+        handles.includes(lower(post.authorHandle))
+      : handles.includes(lower(post.authorHandle));
+  if (onStage) {
     score += add(2, `by @${post.authorHandle}, on its stage`);
   }
   const mentioned = post.mentions.filter((m) => handles.includes(lower(m)));
@@ -430,6 +452,7 @@ export function fromXSearch(
         platform: "x" as const,
         url: `https://x.com/${handle}/status/${tweet.id}`,
         authorHandle: handle,
+        authorId: tweet.author_id,
         text: tweet.text,
         links: (tweet.entities?.urls ?? []).flatMap((u) =>
           u.expanded_url === undefined ? [] : [u.expanded_url],
@@ -450,7 +473,7 @@ export function xQueries(signals: EventSignals): ReadonlyArray<string> {
     ...signals.links.map((link) => `url:${quoted(bareLink(link))}`),
     quoted(displayName(signals.name)),
   ].join(" OR ");
-  const people = signals.xHandles.map((h) => `from:${h}`).join(" OR ");
+  const people = signals.xFrom.map((who) => `from:${who}`).join(" OR ");
   const words = [
     quoted("all things"),
     ...(signals.topic === null ? [] : [quoted(signals.topic)]),
@@ -608,6 +631,7 @@ const SignalsRow = Schema.Struct({
   people: Schema.Array(
     Schema.Struct({
       x: Schema.NullOr(Schema.String),
+      xId: Schema.NullOr(Schema.String),
       bluesky: Schema.NullOr(Schema.String),
     }),
   ),
@@ -651,6 +675,8 @@ export function toSignals(
     ]),
     hosts: row.hosts,
     xHandles: unique(row.people.map((p) => handleOf(p.x))),
+    xUserIds: unique(row.people.map((p) => p.xId)),
+    xFrom: unique(row.people.map((p) => p.xId ?? handleOf(p.x))),
     blueskyHandles: unique(row.people.map((p) => handleOf(p.bluesky))),
   };
 }
@@ -730,7 +756,7 @@ export const findCandidates = (options: CandidateOptions) =>
         ), '[]'::json) AS hosts,
         COALESCE((
           SELECT json_agg(json_build_object('x', p.twitter_handle,
-            'bluesky', p.bluesky_handle) ORDER BY p.id)
+            'xId', p.x_user_id, 'bluesky', p.bluesky_handle) ORDER BY p.id)
           FROM profiles p
           WHERE p.id IN (
             SELECT profile_id FROM event_people WHERE event_id = e.id

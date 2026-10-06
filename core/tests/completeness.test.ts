@@ -39,6 +39,7 @@ const person = (
   twitterHandle: "someone",
   blueskyHandle: null,
   linkedinHandle: null,
+  xHandleLost: null,
   ...overrides,
 });
 
@@ -309,12 +310,32 @@ describe("what an event lacks", () => {
         .map(([name]) => name),
     ).toEqual([
       "person-links",
+      "person-x-handle-lost",
       "host-website",
       "host-links",
       "cover",
       "recording",
       "guest-count",
     ]);
+  });
+
+  test("flags a person whose X handle someone else has now", () => {
+    expect(
+      gapsOf({
+        ...complete,
+        talks: [
+          {
+            ...complete.talks[0]!,
+            speakers: [
+              person("a", { twitterHandle: null, xHandleLost: "ada" }),
+            ],
+          },
+        ],
+      }),
+    ).toContain("person-x-handle-lost: Person a (@ada)");
+    expect(gapsOf(complete)).not.toContainEqual(
+      expect.stringContaining("person-x-handle-lost"),
+    );
   });
 });
 

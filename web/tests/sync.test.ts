@@ -133,7 +133,20 @@ async function run(
     // Everyone has 7 followers on X here.
     Layer.succeed(
       FollowerSource,
-      FollowerSource.of({ read: () => Effect.succeed(7) }),
+      FollowerSource.of({
+        read: (handle) =>
+          Effect.succeed({
+            // One account per handle.
+            id: String(
+              Number.parseInt(
+                Buffer.from(handle).toString("hex").slice(0, 12),
+                16,
+              ),
+            ),
+            handle,
+            followers: 7,
+          }),
+      }),
     ),
     // The post search finds nothing here; its own tests are core's.
     Layer.succeed(CandidateSearches, []),

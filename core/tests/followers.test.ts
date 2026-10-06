@@ -92,10 +92,10 @@ describe("xHandleOf", () => {
   });
 });
 
-const user = (screenName: string, followers: number) =>
+const user = (screenName: string, followers: number, id = "81712767") =>
   JSON.stringify({
     code: 200,
-    user: { screen_name: screenName, followers, name: screenName },
+    user: { id, screen_name: screenName, followers, name: screenName },
   });
 
 const readWith = (
@@ -126,7 +126,11 @@ describe("FollowerSource.fxtwitter", () => {
     const { exit, requests } = await readWith("ada", {
       "/ada": [{ status: 503 }, { body: user("Ada", 1234) }],
     });
-    expect(Exit.isSuccess(exit) ? exit.value : exit).toBe(1234);
+    expect(Exit.isSuccess(exit) ? exit.value : exit).toEqual({
+      id: "81712767",
+      handle: "Ada",
+      followers: 1234,
+    });
     expect(requests.map((r) => r.url)).toEqual([
       "https://api.fxtwitter.com/ada",
       "https://api.fxtwitter.com/ada",
@@ -151,6 +155,13 @@ describe("FollowerSource.fxtwitter", () => {
 const databases: Array<PGlite> = [];
 afterAll(() => Promise.all(databases.map((db) => db.close())));
 
+/** Each seeded handle's X account id. */
+const ids: Readonly<Record<string, string>> = {
+  ada: "11",
+  linus: "13",
+  future: "15",
+};
+
 /** A source answering from `counts`, and failing for anyone else. */
 const sourceOf = (counts: Readonly<Record<string, number>>) =>
   Layer.succeed(
@@ -165,7 +176,11 @@ const sourceOf = (counts: Readonly<Record<string, number>>) =>
                 retryable: false,
               }),
             )
-          : Effect.succeed(counts[handle]),
+          : Effect.succeed({
+              id: ids[handle] ?? "99",
+              handle,
+              followers: counts[handle],
+            }),
     }),
   );
 
@@ -278,7 +293,7 @@ describe("refreshFollowers", () => {
                 db.query(
                   `UPDATE profiles SET twitter_handle = 'ada_two' WHERE name = 'Ada Lovelace'`,
                 ),
-              ).pipe(Effect.as(120))
+              ).pipe(Effect.as({ id: "11", handle: "ada", followers: 120 }))
             : Effect.fail(
                 new FollowerReadError({
                   handle,
@@ -326,7 +341,13 @@ describe("refreshFollowers", () => {
         });
       }).pipe(Effect.provide(Layer.merge(stuck, sqlLayer(db)))),
     );
-    expect(report).toEqual({ refreshed: [], failed: [], remaining: 3 });
+    expect(report).toEqual({
+      refreshed: [],
+      renamed: [],
+      lost: [],
+      failed: [],
+      remaining: 3,
+    });
     expect(await snapshots(db)).toEqual([
       ["Ada Lovelace", null],
       ["Future Speaker", null],
@@ -349,6 +370,144 @@ describe("refreshFollowers", () => {
     // Between them the two runs ask about all three.
     expect(new Set(tried.map((line) => line.split(" (@")[0])).size).toBe(3);
     expect(await snapshots(db)).toContainEqual(["Future Speaker", 2]);
+  });
+
+  test("stores each account's id the first time, then knows the profile by it", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await refresh(db, { ada: 120, linus: 9000, future: 3 });
+    const { rows } = await db.query<{ name: string; x_user_id: string | null }>(
+      `SELECT name, x_user_id FROM profiles WHERE twitter_handle IS NOT NULL ORDER BY name`,
+    );
+    expect(rows.map((row) => [row.name, row.x_user_id])).toEqual([
+      ["Ada Lovelace", "11"],
+      ["Future Speaker", "15"],
+      ["Linus", "13"],
+    ]);
+  });
+
+  test("never adopts a handle another account took: clears it, keeps the id, flags it", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await refresh(db, { ada: 120 });
+    // A week and more on: Ada's count is due again.
+    await db.exec(
+      `UPDATE profiles SET x_followers_at = x_followers_at - interval '30 days', x_followers_tried_at = x_followers_tried_at - interval '30 days' WHERE name = 'Ada Lovelace'`,
+    );
+    // Someone else has @ada now.
+    const taken = Layer.succeed(
+      FollowerSource,
+      FollowerSource.of({
+        read: (handle) => Effect.succeed({ id: "77", handle, followers: 5 }),
+      }),
+    );
+    const report = await Effect.runPromise(
+      refreshFollowers({
+        dryRun: false,
+        maxProfiles: 10,
+        staleAfter: "7 days",
+      }).pipe(Effect.provide(Layer.mergeAll(taken, sqlLayer(db), clockLayer))),
+    );
+    expect(report.lost).toContain(
+      "Ada Lovelace: @ada is now another X account's (77, not 11); cleared",
+    );
+    const { rows } = await db.query(
+      `SELECT twitter_handle, x_user_id, x_followers, x_handle_lost, x_handle_lost_at IS NOT NULL AS flagged
+       FROM profiles WHERE name = 'Ada Lovelace'`,
+    );
+    expect(rows).toEqual([
+      {
+        twitter_handle: null,
+        x_user_id: "11",
+        x_followers: null,
+        x_handle_lost: "ada",
+        flagged: true,
+      },
+    ]);
+  });
+
+  test("finds a renamed account by its id and stores its new handle", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await refresh(db, { ada: 120 });
+    // A week and more on: Ada's count is due again.
+    await db.exec(
+      `UPDATE profiles SET x_followers_at = x_followers_at - interval '30 days', x_followers_tried_at = x_followers_tried_at - interval '30 days' WHERE name = 'Ada Lovelace'`,
+    );
+    const byId = Layer.succeed(
+      FollowerSource,
+      FollowerSource.of({
+        read: (handle) =>
+          Effect.fail(
+            new FollowerReadError({
+              handle,
+              reason: "unknown",
+              retryable: false,
+            }),
+          ),
+        readById: (id) =>
+          Effect.succeed({
+            id,
+            handle: id === "11" ? "ada_renamed" : "x",
+            followers: 130,
+          }),
+      }),
+    );
+    const report = await Effect.runPromise(
+      refreshFollowers({
+        dryRun: false,
+        maxProfiles: 1,
+        staleAfter: "7 days",
+      }).pipe(Effect.provide(Layer.mergeAll(byId, sqlLayer(db), clockLayer))),
+    );
+    expect(report.renamed).toEqual(["Ada Lovelace: @ada → @ada_renamed"]);
+    const { rows } = await db.query(
+      `SELECT twitter_handle, x_user_id, x_followers FROM profiles WHERE name = 'Ada Lovelace'`,
+    );
+    expect(rows).toEqual([
+      { twitter_handle: "ada_renamed", x_user_id: "11", x_followers: 130 },
+    ]);
+  });
+
+  test("a handle edited by hand forgets the old account: its id and a lost handle too", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await refresh(db, { ada: 120 });
+    await db.exec(
+      `UPDATE profiles SET x_handle_lost = 'old', x_handle_lost_at = now() WHERE name = 'Ada Lovelace'`,
+    );
+    await db.exec(
+      `UPDATE profiles SET twitter_handle = 'ada_real' WHERE name = 'Ada Lovelace'`,
+    );
+    const { rows } = await db.query(
+      `SELECT x_user_id, x_followers, x_handle_lost FROM profiles WHERE name = 'Ada Lovelace'`,
+    );
+    expect(rows).toEqual([
+      { x_user_id: null, x_followers: null, x_handle_lost: null },
+    ]);
+  });
+
+  test("two profiles can't both have one X account", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    // Linus's handle answers with Ada's account.
+    const shared = Layer.succeed(
+      FollowerSource,
+      FollowerSource.of({
+        read: (handle) => Effect.succeed({ id: "11", handle, followers: 1 }),
+      }),
+    );
+    const report = await Effect.runPromise(
+      refreshFollowers({
+        dryRun: false,
+        maxProfiles: 10,
+        staleAfter: "7 days",
+      }).pipe(Effect.provide(Layer.mergeAll(shared, sqlLayer(db), clockLayer))),
+    );
+    expect(report.refreshed).toHaveLength(1);
+    expect(
+      report.failed.filter((line) => line.includes("has this X account (11)")),
+    ).toHaveLength(2);
   });
 
   test("a dry run reads and reports, and writes nothing", async () => {

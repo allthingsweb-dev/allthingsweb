@@ -193,6 +193,9 @@ column public.profiles #014 x_followers integer
 column public.profiles #015 x_followers_at timestamp with time zone
 column public.profiles #016 x_followers_tried_at timestamp with time zone
 column public.profiles #017 slug text not null default ''::text
+column public.profiles #018 x_user_id text
+column public.profiles #019 x_handle_lost text
+column public.profiles #020 x_handle_lost_at timestamp with time zone
 column public.redirects #001 slug text not null
 column public.redirects #002 destination_url text not null
 column public.redirects #003 comment text
@@ -342,6 +345,9 @@ constraint public.profiles profiles_slug_check CHECK ((slug ~ '^[a-z0-9]+(-[a-z0
 constraint public.profiles profiles_slug_unique UNIQUE (slug)
 constraint public.profiles profiles_x_followers_at_check CHECK (((x_followers IS NULL) = (x_followers_at IS NULL)))
 constraint public.profiles profiles_x_followers_check CHECK ((x_followers >= 0))
+constraint public.profiles profiles_x_handle_lost_check CHECK (((x_handle_lost IS NULL) = (x_handle_lost_at IS NULL)))
+constraint public.profiles profiles_x_user_id_check CHECK ((x_user_id ~ '^[0-9]{1,20}$'::text))
+constraint public.profiles profiles_x_user_id_unique UNIQUE (x_user_id)
 constraint public.redirects redirects_slug_unique PRIMARY KEY (slug)
 constraint public.sponsors sponsors_name_unique UNIQUE (name)
 constraint public.sponsors sponsors_pkey PRIMARY KEY (id)
@@ -409,6 +415,7 @@ index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_user_id_
 index public.profiles CREATE UNIQUE INDEX profiles_luma_user_id_unique ON public.profiles USING btree (luma_user_id)
 index public.profiles CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
 index public.profiles CREATE UNIQUE INDEX profiles_slug_unique ON public.profiles USING btree (slug)
+index public.profiles CREATE UNIQUE INDEX profiles_x_user_id_unique ON public.profiles USING btree (x_user_id)
 index public.redirects CREATE UNIQUE INDEX redirects_slug_unique ON public.redirects USING btree (slug)
 index public.sponsors CREATE UNIQUE INDEX sponsors_luma_user_id_unique ON public.sponsors USING btree (luma_user_id)
 index public.sponsors CREATE UNIQUE INDEX sponsors_name_unique ON public.sponsors USING btree (name)
@@ -445,7 +452,7 @@ relation public.talk_speakers kind=r persistence=p rls=f force_rls=f replica_ide
 relation public.talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 routine public.person_slug(name text) addfb348adcd2153fdcec4b3c32abd7d
 routine public.profiles_slug() ef8963d15307125b3db5291962fe8bdb
-routine public.profiles_x_followers_reset() ddfe06ea621a50be5270c96c05655c3e
+routine public.profiles_x_followers_reset() 4ac4a680b9389601b58ce608772433c7
 routine public.queue_event_post(event_slug text, platform text, url text, author_name text, author_handle text, author_url text, author_avatar_source_url text, posted_at timestamp with time zone, post_text text, image_source_url text) 44d4c152b3cff60797d52581a1f6b5ba
 routine public.show_db_tree() afc3f368beed7e4fb52b8c71a7b77586
 trigger CREATE TRIGGER profiles_slug BEFORE INSERT OR UPDATE OF name, slug ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_slug()

@@ -53,8 +53,10 @@ const command = Command.make(
       yield* Console.log(
         [
           ...report.refreshed,
+          ...report.renamed.map((line) => `renamed: ${line}`),
+          ...report.lost.map((line) => `lost: ${line}`),
           ...report.failed.map((line) => `failed: ${line}`),
-          `${report.refreshed.length} read, ${report.failed.length} failed, ${report.remaining} left for later${dryRun ? " (dry run: nothing written)" : ""}.`,
+          `${report.refreshed.length} read, ${report.renamed.length} renamed, ${report.lost.length} handles lost, ${report.failed.length} failed, ${report.remaining} left for later${dryRun ? " (dry run: nothing written)" : ""}.`,
         ].join("\n"),
       );
     }).pipe(

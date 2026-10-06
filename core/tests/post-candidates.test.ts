@@ -44,6 +44,9 @@ const signals: EventSignals = {
   ],
   hosts: ["Globex", "Acme"],
   xHandles: ["ada"],
+  // Ada's X account isn't known by id yet.
+  xUserIds: [],
+  xFrom: ["ada"],
   blueskyHandles: ["ada.bsky.social"],
 };
 
@@ -143,6 +146,26 @@ describe("scoreCandidate", () => {
     expect(scoreCandidate(signals, one)).toEqual(scoreCandidate(signals, one));
   });
 
+  test("an X author is on stage by account id, whatever handle they post under now", () => {
+    const known = { ...signals, xUserIds: ["11"], xFrom: ["11"] };
+    expect(
+      scoreCandidate(
+        known,
+        post({ platform: "x", authorHandle: "ada_renamed", authorId: "11" }),
+      ).reasons,
+    ).toContain("+2 by @ada_renamed, on its stage");
+    expect(
+      scoreCandidate(
+        known,
+        post({ platform: "x", authorHandle: "someone", authorId: "12" }),
+      ).score,
+    ).toBe(0);
+    // X's from: takes the id where it's known.
+    expect(xQueries(known)[1]).toBe(
+      '(from:11) ("all things" OR "react") -is:retweet',
+    );
+  });
+
   test("handles count on their own platform only", () => {
     expect(
       scoreCandidate(
@@ -232,6 +255,7 @@ describe("what platforms answer", () => {
         platform: "x",
         url: "https://x.com/grace/status/19",
         authorHandle: "grace",
+        authorId: "u1",
         text: "React at Acme!",
         links: ["https://luma.com/react-at-acme"],
         mentions: ["ada"],
@@ -311,9 +335,9 @@ describe("toSignals", () => {
           lumaEventId: "evt-1",
           hosts: ["Acme"],
           people: [
-            { x: "@Ada", bluesky: null },
-            { x: "", bluesky: "Ada.bsky.social" },
-            { x: "ada", bluesky: null },
+            { x: "@Ada", xId: null, bluesky: null },
+            { x: "", xId: null, bluesky: "Ada.bsky.social" },
+            { x: "grace", xId: "13", bluesky: null },
           ],
         },
         "https://luma.com/n",
@@ -332,7 +356,9 @@ describe("toSignals", () => {
         "https://allthingsweb.dev/s",
       ],
       hosts: ["Acme"],
-      xHandles: ["ada"],
+      xHandles: ["ada", "grace"],
+      xUserIds: ["13"],
+      xFrom: ["ada", "13"],
       blueskyHandles: ["ada.bsky.social"],
     });
   });
