@@ -14,6 +14,7 @@ import planningMigration from "./0012_planning.ts";
 import shortSlugsMigration from "./0013_short_slugs.ts";
 import talkOrderMigration from "./0014_talk_order.ts";
 import xFollowersMigration from "./0015_x_followers.ts";
+import externalTalksMigration from "./0016_external_talks.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -38,6 +39,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0013_short_slugs": shortSlugsMigration,
   "0014_talk_order": talkOrderMigration,
   "0015_x_followers": xFollowersMigration,
+  "0016_external_talks": externalTalksMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

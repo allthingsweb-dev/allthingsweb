@@ -149,6 +149,18 @@ column public.events #025 luma_description text
 column public.events #026 luma_summary text
 column public.events #027 description text
 column public.events #028 short_slug text
+column public.external_talks #001 id uuid not null default gen_random_uuid()
+column public.external_talks #002 profile_id uuid not null
+column public.external_talks #003 title text not null
+column public.external_talks #004 event_name text not null
+column public.external_talks #005 kind text not null
+column public.external_talks #006 given_on date not null
+column public.external_talks #007 url text
+column public.external_talks #008 video_url text
+column public.external_talks #009 source_url text not null
+column public.external_talks #010 read_on date not null
+column public.external_talks #011 created_at timestamp with time zone not null default now()
+column public.external_talks #012 updated_at timestamp with time zone not null
 column public.images #001 id uuid not null default gen_random_uuid()
 column public.images #002 url text not null
 column public.images #003 placeholder text not null
@@ -303,6 +315,13 @@ constraint public.events events_program_hackathon_check CHECK (((program = 'hack
 constraint public.events events_short_slug_unique UNIQUE (short_slug)
 constraint public.events events_slug_unique UNIQUE (slug)
 constraint public.events events_topic_check CHECK (((char_length(topic) <= 24) AND (topic IS NFC NORMALIZED) AND (topic = lower((topic COLLATE pg_c_utf8))) AND (strpos(topic, 'all things'::text) = 0) AND ((topic COLLATE pg_c_utf8) ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'::text)))
+constraint public.external_talks external_talks_kind_check CHECK ((kind = ANY (ARRAY['conference'::text, 'meetup'::text, 'podcast'::text, 'video'::text, 'workshop'::text])))
+constraint public.external_talks external_talks_pkey PRIMARY KEY (id)
+constraint public.external_talks external_talks_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
+constraint public.external_talks external_talks_profile_id_title_given_on_unique UNIQUE (profile_id, title, given_on)
+constraint public.external_talks external_talks_source_url_check CHECK ((source_url ~ '^https://'::text))
+constraint public.external_talks external_talks_url_check CHECK ((url ~ '^https://'::text))
+constraint public.external_talks external_talks_video_url_check CHECK ((video_url ~ '^https://'::text))
 constraint public.images images_pkey PRIMARY KEY (id)
 constraint public.profile_users profile_users_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint public.profile_users profile_users_profile_id_unique UNIQUE (profile_id)
@@ -370,6 +389,9 @@ index public.events CREATE UNIQUE INDEX events_luma_event_id_unique ON public.ev
 index public.events CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)
 index public.events CREATE UNIQUE INDEX events_short_slug_unique ON public.events USING btree (short_slug)
 index public.events CREATE UNIQUE INDEX events_slug_unique ON public.events USING btree (slug)
+index public.external_talks CREATE INDEX external_talks_profile_id_idx ON public.external_talks USING btree (profile_id)
+index public.external_talks CREATE UNIQUE INDEX external_talks_pkey ON public.external_talks USING btree (id)
+index public.external_talks CREATE UNIQUE INDEX external_talks_profile_id_title_given_on_unique ON public.external_talks USING btree (profile_id, title, given_on)
 index public.images CREATE UNIQUE INDEX images_pkey ON public.images USING btree (id)
 index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_unique ON public.profile_users USING btree (profile_id)
 index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_user_id_pk ON public.profile_users USING btree (profile_id, user_id)
@@ -400,6 +422,7 @@ relation public.event_slugs kind=r persistence=p rls=f force_rls=f replica_ident
 relation public.event_sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=
+relation public.external_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.images kind=r persistence=p rls=f force_rls=f replica_identity=f options=
 relation public.profile_users kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.profiles kind=r persistence=p rls=f force_rls=f replica_identity=d options=

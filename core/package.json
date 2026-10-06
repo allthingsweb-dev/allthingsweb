@@ -16,6 +16,7 @@
     "completeness": "bun --no-env-file scripts/completeness.ts",
     "posts": "bun --no-env-file scripts/posts.ts",
     "hosts": "bun --no-env-file scripts/hosts.ts",
+    "external-talks": "bun --no-env-file scripts/external-talks.ts",
     "followers": "bun --no-env-file scripts/followers.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts",
     "people": "bun --no-env-file scripts/people.ts",
