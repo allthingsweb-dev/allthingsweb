@@ -67,11 +67,14 @@ export interface SyncLimits {
   };
   /**
    * Evenings searched for posts about them (core/src/posts/candidates.ts):
-   * those that ended within `within`, at most `maxEvents`.
+   * those that ended within `within`, at most `maxEvents`, sending at most
+   * `maxRequests` requests, and cut off after `window`.
    */
   readonly postSearch: {
     readonly within: Duration.Input;
     readonly maxEvents: number;
+    readonly maxRequests?: number;
+    readonly window: Duration.Input;
   };
 }
 
@@ -85,7 +88,7 @@ export const syncLimits = {
     covers: {},
     venues: {},
     descriptions: { window: "30 seconds" },
-    postSearch: { within: "7 days", maxEvents: 10 },
+    postSearch: { within: "7 days", maxEvents: 10, window: "5 minutes" },
   },
   /**
    * Within 50 subrequests: the feed is one, each venue and each
@@ -101,7 +104,13 @@ export const syncLimits = {
     covers: { maxItems: 2 },
     venues: { maxEvents: 2 },
     descriptions: { window: "30 seconds", maxEvents: 2 },
-    postSearch: { within: "7 days", maxEvents: 1 },
+    // What the 50 subrequests leave after the steps before it (41).
+    postSearch: {
+      within: "7 days",
+      maxEvents: 1,
+      maxRequests: 8,
+      window: "30 seconds",
+    },
   },
 } as const satisfies Record<string, SyncLimits>;
 
@@ -314,17 +323,19 @@ const write = (limits: SyncLimits) =>
     );
     steps["post-search"] = yield* step(
       "post-search",
-      yield* postSearch(limits, false),
+      yield* postSearch(limits),
     );
     return steps;
   });
 
 /**
  * Searching recent evenings for posts about them, within `limits`, as a
- * step reports it: what each evening's search added as pending (never
- * approved), with the services the run already has.
+ * step reports it, with the services the run already has. For now it only
+ * reports what it would add: site_sync may not insert posts until the
+ * database can hold it to pending ones (see infra/scripts/site-sync.ts), so
+ * an organizer adds them with `bun run posts find`.
  */
-const postSearch = (limits: SyncLimits, dryRun: boolean) =>
+const postSearch = (limits: SyncLimits) =>
   Effect.gen(function* () {
     const context = yield* Effect.context<
       | CandidateSearches
@@ -333,11 +344,15 @@ const postSearch = (limits: SyncLimits, dryRun: boolean) =>
       | SqlClient
       | HttpClient.HttpClient
     >();
+    const { within, maxEvents, maxRequests, window } = limits.postSearch;
     return findCandidates({
-      scope: { _tag: "Recent", within: limits.postSearch.within },
-      dryRun,
-      maxEvents: limits.postSearch.maxEvents,
+      scope: { _tag: "Recent", within },
+      dryRun: true,
+      maxEvents,
+      ...(maxRequests === undefined ? {} : { maxRequests }),
     }).pipe(
+      // A step never outlasts the run: Cron Triggers stop at 15 minutes.
+      Effect.timeout(window),
       Effect.map((reports) => ({
         events: reports.map((report) => ({
           slug: report.slug,
@@ -393,7 +408,7 @@ const dryRun = (limits: SyncLimits) =>
     );
     steps["post-search"] = yield* step(
       "post-search",
-      yield* postSearch(limits, true),
+      yield* postSearch(limits),
     );
     return steps;
   });

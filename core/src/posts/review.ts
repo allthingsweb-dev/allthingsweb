@@ -65,6 +65,8 @@ export const setPostStatus = (url: string, status: "approved" | "hidden") =>
     const sql = yield* SqlClient;
     const ref = parsePostUrl(url);
     if (ref === null) return { _tag: "NotFound", url } satisfies StatusChange;
+    // A Bluesky post named by handle: its record key, as the URL ends.
+    const keySuffix = `/post/${ref.platform === "bluesky" ? ref.rkey : ""}`;
     const byCanonical =
       ref.platform !== "bluesky" || ref.actor.startsWith("did:");
     const rows = yield* orDataSourceError(
@@ -74,9 +76,13 @@ export const setPostStatus = (url: string, status: "approved" | "hidden") =>
         WHERE ${
           byCanonical
             ? sql`p.url = ${canonicalUrl(ref)}`
-            : sql`p.platform = 'bluesky' AND p.url LIKE ${`%/post/${ref.platform === "bluesky" ? ref.rkey : ""}`}
-              AND p.author_handle = ${ref.platform === "bluesky" ? ref.actor : ""}`
-        }`,
+            : // The record key compared as text, not a pattern: "_" in a key
+              // must not match any character.
+              sql`p.platform = 'bluesky'
+                AND right(p.url, length(${keySuffix})) = ${keySuffix}
+                AND p.author_handle = ${ref.platform === "bluesky" ? ref.actor : ""}`
+        }
+        ORDER BY p.id`,
     );
     const [row] = rows;
     if (row === undefined)

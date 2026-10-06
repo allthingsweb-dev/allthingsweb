@@ -58,9 +58,10 @@ interface ColumnGrants {
  * - images: one row per stored image, its id made by the sync.
  * - profiles, event_posts: rows still missing an image, and the image set.
  * - The post search (core/src/posts/candidates.ts) reads each recent
- *   evening's name, topic, hosts and the handles of its people, and adds
- *   the posts it finds to event_posts as pending: never approved, never
- *   changed once there.
+ *   evening's name, topic, hosts and the handles of its people, and the
+ *   posts already stored. It only reports what it finds: inserting posts
+ *   waits for the database to hold site_sync to pending ones (a column
+ *   grant can't limit a value), so an organizer adds them for now.
  *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
@@ -150,20 +151,6 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "event_id",
       "url",
       "status",
-    ],
-    insert: [
-      "event_id",
-      "platform",
-      "url",
-      "author_name",
-      "author_handle",
-      "author_url",
-      "author_avatar_source_url",
-      "posted_at",
-      "text",
-      "image_source_url",
-      "status",
-      "updated_at",
     ],
     update: ["image", "author_avatar", "updated_at"],
   },

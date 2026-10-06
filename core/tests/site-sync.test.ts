@@ -208,11 +208,11 @@ describe("site_sync", () => {
     }
   });
 
-  test("searches past evenings for posts, and adds them as pending", async () => {
+  test("searches past evenings for posts, and reports what it would add", async () => {
     const reports = await Effect.runPromise(
       findCandidates({
         scope: { _tag: "Past" },
-        dryRun: false,
+        dryRun: true,
         maxEvents: 1,
       }).pipe(
         Effect.provide(
@@ -221,17 +221,20 @@ describe("site_sync", () => {
               {
                 platform: "bluesky" as const,
                 search: (signals) =>
-                  Effect.succeed([
-                    {
-                      platform: "bluesky" as const,
-                      url: "https://bsky.app/profile/did:plc:abc/post/3site",
-                      authorHandle: "someone.example",
-                      text: `see you there: ${signals.links[0] ?? ""}`,
-                      links: [...signals.links],
-                      mentions: [],
-                      postedAt: signals.startsAt,
-                    },
-                  ]),
+                  Effect.succeed({
+                    requests: 1,
+                    posts: [
+                      {
+                        platform: "bluesky" as const,
+                        url: "https://bsky.app/profile/did:plc:abc/post/3site",
+                        authorHandle: "someone.example",
+                        text: `see you there: ${signals.links[0] ?? ""}`,
+                        links: [...signals.links],
+                        mentions: [],
+                        postedAt: signals.startsAt,
+                      },
+                    ],
+                  }),
               },
             ]),
             Layer.succeed(
@@ -268,7 +271,7 @@ describe("site_sync", () => {
         ),
       ),
     );
-    expect(reports[0]?.candidates.map((c) => c.outcome)).toEqual(["added"]);
+    expect(reports[0]?.candidates.map((c) => c.outcome)).toEqual(["would add"]);
   });
 
   test("stores missing covers, profile photos and post images", async () => {
@@ -359,7 +362,8 @@ describe("site_sync", () => {
       `INSERT INTO event_people (event_id, profile_id, role, position, source, created_at, updated_at)
        VALUES ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'host', 0, 'luma', now(), now())`,
       "INSERT INTO profiles (name, title, bio, profile_type, updated_at) VALUES ('x', '', '', 'member', now())",
-      // It adds posts as pending; it never approves or hides one.
+      // It never adds, approves or hides a post.
+      "INSERT INTO event_posts (event_id, platform, url, author_name, posted_at, text, updated_at) VALUES ('e0000000-0000-4000-8000-000000000001', 'x', 'u', 'a', now(), 't', now())",
       "UPDATE event_posts SET status = 'approved'",
       "DELETE FROM event_posts",
     ]) {

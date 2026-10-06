@@ -292,7 +292,15 @@ afterAll(() => Promise.all(databases.map((db) => db.close())));
 /** Searches that find `posts` on Bluesky, and fail on X as without a key. */
 const fakeSearches = (posts: ReadonlyArray<FoundPost>) =>
   Layer.succeed(CandidateSearches, [
-    { platform: "bluesky" as const, search: () => Effect.succeed(posts) },
+    {
+      platform: "bluesky" as const,
+      // Four queries, or as many as the run has left.
+      search: (_signals: EventSignals, maxQueries?: number) =>
+        Effect.succeed({
+          posts: maxQueries === 0 ? [] : posts,
+          requests: Math.min(4, maxQueries ?? 4),
+        }),
+    },
     {
       platform: "x" as const,
       search: () =>
@@ -407,6 +415,42 @@ describe("findCandidates", () => {
     );
   });
 
+  test("never sends more requests than the run allows", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    const budgeted = (maxRequests: number) =>
+      Effect.runPromise(
+        findCandidates({
+          scope: { _tag: "Slugs", slugs: ["2026-08-12-react-at-acme"] },
+          dryRun: true,
+          maxRequests,
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              fakeSearches([strong]),
+              noLuma,
+              EventPostWriter.layer.pipe(Layer.provideMerge(sqlLayer(db))),
+              fakeSources,
+              clockLayer,
+            ),
+          ),
+        ),
+      );
+    // The Luma page (1) and Bluesky's four queries (4) spend it all: X waits,
+    // and the candidate is left for a later run.
+    const [tight] = await budgeted(5);
+    expect(tight?.searched).toEqual({
+      bluesky: 1,
+      x: "no requests left in this run",
+    });
+    expect(tight?.candidates.map((c) => c.outcome)).toEqual([
+      "left for a later run",
+    ]);
+    // One more lets it be read.
+    const [enough] = await budgeted(7);
+    expect(enough?.candidates.map((c) => c.outcome)).toEqual(["would add"]);
+  });
+
   test("a dry run scores and adds nothing", async () => {
     const db = await seededDatabase();
     databases.push(db);
@@ -420,6 +464,33 @@ describe("findCandidates", () => {
 });
 
 describe("reviewing", () => {
+  test("a Bluesky post named by handle is found by its record key as written, never as a pattern", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await db.exec(`
+      INSERT INTO event_posts (event_id, platform, url, author_name, author_handle, posted_at, text, status, updated_at) VALUES
+        ('e0000000-0000-4000-8000-000000000001', 'bluesky', 'https://bsky.app/profile/did:plc:abc/post/ab_cd', 'A', 'ada.bsky.social', now(), 't', 'pending', now()),
+        ('e0000000-0000-4000-8000-000000000001', 'bluesky', 'https://bsky.app/profile/did:plc:abc/post/abXcd', 'A', 'ada.bsky.social', now(), 't', 'pending', now());
+    `);
+    const change = await Effect.runPromise(
+      setPostStatus(
+        "https://bsky.app/profile/ada.bsky.social/post/ab_cd",
+        "hidden",
+      ).pipe(Effect.provide(sqlLayer(db))),
+    );
+    expect(change).toMatchObject({
+      _tag: "Changed",
+      url: "https://bsky.app/profile/did:plc:abc/post/ab_cd",
+    });
+    const { rows } = await db.query<{ url: string; status: string }>(
+      "SELECT url, status FROM event_posts WHERE author_handle = 'ada.bsky.social' ORDER BY url",
+    );
+    expect(rows.map((r) => [r.url.slice(-5), r.status])).toEqual([
+      ["abXcd", "pending"],
+      ["ab_cd", "hidden"],
+    ]);
+  });
+
   test("approve and hide, by URL; a hidden post stays hidden through later searches", async () => {
     const db = await seededDatabase();
     databases.push(db);

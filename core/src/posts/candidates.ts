@@ -181,15 +181,28 @@ export const inWindow = (signals: EventSignals, postedAt: DateTime.Utc) =>
 /** A search platform could not be read; the evening's other searches go on. */
 export class CandidateSearchError extends Schema.TaggedError<CandidateSearchError>()(
   "CandidateSearchError",
-  { platform: Schema.String, reason: Schema.String },
+  {
+    platform: Schema.String,
+    reason: Schema.String,
+    /** Requests sent before it failed, at most: a run's budget counts them. */
+    requests: Schema.optionalKey(Schema.Number),
+  },
 ) {}
+
+/** What a search found, and how many requests it sent. */
+export interface SearchResult {
+  readonly posts: ReadonlyArray<FoundPost>;
+  readonly requests: number;
+}
 
 export interface CandidateSearchShape {
   readonly platform: "x" | "bluesky";
   /** Posts that might be about the evening, from this platform's search. */
+  /** At most `maxQueries` requests; every query by default. */
   readonly search: (
     signals: EventSignals,
-  ) => Effect.Effect<ReadonlyArray<FoundPost>, CandidateSearchError>;
+    maxQueries?: number,
+  ) => Effect.Effect<SearchResult, CandidateSearchError>;
 }
 
 const BlueskyPost = Schema.Struct({
@@ -314,7 +327,7 @@ export const makeBlueskySearch = Effect.gen(function* () {
 
     return {
       platform: "bluesky",
-      search: (signals) =>
+      search: (signals, maxQueries) =>
         Effect.gen(function* () {
           const { since, until } = windowOf(signals);
           const window = {
@@ -323,7 +336,7 @@ export const makeBlueskySearch = Effect.gen(function* () {
             sort: "latest",
           };
           const topicWords = signals.topic ?? displayName(signals.name);
-          const queries: Array<Record<string, string>> = [
+          const all: Array<Record<string, string>> = [
             ...signals.links
               .filter((link) => link.startsWith("https://"))
               // A link search takes no window (searchPosts refuses "*" with
@@ -336,6 +349,9 @@ export const makeBlueskySearch = Effect.gen(function* () {
               { q: topicWords, mentions: handle, ...window },
             ]),
           ];
+          // The strongest first: a budget keeps the links and the name.
+          const queries = all.slice(0, maxQueries ?? all.length);
+          if (queries.length === 0) return { posts: [], requests: 0 };
           const found = new Map<string, FoundPost>();
           // One refused query doesn't end the search; all of them do.
           const failures: Array<string> = [];
@@ -351,9 +367,10 @@ export const makeBlueskySearch = Effect.gen(function* () {
             return yield* new CandidateSearchError({
               platform: "bluesky",
               reason: `every query failed: ${[...new Set(failures)].join("; ")}`,
+              requests: queries.length,
             });
           }
-          return [...found.values()];
+          return { posts: [...found.values()], requests: queries.length };
         }),
     } satisfies CandidateSearchShape;
   }
@@ -470,7 +487,7 @@ export const makeXSearch = Effect.gen(function* () {
       : "https://api.x.com/2/tweets/search/recent";
     return {
       platform: "x",
-      search: (signals) =>
+      search: (signals, maxQueries) =>
         Effect.gen(function* () {
           const { since, until } = windowOf(signals);
           // Recent search reaches seven days back, and not past now.
@@ -485,9 +502,14 @@ export const makeXSearch = Effect.gen(function* () {
             until,
             DateTime.subtractDuration(now, Duration.seconds(30)),
           );
-          if (DateTime.isGreaterThanOrEqualTo(earliest, latest)) return [];
+          if (DateTime.isGreaterThanOrEqualTo(earliest, latest))
+            return { posts: [], requests: 0 };
           const found = new Map<string, FoundPost>();
-          for (const query of xQueries(signals)) {
+          const queries = xQueries(signals).slice(0, maxQueries);
+          if (queries.length === 0) return { posts: [], requests: 0 };
+          // One refused query (a 429, say) keeps what the others found.
+          const failures: Array<string> = [];
+          for (const query of queries) {
             const response = yield* client.execute(
               HttpClientRequest.get(endpoint).pipe(
                 HttpClientRequest.bearerToken(Redacted.value(token.value)),
@@ -504,10 +526,8 @@ export const makeXSearch = Effect.gen(function* () {
               ),
             );
             if (response.status !== 200) {
-              return yield* new CandidateSearchError({
-                platform: "x",
-                reason: `search answered ${response.status}`,
-              });
+              failures.push(`search answered ${response.status}`);
+              continue;
             }
             const answer = yield* response.json.pipe(
               Effect.flatMap(Schema.decodeUnknownEffect(XSearchAnswer)),
@@ -516,12 +536,20 @@ export const makeXSearch = Effect.gen(function* () {
                   new CandidateSearchError({
                     platform: "x",
                     reason: "the answer is not a search result",
+                    requests: queries.length,
                   }),
               ),
             );
             for (const post of fromXSearch(answer)) found.set(post.url, post);
           }
-          return [...found.values()];
+          if (failures.length === queries.length) {
+            return yield* new CandidateSearchError({
+              platform: "x",
+              reason: `every query failed: ${[...new Set(failures)].join("; ")}`,
+              requests: queries.length,
+            });
+          }
+          return { posts: [...found.values()], requests: queries.length };
         }).pipe(
           Effect.timeout(Duration.seconds(30)),
           Effect.catchTags({
@@ -530,6 +558,10 @@ export const makeXSearch = Effect.gen(function* () {
                 new CandidateSearchError({
                   platform: "x",
                   reason: "no answer",
+                  requests: Math.min(
+                    xQueries(signals).length,
+                    maxQueries ?? Infinity,
+                  ),
                 }),
               ),
             TimeoutError: () =>
@@ -537,6 +569,10 @@ export const makeXSearch = Effect.gen(function* () {
                 new CandidateSearchError({
                   platform: "x",
                   reason: "no answer in 30 s",
+                  requests: Math.min(
+                    xQueries(signals).length,
+                    maxQueries ?? Infinity,
+                  ),
                 }),
               ),
           }),
@@ -629,6 +665,12 @@ export interface CandidateOptions {
   readonly dryRun: boolean;
   /** Search at most this many evenings. */
   readonly maxEvents?: number;
+  /**
+   * Send at most this many requests in all (Luma pages and search
+   * queries), for a Worker with a subrequest limit; unbounded by default.
+   * Each evening's Luma page and strongest queries go first.
+   */
+  readonly maxRequests?: number;
 }
 
 export interface CandidateReport {
@@ -720,25 +762,56 @@ export const findCandidates = (options: CandidateOptions) =>
               Effect.orElseSucceed(() => null),
             );
 
+    // Requests left: a Luma page and each add are counted before they are
+    // sent; a search may send at most what is left, and reports what it sent.
+    let left = options.maxRequests ?? Number.POSITIVE_INFINITY;
+    const spend = (wanted: number) => {
+      const granted = Math.min(wanted, left);
+      left -= granted;
+      return granted;
+    };
     const reports: Array<CandidateReport> = [];
     for (const row of events) {
-      const signals = toSignals(row, yield* lumaPage(row.lumaEventId));
+      if (left <= 0) break;
+      const page =
+        row.lumaEventId !== null && spend(1) === 1
+          ? yield* lumaPage(row.lumaEventId)
+          : null;
+      const signals = toSignals(row, page);
       const searched: Record<string, number | string> = {};
       const found = new Map<string, FoundPost>();
       for (const search of searches) {
-        const result = yield* Effect.result(search.search(signals));
+        if (left <= 0) {
+          searched[search.platform] = "no requests left in this run";
+          continue;
+        }
+        const result = yield* Effect.result(
+          search.search(signals, Number.isFinite(left) ? left : undefined),
+        );
         if (result._tag === "Failure") {
+          spend(result.failure.requests ?? 0);
           searched[search.platform] = result.failure.reason;
           continue;
         }
-        searched[search.platform] = result.success.length;
-        for (const post of result.success) found.set(post.url, post);
+        spend(result.success.requests);
+        searched[search.platform] = result.success.posts.length;
+        for (const post of result.success.posts) found.set(post.url, post);
       }
       const candidates: Array<CandidateReport["candidates"][number]> = [];
       for (const post of found.values()) {
         if (!inWindow(signals, post.postedAt)) continue;
         const { score, reasons } = scoreCandidate(signals, post);
         if (score < candidateThreshold) continue;
+        // Adding reads the post from its platform: one request.
+        if (spend(1) === 0) {
+          candidates.push({
+            url: post.url,
+            score,
+            reasons,
+            outcome: "left for a later run",
+          });
+          continue;
+        }
         const added = yield* Effect.result(
           addPost(signals.slug, post.url, {
             dryRun: options.dryRun,
