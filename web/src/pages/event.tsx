@@ -47,6 +47,7 @@ import { type LineupDensity, lineupDensity, talkPeople } from "./lineup.ts";
 import {
   type Stage,
   withoutStageRepeats,
+  wordsOf,
 } from "allthings-core/src/stage-repeats.ts";
 import { hostNames } from "./home.tsx";
 import { gatheringTitle, homeTitle, lockup, type Title } from "./metadata.tsx";
@@ -948,7 +949,8 @@ export function shownOnStage(event: EventPage): Stage {
 export function aboutShown(event: EventPage): SafeHtml | null {
   if (event.about === null || event.aboutSource !== "luma") return event.about;
   const trimmed = withoutStageRepeats(event.about, shownOnStage(event));
-  return trimmed.replace(/<[^>]*>|&nbsp;|\s/g, "") === "" ? null : trimmed;
+  // Nothing but markup, spaces or invisible characters says nothing.
+  return wordsOf(trimmed) === "" ? null : trimmed;
 }
 
 /** A row of the event's own, such as its awards, under the note's label. */

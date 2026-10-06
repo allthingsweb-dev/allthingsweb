@@ -198,6 +198,32 @@ describe("withoutStageRepeats", () => {
     ).toBe("<p>Come by.</p>");
   });
 
+  test("reads a raw bio's character references as the sanitized description spells them", () => {
+    const raw: Stage = {
+      talks: [
+        {
+          title: "Carts",
+          description: null,
+          speakers: [
+            {
+              name: "S&#233;bastien Morel",
+              bio: "S&#233;bastien leads teams that build carts &amp; checkouts&#x2026; in Paris.",
+            },
+          ],
+        },
+      ],
+    };
+    expect(
+      trimmed(
+        "<p>Come by.</p><p><strong>About Sébastien</strong></p><p>Sébastien leads teams that build carts &amp; checkouts… in Paris.</p>",
+        raw,
+      ),
+    ).toBe("<p>Come by.</p>");
+    expect(wordsOf("caf&eacute;&nbsp;&#9999999;au&Unknown;lait")).toBe(
+      "café au unknown lait",
+    );
+  });
+
   test("keeps a short line, and a block that only shares some words", () => {
     const html =
       "<p>Ada writes compilers.</p><p>Ada writes compilers for the analytical engine, and you will love this evening of talks about them.</p>";

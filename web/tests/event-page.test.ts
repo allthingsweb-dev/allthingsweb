@@ -629,6 +629,18 @@ describe("the ledger", () => {
     expect(
       shown(event({ about, aboutSource: "site", talks: [talk("Engines")] })),
     ).toBe(about);
+    // One of nothing but invisible characters says nothing either.
+    expect(
+      labels(
+        render(
+          event({
+            about: "<p>\u200b\u200e</p>" as SafeHtml,
+            aboutSource: "luma",
+            talks: [talk("Engines")],
+          }),
+        ),
+      ),
+    ).not.toContain("About");
     // A description that only repeated the stage leaves no About row.
     expect(
       labels(

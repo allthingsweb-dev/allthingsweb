@@ -1,3 +1,4 @@
+import { namedReferences } from "./html-entities.ts";
 import type { SafeHtml } from "./rich-text.ts";
 
 /**
@@ -39,26 +40,31 @@ export const wholeShare = 0.8;
 /** The longest a block can be, in characters of words, to be a heading. */
 export const longestHeading = 120;
 
-/** The references sanitized text keeps escaped, and the space it may spell. */
-const references: Readonly<Record<string, string>> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  nbsp: " ",
-};
+/** A reference's character; one no character has reads as a space. */
+const character = (codePoint: number | undefined): string =>
+  codePoint !== undefined && codePoint >= 0 && codePoint <= 0x10ffff
+    ? String.fromCodePoint(codePoint)
+    : " ";
 
 /**
- * Text's words alone: without markup, lowercase, with every run of other
- * characters (punctuation, quotes of any kind, zero-width spaces) one space.
+ * Text's words alone: without markup, every character reference read as
+ * HTML reads it (a bio is stored raw, "S&#233;bastien", where the
+ * sanitized description says "Sébastien"), lowercase, with every run of
+ * other characters (punctuation, quotes of any kind, zero-width spaces)
+ * one space.
  */
 export function wordsOf(html: string): string {
   return html
     .replace(/<[^>]*>/g, " ")
-    .replace(
-      /&([a-z]+);/gi,
-      (entity, name: string) => references[name.toLowerCase()] ?? entity,
+    .replace(/&#(\d+);?/g, (_, digits: string) => character(Number(digits)))
+    .replace(/&#x([0-9a-f]+);?/gi, (_, hex: string) =>
+      character(Number.parseInt(hex, 16)),
     )
+    .replace(/&([a-z][a-z0-9]*);/gi, (entity, name: string) => {
+      // One HTML doesn't know stays as written, as HTML shows it.
+      const codePoint = namedReferences.get(name);
+      return codePoint === undefined ? entity : character(codePoint);
+    })
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
