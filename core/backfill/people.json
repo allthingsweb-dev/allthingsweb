@@ -662,5 +662,79 @@
         "reason": "The stored _raoufai is unknown to X (FixTweet 404, 2026-10-05). His GitHub and an older Neon post give raoufdevrel, also unknown to X; dev.to (2022) gives raoufchebri, an account made after that link with 2 followers and no bio, so probably not his. His site chebri.com is down. Ask him for his handle."
       }
     ]
+  },
+  {
+    "profileId": "0a9c5976-388a-4a5b-a01c-7b43c7f711ba",
+    "name": "Oscar Newman",
+    "bio": {
+      "value": "Oscar graduated from Brown in 2021 studying Computer Science and Machine Learning (officially), and Healthcare Policy (unofficially). Raised in Austin, Texas.",
+      "source": "https://oscarnewman.me/",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "__oscarnewman",
+      "source": "https://v2.remix.run/conf/2023/speakers/oscar-newman/",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "oscarnewman",
+      "source": "https://v2.remix.run/conf/2023/speakers/oscar-newman/",
+      "read": "2026-10-06"
+    },
+    "photoSourceUrl": {
+      "value": "https://avatars.githubusercontent.com/u/4020585",
+      "source": "https://github.com/oscarnewman",
+      "read": "2026-10-06"
+    },
+    "held": [
+      {
+        "field": "title",
+        "value": null,
+        "sources": [
+          "https://oscarnewman.me/",
+          "https://www.linkedin.com/in/oscarnewman/",
+          "https://x.com/__oscarnewman"
+        ],
+        "reason": "Sources disagree on his current role. His site says he is a 'producty engineering lead at Solv' (the Remix Conf 2023 page calls him 'Senior Software Engineer @ Solv Health'), but his public LinkedIn lists Owner.com as his current company (schema worksFor: Owner.com; page title 'Oscar N. - Owner.com'), and a search snippet gives 'Product and Engineering at Owner'. His X bio says 'healthcare payments and sometimes other things'. No page I read states his current job title. A likely candidate is 'Product and Engineering at Owner.com', but confirm it first."
+      },
+      {
+        "field": "blueskyHandle",
+        "value": "oscarnewman.bsky.social",
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=oscarnewman.bsky.social"
+        ],
+        "reason": "The account exists but has no display name, no bio and 0 posts, and none of his pages link to it. I can't tie it to him."
+      }
+    ]
+  },
+  {
+    "profileId": "bf6c6fb4-6283-4ff3-b874-93ee8069d7e3",
+    "name": "Neha Varshneya",
+    "bio": {
+      "value": "Marketing exec for when it's all on fire, or nothing's built yet. GTM leader for developer tools, AI and cybersecurity, driving growth from 0 to 1.",
+      "source": "https://x.com/NehaVarshneya",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "NehaVarshneya",
+      "source": "https://x.com/NehaVarshneya",
+      "read": "2026-10-06"
+    },
+    "photoSourceUrl": {
+      "value": "https://images.lumacdn.com/avatars/08/e6c42b8e-eb18-4b17-a682-766552b5be25.png",
+      "source": "https://luma.com/tsai",
+      "read": "2026-10-06"
+    },
+    "held": [
+      {
+        "field": "title",
+        "value": null,
+        "sources": [
+          "https://www.linkedin.com/in/nehavarshneya/",
+          "https://luma.com/mossfoundingagent"
+        ],
+        "reason": "She no longer seems to be at Mastra. Her public LinkedIn lists Moss (YC F25) as her current company (schema worksFor: Moss (YC F25); page title 'Neha Varshneya - Moss (YC F25)'), her recent posts talk about 'my work at Moss' from 'a GTM perspective', and she hosted Moss's Luma event on 2026-10-01. No page I read states her job title at Moss. A likely candidate is 'GTM at Moss', but confirm it first. Don't use 'at Mastra'; it's outdated."
+      }
+    ]
   }
 ]
