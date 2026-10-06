@@ -233,7 +233,14 @@ const person = page(
           }
           if (found.kind === "none") {
             return htmlResponse(
-              notFoundPage({ origin, path, theme, portraits, images }),
+              notFoundPage({
+                origin,
+                path,
+                theme,
+                portraits,
+                images,
+                person: true,
+              }),
               acceptEncoding,
               {
                 cacheControl: read ? "notFound" : "failure",
@@ -265,7 +272,13 @@ const person = page(
           Effect.logError("Error rendering a person's page:", cause).pipe(
             Effect.as(
               htmlResponse(
-                unavailablePage({ origin, path, theme, images }),
+                unavailablePage({
+                  origin,
+                  path,
+                  theme,
+                  images,
+                  said: "This person’s page didn’t load. Try again in a minute.",
+                }),
                 acceptEncoding,
                 { cacheControl: "failure", theme, images, status: 503 },
               ),

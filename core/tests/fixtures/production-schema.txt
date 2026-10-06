@@ -396,6 +396,6 @@ relation public.sponsors kind=r persistence=p rls=f force_rls=f replica_identity
 relation public.talk_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 routine public.person_slug(name text) addfb348adcd2153fdcec4b3c32abd7d
-routine public.profiles_slug() 43fe53b1ffd7b806a11df155101138de
+routine public.profiles_slug() ef8963d15307125b3db5291962fe8bdb
 routine public.show_db_tree() afc3f368beed7e4fb52b8c71a7b77586
 trigger CREATE TRIGGER profiles_slug BEFORE INSERT OR UPDATE OF name, slug ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_slug()

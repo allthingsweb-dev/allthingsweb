@@ -31,6 +31,7 @@ import {
   hosts,
   lumaCalendar,
   personPath,
+  peoplePage,
 } from "../links.ts";
 import { calendarPath } from "./calendar.ts";
 import { Document } from "./document.tsx";
@@ -1256,6 +1257,13 @@ const nothingHere = {
   },
 } as const;
 
+/** No one has this address, /people/<slug>, now or before. */
+const noOneHere = {
+  status: "404 · not found",
+  title: "not found",
+  lead: "No one has this address.",
+} as const;
+
 /**
  * Nothing published lives at this address, or what did is gone (410): said
  * plainly, with ways on.
@@ -1267,12 +1275,15 @@ export function notFoundPage({
   portraits,
   images,
   status = 404,
+  person = false,
 }: StandInProps & {
   readonly portraits: PortraitsById;
   /** 410 for what the site retired; 404 otherwise. */
   readonly status?: 404 | 410;
+  /** At a person's address, /people/<slug>: says no one, and leads to everyone. */
+  readonly person?: boolean;
 }): string {
-  const said = nothingHere[status];
+  const said = person ? noOneHere : nothingHere[status];
   return Document({
     meta: {
       title: gatheringTitle(said.title),
@@ -1293,6 +1304,16 @@ export function notFoundPage({
         </h1>
         <p class="lead at-type-lead">{said.lead}</p>
         <p class="fact-links">
+          {person ? (
+            <>
+              <a href={peoplePage}>
+                everyone <span aria-hidden="true">→</span>
+              </a>
+              {" · "}
+            </>
+          ) : (
+            ""
+          )}
           <a href={everyEvening}>
             every evening <span aria-hidden="true">→</span>
           </a>

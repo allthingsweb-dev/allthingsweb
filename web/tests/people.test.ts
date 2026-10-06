@@ -450,6 +450,13 @@ describe("/people/<slug>", () => {
     const response = await fetch(`${People}/people/no-one-at-all`);
     expect(response.status).toBe(404);
     expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
+    const html = await response.text();
+    // Said of a person, not an evening, with the way to everyone.
+    expect(html).toContain("No one has this address.");
+    expect(html).not.toContain("No evening");
+    expect(html).toContain(
+      '<a href="/people">everyone <span aria-hidden="true">→</span></a>',
+    );
   });
 
   it("says the data couldn't be read, and is never stored", async ({
@@ -458,5 +465,8 @@ describe("/people/<slug>", () => {
     const response = await fetch(`${Unreachable}/people/ada-lovelace`);
     expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    expect(await response.text()).toContain(
+      "This person’s page didn’t load. Try again in a minute.",
+    );
   });
 });

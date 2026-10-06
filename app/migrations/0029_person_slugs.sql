@@ -1,4 +1,4 @@
--- Every person's page has an address, /people/<slug>, from their name: person_slug(), profiles.slug kept by a trigger, and profile_slugs for old addresses; core/migrations/0017_person_slugs.ts is the same change.
+-- Every person's page has an address, /people/<slug>, from their name: person_slug(), profiles.slug kept by a trigger, and profile_slugs for retired addresses; core/migrations/0017_person_slugs.ts is the same change.
 CREATE FUNCTION "public"."person_slug"("name" text) RETURNS text
     LANGUAGE sql IMMUTABLE PARALLEL SAFE
     AS $slug$
@@ -30,19 +30,6 @@ CREATE TABLE "public"."profile_slugs" (
     CONSTRAINT "profile_slugs_profile_id_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."profiles" ("id") ON DELETE CASCADE
   );--> statement-breakpoint
 CREATE INDEX "profile_slugs_profile_id_idx" ON "public"."profile_slugs" USING btree ("profile_id");--> statement-breakpoint
-UPDATE "public"."profiles" AS p
-    SET "slug" = CASE WHEN s.n = 1 THEN s.base ELSE s.base || '-' || s.n END
-    FROM (
-      SELECT "id", "public"."person_slug"("name") AS base,
-        row_number() OVER (
-          PARTITION BY "public"."person_slug"("name")
-          ORDER BY "created_at", "id"
-        ) AS n
-      FROM "public"."profiles"
-    ) AS s
-    WHERE s."id" = p."id";--> statement-breakpoint
-ALTER TABLE "public"."profiles" ADD CONSTRAINT "profiles_slug_unique" UNIQUE ("slug");--> statement-breakpoint
-ALTER TABLE "public"."profiles" ADD CONSTRAINT "profiles_slug_check" CHECK ("slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$');--> statement-breakpoint
 CREATE FUNCTION "public"."profiles_slug"() RETURNS trigger
     LANGUAGE plpgsql
     AS $trigger$
@@ -66,25 +53,42 @@ CREATE FUNCTION "public"."profiles_slug"() RETURNS trigger
             SELECT 1 FROM "public"."profiles"
             WHERE "slug" = candidate AND "id" <> NEW."id"
           ) OR EXISTS (
-            SELECT 1 FROM "public"."profile_slugs"
-            WHERE "slug" = candidate AND "profile_id" <> NEW."id"
+            SELECT 1 FROM "public"."profile_slugs" WHERE "slug" = candidate
           ) LOOP
           n := n + 1;
           candidate := base || '-' || n;
         END LOOP;
         NEW."slug" := candidate;
       END IF;
-      IF TG_OP = 'UPDATE' AND NEW."slug" IS DISTINCT FROM OLD."slug" THEN
+      IF (TG_OP = 'INSERT' OR NEW."slug" IS DISTINCT FROM OLD."slug")
+        AND EXISTS (
+          SELECT 1 FROM "public"."profile_slugs" WHERE "slug" = NEW."slug"
+        ) THEN
+        RAISE EXCEPTION 'The slug % is retired: its address redirects to someone''s page', NEW."slug"
+          USING ERRCODE = 'unique_violation';
+      END IF;
+      IF TG_OP = 'UPDATE' AND OLD."slug" <> ''
+        AND NEW."slug" IS DISTINCT FROM OLD."slug" THEN
         INSERT INTO "public"."profile_slugs" ("slug", "profile_id")
-          VALUES (OLD."slug", NEW."id")
-          ON CONFLICT ("slug") DO NOTHING;
-        DELETE FROM "public"."profile_slugs"
-          WHERE "slug" = NEW."slug" AND "profile_id" = NEW."id";
+          VALUES (OLD."slug", NEW."id");
       END IF;
       RETURN NEW;
     END
     $trigger$;--> statement-breakpoint
 CREATE TRIGGER "profiles_slug" BEFORE INSERT OR UPDATE OF "name", "slug" ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."profiles_slug"();--> statement-breakpoint
+DO $backfill$
+  DECLARE
+    profile record;
+  BEGIN
+    FOR profile IN
+      SELECT "id" FROM "public"."profiles" ORDER BY "created_at", "id"
+    LOOP
+      UPDATE "public"."profiles" SET "slug" = '' WHERE "id" = profile."id";
+    END LOOP;
+  END
+  $backfill$;--> statement-breakpoint
+ALTER TABLE "public"."profiles" ADD CONSTRAINT "profiles_slug_unique" UNIQUE ("slug");--> statement-breakpoint
+ALTER TABLE "public"."profiles" ADD CONSTRAINT "profiles_slug_check" CHECK ("slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$');--> statement-breakpoint
 DO $grant$
   BEGIN
     IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'site_reader') THEN

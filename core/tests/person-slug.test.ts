@@ -6,7 +6,11 @@ import {
   slugLength,
   slugPattern,
 } from "../src/person-slug.ts";
-import { migratedDatabase } from "./support/database.ts";
+import { Effect } from "effect";
+import * as Migrator from "effect/sql/Migrator";
+import { migrations } from "../migrations/index.ts";
+import * as Migrations from "../src/migrator.ts";
+import { migratedDatabase, sqlLayer } from "./support/database.ts";
 
 /**
  * A person's slug: the database's person_slug() and core's personSlug()
@@ -114,15 +118,16 @@ describe("a profile's slug", () => {
     ]);
   });
 
-  test("follows a new name, keeping the old one for a redirect", async () => {
+  test("follows a new name, retiring the old one for a redirect", async () => {
     const ada = await insert("Ada Byron");
     expect(await rename(ada.id, "Ada Lovelace")).toBe("ada-lovelace");
     expect(await history(ada.id)).toEqual(["ada-byron"]);
     // Nobody else gets the old address.
     expect((await insert("Ada Byron")).slug).toBe("ada-byron-2");
-    // Taking the old name back takes the old slug back, off the list.
-    expect(await rename(ada.id, "Ada Byron")).toBe("ada-byron");
-    expect(await history(ada.id)).toEqual(["ada-lovelace"]);
+    // Not even Ada, taking the name back: a browser that cached the
+    // redirect from ada-byron would loop.
+    expect(await rename(ada.id, "Ada Byron")).toBe("ada-byron-3");
+    expect(await history(ada.id)).toEqual(["ada-byron", "ada-lovelace"]);
   });
 
   test("stays when the name changes only in what the slug drops", async () => {
@@ -139,11 +144,23 @@ describe("a profile's slug", () => {
     );
     expect(rows[0]?.slug).toBe("linus");
     expect(await history(linus.id)).toEqual(["linus-torvalds"]);
-    expect(
+    await expect(
       db.query("UPDATE profiles SET slug = 'Not A Slug' WHERE id = $1", [
         linus.id,
       ]),
     ).rejects.toThrow(/profiles_slug_check/);
+    // A retired slug is never set again, by hand either, even by its person.
+    await expect(
+      db.query("UPDATE profiles SET slug = 'linus-torvalds' WHERE id = $1", [
+        linus.id,
+      ]),
+    ).rejects.toThrow(/is retired/);
+    const other = await insert("Somebody Else");
+    await expect(
+      db.query("UPDATE profiles SET slug = 'linus-torvalds' WHERE id = $1", [
+        other.id,
+      ]),
+    ).rejects.toThrow(/is retired/);
   });
 
   test("goes with its profile, old ones too", async () => {
@@ -151,5 +168,42 @@ describe("a profile's slug", () => {
     await rename(gone.id, "Temporary Name");
     await db.query("DELETE FROM profiles WHERE id = $1", [gone.id]);
     expect(await history(gone.id)).toEqual([]);
+  });
+});
+
+describe("the migration", () => {
+  test("gives existing people their slugs oldest first, none shared", async () => {
+    const before = Migrator.fromRecord(
+      Object.fromEntries(
+        Object.entries(migrations).filter(
+          ([id]) => !id.endsWith("_person_slugs"),
+        ),
+      ),
+    );
+    const old = await migratedDatabase(before);
+    try {
+      await old.exec(`
+        INSERT INTO profiles (name, title, bio, profile_type, created_at, updated_at) VALUES
+          ('Alice 2', '', '', 'member', '2024-01-01T00:00:00Z', now()),
+          ('Alice', '', '', 'member', '2024-01-02T00:00:00Z', now()),
+          ('ALICE!', '', '', 'member', '2024-01-03T00:00:00Z', now()),
+          ('李', '', '', 'member', '2024-01-04T00:00:00Z', now());`);
+      await Effect.runPromise(
+        Migrations.run().pipe(Effect.provide(sqlLayer(old))),
+      );
+      const { rows } = await old.query<{ name: string; slug: string }>(
+        "SELECT name, slug FROM profiles ORDER BY created_at",
+      );
+      expect(rows).toEqual([
+        { name: "Alice 2", slug: "alice-2" },
+        { name: "Alice", slug: "alice" },
+        { name: "ALICE!", slug: "alice-3" },
+        { name: "李", slug: "person" },
+      ]);
+      // Getting their slugs retired none.
+      expect((await old.query("SELECT 1 FROM profile_slugs")).rows).toEqual([]);
+    } finally {
+      await old.close();
+    }
   });
 });
