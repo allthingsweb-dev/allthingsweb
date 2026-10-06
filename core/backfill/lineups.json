@@ -400,6 +400,16 @@
         "https://blacklight.sh/about",
         "https://x.com/0xblacklight"
       ]
+    },
+    "erik-thorelli": {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "sources": [
+        {
+          "confirmedBy": "Erik",
+          "on": "2026-10-05",
+          "in": "chat"
+        }
+      ]
     }
   },
   "events": [
@@ -543,7 +553,19 @@
           "confidence": "high"
         }
       ],
-      "people": []
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
     },
     {
       "lumaEventId": "evt-tMlbKr2pQktx6Qx",
@@ -572,7 +594,19 @@
           "hold": "needs Erik: medium confidence; the other panelists and the moderator are unknown"
         }
       ],
-      "people": []
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
     },
     {
       "lumaEventId": "evt-IpKgpcPJEOjvroH",
@@ -843,7 +877,469 @@
           "confidence": "high"
         }
       ],
-      "people": []
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-HtDmTqndK1vA1Z4",
+      "name": "React Bay Area at Cisco Meraki",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-dbF3WPClKyxWQ7n",
+      "name": "Open Source Hackathon",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-8L3ror8OqcxgcXq",
+      "name": "Pre Next.js Conf Meetup",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-dH8tlJFEIQe9eT2",
+      "name": "All Things Web at Little Skillet",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-7CaqG4UZsbIQb6s",
+      "name": "All Things Web @ Vercel HQ 👀",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-deGtRGSvYsWMqAc",
+      "name": "All Things Web at Convex",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-KkE3Vi4Bxry4yFV",
+      "name": "All Things Web at Sanity",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-R7t4c0PuzyjnYAf",
+      "name": "All Things Web at Sentry",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-4tdtev7Ap2qLcPW",
+      "name": "All Things Web Hack Evening",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-xWl1tkPwl1b8zbI",
+      "name": "All Things Web at Convex",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-hMrMdGcrk8XOnuF",
+      "name": "AI x All Things Web",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-qObtKnNENF3bDio",
+      "name": "Future of Web Hackathon",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-nOKkZn5xVC11i6d",
+      "name": "All Things Web Show & Tell",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-BASdmswlkMShs5c",
+      "name": "All Things Web at Vapi",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-TI4Rc7MwnlmlrvP",
+      "name": "All Things Web Show & Tell",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-3WAjTY15pqdB1mb",
+      "name": "Lightning Hackathon ⚡",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-s9SEHLVbphwdAPZ",
+      "name": "Agents for Web Dev",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-2DtcNjNsqEqpgp6",
+      "name": "JS Trivia Night",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-lPPnQypydANrkrJ",
+      "name": "Pre Next.js Conf / Ship AI Meetup",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-gVIQ04BaqjGAyAM",
+      "name": "All Things React Native",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-TpDFOGNSBwCxU72",
+      "name": "After Party - All Things React Native",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-ITMJYP0vdkjXbMr",
+      "name": "TypeScript AI: The official conference after-party",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-3nNZK4pu7n7TNbC",
+      "name": "All Things Expo!",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-oZuT52GZDnYkAcL",
+      "name": "All Things Sync",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-yqRYriugnX9wi2u",
+      "name": "All Things Agent Setups",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-05",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

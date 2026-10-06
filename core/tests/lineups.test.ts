@@ -390,12 +390,50 @@ describe("core/backfill/lineups.json", () => {
   test("applies only the confirmed entries; the rest wait for Erik", async () => {
     const decoded = await file();
     const subset = applicable(decoded);
+    // Erik as MC of an evening (his word, 2026-10-05) is all some entries say.
+    const erikMcOnly = (event: (typeof subset.events)[number]) =>
+      event.talks.length === 0 &&
+      event.people.length === 1 &&
+      event.people[0]?.role === "mc" &&
+      event.people[0].person === "erik-thorelli";
+    expect(subset.events.filter(erikMcOnly).map((event) => event.name)).toEqual(
+      [
+        "DevTool AX Demos",
+        "React Bay Area at Cisco Meraki",
+        "Open Source Hackathon",
+        "Pre Next.js Conf Meetup",
+        "All Things Web at Little Skillet",
+        "All Things Web @ Vercel HQ 👀",
+        "All Things Web at Convex",
+        "All Things Web at Sanity",
+        "All Things Web at Sentry",
+        "All Things Web Hack Evening",
+        "All Things Web at Convex",
+        "AI x All Things Web",
+        "Future of Web Hackathon",
+        "All Things Web Show & Tell",
+        "All Things Web at Vapi",
+        "All Things Web Show & Tell",
+        "Lightning Hackathon ⚡",
+        "Agents for Web Dev",
+        "JS Trivia Night",
+        "Pre Next.js Conf / Ship AI Meetup",
+        "All Things React Native",
+        "After Party - All Things React Native",
+        "TypeScript AI: The official conference after-party",
+        "All Things Expo!",
+        "All Things Sync",
+        "All Things Agent Setups",
+      ],
+    );
     expect(
-      subset.events.map((event) => [
-        event.name,
-        event.talks.map((t) => t.title),
-        event.people.map((p) => `${p.role} ${p.person}`),
-      ]),
+      subset.events
+        .filter((event) => !erikMcOnly(event))
+        .map((event) => [
+          event.name,
+          event.talks.map((t) => t.title),
+          event.people.map((p) => `${p.role} ${p.person}`),
+        ]),
     ).toEqual([
       [
         "Effect San Francisco",
@@ -410,7 +448,7 @@ describe("core/backfill/lineups.json", () => {
       [
         "Dev Setup Demos - Show your agents.md!",
         ["My most used slash commands and custom subagents for development"],
-        [],
+        ["mc erik-thorelli"],
       ],
       [
         "TypeScript AI Demo Day",
@@ -432,13 +470,14 @@ describe("core/backfill/lineups.json", () => {
         ],
         [],
       ],
-      ["NextDev.fm Live", ["NextDev.fm Live"], []],
+      ["NextDev.fm Live", ["NextDev.fm Live"], ["mc erik-thorelli"]],
     ]);
     expect(Object.keys(subset.people).toSorted()).toEqual([
       "abhi-aiyer",
       "arthur-stockman",
       "dan-goosewin",
       "david-cusatis",
+      "erik-thorelli",
       "greg-pstrucha",
       "ivan-burazin",
       "jeff-huber",
