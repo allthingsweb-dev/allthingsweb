@@ -214,6 +214,106 @@ const rasterTypes = new Set([
   "image/webp",
 ]);
 
+/**
+ * What a store says of an object it was given no type for. Some originals
+ * were stored this way; theirs is read from their first bytes instead.
+ */
+const untypedTypes = new Set([
+  "",
+  "application/octet-stream",
+  "binary/octet-stream",
+]);
+
+/** Enough of a file's start to tell the raster types apart. */
+const signatureLength = 12;
+
+const startsWith = (bytes: Uint8Array, at: number, ascii: string) =>
+  Array.from(ascii).every(
+    (character, index) => bytes[at + index] === character.charCodeAt(0),
+  );
+
+/**
+ * The raster type a file's first bytes say it is (their published
+ * signatures: PNG, JPEG, GIF, WebP's RIFF container, AVIF's ISO box), or
+ * undefined when they say none of them.
+ */
+export function rasterTypeOf(bytes: Uint8Array): string | undefined {
+  if (
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every(
+      (byte, index) => bytes[index] === byte,
+    )
+  ) {
+    return "image/png";
+  }
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (startsWith(bytes, 0, "GIF87a") || startsWith(bytes, 0, "GIF89a")) {
+    return "image/gif";
+  }
+  if (startsWith(bytes, 0, "RIFF") && startsWith(bytes, 8, "WEBP")) {
+    return "image/webp";
+  }
+  if (
+    startsWith(bytes, 4, "ftyp") &&
+    (startsWith(bytes, 8, "avif") || startsWith(bytes, 8, "avis"))
+  ) {
+    return "image/avif";
+  }
+  return undefined;
+}
+
+/**
+ * `response` with the raster type its first bytes say, read without
+ * reading the rest: those bytes are put back in front of the body, which
+ * stays a stream. Undefined, with the body cancelled, when they say none.
+ */
+const sniffed = async (
+  response: Response,
+): Promise<{ response: Response; contentType: string } | undefined> => {
+  const reader = response.body?.getReader();
+  if (reader === undefined) return undefined;
+  const head: Array<Uint8Array> = [];
+  let length = 0;
+  let done = false;
+  while (length < signatureLength && !done) {
+    const read = await reader.read();
+    done = read.done;
+    if (read.value !== undefined) {
+      head.push(read.value);
+      length += read.value.byteLength;
+    }
+  }
+  const start = new Uint8Array(length);
+  head.reduce((at, chunk) => {
+    start.set(chunk, at);
+    return at + chunk.byteLength;
+  }, 0);
+  const contentType = rasterTypeOf(start);
+  if (contentType === undefined) {
+    await reader.cancel();
+    return undefined;
+  }
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(start);
+      if (done) controller.close();
+    },
+    async pull(controller) {
+      const read = await reader.read();
+      if (read.done) controller.close();
+      else controller.enqueue(read.value);
+    },
+    cancel: (reason) => reader.cancel(reason),
+  });
+  const headers = new Headers(response.headers);
+  headers.set("content-type", contentType);
+  return {
+    response: new Response(body, { status: response.status, headers }),
+    contentType,
+  };
+};
+
 const transformOf = (size: Size): ImageTransform =>
   size.kind === "width"
     ? { width: size.width, fit: "scale-down" }
@@ -271,7 +371,9 @@ const asOriginal = (
  * The original of `variant` from `media`, when it is there as a raster
  * image: `undefined` when the media origin has no such photo. Only the
  * key's own object is fetched, never where a redirect points, and its body
- * is left unread, so the Worker never holds a whole original in memory.
+ * is left unread, so the Worker never holds a whole original in memory. An
+ * original stored without a type is taken for the raster image its first
+ * bytes say it is, and refused like any other type when they say none.
  */
 const fetchOriginal = (variant: Variant, media: string) =>
   Effect.gen(function* () {
@@ -290,6 +392,18 @@ const fetchOriginal = (variant: Variant, media: string) =>
     // so the media origin can't put a page here.
     if (found && rasterTypes.has(contentType)) {
       return { response: original, contentType };
+    }
+    if (found && untypedTypes.has(contentType)) {
+      const typed = yield* Effect.tryPromise({
+        try: () => sniffed(original),
+        catch: (cause) => new FetchFailed({ cause }),
+      });
+      if (typed !== undefined) return typed;
+      return yield* Effect.fail(
+        new FetchFailed({
+          cause: `the media origin sent ${contentType || "no type"}, and no image`,
+        }),
+      );
     }
     yield* Effect.promise(() => original.body?.cancel() ?? Promise.resolve());
     if (original.status === 404 || original.status === 410) return undefined;
