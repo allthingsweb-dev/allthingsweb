@@ -1,10 +1,10 @@
-import { describe, expect } from "bun:test";
+import { describe, expect, test as unit } from "bun:test";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, immutable } from "../src/cache.ts";
 import { parseVariant } from "../src/images/variants.ts";
-import { maxResizeBytes } from "../src/images/route.ts";
+import { maxResizeBytes, rasterTypeOf } from "../src/images/route.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
 import { catalogDatabase } from "./support/catalog.ts";
 import { dimensions, png, serveMedia } from "./support/media.ts";
@@ -55,6 +55,15 @@ const media = serveMedia({
     type: "image/png",
   },
   "events/home/page.jpg": { body: "<!doctype html>", type: "text/html" },
+  // Stored without a type, as two portraits in production were.
+  "profiles/untyped.png": {
+    body: png(800, 800),
+    type: "application/octet-stream",
+  },
+  "events/home/untyped-page.jpg": {
+    body: "<!doctype html><script>alert(1)</script>",
+    type: "application/octet-stream",
+  },
   "events/large/between.png": { body: between, type: "image/png" },
   // Sent without a Content-Length, so its size isn't known.
   "events/home/unsized.png": {
@@ -473,6 +482,32 @@ describe("/img/", () => {
     expect(new TextDecoder().decode(body)).not.toContain("doctype");
   });
 
+  it("makes variants of an original stored without a type, from the image its bytes are", async ({
+    Variants,
+  }) => {
+    const { response, body } = await get(
+      Variants,
+      `/img/72x72/webp/${fresh}/profiles/untyped.png`,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(dimensions(body)).toEqual({ width: 72, height: 72 });
+  });
+
+  it("never sends an untyped original that isn't an image", async ({
+    Variants,
+    Originals,
+  }) => {
+    for (const url of [Variants, Originals]) {
+      const { response, body } = await get(
+        url,
+        "/img/480/webp/1/events/home/untyped-page.jpg",
+      );
+      expect(response.status).toBe(502);
+      expect(new TextDecoder().decode(body)).not.toContain("script");
+    }
+  });
+
   it("doesn't follow the media origin's redirects", async ({ Variants }) => {
     const { response } = await get(
       Variants,
@@ -494,6 +529,62 @@ describe("/img/", () => {
     expect(response.headers.get("cache-control")).toBe("public, max-age=300");
     expect(dimensions(body)).toBeUndefined();
     expect(body).toEqual(png(1024, 768));
+  });
+});
+
+describe("an untyped original, from a Worker without the Images binding", () => {
+  it("is sent as the image its bytes are, whole", async ({ Originals }) => {
+    const { response, body } = await get(
+      Originals,
+      "/img/72x72/webp/1/profiles/untyped.png",
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(body).toEqual(png(800, 800));
+  });
+});
+
+describe("rasterTypeOf", () => {
+  const bytes = (...parts: Array<string | ReadonlyArray<number>>) =>
+    new Uint8Array(
+      parts.flatMap((part) =>
+        typeof part === "string"
+          ? Array.from(part, (character) => character.charCodeAt(0))
+          : [...part],
+      ),
+    );
+  unit("knows each raster type by its signature", () => {
+    expect(rasterTypeOf(png(1, 1))).toBe("image/png");
+    expect(rasterTypeOf(bytes([0xff, 0xd8, 0xff, 0xe0]))).toBe("image/jpeg");
+    expect(rasterTypeOf(bytes("GIF89a"))).toBe("image/gif");
+    expect(rasterTypeOf(bytes("GIF87a"))).toBe("image/gif");
+    expect(rasterTypeOf(bytes("RIFF", [0, 0, 0, 0], "WEBP"))).toBe(
+      "image/webp",
+    );
+    expect(rasterTypeOf(bytes([0, 0, 0, 0x1c], "ftypavif"))).toBe("image/avif");
+    expect(rasterTypeOf(bytes([0, 0, 0, 0x1c], "ftypavis"))).toBe("image/avif");
+    // AVIF as a compatible brand, after another major brand.
+    expect(
+      rasterTypeOf(
+        bytes([0, 0, 0, 0x1c], "ftypmif1", [0, 0, 0, 0], "mif1miafavif"),
+      ),
+    ).toBe("image/avif");
+  });
+
+  unit("knows nothing else, nor a start too short to say", () => {
+    for (const other of [
+      bytes("<!doctype html>"),
+      bytes("<svg xmlns="),
+      bytes("RIFF", [0, 0, 0, 0], "WAVE"),
+      bytes([0, 0, 0, 0x1c], "ftypmp42"),
+      // A compatible brand past the box's own end is not the box's.
+      bytes([0, 0, 0, 0x14], "ftypmif1", [0, 0, 0, 0], "mif1avif"),
+      bytes([0x89, 0x50, 0x4e]),
+      bytes(),
+    ]) {
+      expect(rasterTypeOf(other)).toBeUndefined();
+    }
   });
 });
 

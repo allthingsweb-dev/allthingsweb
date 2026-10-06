@@ -27,3 +27,6 @@ playwright-report/
 # Claude Code session state
 .claude/worktrees/
 **/settings.local.json
+
+# Alchemy local state, wherever a test or a deploy runs from
+.alchemy/
