@@ -455,7 +455,9 @@
             },
             "https://x.com/0xblacklight/status/2105474173569323062"
           ],
-          "confidence": "high"
+          "confidence": "high",
+          "position": 1,
+          "startsAt": "2026-09-30T18:41:00-07:00"
         },
         {
           "title": "Alchemy 2.0",
@@ -475,7 +477,9 @@
             },
             "https://x.com/samgoodwin89/status/2105806892807389585"
           ],
-          "confidence": "high"
+          "confidence": "high",
+          "position": 2,
+          "startsAt": "2026-09-30T19:10:00-07:00"
         },
         {
           "title": "Effect panel",
@@ -518,7 +522,9 @@
             "https://x.com/anselm_io/status/2105673447443738748",
             "https://x.com/dexhorthy/status/2105473314672234652"
           ],
-          "confidence": "high"
+          "confidence": "high",
+          "position": 3,
+          "startsAt": "2026-09-30T19:58:00-07:00"
         }
       ],
       "people": [
