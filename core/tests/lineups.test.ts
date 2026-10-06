@@ -794,17 +794,37 @@ describe("core/backfill/lineups.json", () => {
         t.format,
         t.position,
         t.startsAt,
-        t.speakers.length,
+        t.speakers.map((s) => `${s.role} ${s.person}`),
       ]),
     ).toEqual([
-      ["State of Effect 2026", "talk", 0, "2026-09-30T18:41:00-07:00", 2],
-      ["Alchemy 2.0", "talk", 1, "2026-09-30T19:10:00-07:00", 1],
+      [
+        "State of Effect 2026",
+        "talk",
+        0,
+        "2026-09-30T18:41:00-07:00",
+        // Seb and Michael gave it together (Erik, 2026-10-06).
+        ["speaker sebastian-lorenz", "speaker michael-arnaldi"],
+      ],
+      [
+        "Alchemy 2.0",
+        "talk",
+        1,
+        "2026-09-30T19:10:00-07:00",
+        ["speaker sam-goodwin"],
+      ],
       [
         "Fireside chat with Michael Arnaldi, creator of Effect",
         "panel",
         2,
         "2026-09-30T19:58:00-07:00",
-        6,
+        [
+          "moderator simon-farshid",
+          "speaker michael-arnaldi",
+          "speaker kit-langton",
+          "speaker rhys-sullivan",
+          "speaker sam-goodwin",
+          "speaker kyle-mistele",
+        ],
       ],
     ]);
     expect(Object.keys(subset.people).toSorted()).toEqual([
