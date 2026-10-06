@@ -5,7 +5,7 @@ import type {
   Person,
 } from "allthings-core/src/people-directory.ts";
 import { DateTime } from "effect";
-import { peoplePage } from "../src/pages/people.tsx";
+import { peoplePage, recentParts } from "../src/pages/people.tsx";
 import { personPage } from "../src/pages/person.tsx";
 import type { ImageMode } from "../src/pages/picture.tsx";
 import { headingLevels, htmlProblems } from "./support/pages.ts";
@@ -115,6 +115,65 @@ describe("the people page's portraits as variants", () => {
       html.match(/<img class="portrait" src="\/assets\/avatar\./g),
     ).toHaveLength(1);
     expect(await htmlProblems(html)).toEqual([]);
+  });
+});
+
+describe("a person's latest appearances", () => {
+  const withParts = (count: number) =>
+    person("Ada Lovelace", {
+      parts: Array.from({ length: count }, (_, index) => ({
+        kind: "talk" as const,
+        title: `Talk ${index + 1}`,
+        role: "speaker" as const,
+        evening: {
+          slug: `evening-${index + 1}`,
+          curation: "ours" as const,
+          name: "All Things Effect",
+          topic: "effect",
+          status: "past" as const,
+          // Newest first, a month apart.
+          startsAt: DateTime.makeUnsafe(
+            `2026-${String(9 - index).padStart(2, "0")}-08T02:00:00Z`,
+          ),
+        },
+      })),
+    });
+  const titles = (html: string) =>
+    [...html.matchAll(/<span class="talk-title">([^<]+)</g)].map(
+      ([, title]) => title,
+    );
+  const page = (count: number) =>
+    render({ organizers: [], speakers: [withParts(count)], coHosts: [] });
+
+  test(`lists all of up to ${recentParts}, with no link to more`, async () => {
+    expect(recentParts).toBe(3);
+    for (const count of [2, 3]) {
+      const html = page(count);
+      expect(titles(html)).toEqual(
+        Array.from({ length: count }, (_, index) => `Talk ${index + 1}`),
+      );
+      expect(html).not.toContain("on their page");
+      expect(await htmlProblems(html)).toEqual([]);
+    }
+  });
+
+  test(`lists the newest ${recentParts} of more, and links to the page with all of them`, async () => {
+    const html = page(4);
+    expect(titles(html)).toEqual(["Talk 1", "Talk 2", "Talk 3"]);
+    expect(html).toContain(
+      '<p class="list-links"><a href="/people/ada-lovelace"><span>all 4</span><span class="visually-hidden"> of Ada Lovelace&#x27;s</span> on their page <span aria-hidden="true">→</span></a></p>',
+    );
+    expect(await htmlProblems(html)).toEqual([]);
+    // Their page keeps every one.
+    const own = personPage({
+      person: { ...withParts(4), organizes: false, hosted: [] },
+      elsewhere: [],
+      origin,
+      theme: undefined,
+      portraits: new Map(),
+      images: "originals",
+    });
+    expect(titles(own)).toEqual(["Talk 1", "Talk 2", "Talk 3", "Talk 4"]);
   });
 });
 

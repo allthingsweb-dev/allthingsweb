@@ -185,6 +185,40 @@ export function Parts({ parts }: { readonly parts: ReadonlyArray<Part> }) {
 }
 
 /**
+ * How many of a person's appearances /people lists, newest first: their
+ * talks and their parts in evenings, as the directory folds them. The rest
+ * are on their own page, which lists every one.
+ */
+export const recentParts = 3;
+
+/**
+ * A person's latest appearances, then, when they have more, a link to
+ * their page, which has all of them.
+ */
+export function RecentParts({ person }: { readonly person: Person }) {
+  const more = person.parts.length > recentParts;
+  return (
+    <>
+      <Parts parts={person.parts.slice(0, recentParts)} />
+      {more ? (
+        <p class="list-links">
+          <a href={personPath(person.slug)}>
+            <span safe>{`all ${person.parts.length}`}</span>
+            <span class="visually-hidden" safe>
+              {` of ${person.name}'s`}
+            </span>
+            {" on their page "}
+            <span aria-hidden="true">→</span>
+          </a>
+        </p>
+      ) : (
+        ""
+      )}
+    </>
+  );
+}
+
+/**
  * One person. The organizers are shown whole, above the fold; everyone
  * else with a short bio (see shortBio) and a portrait that loads as it is
  * scrolled to, so the page stays within its budget as the lists grow.
@@ -227,7 +261,7 @@ function PersonEntry({
           </p>
         )}
         <Links person={person} />
-        <Parts parts={person.parts} />
+        <RecentParts person={person} />
       </div>
     </li>
   );
