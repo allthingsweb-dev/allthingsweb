@@ -21,6 +21,7 @@
     "promo": "bun --no-env-file scripts/promo.ts",
     "promo:cover": "bun --no-env-file scripts/meetup-cover.ts",
     "plan": "bun --no-env-file scripts/plan.ts",
+    "readiness": "bun --no-env-file scripts/readiness.ts",
     "reencode": "bun --no-env-file scripts/reencode-originals.ts",
     "sync:rehearse": "bun --no-env-file scripts/sync-rehearsal.ts"
   },

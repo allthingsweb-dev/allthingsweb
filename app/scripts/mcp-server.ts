@@ -11,6 +11,7 @@ import { completenessReport } from "./completeness.js";
 import { addEventPost } from "./event-posts.js";
 import { promoChannels, promoDrafts } from "./promo.js";
 import { isPlanTool, planTool, planToolDefinitions } from "./plan.js";
+import { draftReadiness, draftReadinessTool } from "./readiness.js";
 import {
   createEvent,
   getEventBySlug,
@@ -570,6 +571,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       // Planning: ideas, wanted speakers, host prospects, notes (private)
       ...planToolDefinitions,
+      draftReadinessTool,
       // Administrator tools
       {
         name: "add_user_to_admins",
@@ -965,6 +967,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify(result, null, 2),
             },
           ],
+        };
+      }
+
+      case "get_draft_readiness": {
+        const result = await draftReadiness(args ?? {});
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 

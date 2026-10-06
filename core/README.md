@@ -331,6 +331,52 @@ DATABASE_URL=… bun run plan search "trivia"
 DATABASE_URL=… bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
 ```
 
+## Readiness
+
+`src/readiness/` says whether a draft evening is ready to go out, and what
+to add. A draft is an event the Luma sync stored as one (a private or
+cancelled Luma event), named by slug, or an idea from planning, named by id:
+through its draft evening when it has one, else on its own, with everything
+still to do. Its checks and rankings are pure functions of what the database
+holds at the Clock's now.
+
+**Checks.** The completeness rules run ahead of time, all but the ones only a
+past evening can have (photos, a recording, a guest count): what the report
+requires blocks publishing, the rest is advice. Then what only a draft is
+asked:
+
+- it is still a draft, and has a private Luma event
+- it starts ahead, ends after it starts, starts in the evening and runs at
+  most six hours (a hackathon may do neither)
+- nothing of ours is published the same San Francisco day; a draft or a
+  shared evening that day is advice
+- its venue is named and has a known neighborhood (`src/places.ts`)
+- a hackathon has its schedule
+- once the Luma event exists, a cover
+
+**Suggestions,** each ranked deterministically, so the same rows suggest
+the same in the same order:
+
+- network speakers whose past talks share the most of the evening's words
+  (its topic, the idea's, and any `--topic` given), then the most recent
+- wanted speakers whose topics share one, free that day
+- host prospects, and hosts that last had us more than 90 days ago,
+  longest first
+- open dates on the three weekdays our evenings have been on most, with
+  nothing else that day and none of ours within three days
+- the guest count of the evening it builds on (no guest lists are stored)
+
+Planning's rows join only as a role that may read planning (the owner); as
+site_reader the report leaves them out and says so.
+
+```sh
+DATABASE_URL=… bun run readiness --event <draft slug> [--topic git --topic ai] [--json]
+DATABASE_URL=… bun run readiness --idea <id>
+```
+
+It exits 1 when something blocks publishing, 2 on a draft that isn't there.
+The admin MCP server's `get_draft_readiness` runs the same script.
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's
