@@ -1,5 +1,8 @@
 import { PgClient } from "@effect/sql-pg";
 import { CoverSource } from "allthings-core/src/ingest/covers.ts";
+import { CandidateSearches } from "allthings-core/src/posts/candidates.ts";
+import { PostSources } from "allthings-core/src/posts/sources.ts";
+import { EventPostWriter } from "allthings-core/src/posts/store.ts";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { MediaBucket } from "allthings-core/src/ingest/media-bucket.ts";
 import { Pictures } from "allthings-core/src/ingest/pictures.ts";
@@ -40,6 +43,8 @@ import {
  * - `SYNC_MODE`: "write", or "dry-run" (and anything else) to write nothing.
  * - `SYNC_PLAN`: "paid" for the app's limits, or "free" (and anything else)
  *   for runs small enough for the Workers Free plan.
+ * - `X_BEARER_TOKEN` (secret, optional): the X app's token, for the post
+ *   search; without it, only Bluesky is searched.
  *
  * It answers no requests: the Cron Trigger is its only way in, and whether
  * it has one is decided at deploy time (`SYNC_SCHEDULE`).
@@ -76,9 +81,14 @@ export const syncLayer = (
     LumaVenues.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
+    CandidateSearches.layer,
+    PostSources.layer,
+    EventPostWriter.layer,
   ).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer)),
-    Layer.provide(
+    // Merged, not only provided: the post search reads and writes through
+    // the run's SqlClient and HttpClient itself.
+    Layer.provideMerge(
       Layer.mergeAll(
         PgClient.layer({
           url: Redacted.make(env.HYPERDRIVE.connectionString),

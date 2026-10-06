@@ -1,3 +1,7 @@
+import { CandidateSearches } from "allthings-core/src/posts/candidates.ts";
+import { PostSources } from "allthings-core/src/posts/sources.ts";
+import { EventPostWriter } from "allthings-core/src/posts/store.ts";
+import { HttpClient, HttpClientResponse } from "effect/http";
 import { describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { ImageIngest, NewImageId } from "allthings-core/src/ingest/ingest.ts";
@@ -123,6 +127,26 @@ async function run(
     LumaVenues.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
+    // The post search finds nothing here; its own tests are core's.
+    Layer.succeed(CandidateSearches, []),
+    Layer.succeed(
+      PostSources,
+      PostSources.of({
+        resolve: () => Effect.die(new Error("the post search found nothing")),
+      }),
+    ),
+    EventPostWriter.layer,
+    Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            new Response("", { status: 404 }),
+          ),
+        ),
+      ),
+    ),
   ).pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -171,7 +195,10 @@ describe("a sync run that writes", () => {
         "posts",
         "covers",
         "descriptions",
+        "post-search",
       ]);
+      // Recent evenings are searched for posts; this search finds none.
+      expect(report.steps["post-search"]).toMatchObject({ status: "done" });
       expect(report.steps["events"]).toMatchObject({
         status: "done",
         syncedCount: 24,
@@ -234,6 +261,7 @@ describe("a sync run that writes", () => {
         "posts",
         "covers",
         "descriptions",
+        "post-search",
         "summary",
       ]);
       expect(logged.every((entry) => entry["source"] === "luma-sync")).toBe(

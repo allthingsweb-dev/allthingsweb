@@ -57,6 +57,10 @@ interface ColumnGrants {
  *   summary.
  * - images: one row per stored image, its id made by the sync.
  * - profiles, event_posts: rows still missing an image, and the image set.
+ * - The post search (core/src/posts/candidates.ts) reads each recent
+ *   evening's name, topic, hosts and the handles of its people, and adds
+ *   the posts it finds to event_posts as pending: never approved, never
+ *   changed once there.
  *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
@@ -78,6 +82,7 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "updated_at",
       "luma_description",
       "luma_summary",
+      "topic",
     ],
     insert: [
       "luma_event_id",
@@ -122,7 +127,15 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
     ],
   },
   profiles: {
-    select: ["id", "name", "photo_source_url", "image", "created_at"],
+    select: [
+      "id",
+      "name",
+      "photo_source_url",
+      "image",
+      "created_at",
+      "twitter_handle",
+      "bluesky_handle",
+    ],
     update: ["image", "updated_at"],
   },
   event_posts: {
@@ -134,9 +147,31 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "image",
       "author_avatar",
       "added_at",
+      "event_id",
+      "url",
+      "status",
+    ],
+    insert: [
+      "event_id",
+      "platform",
+      "url",
+      "author_name",
+      "author_handle",
+      "author_url",
+      "author_avatar_source_url",
+      "posted_at",
+      "text",
+      "image_source_url",
+      "status",
+      "updated_at",
     ],
     update: ["image", "author_avatar", "updated_at"],
   },
+  event_sponsors: { select: ["event_id", "sponsor_id", "created_at"] },
+  sponsors: { select: ["id", "name"] },
+  event_people: { select: ["event_id", "profile_id"] },
+  event_talks: { select: ["event_id", "talk_id"] },
+  talk_speakers: { select: ["talk_id", "speaker_id"] },
 };
 
 /**

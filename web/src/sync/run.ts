@@ -1,4 +1,12 @@
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
+import {
+  type CandidateSearches,
+  findCandidates,
+} from "allthings-core/src/posts/candidates.ts";
+import type { PostSources } from "allthings-core/src/posts/sources.ts";
+import type { EventPostWriter } from "allthings-core/src/posts/store.ts";
+import type { HttpClient } from "effect/http";
+import type { SqlClient } from "effect/sql/SqlClient";
 import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
@@ -57,6 +65,14 @@ export interface SyncLimits {
     /** Events asked about; every published one by default. */
     readonly maxEvents?: number;
   };
+  /**
+   * Evenings searched for posts about them (core/src/posts/candidates.ts):
+   * those that ended within `within`, at most `maxEvents`.
+   */
+  readonly postSearch: {
+    readonly within: Duration.Input;
+    readonly maxEvents: number;
+  };
 }
 
 export const syncLimits = {
@@ -69,6 +85,7 @@ export const syncLimits = {
     covers: {},
     venues: {},
     descriptions: { window: "30 seconds" },
+    postSearch: { within: "7 days", maxEvents: 10 },
   },
   /**
    * Within 50 subrequests: the feed is one, each venue and each
@@ -84,6 +101,7 @@ export const syncLimits = {
     covers: { maxItems: 2 },
     venues: { maxEvents: 2 },
     descriptions: { window: "30 seconds", maxEvents: 2 },
+    postSearch: { within: "7 days", maxEvents: 1 },
   },
 } as const satisfies Record<string, SyncLimits>;
 
@@ -294,7 +312,43 @@ const write = (limits: SyncLimits) =>
       "descriptions",
       descriptions(yield* LumaDescriptions, limits, false),
     );
+    steps["post-search"] = yield* step(
+      "post-search",
+      yield* postSearch(limits, false),
+    );
     return steps;
+  });
+
+/**
+ * Searching recent evenings for posts about them, within `limits`, as a
+ * step reports it: what each evening's search added as pending (never
+ * approved), with the services the run already has.
+ */
+const postSearch = (limits: SyncLimits, dryRun: boolean) =>
+  Effect.gen(function* () {
+    const context = yield* Effect.context<
+      | CandidateSearches
+      | PostSources
+      | EventPostWriter
+      | SqlClient
+      | HttpClient.HttpClient
+    >();
+    return findCandidates({
+      scope: { _tag: "Recent", within: limits.postSearch.within },
+      dryRun,
+      maxEvents: limits.postSearch.maxEvents,
+    }).pipe(
+      Effect.map((reports) => ({
+        events: reports.map((report) => ({
+          slug: report.slug,
+          searched: report.searched,
+          candidates: report.candidates.map(
+            ({ url, score, outcome }) => `${score} ${url}: ${outcome}`,
+          ),
+        })),
+      })),
+      Effect.provideContext(context),
+    );
   });
 
 /** A run that writes nothing and reports what `write` would do now. */
@@ -336,6 +390,10 @@ const dryRun = (limits: SyncLimits) =>
     steps["descriptions"] = yield* step(
       "descriptions",
       descriptions(yield* LumaDescriptions, limits, true),
+    );
+    steps["post-search"] = yield* step(
+      "post-search",
+      yield* postSearch(limits, true),
     );
     return steps;
   });

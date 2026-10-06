@@ -11,7 +11,11 @@ import {
   provisionLoginRole,
   type Statements,
 } from "../../infra/scripts/login-role.ts";
+import { HttpClient, HttpClientResponse } from "effect/http";
 import { ImageIngest } from "../src/ingest/ingest.ts";
+import { CandidateSearches, findCandidates } from "../src/posts/candidates.ts";
+import { PostSources } from "../src/posts/sources.ts";
+import { EventPostWriter } from "../src/posts/store.ts";
 import { LumaApi } from "../src/luma/api.ts";
 import { LumaDescriptions } from "../src/luma/descriptions.ts";
 import { Luma } from "../src/luma/luma.ts";
@@ -204,6 +208,69 @@ describe("site_sync", () => {
     }
   });
 
+  test("searches past evenings for posts, and adds them as pending", async () => {
+    const reports = await Effect.runPromise(
+      findCandidates({
+        scope: { _tag: "Past" },
+        dryRun: false,
+        maxEvents: 1,
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            Layer.succeed(CandidateSearches, [
+              {
+                platform: "bluesky" as const,
+                search: (signals) =>
+                  Effect.succeed([
+                    {
+                      platform: "bluesky" as const,
+                      url: "https://bsky.app/profile/did:plc:abc/post/3site",
+                      authorHandle: "someone.example",
+                      text: `see you there: ${signals.links[0] ?? ""}`,
+                      links: [...signals.links],
+                      mentions: [],
+                      postedAt: signals.startsAt,
+                    },
+                  ]),
+              },
+            ]),
+            Layer.succeed(
+              PostSources,
+              PostSources.of({
+                resolve: (url) =>
+                  Effect.succeed({
+                    platform: "bluesky" as const,
+                    url,
+                    authorName: "Someone",
+                    authorHandle: "someone.example",
+                    authorUrl: null,
+                    authorAvatarSourceUrl: null,
+                    postedAt: DateTime.makeUnsafe("2026-10-01T00:00:00Z"),
+                    text: "t",
+                    imageSourceUrl: null,
+                  }),
+              }),
+            ),
+            EventPostWriter.layer.pipe(Layer.provideMerge(sqlLayer(db))),
+            Layer.succeed(
+              HttpClient.HttpClient,
+              HttpClient.make((request) =>
+                Effect.succeed(
+                  HttpClientResponse.fromWeb(
+                    request,
+                    new Response("", { status: 404 }),
+                  ),
+                ),
+              ),
+            ),
+            clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),
+          ),
+        ),
+      ),
+    );
+    expect(reports[0]?.candidates.map((c) => c.outcome)).toEqual(["added"]);
+  });
+
   test("stores missing covers, profile photos and post images", async () => {
     const covers = await ingestMissingCovers(fakes());
     expect(covers.failed).toEqual([]);
@@ -284,14 +351,17 @@ describe("site_sync", () => {
   test("may not touch tables the sync doesn't", async () => {
     for (const statement of [
       "SELECT 1 FROM talks",
-      "SELECT 1 FROM event_people",
-      "SELECT 1 FROM sponsors",
+      // The post search reads who took part and the hosts' names, no more.
+      "SELECT role FROM event_people",
+      "SELECT about FROM sponsors",
       "SELECT 1 FROM redirects",
       "SELECT 1 FROM neon_auth.users_sync",
       `INSERT INTO event_people (event_id, profile_id, role, position, source, created_at, updated_at)
        VALUES ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'host', 0, 'luma', now(), now())`,
       "INSERT INTO profiles (name, title, bio, profile_type, updated_at) VALUES ('x', '', '', 'member', now())",
-      "INSERT INTO event_posts (event_id, platform, url, author_name, posted_at, text, updated_at) VALUES ('e0000000-0000-4000-8000-000000000001', 'x', 'u', 'a', now(), 't', now())",
+      // It adds posts as pending; it never approves or hides one.
+      "UPDATE event_posts SET status = 'approved'",
+      "DELETE FROM event_posts",
     ]) {
       expect(await refusal(statement)).toContain("permission denied");
     }
