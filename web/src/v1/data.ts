@@ -51,6 +51,10 @@ export const EventRow = Schema.Struct({
   program: Rows.EventProgram,
   curation: Schema.Literals(["ours", "shared"]),
   organizedBy: Schema.NullOr(Schema.String),
+  lumaDescription: Schema.NullOr(Schema.String),
+  lumaSummary: Schema.NullOr(Schema.String),
+  description: Schema.NullOr(Schema.String),
+  shortSlug: Schema.NullOr(Schema.String),
   previewImage: Schema.NullOr(ImageRow),
 });
 
@@ -174,7 +178,9 @@ const make = Effect.gen(function* () {
     e.created_at AS "createdAt", e.updated_at AS "updatedAt", e.topic,
     e.luma_guest_count AS "lumaGuestCount",
     e.luma_checked_in_count AS "lumaCheckedInCount", e.program,
-    e.curation, e.organized_by AS "organizedBy",
+    e.curation, e.organized_by AS "organizedBy", e.short_slug AS "shortSlug",
+    e.luma_description AS "lumaDescription", e.luma_summary AS "lumaSummary",
+    e.description,
     ${imageJson("e.preview_image")} AS "previewImage"`);
 
   // The app orders by start only; the id makes ties deterministic.
@@ -210,7 +216,7 @@ const make = Effect.gen(function* () {
               JOIN profiles p ON p.id = ts.speaker_id
               WHERE ts.talk_id = t.id
             ), '[]'::json)
-          ) ORDER BY et.created_at, t.id)
+          ) ORDER BY et.position NULLS LAST, et.created_at, t.id)
           FROM event_talks et
           JOIN talks t ON t.id = et.talk_id
           WHERE et.event_id = e.id

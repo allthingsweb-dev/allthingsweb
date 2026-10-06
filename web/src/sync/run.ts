@@ -4,25 +4,37 @@ import {
 } from "allthings-core/src/followers.ts";
 import type { SqlClient } from "effect/sql/SqlClient";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
+import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import {
+  type PendingEvening,
+  pendingEvenings,
+  type PublishedDraft,
+  publishedDrafts,
+  ShortSlugs,
+} from "allthings-core/src/slugs.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { Clock, Context, Duration, Effect, Exit } from "effect";
 
 /**
  * One run of the hourly sync, as the app's cron runs it
  * (app/src/app/api/cron/luma-sync/route.ts): events from Luma's calendar
- * first, then the venues the calendar hides, from Luma's API (which the
- * app's cron does not ask), then the images still missing (profile photos,
- * post images, event covers), each image phase in its own time window.
- * Every step writes only what is missing or changed, so a run repeated, or
- * one cut short, leaves the database as consistent as before and the next
- * run carries on.
+ * first, then the venues the calendar hides, from Luma's API, then short
+ * links for the evenings without one, then the images still missing
+ * (profile photos, post images, event covers), each image phase in its own
+ * time window, then the events' descriptions from Luma's API, in a window
+ * of their own, so slow answers from Luma never cost the images theirs.
+ * (The app's cron does neither venues, links nor descriptions.) Every step
+ * writes only what is missing or changed, so a run repeated, or one cut
+ * short, leaves the database as consistent as before and the next run
+ * carries on.
  *
  * - `write` writes, as the app's cron does.
  * - `dry-run` writes nothing: the event sync is rehearsed (its statement in
  *   a transaction that rolls back), the venue fill lists the venues it
- *   would write, and the image phases list what they would fetch, without
- *   fetching it.
+ *   would write, the links it would give are listed, the image phases list
+ *   what they would fetch, without fetching it, and the description import
+ *   lists what it would change.
  *
  * Each step logs one JSON line, and the run one summary line, for Workers
  * Logs to index.
@@ -53,6 +65,12 @@ export interface SyncLimits {
   readonly covers: { readonly maxItems?: number };
   /** Events without a venue asked about; every one by default. */
   readonly venues: { readonly maxEvents?: number };
+  readonly descriptions: {
+    /** The import is cut off after this long, writing nothing. */
+    readonly window: Duration.Input;
+    /** Events asked about; every published one by default. */
+    readonly maxEvents?: number;
+  };
   /**
    * X follower counts read (core/src/followers.ts), the missing and oldest
    * first; a count newer than `staleAfter` is left alone.
@@ -72,12 +90,14 @@ export const syncLimits = {
     posts: { window: "20 seconds", maxItems: 40 },
     covers: {},
     venues: {},
+    descriptions: { window: "30 seconds" },
     followers: { maxProfiles: 40, staleAfter: "7 days" },
   },
   /**
-   * Within 50 subrequests: the feed is one, each venue one, and each image
-   * at most six (a cover lookup and its fallback, a download and three
-   * redirects), so two venues and two images of each kind are at most 39.
+   * Within 50 subrequests: the feed is one, each venue and each
+   * description one, and each image at most six (a cover lookup and its
+   * fallback, a download and three redirects), so two venues, two
+   * descriptions and two images of each kind are at most 41.
    */
   free: {
     startBefore: "35 seconds",
@@ -86,6 +106,7 @@ export const syncLimits = {
     posts: { window: "20 seconds", maxItems: 2 },
     covers: { maxItems: 2 },
     venues: { maxEvents: 2 },
+    descriptions: { window: "30 seconds", maxEvents: 2 },
     followers: { maxProfiles: 2, staleAfter: "7 days" },
   },
 } as const satisfies Record<string, SyncLimits>;
@@ -152,6 +173,19 @@ const skipped = (name: string, reason: string) =>
   } as const);
 
 /**
+ * Short links for the evenings without one (core's src/slugs.ts), as a step
+ * reports them: each evening's long slug and its new link.
+ */
+const slugs = (
+  assigner: ShortSlugs["Service"],
+  options: Parameters<ShortSlugs["Service"]["assign"]>[0],
+) =>
+  Effect.map(assigner.assign(options), ({ given, written }) => ({
+    written,
+    given: given.map(({ slug, shortSlug }) => ({ slug, shortSlug })),
+  }));
+
+/**
  * The venue fill (core's src/luma/venues.ts) within `limits`, as a step
  * reports it: each venue it wrote, and the events Luma has none for.
  */
@@ -179,7 +213,37 @@ const venues = (
     };
   });
 
-/** A run that writes, as the app's cron does, and fills in hidden venues. */
+/**
+ * The description import (core's src/luma/descriptions.ts) within
+ * `limits`, as a step reports it: which events it changed, each with its
+ * summary.
+ */
+const descriptions = (
+  importer: LumaDescriptions["Service"],
+  limits: SyncLimits,
+  dryRun: boolean,
+) =>
+  Effect.gen(function* () {
+    const { maxEvents } = limits.descriptions;
+    const result = yield* importer
+      .run({ dryRun, ...(maxEvents === undefined ? {} : { maxEvents }) })
+      .pipe(Effect.timeout(limits.descriptions.window));
+    if (result._tag === "Skipped") return { skipped: result.reason };
+    return {
+      asked: result.asked,
+      unavailable: result.unavailable,
+      written: result.written,
+      changes: result.changes.map((change) => ({
+        slug: change.slug,
+        summary: change.after.summary,
+      })),
+    };
+  });
+
+/**
+ * A run that writes, as the app's cron does, and fills in hidden venues,
+ * gives short links and imports descriptions.
+ */
 const write = (limits: SyncLimits) =>
   Effect.gen(function* () {
     const sync = yield* LumaSync;
@@ -201,13 +265,18 @@ const write = (limits: SyncLimits) =>
         publishedCount,
       })),
     );
-    // The app stops when the events fail: venues and images then wait
-    // for a run that reads the calendar.
+    // The app stops when the events fail: venues, links and images
+    // then wait for a run that reads the calendar.
     if (steps["events"].status !== "done") return steps;
 
     steps["venues"] = yield* step(
       "venues",
       venues(yield* LumaVenues, limits, false),
+    );
+
+    steps["slugs"] = yield* step(
+      "slugs",
+      slugs(yield* ShortSlugs, { dryRun: false }),
     );
 
     const photosLeft = yield* windowLeft(limits.photos.window);
@@ -263,6 +332,10 @@ const write = (limits: SyncLimits) =>
               ),
           );
 
+    steps["descriptions"] = yield* step(
+      "descriptions",
+      descriptions(yield* LumaDescriptions, limits, false),
+    );
     steps["followers"] = yield* step(
       "followers",
       yield* followers(limits, false),
@@ -293,25 +366,37 @@ const dryRun = (limits: SyncLimits) =>
     const sync = yield* LumaSync;
     const ingest = yield* ImageIngest;
     const steps: Record<string, StepReport> = {};
+    // The evenings the sync would create or publish, which the rehearsal
+    // rolls back: the links step lists theirs too.
+    let created: ReadonlyArray<PendingEvening> = [];
+    let published: ReadonlyArray<PublishedDraft> = [];
     steps["events"] = yield* step(
       "events",
-      Effect.map(sync.rehearse, (rehearsal) => ({
-        syncedCount: rehearsal.syncedCount,
-        changedCount: rehearsal.changedCount,
-        publishedCount: rehearsal.publishedCount,
-        created: rehearsal.created.map(({ slug, fields }) => ({
-          slug,
-          name: fields["name"],
-        })),
-        updated: rehearsal.updated.map(({ slug, changes }) => ({
-          slug,
-          changes,
-        })),
-      })),
+      Effect.map(sync.rehearse, (rehearsal) => {
+        created = pendingEvenings(rehearsal.created);
+        published = publishedDrafts(rehearsal.updated);
+        return {
+          syncedCount: rehearsal.syncedCount,
+          changedCount: rehearsal.changedCount,
+          publishedCount: rehearsal.publishedCount,
+          created: rehearsal.created.map(({ slug, fields }) => ({
+            slug,
+            name: fields["name"],
+          })),
+          updated: rehearsal.updated.map(({ slug, changes }) => ({
+            slug,
+            changes,
+          })),
+        };
+      }),
     );
     steps["venues"] = yield* step(
       "venues",
       venues(yield* LumaVenues, limits, true),
+    );
+    steps["slugs"] = yield* step(
+      "slugs",
+      slugs(yield* ShortSlugs, { dryRun: true, pending: created, published }),
     );
     steps["images"] = yield* step(
       "images",
@@ -322,6 +407,10 @@ const dryRun = (limits: SyncLimits) =>
         photos: pending.photos.map(({ name }) => name),
         posts: pending.posts.map(({ postId, kind }) => `${postId} ${kind}`),
       })),
+    );
+    steps["descriptions"] = yield* step(
+      "descriptions",
+      descriptions(yield* LumaDescriptions, limits, true),
     );
     steps["followers"] = yield* step(
       "followers",

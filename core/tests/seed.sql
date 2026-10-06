@@ -28,6 +28,12 @@ INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limi
 INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, street_address, short_location, full_address, luma_event_id, is_hackathon, program, is_draft, preview_image, recording_url, updated_at) VALUES
   ('e0000000-0000-4000-8000-000000000003', '2026-10-03-hack-day', 'Hack day', 'Build something', '2026-10-03T16:00:00Z', '2026-10-04T01:00:00Z', 80, NULL, NULL, NULL, NULL, true, 'hackathon', false, NULL, NULL, now());
 
+-- Luma describes React at Acme; no other event has a description.
+UPDATE events SET
+    luma_description = E'<p>Server components in practice, with <strong>two talks</strong> and time to talk after.</p>\n',
+    luma_summary = 'Server components in practice, with two talks and time to talk after.'
+  WHERE id = 'e0000000-0000-4000-8000-000000000001';
+
 -- Luma counted React at Acme's guests; no other event has counts.
 UPDATE events SET luma_guest_count = 118, luma_checked_in_count = 97
   WHERE id = 'e0000000-0000-4000-8000-000000000001';

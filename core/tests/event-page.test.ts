@@ -148,6 +148,43 @@ describe("EventPages", () => {
     expect(talks.map((talk) => talk.format)).toEqual(["talk", "talk"]);
   });
 
+  test("lists talks in the evening's running order, with their starts; talks without a place follow, as attached", async () => {
+    const database = await seededDatabase();
+    try {
+      await database.exec(`
+        INSERT INTO talks (id, title, description, updated_at) VALUES
+          ('a0000000-0000-4000-8000-000000000099', 'Unplaced', '', now());
+        INSERT INTO event_talks (event_id, talk_id, created_at, updated_at) VALUES
+          ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000099', '2026-01-01T00:00:00Z', now());
+        UPDATE event_talks SET position = 0, starts_at = '2026-08-13T01:41:00Z'
+          WHERE talk_id = 'a0000000-0000-4000-8000-000000000001'
+            AND event_id = 'e0000000-0000-4000-8000-000000000001';
+        UPDATE event_talks SET position = 1
+          WHERE talk_id = 'a0000000-0000-4000-8000-000000000002'
+            AND event_id = 'e0000000-0000-4000-8000-000000000001';
+      `);
+      const { talks } = await readPage(
+        "2026-08-12-react-at-acme",
+        now,
+        database,
+      ).pipe(Effect.runPromise);
+      // Server components was attached second but is placed first; the
+      // unplaced talk, attached earliest, still follows the placed ones.
+      expect(talks.map((talk) => talk.title)).toEqual([
+        "Server components",
+        "Effect in production",
+        "Unplaced",
+      ]);
+      expect(
+        talks.map((talk) =>
+          talk.startsAt === null ? null : DateTime.formatIso(talk.startsAt),
+        ),
+      ).toEqual(["2026-08-13T01:41:00.000Z", null, null]);
+    } finally {
+      await database.close();
+    }
+  });
+
   test("reads who organized and co-hosted it, the MC, and how many went", async () => {
     const page = await read("2026-08-12-react-at-acme");
     // Luma counted 118 guests (tests/seed.sql); no people are recorded.
@@ -311,6 +348,67 @@ describe("EventPages", () => {
     expect(page.schedule).toEqual([]);
     expect(page.program).toBe("talks");
     expect(page.notes).toEqual([]);
+  });
+
+  test("says what the evening is about in Luma's words, unless the site has its own", async () => {
+    const acme = "2026-08-12-react-at-acme";
+    expect<string | null>((await read(acme)).about).toBe(
+      "<p>Server components in practice, with <strong>two talks</strong> and time to talk after.</p>\n",
+    );
+    expect((await read("2026-11-05-upcoming")).about).toBeNull();
+    const database = await seededDatabase();
+    try {
+      const about = (description: string) =>
+        database
+          .query("UPDATE events SET description = $1 WHERE slug = $2", [
+            description,
+            acme,
+          ])
+          .then(() => Effect.runPromise(readPage(acme, now, database)))
+          .then((page): string | null => page.about);
+      // The site's own wins, sanitized.
+      expect(
+        await about('<p>Our <em>own</em> words.</p><img src="x" onerror="1">'),
+      ).toBe("<p>Our <em>own</em> words.</p>");
+      // One that says nothing leaves Luma's.
+      expect(await about("<p> </p>")).toStartWith(
+        "<p>Server components in practice",
+      );
+    } finally {
+      await database.close();
+    }
+  });
+
+  test("lets Luma's summary stand in for a placeholder tagline, never for the organizers'", async () => {
+    const database = await seededDatabase();
+    try {
+      const tagline = async (stored: string, summary: string | null) => {
+        await database.query(
+          "UPDATE events SET tagline = $1, luma_summary = $2 WHERE slug = $3",
+          [stored, summary, "2026-08-12-react-at-acme"],
+        );
+        return (
+          await Effect.runPromise(
+            readPage("2026-08-12-react-at-acme", now, database),
+          )
+        ).tagline;
+      };
+      expect(
+        await tagline("See Luma for event details and registration.", "Talks."),
+      ).toBe("Talks.");
+      // Words that only end like the first sync's are an organizer's.
+      expect(
+        await tagline("Come build with us at All Things Web", "Talks."),
+      ).toBe("Come build with us at All Things Web");
+      expect(
+        await tagline("See Luma for event details and registration.", null),
+      ).toBe("");
+      expect(await tagline("  Our own words  ", "Talks.")).toBe(
+        "Our own words",
+      );
+    } finally {
+      await database.close();
+    }
   });
 
   test("reads an upcoming evening, its Luma id encoded", async () => {

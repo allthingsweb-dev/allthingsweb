@@ -22,7 +22,7 @@ import {
 import { seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
- * Planning's rows (migrations/0011_planning.ts) are private, and these tests
+ * Planning's rows (migrations/0012_planning.ts) are private, and these tests
  * hold them to it:
  *
  * - site_reader and site_sync, made and granted with their scripts' own

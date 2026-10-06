@@ -256,7 +256,7 @@ export function aboutPage({
       <div class="about">
         <div class="about-head">
           <h1 class="lockup at-type-event-lockup">about</h1>
-          <div class="pitch at-type-lead">
+          <div class="pitch at-type-statement">
             <p>Evenings for people who build software.</p>
             <p class="pitch-place">In the neighborhoods of San Francisco.</p>
           </div>

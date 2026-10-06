@@ -1,4 +1,8 @@
-import { apcaContrast, wcagContrast } from "allthings-brand/src/contrast.ts";
+import {
+  apcaContrast,
+  textFloor,
+  wcagContrast,
+} from "allthings-brand/src/contrast.ts";
 import { kebab } from "allthings-brand/src/css.ts";
 import {
   type Color,
@@ -57,9 +61,15 @@ function Sample({
         {label}
       </dt>
       <dd>
-        <span class="sample-text" aria-hidden="true">
-          Aa
-        </span>
+        {/* Text only where the pairing carries the sample's size; else a bar. */}
+        {textFloor(apcaContrast(color.hex, background.hex)) === "small" ||
+        textFloor(apcaContrast(color.hex, background.hex)) === "large" ? (
+          <span class="sample-text" aria-hidden="true">
+            Aa
+          </span>
+        ) : (
+          <span class="sample-bar" aria-hidden="true"></span>
+        )}
         {contrast(color, background).map((figure) => (
           <span class="figure" safe>
             {figure}
@@ -127,7 +137,7 @@ function Palette() {
                 <td safe>{pair.use}</td>
                 <td>
                   <span
-                    class={`sample at-swatch-${kebab(pair.background.name)}`}
+                    class={`sample sample-${textFloor(pair.minLc) ?? "display"} at-swatch-${kebab(pair.background.name)}`}
                   >
                     <span
                       class={`at-swatch-${kebab(pair.text.name)}`}
@@ -195,6 +205,13 @@ function Specimen({ role }: { readonly role: TypeRole }) {
     case "label":
       return <p class={className}>East Cut · CodeRabbit</p>;
     case "lead":
+      return (
+        <p class={className}>
+          Evenings for people who build software. In the neighborhoods of San
+          Francisco.
+        </p>
+      );
+    case "statement":
       return (
         <p class={className}>
           Evenings for people who build software. In the neighborhoods of San

@@ -7,6 +7,7 @@ import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
+import { sharedPrefix } from "allthings-core/src/short-slugs.ts";
 import { DateTime, Duration, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
@@ -275,9 +276,15 @@ const codeOfConduct = page(
     }),
 );
 
-/** An event's page, at its slug: encoded, so it is always one segment. */
-const eventLocation = (params: PageRequest["params"]): `/${string}` =>
-  eventPath(params["slug"] ?? "");
+/**
+ * Where an event's routes are: at the root, and a shared evening's link
+ * under shared/ (core's src/short-slugs.ts).
+ */
+type EventPrefix = "" | typeof sharedPrefix;
+
+/** The slug a route's parameters name, under `prefix`. */
+const slugAt = (prefix: EventPrefix, params: PageRequest["params"]) =>
+  `${prefix}${params["slug"] ?? ""}`;
 
 /** The event at `slug`, or none when no published event has it. */
 const readEvent = (slug: string) =>
@@ -287,75 +294,84 @@ const readEvent = (slug: string) =>
   );
 
 /**
- * /<slug>: an evening's page, cached like the home page. Drafts and unknown
- * slugs are not found, which is cached only briefly: a draft may be
- * published at any moment. The event and the hosts' portraits are read at
- * once, over the request's pool.
+ * /<slug>: an evening's page at its short link (/effect, or
+ * /shared/<name> for an evening we share), cached like the home page. At
+ * any other slug of the evening (its long one, or a link it had before) it
+ * redirects there for good: those are linked from Luma, posts and QR codes.
+ * Drafts and unknown slugs are not found, which is cached only briefly: a
+ * draft may be published at any moment. The event and the hosts' portraits
+ * are read at once, over the request's pool.
  */
-const event = page(
-  "/:slug",
-  ({ theme, acceptEncoding, params, images }) =>
-    Effect.gen(function* () {
-      const { origin } = yield* Site;
-      const path = eventLocation(params);
-      return yield* Effect.all(
-        [readEvent(params["slug"] ?? ""), footer(hostPortraits)],
-        { concurrency: "unbounded" },
-      ).pipe(
-        Effect.provide(repositories),
-        Effect.timed,
-        Effect.bindTo("timed"),
-        Effect.bind("now", () => DateTime.now),
-        Effect.map(({ timed: [took, [found, { portraits, read }]], now }) => {
-          const db = Duration.toMillis(took);
-          return Option.match(found, {
-            onNone: () =>
-              htmlResponse(
-                notFoundPage({ origin, path, theme, portraits, images }),
-                acceptEncoding,
-                {
-                  cacheControl: read ? "notFound" : "failure",
-                  theme,
-                  images,
-                  status: 404,
-                  db,
-                },
-              ),
-            onSome: (view) =>
-              htmlResponse(
-                eventPage({
-                  event: view,
-                  origin,
-                  theme,
-                  portraits,
-                  images,
-                  now,
-                }),
-                acceptEncoding,
-                {
-                  cacheControl: read ? "publicData" : "failure",
-                  theme,
-                  images,
-                  db,
-                },
-              ),
-          });
-        }),
-        Effect.catchCause((cause) =>
-          Effect.logError("Error rendering an event page:", cause).pipe(
-            Effect.as(
-              htmlResponse(
-                eventUnavailablePage({ origin, path, theme, images }),
-                acceptEncoding,
-                { cacheControl: "failure", theme, images, status: 503 },
+const eventAt = (prefix: EventPrefix) =>
+  page(
+    `/${prefix}:slug`,
+    ({ theme, acceptEncoding, params, images }) =>
+      Effect.gen(function* () {
+        const { origin } = yield* Site;
+        const slug = slugAt(prefix, params);
+        const path = eventPath(slug);
+        return yield* Effect.all([readEvent(slug), footer(hostPortraits)], {
+          concurrency: "unbounded",
+        }).pipe(
+          Effect.provide(repositories),
+          Effect.timed,
+          Effect.bindTo("timed"),
+          Effect.bind("now", () => DateTime.now),
+          Effect.map(({ timed: [took, [found, { portraits, read }]], now }) => {
+            const db = Duration.toMillis(took);
+            return Option.match(found, {
+              onNone: () =>
+                htmlResponse(
+                  notFoundPage({ origin, path, theme, portraits, images }),
+                  acceptEncoding,
+                  {
+                    cacheControl: read ? "notFound" : "failure",
+                    theme,
+                    images,
+                    status: 404,
+                    db,
+                  },
+                ),
+              onSome: (view) =>
+                view.slug !== slug
+                  ? HttpServerResponse.redirect(eventPath(view.slug), {
+                      status: 301,
+                      headers: { "cache-control": CacheControl.publicData },
+                    })
+                  : htmlResponse(
+                      eventPage({
+                        event: view,
+                        origin,
+                        theme,
+                        portraits,
+                        images,
+                        now,
+                      }),
+                      acceptEncoding,
+                      {
+                        cacheControl: read ? "publicData" : "failure",
+                        theme,
+                        images,
+                        db,
+                      },
+                    ),
+            });
+          }),
+          Effect.catchCause((cause) =>
+            Effect.logError("Error rendering an event page:", cause).pipe(
+              Effect.as(
+                htmlResponse(
+                  eventUnavailablePage({ origin, path, theme, images }),
+                  acceptEncoding,
+                  { cacheControl: "failure", theme, images, status: 503 },
+                ),
               ),
             ),
           ),
-        ),
-      );
-    }),
-  eventLocation,
-);
+        );
+      }),
+    (params) => eventPath(slugAt(prefix, params)),
+  );
 
 /** A plain-text answer, for the files and redirects pages link to. */
 const plain = (text: string, status: number, cacheControl: CacheControl) =>
@@ -365,35 +381,38 @@ const plain = (text: string, status: number, cacheControl: CacheControl) =>
   });
 
 /**
- * /<slug>/calendar.ics: "add to calendar" for the event at `slug`, cached
- * like its page.
+ * /<slug>/calendar.ics: "add to calendar" for the event at `slug` (any of
+ * its slugs, as its page), cached like its page.
  */
-const calendar = HttpRouter.add(
-  "GET",
-  "/:slug/calendar.ics",
-  Effect.gen(function* () {
-    const { slug = "" } = yield* HttpRouter.params;
-    const { origin } = yield* Site;
-    const found = yield* readEvent(slug).pipe(Effect.provide(repositories));
-    return Option.match(found, {
-      onNone: () => plain("Event not found", 404, CacheControl.notFound),
-      onSome: (view) =>
-        HttpServerResponse.text(calendarFile(view, origin), {
-          contentType: "text/calendar; charset=utf-8",
-          headers: {
-            "cache-control": CacheControl.publicData,
-            "content-disposition": `attachment; filename="${calendarFileName(slug)}"`,
-          },
-        }),
-    });
-  }).pipe(
-    Effect.catchCause((cause) =>
-      Effect.logError("Error building a calendar file:", cause).pipe(
-        Effect.as(plain("Temporarily unavailable", 503, CacheControl.failure)),
+const calendarAt = (prefix: EventPrefix) =>
+  HttpRouter.add(
+    "GET",
+    `/${prefix}:slug/calendar.ics`,
+    Effect.gen(function* () {
+      const slug = slugAt(prefix, yield* HttpRouter.params);
+      const { origin } = yield* Site;
+      const found = yield* readEvent(slug).pipe(Effect.provide(repositories));
+      return Option.match(found, {
+        onNone: () => plain("Event not found", 404, CacheControl.notFound),
+        onSome: (view) =>
+          HttpServerResponse.text(calendarFile(view, origin), {
+            contentType: "text/calendar; charset=utf-8",
+            headers: {
+              "cache-control": CacheControl.publicData,
+              "content-disposition": `attachment; filename="${calendarFileName(view.slug)}"`,
+            },
+          }),
+      });
+    }).pipe(
+      Effect.catchCause((cause) =>
+        Effect.logError("Error building a calendar file:", cause).pipe(
+          Effect.as(
+            plain("Temporarily unavailable", 503, CacheControl.failure),
+          ),
+        ),
       ),
     ),
-  ),
-);
+  );
 
 /**
  * /r/<slug>: a short link, as the app answers it: a temporary redirect (307,
@@ -548,8 +567,10 @@ export const pageRoutes = Layer.mergeAll(
   about,
   brand,
   codeOfConduct,
-  event,
-  calendar,
+  eventAt(""),
+  eventAt(sharedPrefix),
+  calendarAt(""),
+  calendarAt(sharedPrefix),
   shortLink,
   nextImage,
   ...retired,

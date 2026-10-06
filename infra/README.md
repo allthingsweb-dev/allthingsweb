@@ -74,7 +74,7 @@ The file's header has the commands.
 
 ## The Luma sync
 
-The Sync Worker runs what the app's cron runs every hour. It syncs `events` from Luma's calendar first, then fills in the venues the calendar hides (shown to guests only) from Luma's API. Then it stores the images still missing: profile photos, post images, event covers. Every step writes only what is missing or changed, so a run cut short leaves nothing half done, and the next run carries on. It answers no requests.
+The Sync Worker runs what the app's cron runs every hour. It syncs `events` from Luma's calendar first, then fills in the venues the calendar hides (shown to guests only) from Luma's API and gives new evenings their short links. Then it stores the images still missing: profile photos, post images, event covers. Last, in a window of its own, it imports their descriptions from Luma's API. Every step writes only what is missing or changed, so a run cut short leaves nothing half done, and the next run carries on. It answers no requests.
 
 Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so each change is a one-line pull request:
 
@@ -89,7 +89,7 @@ Each run logs one JSON line per step and one summary line (`source: "luma-sync"`
 **On Workers Free.** The allthings account is on Workers Paid now. On Workers Free, which it was on until October 2026, a Cron Trigger run gets:
 
 - **10 ms of CPU.** Reading the calendar (30-odd events) and converting images will very likely take more. If so, the runtime stops the run with "exceeded CPU": events not written, or images left for later. Each step stays consistent.
-- **50 subrequests to the internet.** That covers Luma's feed, its API (hidden venues, cover lookups), image downloads and their redirects. `plan: "free"` keeps a run to two venues and two images of each kind, at most 39 subrequests; the rest wait for later runs.
+- **50 subrequests to the internet.** That covers Luma's feed, its API (hidden venues, descriptions, cover lookups), image downloads and their redirects. `plan: "free"` keeps a run to two venues, two descriptions and two images of each kind, at most 41 subrequests; the rest wait for later runs.
 - **1,000 subrequests to Cloudflare services** (Hyperdrive, R2, Images), which a run stays well within.
 
 On Workers Paid, a run hourly or less often gets up to 15 minutes of CPU and 10,000 subrequests, and `plan: "paid"` lifts the per-kind limits.

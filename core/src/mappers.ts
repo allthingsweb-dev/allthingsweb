@@ -3,6 +3,7 @@ import * as Contract from "./contract.ts";
 import { htmlToPlainText, sanitizeRichText } from "./rich-text.ts";
 import type * as Rows from "./rows.ts";
 import type { SpeakerDirectory } from "./speakers.ts";
+import { sharedPrefix } from "./short-slugs.ts";
 
 /**
  * Repository rows to the public contract: a port of
@@ -40,9 +41,20 @@ export function httpUrlOrNull(value: string | null): string | null {
   return isHttpUrl(url.href) ? url.href : null;
 }
 
+/**
+ * An event's path on the site: its slug, encoded as one segment, so no slug
+ * reads as another path. The one exception is a shared evening's link,
+ * under shared/ (src/short-slugs.ts): the rest of it is the one segment.
+ */
+export function eventPathOf(slug: string): `/${string}` {
+  return slug.startsWith(sharedPrefix) && slug.length > sharedPrefix.length
+    ? `/${sharedPrefix}${encodeURIComponent(slug.slice(sharedPrefix.length))}`
+    : `/${encodeURIComponent(slug)}`;
+}
+
 /** An event's page: its slug, encoded, under the origin. */
 export function eventUrl(origin: string, slug: string): string {
-  return `${origin}/${encodeURIComponent(slug)}`;
+  return `${origin}${eventPathOf(slug)}`;
 }
 
 /** Profiles store handles; links are built from them as the site shows them. */
