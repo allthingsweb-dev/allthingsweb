@@ -18,6 +18,11 @@ import type {
   Talk,
   Venue,
 } from "allthings-core/src/event-page.ts";
+import {
+  formats,
+  type PublicRule,
+  rulesFor,
+} from "allthings-core/src/formats.ts";
 import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
@@ -878,6 +883,22 @@ function Schedule({
 }
 
 /**
+ * The rules everyone who comes is told, word for word as the evening's
+ * format states them (core/src/formats.ts), in effect the day it starts.
+ */
+function Rules({ rules }: { readonly rules: ReadonlyArray<PublicRule> }) {
+  return (
+    <Fact label="Rules">
+      <ul class="rules">
+        {rules.map((rule) => (
+          <li safe>{rule.text}</li>
+        ))}
+      </ul>
+    </Fact>
+  );
+}
+
+/**
  * What the evening is about, in its own words: the site's description, or
  * the one on Luma.
  */
@@ -1203,6 +1224,12 @@ export function eventPage({
   const past = event.status === "past";
   const photos = showable(event.photos, images);
   const tagline = event.tagline.trim();
+  const { stage } = formats[event.program];
+  const rules = rulesFor({
+    program: event.program,
+    startDate: event.startsAt,
+    curation: event.curation.kind,
+  });
   return Document({
     section: "events",
     meta: {
@@ -1261,13 +1288,14 @@ export function eventPage({
           {event.notes.map((note) => (
             <NoteFact note={note} />
           ))}
-          {event.program === "open-floor" ? (
+          {rules.length === 0 ? "" : <Rules rules={rules} />}
+          {stage === "open-floor" ? (
             <OnStage
               talks={event.talks}
               openFloor={openFloorLine(event.status)}
               images={images}
             />
-          ) : event.program !== "talks" || event.talks.length === 0 ? (
+          ) : stage === null || event.talks.length === 0 ? (
             ""
           ) : (
             <OnStage talks={event.talks} openFloor={null} images={images} />

@@ -11,6 +11,8 @@ The rules every page, cover, slide, email and line of copy is checked against. D
 
 These two sentences are the whole pitch. They support the page; they never headline it.
 
+Every evening is one of four formats: talks, an open floor, a social evening or a hackathon. What each is, what it needs before it goes out and the rules everyone who comes is told are in `docs/event-formats.md`, generated from `core/src/formats.ts`, the one place they are decided.
+
 ## Name
 
 - The name is **all things**, always lowercase. The master wordmark is **all things/\_**: the slot after the slash is left open, and every event fills it.

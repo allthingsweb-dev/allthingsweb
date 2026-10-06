@@ -2,6 +2,7 @@ import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { Completeness } from "../completeness.ts";
 import { DataSourceError } from "../errors.ts";
+import { formats } from "../formats.ts";
 import { eventTopic } from "../lockup.ts";
 import type { HostProspect, Idea, WantedSpeaker } from "../planning/model.ts";
 import { Planning, PlanningError } from "../planning/planning.ts";
@@ -381,7 +382,7 @@ const make = Effect.gen(function* () {
         suggestions: {
           terms,
           speakers: {
-            lineup: program === "talks" || program === "open-floor",
+            lineup: formats[program].stage !== null,
             network: rankSpeakers(terms, yield* network(now), onIt),
             wanted,
           },

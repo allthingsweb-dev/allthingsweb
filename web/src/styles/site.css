@@ -1205,6 +1205,18 @@ main > section,
   color: var(--at-meta);
 }
 
+/* The rules its format tells everyone who comes (core/src/formats.ts). */
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-3);
+  max-width: var(--at-measure-prose);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+}
+
 /* The evening in its own words, and rows of its own: prose at a reading measure. */
 .event-about,
 .note {

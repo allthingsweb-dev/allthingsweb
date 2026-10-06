@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "core/**"
+      - "docs/event-formats.md"
       - "package.json"
       - "bun.lock"
       - "app/src/lib/**"
@@ -17,6 +18,7 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - "core/**"
+      - "docs/event-formats.md"
       - "package.json"
       - "bun.lock"
       - "app/src/lib/**"
@@ -82,6 +84,11 @@ jobs:
       - name: 🔍 Type check
         working-directory: core
         run: bun run typecheck
+
+      # docs/event-formats.md is generated from src/formats.ts.
+      - name: 📄 Check the event formats doc
+        working-directory: core
+        run: bun run formats:doc --check
 
       - name: 🏄 Run the tests
         working-directory: core

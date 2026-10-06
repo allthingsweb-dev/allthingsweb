@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
+import { openSourceProjects } from "../src/formats.ts";
 import { Effect, Layer } from "effect";
 import { DataSourceError, EventNotFound } from "../src/errors.ts";
 import { type EventPage, EventPages, type Speaker } from "../src/event-page.ts";
@@ -315,6 +316,33 @@ describe("Meetup", () => {
     expect(meetup.venue).toBe("Globex");
     expect(meetup.eventChat).toBe("https://discord.gg/B3Sm4b5mfD");
     expect(meetup.checklist.join("\n")).toContain("Attendee limit: 1");
+  });
+});
+
+describe("rules", () => {
+  test("a hackathon's description tells its rules word for word, once they apply", async () => {
+    const before = await read("2026-10-03-hack-day");
+    // Held before the rule's first day: its drafts say nothing of it.
+    expect(before.luma).not.toContain("**Rules**");
+    await db.exec(`UPDATE events
+      SET start_date = '2026-11-07T17:00:00Z', end_date = '2026-11-08T01:00:00Z'
+      WHERE slug = '2026-10-03-hack-day'`);
+    try {
+      const drafts = await read("2026-10-03-hack-day");
+      for (const description of [drafts.luma, drafts.meetup.description]) {
+        expect(description).toContain(
+          `**Rules**\n\n- ${openSourceProjects.text}`,
+        );
+      }
+    } finally {
+      await db.exec(`UPDATE events
+        SET start_date = '2026-10-03T16:00:00Z', end_date = '2026-10-04T01:00:00Z'
+        WHERE slug = '2026-10-03-hack-day'`);
+    }
+  });
+
+  test("an evening of talks has no rules of its own to tell", async () => {
+    expect((await read("2026-11-05-upcoming")).luma).not.toContain("Rules");
   });
 });
 

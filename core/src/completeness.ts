@@ -2,6 +2,7 @@ import { Context, DateTime, Duration, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import type * as Statement from "effect/sql/Statement";
 import type { DataSourceError } from "./errors.ts";
+import { formats, rulesFor, rulesMissing } from "./formats.ts";
 import { eventTopic } from "./lockup.ts";
 import { eventTagline } from "./tagline.ts";
 import { eventStatus, httpUrlOrNull } from "./mappers.ts";
@@ -19,10 +20,7 @@ import { curationJson, orDataSourceError } from "./sql.ts";
 
 /** Everything a gap can be about, with whether a complete record needs it. */
 export const gapKinds = {
-  /**
-   * Only an evening of talks is asked for them: an open floor, a social
-   * evening and a hackathon never had a lineup.
-   */
+  /** Asked only of a program whose format requires them (src/formats.ts). */
   talks: { required: true, label: "no talks" },
   "talk-speakers": { required: true, label: "talk without speakers" },
   "talk-description": { required: true, label: "talk without description" },
@@ -48,6 +46,11 @@ export const gapKinds = {
   venue: { required: true, label: "no venue address" },
   topic: { required: true, label: "no topic for the lockup" },
   description: { required: true, label: "no description" },
+  /**
+   * A description that doesn't carry, word for word, a rule its program
+   * tells everyone who comes (src/formats.ts), once the rule applies.
+   */
+  rules: { required: true, label: "description without its program's rules" },
   tagline: { required: true, label: "placeholder tagline, no summary" },
   cover: { required: false, label: "no cover image" },
   recording: { required: false, label: "no recording link" },
@@ -167,7 +170,7 @@ export function eventCompleteness(
   const status = eventStatus(event, now);
   const gaps: Array<Gap> = [];
 
-  if (event.talks.length === 0 && event.program === "talks") {
+  if (event.talks.length === 0 && formats[event.program].talksRequired) {
     gaps.push(gap("talks"));
   }
   for (const talk of event.talks) {
@@ -243,6 +246,18 @@ export function eventCompleteness(
   ) {
     gaps.push(gap("description"));
   }
+  // Each description there is, Luma's and the site's, tells attendees the
+  // rules their program has on the day it starts.
+  const rules = rulesFor({ ...event, curation: event.curation.kind });
+  for (const [whose, text] of [
+    ["Luma's", event.lumaDescription],
+    ["the site's", event.description],
+  ] as const) {
+    if (text === null || isBlank(text)) continue;
+    for (const rule of rulesMissing(text, rules)) {
+      gaps.push(gap("rules", `${rule.id}, in ${whose} description`));
+    }
+  }
   // A placeholder tagline is fine while Luma's summary stands in for it.
   if (eventTagline(event) === "") gaps.push(gap("tagline"));
   if (!event.hasCover) gaps.push(gap("cover"));
@@ -294,8 +309,8 @@ export const requiredGaps = (report: EventCompleteness): ReadonlyArray<Gap> =>
 export const recentWindow = Duration.days(30);
 
 /**
- * Evenings of talks that ended within `window` before `now` and have none
- * (no other program is asked for talks): what a weekly check fails on.
+ * Evenings that ended within `window` before `now` without the talks their
+ * format requires (src/formats.ts): what a weekly check fails on.
  * Events further back are reported but don't fail it, so one old gap can't
  * keep the check red for good.
  */

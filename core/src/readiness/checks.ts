@@ -5,6 +5,7 @@ import {
   type GapKind,
   gapKinds,
 } from "../completeness.ts";
+import { formats, rulesFor, scheduleLines } from "../formats.ts";
 import { eventMode } from "../mode.ts";
 import { neighborhoodOf } from "../places.ts";
 import { sfDay } from "./calendar.ts";
@@ -19,8 +20,9 @@ import { sfDay } from "./calendar.ts";
  * the report requires blocks publishing; one it doesn't is advice. Then
  * what only matters before an evening goes out: it is still a draft, its
  * date is ahead and sane and clear of other evenings that day, its venue
- * is named and placed, a hackathon has its schedule, and once its private
- * Luma event exists, it has a cover.
+ * is named and placed, it has the schedule its format requires, and once
+ * its private Luma event exists, it has a cover. What each program asks
+ * for is its format's (src/formats.ts), never decided here.
  */
 
 /** Whether a check stops publishing, or only says what would make it better. */
@@ -77,7 +79,10 @@ export interface CalendarEvent {
   readonly curation: "ours" | "shared";
 }
 
-/** The longest an evening that isn't a hackathon runs before it reads as a mistake. */
+/**
+ * The longest an evening runs before it reads as a mistake, unless its
+ * format runs through the day.
+ */
 export const longestEvening = Duration.hours(6);
 
 const check = (
@@ -132,7 +137,8 @@ export function draftChecks(
       check("ends-before-start", "blocker", "Ends before it starts."),
     );
   }
-  if (record.program !== "hackathon") {
+  const format = formats[record.program];
+  if (!format.allDay) {
     if (eventMode(record.startDate) === "paper") {
       checks.push(
         check(
@@ -222,9 +228,26 @@ export function draftChecks(
       ),
     );
   }
-  if (record.program === "hackathon" && facts.scheduleItems === 0) {
+  if (format.scheduleRequired && facts.scheduleItems === 0) {
     checks.push(
-      check("schedule", "blocker", "A hackathon's page needs its schedule."),
+      check(
+        "schedule",
+        "blocker",
+        `Its page needs a schedule, as every ${format.name}'s does. Start from: ${scheduleLines(format).join("; ")}.`,
+      ),
+    );
+  }
+  // A description, once there is one, must carry the rules (the
+  // completeness gap above); before Luma's is imported, say what it needs.
+  const rules = rulesFor({ ...record, curation: record.curation.kind });
+  const described = !report.gaps.some((entry) => entry.kind === "description");
+  if (rules.length > 0 && !described) {
+    checks.push(
+      check(
+        "rules",
+        "advice",
+        `Its description must carry the ${format.name}'s rules, word for word (the promo drafts do): ${rules.map((rule) => rule.text).join(" ")}`,
+      ),
     );
   }
 

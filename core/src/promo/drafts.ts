@@ -1,6 +1,7 @@
 import { DateTime } from "effect";
 import type { EventPage, Person, Speaker, Talk } from "../event-page.ts";
 import type { Organizer } from "../rows.ts";
+import { rulesFor } from "../formats.ts";
 import { eventUrl, httpUrlOrNull } from "../mappers.ts";
 import type { StageRole } from "../people.ts";
 import { htmlToPlainText } from "../rich-text.ts";
@@ -615,7 +616,8 @@ const roleNames: Readonly<Record<StageRole, string | null>> = {
  * The shared body of the Luma and Meetup descriptions, in Markdown. Both
  * pages already show the date, time and address, so the body says neither
  * (say each thing once): who hosts, who is on stage with their bios, who
- * runs the evening, and where to talk after.
+ * runs the evening, the rules its format tells everyone who comes
+ * (src/formats.ts), and where to talk after.
  */
 function descriptionBody(
   input: PromoInput,
@@ -643,6 +645,13 @@ function descriptionBody(
   );
   const people = (label: string, list: ReadonlyArray<Person>) =>
     list.length === 0 ? null : `${label}: ${listOf(list.map(person))}.`;
+  // Word for word, as src/formats.ts states them: readiness checks the
+  // description Luma shows carries each one.
+  const rules = rulesFor({
+    program: event.program,
+    startDate: event.startsAt,
+    curation: event.curation.kind,
+  });
   const neighborhood = event.venue?.neighborhood ?? null;
   const hosted =
     event.hosts.length === 0
@@ -659,6 +668,10 @@ function descriptionBody(
     ),
     people(event.coHosts.length === 1 ? "Co-host" : "Co-hosts", event.coHosts),
     people("MC", event.mcs),
+    rules.length === 0 ? null : "**Rules**",
+    rules.length === 0
+      ? null
+      : rules.map((rule) => `- ${md(rule.text)}`).join("\n"),
     `**[all things](${lumaCalendar})**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](${discordInvite})**.`,
   );
 }

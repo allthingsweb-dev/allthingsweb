@@ -10,6 +10,7 @@ import {
   SITE_READER,
 } from "../../infra/scripts/site-reader.ts";
 import type { EventRecord } from "../src/completeness.ts";
+import { formats, openSourceProjects, scheduleLines } from "../src/formats.ts";
 import { Planning } from "../src/planning/planning.ts";
 import { addDays, sfDay, weekdayOf } from "../src/readiness/calendar.ts";
 import {
@@ -150,20 +151,81 @@ describe("draftChecks", () => {
     expect(checks[0]?.message).toBe("No talks");
   });
 
-  test("a social evening is asked for no talks; a hackathon for its schedule", () => {
+  test("a social evening is asked for no talks; a hackathon for its schedule and its rules", () => {
     expect(
       draftChecks(facts({ program: "social", talks: [] }), [], now),
     ).toEqual([]);
-    expect(
-      kinds(draftChecks(facts({ program: "hackathon", talks: [] }), [], now)),
-    ).toEqual(["blocker schedule"]);
+    const hackathon = facts({ program: "hackathon", talks: [] });
+    const checks = draftChecks(hackathon, [], now);
+    expect(kinds(checks)).toEqual(["blocker rules", "blocker schedule"]);
+    // The schedule it lacks starts from its format's.
+    expect(checks[1]?.message).toBe(
+      `Its page needs a schedule, as every hackathon's does. Start from: ${scheduleLines(formats.hackathon).join("; ")}.`,
+    );
+    expect(checks[0]?.subject).toBe("open-source, in Luma's description");
     expect(
       draftChecks(
-        facts({ program: "hackathon", talks: [] }, { scheduleItems: 3 }),
+        facts(
+          {
+            program: "hackathon",
+            talks: [],
+            lumaDescription: `<p>Build something.</p><p><strong>Rules</strong></p><ul><li>${openSourceProjects.text}</li></ul>`,
+          },
+          { scheduleItems: 3 },
+        ),
         [],
         now,
       ),
     ).toEqual([]);
+  });
+
+  test("a hackathon without a description yet is told the rules it must carry", () => {
+    const checks = draftChecks(
+      facts(
+        { program: "hackathon", talks: [], lumaDescription: null },
+        { scheduleItems: 3 },
+      ),
+      [],
+      now,
+    );
+    expect(kinds(checks)).toEqual(["advice description", "advice rules"]);
+    expect(checks[1]?.message).toContain(openSourceProjects.text);
+  });
+
+  test("a rule is never asked of an evening before its day, or of one we only share", () => {
+    const before = DateTime.makeUnsafe("2026-10-05T16:00:00Z");
+    for (const overrides of [
+      // Starts the day before the rule, in San Francisco.
+      {
+        startDate: at("2026-10-05T17:00:00Z"),
+        endDate: at("2026-10-06T01:00:00Z"),
+      },
+      {
+        curation: {
+          kind: "shared" as const,
+          organizer: {
+            name: "Mastra",
+            websiteUrl: "https://mastra.ai",
+            twitterHandle: "mastra",
+            blueskyHandle: null,
+            linkedinHandle: null,
+          },
+        },
+      },
+    ]) {
+      expect(
+        kinds(
+          draftChecks(
+            facts(
+              { program: "hackathon", talks: [], ...overrides },
+              { scheduleItems: 3 },
+            ),
+            [],
+            before,
+          ),
+        ),
+      ).not.toContain("blocker rules");
+    }
   });
 
   test("a cover blocks only once the Luma event exists", () => {
