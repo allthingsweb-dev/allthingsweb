@@ -32,9 +32,11 @@ const command = Command.make(
   },
   ({ file, dryRun }) =>
     Effect.gen(function* () {
-      const text = yield* Effect.promise(() =>
-        Bun.file(new URL(`../${file}`, import.meta.url)).text(),
-      );
+      const text = yield* Effect.tryPromise({
+        try: () => Bun.file(new URL(`../${file}`, import.meta.url)).text(),
+        catch: (cause) =>
+          new Error(`Could not read ${file}: ${String(cause)}`, { cause }),
+      });
       const talks = yield* decodeExternalTalksFile(text);
       const lines = yield* applyExternalTalks(talks, dryRun);
       yield* Console.log(lines.join("\n"));

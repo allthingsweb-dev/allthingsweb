@@ -26,9 +26,16 @@ export type ExternalTalkKind = (typeof externalTalkKinds)[number];
 /** An https URL with a domain-name host, as the public contract accepts, and no whitespace. */
 const Url = HttpUrl.check(Schema.isPattern(/^https:\/\/\S+$/));
 
-/** A calendar day, YYYY-MM-DD. */
+/** A day on the calendar, YYYY-MM-DD: never a February 30th. */
 const Day = Schema.String.check(
-  Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/),
+  Schema.makeFilter((value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "expected a YYYY-MM-DD day";
+    const day = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(day.getTime()) &&
+      day.toISOString().slice(0, 10) === value
+      ? undefined
+      : `${value} is not a day on the calendar`;
+  }),
 );
 
 const Text = Schema.String.check(

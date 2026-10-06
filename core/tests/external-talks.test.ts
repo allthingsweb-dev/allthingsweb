@@ -240,6 +240,8 @@ describe("decodeExternalTalksFile", () => {
       { ...first, venue: "Somewhere" },
       { ...first, kind: "talk" },
       { ...first, givenOn: "2025-13-01" },
+      { ...first, givenOn: "2025-02-30" },
+      { ...first, read: "2025-04-31" },
       { ...first, url: "http://conf.example" },
     ]) {
       expect(await decodes({ talks: [talk], held: [] })).toBe(false);
