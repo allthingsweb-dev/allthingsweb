@@ -168,10 +168,16 @@ type ProfileRow = typeof ProfileRow.Type;
 /** Blank, or only whitespace: a column with nothing in it yet. */
 const isBlank = (value: string | null) => value === null || value.trim() === "";
 
-/** What the stored row holds for `field`; a photo counts once the image is copied. */
+/**
+ * What the stored row holds for `field`. A photo counts as filled once its
+ * image is copied, whatever its source column says (even blank), so no new
+ * source is ever set beside an image it didn't make.
+ */
 const stored = (row: ProfileRow, field: Field): string | null =>
   field === "photoSourceUrl" && row.has_image
-    ? (row.photo_source_url ?? "(image)")
+    ? isBlank(row.photo_source_url)
+      ? "(image)"
+      : row.photo_source_url
     : (row[columns[field] as keyof ProfileRow] as string | null);
 
 /**

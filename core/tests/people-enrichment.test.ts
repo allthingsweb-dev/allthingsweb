@@ -172,6 +172,27 @@ describe("applyPeople", () => {
     ]);
   });
 
+  test("never sets a photo source beside a copied image, even where its source column is blank", async () => {
+    const db = await fresh();
+    await db.exec(
+      `UPDATE profiles SET photo_source_url = '' WHERE id = '${ada}'`,
+    );
+    const exit = await apply(db, [
+      {
+        profileId: ada,
+        name: "Ada Lovelace",
+        photoSourceUrl: {
+          value: "https://avatars.githubusercontent.com/u/2",
+          source,
+          read,
+        },
+      },
+    ]);
+    expect(Exit.isSuccess(exit) ? exit.value : exit).toEqual([
+      'Ada Lovelace: photo_source_url kept (already "(image)")',
+    ]);
+  });
+
   test("a handle stored as an empty string counts as blank", async () => {
     const db = await fresh();
     await db.exec(
