@@ -11,6 +11,7 @@ import {
   requiredGaps,
 } from "../src/completeness.ts";
 import { formatReport, reportJson } from "../src/completeness-report.ts";
+import { openSourceProjects } from "../src/formats.ts";
 import { defaultTagline } from "../src/tagline.ts";
 import {
   clockLayer,
@@ -127,6 +128,55 @@ describe("what an event lacks", () => {
     for (const program of ["open-floor", "social", "hackathon"] as const) {
       expect(gapsOf({ ...complete, program, talks: [] })).toEqual([]);
     }
+  });
+
+  test("a hackathon's descriptions carry its rules, once they apply", () => {
+    const hackathon: EventRecord = {
+      ...complete,
+      program: "hackathon",
+      talks: [],
+      // Saturday, November 7, 2026, after the rule's first day.
+      startDate: at("2026-11-07T17:00:00Z"),
+      endDate: at("2026-11-08T01:00:00Z"),
+      description: "<p>Our own words.</p>",
+    };
+    expect(gapsOf(hackathon)).toEqual([
+      "rules: open-source, in Luma's description",
+      "rules: open-source, in the site's description",
+    ]);
+    const carried = `<p>Build something.</p><ul><li>${openSourceProjects.text.toUpperCase()}</li></ul>`;
+    expect(
+      gapsOf({
+        ...hackathon,
+        description: carried,
+        lumaDescription: carried.replace(": ", ":&nbsp;\n"),
+      }),
+    ).toEqual([]);
+    // Held before the rule was: never said to lack it.
+    expect(
+      gapsOf({
+        ...hackathon,
+        startDate: at("2026-10-03T16:00:00Z"),
+        endDate: at("2026-10-04T01:00:00Z"),
+      }),
+    ).toEqual([]);
+    // Someone else's hackathon has their rules, not ours.
+    expect(
+      gapsOf({
+        ...hackathon,
+        curation: {
+          kind: "shared",
+          organizer: {
+            name: "Mastra",
+            websiteUrl: "https://mastra.ai",
+            twitterHandle: "mastra",
+            blueskyHandle: null,
+            linkedinHandle: null,
+          },
+        },
+      }),
+    ).not.toContain("rules: open-source, in Luma's description");
+    expect(gapKinds.rules.required).toBe(true);
   });
 
   test("still checks what an open floor's known demos say", () => {

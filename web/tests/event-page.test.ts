@@ -1,3 +1,4 @@
+import { openSourceProjects } from "allthings-core/src/formats.ts";
 import { personSlug } from "allthings-core/src/person-slug.ts";
 import { describe, expect, test } from "bun:test";
 import type {
@@ -533,6 +534,49 @@ describe("the ledger", () => {
       );
     }
     expect(labels(render(event({ talks: [talk] })))).toContain("On stage");
+  });
+
+  test("tells a hackathon's rules from its format, once they apply, and only ours", async () => {
+    const hackathon = {
+      program: "hackathon" as const,
+      startsAt: at("2026-11-07T17:00:00Z"),
+      endsAt: at("2026-11-08T01:00:00Z"),
+      schedule: [{ time: "10:00 AM", title: "Doors open", description: null }],
+    };
+    const html = render(event(hackathon));
+    expect(labels(html)).toEqual([
+      "When",
+      "Where",
+      "Hosted at",
+      "Seats",
+      "Schedule",
+      "Rules",
+    ]);
+    expect(html).toContain(
+      `<dt class="at-type-meta">Rules</dt><dd><ul class="rules"><li>${openSourceProjects.text}</li></ul></dd>`,
+    );
+    expect(await htmlProblems(html)).toEqual([]);
+    // Held before the rule's first day, an evening of talks, or someone
+    // else's: no rules of ours.
+    for (const view of [
+      event({ ...hackathon, startsAt: at("2026-10-03T16:00:00Z") }),
+      event({ startsAt: at("2026-11-07T17:00:00Z") }),
+      event({
+        ...hackathon,
+        curation: {
+          kind: "shared",
+          organizer: {
+            name: "Mastra",
+            websiteUrl: "https://mastra.ai",
+            twitterHandle: null,
+            blueskyHandle: null,
+            linkedinHandle: null,
+          },
+        },
+      }),
+    ]) {
+      expect(labels(render(view))).not.toContain("Rules");
+    }
   });
 
   test("escapes what it prints", async () => {
