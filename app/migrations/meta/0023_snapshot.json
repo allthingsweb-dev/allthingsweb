@@ -1,5 +1,5 @@
 {
-  "id": "df35a933-26ed-46a2-b204-142ae02eb13f",
+  "id": "271de0b8-2a3d-4937-a3aa-6439e228268b",
   "prevId": "c16f812e-b391-4be0-9209-1239859ee0fb",
   "version": "7",
   "dialect": "postgresql",
@@ -1555,7 +1555,7 @@
           "tableTo": "events",
           "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "ideas_inspired_by_event_id_events_id_fk": {

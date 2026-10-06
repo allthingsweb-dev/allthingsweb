@@ -106,6 +106,27 @@ describe("ideas", () => {
     expect(cleared.topic).toBeNull();
   });
 
+  test("an event an idea holds can't be deleted until the idea lets go", async () => {
+    await db.exec(
+      `INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_draft, updated_at) VALUES
+        ('e0000000-0000-4000-8000-0000000000aa', '2026-12-01-made-up', 'Made up', '', '2026-12-02T02:00:00Z', '2026-12-02T05:00:00Z', 0, true, now())`,
+    );
+    const { id } = await plan((p) =>
+      p.addIdea({
+        title: "Made up",
+        pitch: "Made up.",
+        program: "social",
+        status: "scheduled",
+        eventSlug: "2026-12-01-made-up",
+      }),
+    );
+    const remove = () =>
+      db.exec(`DELETE FROM events WHERE slug = '2026-12-01-made-up'`);
+    await expect(remove()).rejects.toThrow("ideas_event_id_events_id_fk");
+    await plan((p) => p.updateIdea(id, { status: "dropped", eventSlug: null }));
+    await remove();
+  });
+
   test("one idea per event", async () => {
     await plan((p) =>
       p.addIdea({

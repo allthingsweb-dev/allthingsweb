@@ -6,8 +6,9 @@ import { statements } from "./statements.ts";
  *
  * - `ideas`: an evening we might put on, with its program and topic, from a
  *   first thought (`idea`) to `drafting`, `scheduled` (it has an event) or
- *   `dropped`. `event_id` is the draft evening it became, then the event;
- *   `inspired_by_event_id` a past evening it builds on.
+ *   `dropped`. `event_id` is the draft evening it became, then the event (deleting
+ *   that event is refused while an idea holds it, so a scheduled idea never
+ *   loses its event); `inspired_by_event_id` a past evening it builds on.
  * - `wanted_speakers`: someone we'd like on stage, a profile or a contact,
  *   with what they could speak about (`wanted_speaker_topics`, written as
  *   event topics are) and when they're free or not (`availability`: dates,
@@ -69,7 +70,7 @@ export const planning: ReadonlyArray<string> = [
     CONSTRAINT "ideas_topic_check" CHECK (${topicRule("topic")}),
     CONSTRAINT "ideas_status_check" CHECK ("status" IN ('idea', 'drafting', 'scheduled', 'dropped')),
     CONSTRAINT "ideas_scheduled_event_check" CHECK ("status" <> 'scheduled' OR "event_id" IS NOT NULL),
-    CONSTRAINT "ideas_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events" ("id") ON DELETE SET NULL,
+    CONSTRAINT "ideas_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events" ("id"),
     CONSTRAINT "ideas_inspired_by_event_id_events_id_fk" FOREIGN KEY ("inspired_by_event_id") REFERENCES "public"."events" ("id") ON DELETE SET NULL
   )`,
   `CREATE TABLE "planning"."wanted_speakers" (

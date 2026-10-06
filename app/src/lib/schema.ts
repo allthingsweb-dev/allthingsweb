@@ -635,10 +635,13 @@ export const planningIdeasTable = planningSchema.table(
     program: text("program", { enum: eventPrograms }).notNull(),
     topic: text("topic"),
     status: text("status", { enum: ideaStatuses }).notNull().default("idea"),
-    /** The draft evening it became, then the event itself. */
+    /**
+     * The draft evening it became, then the event itself. Deleting that
+     * event is refused until the idea lets go of it.
+     */
     eventId: uuid("event_id")
       .unique()
-      .references(() => eventsTable.id, { onDelete: "set null" }),
+      .references(() => eventsTable.id),
     /** A past evening it builds on. */
     inspiredByEventId: uuid("inspired_by_event_id").references(
       () => eventsTable.id,
