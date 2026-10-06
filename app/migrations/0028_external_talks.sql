@@ -20,4 +20,12 @@ CREATE TABLE "external_talks" (
 );
 --> statement-breakpoint
 ALTER TABLE "external_talks" ADD CONSTRAINT "external_talks_profile_id_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."profiles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "external_talks_profile_id_idx" ON "external_talks" USING btree ("profile_id");
+CREATE INDEX "external_talks_profile_id_idx" ON "external_talks" USING btree ("profile_id");--> statement-breakpoint
+-- site_reader reads it, as core's 0016 grants (not modelled by drizzle).
+DO $grant$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'site_reader') THEN
+    GRANT SELECT ON "public"."external_talks" TO site_reader;
+  END IF;
+END
+$grant$;
