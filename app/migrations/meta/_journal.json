@@ -171,10 +171,10 @@
       "breakpoints": true
     },
     {
-      "idx": 24,
+      "idx": 26,
       "version": "7",
       "when": 1791247775842,
-      "tag": "0024_talk_order",
+      "tag": "0026_talk_order",
       "breakpoints": true
     }
   ]

@@ -1,4 +1,4 @@
--- An evening's running order: each talk's position and, where known, its start; existing talks take their attach order. core/migrations/0012_talk_order.ts is the same change.
+-- An evening's running order: each talk's position and, where known, its start; existing talks take their attach order. core/migrations/0014_talk_order.ts is the same change.
 ALTER TABLE "event_talks" ADD COLUMN "position" integer;--> statement-breakpoint
 ALTER TABLE "event_talks" ADD COLUMN "starts_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "event_talks" ADD CONSTRAINT "event_talks_position_check" CHECK ("position" >= 0);--> statement-breakpoint

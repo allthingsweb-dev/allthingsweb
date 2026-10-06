@@ -3,7 +3,7 @@ import { statements } from "./statements.ts";
 /**
  * An evening's running order: each talk's `position` in it, from 0, and its
  * `starts_at` where it is known. Ships with the app's drizzle migration
- * 0024_talk_order, which makes the same schema.
+ * 0026_talk_order, which makes the same schema.
  *
  * Every talk already attached takes its attach order (created_at, then the
  * talk's id), which is the order pages have shown until now. A talk

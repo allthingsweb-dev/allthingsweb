@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from "bun:test";
-import { talkOrder } from "../migrations/0012_talk_order.ts";
+import { talkOrder } from "../migrations/0014_talk_order.ts";
 import { seededDatabase } from "./support/database.ts";
 
 /**
