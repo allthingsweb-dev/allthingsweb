@@ -336,6 +336,33 @@ The admin MCP server's `add_event_post` runs the same script.
 `tests/posts.test.ts` runs against recorded answers; nothing in the tests
 reaches X, FixTweet or Bluesky.
 
+### Finding posts
+
+`src/posts/candidates.ts` finds posts about evenings on its own. For each
+evening it searches Bluesky's public search (`app.bsky.feed.searchPosts`,
+keyless) and, once the X app has a token, X's search, for posts that link
+the evening's Luma page or its page on the site, name it, or come from or
+mention the people on its stage, from two weeks before it to a week after.
+Each post is scored the same way every time (`scoreCandidate`: a link to
+the evening, its name, "all things" with its topic, a host, its people,
+the night itself), and the ones that score at least 5 are added as
+`pending`. Nothing is approved here: an organizer approves or hides each.
+
+```sh
+DATABASE_URL=… bun run posts find --dry-run          # the last week's evenings, scored, nothing written
+DATABASE_URL=… bun run posts find --past             # every evening so far
+DATABASE_URL=… bun run posts pending                 # what waits for review
+DATABASE_URL=… bun run posts approve <post url>      # show it on its evening's page
+DATABASE_URL=… bun run posts hide <post url>         # never show it
+```
+
+X is searched only with `X_BEARER_TOKEN` (1Password: "allthings X app" in
+the `allthings` vault); recent search reaches seven days back, and
+`X_SEARCH=archive` uses full-archive search where the app has it. The sync
+Worker searches the last week's evenings on its schedule (off until the
+cutover); until the database can hold its role to pending posts, it only reports what it would add, and an organizer adds them with `posts find`. The admin MCP server's `list_pending_posts`, `approve_post` and
+`hide_post` run the same script.
+
 ## Schedules and notes
 
 Some events' pages say more than the record: a hackathon's schedule, its

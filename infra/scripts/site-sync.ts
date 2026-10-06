@@ -62,6 +62,11 @@ interface ColumnGrants {
  *   row for each link given.
  * - images: one row per stored image, its id made by the sync.
  * - profiles, event_posts: rows still missing an image, and the image set.
+ * - The post search (core/src/posts/candidates.ts) reads each recent
+ *   evening's name, topic, hosts and the handles of its people, and the
+ *   posts already stored. It only reports what it finds: inserting posts
+ *   waits for the database to hold site_sync to pending ones (a column
+ *   grant can't limit a value), so an organizer adds them for now.
  *   Profiles also: the X follower refresh (core/src/followers.ts) reads each
  *   handle and its snapshot, and writes the new count with when it was read.
  *
@@ -144,6 +149,7 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "image",
       "created_at",
       "twitter_handle",
+      "bluesky_handle",
       "x_followers",
       "x_followers_at",
       "x_followers_tried_at",
@@ -165,9 +171,17 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "image",
       "author_avatar",
       "added_at",
+      "event_id",
+      "url",
+      "status",
     ],
     update: ["image", "author_avatar", "updated_at"],
   },
+  event_sponsors: { select: ["event_id", "sponsor_id", "created_at"] },
+  sponsors: { select: ["id", "name"] },
+  event_people: { select: ["event_id", "profile_id"] },
+  event_talks: { select: ["event_id", "talk_id"] },
+  talk_speakers: { select: ["talk_id", "speaker_id"] },
 };
 
 /**

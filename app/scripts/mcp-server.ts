@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import { completenessReport } from "./completeness.js";
 import { addEventPost } from "./event-posts.js";
+import { approvePost, hidePost, listPendingPosts } from "./post-review.js";
 import { promoChannels, promoDrafts } from "./promo.js";
 import { isPlanTool, planTool, planToolDefinitions } from "./plan.js";
 import { draftReadiness, draftReadinessTool } from "./readiness.js";
@@ -106,6 +107,9 @@ const AddEventPostSchema = z.object({
   authorUrl: z.string().optional(),
   text: z.string().optional(),
 });
+
+const PendingPostsSchema = z.object({ slug: z.string().min(1).optional() });
+const PostUrlSchema = z.object({ url: z.string().min(1) });
 
 const GetPromoDraftsSchema = z.object({
   slug: z.string().min(1),
@@ -546,6 +550,45 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["slug", "url"],
         },
       },
+      {
+        name: "list_pending_posts",
+        description:
+          "Posts a search found about events, waiting for review: each with its event, URL, author, time and text. Pending posts never show on a page. Read-only.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            slug: {
+              type: "string",
+              description: "Only this event's pending posts (its slug)",
+            },
+          },
+          required: [],
+        },
+      },
+      {
+        name: "approve_post",
+        description:
+          "Approve a stored post (pending or hidden) so it shows on its event's page. Approve only a post that is clearly about that event.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "The post's URL" },
+          },
+          required: ["url"],
+        },
+      },
+      {
+        name: "hide_post",
+        description:
+          "Hide a stored post so it never shows; later searches leave it hidden.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "The post's URL" },
+          },
+          required: ["url"],
+        },
+      },
       // Promotion
       {
         name: "get_promo_drafts",
@@ -955,6 +998,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify(result, null, 2),
             },
           ],
+        };
+      }
+
+      case "list_pending_posts": {
+        const { slug } = PendingPostsSchema.parse(args ?? {});
+        const result = await listPendingPosts(slug);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "approve_post": {
+        const result = await approvePost(PostUrlSchema.parse(args ?? {}).url);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "hide_post": {
+        const result = await hidePost(PostUrlSchema.parse(args ?? {}).url);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
