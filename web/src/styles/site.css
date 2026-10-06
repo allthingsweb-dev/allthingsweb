@@ -278,8 +278,10 @@ main {
   font-weight: 600;
 }
 
+/* Every host side by side, never overlapping: both are always seen. */
 .portraits {
   display: flex;
+  gap: var(--at-space-1);
 }
 
 /* A portrait is an <img>, or a <picture> holding one. */
@@ -287,16 +289,10 @@ main {
   display: block;
   width: var(--at-size-portrait-xs);
   height: var(--at-size-portrait-xs);
-  border: var(--at-stroke-rule) solid var(--at-ground);
   border-radius: 50%;
   object-fit: cover;
-  /* The ground-colored ring parts the overlapping portraits; the rule
-     outside it keeps a portrait as dark as Night visible on Night. */
+  /* The rule keeps a portrait as dark as Night visible on Night. */
   box-shadow: 0 0 0 var(--at-stroke-hairline) var(--at-rule);
-}
-
-.portraits > * + * {
-  margin-left: calc(-1 * var(--at-space-2));
 }
 
 .socials {
@@ -943,11 +939,14 @@ main > section,
   line-height: 1.2;
 }
 
+/* Side by side, as the footer's are: every host is seen. */
 .host-portraits {
   display: flex;
+  gap: var(--at-space-1);
 }
 
 .host-portraits img,
+.lineup-portraits img,
 .event-person img,
 .speaker img,
 .photos img {
@@ -960,11 +959,6 @@ main > section,
   height: var(--at-size-portrait-s);
 }
 
-.host-portraits img + img {
-  margin-left: calc(-1 * var(--at-space-2));
-  box-shadow: 0 0 0 var(--at-stroke-rule) var(--at-ground);
-}
-
 /* Co-hosts and the MC, under the hosting company and your hosts. */
 .event-people {
   display: flex;
@@ -973,7 +967,9 @@ main > section,
   margin-top: var(--at-space-4);
 }
 
-.event-people ul {
+/* People in rows: co-hosts and MCs, and a talk's people (lineup.ts). */
+.event-people ul,
+.stage-people {
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
@@ -995,6 +991,12 @@ main > section,
   flex-shrink: 0;
   width: var(--at-size-portrait-s);
   height: var(--at-size-portrait-s);
+}
+
+/* On stage, the same rows with a larger portrait. */
+.stage-people .event-person img {
+  width: var(--at-size-portrait-m);
+  height: var(--at-size-portrait-m);
 }
 
 .event-person p {
@@ -1023,6 +1025,82 @@ main > section,
 .event-person-title {
   font-size: var(--at-font-size-small);
   color: var(--at-meta);
+}
+
+/* A compact lineup (lineup.ts): one row per talk, portraits beside it. */
+/* The portraits' column is as wide as the most speakers a talk has, so
+   every title starts at the same edge. */
+.lineup {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: var(--at-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+.lineup-talk {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: start;
+  padding: var(--at-space-4) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+.lineup-portraits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--at-space-1);
+}
+
+.lineup-portraits img {
+  width: var(--at-size-portrait-s);
+  height: var(--at-size-portrait-s);
+}
+
+.lineup-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-1);
+  min-width: 0;
+}
+
+.lineup-speakers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--at-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--at-font-size-small);
+}
+
+.lineup-speakers a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.lineup-speakers a:hover {
+  text-decoration: underline var(--at-stroke-rule);
+}
+
+.lineup-speaker-title {
+  color: var(--at-meta);
+}
+
+/* "about the talk": a native disclosure, its target at least 24px tall. */
+.lineup-about summary {
+  width: fit-content;
+  padding: var(--at-space-1) 0;
+  color: var(--at-link);
+  cursor: pointer;
+}
+
+.lineup-about .stage-description {
+  margin-top: var(--at-space-2);
 }
 
 .stage {
@@ -1616,6 +1694,15 @@ th {
 /* On phones the portrait sits beside the name and title alone, and the
    bio, links and talks take the whole width below them. */
 @media (--at-below-m) {
+  /* On phones a talk's portraits sit above its title, which keeps the width. */
+  .lineup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lineup-talk {
+    row-gap: var(--at-space-2);
+  }
+
   .person {
     column-gap: var(--at-space-4);
     row-gap: var(--at-space-2);

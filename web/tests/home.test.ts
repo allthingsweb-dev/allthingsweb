@@ -374,7 +374,8 @@ describe("/ as a page", () => {
   });
 });
 
-const blankAvatar = /^<img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt=""/;
+const blankAvatar =
+  /^<img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt="(?:Erik|Andre)"/;
 
 describe("/'s footer", () => {
   it("signs off with the portrait from each host's profile, by id, and the blank avatar where there is none", async ({
@@ -387,7 +388,7 @@ describe("/'s footer", () => {
     );
     const [erik, andre, ...more] = portraits(html);
     expect(erik).toBe(
-      `<img src="${erikPortrait}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
+      `<img src="${erikPortrait}" alt="Erik" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
     );
     expect(andre).toMatch(blankAvatar);
     expect(more).toEqual([]);

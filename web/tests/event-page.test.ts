@@ -725,11 +725,12 @@ describe("who took part", () => {
     expect(html).toContain(
       '<section class="stage-talk"><p class="at-type-meta">fireside chat</p><h2',
     );
+    // A fireside's people are a row each (lineup.ts), roles named.
     expect(html).toContain(
-      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name"><a href="/people#p-m">Simon</a></h3>',
+      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people#p-m"><span>Simon</span></a>',
     );
     expect(html).toContain(
-      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name"><a href="/people#p-g">Michael</a></h3>',
+      '<p><span class="speaker-role at-type-meta">guest</span><a class="event-person-name" href="/people#p-g"><span>Michael</span></a>',
     );
     // A talk's speaker is just its speaker.
     expect(html).toContain(
@@ -792,7 +793,7 @@ describe("the event page's images as variants", () => {
       '<img src="/img/72x72/jpeg/1767323045/events/ada.jpg" srcset="/img/72x72/jpeg/1767323045/events/ada.jpg 72w, /img/144x144/jpeg/1767323045/events/ada.jpg 144w, /img/168x168/jpeg/1767323045/events/ada.jpg 168w, /img/216x216/jpeg/1767323045/events/ada.jpg 216w, /img/336x336/jpeg/1767323045/events/ada.jpg 336w" sizes="(max-width: 767.98px) 72px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
     );
     expect(html).toContain(
-      '<img src="/img/72x72/jpeg/1767323045/events/erik.jpg" srcset="/img/72x72/jpeg/1767323045/events/erik.jpg 72w, /img/144x144/jpeg/1767323045/events/erik.jpg 144w" sizes="44px" alt="" width="44" height="44" loading="lazy" decoding="async"/>',
+      '<img src="/img/72x72/jpeg/1767323045/events/erik.jpg" srcset="/img/72x72/jpeg/1767323045/events/erik.jpg 72w, /img/144x144/jpeg/1767323045/events/erik.jpg 144w" sizes="44px" alt="Erik" width="44" height="44" loading="lazy" decoding="async"/>',
     );
   });
 

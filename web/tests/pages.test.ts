@@ -100,7 +100,8 @@ const portraits = (html: string) =>
     .exec(html)?.[1]
     ?.match(/<img [^>]*>/g) ?? [];
 
-const blankAvatar = /^<img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt=""/;
+const blankAvatar =
+  /^<img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt="(?:Erik|Andre)"/;
 
 describe("/brand", () => {
   it("answers with HTML that caches and may load only this site's files", async (url) => {
@@ -229,7 +230,7 @@ describe("/brand", () => {
     );
     const [erik, andre, ...more] = portraits(html);
     expect(erik).toBe(
-      `<img src="${erikPortrait}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
+      `<img src="${erikPortrait}" alt="Erik" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
     );
     expect(andre).toMatch(blankAvatar);
     expect(more).toEqual([]);

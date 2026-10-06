@@ -161,6 +161,7 @@ function Footer({
               photo={portraits.get(host.profileId)}
               mode={images}
               blank={built.marks.avatar.src}
+              alt={host.name}
             />
           ))}
         </span>

@@ -357,7 +357,7 @@ describe("the home page's photos as variants", () => {
         "<picture>",
         `<source type="image/avif" srcset="${squares("avif")}"/>`,
         `<source type="image/webp" srcset="${squares("webp")}"/>`,
-        `<img src="/img/36x36/jpeg/1767323045/events/erik.jpg" srcset="${squares("jpeg")}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
+        `<img src="/img/36x36/jpeg/1767323045/events/erik.jpg" srcset="${squares("jpeg")}" alt="Erik" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
         "</picture>",
         '<img src="/assets/avatar.',
       ].join(""),
