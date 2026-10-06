@@ -16,6 +16,7 @@
     "posts": "bun --no-env-file scripts/posts.ts",
     "hosts": "bun --no-env-file scripts/hosts.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts",
+    "people": "bun --no-env-file scripts/people.ts",
     "event-extras": "bun --no-env-file scripts/event-extras.ts",
     "programs": "bun --no-env-file scripts/programs.ts",
     "curation": "bun --no-env-file scripts/curation.ts",

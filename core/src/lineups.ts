@@ -26,7 +26,31 @@ const Hold = Schema.optionalKey(Schema.String.check(Schema.isNonEmpty()));
 
 /** An https URL with a domain-name host, as the public contract accepts, and no whitespace. */
 const Url = HttpUrl.check(Schema.isPattern(/^https:\/\/\S+$/));
-const Sources = Schema.Array(Url).check(Schema.isMinLength(1));
+/**
+ * Word from an organizer, for what only someone who was there can say (a
+ * talk's title, who sat on a panel): who said it, on what day, and where.
+ */
+const Confirmation = Schema.Struct({
+  confirmedBy: Schema.String.check(Schema.isNonEmpty()),
+  on: Schema.String.check(
+    Schema.makeFilter((value: string) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return "expected a YYYY-MM-DD day";
+      }
+      const day = new Date(`${value}T00:00:00Z`);
+      return !Number.isNaN(day.getTime()) &&
+        day.toISOString().slice(0, 10) === value
+        ? undefined
+        : `${value} is not a day on the calendar`;
+    }),
+  ),
+  in: Schema.String.check(Schema.isNonEmpty()),
+});
+
+/** Where a fact comes from: public pages, or an organizer's word. */
+const Sources = Schema.Array(Schema.Union([Url, Confirmation])).check(
+  Schema.isMinLength(1),
+);
 
 /** Someone a lineup names: an existing profile, or one to create. */
 export const Person = Schema.Union([
