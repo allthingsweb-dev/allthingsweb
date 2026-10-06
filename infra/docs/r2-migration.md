@@ -1,9 +1,12 @@
-# Moving media to the allthings account
+# Moving allthings.dev, its media and the new site to the allthings account
 
-Status (Oct 5): Phase 1 is done. R2 and Workers Paid are on in the allthings account (`af627f300cd00c4dca56aacf05bea050`).
+Status (Oct 6): Phase 1 is done. R2 and Workers Paid are on in the allthings account (`af627f300cd00c4dca56aacf05bea050`).
 
 - The staged bucket holds all 317 objects (1,372,325,671 bytes), copied in 97 s, and `verify` found every object identical.
 - allthings.dev is a pending zone there: `f65e1c6d54e9d2e850cf025190ef8915`, nameservers max/rosalie.ns.cloudflare.com, no records.
+- The new site (the prod Web Worker) runs there on its `workers.dev` URL, against production's data. It was deployed on Oct 6 from #162, which makes `ORIGIN` allthings.dev on every stage and has prod deploy the Web Worker in this account. **#162 must be merged before Phase 2**: this runbook's deploys rely on it, and a prod deploy from a main without it would remove the Web Worker.
+
+The new site goes live on allthings.dev with the move. At activation, allthings.dev and www.allthings.dev attach to the prod Web Worker, in place of today's redirect to allthingsweb.dev. allthingsweb.dev keeps serving the old app until [the full cutover](#later-the-full-cutover). That cutover is written down here but not scheduled.
 
 ## The one thing to know
 
@@ -15,13 +18,13 @@ Status (Oct 5): Phase 1 is done. R2 and Workers Paid are on in the allthings acc
 
 So for zero downtime, the new bucket must be **full, verified, and already attached to media.allthings.dev before the move happens**. If R2 is still off on Oct 11, the move takes media offline. The image rows store absolute `https://media.allthings.dev/...` URLs, so there is no host to fall back to.
 
-Critical path: attach media.allthings.dev to the pending zone → copy and verify the delta since Phase 1 → the domain move (earliest Oct 11), then re-home the apex/www redirect right after activation. That date is the registrar's 10-day rule; the domain was registered Sep 30.
+Critical path: attach media.allthings.dev to the pending zone → copy and verify the delta since Phase 1 → the domain move (earliest Oct 11), then the prod deploy that attaches allthings.dev and www to the new site right after activation. That date is the registrar's 10-day rule; the domain was registered Sep 30.
 
 ## What this change adds
 
 - **[`src/media.ts`](../src/media.ts): prod follows the zone.** `productionRole(accountId, zone)` decides:
   - **serve:** allthings.dev is active in the deploying account. This is today's prod: the bucket on the domain, the upload Worker, and the Vercel env. `alchemy plan --stage prod` in the current account shows `[Media] noop`, so nothing changes there.
-  - **stage:** the allthings account before the move. Only the bucket `allthings-media` is declared. Once the zone has been added there (pending), media.allthings.dev is attached ahead of time, so it serves from the instant the zone turns active.
+  - **stage:** the allthings account before the move. The bucket `allthings-media` is declared, and since #162 the Web Worker on its `workers.dev` URL. In serve, the Web Worker also takes allthings.dev and www. Once the zone has been added there (pending), media.allthings.dev is attached ahead of time, so it serves from the instant the zone turns active.
   - **refused:** any other account, for example the personal one after the domain has left. Without this, a stray deploy from there would drop the upload Worker and the Vercel env.
   - I checked this with a real plan: `plan --stage prod --profile allthings` reaches the bucket and stops at "Please enable R2". That is the gate.
 - **[`scripts/copy-media.ts`](../scripts/copy-media.ts) and [`src/media-copy.ts`](../src/media-copy.ts): the copy.** Commands are `plan`, `copy [--record file]` and `verify [--public https://media.allthings.dev]`.
@@ -55,9 +58,14 @@ Critical path: attach media.allthings.dev to the pending zone → copy and verif
    - Per Cloudflare's docs, it deploys the moment the zone turns active. That removes the remaining TLS gap (see Downtime).
    - It's a cost and taste call, so I haven't decided it.
 
-The zone is already added, and DNSSEC is already off: the .dev registry holds no DS record. The live zone has no ordinary records to recreate. Its apex and www are Wrangler custom domains for esthor/domains' redirect Worker, which [esthor/domains#232](https://github.com/esthor/domains/pull/232) re-homes to the allthings account right after the move.
+The zone is already added, and DNSSEC is already off: the .dev registry holds no DS record. The live zone has no ordinary records to recreate. Its apex and www are Wrangler custom domains for esthor/domains' redirect Worker (to allthingsweb.dev). That redirect is not re-homed: after the move, the new site takes both names. [esthor/domains#232](https://github.com/esthor/domains/pull/232) only moves Terraform's zone ownership, and the personal-account Worker is deleted.
 
-`ops/rotate-alchemy-oauth.sh` signs both Alchemy profiles in again. That fixes the `allthings` profile's refresh, which fails since its OAuth client dropped a scope. Until then, prod deploys to the allthings account run with a short-lived account token from the cf CLI's `allthings` login, created and deleted per deploy, as Phase 1's did.
+`ops/rotate-alchemy-oauth.sh` signs both Alchemy profiles in again. That fixes the `allthings` profile's refresh, which fails since its OAuth client dropped a scope. Until then, prod deploys to the allthings account run with a short-lived account token from the cf CLI's `allthings` login. The token is created and deleted per deploy, as for Phase 1 and the Web Worker (Oct 6). It holds:
+
+- **Account:** Workers Scripts Write, Account Settings Read, Secrets Store Write, Hyperdrive Write, Workers R2 Storage Write.
+- **Zones:** Zone Read. Phase 4's deploy also attaches the site's custom domains and the www redirect rule, so it adds Workers Routes Write and Dynamic URL Redirects Write.
+
+Every prod deploy from the allthings account now also needs `NEON_READER_URL`, for the Web Worker's Hyperdrive. Pass it without printing it, as `infra/README.md` shows.
 
 No R2 token is created or stored by hand. The copy runs with the logins a maintainer already has: `bunx wrangler login` on the personal account, and the cf CLI's `allthings` profile.
 
@@ -73,6 +81,8 @@ Run from `infra/` once this has merged. Nothing is passed by hand: the copy uses
 
 **Phase 2: the day of the move, before submitting it**
 
+Check first that #162 is on main: `infra/src/web.ts` exports `siteDomain`, and `infra/alchemy.run.ts` deploys the Web Worker in prod.
+
 1. `bun run deploy --stage prod --profile allthings` again. The zone is now in the account, so this attaches media.allthings.dev to the new bucket on the pending zone.
    - Check in the dashboard that the bucket's custom domain shows media.allthings.dev.
    - If R2 refuses a pending zone, the deploy fails here and changes nothing else. Then the attach happens in Phase 4 instead, and the window is longer (see Downtime).
@@ -81,7 +91,9 @@ Run from `infra/` once this has merged. Nothing is passed by hand: the copy uses
    - A key never changes: the upload Worker refuses a key that exists (409), and every key carries a new UUID. So the delta should only add objects.
    - A conflict means something wrote outside that path, or deleted a key and stored another object under it. The copy never overwrites, so it stops there.
    - Do not submit the move until it is resolved. Compare the two objects, delete the staged one in the allthings account's dashboard (R2 → allthings-media), and rerun `copy` and `verify`.
-4. Warm the caches by loading every event, people and home page on staging, so the `/img` variants are in the Web Worker's edge cache. Vercel's image cache is warm from normal traffic.
+4. Warm the caches by loading every event, people and home page on the prod Web Worker's `workers.dev` URL, so the `/img` variants are in its edge cache. Vercel's image cache is warm from normal traffic.
+   - Check that URL against the old site. The events API and MCP must list the same events, and pages must name allthings.dev as canonical.
+   - robots.txt disallows everything there until the Worker answers on allthings.dev.
 5. Pick a time with no evening on the calendar within 24 hours.
 
 **Phase 3: the move**
@@ -90,23 +102,30 @@ Erik submits the move in the personal account and accepts it in the allthings ac
 
 **Phase 4: right after activation**
 
+From activation until step 2's deploy, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and Worker custom domains need an active zone. media.allthings.dev is unaffected, since Phase 2 pre-attached it.
+
 1. Run these checks:
    - `curl -sI https://media.allthings.dev/<a few keys>` must return 200 with a valid certificate.
    - `verify --public https://media.allthings.dev` must exit 0.
-2. Re-home the apex/www redirect: [esthor/domains#232](https://github.com/esthor/domains/pull/232), steps 3–5 of its README section.
-   - Deploy `wrangler.allthings.jsonc` and repeat its eight redirect checks.
-   - Delete the personal-account Worker.
+2. `bun run deploy --stage prod --profile allthings` (now "serve"), with `NEON_READER_URL`, `NEON_SYNC_URL` and `LUMA_API_KEY` passed as `infra/README.md` shows. This brings up:
+   - **The new site on allthings.dev:** the prod Web Worker's custom domain. www.allthings.dev gets a 301 to the apex (path and query kept) from a redirect rule in the zone, which runs before the Worker.
+   - **The upload Worker** in the allthings account (new URL and token). It runs its put/delete check.
+   - **The sync Worker,** its schedule still off.
+   - **Vercel env:** `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` are written to it.
+3. Check the site:
+   - `curl -sI https://allthings.dev/` must return 200 with a valid certificate.
+   - `curl -sI 'https://www.allthings.dev/events?x=1'` must return 301 to `https://allthings.dev/events?x=1`.
+   - robots.txt must now allow crawlers.
+   - Event pages, the events API and an MCP `list_events` call (a POST to `/mcp`) must answer as they did on `workers.dev`.
+4. **esthor/domains** ([#232](https://github.com/esthor/domains/pull/232)), Terraform only:
    - Move Terraform's state to the new zone (`state rm`, then the `--expect-import` plan, then apply).
-
-   Until the deploy, allthings.dev and www don't answer: Worker custom domains need an active zone.
-
-3. `bun run deploy --stage prod --profile allthings` (now "serve"), with `NEON_SYNC_URL` and `LUMA_API_KEY` passed as `infra/README.md` shows. This brings up:
-   - the upload Worker in the allthings account (new URL and token), which runs its put/delete check
-   - the sync Worker, its schedule still off
-   - `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` written to Vercel
-4. **Redeploy production on Vercel.** Changed env only reaches new deployments. Until then, uploads still go to the old bucket.
-5. Run `copy` again for anything uploaded to the old bucket before the redeploy, then `verify --public`.
-6. Run an end-to-end check: one upload through the admin, visible on media.allthings.dev and as an `/img` variant.
+   - Delete the personal-account Worker `domains-allthings-redirect`. Its custom domains went with the old zone, so it no longer serves anything.
+5. **Redeploy production on Vercel.** Changed env only reaches new deployments. Until then, uploads still go to the old bucket.
+6. Run `copy` again for anything uploaded to the old bucket before the redeploy, then `verify --public`.
+7. Run an end-to-end check: one upload through the admin, visible on media.allthings.dev and as an `/img` variant.
+8. **Point clients at the new host.** These are small PRs once step 3 passes, not before. Before activation, allthings.dev still redirects to allthingsweb.dev, and a redirect drops an MCP POST. After it, the new site answers on allthings.dev and allthingsweb.dev keeps serving the old app, so clients can switch to `https://allthings.dev/mcp`.
+   - The CLI's default endpoint becomes `https://allthings.dev/mcp` (`atw-cli/src/client.ts` and `core/scripts/fixtures.ts`).
+   - `infra/README.md`'s "default profile until the domain moves" sentence becomes past tense.
 
 **Phase 5: after**
 
@@ -114,7 +133,6 @@ Erik submits the move in the personal account and accepts it in the allthings ac
 - **The old prod stack.** Never run `alchemy destroy --stage prod` with the default profile. Destroy plans nothing, so the account guard can't stop it, and it would remove the old upload Worker (harmless after Phase 4, but noisy).
 - **Old upload Worker.** Leave it, or delete it by hand after the Vercel redeploy.
 - **Tokens.** None to clean up: each copy run deleted its own. `cf accounts tokens list --profile allthings` shows any left by a run that crashed outright, named "allthings media copy <time>".
-- **Docs.** README: the "default profile until the domain moves" sentence becomes past tense.
 
 ## Downtime: what can still go wrong
 
@@ -127,6 +145,10 @@ Erik submits the move in the personal account and accepts it in the allthings ac
   Direct links to originals, such as old link previews, would fail for those minutes.
 
 - **If R2 won't pre-attach on a pending zone:** the window is attach time plus certificate time. The same caches soften it.
+- **allthings.dev and www:** dark from activation until Phase 4's deploy attaches them, plus the time their edge certificates take.
+  - The deploy itself takes under a minute.
+  - allthings.dev has only ever redirected to allthingsweb.dev, so little links to it yet.
+  - The ACM certificate, if ordered, covers these names too.
 
 **There is no rollback for the zone once it moves.** The registration is transfer-locked for 30 days after the move. All de-risking therefore happens before the move:
 
@@ -136,9 +158,44 @@ Erik submits the move in the personal account and accepts it in the allthings ac
 
 The source bucket stays intact, so any object can be re-copied at any time.
 
+## Later: the full cutover
+
+This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. Its DNS stays at name.com, and the old app on Vercel keeps serving the site, sign-in, the admin and the hourly sync. Each step is its own PR, in this order:
+
+1. **The sync moves to the sync Worker.** In `infra/src/sync.ts`:
+   - Set `schedule: "hourly"` with `mode: "dry-run"` first. Compare an hour's logged work with the Vercel cron's writes.
+   - Then hand over, so the two never write in the same hour:
+     1. Remove the cron from `app/vercel.json` and deploy the app.
+     2. Wait for any run already started to finish. A run lasts at most its 60 s `maxDuration`.
+     3. Set `mode: "write"` and deploy prod.
+
+     Each run reads the whole calendar, so an hour skipped during the handover is caught up by the next run.
+
+   - `/api/cron/luma-sync` becomes 410 in the legacy-URL manifest (`web/tests/support/legacy-urls.ts`).
+
+2. **Sign-in and the admin retire.** The manifest marks these paths pending today. They become 410:
+   - `/handler/*` (Stack Auth)
+   - `/profile` and `/api/v1/profile`
+   - `/admin` and `/api/v1/admin/*`
+
+   With the admin gone, the upload Worker has no caller. Remove `MediaUpload`, its check and the Vercel env writes from the stack. The sync Worker still stores Luma's images in the bucket itself.
+
+3. **allthingsweb.dev redirects to allthings.dev** through the Next app's own `redirects()` in `app/next.config.ts`. No DNS change is needed.
+   - **Targets.** Each path goes to the same path on allthings.dev, with the query kept. The Worker already answers every legacy URL as the manifest says: renamed event slugs redirect once more, and retired paths return 410.
+   - **One hop.** Where the manifest's answer is itself a redirect, the Next redirect goes straight to its target.
+   - **No drift.** A test generates the Next redirects from the manifest, so the two can't drift apart.
+   - **Status codes.** Pages and feeds get 301. `/mcp` and `/api/*` get 308, which keeps a POST's method and body.
+   - **Ordering.** Steps 1 and 2 come first, so nothing the app still serves is redirected away.
+4. **Vercel retires.** allthingsweb.dev's redirects then need a home off Vercel:
+   - Add allthingsweb.dev as a zone in the allthings account and point name.com's nameservers at it. This is the only DNS change, and it waits until this step.
+   - Add allthingsweb.dev and www.allthingsweb.dev to the site's `redirects` in `siteDomain` (`infra/src/web.ts`). They become 301s to allthings.dev, with path and query kept, and the Worker's legacy handling does the rest.
+   - Delete the Vercel project and its env, then Stack Auth's project and the app's Sentry project.
+   - Delete `app/` and its workflow. The parity tests that hold core to the app's schemas go with it, and the contract's "Event page on allthingsweb.dev." description changes to allthings.dev.
+
 ## Open questions and assumptions
 
 1. **Whether R2 accepts a custom domain on a pending zone.** This is unverified. The stack tries it in Phase 2; failing is safe.
 2. **When the zone activates.** That a Registrar move activates the new account's zone promptly is unverified. I'll watch the zone's status during Phase 3.
-3. **Pre-existing drift.** `plan --stage prod` on main already shows `[MediaUpload] update` (an undeployed change on main). It's moot after Phase 4, which deploys a fresh upload Worker in the allthings account.
-4. **Only the upload Worker writes media today** (the app and the reencode script both go through it). If anything else writes to the bucket, Phase 4's re-copy covers it, as long as it runs after that writer stops.
+3. **allthings.dev's certificate after activation.** It is unverified that Worker custom domains on a just-activated zone get their edge certificate within minutes. I'll time it in Phase 4.
+4. **Pre-existing drift.** `plan --stage prod` on main already shows `[MediaUpload] update` (an undeployed change on main). It's moot after Phase 4, which deploys a fresh upload Worker in the allthings account.
+5. **Only the upload Worker writes media today** (the app and the reencode script both go through it). If anything else writes to the bucket, Phase 4's re-copy covers it, as long as it runs after that writer stops.
