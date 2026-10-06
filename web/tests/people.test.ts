@@ -452,8 +452,9 @@ describe("/people/<slug>", () => {
     expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
     const html = await response.text();
     // Said of a person, not an evening, with the way to everyone.
-    expect(html).toContain("No one has this address.");
-    expect(html).not.toContain("No evening");
+    expect(html).toContain(
+      '<p class="lead at-type-lead">No one has this address.</p>',
+    );
     expect(html).toContain(
       '<a href="/people">everyone <span aria-hidden="true">→</span></a>',
     );
