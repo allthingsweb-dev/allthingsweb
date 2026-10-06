@@ -53,6 +53,22 @@ export function apcaContrast(text: string, background: string): number {
   return contrast > -lowClip ? 0 : (contrast + offset) * 100;
 }
 
+/**
+ * The smallest text a contrast of `lc` (its magnitude) carries, by the APCA
+ * targets in brand/foundations.md: small text from Lc 75, large text (24px
+ * and up, the `large` font size) from Lc 60, and headlines and marks (36px
+ * and up, `display`) from Lc 45. Below that, no text: a rule or a surface.
+ */
+export type TextFloor = "small" | "large" | "display";
+
+export function textFloor(lc: number): TextFloor | undefined {
+  const magnitude = Math.abs(lc);
+  if (magnitude >= 75) return "small";
+  if (magnitude >= 60) return "large";
+  if (magnitude >= 45) return "display";
+  return undefined;
+}
+
 /** WCAG 2's relative luminance: sRGB's piecewise transfer curve. */
 function relativeLuminance([r, g, b]: Rgb): number {
   const linear = (channel: number) => {

@@ -33,6 +33,24 @@ body {
   font-family: var(--at-font-display);
   font-size: var(--at-type-body-size);
   line-height: 1.55;
+  /* A name or title longer than its line breaks rather than overflows. */
+  overflow-wrap: break-word;
+}
+
+/* The first stop for a keyboard: past the header, to the page itself. */
+.skip-link {
+  position: absolute;
+  top: var(--at-space-2);
+  left: var(--at-layout-margin);
+  z-index: 2;
+  padding: var(--at-space-2) var(--at-space-3);
+  background: var(--at-ground);
+  color: var(--at-link);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
 }
 
 h1,
@@ -171,26 +189,21 @@ main {
 }
 
 /* The mode: one icon that opens on the three choices (a <details>, no script). */
-.mode {
-  position: relative;
-}
-
-.mode summary {
+.mode > button {
   display: grid;
   place-items: center;
   width: var(--at-size-target);
   height: var(--at-size-target);
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--at-text);
   cursor: pointer;
-  list-style: none;
+  anchor-name: --at-mode;
 }
 
-.mode summary::-webkit-details-marker {
-  display: none;
-}
-
-.mode summary:hover,
-.mode[open] summary {
+.mode > button:hover,
+.mode > button:has(+ :popover-open) {
   color: var(--at-link);
 }
 
@@ -199,17 +212,25 @@ main {
   flex: none;
 }
 
+/* A popover: Escape and a click outside close it, with no script. */
 .mode ul {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 1;
   min-width: max-content;
-  margin: var(--at-space-1) 0 0;
   padding: var(--at-space-2) 0;
   border: var(--at-stroke-hairline) solid var(--at-rule);
   background: var(--at-ground);
+  color: var(--at-text);
   list-style: none;
+}
+
+/* Under the icon where anchors are supported; else centered, as popovers are. */
+@supports (anchor-name: --at-mode) {
+  .mode ul {
+    position-anchor: --at-mode;
+    inset: auto;
+    top: anchor(bottom);
+    right: anchor(right);
+    margin: var(--at-space-1) 0 0;
+  }
 }
 
 .mode a {
@@ -894,6 +915,13 @@ main > section,
   gap: var(--at-space-4) var(--at-space-6);
 }
 
+/* Flex items that hold text may shrink below their longest word, which then breaks. */
+.hosted > *,
+.act > *,
+.post-by > * {
+  min-width: 0;
+}
+
 .your-hosts {
   display: flex;
   align-items: center;
@@ -903,6 +931,7 @@ main > section,
 .your-hosts p {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .host-names {
@@ -973,6 +1002,7 @@ main > section,
 .event-person p {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   line-height: 1.25;
 }
 
@@ -1396,6 +1426,13 @@ a.post-author:hover {
   line-height: 1.1;
 }
 
+/* A color too faint on this ground for text, shown as a bar instead. */
+.sample-bar {
+  display: block;
+  height: var(--at-space-7);
+  background: var(--at-swatch);
+}
+
 .pairs-scroll {
   overflow-x: auto;
 }
@@ -1410,6 +1447,15 @@ a.post-author:hover {
 
 .pairs .sample > span {
   color: var(--at-swatch);
+}
+
+/* Each pairing's sample is set at the smallest size its target allows. */
+.pairs .sample-large {
+  font-size: var(--at-font-size-large);
+}
+
+.pairs .sample-display {
+  font-size: var(--at-font-size-display);
 }
 
 /* Type */
@@ -1559,6 +1605,11 @@ th {
 }
 
 @media (--at-below-xl) {
+  /* Two organizers side by side keep room for their names. */
+  .organizers .person {
+    grid-template-columns: var(--at-size-portrait-l) minmax(0, 1fr);
+  }
+
   .pitch,
   .lists,
   .evenings-head,
@@ -1663,10 +1714,6 @@ th {
   .person {
     column-gap: var(--at-space-4);
     row-gap: var(--at-space-2);
-  }
-
-  .organizers .person {
-    grid-template-columns: var(--at-size-portrait-l) minmax(0, 1fr);
   }
 
   .person .portrait {

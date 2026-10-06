@@ -1,6 +1,6 @@
 import { Context, DateTime, Duration, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
-import * as SqlSchema from "effect/sql/SqlSchema";
+import type * as Statement from "effect/sql/Statement";
 import type { DataSourceError } from "./errors.ts";
 import { eventTopic } from "./lockup.ts";
 import { eventTagline } from "./tagline.ts";
@@ -317,6 +317,14 @@ export function mustHaveVenues(
 }
 
 export interface CompletenessShape {
+  /**
+   * The record of the event with `slug`, published or draft, read as the
+   * report reads every published one: what readiness checks a draft against
+   * before it goes out (src/readiness/).
+   */
+  readonly record: (
+    slug: string,
+  ) => Effect.Effect<EventRecord | null, DataSourceError>;
   /** Every published event's report at the `Clock`'s now, latest first. */
   readonly report: Effect.Effect<
     ReadonlyArray<EventCompleteness>,
@@ -332,10 +340,8 @@ const make = Effect.gen(function* () {
 
   // In each list's attach order, as the event page shows it; people by role
   // and position. Ties break on ids, so the report never reorders.
-  const findAll = SqlSchema.findAll({
-    Request: Schema.Void,
-    Result: EventRecord,
-    execute: () => sql`
+  const records = (where: Statement.Fragment) =>
+    sql`
       SELECT e.slug, e.name, e.topic, e.tagline, e.description,
         e.luma_description AS "lumaDescription", e.luma_summary AS "lumaSummary",
         e.start_date AS "startDate", e.end_date AS "endDate",
@@ -385,13 +391,19 @@ const make = Effect.gen(function* () {
           WHERE ep.event_id = e.id
         ), '[]'::json) AS people
       FROM events e
-      WHERE e.is_draft = false
-      ORDER BY e.start_date DESC, e.id`,
-  });
+      WHERE ${where}
+      ORDER BY e.start_date DESC, e.id`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(EventRecord))),
+    );
 
   return Completeness.of({
+    record: (slug) =>
+      records(sql`e.slug = ${slug}`).pipe(
+        Effect.map(([event]) => event ?? null),
+        orDataSourceError,
+      ),
     report: Effect.gen(function* () {
-      const events = yield* orDataSourceError(findAll(undefined));
+      const events = yield* orDataSourceError(records(sql`e.is_draft = false`));
       return completeness(events, yield* DateTime.now);
     }),
   });
