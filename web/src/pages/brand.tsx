@@ -201,6 +201,13 @@ function Specimen({ role }: { readonly role: TypeRole }) {
           Francisco.
         </p>
       );
+    case "statement":
+      return (
+        <p class={className}>
+          Evenings for people who build software. In the neighborhoods of San
+          Francisco.
+        </p>
+      );
     case "listName":
       return (
         <p class={className}>

@@ -237,6 +237,28 @@
         }
       }
     },
+    "statement": {
+      "$value": {
+        "fontFamily": "{font.display}",
+        "fontSize": {
+          "value": 22,
+          "unit": "px"
+        },
+        "fontWeight": 500,
+        "lineHeight": 1.3,
+        "letterSpacing": {
+          "value": -0.22,
+          "unit": "px"
+        }
+      },
+      "$description": "Secondary statements: the two sentences beside a page's lists.",
+      "$extensions": {
+        "dev.allthings": {
+          "width": "100%",
+          "letterSpacingEm": -0.01
+        }
+      }
+    },
     "listName": {
       "$value": {
         "fontFamily": "{font.display}",
@@ -767,6 +789,10 @@
     "lead": {
       "$value": 36,
       "$description": "Characters to a line of lead copy."
+    },
+    "statement": {
+      "$value": 44,
+      "$description": "Characters to a line of a statement: each of the two sentences on one line at desktop widths."
     }
   },
   "breakpoint": {

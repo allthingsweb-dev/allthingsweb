@@ -103,7 +103,7 @@ describe("the about page", () => {
   test("says who we are in the foundations' words, under the two sentences", () => {
     const html = render(view());
     expect(html).toContain(
-      '<h1 class="lockup at-type-event-lockup">about</h1><div class="pitch at-type-lead"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
+      '<h1 class="lockup at-type-event-lockup">about</h1><div class="pitch at-type-statement"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
     );
     const who = part(html, "who");
     expect(who).toContain("An open door and a high bar.");

@@ -215,9 +215,9 @@ describe("the home page", () => {
     expect(html).toContain("&quot;Acme&quot; &amp; &lt;Co&gt;");
   });
 
-  test("sets the two sentences in the lead role", () => {
+  test("sets the two sentences in the statement role", () => {
     expect(render(view())).toContain(
-      '<div class="pitch at-type-lead"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
+      '<div class="pitch at-type-statement"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
     );
   });
 

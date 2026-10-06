@@ -101,10 +101,13 @@ One family, Archivo, used at three widths, plus Geist Mono for meta.
 | Event lockup | 72 / 0.9 | 800 | 112% | −4% | 45 |
 | Label (caps) | 40 / 1.0 | 700 | 75% | −1% | 60 |
 | Lead | 30 / 1.25 | 500 | 100% | −1% | 75 |
+| Statement | 22 / 1.3 | 500 | 100% | −1% | 75 |
 | List name | 21 | 700 | 100% | 0 | 75 |
 | List place (caps) | 14 | 600 | 75% | +6% | 75 |
 | Body | 18 / 1.55 | 400 | 100% | 0 | 90 |
 | Meta (Geist Mono, caps) | 14 / 1.5 | 500 | — | +6% | 75 |
+
+Each role's letters are pulled back by their face's left side bearing (brand/type-metrics.json, measured from the fonts by brand/marks), so the wordmark, a 156px lockup and a mono meta line share one visual left edge. The statement role sets the two sentences beside a page's lists, one line each at desktop widths.
 
 Sizes are the largest. The wordmark, event lockup, label and lead shrink on narrow screens, each down to a floor its token sets.
 

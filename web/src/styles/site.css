@@ -117,6 +117,7 @@ main {
   font-size: var(--at-font-size-title);
   font-weight: 800;
   font-stretch: 112%;
+  text-indent: var(--at-type-wordmark-inset);
   letter-spacing: -0.03em;
   line-height: 1;
   text-decoration: none;
@@ -317,6 +318,7 @@ main > section,
   font-size: var(--at-type-label-size);
   font-weight: 800;
   font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -366,6 +368,7 @@ main > section,
 .hero-name {
   font-weight: 800;
   font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
   line-height: 0.84;
   letter-spacing: -0.045em;
   overflow-wrap: break-word;
@@ -398,6 +401,7 @@ main > section,
   font-size: var(--at-font-size-title);
   font-weight: 700;
   font-stretch: 75%;
+  text-indent: var(--at-type-label-inset);
   line-height: 1.1;
   letter-spacing: -0.01em;
   text-transform: uppercase;
@@ -451,13 +455,33 @@ main > section,
 
 /* The two sentences, set in the lead role: four columns hold each in two
    balanced lines at 30px, and narrower screens stack them above the lists. */
+/* The two sentences, in the statement role, one line each at desktop
+   widths (the statement measure); beside the lists on home, at the top of
+   the head on /about. */
 .pitch {
-  grid-column: span 4;
-  align-self: end;
+  max-width: var(--at-measure-statement);
   display: flex;
   flex-direction: column;
   gap: var(--at-space-1);
   text-wrap: balance;
+}
+
+.band > .pitch {
+  grid-column: span 5;
+}
+
+/*
+ * A page in two columns starts both at the same rule line, a section's
+ * heavy rule, so their tops align whatever each column leads with.
+ */
+.band > .pitch,
+.lists,
+.evenings-head,
+.about-head,
+.evenings-lists .list,
+.about-part {
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+  padding-top: var(--at-space-3);
 }
 
 .pitch-place {
@@ -468,8 +492,6 @@ main > section,
   grid-column: span 7 / -1;
   display: grid;
   gap: var(--at-space-10) var(--at-space-8);
-  border-top: var(--at-stroke-rule) solid var(--at-text);
-  padding-top: var(--at-space-3);
 }
 
 .lists.two {
@@ -581,11 +603,6 @@ main > section,
   gap: var(--at-space-12);
 }
 
-.evenings-lists .list {
-  border-top: var(--at-stroke-rule) solid var(--at-text);
-  padding-top: var(--at-space-3);
-}
-
 /* About: the lockup and the two sentences hold still beside its parts,
    as the evenings index's title does beside its lists. */
 
@@ -593,8 +610,6 @@ main > section,
   display: flex;
   flex-direction: column;
   gap: var(--at-space-4);
-  border-top: var(--at-stroke-rule) solid var(--at-text);
-  padding-top: var(--at-space-3);
 }
 
 .about-part > p {
@@ -622,6 +637,7 @@ main > section,
   font-size: var(--at-font-size-figure);
   font-weight: 800;
   font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
   line-height: 0.95;
   letter-spacing: -0.04em;
 }
@@ -641,11 +657,6 @@ main > section,
 
 .about .organizers .person {
   padding: var(--at-space-2) 0 var(--at-space-4);
-}
-
-/* The two sentences sit under the lockup, not at the column's end. */
-.about-head .pitch {
-  align-self: start;
 }
 
 .person-name a {
@@ -721,6 +732,7 @@ main > section,
   font-size: var(--at-type-label-size);
   font-weight: 800;
   font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -816,6 +828,7 @@ main > section,
 .event-name {
   font-weight: 800;
   font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
   line-height: 0.9;
   letter-spacing: -0.04em;
   overflow-wrap: break-word;
@@ -870,6 +883,7 @@ main > section,
   font-size: var(--at-type-label-size);
   font-weight: 700;
   font-stretch: 75%;
+  text-indent: var(--at-type-label-inset);
   line-height: 1;
   letter-spacing: -0.01em;
   text-transform: uppercase;
@@ -1309,6 +1323,7 @@ a.post-author:hover {
   font-size: var(--at-type-label-size);
   font-weight: 800;
   font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
   line-height: 0.95;
   letter-spacing: -0.04em;
 }
@@ -1551,7 +1566,7 @@ th {
 }
 
 @media (--at-below-xl) {
-  .pitch,
+  .band > .pitch,
   .lists,
   .evenings-head,
   .evenings-lists,
