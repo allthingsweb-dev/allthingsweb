@@ -1,0 +1,508 @@
+{
+  "talks": [
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Remix Architecture Patterns",
+      "eventName": "Remix Conf Europe 2022",
+      "kind": "conference",
+      "givenOn": "2022-11-18",
+      "url": "https://gitnation.com/contents/remix-architecture-patterns",
+      "videoUrl": null,
+      "source": "https://gitnation.com/contents/remix-architecture-patterns",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "The time to go full stack is now",
+      "eventName": "Reactathon 2023",
+      "kind": "conference",
+      "givenOn": "2023-05-03",
+      "url": "https://www.reactathon.com/schedule/day-2",
+      "videoUrl": "https://www.youtube.com/watch?v=PhAWtMQWgSs",
+      "source": "https://web.archive.org/web/20230320150854/https://www.reactathon.com/schedule/day-2",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Convince your boss to use Remix",
+      "eventName": "Remix Conf 2023",
+      "kind": "conference",
+      "givenOn": "2023-05-11",
+      "url": "https://v2.remix.run/conf/2023/speakers/andre-landgraf",
+      "videoUrl": "https://www.youtube.com/watch?v=E93O9GEAahk",
+      "source": "https://v2.remix.run/conf/2023/speakers/andre-landgraf",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Remixing Toast Notifications (feat. Andre Landgraf)",
+      "eventName": "Remix (YouTube channel)",
+      "kind": "video",
+      "givenOn": "2023-11-28",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=N2yMZR6B31U",
+      "source": "https://www.youtube.com/watch?v=N2yMZR6B31U",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Simpler mental models with Remix",
+      "eventName": "TorontoJS Online Tech Talk 01",
+      "kind": "meetup",
+      "givenOn": "2024-01-25",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=cgDV8aMJrQc",
+      "source": "https://www.youtube.com/watch?v=cgDV8aMJrQc",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Epic Image Optimization with Andre Landgraf",
+      "eventName": "Chats with Kent Podcast (Season 6, Episode 24)",
+      "kind": "podcast",
+      "givenOn": "2025-03-08",
+      "url": "https://kentcdodds.com/chats/06/24/epic-image-optimization-with-andre-landgraf",
+      "videoUrl": "https://www.youtube.com/watch?v=xCkhIm7FgJ0",
+      "source": "https://kentcdodds.com/chats/06/24/epic-image-optimization-with-andre-landgraf",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Epic Image Optimization",
+      "eventName": "Epic Web Conf 2025",
+      "kind": "conference",
+      "givenOn": "2025-03-26",
+      "url": "https://www.epicweb.dev/conf/2025/andre-landgraf",
+      "videoUrl": "https://www.epicweb.dev/talks/epic-image-optimization",
+      "source": "https://www.epicweb.dev/conf/2025",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "NextDev #11 | Andre Landgraf @ Neon & All Things Web",
+      "eventName": "NextDev.fm",
+      "kind": "podcast",
+      "givenOn": "2025-04-24",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=fQIG10GA5Ak",
+      "source": "https://www.youtube.com/watch?v=fQIG10GA5Ak",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Handling Stripe Events the Right Way",
+      "eventName": "type: invoice.paid | Stripe Sessions Pre-Meetup (Mux x Neon)",
+      "kind": "meetup",
+      "givenOn": "2025-05-05",
+      "url": "https://luma.com/atkul21b",
+      "videoUrl": null,
+      "source": "https://luma.com/atkul21b",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Stop managing databases manually—let agents handle it",
+      "eventName": "MCP Night by WorkOS (2025)",
+      "kind": "meetup",
+      "givenOn": "2025-05-14",
+      "url": "https://luma.com/quvg7kzs",
+      "videoUrl": "https://www.youtube.com/watch?v=BbZODK1sLp4",
+      "source": "https://luma.com/quvg7kzs",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Your Frontend's Best Friend - How to Ship Fast in 2025",
+      "eventName": "React Summit 2025",
+      "kind": "conference",
+      "givenOn": "2025-06-17",
+      "url": "https://gitnation.com/contents/your-frontends-best-friend-how-to-ship-fast-in-2025",
+      "videoUrl": null,
+      "source": "https://gitnation.com/contents/your-frontends-best-friend-how-to-ship-fast-in-2025",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Sensible Use of MCP In Production",
+      "eventName": "Descope Global MCP Hackathon: Launch Party",
+      "kind": "meetup",
+      "givenOn": "2025-08-12",
+      "url": "https://luma.com/Descope-Global-MCP-Hackathon",
+      "videoUrl": "https://www.youtube.com/watch?v=6NaMgzDk2mQ",
+      "source": "https://luma.com/Descope-Global-MCP-Hackathon",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Mega Guest Episode! Databricks, CodeRabbit, MongoDB & Osmosis",
+      "eventName": "AI Agents Hour (Mastra)",
+      "kind": "podcast",
+      "givenOn": "2025-10-27",
+      "url": "https://mastra.ai/podcasts/mega-guest-episode-databricks-coderabbit-mongodb-osmosis",
+      "videoUrl": "https://www.youtube.com/watch?v=c9pMaDzEOJQ",
+      "source": "https://mastra.ai/podcasts/mega-guest-episode-databricks-coderabbit-mongodb-osmosis",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Building Operational Systems on Databricks (with Andre Landgraf)",
+      "eventName": "Havens Consulting (YouTube livestream)",
+      "kind": "video",
+      "givenOn": "2026-06-26",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=gqHAGtjE1l8",
+      "source": "https://www.youtube.com/watch?v=gqHAGtjE1l8",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "name": "Andre Landgraf",
+      "title": "Neon is Agent Ready with New Claimable Databases",
+      "eventName": "WorkOS (YouTube channel)",
+      "kind": "video",
+      "givenOn": "2026-09-11",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=ONo2dh7Ifs0",
+      "source": "https://www.youtube.com/watch?v=ONo2dh7Ifs0",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "FramerJS for UI/UX Prototyping",
+      "eventName": "Sketch Meetup 05: Prototyping & Animations! (Sketch App Meetup Göteborg)",
+      "kind": "meetup",
+      "givenOn": "2017-02-09",
+      "url": "https://www.meetup.com/Sketch-App-Meetup-Goteborg/events/237184601/",
+      "videoUrl": null,
+      "source": "https://unhype.me/",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "React-SketchApp",
+      "eventName": "Cross Functional React! (ReactJS Göteborg Meetup)",
+      "kind": "meetup",
+      "givenOn": "2017-05-23",
+      "url": "https://www.meetup.com/ReactJS-Goteborg/events/239869601/",
+      "videoUrl": null,
+      "source": "https://www.meetup.com/ReactJS-Goteborg/events/239869601/",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Expose yourself to ideas",
+      "eventName": "Kodsnack (Episode 210)",
+      "kind": "podcast",
+      "givenOn": "2017-05-30",
+      "url": "https://kodsnack.se/international/210/",
+      "videoUrl": null,
+      "source": "https://kodsnack.se/international/210/",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "ReactNativeAllThePlatforms live",
+      "eventName": "React Jax Meetup",
+      "kind": "meetup",
+      "givenOn": "2020-08-11",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=XdQS2kC7OvU",
+      "source": "https://www.youtube.com/watch?v=XdQS2kC7OvU",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Introducing Sketch Assistants",
+      "eventName": "Sketch & Design North Florida Meetup",
+      "kind": "meetup",
+      "givenOn": "2020-09-10",
+      "url": "https://www.meetup.com/Sketch-Design-North-Florida/events/272527105/",
+      "videoUrl": "https://www.youtube.com/watch?v=br0I-BjGAUQ",
+      "source": "https://www.youtube.com/watch?v=br0I-BjGAUQ",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Using Isomorphic Agentic System to Measure Agentic Experiences on the Web",
+      "eventName": "Global AI Bootcamp: SF AI Show + Tell & AI Agent Dev Tools (Microsoft Reactor SF)",
+      "kind": "meetup",
+      "givenOn": "2025-04-01",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=5XPE3Z2A5XM",
+      "source": "https://www.youtube.com/watch?v=5XPE3Z2A5XM",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Writing Abstract UI: A Paradigm Shift in UI Development",
+      "eventName": "React Norway 2025",
+      "kind": "conference",
+      "givenOn": "2025-06-13",
+      "url": "https://vintage.reactnorway.com/past-conferences/2025",
+      "videoUrl": null,
+      "source": "https://vintage.reactnorway.com/past-conferences/2025",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Fight AI PR Slop & Spam with AI Code Review",
+      "eventName": "All Things Open 2025",
+      "kind": "conference",
+      "givenOn": "2025-10-13",
+      "url": "https://2025.allthingsopen.org/sessions/how-we-are-helping-oss-fight-pr-spam",
+      "videoUrl": null,
+      "source": "https://2025.allthingsopen.org/schedule",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Mega Guest Episode! Databricks, CodeRabbit, MongoDB & Osmosis",
+      "eventName": "AI Agents Hour (Mastra)",
+      "kind": "podcast",
+      "givenOn": "2025-10-27",
+      "url": "https://mastra.ai/podcasts/mega-guest-episode-databricks-coderabbit-mongodb-osmosis",
+      "videoUrl": "https://www.youtube.com/watch?v=c9pMaDzEOJQ",
+      "source": "https://mastra.ai/podcasts/mega-guest-episode-databricks-coderabbit-mongodb-osmosis",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Context-engineering for accurate & relevant AI code reviews",
+      "eventName": "AWS Partner Showcase - Agentic AI in Action (SF)",
+      "kind": "meetup",
+      "givenOn": "2025-10-30",
+      "url": "https://www.aicamp.ai/event/eventdetails/W2025103018",
+      "videoUrl": null,
+      "source": "https://www.aicamp.ai/event/eventdetails/W2025103018",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "The Code Review Bottleneck Crisis | Behind the Rabbit Episode #1",
+      "eventName": "Behind the Rabbit (CodeRabbit)",
+      "kind": "podcast",
+      "givenOn": "2025-12-08",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=cpzfGo7MdZ4",
+      "source": "https://www.youtube.com/watch?v=cpzfGo7MdZ4",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Doing One Thing Exceptionally Well: CodeRabbit's Approach to AI Code Review",
+      "eventName": "Whiskey Web and Whatnot (Episode 222)",
+      "kind": "podcast",
+      "givenOn": "2025-12-11",
+      "url": "https://whiskey.fm/doing-one-thing-exceptionally-well-coderabbits-approach-to-ai-code-review",
+      "videoUrl": "https://www.youtube.com/watch?v=Lv7copW8vv8",
+      "source": "https://whiskey.fm/doing-one-thing-exceptionally-well-coderabbits-approach-to-ai-code-review",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Ondrej askin' - JSNation25, Erik Thorelli @ CodeRabbit | Making JS Quick with Bun & The Planetarium?",
+      "eventName": "Ondrej askin' (CKEditor)",
+      "kind": "video",
+      "givenOn": "2026-03-12",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=_Godpv1WTU0",
+      "source": "https://www.youtube.com/watch?v=_Godpv1WTU0",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Why CodeRabbit gave away a million dollars to open source maintainers",
+      "eventName": "We Love Open Source (All Things Open)",
+      "kind": "video",
+      "givenOn": "2026-04-01",
+      "url": null,
+      "videoUrl": "https://www.youtube.com/watch?v=bxMkPMplo0Q",
+      "source": "https://www.youtube.com/watch?v=bxMkPMplo0Q",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Skills Issues",
+      "eventName": "AI Engineer Miami 2026",
+      "kind": "conference",
+      "givenOn": "2026-04-21",
+      "url": "https://www.ai.engineer/miami/2026",
+      "videoUrl": "https://www.youtube.com/watch?v=DeM_u2Ik0sk&t=20107",
+      "source": "https://www.youtube.com/watch?v=DeM_u2Ik0sk",
+      "read": "2026-10-05"
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "title": "Make what agents want",
+      "eventName": "AgentsNexus India 2026",
+      "kind": "conference",
+      "givenOn": "2026-09-05",
+      "url": "https://agentsnexus.io/agenda",
+      "videoUrl": null,
+      "source": "https://agentsnexus.io/agenda",
+      "read": "2026-10-05"
+    }
+  ],
+  "held": [
+    {
+      "name": "Andre Landgraf",
+      "title": "How is Your Agent Experience? (described as 'Composing Agent Experience')",
+      "eventName": "Resend Dev Tools event, San Francisco",
+      "sources": [
+        "https://www.youtube.com/watch?v=JWuxNEsDt9M",
+        "https://luma.com/kkfdsxrd"
+      ],
+      "reason": "date unknown. The video description says only 'At our recent Dev Tools event in San Francisco'. Video uploaded 2026-05-02. The Resend DevTools Meetup Luma pages checked (kkfdsxrd 2026-01-29, ia00vywi, sbm8vixi, zzqoybzc) do not list Andre."
+    },
+    {
+      "name": "Andre Landgraf",
+      "title": "How Neon powers database workflows for AI agents",
+      "eventName": "Stripe Developers (possibly Stripe Sessions 2026 / Stripe Projects)",
+      "sources": [
+        "https://www.youtube.com/watch?v=24cuaxwWwvo",
+        "https://stripe.com/sessions/2026"
+      ],
+      "reason": "event and date unknown. The Stripe Developers channel video (uploaded 2026-04-30, co-presented with Rodney Sherwin Shibu) names no event, and stripe.com/sessions/2026 showed no matching session."
+    },
+    {
+      "name": "Andre Landgraf",
+      "title": "How to Speak with Remix",
+      "eventName": "Remix (YouTube channel); event unknown",
+      "sources": [
+        "https://www.youtube.com/watch?v=oE-DwyPFm7s",
+        "https://v2.remix.run/conf/2022"
+      ],
+      "reason": "event and date unknown. Uploaded to the official Remix channel on 2022-04-27 in talk format with a speaker bio. Andre is not on the Remix Conf 2022 speaker list (May 24-25, 2022), so the originating event is unverified."
+    },
+    {
+      "name": "Andre Landgraf",
+      "title": "Full stack web development with Remix",
+      "eventName": "React Jax (Jacksonville) meetup, January 2022",
+      "sources": ["https://www.youtube.com/watch?v=az9QZRSeuPM"],
+      "reason": "date unknown. Only 'January 2022' is given (video description), and no event page with the exact day was found. Video uploaded 2022-01-25."
+    },
+    {
+      "name": "Andre Landgraf",
+      "title": "Lakebase: Building the Operational Foundation for AI Agents",
+      "eventName": "Data + AI Summit 2026 (Databricks)",
+      "sources": [
+        "https://www.youtube.com/watch?v=2SJkhiNizcI",
+        "https://www.databricks.com/dataaisummit/speaker/andre-landgraf",
+        "https://www.databricks.com/dataaisummit/session/lakebase-building-operational-foundation-ai-agents"
+      ],
+      "reason": "date unknown. Co-speakers are Jason Pohl and Maria Zervou. The speaker/session pages now show the 2027 edition with no 2026 session date. Search summaries put the 2026 summit at June 15-18, 2026 (not verified on a primary page). Recording on Databricks Events uploaded 2026-06-26."
+    },
+    {
+      "name": "Andre Landgraf",
+      "title": "How to Vibe Code Successfully: Make Your Agents Love Databricks (YouTube: 'How to Vibe Code on Databricks: Agent Experience (AX) Best Practices')",
+      "eventName": "Data + AI Summit 2026 (Databricks), virtual session",
+      "sources": [
+        "https://www.youtube.com/watch?v=ekeq1yuV5Lo",
+        "https://www.databricks.com/dataaisummit/session/how-vibe-code-successfully-make-your-agents-love-databricks"
+      ],
+      "reason": "date unknown. Listed as a virtual session and the session date was not found. Recording uploaded 2026-09-01 on Databricks Events ('Talk By: Andre Landgraf')."
+    },
+    {
+      "name": "Andre Landgraf",
+      "title": "My Remix: Making Remix Your Own",
+      "eventName": "Remix Bay Area meetup (Oct 2022)",
+      "sources": [
+        "https://www.youtube.com/watch?v=7HnXzn9d190",
+        "https://www.meetup.com/remix-bay-area/"
+      ],
+      "reason": "probably an all things talk, not an outside one. The Remix Bay Area meetup.com group is the predecessor of All Things Web: the same group now lists All Things Web events and Erik Thorelli as organizer. Exact event date was also not verified (video uploaded 2022-10-26; co-recording with Knut Melvær's talk)."
+    },
+    {
+      "name": "Andre Landgraf",
+      "title": "No WiFi, No Problem w/ Service Workers (with Tony Dang)",
+      "eventName": "Remix Bay Area takeover of the Front End Guild at Hacker Dojo, Mountain View",
+      "sources": [
+        "https://www.youtube.com/watch?v=oOTaOap1OYE",
+        "https://www.meetup.com/hackerdojo/events/298643811/"
+      ],
+      "reason": "unclear whether this was an outside talk or the ATW predecessor's own event. It was hosted on the Hacker Dojo meetup group (event 298643811, Saturday 2024-01-20, 5-7 PM PST) but billed as a 'Remix Bay Area takeover', and the meetup page does not list speakers. Andre's exact talk title is not confirmed separately from the event title."
+    },
+    {
+      "name": "Erik Thorelli",
+      "title": "// TODO // FIXME: Real Strategies To Modernize a Legacy React Native Project",
+      "eventName": "Chain React 2024",
+      "sources": [
+        "https://chainreactconf.com/speakers/erik-thorelli",
+        "https://www.youtube.com/watch?v=HF7jJRrFq00"
+      ],
+      "reason": "date unknown. Talk confirmed (11:00-11:30 am PST), but the archived schedule renders days client-side, so it could only be pinned to main conference day one or two (2024-07-18 or 2024-07-19). Official recordings: Infinite Red https://www.youtube.com/watch?v=HF7jJRrFq00 (uploaded 2024-08-07) and Confreaks https://www.youtube.com/watch?v=s3HYLuhAlKE."
+    },
+    {
+      "name": "Erik Thorelli",
+      "title": "Coderabbit | Partner Experience at the 13th DevOps Conclave & Awards 2026",
+      "eventName": "13th DevOps Conclave & Awards 2026 (UBS Forums), Gurgaon",
+      "sources": ["https://www.youtube.com/watch?v=Q9FUcEJdhTo"],
+      "reason": "not a talk. This is a partner testimonial video from the event (Wednesday, 2 September 2026). No primary page shows Erik speaking there."
+    },
+    {
+      "name": "Erik Thorelli",
+      "title": "Talk at Bengaluru Burrow (title not published)",
+      "eventName": "Bengaluru Burrow | Bengaluru Tech Week (CodeRabbit)",
+      "sources": ["https://luma.com/codera-klde"],
+      "reason": "Talk is confirmed: the agenda reads '12:00pm: Talk by Erik Thorelli (Head of Developer Experience, CodeRabbit)' on Saturday 2026-09-05 (Asia/Kolkata, 11:30-14:00). No talk title is published anywhere I could find, and Erik is also the event host. Add it once Erik supplies the title."
+    },
+    {
+      "name": "Erik Thorelli",
+      "title": "Deploying AI Code Review at Scale",
+      "eventName": "AI Dev 26 x SF (DeepLearning.AI)",
+      "sources": [
+        "https://www.youtube.com/watch?v=zbuf9J5KgOM",
+        "https://www.eventbrite.com/e/ai-dev-26-x-sf-the-ai-developer-conference-tickets-1969285167949"
+      ],
+      "reason": "Official recording confirms the title (DeepLearningAI channel, published 2026-05-21). The conference ran April 28-29, 2026 at Pier 48, but no primary source says which day he spoke (the agenda loads client-side and isn't in the Wayback snapshot). The date is either 2026-04-28 or 2026-04-29."
+    },
+    {
+      "name": "Erik Thorelli",
+      "title": "Unknown (Agent Labs track speaker)",
+      "eventName": "AI Engineer Code Summit 2025 (NYC)",
+      "sources": ["https://www.ai.engineer/code/2025"],
+      "reason": "ai.engineer/code/2025 lists 'Erik Thorelli, Coderabbit' among Agent Labs track speakers for Nov 19-22, 2025, but neither the archive page nor the AIE CODE livestream descriptions I checked give a title or day."
+    },
+    {
+      "name": "Erik Thorelli",
+      "title": "Other Bangalore meetups (\"lots of meetups\")",
+      "eventName": "Bengaluru trip, around Sept 1-6, 2026 (Bengaluru Tech Week)",
+      "sources": [
+        "https://luma.com/coderabbitai",
+        "https://luma.com/blrtechweek",
+        "https://agentsnexus.io/workshops"
+      ],
+      "reason": "Checked the CodeRabbit and Bengaluru Tech Week Luma calendars (all event descriptions), Erik's Luma hosting profile, the AgentsNexus workshop page, AI Tinkerers Bengaluru, dev.events and web search for meetup.com/commudle/Hasgeek/KonfHub. Found no other Bengaluru event that names Erik as a speaker. Need event links from Erik."
+    }
+  ]
+}

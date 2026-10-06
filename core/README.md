@@ -53,6 +53,27 @@ speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
 panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
 `Events.getPublished` returns all of it, with Luma's guest counts.
 
+## Talks given elsewhere
+
+`external_talks` holds talks people gave away from our evenings: at
+conferences, other meetups, on podcasts and in videos. Each has its event
+(the conference, meetup, podcast or channel), its kind, the day, its page
+and recording where they exist, and where its facts were read and when.
+`ExternalTalks.forProfiles` reads them, latest first, for person pages.
+
+`backfill/external-talks.json` carries them from public sources (YouTube,
+conference and meetup pages, podcast pages, people's own sites). What
+could not be confirmed, a date or a same-name speaker above all, is kept
+under `held` with its reason and never written.
+
+```sh
+DATABASE_URL=… bun run external-talks --dry-run   # what would be written, rolled back
+DATABASE_URL=… bun run external-talks             # write it, in one transaction
+```
+
+Applying is safe to repeat: a talk is known by its speaker, title and day,
+and one already there only takes corrected links and sources.
+
 ## Hidden venues
 
 While Luma shows an event's venue to guests only ("location_visibility":

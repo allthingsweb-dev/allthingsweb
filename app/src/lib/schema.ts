@@ -11,6 +11,7 @@ import {
   index,
   date,
   pgSchema,
+  unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -812,5 +813,58 @@ export const planningNotesTable = planningSchema.table(
     ),
     check("notes_body_check", sql`btrim("body") <> ''`),
     check("notes_author_check", sql`btrim("author") <> ''`),
+  ],
+);
+
+/** What kind of stage a talk given elsewhere was on. */
+export const externalTalkKinds = [
+  "conference",
+  "meetup",
+  "podcast",
+  "video",
+  "workshop",
+] as const;
+
+/**
+ * Talks people gave elsewhere: at conferences, other meetups, on podcasts
+ * and in videos, sourced like the lineups (core/backfill/external-talks.json).
+ * core/migrations/0016_external_talks.ts is the same change.
+ */
+export const externalTalksTable = pgTable(
+  "external_talks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profilesTable.id),
+    title: text("title").notNull(),
+    /** The conference, meetup, podcast or channel it was given at. */
+    eventName: text("event_name").notNull(),
+    kind: text("kind", { enum: externalTalkKinds }).notNull(),
+    givenOn: date("given_on", { mode: "string" }).notNull(),
+    /** The talk's, episode's or event's page. */
+    url: text("url"),
+    /** Its recording. */
+    videoUrl: text("video_url"),
+    /** Where the facts were read, and on what day. */
+    sourceUrl: text("source_url").notNull(),
+    readOn: date("read_on", { mode: "string" }).notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("external_talks_profile_id_idx").on(table.profileId),
+    unique("external_talks_profile_id_title_given_on_unique").on(
+      table.profileId,
+      table.title,
+      table.givenOn,
+    ),
+    check(
+      "external_talks_kind_check",
+      sql`"kind" IN ('conference', 'meetup', 'podcast', 'video', 'workshop')`,
+    ),
+    check("external_talks_url_check", sql`"url" ~ '^https://'`),
+    check("external_talks_video_url_check", sql`"video_url" ~ '^https://'`),
+    check("external_talks_source_url_check", sql`"source_url" ~ '^https://'`),
   ],
 );

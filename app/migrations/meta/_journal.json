@@ -169,6 +169,13 @@
       "when": 1791246178685,
       "tag": "0023_planning",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791248974559,
+      "tag": "0028_external_talks",
+      "breakpoints": true
     }
   ]
 }
