@@ -124,6 +124,7 @@ Sizes are the largest. The wordmark, event lockup, label, lead and statement shr
 - A lineup is as dense as its evening is long (web/src/pages/lineup.ts). Up to 3 talks, each speaker gets a full card: portrait, title, links and bio. Up to 6, each talk shows its people as rows of portrait, role, name and title, and bios stay on /people. Beyond 6, as in a lightning round, one compact row per talk, with its description behind a disclosure. A panel or fireside chat always shows its people as rows; moderators and guests keep their role.
 - Every host is always seen: portraits sit side by side, never overlapping. The stylesheet has no negative margins.
 - Asymmetry is deliberate: neighboring blocks may sit on different cuts of the grid and align to different edges.
+- Columns side by side start at one rule line. A statement beside another column, as home's two sentences sit beside its lists, stands at the foot of its cell, so its last line comes down to the columns' shared bottom. Stacked on narrow screens, it reads in place.
 - Lists of events: a light date, the name heavy with its slash, and the place bolder than the date but clearly secondary.
 - Home says each thing once: the next event is the hero, real photos sit beside it, and the lists below show only other events ("after that", "recently").
 
