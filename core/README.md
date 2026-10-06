@@ -53,6 +53,27 @@ speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
 panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
 `Events.getPublished` returns all of it, with Luma's guest counts.
 
+## Hidden venues
+
+While Luma shows an event's venue to guests only ("location_visibility":
+"guests-only"), its calendar feed hides it: LOCATION is the event's own page
+and DESCRIPTION says "Check event page for more details". The sync takes
+that as no venue, so an event it creates then has none and keeps none (All
+Things Sync, 2026-04-29, at CodeRabbit's rooftop, was one). Luma's API
+gives the address all the same, and `src/luma/venues.ts` fills in each
+published event's missing venue from it, the way the sync writes a venue
+the feed shows. It never replaces a stored venue, and keeps any field an
+organizer wrote. The hourly sync does it after the events
+(web/src/sync/run.ts); to run it now, from `core/`:
+
+```sh
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:venues --dry-run   # ask Luma, print the venues
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:venues             # write them
+```
+
+The completeness check fails on any published evening without a venue,
+however old, since Luma always knows where one was.
+
 ## Luma people import
 
 The calendar feed names no hosts and counts no guests. `src/luma/api.ts`
@@ -156,7 +177,8 @@ judged.
 ```sh
 DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") bun run completeness          # table, then each event's gaps
 DATABASE_URL=… bun run completeness --json   # the same, for tools
-DATABASE_URL=… bun run completeness --check  # also fail if an evening of talks that ended in the last 30 days has none
+DATABASE_URL=… bun run completeness --check  # also fail if an evening of talks that ended in the last 30 days has none,
+                                             # or any published evening, past or upcoming, has no venue
 ```
 
 It only reads, so the read-only `site_reader` role is enough. The admin MCP
