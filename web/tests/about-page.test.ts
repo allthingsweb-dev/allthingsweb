@@ -1,3 +1,4 @@
+import { personSlug } from "allthings-core/src/person-slug.ts";
 import { describe, expect, test } from "bun:test";
 import type { AboutView, Organizer } from "allthings-core/src/about.ts";
 import type { Evening } from "allthings-core/src/home.ts";
@@ -43,6 +44,7 @@ const organizer = (
   overrides: Partial<Organizer> = {},
 ): Organizer => ({
   id: name.toLowerCase(),
+  slug: personSlug(overrides.name ?? name),
   name,
   title: "Organizer",
   bio: `${name} organizes the evenings.`,
@@ -192,7 +194,7 @@ describe("the about page", () => {
   test("shows the organizers whole, linked to their people entries", () => {
     const organizers = part(render(view()), "organizers");
     expect(organizers).toContain(
-      '<h3 class="person-name"><a href="/people#p-erik">Erik</a></h3>',
+      '<h3 class="person-name"><a href="/people/erik">Erik</a></h3>',
     );
     expect(organizers).toContain(
       '<p class="person-bio">Erik organizes the evenings.</p>',

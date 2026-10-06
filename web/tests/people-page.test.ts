@@ -1,3 +1,4 @@
+import { personSlug } from "allthings-core/src/person-slug.ts";
 import { describe, expect, test } from "bun:test";
 import type {
   PeopleView,
@@ -5,6 +6,7 @@ import type {
 } from "allthings-core/src/people-directory.ts";
 import { DateTime } from "effect";
 import { peoplePage } from "../src/pages/people.tsx";
+import { personPage } from "../src/pages/person.tsx";
 import type { ImageMode } from "../src/pages/picture.tsx";
 import { headingLevels, htmlProblems } from "./support/pages.ts";
 
@@ -14,6 +16,7 @@ const origin = "https://allthingsweb.dev";
 
 const person = (name: string, overrides: Partial<Person> = {}): Person => ({
   id: name,
+  slug: personSlug(overrides.name ?? name),
   name,
   title: "Engineer",
   bio: "Writes compilers for the analytical engine, mostly at night. Also teaches.",
@@ -26,6 +29,7 @@ const person = (name: string, overrides: Partial<Person> = {}): Person => ({
       role: "speaker",
       evening: {
         slug: "2026-03-07-all-things-effect",
+        curation: "ours",
         name: "All Things Effect",
         topic: "effect",
         status: "past",
@@ -151,6 +155,7 @@ describe("the people page", () => {
               role: "speaker",
               evening: {
                 slug: "party",
+                curation: "ours",
                 name: "TypeScript AI: The official conference after-party",
                 topic: undefined,
                 status: "upcoming",
@@ -170,6 +175,7 @@ describe("the people page", () => {
   test("names each part: a talk in its capacity unless spoken, an evening role by its name", () => {
     const evening = (slug: string) => ({
       slug,
+      curation: "ours" as const,
       name: "All Things Effect",
       topic: "effect",
       status: "past" as const,
@@ -256,5 +262,65 @@ describe("the people page", () => {
     ["nobody", { organizers: [], speakers: [], coHosts: [] }],
   ])("is valid HTML: %s", async (_, people) => {
     expect(await htmlProblems(render(people))).toEqual([]);
+  });
+});
+
+describe("a person's page", () => {
+  test("keeps talks at evenings we shared apart from ours, in its sections and its description", async () => {
+    const evening = (slug: string, curation: "ours" | "shared") => ({
+      slug,
+      curation,
+      name: "An evening",
+      topic: curation === "ours" ? "effect" : undefined,
+      status: "past" as const,
+      startsAt: DateTime.makeUnsafe("2026-03-08T07:30:00Z"),
+    });
+    const html = personPage({
+      person: {
+        ...person("Ada", {
+          parts: [
+            {
+              kind: "talk",
+              title: "Ours",
+              role: "speaker",
+              evening: evening("a", "ours"),
+            },
+            {
+              kind: "talk",
+              title: "Theirs",
+              role: "speaker",
+              evening: evening("b", "shared"),
+            },
+            {
+              kind: "talk",
+              title: "Theirs too",
+              role: "speaker",
+              evening: evening("c", "shared"),
+            },
+          ],
+        }),
+        organizes: false,
+        hosted: [],
+      },
+      elsewhere: [],
+      origin: "https://allthings.dev",
+      theme: undefined,
+      portraits: new Map(),
+      images: "originals",
+    });
+    expect(await htmlProblems(html)).toEqual([]);
+    const section = (id: string) =>
+      new RegExp(
+        `<section class="about-part" aria-labelledby="${id}">[\\s\\S]*?</section>`,
+      ).exec(html)?.[0] ?? "";
+    expect(section("at-all-things")).toContain(">Ours<");
+    expect(section("at-all-things")).not.toContain("Theirs");
+    expect(section("shared")).toContain(
+      '<h2 id="shared" class="at-type-meta">At evenings we shared</h2>',
+    );
+    expect(section("shared")).toContain(">Theirs too<");
+    expect(html).toContain(
+      "1 talk at all things. 2 talks at evenings all things shared.",
+    );
   });
 });

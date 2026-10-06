@@ -355,6 +355,7 @@ const details = (overrides: Partial<EventPage> = {}): EventPage => ({
 
 const speaker = (id: string, name: string, title: string | null): Speaker => ({
   id,
+  slug: id,
   name,
   title,
   bio: null,

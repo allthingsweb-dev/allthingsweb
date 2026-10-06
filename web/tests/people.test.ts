@@ -74,6 +74,16 @@ const talks = `
 
 const db = await catalogDatabase(startedAt, true);
 await db.exec(talks);
+// Erik organized the live evening; Ruth changed her name, so her page moved.
+await db.exec(`
+  INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
+    ('e0000000-0000-4000-8000-000000000101', '${hosts[0].profileId}', 'organizer', 0, 'site', now());
+  INSERT INTO profiles (id, name, title, bio, profile_type, updated_at) VALUES
+    ('b0000000-0000-4000-8000-000000000507', 'Ruth Old', '', '', 'member', now());
+  UPDATE profiles SET name = 'Ruth New' WHERE id = 'b0000000-0000-4000-8000-000000000507';
+  INSERT INTO external_talks (profile_id, title, event_name, kind, given_on, url, video_url, source_url, read_on, updated_at) VALUES
+    ('b0000000-0000-4000-8000-000000000501', 'Engines that think', 'JSConf', 'conference', '2025-05-01', 'https://jsconf.example/engines', 'https://video.example/engines', 'https://jsconf.example/engines', '2026-10-01', now()),
+    ('b0000000-0000-4000-8000-000000000501', 'Notes on the engine', 'The Changelog', 'podcast', '2024-02-03', NULL, NULL, 'https://changelog.example/notes', '2026-10-01', now());`);
 const database = await serve(db);
 
 const Stack = testStack("allthings-web-people-test", {
@@ -147,7 +157,9 @@ function entries(html: string): Map<string, string> {
         /<li class="person" id="p-[^"]+">[\s\S]*?<\/div><\/li>/g,
       ),
     ].map(([entry]) => [
-      /<h3[^>]*>([^<]*)<\/h3>/.exec(entry)?.[1] ?? "",
+      /<h3[^>]*><a href="\/people\/[^"]+">([^<]*)<\/a><\/h3>/.exec(
+        entry,
+      )?.[1] ?? "",
       entry,
     ]),
   );
@@ -370,6 +382,117 @@ describe("/speakers", () => {
     expect(new URL(response.url).pathname).toBe("/people");
     expect(await response.text()).toContain(
       '<h1 class="lockup at-type-event-lockup">people</h1>',
+    );
+  });
+});
+
+describe("/people/<slug>", () => {
+  it("shows one person whole: portrait, name, title, bio, links and every part", async ({
+    People,
+  }) => {
+    const response = await fetch(`${People}/people/ada-lovelace`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    const html = await response.text();
+    expect(await htmlProblems(html)).toEqual([]);
+    expect(headingLevels(html).filter((level) => level === 1)).toHaveLength(1);
+    expect(html).toContain('<h1 class="person-page-name">Ada Lovelace</h1>');
+    expect(html).toContain('<p class="person-title at-type-meta">Engineer</p>');
+    // The whole bio, not the people page's short one.
+    expect(html).toContain(
+      '<p class="person-page-bio">Ada writes compilers for the analytical engine, mostly at night. She also teaches.</p>',
+    );
+    expect(html).toContain(
+      '<span class="talk-title">Effect in production</span>',
+    );
+    expect(html).toContain('<span class="talk-title">Typed errors</span>');
+    expect(html).toContain(
+      '<link rel="canonical" href="https://allthings.dev/people/ada-lovelace"/>',
+    );
+    expect(html).toContain("<title>Ada Lovelace · all things/_</title>");
+    const jsonLd = JSON.parse(
+      /<script type="application\/ld\+json">(.*?)<\/script>/.exec(html)?.[1] ??
+        "{}",
+    );
+    expect(jsonLd).toEqual({
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: "Ada Lovelace",
+      url: "https://allthings.dev/people/ada-lovelace",
+      jobTitle: "Engineer",
+      description:
+        "Ada writes compilers for the analytical engine, mostly at night. She also teaches.",
+      image: adaPortrait,
+      sameAs: [
+        "https://twitter.com/ada",
+        "https://bsky.app/profile/ada.bsky.social",
+        "https://www.linkedin.com/in/ada-lovelace",
+      ],
+    });
+  });
+
+  it("lists the talks they gave elsewhere, latest first, each linking where it can", async ({
+    People,
+  }) => {
+    const html = await (await fetch(`${People}/people/ada-lovelace`)).text();
+    expect(html).toContain(
+      '<h2 id="elsewhere" class="at-type-meta">Talks elsewhere · 2 talks</h2>',
+    );
+    expect(html).toContain(
+      '<li><a class="talk" href="https://jsconf.example/engines"><time class="date at-type-meta" datetime="2025-05-01">05.01.25</time><span class="talk-title">Engines that think</span><span class="talk-evening"><span>JSConf</span><span class="talk-role at-type-meta"> · conference</span></span></a><a class="talk-video at-type-meta" href="https://video.example/engines"><span>recording</span><span class="visually-hidden"> of Engines that think</span></a></li>',
+    );
+    // Without a page or a recording, the talk is listed, not linked.
+    expect(html).toContain(
+      '<li><div class="talk"><time class="date at-type-meta" datetime="2024-02-03">02.03.24</time><span class="talk-title">Notes on the engine</span>',
+    );
+    expect(html.indexOf("Engines that think")).toBeLessThan(
+      html.indexOf("Notes on the engine"),
+    );
+    // Someone with none has no such section.
+    const grace = await (await fetch(`${People}/people/grace-hopper`)).text();
+    expect(grace).not.toContain("Talks elsewhere");
+  });
+
+  it("lists the evenings an organizer hosted", async ({ People }) => {
+    const html = await (await fetch(`${People}/people/erik-thorelli`)).text();
+    expect(html).toContain(
+      '<h2 id="hosted" class="at-type-meta">Hosted · 1 evening</h2>',
+    );
+    expect(html).toContain('<span class="talk-title">Hosting evenings</span>');
+  });
+
+  it("sends an old address to the new one for good", async ({ People }) => {
+    const response = await fetch(`${People}/people/ruth-old`, {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe("/people/ruth-new");
+    expect(response.headers.get("cache-control")).toBe(CacheControl.page);
+    expect((await fetch(`${People}/people/ruth-new`)).status).toBe(200);
+  });
+
+  it("is not found for a slug no one has had", async ({ People }) => {
+    const response = await fetch(`${People}/people/no-one-at-all`);
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
+    const html = await response.text();
+    // Said of a person, not an evening, with the way to everyone.
+    expect(html).toContain(
+      '<p class="lead at-type-lead">No one has this address.</p>',
+    );
+    expect(html).toContain(
+      '<a href="/people">everyone <span aria-hidden="true">→</span></a>',
+    );
+  });
+
+  it("says the data couldn't be read, and is never stored", async ({
+    Unreachable,
+  }) => {
+    const response = await fetch(`${Unreachable}/people/ada-lovelace`);
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    expect(await response.text()).toContain(
+      "This person’s page didn’t load. Try again in a minute.",
     );
   });
 });

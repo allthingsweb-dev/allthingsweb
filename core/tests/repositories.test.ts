@@ -95,6 +95,7 @@ const adaPhoto = image(
 
 const ada: Rows.Profile = {
   id: "b0000000-0000-4000-8000-000000000001",
+  slug: "ada-lovelace",
   name: "Ada Lovelace",
   title: "Engineer",
   bio: "Writes compilers.",
@@ -105,6 +106,7 @@ const ada: Rows.Profile = {
 };
 const grace: Rows.Profile = {
   id: "b0000000-0000-4000-8000-000000000002",
+  slug: "grace-hopper",
   name: "Grace Hopper",
   title: "Admiral",
   bio: "",
@@ -115,6 +117,7 @@ const grace: Rows.Profile = {
 };
 const linus: Rows.Profile = {
   id: "b0000000-0000-4000-8000-000000000003",
+  slug: "linus",
   name: "Linus",
   title: "",
   bio: "Kernel.",
@@ -125,6 +128,7 @@ const linus: Rows.Profile = {
 };
 const zed: Rows.Profile = {
   id: "b0000000-0000-4000-8000-000000000006",
+  slug: "zed-nobody",
   name: "Zed Nobody",
   title: "",
   bio: "",

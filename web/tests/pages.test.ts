@@ -16,7 +16,7 @@ import {
   PrivateCacheControl,
   preferenceCacheControl,
 } from "../src/cache.ts";
-import { hosts, mediaOrigin, socials } from "../src/links.ts";
+import { mediaOrigin, socials } from "../src/links.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
 import { themeCookieMaxAge } from "../src/pages/theme.ts";
 import { erikPortrait } from "./support/catalog.ts";
@@ -431,6 +431,8 @@ describe("links within the site", () => {
     "/",
     "/events",
     "/people",
+    "/people/ada-lovelace",
+    "/people/erik-thorelli",
     "/about",
     "/brand",
     ...eventPages.map(([, eventPage]) => eventPage),
@@ -497,10 +499,10 @@ describe("/about", () => {
       `<img class="portrait" src="${erikPortrait}" alt=""`,
     );
     expect(html).toContain(
-      `<h3 class="person-name"><a href="/people#p-${hosts[0].profileId}">Erik Thorelli</a></h3>`,
+      `<h3 class="person-name"><a href="/people/erik-thorelli">Erik Thorelli</a></h3>`,
     );
     expect(html).toContain(
-      `<h3 class="person-name"><a href="/people#p-${hosts[1].profileId}">Andre Landgraf</a></h3>`,
+      `<h3 class="person-name"><a href="/people/andre-landgraf">Andre Landgraf</a></h3>`,
     );
     // Another profile is named Andre Landgraf and has a photo.
     expect(html).not.toContain("not-andre");
@@ -545,23 +547,22 @@ describe("/about", () => {
 });
 
 describe("names on event pages", () => {
-  it("link to an entry that exists on /people, for everyone on stage and every co-host and MC", async (url) => {
-    const people = await (await fetch(`${url}/people`)).text();
-    const anchors = new Set(
-      [...people.matchAll(/<li class="person" id="([^"]+)">/g)].map(
-        ([, id]) => id,
-      ),
-    );
+  it("link to a person's own page, for everyone on stage and every co-host and MC", async (url) => {
     const linked = new Set<string>();
     for (const slug of [slugs.upcoming, slugs.past]) {
       const html = await (await fetch(`${url}/${slug}`)).text();
-      for (const [, id = ""] of html.matchAll(/href="\/people#([^"]+)"/g)) {
-        linked.add(id);
+      for (const [, path = ""] of html.matchAll(/href="(\/people\/[^"#]+)"/g)) {
+        linked.add(path);
       }
     }
     // Ada and Grace: on stage, a co-host and an MC between the two pages.
-    expect(linked.size).toBe(2);
-    for (const id of linked) expect(anchors).toContain(id);
+    expect([...linked].toSorted()).toEqual([
+      "/people/ada-lovelace",
+      "/people/grace-hopper",
+    ]);
+    for (const path of linked) {
+      expect((await fetch(`${url}${path}`)).status).toBe(200);
+    }
   });
 });
 
@@ -691,6 +692,8 @@ describe("every kind of page", () => {
     `/${slugs.hackathon}`,
     `/${slugs.bare}`,
     "/people",
+    "/people/ada-lovelace",
+    "/people/erik-thorelli",
     "/about",
     "/brand",
     "/code-of-conduct",

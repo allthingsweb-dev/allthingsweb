@@ -4,7 +4,14 @@ import { Evenings } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
 import { Home } from "allthings-core/src/home.ts";
 import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
-import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
+import {
+  type ExternalTalk,
+  ExternalTalks,
+} from "allthings-core/src/external-talks.ts";
+import {
+  PeopleDirectory,
+  type PersonLookup,
+} from "allthings-core/src/people-directory.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
 import { sharedPrefix } from "allthings-core/src/short-slugs.ts";
@@ -15,7 +22,13 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { CacheControl } from "../cache.ts";
 import { type Repositories, repositories } from "../database.ts";
 import { Images } from "../images/route.ts";
-import { aboutPath, eventPath, hosts, mediaOrigin } from "../links.ts";
+import {
+  aboutPath,
+  eventPath,
+  hosts,
+  mediaOrigin,
+  personPath,
+} from "../links.ts";
 import { Site } from "../site.ts";
 import { aboutPage } from "./about.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
@@ -24,6 +37,7 @@ import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
 import { peoplePage } from "./people.tsx";
+import { personPage } from "./person.tsx";
 import type { ImageMode } from "./picture.tsx";
 import { htmlResponse } from "./response.ts";
 import { chooseTheme, isChoice, type Theme, themeOf } from "./theme.ts";
@@ -191,6 +205,122 @@ const people = dataPage(
     ),
   ),
   (view, props) => peoplePage({ people: view, ...props }),
+);
+
+/** A person found, with the talks they gave elsewhere; or where they went, or no one. */
+type PersonView =
+  | Exclude<PersonLookup, { readonly kind: "found" }>
+  | (Extract<PersonLookup, { readonly kind: "found" }> & {
+      readonly elsewhere: ReadonlyArray<ExternalTalk>;
+    });
+
+/**
+ * /people/<slug>: one person's page, cached like the people page. A slug
+ * they had before (their name changed) redirects to the current one for
+ * good; one no one has is not found, cached briefly. The person and the
+ * hosts' portraits are read at once, over the request's pool.
+ */
+const person = page(
+  "/people/:slug",
+  ({ theme, acceptEncoding, params, images }) =>
+    Effect.gen(function* () {
+      const { origin } = yield* Site;
+      const slug = params["slug"] ?? "";
+      const path = personPath(slug);
+      return yield* Effect.all(
+        [
+          // The person, and the talks they gave elsewhere.
+          PeopleDirectory.use((repository) =>
+            repository.person(slug, mediaOrigin),
+          ).pipe(
+            Effect.flatMap(
+              (
+                found,
+              ): Effect.Effect<PersonView, DataSourceError, ExternalTalks> =>
+                found.kind === "found"
+                  ? ExternalTalks.use((talks) =>
+                      talks.forProfiles([found.person.id]),
+                    ).pipe(
+                      Effect.map((byProfile) => ({
+                        ...found,
+                        elsewhere: byProfile.get(found.person.id) ?? [],
+                      })),
+                    )
+                  : Effect.succeed(found),
+            ),
+          ),
+          footer(hostPortraits),
+        ],
+        { concurrency: "unbounded" },
+      ).pipe(
+        Effect.provide(repositories),
+        Effect.timed,
+        Effect.map(([took, [found, { portraits, read }]]) => {
+          const db = Duration.toMillis(took);
+          if (found.kind === "moved") {
+            return HttpServerResponse.redirect(personPath(found.slug), {
+              status: 301,
+              headers: { "cache-control": CacheControl.page },
+            });
+          }
+          if (found.kind === "none") {
+            return htmlResponse(
+              notFoundPage({
+                origin,
+                path,
+                theme,
+                portraits,
+                images,
+                person: true,
+              }),
+              acceptEncoding,
+              {
+                cacheControl: read ? "notFound" : "failure",
+                theme,
+                images,
+                status: 404,
+                db,
+              },
+            );
+          }
+          return htmlResponse(
+            personPage({
+              person: found.person,
+              elsewhere: found.elsewhere,
+              origin,
+              theme,
+              portraits,
+              images,
+            }),
+            acceptEncoding,
+            {
+              cacheControl: read ? "publicData" : "failure",
+              theme,
+              images,
+              db,
+            },
+          );
+        }),
+        Effect.catchCause((cause) =>
+          Effect.logError("Error rendering a person's page:", cause).pipe(
+            Effect.as(
+              htmlResponse(
+                unavailablePage({
+                  origin,
+                  path,
+                  theme,
+                  images,
+                  said: "This person’s page didn’t load. Try again in a minute.",
+                }),
+                acceptEncoding,
+                { cacheControl: "failure", theme, images, status: 503 },
+              ),
+            ),
+          ),
+        ),
+      );
+    }),
+  (params) => personPath(params["slug"] ?? ""),
 );
 
 /**
@@ -563,6 +693,7 @@ export const pageRoutes = Layer.mergeAll(
   home,
   events,
   people,
+  person,
   speakers,
   about,
   brand,

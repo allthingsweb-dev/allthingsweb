@@ -44,6 +44,7 @@ export const SITE_TABLES = [
   "external_talks",
   "event_schedule_items",
   "event_notes",
+  "profile_slugs",
   "redirects",
   "event_slugs",
 ] as const;

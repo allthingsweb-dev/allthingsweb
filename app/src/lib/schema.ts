@@ -148,6 +148,12 @@ export const profilesTable = pgTable(
     xFollowersTriedAt: timestamp("x_followers_tried_at", {
       withTimezone: true,
     }),
+    /**
+     * Their address, /people/<slug>: set by the database from the name
+     * (core/migrations/0017_person_slugs.ts), on insert and when the name
+     * changes. Leave it empty to have one made.
+     */
+    slug: text("slug").notNull().unique().default(""),
   },
   () => [
     check(
@@ -159,11 +165,28 @@ export const profilesTable = pgTable(
       "profiles_x_followers_at_check",
       sql`("x_followers" IS NULL) = ("x_followers_at" IS NULL)`,
     ),
+    check("profiles_slug_check", sql`"slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
   ],
 );
 
 export type InsertProfile = typeof profilesTable.$inferInsert;
 export type SelectProfile = typeof profilesTable.$inferSelect;
+
+/** A person's earlier slugs: their old addresses redirect to the current. */
+export const profileSlugsTable = pgTable(
+  "profile_slugs",
+  {
+    slug: text("slug").primaryKey(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    createdAt,
+  },
+  (table) => [
+    check("profile_slugs_slug_check", sql`"slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
+    index("profile_slugs_profile_id_idx").on(table.profileId),
+  ],
+);
 
 /** How a talk is held: a presentation, a panel, or a fireside chat. */
 export const talkFormats = ["talk", "panel", "fireside"] as const;

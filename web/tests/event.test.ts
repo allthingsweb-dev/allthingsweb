@@ -197,10 +197,10 @@ describe("an upcoming evening", () => {
     // Grace moderates; Ada is the fireside's guest. A fireside's people
     // are rows (lineup.ts): role, name and title; bios are on /people.
     expect(stage).toContain(
-      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people#p-b0000000-0000-4000-8000-000000000502"><span>Grace Hopper</span></a>',
+      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people/grace-hopper"><span>Grace Hopper</span></a>',
     );
     expect(stage).toContain(
-      '<p><span class="speaker-role at-type-meta">guest</span><a class="event-person-name" href="/people#p-b0000000-0000-4000-8000-000000000501"><span>Ada Lovelace</span></a><span class="event-person-title">Engineer, Analytical Engines</span></p>',
+      '<p><span class="speaker-role at-type-meta">guest</span><a class="event-person-name" href="/people/ada-lovelace"><span>Ada Lovelace</span></a><span class="event-person-title">Engineer, Analytical Engines</span></p>',
     );
     expect(stage).toContain(
       '<div class="stage-description"><p>Typed errors &amp; <strong>services</strong>.</p></div>',
@@ -233,7 +233,7 @@ describe("an upcoming evening", () => {
       ].map(([, name]) => name),
     ).toEqual(["Ada Lovelace", "Grace Hopper"]);
     expect(hosted).toContain(
-      '<a class="event-person-name" href="/people#p-b0000000-0000-4000-8000-000000000501"><span>Ada Lovelace</span></a><span class="event-person-title">Engineer, Analytical Engines</span>',
+      '<a class="event-person-name" href="/people/ada-lovelace"><span>Ada Lovelace</span></a><span class="event-person-title">Engineer, Analytical Engines</span>',
     );
     expect(hosted).not.toContain(">mc<");
     // The footer still signs off with Erik and Andre.
@@ -334,7 +334,7 @@ describe("a past evening", () => {
     ).toEqual(["Grace Hopper", "Ada Lovelace"]);
     // Grace has no photo, title, bio or links: the blank avatar, and only her name.
     expect(stage).toMatch(
-      /<article class="speaker"><img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt="" width="168" height="168" loading="lazy" decoding="async"\/><div class="speaker-who"><h3 class="at-type-list-name"><a href="\/people#p-b0000000-0000-4000-8000-000000000502">Grace Hopper<\/a><\/h3><\/div><\/article>/,
+      /<article class="speaker"><img src="\/assets\/avatar\.[0-9a-f]{16}\.svg" alt="" width="168" height="168" loading="lazy" decoding="async"\/><div class="speaker-who"><h3 class="at-type-list-name"><a href="\/people\/grace-hopper">Grace Hopper<\/a><\/h3><\/div><\/article>/,
     );
     expect(stage).not.toContain("stage-description");
   });

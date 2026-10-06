@@ -169,6 +169,9 @@ column public.images #005 created_at timestamp with time zone not null default n
 column public.images #006 updated_at timestamp with time zone not null
 column public.images #007 width integer not null
 column public.images #008 height integer not null
+column public.profile_slugs #001 slug text not null
+column public.profile_slugs #002 profile_id uuid not null
+column public.profile_slugs #003 created_at timestamp with time zone not null default now()
 column public.profile_users #001 profile_id uuid not null
 column public.profile_users #002 user_id text not null
 column public.profile_users #003 created_at timestamp with time zone not null default now()
@@ -189,6 +192,7 @@ column public.profiles #013 luma_user_id text
 column public.profiles #014 x_followers integer
 column public.profiles #015 x_followers_at timestamp with time zone
 column public.profiles #016 x_followers_tried_at timestamp with time zone
+column public.profiles #017 slug text not null default ''::text
 column public.redirects #001 slug text not null
 column public.redirects #002 destination_url text not null
 column public.redirects #003 comment text
@@ -323,6 +327,9 @@ constraint public.external_talks external_talks_source_url_check CHECK ((source_
 constraint public.external_talks external_talks_url_check CHECK ((url ~ '^https://'::text))
 constraint public.external_talks external_talks_video_url_check CHECK ((video_url ~ '^https://'::text))
 constraint public.images images_pkey PRIMARY KEY (id)
+constraint public.profile_slugs profile_slugs_pkey PRIMARY KEY (slug)
+constraint public.profile_slugs profile_slugs_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+constraint public.profile_slugs profile_slugs_slug_check CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
 constraint public.profile_users profile_users_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint public.profile_users profile_users_profile_id_unique UNIQUE (profile_id)
 constraint public.profile_users profile_users_profile_id_user_id_pk PRIMARY KEY (profile_id, user_id)
@@ -331,6 +338,8 @@ constraint public.profiles profiles_image_images_id_fk FOREIGN KEY (image) REFER
 constraint public.profiles profiles_luma_user_id_check CHECK ((luma_user_id ~ '^usr-[A-Za-z0-9]+$'::text))
 constraint public.profiles profiles_luma_user_id_unique UNIQUE (luma_user_id)
 constraint public.profiles profiles_pkey PRIMARY KEY (id)
+constraint public.profiles profiles_slug_check CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
+constraint public.profiles profiles_slug_unique UNIQUE (slug)
 constraint public.profiles profiles_x_followers_at_check CHECK (((x_followers IS NULL) = (x_followers_at IS NULL)))
 constraint public.profiles profiles_x_followers_check CHECK ((x_followers >= 0))
 constraint public.redirects redirects_slug_unique PRIMARY KEY (slug)
@@ -393,10 +402,13 @@ index public.external_talks CREATE INDEX external_talks_profile_id_idx ON public
 index public.external_talks CREATE UNIQUE INDEX external_talks_pkey ON public.external_talks USING btree (id)
 index public.external_talks CREATE UNIQUE INDEX external_talks_profile_id_title_given_on_unique ON public.external_talks USING btree (profile_id, title, given_on)
 index public.images CREATE UNIQUE INDEX images_pkey ON public.images USING btree (id)
+index public.profile_slugs CREATE INDEX profile_slugs_profile_id_idx ON public.profile_slugs USING btree (profile_id)
+index public.profile_slugs CREATE UNIQUE INDEX profile_slugs_pkey ON public.profile_slugs USING btree (slug)
 index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_unique ON public.profile_users USING btree (profile_id)
 index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_user_id_pk ON public.profile_users USING btree (profile_id, user_id)
 index public.profiles CREATE UNIQUE INDEX profiles_luma_user_id_unique ON public.profiles USING btree (luma_user_id)
 index public.profiles CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
+index public.profiles CREATE UNIQUE INDEX profiles_slug_unique ON public.profiles USING btree (slug)
 index public.redirects CREATE UNIQUE INDEX redirects_slug_unique ON public.redirects USING btree (slug)
 index public.sponsors CREATE UNIQUE INDEX sponsors_luma_user_id_unique ON public.sponsors USING btree (luma_user_id)
 index public.sponsors CREATE UNIQUE INDEX sponsors_name_unique ON public.sponsors USING btree (name)
@@ -424,12 +436,16 @@ relation public.event_talks kind=r persistence=p rls=f force_rls=f replica_ident
 relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=
 relation public.external_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.images kind=r persistence=p rls=f force_rls=f replica_identity=f options=
+relation public.profile_slugs kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.profile_users kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.profiles kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.redirects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.talk_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+routine public.person_slug(name text) addfb348adcd2153fdcec4b3c32abd7d
+routine public.profiles_slug() ef8963d15307125b3db5291962fe8bdb
 routine public.profiles_x_followers_reset() ddfe06ea621a50be5270c96c05655c3e
 routine public.show_db_tree() afc3f368beed7e4fb52b8c71a7b77586
+trigger CREATE TRIGGER profiles_slug BEFORE INSERT OR UPDATE OF name, slug ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_slug()
 trigger CREATE TRIGGER profiles_x_followers_reset BEFORE UPDATE OF twitter_handle ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_x_followers_reset()

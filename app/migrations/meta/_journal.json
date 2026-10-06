@@ -204,6 +204,13 @@
       "when": 1791261019093,
       "tag": "0028_external_talks",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791263200148,
+      "tag": "0029_person_slugs",
+      "breakpoints": true
     }
   ]
 }
