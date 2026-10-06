@@ -4,7 +4,14 @@ import { Evenings } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
 import { Home } from "allthings-core/src/home.ts";
 import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
-import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
+import {
+  type ExternalTalk,
+  ExternalTalks,
+} from "allthings-core/src/external-talks.ts";
+import {
+  PeopleDirectory,
+  type PersonLookup,
+} from "allthings-core/src/people-directory.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
 import { sharedPrefix } from "allthings-core/src/short-slugs.ts";
@@ -200,6 +207,13 @@ const people = dataPage(
   (view, props) => peoplePage({ people: view, ...props }),
 );
 
+/** A person found, with the talks they gave elsewhere; or where they went, or no one. */
+type PersonView =
+  | Exclude<PersonLookup, { readonly kind: "found" }>
+  | (Extract<PersonLookup, { readonly kind: "found" }> & {
+      readonly elsewhere: ReadonlyArray<ExternalTalk>;
+    });
+
 /**
  * /people/<slug>: one person's page, cached like the people page. A slug
  * they had before (their name changed) redirects to the current one for
@@ -215,8 +229,25 @@ const person = page(
       const path = personPath(slug);
       return yield* Effect.all(
         [
+          // The person, and the talks they gave elsewhere.
           PeopleDirectory.use((repository) =>
             repository.person(slug, mediaOrigin),
+          ).pipe(
+            Effect.flatMap(
+              (
+                found,
+              ): Effect.Effect<PersonView, DataSourceError, ExternalTalks> =>
+                found.kind === "found"
+                  ? ExternalTalks.use((talks) =>
+                      talks.forProfiles([found.person.id]),
+                    ).pipe(
+                      Effect.map((byProfile) => ({
+                        ...found,
+                        elsewhere: byProfile.get(found.person.id) ?? [],
+                      })),
+                    )
+                  : Effect.succeed(found),
+            ),
           ),
           footer(hostPortraits),
         ],
@@ -255,6 +286,7 @@ const person = page(
           return htmlResponse(
             personPage({
               person: found.person,
+              elsewhere: found.elsewhere,
               origin,
               theme,
               portraits,

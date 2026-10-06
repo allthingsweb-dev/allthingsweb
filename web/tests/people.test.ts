@@ -80,7 +80,10 @@ await db.exec(`
     ('e0000000-0000-4000-8000-000000000101', '${hosts[0].profileId}', 'organizer', 0, 'site', now());
   INSERT INTO profiles (id, name, title, bio, profile_type, updated_at) VALUES
     ('b0000000-0000-4000-8000-000000000507', 'Ruth Old', '', '', 'member', now());
-  UPDATE profiles SET name = 'Ruth New' WHERE id = 'b0000000-0000-4000-8000-000000000507';`);
+  UPDATE profiles SET name = 'Ruth New' WHERE id = 'b0000000-0000-4000-8000-000000000507';
+  INSERT INTO external_talks (profile_id, title, event_name, kind, given_on, url, video_url, source_url, read_on, updated_at) VALUES
+    ('b0000000-0000-4000-8000-000000000501', 'Engines that think', 'JSConf', 'conference', '2025-05-01', 'https://jsconf.example/engines', 'https://video.example/engines', 'https://jsconf.example/engines', '2026-10-01', now()),
+    ('b0000000-0000-4000-8000-000000000501', 'Notes on the engine', 'The Changelog', 'podcast', '2024-02-03', NULL, NULL, 'https://changelog.example/notes', '2026-10-01', now());`);
 const database = await serve(db);
 
 const Stack = testStack("allthings-web-people-test", {
@@ -426,6 +429,28 @@ describe("/people/<slug>", () => {
         "https://www.linkedin.com/in/ada-lovelace",
       ],
     });
+  });
+
+  it("lists the talks they gave elsewhere, latest first, each linking where it can", async ({
+    People,
+  }) => {
+    const html = await (await fetch(`${People}/people/ada-lovelace`)).text();
+    expect(html).toContain(
+      '<h2 id="elsewhere" class="at-type-meta">Talks elsewhere · 2 talks</h2>',
+    );
+    expect(html).toContain(
+      '<li><a class="talk" href="https://jsconf.example/engines"><time class="date at-type-meta" datetime="2025-05-01">05.01.25</time><span class="talk-title">Engines that think</span><span class="talk-evening"><span>JSConf</span><span class="talk-role at-type-meta"> · conference</span></span></a><a class="talk-video at-type-meta" href="https://video.example/engines"><span>recording</span><span class="visually-hidden"> of Engines that think</span></a></li>',
+    );
+    // Without a page or a recording, the talk is listed, not linked.
+    expect(html).toContain(
+      '<li><div class="talk"><time class="date at-type-meta" datetime="2024-02-03">02.03.24</time><span class="talk-title">Notes on the engine</span>',
+    );
+    expect(html.indexOf("Engines that think")).toBeLessThan(
+      html.indexOf("Notes on the engine"),
+    );
+    // Someone with none has no such section.
+    const grace = await (await fetch(`${People}/people/grace-hopper`)).text();
+    expect(grace).not.toContain("Talks elsewhere");
   });
 
   it("lists the evenings an organizer hosted", async ({ People }) => {
