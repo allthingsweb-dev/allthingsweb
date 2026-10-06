@@ -861,6 +861,13 @@ main > section,
   line-height: 1.35;
 }
 
+/* Every part a person had in the evening, after it: "talk: State of Effect 2026 · MC". */
+.talk-parts {
+  grid-area: evening;
+  font-size: var(--at-font-size-small);
+  line-height: 1.35;
+}
+
 .talk:hover .talk-title {
   text-decoration: underline var(--at-stroke-rule);
   text-underline-offset: 0.18em;

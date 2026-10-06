@@ -214,13 +214,13 @@ describe("/people", () => {
   it("names a part by its capacity: a panelist, an MC", async ({ People }) => {
     const { html } = await people(People);
     expect(entries(section(html, "speakers")).get("Grace Hopper")).toContain(
-      '<span class="talk-title">Shipping AI</span><span class="talk-evening">at<span class="slash">/</span><span>ship ai</span><span class="talk-role at-type-meta"> · panelist</span></span>',
+      '<span class="talk-title">at<span class="slash">/</span><span>ship ai</span></span><span class="talk-parts">panelist: Shipping AI</span>',
     );
     expect(entries(section(html, "co-hosts")).get("Mia MC")).toContain(
       `<a class="talk" href="/next-effect-sf">`,
     );
     expect(entries(section(html, "co-hosts")).get("Mia MC")).toContain(
-      '<span class="talk-title">MC</span><span class="talk-evening">at<span class="slash">/</span><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span>',
+      '<span class="talk-title">at<span class="slash">/</span><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span><span class="talk-parts">MC</span>',
     );
   });
 
@@ -278,7 +278,7 @@ describe("/people", () => {
     ]);
     // Next week's evening carries the cursor; March's doesn't.
     expect(adaTalks[0]?.[2]).toContain(
-      '<span class="talk-title">Effect in production</span><span class="talk-evening">at<span class="slash">/</span><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span>',
+      '<span class="talk-title">at<span class="slash">/</span><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span><span class="talk-parts">talk: Effect in production</span>',
     );
     expect(adaTalks[1]?.[2]).toContain(">03.07.26</time>");
     expect(adaTalks[1]?.[2]).not.toContain("at-cursor");
@@ -405,9 +405,11 @@ describe("/people/<slug>", () => {
       '<p class="person-page-bio">Ada writes compilers for the analytical engine, mostly at night. She also teaches.</p>',
     );
     expect(html).toContain(
-      '<span class="talk-title">Effect in production</span>',
+      '<span class="talk-parts">talk: Effect in production</span>',
     );
-    expect(html).toContain('<span class="talk-title">Typed errors</span>');
+    expect(html).toContain(
+      '<span class="talk-parts">talk: Typed errors</span>',
+    );
     expect(html).toContain(
       '<link rel="canonical" href="https://allthings.dev/people/ada-lovelace"/>',
     );
@@ -463,13 +465,13 @@ describe("/people/<slug>", () => {
       '<h2 id="hosted" class="at-type-meta">Hosted · 1 evening</h2>',
     );
     expect(html).toContain(
-      '<span>effect</span><span class="at-cursor" aria-hidden="true">_</span><span class="talk-role at-type-meta"> · MC</span></span>',
+      '<span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span><span class="talk-parts">MC</span>',
     );
-    // Hosting it says he was there: the MC part is no line of its own.
-    expect(html).not.toContain('<span class="talk-title">MC</span>');
+    // Hosting it says he was there: the MC part is no row of its own.
+    expect(html.match(/<span class="talk-parts">MC<\/span>/g)).toHaveLength(1);
     const directory = await (await fetch(`${People}/people`)).text();
     expect(section(directory, "organizers")).not.toContain(
-      '<span class="talk-title">MC</span>',
+      '<span class="talk-parts">MC</span>',
     );
   });
 

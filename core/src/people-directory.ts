@@ -102,6 +102,85 @@ export interface PersonPage extends Person {
   readonly hosted: ReadonlyArray<HostedEvening>;
 }
 
+/**
+ * One evening a person took part in, as one row: every part they had in
+ * it, in {@link eveningPartOrder}, talks in the evening's running order.
+ */
+export interface Appearance {
+  readonly evening: PartEvening;
+  readonly parts: ReadonlyArray<Part>;
+}
+
+/**
+ * The order a person's parts in one evening are named in, the one place
+ * it is set: their talks, then co-hosting, then MCing. Hosting is the
+ * Hosted list's own, never a part named on a row.
+ */
+export const eveningPartOrder = ["talk", "co-host", "mc"] as const;
+
+const partRank = (part: Part): number =>
+  eveningPartOrder.indexOf(part.kind === "talk" ? "talk" : part.role);
+
+/**
+ * A person's parts, one row per evening, in the order the parts come
+ * (latest evening first): each evening's parts in {@link eveningPartOrder},
+ * which a stable sort keeps among its talks.
+ */
+export function appearances(
+  parts: ReadonlyArray<Part>,
+): ReadonlyArray<Appearance> {
+  const byEvening = new Map<string, Array<Part>>();
+  for (const part of parts) {
+    const same = byEvening.get(part.evening.slug);
+    if (same === undefined) byEvening.set(part.evening.slug, [part]);
+    else same.push(part);
+  }
+  return [...byEvening.values()].flatMap((group) => {
+    const [first] = group;
+    return first === undefined
+      ? []
+      : [
+          {
+            evening: first.evening,
+            parts: group.toSorted((a, b) => partRank(a) - partRank(b)),
+          },
+        ];
+  });
+}
+
+/**
+ * A person's page as rows, one per evening: those they hosted, each with
+ * every other part they had in it, and those they took part in without
+ * hosting, ours and shared apart.
+ */
+export function personRows(person: PersonPage): {
+  readonly ours: ReadonlyArray<Appearance>;
+  readonly shared: ReadonlyArray<Appearance>;
+  readonly hosted: ReadonlyArray<Appearance>;
+} {
+  const hostedSlugs = new Set(person.hosted.map((evening) => evening.slug));
+  const notHosted = person.parts.filter(
+    (part) => !hostedSlugs.has(part.evening.slug),
+  );
+  return {
+    ours: appearances(
+      notHosted.filter((part) => part.evening.curation === "ours"),
+    ),
+    shared: appearances(
+      notHosted.filter((part) => part.evening.curation === "shared"),
+    ),
+    hosted: person.hosted.map(({ roles, ...evening }) => ({
+      evening,
+      parts: [
+        ...person.parts.filter(
+          (part) => part.kind === "talk" && part.evening.slug === evening.slug,
+        ),
+        ...roles.map((role): Part => ({ kind: "role", role, evening })),
+      ].toSorted((a, b) => partRank(a) - partRank(b)),
+    })),
+  };
+}
+
 /** What /people/<slug> finds: a person, the person it moved to, or no one. */
 export type PersonLookup =
   | { readonly kind: "found"; readonly person: PersonPage }
