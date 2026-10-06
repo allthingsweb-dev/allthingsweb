@@ -155,6 +155,18 @@ describe("site.css's lengths", () => {
     expect(magic).toEqual([]);
   });
 
+  test("never pull a box over its neighbor: no negative margins", () => {
+    // Portraits side by side, never stacked: every host is always seen.
+    const pulled = values.filter(
+      ({ property, value }) =>
+        property.startsWith("margin") &&
+        /(?:^|[\s(,])-[\d.]|calc\(\s*-/.test(
+          value.replace(/var\(--[a-z0-9-]+\)/g, ""),
+        ),
+    );
+    expect(pulled).toEqual([]);
+  });
+
   test("define no custom properties of their own", () => {
     expect(site.match(/(?:^|[{;])\s*--[a-z0-9-]+\s*:/gm)).toBeNull();
   });
