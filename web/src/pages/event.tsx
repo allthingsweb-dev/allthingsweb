@@ -26,6 +26,7 @@ import { DateTime } from "effect";
 import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { built } from "../assets.ts";
 import {
+  aboutPath,
   eventPath,
   everyEvening,
   googleMaps,
@@ -288,28 +289,42 @@ function Portrait({
 /**
  * The organizers, beside the hosting company on every event page
  * (brand/foundations.md, "People and channels"): the event's own, else
- * Erik and Andre, who sign off every page.
+ * Erik and Andre, who sign off every page. They are named as the footer
+ * names them, in its order, each linking to their page; without a record
+ * of the event's own, to the about page, as the footer's names do. Beside
+ * a hosting company they are labelled "your hosts"; without one, "Hosted
+ * by" already says it.
  */
 function YourHosts({
   organizers,
   portraits,
   images,
+  labelled,
 }: {
   readonly organizers: ReadonlyArray<Person>;
   readonly portraits: PortraitsById;
   readonly images: ImageMode;
+  readonly labelled: boolean;
 }) {
-  const people: ReadonlyArray<Pick<Person, "name" | "portrait">> =
+  const people: ReadonlyArray<{
+    readonly name: string;
+    readonly firstName: string;
+    readonly href: string;
+    readonly portrait: Rows.Photo | null;
+  }> =
     organizers.length > 0
-      ? organizers
+      ? inHostOrder(organizers).map((person) => ({
+          name: person.name,
+          firstName: firstName(person.name),
+          href: personPath(person.slug),
+          portrait: person.portrait,
+        }))
       : hosts.map((host) => ({
           name: host.name,
+          firstName: host.name,
+          href: aboutPath,
           portrait: portraits.get(host.profileId) ?? null,
         }));
-  const names =
-    organizers.length > 0
-      ? hostNames(organizers.map((person) => firstName(person.name)))
-      : hostNames(hosts.map((host) => host.name));
   return (
     <div class="your-hosts">
       <span class="host-portraits">
@@ -323,15 +338,44 @@ function YourHosts({
         ))}
       </span>
       <p>
-        <span class="at-type-meta">
-          {organizers.length === 1 ? "your host" : "your hosts"}
-        </span>
-        <span class="host-names" safe>
-          {names}
+        {labelled ? (
+          <span class="at-type-meta">
+            {people.length === 1 ? "your host" : "your hosts"}
+          </span>
+        ) : (
+          ""
+        )}
+        <span class="host-names">
+          {people.map((person, index) => (
+            <>
+              {index === 0
+                ? ""
+                : index === people.length - 1
+                  ? " &amp; "
+                  : ", "}
+              <a href={person.href} safe>
+                {person.firstName}
+              </a>
+            </>
+          ))}
         </span>
       </p>
     </div>
   );
+}
+
+/**
+ * Organizers in the footer's order (links.ts `hosts`), anyone else after
+ * them as the event lists them, so every page names Erik and Andre alike.
+ */
+export function inHostOrder<T extends { readonly id: string }>(
+  people: ReadonlyArray<T>,
+): ReadonlyArray<T> {
+  const rank = (person: T) => {
+    const index = hosts.findIndex((host) => host.profileId === person.id);
+    return index === -1 ? hosts.length : index;
+  };
+  return people.toSorted((a, b) => rank(a) - rank(b));
 }
 
 /** "Erik" for "Erik Thorelli": hosts go by their first names. */
@@ -470,6 +514,7 @@ function HostedAt({
             organizers={event.organizers}
             portraits={portraits}
             images={images}
+            labelled={companies.length > 0}
           />
         </div>
         {event.coHosts.length === 0 ? (

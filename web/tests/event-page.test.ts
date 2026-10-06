@@ -7,7 +7,7 @@ import type {
 } from "allthings-core/src/event-page.ts";
 import type { SafeHtml } from "allthings-core/src/rich-text.ts";
 import { DateTime } from "effect";
-import { googleMaps } from "../src/links.ts";
+import { googleMaps, hosts } from "../src/links.ts";
 import {
   calendarFile,
   calendarFileName,
@@ -23,6 +23,7 @@ import {
   eventTitle,
   firstName,
   handleOf,
+  inHostOrder,
   notFoundPage,
   openFloorLine,
 } from "../src/pages/event.tsx";
@@ -677,20 +678,59 @@ describe("who took part", () => {
     portrait: null,
   });
 
-  test("names the event's organizers as your hosts, by first name, else Erik and Andre", () => {
+  test("names the event's organizers as your hosts, by first name, linked to their pages, else Erik and Andre", () => {
     const own = render(
       event({
-        organizers: [person("Andre Landgraf"), person("Erik Thorelli")],
+        organizers: [person("Grace Hopper"), person("Ada Lovelace")],
       }),
     );
-    expect(own).toContain('<span class="host-names">Andre &amp; Erik</span>');
+    expect(own).toContain(
+      '<span class="host-names"><a href="/people/grace-hopper">Grace</a> &amp; <a href="/people/ada-lovelace">Ada</a></span>',
+    );
     const one = render(event({ organizers: [person("Andre Landgraf")] }));
     expect(one).toContain('<span class="at-type-meta">your host</span>');
-    expect(one).toContain('<span class="host-names">Andre</span>');
+    expect(one).toContain(
+      '<span class="host-names"><a href="/people/andre-landgraf">Andre</a></span>',
+    );
+    // Without the event's own, Erik and Andre, linked as the footer's are.
     expect(render(event())).toContain(
-      '<span class="host-names">Erik &amp; Andre</span>',
+      '<span class="host-names"><a href="/about">Erik</a> &amp; <a href="/about">Andre</a></span>',
     );
     expect(firstName("  Sébastien Morel ")).toBe("Sébastien");
+  });
+
+  test("names Erik and Andre in the footer's order, whatever order the event lists them in", () => {
+    const host = (index: 0 | 1, name: string) => ({
+      ...person(name),
+      id: hosts[index].profileId,
+    });
+    const html = render(
+      event({
+        organizers: [
+          person("Grace Hopper"),
+          host(1, "Andre Landgraf"),
+          host(0, "Erik Thorelli"),
+        ],
+      }),
+    );
+    expect(html).toContain(
+      '<span class="host-names"><a href="/people/erik-thorelli">Erik</a>, <a href="/people/andre-landgraf">Andre</a> &amp; <a href="/people/grace-hopper">Grace</a></span>',
+    );
+    expect(inHostOrder([{ id: "x" }, { id: hosts[1].profileId }])).toEqual([
+      { id: hosts[1].profileId },
+      { id: "x" },
+    ]);
+  });
+
+  test("labels the hosts 'your hosts' beside a hosting company, and leaves 'Hosted by' to say it alone", () => {
+    const company = render(event({ hosts: ["CodeRabbit"] }));
+    expect(company).toContain('<span class="at-type-meta">your hosts</span>');
+    const none = render(event({ hosts: [] }));
+    expect(labels(none)).toContain("Hosted by");
+    expect(none).not.toContain("your host");
+    expect(none).toContain(
+      '<p><span class="host-names"><a href="/about">Erik</a>',
+    );
   });
 
   test("lists co-hosts and the MC with what they do, and leaves out who isn't there", () => {

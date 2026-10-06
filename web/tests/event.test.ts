@@ -215,14 +215,15 @@ describe("an upcoming evening", () => {
   }) => {
     const { html } = await page(Events, slugs.upcoming);
     const hosted = row(html, "Hosted at");
-    // Andre is first in this evening's order, and has no photo.
+    // Andre is first in this evening's order, and has no photo; the page
+    // names them as the footer does, Erik first, each linking to their page.
     expect(hosted).toMatch(
       new RegExp(
-        `<span class="host-portraits"><img src="/assets/avatar\\.[0-9a-f]{16}\\.svg" alt="Andre Landgraf" width="44" height="44" loading="lazy" decoding="async"/><img src="${erikPortrait}" alt="Erik Thorelli"`,
+        `<span class="host-portraits"><img src="${erikPortrait}" alt="Erik Thorelli"[^>]*/><img src="/assets/avatar\\.[0-9a-f]{16}\\.svg" alt="Andre Landgraf"`,
       ),
     );
     expect(hosted).toContain(
-      '<span class="host-names">Andre &amp; Erik</span>',
+      '<span class="at-type-meta">your hosts</span><span class="host-names"><a href="/people/erik-thorelli">Erik</a> &amp; <a href="/people/andre-landgraf">Andre</a></span>',
     );
     expect(hosted).toContain('<p class="at-type-meta">co-hosts</p>');
     expect(
