@@ -10,11 +10,12 @@ import {
   isProduction,
   mediaZone,
   productionRole,
+  siteServing,
 } from "./src/media.ts";
 import { Sync } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
-import { Web } from "./src/web.ts";
+import { Web, makeWeb, siteDomain } from "./src/web.ts";
 
 export default Alchemy.Stack(
   "allthings",
@@ -36,8 +37,23 @@ export default Alchemy.Stack(
     const role = productionRole(accountId, zone);
     if (role instanceof Error) return yield* Effect.die(role);
     yield* Media;
+
+    // The new site, in the allthings account only: on workers.dev until
+    // allthings.dev is active there, then on allthings.dev (www redirects).
+    const serving = siteServing(accountId, zone);
+    const site =
+      serving === "none"
+        ? undefined
+        : yield* makeWeb(
+            serving === "allthings.dev" && zone !== undefined
+              ? siteDomain(zone.id)
+              : undefined,
+          );
+    const webUrl = site?.url.as<string>();
+
     if (role === "stage") {
       return {
+        webUrl,
         mediaBucket: MEDIA_BUCKET,
         mediaDomain:
           zone === undefined
@@ -77,6 +93,7 @@ export default Alchemy.Stack(
     });
 
     return {
+      webUrl,
       mediaBucket: MEDIA_BUCKET,
       mediaUploadUrl: upload.url.as<string>(),
     };
