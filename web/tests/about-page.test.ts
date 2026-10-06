@@ -103,7 +103,7 @@ describe("the about page", () => {
   test("says who we are in the foundations' words, under the two sentences", () => {
     const html = render(view());
     expect(html).toContain(
-      '<h1 class="lockup at-type-event-lockup">about</h1><div class="pitch at-type-lead"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
+      '<h1 class="lockup at-type-event-lockup">about</h1><div class="pitch at-type-statement"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
     );
     const who = part(html, "who");
     expect(who).toContain("An open door and a high bar.");
@@ -214,7 +214,9 @@ describe("the about page", () => {
     expect(part(html, "stage")).toContain(
       `<a href="${discord}">pitch a talk on discord`,
     );
-    expect(html).not.toMatch(/<form|<input|<button/);
+    expect(html).not.toMatch(/<form|<input/);
+    // The one button is the mode control.
+    expect(html.match(/<button/g)).toHaveLength(1);
     expect(html).not.toMatch(/RSVP|sponsored|partners/i);
   });
 
@@ -293,7 +295,7 @@ describe("the about page's portraits as variants", () => {
       images: "variants",
     });
     expect(html).toContain(
-      '<img class="portrait" src="/img/168x168/jpeg/1767323045/profiles/erik.png" srcset="/img/168x168/jpeg/1767323045/profiles/erik.png 168w, /img/336x336/jpeg/1767323045/profiles/erik.png 336w" sizes="(max-width: 599.98px) 96px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
+      '<img class="portrait" src="/img/168x168/jpeg/1767323045/profiles/erik.png" srcset="/img/168x168/jpeg/1767323045/profiles/erik.png 168w, /img/336x336/jpeg/1767323045/profiles/erik.png 336w" sizes="(max-width: 1023.98px) 96px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
     );
     expect(html).not.toContain("media.allthings.dev");
   });

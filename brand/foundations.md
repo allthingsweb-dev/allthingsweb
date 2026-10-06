@@ -101,12 +101,15 @@ One family, Archivo, used at three widths, plus Geist Mono for meta.
 | Event lockup | 72 / 0.9 | 800 | 112% | −4% | 45 |
 | Label (caps) | 40 / 1.0 | 700 | 75% | −1% | 60 |
 | Lead | 30 / 1.25 | 500 | 100% | −1% | 75 |
+| Statement | 22 / 1.3 | 500 | 100% | −1% | 75 |
 | List name | 21 | 700 | 100% | 0 | 75 |
 | List place (caps) | 14 | 600 | 75% | +6% | 75 |
 | Body | 18 / 1.55 | 400 | 100% | 0 | 90 |
 | Meta (Geist Mono, caps) | 14 / 1.5 | 500 | — | +6% | 75 |
 
-Sizes are the largest. The wordmark, event lockup, label and lead shrink on narrow screens, each down to a floor its token sets.
+Each role's letters are pulled back by their face's left side bearing (brand/type-metrics.json, measured from the fonts by brand/marks), so the wordmark, a 156px lockup and a mono meta line share one visual left edge. The statement role sets the two sentences beside a page's lists, one line each at desktop widths.
+
+Sizes are the largest. The wordmark, event lockup, label, lead and statement shrink on narrow screens, each down to a floor its token sets.
 
 ## Layout
 
@@ -138,3 +141,9 @@ Sizes are the largest. The wordmark, event lockup, label and lead shrink on narr
 ## Accessibility
 
 APCA targets above for all text; never color alone to carry meaning; real buttons and links; alt text that describes the moment in a photo; the cursor stops blinking for people who prefer reduced motion.
+
+- Text is set no smaller than its contrast allows: Lc 75 for small text, 60 at 24px and up, 45 at 36px and up. The palette shows a color too faint for text on a ground as a bar, not as text.
+- Every page starts with a link past the header to the page itself, and every control shows its focus.
+- The mode control is a popover. Escape or a click outside closes it, without script.
+- Long names and titles break rather than overflow, down to a 320px screen and at 200% zoom.
+- Every kind of page passes axe in the web tests, apart from the rules that need a browser. Color contrast is checked against the APCA targets above.

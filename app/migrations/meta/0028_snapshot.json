@@ -1,6 +1,6 @@
 {
-  "id": "6e2e23e8-cafe-492c-b336-723a871bf70c",
-  "prevId": "271de0b8-2a3d-4937-a3aa-6439e228268b",
+  "id": "40d4c6a4-be5b-4e52-b7f8-0ee6ab137ff8",
+  "prevId": "e9c423d3-fafe-49ed-ad29-128e9cb49793",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -693,6 +693,59 @@
       },
       "isRLSEnabled": false
     },
+    "public.event_slugs": {
+      "name": "event_slugs",
+      "schema": "",
+      "columns": {
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "event_slugs_event_id_events_id_fk": {
+          "name": "event_slugs_event_id_events_id_fk",
+          "tableFrom": "event_slugs",
+          "tableTo": "events",
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "event_slugs_event_id_slug_unique": {
+          "name": "event_slugs_event_id_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": ["event_id", "slug"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "event_slugs_slug_check": {
+          "name": "event_slugs_slug_check",
+          "value": "\"slug\" ~ '^(shared/)?[a-z0-9]+(-[a-z0-9]+)*$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.event_talks": {
       "name": "event_talks",
       "schema": "",
@@ -721,6 +774,18 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -752,7 +817,12 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "event_talks_position_check": {
+          "name": "event_talks_position_check",
+          "value": "\"position\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.events": {
@@ -909,6 +979,30 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
+        },
+        "luma_description": {
+          "name": "luma_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "luma_summary": {
+          "name": "luma_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "short_slug": {
+          "name": "short_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -930,6 +1024,15 @@
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "events_id_short_slug_event_slugs_fk": {
+          "name": "events_id_short_slug_event_slugs_fk",
+          "tableFrom": "events",
+          "tableTo": "event_slugs",
+          "columnsFrom": ["id", "short_slug"],
+          "columnsTo": ["event_id", "slug"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -943,6 +1046,11 @@
           "name": "events_luma_event_id_unique",
           "nullsNotDistinct": false,
           "columns": ["luma_event_id"]
+        },
+        "events_short_slug_unique": {
+          "name": "events_short_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": ["short_slug"]
         }
       },
       "policies": {},
@@ -2200,6 +2308,24 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "x_followers": {
+          "name": "x_followers",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "x_followers_at": {
+          "name": "x_followers_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "x_followers_tried_at": {
+          "name": "x_followers_tried_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2227,6 +2353,14 @@
         "profiles_luma_user_id_check": {
           "name": "profiles_luma_user_id_check",
           "value": "\"luma_user_id\" ~ '^usr-[A-Za-z0-9]+$'"
+        },
+        "profiles_x_followers_check": {
+          "name": "profiles_x_followers_check",
+          "value": "\"x_followers\" >= 0"
+        },
+        "profiles_x_followers_at_check": {
+          "name": "profiles_x_followers_at_check",
+          "value": "(\"x_followers\" IS NULL) = (\"x_followers_at\" IS NULL)"
         }
       },
       "isRLSEnabled": false

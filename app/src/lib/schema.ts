@@ -9,9 +9,11 @@ import {
   primaryKey,
   check,
   index,
+  foreignKey,
+  unique,
+  type AnyPgColumn,
   date,
   pgSchema,
-  unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -136,11 +138,26 @@ export const profilesTable = pgTable(
      * (core/src/luma/people.ts) recognizes them as a host of an event.
      */
     lumaUserId: text("luma_user_id").unique(),
+    /**
+     * How many follow them on X, as read at `xFollowersAt` from public data
+     * (core/src/followers.ts); speaker lists are ordered by it.
+     */
+    xFollowers: integer("x_followers"),
+    xFollowersAt: timestamp("x_followers_at", { withTimezone: true }),
+    /** When a count was last asked for, read or not: the least recent go first. */
+    xFollowersTriedAt: timestamp("x_followers_tried_at", {
+      withTimezone: true,
+    }),
   },
   () => [
     check(
       "profiles_luma_user_id_check",
       sql`"luma_user_id" ~ '^usr-[A-Za-z0-9]+$'`,
+    ),
+    check("profiles_x_followers_check", sql`"x_followers" >= 0`),
+    check(
+      "profiles_x_followers_at_check",
+      sql`("x_followers" IS NULL) = ("x_followers_at" IS NULL)`,
     ),
   ],
 );
@@ -259,8 +276,29 @@ export const eventsTable = pgTable(
       .default("ours"),
     /** Who organizes a shared event; only a shared one has one. */
     organizedBy: uuid("organized_by").references(() => hostsTable.id),
+    /**
+     * The description on Luma, as sanitized rich text; Luma-owned. Core's
+     * import from Luma's API writes it (core/src/luma/descriptions.ts), as
+     * core/migrations/0011_event_description.ts adds it.
+     */
+    lumaDescription: text("luma_description"),
+    /** Its one-line summary, which stands in for a placeholder tagline; Luma-owned. */
+    lumaSummary: text("luma_summary"),
+    /** The site's own description, which nothing from Luma writes; shown first. */
+    description: text("description"),
+    /**
+     * The short link the Worker serves the event at (allthings.dev/effect),
+     * one of its own in event_slugs; core gives it (core/src/slugs.ts), as
+     * core/migrations/0013_short_slugs.ts adds it. `slug` stays the app's.
+     */
+    shortSlug: text("short_slug").unique(),
   },
-  () => [
+  (table) => [
+    foreignKey({
+      name: "events_id_short_slug_event_slugs_fk",
+      columns: [table.id, table.shortSlug],
+      foreignColumns: [eventSlugsTable.eventId, eventSlugsTable.slug],
+    }),
     check("events_luma_guest_count_check", sql`"luma_guest_count" >= 0`),
     check(
       "events_program_check",
@@ -286,6 +324,28 @@ export const eventsTable = pgTable(
     AND "topic" = lower("topic" COLLATE "pg_c_utf8")
     AND strpos("topic", 'all things') = 0
     AND "topic" COLLATE "pg_c_utf8" ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'`,
+    ),
+  ],
+);
+
+/**
+ * Every short link an event has been given, for good: a link never comes to
+ * mean another event (core/src/short-slugs.ts).
+ */
+export const eventSlugsTable = pgTable(
+  "event_slugs",
+  {
+    slug: text("slug").primaryKey(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references((): AnyPgColumn => eventsTable.id),
+    createdAt,
+  },
+  (table) => [
+    unique("event_slugs_event_id_slug_unique").on(table.eventId, table.slug),
+    check(
+      "event_slugs_slug_check",
+      sql`"slug" ~ '^(shared/)?[a-z0-9]+(-[a-z0-9]+)*$'`,
     ),
   ],
 );
@@ -472,8 +532,18 @@ export const eventTalksTable = pgTable(
       .references(() => talksTable.id),
     createdAt,
     updatedAt,
+    /**
+     * The talk's place in the evening's running order, from 0; talks without
+     * one follow, in the order they were attached.
+     */
+    position: integer("position"),
+    /** When the talk started, where it is known. */
+    startsAt: timestamp("starts_at", { withTimezone: true }),
   },
-  (table) => [primaryKey({ columns: [table.eventId, table.talkId] })],
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.talkId] }),
+    check("event_talks_position_check", sql`"position" >= 0`),
+  ],
 );
 
 export const eventImagesTable = pgTable(
@@ -560,7 +630,7 @@ export type SelectProfileUser = typeof profileUsersTable.$inferSelect;
  * we know. The rows are private; only this schema is public. It lives in its
  * own Postgres schema, which no role the site reads or syncs with may use,
  * so no grant on the tables in `public` can ever reach it.
- * core/migrations/0011_planning.ts is the same change.
+ * core/migrations/0012_planning.ts is the same change.
  */
 export const planningSchema = pgSchema("planning");
 

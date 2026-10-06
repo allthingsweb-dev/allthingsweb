@@ -40,7 +40,9 @@ interface ColumnGrants {
 /**
  * The columns each table's statements read and write, from the sync's own
  * SQL: core/src/luma/sync.ts upserts events from Luma's calendar feed,
- * core/src/luma/venues.ts fills in the venues it hides from Luma's API, and
+ * core/src/luma/venues.ts fills in the venues it hides from Luma's API,
+ * core/src/luma/descriptions.ts writes their descriptions from it,
+ * core/src/slugs.ts gives evenings their short links, and
  * image ingestion (app/src/lib/{event-covers,profile-photos,post-images},
  * whose statements the Worker keeps) stores each missing event cover, profile photo and post
  * image, then points its row at the new `images` row.
@@ -51,9 +53,17 @@ interface ColumnGrants {
  *   `excluded.updated_at` counts as reading the column, so it is selectable.
  *   Covers read events without one and set `preview_image`. The venue fill
  *   reads published events without a venue and writes the three venue
- *   fields.
+ *   fields. The description import (core/src/luma/descriptions.ts) reads
+ *   published events with a Luma id and writes Luma's description and its
+ *   summary. Short links read published evenings without one (with what
+ *   the rule reads: name, topic, curation, start) and every slug taken,
+ *   then set `short_slug`.
+ * - event_slugs: every link given, read to know which are taken, and one
+ *   row for each link given.
  * - images: one row per stored image, its id made by the sync.
  * - profiles, event_posts: rows still missing an image, and the image set.
+ *   Profiles also: the X follower refresh (core/src/followers.ts) reads each
+ *   handle and its snapshot, and writes the new count with when it was read.
  *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
@@ -73,6 +83,11 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "full_address",
       "preview_image",
       "updated_at",
+      "luma_description",
+      "luma_summary",
+      "topic",
+      "curation",
+      "short_slug",
     ],
     insert: [
       "luma_event_id",
@@ -99,7 +114,14 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "full_address",
       "preview_image",
       "updated_at",
+      "luma_description",
+      "luma_summary",
+      "short_slug",
     ],
+  },
+  event_slugs: {
+    select: ["slug", "event_id"],
+    insert: ["slug", "event_id", "created_at"],
   },
   images: {
     select: ["id"],
@@ -115,8 +137,24 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
     ],
   },
   profiles: {
-    select: ["id", "name", "photo_source_url", "image", "created_at"],
-    update: ["image", "updated_at"],
+    select: [
+      "id",
+      "name",
+      "photo_source_url",
+      "image",
+      "created_at",
+      "twitter_handle",
+      "x_followers",
+      "x_followers_at",
+      "x_followers_tried_at",
+    ],
+    update: [
+      "image",
+      "updated_at",
+      "x_followers",
+      "x_followers_at",
+      "x_followers_tried_at",
+    ],
   },
   event_posts: {
     select: [

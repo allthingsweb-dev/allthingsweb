@@ -12,6 +12,8 @@ import { erikPortrait } from "./support/catalog.ts";
 import {
   eventDatabase,
   eventPhoto,
+  formerLink,
+  longSlugs,
   lumaPage,
   redirects,
   slugs,
@@ -433,7 +435,9 @@ describe("the mode", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="light">',
     );
-    expect(html).toContain('<summary aria-label="mode: paper">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: paper">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );
@@ -447,7 +451,9 @@ describe("the mode", () => {
   }) => {
     const { html } = await page(Events, slugs.upcoming);
     expect(html).toStartWith('<!doctype html><html lang="en"><head>');
-    expect(html).toContain('<summary aria-label="mode: system">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: system">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=system" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>system<\/span><\/a>/,
     );
@@ -456,15 +462,98 @@ describe("the mode", () => {
   it("is chosen on the page and sends the visitor back to it", async ({
     Events,
   }) => {
-    const response = await fetch(
-      `${Events}/${encodeURIComponent("2025-01-28-all-things-web-at-sanity")}?theme=dark`,
-      { redirect: "manual" },
-    );
+    const response = await fetch(`${Events}/${slugs.past}?theme=dark`, {
+      redirect: "manual",
+    });
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe(`/${slugs.past}`);
     expect(response.headers.get("cache-control")).toBe(preferenceCacheControl);
     expect(response.headers.get("set-cookie")).toStartWith("theme=dark;");
     await response.arrayBuffer();
+  });
+});
+
+describe("an evening's links", () => {
+  it("serves it at its short link, which its page names as canonical", async ({
+    Events,
+  }) => {
+    const { response, html } = await get(Events, `/${slugs.past}`);
+    expect(response.status).toBe(200);
+    expect(html).toContain(
+      `<link rel="canonical" href="${origin}/${slugs.past}"/>`,
+    );
+    expect(html).toContain(`/og/${slugs.past}.png?v=`);
+  });
+
+  for (const [what, from, to] of [
+    ["its long slug", longSlugs.past, slugs.past],
+    ["a link it had before", formerLink, slugs.past],
+    ["a shared evening's long slug", longSlugs.shared, slugs.shared],
+  ] as const) {
+    it(`redirects ${what} there for good`, async ({ Events }) => {
+      const response = await fetch(`${Events}/${from}`, {
+        redirect: "manual",
+      });
+      expect(response.status).toBe(301);
+      expect(response.headers.get("location")).toBe(`/${to}`);
+      expect(response.headers.get("cache-control")).toBe(
+        CacheControl.publicData,
+      );
+      await response.arrayBuffer();
+    });
+  }
+
+  it("serves an evening without a short link at its long slug", async ({
+    Events,
+  }) => {
+    const { response, html } = await get(Events, `/${slugs.live}`);
+    expect(response.status).toBe(200);
+    expect(html).toContain(
+      `<link rel="canonical" href="${origin}/${slugs.live}"/>`,
+    );
+  });
+
+  it("serves a shared evening under shared/, never at the root", async ({
+    Events,
+  }) => {
+    const { response, html } = await get(Events, `/${slugs.shared}`);
+    expect(response.status).toBe(200);
+    expect(html).toContain(
+      `<link rel="canonical" href="${origin}/${slugs.shared}"/>`,
+    );
+    expect(html).toContain("Demo Day");
+    const root = await get(Events, "/demo-day");
+    expect(root.response.status).toBe(404);
+    const ics = await get(Events, `/${slugs.shared}/calendar.ics`);
+    expect(ics.response.status).toBe(200);
+    expect(ics.response.headers.get("content-disposition")).toBe(
+      'attachment; filename="shared-demo-day.ics"',
+    );
+    expect(ics.html).toContain(`URL:${origin}/${slugs.shared}`);
+  });
+
+  it("sends the mode's chooser back to the shared evening's own link", async ({
+    Events,
+  }) => {
+    const response = await fetch(`${Events}/${slugs.shared}?theme=dark`, {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe(`/${slugs.shared}`);
+    await response.arrayBuffer();
+  });
+
+  it("keeps the calendar file at the long slug too, named for the link", async ({
+    Events,
+  }) => {
+    const { response } = await get(
+      Events,
+      `/${longSlugs.upcoming}/calendar.ics`,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-disposition")).toBe(
+      `attachment; filename="${slugs.upcoming}.ics"`,
+    );
   });
 });
 

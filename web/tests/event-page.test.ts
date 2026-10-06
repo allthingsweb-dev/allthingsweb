@@ -51,6 +51,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   name: "Effect San Francisco",
   topic: "effect",
   tagline: "All Things Effect",
+  about: null,
   status: "upcoming",
   mode: "night",
   startsAt: at("2026-10-01T00:30:00Z"),
@@ -171,14 +172,18 @@ describe("the mode", () => {
     for (const mode of ["night", "paper"] as const) {
       const html = render(event({ mode }));
       expect(html).toStartWith('<!doctype html><html lang="en"><head>');
-      expect(html).toContain('<summary aria-label="mode: system">');
+      expect(html).toContain(
+        '<button type="button" popovertarget="mode-choices" aria-label="mode: system">',
+      );
     }
     const fixed = render(event(), "light");
     expect(fixed).toStartWith(
       '<!doctype html><html lang="en" data-theme="light">',
     );
     expect(fixed).toContain('<meta name="color-scheme" content="light"/>');
-    expect(fixed).toContain('<summary aria-label="mode: paper">');
+    expect(fixed).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: paper">',
+    );
     expect(fixed).toMatch(
       /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );
@@ -314,6 +319,7 @@ describe("the ledger", () => {
             id: "a1",
             title: "Two people, one talk",
             format: "talk",
+            startsAt: null,
             description: "<p>Hi</p>" as SafeHtml,
             speakers: [
               speaker({
@@ -359,6 +365,7 @@ describe("the ledger", () => {
             id: "a1",
             title: "Live episode",
             format: "fireside",
+            startsAt: null,
             description: null,
             speakers: [speaker()],
           },
@@ -392,11 +399,36 @@ describe("the ledger", () => {
     expect(labels(render(event()))).not.toContain("Schedule");
   });
 
+  test("says what the evening is about after how to get in, and before its schedule", async () => {
+    const about =
+      '<p>Join us at <strong>CodeRabbit</strong>.</p>\n<ul>\n<li><a href="https://example.com/" target="_blank" rel="noopener noreferrer">Ada</a></li>\n</ul>\n' as SafeHtml;
+    const html = render(
+      event({
+        about,
+        schedule: [{ time: "5:00 pm", title: "Doors open", description: null }],
+      }),
+    );
+    expect(labels(html)).toEqual([
+      "When",
+      "Where",
+      "Hosted at",
+      "Seats",
+      "About",
+      "Schedule",
+    ]);
+    // Sanitized by core, so printed as it is.
+    expect(html).toContain(`<div class="event-about">${about}</div>`);
+    expect(await htmlProblems(html)).toEqual([]);
+    // Without a description there is no row.
+    expect(labels(render(event()))).not.toContain("About");
+  });
+
   test("says an open floor was open to anyone, in its tense, before the demos it knows", async () => {
     const demo = {
       id: "a1",
       title: "My agents.md",
       format: "talk" as const,
+      startsAt: null,
       description: null,
       speakers: [speaker()],
     };
@@ -486,6 +518,7 @@ describe("the ledger", () => {
       id: "a1",
       title: "Opening words",
       format: "talk" as const,
+      startsAt: null,
       description: null,
       speakers: [speaker()],
     };
@@ -509,6 +542,7 @@ describe("the ledger", () => {
             id: "a1",
             title: "<b>bold</b>",
             format: "talk",
+            startsAt: null,
             description: null,
             speakers: [speaker({ name: "<i>x</i>", bio: "a < b" })],
           },
@@ -702,6 +736,7 @@ describe("who took part", () => {
             id: "a1",
             title: "With its creator",
             format: "fireside",
+            startsAt: null,
             description: null,
             speakers: [
               speaker({ id: "m", name: "Simon", role: "moderator" }),
@@ -712,6 +747,7 @@ describe("who took part", () => {
             id: "a2",
             title: "A talk",
             format: "talk",
+            startsAt: null,
             description: null,
             speakers: [speaker()],
           },
@@ -764,6 +800,7 @@ describe("the event page's images as variants", () => {
           id: "t",
           title: "A talk",
           format: "talk",
+          startsAt: null,
           description: null,
           speakers: [speaker({ portrait: photo("ada", 800, 800) })],
         },
@@ -857,6 +894,7 @@ describe("posts about the evening", () => {
             id: "a1",
             title: "A talk",
             format: "talk",
+            startsAt: null,
             description: null,
             speakers: [speaker()],
           },

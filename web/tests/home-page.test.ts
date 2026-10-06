@@ -215,9 +215,9 @@ describe("the home page", () => {
     expect(html).toContain("&quot;Acme&quot; &amp; &lt;Co&gt;");
   });
 
-  test("sets the two sentences in the lead role", () => {
+  test("sets the two sentences in the statement role", () => {
     expect(render(view())).toContain(
-      '<div class="pitch at-type-lead"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
+      '<div class="pitch at-type-statement"><p>Evenings for people who build software.</p><p class="pitch-place">In the neighborhoods of San Francisco.</p></div>',
     );
   });
 
@@ -240,7 +240,9 @@ describe("the home page", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="dark">',
     );
-    expect(html).toContain('<summary aria-label="mode: night">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: night">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=dark" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>night<\/span><\/a>/,
     );

@@ -165,7 +165,8 @@ describe("legacy URLs", () => {
     expect(response.headers.get("cache-control")).toBe(CacheControl.page);
     const html = await response.text();
     expect(html).toContain("410 · gone");
-    expect(html).not.toContain("404");
+    // In what the page says, not in its markup: an asset's hash may hold "404".
+    expect(html.replace(/<[^>]*>/g, "")).not.toContain("404");
     expect(html).toContain(
       '<link rel="canonical" href="https://allthings.dev/logos/logo-1.91x1.png"/>',
     );

@@ -199,7 +199,7 @@ export function homePage({
           )}
         </section>
         <div class="band">
-          <div class="pitch at-type-lead">
+          <div class="pitch at-type-statement">
             <p>Evenings for people who build software.</p>
             <p class="pitch-place">In the neighborhoods of San Francisco.</p>
           </div>

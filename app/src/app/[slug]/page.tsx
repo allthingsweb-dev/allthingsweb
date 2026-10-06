@@ -1,6 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";
 import { getExpandedEventBySlug } from "@/lib/expanded-events";
+import { db } from "@/lib/db";
+import { longSlugForShortLink } from "@/lib/short-links";
 import { isEventInPast } from "@/lib/events";
 import { mainConfig } from "@/lib/config";
 import {
@@ -16,15 +18,26 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+/**
+ * The published event at `slug`. A short link the new site gives
+ * (core/src/short-slugs.ts) is sent to its event's page here for good,
+ * first, as the new site prefers a link to a long slug; anything else
+ * that is no published event is not found.
+ */
+async function publishedEvent(slug: string) {
+  const long = await longSlugForShortLink(db, slug);
+  if (long !== null && long !== slug) {
+    return permanentRedirect(`/${encodeURIComponent(long)}`);
+  }
+  const event = await getExpandedEventBySlug(slug);
+  return event && !event.isDraft ? event : notFound();
+}
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const event = await getExpandedEventBySlug(slug);
-
-  if (!event || event.isDraft) {
-    notFound();
-  }
+  const event = await publishedEvent(slug);
 
   const url = `${mainConfig.instance.origin}/${slug}`;
   const imageUrl = `${mainConfig.instance.origin}/api/v1/${slug}/preview.png`;
@@ -61,11 +74,7 @@ export async function generateMetadata({
 
 export default async function EventPage({ params }: PageProps) {
   const { slug } = await params;
-  const event = await getExpandedEventBySlug(slug);
-
-  if (!event || event.isDraft) {
-    notFound();
-  }
+  const event = await publishedEvent(slug);
 
   const isInPast = isEventInPast(event);
 

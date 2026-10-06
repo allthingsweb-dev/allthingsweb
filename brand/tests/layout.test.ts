@@ -24,6 +24,7 @@ describe("the layout tokens", () => {
     expect(measures(tokens).map((measure) => measure.name)).toEqual([
       "prose",
       "lead",
+      "statement",
     ]);
   });
 
@@ -179,5 +180,19 @@ describe("image sizes from the layout", () => {
 
   test("give portraits their token sizes", () => {
     expect(portrait).toEqual({ xs: 36, s: 44, m: 72, l: 96, xl: 168 });
+  });
+});
+
+describe("optical insets", () => {
+  const css = themeCss(tokens);
+
+  test("pull every role's letters back by its face's measured bearing", () => {
+    for (const role of typeRoles(tokens)) {
+      const kebab = role.name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+      expect(role.inset).toBeGreaterThan(0);
+      expect(role.inset).toBeLessThan(0.1);
+      expect(css).toContain(`--at-type-${kebab}-inset: -${role.inset}em;`);
+      expect(css).toContain(`text-indent: var(--at-type-${kebab}-inset);`);
+    }
   });
 });

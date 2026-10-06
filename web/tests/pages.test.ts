@@ -32,6 +32,7 @@ import {
   subresources,
 } from "./support/pages.ts";
 import { serve } from "./support/socket.ts";
+import { axeProblems } from "./support/a11y.ts";
 import { budgetProblems } from "./support/bundle.ts";
 import { bundleBudgets, testStack } from "./support/stack.ts";
 
@@ -334,7 +335,9 @@ describe("the mode switch", () => {
         `<!doctype html><html lang="en"${attribute}><head>`,
       );
       expect(html).toContain(`<meta name="color-scheme" content="${scheme}"/>`);
-      expect(html).toContain(`<summary aria-label="mode: ${current}">`);
+      expect(html).toContain(
+        `<button type="button" popovertarget="mode-choices" aria-label="mode: ${current}">`,
+      );
       expect(
         html.match(/<a [^>]*aria-current="true"[^>]*>.*?<span>([^<]*)</)?.[1],
       ).toBe(current);
@@ -348,11 +351,9 @@ describe("the mode switch", () => {
     const header = /<header class="site-header">(.*?)<\/header>/.exec(
       html,
     )?.[1];
-    const mode = /<details class="mode">(.*?)<\/details>/.exec(
-      header ?? "",
-    )?.[1];
+    const mode = /<div class="mode">(.*?)<\/div>/.exec(header ?? "")?.[1];
     expect(mode).toStartWith(
-      '<summary aria-label="mode: system"><svg class="mode-icon"',
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: system"><svg class="mode-icon"',
     );
     expect(
       [
@@ -676,4 +677,36 @@ describe("static assets", () => {
     expect(response.status).toBe(404);
     await response.arrayBuffer();
   });
+});
+
+describe("every kind of page", () => {
+  /** One of each: home, the index, evenings of every kind, people, about,
+   * the brand, the code of conduct, a page that isn't, and one that is gone. */
+  const paths = [
+    "/",
+    "/events",
+    `/${slugs.upcoming}`,
+    `/${slugs.live}`,
+    `/${slugs.past}`,
+    `/${slugs.hackathon}`,
+    `/${slugs.bare}`,
+    "/people",
+    "/about",
+    "/brand",
+    "/code-of-conduct",
+    "/no-such-page",
+    "/logos/logo-1.91x1.png",
+  ];
+
+  for (const path of paths) {
+    it(`${path} passes axe, with one main and one h1, but for the rules that need a browser`, async (url) => {
+      const response = await fetch(url + path);
+      expect(response.headers.get("content-type")).toStartWith("text/html");
+      const html = await response.text();
+      expect(await axeProblems(html)).toEqual([]);
+      // What axe can't decide without layout (decidedElsewhere).
+      expect(html.match(/<main\b/g)).toHaveLength(1);
+      expect(html.match(/<h1\b/g)).toHaveLength(1);
+    });
+  }
 });

@@ -1,11 +1,14 @@
 import { PgClient } from "@effect/sql-pg";
+import { FollowerSource } from "allthings-core/src/followers.ts";
 import { CoverSource } from "allthings-core/src/ingest/covers.ts";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { MediaBucket } from "allthings-core/src/ingest/media-bucket.ts";
 import { Pictures } from "allthings-core/src/ingest/pictures.ts";
 import { LumaApi } from "allthings-core/src/luma/api.ts";
+import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { ConfigProvider, Effect, Layer, Redacted } from "effect";
 import { FetchHttpClient } from "effect/http";
@@ -70,9 +73,18 @@ export const syncLayer = (
   env: SyncEnv & Readonly<Record<string, unknown>>,
   fetch: typeof globalThis.fetch = globalThis.fetch,
 ) =>
-  Layer.mergeAll(LumaSync.layer, LumaVenues.layer, ImageIngest.layer).pipe(
+  Layer.mergeAll(
+    LumaSync.layer,
+    LumaVenues.layer,
+    ShortSlugs.layer,
+    LumaDescriptions.layer,
+    ImageIngest.layer,
+    FollowerSource.fxtwitter,
+  ).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer)),
-    Layer.provide(
+    // Merged, not only provided: the follower refresh writes through the
+    // run's SqlClient itself.
+    Layer.provideMerge(
       Layer.mergeAll(
         PgClient.layer({
           url: Redacted.make(env.HYPERDRIVE.connectionString),

@@ -9,6 +9,18 @@ import {
   eventsTable,
 } from "./schema";
 
+/**
+ * Speaker order, as core's `byFollowers` decides it (core/src/followers.ts):
+ * whoever has an X follower count first, most followed first; 0 among equal
+ * counts and among the uncounted, so a stable sort keeps the list's own
+ * order (here, by name) for them. core/tests/followers.test.ts holds the two
+ * to the same order.
+ */
+export function byFollowers(a: number | null, b: number | null): number {
+  if (a === null || b === null) return a === b ? 0 : a === null ? 1 : -1;
+  return b - a;
+}
+
 export async function getSpeakerDirectory(
   database: Pick<PgDatabase<PgQueryResultHKT>, "select">,
   now = new Date(),
@@ -93,7 +105,9 @@ export async function getSpeakerDirectory(
     talk.speakerIds.push(row.profile.id);
   }
   return {
-    speakers: [...speakers.values()],
+    speakers: [...speakers.values()].toSorted((a, b) =>
+      byFollowers(a.profile.xFollowers, b.profile.xFollowers),
+    ),
     talks: [...talks.values()].toSorted(
       (a, b) =>
         b.eventStart.getTime() - a.eventStart.getTime() ||

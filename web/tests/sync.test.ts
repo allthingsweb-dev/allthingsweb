@@ -1,9 +1,12 @@
+import { FollowerSource } from "allthings-core/src/followers.ts";
 import { describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { ImageIngest, NewImageId } from "allthings-core/src/ingest/ingest.ts";
 import { LumaApi } from "allthings-core/src/luma/api.ts";
+import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   clockAt,
@@ -70,7 +73,10 @@ const images = {
   "https://pbs.twimg.com/3.jpg": imageBytes("jpeg", "p3"),
 };
 
-/** Luma's API, faked: every event it is asked about is at CodeRabbit. */
+/**
+ * Luma's API, faked: every event it is asked about is at CodeRabbit, and
+ * has a description.
+ */
 const placedApi = Layer.succeed(
   LumaApi,
   LumaApi.of({
@@ -81,6 +87,14 @@ const placedApi = Layer.succeed(
           lumaEventId,
           location: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
           guestsOnly: true,
+        }),
+      ),
+    ),
+    eventDescription: Option.some((lumaEventId: string) =>
+      Effect.succeed(
+        Option.some({
+          lumaEventId,
+          markdown: `# Talks\n\nAn evening about ${lumaEventId}, with talks and time to talk.`,
         }),
       ),
     ),
@@ -109,7 +123,14 @@ async function run(
   const layer = Layer.mergeAll(
     LumaSync.layer,
     LumaVenues.layer,
+    ShortSlugs.layer,
+    LumaDescriptions.layer,
     ImageIngest.layer,
+    // Everyone has 7 followers on X here.
+    Layer.succeed(
+      FollowerSource,
+      FollowerSource.of({ read: () => Effect.succeed(7) }),
+    ),
   ).pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -147,17 +168,34 @@ const unplaced = `SELECT count(*) AS n FROM events
     AND COALESCE(full_address, street_address) IS NULL`;
 
 describe("a sync run that writes", () => {
-  test("syncs events and fills in the venues the calendar hides, then stores photos, post images and covers, logging each step", async () => {
+  test("syncs events, fills in the venues the calendar hides and gives short links, stores photos, post images and covers, then imports descriptions, logging each step", async () => {
     const { db, report, logged, bucket } = await run("write", syncLimits.paid);
     try {
       expect(report.ok).toBe(true);
       expect(Object.keys(report.steps)).toEqual([
         "events",
         "venues",
+        "slugs",
         "photos",
         "posts",
         "covers",
+        "descriptions",
+        "followers",
       ]);
+      // Every profile with an X handle gets its count, with when it was read.
+      expect(report.steps["followers"]).toMatchObject({
+        status: "done",
+        failed: [],
+        remaining: 0,
+      });
+      expect(
+        await count(
+          db,
+          `SELECT count(*) AS n FROM profiles
+            WHERE twitter_handle IS NOT NULL AND btrim(twitter_handle) <> ''
+              AND (x_followers IS DISTINCT FROM 7 OR x_followers_at IS NULL)`,
+        ),
+      ).toBe(0);
       expect(report.steps["events"]).toMatchObject({
         status: "done",
         syncedCount: 24,
@@ -172,6 +210,21 @@ describe("a sync run that writes", () => {
         ]),
       });
       expect(await count(db, unplaced)).toBe(0);
+      const described = await count(
+        db,
+        "SELECT count(*) AS n FROM events WHERE is_draft = false AND luma_event_id IS NOT NULL",
+      );
+      expect(report.steps["descriptions"]).toMatchObject({
+        status: "done",
+        asked: described,
+        written: described,
+      });
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE luma_description LIKE '<p><strong>Talks</strong></p>%'",
+        ),
+      ).toBe(described);
       // A venue name an organizer typed stays beside the address.
       expect(
         (
@@ -180,6 +233,18 @@ describe("a sync run that writes", () => {
           )
         ).rows[0]?.short_location,
       ).toBe("Somewhere nice");
+      expect(report.steps["slugs"]).toMatchObject({
+        status: "done",
+        given: expect.arrayContaining([
+          { slug: "secret-venue-night", shortSlug: "secret-venue-night" },
+        ]),
+      });
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE is_draft = false AND short_slug IS NULL",
+        ),
+      ).toBe(0);
       expect(report.steps["photos"]).toMatchObject({
         status: "done",
         ingested: ["One", "Two", "Three"],
@@ -201,9 +266,12 @@ describe("a sync run that writes", () => {
         "start",
         "events",
         "venues",
+        "slugs",
         "photos",
         "posts",
         "covers",
+        "descriptions",
+        "followers",
         "summary",
       ]);
       expect(logged.every((entry) => entry["source"] === "luma-sync")).toBe(
@@ -214,11 +282,15 @@ describe("a sync run that writes", () => {
     }
   });
 
-  test("on the Free plan, asks about two venues and tries two images of each kind, leaving the rest for later runs", async () => {
+  test("on the Free plan, asks about two venues and two descriptions and tries two images of each kind, leaving the rest for later runs", async () => {
     const { db, report, bucket } = await run("write", syncLimits.free);
     try {
       expect(report.ok).toBe(true);
       expect(report.steps["venues"]).toMatchObject({ asked: 2, written: 2 });
+      expect(report.steps["descriptions"]).toMatchObject({
+        asked: 2,
+        written: 2,
+      });
       expect(report.steps["photos"]).toMatchObject({
         ingested: ["One", "Two"],
       });
@@ -232,7 +304,7 @@ describe("a sync run that writes", () => {
     }
   });
 
-  test("fills no venues and stores no images when Luma's calendar can't be read, as the app's cron", async () => {
+  test("fills no venues, gives no links and stores no images when Luma's calendar can't be read, as the app's cron", async () => {
     const { db, report, bucket } = await run("write", syncLimits.paid, [
       { status: 404 },
     ]);
@@ -260,6 +332,17 @@ describe("a dry run", () => {
         syncedCount: 24,
         changedCount: 23,
       });
+      // Evenings the rehearsal rolled back are listed with their links too.
+      expect(report.steps["slugs"]).toMatchObject({
+        status: "done",
+        written: null,
+        given: expect.arrayContaining([
+          {
+            slug: "2026-03-07-hackathon-weekend-evt-allDay",
+            shortSlug: "hackathon-weekend",
+          },
+        ]),
+      });
       expect(report.steps["venues"]).toMatchObject({
         status: "done",
         written: null,
@@ -268,6 +351,23 @@ describe("a dry run", () => {
         ]),
       });
       expect(await count(db, unplaced)).toBeGreaterThan(0);
+      expect(report.steps["descriptions"]).toMatchObject({
+        status: "done",
+        written: null,
+        changes: expect.arrayContaining([
+          {
+            slug: "secret-venue-night",
+            summary:
+              "An evening about evt-hiddenVenue, with talks and time to talk.",
+          },
+        ]),
+      });
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE short_slug IS NOT NULL OR luma_description IS NOT NULL",
+        ),
+      ).toBe(0);
       expect(report.steps["images"]).toMatchObject({
         status: "done",
         photos: ["One", "Two", "Three"],
@@ -464,9 +564,12 @@ describe("the Worker, from its bindings", () => {
       expect(report.steps["photos"]).toMatchObject({
         ingested: ["Ada Lovelace"],
       });
-      // Without LUMA_API_KEY, no venues are asked for and no covers are
-      // looked up, as in the app.
+      // Without LUMA_API_KEY, no venues or descriptions are asked for and
+      // no covers are looked up, as in the app.
       expect(report.steps["venues"]).toMatchObject({
+        skipped: "LUMA_API_KEY is not set",
+      });
+      expect(report.steps["descriptions"]).toMatchObject({
         skipped: "LUMA_API_KEY is not set",
       });
       expect(report.steps["covers"]).toMatchObject({ ingested: [] });

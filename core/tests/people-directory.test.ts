@@ -302,6 +302,7 @@ describe("toPeople", () => {
     twitterHandle: null,
     blueskyHandle: null,
     linkedinHandle: null,
+    xFollowers: null,
     photo: null,
     organizes: false,
     talks: starts.map((start) => ({
@@ -337,6 +338,48 @@ describe("toPeople", () => {
     ]);
     // Blank text reads as unknown.
     expect(view.speakers[0]?.title).toBeNull();
+  });
+
+  test("orders speakers by X followers, most first; equal counts and those without one keep the old order, after everyone counted", () => {
+    const view = toPeople(
+      [
+        row("1", "Ann", ["2026-01-01T00:00:00Z"]),
+        row("2", "Bea", ["2025-01-01T00:00:00Z"], { xFollowers: 10 }),
+        row("3", "Cal", ["2024-01-01T00:00:00Z"], { xFollowers: 5000 }),
+        row("4", "Dee", ["2026-01-01T00:00:00Z"], { xFollowers: 10 }),
+        // Zero followers is a count, so it still leads those without one.
+        row("5", "Eve", ["2026-06-01T00:00:00Z"], { xFollowers: 0 }),
+        row("6", "Fay", ["2023-01-01T00:00:00Z"]),
+      ],
+      [],
+      now,
+    );
+    expect(view.speakers.map((person) => person.id)).toEqual([
+      "3",
+      // Bea and Dee tie on 10: Dee took part later.
+      "4",
+      "2",
+      "5",
+      // No count: as before, latest first.
+      "1",
+      "6",
+    ]);
+  });
+
+  test("leaves organizers and co-hosts in their own order, whatever their followers", () => {
+    const view = toPeople(
+      [
+        row("1", "Ann", [], {
+          organizes: true,
+          xFollowers: 1,
+          roles: [],
+        }),
+        row("2", "Bea", [], { organizes: true, xFollowers: 9000 }),
+      ],
+      ["1", "2"],
+      now,
+    );
+    expect(view.organizers.map((person) => person.id)).toEqual(["1", "2"]);
   });
 
   test("skips an organizer asked for whose profile is gone, and lists each person once", () => {
@@ -394,6 +437,7 @@ describe("toPerson", () => {
         twitterHandle: null,
         blueskyHandle: null,
         linkedinHandle: null,
+        xFollowers: null,
         photo: null,
         organizes: false,
         talks: [],
