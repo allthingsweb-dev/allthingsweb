@@ -1021,6 +1021,7 @@ main > section,
 
 .lineup-portraits {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--at-space-1);
 }
 
