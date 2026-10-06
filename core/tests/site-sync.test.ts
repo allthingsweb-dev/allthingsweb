@@ -154,6 +154,102 @@ const fakeApi = Layer.succeed(
   }),
 );
 
+/** The post search's services, with `writer` storing what it finds. */
+const searchServices = (writer: typeof EventPostWriter.layer) =>
+  Layer.mergeAll(
+    Layer.succeed(CandidateSearches, [
+      {
+        platform: "bluesky" as const,
+        search: (signals) =>
+          Effect.succeed({
+            requests: 1,
+            posts: [
+              {
+                platform: "bluesky" as const,
+                url: "https://bsky.app/profile/did:plc:abc/post/3site",
+                authorHandle: "someone.example",
+                text: `see you there: ${signals.links[0] ?? ""}`,
+                links: [...signals.links],
+                mentions: [],
+                postedAt: signals.startsAt,
+              },
+            ],
+          }),
+      },
+    ]),
+    Layer.succeed(
+      PostSources,
+      PostSources.of({
+        resolve: (url) =>
+          Effect.succeed({
+            platform: "bluesky" as const,
+            url,
+            authorName: "Someone",
+            authorHandle: "someone.example",
+            authorUrl: null,
+            authorAvatarSourceUrl: null,
+            postedAt: DateTime.makeUnsafe("2026-10-01T00:00:00Z"),
+            text: "t",
+            imageSourceUrl: null,
+          }),
+      }),
+    ),
+    writer.pipe(Layer.provideMerge(sqlLayer(db))),
+    Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            new Response("", { status: 404 }),
+          ),
+        ),
+      ),
+    ),
+    clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),
+  );
+
+/** One post search of the evenings that have ended, as site_sync. */
+const searchPast = (dryRun: boolean, writer = EventPostWriter.pendingOnly) =>
+  Effect.runPromise(
+    findCandidates({ scope: { _tag: "Past" }, dryRun, maxEvents: 1 }).pipe(
+      Effect.provide(searchServices(writer)),
+    ),
+  );
+
+/** Queues a post through the function, as site_sync, with `fields` changed. */
+const queue = (fields: Partial<Record<string, string | null>> = {}) => {
+  const post: Record<string, string | null> = {
+    eventSlug:
+      "2026-06-25-react-server-components-at-meraki-evt-HtDmTqndK1vA1Z4",
+    platform: "x",
+    url: "https://x.com/i/status/1900000000000000001",
+    authorName: "Grace",
+    authorHandle: "grace",
+    authorUrl: "https://x.com/grace",
+    avatar: null,
+    postedAt: "2026-08-13T03:00:00Z",
+    text: "React at Acme was great",
+    image: null,
+    ...fields,
+  };
+  return db.query<{ written: unknown }>(
+    `SELECT public.queue_event_post($1, $2, $3, $4, $5, $6, $7, $8::timestamptz, $9, $10) AS written`,
+    [
+      post["eventSlug"],
+      post["platform"],
+      post["url"],
+      post["authorName"],
+      post["authorHandle"],
+      post["authorUrl"],
+      post["avatar"],
+      post["postedAt"],
+      post["text"],
+      post["image"],
+    ],
+  );
+};
+
 describe("site_sync", () => {
   test("runs the event sync", async () => {
     const at = DateTime.makeUnsafe("2026-10-05T12:00:00Z");
@@ -256,69 +352,126 @@ describe("site_sync", () => {
   });
 
   test("searches past evenings for posts, and reports what it would add", async () => {
-    const reports = await Effect.runPromise(
-      findCandidates({
-        scope: { _tag: "Past" },
-        dryRun: true,
-        maxEvents: 1,
+    const reports = await searchPast(true);
+    expect(reports[0]?.candidates.map((c) => c.outcome)).toEqual(["would add"]);
+  });
+
+  test("queues what the search finds, as pending, through the function", async () => {
+    const reports = await searchPast(false);
+    expect(reports[0]?.candidates.map((c) => c.outcome)).toEqual(["added"]);
+    await db.exec("RESET ROLE");
+    const { rows } = await db.query<{ status: string }>(
+      `SELECT status FROM event_posts WHERE url = 'https://bsky.app/profile/did:plc:abc/post/3site'`,
+    );
+    expect(rows).toEqual([{ status: "pending" }]);
+  });
+
+  test("never inserts a post itself, nor sets a post's status", async () => {
+    expect(
+      await refusal(`
+        INSERT INTO event_posts (event_id, platform, url, author_name, posted_at, text, status, updated_at)
+        VALUES ('e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/i/status/2', 'A', now(), 't', 'approved', now())`),
+    ).toContain("permission denied");
+    expect(
+      await refusal(`UPDATE event_posts SET status = 'approved'`),
+    ).toContain("permission denied");
+    // The pending-only writer refuses any other status before it asks.
+    const approving = await Effect.runPromiseExit(
+      Effect.gen(function* () {
+        const writer = yield* EventPostWriter;
+        return yield* writer.add(
+          "2026-06-25-react-server-components-at-meraki-evt-HtDmTqndK1vA1Z4",
+          {
+            platform: "x",
+            url: "https://x.com/i/status/3",
+            authorName: "A",
+            authorHandle: null,
+            authorUrl: null,
+            authorAvatarSourceUrl: null,
+            postedAt: DateTime.makeUnsafe("2026-08-13T03:00:00Z"),
+            text: "t",
+            imageSourceUrl: null,
+          },
+          "approved",
+        );
       }).pipe(
         Effect.provide(
-          Layer.mergeAll(
-            Layer.succeed(CandidateSearches, [
-              {
-                platform: "bluesky" as const,
-                search: (signals) =>
-                  Effect.succeed({
-                    requests: 1,
-                    posts: [
-                      {
-                        platform: "bluesky" as const,
-                        url: "https://bsky.app/profile/did:plc:abc/post/3site",
-                        authorHandle: "someone.example",
-                        text: `see you there: ${signals.links[0] ?? ""}`,
-                        links: [...signals.links],
-                        mentions: [],
-                        postedAt: signals.startsAt,
-                      },
-                    ],
-                  }),
-              },
-            ]),
-            Layer.succeed(
-              PostSources,
-              PostSources.of({
-                resolve: (url) =>
-                  Effect.succeed({
-                    platform: "bluesky" as const,
-                    url,
-                    authorName: "Someone",
-                    authorHandle: "someone.example",
-                    authorUrl: null,
-                    authorAvatarSourceUrl: null,
-                    postedAt: DateTime.makeUnsafe("2026-10-01T00:00:00Z"),
-                    text: "t",
-                    imageSourceUrl: null,
-                  }),
-              }),
-            ),
-            EventPostWriter.layer.pipe(Layer.provideMerge(sqlLayer(db))),
-            Layer.succeed(
-              HttpClient.HttpClient,
-              HttpClient.make((request) =>
-                Effect.succeed(
-                  HttpClientResponse.fromWeb(
-                    request,
-                    new Response("", { status: 404 }),
-                  ),
-                ),
-              ),
-            ),
-            clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),
-          ),
+          EventPostWriter.pendingOnly.pipe(Layer.provide(sqlLayer(db))),
         ),
       ),
     );
-    expect(reports[0]?.candidates.map((c) => c.outcome)).toEqual(["would add"]);
+    expect(Exit.isFailure(approving)).toBe(true);
+  });
+
+  test("queues a post only as pending, once, on a published evening", async () => {
+    const [first] = (await queue()).rows;
+    expect(first?.written).toMatchObject({
+      eventId: "e0000000-0000-4000-8000-000000000003",
+      existing: null,
+    });
+    // Queued again, it is the post already there, as it is.
+    const [again] = (await queue()).rows;
+    expect(again?.written).toMatchObject({
+      addedId: null,
+      existing: { status: "pending" },
+    });
+    // A draft evening, or none, takes nothing.
+    const [draft] = (
+      await queue({
+        eventSlug: "sentry-summer-2024",
+        url: "https://x.com/i/status/4",
+      })
+    ).rows;
+    expect(draft?.written).toMatchObject({ eventId: null, addedId: null });
+    await db.exec("RESET ROLE");
+    const { rows } = await db.query<{ status: string; n: number }>(
+      `SELECT status, count(*)::int AS n FROM event_posts WHERE url LIKE 'https://x.com/i/status/%' GROUP BY status`,
+    );
+    expect(rows).toEqual([{ status: "pending", n: 1 }]);
+  });
+
+  test.each([
+    ["a LinkedIn post", { platform: "linkedin" }],
+    [
+      "a URL that isn't canonical",
+      { url: "https://x.com/grace/status/1900000000000000001" },
+    ],
+    [
+      "a Bluesky URL by handle",
+      {
+        platform: "bluesky",
+        url: "https://bsky.app/profile/grace.bsky.social/post/3abc",
+      },
+    ],
+    ["no author name", { authorName: " " }],
+    ["a link that isn't https", { image: "http://pbs.twimg.com/media/1.jpg" }],
+    ["no text", { text: null }],
+    ["a time in the future", { postedAt: "2026-12-01T00:00:00Z" }],
+  ] as const)("refuses %s, and writes nothing", async (_, fields) => {
+    expect(
+      await queue(fields).then(
+        () => "written",
+        (error: unknown) =>
+          // invalid_parameter_value: the function's own refusal.
+          (error as { code?: string }).code,
+      ),
+    ).toBe("22023");
+    await db.exec("RESET ROLE");
+    const { rows } = await db.query(
+      `SELECT 1 FROM event_posts WHERE url <> 'https://x.com/a/status/1'`,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  test("is the only role that may queue a post", async () => {
+    await db.exec("RESET ROLE");
+    await db.exec("CREATE ROLE someone_else");
+    await db.exec("SET ROLE someone_else");
+    expect(
+      await refusal(
+        `SELECT public.queue_event_post('2026-06-25-react-server-components-at-meraki-evt-HtDmTqndK1vA1Z4', 'x', 'https://x.com/i/status/5', 'A', NULL, NULL, NULL, now(), 't', NULL)`,
+      ),
+    ).toContain("permission denied");
   });
 
   test("stores missing covers, profile photos and post images", async () => {

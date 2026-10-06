@@ -70,47 +70,70 @@ export interface EventPostWriterShape {
   ) => Effect.Effect<AddResult, PostEventNotFound | DataSourceError>;
 }
 
-const make = Effect.gen(function* () {
-  const sql = yield* SqlClient;
+/**
+ * How posts are inserted: as the owner, by statement, with any status; or
+ * as site_sync, through `public.queue_event_post`
+ * (migrations/0018_pending_posts.ts), which only ever adds pending posts.
+ */
+type Inserting = "statement" | "pendingOnly";
 
-  const existingByUrl = (url: string) =>
-    sql`
+const make = (inserting: Inserting) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+
+    const existingByUrl = (url: string) =>
+      sql`
       SELECT json_build_object('id', p.id, 'url', p.url, 'eventSlug', e.slug,
         'status', p.status)
       FROM event_posts p JOIN events e ON e.id = p.event_id
       WHERE p.url = ${url}`;
 
-  /** The stored post with canonical URL `url`, if there is one. */
-  const stored = (url: string) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ post: unknown }>`
+    /** The stored post with canonical URL `url`, if there is one. */
+    const stored = (url: string) =>
+      Effect.gen(function* () {
+        const rows = yield* sql<{ post: unknown }>`
         SELECT (${existingByUrl(url)}) AS post`;
-      const post = rows[0]?.post ?? null;
-      if (post === null) return null;
-      const existing = yield* Schema.decodeUnknownEffect(Existing)(post);
-      return { _tag: "Exists", ...existing } satisfies AddResult;
-    });
+        const post = rows[0]?.post ?? null;
+        if (post === null) return null;
+        const existing = yield* Schema.decodeUnknownEffect(Existing)(post);
+        return { _tag: "Exists", ...existing } satisfies AddResult;
+      });
 
-  const find = (url: string) =>
-    Effect.gen(function* () {
-      const ref = parsePostUrl(url);
-      // A Bluesky URL is canonical only once it names the author by DID.
-      if (
-        ref === null ||
-        (ref.platform === "bluesky" && !ref.actor.startsWith("did:"))
-      ) {
-        return null;
-      }
-      return yield* stored(canonicalUrl(ref));
-    }).pipe(orDataSourceError);
+    const find = (url: string) =>
+      Effect.gen(function* () {
+        const ref = parsePostUrl(url);
+        // A Bluesky URL is canonical only once it names the author by DID.
+        if (
+          ref === null ||
+          (ref.platform === "bluesky" && !ref.actor.startsWith("did:"))
+        ) {
+          return null;
+        }
+        return yield* stored(canonicalUrl(ref));
+      }).pipe(orDataSourceError);
 
-  const add = (
-    slug: string,
-    post: ResolvedPost,
-    status: PostStatus = "approved",
-  ) =>
-    Effect.gen(function* () {
-      const [row] = yield* sql`
+    const add = (
+      slug: string,
+      post: ResolvedPost,
+      status: PostStatus = "approved",
+    ) =>
+      Effect.gen(function* () {
+        if (inserting === "pendingOnly" && status !== "pending") {
+          return yield* Effect.die(
+            new Error(`This writer adds posts only as pending, not ${status}`),
+          );
+        }
+        const [row] =
+          inserting === "pendingOnly"
+            ? yield* sql`
+        SELECT written."eventId", written."addedId", written.existing
+        FROM json_to_record(public.queue_event_post(${slug}, ${post.platform},
+          ${post.url}, ${post.authorName}, ${post.authorHandle},
+          ${post.authorUrl}, ${post.authorAvatarSourceUrl},
+          ${DateTime.formatIso(post.postedAt)}::timestamptz, ${post.text},
+          ${post.imageSourceUrl}))
+          AS written("eventId" uuid, "addedId" uuid, existing json)`
+            : yield* sql`
         WITH event AS (
           SELECT id FROM events WHERE slug = ${slug}
         ), existing AS (
@@ -131,49 +154,58 @@ const make = Effect.gen(function* () {
         SELECT (SELECT id FROM event) AS "eventId",
           (SELECT id FROM added) AS "addedId",
           (SELECT * FROM existing) AS existing`;
-      const written = yield* Schema.decodeUnknownEffect(Written)(row);
-      if (written.existing !== null) {
-        return { _tag: "Exists", ...written.existing } satisfies AddResult;
-      }
-      if (written.eventId === null) {
-        return yield* new PostEventNotFound({ slug });
-      }
-      if (written.addedId === null) {
-        // Another writer added the same post between this statement's
-        // snapshot and its insert: report the row that won, as for any
-        // post already there.
-        const winner = yield* stored(post.url);
-        if (winner !== null) return winner;
-        return yield* Effect.die(
-          new Error(`${post.url} was neither added nor found`),
-        );
-      }
-      return {
-        _tag: "Added",
-        id: written.addedId,
-        url: post.url,
-      } satisfies AddResult;
-    }).pipe(
-      Effect.catchTag("SqlError", (cause) =>
-        orDataSourceError(Effect.fail(cause)),
-      ),
-      Effect.catchTag("SchemaError", (cause) =>
-        orDataSourceError(Effect.fail(cause)),
-      ),
-    );
+        const written = yield* Schema.decodeUnknownEffect(Written)(row);
+        if (written.existing !== null) {
+          return { _tag: "Exists", ...written.existing } satisfies AddResult;
+        }
+        if (written.eventId === null) {
+          return yield* new PostEventNotFound({ slug });
+        }
+        if (written.addedId === null) {
+          // Another writer added the same post between this statement's
+          // snapshot and its insert: report the row that won, as for any
+          // post already there.
+          const winner = yield* stored(post.url);
+          if (winner !== null) return winner;
+          return yield* Effect.die(
+            new Error(`${post.url} was neither added nor found`),
+          );
+        }
+        return {
+          _tag: "Added",
+          id: written.addedId,
+          url: post.url,
+        } satisfies AddResult;
+      }).pipe(
+        Effect.catchTag("SqlError", (cause) =>
+          orDataSourceError(Effect.fail(cause)),
+        ),
+        Effect.catchTag("SchemaError", (cause) =>
+          orDataSourceError(Effect.fail(cause)),
+        ),
+      );
 
-  const hasEvent = (slug: string) =>
-    sql`SELECT 1 FROM events WHERE slug = ${slug}`.pipe(
-      Effect.map((rows) => rows.length > 0),
-      orDataSourceError,
-    );
+    const hasEvent = (slug: string) =>
+      sql`SELECT 1 FROM events WHERE slug = ${slug}`.pipe(
+        Effect.map((rows) => rows.length > 0),
+        orDataSourceError,
+      );
 
-  return EventPostWriter.of({ hasEvent, find, add });
-});
+    return EventPostWriter.of({ hasEvent, find, add });
+  });
 
 export class EventPostWriter extends Context.Service<
   EventPostWriter,
   EventPostWriterShape
 >()("allthings/EventPostWriter") {
-  static readonly layer = Layer.effect(EventPostWriter, make);
+  static readonly layer = Layer.effect(EventPostWriter, make("statement"));
+  /**
+   * The writer site_sync uses: posts go in only through
+   * `public.queue_event_post`, only ever as pending. Asking it for any other
+   * status is a defect.
+   */
+  static readonly pendingOnly = Layer.effect(
+    EventPostWriter,
+    make("pendingOnly"),
+  );
 }

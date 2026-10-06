@@ -87,7 +87,8 @@ export const syncLayer = (
     FollowerSource.fxtwitter,
     CandidateSearches.layer,
     PostSources.layer,
-    EventPostWriter.layer,
+    // As site_sync: found posts go in only as pending.
+    EventPostWriter.pendingOnly,
   ).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer)),
     // Merged, not only provided: the follower refresh and the post search

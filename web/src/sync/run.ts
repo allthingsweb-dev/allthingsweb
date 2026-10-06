@@ -370,19 +370,20 @@ const write = (limits: SyncLimits) =>
     );
     steps["post-search"] = yield* step(
       "post-search",
-      yield* postSearch(limits),
+      yield* postSearch(limits, false),
     );
     return steps;
   });
 
 /**
  * Searching recent evenings for posts about them, within `limits`, as a
- * step reports it, with the services the run already has. For now it only
- * reports what it would add: site_sync may not insert posts until the
- * database can hold it to pending ones (see infra/scripts/site-sync.ts), so
- * an organizer adds them with `bun run posts find`.
+ * step reports it, with the services the run already has. A run that
+ * writes queues what it finds as pending, for an organizer to approve or
+ * hide; as site_sync it can do nothing else (EventPostWriter.pendingOnly,
+ * core/migrations/0018_pending_posts.ts). A dry run reports what it would
+ * add.
  */
-const postSearch = (limits: SyncLimits) =>
+const postSearch = (limits: SyncLimits, dryRun: boolean) =>
   Effect.gen(function* () {
     const context = yield* Effect.context<
       | CandidateSearches
@@ -394,7 +395,7 @@ const postSearch = (limits: SyncLimits) =>
     const { within, maxEvents, maxRequests, window } = limits.postSearch;
     return findCandidates({
       scope: { _tag: "Recent", within },
-      dryRun: true,
+      dryRun,
       maxEvents,
       ...(maxRequests === undefined ? {} : { maxRequests }),
     }).pipe(
@@ -496,7 +497,7 @@ const dryRun = (limits: SyncLimits) =>
     );
     steps["post-search"] = yield* step(
       "post-search",
-      yield* postSearch(limits),
+      yield* postSearch(limits, true),
     );
     return steps;
   });

@@ -64,9 +64,10 @@ interface ColumnGrants {
  * - profiles, event_posts: rows still missing an image, and the image set.
  * - The post search (core/src/posts/candidates.ts) reads each recent
  *   evening's name, topic, hosts and the handles of its people, and the
- *   posts already stored. It only reports what it finds: inserting posts
- *   waits for the database to hold site_sync to pending ones (a column
- *   grant can't limit a value), so an organizer adds them for now.
+ *   posts already stored. It adds what it finds only through
+ *   `public.queue_event_post` (SITE_SYNC_FUNCTIONS), which inserts pending
+ *   posts and nothing else: a column grant can't limit a value, so the role
+ *   holds no INSERT on event_posts.
  *   Profiles also: the X follower refresh (core/src/followers.ts) reads each
  *   handle and its snapshot, and writes the new count with when it was read.
  *
@@ -185,6 +186,15 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
 };
 
 /**
+ * The functions the role may execute, by signature: queuing a found post
+ * as pending (core/migrations/0018_pending_posts.ts), which runs as its
+ * owner and checks every field. Every other function's EXECUTE is revoked.
+ */
+export const SITE_SYNC_FUNCTIONS: ReadonlyArray<string> = [
+  "public.queue_event_post(text, text, text, text, text, text, text, timestamptz, text, text)",
+];
+
+/**
  * Bounds on every session: a statement that runs away, a lock it waits on,
  * or a transaction left open by a Worker that died can't hold production up.
  */
@@ -197,12 +207,16 @@ export const SITE_SYNC_SETTINGS = {
 const quoted = (columns: ReadonlyArray<string>) =>
   columns.map((column) => `"${column}"`).join(", ");
 
-/** The SQL that leaves `role` with exactly SITE_SYNC_GRANTS and the settings, run as the owner. */
+/** The SQL that leaves `role` with exactly SITE_SYNC_GRANTS, SITE_SYNC_FUNCTIONS and the settings, run as the owner. */
 export function grantStatements(role = SITE_SYNC): string[] {
   const statements = [
     `REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${role}`,
     `REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${role}`,
+    `REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM ${role}`,
     `GRANT USAGE ON SCHEMA public TO ${role}`,
+    ...SITE_SYNC_FUNCTIONS.map(
+      (signature) => `GRANT EXECUTE ON FUNCTION ${signature} TO ${role}`,
+    ),
   ];
   for (const [table, grants] of Object.entries(SITE_SYNC_GRANTS)) {
     for (const privilege of ["select", "insert", "update"] as const) {
