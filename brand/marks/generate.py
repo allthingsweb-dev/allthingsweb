@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import resvg_py
+from metrics import type_insets
 from og import build_og
 import uharfbuzz as hb
 from fontTools.pens.boundsPen import BoundsPen
@@ -372,8 +373,9 @@ def build() -> dict[Path, bytes]:
         for name in json.loads(TOKENS.read_text())["color"]
         if name != "$type"
     }
+    faces = {"archivo": archivo, "mono": load_font(MONO_URL, MONO_SHA256, MONO_CACHE)}
     og = build_og(
-        {"archivo": archivo, "mono": load_font(MONO_URL, MONO_SHA256, MONO_CACHE)},
+        faces,
         colors,
         lambda svg_text: bytes(resvg_py.svg_to_bytes(svg_string=svg_text)),
     )
@@ -383,6 +385,7 @@ def build() -> dict[Path, bytes]:
             for name, content in files.items()
         },
         **{OG_OUT / name: content for name, content in og.items()},
+        ROOT / "brand/type-metrics.json": type_insets(faces, json.loads(TOKENS.read_text())),
     }
 
 
