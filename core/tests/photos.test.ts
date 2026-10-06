@@ -201,12 +201,13 @@ describe("addPhotos", () => {
     expect((await db.query(`SELECT 1 FROM images`)).rows.length).toBe(images);
   });
 
-  test("reuses an object an interrupted run stored, when it serves what was made", async () => {
+  test("reuses an object an interrupted run stored, when it serves exactly what was made", async () => {
     const { media, objects, puts } = fakeMedia();
     const hash = await contentHash(new Uint8Array([1, 1, 2, 3]));
+    // What encodeTo() makes of a.jpg: 1000 bytes of its first byte.
     objects.set(
       `${origin}/${photoKey(acme, hash, "jpeg")}`,
-      new Uint8Array(1000),
+      new Uint8Array(1000).fill(1),
     );
     const results = await run(
       addPhotos("2026-08-12-react-at-acme", [file("a.jpg", 1)], options(media)),
@@ -215,17 +216,28 @@ describe("addPhotos", () => {
     expect(puts).toHaveLength(0);
   });
 
-  test("refuses an object under its key that is not what was made", async () => {
-    const { media, objects } = fakeMedia();
-    const hash = await contentHash(new Uint8Array([1, 1, 2, 3]));
-    objects.set(`${origin}/${photoKey(acme, hash, "jpeg")}`, new Uint8Array(7));
-    const before = await photos();
-    const error = await failure(
-      addPhotos("2026-08-12-react-at-acme", [file("a.jpg", 1)], options(media)),
-    );
-    expect(error.message).toContain("serves 7 bytes");
-    expect(await photos()).toEqual(before);
-  });
+  test.each([
+    ["shorter", new Uint8Array(7), "serves 7 bytes"],
+    ["as long, but other bytes", new Uint8Array(1000), "serves 1000 bytes"],
+  ])(
+    "refuses an object under its key that is not what was made (%s)",
+    async (_, stored, message) => {
+      const { media, objects } = fakeMedia();
+      const hash = await contentHash(new Uint8Array([1, 1, 2, 3]));
+      objects.set(`${origin}/${photoKey(acme, hash, "jpeg")}`, stored);
+      const before = await photos();
+      const error = await failure(
+        addPhotos(
+          "2026-08-12-react-at-acme",
+          [file("a.jpg", 1)],
+          options(media),
+        ),
+      );
+      expect(error.message).toContain(message);
+      expect(error.message).toContain("not the 1000 made from a.jpg");
+      expect(await photos()).toEqual(before);
+    },
+  );
 
   test.each([
     ["no event", "nowhere", [file("a.jpg", 1)], "No event at nowhere."],

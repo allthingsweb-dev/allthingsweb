@@ -18,7 +18,8 @@ import {
  *
  * - **Idempotent.** A photo's key is its event and the SHA-256 of the file's
  *   bytes, so adding the same file again finds it and changes nothing. An
- *   object an interrupted run stored is reused when it serves what was made.
+ *   object an interrupted run stored is reused when it serves exactly the
+ *   bytes made.
  * - **Ordered.** Pages list an evening's photos by `event_images.created_at`;
  *   one run adds its photos in the order given, after those already there.
  * - **Described.** Every photo needs its own alt text, saying what is in the
@@ -83,6 +84,10 @@ export const photoKey = (
   hash: string,
   format: Encoded["format"],
 ): string => `events/${eventId}/${hash}.${format === "jpeg" ? "jpg" : "webp"}`;
+
+/** Whether `a` and `b` hold the same bytes. */
+const sameBytes = (a: Uint8Array, b: Uint8Array): boolean =>
+  a.byteLength === b.byteLength && a.every((byte, index) => byte === b[index]);
 
 const contentType = (format: Encoded["format"]) => `image/${format}`;
 
@@ -218,18 +223,18 @@ export const addPhotos = (
               reason: `${photo.file.name} could not be stored: ${String(cause)}`,
             }),
         });
-        // What the origin serves under the key must be what was made: an
-        // object stored by an earlier run, or another encoder, may not be.
+        // What the origin serves under the key must be exactly what was made:
+        // an object stored by an earlier run, or another encoder, may not be.
         const served = yield* Effect.tryPromise({
-          try: () => media.size(photo.url),
+          try: () => media.get(photo.url),
           catch: (cause) =>
             new PhotosError({
               reason: `${photo.key} could not be checked: ${String(cause)}`,
             }),
         });
-        if (served !== photo.encoded.bytes.byteLength) {
+        if (!sameBytes(served, photo.encoded.bytes)) {
           return yield* fail(
-            `${photo.key} serves ${served ?? "nothing"} bytes, not the ${photo.encoded.bytes.byteLength} made from ${photo.file.name}.`,
+            `${photo.key} serves ${served.byteLength} bytes that are not the ${photo.encoded.bytes.byteLength} made from ${photo.file.name}.`,
           );
         }
       }

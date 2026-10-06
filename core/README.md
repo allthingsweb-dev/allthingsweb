@@ -409,7 +409,8 @@ location), stored through the upload Worker under
 `event_images`. Pages list an evening's photos by `event_images.created_at`,
 so one run adds its photos in the order given, after those already there.
 The key is the file's contents, so adding a file again changes nothing, and
-an object an interrupted run stored is reused when it serves what was made.
+an object an interrupted run stored is reused only when it serves exactly the
+bytes made.
 Objects are stored first, then one transaction writes every row.
 
 Every photo needs its alt text, one `--alt` per file in the files' order,
