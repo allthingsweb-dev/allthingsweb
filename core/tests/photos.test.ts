@@ -1,0 +1,288 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import type { PGlite } from "@electric-sql/pglite";
+import { Effect } from "effect";
+import type { SqlClient } from "effect/sql/SqlClient";
+import sharp from "sharp";
+import { encode, placeholder } from "../scripts/encode.ts";
+import {
+  addPhotos,
+  contentHash,
+  type PhotoFile,
+  photoKey,
+} from "../src/photos.ts";
+import {
+  type Encoder,
+  imagesInputLimit,
+  type Media,
+  maxEdge,
+} from "../src/reencode.ts";
+import { seededDatabase, sqlLayer } from "./support/database.ts";
+
+/**
+ * Adding an evening's photos, against tests/seed.sql's React at Acme (which
+ * has two photos), with a media origin that only keeps what it is given and
+ * an encoder that makes a fixed JPEG.
+ */
+
+const origin = "https://media.example";
+const acme = "e0000000-0000-4000-8000-000000000001";
+
+let db: PGlite;
+beforeEach(async () => {
+  db = await seededDatabase();
+  await db.exec(`UPDATE events SET short_slug = NULL`);
+});
+afterEach(() => db.close());
+
+/** Objects by URL, as the media origin would serve them. */
+function fakeMedia() {
+  const objects = new Map<string, Uint8Array>();
+  const puts: Array<{ key: string; contentType: string }> = [];
+  const media: Media = {
+    size: async (url) => objects.get(url)?.byteLength,
+    get: async (url) => objects.get(url) ?? new Uint8Array(),
+    put: async (key, bytes, contentType) => {
+      const url = `${origin}/${key}`;
+      if (objects.has(url)) return "exists";
+      puts.push({ key, contentType });
+      objects.set(url, bytes);
+      return "created";
+    },
+  };
+  return { media, objects, puts };
+}
+
+/** Encodes every file to `bytes` bytes of 4096×3072 JPEG, and checks its edge. */
+const encodeTo =
+  (bytes = 1000): Encoder =>
+  async (input, edge) => {
+    expect(edge).toBe(maxEdge);
+    return {
+      bytes: new Uint8Array(bytes).fill(input[0] ?? 0),
+      format: "jpeg",
+      width: 4096,
+      height: 3072,
+    };
+  };
+
+const fakePlaceholder = async () => "data:image/jpeg;base64,AA";
+
+const file = (
+  name: string,
+  first: number,
+  alt = `Photo ${name}`,
+): PhotoFile => ({
+  name,
+  bytes: new Uint8Array([first, 1, 2, 3]),
+  alt,
+});
+
+const run = <A, E>(effect: Effect.Effect<A, E, SqlClient>) =>
+  Effect.runPromise(effect.pipe(Effect.provide(sqlLayer(db))));
+
+const failure = <A, E>(effect: Effect.Effect<A, E, SqlClient>) =>
+  Effect.runPromise(
+    effect.pipe(Effect.provide(sqlLayer(db)), Effect.flip),
+  ) as Promise<{ readonly message: string }>;
+
+const photos = async () =>
+  (
+    await db.query<{ url: string; alt: string; width: number }>(
+      `SELECT img.url, img.alt, img.width FROM event_images ei
+       JOIN images img ON img.id = ei.image_id
+       WHERE ei.event_id = '${acme}' ORDER BY ei.created_at, img.id`,
+    )
+  ).rows;
+
+const options = (media: Media, dryRun = false, encoder = encodeTo()) => ({
+  media,
+  encode: encoder,
+  placeholder: fakePlaceholder,
+  origin,
+  dryRun,
+});
+
+describe("addPhotos", () => {
+  test("stores each photo under its content's key and adds them in order, after the evening's own", async () => {
+    const { media, puts } = fakeMedia();
+    const before = await photos();
+    const results = await run(
+      addPhotos(
+        "2026-08-12-react-at-acme",
+        [file("b.jpg", 2, "The stage"), file("a.jpg", 1, "The food")],
+        options(media),
+      ),
+    );
+    const hashB = await contentHash(new Uint8Array([2, 1, 2, 3]));
+    expect(results.map((photo) => [photo.file, photo.status])).toEqual([
+      ["b.jpg", "added"],
+      ["a.jpg", "added"],
+    ]);
+    expect(results[0]!.key).toBe(photoKey(acme, hashB, "jpeg"));
+    expect(results[0]!.key).toMatch(
+      /^events\/e0+-0+-4000-8000-0+1\/[0-9a-f]{64}\.jpg$/,
+    );
+    expect(puts.map((put) => put.contentType)).toEqual([
+      "image/jpeg",
+      "image/jpeg",
+    ]);
+    const after = await photos();
+    expect(after.slice(0, before.length)).toEqual(before);
+    expect(after.slice(before.length).map((photo) => photo.alt)).toEqual([
+      "The stage",
+      "The food",
+    ]);
+    expect(after.at(-1)!.width).toBe(4096);
+  });
+
+  test("adding the same files again changes nothing", async () => {
+    const { media, puts } = fakeMedia();
+    const files = [file("a.jpg", 1), file("b.jpg", 2)];
+    await run(addPhotos("2026-08-12-react-at-acme", files, options(media)));
+    const once = await photos();
+    const again = await run(
+      addPhotos("2026-08-12-react-at-acme", files, options(media)),
+    );
+    expect(again.map((photo) => photo.status)).toEqual([
+      "already there",
+      "already there",
+    ]);
+    expect(await photos()).toEqual(once);
+    expect(puts).toHaveLength(2);
+  });
+
+  test("a later run adds only what is new, after the rest", async () => {
+    const { media } = fakeMedia();
+    await run(
+      addPhotos("2026-08-12-react-at-acme", [file("a.jpg", 1)], options(media)),
+    );
+    const results = await run(
+      addPhotos(
+        "2026-08-12-react-at-acme",
+        [file("a.jpg", 1), file("c.jpg", 3, "Last")],
+        options(media),
+      ),
+    );
+    expect(results.map((photo) => photo.status)).toEqual([
+      "already there",
+      "added",
+    ]);
+    expect((await photos()).at(-1)!.alt).toBe("Last");
+  });
+
+  test("finds the evening by its short link too", async () => {
+    await db.exec(`
+      INSERT INTO event_slugs (slug, event_id) VALUES ('react', '${acme}');
+      UPDATE events SET short_slug = 'react' WHERE id = '${acme}';`);
+    const { media } = fakeMedia();
+    const results = await run(
+      addPhotos("react", [file("a.jpg", 1)], options(media)),
+    );
+    expect(results[0]!.status).toBe("added");
+  });
+
+  test("a dry run stores nothing and writes nothing, but checks everything", async () => {
+    const { media, puts } = fakeMedia();
+    const before = await photos();
+    const images = (await db.query(`SELECT 1 FROM images`)).rows.length;
+    const results = await run(
+      addPhotos(
+        "2026-08-12-react-at-acme",
+        [file("a.jpg", 1), file("b.jpg", 2)],
+        options(media, true),
+      ),
+    );
+    expect(results.map((photo) => photo.status)).toEqual([
+      "would add",
+      "would add",
+    ]);
+    expect(puts).toHaveLength(0);
+    expect(await photos()).toEqual(before);
+    expect((await db.query(`SELECT 1 FROM images`)).rows.length).toBe(images);
+  });
+
+  test("reuses an object an interrupted run stored, when it serves what was made", async () => {
+    const { media, objects, puts } = fakeMedia();
+    const hash = await contentHash(new Uint8Array([1, 1, 2, 3]));
+    objects.set(
+      `${origin}/${photoKey(acme, hash, "jpeg")}`,
+      new Uint8Array(1000),
+    );
+    const results = await run(
+      addPhotos("2026-08-12-react-at-acme", [file("a.jpg", 1)], options(media)),
+    );
+    expect(results[0]!.status).toBe("added");
+    expect(puts).toHaveLength(0);
+  });
+
+  test("refuses an object under its key that is not what was made", async () => {
+    const { media, objects } = fakeMedia();
+    const hash = await contentHash(new Uint8Array([1, 1, 2, 3]));
+    objects.set(`${origin}/${photoKey(acme, hash, "jpeg")}`, new Uint8Array(7));
+    const before = await photos();
+    const error = await failure(
+      addPhotos("2026-08-12-react-at-acme", [file("a.jpg", 1)], options(media)),
+    );
+    expect(error.message).toContain("serves 7 bytes");
+    expect(await photos()).toEqual(before);
+  });
+
+  test.each([
+    ["no event", "nowhere", [file("a.jpg", 1)], "No event at nowhere."],
+    ["no photos", "2026-08-12-react-at-acme", [], "No photos given."],
+    [
+      "no alt text",
+      "2026-08-12-react-at-acme",
+      [file("a.jpg", 1, "  ")],
+      "a.jpg has no alt text.",
+    ],
+    [
+      "the same file twice",
+      "2026-08-12-react-at-acme",
+      [file("a.jpg", 1), file("copy.jpg", 1)],
+      "copy.jpg is the same file as a.jpg.",
+    ],
+  ] as const)("refuses %s", async (_, slug, files, message) => {
+    const { media, puts } = fakeMedia();
+    const error = await failure(addPhotos(slug, files, options(media)));
+    expect(error.message).toBe(message);
+    expect(puts).toHaveLength(0);
+  });
+
+  test("refuses a photo still too large for the Images binding encoded", async () => {
+    const { media, puts } = fakeMedia();
+    const error = await failure(
+      addPhotos(
+        "2026-08-12-react-at-acme",
+        [file("huge.png", 1)],
+        options(media, false, encodeTo(imagesInputLimit + 1)),
+      ),
+    );
+    expect(error.message).toContain("huge.png is");
+    expect(puts).toHaveLength(0);
+  });
+});
+
+describe("encode and placeholder", () => {
+  test("a photo is stored upright, within the edge, as a JPEG without its location", async () => {
+    // 60×40, with EXIF: orientation 6 (turned a quarter) and a GPS position.
+    const input = await sharp({
+      create: { width: 60, height: 40, channels: 3, background: "#3366cc" },
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .withExifMerge({
+        IFD3: { GPSLatitudeRef: "N", GPSLatitude: "37/1 46/1 0/1" },
+      })
+      .toBuffer();
+    const encoded = await encode(new Uint8Array(input), 30);
+    expect(encoded.format).toBe("jpeg");
+    expect([encoded.width, encoded.height]).toEqual([20, 30]);
+    const meta = await sharp(encoded.bytes).metadata();
+    expect(meta.exif).toBeUndefined();
+    expect(meta.orientation).toBeUndefined();
+    expect(await placeholder(encoded.bytes)).toMatch(
+      /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/,
+    );
+  });
+});

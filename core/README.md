@@ -399,6 +399,34 @@ field and inserts nothing but pending posts; the role holds no INSERT on
 `event_posts`, and EXECUTE is revoked from everyone else. The admin MCP server's `list_pending_posts`, `approve_post` and
 `hide_post` run the same script.
 
+## An evening's photos
+
+`src/photos.ts` adds photos to an evening. Each file is re-encoded the way
+the bucket keeps photos (`scripts/encode.ts`: upright, at most 4096 pixels on
+its long edge, JPEG at quality 88, every bit of metadata stripped, so no
+location), stored through the upload Worker under
+`events/<event id>/<sha-256 of the file>.jpg`, and recorded in `images` and
+`event_images`. Pages list an evening's photos by `event_images.created_at`,
+so one run adds its photos in the order given, after those already there.
+The key is the file's contents, so adding a file again changes nothing, and
+an object an interrupted run stored is reused when it serves what was made.
+Objects are stored first, then one transaction writes every row.
+
+Every photo needs its alt text, one `--alt` per file in the files' order,
+saying what the scene shows ("Effect 4.0 merged live on stage at
+CodeRabbit"), never naming people from their faces. HEIC is not read:
+export JPEGs first. Run it from `core/` with the owner's connection string
+and the upload Worker's URL and token (see `scripts/reencode-originals.ts`):
+
+```sh
+DATABASE_URL=… bun run photos add effect a.jpg b.jpg --alt "…" --alt "…" --dry-run   # encode, check, roll back
+DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run photos add effect a.jpg b.jpg --alt "…" --alt "…"
+```
+
+The admin MCP server's `add_event_photos` runs the same script.
+`tests/photos.test.ts` runs it against `tests/seed.sql` with a media
+origin that only keeps what it is given.
+
 ## Schedules and notes
 
 Some events' pages say more than the record: a hackathon's schedule, its
