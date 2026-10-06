@@ -2,21 +2,36 @@ import { JSDOM } from "jsdom";
 
 /**
  * axe-core's findings on a page's HTML, by WCAG 2.2 A and AA and axe's best
- * practices. jsdom lays nothing out, so the rules that need layout (color
- * contrast, target size) are left to the browser pass (web/README.md's QA
- * notes) and the brand's contrast tests; every other rule runs here.
+ * practices: its violations, and the checks it could not decide. jsdom lays
+ * nothing out, so the rules that need layout are off (color contrast, target
+ * size: the brand's APCA tests and the browser pass cover them), and two
+ * that need visibility are undecidable here and checked by the caller
+ * instead (`decidedElsewhere`). Any other undecided check is a problem, so
+ * a page never passes only because axe couldn't tell.
  */
 
 const axeSource = await Bun.file(
   new URL(import.meta.resolve("axe-core/axe.min.js")),
 ).text();
 
-interface AxeResult {
-  readonly violations: ReadonlyArray<{
-    readonly id: string;
-    readonly nodes: ReadonlyArray<{ readonly target: ReadonlyArray<string> }>;
-  }>;
+interface AxeRule {
+  readonly id: string;
+  readonly nodes: ReadonlyArray<{ readonly target: ReadonlyArray<string> }>;
 }
+
+interface AxeResult {
+  readonly violations: ReadonlyArray<AxeRule>;
+  readonly incomplete: ReadonlyArray<AxeRule>;
+}
+
+/**
+ * Checks jsdom can't decide, as it computes no visibility, which the page
+ * tests make themselves: one <main>, and one <h1>.
+ */
+export const decidedElsewhere: ReadonlySet<string> = new Set([
+  "landmark-one-main",
+  "page-has-heading-one",
+]);
 
 export async function axeProblems(html: string): Promise<Array<string>> {
   const dom = new JSDOM(html, { runScripts: "outside-only" });
@@ -41,10 +56,14 @@ export async function axeProblems(html: string): Promise<Array<string>> {
         "target-size": { enabled: false },
       },
     });
-    return result.violations.map(
-      (violation) =>
-        `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`,
-    );
+    const describe = (prefix: string) => (rule: AxeRule) =>
+      `${prefix}${rule.id}: ${rule.nodes.map((node) => node.target.join(" ")).join(", ")}`;
+    return [
+      ...result.violations.map(describe("")),
+      ...result.incomplete
+        .filter((rule) => !decidedElsewhere.has(rule.id))
+        .map(describe("undecided ")),
+    ];
   } finally {
     dom.window.close();
   }

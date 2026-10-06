@@ -697,15 +697,15 @@ describe("every kind of page", () => {
     "/logos/logo-1.91x1.png",
   ];
 
-  it("passes axe, but for the rules that need a browser to lay it out", async (url) => {
-    const problems: Array<string> = [];
-    for (const path of paths) {
+  for (const path of paths) {
+    it(`${path} passes axe, with one main and one h1, but for the rules that need a browser`, async (url) => {
       const response = await fetch(url + path);
       expect(response.headers.get("content-type")).toStartWith("text/html");
-      for (const problem of await axeProblems(await response.text())) {
-        problems.push(`${path} ${problem}`);
-      }
-    }
-    expect(problems).toEqual([]);
-  });
+      const html = await response.text();
+      expect(await axeProblems(html)).toEqual([]);
+      // What axe can't decide without layout (decidedElsewhere).
+      expect(html.match(/<main\b/g)).toHaveLength(1);
+      expect(html.match(/<h1\b/g)).toHaveLength(1);
+    });
+  }
 });
