@@ -58,14 +58,12 @@
       "source": "https://chebykin.org",
       "read": "2026-10-05"
     },
-    "held": [
-      {
-        "field": "title",
-        "value": null,
-        "sources": ["https://chebykin.org"],
-        "reason": "Not requested, but the known 'AI engineer at Meta' is out of date. His site says he is 'working on my own startup - SourceWizard. Before that I used to work at Meta AI in SF'. The X bio says 'Engineer turned founder'. Any Meta-based title should be revisited. His site gives no explicit title such as Founder."
-      }
-    ]
+    "title": {
+      "value": "Founder, SourceWizard",
+      "source": "https://chebykin.org",
+      "read": "2026-10-05",
+      "was": "Founder, SourceWizard & AI Engineer at Meta"
+    }
   },
   {
     "profileId": "181d776e-1c8d-4af1-a0dc-ca6600a46c1c",
