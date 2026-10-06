@@ -77,9 +77,19 @@ export interface Person {
   readonly photo: Rows.Photo | null;
   /**
    * Their talks, and the evenings they co-hosted or MC'd, at published
-   * evenings: latest evening first, an evening's talks before its roles.
+   * evenings: latest evening first, an evening's talks in its running
+   * order, then its roles. A part in an evening they hosted is not listed
+   * apart: hosting it says they were there (see {@link HostedEvening}).
    */
   readonly parts: ReadonlyArray<Part>;
+}
+
+/**
+ * An evening someone hosted, with the parts they also had in it (MC):
+ * hosting is the line, so the evening is listed once.
+ */
+export interface HostedEvening extends PartEvening {
+  readonly roles: ReadonlyArray<EveningRole>;
 }
 
 /**
@@ -89,7 +99,7 @@ export interface Person {
  */
 export interface PersonPage extends Person {
   readonly organizes: boolean;
-  readonly hosted: ReadonlyArray<PartEvening>;
+  readonly hosted: ReadonlyArray<HostedEvening>;
 }
 
 /** What /people/<slug> finds: a person, the person it moved to, or no one. */
@@ -206,7 +216,11 @@ const partEvening = (
   startsAt: row.startDate,
 });
 
-/** Latest evening first; on one evening, its talks before its roles. */
+/**
+ * Latest evening first; on one evening, its talks before its roles. The
+ * statement lists an evening's talks in its running order, which the
+ * stable sort keeps.
+ */
 const partOrder: Order.Order<Part> = Order.combineAll([
   Order.flip(
     Order.mapInput(DateTime.Order, (part: Part) => part.evening.startsAt),
@@ -224,13 +238,16 @@ export function toPerson(row: PersonRow, now: DateTime.Utc): Person {
       evening: partEvening(talk, now),
     }),
   );
-  const roles = row.roles.map(
-    (role): Part => ({
-      kind: "role",
-      role: role.role,
-      evening: partEvening(role, now),
-    }),
-  );
+  const hosted = new Set(row.hosted.map((evening) => evening.slug));
+  const roles = row.roles
+    .filter((role) => !hosted.has(role.slug))
+    .map(
+      (role): Part => ({
+        kind: "role",
+        role: role.role,
+        evening: partEvening(role, now),
+      }),
+    );
   return {
     id: row.id,
     slug: row.slug,
@@ -318,7 +335,14 @@ export const toPersonPage = (
 ): PersonPage => ({
   ...toPerson(row, now),
   organizes: row.organizes,
-  hosted: row.hosted.map((evening) => partEvening(evening, now)),
+  hosted: row.hosted.map(
+    (evening): HostedEvening => ({
+      ...partEvening(evening, now),
+      roles: row.roles
+        .filter((role) => role.slug === evening.slug)
+        .map((role) => role.role),
+    }),
+  ),
 });
 
 export interface PeopleDirectoryShape {
@@ -367,7 +391,7 @@ const make = Effect.gen(function* () {
     execute: ({ organizerIds, photoPrefix, slug }) => sql`
       WITH talks_given AS (
         SELECT ts.speaker_id AS profile_id, ts.role, t.id AS talk_id,
-          t.title, t.format,
+          t.title, t.format, et.position, et.created_at AS listed_at,
           e.id AS event_id, ${sql.literal(siteSlug("e"))} AS slug, e.curation,
           e.name, e.topic,
           e.start_date, e.end_date
@@ -411,7 +435,8 @@ const make = Effect.gen(function* () {
             'slug', g.slug, 'curation', g.curation, 'name', g.name,
             'topic', g.topic,
             'startDate', g.start_date, 'endDate', g.end_date
-          ) ORDER BY g.start_date DESC, g.event_id, g.talk_id)
+          ) ORDER BY g.start_date DESC, g.event_id, g.position NULLS LAST,
+            g.listed_at, g.talk_id)
           FROM talks_given g
           WHERE g.profile_id = p.id
         ), '[]'::json) AS talks,

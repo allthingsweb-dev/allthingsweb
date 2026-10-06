@@ -495,6 +495,77 @@ describe("one person's page", () => {
     ]);
   });
 
+  test("lists an MC part at an evening they hosted on that evening, not apart", async () => {
+    const olga = "b0000000-0000-4000-8000-000000000101";
+    const cafe = "e0000000-0000-4000-8000-000000000006";
+    const acme = "e0000000-0000-4000-8000-000000000001";
+    await db.exec(
+      `INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
+        ('${cafe}', '${olga}', 'mc', 0, 'site', now()),
+        ('${acme}', '${olga}', 'mc', 0, 'site', now())`,
+    );
+    try {
+      const found = await lookup("olga-organizer");
+      if (found.kind !== "found") throw new Error(found.kind);
+      // She MC'd Café night, which she hosted, and React at Acme, which
+      // she didn't: only the second is a part of its own.
+      expect(
+        found.person.parts.map((part) => [part.kind, part.evening.name]),
+      ).toEqual([["role", "React at Acme"]]);
+      expect(
+        found.person.hosted.map((evening) => [evening.slug, evening.roles]),
+      ).toEqual([["2025-12-02-café-night", ["mc"]]]);
+      const { organizers } = await read();
+      const inDirectory = organizers.find((person) => person.id === olga);
+      expect(inDirectory?.parts).toEqual(found.person.parts);
+    } finally {
+      await db.exec(
+        `DELETE FROM event_people WHERE profile_id = '${olga}' AND role = 'mc'`,
+      );
+    }
+  });
+
+  test("lists someone's talks at one evening in its running order", async () => {
+    const acme = "e0000000-0000-4000-8000-000000000001";
+    const effect = "a0000000-0000-4000-8000-000000000002";
+    const server = "a0000000-0000-4000-8000-000000000001";
+    // Grace also gives Effect in production, which React at Acme lists first.
+    await db.exec(
+      `INSERT INTO talk_speakers (talk_id, speaker_id, created_at, updated_at)
+        VALUES ('${effect}', '${grace}', now(), now())`,
+    );
+    const titlesAtAcme = async () => {
+      const found = await lookup("grace-hopper");
+      if (found.kind !== "found") throw new Error(found.kind);
+      return found.person.parts.flatMap((part) =>
+        part.kind === "talk" && part.evening.name === "React at Acme"
+          ? [part.title]
+          : [],
+      );
+    };
+    try {
+      expect(await titlesAtAcme()).toEqual([
+        "Effect in production",
+        "Server components",
+      ]);
+      // A running order set by hand wins over the order talks were added.
+      await db.exec(
+        `UPDATE event_talks SET position = CASE talk_id
+            WHEN '${server}' THEN 0 WHEN '${effect}' THEN 1 END
+          WHERE event_id = '${acme}'`,
+      );
+      expect(await titlesAtAcme()).toEqual([
+        "Server components",
+        "Effect in production",
+      ]);
+    } finally {
+      await db.exec(
+        `UPDATE event_talks SET position = NULL WHERE event_id = '${acme}';
+         DELETE FROM talk_speakers WHERE talk_id = '${effect}' AND speaker_id = '${grace}'`,
+      );
+    }
+  });
+
   test("finds someone who took part in nothing, and lists shared evenings too", async () => {
     const unattachedPerson = await lookup("unattached");
     expect(unattachedPerson.kind).toBe("found");

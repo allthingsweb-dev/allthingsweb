@@ -3,7 +3,7 @@ import type {
   ExternalTalkKind,
 } from "allthings-core/src/external-talks.ts";
 import type {
-  PartEvening,
+  HostedEvening,
   PersonPage,
 } from "allthings-core/src/people-directory.ts";
 import { shortBio } from "allthings-core/src/people-directory.ts";
@@ -13,7 +13,7 @@ import { eventPath, personPath } from "../links.ts";
 import { Document } from "./document.tsx";
 import { EveningName } from "./evening-row.tsx";
 import { gatheringTitle } from "./metadata.tsx";
-import { Links, Parts, Portrait } from "./people.tsx";
+import { eveningRoleLabel, Links, Parts, Portrait } from "./people.tsx";
 import type { ImageMode } from "./picture.tsx";
 import { personStructuredData } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
@@ -61,11 +61,15 @@ function Section({
   );
 }
 
-/** The evenings an organizer hosted, latest first, each linking to it. */
+/**
+ * The evenings an organizer hosted, latest first, each linking to it, with
+ * any part they also had in it (MC) after the evening, as a talk's line
+ * names a capacity.
+ */
 function Hosted({
   evenings,
 }: {
-  readonly evenings: ReadonlyArray<PartEvening>;
+  readonly evenings: ReadonlyArray<HostedEvening>;
 }) {
   return (
     <ul class="talks">
@@ -81,6 +85,15 @@ function Hosted({
             </time>
             <span class="talk-title">
               <EveningName evening={evening} />
+              {evening.roles.length === 0 ? (
+                ""
+              ) : (
+                <span class="talk-role at-type-meta" safe>
+                  {evening.roles
+                    .map((role) => ` · ${eveningRoleLabel[role]}`)
+                    .join("")}
+                </span>
+              )}
             </span>
           </a>
         </li>
