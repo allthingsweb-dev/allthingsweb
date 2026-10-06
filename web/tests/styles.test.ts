@@ -118,6 +118,16 @@ const looseLengths = (
       .map((length) => `${property}: ${length}`),
   );
 
+/**
+ * A margin made only of 0, auto and spacing tokens, which are positive: it
+ * can't pull a box back over its neighbor, whatever arithmetic would do.
+ */
+const isTokenMargin = (value: string): boolean =>
+  value
+    .trim()
+    .split(/\s+/)
+    .every((part) => /^(?:0|auto|var\(--at-space-[0-9]+\))$/.test(part));
+
 describe("site.css's lengths", () => {
   test("come from the layout tokens, but for a hairline and type-relative em", () => {
     expect(looseLengths(values)).toEqual([]);
@@ -153,6 +163,35 @@ describe("site.css's lengths", () => {
         : [],
     );
     expect(magic).toEqual([]);
+  });
+
+  test("never pull a box over its neighbor: margins are 0, auto or a token", () => {
+    // Portraits side by side, never stacked: every host is always seen.
+    const pulled = values.filter(
+      ({ property, value }) =>
+        property.startsWith("margin") && !isTokenMargin(value),
+    );
+    expect(pulled).toEqual([]);
+  });
+
+  test("tell a token margin from one that could pull back", () => {
+    for (const value of [
+      " 0",
+      " 0 auto",
+      " var(--at-space-1) 0 0",
+      " auto 0",
+    ]) {
+      expect(isTokenMargin(value)).toBe(true);
+    }
+    for (const value of [
+      " -4px",
+      " calc(-1 * var(--at-space-2))",
+      " calc(0px - 2px)",
+      " calc(0px - var(--at-space-2))",
+      " 0 -1em",
+    ]) {
+      expect(isTokenMargin(value)).toBe(false);
+    }
   });
 
   test("define no custom properties of their own", () => {

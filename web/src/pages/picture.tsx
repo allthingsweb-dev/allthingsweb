@@ -242,18 +242,20 @@ export interface PortraitProps {
   readonly mode: ImageMode;
   /** What stands in without a photo to show: the brand's blank avatar. */
   readonly blank: string;
+  /** Who it is. */
+  readonly alt: string;
 }
 
 /**
  * A portrait in the footer: 36 CSS pixels square, cropped to fill, loaded
  * lazily, last and off the main thread, at 1x and 2x.
  */
-export function Portrait({ photo, mode, blank }: PortraitProps) {
+export function Portrait({ photo, mode, blank, alt }: PortraitProps) {
   if (photo === undefined || !hasSource(photo, mode)) {
     return (
       <Img
         src={blank}
-        alt=""
+        alt={alt}
         width={String(portrait.xs)}
         height={String(portrait.xs)}
         last
@@ -266,7 +268,7 @@ export function Portrait({ photo, mode, blank }: PortraitProps) {
       mode={mode}
       side={portrait.xs}
       sides={[36, 72]}
-      alt=""
+      alt={alt}
       last
     />
   );
