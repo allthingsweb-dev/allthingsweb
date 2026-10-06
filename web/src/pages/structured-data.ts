@@ -1,7 +1,7 @@
 import type { EventPage } from "allthings-core/src/event-page.ts";
 import { eventUrl, httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
-import { socials } from "../links.ts";
+import { personPath, socials } from "../links.ts";
 
 /**
  * schema.org data about a page, as JSON-LD in its head: who runs the site
@@ -40,6 +40,8 @@ interface Place {
 interface Person {
   readonly "@type": "Person";
   readonly name: string;
+  /** Their page on this site, /people/<slug>. */
+  readonly url: string;
   readonly jobTitle?: string;
 }
 
@@ -120,9 +122,10 @@ export function organization(
 
 /**
  * The schema.org Event for a published event's page: when and where, who
- * speaks (each once, in the order they first appear), and where to sign
- * up. It names no image until event covers are rendered (the site has no
- * images of its own yet), and every evening is free and in person.
+ * speaks (each once, in the order they first appear, at their page here),
+ * and where to sign up. It names no image until event covers are rendered
+ * (the site has no images of its own yet), and every evening is free and
+ * in person.
  */
 export function eventStructuredData(event: EventPage, origin: string): Event {
   const performers = new Map<string, Person>();
@@ -131,6 +134,7 @@ export function eventStructuredData(event: EventPage, origin: string): Event {
     performers.set(speaker.id, {
       "@type": "Person",
       name: speaker.name,
+      url: `${origin}${personPath(speaker.slug)}`,
       ...(speaker.title === null ? {} : { jobTitle: speaker.title }),
     });
   }
@@ -179,13 +183,6 @@ export function eventStructuredData(event: EventPage, origin: string): Event {
 }
 
 /**
- * `data` as the text of a <script type="application/ld+json">. JSON may
- * hold "</script>" or "<!--" in any string; with every "<" written as
- * \u003c, no value can end the element or open a comment, and U+2028 and
- * U+2029 are escaped for parsers that read JSON as JavaScript. JSON.parse
- * reads it back unchanged.
- */
-/**
  * The Person a person's page is about: their name, page, title and bio as
  * their profile states them, their photo, and their profiles elsewhere.
  */
@@ -214,6 +211,13 @@ export function personStructuredData(
   };
 }
 
+/**
+ * `data` as the text of a <script type="application/ld+json">. JSON may
+ * hold "</script>" or "<!--" in any string; with every "<" written as
+ * \u003c, no value can end the element or open a comment, and U+2028 and
+ * U+2029 are escaped for parsers that read JSON as JavaScript. JSON.parse
+ * reads it back unchanged.
+ */
 export function serializeJsonLd(data: StructuredData): string {
   return JSON.stringify(data)
     .replaceAll("<", "\\u003c")
