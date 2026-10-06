@@ -101,6 +101,7 @@ const make = Effect.gen(function* () {
       SELECT e.id AS "eventId", e.slug, e.luma_event_id AS "lumaEventId"
       FROM events e
       WHERE e.is_draft = false AND e.luma_event_id IS NOT NULL
+        AND e.venue_by_organizer = false
         AND ${missing("street_address")} AND ${missing("full_address")}
       ORDER BY e.start_date DESC, e.id
       LIMIT ${maxEvents}`.pipe(

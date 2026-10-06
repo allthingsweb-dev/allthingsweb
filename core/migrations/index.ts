@@ -18,6 +18,7 @@ import externalTalksMigration from "./0016_external_talks.ts";
 import personSlugsMigration from "./0017_person_slugs.ts";
 import pendingPostsMigration from "./0018_pending_posts.ts";
 import xUserIdsMigration from "./0019_x_user_ids.ts";
+import venueByOrganizerMigration from "./0020_venue_by_organizer.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -46,6 +47,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0017_person_slugs": personSlugsMigration,
   "0018_pending_posts": pendingPostsMigration,
   "0019_x_user_ids": xUserIdsMigration,
+  "0020_venue_by_organizer": venueByOrganizerMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

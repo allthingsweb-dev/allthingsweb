@@ -149,6 +149,7 @@ column public.events #025 luma_description text
 column public.events #026 luma_summary text
 column public.events #027 description text
 column public.events #028 short_slug text
+column public.events #029 venue_by_organizer boolean not null default false
 column public.external_talks #001 id uuid not null default gen_random_uuid()
 column public.external_talks #002 profile_id uuid not null
 column public.external_talks #003 title text not null

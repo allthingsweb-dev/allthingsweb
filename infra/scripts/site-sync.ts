@@ -58,6 +58,8 @@ interface ColumnGrants {
  *   summary. Short links read published evenings without one (with what
  *   the rule reads: name, topic, curation, start) and every slug taken,
  *   then set `short_slug`.
+ *   Both the upsert and the venue fill read `venue_by_organizer`, and leave
+ *   alone a venue the organizers set.
  * - event_slugs: every link given, read to know which are taken, and one
  *   row for each link given.
  * - images: one row per stored image, its id made by the sync.
@@ -97,6 +99,7 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "topic",
       "curation",
       "short_slug",
+      "venue_by_organizer",
     ],
     insert: [
       "luma_event_id",
