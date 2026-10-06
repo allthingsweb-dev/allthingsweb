@@ -95,7 +95,14 @@ export function checkMigrations(input: GuardInput): ReadonlyArray<string> {
   }
 
   // (b) No other open pull request adds a migration under the same number.
+  // A migration (a) already moves isn't asked again; the rest move past
+  // every number taken, this pull request's own that stay included.
+  next = Math.max(
+    next,
+    ...added.filter((a) => !renumbered.has(fileOf(a))).map((a) => a.id + 1),
+  );
   for (const migration of added) {
+    if (renumbered.has(fileOf(migration))) continue;
     const rivals = claims.filter(
       (claim) => claim.id === migration.id && !same(claim, migration),
     );

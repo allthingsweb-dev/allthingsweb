@@ -102,10 +102,13 @@ const addedBy = (pr: number) =>
 
 const command = Command.make("migration-guard", {}, () =>
   Effect.gen(function* () {
-    const local = Object.keys(migrations).map((key): MigrationRef => {
-      const [number, ...rest] = key.split("_");
-      return { id: Number(number), name: rest.join("_") };
-    });
+    // In id order, as production's record is, whatever the index's key order.
+    const local = Object.keys(migrations)
+      .map((key): MigrationRef => {
+        const [number, ...rest] = key.split("_");
+        return { id: Number(number), name: rest.join("_") };
+      })
+      .toSorted((a, b) => a.id - b.id);
 
     const production = env("DATABASE_URL") !== undefined;
     if (!production && env("NO_PRODUCTION_OK") !== "true") {

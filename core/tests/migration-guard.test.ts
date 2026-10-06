@@ -108,6 +108,30 @@ describe("checkMigrations", () => {
     ]);
   });
 
+  test("a migration that moves never lands on another of this pull request's numbers", () => {
+    expect(
+      checkMigrations({
+        local: [...upTo10, m(11, "a"), m(12, "b")],
+        applied: upTo10,
+        added: [m(11, "a"), m(12, "b")],
+        claims: [{ pr: 153, ...m(11, "x") }],
+      }),
+    ).toEqual([
+      "0011_a takes 0011, as #153's 0011_x does: renumber 0011_a to 0013_a (core/migrations/0011_a.ts, its key in core/migrations/index.ts, and its drizzle twin in app/migrations), or agree that the other pull request moves instead.",
+    ]);
+  });
+
+  test("a migration (a) moves isn't moved again by (b)", () => {
+    const problems = checkMigrations({
+      local: [...upTo10, m(11, "a")],
+      applied: [...upTo10, m(11, "event_description")],
+      added: [m(11, "a")],
+      claims: [{ pr: 153, ...m(11, "x") }],
+    });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("renumber 0011_a to 0012_a");
+  });
+
   test("the same migration in another pull request is no rival", () => {
     expect(
       checkMigrations({
