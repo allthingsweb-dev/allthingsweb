@@ -305,7 +305,7 @@ describe("decodePeopleFile", () => {
 
 describe("photo hosts", () => {
   test("are the hosts the app's hourly ingestion copies from", () => {
-    expect([...photoHosts].sort()).toEqual([...profilePhotoHosts].sort());
+    expect([...photoHosts].toSorted()).toEqual([...profilePhotoHosts].toSorted());
   });
 });
 
