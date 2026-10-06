@@ -34,10 +34,56 @@ export interface PublicRule {
   readonly since: string;
 }
 
+/**
+ * How big an evening of a format is. Lengths are defaults, not rules:
+ * readiness advises when an evening departs from its size's.
+ */
+export interface Size {
+  /** As copy names it, lowercase. */
+  readonly name: string;
+  /** What sets it apart, for the doc. */
+  readonly definition: string;
+  /** How long it runs, doors to close, unless planned otherwise. */
+  readonly duration: Duration.Duration;
+  /**
+   * The longest an evening of this size runs, doors to close: one longer
+   * is the next size. Null for the largest.
+   */
+  readonly upTo: Duration.Duration | null;
+  /**
+   * Whether it may start before 4 PM and run past the longest evening
+   * without advice: only a full-day hackathon runs through the day.
+   */
+  readonly allDay: boolean;
+  /**
+   * What an organizer is asked to confirm before choosing it, as advice:
+   * a size that is only worth it when it's a big deal. Null when none.
+   */
+  readonly confirm: string | null;
+  /** The schedule a new one starts from. */
+  readonly schedule: ReadonlyArray<ScheduleStep>;
+}
+
+/**
+ * The at/hack starter a hackathon's teams start from
+ * (github.com/allthingsweb-dev/hack), once a version is published: then
+ * its rules say which.
+ */
+export interface Starter {
+  readonly name: string;
+  readonly repository: string;
+  /** Its published version, such as "1.0.0"; null until there is one. */
+  readonly version: string | null;
+  /** The first San Francisco day a version is asked for (YYYY-MM-DD). */
+  readonly since: string | null;
+}
+
 export interface Format {
   readonly program: EventProgram;
   /** As copy names it, lowercase. */
   readonly name: string;
+  /** One of them, as a sentence says it: "an evening of talks". */
+  readonly one: string;
   /** What the evening is, in a sentence or two. */
   readonly definition: string;
   /**
@@ -47,17 +93,13 @@ export interface Format {
   readonly stage: "talks" | "open-floor" | null;
   /** Whether a complete record of it has talks. */
   readonly talksRequired: boolean;
-  /**
-   * Whether it may start before 4 PM and run past the longest evening
-   * without advice: a hackathon runs through the day.
-   */
-  readonly allDay: boolean;
-  /** How long it runs, doors to close, unless planned otherwise. */
-  readonly duration: Duration.Duration;
   /** Whether its page needs a schedule before it goes out. */
   readonly scheduleRequired: boolean;
-  /** The schedule a new one starts from. */
-  readonly schedule: ReadonlyArray<ScheduleStep>;
+  /**
+   * Its sizes, the default first, each up to a longer length than the one
+   * before it; an evening's length says which it is ({@link sizeOf}).
+   */
+  readonly sizes: readonly [Size, ...ReadonlyArray<Size>];
   /** What everyone who comes is told: on its page, on Luma, on Meetup. */
   readonly rules: ReadonlyArray<PublicRule>;
 }
@@ -74,74 +116,198 @@ export const openSourceProjects: PublicRule = {
   since: "2026-10-06",
 };
 
+/**
+ * How a hackathon's projects are judged: what works, before what looks
+ * good. Judging audits each project, so a demo alone wins nothing.
+ */
+export const judgingCriteria: PublicRule = {
+  id: "judging",
+  text: "Projects are judged on whether they work before how they look, then on how useful and how creative they are: judges run each project and its tests, and read its code and CodeRabbit's review.",
+  why: "A vibe-coded demo can look finished and not work. Auditing every project (does it run, do its tests pass, what CodeRabbit and its code say) tells the working, useful and creative ones from the rest.",
+  since: "2026-10-06",
+};
+
+/**
+ * The at/hack starter: its repository and the version teams start from,
+ * in this one value. Publishing a new version means changing it here.
+ */
+export const hackStarter: Starter = {
+  name: "at/hack",
+  repository: "https://github.com/allthingsweb-dev/hack",
+  version: "1.0.0",
+  since: "2026-10-06",
+};
+
+/**
+ * The rule that asks teams to start from a published at/hack version, or
+ * none while there is no version.
+ */
+export function starterRule(starter: Starter): PublicRule | null {
+  if (starter.version === null || starter.since === null) return null;
+  return {
+    id: "starter",
+    text: `Start from ${starter.name} v${starter.version} (${starter.repository}), or include its files.`,
+    why: "Every project starts from the same files, so judges can run and audit each one the same way.",
+    since: starter.since,
+  };
+}
+
+/** A hackathon's rules: open source, how it's judged, and the starter once published. */
+export const hackathonRules = (starter: Starter): ReadonlyArray<PublicRule> => {
+  const fromStarter = starterRule(starter);
+  return [
+    openSourceProjects,
+    judgingCriteria,
+    ...(fromStarter === null ? [] : [fromStarter]),
+  ];
+};
+
+/** An evening's one size: 3 hours, doors to close. */
+const evening = (schedule: ReadonlyArray<ScheduleStep>): Size => ({
+  name: "evening",
+  definition: "An evening, doors to close.",
+  duration: Duration.hours(3),
+  upTo: null,
+  allDay: false,
+  confirm: null,
+  schedule,
+});
+
 export const formats: Readonly<Record<EventProgram, Format>> = {
   talks: {
     program: "talks",
     name: "talks",
+    one: "an evening of talks",
     definition:
       "A lineup on stage: talks, panels and fireside chats, with time before and after to meet people.",
     stage: "talks",
     talksRequired: true,
-    allDay: false,
-    duration: Duration.hours(3),
     scheduleRequired: false,
-    schedule: [
-      { at: 0, title: "Doors open: food, drinks and people" },
-      { at: 45, title: "On stage" },
-      { at: 135, title: "Time to talk, until close" },
+    sizes: [
+      evening([
+        { at: 0, title: "Doors open: food, drinks and people" },
+        { at: 45, title: "On stage" },
+        { at: 135, title: "Time to talk, until close" },
+      ]),
     ],
     rules: [],
   },
   "open-floor": {
     program: "open-floor",
     name: "open floor",
+    one: "an open floor",
     definition: "No lineup: anyone can get up and show what they're building.",
     stage: "open-floor",
     talksRequired: false,
-    allDay: false,
-    duration: Duration.hours(3),
     scheduleRequired: false,
-    schedule: [
-      { at: 0, title: "Doors open: food, drinks and people" },
-      { at: 45, title: "Open floor: anyone can show what they're building" },
-      { at: 135, title: "Time to talk, until close" },
+    sizes: [
+      evening([
+        { at: 0, title: "Doors open: food, drinks and people" },
+        { at: 45, title: "Open floor: anyone can show what they're building" },
+        { at: 135, title: "Time to talk, until close" },
+      ]),
     ],
     rules: [],
   },
   social: {
     program: "social",
     name: "social evening",
+    one: "a social evening",
     definition:
       "No stage: an evening to meet people over food and drinks, sometimes around a game such as trivia.",
     stage: null,
     talksRequired: false,
-    allDay: false,
-    duration: Duration.hours(3),
     scheduleRequired: false,
-    schedule: [{ at: 0, title: "Doors open: food, drinks and people" }],
+    sizes: [evening([{ at: 0, title: "Doors open: food, drinks and people" }])],
     rules: [],
   },
   hackathon: {
     program: "hackathon",
     name: "hackathon",
+    one: "a hackathon",
     definition:
-      "Teams build something in a set time, then show it, and judges pick the winners.",
+      "Teams build something in a set time, then show it, and judges pick the winners after auditing every project.",
     stage: null,
     talksRequired: false,
-    allDay: true,
-    duration: Duration.hours(8),
     scheduleRequired: true,
-    schedule: [
-      { at: 0, title: "Doors open: food, drinks and forming teams" },
-      { at: 30, title: "Kickoff: the theme, the rules and how judging works" },
-      { at: 60, title: "Hacking" },
-      { at: 360, title: "Submissions close: each team's public repository" },
-      { at: 375, title: "Demos" },
-      { at: 450, title: "Judging and awards" },
+    sizes: [
+      {
+        name: "lightning",
+        definition:
+          "The usual: an evening, with 90 minutes to 2 hours of hacking.",
+        duration: Duration.hours(3),
+        upTo: Duration.hours(4),
+        allDay: false,
+        confirm: null,
+        schedule: [
+          { at: 0, title: "Doors open: food, drinks and forming teams" },
+          {
+            at: 15,
+            title: "Kickoff: the theme, the rules and how judging works",
+          },
+          { at: 25, title: "Hacking" },
+          {
+            at: 125,
+            title: "Submissions close: each team's public repository",
+          },
+          {
+            at: 130,
+            title:
+              "Judging: judges run and audit every project, while everyone eats and shows their project at an open demo table",
+          },
+          { at: 165, title: "Awards" },
+        ],
+      },
+      {
+        name: "full-day",
+        definition:
+          "A whole day of hacking: only worth it when it's a big deal, otherwise it's long and drawn out.",
+        duration: Duration.hours(8),
+        upTo: null,
+        allDay: true,
+        confirm:
+          "A full-day hackathon should be a big deal, or it drags: confirm it's meant to run all day, not as a lightning one.",
+        schedule: [
+          { at: 0, title: "Doors open: breakfast and forming teams" },
+          {
+            at: 30,
+            title: "Kickoff: the theme, the rules and how judging works",
+          },
+          { at: 60, title: "Hacking, with lunch" },
+          {
+            at: 330,
+            title: "Submissions close: each team's public repository",
+          },
+          {
+            at: 345,
+            title:
+              "Judging: judges run and audit every project, while everyone eats and watches lightning talks and open demos",
+          },
+          { at: 435, title: "Finalists demo" },
+          { at: 465, title: "Awards" },
+        ],
+      },
     ],
-    rules: [openSourceProjects],
+    rules: hackathonRules(hackStarter),
   },
 };
+
+/** One of `size`, as a sentence says it: "a lightning hackathon". */
+export const sizeLabel = (format: Format, size: Size): string =>
+  format.sizes.length > 1 ? `a ${size.name} ${format.name}` : format.one;
+
+/**
+ * The size of a `format` evening that runs `length`: the first whose
+ * longest is at least as long, else the largest.
+ */
+export function sizeOf(format: Format, length: Duration.Duration): Size {
+  return (
+    format.sizes.find(
+      (size) =>
+        size.upTo === null || Duration.isLessThanOrEqualTo(length, size.upTo),
+    ) ?? format.sizes[0]
+  );
+}
 
 /** Every program, in the order the doc and lists give them. */
 export const programs: ReadonlyArray<EventProgram> = [
@@ -222,11 +388,12 @@ export function rulesMissing(
 export const offset = (minutes: number): string =>
   `+${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
 
-/** The schedule a new evening of `format` starts from, a line a step. */
-export const scheduleLines = (format: Format): ReadonlyArray<string> =>
-  format.schedule.map((step) => `${offset(step.at)} ${step.title}`);
+/** The schedule a new evening of `size` starts from, a line a step. */
+export const scheduleLines = (size: Size): ReadonlyArray<string> =>
+  size.schedule.map((step) => `${offset(step.at)} ${step.title}`);
 
-const hours = (duration: Duration.Duration): string => {
+/** "3 hours", "1 hour 30 minutes": a length as copy says it. */
+export const hours = (duration: Duration.Duration): string => {
   const total = Duration.toMinutes(duration);
   const whole = Math.floor(total / 60);
   const minutes = total % 60;
@@ -247,20 +414,35 @@ export function formatsDoc(): string {
     const rules = format.rules.map(
       (rule) => `- **${rule.text}** From ${rule.since} on. ${rule.why}`,
     );
+    const several = format.sizes.length > 1;
+    const sizes = format.sizes.flatMap((size, index) => [
+      several
+        ? `### ${size.name}${index === 0 ? " (the default)" : ""}`
+        : "### Length and schedule",
+      "",
+      ...(several ? [size.definition, ""] : []),
+      `- Runs ${hours(size.duration)} by default, doors to close${size.upTo === null ? "" : `, up to ${hours(size.upTo)}`}${size.allDay ? ", and may run through the day" : ""}. Another length is advised on, never refused.`,
+      ...(size.confirm === null
+        ? []
+        : [`- Readiness asks to confirm it: "${size.confirm}"`]),
+      "",
+      "Its schedule starts from:",
+      "",
+      ...size.schedule.map((step) => `- ${offset(step.at)} ${step.title}`),
+      "",
+    ]);
     return [
       `## ${format.name}`,
       "",
       format.definition,
       "",
       `- On stage: ${format.stage === "talks" ? "its talks" : format.stage === "open-floor" ? "an open floor, with any demos we know of" : "nothing"}.`,
-      `- Runs ${hours(format.duration)}, doors to close${format.allDay ? ", and may run through the day" : ""}.`,
       `- Needs, beyond what every evening needs: ${needs.length === 0 ? "nothing" : needs.join("; ")}.`,
       "",
-      "Its schedule starts from:",
+      ...sizes,
+      "### Rules",
       "",
-      ...format.schedule.map((step) => `- ${offset(step.at)} ${step.title}`),
-      "",
-      "Its rules, as everyone who comes is told them:",
+      "As everyone who comes is told them:",
       "",
       ...(rules.length === 0 ? ["- None of its own."] : rules),
     ].join("\n");

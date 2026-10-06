@@ -11,6 +11,9 @@ import {
 } from "../../infra/scripts/site-reader.ts";
 import type { EventRecord } from "../src/completeness.ts";
 import { formats, openSourceProjects, scheduleLines } from "../src/formats.ts";
+
+const [lightning, fullDaySize] = formats.hackathon.sizes;
+if (fullDaySize === undefined) throw new Error("no full-day hackathon");
 import { Planning } from "../src/planning/planning.ts";
 import { addDays, sfDay, weekdayOf } from "../src/readiness/calendar.ts";
 import {
@@ -157,19 +160,28 @@ describe("draftChecks", () => {
     ).toEqual([]);
     const hackathon = facts({ program: "hackathon", talks: [] });
     const checks = draftChecks(hackathon, [], now);
-    expect(kinds(checks)).toEqual(["blocker rules", "blocker schedule"]);
-    // The schedule it lacks starts from its format's.
-    expect(checks[1]?.message).toBe(
-      `Its page needs a schedule, as every hackathon's does. Start from: ${scheduleLines(formats.hackathon).join("; ")}.`,
+    expect(kinds(checks)).toEqual([
+      "blocker rules",
+      "blocker rules",
+      "blocker rules",
+      "blocker schedule",
+    ]);
+    // Three hours: the schedule it lacks starts from a lightning one's.
+    expect(checks[3]?.message).toBe(
+      `Its page needs a schedule, as every hackathon's does. Start from: ${scheduleLines(lightning).join("; ")}.`,
     );
-    expect(checks[0]?.subject).toBe("open-source, in Luma's description");
+    expect(checks.map((entry) => entry.subject).slice(0, 3)).toEqual([
+      "open-source, in Luma's description",
+      "judging, in Luma's description",
+      "starter, in Luma's description",
+    ]);
     expect(
       draftChecks(
         facts(
           {
             program: "hackathon",
             talks: [],
-            lumaDescription: `<p>Build something.</p><p><strong>Rules</strong></p><ul><li>${openSourceProjects.text}</li></ul>`,
+            lumaDescription: `<p>Build something.</p><p><strong>Rules</strong></p><ul>${formats.hackathon.rules.map((rule) => `<li>${rule.text}</li>`).join("")}</ul>`,
           },
           { scheduleItems: 3 },
         ),
@@ -228,6 +240,58 @@ describe("draftChecks", () => {
     }
   });
 
+  test("a length is a default: another is advised on, the six-hour limit stays", () => {
+    // Doors at 5:30 PM, four hours.
+    const longer = draftChecks(
+      facts({ endDate: at("2026-10-28T04:30:00Z") }),
+      [],
+      now,
+    );
+    expect(kinds(longer)).toEqual(["advice length"]);
+    expect(longer[0]?.message).toBe(
+      "Runs 4 hours, doors to close; an evening of talks runs 3 hours by default. Keep it if it's meant.",
+    );
+    expect(
+      kinds(
+        draftChecks(facts({ endDate: at("2026-10-28T07:00:00Z") }), [], now),
+      ),
+    ).toEqual(["advice long", "advice length"]);
+  });
+
+  test("a hackathon is lightning up to four hours; past that, full-day, which is confirmed", () => {
+    const hackathon = (start: string, end: string) =>
+      draftChecks(
+        facts(
+          {
+            program: "hackathon",
+            talks: [],
+            startDate: at(start),
+            endDate: at(end),
+            lumaDescription: `<ul>${formats.hackathon.rules.map((rule) => `<li>${rule.text}</li>`).join("")}</ul>`,
+          },
+          { scheduleItems: 3 },
+        ),
+        [],
+        now,
+      );
+    // 5:30 to 8:30 PM: a lightning one, as long as its default.
+    expect(hackathon("2026-10-28T00:30:00Z", "2026-10-28T03:30:00Z")).toEqual(
+      [],
+    );
+    // 5:30 to 9:30 PM: still lightning, longer than its default.
+    expect(
+      kinds(hackathon("2026-10-28T00:30:00Z", "2026-10-28T04:30:00Z")),
+    ).toEqual(["advice length"]);
+    // A lightning one is an evening: in the morning it reads as daytime.
+    expect(
+      kinds(hackathon("2026-10-27T17:00:00Z", "2026-10-27T20:00:00Z")),
+    ).toEqual(["advice daytime"]);
+    // 9 AM to 5 PM: full-day, through the day, and confirmed.
+    const fullDay = hackathon("2026-10-27T16:00:00Z", "2026-10-28T00:00:00Z");
+    expect(kinds(fullDay)).toEqual(["advice size"]);
+    expect(fullDay[0]?.message).toBe(fullDaySize.confirm ?? "");
+  });
+
   test("a cover blocks only once the Luma event exists", () => {
     expect(kinds(draftChecks(facts({ hasCover: false }), [], now))).toEqual([
       "blocker cover",
@@ -264,7 +328,7 @@ describe("draftChecks", () => {
           now,
         ),
       ),
-    ).toEqual(["advice daytime", "advice long"]);
+    ).toEqual(["advice daytime", "advice long", "advice length"]);
   });
 
   test("another of our evenings that day blocks; a draft or a shared one is advice", () => {
