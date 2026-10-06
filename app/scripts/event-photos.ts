@@ -50,3 +50,41 @@ export async function addEventPhotos(args: {
   );
   return JSON.parse(stdout) as unknown;
 }
+
+/**
+ * Replaces one of an evening's photos in its place with core's photos tool
+ * (`photos replace`). `photo` is the old photo's image id, or its position
+ * on the page from 1. The old object stays in the bucket.
+ */
+export async function replaceEventPhoto(args: {
+  slug: string;
+  photo: string;
+  file: string;
+  alt: string;
+  dryRun?: boolean;
+}): Promise<unknown> {
+  const { stdout } = await run(
+    "bun",
+    [
+      "run",
+      "--silent",
+      "photos",
+      "replace",
+      "--alt",
+      args.alt,
+      ...(args.dryRun === true ? ["--dry-run"] : []),
+      "--json",
+      "--",
+      args.slug,
+      args.photo,
+      args.file,
+    ],
+    {
+      cwd: core,
+      env: process.env,
+      maxBuffer: 1024 * 1024,
+      timeout: 5 * 60_000,
+    },
+  );
+  return JSON.parse(stdout) as unknown;
+}

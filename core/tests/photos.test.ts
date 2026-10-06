@@ -7,8 +7,11 @@ import { encode, placeholder } from "../scripts/encode.ts";
 import {
   addPhotos,
   contentHash,
+  imageReferences,
+  parseTarget,
   type PhotoFile,
   photoKey,
+  replacePhoto,
 } from "../src/photos.ts";
 import {
   type Encoder,
@@ -272,6 +275,191 @@ describe("addPhotos", () => {
     );
     expect(error.message).toContain("huge.png is");
     expect(puts).toHaveLength(0);
+  });
+});
+
+describe("replacePhoto", () => {
+  const stage = "d0000000-0000-4000-8000-000000000004";
+  const crowd = "d0000000-0000-4000-8000-000000000003";
+  const slug = "2026-08-12-react-at-acme";
+
+  const links = async () =>
+    (
+      await db.query<{ id: string; url: string; alt: string; at: string }>(
+        `SELECT img.id, img.url, img.alt, ei.created_at::text AS at
+         FROM event_images ei JOIN images img ON img.id = ei.image_id
+         WHERE ei.event_id = '${acme}' ORDER BY ei.created_at, img.id`,
+      )
+    ).rows;
+  const imageRows = async (id: string) =>
+    (await db.query(`SELECT 1 FROM images WHERE id = '${id}'`)).rows.length;
+
+  test("puts the new photo in the old one's place, and deletes only the old link and row", async () => {
+    const { media, objects, puts } = fakeMedia();
+    await run(addPhotos(slug, [file("a.jpg", 1, "Added")], options(media)));
+    const before = await links();
+    const replaced = await run(
+      replacePhoto(
+        slug,
+        { _tag: "Position", position: 2 },
+        file("new.jpg", 9, "The new crowd"),
+        options(media),
+      ),
+    );
+    expect(replaced.old).toEqual({
+      imageId: crowd,
+      url: "https://storage.example/photos/crowd.jpg",
+      position: 2,
+    });
+    expect(replaced.new.status).toBe("replaced");
+    const after = await links();
+    expect(after.map((photo) => photo.alt)).toEqual([
+      "The stage",
+      "The new crowd",
+      "Added",
+    ]);
+    expect(after[1]!.at).toBe(before[1]!.at);
+    expect([after[0], after[2]]).toEqual([before[0], before[2]]);
+    expect(await imageRows(crowd)).toBe(0);
+    // Stored once, and nothing deleted: the media origin has no delete at all.
+    expect(puts.map((put) => put.key)).toContain(replaced.new.key);
+    expect(objects.size).toBe(2);
+  });
+
+  test("finds the old photo by its image id", async () => {
+    const { media } = fakeMedia();
+    const replaced = await run(
+      replacePhoto(
+        slug,
+        { _tag: "ImageId", id: crowd },
+        file("new.jpg", 9, "The new crowd"),
+        options(media),
+      ),
+    );
+    expect(replaced.old.position).toBe(2);
+    expect((await links()).map((photo) => photo.alt)).toEqual([
+      "The stage",
+      "The new crowd",
+    ]);
+  });
+
+  test("a dry run stores nothing and changes nothing", async () => {
+    const { media, puts } = fakeMedia();
+    const before = await links();
+    const replaced = await run(
+      replacePhoto(
+        slug,
+        { _tag: "Position", position: 2 },
+        file("new.jpg", 9),
+        options(media, true),
+      ),
+    );
+    expect(replaced.new.status).toBe("would replace");
+    expect(puts).toHaveLength(0);
+    expect(await links()).toEqual(before);
+    expect(await imageRows(crowd)).toBe(1);
+  });
+
+  test("refuses an old photo something else uses, and changes no row", async () => {
+    // tests/seed.sql's stage photo is also a post's image.
+    const { media, puts } = fakeMedia();
+    const before = await links();
+    const error = await failure(
+      replacePhoto(
+        slug,
+        { _tag: "Position", position: 1 },
+        file("new.jpg", 9),
+        options(media),
+      ),
+    );
+    expect(error.message).toContain("is also used by event_posts.image");
+    expect(await links()).toEqual(before);
+    expect(puts).toHaveLength(0);
+    expect(await imageRows(stage)).toBe(1);
+  });
+
+  test.each([
+    [
+      "a position past the last photo",
+      { _tag: "Position", position: 3 },
+      file("new.jpg", 9),
+      "2026-08-12-react-at-acme has 2 photos, no photo 3.",
+    ],
+    [
+      "an image that is not the evening's",
+      { _tag: "ImageId", id: "d0000000-0000-4000-8000-000000000002" },
+      file("new.jpg", 9),
+      "Image d0000000-0000-4000-8000-000000000002 is not one of 2026-08-12-react-at-acme's photos.",
+    ],
+    [
+      "no alt text",
+      { _tag: "Position", position: 1 },
+      file("new.jpg", 9, " "),
+      "new.jpg has no alt text.",
+    ],
+  ] as const)("refuses %s", async (_, target, photo, message) => {
+    const { media, puts } = fakeMedia();
+    const error = await failure(
+      replacePhoto(slug, target, photo, options(media)),
+    );
+    expect(error.message).toBe(message);
+    expect(puts).toHaveLength(0);
+  });
+
+  test("refuses a file that is already on the evening", async () => {
+    const { media } = fakeMedia();
+    await run(addPhotos(slug, [file("a.jpg", 1)], options(media)));
+    const same = await failure(
+      replacePhoto(
+        slug,
+        { _tag: "Position", position: 3 },
+        file("a.jpg", 1),
+        options(media),
+      ),
+    );
+    expect(same.message).toBe("a.jpg is already photo 3.");
+    const elsewhere = await failure(
+      replacePhoto(
+        slug,
+        { _tag: "Position", position: 1 },
+        file("a.jpg", 1),
+        options(media),
+      ),
+    );
+    expect(elsewhere.message).toBe(
+      "a.jpg is already on 2026-08-12-react-at-acme, as photo 3.",
+    );
+  });
+
+  test("names every column that points at an image", async () => {
+    const references = (
+      await db.query<{ table: string; column: string }>(
+        `SELECT c.conrelid::regclass::text AS table, a.attname AS column
+         FROM pg_constraint c
+         JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+         WHERE c.contype = 'f' AND c.confrelid = 'images'::regclass
+         ORDER BY 1, 2`,
+      )
+    ).rows;
+    expect(references).toEqual(
+      imageReferences.map((reference) => ({ ...reference })),
+    );
+  });
+});
+
+describe("parseTarget", () => {
+  test.each([
+    ["3", { _tag: "Position", position: 3 }],
+    [
+      "C648C1BA-8F09-4819-9EF5-B9A1D4B4F61F",
+      { _tag: "ImageId", id: "c648c1ba-8f09-4819-9ef5-b9a1d4b4f61f" },
+    ],
+    ["0", undefined],
+    ["-1", undefined],
+    ["1.5", undefined],
+    ["stage", undefined],
+  ] as const)("%s", (text, target) => {
+    expect(parseTarget(text)).toEqual(target);
   });
 });
 

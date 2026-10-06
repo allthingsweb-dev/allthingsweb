@@ -3,7 +3,14 @@ import { basename } from "node:path";
 import { Config, Console, Effect, Redacted } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import * as Database from "../src/database.ts";
-import { addPhotos, type PhotoFile, type PhotoResult } from "../src/photos.ts";
+import {
+  addPhotos,
+  parseTarget,
+  type PhotoFile,
+  type PhotoResult,
+  type Replaced,
+  replacePhoto,
+} from "../src/photos.ts";
 import { encodeKey, type Media } from "../src/reencode.ts";
 import { encode, placeholder } from "./encode.ts";
 
@@ -11,6 +18,7 @@ import { encode, placeholder } from "./encode.ts";
  * An evening's photos (src/photos.ts), in the Postgres at DATABASE_URL.
  *
  *   bun run photos add <event slug> <file>… --alt "…" [--alt "…"]… [--dry-run] [--json]
+ *   bun run photos replace <event slug> <image id | position> <file> --alt "…" [--dry-run] [--json]
  *
  * One --alt per file, in the files' order, saying what the photo shows
  * without naming anyone from their face. The photos go on the evening in
@@ -18,6 +26,11 @@ import { encode, placeholder } from "./encode.ts";
  * pixels on its long edge, JPEG, every bit of metadata, location included,
  * stripped) and stored under a key named after the file's contents, so
  * adding a file again changes nothing. HEIC is not read: export JPEGs.
+ *
+ * replace puts <file> in the place of one of the evening's photos, named by
+ * its image id or its position on the page (from 1): the old link and its
+ * images row are deleted in the same transaction, only when nothing else
+ * points at that row. The old object stays in the bucket.
  *
  * --dry-run encodes and checks every file and rehearses the database writes,
  * then rolls them back; it stores nothing and needs no upload credentials.
@@ -69,8 +82,11 @@ const noMedia: Media = {
 
 const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
 
-const line = (photo: PhotoResult) =>
-  `${photo.status}: ${photo.file} → ${photo.key} (${photo.width}×${photo.height}, ${mb(photo.bytes)}) "${photo.alt}"`;
+/** A stored photo in one line: file, key, size and alt text. */
+const summary = (photo: Omit<PhotoResult, "status">) =>
+  `${photo.file} → ${photo.key} (${photo.width}×${photo.height}, ${mb(photo.bytes)}) "${photo.alt}"`;
+
+const line = (photo: PhotoResult) => `${photo.status}: ${summary(photo)}`;
 
 const add = Command.make(
   "add",
@@ -147,9 +163,85 @@ const add = Command.make(
   ),
 );
 
+const replacedLine = (replaced: Replaced) =>
+  `${replaced.new.status}: photo ${replaced.old.position} (image ${replaced.old.imageId}; its object stays in the bucket) with ${summary(replaced.new)}`;
+
+const replace = Command.make(
+  "replace",
+  {
+    slug: Argument.String("slug").pipe(
+      Argument.withDescription("The evening's slug or short link."),
+    ),
+    target: Argument.String("photo").pipe(
+      Argument.withDescription(
+        "The photo to replace: its image id, or its position on the page (from 1).",
+      ),
+    ),
+    file: Argument.String("file").pipe(
+      Argument.withDescription("The new photo."),
+    ),
+    alt: Flag.String("alt").pipe(
+      Flag.withDescription(
+        "What the new photo shows; never names people from their faces.",
+      ),
+    ),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Encode, check and rehearse everything; store and write nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    json: Flag.Boolean("json").pipe(
+      Flag.withDescription("Print the result as JSON."),
+      Flag.withDefault(false),
+    ),
+  },
+  ({ slug, target, file, alt, dryRun, json }) =>
+    Effect.gen(function* () {
+      const parsed =
+        parseTarget(target) ??
+        (yield* Effect.fail(
+          new Error(
+            `${target} is neither an image id nor a position (1, 2, …).`,
+          ),
+        ));
+      const bytes = yield* Effect.tryPromise({
+        try: () => Bun.file(file).bytes(),
+        catch: (cause) =>
+          new Error(`${file} could not be read: ${String(cause)}`),
+      });
+      const media = dryRun
+        ? noMedia
+        : httpMedia(
+            (yield* Config.String("MEDIA_UPLOAD_URL")).replace(/\/+$/, ""),
+            yield* Config.Redacted("MEDIA_UPLOAD_TOKEN"),
+          );
+      const replaced = yield* replacePhoto(
+        slug,
+        parsed,
+        { name: basename(file), bytes, alt },
+        { media, encode, placeholder, origin, dryRun },
+      );
+      yield* Console.log(
+        json
+          ? JSON.stringify({ slug, dryRun, ...replaced }, null, 2)
+          : [
+              replacedLine(replaced),
+              dryRun ? "Dry run: stored nothing, rolled back." : "",
+            ]
+              .filter((text) => text !== "")
+              .join("\n"),
+      );
+    }).pipe(Effect.provide(Database.layer)),
+).pipe(
+  Command.withDescription(
+    "Replace one of an evening's photos in its place; the old object stays in the bucket.",
+  ),
+);
+
 const photos = Command.make("photos").pipe(
   Command.withDescription("An evening's photos."),
-  Command.withSubcommands([add]),
+  Command.withSubcommands([add, replace]),
 );
 
 Command.run(photos, { version: "1.0.0" }).pipe(
