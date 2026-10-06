@@ -3,7 +3,7 @@ import {
   eventPath,
   hosts,
   personAnchor,
-  personUrl,
+  personPath,
   socials,
 } from "../src/links.ts";
 
@@ -56,7 +56,13 @@ describe("personAnchor", () => {
     );
     expect(personAnchor('<a b="c">')).toBe("p-_3c_a_20_b_3d__22_c_22__3e_");
     expect(personAnchor("a b")).not.toBe(personAnchor("a_b"));
-    expect(personUrl("b1")).toBe("/people#p-b1");
+  });
+});
+
+describe("personPath", () => {
+  test("is the person's page, their slug as one encoded segment", () => {
+    expect(personPath("ada-lovelace")).toBe("/people/ada-lovelace");
+    expect(personPath("a/b c")).toBe("/people/a%2Fb%20c");
   });
 });
 

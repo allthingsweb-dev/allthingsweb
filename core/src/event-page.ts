@@ -75,6 +75,8 @@ export interface Venue {
 /** Someone who took part, as the page names them. */
 export interface Person {
   readonly id: string;
+  /** Their page's address, /people/<slug>. */
+  readonly slug: string;
   readonly name: string;
   readonly title: string | null;
   /** Their profile's photo, when it is on the photo origin. */
@@ -298,6 +300,7 @@ function toPerson(profile: Rows.Profile, photoPrefix: string): Person {
   const image = profile.image;
   return {
     id: profile.id,
+    slug: profile.slug,
     name: profile.name,
     title: present(profile.title),
     portrait:

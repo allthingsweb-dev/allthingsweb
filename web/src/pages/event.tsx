@@ -30,7 +30,7 @@ import {
   googleMaps,
   hosts,
   lumaCalendar,
-  personUrl,
+  personPath,
 } from "../links.ts";
 import { calendarPath } from "./calendar.ts";
 import { Document } from "./document.tsx";
@@ -390,7 +390,7 @@ function PersonRow({
         ) : (
           ""
         )}
-        <a class="event-person-name" href={personUrl(person.id)}>
+        <a class="event-person-name" href={personPath(person.slug)}>
           <span safe>{person.name}</span>
         </a>
         {person.title === null ? (
@@ -645,7 +645,7 @@ function SpeakerCard({
           <p class="speaker-role at-type-meta">{speaker.role}</p>
         )}
         <h3 class="at-type-list-name">
-          <a href={personUrl(speaker.id)} safe>
+          <a href={personPath(speaker.slug)} safe>
             {speaker.name}
           </a>
         </h3>
@@ -769,7 +769,7 @@ function LineupTalk({
                 ) : (
                   ""
                 )}
-                <a href={personUrl(speaker.id)} safe>
+                <a href={personPath(speaker.slug)} safe>
                   {speaker.name}
                 </a>
                 {speaker.title === null ? (

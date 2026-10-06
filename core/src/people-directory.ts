@@ -1,4 +1,12 @@
-import { Context, DateTime, Effect, Layer, Order, Schema } from "effect";
+import {
+  Context,
+  DateTime,
+  Effect,
+  Layer,
+  Option,
+  Order,
+  Schema,
+} from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import type * as Contract from "./contract.ts";
@@ -21,6 +29,8 @@ import * as Rows from "./rows.ts";
 /** An evening someone took part in, as a list names it. */
 export interface PartEvening {
   readonly slug: string;
+  /** Ours, or someone else's we shared (only a person's own page lists those). */
+  readonly curation: "ours" | "shared";
   /** The name as written, without emoji. */
   readonly name: string;
   /** all things/<topic>, by the lockup's rule (see lockup.ts), if any. */
@@ -53,6 +63,8 @@ export type Part =
 export interface Person {
   /** The profile's id: people are told apart by it, never by name. */
   readonly id: string;
+  /** Their page's address, /people/<slug> (see person-slug.ts). */
+  readonly slug: string;
   readonly name: string;
   /** Their title as their profile states it, or null when it is empty. */
   readonly title: string | null;
@@ -68,6 +80,22 @@ export interface Person {
   readonly parts: ReadonlyArray<Part>;
 }
 
+/**
+ * One person's own page: everything the directory says of them, at every
+ * published evening (ours and shared), and, for an organizer, the evenings
+ * they hosted, latest first.
+ */
+export interface PersonPage extends Person {
+  readonly organizes: boolean;
+  readonly hosted: ReadonlyArray<PartEvening>;
+}
+
+/** What /people/<slug> finds: a person, the person it moved to, or no one. */
+export type PersonLookup =
+  | { readonly kind: "found"; readonly person: PersonPage }
+  | { readonly kind: "moved"; readonly slug: string }
+  | { readonly kind: "none" };
+
 export interface PeopleView {
   /**
    * The organizers asked for whose profiles exist, in that order, then
@@ -82,6 +110,7 @@ export interface PeopleView {
 
 const EveningColumns = {
   slug: Schema.String,
+  curation: Schema.Literals(["ours", "shared"]),
   name: Schema.String,
   topic: Schema.NullOr(Schema.String),
   startDate: Schema.DateTimeUtcFromString,
@@ -102,9 +131,13 @@ export const RoleRow = Schema.Struct({
   ...EveningColumns,
 });
 
+/** An evening someone organized. */
+export const HostedRow = Schema.Struct(EveningColumns);
+
 /** A profile with its photo on the photo origin, if any, and its parts. */
 export const PersonRow = Schema.Struct({
   id: Schema.String,
+  slug: Schema.String,
   name: Schema.String,
   title: Schema.String,
   bio: Schema.String,
@@ -116,6 +149,8 @@ export const PersonRow = Schema.Struct({
   organizes: Schema.Boolean,
   talks: Schema.Array(TalkRow),
   roles: Schema.Array(RoleRow),
+  /** The evenings they organized, latest first. */
+  hosted: Schema.Array(HostedRow),
 });
 
 export type TalkRow = typeof TalkRow.Type;
@@ -156,13 +191,13 @@ export function shortBio(bio: string): string {
 }
 
 const partEvening = (
-  row: typeof RoleRow.Type | typeof TalkRow.Type,
+  row: typeof HostedRow.Type,
   now: DateTime.Utc,
 ): PartEvening => ({
   slug: row.slug,
+  curation: row.curation,
   name: displayName(row.name),
-  // The directory reads only our evenings (see findPeople).
-  topic: eventTopic({ ...row, curation: { kind: "ours" } }),
+  topic: eventTopic({ ...row, curation: { kind: row.curation } }),
   status: eventStatus(row, now),
   startsAt: row.startDate,
 });
@@ -194,6 +229,7 @@ export function toPerson(row: PersonRow, now: DateTime.Utc): Person {
   );
   return {
     id: row.id,
+    slug: row.slug,
     name: row.name,
     title: known(row.title),
     bio: known(row.bio),
@@ -263,6 +299,16 @@ export function toPeople(
   };
 }
 
+/** A person's own page from their row (see {@link PersonPage}). */
+export const toPersonPage = (
+  row: PersonRow,
+  now: DateTime.Utc,
+): PersonPage => ({
+  ...toPerson(row, now),
+  organizes: row.organizes,
+  hosted: row.hosted.map((evening) => partEvening(evening, now)),
+});
+
 export interface PeopleDirectoryShape {
   /**
    * The organizers with these profile ids, then everyone else who took part
@@ -274,42 +320,61 @@ export interface PeopleDirectoryShape {
     organizerIds: ReadonlyArray<string>,
     photoOrigin: string,
   ) => Effect.Effect<PeopleView, DataSourceError>;
+  /**
+   * The person at /people/`slug`, as of the `Clock`'s now; or, for a slug
+   * they had before, their current one; or no one.
+   */
+  readonly person: (
+    slug: string,
+    photoOrigin: string,
+  ) => Effect.Effect<PersonLookup, DataSourceError>;
 }
 
 const Request = Schema.Struct({
   organizerIds: Schema.NonEmptyArray(Schema.String),
   photoPrefix: Schema.String,
+  /** One person's page, by slug, at every published evening; or null. */
+  slug: Schema.NullOr(Schema.String),
 });
+
+const MovedRequest = Schema.Struct({ slug: Schema.String });
+const MovedRow = Schema.Struct({ slug: Schema.String });
 
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
   // One row per person: the organizers asked for, and everyone with a talk
-  // or a part in a published evening, each with their talks and their
-  // co-host and MC parts nested latest first (ids break ties). The join
-  // tables' keys make each talk and each part one row.
+  // or a part in one of our published evenings, each with their talks, their
+  // co-host and MC parts and the evenings they organized nested latest first
+  // (ids break ties). The join tables' keys make each talk and each part one
+  // row. With a slug, the one person who has it, at every published evening
+  // (shared ones too), whether or not they took part in any.
   const findPeople = SqlSchema.findAll({
     Request,
     Result: PersonRow,
-    execute: ({ organizerIds, photoPrefix }) => sql`
+    execute: ({ organizerIds, photoPrefix, slug }) => sql`
       WITH talks_given AS (
         SELECT ts.speaker_id AS profile_id, ts.role, t.id AS talk_id,
           t.title, t.format,
-          e.id AS event_id, e.slug, e.name, e.topic, e.start_date, e.end_date
+          e.id AS event_id, e.slug, e.curation, e.name, e.topic,
+          e.start_date, e.end_date
         FROM talk_speakers ts
         JOIN talks t ON t.id = ts.talk_id
         JOIN event_talks et ON et.talk_id = t.id
         JOIN events e ON e.id = et.event_id
-        WHERE e.is_draft = false AND e.curation = 'ours'
+        WHERE e.is_draft = false
+          AND (e.curation = 'ours' OR ${slug}::text IS NOT NULL)
       ),
       parts AS (
         SELECT ep.profile_id, ep.role,
-          e.id AS event_id, e.slug, e.name, e.topic, e.start_date, e.end_date
+          e.id AS event_id, e.slug, e.curation, e.name, e.topic,
+          e.start_date, e.end_date
         FROM event_people ep
         JOIN events e ON e.id = ep.event_id
-        WHERE e.is_draft = false AND e.curation = 'ours'
+        WHERE e.is_draft = false
+          AND (e.curation = 'ours' OR ${slug}::text IS NOT NULL)
       )
-      SELECT p.id, p.name, p.title, p.bio,
+      SELECT p.id, p.slug, p.name, p.title, p.bio,
         p.twitter_handle AS "twitterHandle",
         p.bluesky_handle AS "blueskyHandle",
         p.linkedin_handle AS "linkedinHandle",
@@ -328,7 +393,8 @@ const make = Effect.gen(function* () {
         COALESCE((
           SELECT json_agg(json_build_object(
             'title', g.title, 'format', g.format, 'role', g.role,
-            'slug', g.slug, 'name', g.name, 'topic', g.topic,
+            'slug', g.slug, 'curation', g.curation, 'name', g.name,
+            'topic', g.topic,
             'startDate', g.start_date, 'endDate', g.end_date
           ) ORDER BY g.start_date DESC, g.event_id, g.talk_id)
           FROM talks_given g
@@ -336,17 +402,42 @@ const make = Effect.gen(function* () {
         ), '[]'::json) AS talks,
         COALESCE((
           SELECT json_agg(json_build_object(
-            'role', x.role, 'slug', x.slug, 'name', x.name, 'topic', x.topic,
+            'role', x.role, 'slug', x.slug, 'curation', x.curation,
+            'name', x.name, 'topic', x.topic,
             'startDate', x.start_date, 'endDate', x.end_date
           ) ORDER BY x.start_date DESC, x.event_id, x.role)
           FROM parts x
           WHERE x.profile_id = p.id AND x.role IN ('co-host', 'mc')
-        ), '[]'::json) AS roles
+        ), '[]'::json) AS roles,
+        COALESCE((
+          SELECT json_agg(json_build_object(
+            'slug', x.slug, 'curation', x.curation, 'name', x.name,
+            'topic', x.topic,
+            'startDate', x.start_date, 'endDate', x.end_date
+          ) ORDER BY x.start_date DESC, x.event_id)
+          FROM parts x
+          WHERE x.profile_id = p.id AND x.role = 'organizer'
+        ), '[]'::json) AS hosted
       FROM profiles p
-      WHERE p.id IN ${sql.in(organizerIds)}
-        OR EXISTS (SELECT 1 FROM talks_given g WHERE g.profile_id = p.id)
-        OR EXISTS (SELECT 1 FROM parts x WHERE x.profile_id = p.id)
+      WHERE (${slug}::text IS NULL AND (
+          p.id IN ${sql.in(organizerIds)}
+          OR EXISTS (SELECT 1 FROM talks_given g WHERE g.profile_id = p.id)
+          OR EXISTS (SELECT 1 FROM parts x WHERE x.profile_id = p.id)
+        ))
+        OR p.slug = ${slug}
       ORDER BY p.id`,
+  });
+
+  // A slug someone had before: theirs now, unless someone else has it now.
+  const findMoved = SqlSchema.findOneOption({
+    Request: MovedRequest,
+    Result: MovedRow,
+    execute: ({ slug }) => sql`
+      SELECT p.slug
+      FROM profile_slugs ps
+      JOIN profiles p ON p.id = ps.profile_id
+      WHERE ps.slug = ${slug}
+        AND NOT EXISTS (SELECT 1 FROM profiles q WHERE q.slug = ${slug})`,
   });
 
   return PeopleDirectory.of({
@@ -362,8 +453,27 @@ const make = Effect.gen(function* () {
               ? ["00000000-0000-0000-0000-000000000000"]
               : [first, ...rest],
           photoPrefix: `${photoOrigin}/`,
+          slug: null,
         });
         return toPeople(rows, organizerIds, now);
+      }).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
+    person: (slug, photoOrigin) =>
+      Effect.gen(function* () {
+        const now = yield* DateTime.now;
+        const [row] = yield* findPeople({
+          // No one is asked for by id: only the slug finds them.
+          organizerIds: ["00000000-0000-0000-0000-000000000000"],
+          photoPrefix: `${photoOrigin}/`,
+          slug,
+        });
+        if (row !== undefined) {
+          return { kind: "found", person: toPersonPage(row, now) } as const;
+        }
+        const moved = yield* findMoved({ slug });
+        return Option.match(moved, {
+          onNone: () => ({ kind: "none" }) as const,
+          onSome: (to) => ({ kind: "moved", slug: to.slug }) as const,
+        });
       }).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
   });
 });

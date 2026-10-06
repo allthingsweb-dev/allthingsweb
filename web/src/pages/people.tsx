@@ -11,7 +11,7 @@ import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
 import { below, portrait } from "allthings-brand/src/layout.ts";
 import { built } from "../assets.ts";
-import { eventPath, personAnchor } from "../links.ts";
+import { eventPath, personAnchor, personPath } from "../links.ts";
 import { Document } from "./document.tsx";
 import { EveningName } from "./evening-row.tsx";
 import { gatheringTitle } from "./metadata.tsx";
@@ -105,7 +105,7 @@ export function Portrait({
   );
 }
 
-function Links({ person }: { readonly person: Person }) {
+export function Links({ person }: { readonly person: Pick<Person, "links"> }) {
   const links = linkOrder.flatMap((name) => {
     const href = person.links[name];
     return href === null ? [] : [{ href, name }];
@@ -144,7 +144,7 @@ const eveningRoleLabel: Readonly<Record<EveningRole, string>> = {
  * their capacity, unless they spoke), or their part in the evening, then
  * the evening, linking to it.
  */
-function Parts({ parts }: { readonly parts: ReadonlyArray<Part> }) {
+export function Parts({ parts }: { readonly parts: ReadonlyArray<Part> }) {
   if (parts.length === 0) return "";
   return (
     <ul class="talks">
@@ -207,8 +207,10 @@ function PersonEntry({
         eager={organizer ? true : undefined}
       />
       <div class="person-text">
-        <h3 class="person-name" safe>
-          {person.name}
+        <h3 class="person-name">
+          <a href={personPath(person.slug)} safe>
+            {person.name}
+          </a>
         </h3>
         {person.title === null ? (
           ""

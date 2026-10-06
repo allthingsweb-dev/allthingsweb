@@ -8,9 +8,8 @@ import {
 } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
-import { generateDrizzleJson, generateMigration } from "drizzle-kit/api";
+import { createSchema } from "./support/schema";
 import { eq } from "drizzle-orm";
-import * as schema from "../src/lib/schema";
 import { eventPostsTable, eventsTable, imagesTable } from "../src/lib/schema";
 import {
   ingestPostImages,
@@ -25,12 +24,7 @@ const db = drizzle(client);
 let eventId = "";
 
 beforeAll(async () => {
-  const statements = await generateMigration(
-    generateDrizzleJson({}),
-    generateDrizzleJson(schema),
-  );
-  await client.exec("CREATE SCHEMA IF NOT EXISTS neon_auth");
-  for (const statement of statements) await client.exec(statement);
+  await createSchema(client);
 });
 
 beforeEach(async () => {

@@ -77,6 +77,7 @@ describe("PeopleDirectory", () => {
     ]);
     expect(organizers[1]).toEqual({
       id: unattached,
+      slug: "unattached",
       name: "Unattached",
       title: "Lurker",
       bio: "No talks yet.",
@@ -114,6 +115,7 @@ describe("PeopleDirectory", () => {
         role: "mc",
         evening: {
           slug: "2026-10-03-hack-day",
+          curation: "ours",
           name: "Hack day",
           topic: "hack day",
           status: "live",
@@ -152,6 +154,7 @@ describe("PeopleDirectory", () => {
     const ada = speakers.find((person) => person.name === "Ada Lovelace");
     expect(ada).toEqual({
       id: "b0000000-0000-4000-8000-000000000001",
+      slug: "ada-lovelace",
       name: "Ada Lovelace",
       title: "Engineer",
       bio: "Writes compilers.",
@@ -174,6 +177,7 @@ describe("PeopleDirectory", () => {
           role: "moderator",
           evening: {
             slug: "2026-10-03-hack-day",
+            curation: "ours",
             name: "Hack day",
             topic: "hack day",
             status: "live",
@@ -186,6 +190,7 @@ describe("PeopleDirectory", () => {
           role: "speaker",
           evening: {
             slug: "2026-08-12-react-at-acme",
+            curation: "ours",
             name: "React at Acme",
             topic: "react",
             status: "past",
@@ -198,6 +203,7 @@ describe("PeopleDirectory", () => {
           role: "speaker",
           evening: {
             slug: "2025-12-02-café-night",
+            curation: "ours",
             name: "Café night",
             topic: "café night",
             status: "past",
@@ -296,6 +302,7 @@ describe("toPeople", () => {
     overrides: Partial<PersonRow> = {},
   ): PersonRow => ({
     id,
+    slug: id,
     name,
     title: "  ",
     bio: "",
@@ -309,12 +316,14 @@ describe("toPeople", () => {
       format: "talk",
       role: "speaker",
       slug: `evening-${start}`,
+      curation: "ours",
       name: "All Things Web",
       topic: null,
       startDate: DateTime.makeUnsafe(start),
       endDate: DateTime.makeUnsafe(start),
     })),
     roles: [],
+    hosted: [],
     ...overrides,
   });
 
@@ -388,6 +397,7 @@ describe("toPerson", () => {
     const person = toPerson(
       {
         id: "1",
+        slug: "daniel",
         name: "Daniel",
         title: "​",
         bio: "​Daniel is a Staff Software Engineer. ",
@@ -398,10 +408,94 @@ describe("toPerson", () => {
         organizes: false,
         talks: [],
         roles: [],
+        hosted: [],
       },
       now,
     );
     expect(person.title).toBeNull();
     expect(person.bio).toBe("Daniel is a Staff Software Engineer.");
+  });
+});
+
+describe("one person's page", () => {
+  const lookup = (slug: string) =>
+    Effect.runPromise(
+      Effect.provide(
+        PeopleDirectory.use((repository) =>
+          repository.person(slug, photoOrigin),
+        ),
+        PeopleDirectory.layer.pipe(
+          Layer.provideMerge(sqlLayer(db)),
+          Layer.provideMerge(clockAt(now)),
+        ),
+      ),
+    );
+
+  test("finds a person by their slug, with every part, as the directory has them", async () => {
+    const found = await lookup("ada-lovelace");
+    if (found.kind !== "found") throw new Error(found.kind);
+    const { speakers } = await read();
+    const ada = speakers.find((person) => person.slug === "ada-lovelace");
+    if (ada === undefined) throw new Error("Ada is not in the directory");
+    const { organizes, hosted, ...person } = found.person;
+    expect(person).toEqual(ada);
+    expect([organizes, hosted]).toEqual([false, []]);
+  });
+
+  test("lists the evenings an organizer hosted, latest first", async () => {
+    const found = await lookup("olga-organizer");
+    if (found.kind !== "found") throw new Error(found.kind);
+    expect(found.person.organizes).toBe(true);
+    expect(found.person.hosted.map((evening) => evening.slug)).toEqual([
+      "2025-12-02-café-night",
+    ]);
+  });
+
+  test("finds someone who took part in nothing, and lists shared evenings too", async () => {
+    const unattachedPerson = await lookup("unattached");
+    expect(unattachedPerson.kind).toBe("found");
+    await db.exec(
+      `UPDATE events SET curation = 'shared', organized_by = (SELECT id FROM sponsors LIMIT 1)
+        WHERE id = 'e0000000-0000-4000-8000-000000000004'`,
+    );
+    try {
+      const found = await lookup("future-speaker");
+      if (found.kind !== "found") throw new Error(found.kind);
+      const shared = found.person.parts.filter(
+        (part) => part.evening.curation === "shared",
+      );
+      expect(shared.map((part) => part.evening.slug)).toEqual([
+        "2026-11-05-upcoming",
+      ]);
+      // A shared evening has no topic of ours.
+      expect(shared[0]?.evening.topic).toBeUndefined();
+      // The directory lists only our evenings: they have no other here.
+      const { speakers } = await read();
+      expect(speakers.map((person) => person.slug)).not.toContain(
+        "future-speaker",
+      );
+    } finally {
+      await db.exec(
+        `UPDATE events SET curation = 'ours', organized_by = NULL
+          WHERE id = 'e0000000-0000-4000-8000-000000000004'`,
+      );
+    }
+  });
+
+  test("sends an old slug to the current one, and knows no one else", async () => {
+    await db.exec(
+      `UPDATE profiles SET name = 'Grace Brewster Hopper' WHERE id = '${grace}'`,
+    );
+    try {
+      expect(await lookup("grace-hopper")).toEqual({
+        kind: "moved",
+        slug: "grace-brewster-hopper",
+      });
+      expect(await lookup("no-such-person")).toEqual({ kind: "none" });
+    } finally {
+      await db.exec(
+        `UPDATE profiles SET name = 'Grace Hopper' WHERE id = '${grace}'`,
+      );
+    }
   });
 });

@@ -14,7 +14,13 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { CacheControl } from "../cache.ts";
 import { type Repositories, repositories } from "../database.ts";
 import { Images } from "../images/route.ts";
-import { aboutPath, eventPath, hosts, mediaOrigin } from "../links.ts";
+import {
+  aboutPath,
+  eventPath,
+  hosts,
+  mediaOrigin,
+  personPath,
+} from "../links.ts";
 import { Site } from "../site.ts";
 import { aboutPage } from "./about.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
@@ -23,6 +29,7 @@ import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
 import { peoplePage } from "./people.tsx";
+import { personPage } from "./person.tsx";
 import type { ImageMode } from "./picture.tsx";
 import { htmlResponse } from "./response.ts";
 import { chooseTheme, isChoice, type Theme, themeOf } from "./theme.ts";
@@ -190,6 +197,84 @@ const people = dataPage(
     ),
   ),
   (view, props) => peoplePage({ people: view, ...props }),
+);
+
+/**
+ * /people/<slug>: one person's page, cached like the people page. A slug
+ * they had before (their name changed) redirects to the current one for
+ * good; one no one has is not found, cached briefly. The person and the
+ * hosts' portraits are read at once, over the request's pool.
+ */
+const person = page(
+  "/people/:slug",
+  ({ theme, acceptEncoding, params, images }) =>
+    Effect.gen(function* () {
+      const { origin } = yield* Site;
+      const slug = params["slug"] ?? "";
+      const path = personPath(slug);
+      return yield* Effect.all(
+        [
+          PeopleDirectory.use((repository) =>
+            repository.person(slug, mediaOrigin),
+          ),
+          footer(hostPortraits),
+        ],
+        { concurrency: "unbounded" },
+      ).pipe(
+        Effect.provide(repositories),
+        Effect.timed,
+        Effect.map(([took, [found, { portraits, read }]]) => {
+          const db = Duration.toMillis(took);
+          if (found.kind === "moved") {
+            return HttpServerResponse.redirect(personPath(found.slug), {
+              status: 301,
+              headers: { "cache-control": CacheControl.page },
+            });
+          }
+          if (found.kind === "none") {
+            return htmlResponse(
+              notFoundPage({ origin, path, theme, portraits, images }),
+              acceptEncoding,
+              {
+                cacheControl: read ? "notFound" : "failure",
+                theme,
+                images,
+                status: 404,
+                db,
+              },
+            );
+          }
+          return htmlResponse(
+            personPage({
+              person: found.person,
+              origin,
+              theme,
+              portraits,
+              images,
+            }),
+            acceptEncoding,
+            {
+              cacheControl: read ? "publicData" : "failure",
+              theme,
+              images,
+              db,
+            },
+          );
+        }),
+        Effect.catchCause((cause) =>
+          Effect.logError("Error rendering a person's page:", cause).pipe(
+            Effect.as(
+              htmlResponse(
+                unavailablePage({ origin, path, theme, images }),
+                acceptEncoding,
+                { cacheControl: "failure", theme, images, status: 503 },
+              ),
+            ),
+          ),
+        ),
+      );
+    }),
+  (params) => personPath(params["slug"] ?? ""),
 );
 
 /**
@@ -544,6 +629,7 @@ export const pageRoutes = Layer.mergeAll(
   home,
   events,
   people,
+  person,
   speakers,
   about,
   brand,

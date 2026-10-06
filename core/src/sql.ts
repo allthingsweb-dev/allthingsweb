@@ -24,7 +24,7 @@ export const imageJson = (column: ImageColumn): string =>
   `(SELECT json_build_object('url', i.url, 'alt', i.alt, 'placeholder', i.placeholder, 'width', i.width, 'height', i.height, 'version', floor(extract(epoch FROM i.updated_at))::bigint::text) FROM images i WHERE i.id = ${column})`;
 
 /** The profile aliased `p`, as a JSON object matching `rows.Profile`. */
-export const profileJson: string = `json_build_object('id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio, 'twitterHandle', p.twitter_handle, 'blueskyHandle', p.bluesky_handle, 'linkedinHandle', p.linkedin_handle, 'image', ${imageJson("p.image")})`;
+export const profileJson: string = `json_build_object('id', p.id, 'slug', p.slug, 'name', p.name, 'title', p.title, 'bio', p.bio, 'twitterHandle', p.twitter_handle, 'blueskyHandle', p.bluesky_handle, 'linkedinHandle', p.linkedin_handle, 'image', ${imageJson("p.image")})`;
 
 /**
  * Whose evening the event aliased `alias` is, as a JSON object matching

@@ -169,6 +169,13 @@
       "when": 1791246178685,
       "tag": "0023_planning",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791249739549,
+      "tag": "0029_person_slugs",
+      "breakpoints": true
     }
   ]
 }

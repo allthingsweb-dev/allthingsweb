@@ -779,6 +779,23 @@ main > section,
   text-decoration: underline;
 }
 
+/* A person's own page: portrait, name, title and links beside their parts. */
+.person-head .portrait {
+  width: var(--at-size-portrait-xl);
+}
+
+.person-page-name {
+  font-size: var(--at-type-label-size);
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.person-page-bio {
+  max-width: var(--at-measure-prose);
+}
+
 /* A talk: its date, its title, then the evening it was given at. */
 .talks {
   max-width: var(--at-measure-prose);

@@ -48,9 +48,13 @@ export const personAnchor = (profileId: string): string =>
       : `_${character.codePointAt(0)?.toString(16) ?? ""}_`,
   ).join("")}`;
 
-/** The link to a person's entry on the people page. */
-export const personUrl = (profileId: string): string =>
-  `${peoplePage}#${personAnchor(profileId)}`;
+/**
+ * A person's own page, /people/<slug>: the slug comes from their name and
+ * is unique (core/src/person-slug.ts); when the name changes, the old
+ * address redirects to the new one for good.
+ */
+export const personPath = (slug: string): `/${string}` =>
+  `${peoplePage}/${encodeURIComponent(slug)}`;
 
 /** The community's Discord, where people talk between evenings. */
 export const discord = "https://discord.gg/B3Sm4b5mfD";

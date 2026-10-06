@@ -82,7 +82,20 @@ const sharedOrganizer = (organizer: {
 };
 
 /** What a page may say about itself in its head. */
-export type StructuredData = Organization | Event;
+/** A person's own page: who they are and where else they are. */
+export interface PersonPageData {
+  readonly "@context": typeof context;
+  readonly "@type": "Person";
+  readonly name: string;
+  readonly url: string;
+  readonly jobTitle?: string;
+  readonly description?: string;
+  readonly image?: string;
+  /** Their profiles elsewhere, as their profile links them. */
+  readonly sameAs?: ReadonlyArray<string>;
+}
+
+export type StructuredData = Organization | Event | PersonPageData;
 
 const organizer = (
   origin: string,
@@ -172,6 +185,35 @@ export function eventStructuredData(event: EventPage, origin: string): Event {
  * U+2029 are escaped for parsers that read JSON as JavaScript. JSON.parse
  * reads it back unchanged.
  */
+/**
+ * The Person a person's page is about: their name, page, title and bio as
+ * their profile states them, their photo, and their profiles elsewhere.
+ */
+export function personStructuredData(
+  person: {
+    readonly name: string;
+    readonly title: string | null;
+    readonly bio: string | null;
+    readonly photo: { readonly url: string } | null;
+    readonly links: Readonly<Record<string, string | null>>;
+  },
+  url: string,
+): PersonPageData {
+  const sameAs = Object.values(person.links).filter(
+    (link): link is string => link !== null,
+  );
+  return {
+    "@context": context,
+    "@type": "Person",
+    name: person.name,
+    url,
+    ...(person.title === null ? {} : { jobTitle: person.title }),
+    ...(person.bio === null ? {} : { description: person.bio }),
+    ...(person.photo === null ? {} : { image: person.photo.url }),
+    ...(sameAs.length === 0 ? {} : { sameAs }),
+  };
+}
+
 export function serializeJsonLd(data: StructuredData): string {
   return JSON.stringify(data)
     .replaceAll("<", "\\u003c")

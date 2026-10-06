@@ -8,7 +8,7 @@ import {
   eventPath,
   everyEvening,
   lumaCalendar,
-  personUrl,
+  personPath,
   socials,
 } from "../links.ts";
 import { Document } from "./document.tsx";
@@ -193,7 +193,7 @@ function OrganizerEntry({
       />
       <div class="person-text">
         <h3 class="person-name">
-          <a href={personUrl(organizer.id)} safe>
+          <a href={personPath(organizer.slug)} safe>
             {organizer.name}
           </a>
         </h3>

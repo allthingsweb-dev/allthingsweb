@@ -35,6 +35,8 @@ export type FormerName = (typeof formerNames)[number];
 /** An organizer, as their profile has them. */
 export interface Organizer {
   readonly id: string;
+  /** Their page's address, /people/<slug>. */
+  readonly slug: string;
   readonly name: string;
   readonly title: string | null;
   readonly bio: string | null;
@@ -68,6 +70,7 @@ export interface AboutView {
 
 const OrganizerRow = Schema.Struct({
   id: Schema.String,
+  slug: Schema.String,
   name: Schema.String,
   title: Schema.String,
   bio: Schema.String,
@@ -114,6 +117,7 @@ export function toAbout(row: AboutRow, now: DateTime.Utc): AboutView {
     })),
     organizers: row.organizers.map((organizer) => ({
       id: organizer.id,
+      slug: organizer.slug,
       name: organizer.name,
       title: known(organizer.title),
       bio: known(organizer.bio),
@@ -195,7 +199,7 @@ const make = Effect.gen(function* () {
         ), '[]'::json) AS "formerNames",
         COALESCE((
           SELECT json_agg(json_build_object(
-            'id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio,
+            'id', p.id, 'slug', p.slug, 'name', p.name, 'title', p.title, 'bio', p.bio,
             'twitterHandle', p.twitter_handle,
             'blueskyHandle', p.bluesky_handle,
             'linkedinHandle', p.linkedin_handle,

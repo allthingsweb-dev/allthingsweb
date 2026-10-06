@@ -6,7 +6,7 @@ import { CacheControl } from "../cache.ts";
 import { repositories } from "../database.ts";
 import { rssPath } from "../pages/metadata.tsx";
 import { Site } from "../site.ts";
-import { FeedData, type FeedEvent } from "./data.ts";
+import { FeedData, type FeedEvent, type FeedPerson } from "./data.ts";
 import { robotsTxt } from "./robots.ts";
 import { rssXml } from "./rss.ts";
 import { sitemapXml } from "./sitemap.ts";
@@ -62,15 +62,32 @@ const robots = HttpRouter.add(
 const document = (
   path: `/${string}`,
   contentType: string,
-  render: (events: ReadonlyArray<FeedEvent>, origin: string) => string,
+  render: (
+    events: ReadonlyArray<FeedEvent>,
+    origin: string,
+    people: ReadonlyArray<FeedPerson>,
+  ) => string,
+  withPeople = false,
 ) =>
   HttpRouter.add(
     "GET",
     path,
     Effect.gen(function* () {
       const { origin } = yield* Site;
-      const events = yield* FeedData.use((data) => data.listPublished);
-      return text(render(events, origin), contentType, CacheControl.publicData);
+      const [events, people] = yield* FeedData.use((data) =>
+        Effect.all(
+          [
+            data.listPublished,
+            withPeople ? data.listPeople : Effect.succeed([]),
+          ],
+          { concurrency: "unbounded" },
+        ),
+      );
+      return text(
+        render(events, origin, people),
+        contentType,
+        CacheControl.publicData,
+      );
     }).pipe(
       Effect.provide(repositories),
       Effect.catchCause((cause) =>
@@ -90,6 +107,7 @@ const sitemap = document(
   "/sitemap.xml",
   "application/xml; charset=utf-8",
   sitemapXml,
+  true,
 );
 
 const rss = document(rssPath, "application/rss+xml; charset=utf-8", rssXml);

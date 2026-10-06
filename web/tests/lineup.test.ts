@@ -21,6 +21,7 @@ const at = (iso: string) => DateTime.makeUnsafe(iso);
 
 const speaker = (n: number, overrides: Partial<Speaker> = {}): Speaker => ({
   id: `s${n}`,
+  slug: `speaker-${n}`,
   name: `Speaker ${n}`,
   title: `Engineer ${n}`,
   bio: `Bio of speaker ${n}.`,
@@ -171,7 +172,7 @@ describe("an evening with", () => {
     expect(count(html, '<ul class="stage-people">')).toBe(1);
     expect(count(html, '<li class="event-person">')).toBe(7);
     expect(html).toContain(
-      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people#p-s106"><span>Speaker 106</span></a><span class="event-person-title">Engineer 106</span></p>',
+      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people/speaker-106"><span>Speaker 106</span></a><span class="event-person-title">Engineer 106</span></p>',
     );
     // Panelists go unlabeled, and bios are on /people, not in rows.
     expect(html).not.toContain(">panelist<");
@@ -208,10 +209,10 @@ describe("an evening with", () => {
       '<details class="lineup-about"><summary class="at-type-meta">about the talk</summary><div class="stage-description"><p>About talk 1.</p></div></details>',
     );
     expect(html).toContain(
-      '<h2 class="lineup-title at-type-list-name">Talk 1</h2><ul class="lineup-speakers"><li><a href="/people#p-s1">Speaker 1</a><span class="lineup-speaker-title">, Engineer 1</span></li></ul>',
+      '<h2 class="lineup-title at-type-list-name">Talk 1</h2><ul class="lineup-speakers"><li><a href="/people/speaker-1">Speaker 1</a><span class="lineup-speaker-title">, Engineer 1</span></li></ul>',
     );
     expect(html).toContain(
-      '<li><span class="speaker-role at-type-meta">moderator</span> <a href="/people#p-s15">Speaker 15</a></li>',
+      '<li><span class="speaker-role at-type-meta">moderator</span> <a href="/people/speaker-15">Speaker 15</a></li>',
     );
     expect(html).toContain('<p class="at-type-meta">fireside chat</p>');
     expect(html).not.toContain('<article class="speaker">');

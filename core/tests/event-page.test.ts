@@ -114,6 +114,7 @@ describe("EventPages", () => {
     expect(rsc?.speakers).toEqual([
       {
         id: "b0000000-0000-4000-8000-000000000002",
+        slug: "grace-hopper",
         name: "Grace Hopper",
         title: "Admiral",
         bio: null,
@@ -127,6 +128,7 @@ describe("EventPages", () => {
       },
       {
         id: "b0000000-0000-4000-8000-000000000001",
+        slug: "ada-lovelace",
         name: "Ada Lovelace",
         title: "Engineer",
         bio: "Writes compilers.",
@@ -178,12 +180,14 @@ describe("EventPages", () => {
       expect(people.coHosts).toEqual([
         {
           id: "b0000000-0000-4000-8000-000000000006",
+          slug: "zed-nobody",
           name: "Zed Nobody",
           title: null,
           portrait: null,
         },
         {
           id: "b0000000-0000-4000-8000-000000000001",
+          slug: "ada-lovelace",
           name: "Ada Lovelace",
           title: "Engineer",
           portrait: {

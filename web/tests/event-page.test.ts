@@ -1,3 +1,4 @@
+import { personSlug } from "allthings-core/src/person-slug.ts";
 import { describe, expect, test } from "bun:test";
 import type {
   EventPage,
@@ -36,6 +37,7 @@ const origin = "https://allthings.dev";
 
 const speaker = (overrides: Partial<Speaker> = {}): Speaker => ({
   id: "b1",
+  slug: personSlug(overrides.name ?? "Ada Lovelace"),
   name: "Ada Lovelace",
   title: "Engineer",
   bio: "Writes compilers.",
@@ -340,7 +342,7 @@ describe("the ledger", () => {
       '<a href="https://www.linkedin.com/in/ada-lovelace"><span>linkedin</span><span class="visually-hidden">, Ada Lovelace on LinkedIn</span></a>',
     );
     expect(html).toContain(
-      '<div class="speaker-who"><h3 class="at-type-list-name"><a href="/people#p-b2">Grace</a></h3></div></article>',
+      '<div class="speaker-who"><h3 class="at-type-list-name"><a href="/people/grace">Grace</a></h3></div></article>',
     );
   });
 
@@ -458,6 +460,7 @@ describe("the ledger", () => {
   test("keeps a shared evening's co-hosts and MC, and names an organizer without a site with no url", () => {
     const person = {
       id: "p1",
+      slug: "grace-hopper",
       name: "Grace Hopper",
       title: "Admiral",
       portrait: null,
@@ -637,6 +640,7 @@ describe("the calendar file", () => {
 
 describe("who took part", () => {
   const person = (name: string, title: string | null = null) => ({
+    slug: personSlug(name),
     id: name.toLowerCase().replaceAll(" ", "-"),
     name,
     title,
@@ -671,10 +675,10 @@ describe("who took part", () => {
     );
     expect(html).toContain('<p class="at-type-meta">co-hosts</p>');
     expect(html).toContain(
-      '<a class="event-person-name" href="/people#p-michael-arnaldi"><span>Michael Arnaldi</span></a><span class="event-person-title">Creator of Effect</span>',
+      '<a class="event-person-name" href="/people/michael-arnaldi"><span>Michael Arnaldi</span></a><span class="event-person-title">Creator of Effect</span>',
     );
     expect(html).toContain(
-      '<a class="event-person-name" href="/people#p-mirela-prifti"><span>Mirela Prifti</span></a></p>',
+      '<a class="event-person-name" href="/people/mirela-prifti"><span>Mirela Prifti</span></a></p>',
     );
     expect(html).toContain('<p class="at-type-meta">mc</p>');
     expect(render(event({ coHosts: [person("Dan Goosewin")] }))).toContain(
@@ -727,10 +731,10 @@ describe("who took part", () => {
     );
     // A fireside's people are a row each (lineup.ts), roles named.
     expect(html).toContain(
-      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people#p-m"><span>Simon</span></a>',
+      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people/simon"><span>Simon</span></a>',
     );
     expect(html).toContain(
-      '<p><span class="speaker-role at-type-meta">guest</span><a class="event-person-name" href="/people#p-g"><span>Michael</span></a>',
+      '<p><span class="speaker-role at-type-meta">guest</span><a class="event-person-name" href="/people/michael"><span>Michael</span></a>',
     );
     // A talk's speaker is just its speaker.
     expect(html).toContain(
@@ -761,7 +765,13 @@ describe("the event page's images as variants", () => {
         { ...photo("elsewhere"), url: "https://elsewhere.example/x.jpg" },
       ],
       organizers: [
-        { id: "e", name: "Erik", title: null, portrait: photo("erik") },
+        {
+          id: "e",
+          slug: "erik",
+          name: "Erik",
+          title: null,
+          portrait: photo("erik"),
+        },
       ],
       talks: [
         {

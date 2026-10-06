@@ -1,3 +1,4 @@
+import { personSlug } from "allthings-core/src/person-slug.ts";
 import { describe, expect, test } from "bun:test";
 import type {
   PeopleView,
@@ -14,6 +15,7 @@ const origin = "https://allthingsweb.dev";
 
 const person = (name: string, overrides: Partial<Person> = {}): Person => ({
   id: name,
+  slug: personSlug(overrides.name ?? name),
   name,
   title: "Engineer",
   bio: "Writes compilers for the analytical engine, mostly at night. Also teaches.",
@@ -26,6 +28,7 @@ const person = (name: string, overrides: Partial<Person> = {}): Person => ({
       role: "speaker",
       evening: {
         slug: "2026-03-07-all-things-effect",
+        curation: "ours",
         name: "All Things Effect",
         topic: "effect",
         status: "past",
@@ -151,6 +154,7 @@ describe("the people page", () => {
               role: "speaker",
               evening: {
                 slug: "party",
+                curation: "ours",
                 name: "TypeScript AI: The official conference after-party",
                 topic: undefined,
                 status: "upcoming",
@@ -170,6 +174,7 @@ describe("the people page", () => {
   test("names each part: a talk in its capacity unless spoken, an evening role by its name", () => {
     const evening = (slug: string) => ({
       slug,
+      curation: "ours" as const,
       name: "All Things Effect",
       topic: "effect",
       status: "past" as const,

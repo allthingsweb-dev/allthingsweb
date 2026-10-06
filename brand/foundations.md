@@ -134,6 +134,7 @@ Sizes are the largest. The wordmark, event lockup, label and lead shrink on narr
 - Socials sit in a quiet line of words in the footer (luma · discord · youtube · github · x · bluesky · linkedin) and on the history page, never in a hero.
 - Luma and Discord are actions on home: "subscribe on luma" beside "every evening →", and "talk between evenings → discord". Every evening's index says where to follow along in the same quiet line of words as the footer, under its title: luma calendar · discord · x.
 - The organizers are visible everywhere: "hosted by Erik & Andre" with portraits in every footer, organizers first on the people page, and "your hosts" beside the hosting company on every event page.
+- Everyone has a page of their own, `/people/<slug>`, from their name: their profile, every talk and part at our evenings and the ones we shared, and, for an organizer, every evening they hosted. Every name on the site links to it. When a name changes, so does the slug, and the old address redirects to the new one for good.
 
 ## Accessibility
 
