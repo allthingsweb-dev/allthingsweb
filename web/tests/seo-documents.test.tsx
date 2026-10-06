@@ -366,7 +366,10 @@ const speaker = (id: string, name: string, title: string | null): Speaker => ({
 
 describe("structured data", () => {
   test("describes an event's page as a schema.org Event", () => {
-    const michael = speaker("b1", "Michael Arnaldi", "Founder, Effectful");
+    const michael = {
+      ...speaker("b1", "Michael Arnaldi", "Founder, Effectful"),
+      slug: "michael-arnaldi",
+    };
     const event = details({
       talks: [
         {
@@ -412,9 +415,14 @@ describe("structured data", () => {
         {
           "@type": "Person",
           name: "Michael Arnaldi",
+          url: "https://allthings.dev/people/michael-arnaldi",
           jobTitle: "Founder, Effectful",
         },
-        { "@type": "Person", name: "Kit" },
+        {
+          "@type": "Person",
+          name: "Kit",
+          url: "https://allthings.dev/people/b2",
+        },
       ],
       offers: {
         "@type": "Offer",
