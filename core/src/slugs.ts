@@ -23,6 +23,7 @@ import { orDataSourceError } from "./sql.ts";
 /** A published evening without a link, as the step reads it. */
 const Unlinked = Schema.Struct({
   eventId: Schema.String,
+  lumaEventId: Schema.NullOr(Schema.String),
   slug: Schema.String,
   name: Schema.String,
   topic: Schema.NullOr(Schema.String),
@@ -59,6 +60,16 @@ export interface SlugsResult {
   readonly written: number | null;
 }
 
+/**
+ * A draft a dry run of the sync would publish, which the database still
+ * holds as a draft: its Luma id, and its name and start if they change too.
+ */
+export interface PublishedDraft {
+  readonly lumaEventId: string;
+  readonly name?: string;
+  readonly startDate?: DateTime.Utc;
+}
+
 /** An evening a dry run of the sync would create, which the database lacks. */
 export interface PendingEvening extends NeedsSlug {
   /** Its long slug. */
@@ -68,8 +79,9 @@ export interface PendingEvening extends NeedsSlug {
 export interface ShortSlugsShape {
   /**
    * Gives each published evening without a link its own, unless `dryRun`.
-   * A dry run may name evenings the sync would create (`pending`), so it
-   * lists the links they would get too, in the order they all start.
+   * A dry run may name evenings the sync would create (`pending`) and
+   * drafts it would publish (`published`), so it lists the links they
+   * would get too, in the order they all start.
    */
   readonly assign: (
     options:
@@ -77,6 +89,7 @@ export interface ShortSlugsShape {
       | {
           readonly dryRun: true;
           readonly pending?: ReadonlyArray<PendingEvening>;
+          readonly published?: ReadonlyArray<PublishedDraft>;
         },
   ) => Effect.Effect<SlugsResult, DataSourceError>;
 }
@@ -85,17 +98,21 @@ const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
   // Every link ever given and every long slug are held, each by its
-  // evening: a link never shadows another evening's.
-  const read = sql`
+  // evening: a link never shadows another evening's. Drafts a dry run says
+  // the sync would publish are read as the evenings they would be.
+  const read = (published: ReadonlyArray<string>) =>
+    sql`
     SELECT
       COALESCE((
         SELECT json_agg(json_build_object(
-          'eventId', e.id, 'slug', e.slug, 'name', e.name, 'topic', e.topic,
+          'eventId', e.id, 'lumaEventId', e.luma_event_id, 'slug', e.slug, 'name', e.name, 'topic', e.topic,
           'curation', json_build_object('kind', e.curation),
           'startDate', e.start_date
         ) ORDER BY e.start_date, e.id)
         FROM events e
-        WHERE e.is_draft = false AND e.short_slug IS NULL
+        WHERE e.short_slug IS NULL AND (e.is_draft = false OR e.luma_event_id IN (
+          SELECT jsonb_array_elements_text(${JSON.stringify(published)}::jsonb)
+        ))
       ), '[]'::json) AS unlinked,
       COALESCE((
         SELECT json_agg(json_build_object('slug', es.slug, 'eventId', es.event_id)
@@ -107,9 +124,9 @@ const make = Effect.gen(function* () {
           ORDER BY e.slug)
         FROM events e
       ), '[]'::json) AS "longSlugs"`.pipe(
-    Effect.flatMap(([row]) => Schema.decodeUnknownEffect(Read)(row)),
-    orDataSourceError,
-  );
+      Effect.flatMap(([row]) => Schema.decodeUnknownEffect(Read)(row)),
+      orDataSourceError,
+    );
 
   const write = (given: ReadonlyArray<GivenSlug>, now: DateTime.Utc) => {
     const rows = JSON.stringify(
@@ -145,9 +162,28 @@ const make = Effect.gen(function* () {
     Effect.gen(function* () {
       const { dryRun } = options;
       const pending = options.dryRun ? (options.pending ?? []) : [];
-      const { unlinked, links, longSlugs } = yield* read;
+      const published = new Map(
+        (options.dryRun ? (options.published ?? []) : []).map((draft) => [
+          draft.lumaEventId,
+          draft,
+        ]),
+      );
+      const { unlinked, links, longSlugs } = yield* read([...published.keys()]);
+      const evenings = unlinked.map((evening) => {
+        const draft =
+          evening.lumaEventId === null
+            ? undefined
+            : published.get(evening.lumaEventId);
+        return draft === undefined
+          ? evening
+          : {
+              ...evening,
+              name: draft.name ?? evening.name,
+              startDate: draft.startDate ?? evening.startDate,
+            };
+      });
       const given = planShortSlugs(
-        [...unlinked, ...pending],
+        [...evenings, ...pending],
         heldSlugs(links, longSlugs),
       ).map(
         ({ event, slug }): GivenSlug => ({
@@ -213,6 +249,43 @@ export function pendingEvenings(
                 startDate,
               },
             ],
+    }),
+  );
+}
+
+const PublishingChanges = Schema.Struct({
+  isDraft: Schema.Struct({
+    before: Schema.Literal(true),
+    after: Schema.Literal(false),
+  }),
+  name: Schema.optionalKey(Schema.Struct({ after: Schema.String })),
+  // Nested in JSON, so its instant is ISO text.
+  startDate: Schema.optionalKey(
+    Schema.Struct({ after: Schema.DateTimeUtcFromString }),
+  ),
+});
+
+/**
+ * The drafts a rehearsed sync would publish (`updated`, from
+ * src/luma/sync.ts), as a dry run of this step takes them: the rehearsal
+ * rolls back, so the database still holds them as drafts.
+ */
+export function publishedDrafts(
+  updated: ReadonlyArray<{
+    readonly lumaEventId: string;
+    readonly changes: Readonly<Record<string, unknown>>;
+  }>,
+): ReadonlyArray<PublishedDraft> {
+  return updated.flatMap(({ lumaEventId, changes }) =>
+    Option.match(Schema.decodeUnknownOption(PublishingChanges)(changes), {
+      onNone: () => [],
+      onSome: ({ name, startDate }): Array<PublishedDraft> => [
+        {
+          lumaEventId,
+          ...(name === undefined ? {} : { name: name.after }),
+          ...(startDate === undefined ? {} : { startDate: startDate.after }),
+        },
+      ],
     }),
   );
 }

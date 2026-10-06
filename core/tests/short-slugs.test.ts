@@ -14,7 +14,12 @@ import {
   shortSlugPattern,
   slugify,
 } from "../src/short-slugs.ts";
-import { type PendingEvening, ShortSlugs } from "../src/slugs.ts";
+import {
+  type PendingEvening,
+  type PublishedDraft,
+  publishedDrafts,
+  ShortSlugs,
+} from "../src/slugs.ts";
 import {
   clockLayer,
   now,
@@ -272,10 +277,11 @@ describe("the step", () => {
     db: PGlite,
     dryRun = false,
     pending: ReadonlyArray<PendingEvening> = [],
+    published: ReadonlyArray<PublishedDraft> = [],
   ) =>
     Effect.runPromise(
       ShortSlugs.use((slugs) =>
-        slugs.assign(dryRun ? { dryRun, pending } : { dryRun }),
+        slugs.assign(dryRun ? { dryRun, pending, published } : { dryRun }),
       ).pipe(
         Effect.provide(
           ShortSlugs.layer.pipe(
@@ -355,6 +361,37 @@ describe("the step", () => {
       ["2026-07-01-all-things-react-evt-react2", "react"],
       ["2026-08-12-react-at-acme", "react-2026-08"],
     ]);
+  });
+
+  test("a dry run lists the links of drafts the sync would publish, as they would be", async () => {
+    const db = await database();
+    const published = publishedDrafts([
+      {
+        lumaEventId: "evt-draft",
+        changes: {
+          isDraft: { before: true, after: false },
+          name: { before: "Draft night", after: "Launch night" },
+        },
+      },
+      // Changed, but still a draft: it gets no link yet.
+      {
+        lumaEventId: "evt-react",
+        changes: { name: { before: "React at Acme", after: "React" } },
+      },
+    ]);
+    expect(published).toEqual([
+      { lumaEventId: "evt-draft", name: "Launch night" },
+    ]);
+    const { given, written } = await assign(db, true, [], published);
+    expect(written).toBeNull();
+    expect(given).toContainEqual({
+      eventId: "e0000000-0000-4000-8000-000000000002",
+      slug: "2026-09-01-draft-night",
+      shortSlug: "launch-night",
+    });
+    expect(given).toHaveLength(6);
+    // A run that writes reads the database, where it is still a draft.
+    expect((await assign(db)).given).toHaveLength(5);
   });
 
   test("a dry run gives nothing", async () => {

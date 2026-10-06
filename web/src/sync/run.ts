@@ -4,6 +4,8 @@ import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import {
   type PendingEvening,
   pendingEvenings,
+  type PublishedDraft,
+  publishedDrafts,
   ShortSlugs,
 } from "allthings-core/src/slugs.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
@@ -328,13 +330,15 @@ const dryRun = (limits: SyncLimits) =>
     const sync = yield* LumaSync;
     const ingest = yield* ImageIngest;
     const steps: Record<string, StepReport> = {};
-    // The evenings the sync would create, which the rehearsal rolls back:
-    // the links step lists theirs too.
+    // The evenings the sync would create or publish, which the rehearsal
+    // rolls back: the links step lists theirs too.
     let created: ReadonlyArray<PendingEvening> = [];
+    let published: ReadonlyArray<PublishedDraft> = [];
     steps["events"] = yield* step(
       "events",
       Effect.map(sync.rehearse, (rehearsal) => {
         created = pendingEvenings(rehearsal.created);
+        published = publishedDrafts(rehearsal.updated);
         return {
           syncedCount: rehearsal.syncedCount,
           changedCount: rehearsal.changedCount,
@@ -356,7 +360,7 @@ const dryRun = (limits: SyncLimits) =>
     );
     steps["slugs"] = yield* step(
       "slugs",
-      slugs(yield* ShortSlugs, { dryRun: true, pending: created }),
+      slugs(yield* ShortSlugs, { dryRun: true, pending: created, published }),
     );
     steps["images"] = yield* step(
       "images",
