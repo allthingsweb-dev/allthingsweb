@@ -113,15 +113,6 @@
     },
     "held": [
       {
-        "field": "photoSourceUrl",
-        "value": "https://avatars.githubusercontent.com/u/2359375",
-        "sources": [
-          "https://api.github.com/users/abhiaiyer91",
-          "https://api.fxtwitter.com/abhiaiyer"
-        ],
-        "reason": "Account identity is confirmed (GitHub abhiaiyer91: company mastra.ai, bio 'CTO/Co-Founder @mastra-ai'), and the URL returns image/jpeg. But both the GitHub and the X avatar (https://pbs.twimg.com/profile_images/2082204958808526848/jz2rjLpH_400x400.jpg) are the same group photo of five men in tuxedos. Presumably Abhi is the man in the center, but the photo does not clearly show one person. LinkedIn (media.licdn.com) returned 999 and no Bluesky account was found."
-      },
-      {
         "field": "bio",
         "value": null,
         "sources": [
@@ -131,7 +122,12 @@
         ],
         "reason": "only a terse profile bio"
       }
-    ]
+    ],
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/2082204958808526848/jz2rjLpH_400x400.jpg",
+      "source": "https://x.com/abhiaiyer",
+      "read": "2026-10-06"
+    }
   },
   {
     "profileId": "92da927e-104f-4bef-b86b-247941a28444",
@@ -650,18 +646,12 @@
   {
     "profileId": "748690f9-037b-4c10-b0d7-3f64c3b31ad4",
     "name": "Raouf Chebri",
-    "held": [
-      {
-        "field": "twitterHandle",
-        "value": null,
-        "sources": [
-          "https://github.com/raoufchebri",
-          "https://neon.com/blog/how-to-use-postgres-at-the-edge",
-          "https://dev.to/raoufchebri"
-        ],
-        "reason": "The stored _raoufai is unknown to X (FixTweet 404, 2026-10-05). His GitHub and an older Neon post give raoufdevrel, also unknown to X; dev.to (2022) gives raoufchebri, an account made after that link with 2 followers and no bio, so probably not his. His site chebri.com is down. Ask him for his handle."
-      }
-    ]
+    "twitterHandle": {
+      "value": "raoufcode",
+      "source": "https://x.com/raoufcode",
+      "read": "2026-10-06",
+      "was": "_raoufai "
+    }
   },
   {
     "profileId": "0a9c5976-388a-4a5b-a01c-7b43c7f711ba",
@@ -688,16 +678,6 @@
     },
     "held": [
       {
-        "field": "title",
-        "value": null,
-        "sources": [
-          "https://oscarnewman.me/",
-          "https://www.linkedin.com/in/oscarnewman/",
-          "https://x.com/__oscarnewman"
-        ],
-        "reason": "Sources disagree on his current role. His site says he is a 'producty engineering lead at Solv' (the Remix Conf 2023 page calls him 'Senior Software Engineer @ Solv Health'), but his public LinkedIn lists Owner.com as his current company (schema worksFor: Owner.com; page title 'Oscar N. - Owner.com'), and a search snippet gives 'Product and Engineering at Owner'. His X bio says 'healthcare payments and sometimes other things'. No page I read states his current job title. A likely candidate is 'Product and Engineering at Owner.com', but confirm it first."
-      },
-      {
         "field": "blueskyHandle",
         "value": "oscarnewman.bsky.social",
         "sources": [
@@ -705,7 +685,12 @@
         ],
         "reason": "The account exists but has no display name, no bio and 0 posts, and none of his pages link to it. I can't tie it to him."
       }
-    ]
+    ],
+    "title": {
+      "value": "Engineering Lead at Solv",
+      "source": "https://web.archive.org/web/20240419092253/https://oscarnewman.me/",
+      "read": "2026-10-06"
+    }
   },
   {
     "profileId": "bf6c6fb4-6283-4ff3-b874-93ee8069d7e3",
@@ -734,6 +719,352 @@
           "https://luma.com/mossfoundingagent"
         ],
         "reason": "She no longer seems to be at Mastra. Her public LinkedIn lists Moss (YC F25) as her current company (schema worksFor: Moss (YC F25); page title 'Neha Varshneya - Moss (YC F25)'), her recent posts talk about 'my work at Moss' from 'a GTM perspective', and she hosted Moss's Luma event on 2026-10-01. No page I read states her job title at Moss. A likely candidate is 'GTM at Moss', but confirm it first. Don't use 'at Mastra'; it's outdated."
+      }
+    ]
+  },
+  {
+    "profileId": "e506570b-c2a9-42b5-a8f6-9d14b4c1ee05",
+    "name": "Melissa Cheng",
+    "title": {
+      "value": "Event & Field Marketing Lead at Sentry",
+      "source": "https://x.com/hellomelcheng",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "hellomelcheng",
+      "source": "https://luma.com/user/melcheng",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "chengdigital",
+      "source": "https://linktr.ee/themcheng",
+      "read": "2026-10-06"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "melcheng.bsky.social",
+        "sources": ["https://bsky.app/profile/melcheng.bsky.social"],
+        "reason": "An empty account (no name, bio or posts). It matches her Luma username, but none of her pages link to it."
+      },
+      {
+        "field": "bio",
+        "value": "Event & Field Marketing Lead at Sentry. Retired college athlete.",
+        "sources": ["https://x.com/hellomelcheng"],
+        "reason": "Only a terse profile line, which is no bio."
+      }
+    ]
+  },
+  {
+    "profileId": "0e56fe5f-bfe5-46a6-a762-f5881c0ae90f",
+    "name": "Wayne Sutton",
+    "title": {
+      "value": "Head of Community/Events & Startup Programs at Convex",
+      "source": "https://x.com/waynesutton",
+      "read": "2026-10-06"
+    },
+    "bio": {
+      "value": "Helping developers & startups build faster with Convex and AI. Motorcycle rider.",
+      "source": "https://x.com/waynesutton",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "waynesutton",
+      "source": "https://luma.com/user/wayne_convex",
+      "read": "2026-10-06"
+    },
+    "blueskyHandle": {
+      "value": "waynesutton.bsky.social",
+      "source": "https://bsky.app/profile/waynesutton.bsky.social",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "waynesutton",
+      "source": "https://luma.com/user/wayne_convex",
+      "read": "2026-10-06"
+    }
+  },
+  {
+    "profileId": "77ebfb27-2e47-4774-8d27-e331b0ce8fd9",
+    "name": "Victor Coisne",
+    "title": {
+      "value": "VP Marketing at Strapi",
+      "source": "https://strapi.io/blog/save-the-date-strapi-conf-2025-join-us-in-paris",
+      "read": "2026-10-06"
+    },
+    "bio": {
+      "value": "Community-led human. Building the next generation of CMS at Strapi; previously Head of Community at Docker. French, wine lover, soccer fan.",
+      "source": "https://x.com/vcoisne",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "vcoisne",
+      "source": "https://luma.com/user/usr-uzoGL6sasbn1bGD",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "victorcoisne",
+      "source": "https://luma.com/user/usr-uzoGL6sasbn1bGD",
+      "read": "2026-10-06"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "vcoisne.bsky.social",
+        "sources": ["https://bsky.app/profile/vcoisne.bsky.social"],
+        "reason": "An empty account (no name, bio or posts) that only matches his X handle. None of his pages link to it."
+      }
+    ]
+  },
+  {
+    "profileId": "c3eb1d79-1841-4223-92d7-cb095fe66bb9",
+    "name": "Maribel Garcia",
+    "title": {
+      "value": "Executive Assistant to the CEO at Sanity",
+      "source": "https://www.linkedin.com/in/maribel-garcia-0339442a5/",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "maribel-garcia-0339442a5",
+      "source": "https://www.linkedin.com/in/maribel-garcia-0339442a5/",
+      "read": "2026-10-06"
+    },
+    "held": [
+      {
+        "field": "photoSourceUrl",
+        "value": null,
+        "sources": ["https://www.linkedin.com/in/maribel-garcia-0339442a5/"],
+        "reason": "Her Luma avatar is Luma's default. LinkedIn blocked the page fetch (HTTP 999), so I could not get her profile photo URL. No other account of hers could be tied to her."
+      },
+      {
+        "field": "blueskyHandle",
+        "value": "maribelgarcia.bsky.social",
+        "sources": ["https://bsky.app/profile/maribelgarcia.bsky.social"],
+        "reason": "A same-name account with no bio or posts, and nothing ties it to her."
+      }
+    ]
+  },
+  {
+    "profileId": "eb6a6870-446b-4e92-afd3-9c1e3fa08ec1",
+    "name": "Luke LaValva",
+    "title": {
+      "value": "Marko Team at eBay",
+      "source": "https://www.linkedin.com/in/luke-lavalva/",
+      "read": "2026-10-06"
+    },
+    "bio": {
+      "value": "Marko core team, all in on the web. Moving at a reasonable pace and trying not to break anything.",
+      "source": "https://bsky.app/profile/lavalva.dev",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "LukeLaValva",
+      "source": "https://github.com/LuLaValva",
+      "read": "2026-10-06"
+    },
+    "blueskyHandle": {
+      "value": "lavalva.dev",
+      "source": "https://bsky.app/profile/lavalva.dev",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "luke-lavalva",
+      "source": "https://luma.com/user/usr-racDUIjmE7frvSs",
+      "read": "2026-10-06"
+    }
+  },
+  {
+    "profileId": "687edd8f-d7a3-4090-9e40-bca3f6c50345",
+    "name": "Lauren Frailey",
+    "title": {
+      "value": "Founding Talent at Mintlify",
+      "source": "https://x.com/laurenfrailey1",
+      "read": "2026-10-06"
+    },
+    "bio": {
+      "value": "Founding talent, growing Mintlify. 53/196 countries. Previously Blackstone portfolio operations and UC Berkeley.",
+      "source": "https://x.com/laurenfrailey1",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "laurenfrailey1",
+      "source": "https://luma.com/user/usr-Xw0BBGRUXCFONJE",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "lauren-frailey",
+      "source": "https://luma.com/user/usr-Xw0BBGRUXCFONJE",
+      "read": "2026-10-06"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/2057509255281082368/gOXW-a8L_400x400.jpg",
+      "source": "https://x.com/laurenfrailey1",
+      "read": "2026-10-06"
+    }
+  },
+  {
+    "profileId": "67eaf1e1-07f0-485d-b4ba-0a10091abdbe",
+    "name": "Chas Jhin",
+    "title": {
+      "value": "Director of Engineering at Discord",
+      "source": "https://infinite.red/react-native-radio/rnr-343-discords-journey-to-react-native-with-chas-jhin",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "chasjhin",
+      "source": "https://x.com/chasjhin",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "chas-jhin",
+      "source": "https://www.linkedin.com/in/chas-jhin/",
+      "read": "2026-10-06"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1358480242797600768/I_8sN0d3_400x400.jpg",
+      "source": "https://x.com/chasjhin",
+      "read": "2026-10-06"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "chasjhin.bsky.social",
+        "sources": ["https://bsky.app/profile/chasjhin.bsky.social"],
+        "reason": "An empty account (no name, bio or posts), and his site does not link it."
+      },
+      {
+        "field": "bio",
+        "value": "I like pizza rolls.",
+        "sources": ["https://x.com/chasjhin"],
+        "reason": "Only a terse profile line, which is no bio."
+      }
+    ]
+  },
+  {
+    "profileId": "78482ff5-509a-421d-900d-04d81914c538",
+    "name": "Lois Zhao",
+    "title": {
+      "value": "Founding Engineer at Toma",
+      "source": "https://normal-people.com/intro",
+      "read": "2026-10-06"
+    },
+    "bio": {
+      "value": "Lois is a bundler engineer who primarily works on infrastructure projects, orchestration and deployment.",
+      "source": "https://normal-people.com",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "zmzlois",
+      "source": "https://luma.com/user/zmzlois",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "loiszhao",
+      "source": "https://luma.com/user/zmzlois",
+      "read": "2026-10-06"
+    }
+  },
+  {
+    "profileId": "1a1fab0c-7fbe-4b5a-8ec0-3c4136e4b882",
+    "name": "James Arthur",
+    "title": {
+      "value": "Co-founder & CEO at ElectricSQL",
+      "source": "https://web.archive.org/web/20260429175541/https://electric.ax/about/team",
+      "read": "2026-10-06"
+    },
+    "bio": {
+      "value": "Building Neon at Databricks. Previously co-founder of ElectricSQL.",
+      "source": "https://x.com/thruflo",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "thruflo",
+      "source": "https://luma.com/user/thruflo",
+      "read": "2026-10-06"
+    },
+    "blueskyHandle": {
+      "value": "thruflo.com",
+      "source": "https://bsky.app/profile/thruflo.com",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "thruflo",
+      "source": "https://luma.com/user/thruflo",
+      "read": "2026-10-06"
+    },
+    "held": [
+      {
+        "field": "photoSourceUrl",
+        "value": null,
+        "sources": [
+          "https://luma.com/user/thruflo",
+          "https://github.com/thruflo",
+          "https://x.com/thruflo"
+        ],
+        "reason": "His Luma avatar is an illustrated cartoon of him, not a photo. His X avatar is the same illustration, and his GitHub avatar is Grover from Sesame Street. LinkedIn (/in/thruflo) blocked the fetch (HTTP 999), so I found no allowed-host photo. Keep the Luma illustration, or get his LinkedIn photo URL."
+      }
+    ]
+  },
+  {
+    "profileId": "e5cc3768-37ff-4583-a429-38545b42b50d",
+    "name": "Emily Kim",
+    "title": {
+      "value": "Chief of Staff at ElectricSQL",
+      "source": "https://web.archive.org/web/20260429175541/https://electric.ax/about/team",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "emilybkim",
+      "source": "https://luma.com/user/usr-QIXfcQ3R22UgJsX",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "kimemily",
+      "source": "https://luma.com/user/usr-QIXfcQ3R22UgJsX",
+      "read": "2026-10-06"
+    },
+    "photoSourceUrl": {
+      "value": "https://media.licdn.com/dms/image/v2/D5603AQEb1w0Q1Xm_5w/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1674677626650?e=2147483647&v=beta&t=YbciOGcDI7RJuGzL3O-sI35QWKVHgZTJFsjw8rWAmzA",
+      "source": "https://www.linkedin.com/in/kimemily/",
+      "read": "2026-10-06"
+    }
+  },
+  {
+    "profileId": "d346e7d4-eebf-4753-a303-77194ac745f3",
+    "name": "Lewis Ellis",
+    "held": [
+      {
+        "field": "twitterHandle",
+        "value": "LewisJEllis",
+        "sources": ["https://x.com/LewisJEllis"],
+        "reason": "Only if the identity above is confirmed. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
+      },
+      {
+        "field": "linkedinHandle",
+        "value": "lewisjellis",
+        "sources": ["https://www.linkedin.com/in/lewisjellis/"],
+        "reason": "Only if the identity above is confirmed. LinkedIn's result title is 'Lewis Ellis - Software at Conductor'. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
+      },
+      {
+        "field": "title",
+        "value": "Software at Conductor",
+        "sources": [
+          "https://x.com/LewisJEllis",
+          "https://www.linkedin.com/in/lewisjellis/"
+        ],
+        "reason": "Only if the identity above is confirmed. This is his latest title, and it is not dated to October 2025. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
+      },
+      {
+        "field": "bio",
+        "value": "Software nerd helping make Conductor. Likes penguins, bikes, JavaScript, Lua, Redis, SQL, devtools, numbers, making stuff go faster.",
+        "sources": ["https://x.com/LewisJEllis"],
+        "reason": "Only if the identity above is confirmed. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
+      },
+      {
+        "field": "photoSourceUrl",
+        "value": "https://avatars.githubusercontent.com/u/1445984?v=4",
+        "sources": ["https://github.com/LewisJEllis"],
+        "reason": "Only if the identity above is confirmed. It is a real photo of him; his Luma avatar is Luma's default. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
       }
     ]
   }
