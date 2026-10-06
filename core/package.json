@@ -9,6 +9,7 @@
     "test": "bun test",
     "fixtures": "bun scripts/fixtures.ts",
     "migrate": "bun --no-env-file scripts/migrate.ts",
+    "migration-guard": "bun --no-env-file scripts/migration-guard.ts",
     "luma:people": "bun --no-env-file scripts/luma-people.ts",
     "luma:descriptions": "bun --no-env-file scripts/luma-descriptions.ts",
     "luma:venues": "bun --no-env-file scripts/luma-venues.ts",
