@@ -313,6 +313,67 @@ describe("EventPages", () => {
     expect(page.notes).toEqual([]);
   });
 
+  test("says what the evening is about in Luma's words, unless the site has its own", async () => {
+    const acme = "2026-08-12-react-at-acme";
+    expect<string | null>((await read(acme)).about).toBe(
+      "<p>Server components in practice, with <strong>two talks</strong> and time to talk after.</p>\n",
+    );
+    expect((await read("2026-11-05-upcoming")).about).toBeNull();
+    const database = await seededDatabase();
+    try {
+      const about = (description: string) =>
+        database
+          .query("UPDATE events SET description = $1 WHERE slug = $2", [
+            description,
+            acme,
+          ])
+          .then(() => Effect.runPromise(readPage(acme, now, database)))
+          .then((page): string | null => page.about);
+      // The site's own wins, sanitized.
+      expect(
+        await about('<p>Our <em>own</em> words.</p><img src="x" onerror="1">'),
+      ).toBe("<p>Our <em>own</em> words.</p>");
+      // One that says nothing leaves Luma's.
+      expect(await about("<p> </p>")).toStartWith(
+        "<p>Server components in practice",
+      );
+    } finally {
+      await database.close();
+    }
+  });
+
+  test("lets Luma's summary stand in for a placeholder tagline, never for the organizers'", async () => {
+    const database = await seededDatabase();
+    try {
+      const tagline = async (stored: string, summary: string | null) => {
+        await database.query(
+          "UPDATE events SET tagline = $1, luma_summary = $2 WHERE slug = $3",
+          [stored, summary, "2026-08-12-react-at-acme"],
+        );
+        return (
+          await Effect.runPromise(
+            readPage("2026-08-12-react-at-acme", now, database),
+          )
+        ).tagline;
+      };
+      expect(
+        await tagline("See Luma for event details and registration.", "Talks."),
+      ).toBe("Talks.");
+      // Words that only end like the first sync's are an organizer's.
+      expect(
+        await tagline("Come build with us at All Things Web", "Talks."),
+      ).toBe("Come build with us at All Things Web");
+      expect(
+        await tagline("See Luma for event details and registration.", null),
+      ).toBe("");
+      expect(await tagline("  Our own words  ", "Talks.")).toBe(
+        "Our own words",
+      );
+    } finally {
+      await database.close();
+    }
+  });
+
   test("reads an upcoming evening, its Luma id encoded", async () => {
     const page = await read("2026-11-05-upcoming");
     expect(page).toMatchObject({

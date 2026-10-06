@@ -1,3 +1,4 @@
+import { portrait } from "allthings-brand/src/layout.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import {
   type Format,
@@ -241,23 +242,33 @@ export interface PortraitProps {
   readonly mode: ImageMode;
   /** What stands in without a photo to show: the brand's blank avatar. */
   readonly blank: string;
+  /** Who it is. */
+  readonly alt: string;
 }
 
 /**
  * A portrait in the footer: 36 CSS pixels square, cropped to fill, loaded
  * lazily, last and off the main thread, at 1x and 2x.
  */
-export function Portrait({ photo, mode, blank }: PortraitProps) {
+export function Portrait({ photo, mode, blank, alt }: PortraitProps) {
   if (photo === undefined || !hasSource(photo, mode)) {
-    return <Img src={blank} alt="" width="36" height="36" last />;
+    return (
+      <Img
+        src={blank}
+        alt={alt}
+        width={String(portrait.xs)}
+        height={String(portrait.xs)}
+        last
+      />
+    );
   }
   return (
     <SquarePhoto
       photo={photo}
       mode={mode}
-      side={36}
+      side={portrait.xs}
       sides={[36, 72]}
-      alt=""
+      alt={alt}
       last
     />
   );

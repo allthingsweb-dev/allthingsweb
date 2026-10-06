@@ -194,30 +194,20 @@ describe("an upcoming evening", () => {
     expect(stage).toContain(
       '<section class="stage-talk"><p class="at-type-meta">fireside chat</p><h2 class="stage-title at-type-lead">A fireside chat on Effect</h2>',
     );
-    // Grace moderates; Ada is the fireside's guest.
+    // Grace moderates; Ada is the fireside's guest. A fireside's people
+    // are rows (lineup.ts): role, name and title; bios are on /people.
     expect(stage).toContain(
-      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name"><a href="/people#p-b0000000-0000-4000-8000-000000000502">Grace Hopper</a></h3>',
+      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people#p-b0000000-0000-4000-8000-000000000502"><span>Grace Hopper</span></a>',
     );
     expect(stage).toContain(
-      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name"><a href="/people#p-b0000000-0000-4000-8000-000000000501">Ada Lovelace</a></h3>',
+      '<p><span class="speaker-role at-type-meta">guest</span><a class="event-person-name" href="/people#p-b0000000-0000-4000-8000-000000000501"><span>Ada Lovelace</span></a><span class="event-person-title">Engineer, Analytical Engines</span></p>',
     );
     expect(stage).toContain(
       '<div class="stage-description"><p>Typed errors &amp; <strong>services</strong>.</p></div>',
     );
     expect(stage).not.toContain("<script");
     expect(stage).toContain(`<img src="${speakerPortrait}" alt=""`);
-    expect(stage).toContain(
-      '<h3 class="at-type-list-name"><a href="/people#p-b0000000-0000-4000-8000-000000000501">Ada Lovelace</a></h3>',
-    );
-    expect(stage).toContain(
-      '<p class="speaker-title">Engineer, Analytical Engines</p>',
-    );
-    expect(stage).toContain(
-      '<a href="https://twitter.com/@ada"><span>@ada</span><span class="visually-hidden">, Ada Lovelace on X</span></a>',
-    );
-    expect(stage).toContain(
-      '<p class="speaker-bio">Writes the first programs.</p>',
-    );
+    expect(stage).not.toContain('class="speaker-bio"');
   });
 
   it("names its organizers as your hosts beside the hosting company, then its co-hosts", async ({
@@ -228,7 +218,7 @@ describe("an upcoming evening", () => {
     // Andre is first in this evening's order, and has no photo.
     expect(hosted).toMatch(
       new RegExp(
-        `<span class="host-portraits"><img src="/assets/avatar\\.[0-9a-f]{16}\\.svg" alt="" width="44" height="44" loading="lazy" decoding="async"/><img src="${erikPortrait}"`,
+        `<span class="host-portraits"><img src="/assets/avatar\\.[0-9a-f]{16}\\.svg" alt="Andre Landgraf" width="44" height="44" loading="lazy" decoding="async"/><img src="${erikPortrait}" alt="Erik Thorelli"`,
       ),
     );
     expect(hosted).toContain(
@@ -445,7 +435,9 @@ describe("the mode", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="light">',
     );
-    expect(html).toContain('<summary aria-label="mode: paper">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: paper">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );
@@ -459,7 +451,9 @@ describe("the mode", () => {
   }) => {
     const { html } = await page(Events, slugs.upcoming);
     expect(html).toStartWith('<!doctype html><html lang="en"><head>');
-    expect(html).toContain('<summary aria-label="mode: system">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: system">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=system" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>system<\/span><\/a>/,
     );

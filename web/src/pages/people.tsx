@@ -9,6 +9,7 @@ import type { StageRole } from "allthings-core/src/people.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
+import { below, portrait } from "allthings-brand/src/layout.ts";
 import { built } from "../assets.ts";
 import { eventPath, personAnchor } from "../links.ts";
 import { Document } from "./document.tsx";
@@ -45,19 +46,20 @@ const linkOrder = ["x", "bluesky", "linkedin"] as const satisfies ReadonlyArray<
 >;
 
 /**
- * How large site.css shows portraits: organizers 160 px square (96 on
- * phones), everyone else 72 (64 on phones), each offered up to 3x.
+ * How large site.css shows portraits, from the layout tokens: organizers
+ * extra large (large on phones), everyone else medium, each offered up to
+ * 3x.
  */
 const portraitSizes = {
   organizer: {
-    side: 160,
-    sides: [160, 320],
-    sizes: "(max-width: 600px) 96px, 160px",
+    side: portrait.xl,
+    sides: [168, 336],
+    sizes: `${below("xl")} ${portrait.l}px, ${portrait.xl}px`,
   },
   speaker: {
-    side: 72,
+    side: portrait.m,
     sides: [72, 144, 216],
-    sizes: "(max-width: 600px) 64px, 72px",
+    sizes: `${portrait.m}px`,
   },
 } as const;
 

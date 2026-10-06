@@ -1,5 +1,5 @@
 {
-  "id": "fbcb18e0-c520-4868-861c-53bcff01d32d",
+  "id": "271de0b8-2a3d-4937-a3aa-6439e228268b",
   "prevId": "c16f812e-b391-4be0-9209-1239859ee0fb",
   "version": "7",
   "dialect": "postgresql",
@@ -693,59 +693,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.event_slugs": {
-      "name": "event_slugs",
-      "schema": "",
-      "columns": {
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "event_id": {
-          "name": "event_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "event_slugs_event_id_events_id_fk": {
-          "name": "event_slugs_event_id_events_id_fk",
-          "tableFrom": "event_slugs",
-          "tableTo": "events",
-          "columnsFrom": ["event_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "event_slugs_event_id_slug_unique": {
-          "name": "event_slugs_event_id_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": ["event_id", "slug"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "event_slugs_slug_check": {
-          "name": "event_slugs_slug_check",
-          "value": "\"slug\" ~ '^(shared/)?[a-z0-9]+(-[a-z0-9]+)*$'"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.event_talks": {
       "name": "event_talks",
       "schema": "",
@@ -962,12 +909,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
-        },
-        "short_slug": {
-          "name": "short_slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -989,15 +930,6 @@
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "events_id_short_slug_event_slugs_fk": {
-          "name": "events_id_short_slug_event_slugs_fk",
-          "tableFrom": "events",
-          "tableTo": "event_slugs",
-          "columnsFrom": ["id", "short_slug"],
-          "columnsTo": ["event_id", "slug"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1011,11 +943,6 @@
           "name": "events_luma_event_id_unique",
           "nullsNotDistinct": false,
           "columns": ["luma_event_id"]
-        },
-        "events_short_slug_unique": {
-          "name": "events_short_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": ["short_slug"]
         }
       },
       "policies": {},
@@ -1250,6 +1177,738 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "planning.availability": {
+      "name": "availability",
+      "schema": "planning",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "wanted_speaker_id": {
+          "name": "wanted_speaker_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'available'"
+        },
+        "starts_on": {
+          "name": "starts_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "availability_wanted_speaker_id_idx": {
+          "name": "availability_wanted_speaker_id_idx",
+          "columns": [
+            {
+              "expression": "wanted_speaker_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "availability_wanted_speaker_id_wanted_speakers_id_fk": {
+          "name": "availability_wanted_speaker_id_wanted_speakers_id_fk",
+          "tableFrom": "availability",
+          "tableTo": "wanted_speakers",
+          "schemaTo": "planning",
+          "columnsFrom": ["wanted_speaker_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "availability_kind_check": {
+          "name": "availability_kind_check",
+          "value": "\"kind\" IN ('available', 'unavailable')"
+        },
+        "availability_order_check": {
+          "name": "availability_order_check",
+          "value": "\"starts_on\" <= \"ends_on\""
+        },
+        "availability_said_check": {
+          "name": "availability_said_check",
+          "value": "num_nonnulls(\"starts_on\", \"ends_on\", \"note\") > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "planning.contacts": {
+      "name": "contacts",
+      "schema": "planning",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sponsor_id": {
+          "name": "sponsor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "contacts_sponsor_id_sponsors_id_fk": {
+          "name": "contacts_sponsor_id_sponsors_id_fk",
+          "tableFrom": "contacts",
+          "tableTo": "sponsors",
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "contacts_name_check": {
+          "name": "contacts_name_check",
+          "value": "btrim(\"name\") <> ''"
+        },
+        "contacts_email_check": {
+          "name": "contacts_email_check",
+          "value": "\"email\" ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'"
+        },
+        "contacts_url_check": {
+          "name": "contacts_url_check",
+          "value": "\"url\" ~ '^https://[^[:space:]]+$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "planning.host_prospects": {
+      "name": "host_prospects",
+      "schema": "planning",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "sponsor_id": {
+          "name": "sponsor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "company_name": {
+          "name": "company_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'prospect'"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "host_prospects_company_name_unique": {
+          "name": "host_prospects_company_name_unique",
+          "columns": [
+            {
+              "expression": "lower(\"company_name\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "host_prospects_sponsor_id_sponsors_id_fk": {
+          "name": "host_prospects_sponsor_id_sponsors_id_fk",
+          "tableFrom": "host_prospects",
+          "tableTo": "sponsors",
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "host_prospects_contact_id_contacts_id_fk": {
+          "name": "host_prospects_contact_id_contacts_id_fk",
+          "tableFrom": "host_prospects",
+          "tableTo": "contacts",
+          "schemaTo": "planning",
+          "columnsFrom": ["contact_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "host_prospects_sponsor_id_unique": {
+          "name": "host_prospects_sponsor_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["sponsor_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "host_prospects_company_check": {
+          "name": "host_prospects_company_check",
+          "value": "num_nonnulls(\"sponsor_id\", \"company_name\") = 1"
+        },
+        "host_prospects_company_name_check": {
+          "name": "host_prospects_company_name_check",
+          "value": "btrim(\"company_name\") <> ''"
+        },
+        "host_prospects_status_check": {
+          "name": "host_prospects_status_check",
+          "value": "\"status\" IN ('prospect', 'asked', 'confirmed', 'declined')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "planning.ideas": {
+      "name": "ideas",
+      "schema": "planning",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pitch": {
+          "name": "pitch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "program": {
+          "name": "program",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "topic": {
+          "name": "topic",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idea'"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inspired_by_event_id": {
+          "name": "inspired_by_event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ideas_event_id_events_id_fk": {
+          "name": "ideas_event_id_events_id_fk",
+          "tableFrom": "ideas",
+          "tableTo": "events",
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ideas_inspired_by_event_id_events_id_fk": {
+          "name": "ideas_inspired_by_event_id_events_id_fk",
+          "tableFrom": "ideas",
+          "tableTo": "events",
+          "columnsFrom": ["inspired_by_event_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ideas_event_id_unique": {
+          "name": "ideas_event_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["event_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "ideas_title_check": {
+          "name": "ideas_title_check",
+          "value": "btrim(\"title\") <> ''"
+        },
+        "ideas_pitch_check": {
+          "name": "ideas_pitch_check",
+          "value": "btrim(\"pitch\") <> ''"
+        },
+        "ideas_program_check": {
+          "name": "ideas_program_check",
+          "value": "\"program\" IN ('talks', 'open-floor', 'social', 'hackathon')"
+        },
+        "ideas_topic_check": {
+          "name": "ideas_topic_check",
+          "value": "char_length(\"topic\") <= 24\n    AND \"topic\" IS NFC NORMALIZED\n    AND \"topic\" = lower(\"topic\" COLLATE \"pg_c_utf8\")\n    AND strpos(\"topic\", 'all things') = 0\n    AND \"topic\" COLLATE \"pg_c_utf8\" ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'"
+        },
+        "ideas_status_check": {
+          "name": "ideas_status_check",
+          "value": "\"status\" IN ('idea', 'drafting', 'scheduled', 'dropped')"
+        },
+        "ideas_scheduled_event_check": {
+          "name": "ideas_scheduled_event_check",
+          "value": "\"status\" <> 'scheduled' OR \"event_id\" IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "planning.notes": {
+      "name": "notes",
+      "schema": "planning",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "profile_id": {
+          "name": "profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sponsor_id": {
+          "name": "sponsor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author": {
+          "name": "author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "notes_profile_id_idx": {
+          "name": "notes_profile_id_idx",
+          "columns": [
+            {
+              "expression": "profile_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notes_sponsor_id_idx": {
+          "name": "notes_sponsor_id_idx",
+          "columns": [
+            {
+              "expression": "sponsor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notes_contact_id_idx": {
+          "name": "notes_contact_id_idx",
+          "columns": [
+            {
+              "expression": "contact_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "notes_profile_id_profiles_id_fk": {
+          "name": "notes_profile_id_profiles_id_fk",
+          "tableFrom": "notes",
+          "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "notes_sponsor_id_sponsors_id_fk": {
+          "name": "notes_sponsor_id_sponsors_id_fk",
+          "tableFrom": "notes",
+          "tableTo": "sponsors",
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "notes_contact_id_contacts_id_fk": {
+          "name": "notes_contact_id_contacts_id_fk",
+          "tableFrom": "notes",
+          "tableTo": "contacts",
+          "schemaTo": "planning",
+          "columnsFrom": ["contact_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "notes_subject_check": {
+          "name": "notes_subject_check",
+          "value": "num_nonnulls(\"profile_id\", \"sponsor_id\", \"contact_id\") = 1"
+        },
+        "notes_body_check": {
+          "name": "notes_body_check",
+          "value": "btrim(\"body\") <> ''"
+        },
+        "notes_author_check": {
+          "name": "notes_author_check",
+          "value": "btrim(\"author\") <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "planning.wanted_speaker_topics": {
+      "name": "wanted_speaker_topics",
+      "schema": "planning",
+      "columns": {
+        "wanted_speaker_id": {
+          "name": "wanted_speaker_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "topic": {
+          "name": "topic",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "wanted_speaker_topics_topic_idx": {
+          "name": "wanted_speaker_topics_topic_idx",
+          "columns": [
+            {
+              "expression": "topic",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "wanted_speaker_topics_wanted_speaker_id_wanted_speakers_id_fk": {
+          "name": "wanted_speaker_topics_wanted_speaker_id_wanted_speakers_id_fk",
+          "tableFrom": "wanted_speaker_topics",
+          "tableTo": "wanted_speakers",
+          "schemaTo": "planning",
+          "columnsFrom": ["wanted_speaker_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "wanted_speaker_topics_wanted_speaker_id_topic_pk": {
+          "name": "wanted_speaker_topics_wanted_speaker_id_topic_pk",
+          "columns": ["wanted_speaker_id", "topic"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "wanted_speaker_topics_topic_check": {
+          "name": "wanted_speaker_topics_topic_check",
+          "value": "char_length(\"topic\") <= 24\n    AND \"topic\" IS NFC NORMALIZED\n    AND \"topic\" = lower(\"topic\" COLLATE \"pg_c_utf8\")\n    AND strpos(\"topic\", 'all things') = 0\n    AND \"topic\" COLLATE \"pg_c_utf8\" ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "planning.wanted_speakers": {
+      "name": "wanted_speakers",
+      "schema": "planning",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "profile_id": {
+          "name": "profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'wanted'"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "wanted_speakers_profile_id_profiles_id_fk": {
+          "name": "wanted_speakers_profile_id_profiles_id_fk",
+          "tableFrom": "wanted_speakers",
+          "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "wanted_speakers_contact_id_contacts_id_fk": {
+          "name": "wanted_speakers_contact_id_contacts_id_fk",
+          "tableFrom": "wanted_speakers",
+          "tableTo": "contacts",
+          "schemaTo": "planning",
+          "columnsFrom": ["contact_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "wanted_speakers_profile_id_unique": {
+          "name": "wanted_speakers_profile_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["profile_id"]
+        },
+        "wanted_speakers_contact_id_unique": {
+          "name": "wanted_speakers_contact_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["contact_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "wanted_speakers_person_check": {
+          "name": "wanted_speakers_person_check",
+          "value": "num_nonnulls(\"profile_id\", \"contact_id\") = 1"
+        },
+        "wanted_speakers_status_check": {
+          "name": "wanted_speakers_status_check",
+          "value": "\"status\" IN ('wanted', 'asked', 'confirmed', 'declined')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.profile_users": {
@@ -1674,7 +2333,9 @@
       "values": ["organizer", "member"]
     }
   },
-  "schemas": {},
+  "schemas": {
+    "planning": "planning"
+  },
   "sequences": {},
   "roles": {},
   "policies": {},

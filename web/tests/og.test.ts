@@ -27,6 +27,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   name: "Effect San Francisco",
   topic: "effect",
   tagline: "All Things Effect",
+  about: null,
   status: "upcoming",
   mode: "night",
   startsAt: DateTime.makeUnsafe("2026-10-01T00:30:00Z"),

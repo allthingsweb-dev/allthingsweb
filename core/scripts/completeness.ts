@@ -4,6 +4,7 @@ import { Command, Flag } from "effect/cli";
 import {
   Completeness,
   mustHaveTalks,
+  mustHaveVenues,
   recentWindow,
 } from "../src/completeness.ts";
 import { formatReport, reportJson } from "../src/completeness-report.ts";
@@ -18,7 +19,8 @@ import * as Database from "../src/database.ts";
  *   bun run completeness --json    the same as JSON
  *   bun run completeness --check   also fail if an evening of talks that
  *                                  ended in the last 30 days (--within)
- *                                  has none
+ *                                  has none, or any published evening,
+ *                                  past or upcoming, has no venue
  *
  * DATABASE_URL comes from the environment only; .env files are not read:
  *
@@ -33,7 +35,7 @@ const jsonFlag = Flag.Boolean("json").pipe(
 
 const checkFlag = Flag.Boolean("check").pipe(
   Flag.withDescription(
-    "Fail if an evening of talks that ended recently has none (see --within).",
+    "Fail if an evening of talks that ended recently has none (see --within), or any evening has no venue.",
   ),
   Flag.withDefault(false),
 );
@@ -59,15 +61,27 @@ const command = Command.make(
           ? JSON.stringify(reportJson(reports), null, 2)
           : formatReport(reports),
       );
-      const missing = check
-        ? mustHaveTalks(reports, yield* DateTime.now, Duration.days(within))
-        : [];
-      if (missing.length > 0) {
-        yield* Effect.fail(
-          new Error(
-            `Evenings of talks that ended in the last ${within} days without any: ${missing.map((r) => r.slug).join(", ")}`,
-          ),
-        );
+      if (!check) return;
+      const withoutTalks = mustHaveTalks(
+        reports,
+        yield* DateTime.now,
+        Duration.days(within),
+      );
+      const withoutVenues = mustHaveVenues(reports);
+      const failures = [
+        ...(withoutTalks.length === 0
+          ? []
+          : [
+              `Evenings of talks that ended in the last ${within} days without any: ${withoutTalks.map((r) => r.slug).join(", ")}`,
+            ]),
+        ...(withoutVenues.length === 0
+          ? []
+          : [
+              `Evenings without a venue: ${withoutVenues.map((r) => r.slug).join(", ")}`,
+            ]),
+      ];
+      if (failures.length > 0) {
+        yield* Effect.fail(new Error(failures.join("\n")));
       }
     }).pipe(
       Effect.provide(Completeness.layer.pipe(Layer.provide(Database.layer))),

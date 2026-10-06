@@ -51,6 +51,9 @@ export const EventRow = Schema.Struct({
   program: Rows.EventProgram,
   curation: Schema.Literals(["ours", "shared"]),
   organizedBy: Schema.NullOr(Schema.String),
+  lumaDescription: Schema.NullOr(Schema.String),
+  lumaSummary: Schema.NullOr(Schema.String),
+  description: Schema.NullOr(Schema.String),
   shortSlug: Schema.NullOr(Schema.String),
   previewImage: Schema.NullOr(ImageRow),
 });
@@ -176,6 +179,8 @@ const make = Effect.gen(function* () {
     e.luma_guest_count AS "lumaGuestCount",
     e.luma_checked_in_count AS "lumaCheckedInCount", e.program,
     e.curation, e.organized_by AS "organizedBy", e.short_slug AS "shortSlug",
+    e.luma_description AS "lumaDescription", e.luma_summary AS "lumaSummary",
+    e.description,
     ${imageJson("e.preview_image")} AS "previewImage"`);
 
   // The app orders by start only; the id makes ties deterministic.

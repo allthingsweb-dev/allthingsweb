@@ -214,7 +214,9 @@ describe("the about page", () => {
     expect(part(html, "stage")).toContain(
       `<a href="${discord}">pitch a talk on discord`,
     );
-    expect(html).not.toMatch(/<form|<input|<button/);
+    expect(html).not.toMatch(/<form|<input/);
+    // The one button is the mode control.
+    expect(html.match(/<button/g)).toHaveLength(1);
     expect(html).not.toMatch(/RSVP|sponsored|partners/i);
   });
 
@@ -277,7 +279,7 @@ describe("the about page", () => {
 });
 
 describe("the about page's portraits as variants", () => {
-  test("offers the organizers at 160 and 320 pixels square, loaded as they're scrolled to", () => {
+  test("offers the organizers at 168 and 336 pixels square, loaded as they're scrolled to", () => {
     const photo = {
       url: "https://media.allthings.dev/profiles/erik.png",
       alt: "Erik",
@@ -293,7 +295,7 @@ describe("the about page's portraits as variants", () => {
       images: "variants",
     });
     expect(html).toContain(
-      '<img class="portrait" src="/img/160x160/jpeg/1767323045/profiles/erik.png" srcset="/img/160x160/jpeg/1767323045/profiles/erik.png 160w, /img/320x320/jpeg/1767323045/profiles/erik.png 320w" sizes="(max-width: 600px) 96px, 160px" alt="" width="160" height="160" loading="lazy" decoding="async"/>',
+      '<img class="portrait" src="/img/168x168/jpeg/1767323045/profiles/erik.png" srcset="/img/168x168/jpeg/1767323045/profiles/erik.png 168w, /img/336x336/jpeg/1767323045/profiles/erik.png 336w" sizes="(max-width: 1023.98px) 96px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
     );
     expect(html).not.toContain("media.allthings.dev");
   });

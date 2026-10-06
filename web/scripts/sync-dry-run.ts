@@ -6,9 +6,12 @@ import {
   MediaBucketError,
 } from "allthings-core/src/ingest/media-bucket.ts";
 import { PictureError, Pictures } from "allthings-core/src/ingest/pictures.ts";
+import { LumaApi } from "allthings-core/src/luma/api.ts";
+import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ShortSlugs } from "allthings-core/src/slugs.ts";
+import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { runSync, syncLimits } from "../src/sync/run.ts";
@@ -17,14 +20,17 @@ import { runSync, syncLimits } from "../src/sync/run.ts";
  * The sync Worker's dry run (src/sync/run.ts), from a maintainer's machine:
  * the same program the Cron Trigger runs in "dry-run" mode, against the
  * database at DATABASE_URL and Luma itself. It writes nothing. The event
- * sync is rehearsed in a transaction that rolls back, the short links it
- * would give are listed, and the image phases list what they would fetch,
- * so the bucket and the Images binding are never touched (here they
- * refuse). It prints a JSON line per step, as the Worker logs them.
+ * sync is rehearsed in a transaction that rolls back, the venue fill lists
+ * the venues it would write, the short links it would give are listed, the
+ * image phases list what they would fetch, so the bucket and the Images
+ * binding are never touched (here they refuse), and the description import
+ * lists what it would change. It prints a JSON line per step, as the Worker
+ * logs them.
  *
  * Run it from web/ as site_sync, the role the Worker writes as, so it also
- * proves the role's grants. LUMA_API_KEY lets it list the covers it would
- * look up. Pass both without printing them:
+ * proves the role's grants. LUMA_API_KEY lets it ask for hidden venues and
+ * descriptions, and
+ * list the covers it would look up. Pass both without printing them:
  *
  *   DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") \
  *   LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
@@ -61,8 +67,16 @@ const untouched = Layer.mergeAll(
 const report = await Effect.runPromise(
   runSync("dry-run", syncLimits.paid).pipe(
     Effect.provide(
-      Layer.mergeAll(LumaSync.layer, ShortSlugs.layer, ImageIngest.layer).pipe(
-        Layer.provide(Layer.mergeAll(Luma.layer, CoverSource.layer)),
+      Layer.mergeAll(
+        LumaSync.layer,
+        LumaVenues.layer,
+        ShortSlugs.layer,
+        LumaDescriptions.layer,
+        ImageIngest.layer,
+      ).pipe(
+        Layer.provide(
+          Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer),
+        ),
         Layer.provide(
           Layer.mergeAll(Database.layer, FetchHttpClient.layer, untouched),
         ),

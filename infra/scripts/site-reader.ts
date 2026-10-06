@@ -47,6 +47,20 @@ export const SITE_TABLES = [
   "event_slugs",
 ] as const;
 
+/**
+ * The SQL that leaves `role` with SELECT on SITE_TABLES and read-only
+ * transactions, run as the owner. It names each table: nothing is granted
+ * on a whole schema, so a table added anywhere (planning's, say) is
+ * private until it is listed here.
+ */
+export function grantStatements(role = SITE_READER): string[] {
+  return [
+    `GRANT USAGE ON SCHEMA public TO ${role}`,
+    `GRANT SELECT ON ${SITE_TABLES.map((t) => `public.${t}`).join(", ")} TO ${role}`,
+    `ALTER ROLE ${role} SET default_transaction_read_only = on`,
+  ];
+}
+
 const item = "allthings site_reader";
 
 async function main(): Promise<void> {
@@ -58,13 +72,9 @@ async function main(): Promise<void> {
   const sql = new Bun.SQL(owner);
   const created = await sql.begin(async (transaction) => {
     const isNew = await provisionLoginRole(transaction, SITE_READER, password);
-    await transaction.unsafe(`GRANT USAGE ON SCHEMA public TO ${SITE_READER}`);
-    await transaction.unsafe(
-      `GRANT SELECT ON ${SITE_TABLES.map((t) => `public.${t}`).join(", ")} TO ${SITE_READER}`,
-    );
-    await transaction.unsafe(
-      `ALTER ROLE ${SITE_READER} SET default_transaction_read_only = on`,
-    );
+    for (const statement of grantStatements()) {
+      await transaction.unsafe(statement);
+    }
     return isNew;
   });
   await sql.end();

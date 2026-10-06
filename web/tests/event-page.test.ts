@@ -51,6 +51,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   name: "Effect San Francisco",
   topic: "effect",
   tagline: "All Things Effect",
+  about: null,
   status: "upcoming",
   mode: "night",
   startsAt: at("2026-10-01T00:30:00Z"),
@@ -171,14 +172,18 @@ describe("the mode", () => {
     for (const mode of ["night", "paper"] as const) {
       const html = render(event({ mode }));
       expect(html).toStartWith('<!doctype html><html lang="en"><head>');
-      expect(html).toContain('<summary aria-label="mode: system">');
+      expect(html).toContain(
+        '<button type="button" popovertarget="mode-choices" aria-label="mode: system">',
+      );
     }
     const fixed = render(event(), "light");
     expect(fixed).toStartWith(
       '<!doctype html><html lang="en" data-theme="light">',
     );
     expect(fixed).toContain('<meta name="color-scheme" content="light"/>');
-    expect(fixed).toContain('<summary aria-label="mode: paper">');
+    expect(fixed).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: paper">',
+    );
     expect(fixed).toMatch(
       /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );
@@ -390,6 +395,30 @@ describe("the ledger", () => {
 
   test("leaves the schedule out when there is none", () => {
     expect(labels(render(event()))).not.toContain("Schedule");
+  });
+
+  test("says what the evening is about after how to get in, and before its schedule", async () => {
+    const about =
+      '<p>Join us at <strong>CodeRabbit</strong>.</p>\n<ul>\n<li><a href="https://example.com/" target="_blank" rel="noopener noreferrer">Ada</a></li>\n</ul>\n' as SafeHtml;
+    const html = render(
+      event({
+        about,
+        schedule: [{ time: "5:00 pm", title: "Doors open", description: null }],
+      }),
+    );
+    expect(labels(html)).toEqual([
+      "When",
+      "Where",
+      "Hosted at",
+      "Seats",
+      "About",
+      "Schedule",
+    ]);
+    // Sanitized by core, so printed as it is.
+    expect(html).toContain(`<div class="event-about">${about}</div>`);
+    expect(await htmlProblems(html)).toEqual([]);
+    // Without a description there is no row.
+    expect(labels(render(event()))).not.toContain("About");
   });
 
   test("says an open floor was open to anyone, in its tense, before the demos it knows", async () => {
@@ -721,11 +750,12 @@ describe("who took part", () => {
     expect(html).toContain(
       '<section class="stage-talk"><p class="at-type-meta">fireside chat</p><h2',
     );
+    // A fireside's people are a row each (lineup.ts), roles named.
     expect(html).toContain(
-      '<p class="speaker-role at-type-meta">moderator</p><h3 class="at-type-list-name"><a href="/people#p-m">Simon</a></h3>',
+      '<p><span class="speaker-role at-type-meta">moderator</span><a class="event-person-name" href="/people#p-m"><span>Simon</span></a>',
     );
     expect(html).toContain(
-      '<p class="speaker-role at-type-meta">guest</p><h3 class="at-type-list-name"><a href="/people#p-g">Michael</a></h3>',
+      '<p><span class="speaker-role at-type-meta">guest</span><a class="event-person-name" href="/people#p-g"><span>Michael</span></a>',
     );
     // A talk's speaker is just its speaker.
     expect(html).toContain(
@@ -776,7 +806,7 @@ describe("the event page's images as variants", () => {
     const tiles = html.match(/<li><picture>.*?<\/picture><\/li>/g) ?? [];
     expect(tiles).toHaveLength(9);
     const sizes =
-      "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(22.75vw - 9px), 320px";
+      "(max-width: 767.98px) calc(45.5vw - 6px), (max-width: 1439.98px) calc(22.75vw - 10px), 318px";
     expect(tiles[0]).toContain(
       `<img src="/img/480/jpeg/1767323045/events/p0.jpg" srcset="/img/240/jpeg/1767323045/events/p0.jpg 240w, /img/360/jpeg/1767323045/events/p0.jpg 360w, /img/480/jpeg/1767323045/events/p0.jpg 480w, /img/720/jpeg/1767323045/events/p0.jpg 720w, /img/960/jpeg/1767323045/events/p0.jpg 960w, /img/1200/jpeg/1767323045/events/p0.jpg 1200w" sizes="${sizes}" alt="p0" width="1600" height="1200" loading="lazy" decoding="async"/>`,
     );
@@ -785,10 +815,10 @@ describe("the event page's images as variants", () => {
 
   test("offers speakers at 72 to 336 pixels square and hosts at 72 and 144", () => {
     expect(html).toContain(
-      '<img src="/img/72x72/jpeg/1767323045/events/ada.jpg" srcset="/img/72x72/jpeg/1767323045/events/ada.jpg 72w, /img/144x144/jpeg/1767323045/events/ada.jpg 144w, /img/168x168/jpeg/1767323045/events/ada.jpg 168w, /img/216x216/jpeg/1767323045/events/ada.jpg 216w, /img/336x336/jpeg/1767323045/events/ada.jpg 336w" sizes="(max-width: 760px) 72px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
+      '<img src="/img/72x72/jpeg/1767323045/events/ada.jpg" srcset="/img/72x72/jpeg/1767323045/events/ada.jpg 72w, /img/144x144/jpeg/1767323045/events/ada.jpg 144w, /img/168x168/jpeg/1767323045/events/ada.jpg 168w, /img/216x216/jpeg/1767323045/events/ada.jpg 216w, /img/336x336/jpeg/1767323045/events/ada.jpg 336w" sizes="(max-width: 767.98px) 72px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
     );
     expect(html).toContain(
-      '<img src="/img/72x72/jpeg/1767323045/events/erik.jpg" srcset="/img/72x72/jpeg/1767323045/events/erik.jpg 72w, /img/144x144/jpeg/1767323045/events/erik.jpg 144w" sizes="44px" alt="" width="44" height="44" loading="lazy" decoding="async"/>',
+      '<img src="/img/72x72/jpeg/1767323045/events/erik.jpg" srcset="/img/72x72/jpeg/1767323045/events/erik.jpg 72w, /img/144x144/jpeg/1767323045/events/erik.jpg 144w" sizes="44px" alt="Erik" width="44" height="44" loading="lazy" decoding="async"/>',
     );
   });
 
@@ -957,7 +987,7 @@ describe("posts about the evening", () => {
       "variants",
     );
     expect(html).toContain(
-      '<img src="/img/480/jpeg/1767323045/posts/stage.jpg" srcset="/img/240/jpeg/1767323045/posts/stage.jpg 240w, /img/360/jpeg/1767323045/posts/stage.jpg 360w, /img/480/jpeg/1767323045/posts/stage.jpg 480w, /img/720/jpeg/1767323045/posts/stage.jpg 720w, /img/960/jpeg/1767323045/posts/stage.jpg 960w, /img/1200/jpeg/1767323045/posts/stage.jpg 1200w" sizes="(max-width: 760px) calc(100vw - 80px), 480px" alt="stage" width="1200" height="800" loading="lazy" decoding="async"/>',
+      '<img src="/img/480/jpeg/1767323045/posts/stage.jpg" srcset="/img/240/jpeg/1767323045/posts/stage.jpg 240w, /img/360/jpeg/1767323045/posts/stage.jpg 360w, /img/480/jpeg/1767323045/posts/stage.jpg 480w, /img/720/jpeg/1767323045/posts/stage.jpg 720w, /img/960/jpeg/1767323045/posts/stage.jpg 960w, /img/1200/jpeg/1767323045/posts/stage.jpg 1200w" sizes="(max-width: 767.98px) calc(91vw - 48px), 480px" alt="stage" width="1200" height="800" loading="lazy" decoding="async"/>',
     );
     expect(html).toContain(
       '<img src="/img/36x36/jpeg/1767323045/posts/andre.jpg" srcset="/img/36x36/jpeg/1767323045/posts/andre.jpg 1x, /img/72x72/jpeg/1767323045/posts/andre.jpg 2x" alt="" width="36" height="36" loading="lazy" decoding="async"/>',

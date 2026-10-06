@@ -3,7 +3,7 @@ import { statements } from "./statements.ts";
 /**
  * Each evening's short link, all things/effect at allthings.dev/effect
  * (src/short-slugs.ts). Ships with the app's drizzle migration
- * 0023_short_slugs, which makes the same schema.
+ * 0025_short_slugs, which makes the same schema.
  *
  * - `event_slugs`: every link an evening has been given, for good. Its key
  *   holds a link to one evening forever, so none can come to mean another;

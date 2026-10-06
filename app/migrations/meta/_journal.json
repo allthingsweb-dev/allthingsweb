@@ -166,8 +166,22 @@
     {
       "idx": 23,
       "version": "7",
-      "when": 1791244103050,
-      "tag": "0023_short_slugs",
+      "when": 1791246178685,
+      "tag": "0023_planning",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791247896438,
+      "tag": "0024_event_description",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791251550247,
+      "tag": "0025_short_slugs",
       "breakpoints": true
     }
   ]

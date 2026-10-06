@@ -1,4 +1,4 @@
--- Every short link an event has been given, and the one it uses now; core/migrations/0011_short_slugs.ts is the same change.
+-- Every short link an event has been given, and the one it uses now; core/migrations/0013_short_slugs.ts is the same change.
 CREATE TABLE "event_slugs" (
 	"slug" text PRIMARY KEY NOT NULL,
 	"event_id" uuid NOT NULL,

@@ -240,7 +240,9 @@ describe("the home page", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="dark">',
     );
-    expect(html).toContain('<summary aria-label="mode: night">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: night">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=dark" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>night<\/span><\/a>/,
     );
@@ -271,9 +273,9 @@ describe("the home page's photos as variants", () => {
       .map((width) => `/img/${width}/${path} ${width}w`)
       .join(", ");
   const wide =
-    "(max-width: 760px) 91vw, (max-width: 1440px) calc(30.4vw - 16px), 422px";
+    "(max-width: 767.98px) 91vw, (max-width: 1439.98px) calc(30.33vw - 16px), 421px";
   const half =
-    "(max-width: 760px) calc(45.5vw - 5px), (max-width: 1440px) calc(15.2vw - 13px), 206px";
+    "(max-width: 767.98px) calc(45.5vw - 6px), (max-width: 1439.98px) calc(15.17vw - 14px), 205px";
 
   test("offers each photo in AVIF, WebP and JPEG at every width it has, at its own size and with its alt", () => {
     const [first] = tiles(variants(view({ photos: [photo("a", 1024, 768)] })));
@@ -355,7 +357,7 @@ describe("the home page's photos as variants", () => {
         "<picture>",
         `<source type="image/avif" srcset="${squares("avif")}"/>`,
         `<source type="image/webp" srcset="${squares("webp")}"/>`,
-        `<img src="/img/36x36/jpeg/1767323045/events/erik.jpg" srcset="${squares("jpeg")}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
+        `<img src="/img/36x36/jpeg/1767323045/events/erik.jpg" srcset="${squares("jpeg")}" alt="Erik" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
         "</picture>",
         '<img src="/assets/avatar.',
       ].join(""),

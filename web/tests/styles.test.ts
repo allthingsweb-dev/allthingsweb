@@ -4,7 +4,9 @@ import { tokens } from "allthings-brand/src/tokens.ts";
 
 /**
  * The site's own rules color only through the theme's roles, whose
- * pairings the brand's tests hold to their APCA targets in both modes.
+ * pairings the brand's tests hold to their APCA targets in both modes, and
+ * size and space only through the layout tokens, so a one-off length, a
+ * magic width or a breakpoint of a page's own fails the build.
  */
 
 const site = await Bun.file(
@@ -77,10 +79,153 @@ describe("site.css", () => {
 
   test("uses only custom properties the theme defines", () => {
     const used = new Set(
-      [...site.matchAll(/var\((--at-[a-z-]+)\)/g)].map(([, name]) => name),
+      [...site.matchAll(/var\((--at-[a-z0-9-]+)\)/g)].map(([, name]) => name),
     );
     expect(used.size).toBeGreaterThan(5);
     for (const name of used) expect(theme).toContain(`${name}:`);
+  });
+});
+
+/** A length: a number and a unit; `%` and `fr` are shares, not lengths. */
+const lengths =
+  /(?<![\w-])-?(?:\d+(?:\.\d+)?|\.\d+)(?:px|rem|em|ex|ch|lh|rlh|vw|vh|vi|vb|vmin|vmax|[sld]v[whib]|cq[whib]|cqmin|cqmax|in|cm|mm|pt|pc|q)\b/gi;
+
+/** The lengths in a value, outside the custom properties it reads. */
+const lengthsIn = (value: string): ReadonlyArray<string> =>
+  value.replace(/var\(--[a-z0-9-]+\)/g, "").match(lengths) ?? [];
+
+/** The one length a page may write itself: a hairline, as `.visually-hidden` is. */
+const hairline = "1px";
+
+/** What may follow the type in em: its tracking, underline offset and size. */
+const typeRelative = /^(?:letter-spacing|text-underline-offset|font-size)$/;
+
+/** What sets a box's size, or a grid's tracks. */
+const sizing =
+  /^(?:(?:min-|max-)?(?:width|height|inline-size|block-size)|flex-basis|grid-(?:template|auto)-(?:columns|rows))$/;
+
+/** A length in em, and not in rem. */
+const em = /^-?(?:\d+(?:\.\d+)?|\.\d+)em$/;
+
+/** The declarations' lengths that come from no token: all but a hairline and type-relative em. */
+const looseLengths = (
+  declarations: ReadonlyArray<{ property: string; value: string }>,
+): ReadonlyArray<string> =>
+  declarations.flatMap(({ property, value }) =>
+    lengthsIn(value)
+      .filter((length) => length !== hairline)
+      .filter((length) => !(em.test(length) && typeRelative.test(property)))
+      .map((length) => `${property}: ${length}`),
+  );
+
+/**
+ * A margin made only of 0, auto and spacing tokens, which are positive: it
+ * can't pull a box back over its neighbor, whatever arithmetic would do.
+ */
+const isTokenMargin = (value: string): boolean =>
+  value
+    .trim()
+    .split(/\s+/)
+    .every((part) => /^(?:0|auto|var\(--at-space-[0-9]+\))$/.test(part));
+
+describe("site.css's lengths", () => {
+  test("come from the layout tokens, but for a hairline and type-relative em", () => {
+    expect(looseLengths(values)).toEqual([]);
+  });
+
+  test("are caught in rem, and in em outside the type", () => {
+    expect(
+      looseLengths([
+        { property: "font-size", value: " 2rem" },
+        { property: "margin", value: " 100em" },
+        { property: "letter-spacing", value: " -0.03em" },
+        { property: "border", value: " 1px solid var(--at-rule)" },
+      ]),
+    ).toEqual(["font-size: 2rem", "margin: 100em"]);
+  });
+
+  test("size boxes with no width of their own", () => {
+    const magic = values.flatMap(({ property, value }) =>
+      sizing.test(property)
+        ? [
+            ...value
+              .replace(/var\(--[a-z0-9-]+\)/g, "")
+              .matchAll(/(?<![\w-])\d*\.?\d+([a-z%]+)/gi),
+          ]
+            .map(([length = ""]) => length)
+            .filter(
+              (length) =>
+                length !== hairline &&
+                length !== "100%" &&
+                !length.endsWith("fr"),
+            )
+            .map((length) => `${property}: ${length}`)
+        : [],
+    );
+    expect(magic).toEqual([]);
+  });
+
+  test("never pull a box over its neighbor: margins are 0, auto or a token", () => {
+    // Portraits side by side, never stacked: every host is always seen.
+    const pulled = values.filter(
+      ({ property, value }) =>
+        property.startsWith("margin") && !isTokenMargin(value),
+    );
+    expect(pulled).toEqual([]);
+  });
+
+  test("tell a token margin from one that could pull back", () => {
+    for (const value of [
+      " 0",
+      " 0 auto",
+      " var(--at-space-1) 0 0",
+      " auto 0",
+    ]) {
+      expect(isTokenMargin(value)).toBe(true);
+    }
+    for (const value of [
+      " -4px",
+      " calc(-1 * var(--at-space-2))",
+      " calc(0px - 2px)",
+      " calc(0px - var(--at-space-2))",
+      " 0 -1em",
+    ]) {
+      expect(isTokenMargin(value)).toBe(false);
+    }
+  });
+
+  test("define no custom properties of their own", () => {
+    expect(site.match(/(?:^|[{;])\s*--[a-z0-9-]+\s*:/gm)).toBeNull();
+  });
+
+  test("break only at the tokens' breakpoints", () => {
+    const preludes = [...site.matchAll(/@media([^{]*)\{/g)].map(
+      ([, prelude = ""]) => prelude.trim(),
+    );
+    expect(preludes.length).toBeGreaterThan(2);
+    for (const prelude of preludes) {
+      for (const [, name] of prelude.matchAll(/\((--[a-z0-9-]+)\)/g)) {
+        expect(theme).toContain(`@custom-media ${name} `);
+      }
+      expect(prelude.replace(/\(--[a-z0-9-]+\)/g, "")).not.toMatch(/\d/);
+    }
+  });
+});
+
+describe("the pages", () => {
+  test("set no inline style: every rule is in site.css", async () => {
+    const styled: Array<string> = [];
+    for await (const path of new Bun.Glob("src/**/*.{ts,tsx}").scan({
+      cwd: new URL("..", import.meta.url).pathname,
+    })) {
+      const source = await Bun.file(
+        new URL(`../${path}`, import.meta.url),
+      ).text();
+      if (/\sstyle=|[\s{,]style:\s|setAttribute\(\s*["']style/.test(source)) {
+        styled.push(path);
+      }
+    }
+    expect(styled).toEqual([]);
   });
 });
 

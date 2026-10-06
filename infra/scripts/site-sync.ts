@@ -40,6 +40,8 @@ interface ColumnGrants {
 /**
  * The columns each table's statements read and write, from the sync's own
  * SQL: core/src/luma/sync.ts upserts events from Luma's calendar feed,
+ * core/src/luma/venues.ts fills in the venues it hides from Luma's API,
+ * core/src/luma/descriptions.ts writes their descriptions from it,
  * core/src/slugs.ts gives evenings their short links, and
  * image ingestion (app/src/lib/{event-covers,profile-photos,post-images},
  * whose statements the Worker keeps) stores each missing event cover, profile photo and post
@@ -49,9 +51,13 @@ interface ColumnGrants {
  *   and on conflict updates the feed's fields when they differ, reading the
  *   stored ones to compare, and returns each event's slug. Reading
  *   `excluded.updated_at` counts as reading the column, so it is selectable.
- *   Covers read events without one and set `preview_image`. Short links
- *   read published evenings without one (with what the rule reads: name,
- *   topic, curation, start) and every slug taken, then set `short_slug`.
+ *   Covers read events without one and set `preview_image`. The venue fill
+ *   reads published events without a venue and writes the three venue
+ *   fields. The description import (core/src/luma/descriptions.ts) reads
+ *   published events with a Luma id and writes Luma's description and its
+ *   summary. Short links read published evenings without one (with what
+ *   the rule reads: name, topic, curation, start) and every slug taken,
+ *   then set `short_slug`.
  * - event_slugs: every link given, read to know which are taken, and one
  *   row for each link given.
  * - images: one row per stored image, its id made by the sync.
@@ -75,6 +81,8 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "full_address",
       "preview_image",
       "updated_at",
+      "luma_description",
+      "luma_summary",
       "topic",
       "curation",
       "short_slug",
@@ -104,6 +112,8 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "full_address",
       "preview_image",
       "updated_at",
+      "luma_description",
+      "luma_summary",
       "short_slug",
     ],
   },
