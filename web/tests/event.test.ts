@@ -433,7 +433,9 @@ describe("the mode", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="light">',
     );
-    expect(html).toContain('<summary aria-label="mode: paper">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: paper">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );
@@ -447,7 +449,9 @@ describe("the mode", () => {
   }) => {
     const { html } = await page(Events, slugs.upcoming);
     expect(html).toStartWith('<!doctype html><html lang="en"><head>');
-    expect(html).toContain('<summary aria-label="mode: system">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: system">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=system" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>system<\/span><\/a>/,
     );

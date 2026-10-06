@@ -171,14 +171,18 @@ describe("the mode", () => {
     for (const mode of ["night", "paper"] as const) {
       const html = render(event({ mode }));
       expect(html).toStartWith('<!doctype html><html lang="en"><head>');
-      expect(html).toContain('<summary aria-label="mode: system">');
+      expect(html).toContain(
+        '<button type="button" popovertarget="mode-choices" aria-label="mode: system">',
+      );
     }
     const fixed = render(event(), "light");
     expect(fixed).toStartWith(
       '<!doctype html><html lang="en" data-theme="light">',
     );
     expect(fixed).toContain('<meta name="color-scheme" content="light"/>');
-    expect(fixed).toContain('<summary aria-label="mode: paper">');
+    expect(fixed).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: paper">',
+    );
     expect(fixed).toMatch(
       /<a href="\?theme=light" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>paper<\/span><\/a>/,
     );

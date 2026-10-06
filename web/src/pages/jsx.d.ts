@@ -11,4 +11,11 @@ declare namespace JSX {
   interface HtmlSourceTag {
     sizes?: undefined | string;
   }
+  /** Popovers open and close without script. */
+  interface HtmlButtonTag {
+    popovertarget?: undefined | string;
+  }
+  interface HtmlTag {
+    popover?: undefined | "auto" | "manual";
+  }
 }

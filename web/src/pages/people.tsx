@@ -54,7 +54,7 @@ const portraitSizes = {
   organizer: {
     side: portrait.xl,
     sides: [168, 336],
-    sizes: `${below("m")} ${portrait.l}px, ${portrait.xl}px`,
+    sizes: `${below("xl")} ${portrait.l}px, ${portrait.xl}px`,
   },
   speaker: {
     side: portrait.m,
