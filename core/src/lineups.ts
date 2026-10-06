@@ -15,7 +15,11 @@ import { DataSourceError } from "./errors.ts";
  * same title, that talk takes the file's format and speaker roles and gains
  * any missing speakers, keeping its title and description; a new person reuses the one profile that already
  * has their exact name (several stop the run); event_people rows that exist
- * stay. A dry run does all of it, reports, and rolls back.
+ * stay. An event is found by its Luma id, or by its slug where it has none.
+ * What an event lists under `remove` goes first: a talk taken off it, with
+ * its speakers when no other evening has it, and a person's part in it,
+ * named only by an existing profile. A dry run does all of it, reports, and
+ * rolls back.
  */
 
 /**
@@ -132,7 +136,9 @@ export const Lineups = Schema.Struct({
   people: Schema.Record(Schema.String, Person),
   events: Schema.Array(
     Schema.Struct({
-      lumaEventId: Schema.String,
+      /** The event by its Luma id, or by its slug where it has none. */
+      lumaEventId: Schema.optionalKey(Schema.String),
+      slug: Schema.optionalKey(Schema.String),
       name: Schema.String,
       hold: Hold,
       /** Set where the event has no recording link yet. */
@@ -167,7 +173,39 @@ export const Lineups = Schema.Struct({
           hold: Hold,
         }),
       ),
-    }),
+      /**
+       * What the record has that the evening didn't: talks to take off it
+       * (a talk on no other evening goes with its speakers), and people's
+       * parts in it. Only ever what a source says was wrong.
+       */
+      remove: Schema.optionalKey(
+        Schema.Struct({
+          talks: Schema.optionalKey(
+            Schema.Array(
+              Schema.Struct({
+                title: Schema.String.check(Schema.isNonEmpty()),
+                sources: Sources,
+              }),
+            ),
+          ),
+          people: Schema.optionalKey(
+            Schema.Array(
+              Schema.Struct({
+                person: Schema.String,
+                role: Schema.Literals(["organizer", "co-host", "mc"]),
+                sources: Sources,
+              }),
+            ),
+          ),
+        }),
+      ),
+    }).check(
+      Schema.makeFilter((event) =>
+        event.lumaEventId !== undefined || event.slug !== undefined
+          ? undefined
+          : `${event.name}: needs a lumaEventId or a slug`,
+      ),
+    ),
   ),
 });
 export type Lineups = typeof Lineups.Type;
@@ -177,6 +215,7 @@ export function undefinedPeople(lineups: Lineups): ReadonlyArray<string> {
   const named = lineups.events.flatMap((event) => [
     ...event.talks.flatMap((talk) => talk.speakers.map((s) => s.person)),
     ...event.people.map((p) => p.person),
+    ...(event.remove?.people ?? []).map((p) => p.person),
   ]);
   return [...new Set(named)].filter((key) => !(key in lineups.people));
 }
@@ -200,12 +239,15 @@ export function applicable(lineups: Lineups): Lineups {
       (event) =>
         event.talks.length > 0 ||
         event.people.length > 0 ||
-        event.recordingUrl !== undefined,
+        event.recordingUrl !== undefined ||
+        (event.remove?.talks?.length ?? 0) > 0 ||
+        (event.remove?.people?.length ?? 0) > 0,
     );
   const named = new Set(
     events.flatMap((event) => [
       ...event.talks.flatMap((talk) => talk.speakers.map((s) => s.person)),
       ...event.people.map((p) => p.person),
+      ...(event.remove?.people ?? []).map((p) => p.person),
     ]),
   );
   const people = Object.fromEntries(
@@ -227,6 +269,7 @@ export function heldButNamed(lineups: Lineups): ReadonlyArray<string> {
       (event) => [
         ...event.talks.flatMap((talk) => talk.speakers.map((s) => s.person)),
         ...event.people.map((p) => p.person),
+        ...(event.remove?.people ?? []).map((p) => p.person),
       ],
     ),
   );
@@ -322,6 +365,18 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
         `People not defined in the file: ${missing.join(", ")}`,
       );
     }
+    const newcomers = lineups.events
+      .flatMap((event) => event.remove?.people ?? [])
+      .map((removed) => removed.person)
+      .filter((key) => {
+        const person = file.people[key];
+        return person !== undefined && !("profileId" in person);
+      });
+    if (newcomers.length > 0) {
+      return yield* fail(
+        `Removals name people by a profile they already have, not a new one: ${[...new Set(newcomers)].join(", ")}`,
+      );
+    }
     const contradicted = heldButNamed(file);
     if (contradicted.length > 0) {
       return yield* fail(
@@ -397,12 +452,50 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
       }
 
       for (const event of lineups.events) {
+        const key = event.lumaEventId ?? event.slug ?? "";
         const [row] = yield* sql<{ id: string; name: string }>`
-          SELECT id, name FROM events WHERE luma_event_id = ${event.lumaEventId}`;
+          SELECT id, name FROM events WHERE ${
+            event.lumaEventId === undefined
+              ? sql`slug = ${key}`
+              : sql`luma_event_id = ${key}`
+          }`;
         if (row === undefined) {
-          return yield* fail(`No event has the Luma id ${event.lumaEventId}`);
+          return yield* fail(
+            `No event has the ${event.lumaEventId === undefined ? "slug" : "Luma id"} ${key}`,
+          );
         }
-        lines.push(`${event.lumaEventId} ${row.name}`);
+        lines.push(`${key} ${row.name}`);
+        for (const removed of event.remove?.talks ?? []) {
+          const [talk] = yield* sql<{ id: string }>`
+            SELECT t.id FROM event_talks et JOIN talks t ON t.id = et.talk_id
+            WHERE et.event_id = ${row.id}::uuid AND lower(t.title) = lower(${removed.title})`;
+          if (talk === undefined) {
+            lines.push(`  talk "${removed.title}": not there`);
+            continue;
+          }
+          yield* sql`DELETE FROM event_talks
+            WHERE event_id = ${row.id}::uuid AND talk_id = ${talk.id}::uuid`;
+          const [elsewhere] = yield* sql<{ n: number }>`
+            SELECT count(*)::int AS n FROM event_talks WHERE talk_id = ${talk.id}::uuid`;
+          if ((elsewhere?.n ?? 0) === 0) {
+            yield* sql`DELETE FROM talk_speakers WHERE talk_id = ${talk.id}::uuid`;
+            yield* sql`DELETE FROM talks WHERE id = ${talk.id}::uuid`;
+          }
+          lines.push(
+            `  talk "${removed.title}": removed${(elsewhere?.n ?? 0) === 0 ? ", with its speakers" : " (still on another evening)"}`,
+          );
+        }
+        for (const removed of event.remove?.people ?? []) {
+          const gone = yield* sql`
+            DELETE FROM event_people
+            WHERE event_id = ${row.id}::uuid
+              AND profile_id = ${profileIds.get(removed.person) ?? ""}::uuid
+              AND role = ${removed.role}
+            RETURNING 1`;
+          lines.push(
+            `  ${removed.role} ${removed.person}: ${gone.length === 0 ? "not there" : "removed"}`,
+          );
+        }
         if (event.recordingUrl !== undefined) {
           const recorded = yield* sql`
             UPDATE events SET recording_url = ${event.recordingUrl}, updated_at = now()

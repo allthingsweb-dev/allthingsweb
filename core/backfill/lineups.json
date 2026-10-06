@@ -414,29 +414,99 @@
   },
   "events": [
     {
+      "slug": "2024-03-26-remix-bay-area-at-solv",
+      "name": "Remix Bay Area at Solv",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-06",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "2024-05-14-remix-bay-area-at-solv",
+      "name": "Remix Bay Area at Solv",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-06",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-7zxJdkIDI78lDO3",
+      "name": "React Bay Area at Sanity",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-06",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "2024-08-13-remix-bay-area-at-little-skillet",
+      "name": "Remix Bay Area at Little Skillet",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-06",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lumaEventId": "evt-TNS8NeNJwSPDKu5",
+      "name": "React Bay Area at Mux",
+      "talks": [],
+      "people": [
+        {
+          "person": "erik-thorelli",
+          "role": "mc",
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-06",
+              "in": "chat"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "lumaEventId": "evt-CIXBbu7ySP61MNP",
       "name": "Effect San Francisco",
       "talks": [
-        {
-          "title": "Fireside chat with Michael Arnaldi, creator of Effect",
-          "format": "fireside",
-          "description": "",
-          "speakers": [
-            {
-              "person": "michael-arnaldi",
-              "role": "speaker"
-            },
-            {
-              "person": "simon-farshid",
-              "role": "moderator"
-            }
-          ],
-          "sources": [
-            "https://luma.com/all-things-effect",
-            "https://x.com/simonfarshid/status/2105443650071343462"
-          ],
-          "confidence": "high"
-        },
         {
           "title": "State of Effect 2026",
           "format": "talk",
@@ -456,7 +526,7 @@
             "https://x.com/0xblacklight/status/2105474173569323062"
           ],
           "confidence": "high",
-          "position": 1,
+          "position": 0,
           "startsAt": "2026-09-30T18:41:00-07:00"
         },
         {
@@ -478,11 +548,11 @@
             "https://x.com/samgoodwin89/status/2105806892807389585"
           ],
           "confidence": "high",
-          "position": 2,
+          "position": 1,
           "startsAt": "2026-09-30T19:10:00-07:00"
         },
         {
-          "title": "Effect panel",
+          "title": "Fireside chat with Michael Arnaldi, creator of Effect",
           "format": "panel",
           "description": "",
           "speakers": [
@@ -514,29 +584,61 @@
           "sources": [
             {
               "confirmedBy": "Erik",
-              "on": "2026-10-05",
+              "on": "2026-10-06",
               "in": "chat"
             },
+            "https://luma.com/all-things-effect",
+            "https://x.com/simonfarshid/status/2105443650071343462",
             "https://x.com/MichaelArnaldi/status/2105775425209172403",
             "https://x.com/anselm_io/status/2105496294739599657",
             "https://x.com/anselm_io/status/2105673447443738748",
             "https://x.com/dexhorthy/status/2105473314672234652"
           ],
           "confidence": "high",
-          "position": 3,
+          "position": 2,
           "startsAt": "2026-09-30T19:58:00-07:00"
         }
       ],
       "people": [
         {
-          "person": "simon-farshid",
+          "person": "erik-thorelli",
           "role": "mc",
           "sources": [
-            "https://luma.com/all-things-effect",
-            "https://x.com/simonfarshid/status/2105443650071343462"
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-06",
+              "in": "chat"
+            }
           ]
         }
-      ]
+      ],
+      "remove": {
+        "talks": [
+          {
+            "title": "Effect panel",
+            "sources": [
+              {
+                "confirmedBy": "Erik",
+                "on": "2026-10-06",
+                "in": "chat"
+              }
+            ]
+          }
+        ],
+        "people": [
+          {
+            "person": "simon-farshid",
+            "role": "mc",
+            "sources": [
+              {
+                "confirmedBy": "Erik",
+                "on": "2026-10-06",
+                "in": "chat"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "lumaEventId": "evt-wJxtorPCscwoGS4",
@@ -600,19 +702,22 @@
           "hold": "needs Erik: medium confidence; the other panelists and the moderator are unknown"
         }
       ],
-      "people": [
-        {
-          "person": "erik-thorelli",
-          "role": "mc",
-          "sources": [
-            {
-              "confirmedBy": "Erik",
-              "on": "2026-10-05",
-              "in": "chat"
-            }
-          ]
-        }
-      ]
+      "people": [],
+      "remove": {
+        "people": [
+          {
+            "person": "erik-thorelli",
+            "role": "mc",
+            "sources": [
+              {
+                "confirmedBy": "Erik",
+                "on": "2026-10-06",
+                "in": "chat"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "lumaEventId": "evt-IpKgpcPJEOjvroH",

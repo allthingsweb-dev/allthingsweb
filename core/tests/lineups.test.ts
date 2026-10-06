@@ -240,6 +240,85 @@ describe("applying lineups", () => {
     );
   });
 
+  test("takes off what an evening didn't have, found by its slug", async () => {
+    const db = await database();
+    expect(Exit.isSuccess(await apply(db, lineups))).toBe(true);
+    // Effect in production is on the hack day too, so only its place here goes.
+    await db.query(`
+      INSERT INTO event_talks (event_id, talk_id, created_at, updated_at)
+      SELECT 'e0000000-0000-4000-8000-000000000003', t.id, now(), now() FROM talks t
+      WHERE t.title = 'Effect in production'`);
+    const corrected: Lineups = {
+      people: { ada: lineups.people["ada"]! },
+      events: [
+        {
+          slug: "2026-08-12-react-at-acme",
+          name: "React at Acme",
+          talks: [],
+          people: [],
+          remove: {
+            talks: [
+              { title: "a fireside", sources: source },
+              { title: "Effect in production", sources: source },
+              { title: "Never given", sources: source },
+            ],
+            people: [
+              { person: "ada", role: "mc", sources: source },
+              { person: "ada", role: "co-host", sources: source },
+            ],
+          },
+        },
+      ],
+    };
+    const exit = await apply(db, corrected);
+    expect(Exit.isSuccess(exit) ? exit.value.lines : []).toEqual([
+      "2026-08-12-react-at-acme React at Acme",
+      '  talk "a fireside": removed, with its speakers',
+      '  talk "Effect in production": removed (still on another evening)',
+      '  talk "Never given": not there',
+      "  mc ada: removed",
+      "  co-host ada: not there",
+    ]);
+    expect((await state(db)).talks).toEqual([
+      expect.objectContaining({ title: "Server components" }),
+    ]);
+    const rows = async (query: string) => (await db.query(query)).rows;
+    expect(
+      await rows(`SELECT 1 FROM talks WHERE title = 'A fireside'`),
+    ).toEqual([]);
+    expect(
+      await rows(`
+        SELECT 1 FROM talk_speakers ts LEFT JOIN talks t ON t.id = ts.talk_id
+        WHERE t.id IS NULL`),
+    ).toEqual([]);
+    expect(
+      await rows(`
+        SELECT 1 FROM event_talks et JOIN talks t ON t.id = et.talk_id
+        WHERE t.title = 'Effect in production'`),
+    ).toHaveLength(1);
+    expect(
+      await rows(`
+        SELECT 1 FROM event_people ep
+        WHERE ep.role = 'mc' AND ep.profile_id = 'b0000000-0000-4000-8000-000000000001'`),
+    ).toEqual([]);
+    // Taken off once, there is nothing left to take off.
+    const again = await apply(db, corrected);
+    expect(Exit.isSuccess(again) ? again.value.lines : []).toContain(
+      '  talk "a fireside": not there',
+    );
+  });
+
+  test("an event needs a Luma id or a slug", () => {
+    const decode = Schema.decodeUnknownExit(Lineups);
+    const event = { name: "Nameless", talks: [], people: [] };
+    expect(Exit.isFailure(decode({ people: {}, events: [event] }))).toBe(true);
+    expect(
+      Exit.isSuccess(
+        decode({ people: {}, events: [{ ...event, slug: "2026-08-12-x" }] }),
+      ),
+    ).toBe(true);
+  });
+
   test("a dry run does everything, then rolls back", async () => {
     const db = await database();
     const before = await state(db);
@@ -260,6 +339,36 @@ describe("applying lineups", () => {
         events: [{ ...lineups.events[0]!, lumaEventId: "evt-none" }],
       },
       "No event has the Luma id evt-none",
+    ],
+    [
+      "an unknown slug",
+      {
+        ...lineups,
+        events: [
+          {
+            name: "Nowhere",
+            slug: "2026-01-01-nowhere",
+            talks: [],
+            people: [{ person: "ada", role: "mc", sources: source }],
+          },
+        ],
+      },
+      "No event has the slug 2026-01-01-nowhere",
+    ],
+    [
+      "a removal naming a new person",
+      {
+        ...lineups,
+        events: [
+          {
+            ...lineups.events[0]!,
+            remove: {
+              people: [{ person: "kay", role: "mc", sources: source }],
+            },
+          },
+        ],
+      },
+      "Removals name people by a profile they already have, not a new one: kay",
     ],
     [
       "an unknown profile",
@@ -524,7 +633,11 @@ describe("core/backfill/lineups.json", () => {
       event.people[0].person === "erik-thorelli";
     expect(subset.events.filter(erikMcOnly).map((event) => event.name)).toEqual(
       [
-        "DevTool AX Demos",
+        "Remix Bay Area at Solv",
+        "Remix Bay Area at Solv",
+        "React Bay Area at Sanity",
+        "Remix Bay Area at Little Skillet",
+        "React Bay Area at Mux",
         "React Bay Area at Cisco Meraki",
         "Open Source Hackathon",
         "Pre Next.js Conf Meetup",
@@ -564,18 +677,18 @@ describe("core/backfill/lineups.json", () => {
       [
         "Effect San Francisco",
         [
-          "Fireside chat with Michael Arnaldi, creator of Effect",
           "State of Effect 2026",
           "Alchemy 2.0",
-          "Effect panel",
+          "Fireside chat with Michael Arnaldi, creator of Effect",
         ],
-        ["mc simon-farshid"],
+        ["mc erik-thorelli"],
       ],
       [
         "Dev Setup Demos - Show your agents.md!",
         ["My most used slash commands and custom subagents for development"],
         ["mc erik-thorelli"],
       ],
+      ["DevTool AX Demos", [], []],
       [
         "TypeScript AI Demo Day",
         [
@@ -597,6 +710,42 @@ describe("core/backfill/lineups.json", () => {
         [],
       ],
       ["NextDev.fm Live", ["NextDev.fm Live"], ["mc erik-thorelli"]],
+    ]);
+    // What Erik said the record had wrong (2026-10-06): the panel was the
+    // fireside chat, he MC'd the Effect evening, and not DevTool AX Demos.
+    expect(
+      subset.events
+        .filter((event) => event.remove !== undefined)
+        .map((event) => [
+          event.name,
+          (event.remove?.talks ?? []).map((t) => t.title),
+          (event.remove?.people ?? []).map((p) => `${p.role} ${p.person}`),
+        ]),
+    ).toEqual([
+      ["Effect San Francisco", ["Effect panel"], ["mc simon-farshid"]],
+      ["DevTool AX Demos", [], ["mc erik-thorelli"]],
+    ]);
+    const effect = subset.events.find(
+      (event) => event.name === "Effect San Francisco",
+    );
+    expect(
+      effect?.talks.map((t) => [
+        t.title,
+        t.format,
+        t.position,
+        t.startsAt,
+        t.speakers.length,
+      ]),
+    ).toEqual([
+      ["State of Effect 2026", "talk", 0, "2026-09-30T18:41:00-07:00", 1],
+      ["Alchemy 2.0", "talk", 1, "2026-09-30T19:10:00-07:00", 1],
+      [
+        "Fireside chat with Michael Arnaldi, creator of Effect",
+        "panel",
+        2,
+        "2026-09-30T19:58:00-07:00",
+        6,
+      ],
     ]);
     expect(Object.keys(subset.people).toSorted()).toEqual([
       "abhi-aiyer",
