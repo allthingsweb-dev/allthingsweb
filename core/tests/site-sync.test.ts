@@ -21,6 +21,7 @@ import { LumaDescriptions } from "../src/luma/descriptions.ts";
 import { Luma } from "../src/luma/luma.ts";
 import { LumaSync } from "../src/luma/sync.ts";
 import { LumaVenues } from "../src/luma/venues.ts";
+import { ShortSlugs } from "../src/slugs.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
 import { configFrom, fakeLuma, fixture, settle } from "./support/luma.ts";
 import {
@@ -37,8 +38,8 @@ import {
  * the hourly sync's writes run as it and must succeed, while everything
  * outside its grants must be refused.
  *
- * The sync's writes are core's event sync, its venue fill and description
- * import, and the app's three image ingestions (event covers, profile photos, post images), whose statements
+ * The sync's writes are core's event sync, its venue fill, its short links
+ * and description import, and the app's three image ingestions (event covers, profile photos, post images), whose statements
  * the Worker's port keeps. The app's are loaded at runtime, as in
  * luma-parity.test.ts, with downloads, processing and storage faked: only
  * their SQL matters here.
@@ -208,6 +209,23 @@ describe("site_sync", () => {
     }
   });
 
+  test("gives evenings their short links", async () => {
+    const result = await Effect.runPromise(
+      ShortSlugs.use((slugs) => slugs.assign({ dryRun: false })).pipe(
+        Effect.provide(
+          ShortSlugs.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(
+              clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z")),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(result.written).toBeGreaterThan(0);
+    expect(result.written).toBe(result.given.length);
+  });
+
   test("searches past evenings for posts, and reports what it would add", async () => {
     const reports = await Effect.runPromise(
       findCandidates({
@@ -375,6 +393,8 @@ describe("site_sync", () => {
     for (const statement of [
       "UPDATE events SET slug = 'x'",
       "UPDATE events SET tagline = 'x'",
+      "DELETE FROM event_slugs",
+      "UPDATE event_slugs SET event_id = event_id",
       "UPDATE events SET description = 'x'",
       "SELECT description FROM events",
       "UPDATE events SET topic = 'x'",

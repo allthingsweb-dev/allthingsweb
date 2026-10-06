@@ -229,6 +229,56 @@ describe("the pages", () => {
   });
 });
 
+/** site.css's rules, selector by selector. */
+const rules = [
+  ...site.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g),
+].map(([, selector = "", body = ""]) => ({ selector: selector.trim(), body }));
+
+describe("display type", () => {
+  test("is pulled back to the box's edge by its face's inset", () => {
+    // Archivo at 112% is the wordmark's and the lockups' face; at 75%, the
+    // label's. Each rule that sets one sets its role's optical inset too.
+    const unpulled = rules
+      .filter(({ body }) => /font-stretch: (?:112|75)%/.test(body))
+      .filter(
+        ({ body }) =>
+          !/text-indent: var\(--at-type-(?:wordmark|event-lockup|label)-inset\);/.test(
+            body,
+          ),
+      )
+      .map(({ selector }) => selector);
+    expect(rules.length).toBeGreaterThan(100);
+    expect(unpulled).toEqual([]);
+  });
+});
+
+describe("a page in two columns", () => {
+  test("starts both at the same rule line", () => {
+    // One rule holds every column that starts a two-column page.
+    const ruled = rules.filter(
+      ({ selector, body }) =>
+        selector.split(/,\s*/).includes(".evenings-head") &&
+        body.includes(
+          "border-top: var(--at-stroke-rule) solid var(--at-text)",
+        ) &&
+        body.includes("padding-top: var(--at-space-3)"),
+    );
+    expect(ruled).toHaveLength(1);
+    const ruledSelector = ruled[0]?.selector ?? "";
+    const columns = ruledSelector.split(/,\s*/);
+    for (const column of [
+      ".band > .pitch",
+      ".lists",
+      ".evenings-head",
+      ".evenings-lists .list",
+      ".about-head",
+      ".about-part",
+    ]) {
+      expect(columns).toContain(column);
+    }
+  });
+});
+
 describe("the home page's two sentences", () => {
   test("take their type from the lead role alone", () => {
     for (const selector of [".pitch", ".pitch-place"]) {

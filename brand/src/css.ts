@@ -129,10 +129,12 @@ export function themeCss(file: TokenFile, textures: Textures = {}): string {
     ...(["display", "mono"] as const).map(
       (name) => `--at-font-${name}: ${fontFamily(file.font[name].$value)};`,
     ),
-    ...typeRoles(file).map(
-      (role) =>
-        `--at-type-${kebab(role.name)}-size: ${length({ px: role.size, fluid: role.fluid })};`,
-    ),
+    ...typeRoles(file).flatMap((role) => [
+      `--at-type-${kebab(role.name)}-size: ${length({ px: role.size, fluid: role.fluid })};`,
+      // Pulls a first line's ink back to the box's edge (text-indent): every face, at every
+      // size, starts at one visual left edge (type-metrics.json).
+      `--at-type-${kebab(role.name)}-inset: ${role.inset === 0 ? 0 : `-${role.inset}em`};`,
+    ]),
     `--at-grid-columns: ${extension.gridColumns};`,
     `--at-ledger-label: ${extension.ledgerColumns};`,
     `--at-ledger-content: ${extension.gridColumns - extension.ledgerColumns};`,
@@ -187,6 +189,7 @@ export function themeCss(file: TokenFile, textures: Textures = {}): string {
       `letter-spacing: ${role.letterSpacingEm}em;`,
       ...(role.width === undefined ? [] : [`font-stretch: ${role.width};`]),
       ...(role.uppercase ? ["text-transform: uppercase;"] : []),
+      `text-indent: var(--at-type-${kebab(role.name)}-inset);`,
     ]),
   );
   // Swatches name a palette color without an inline style, which the

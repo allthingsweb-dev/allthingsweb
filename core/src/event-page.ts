@@ -18,13 +18,15 @@ import {
   listingJson,
   orDataSourceError,
   profileJson,
+  siteSlug,
 } from "./sql.ts";
 
 /**
  * What an event's page shows, read as of the `Clock` in one statement: every
  * fact about the evening, named once (brand/foundations.md, "Voice"), and,
- * for an evening that is over, the one announced next. Drafts are never
- * read: their slugs are not found, as unknown ones are.
+ * for an evening that is over, the one announced next. An evening is found
+ * by its short link, any link it had before, or its long slug. Drafts are
+ * never read: their slugs are not found, as unknown ones are.
  */
 
 /**
@@ -95,6 +97,8 @@ export interface Talk {
   readonly title: string;
   /** How it is held: a talk, a panel or a fireside chat. */
   readonly format: Rows.TalkFormat;
+  /** When it started, where the running order says. */
+  readonly startsAt: DateTime.Utc | null;
   /** Sanitized; null when it says nothing. */
   readonly description: SafeHtml | null;
   /** Everyone who gave it, in the order they were attached. */
@@ -120,6 +124,11 @@ export interface Note {
 /** A published event as its page shows it. */
 export interface EventPage {
   readonly id: string;
+  /**
+   * Where it is on this site: its short link (src/short-slugs.ts), or its
+   * long slug until it has one. A page asked for at any other slug of the
+   * evening redirects here.
+   */
   readonly slug: string;
   /** The name as written, without emoji. */
   readonly name: string;
@@ -200,6 +209,7 @@ const TalkRow = Schema.Struct({
   title: Schema.String,
   description: Schema.String,
   format: Rows.TalkFormat,
+  startsAt: Schema.NullOr(Schema.DateTimeUtcFromString),
   speakers: Schema.Array(Rows.TalkSpeaker),
 });
 
@@ -420,6 +430,7 @@ export const toEventPage = (
           id: talk.id,
           title: talk.title,
           format: talk.format,
+          startsAt: talk.startsAt,
           description: saysSomething(description) ? description : null,
           speakers: talk.speakers.map((speaker) =>
             toSpeaker(speaker, talk.format, `${photoOrigin}/`),
@@ -493,9 +504,11 @@ export const toEventPage = (
 
 export interface EventPagesShape {
   /**
-   * The published event at `slug` as of the `Clock`'s now. Photos are taken
-   * only from `photoOrigin` (such as "https://media.allthings.dev"), the
-   * one origin pages may load images from.
+   * The published event at `slug` (its short link, one it had, or its long
+   * slug) as of the `Clock`'s now; its `slug` says where it is now.
+   * Photos are taken only from `photoOrigin` (such as
+   * "https://media.allthings.dev"), the one origin pages may load images
+   * from.
    */
   readonly read: (
     slug: string,
@@ -535,7 +548,8 @@ const make = Effect.gen(function* () {
     Result: EventPageRow,
     execute: ({ slug, now, photoPrefix }) => sql`
       SELECT
-        ev.id, ev.slug, ev.name, ev.topic, ev.tagline, ev.description,
+        ev.id, ${sql.literal(siteSlug("ev"))} AS slug, ev.name, ev.topic,
+        ev.tagline, ev.description,
         ev.luma_description AS "lumaDescription",
         ev.luma_summary AS "lumaSummary",
         ev.start_date AS "startDate", ev.end_date AS "endDate",
@@ -576,6 +590,7 @@ const make = Effect.gen(function* () {
             'title', t.title,
             'description', t.description,
             'format', t.format,
+            'startsAt', et.starts_at,
             'speakers', COALESCE((
               SELECT json_agg(
                 (${sql.literal(profileJson)})::jsonb || jsonb_build_object('role', ts.role)
@@ -584,7 +599,7 @@ const make = Effect.gen(function* () {
               JOIN profiles p ON p.id = ts.speaker_id
               WHERE ts.talk_id = t.id
             ), '[]'::json)
-          ) ORDER BY et.created_at, t.id)
+          ) ORDER BY et.position NULLS LAST, et.created_at, t.id)
           FROM event_talks et
           JOIN talks t ON t.id = et.talk_id
           WHERE et.event_id = ev.id
@@ -642,7 +657,14 @@ const make = Effect.gen(function* () {
           LIMIT 1
         ) AS next
       FROM events ev
-      WHERE ev.slug = ${slug} AND ev.is_draft = false`,
+      WHERE ev.is_draft = false AND (
+        ev.short_slug = ${slug} OR ev.slug = ${slug}
+        OR ev.id = (SELECT es.event_id FROM event_slugs es WHERE es.slug = ${slug})
+      )
+      -- No link equals another evening's slug (src/slugs.ts); were one to,
+      -- the link would win.
+      ORDER BY ev.short_slug = ${slug} DESC NULLS LAST
+      LIMIT 1`,
   });
 
   return EventPages.of({

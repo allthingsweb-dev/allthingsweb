@@ -53,6 +53,25 @@ speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
 panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
 `Events.getPublished` returns all of it, with Luma's guest counts.
 
+An evening's talks run in order: `event_talks.position`, from 0, and
+`event_talks.starts_at` where the start is known. Pages, the public API,
+promotion drafts and the completeness report all list talks by position;
+a talk attached without one follows, in the order it was attached. A
+lineup in `backfill/lineups.json` sets both per talk (`position`,
+`startsAt` with its offset, "2026-09-30T18:41:00-07:00"); it never clears
+them, so unplacing a talk is a manual update of that one row:
+
+```sql
+UPDATE event_talks SET position = NULL, starts_at = NULL, updated_at = now()
+WHERE event_id = $1 AND talk_id = $2;
+```
+
+A lineup can also correct the record. An event is found by its Luma id,
+or by `slug` where it has none, and its `remove` lists what the evening
+didn't have, each with its sources: talks to take off it (a talk on no
+other evening is deleted with its speakers) and people's parts in it
+(by an existing profile and role).
+
 ## Luma descriptions
 
 The feed's DESCRIPTION is only a link to the event's page, so each
@@ -153,6 +172,51 @@ its Luma page, with a note wherever the evening had no lineup. Run it from
 DATABASE_URL=… bun run programs --dry-run   # do everything, print it, roll back
 DATABASE_URL=… bun run programs             # write
 ```
+
+## Short links
+
+The lockup is the link (brand/foundations.md, "Name"): all things/effect
+lives at allthings.dev/effect. `src/short-slugs.ts` is the rule, taking
+evenings in the order they start:
+
+1. An evening's base is its topic as a URL segment (react native →
+   `react-native`, web show & tell → `web-show-and-tell`), or its name
+   when the name yields no topic.
+2. It takes the first of these that no other evening holds and no page is
+   at: the base, then the base with its month in San Francisco
+   (`web-2024-11`), then the day (`web-2024-11-12`), then a count.
+3. A shared evening is someone else's, never all things/anything, so its
+   link is under `shared/` (`shared/typescript-ai-demo-day`). The bare root
+   is the lockup's alone, and a shared name can't take a topic ours might
+   want.
+
+A link, once given, is that evening's for good. The first evening of a
+topic keeps the bare one, and a later evening of the same topic is dated,
+so nothing printed, posted or put in a QR code ever comes to mean another
+evening. `event_slugs` records every link given (its key holds each to one
+evening), and `events.short_slug` is the one in use. `events.slug`, the
+app's long slug, stays as the app serves it.
+
+The Worker serves an evening at its link: its pages, lists, sitemap, feed,
+canonical URL, card, structured data, calendar file and promotion drafts
+all use it. Its long slug, and any link it had before, redirect there
+(301): Luma's descriptions, posts and QR codes link the long ones. An
+evening without a link yet is served at its long slug. The v1 API and the
+MCP tools keep the long slug as the app publishes it, and `get_event` takes
+either.
+
+`src/slugs.ts` gives every published evening without a link its own; drafts
+get none, so a cancelled evening holds no link. The hourly sync does it
+after the events (web/src/sync/run.ts). To run it now, from `core/`:
+
+```sh
+DATABASE_URL=… bun run slugs --dry-run   # the links it would give
+DATABASE_URL=… bun run slugs             # give them
+```
+
+To move an evening to another link, add the new one to `event_slugs` for
+it, then set `events.short_slug` to it (a foreign key holds the link to
+the evening's own); the old one keeps redirecting.
 
 ## Ours, or shared
 
