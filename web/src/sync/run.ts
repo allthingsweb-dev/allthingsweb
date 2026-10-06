@@ -1,3 +1,8 @@
+import {
+  type FollowerSource,
+  refreshFollowers,
+} from "allthings-core/src/followers.ts";
+import type { SqlClient } from "effect/sql/SqlClient";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
@@ -48,6 +53,14 @@ export interface SyncLimits {
   readonly covers: { readonly maxItems?: number };
   /** Events without a venue asked about; every one by default. */
   readonly venues: { readonly maxEvents?: number };
+  /**
+   * X follower counts read (core/src/followers.ts), the missing and oldest
+   * first; a count newer than `staleAfter` is left alone.
+   */
+  readonly followers: {
+    readonly maxProfiles: number;
+    readonly staleAfter: Duration.Input;
+  };
 }
 
 export const syncLimits = {
@@ -59,6 +72,7 @@ export const syncLimits = {
     posts: { window: "20 seconds", maxItems: 40 },
     covers: {},
     venues: {},
+    followers: { maxProfiles: 40, staleAfter: "7 days" },
   },
   /**
    * Within 50 subrequests: the feed is one, each venue one, and each image
@@ -72,6 +86,7 @@ export const syncLimits = {
     posts: { window: "20 seconds", maxItems: 2 },
     covers: { maxItems: 2 },
     venues: { maxEvents: 2 },
+    followers: { maxProfiles: 2, staleAfter: "7 days" },
   },
 } as const satisfies Record<string, SyncLimits>;
 
@@ -247,7 +262,29 @@ const write = (limits: SyncLimits) =>
                 Effect.timeout(Math.max(0, cancelLeft)),
               ),
           );
+
+    steps["followers"] = yield* step(
+      "followers",
+      yield* followers(limits, false),
+    );
     return steps;
+  });
+
+/**
+ * Refreshing X follower counts within `limits`, as a step reports it, with
+ * the services the run already has.
+ */
+const followers = (limits: SyncLimits, dryRun: boolean) =>
+  Effect.gen(function* () {
+    const context = yield* Effect.context<FollowerSource | SqlClient>();
+    return refreshFollowers({
+      dryRun,
+      maxProfiles: limits.followers.maxProfiles,
+      staleAfter: limits.followers.staleAfter,
+    }).pipe(
+      Effect.map((report) => ({ ...report })),
+      Effect.provideContext(context),
+    );
   });
 
 /** A run that writes nothing and reports what `write` would do now. */
@@ -285,6 +322,10 @@ const dryRun = (limits: SyncLimits) =>
         photos: pending.photos.map(({ name }) => name),
         posts: pending.posts.map(({ postId, kind }) => `${postId} ${kind}`),
       })),
+    );
+    steps["followers"] = yield* step(
+      "followers",
+      yield* followers(limits, true),
     );
     return steps;
   });

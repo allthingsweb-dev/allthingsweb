@@ -165,6 +165,8 @@ column public.profiles #010 created_at timestamp with time zone not null default
 column public.profiles #011 updated_at timestamp with time zone not null
 column public.profiles #012 photo_source_url text
 column public.profiles #013 luma_user_id text
+column public.profiles #014 x_followers integer
+column public.profiles #015 x_followers_at timestamp with time zone
 column public.redirects #001 slug text not null
 column public.redirects #002 destination_url text not null
 column public.redirects #003 comment text
@@ -293,6 +295,8 @@ constraint public.profiles profiles_image_images_id_fk FOREIGN KEY (image) REFER
 constraint public.profiles profiles_luma_user_id_check CHECK ((luma_user_id ~ '^usr-[A-Za-z0-9]+$'::text))
 constraint public.profiles profiles_luma_user_id_unique UNIQUE (luma_user_id)
 constraint public.profiles profiles_pkey PRIMARY KEY (id)
+constraint public.profiles profiles_x_followers_at_check CHECK (((x_followers IS NULL) = (x_followers_at IS NULL)))
+constraint public.profiles profiles_x_followers_check CHECK ((x_followers >= 0))
 constraint public.redirects redirects_slug_unique PRIMARY KEY (slug)
 constraint public.sponsors sponsors_name_unique UNIQUE (name)
 constraint public.sponsors sponsors_pkey PRIMARY KEY (id)

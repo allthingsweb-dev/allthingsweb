@@ -135,11 +135,22 @@ export const profilesTable = pgTable(
      * (core/src/luma/people.ts) recognizes them as a host of an event.
      */
     lumaUserId: text("luma_user_id").unique(),
+    /**
+     * How many follow them on X, as read at `xFollowersAt` from public data
+     * (core/src/followers.ts); speaker lists are ordered by it.
+     */
+    xFollowers: integer("x_followers"),
+    xFollowersAt: timestamp("x_followers_at", { withTimezone: true }),
   },
   () => [
     check(
       "profiles_luma_user_id_check",
       sql`"luma_user_id" ~ '^usr-[A-Za-z0-9]+$'`,
+    ),
+    check("profiles_x_followers_check", sql`"x_followers" >= 0`),
+    check(
+      "profiles_x_followers_at_check",
+      sql`("x_followers" IS NULL) = ("x_followers_at" IS NULL)`,
     ),
   ],
 );

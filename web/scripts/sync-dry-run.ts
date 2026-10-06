@@ -1,3 +1,4 @@
+import { FollowerSource } from "allthings-core/src/followers.ts";
 import * as Database from "allthings-core/src/database.ts";
 import { CoverSource } from "allthings-core/src/ingest/covers.ts";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
@@ -63,11 +64,16 @@ const untouched = Layer.mergeAll(
 const report = await Effect.runPromise(
   runSync("dry-run", syncLimits.paid).pipe(
     Effect.provide(
-      Layer.mergeAll(LumaSync.layer, LumaVenues.layer, ImageIngest.layer).pipe(
+      Layer.mergeAll(
+        LumaSync.layer,
+        LumaVenues.layer,
+        ImageIngest.layer,
+        FollowerSource.fxtwitter,
+      ).pipe(
         Layer.provide(
           Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer),
         ),
-        Layer.provide(
+        Layer.provideMerge(
           Layer.mergeAll(Database.layer, FetchHttpClient.layer, untouched),
         ),
       ),

@@ -53,6 +53,26 @@ speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
 panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
 `Events.getPublished` returns all of it, with Luma's guest counts.
 
+## Speaker order: X followers
+
+Speaker lists are ordered by how many follow each person on X, most first.
+Nobody picks this order; it is how the order is decided. Among equal counts,
+and among people without one (who always come after everyone counted), the
+list keeps its own order (`byFollowers` in `src/followers.ts`; /people's
+speakers: whoever took part latest first).
+
+Each profile keeps a snapshot, `x_followers` with `x_followers_at`, read from
+public data: the FixTweet API now, X's own API once the app has keys. The sync
+Worker refreshes the missing and oldest snapshots on its schedule (off until
+the cutover, like the rest of it), a bounded number per run; a handle X
+doesn't know, or a failed read, leaves the snapshot as it was.
+
+```sh
+DATABASE_URL=… bun run followers --dry-run   # read the counts, write nothing
+DATABASE_URL=… bun run followers             # store them
+DATABASE_URL=… bun run followers --stale-days 0 --max 1000   # re-read everyone
+```
+
 ## Hidden venues
 
 While Luma shows an event's venue to guests only ("location_visibility":
