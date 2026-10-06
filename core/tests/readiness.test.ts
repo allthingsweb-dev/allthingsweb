@@ -58,6 +58,9 @@ const ready: EventRecord = {
   name: "All Things Made Up",
   topic: "made up",
   tagline: "Something real",
+  description: null,
+  lumaDescription: "<p>Something real, on a rooftop.</p>",
+  lumaSummary: "Something real, on a rooftop.",
   // 5:30 PM in San Francisco.
   startDate: at("2026-10-28T00:30:00Z"),
   endDate: at("2026-10-28T03:30:00Z"),
@@ -127,7 +130,13 @@ describe("draftChecks", () => {
 
   test("the completeness rules run ahead of time, required ones blocking", () => {
     const checks = draftChecks(
-      facts({ hosts: [], talks: [], people: [], tagline: "" }),
+      facts({
+        hosts: [],
+        talks: [],
+        people: [],
+        tagline: "",
+        lumaSummary: null,
+      }),
       [],
       now,
     );
@@ -483,6 +492,7 @@ describe("the report", () => {
       "blocker hosts",
       "blocker cover",
       "advice person-links",
+      "advice description",
     ]);
     expect(result.suggestions.terms).toEqual(["draft", "effect"]);
     expect(result.suggestions.speakers.network.map((s) => s.name)).toEqual([

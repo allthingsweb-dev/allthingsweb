@@ -258,6 +258,16 @@ export const eventsTable = pgTable(
       .default("ours"),
     /** Who organizes a shared event; only a shared one has one. */
     organizedBy: uuid("organized_by").references(() => hostsTable.id),
+    /**
+     * The description on Luma, as sanitized rich text; Luma-owned. Core's
+     * import from Luma's API writes it (core/src/luma/descriptions.ts), as
+     * core/migrations/0011_event_description.ts adds it.
+     */
+    lumaDescription: text("luma_description"),
+    /** Its one-line summary, which stands in for a placeholder tagline; Luma-owned. */
+    lumaSummary: text("luma_summary"),
+    /** The site's own description, which nothing from Luma writes; shown first. */
+    description: text("description"),
   },
   () => [
     check("events_luma_guest_count_check", sql`"luma_guest_count" >= 0`),
@@ -559,7 +569,7 @@ export type SelectProfileUser = typeof profileUsersTable.$inferSelect;
  * we know. The rows are private; only this schema is public. It lives in its
  * own Postgres schema, which no role the site reads or syncs with may use,
  * so no grant on the tables in `public` can ever reach it.
- * core/migrations/0011_planning.ts is the same change.
+ * core/migrations/0012_planning.ts is the same change.
  */
 export const planningSchema = pgSchema("planning");
 

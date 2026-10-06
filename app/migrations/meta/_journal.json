@@ -169,6 +169,13 @@
       "when": 1791246178685,
       "tag": "0023_planning",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791247896438,
+      "tag": "0024_event_description",
+      "breakpoints": true
     }
   ]
 }

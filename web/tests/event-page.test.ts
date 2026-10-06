@@ -51,6 +51,7 @@ const event = (overrides: Partial<EventPage> = {}): EventPage => ({
   name: "Effect San Francisco",
   topic: "effect",
   tagline: "All Things Effect",
+  about: null,
   status: "upcoming",
   mode: "night",
   startsAt: at("2026-10-01T00:30:00Z"),
@@ -394,6 +395,30 @@ describe("the ledger", () => {
 
   test("leaves the schedule out when there is none", () => {
     expect(labels(render(event()))).not.toContain("Schedule");
+  });
+
+  test("says what the evening is about after how to get in, and before its schedule", async () => {
+    const about =
+      '<p>Join us at <strong>CodeRabbit</strong>.</p>\n<ul>\n<li><a href="https://example.com/" target="_blank" rel="noopener noreferrer">Ada</a></li>\n</ul>\n' as SafeHtml;
+    const html = render(
+      event({
+        about,
+        schedule: [{ time: "5:00 pm", title: "Doors open", description: null }],
+      }),
+    );
+    expect(labels(html)).toEqual([
+      "When",
+      "Where",
+      "Hosted at",
+      "Seats",
+      "About",
+      "Schedule",
+    ]);
+    // Sanitized by core, so printed as it is.
+    expect(html).toContain(`<div class="event-about">${about}</div>`);
+    expect(await htmlProblems(html)).toEqual([]);
+    // Without a description there is no row.
+    expect(labels(render(event()))).not.toContain("About");
   });
 
   test("says an open floor was open to anyone, in its tense, before the demos it knows", async () => {

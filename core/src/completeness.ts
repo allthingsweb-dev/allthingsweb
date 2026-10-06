@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql/SqlClient";
 import type * as Statement from "effect/sql/Statement";
 import type { DataSourceError } from "./errors.ts";
 import { eventTopic } from "./lockup.ts";
-import { defaultTagline } from "./luma/sync.ts";
+import { eventTagline } from "./tagline.ts";
 import { eventStatus, httpUrlOrNull } from "./mappers.ts";
 import * as Rows from "./rows.ts";
 import { curationJson, orDataSourceError } from "./sql.ts";
@@ -43,7 +43,8 @@ export const gapKinds = {
   photos: { required: true, label: "no photos" },
   venue: { required: true, label: "no venue address" },
   topic: { required: true, label: "no topic for the lockup" },
-  tagline: { required: true, label: "Luma's placeholder tagline" },
+  description: { required: true, label: "no description" },
+  tagline: { required: true, label: "placeholder tagline, no summary" },
   cover: { required: false, label: "no cover image" },
   recording: { required: false, label: "no recording link" },
   "guest-count": { required: false, label: "no guest count from Luma" },
@@ -78,6 +79,9 @@ export const EventRecord = Schema.Struct({
   name: Schema.String,
   topic: Schema.NullOr(Schema.String),
   tagline: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  lumaDescription: Schema.NullOr(Schema.String),
+  lumaSummary: Schema.NullOr(Schema.String),
   startDate: Schema.DateTimeUtcFromDate,
   endDate: Schema.DateTimeUtcFromDate,
   streetAddress: Schema.NullOr(Schema.String),
@@ -136,9 +140,13 @@ export interface EventCompleteness {
   readonly gaps: ReadonlyArray<Gap>;
 }
 
-/** Blank, or only whitespace and empty markup such as `<p></p>`. */
+/**
+ * Blank, or only whitespace and empty markup such as `<p></p>`: no-break
+ * spaces count, named (`&nbsp;`) or numbered (`&#160;`, `&#xA0;`), as the
+ * page reads them.
+ */
 const isBlank = (text: string): boolean =>
-  text.replace(/<[^>]*>|&nbsp;|\s/gu, "") === "";
+  text.replace(/<[^>]*>|&nbsp;?|&#(?:0*160|[xX]0*[aA]0);?|\s/gu, "") === "";
 
 const gap = (kind: GapKind, subject: string | null = null): Gap => ({
   kind,
@@ -216,9 +224,16 @@ export function eventCompleteness(
   if (event.curation.kind === "ours" && eventTopic(event) === undefined) {
     gaps.push(gap("topic"));
   }
-  if (event.tagline.trim() === defaultTagline || isBlank(event.tagline)) {
-    gaps.push(gap("tagline"));
+  // The site's own description, or Luma's, which the import brings in.
+  if (
+    [event.description, event.lumaDescription].every(
+      (text) => text === null || isBlank(text),
+    )
+  ) {
+    gaps.push(gap("description"));
   }
+  // A placeholder tagline is fine while Luma's summary stands in for it.
+  if (eventTagline(event) === "") gaps.push(gap("tagline"));
   if (!event.hasCover) gaps.push(gap("cover"));
 
   if (status === "past") {
@@ -327,7 +342,8 @@ const make = Effect.gen(function* () {
   // and position. Ties break on ids, so the report never reorders.
   const records = (where: Statement.Fragment) =>
     sql`
-      SELECT e.slug, e.name, e.topic, e.tagline,
+      SELECT e.slug, e.name, e.topic, e.tagline, e.description,
+        e.luma_description AS "lumaDescription", e.luma_summary AS "lumaSummary",
         e.start_date AS "startDate", e.end_date AS "endDate",
         e.street_address AS "streetAddress", e.full_address AS "fullAddress",
         e.luma_event_id AS "lumaEventId", e.recording_url AS "recordingUrl",

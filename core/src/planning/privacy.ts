@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql/SqlClient";
 import { orDataSourceError } from "../sql.ts";
 
 /**
- * Who may reach planning (migrations/0011_planning.ts) on a database, read
+ * Who may reach planning (migrations/0012_planning.ts) on a database, read
  * from its catalog: the proof that the site's roles can't.
  *
  * site_reader reads production for every stage's Hyperdrive and site_sync

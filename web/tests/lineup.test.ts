@@ -62,6 +62,7 @@ const render = (lineup: ReadonlyArray<Talk>) =>
       name: "Effect San Francisco",
       topic: "effect",
       tagline: "All Things Effect",
+      about: null,
       status: "past",
       mode: "night",
       startsAt: at("2026-10-01T00:30:00Z"),

@@ -64,6 +64,11 @@ export interface EventJson {
   readonly curation: Rows.Curation["kind"];
   /** The hosting company that organizes a shared evening, by id. */
   readonly organizedBy: string | null;
+  /** The description on Luma, as sanitized rich text, and its one line. */
+  readonly lumaDescription: string | null;
+  readonly lumaSummary: string | null;
+  /** The site's own description, as an organizer wrote it. */
+  readonly description: string | null;
   readonly lumaEventUrl: string | null;
 }
 
@@ -185,6 +190,9 @@ export function eventJson(row: EventRow): EventJson {
     program: row.program,
     curation: row.curation,
     organizedBy: row.organizedBy,
+    lumaDescription: row.lumaDescription,
+    lumaSummary: row.lumaSummary,
+    description: row.description,
     lumaEventUrl: lumaEventUrl(row.lumaEventId),
   };
 }

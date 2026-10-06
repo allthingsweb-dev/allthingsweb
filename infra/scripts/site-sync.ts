@@ -40,7 +40,8 @@ interface ColumnGrants {
 /**
  * The columns each table's statements read and write, from the sync's own
  * SQL: core/src/luma/sync.ts upserts events from Luma's calendar feed,
- * core/src/luma/venues.ts fills in the venues it hides from Luma's API, and
+ * core/src/luma/venues.ts fills in the venues it hides from Luma's API,
+ * core/src/luma/descriptions.ts writes their descriptions from it, and
  * image ingestion (app/src/lib/{event-covers,profile-photos,post-images},
  * whose statements the Worker keeps) stores each missing event cover, profile photo and post
  * image, then points its row at the new `images` row.
@@ -51,7 +52,9 @@ interface ColumnGrants {
  *   `excluded.updated_at` counts as reading the column, so it is selectable.
  *   Covers read events without one and set `preview_image`. The venue fill
  *   reads published events without a venue and writes the three venue
- *   fields.
+ *   fields. The description import (core/src/luma/descriptions.ts) reads
+ *   published events with a Luma id and writes Luma's description and its
+ *   summary.
  * - images: one row per stored image, its id made by the sync.
  * - profiles, event_posts: rows still missing an image, and the image set.
  *
@@ -73,6 +76,8 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "full_address",
       "preview_image",
       "updated_at",
+      "luma_description",
+      "luma_summary",
     ],
     insert: [
       "luma_event_id",
@@ -99,6 +104,8 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "full_address",
       "preview_image",
       "updated_at",
+      "luma_description",
+      "luma_summary",
     ],
   },
   images: {

@@ -175,15 +175,19 @@ export function draftChecks(
     if (pastOnly.has(gap.kind)) continue;
     const { required, label } = gapKinds[gap.kind];
     // A cover is made from the brand's template with the Luma event, so it
-    // blocks only once that event exists.
+    // blocks only once that event exists. A description is written on Luma
+    // and imported once the evening is public (src/luma/descriptions.ts),
+    // so before then it is advice.
     const level: CheckLevel =
-      gap.kind === "cover"
-        ? record.lumaEventId === null
-          ? "advice"
-          : "blocker"
-        : required
-          ? "blocker"
-          : "advice";
+      gap.kind === "description"
+        ? "advice"
+        : gap.kind === "cover"
+          ? record.lumaEventId === null
+            ? "advice"
+            : "blocker"
+          : required
+            ? "blocker"
+            : "advice";
     const message =
       gap.subject === null
         ? capitalize(label)
