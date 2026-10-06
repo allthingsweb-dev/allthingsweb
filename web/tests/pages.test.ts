@@ -547,7 +547,7 @@ describe("/about", () => {
 });
 
 describe("names on event pages", () => {
-  it("link to a person's own page, for everyone on stage and every co-host and MC", async (url) => {
+  it("link to a person's own page, for everyone on stage, every co-host and MC, and the hosts", async (url) => {
     const linked = new Set<string>();
     for (const slug of [slugs.upcoming, slugs.past]) {
       const html = await (await fetch(`${url}/${slug}`)).text();
@@ -555,9 +555,12 @@ describe("names on event pages", () => {
         linked.add(path);
       }
     }
-    // Ada and Grace: on stage, a co-host and an MC between the two pages.
+    // Ada and Grace: on stage, a co-host and an MC between the two pages;
+    // Andre and Erik, the upcoming evening's own hosts.
     expect([...linked].toSorted()).toEqual([
       "/people/ada-lovelace",
+      "/people/andre-landgraf",
+      "/people/erik-thorelli",
       "/people/grace-hopper",
     ]);
     for (const path of linked) {

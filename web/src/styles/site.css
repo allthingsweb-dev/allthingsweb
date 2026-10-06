@@ -1048,14 +1048,16 @@ main > section,
   font-weight: 700;
 }
 
-/* Names link to their people entries, and read as names until hovered. */
+/* Names link to their pages, and read as names until hovered. */
 .event-person-name,
+.host-names a,
 .speaker h3 a {
   color: inherit;
   text-decoration: none;
 }
 
 .event-person-name:hover,
+.host-names a:hover,
 .speaker h3 a:hover {
   text-decoration: underline var(--at-stroke-rule);
 }
