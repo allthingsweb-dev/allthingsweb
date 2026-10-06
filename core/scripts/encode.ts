@@ -25,3 +25,20 @@ export const encode: Encoder = async (bytes, edge) => {
     height: info.height,
   };
 };
+
+/** A placeholder's longest side, in pixels: enough for a blur-up (as web/src/sync/bindings.ts makes them). */
+const placeholderEdge = 16;
+
+/** A tiny JPEG of the image as a data URL, for `images.placeholder`. */
+export const placeholder = async (bytes: Uint8Array): Promise<string> => {
+  const data = await sharp(bytes, { limitInputPixels: false })
+    .rotate()
+    .resize({
+      width: placeholderEdge,
+      height: placeholderEdge,
+      fit: "inside",
+    })
+    .jpeg({ quality: 50 })
+    .toBuffer();
+  return `data:image/jpeg;base64,${data.toString("base64")}`;
+};

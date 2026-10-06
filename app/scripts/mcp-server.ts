@@ -8,6 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { completenessReport } from "./completeness.js";
+import { addEventPhotos } from "./event-photos.js";
 import { addEventPost } from "./event-posts.js";
 import { approvePost, hidePost, listPendingPosts } from "./post-review.js";
 import { promoChannels, promoDrafts } from "./promo.js";
@@ -106,6 +107,13 @@ const AddEventPostSchema = z.object({
   authorName: z.string().optional(),
   authorUrl: z.string().optional(),
   text: z.string().optional(),
+});
+
+const AddEventPhotosSchema = z.object({
+  slug: z.string().min(1),
+  files: z.array(z.string().min(1)).min(1),
+  alts: z.array(z.string().min(1)).min(1),
+  dryRun: z.boolean().optional(),
 });
 
 const PendingPostsSchema = z.object({ slug: z.string().min(1).optional() });
@@ -548,6 +556,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["slug", "url"],
+        },
+      },
+      {
+        name: "add_event_photos",
+        description:
+          "Add photos to an event's page, in the order given, after any it has. Each file is re-encoded (upright, at most 4096 px, JPEG, all metadata including location stripped), stored under a key named after its contents, and recorded with its alt text; adding a file that is already there changes nothing. Give one alt text per file describing the scene, never naming people from their faces. HEIC is not read: export JPEGs. dryRun checks everything and stores nothing.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            slug: {
+              type: "string",
+              description: "The event's slug or short link",
+            },
+            files: {
+              type: "array",
+              items: { type: "string" },
+              description: "Absolute paths of the photos, in display order",
+            },
+            alts: {
+              type: "array",
+              items: { type: "string" },
+              description: "One alt text per file, in the same order",
+            },
+            dryRun: {
+              type: "boolean",
+              description:
+                "Encode and check everything; store and write nothing",
+            },
+          },
+          required: ["slug", "files", "alts"],
         },
       },
       {
@@ -1032,6 +1070,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify(result, null, 2),
             },
           ],
+        };
+      }
+
+      case "add_event_photos": {
+        const result = await addEventPhotos(
+          AddEventPhotosSchema.parse(args ?? {}),
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
