@@ -173,10 +173,16 @@ describe("a profile's slug", () => {
 
 describe("the migration", () => {
   test("gives existing people their slugs oldest first, none shared", async () => {
+    // Every migration before this one, whatever comes after it.
+    const slugsId = Number(
+      Object.keys(migrations)
+        .find((id) => id.endsWith("_person_slugs"))
+        ?.split("_")[0],
+    );
     const before = Migrator.fromRecord(
       Object.fromEntries(
         Object.entries(migrations).filter(
-          ([id]) => !id.endsWith("_person_slugs"),
+          ([id]) => Number(id.split("_")[0]) < slugsId,
         ),
       ),
     );

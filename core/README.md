@@ -381,7 +381,11 @@ X is searched only with `X_BEARER_TOKEN` (1Password: "allthings X app" in
 the `allthings` vault); recent search reaches seven days back, and
 `X_SEARCH=archive` uses full-archive search where the app has it. The sync
 Worker searches the last week's evenings on its schedule (off until the
-cutover); until the database can hold its role to pending posts, it only reports what it would add, and an organizer adds them with `posts find`. The admin MCP server's `list_pending_posts`, `approve_post` and
+cutover) and queues what it finds as pending. As site_sync it can add posts
+only through `public.queue_event_post` (migrations/0018_pending_posts.ts), a
+SECURITY DEFINER function with its search path pinned that checks every
+field and inserts nothing but pending posts; the role holds no INSERT on
+`event_posts`, and EXECUTE is revoked from everyone else. The admin MCP server's `list_pending_posts`, `approve_post` and
 `hide_post` run the same script.
 
 ## Schedules and notes
