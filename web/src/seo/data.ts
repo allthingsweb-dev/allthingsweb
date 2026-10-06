@@ -1,4 +1,5 @@
 import { DataSourceError } from "allthings-core/src/errors.ts";
+import { siteSlug } from "allthings-core/src/sql.ts";
 import { eventTagline } from "allthings-core/src/tagline.ts";
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
@@ -7,7 +8,8 @@ import * as SqlSchema from "effect/sql/SqlSchema";
 /**
  * What the sitemap and the RSS feed say of each published event: no more
  * than the app's feeds publish (app/src/lib/event-feeds.ts), plus when the
- * event was announced and last changed. The tagline is the evening in one
+ * event was announced and last changed. Each event is at its short link,
+ * or its long slug until it has one. The tagline is the evening in one
  * line: the organizers', or Luma's summary while theirs is a placeholder
  * (core's src/tagline.ts).
  */
@@ -63,7 +65,8 @@ const make = Effect.gen(function* () {
     Request: Schema.Void,
     Result: FeedRow,
     execute: () => sql`
-      SELECT e.id, e.slug, e.name, e.tagline, e.luma_summary AS "lumaSummary",
+      SELECT e.id, ${sql.literal(siteSlug("e"))} AS slug, e.name, e.tagline,
+        e.luma_summary AS "lumaSummary",
         e.start_date AS "startDate",
         e.created_at AS "createdAt", e.updated_at AS "updatedAt"
       FROM events e

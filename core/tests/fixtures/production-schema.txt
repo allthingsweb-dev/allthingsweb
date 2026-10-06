@@ -108,6 +108,9 @@ column public.event_schedule_items #004 title text not null
 column public.event_schedule_items #005 description text not null default ''::text
 column public.event_schedule_items #006 created_at timestamp with time zone not null default now()
 column public.event_schedule_items #007 updated_at timestamp with time zone not null
+column public.event_slugs #001 slug text not null
+column public.event_slugs #002 event_id uuid not null
+column public.event_slugs #003 created_at timestamp with time zone not null default now()
 column public.event_sponsors #001 event_id uuid not null
 column public.event_sponsors #002 sponsor_id uuid not null
 column public.event_sponsors #003 created_at timestamp with time zone not null default now()
@@ -143,6 +146,7 @@ column public.events #024 organized_by uuid
 column public.events #025 luma_description text
 column public.events #026 luma_summary text
 column public.events #027 description text
+column public.events #028 short_slug text
 column public.images #001 id uuid not null default gen_random_uuid()
 column public.images #002 url text not null
 column public.images #003 placeholder text not null
@@ -273,6 +277,10 @@ constraint public.event_review_sessions event_review_sessions_thread_id_unique U
 constraint public.event_schedule_items event_schedule_items_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_schedule_items event_schedule_items_event_id_position_pk PRIMARY KEY (event_id, "position")
 constraint public.event_schedule_items event_schedule_items_position_check CHECK (("position" >= 0))
+constraint public.event_slugs event_slugs_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint public.event_slugs event_slugs_event_id_slug_unique UNIQUE (event_id, slug)
+constraint public.event_slugs event_slugs_pkey PRIMARY KEY (slug)
+constraint public.event_slugs event_slugs_slug_check CHECK ((slug ~ '^(shared/)?[a-z0-9]+(-[a-z0-9]+)*$'::text))
 constraint public.event_sponsors event_sponsors_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_sponsors event_sponsors_event_id_sponsor_id_pk PRIMARY KEY (event_id, sponsor_id)
 constraint public.event_sponsors event_sponsors_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
@@ -281,6 +289,7 @@ constraint public.event_talks event_talks_event_id_talk_id_pk PRIMARY KEY (event
 constraint public.event_talks event_talks_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id)
 constraint public.events events_curation_check CHECK ((curation = ANY (ARRAY['ours'::text, 'shared'::text])))
 constraint public.events events_curation_organizer_check CHECK (((curation = 'shared'::text) = (organized_by IS NOT NULL)))
+constraint public.events events_id_short_slug_event_slugs_fk FOREIGN KEY (id, short_slug) REFERENCES event_slugs(event_id, slug)
 constraint public.events events_luma_checked_in_count_check CHECK ((luma_checked_in_count >= 0))
 constraint public.events events_luma_event_id_unique UNIQUE (luma_event_id)
 constraint public.events events_luma_guest_count_check CHECK ((luma_guest_count >= 0))
@@ -289,6 +298,7 @@ constraint public.events events_pkey PRIMARY KEY (id)
 constraint public.events events_preview_image_images_id_fk FOREIGN KEY (preview_image) REFERENCES images(id) ON DELETE SET NULL
 constraint public.events events_program_check CHECK ((program = ANY (ARRAY['talks'::text, 'open-floor'::text, 'social'::text, 'hackathon'::text])))
 constraint public.events events_program_hackathon_check CHECK (((program = 'hackathon'::text) = is_hackathon))
+constraint public.events events_short_slug_unique UNIQUE (short_slug)
 constraint public.events events_slug_unique UNIQUE (slug)
 constraint public.events events_topic_check CHECK (((char_length(topic) <= 24) AND (topic IS NFC NORMALIZED) AND (topic = lower((topic COLLATE pg_c_utf8))) AND (strpos(topic, 'all things'::text) = 0) AND ((topic COLLATE pg_c_utf8) ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'::text)))
 constraint public.images images_pkey PRIMARY KEY (id)
@@ -353,10 +363,13 @@ index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_eve
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_pkey ON public.event_review_sessions USING btree (id)
 index public.event_review_sessions CREATE UNIQUE INDEX event_review_sessions_thread_id_unique ON public.event_review_sessions USING btree (thread_id)
 index public.event_schedule_items CREATE UNIQUE INDEX event_schedule_items_event_id_position_pk ON public.event_schedule_items USING btree (event_id, "position")
+index public.event_slugs CREATE UNIQUE INDEX event_slugs_event_id_slug_unique ON public.event_slugs USING btree (event_id, slug)
+index public.event_slugs CREATE UNIQUE INDEX event_slugs_pkey ON public.event_slugs USING btree (slug)
 index public.event_sponsors CREATE UNIQUE INDEX event_sponsors_event_id_sponsor_id_pk ON public.event_sponsors USING btree (event_id, sponsor_id)
 index public.event_talks CREATE UNIQUE INDEX event_talks_event_id_talk_id_pk ON public.event_talks USING btree (event_id, talk_id)
 index public.events CREATE UNIQUE INDEX events_luma_event_id_unique ON public.events USING btree (luma_event_id)
 index public.events CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)
+index public.events CREATE UNIQUE INDEX events_short_slug_unique ON public.events USING btree (short_slug)
 index public.events CREATE UNIQUE INDEX events_slug_unique ON public.events USING btree (slug)
 index public.images CREATE UNIQUE INDEX images_pkey ON public.images USING btree (id)
 index public.profile_slugs CREATE INDEX profile_slugs_profile_id_idx ON public.profile_slugs USING btree (profile_id)
@@ -387,6 +400,7 @@ relation public.event_people kind=r persistence=p rls=f force_rls=f replica_iden
 relation public.event_posts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_review_sessions kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_schedule_items kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation public.event_slugs kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=

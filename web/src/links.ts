@@ -1,3 +1,5 @@
+import { eventPathOf } from "allthings-core/src/mappers.ts";
+
 /**
  * Where all things is besides this site, and who hosts it. Every page's
  * footer reads them; brand/foundations.md ("People and channels") says how
@@ -17,13 +19,13 @@ export const mediaOrigin = "https://media.allthings.dev";
 
 /**
  * An event's page on this site: its slug, encoded, so it is always one
- * segment. Links within the site are root-relative, so every stage's pages
+ * segment, or two for a shared evening's link (shared/<name>, core's
+ * src/short-slugs.ts). Links within the site are root-relative, so every stage's pages
  * link within that stage; only what names the production site itself (the
  * canonical URL, link previews, the sitemap, the feed and structured data)
  * is absolute, on `ORIGIN`.
  */
-export const eventPath = (slug: string): `/${string}` =>
-  `/${encodeURIComponent(slug)}`;
+export const eventPath = (slug: string): `/${string}` => eventPathOf(slug);
 
 /** Every evening, listed: this site's evenings index (pages/events.tsx). */
 export const everyEvening = "/events";

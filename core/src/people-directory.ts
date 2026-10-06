@@ -15,6 +15,7 @@ import { displayName, eventTopic } from "./lockup.ts";
 import { eventStatus, personLinks } from "./mappers.ts";
 import { type StageRole, stageRole } from "./people.ts";
 import * as Rows from "./rows.ts";
+import { siteSlug } from "./sql.ts";
 
 /**
  * Who the people page shows, read as of the `Clock`: the organizers first,
@@ -356,7 +357,8 @@ const make = Effect.gen(function* () {
       WITH talks_given AS (
         SELECT ts.speaker_id AS profile_id, ts.role, t.id AS talk_id,
           t.title, t.format,
-          e.id AS event_id, e.slug, e.curation, e.name, e.topic,
+          e.id AS event_id, ${sql.literal(siteSlug("e"))} AS slug, e.curation,
+          e.name, e.topic,
           e.start_date, e.end_date
         FROM talk_speakers ts
         JOIN talks t ON t.id = ts.talk_id
@@ -367,7 +369,8 @@ const make = Effect.gen(function* () {
       ),
       parts AS (
         SELECT ep.profile_id, ep.role,
-          e.id AS event_id, e.slug, e.curation, e.name, e.topic,
+          e.id AS event_id, ${sql.literal(siteSlug("e"))} AS slug, e.curation,
+          e.name, e.topic,
           e.start_date, e.end_date
         FROM event_people ep
         JOIN events e ON e.id = ep.event_id

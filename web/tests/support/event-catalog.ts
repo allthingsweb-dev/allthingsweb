@@ -17,24 +17,43 @@ export const eventPhoto = (name: string) =>
 
 export const speakerPortrait = "https://media.allthings.dev/profiles/ada.jpg";
 
-/** The slugs the tests read, by what each evening is for. */
+/**
+ * The evenings' long slugs (`events.slug`), as the app serves them: the
+ * Worker redirects each to the evening's short link, where it has one.
+ */
+export const longSlugs = {
+  upcoming: "2099-effect-evening",
+  live: "live-now",
+  past: "2025-01-28-all-things-web-at-sanity",
+  hackathon: "2025-04-26-hackathon-at-sentry",
+  bare: "2099-morning-without-a-venue",
+  draft: "draft-evening",
+  shared: "2099-demo-day-evt-demo",
+} as const;
+
+/** Where the Worker serves each evening, by what each is for. */
 export const slugs = {
   /** Upcoming, in the evening, with everything a page can show. */
-  upcoming: "2099-effect-evening",
-  /** Live: started an hour ago, ends in two. */
-  live: "live-now",
+  upcoming: "effect",
+  /** Live: started an hour ago, ends in two. Without a short link yet. */
+  live: longSlugs.live,
   /** Past, with photos, a recording and a talk two people gave. */
-  past: "2025-01-28-all-things-web-at-sanity",
+  past: "web-2025-01",
   /**
    * A past daytime hackathon, without talks, photos or a recording, with a
    * schedule and notes.
    */
-  hackathon: "2025-04-26-hackathon-at-sentry",
+  hackathon: "web-hackathon",
   /** Upcoming, in the morning, without a venue or a Luma page. */
-  bare: "2099-morning-without-a-venue",
-  /** A draft: never shown. */
-  draft: "draft-evening",
+  bare: "morning-without-a-venue",
+  /** A draft: never shown, and without a link. */
+  draft: longSlugs.draft,
+  /** Someone else's evening, which we share. */
+  shared: "shared/demo-day",
 } as const;
+
+/** A link the past evening had before `slugs.past`, which still leads to it. */
+export const formerLink = "web-at-sanity";
 
 /** The upcoming evening's Luma page. */
 export const lumaPage = "https://lu.ma/event/evt-effect";
@@ -68,13 +87,13 @@ export function eventCatalog(now: Date): string {
       ('d0000000-0000-4000-8000-000000000503', 'https://elsewhere.example/photo.jpg', '', 'Not on the media origin', 800, 600, now()),
       ('d0000000-0000-4000-8000-000000000504', '${speakerPortrait}', '', 'Ada Lovelace', 400, 400, now());
     INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, street_address, short_location, full_address, luma_event_id, is_hackathon, is_draft, recording_url, topic, updated_at) VALUES
-      ('e0000000-0000-4000-8000-000000000501', '${slugs.upcoming}', 'Effect San Francisco 🇺🇸', 'All Things Effect, with its creator', ${iso(upcomingStart)}, ${iso(hours(upcomingStart, 3))}, 200, 'CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA', 'CodeRabbit', 'CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA', 'evt-effect', false, false, NULL, NULL, '2026-09-01T12:00:00Z'),
-      ('e0000000-0000-4000-8000-000000000502', '${slugs.live}', 'All Things Live', 'Right now', ${iso(liveStart)}, ${iso(hours(liveStart, 3))}, 0, NULL, 'Convex HQ', '444 De Haro St #218, San Francisco, CA 94107, USA', 'evt-live', false, false, NULL, NULL, now()),
-      ('e0000000-0000-4000-8000-000000000503', '${slugs.past}', 'All Things Web at Sanity', 'React and content', '2025-01-29T01:00:00Z', '2025-01-29T04:00:00Z', 150, '351 California St, San Francisco, CA 94104, USA', '351 California St', '351 California St, San Francisco, CA 94104, USA', 'evt-sanity', false, false, 'https://youtu.be/sanity', NULL, now()),
-      ('e0000000-0000-4000-8000-000000000505', '${slugs.bare}', 'Morning Without A Venue', 'Somewhere', ${iso(bareStart)}, ${iso(hours(bareStart, 2))}, 0, NULL, NULL, NULL, NULL, false, false, NULL, NULL, now()),
-      ('e0000000-0000-4000-8000-000000000506', '${slugs.draft}', 'All Things Draft', 'Secret', ${iso(dayAt(now, 3, "01:30"))}, ${iso(dayAt(now, 3, "04:30"))}, 100, NULL, NULL, NULL, 'evt-draft', false, true, NULL, NULL, now());
+      ('e0000000-0000-4000-8000-000000000501', '${longSlugs.upcoming}', 'Effect San Francisco 🇺🇸', 'All Things Effect, with its creator', ${iso(upcomingStart)}, ${iso(hours(upcomingStart, 3))}, 200, 'CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA', 'CodeRabbit', 'CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA', 'evt-effect', false, false, NULL, NULL, '2026-09-01T12:00:00Z'),
+      ('e0000000-0000-4000-8000-000000000502', '${longSlugs.live}', 'All Things Live', 'Right now', ${iso(liveStart)}, ${iso(hours(liveStart, 3))}, 0, NULL, 'Convex HQ', '444 De Haro St #218, San Francisco, CA 94107, USA', 'evt-live', false, false, NULL, NULL, now()),
+      ('e0000000-0000-4000-8000-000000000503', '${longSlugs.past}', 'All Things Web at Sanity', 'React and content', '2025-01-29T01:00:00Z', '2025-01-29T04:00:00Z', 150, '351 California St, San Francisco, CA 94104, USA', '351 California St', '351 California St, San Francisco, CA 94104, USA', 'evt-sanity', false, false, 'https://youtu.be/sanity', NULL, now()),
+      ('e0000000-0000-4000-8000-000000000505', '${longSlugs.bare}', 'Morning Without A Venue', 'Somewhere', ${iso(bareStart)}, ${iso(hours(bareStart, 2))}, 0, NULL, NULL, NULL, NULL, false, false, NULL, NULL, now()),
+      ('e0000000-0000-4000-8000-000000000506', '${longSlugs.draft}', 'All Things Draft', 'Secret', ${iso(dayAt(now, 3, "01:30"))}, ${iso(dayAt(now, 3, "04:30"))}, 100, NULL, NULL, NULL, 'evt-draft', false, true, NULL, NULL, now());
     INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, street_address, short_location, full_address, luma_event_id, is_hackathon, program, is_draft, recording_url, topic, updated_at) VALUES
-      ('e0000000-0000-4000-8000-000000000504', '${slugs.hackathon}', 'Future of Web Hackathon', '', '2025-04-26T17:30:00Z', '2025-04-27T03:30:00Z', 400, 'Sentry, 45 Fremont St, San Francisco, CA 94105, USA', 'Sentry', 'Sentry, 45 Fremont St, San Francisco, CA 94105, USA', 'evt-hack', true, 'hackathon', false, NULL, 'web hackathon', now());
+      ('e0000000-0000-4000-8000-000000000504', '${longSlugs.hackathon}', 'Future of Web Hackathon', '', '2025-04-26T17:30:00Z', '2025-04-27T03:30:00Z', 400, 'Sentry, 45 Fremont St, San Francisco, CA 94105, USA', 'Sentry', 'Sentry, 45 Fremont St, San Francisco, CA 94105, USA', 'evt-hack', true, 'hackathon', false, NULL, 'web hackathon', now());
     INSERT INTO sponsors (id, name, about, updated_at) VALUES
       ('c0000000-0000-4000-8000-000000000501', 'CodeRabbit', 'Space, food and drinks.', now()),
       ('c0000000-0000-4000-8000-000000000502', 'Sanity', 'Space.', now()),
@@ -106,6 +125,27 @@ export function eventCatalog(now: Date): string {
       ('discord', '${redirects.discord}', 'Community chat', now()),
       ('unsafe', '${redirects.unsafe}', NULL, now());
     ${hostProfiles}
+    -- Someone else's evening, which we share, organized by a company.
+    INSERT INTO sponsors (id, name, about, website_url, updated_at) VALUES
+      ('c0000000-0000-4000-8000-000000000504', 'Mastra', 'The TypeScript AI framework.', 'https://mastra.ai/', now());
+    INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, street_address, short_location, full_address, luma_event_id, is_hackathon, is_draft, curation, organized_by, updated_at) VALUES
+      ('e0000000-0000-4000-8000-000000000507', '${longSlugs.shared}', 'Demo Day', 'Teams show what they shipped', ${iso(dayAt(now, 20, "16:00"))}, ${iso(dayAt(now, 20, "23:00"))}, 300, NULL, 'Convene', 'Convene, 40 O''Farrell St, San Francisco, CA 94108, USA', 'evt-demo', false, false, 'shared', 'c0000000-0000-4000-8000-000000000504', now());
+    -- Short links: every published evening but the live one has one, and
+    -- the past evening had another before (core's src/short-slugs.ts).
+    INSERT INTO event_slugs (slug, event_id) VALUES
+      ('${slugs.upcoming}', 'e0000000-0000-4000-8000-000000000501'),
+      ('${formerLink}', 'e0000000-0000-4000-8000-000000000503'),
+      ('${slugs.past}', 'e0000000-0000-4000-8000-000000000503'),
+      ('${slugs.hackathon}', 'e0000000-0000-4000-8000-000000000504'),
+      ('${slugs.bare}', 'e0000000-0000-4000-8000-000000000505'),
+      ('${slugs.shared}', 'e0000000-0000-4000-8000-000000000507');
+    UPDATE events e SET short_slug = l.slug FROM (VALUES
+      ('e0000000-0000-4000-8000-000000000501'::uuid, '${slugs.upcoming}'),
+      ('e0000000-0000-4000-8000-000000000503'::uuid, '${slugs.past}'),
+      ('e0000000-0000-4000-8000-000000000504'::uuid, '${slugs.hackathon}'),
+      ('e0000000-0000-4000-8000-000000000505'::uuid, '${slugs.bare}'),
+      ('e0000000-0000-4000-8000-000000000507'::uuid, '${slugs.shared}')
+    ) AS l(id, slug) WHERE e.id = l.id;
     -- The upcoming evening: a fireside chat, Luma's guest count, its
     -- organizers (Andre first) and two co-hosts; the past one has an MC.
     UPDATE talks SET format = 'fireside' WHERE id = 'a0000000-0000-4000-8000-000000000501';

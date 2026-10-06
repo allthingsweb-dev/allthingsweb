@@ -45,6 +45,7 @@ export const SITE_TABLES = [
   "event_notes",
   "profile_slugs",
   "redirects",
+  "event_slugs",
 ] as const;
 
 /**

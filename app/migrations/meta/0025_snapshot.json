@@ -1,6 +1,6 @@
 {
-  "id": "bf0bf101-e5b0-40df-9cc7-12aa095a13a0",
-  "prevId": "a9c961ca-a7dc-4ed1-bcd2-555184d4dad5",
+  "id": "a9c961ca-a7dc-4ed1-bcd2-555184d4dad5",
+  "prevId": "886aaae2-f44a-4160-98d5-797266d2e248",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2002,69 +2002,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.profile_slugs": {
-      "name": "profile_slugs",
-      "schema": "",
-      "columns": {
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "profile_id": {
-          "name": "profile_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "profile_slugs_profile_id_idx": {
-          "name": "profile_slugs_profile_id_idx",
-          "columns": [
-            {
-              "expression": "profile_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "profile_slugs_profile_id_profiles_id_fk": {
-          "name": "profile_slugs_profile_id_profiles_id_fk",
-          "tableFrom": "profile_slugs",
-          "tableTo": "profiles",
-          "columnsFrom": ["profile_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "profile_slugs_slug_check": {
-          "name": "profile_slugs_slug_check",
-          "value": "\"slug\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.profile_users": {
       "name": "profile_users",
       "schema": "",
@@ -2218,13 +2155,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
         }
       },
       "indexes": {},
@@ -2245,11 +2175,6 @@
           "name": "profiles_luma_user_id_unique",
           "nullsNotDistinct": false,
           "columns": ["luma_user_id"]
-        },
-        "profiles_slug_unique": {
-          "name": "profiles_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -2257,10 +2182,6 @@
         "profiles_luma_user_id_check": {
           "name": "profiles_luma_user_id_check",
           "value": "\"luma_user_id\" ~ '^usr-[A-Za-z0-9]+$'"
-        },
-        "profiles_slug_check": {
-          "name": "profiles_slug_check",
-          "value": "\"slug\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'"
         }
       },
       "isRLSEnabled": false

@@ -7,6 +7,7 @@ import { LumaApi } from "allthings-core/src/luma/api.ts";
 import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { ConfigProvider, Effect, Layer, Redacted } from "effect";
 import { FetchHttpClient } from "effect/http";
@@ -74,6 +75,7 @@ export const syncLayer = (
   Layer.mergeAll(
     LumaSync.layer,
     LumaVenues.layer,
+    ShortSlugs.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
   ).pipe(

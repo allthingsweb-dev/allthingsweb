@@ -69,6 +69,8 @@ export interface EventJson {
   readonly lumaSummary: string | null;
   /** The site's own description, as an organizer wrote it. */
   readonly description: string | null;
+  /** Its short link on the site (allthings.dev/effect), once it has one. */
+  readonly shortSlug: string | null;
   readonly lumaEventUrl: string | null;
 }
 
@@ -193,6 +195,7 @@ export function eventJson(row: EventRow): EventJson {
     lumaDescription: row.lumaDescription,
     lumaSummary: row.lumaSummary,
     description: row.description,
+    shortSlug: row.shortSlug,
     lumaEventUrl: lumaEventUrl(row.lumaEventId),
   };
 }
