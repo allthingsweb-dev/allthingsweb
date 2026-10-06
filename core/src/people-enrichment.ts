@@ -15,6 +15,10 @@ import { DataSourceError } from "./errors.ts";
  * confirmed (a same-name collision, a bio that isn't the person's own
  * words) is kept under `held` with its reason and never written.
  *
+ * A title is the person's job title at the time of their evening (the
+ * role they had when they spoke or hosted), or their latest known title
+ * where no source gives one from then (Erik, 2026-10-06).
+ *
  * Photos go only into `photo_source_url`, and only from hosts the app's
  * hourly ingestion copies from (app/src/lib/profile-photos/hosts.ts), which
  * then sets the profile's image. A dry run does everything, reports it,
@@ -96,6 +100,7 @@ export const PeopleEntry = Schema.Struct({
     ),
   ),
   name: Schema.String.check(Schema.isNonEmpty()),
+  /** Their job title at the time of their evening, else their latest known one. */
   title: Schema.optionalKey(fact(Text(120))),
   /** The person's own words, at most lightly trimmed or put in the third person. */
   bio: Schema.optionalKey(fact(Text(2000))),

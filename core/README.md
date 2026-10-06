@@ -435,6 +435,8 @@ their site, a company team page or a conference speaker page.
   strings) are set. The one exception: a fact may name the exact stale value
   it replaces (`was`), and replaces it only while the column still holds
   just that. A photo source is never replaced once its image is copied.
+- A title is the person's job title at the time of their evening, or
+  their latest known title where no source gives one from then.
 - A bio is the person's own words, at most trimmed or put in the third
   person; a terse profile line is no bio.
 - A photo is only ever a `photo_source_url` on a host the hourly ingestion
