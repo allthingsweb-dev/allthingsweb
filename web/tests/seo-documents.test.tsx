@@ -320,6 +320,7 @@ const details = (overrides: Partial<EventPage> = {}): EventPage => ({
   name: "All Things Effect",
   topic: "effect",
   tagline: "Effect, in person.",
+  about: null,
   status: "upcoming",
   mode: "night",
   startsAt: at("2026-11-06T01:30:00Z"),

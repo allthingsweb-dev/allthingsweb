@@ -3,7 +3,7 @@ import { isTopic } from "../lockup.ts";
 import { EventProgram } from "../rows.ts";
 
 /**
- * What planning holds (migrations/0011_planning.ts), as the planning
+ * What planning holds (migrations/0012_planning.ts), as the planning
  * service reads and writes it: the statuses and kinds the database checks,
  * the inputs each change takes, and the rows each list returns.
  */

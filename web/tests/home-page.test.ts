@@ -240,7 +240,9 @@ describe("the home page", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="dark">',
     );
-    expect(html).toContain('<summary aria-label="mode: night">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: night">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=dark" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>night<\/span><\/a>/,
     );
@@ -355,7 +357,7 @@ describe("the home page's photos as variants", () => {
         "<picture>",
         `<source type="image/avif" srcset="${squares("avif")}"/>`,
         `<source type="image/webp" srcset="${squares("webp")}"/>`,
-        `<img src="/img/36x36/jpeg/1767323045/events/erik.jpg" srcset="${squares("jpeg")}" alt="" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
+        `<img src="/img/36x36/jpeg/1767323045/events/erik.jpg" srcset="${squares("jpeg")}" alt="Erik" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
         "</picture>",
         '<img src="/assets/avatar.',
       ].join(""),

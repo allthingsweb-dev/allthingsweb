@@ -33,6 +33,24 @@ body {
   font-family: var(--at-font-display);
   font-size: var(--at-type-body-size);
   line-height: 1.55;
+  /* A name or title longer than its line breaks rather than overflows. */
+  overflow-wrap: break-word;
+}
+
+/* The first stop for a keyboard: past the header, to the page itself. */
+.skip-link {
+  position: absolute;
+  top: var(--at-space-2);
+  left: var(--at-layout-margin);
+  z-index: 2;
+  padding: var(--at-space-2) var(--at-space-3);
+  background: var(--at-ground);
+  color: var(--at-link);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
 }
 
 h1,
@@ -171,26 +189,21 @@ main {
 }
 
 /* The mode: one icon that opens on the three choices (a <details>, no script). */
-.mode {
-  position: relative;
-}
-
-.mode summary {
+.mode > button {
   display: grid;
   place-items: center;
   width: var(--at-size-target);
   height: var(--at-size-target);
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--at-text);
   cursor: pointer;
-  list-style: none;
+  anchor-name: --at-mode;
 }
 
-.mode summary::-webkit-details-marker {
-  display: none;
-}
-
-.mode summary:hover,
-.mode[open] summary {
+.mode > button:hover,
+.mode > button:has(+ :popover-open) {
   color: var(--at-link);
 }
 
@@ -199,17 +212,25 @@ main {
   flex: none;
 }
 
+/* A popover: Escape and a click outside close it, with no script. */
 .mode ul {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 1;
   min-width: max-content;
-  margin: var(--at-space-1) 0 0;
   padding: var(--at-space-2) 0;
   border: var(--at-stroke-hairline) solid var(--at-rule);
   background: var(--at-ground);
+  color: var(--at-text);
   list-style: none;
+}
+
+/* Under the icon where anchors are supported; else centered, as popovers are. */
+@supports (anchor-name: --at-mode) {
+  .mode ul {
+    position-anchor: --at-mode;
+    inset: auto;
+    top: anchor(bottom);
+    right: anchor(right);
+    margin: var(--at-space-1) 0 0;
+  }
 }
 
 .mode a {
@@ -257,8 +278,10 @@ main {
   font-weight: 600;
 }
 
+/* Every host side by side, never overlapping: both are always seen. */
 .portraits {
   display: flex;
+  gap: var(--at-space-1);
 }
 
 /* A portrait is an <img>, or a <picture> holding one. */
@@ -266,16 +289,10 @@ main {
   display: block;
   width: var(--at-size-portrait-xs);
   height: var(--at-size-portrait-xs);
-  border: var(--at-stroke-rule) solid var(--at-ground);
   border-radius: 50%;
   object-fit: cover;
-  /* The ground-colored ring parts the overlapping portraits; the rule
-     outside it keeps a portrait as dark as Night visible on Night. */
+  /* The rule keeps a portrait as dark as Night visible on Night. */
   box-shadow: 0 0 0 var(--at-stroke-hairline) var(--at-rule);
-}
-
-.portraits > * + * {
-  margin-left: calc(-1 * var(--at-space-2));
 }
 
 .socials {
@@ -898,6 +915,13 @@ main > section,
   gap: var(--at-space-4) var(--at-space-6);
 }
 
+/* Flex items that hold text may shrink below their longest word, which then breaks. */
+.hosted > *,
+.act > *,
+.post-by > * {
+  min-width: 0;
+}
+
 .your-hosts {
   display: flex;
   align-items: center;
@@ -907,6 +931,7 @@ main > section,
 .your-hosts p {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .host-names {
@@ -914,11 +939,14 @@ main > section,
   line-height: 1.2;
 }
 
+/* Side by side, as the footer's are: every host is seen. */
 .host-portraits {
   display: flex;
+  gap: var(--at-space-1);
 }
 
 .host-portraits img,
+.lineup-portraits img,
 .event-person img,
 .speaker img,
 .photos img {
@@ -931,11 +959,6 @@ main > section,
   height: var(--at-size-portrait-s);
 }
 
-.host-portraits img + img {
-  margin-left: calc(-1 * var(--at-space-2));
-  box-shadow: 0 0 0 var(--at-stroke-rule) var(--at-ground);
-}
-
 /* Co-hosts and the MC, under the hosting company and your hosts. */
 .event-people {
   display: flex;
@@ -944,7 +967,9 @@ main > section,
   margin-top: var(--at-space-4);
 }
 
-.event-people ul {
+/* People in rows: co-hosts and MCs, and a talk's people (lineup.ts). */
+.event-people ul,
+.stage-people {
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
@@ -968,9 +993,16 @@ main > section,
   height: var(--at-size-portrait-s);
 }
 
+/* On stage, the same rows with a larger portrait. */
+.stage-people .event-person img {
+  width: var(--at-size-portrait-m);
+  height: var(--at-size-portrait-m);
+}
+
 .event-person p {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   line-height: 1.25;
 }
 
@@ -993,6 +1025,82 @@ main > section,
 .event-person-title {
   font-size: var(--at-font-size-small);
   color: var(--at-meta);
+}
+
+/* A compact lineup (lineup.ts): one row per talk, portraits beside it. */
+/* The portraits' column is as wide as the most speakers a talk has, so
+   every title starts at the same edge. */
+.lineup {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: var(--at-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+.lineup-talk {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: start;
+  padding: var(--at-space-4) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+.lineup-portraits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--at-space-1);
+}
+
+.lineup-portraits img {
+  width: var(--at-size-portrait-s);
+  height: var(--at-size-portrait-s);
+}
+
+.lineup-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-1);
+  min-width: 0;
+}
+
+.lineup-speakers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--at-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--at-font-size-small);
+}
+
+.lineup-speakers a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.lineup-speakers a:hover {
+  text-decoration: underline var(--at-stroke-rule);
+}
+
+.lineup-speaker-title {
+  color: var(--at-meta);
+}
+
+/* "about the talk": a native disclosure, its target at least 24px tall. */
+.lineup-about summary {
+  width: fit-content;
+  padding: var(--at-space-1) 0;
+  color: var(--at-link);
+  cursor: pointer;
+}
+
+.lineup-about .stage-description {
+  margin-top: var(--at-space-2);
 }
 
 .stage {
@@ -1051,12 +1159,20 @@ main > section,
   color: var(--at-meta);
 }
 
+/* The evening in its own words, and rows of its own: prose at a reading measure. */
+.event-about,
 .note {
   max-width: var(--at-measure-prose);
 }
 
+.event-about > * + *,
 .note > * + * {
   margin-top: var(--at-space-3);
+}
+
+.event-about :is(ul, ol) {
+  margin-bottom: 0;
+  padding-left: var(--at-space-5);
 }
 
 /*
@@ -1310,6 +1426,13 @@ a.post-author:hover {
   line-height: 1.1;
 }
 
+/* A color too faint on this ground for text, shown as a bar instead. */
+.sample-bar {
+  display: block;
+  height: var(--at-space-7);
+  background: var(--at-swatch);
+}
+
 .pairs-scroll {
   overflow-x: auto;
 }
@@ -1324,6 +1447,15 @@ a.post-author:hover {
 
 .pairs .sample > span {
   color: var(--at-swatch);
+}
+
+/* Each pairing's sample is set at the smallest size its target allows. */
+.pairs .sample-large {
+  font-size: var(--at-font-size-large);
+}
+
+.pairs .sample-display {
+  font-size: var(--at-font-size-display);
 }
 
 /* Type */
@@ -1473,6 +1605,11 @@ th {
 }
 
 @media (--at-below-xl) {
+  /* Two organizers side by side keep room for their names. */
+  .organizers .person {
+    grid-template-columns: var(--at-size-portrait-l) minmax(0, 1fr);
+  }
+
   .pitch,
   .lists,
   .evenings-head,
@@ -1565,13 +1702,18 @@ th {
 /* On phones the portrait sits beside the name and title alone, and the
    bio, links and talks take the whole width below them. */
 @media (--at-below-m) {
-  .person {
-    column-gap: var(--at-space-4);
+  /* On phones a talk's portraits sit above its title, which keeps the width. */
+  .lineup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lineup-talk {
     row-gap: var(--at-space-2);
   }
 
-  .organizers .person {
-    grid-template-columns: var(--at-size-portrait-l) minmax(0, 1fr);
+  .person {
+    column-gap: var(--at-space-4);
+    row-gap: var(--at-space-2);
   }
 
   .person .portrait {

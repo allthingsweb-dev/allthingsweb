@@ -26,7 +26,7 @@ import {
 } from "./model.ts";
 
 /**
- * Organizers' planning (migrations/0011_planning.ts): ideas for evenings,
+ * Organizers' planning (migrations/0012_planning.ts): ideas for evenings,
  * speakers we'd like on stage and when they're free, companies we'd like to
  * host, and notes on the people and companies we know. The CLI
  * (scripts/plan.ts) and the admin MCP server's planning tools both run

@@ -10,24 +10,29 @@
     "fixtures": "bun scripts/fixtures.ts",
     "migrate": "bun --no-env-file scripts/migrate.ts",
     "luma:people": "bun --no-env-file scripts/luma-people.ts",
+    "luma:descriptions": "bun --no-env-file scripts/luma-descriptions.ts",
     "luma:venues": "bun --no-env-file scripts/luma-venues.ts",
+    "slugs": "bun --no-env-file scripts/slugs.ts",
     "completeness": "bun --no-env-file scripts/completeness.ts",
     "posts": "bun --no-env-file scripts/posts.ts",
     "hosts": "bun --no-env-file scripts/hosts.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts",
+    "people": "bun --no-env-file scripts/people.ts",
     "event-extras": "bun --no-env-file scripts/event-extras.ts",
     "programs": "bun --no-env-file scripts/programs.ts",
     "curation": "bun --no-env-file scripts/curation.ts",
     "promo": "bun --no-env-file scripts/promo.ts",
     "promo:cover": "bun --no-env-file scripts/meetup-cover.ts",
     "plan": "bun --no-env-file scripts/plan.ts",
+    "readiness": "bun --no-env-file scripts/readiness.ts",
     "reencode": "bun --no-env-file scripts/reencode-originals.ts",
     "sync:rehearse": "bun --no-env-file scripts/sync-rehearsal.ts"
   },
   "dependencies": {
     "@effect/sql-pg": "4.0.0",
     "effect": "4.0.0",
-    "ical.js": "2.2.1"
+    "ical.js": "2.2.1",
+    "marked": "18.0.14"
   },
   "devDependencies": {
     "@effect/platform-bun": "4.0.0",

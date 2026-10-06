@@ -425,6 +425,41 @@ describe("held entries", () => {
   });
 });
 
+describe("an organizer's word as a source", () => {
+  const withConfirmation = () => ({
+    people: {},
+    events: [
+      {
+        lumaEventId: "evt-react",
+        name: "React at Acme",
+        talks: [],
+        people: [],
+        hold: "only checks the source",
+      },
+    ],
+  });
+  const decodes = (on: string) =>
+    Exit.isSuccess(
+      Schema.decodeUnknownExit(Lineups)({
+        ...withConfirmation(),
+        people: {
+          erik: {
+            profileId: "b0000000-0000-4000-8000-000000000001",
+            sources: [{ confirmedBy: "Erik", on, in: "chat" }],
+          },
+        },
+      }),
+    );
+
+  test("needs a day on the calendar", () => {
+    expect(decodes("2026-10-05")).toBe(true);
+    expect(decodes("2024-02-29")).toBe(true);
+    expect(decodes("2026-02-30")).toBe(false);
+    expect(decodes("2026-13-01")).toBe(false);
+    expect(decodes("5 Oct 2026")).toBe(false);
+  });
+});
+
 describe("core/backfill/lineups.json", () => {
   const file = async () =>
     Schema.decodeUnknownSync(Schema.fromJsonString(Lineups))(
@@ -440,22 +475,65 @@ describe("core/backfill/lineups.json", () => {
   test("applies only the confirmed entries; the rest wait for Erik", async () => {
     const decoded = await file();
     const subset = applicable(decoded);
+    // Erik as MC of an evening (his word, 2026-10-05) is all some entries say.
+    const erikMcOnly = (event: (typeof subset.events)[number]) =>
+      event.talks.length === 0 &&
+      event.people.length === 1 &&
+      event.people[0]?.role === "mc" &&
+      event.people[0].person === "erik-thorelli";
+    expect(subset.events.filter(erikMcOnly).map((event) => event.name)).toEqual(
+      [
+        "DevTool AX Demos",
+        "React Bay Area at Cisco Meraki",
+        "Open Source Hackathon",
+        "Pre Next.js Conf Meetup",
+        "All Things Web at Little Skillet",
+        "All Things Web @ Vercel HQ 👀",
+        "All Things Web at Convex",
+        "All Things Web at Sanity",
+        "All Things Web at Sentry",
+        "All Things Web Hack Evening",
+        "All Things Web at Convex",
+        "AI x All Things Web",
+        "Future of Web Hackathon",
+        "All Things Web Show & Tell",
+        "All Things Web at Vapi",
+        "All Things Web Show & Tell",
+        "Lightning Hackathon ⚡",
+        "Agents for Web Dev",
+        "JS Trivia Night",
+        "Pre Next.js Conf / Ship AI Meetup",
+        "All Things React Native",
+        "After Party - All Things React Native",
+        "TypeScript AI: The official conference after-party",
+        "All Things Expo!",
+        "All Things Sync",
+        "All Things Agent Setups",
+      ],
+    );
     expect(
-      subset.events.map((event) => [
-        event.name,
-        event.talks.map((t) => t.title),
-        event.people.map((p) => `${p.role} ${p.person}`),
-      ]),
+      subset.events
+        .filter((event) => !erikMcOnly(event))
+        .map((event) => [
+          event.name,
+          event.talks.map((t) => t.title),
+          event.people.map((p) => `${p.role} ${p.person}`),
+        ]),
     ).toEqual([
       [
         "Effect San Francisco",
-        ["Fireside chat with Michael Arnaldi, creator of Effect"],
+        [
+          "Fireside chat with Michael Arnaldi, creator of Effect",
+          "State of Effect 2026",
+          "Alchemy 2.0",
+          "Effect panel",
+        ],
         ["mc simon-farshid"],
       ],
       [
         "Dev Setup Demos - Show your agents.md!",
         ["My most used slash commands and custom subagents for development"],
-        [],
+        ["mc erik-thorelli"],
       ],
       [
         "TypeScript AI Demo Day",
@@ -477,18 +555,21 @@ describe("core/backfill/lineups.json", () => {
         ],
         [],
       ],
-      ["NextDev.fm Live", ["NextDev.fm Live"], []],
+      ["NextDev.fm Live", ["NextDev.fm Live"], ["mc erik-thorelli"]],
     ]);
     expect(Object.keys(subset.people).toSorted()).toEqual([
       "abhi-aiyer",
       "arthur-stockman",
       "dan-goosewin",
       "david-cusatis",
+      "erik-thorelli",
       "greg-pstrucha",
       "ivan-burazin",
       "jeff-huber",
       "kevin-whinnery",
       "kiet-ho",
+      "kit-langton",
+      "kyle-mistele",
       "mateo-torres",
       "michael-arnaldi",
       "michael-grinich",
@@ -496,9 +577,11 @@ describe("core/backfill/lineups.json", () => {
       "neel-rao",
       "nicholas-pipitone",
       "nikhil-gupta",
+      "rhys-sullivan",
       "rostislav-melkumyan",
       "ryan-vogel",
       "sam-bhagwat",
+      "sam-goodwin",
       "sebastian-lorenz",
       "shane-thomas",
       "simon-farshid",

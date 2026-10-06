@@ -97,25 +97,30 @@ function ModeIcon({ choice }: { readonly choice: Choice }) {
 }
 
 /**
- * The mode, as one small control: a disclosure (<details>) whose summary is
- * the current mode's icon, opening on the three choices. Without
- * JavaScript, as the site is: <details> opens and closes natively, and
- * each choice is still a link to `?theme=` on this page, which the Worker
+ * The mode, as one small control: a button showing the current mode's icon
+ * that opens the three choices as a popover. Without JavaScript, as the
+ * site is: the browser opens and closes a popover itself, on the button,
+ * on Escape and on a click outside it, and returns focus to the button.
+ * Each choice is a link to `?theme=` on this page, which the Worker
  * remembers and redirects from (theme.ts), so choosing reloads the page
- * closed. The summary's accessible name says what it is and what is
- * chosen; the current choice says so with aria-current. Crawlers are asked
- * not to follow the links.
+ * closed. The button's accessible name says what it is and what is chosen;
+ * the current choice says so with aria-current. Crawlers are asked not to
+ * follow the links.
  */
 function ModeSwitch({ theme }: { readonly theme: Theme | undefined }) {
   const current = theme ?? "system";
   const currentName =
     choices.find(({ choice }) => choice === current)?.label ?? current;
   return (
-    <details class="mode">
-      <summary aria-label={`mode: ${currentName}`}>
+    <div class="mode">
+      <button
+        type="button"
+        popovertarget="mode-choices"
+        aria-label={`mode: ${currentName}`}
+      >
         <ModeIcon choice={current} />
-      </summary>
-      <ul class="at-type-meta">
+      </button>
+      <ul id="mode-choices" class="at-type-meta" popover="auto">
         {choices.map(({ choice, label }) => (
           <li>
             <a
@@ -129,7 +134,7 @@ function ModeSwitch({ theme }: { readonly theme: Theme | undefined }) {
           </li>
         ))}
       </ul>
-    </details>
+    </div>
   );
 }
 
@@ -156,6 +161,7 @@ function Footer({
               photo={portraits.get(host.profileId)}
               mode={images}
               blank={built.marks.avatar.src}
+              alt={host.name}
             />
           ))}
         </span>
@@ -233,6 +239,9 @@ export function Document({
         <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body>
+        <a class="skip-link" href="#main">
+          skip to the page
+        </a>
         <div class="page">
           <header class="site-header">
             <Wordmark />
@@ -241,7 +250,7 @@ export function Document({
               <ModeSwitch theme={theme} />
             </div>
           </header>
-          <main>{children}</main>
+          <main id="main">{children}</main>
           <Footer portraits={portraits} images={images} />
         </div>
       </body>

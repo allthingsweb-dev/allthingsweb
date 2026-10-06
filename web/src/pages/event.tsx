@@ -21,6 +21,7 @@ import type {
 import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
+import type { SafeHtml } from "allthings-core/src/rich-text.ts";
 import { DateTime } from "effect";
 import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import { built } from "../assets.ts";
@@ -35,6 +36,7 @@ import {
 import { calendarPath } from "./calendar.ts";
 import { Document } from "./document.tsx";
 import { Cursor } from "./evening-row.tsx";
+import { type LineupDensity, lineupDensity, talkPeople } from "./lineup.ts";
 import { hostNames } from "./home.tsx";
 import { gatheringTitle, homeTitle, lockup, type Title } from "./metadata.tsx";
 import {
@@ -54,10 +56,11 @@ import { day, fullDate, timeRange } from "./time.ts";
  * /<slug>: an evening's page, the Ledger (design round EP1-B). The lockup,
  * then a ruled list that names every fact once, each on its own row under a
  * small label: when, where, who hosts, how to get in (or, once it is over,
- * the recording), its schedule and any notes of its own (a hackathon's
- * awards, theme and teams), who is on stage (or that the floor was open to
- * anyone), the photos, what people posted about it, and what comes next. A
- * row whose facts are unknown is left out rather than shown empty.
+ * the recording), what it is about, its schedule and any notes of its own
+ * (a hackathon's awards, theme and teams), who is on stage (or that the
+ * floor was open to anyone), the photos, what people posted about it, and
+ * what comes next. A row whose facts are unknown is left out rather than
+ * shown empty.
  *
  * Like every page, it is in the visitor's mode, the system's until they
  * choose one (brand/foundations.md, "Color"); the event's own mode is its
@@ -223,14 +226,20 @@ function Where({
 
 /**
  * The squares site.css shows portraits at, from the layout tokens: hosts,
- * co-hosts and MCs small; speakers extra large, medium on phones. Each is
- * offered up to 3x.
+ * co-hosts, MCs and a compact lineup small; a talk's people in rows
+ * medium; speakers in full extra large, medium on phones. Each is offered
+ * up to 3x.
  */
 const portraitSizes = {
   small: {
     side: portraitSide.s,
     sides: [72, 144],
     sizes: `${portraitSide.s}px`,
+  },
+  medium: {
+    side: portraitSide.m,
+    sides: [72, 144, 216],
+    sizes: `${portraitSide.m}px`,
   },
   speaker: {
     side: portraitSide.xl,
@@ -244,17 +253,20 @@ function Portrait({
   portrait,
   size,
   images,
+  alt = "",
 }: {
   readonly portrait: Rows.Photo | null;
   readonly size: keyof typeof portraitSizes;
   readonly images: ImageMode;
+  /** Empty where the name is printed beside it, as it mostly is. */
+  readonly alt?: string;
 }) {
   const { side } = portraitSizes[size];
   if (portrait === null || !hasSource(portrait, images)) {
     return (
       <img
         src={built.marks.avatar.src}
-        alt=""
+        alt={alt}
         width={String(side)}
         height={String(side)}
         loading="lazy"
@@ -267,7 +279,7 @@ function Portrait({
       photo={portrait}
       mode={images}
       {...portraitSizes[size]}
-      alt=""
+      alt={alt}
     />
   );
 }
@@ -286,10 +298,11 @@ function YourHosts({
   readonly portraits: PortraitsById;
   readonly images: ImageMode;
 }) {
-  const people: ReadonlyArray<Pick<Person, "portrait">> =
+  const people: ReadonlyArray<Pick<Person, "name" | "portrait">> =
     organizers.length > 0
       ? organizers
       : hosts.map((host) => ({
+          name: host.name,
           portrait: portraits.get(host.profileId) ?? null,
         }));
   const names =
@@ -300,7 +313,12 @@ function YourHosts({
     <div class="your-hosts">
       <span class="host-portraits">
         {people.map((person) => (
-          <Portrait portrait={person.portrait} size="small" images={images} />
+          <Portrait
+            portrait={person.portrait}
+            size="small"
+            images={images}
+            alt={person.name}
+          />
         ))}
       </span>
       <p>
@@ -337,24 +355,55 @@ function People({
       </p>
       <ul>
         {people.map((person) => (
-          <li class="event-person">
-            <Portrait portrait={person.portrait} size="small" images={images} />
-            <p>
-              <a class="event-person-name" href={personUrl(person.id)}>
-                <span safe>{person.name}</span>
-              </a>
-              {person.title === null ? (
-                ""
-              ) : (
-                <span class="event-person-title" safe>
-                  {person.title}
-                </span>
-              )}
-            </p>
-          </li>
+          <PersonRow person={person} size="small" images={images} />
         ))}
       </ul>
     </div>
+  );
+}
+
+/** The roles a row or a compact lineup names: the ones that aren't a given. */
+const namedRoles: ReadonlySet<Speaker["role"]> = new Set([
+  "guest",
+  "moderator",
+]);
+
+/**
+ * Someone in a row of people: portrait, their role when it is named, their
+ * name linked to /people, where their bio is, and what they do.
+ */
+function PersonRow({
+  person,
+  role,
+  size,
+  images,
+}: {
+  readonly person: Person;
+  readonly role?: Speaker["role"] | undefined;
+  readonly size: "small" | "medium";
+  readonly images: ImageMode;
+}) {
+  return (
+    <li class="event-person">
+      <Portrait portrait={person.portrait} size={size} images={images} />
+      <p>
+        {role !== undefined && namedRoles.has(role) ? (
+          <span class="speaker-role at-type-meta">{role}</span>
+        ) : (
+          ""
+        )}
+        <a class="event-person-name" href={personUrl(person.id)}>
+          <span safe>{person.name}</span>
+        </a>
+        {person.title === null ? (
+          ""
+        ) : (
+          <span class="event-person-title" safe>
+            {person.title}
+          </span>
+        )}
+      </p>
+    </li>
   );
 }
 
@@ -630,9 +679,11 @@ const formatNames = {
 
 function TalkEntry({
   talk,
+  density,
   images,
 }: {
   readonly talk: Talk;
+  readonly density: Exclude<LineupDensity, "list">;
   readonly images: ImageMode;
 }) {
   // Sanitized by core (rich-text.ts): formatting and safe links only.
@@ -654,14 +705,96 @@ function TalkEntry({
       )}
       {talk.speakers.length === 0 ? (
         ""
-      ) : (
+      ) : talkPeople(talk, density) === "cards" ? (
         <div class="stage-speakers">
           {talk.speakers.map((speaker) => (
             <SpeakerCard speaker={speaker} images={images} />
           ))}
         </div>
+      ) : (
+        <ul class="stage-people">
+          {talk.speakers.map((speaker) => (
+            <PersonRow
+              person={speaker}
+              role={speaker.role}
+              size="medium"
+              images={images}
+            />
+          ))}
+        </ul>
       )}
     </section>
+  );
+}
+
+/**
+ * A talk in a compact lineup: its speakers' portraits, its title, who gave
+ * it, and its description behind a disclosure, which opens without script.
+ */
+function LineupTalk({
+  talk,
+  images,
+}: {
+  readonly talk: Talk;
+  readonly images: ImageMode;
+}) {
+  // Sanitized by core (rich-text.ts): formatting and safe links only.
+  const safeDescription = talk.description;
+  return (
+    <li class="lineup-talk">
+      <span class="lineup-portraits">
+        {talk.speakers.map((speaker) => (
+          <Portrait portrait={speaker.portrait} size="small" images={images} />
+        ))}
+      </span>
+      <div class="lineup-text">
+        {talk.format === "talk" ? (
+          ""
+        ) : (
+          <p class="at-type-meta">{formatNames[talk.format]}</p>
+        )}
+        <h2 class="lineup-title at-type-list-name" safe>
+          {talk.title}
+        </h2>
+        {talk.speakers.length === 0 ? (
+          ""
+        ) : (
+          <ul class="lineup-speakers">
+            {talk.speakers.map((speaker) => (
+              <li>
+                {namedRoles.has(speaker.role) ? (
+                  <>
+                    <span class="speaker-role at-type-meta">
+                      {speaker.role}
+                    </span>{" "}
+                  </>
+                ) : (
+                  ""
+                )}
+                <a href={personUrl(speaker.id)} safe>
+                  {speaker.name}
+                </a>
+                {speaker.title === null ? (
+                  ""
+                ) : (
+                  <span class="lineup-speaker-title" safe>
+                    {`, ${speaker.title}`}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {safeDescription === null ? (
+          ""
+        ) : (
+          <details class="lineup-about">
+            <summary class="at-type-meta">about the talk</summary>
+            <div class="stage-description">{safeDescription}</div>
+          </details>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -698,6 +831,20 @@ function Schedule({
   );
 }
 
+/**
+ * What the evening is about, in its own words: the site's description, or
+ * the one on Luma.
+ */
+function About({ about }: { readonly about: SafeHtml }) {
+  // Sanitized by core (rich-text.ts): formatting and safe links only.
+  const safeAbout = about;
+  return (
+    <Fact label="About">
+      <div class="event-about">{safeAbout}</div>
+    </Fact>
+  );
+}
+
 /** A row of the event's own, such as its awards, under the note's label. */
 function NoteFact({ note }: { readonly note: Note }) {
   // Sanitized by core (rich-text.ts): formatting and safe links only.
@@ -717,6 +864,33 @@ export function openFloorLine(status: EventPage["status"]): string {
   return status === "past"
     ? "Open floor: anyone could get up and show what they were building."
     : "Open floor: anyone can get up and show what they’re building.";
+}
+
+/** The evening's talks, as densely as their number calls for (lineup.ts). */
+function Lineup({
+  talks,
+  images,
+}: {
+  readonly talks: ReadonlyArray<Talk>;
+  readonly images: ImageMode;
+}) {
+  const density = lineupDensity(talks.length);
+  if (density === "list") {
+    return (
+      <ol class="lineup">
+        {talks.map((talk) => (
+          <LineupTalk talk={talk} images={images} />
+        ))}
+      </ol>
+    );
+  }
+  return (
+    <>
+      {talks.map((talk) => (
+        <TalkEntry talk={talk} density={density} images={images} />
+      ))}
+    </>
+  );
 }
 
 function OnStage({
@@ -739,9 +913,7 @@ function OnStage({
             {openFloor}
           </p>
         )}
-        {talks.map((talk) => (
-          <TalkEntry talk={talk} images={images} />
-        ))}
+        <Lineup talks={talks} images={images} />
       </div>
     </Fact>
   );
@@ -1034,6 +1206,7 @@ export function eventPage({
           ) : (
             ""
           )}
+          {event.about === null ? "" : <About about={event.about} />}
           {event.schedule.length === 0 ? (
             ""
           ) : (
