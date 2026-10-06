@@ -410,6 +410,53 @@
           "in": "chat"
         }
       ]
+    },
+    "andre-landgraf": {
+      "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+      "sources": ["https://www.meetup.com/remix-bay-area/members/?op=leaders"]
+    },
+    "oscar-newman": {
+      "create": {
+        "name": "Oscar Newman",
+        "title": "",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://www.meetup.com/remix-bay-area/events/299405119/",
+        "https://www.meetup.com/remix-bay-area/events/300486313/",
+        "https://oscarnewman.me/"
+      ]
+    },
+    "neha-varshneya": {
+      "create": {
+        "name": "Neha Varshneya",
+        "title": "",
+        "bio": "",
+        "twitterHandle": null,
+        "blueskyHandle": null,
+        "linkedinHandle": "nehavarshneya",
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/tsai",
+        "https://luma.com/event/evt-IpKgpcPJEOjvroH"
+      ]
+    },
+    "tony-dang": {
+      "profileId": "74d096e0-34e9-4f33-89c4-c38554b38b6b",
+      "sources": ["https://www.meetup.com/remix-bay-area/events/300486313/"]
+    },
+    "sebastien-morel": {
+      "profileId": "493e6fa8-e48b-4dd8-82f4-4f30d8de0a9e",
+      "sources": ["https://www.meetup.com/remix-bay-area/events/302689196/"]
+    },
+    "knut-melvaer": {
+      "profileId": "ad446264-d855-4697-8163-616172a4776e",
+      "sources": ["https://www.meetup.com/remix-bay-area/events/302689196/"]
     }
   },
   "events": [
@@ -428,6 +475,27 @@
               "in": "chat"
             }
           ]
+        },
+        {
+          "person": "erik-thorelli",
+          "role": "organizer",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/299405119/",
+            "https://www.meetup.com/remix-bay-area/members/?op=leaders"
+          ]
+        },
+        {
+          "person": "andre-landgraf",
+          "role": "organizer",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/299405119/",
+            "https://www.meetup.com/remix-bay-area/members/?op=leaders"
+          ]
+        },
+        {
+          "person": "oscar-newman",
+          "role": "co-host",
+          "sources": ["https://www.meetup.com/remix-bay-area/events/299405119/"]
         }
       ]
     },
@@ -446,6 +514,35 @@
               "in": "chat"
             }
           ]
+        },
+        {
+          "person": "erik-thorelli",
+          "role": "organizer",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/300486313/",
+            "https://www.meetup.com/remix-bay-area/members/?op=leaders"
+          ]
+        },
+        {
+          "person": "andre-landgraf",
+          "role": "organizer",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/300486313/",
+            "https://www.meetup.com/remix-bay-area/members/?op=leaders"
+          ]
+        },
+        {
+          "person": "oscar-newman",
+          "role": "co-host",
+          "sources": ["https://www.meetup.com/remix-bay-area/events/300486313/"]
+        },
+        {
+          "person": "tony-dang",
+          "role": "co-host",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/300486313/"
+          ],
+          "hold": "needs Erik: the Meetup page lists him as a host, but its description presents him only as the evening's speaker"
         }
       ]
     },
@@ -482,6 +579,38 @@
               "in": "chat"
             }
           ]
+        },
+        {
+          "person": "erik-thorelli",
+          "role": "organizer",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/302689196/",
+            "https://www.meetup.com/remix-bay-area/members/?op=leaders"
+          ]
+        },
+        {
+          "person": "andre-landgraf",
+          "role": "organizer",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/302689196/",
+            "https://www.meetup.com/remix-bay-area/members/?op=leaders"
+          ]
+        },
+        {
+          "person": "sebastien-morel",
+          "role": "co-host",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/302689196/"
+          ],
+          "hold": "needs Erik: the Meetup page lists him as a host, but he is no group leader and the page names no partner for the evening"
+        },
+        {
+          "person": "knut-melvaer",
+          "role": "co-host",
+          "sources": [
+            "https://www.meetup.com/remix-bay-area/events/302689196/"
+          ],
+          "hold": "needs Erik: the Meetup page lists him as a host, but he is no group leader and the page names no partner (Sanity isn't mentioned)"
         }
       ]
     },
@@ -957,7 +1086,16 @@
           "confidence": "high"
         }
       ],
-      "people": []
+      "people": [
+        {
+          "person": "neha-varshneya",
+          "role": "co-host",
+          "sources": [
+            "https://luma.com/tsai",
+            "https://luma.com/event/evt-IpKgpcPJEOjvroH"
+          ]
+        }
+      ]
     },
     {
       "lumaEventId": "evt-YgL8QkcPVOTymoN",
