@@ -54,11 +54,18 @@ export type StatusChange =
       readonly url: string;
       readonly status: string;
     }
-  | { readonly _tag: "NotFound"; readonly url: string };
+  | { readonly _tag: "NotFound"; readonly url: string }
+  /** A handle and record key that several stored posts share: none changed. */
+  | {
+      readonly _tag: "Ambiguous";
+      readonly url: string;
+      readonly matches: ReadonlyArray<string>;
+    };
 
 /**
  * Sets the stored post `url` names to `status`: by its canonical URL, or
- * for a Bluesky post named by handle, by its record key.
+ * for a Bluesky post named by handle, by its record key. Where several
+ * stored posts match, it changes none and names them.
  */
 export const setPostStatus = (url: string, status: "approved" | "hidden") =>
   Effect.gen(function* () {
@@ -84,6 +91,13 @@ export const setPostStatus = (url: string, status: "approved" | "hidden") =>
         }
         ORDER BY p.id`,
     );
+    if (rows.length > 1) {
+      return {
+        _tag: "Ambiguous",
+        url,
+        matches: rows.map((match) => match.url),
+      } satisfies StatusChange;
+    }
     const [row] = rows;
     if (row === undefined)
       return { _tag: "NotFound", url } satisfies StatusChange;

@@ -1,16 +1,18 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { DateTime, Effect, Layer } from "effect";
+import { ConfigProvider, DateTime, Effect, Layer } from "effect";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import {
   bareLink,
   CandidateSearches,
   CandidateSearchError,
+  type CandidateSearchShape,
   type EventSignals,
   findCandidates,
   type FoundPost,
   fromBlueskyHit,
   fromXSearch,
+  makeXSearch,
   scoreCandidate,
   toSignals,
   xQueries,
@@ -238,6 +240,56 @@ describe("what platforms answer", () => {
     ]);
   });
 
+  test("an X answer that isn't a search result fails that query; the others' posts stay", async () => {
+    let sent = 0;
+    const answers = [
+      new Response("not json", { status: 200 }),
+      Response.json({
+        data: [
+          {
+            id: "21",
+            text: "all things react tonight",
+            author_id: "u1",
+            created_at: "2026-10-02T03:00:00.000Z",
+          },
+        ],
+        includes: { users: [{ id: "u1", username: "ada" }] },
+      }),
+    ];
+    const client = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            answers[sent++] ?? new Response("", { status: 500 }),
+          ),
+        ),
+      ),
+    );
+    const found = await Effect.runPromise(
+      Effect.gen(function* () {
+        const x: CandidateSearchShape = yield* makeXSearch;
+        return yield* x.search({
+          ...signals,
+          startsAt: at("2026-10-02T01:00:00Z"),
+          endsAt: at("2026-10-02T04:00:00Z"),
+        });
+      }).pipe(
+        Effect.provide(Layer.merge(client, clockLayer)),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromEnv({ env: { X_BEARER_TOKEN: "test" } }),
+        ),
+      ),
+    );
+    expect(sent).toBe(2);
+    expect(found.requests).toBe(2);
+    expect(found.posts.map((p) => p.url)).toEqual([
+      "https://x.com/ada/status/21",
+    ]);
+  });
+
   test("X's queries: the evening's links and name, and its people saying all things", () => {
     expect(xQueries(signals)).toEqual([
       '(url:"lu.ma/event/evt-react" OR url:"luma.com/react-at-acme" OR url:"allthings.dev/2026-08-12-react-at-acme" OR "React at Acme") -is:retweet',
@@ -451,6 +503,36 @@ describe("findCandidates", () => {
     expect(enough?.candidates.map((c) => c.outcome)).toEqual(["would add"]);
   });
 
+  test("recent evenings are the ones that ended within the window, not one still on", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    // Ended two days before the clock; the seed's hack day is still on, and
+    // "Ends now" ends at the clock itself.
+    await db.exec(`
+      INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, is_draft, updated_at) VALUES
+        ('e0000000-0000-4000-8000-0000000000a1', '2026-09-30-just-ended', 'Just ended', 'Done', '2026-10-01T01:00:00Z', '2026-10-01T04:00:00Z', 50, false, false, now());
+    `);
+    const reports = await Effect.runPromise(
+      findCandidates({
+        scope: { _tag: "Recent", within: "7 days" },
+        dryRun: true,
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            fakeSearches([]),
+            noLuma,
+            EventPostWriter.layer.pipe(Layer.provideMerge(sqlLayer(db))),
+            fakeSources,
+            clockLayer,
+          ),
+        ),
+      ),
+    );
+    expect(reports.map((report) => report.slug)).toEqual([
+      "2026-09-30-just-ended",
+    ]);
+  });
+
   test("a dry run scores and adds nothing", async () => {
     const db = await seededDatabase();
     databases.push(db);
@@ -489,6 +571,36 @@ describe("reviewing", () => {
       ["abXcd", "pending"],
       ["ab_cd", "hidden"],
     ]);
+  });
+
+  test("a handle and record key that several stored posts share changes none of them", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await db.exec(`
+      INSERT INTO event_posts (event_id, platform, url, author_name, author_handle, posted_at, text, status, updated_at) VALUES
+        ('e0000000-0000-4000-8000-000000000001', 'bluesky', 'https://bsky.app/profile/did:plc:one/post/3same', 'A', 'ada.bsky.social', now(), 't', 'pending', now()),
+        ('e0000000-0000-4000-8000-000000000001', 'bluesky', 'https://bsky.app/profile/did:plc:two/post/3same', 'A', 'ada.bsky.social', now(), 't', 'pending', now());
+    `);
+    const change = await Effect.runPromise(
+      setPostStatus(
+        "https://bsky.app/profile/ada.bsky.social/post/3same",
+        "approved",
+      ).pipe(Effect.provide(sqlLayer(db))),
+    );
+    expect(change).toMatchObject({
+      _tag: "Ambiguous",
+      url: "https://bsky.app/profile/ada.bsky.social/post/3same",
+    });
+    expect(
+      change._tag === "Ambiguous" ? change.matches.toSorted() : [],
+    ).toEqual([
+      "https://bsky.app/profile/did:plc:one/post/3same",
+      "https://bsky.app/profile/did:plc:two/post/3same",
+    ]);
+    const { rows } = await db.query<{ status: string }>(
+      "SELECT status FROM event_posts WHERE url LIKE '%/post/3same'",
+    );
+    expect(rows.map((r) => r.status)).toEqual(["pending", "pending"]);
   });
 
   test("approve and hide, by URL; a hidden post stays hidden through later searches", async () => {

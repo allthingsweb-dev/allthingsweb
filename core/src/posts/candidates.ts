@@ -197,8 +197,10 @@ export interface SearchResult {
 
 export interface CandidateSearchShape {
   readonly platform: "x" | "bluesky";
-  /** Posts that might be about the evening, from this platform's search. */
-  /** At most `maxQueries` requests; every query by default. */
+  /**
+   * Posts that might be about the evening, from this platform's search: at
+   * most `maxQueries` requests, every query by default.
+   */
   readonly search: (
     signals: EventSignals,
     maxQueries?: number,
@@ -529,18 +531,20 @@ export const makeXSearch = Effect.gen(function* () {
               failures.push(`search answered ${response.status}`);
               continue;
             }
-            const answer = yield* response.json.pipe(
-              Effect.flatMap(Schema.decodeUnknownEffect(XSearchAnswer)),
-              Effect.mapError(
-                () =>
-                  new CandidateSearchError({
-                    platform: "x",
-                    reason: "the answer is not a search result",
-                    requests: queries.length,
-                  }),
+            // An answer that isn't a search result is one failed query; what
+            // the others found stays.
+            const answer = yield* Effect.result(
+              response.json.pipe(
+                Effect.flatMap(Schema.decodeUnknownEffect(XSearchAnswer)),
               ),
             );
-            for (const post of fromXSearch(answer)) found.set(post.url, post);
+            if (answer._tag === "Failure") {
+              failures.push("the answer is not a search result");
+              continue;
+            }
+            for (const post of fromXSearch(answer.success)) {
+              found.set(post.url, post);
+            }
           }
           if (failures.length === queries.length) {
             return yield* new CandidateSearchError({
@@ -712,7 +716,10 @@ export const findCandidates = (options: CandidateOptions) =>
           : sql`e.slug IN ${sql.in(scope.slugs)}`
         : scope._tag === "Past"
           ? sql`TRUE`
-          : sql`e.end_date >= ${DateTime.toDateUtc(recentSince)}`;
+          : // Ended, and within the window: an evening still on doesn't
+            // take a slot from one that has finished.
+            sql`e.end_date >= ${DateTime.toDateUtc(recentSince)}
+              AND e.end_date < ${DateTime.toDateUtc(now)}`;
     const rows = yield* sql`
       SELECT e.slug, e.name, e.topic, e.start_date AS "startDate",
         e.end_date AS "endDate", e.luma_event_id AS "lumaEventId",

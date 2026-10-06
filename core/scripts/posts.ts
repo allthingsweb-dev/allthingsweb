@@ -251,12 +251,17 @@ const statusCommand = (name: "approve" | "hide") =>
               ? `${change.url} (${change.eventSlug}): ${change.from} → ${change.to}`
               : change._tag === "Unchanged"
                 ? `${change.url}: already ${change.status}`
-                : `${change.url}: no stored post`,
+                : change._tag === "Ambiguous"
+                  ? `${change.url}: several stored posts match, name one by its URL: ${change.matches.join(", ")}`
+                  : `${change.url}: no stored post`,
         );
-        // As JSON, a missing post is an answer like any other (the MCP tools
-        // show it); in text, it is a failure the shell sees.
+        // As JSON, a missing or ambiguous post is an answer like any other
+        // (the MCP tools show it); in text, it is a failure the shell sees.
         if (change._tag === "NotFound" && !json) {
           yield* Effect.fail(new Error(`No stored post at ${url}`));
+        }
+        if (change._tag === "Ambiguous" && !json) {
+          yield* Effect.fail(new Error(`Several stored posts match ${url}`));
         }
       }).pipe(Effect.provide(Database.layer)),
   ).pipe(
