@@ -134,6 +134,7 @@ describe("About", () => {
     expect(about.organizers).toEqual([
       {
         id: grace,
+        slug: "grace-hopper",
         name: "Grace Hopper",
         title: "Admiral",
         bio: null,
@@ -146,6 +147,7 @@ describe("About", () => {
       },
       {
         id: ada,
+        slug: "ada-lovelace",
         name: "Ada Lovelace",
         title: "Engineer",
         bio: "Writes compilers.",

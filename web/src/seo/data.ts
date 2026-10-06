@@ -25,6 +25,14 @@ export const FeedEvent = Schema.Struct({
 
 export type FeedEvent = typeof FeedEvent.Type;
 
+/** A person with a page the sitemap lists: their slug, and when it changed. */
+export const FeedPerson = Schema.Struct({
+  slug: Schema.String,
+  updatedAt: Schema.DateTimeUtcFromDate,
+});
+
+export type FeedPerson = typeof FeedPerson.Type;
+
 /** What is read of each event: the feed's fields, and Luma's summary. */
 const FeedRow = Schema.Struct({
   ...FeedEvent.fields,
@@ -38,6 +46,15 @@ export interface FeedDataShape {
    */
   readonly listPublished: Effect.Effect<
     ReadonlyArray<FeedEvent>,
+    DataSourceError
+  >;
+  /**
+   * Everyone who took part in a published evening (on stage, or as its
+   * organizer, co-host or MC), by slug, so the same data always makes the
+   * same sitemap.
+   */
+  readonly listPeople: Effect.Effect<
+    ReadonlyArray<FeedPerson>,
     DataSourceError
   >;
 }
@@ -56,6 +73,24 @@ const make = Effect.gen(function* () {
       WHERE e.is_draft = false
       ORDER BY e.start_date DESC, e.id`,
   });
+  const listPeople = SqlSchema.findAll({
+    Request: Schema.Void,
+    Result: FeedPerson,
+    execute: () => sql`
+      SELECT p.slug, p.updated_at AS "updatedAt"
+      FROM profiles p
+      WHERE EXISTS (
+          SELECT 1 FROM talk_speakers ts
+          JOIN event_talks et ON et.talk_id = ts.talk_id
+          JOIN events e ON e.id = et.event_id
+          WHERE ts.speaker_id = p.id AND e.is_draft = false
+        ) OR EXISTS (
+          SELECT 1 FROM event_people ep
+          JOIN events e ON e.id = ep.event_id
+          WHERE ep.profile_id = p.id AND e.is_draft = false
+        )
+      ORDER BY p.slug`,
+  });
   return FeedData.of({
     listPublished: listPublished(undefined).pipe(
       Effect.map((rows) =>
@@ -66,6 +101,9 @@ const make = Effect.gen(function* () {
           }),
         ),
       ),
+      Effect.mapError((cause) => new DataSourceError({ cause })),
+    ),
+    listPeople: listPeople(undefined).pipe(
       Effect.mapError((cause) => new DataSourceError({ cause })),
     ),
   });

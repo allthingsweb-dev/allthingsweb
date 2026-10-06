@@ -3,6 +3,7 @@ import * as Database from "allthings-core/src/database.ts";
 import { About } from "allthings-core/src/about.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
+import { ExternalTalks } from "allthings-core/src/external-talks.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
 import { Events } from "allthings-core/src/events.ts";
 import { Home } from "allthings-core/src/home.ts";
@@ -20,6 +21,7 @@ export type Repositories =
   | Evenings
   | EventPages
   | Events
+  | ExternalTalks
   | FeedData
   | Home
   | PeopleDirectory
@@ -94,6 +96,7 @@ export const repositories: Layer.Layer<Repositories, DataSourceError> =
         Evenings.layer,
         EventPages.layer,
         Events.layer,
+        ExternalTalks.layer,
         FeedData.layer,
         Home.layer,
         PeopleDirectory.layer,

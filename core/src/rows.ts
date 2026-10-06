@@ -40,6 +40,8 @@ export const Event = Schema.Struct({
 /** A `profiles` row as a speaker: who they are and where to find them. */
 export const Profile = Schema.Struct({
   id: Schema.String,
+  /** Their address on the site, /people/<slug> (see src/person-slug.ts). */
+  slug: Schema.String,
   name: Schema.String,
   title: Schema.String,
   bio: Schema.String,

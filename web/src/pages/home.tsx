@@ -266,12 +266,15 @@ export function unavailablePage({
   path,
   theme,
   images,
+  said = "The evenings didn’t load. Try again in a minute.",
 }: {
   readonly origin: string;
   /** The page that couldn't be read, which stays its canonical URL. */
   readonly path: `/${string}`;
   readonly theme: Theme | undefined;
   readonly images: ImageMode;
+  /** What didn't load, said plainly. */
+  readonly said?: string;
 }): string {
   return Document({
     meta: {
@@ -291,8 +294,8 @@ export function unavailablePage({
           all things<span class="slash">/</span>
           <Cursor />
         </h1>
-        <p class="lead at-type-lead">
-          The evenings didn’t load. Try again in a minute.
+        <p class="lead at-type-lead" safe>
+          {said}
         </p>
       </div>
     ),

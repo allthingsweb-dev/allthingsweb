@@ -1,6 +1,6 @@
 {
-  "id": "e48a33f7-72c5-49bc-9073-f4a8b0303de1",
-  "prevId": "080b47f5-2077-4743-803a-0e717b5b089a",
+  "id": "080b47f5-2077-4743-803a-0e717b5b089a",
+  "prevId": "40d4c6a4-be5b-4e52-b7f8-0ee6ab137ff8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -40,12 +40,12 @@
         "administrators_user_id_users_sync_id_fk": {
           "name": "administrators_user_id_users_sync_id_fk",
           "tableFrom": "administrators",
-          "columnsFrom": ["user_id"],
           "tableTo": "users_sync",
           "schemaTo": "neon_auth",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -89,20 +89,20 @@
         "event_sponsors_event_id_events_id_fk": {
           "name": "event_sponsors_event_id_events_id_fk",
           "tableFrom": "event_sponsors",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "event_sponsors_sponsor_id_sponsors_id_fk": {
           "name": "event_sponsors_sponsor_id_sponsors_id_fk",
           "tableFrom": "event_sponsors",
-          "columnsFrom": ["sponsor_id"],
           "tableTo": "sponsors",
+          "columnsFrom": ["sponsor_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -151,20 +151,20 @@
         "event_images_event_id_events_id_fk": {
           "name": "event_images_event_id_events_id_fk",
           "tableFrom": "event_images",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "event_images_image_id_images_id_fk": {
           "name": "event_images_image_id_images_id_fk",
           "tableFrom": "event_images",
-          "columnsFrom": ["image_id"],
           "tableTo": "images",
+          "columnsFrom": ["image_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -225,11 +225,11 @@
         "event_notes_event_id_events_id_fk": {
           "name": "event_notes_event_id_events_id_fk",
           "tableFrom": "event_notes",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -301,20 +301,20 @@
         "event_people_event_id_events_id_fk": {
           "name": "event_people_event_id_events_id_fk",
           "tableFrom": "event_people",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "event_people_profile_id_profiles_id_fk": {
           "name": "event_people_profile_id_profiles_id_fk",
           "tableFrom": "event_people",
-          "columnsFrom": ["profile_id"],
           "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -457,46 +457,46 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "event_posts_event_id_events_id_fk": {
           "name": "event_posts_event_id_events_id_fk",
           "tableFrom": "event_posts",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "event_posts_author_avatar_images_id_fk": {
           "name": "event_posts_author_avatar_images_id_fk",
           "tableFrom": "event_posts",
-          "columnsFrom": ["author_avatar"],
           "tableTo": "images",
+          "columnsFrom": ["author_avatar"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "event_posts_image_images_id_fk": {
           "name": "event_posts_image_images_id_fk",
           "tableFrom": "event_posts",
-          "columnsFrom": ["image"],
           "tableTo": "images",
+          "columnsFrom": ["image"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "event_posts_url_unique": {
           "name": "event_posts_url_unique",
-          "columns": ["url"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["url"]
         }
       },
       "policies": {},
@@ -592,24 +592,24 @@
         "event_review_sessions_event_id_events_id_fk": {
           "name": "event_review_sessions_event_id_events_id_fk",
           "tableFrom": "event_review_sessions",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "event_review_sessions_event_id_unique": {
           "name": "event_review_sessions_event_id_unique",
-          "columns": ["event_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["event_id"]
         },
         "event_review_sessions_thread_id_unique": {
           "name": "event_review_sessions_thread_id_unique",
-          "columns": ["thread_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["thread_id"]
         }
       },
       "policies": {},
@@ -670,11 +670,11 @@
         "event_schedule_items_event_id_events_id_fk": {
           "name": "event_schedule_items_event_id_events_id_fk",
           "tableFrom": "event_schedule_items",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -722,19 +722,19 @@
         "event_slugs_event_id_events_id_fk": {
           "name": "event_slugs_event_id_events_id_fk",
           "tableFrom": "event_slugs",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "event_slugs_event_id_slug_unique": {
           "name": "event_slugs_event_id_slug_unique",
-          "columns": ["event_id", "slug"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["event_id", "slug"]
         }
       },
       "policies": {},
@@ -793,20 +793,20 @@
         "event_talks_event_id_events_id_fk": {
           "name": "event_talks_event_id_events_id_fk",
           "tableFrom": "event_talks",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "event_talks_talk_id_talks_id_fk": {
           "name": "event_talks_talk_id_talks_id_fk",
           "tableFrom": "event_talks",
-          "columnsFrom": ["talk_id"],
           "tableTo": "talks",
+          "columnsFrom": ["talk_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1010,47 +1010,47 @@
         "events_preview_image_images_id_fk": {
           "name": "events_preview_image_images_id_fk",
           "tableFrom": "events",
-          "columnsFrom": ["preview_image"],
           "tableTo": "images",
+          "columnsFrom": ["preview_image"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "events_organized_by_sponsors_id_fk": {
           "name": "events_organized_by_sponsors_id_fk",
           "tableFrom": "events",
-          "columnsFrom": ["organized_by"],
           "tableTo": "sponsors",
+          "columnsFrom": ["organized_by"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "events_id_short_slug_event_slugs_fk": {
           "name": "events_id_short_slug_event_slugs_fk",
           "tableFrom": "events",
-          "columnsFrom": ["id", "short_slug"],
           "tableTo": "event_slugs",
+          "columnsFrom": ["id", "short_slug"],
           "columnsTo": ["event_id", "slug"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "events_slug_unique": {
           "name": "events_slug_unique",
-          "columns": ["slug"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["slug"]
         },
         "events_luma_event_id_unique": {
           "name": "events_luma_event_id_unique",
-          "columns": ["luma_event_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["luma_event_id"]
         },
         "events_short_slug_unique": {
           "name": "events_short_slug_unique",
-          "columns": ["short_slug"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["short_slug"]
         }
       },
       "policies": {},
@@ -1177,28 +1177,28 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "external_talks_profile_id_profiles_id_fk": {
           "name": "external_talks_profile_id_profiles_id_fk",
           "tableFrom": "external_talks",
-          "columnsFrom": ["profile_id"],
           "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "external_talks_profile_id_title_given_on_unique": {
           "name": "external_talks_profile_id_title_given_on_unique",
-          "columns": ["profile_id", "title", "given_on"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["profile_id", "title", "given_on"]
         }
       },
       "policies": {},
@@ -1306,33 +1306,33 @@
         "sponsors_square_logo_dark_images_id_fk": {
           "name": "sponsors_square_logo_dark_images_id_fk",
           "tableFrom": "sponsors",
-          "columnsFrom": ["square_logo_dark"],
           "tableTo": "images",
+          "columnsFrom": ["square_logo_dark"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "sponsors_square_logo_light_images_id_fk": {
           "name": "sponsors_square_logo_light_images_id_fk",
           "tableFrom": "sponsors",
-          "columnsFrom": ["square_logo_light"],
           "tableTo": "images",
+          "columnsFrom": ["square_logo_light"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sponsors_name_unique": {
           "name": "sponsors_name_unique",
-          "columns": ["name"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["name"]
         },
         "sponsors_luma_user_id_unique": {
           "name": "sponsors_luma_user_id_unique",
-          "columns": ["luma_user_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["luma_user_id"]
         }
       },
       "policies": {},
@@ -1485,21 +1485,21 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "availability_wanted_speaker_id_wanted_speakers_id_fk": {
           "name": "availability_wanted_speaker_id_wanted_speakers_id_fk",
           "tableFrom": "availability",
-          "columnsFrom": ["wanted_speaker_id"],
           "tableTo": "wanted_speakers",
           "schemaTo": "planning",
+          "columnsFrom": ["wanted_speaker_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1576,11 +1576,11 @@
         "contacts_sponsor_id_sponsors_id_fk": {
           "name": "contacts_sponsor_id_sponsors_id_fk",
           "tableFrom": "contacts",
-          "columnsFrom": ["sponsor_id"],
           "tableTo": "sponsors",
+          "columnsFrom": ["sponsor_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1665,44 +1665,44 @@
           "columns": [
             {
               "expression": "lower(\"company_name\")",
-              "isExpression": true,
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "host_prospects_sponsor_id_sponsors_id_fk": {
           "name": "host_prospects_sponsor_id_sponsors_id_fk",
           "tableFrom": "host_prospects",
-          "columnsFrom": ["sponsor_id"],
           "tableTo": "sponsors",
+          "columnsFrom": ["sponsor_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "host_prospects_contact_id_contacts_id_fk": {
           "name": "host_prospects_contact_id_contacts_id_fk",
           "tableFrom": "host_prospects",
-          "columnsFrom": ["contact_id"],
           "tableTo": "contacts",
           "schemaTo": "planning",
+          "columnsFrom": ["contact_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "host_prospects_sponsor_id_unique": {
           "name": "host_prospects_sponsor_id_unique",
-          "columns": ["sponsor_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["sponsor_id"]
         }
       },
       "policies": {},
@@ -1796,28 +1796,28 @@
         "ideas_event_id_events_id_fk": {
           "name": "ideas_event_id_events_id_fk",
           "tableFrom": "ideas",
-          "columnsFrom": ["event_id"],
           "tableTo": "events",
+          "columnsFrom": ["event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "ideas_inspired_by_event_id_events_id_fk": {
           "name": "ideas_inspired_by_event_id_events_id_fk",
           "tableFrom": "ideas",
-          "columnsFrom": ["inspired_by_event_id"],
           "tableTo": "events",
+          "columnsFrom": ["inspired_by_event_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "ideas_event_id_unique": {
           "name": "ideas_event_id_unique",
-          "columns": ["event_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["event_id"]
         }
       },
       "policies": {},
@@ -1910,9 +1910,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "notes_sponsor_id_idx": {
           "name": "notes_sponsor_id_idx",
@@ -1925,9 +1925,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "notes_contact_id_idx": {
           "name": "notes_contact_id_idx",
@@ -1940,39 +1940,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "notes_profile_id_profiles_id_fk": {
           "name": "notes_profile_id_profiles_id_fk",
           "tableFrom": "notes",
-          "columnsFrom": ["profile_id"],
           "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "notes_sponsor_id_sponsors_id_fk": {
           "name": "notes_sponsor_id_sponsors_id_fk",
           "tableFrom": "notes",
-          "columnsFrom": ["sponsor_id"],
           "tableTo": "sponsors",
+          "columnsFrom": ["sponsor_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "notes_contact_id_contacts_id_fk": {
           "name": "notes_contact_id_contacts_id_fk",
           "tableFrom": "notes",
-          "columnsFrom": ["contact_id"],
           "tableTo": "contacts",
           "schemaTo": "planning",
+          "columnsFrom": ["contact_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2023,21 +2023,21 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "wanted_speaker_topics_wanted_speaker_id_wanted_speakers_id_fk": {
           "name": "wanted_speaker_topics_wanted_speaker_id_wanted_speakers_id_fk",
           "tableFrom": "wanted_speaker_topics",
-          "columnsFrom": ["wanted_speaker_id"],
           "tableTo": "wanted_speakers",
           "schemaTo": "planning",
+          "columnsFrom": ["wanted_speaker_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2112,34 +2112,34 @@
         "wanted_speakers_profile_id_profiles_id_fk": {
           "name": "wanted_speakers_profile_id_profiles_id_fk",
           "tableFrom": "wanted_speakers",
-          "columnsFrom": ["profile_id"],
           "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "wanted_speakers_contact_id_contacts_id_fk": {
           "name": "wanted_speakers_contact_id_contacts_id_fk",
           "tableFrom": "wanted_speakers",
-          "columnsFrom": ["contact_id"],
           "tableTo": "contacts",
           "schemaTo": "planning",
+          "columnsFrom": ["contact_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "wanted_speakers_profile_id_unique": {
           "name": "wanted_speakers_profile_id_unique",
-          "columns": ["profile_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["profile_id"]
         },
         "wanted_speakers_contact_id_unique": {
           "name": "wanted_speakers_contact_id_unique",
-          "columns": ["contact_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["contact_id"]
         }
       },
       "policies": {},
@@ -2191,20 +2191,20 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "profile_slugs_profile_id_profiles_id_fk": {
           "name": "profile_slugs_profile_id_profiles_id_fk",
           "tableFrom": "profile_slugs",
-          "columnsFrom": ["profile_id"],
           "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2253,21 +2253,21 @@
         "profile_users_profile_id_profiles_id_fk": {
           "name": "profile_users_profile_id_profiles_id_fk",
           "tableFrom": "profile_users",
-          "columnsFrom": ["profile_id"],
           "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "profile_users_user_id_users_sync_id_fk": {
           "name": "profile_users_user_id_users_sync_id_fk",
           "tableFrom": "profile_users",
-          "columnsFrom": ["user_id"],
           "tableTo": "users_sync",
           "schemaTo": "neon_auth",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2279,8 +2279,8 @@
       "uniqueConstraints": {
         "profile_users_profile_id_unique": {
           "name": "profile_users_profile_id_unique",
-          "columns": ["profile_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["profile_id"]
         }
       },
       "policies": {},
@@ -2403,24 +2403,24 @@
         "profiles_image_images_id_fk": {
           "name": "profiles_image_images_id_fk",
           "tableFrom": "profiles",
-          "columnsFrom": ["image"],
           "tableTo": "images",
+          "columnsFrom": ["image"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "profiles_luma_user_id_unique": {
           "name": "profiles_luma_user_id_unique",
-          "columns": ["luma_user_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["luma_user_id"]
         },
         "profiles_slug_unique": {
           "name": "profiles_slug_unique",
-          "columns": ["slug"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -2530,20 +2530,20 @@
         "talk_speakers_talk_id_talks_id_fk": {
           "name": "talk_speakers_talk_id_talks_id_fk",
           "tableFrom": "talk_speakers",
-          "columnsFrom": ["talk_id"],
           "tableTo": "talks",
+          "columnsFrom": ["talk_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "talk_speakers_speaker_id_profiles_id_fk": {
           "name": "talk_speakers_speaker_id_profiles_id_fk",
           "tableFrom": "talk_speakers",
-          "columnsFrom": ["speaker_id"],
           "tableTo": "profiles",
+          "columnsFrom": ["speaker_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2685,10 +2685,10 @@
   "schemas": {
     "planning": "planning"
   },
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

@@ -31,6 +31,12 @@ await db.exec(`
     updated_at = '2026-02-01T00:00:00Z';
   INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, program, is_draft, created_at, updated_at) VALUES
     ('e0000000-0000-4000-8000-000000000401', '2024-10-05-hackathon & more', '</title><item>Hack & tell</item>', 'Bring "<b>" ideas', '2024-10-05T16:00:00Z', '2024-10-06T02:00:00Z', 100, true, 'hackathon', false, '2026-09-16T00:00:00Z', '2026-09-17T00:00:00Z');
+  -- Zoë judged the hackathon; Nobody took part in nothing, so has no entry.
+  INSERT INTO profiles (id, name, title, bio, profile_type, updated_at) VALUES
+    ('b0000000-0000-4000-8000-000000000901', 'Zoë Judge', '', '', 'member', '2026-09-18T00:00:00Z'),
+    ('b0000000-0000-4000-8000-000000000902', 'Nobody', '', '', 'member', now());
+  INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
+    ('e0000000-0000-4000-8000-000000000401', 'b0000000-0000-4000-8000-000000000901', 'co-host', 0, 'site', now());
 `);
 const database = await serve(db);
 
@@ -156,9 +162,13 @@ describe("/sitemap.xml", () => {
     expect(entries.map((entry) => entry.loc)).toEqual([
       ...sitePages.map((path) => `${origin}${path}`),
       ...published.map((slug) => `${origin}/${encodeURIComponent(slug)}`),
+      // Everyone who took part in a published evening has a page.
+      `${origin}/people/zoe-judge`,
     ]);
     expect(body).not.toContain("draft");
-    expect(entries.at(-1)?.lastmod).toBe("2026-09-17T00:00:00.000Z");
+    expect(body).not.toContain("/people/nobody");
+    expect(entries.at(-2)?.lastmod).toBe("2026-09-17T00:00:00.000Z");
+    expect(entries.at(-1)?.lastmod).toBe("2026-09-18T00:00:00.000Z");
     // The site's own pages have none; every event says when it changed.
     expect(entries.filter((entry) => entry.lastmod === undefined)).toHaveLength(
       sitePages.length,

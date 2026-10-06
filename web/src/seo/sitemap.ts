@@ -1,6 +1,7 @@
 import { eventUrl } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
-import type { FeedEvent } from "./data.ts";
+import { personPath } from "../links.ts";
+import type { FeedEvent, FeedPerson } from "./data.ts";
 import { escapeXml } from "./xml.ts";
 
 /**
@@ -36,6 +37,7 @@ const url = (loc: string, lastmod?: DateTime.Utc) =>
 export function sitemapXml(
   events: ReadonlyArray<FeedEvent>,
   origin: string,
+  people: ReadonlyArray<FeedPerson> = [],
 ): string {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -43,6 +45,9 @@ export function sitemapXml(
     ...sitePages.map((path) => url(`${origin}${path}`)),
     ...events.map((event) =>
       url(eventUrl(origin, event.slug), event.updatedAt),
+    ),
+    ...people.map((person) =>
+      url(`${origin}${personPath(person.slug)}`, person.updatedAt),
     ),
     "</urlset>",
     "",
