@@ -81,7 +81,7 @@ describe("scoreCandidate", () => {
         signals,
         post({
           authorHandle: "Ada",
-          text: "React at Acme tonight! all things react, thanks Globex",
+          text: "React at Acme tonight! All Things Web, thanks Globex",
           mentions: ["ada"],
           postedAt: at("2026-08-13T02:00:00Z"),
         }),
@@ -97,6 +97,31 @@ describe("scoreCandidate", () => {
         "+2 posted on the night",
       ],
     });
+  });
+
+  test("'all things' in plain English is not the name", () => {
+    const sync = { ...signals, topic: "sync" };
+    // Seen in production: it says neither all things/sync nor All Things Web.
+    expect(
+      scoreCandidate(
+        sync,
+        post({
+          text: "it'll have a completely out-of-sync number, all things considered.",
+          postedAt: at("2026-08-13T02:00:00Z"),
+        }),
+      ),
+    ).toEqual({
+      score: 3,
+      reasons: ["+1 says sync", "+2 posted on the night"],
+    });
+    const ai = { ...signals, topic: "ai" };
+    expect(
+      scoreCandidate(ai, post({ text: "A podcast about all things AI" })),
+    ).toEqual({ score: 2, reasons: ['+2 says "all things ai"'] });
+    expect(
+      scoreCandidate(ai, post({ text: "see you at all things/ai tonight" }))
+        .score,
+    ).toBe(3);
   });
 
   test("a word that only resembles the topic or a host scores nothing", () => {

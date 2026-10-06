@@ -122,11 +122,22 @@ export function scoreCandidate(
   const name = displayName(signals.name);
   const named = name.split(/\s+/).length >= 2 && hasPhrase(words, name);
   if (named) score += add(4, `names "${name}"`);
+  // The name, as people write it: "All Things Web", "allthings",
+  // "#allthingsweb", "all things/effect". "All things <topic>" alone is
+  // common English ("all things AI"), so it earns less.
+  const topicLockup =
+    signals.topic === null
+      ? null
+      : new RegExp(
+          `all\\s*things\\s*/?\\s*${signals.topic.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`,
+          "iu",
+        );
   if (
-    /all\s*things|allthings|#allthingsweb/i.test(words) &&
-    (signals.topic === null || hasPhrase(words, signals.topic))
+    /all\s*things\s*web|allthings|#allthingsweb|all\s*things\s*\//i.test(words)
   ) {
     score += add(3, "says all things");
+  } else if (topicLockup?.test(words) === true) {
+    score += add(2, `says "all things ${signals.topic ?? ""}"`);
   } else if (signals.topic !== null && hasPhrase(words, signals.topic)) {
     score += add(1, `says ${signals.topic}`);
   }
