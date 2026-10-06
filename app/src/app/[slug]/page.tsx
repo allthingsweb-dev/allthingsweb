@@ -20,16 +20,17 @@ interface PageProps {
 
 /**
  * The published event at `slug`. A short link the new site gives
- * (core/src/short-slugs.ts) is sent to the event's page here for good;
- * anything else is not found.
+ * (core/src/short-slugs.ts) is sent to its event's page here for good,
+ * first, as the new site prefers a link to a long slug; anything else
+ * that is no published event is not found.
  */
 async function publishedEvent(slug: string) {
-  const event = await getExpandedEventBySlug(slug);
-  if (event && !event.isDraft) return event;
   const long = await longSlugForShortLink(db, slug);
-  return long === null
-    ? notFound()
-    : permanentRedirect(`/${encodeURIComponent(long)}`);
+  if (long !== null && long !== slug) {
+    return permanentRedirect(`/${encodeURIComponent(long)}`);
+  }
+  const event = await getExpandedEventBySlug(slug);
+  return event && !event.isDraft ? event : notFound();
 }
 
 export async function generateMetadata({
