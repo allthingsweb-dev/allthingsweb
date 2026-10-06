@@ -667,10 +667,7 @@ describe("core/backfill/lineups.json", () => {
       event.people[0].person === "erik-thorelli";
     expect(subset.events.filter(erikMcOnly).map((event) => event.name)).toEqual(
       [
-        "Remix Bay Area at Solv",
-        "Remix Bay Area at Solv",
         "React Bay Area at Sanity",
-        "Remix Bay Area at Little Skillet",
         "React Bay Area at Mux",
         "React Bay Area at Cisco Meraki",
         "Open Source Hackathon",
@@ -709,6 +706,35 @@ describe("core/backfill/lineups.json", () => {
         ]),
     ).toEqual([
       [
+        "Remix Bay Area at Solv",
+        [],
+        [
+          "mc erik-thorelli",
+          "organizer erik-thorelli",
+          "organizer andre-landgraf",
+          "co-host oscar-newman",
+        ],
+      ],
+      [
+        "Remix Bay Area at Solv",
+        [],
+        [
+          "mc erik-thorelli",
+          "organizer erik-thorelli",
+          "organizer andre-landgraf",
+          "co-host oscar-newman",
+        ],
+      ],
+      [
+        "Remix Bay Area at Little Skillet",
+        [],
+        [
+          "mc erik-thorelli",
+          "organizer erik-thorelli",
+          "organizer andre-landgraf",
+        ],
+      ],
+      [
         "Effect San Francisco",
         [
           "State of Effect 2026",
@@ -741,7 +767,7 @@ describe("core/backfill/lineups.json", () => {
           "Three Generations of MCP Server Design",
           "Compliance, Reliability, Observability: David Cusatis on Scaling Agents at Range",
         ],
-        [],
+        ["co-host neha-varshneya"],
       ],
       ["NextDev.fm Live", ["NextDev.fm Live"], ["mc erik-thorelli"]],
     ]);
@@ -783,6 +809,7 @@ describe("core/backfill/lineups.json", () => {
     ]);
     expect(Object.keys(subset.people).toSorted()).toEqual([
       "abhi-aiyer",
+      "andre-landgraf",
       "arthur-stockman",
       "dan-goosewin",
       "david-cusatis",
@@ -799,8 +826,10 @@ describe("core/backfill/lineups.json", () => {
       "michael-grinich",
       "mirela-prifti",
       "neel-rao",
+      "neha-varshneya",
       "nicholas-pipitone",
       "nikhil-gupta",
+      "oscar-newman",
       "rhys-sullivan",
       "rostislav-melkumyan",
       "ryan-vogel",
