@@ -466,9 +466,16 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
         }
         lines.push(`${key} ${row.name}`);
         for (const removed of event.remove?.talks ?? []) {
-          const [talk] = yield* sql<{ id: string }>`
+          const matches = yield* sql<{ id: string }>`
             SELECT t.id FROM event_talks et JOIN talks t ON t.id = et.talk_id
             WHERE et.event_id = ${row.id}::uuid AND lower(t.title) = lower(${removed.title})`;
+          // Several talks by that title: which one the file means is unsaid.
+          if (matches.length > 1) {
+            return yield* fail(
+              `${key}: ${matches.length} talks are titled "${removed.title}"; none was removed`,
+            );
+          }
+          const [talk] = matches;
           if (talk === undefined) {
             lines.push(`  talk "${removed.title}": not there`);
             continue;

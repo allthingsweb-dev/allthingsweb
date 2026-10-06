@@ -308,6 +308,40 @@ describe("applying lineups", () => {
     );
   });
 
+  test("a removal two talks' titles match removes neither", async () => {
+    const db = await database();
+    expect(Exit.isSuccess(await apply(db, lineups))).toBe(true);
+    await db.query(`
+      WITH twin AS (
+        INSERT INTO talks (title, description, format, updated_at)
+        VALUES ('A Fireside', '', 'talk', now()) RETURNING id
+      )
+      INSERT INTO event_talks (event_id, talk_id, created_at, updated_at)
+      SELECT 'e0000000-0000-4000-8000-000000000001', id, now(), now() FROM twin`);
+    const before = await state(db);
+    const exit = await apply(db, {
+      people: {},
+      events: [
+        {
+          slug: "2026-08-12-react-at-acme",
+          name: "React at Acme",
+          talks: [],
+          people: [],
+          remove: { talks: [{ title: "a fireside", sources: source }] },
+        },
+      ],
+    });
+    expect(exit).toEqual(
+      Exit.fail(
+        new LineupError({
+          reason:
+            '2026-08-12-react-at-acme: 2 talks are titled "a fireside"; none was removed',
+        }),
+      ),
+    );
+    expect(await state(db)).toEqual(before);
+  });
+
   test("an event needs a Luma id or a slug", () => {
     const decode = Schema.decodeUnknownExit(Lineups);
     const event = { name: "Nameless", talks: [], people: [] };
