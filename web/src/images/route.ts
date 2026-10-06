@@ -224,8 +224,12 @@ const untypedTypes = new Set([
   "binary/octet-stream",
 ]);
 
-/** Enough of a file's start to tell the raster types apart. */
-const signatureLength = 12;
+/**
+ * Enough of a file's start to tell the raster types apart: the longest
+ * signature, and an AVIF's FileTypeBox with its compatible brands, which
+ * may name AVIF after another major brand (such as mif1).
+ */
+const signatureLength = 64;
 
 const startsWith = (bytes: Uint8Array, at: number, ascii: string) =>
   Array.from(ascii).every(
@@ -233,9 +237,30 @@ const startsWith = (bytes: Uint8Array, at: number, ascii: string) =>
   );
 
 /**
+ * Whether an ISO base media file's FileTypeBox, at its start, names an
+ * AVIF brand: as its major brand, or among its compatible brands, read
+ * only within the box and within `bytes`.
+ */
+const isAvif = (bytes: Uint8Array): boolean => {
+  if (bytes.length < 12 || !startsWith(bytes, 4, "ftyp")) return false;
+  const size = new DataView(
+    bytes.buffer,
+    bytes.byteOffset,
+    bytes.byteLength,
+  ).getUint32(0);
+  const end = Math.min(size, bytes.length);
+  const avif = (at: number) =>
+    startsWith(bytes, at, "avif") || startsWith(bytes, at, "avis");
+  if (avif(8)) return true;
+  // After the major brand (8) and its minor version (12), four bytes each.
+  for (let at = 16; at + 4 <= end; at += 4) if (avif(at)) return true;
+  return false;
+};
+
+/**
  * The raster type a file's first bytes say it is (their published
- * signatures: PNG, JPEG, GIF, WebP's RIFF container, AVIF's ISO box), or
- * undefined when they say none of them.
+ * signatures: PNG, JPEG, GIF, WebP's RIFF container, AVIF's FileTypeBox),
+ * or undefined when they say none of them.
  */
 export function rasterTypeOf(bytes: Uint8Array): string | undefined {
   if (
@@ -254,12 +279,7 @@ export function rasterTypeOf(bytes: Uint8Array): string | undefined {
   if (startsWith(bytes, 0, "RIFF") && startsWith(bytes, 8, "WEBP")) {
     return "image/webp";
   }
-  if (
-    startsWith(bytes, 4, "ftyp") &&
-    (startsWith(bytes, 8, "avif") || startsWith(bytes, 8, "avis"))
-  ) {
-    return "image/avif";
-  }
+  if (isAvif(bytes)) return "image/avif";
   return undefined;
 }
 

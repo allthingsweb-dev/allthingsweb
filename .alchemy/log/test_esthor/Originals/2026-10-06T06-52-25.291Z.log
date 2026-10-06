@@ -1,0 +1,5 @@
+[23:52:26.348] ERROR (#49): Error serving an image variant: FetchFailed: 
+    at file:///bundle/worker.js:2:22630 {
+  [cause]: Error: the media origin sent application/octet-stream, and no image
+      at causePrettyError (file:///bundle/Schema-iIHGqeoY.js:5:19701)
+}

@@ -564,6 +564,12 @@ describe("rasterTypeOf", () => {
     );
     expect(rasterTypeOf(bytes([0, 0, 0, 0x1c], "ftypavif"))).toBe("image/avif");
     expect(rasterTypeOf(bytes([0, 0, 0, 0x1c], "ftypavis"))).toBe("image/avif");
+    // AVIF as a compatible brand, after another major brand.
+    expect(
+      rasterTypeOf(
+        bytes([0, 0, 0, 0x1c], "ftypmif1", [0, 0, 0, 0], "mif1miafavif"),
+      ),
+    ).toBe("image/avif");
   });
 
   unit("knows nothing else, nor a start too short to say", () => {
@@ -572,6 +578,8 @@ describe("rasterTypeOf", () => {
       bytes("<svg xmlns="),
       bytes("RIFF", [0, 0, 0, 0], "WAVE"),
       bytes([0, 0, 0, 0x1c], "ftypmp42"),
+      // A compatible brand past the box's own end is not the box's.
+      bytes([0, 0, 0, 0x14], "ftypmif1", [0, 0, 0, 0], "mif1avif"),
       bytes([0x89, 0x50, 0x4e]),
       bytes(),
     ]) {
