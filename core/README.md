@@ -245,8 +245,10 @@ fact carries the URL it was read from and the day it was read, taken from
 public, keyless sources: the person's own X or Bluesky profile, GitHub,
 their site, a company team page or a conference speaker page.
 
-- A filled column is never overwritten; only blank ones (or handles stored
-  as empty strings) are set.
+- A filled column is kept; only blank ones (or handles stored as empty
+  strings) are set. The one exception: a fact may name the exact stale value
+  it replaces (`was`), and replaces it only while the column still holds
+  just that. A photo source is never replaced once its image is copied.
 - A bio is the person's own words, at most trimmed or put in the third
   person; a terse profile line is no bio.
 - A photo is only ever a `photo_source_url` on a host the hourly ingestion

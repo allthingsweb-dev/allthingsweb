@@ -38,7 +38,7 @@ const command = Command.make(
     }).pipe(Effect.provide(Database.layer)),
 ).pipe(
   Command.withDescription(
-    "Fill people's profiles from sourced facts, never overwriting.",
+    "Fill people's profiles from sourced facts; a filled value is replaced only where the file names it as stale.",
   ),
 );
 

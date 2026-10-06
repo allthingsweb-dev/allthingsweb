@@ -149,6 +149,29 @@ describe("applyPeople", () => {
     ]);
   });
 
+  test("never replaces the photo source of a profile whose image is copied, even when it names the stale one", async () => {
+    const db = await fresh();
+    await db.exec(
+      `UPDATE profiles SET photo_source_url = 'https://avatars.githubusercontent.com/u/1' WHERE id = '${ada}'`,
+    );
+    const exit = await apply(db, [
+      {
+        profileId: ada,
+        name: "Ada Lovelace",
+        photoSourceUrl: {
+          value: "https://avatars.githubusercontent.com/u/2",
+          source,
+          read,
+          was: "https://avatars.githubusercontent.com/u/1",
+        },
+      },
+    ]);
+    expect(Exit.isSuccess(exit) ? exit.value : exit).toEqual([
+      // Kept values are quoted to their first 40 characters.
+      'Ada Lovelace: photo_source_url kept (already "https://avatars.githubusercontent.com/u/")',
+    ]);
+  });
+
   test("a handle stored as an empty string counts as blank", async () => {
     const db = await fresh();
     await db.exec(

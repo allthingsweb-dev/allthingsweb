@@ -8,7 +8,10 @@ import { DataSourceError } from "./errors.ts";
  * titles, bios, links and photos for people on published events, each fact
  * with the URL it was read from and the day it was read. Written in one
  * transaction, and only where the profile has nothing yet: a filled column
- * is never overwritten, whatever the file says. A fact that could not be
+ * is kept, whatever the file says, unless the fact names the exact stale
+ * value it replaces (`was`) and the column still holds just that. A
+ * profile's photo source is never replaced once its image is copied. A
+ * fact that could not be
  * confirmed (a same-name collision, a bio that isn't the person's own
  * words) is kept under `held` with its reason and never written.
  *
@@ -230,7 +233,15 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
           if (value === undefined) continue;
           const current = stored(row, field);
           const was = entry[field]?.was;
-          if (was !== undefined && current === was && current !== value) {
+          // A photo source is replaced only while nothing has been copied
+          // from it: an image already stored stays matched to its source.
+          const replaceable = field !== "photoSourceUrl" || !row.has_image;
+          if (
+            replaceable &&
+            was !== undefined &&
+            current === was &&
+            current !== value
+          ) {
             fill[field] = value;
             notes.push(`${columns[field]} "${was}" → ${value}`);
           } else if (isBlank(current)) {
