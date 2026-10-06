@@ -58,7 +58,9 @@ An evening's talks run in order: `event_talks.position`, from 0, and
 promotion drafts and the completeness report all list talks by position;
 a talk attached without one follows, in the order it was attached. A
 lineup in `backfill/lineups.json` sets both per talk (`position`,
-`startsAt` with its offset, "2026-09-30T18:41:00-07:00").
+`startsAt` with its offset, "2026-09-30T18:41:00-07:00"); it never clears
+them, so unplacing a talk is a manual `UPDATE event_talks SET position =
+NULL, starts_at = NULL`.
 
 ## Luma descriptions
 

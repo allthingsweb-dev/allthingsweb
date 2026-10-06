@@ -52,6 +52,48 @@ const Sources = Schema.Array(Schema.Union([Url, Confirmation])).check(
   Schema.isMinLength(1),
 );
 
+/**
+ * A talk's start with its offset, "2026-09-30T18:41:00-07:00": a day on the
+ * calendar, a time on the clock, a real offset, so the database never
+ * refuses it halfway through a run.
+ */
+const StartsAt = Schema.String.check(
+  Schema.makeFilter((value: string) => {
+    const match =
+      /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(Z|[+-](\d{2}):(\d{2}))$/.exec(
+        value,
+      );
+    if (match === null)
+      return "expected a time with its offset, such as 2026-09-30T18:41:00-07:00";
+    const [
+      ,
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      ,
+      offsetHours,
+      offsetMinutes,
+    ] = match;
+    const date = new Date(
+      Date.UTC(Number(year), Number(month) - 1, Number(day)),
+    );
+    const realDay =
+      date.getUTCFullYear() === Number(year) &&
+      date.getUTCMonth() === Number(month) - 1 &&
+      date.getUTCDate() === Number(day);
+    const realTime =
+      Number(hour) <= 23 &&
+      Number(minute) <= 59 &&
+      Number(second ?? 0) <= 59 &&
+      Number(offsetHours ?? 0) <= 14 &&
+      Number(offsetMinutes ?? 0) <= 59;
+    return realDay && realTime ? undefined : `${value} is not a real time`;
+  }),
+);
+
 /** Someone a lineup names: an existing profile, or one to create. */
 export const Person = Schema.Union([
   Schema.Struct({
@@ -105,13 +147,7 @@ export const Lineups = Schema.Struct({
             Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
           ),
           /** When it started, with its offset: "2026-09-30T18:41:00-07:00". */
-          startsAt: Schema.optionalKey(
-            Schema.String.check(
-              Schema.isPattern(
-                /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/,
-              ),
-            ),
-          ),
+          startsAt: Schema.optionalKey(StartsAt),
           speakers: Schema.Array(
             Schema.Struct({
               person: Schema.String,
@@ -259,7 +295,8 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
 
     /**
      * Sets a talk's place in the evening's running order and its start where
-     * the file gives them; the count of rows changed (0 or 1).
+     * the file gives them; the count of rows changed (0 or 1). A file can't
+     * clear either: unplacing a talk is a manual update.
      */
     const place = (
       eventId: string,

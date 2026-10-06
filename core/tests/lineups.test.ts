@@ -425,6 +425,47 @@ describe("held entries", () => {
   });
 });
 
+describe("a talk's start", () => {
+  const decodes = (startsAt: string) =>
+    Exit.isSuccess(
+      Schema.decodeUnknownExit(Lineups)({
+        people: {
+          ada: {
+            profileId: "b0000000-0000-4000-8000-000000000001",
+            sources: ["https://luma.com/x"],
+          },
+        },
+        events: [
+          {
+            lumaEventId: "evt-react",
+            name: "React at Acme",
+            talks: [
+              {
+                title: "T",
+                format: "talk",
+                description: "",
+                startsAt,
+                speakers: [{ person: "ada", role: "speaker" }],
+                sources: ["https://luma.com/x"],
+                confidence: "high",
+              },
+            ],
+            people: [],
+          },
+        ],
+      }),
+    );
+
+  test("is a real time with its offset", () => {
+    expect(decodes("2026-09-30T18:41:00-07:00")).toBe(true);
+    expect(decodes("2026-09-30T18:41Z")).toBe(true);
+    expect(decodes("2026-02-30T18:41-07:00")).toBe(false);
+    expect(decodes("2026-02-28T25:61-07:00")).toBe(false);
+    expect(decodes("2026-09-30T18:41:00-19:00")).toBe(false);
+    expect(decodes("2026-09-30T18:41:00")).toBe(false);
+  });
+});
+
 describe("an organizer's word as a source", () => {
   const withConfirmation = () => ({
     people: {},
