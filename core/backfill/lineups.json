@@ -644,9 +644,18 @@
             {
               "person": "sebastian-lorenz",
               "role": "speaker"
+            },
+            {
+              "person": "michael-arnaldi",
+              "role": "speaker"
             }
           ],
           "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-06",
+              "in": "chat"
+            },
             {
               "confirmedBy": "Erik",
               "on": "2026-10-05",
