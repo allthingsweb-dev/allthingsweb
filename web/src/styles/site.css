@@ -1176,12 +1176,20 @@ main > section,
   color: var(--at-meta);
 }
 
+/* The evening in its own words, and rows of its own: prose at a reading measure. */
+.event-about,
 .note {
   max-width: var(--at-measure-prose);
 }
 
+.event-about > * + *,
 .note > * + * {
   margin-top: var(--at-space-3);
+}
+
+.event-about :is(ul, ol) {
+  margin-bottom: 0;
+  padding-left: var(--at-space-5);
 }
 
 /*

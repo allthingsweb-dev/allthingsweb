@@ -171,9 +171,16 @@
       "breakpoints": true
     },
     {
+      "idx": 24,
+      "version": "7",
+      "when": 1791247896438,
+      "tag": "0024_event_description",
+      "breakpoints": true
+    },
+    {
       "idx": 29,
       "version": "7",
-      "when": 1791249739549,
+      "when": 1791253309107,
       "tag": "0029_person_slugs",
       "breakpoints": true
     }

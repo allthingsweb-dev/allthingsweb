@@ -12,6 +12,7 @@ import { type StageRole, stageRole } from "./people.ts";
 import { neighborhoodOf } from "./places.ts";
 import { type SafeHtml, sanitizeRichText } from "./rich-text.ts";
 import * as Rows from "./rows.ts";
+import { eventTagline } from "./tagline.ts";
 import {
   curationJson,
   listingJson,
@@ -126,7 +127,17 @@ export interface EventPage {
   readonly name: string;
   /** all things/<topic>: the one the site set, else the name's, if any. */
   readonly topic: string | undefined;
+  /**
+   * The evening in one line: the organizers' tagline, or the summary of
+   * Luma's description while that is a placeholder; empty without either
+   * (src/tagline.ts).
+   */
   readonly tagline: string;
+  /**
+   * What the evening is about, in its own words: the site's description
+   * when it says something, else Luma's. Sanitized; null when neither does.
+   */
+  readonly about: SafeHtml | null;
   /** At the `Clock`'s now. */
   readonly status: Contract.EventStatus;
   /** Night for an evening, Paper for a daytime event (see mode.ts). */
@@ -225,6 +236,9 @@ export const EventPageRow = Schema.Struct({
   name: Schema.String,
   topic: Schema.NullOr(Schema.String),
   tagline: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  lumaDescription: Schema.NullOr(Schema.String),
+  lumaSummary: Schema.NullOr(Schema.String),
   startDate: Schema.DateTimeUtcFromDate,
   endDate: Schema.DateTimeUtcFromDate,
   updatedAt: Schema.DateTimeUtcFromDate,
@@ -377,6 +391,22 @@ const saysSomething = (html: SafeHtml): boolean =>
   html.replace(/<[^>]*>|&nbsp;|\s/g, "") !== "";
 
 /**
+ * What the evening is about: the site's description when it says
+ * something once sanitized, else Luma's, else null.
+ */
+export const aboutOf = (
+  row: Pick<EventPageRow, "description" | "lumaDescription">,
+): Effect.Effect<SafeHtml | null> =>
+  Effect.gen(function* () {
+    for (const text of [row.description, row.lumaDescription]) {
+      if (text === null) continue;
+      const html = yield* sanitizeRichText(text);
+      if (saysSomething(html)) return html;
+    }
+    return null;
+  });
+
+/**
  * The page for `row` as of `now`. Speakers' photos are taken only from
  * `photoOrigin`, as the row's photos were.
  */
@@ -406,14 +436,16 @@ export const toEventPage = (
         (body): Note => ({ label: note.label.trim(), body }),
       ),
     ),
+    aboutOf(row),
   ]).pipe(
     Effect.map(
-      ([talks, notes]): EventPage => ({
+      ([talks, notes, about]): EventPage => ({
         id: row.id,
         slug: row.slug,
         name: displayName(row.name),
         topic: eventTopic(row),
-        tagline: row.tagline,
+        tagline: eventTagline(row),
+        about,
         status: eventStatus(row, now),
         mode: eventMode(row.startDate),
         startsAt: row.startDate,
@@ -506,7 +538,9 @@ const make = Effect.gen(function* () {
     Result: EventPageRow,
     execute: ({ slug, now, photoPrefix }) => sql`
       SELECT
-        ev.id, ev.slug, ev.name, ev.topic, ev.tagline,
+        ev.id, ev.slug, ev.name, ev.topic, ev.tagline, ev.description,
+        ev.luma_description AS "lumaDescription",
+        ev.luma_summary AS "lumaSummary",
         ev.start_date AS "startDate", ev.end_date AS "endDate",
         ev.updated_at AS "updatedAt",
         ev.street_address AS "streetAddress",

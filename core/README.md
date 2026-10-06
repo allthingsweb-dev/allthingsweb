@@ -53,6 +53,39 @@ speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
 panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
 `Events.getPublished` returns all of it, with Luma's guest counts.
 
+## Luma descriptions
+
+The feed's DESCRIPTION is only a link to the event's page, so each
+evening's words come from Luma's API (`description_md`, the Markdown of
+Luma's editor). `src/luma/description.ts` makes it rich text the way talk
+descriptions are kept: headings become bold paragraphs, images, rules and
+raw HTML go, and the rest passes `sanitizeRichText`. It also takes a
+one-line summary: the leading sentences, up to 200 characters, of the
+first paragraph that reads as prose.
+
+`src/luma/descriptions.ts` writes both to `events.luma_description` and
+`luma_summary`, which Luma owns: each import makes them what Luma has now.
+`events.description` is the site's own, for an organizer to say it
+differently, and nothing from Luma writes it. The event page's "About" row
+shows the site's description when it says something, and Luma's otherwise.
+The tagline stays the site's too: while it is the sync's placeholder ("See
+Luma for event details and registration."), the summary stands in for it
+on the page, in its structured data and in the feed (`src/tagline.ts`).
+The four "<name> at All Things Web" taglines the app's first sync wrote
+became that placeholder in the migration.
+
+The hourly sync imports descriptions after the events and images, in a
+window of their own (web/src/sync/run.ts).
+To run it now, for every event, from `core/`:
+
+```sh
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:descriptions --dry-run   # ask Luma, print what would change
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:descriptions             # write it
+```
+
+`tests/luma-descriptions.test.ts` runs the conversion, the client against
+fixtures and the import against `tests/seed.sql`; nothing reaches Luma.
+
 ## Hidden venues
 
 While Luma shows an event's venue to guests only ("location_visibility":
@@ -166,8 +199,9 @@ the same report:
 - everyone named on the event: title, bio, photo, links
 - hosts, with their logo and about, and their website and X, Bluesky or
   LinkedIn
-- venue address, the lockup's topic, the Luma sync's placeholder tagline,
-  a cover
+- venue address, the lockup's topic, a description (the site's or
+  Luma's), a tagline that is no placeholder or a summary to stand in for
+  it, a cover
 - for past events: photos, a recording link, and Luma's guest count
 
 Links, cover, recording and guest count are optional; the rest is
@@ -237,6 +271,31 @@ DATABASE_URL=… bun run event-extras --dry-run   # do everything, print it, rol
 DATABASE_URL=… bun run event-extras             # write
 ```
 
+## Filling in profiles
+
+`backfill/people.json` fills what profiles of people on published events
+lack: a title, a bio, X, Bluesky and LinkedIn handles, and a photo. Every
+fact carries the URL it was read from and the day it was read, taken from
+public, keyless sources: the person's own X or Bluesky profile, GitHub,
+their site, a company team page or a conference speaker page.
+
+- A filled column is kept; only blank ones (or handles stored as empty
+  strings) are set. The one exception: a fact may name the exact stale value
+  it replaces (`was`), and replaces it only while the column still holds
+  just that. A photo source is never replaced once its image is copied.
+- A bio is the person's own words, at most trimmed or put in the third
+  person; a terse profile line is no bio.
+- A photo is only ever a `photo_source_url` on a host the hourly ingestion
+  copies from (`app/src/lib/profile-photos/hosts.ts`), which then makes it
+  the profile's image.
+- Anything uncertain, a same-name collision above all, is kept under
+  `held` with its reason and never written.
+
+```sh
+DATABASE_URL=… bun run people --dry-run   # what would be filled, rolled back
+DATABASE_URL=… bun run people             # fill it, in one transaction
+```
+
 ## Hosting companies' links
 
 Each hosting company (`sponsors`) may store its own website, its X, Bluesky
@@ -295,7 +354,7 @@ with `UPDATE_GOLDEN=1 bun test tests/promo.test.ts` and read the diff.
 ## Planning
 
 Every evening starts in `planning`, a Postgres schema of its own
-(`migrations/0011_planning.ts`): ideas for evenings (title, pitch, program,
+(`migrations/0012_planning.ts`): ideas for evenings (title, pitch, program,
 topic, and a status from `idea` through `drafting` to `scheduled`, or
 `dropped`, linked to the draft evening it becomes and to a past one it
 builds on), speakers we'd like on stage (a profile, or a contact without
@@ -330,6 +389,52 @@ DATABASE_URL=… bun run plan note add --profile "Ada Lovelace" --body "…" --a
 DATABASE_URL=… bun run plan search "trivia"
 DATABASE_URL=… bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
 ```
+
+## Readiness
+
+`src/readiness/` says whether a draft evening is ready to go out, and what
+to add. A draft is an event the Luma sync stored as one (a private or
+cancelled Luma event), named by slug, or an idea from planning, named by id:
+through its draft evening when it has one, else on its own, with everything
+still to do. Its checks and rankings are pure functions of what the database
+holds at the Clock's now.
+
+**Checks.** The completeness rules run ahead of time, all but the ones only a
+past evening can have (photos, a recording, a guest count): what the report
+requires blocks publishing, the rest is advice. Then what only a draft is
+asked:
+
+- it is still a draft, and has a private Luma event
+- it starts ahead, ends after it starts, starts in the evening and runs at
+  most six hours (a hackathon may do neither)
+- nothing of ours is published the same San Francisco day; a draft or a
+  shared evening that day is advice
+- its venue is named and has a known neighborhood (`src/places.ts`)
+- a hackathon has its schedule
+- once the Luma event exists, a cover
+
+**Suggestions,** each ranked deterministically, so the same rows suggest
+the same in the same order:
+
+- network speakers whose past talks share the most of the evening's words
+  (its topic, the idea's, and any `--topic` given), then the most recent
+- wanted speakers whose topics share one, free that day
+- host prospects, and hosts that last had us more than 90 days ago,
+  longest first
+- open dates on the three weekdays our evenings have been on most, with
+  nothing else that day and none of ours within three days
+- the guest count of the evening it builds on (no guest lists are stored)
+
+Planning's rows join only as a role that may read planning (the owner); as
+site_reader the report leaves them out and says so.
+
+```sh
+DATABASE_URL=… bun run readiness --event <draft slug> [--topic git --topic ai] [--json]
+DATABASE_URL=… bun run readiness --idea <id>
+```
+
+It exits 1 when something blocks publishing, 2 on a draft that isn't there.
+The admin MCP server's `get_draft_readiness` runs the same script.
 
 ## Migrations
 

@@ -8,7 +8,7 @@ import type { SqlError } from "effect/sql/SqlError";
  *
  * It covers the schemas the app's tables live in: `public`; `neon_auth`,
  * whose `users_sync` table Neon Auth owns and the app references; and
- * `planning`, the organizers' private planning (migrations/0011_planning.ts). Each line is
+ * `planning`, the organizers' private planning (migrations/0012_planning.ts). Each line is
  * one object: a relation (with its row security and options), a column (its
  * position among the table's live columns, type, nullability, default,
  * identity, generation and collation), a constraint (primary, unique, check

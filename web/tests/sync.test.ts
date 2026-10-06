@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { ImageIngest, NewImageId } from "allthings-core/src/ingest/ingest.ts";
 import { LumaApi } from "allthings-core/src/luma/api.ts";
+import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
@@ -70,7 +71,10 @@ const images = {
   "https://pbs.twimg.com/3.jpg": imageBytes("jpeg", "p3"),
 };
 
-/** Luma's API, faked: every event it is asked about is at CodeRabbit. */
+/**
+ * Luma's API, faked: every event it is asked about is at CodeRabbit, and
+ * has a description.
+ */
 const placedApi = Layer.succeed(
   LumaApi,
   LumaApi.of({
@@ -81,6 +85,14 @@ const placedApi = Layer.succeed(
           lumaEventId,
           location: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
           guestsOnly: true,
+        }),
+      ),
+    ),
+    eventDescription: Option.some((lumaEventId: string) =>
+      Effect.succeed(
+        Option.some({
+          lumaEventId,
+          markdown: `# Talks\n\nAn evening about ${lumaEventId}, with talks and time to talk.`,
         }),
       ),
     ),
@@ -109,6 +121,7 @@ async function run(
   const layer = Layer.mergeAll(
     LumaSync.layer,
     LumaVenues.layer,
+    LumaDescriptions.layer,
     ImageIngest.layer,
   ).pipe(
     Layer.provide(
@@ -147,7 +160,7 @@ const unplaced = `SELECT count(*) AS n FROM events
     AND COALESCE(full_address, street_address) IS NULL`;
 
 describe("a sync run that writes", () => {
-  test("syncs events and fills in the venues the calendar hides, then stores photos, post images and covers, logging each step", async () => {
+  test("syncs events and fills in the venues the calendar hides, stores photos, post images and covers, then imports descriptions, logging each step", async () => {
     const { db, report, logged, bucket } = await run("write", syncLimits.paid);
     try {
       expect(report.ok).toBe(true);
@@ -157,6 +170,7 @@ describe("a sync run that writes", () => {
         "photos",
         "posts",
         "covers",
+        "descriptions",
       ]);
       expect(report.steps["events"]).toMatchObject({
         status: "done",
@@ -172,6 +186,21 @@ describe("a sync run that writes", () => {
         ]),
       });
       expect(await count(db, unplaced)).toBe(0);
+      const described = await count(
+        db,
+        "SELECT count(*) AS n FROM events WHERE is_draft = false AND luma_event_id IS NOT NULL",
+      );
+      expect(report.steps["descriptions"]).toMatchObject({
+        status: "done",
+        asked: described,
+        written: described,
+      });
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE luma_description LIKE '<p><strong>Talks</strong></p>%'",
+        ),
+      ).toBe(described);
       // A venue name an organizer typed stays beside the address.
       expect(
         (
@@ -204,6 +233,7 @@ describe("a sync run that writes", () => {
         "photos",
         "posts",
         "covers",
+        "descriptions",
         "summary",
       ]);
       expect(logged.every((entry) => entry["source"] === "luma-sync")).toBe(
@@ -214,11 +244,15 @@ describe("a sync run that writes", () => {
     }
   });
 
-  test("on the Free plan, asks about two venues and tries two images of each kind, leaving the rest for later runs", async () => {
+  test("on the Free plan, asks about two venues and two descriptions and tries two images of each kind, leaving the rest for later runs", async () => {
     const { db, report, bucket } = await run("write", syncLimits.free);
     try {
       expect(report.ok).toBe(true);
       expect(report.steps["venues"]).toMatchObject({ asked: 2, written: 2 });
+      expect(report.steps["descriptions"]).toMatchObject({
+        asked: 2,
+        written: 2,
+      });
       expect(report.steps["photos"]).toMatchObject({
         ingested: ["One", "Two"],
       });
@@ -268,6 +302,23 @@ describe("a dry run", () => {
         ]),
       });
       expect(await count(db, unplaced)).toBeGreaterThan(0);
+      expect(report.steps["descriptions"]).toMatchObject({
+        status: "done",
+        written: null,
+        changes: expect.arrayContaining([
+          {
+            slug: "secret-venue-night",
+            summary:
+              "An evening about evt-hiddenVenue, with talks and time to talk.",
+          },
+        ]),
+      });
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE luma_description IS NOT NULL",
+        ),
+      ).toBe(0);
       expect(report.steps["images"]).toMatchObject({
         status: "done",
         photos: ["One", "Two", "Three"],
@@ -464,9 +515,12 @@ describe("the Worker, from its bindings", () => {
       expect(report.steps["photos"]).toMatchObject({
         ingested: ["Ada Lovelace"],
       });
-      // Without LUMA_API_KEY, no venues are asked for and no covers are
-      // looked up, as in the app.
+      // Without LUMA_API_KEY, no venues or descriptions are asked for and
+      // no covers are looked up, as in the app.
       expect(report.steps["venues"]).toMatchObject({
+        skipped: "LUMA_API_KEY is not set",
+      });
+      expect(report.steps["descriptions"]).toMatchObject({
         skipped: "LUMA_API_KEY is not set",
       });
       expect(report.steps["covers"]).toMatchObject({ ingested: [] });

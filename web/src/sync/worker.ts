@@ -4,6 +4,7 @@ import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { MediaBucket } from "allthings-core/src/ingest/media-bucket.ts";
 import { Pictures } from "allthings-core/src/ingest/pictures.ts";
 import { LumaApi } from "allthings-core/src/luma/api.ts";
+import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
@@ -70,7 +71,12 @@ export const syncLayer = (
   env: SyncEnv & Readonly<Record<string, unknown>>,
   fetch: typeof globalThis.fetch = globalThis.fetch,
 ) =>
-  Layer.mergeAll(LumaSync.layer, LumaVenues.layer, ImageIngest.layer).pipe(
+  Layer.mergeAll(
+    LumaSync.layer,
+    LumaVenues.layer,
+    LumaDescriptions.layer,
+    ImageIngest.layer,
+  ).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer)),
     Layer.provide(
       Layer.mergeAll(

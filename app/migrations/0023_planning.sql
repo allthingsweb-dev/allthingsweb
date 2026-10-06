@@ -1,4 +1,4 @@
--- Planning (ideas, wanted speakers and their availability, host prospects, contacts, notes) in its own schema that no site role may use; core/migrations/0011_planning.ts is the same change.
+-- Planning (ideas, wanted speakers and their availability, host prospects, contacts, notes) in its own schema that no site role may use; core/migrations/0012_planning.ts is the same change.
 CREATE SCHEMA "planning";
 --> statement-breakpoint
 CREATE TABLE "planning"."availability" (

@@ -12,20 +12,22 @@ import { LumaRejected, LumaUnavailable, sendWithRetries } from "./luma.ts";
 
 /**
  * Luma's official API (https://docs.luma.com), for what the calendar feed
- * does not carry: who hosted an event, how many guests it had, and where it
- * is when the feed hides the venue (Luma shows it to guests only). Its key
- * is a Luma calendar's API key, which needs Luma Plus, read from
+ * does not carry: who hosted an event, how many guests it had, where it is
+ * when the feed hides the venue (Luma shows it to guests only), and its
+ * description (the feed's DESCRIPTION is only a link to the event's page).
+ * Its key is a Luma calendar's API key, which needs Luma Plus, read from
  * LUMA_API_KEY; without one there is nothing to ask, and
- * {@link LumaApiShape.eventPeople} and {@link LumaApiShape.eventVenue} are
- * `None`.
+ * {@link LumaApiShape.eventPeople}, {@link LumaApiShape.eventVenue} and
+ * {@link LumaApiShape.eventDescription} are `None`.
  *
  * One request per event: `GET /v1/events/get`. For an event our calendar
  * manages (`access: "manage"`) it lists the hosts and counts guests by
  * status; for a public event another calendar manages (`access: "view"`) it
  * lists the hosts the event page shows and no counts. Either way it has the
- * venue's address, even one the event page shows guests only. Hosts come
- * with their Luma user id, name and avatar; their email is in the response
- * too and is never read.
+ * venue's address, even one the event page shows guests only, and the
+ * description, as the Markdown of Luma's editor. Hosts come with their Luma
+ * user id, name and avatar; their email is in the response too and is never
+ * read.
  *
  * Requests are tried again as the calendar feed's are (src/luma/luma.ts).
  * The API allows 200 requests a minute per calendar key; callers stay well
@@ -79,6 +81,8 @@ export const ApiEvent = Schema.Struct({
   ),
   /** Who may see the venue: "public", or "guests-only" (the feed hides it). */
   location_visibility: Schema.optionalKey(Schema.String),
+  /** The description in the Markdown of Luma's editor; "" for none. */
+  description_md: Schema.optionalKey(Schema.NullOr(Schema.String)),
 });
 export type ApiEvent = typeof ApiEvent.Type;
 
@@ -98,6 +102,22 @@ export function toEventVenue(event: ApiEvent): LumaEventVenue {
     lumaEventId: event.id,
     location: location === "" ? null : location,
     guestsOnly: event.location_visibility === "guests-only",
+  };
+}
+
+/** An event's description, as Luma's editor wrote it. */
+export interface LumaEventDescription {
+  readonly lumaEventId: string;
+  /** Markdown, or null when the event has none. */
+  readonly markdown: string | null;
+}
+
+/** An event's description from Luma's answer. */
+export function toEventDescription(event: ApiEvent): LumaEventDescription {
+  const markdown = event.description_md ?? null;
+  return {
+    lumaEventId: event.id,
+    markdown: markdown === null || markdown.trim() === "" ? null : markdown,
   };
 }
 
@@ -173,6 +193,16 @@ export interface LumaApiShape {
       lumaEventId: string,
     ) => Effect.Effect<Option.Option<LumaEventVenue>, LumaApiError>
   >;
+  /**
+   * The event's description, or `None` where Luma does not show us the
+   * event (403, or 404 for one deleted). `None` itself when LUMA_API_KEY is
+   * not set.
+   */
+  readonly eventDescription: Option.Option<
+    (
+      lumaEventId: string,
+    ) => Effect.Effect<Option.Option<LumaEventDescription>, LumaApiError>
+  >;
 }
 
 const decodeEvent = Schema.decodeUnknownEffect(Schema.fromJsonString(ApiEvent));
@@ -240,7 +270,16 @@ const make = Effect.gen(function* () {
       )(lumaEventId).pipe(Effect.map(Option.map(toEventVenue))),
   );
 
-  return LumaApi.of({ eventPeople, eventVenue });
+  const eventDescription = Option.map(
+    key,
+    (apiKey) => (lumaEventId: string) =>
+      getEvent(
+        apiKey,
+        "LumaApi.eventDescription",
+      )(lumaEventId).pipe(Effect.map(Option.map(toEventDescription))),
+  );
+
+  return LumaApi.of({ eventPeople, eventVenue, eventDescription });
 });
 
 export class LumaApi extends Context.Service<LumaApi, LumaApiShape>()(
