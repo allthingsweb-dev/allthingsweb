@@ -517,8 +517,18 @@ export const eventTalksTable = pgTable(
       .references(() => talksTable.id),
     createdAt,
     updatedAt,
+    /**
+     * The talk's place in the evening's running order, from 0; talks without
+     * one follow, in the order they were attached.
+     */
+    position: integer("position"),
+    /** When the talk started, where it is known. */
+    startsAt: timestamp("starts_at", { withTimezone: true }),
   },
-  (table) => [primaryKey({ columns: [table.eventId, table.talkId] })],
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.talkId] }),
+    check("event_talks_position_check", sql`"position" >= 0`),
+  ],
 );
 
 export const eventImagesTable = pgTable(

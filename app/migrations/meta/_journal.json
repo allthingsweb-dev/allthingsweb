@@ -183,6 +183,13 @@
       "when": 1791251550247,
       "tag": "0025_short_slugs",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791254249708,
+      "tag": "0026_talk_order",
+      "breakpoints": true
     }
   ]
 }

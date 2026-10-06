@@ -53,6 +53,25 @@ speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
 panel's speaker and a fireside's guest is its speaker (`src/people.ts`).
 `Events.getPublished` returns all of it, with Luma's guest counts.
 
+An evening's talks run in order: `event_talks.position`, from 0, and
+`event_talks.starts_at` where the start is known. Pages, the public API,
+promotion drafts and the completeness report all list talks by position;
+a talk attached without one follows, in the order it was attached. A
+lineup in `backfill/lineups.json` sets both per talk (`position`,
+`startsAt` with its offset, "2026-09-30T18:41:00-07:00"); it never clears
+them, so unplacing a talk is a manual update of that one row:
+
+```sql
+UPDATE event_talks SET position = NULL, starts_at = NULL, updated_at = now()
+WHERE event_id = $1 AND talk_id = $2;
+```
+
+A lineup can also correct the record. An event is found by its Luma id,
+or by `slug` where it has none, and its `remove` lists what the evening
+didn't have, each with its sources: talks to take off it (a talk on no
+other evening is deleted with its speakers) and people's parts in it
+(by an existing profile and role).
+
 ## Luma descriptions
 
 The feed's DESCRIPTION is only a link to the event's page, so each

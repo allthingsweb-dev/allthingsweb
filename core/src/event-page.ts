@@ -97,6 +97,8 @@ export interface Talk {
   readonly title: string;
   /** How it is held: a talk, a panel or a fireside chat. */
   readonly format: Rows.TalkFormat;
+  /** When it started, where the running order says. */
+  readonly startsAt: DateTime.Utc | null;
   /** Sanitized; null when it says nothing. */
   readonly description: SafeHtml | null;
   /** Everyone who gave it, in the order they were attached. */
@@ -207,6 +209,7 @@ const TalkRow = Schema.Struct({
   title: Schema.String,
   description: Schema.String,
   format: Rows.TalkFormat,
+  startsAt: Schema.NullOr(Schema.DateTimeUtcFromString),
   speakers: Schema.Array(Rows.TalkSpeaker),
 });
 
@@ -427,6 +430,7 @@ export const toEventPage = (
           id: talk.id,
           title: talk.title,
           format: talk.format,
+          startsAt: talk.startsAt,
           description: saysSomething(description) ? description : null,
           speakers: talk.speakers.map((speaker) =>
             toSpeaker(speaker, talk.format, `${photoOrigin}/`),
@@ -586,6 +590,7 @@ const make = Effect.gen(function* () {
             'title', t.title,
             'description', t.description,
             'format', t.format,
+            'startsAt', et.starts_at,
             'speakers', COALESCE((
               SELECT json_agg(
                 (${sql.literal(profileJson)})::jsonb || jsonb_build_object('role', ts.role)
@@ -594,7 +599,7 @@ const make = Effect.gen(function* () {
               JOIN profiles p ON p.id = ts.speaker_id
               WHERE ts.talk_id = t.id
             ), '[]'::json)
-          ) ORDER BY et.created_at, t.id)
+          ) ORDER BY et.position NULLS LAST, et.created_at, t.id)
           FROM event_talks et
           JOIN talks t ON t.id = et.talk_id
           WHERE et.event_id = ev.id
