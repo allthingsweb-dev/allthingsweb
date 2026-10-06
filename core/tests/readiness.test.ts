@@ -50,6 +50,7 @@ const person = (id: string) => ({
   twitterHandle: "someone",
   blueskyHandle: null,
   linkedinHandle: null,
+  xHandleLost: null,
 });
 
 /** A draft evening with nothing missing, three weeks out; each test takes something away. */

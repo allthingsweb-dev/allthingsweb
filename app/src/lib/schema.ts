@@ -154,6 +154,11 @@ export const profilesTable = pgTable(
      * changes. Leave it empty to have one made.
      */
     slug: text("slug").notNull().unique().default(""),
+    /** The X account's numeric id, which never changes (core/src/followers.ts). */
+    xUserId: text("x_user_id").unique(),
+    /** A handle cleared because X now gives it to another account, and when. */
+    xHandleLost: text("x_handle_lost"),
+    xHandleLostAt: timestamp("x_handle_lost_at", { withTimezone: true }),
   },
   () => [
     check(
@@ -166,6 +171,11 @@ export const profilesTable = pgTable(
       sql`("x_followers" IS NULL) = ("x_followers_at" IS NULL)`,
     ),
     check("profiles_slug_check", sql`"slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
+    check("profiles_x_user_id_check", sql`"x_user_id" ~ '^[0-9]{1,20}$'`),
+    check(
+      "profiles_x_handle_lost_check",
+      sql`("x_handle_lost" IS NULL) = ("x_handle_lost_at" IS NULL)`,
+    ),
   ],
 );
 

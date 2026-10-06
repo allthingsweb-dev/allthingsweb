@@ -91,6 +91,17 @@ slots. A count is only ever its handle's: changing
 or clearing `twitter_handle` clears the snapshot (a trigger, in both
 migrations), and a count read while the handle changed is not stored.
 
+A profile knows its X account by its numeric user id (`x_user_id`), which
+never changes: people change handles, and X lets others take a freed one.
+The refresh stores the id the first time it reads a handle. A handle whose
+account has another id now is never adopted: it is cleared, the id is kept,
+and `x_handle_lost` records it for the completeness report ("person whose
+X handle is now someone else's"). A source that can look an account up by
+id (X's own API; FixTweet can't) reads by id, and a renamed account's new
+handle is stored as it is. Editing a handle by hand forgets the old
+account: its id, its count and a lost handle. The post search knows X
+authors by id too.
+
 ```sh
 DATABASE_URL=… bun run followers --dry-run   # read the counts, write nothing
 DATABASE_URL=… bun run followers             # store them

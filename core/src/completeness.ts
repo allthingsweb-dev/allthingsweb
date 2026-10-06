@@ -32,6 +32,10 @@ export const gapKinds = {
   "person-bio": { required: true, label: "person without bio" },
   "person-photo": { required: true, label: "person without photo" },
   "person-links": { required: false, label: "person without links" },
+  "person-x-handle-lost": {
+    required: false,
+    label: "person whose X handle is now someone else's",
+  },
   hosts: { required: true, label: "no hosting company" },
   "host-logo": { required: true, label: "host without logo" },
   "host-about": { required: true, label: "host without about" },
@@ -71,6 +75,8 @@ const Person = Schema.Struct({
   twitterHandle: Schema.NullOr(Schema.String),
   blueskyHandle: Schema.NullOr(Schema.String),
   linkedinHandle: Schema.NullOr(Schema.String),
+  /** A handle the follower refresh cleared: X gives it to another account now. */
+  xHandleLost: Schema.NullOr(Schema.String),
 });
 
 /** A published event, with what the report checks, as one row. */
@@ -200,6 +206,11 @@ export function eventCompleteness(
     ];
     if (links.every((handle) => handle === null || isBlank(handle))) {
       gaps.push(gap("person-links", person.name));
+    }
+    if (person.xHandleLost !== null) {
+      gaps.push(
+        gap("person-x-handle-lost", `${person.name} (@${person.xHandleLost})`),
+      );
     }
   }
 
@@ -333,7 +344,7 @@ export interface CompletenessShape {
 }
 
 /** The profile aliased `p`, as a JSON object matching `Person`. */
-const personJson = `json_build_object('id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio, 'hasPhoto', p.image IS NOT NULL, 'twitterHandle', p.twitter_handle, 'blueskyHandle', p.bluesky_handle, 'linkedinHandle', p.linkedin_handle)`;
+const personJson = `json_build_object('id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio, 'hasPhoto', p.image IS NOT NULL, 'twitterHandle', p.twitter_handle, 'blueskyHandle', p.bluesky_handle, 'linkedinHandle', p.linkedin_handle, 'xHandleLost', p.x_handle_lost)`;
 
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;

@@ -17,6 +17,7 @@ import xFollowersMigration from "./0015_x_followers.ts";
 import externalTalksMigration from "./0016_external_talks.ts";
 import personSlugsMigration from "./0017_person_slugs.ts";
 import pendingPostsMigration from "./0018_pending_posts.ts";
+import xUserIdsMigration from "./0019_x_user_ids.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -44,6 +45,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0016_external_talks": externalTalksMigration,
   "0017_person_slugs": personSlugsMigration,
   "0018_pending_posts": pendingPostsMigration,
+  "0019_x_user_ids": xUserIdsMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

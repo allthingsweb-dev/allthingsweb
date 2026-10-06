@@ -69,7 +69,10 @@ interface ColumnGrants {
  *   posts and nothing else: a column grant can't limit a value, so the role
  *   holds no INSERT on event_posts.
  *   Profiles also: the X follower refresh (core/src/followers.ts) reads each
- *   handle and its snapshot, and writes the new count with when it was read.
+ *   handle, its account's id and its snapshot, and writes the new count with
+ *   when it was read and the account's id. It writes the handle only for
+ *   the account the profile already has: a renamed account's new handle, or
+ *   none, with the lost one recorded, when X gives the handle to another.
  *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
@@ -154,6 +157,7 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "x_followers",
       "x_followers_at",
       "x_followers_tried_at",
+      "x_user_id",
     ],
     update: [
       "image",
@@ -161,6 +165,10 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "x_followers",
       "x_followers_at",
       "x_followers_tried_at",
+      "twitter_handle",
+      "x_user_id",
+      "x_handle_lost",
+      "x_handle_lost_at",
     ],
   },
   event_posts: {
