@@ -69,6 +69,14 @@ BEGIN
       'pending', now())
     ON CONFLICT ON CONSTRAINT event_posts_url_unique DO NOTHING
     RETURNING id INTO added_id;
+    -- Another writer stored the same URL between the look and the insert:
+    -- answer with the post that won.
+    IF added_id IS NULL THEN
+      SELECT json_build_object('id', p.id, 'url', p.url, 'eventSlug', e.slug, 'status', p.status)
+        INTO existing
+        FROM public.event_posts p JOIN public.events e ON e.id = p.event_id
+        WHERE p.url = queue_event_post.url;
+    END IF;
   END IF;
   RETURN json_build_object('eventId', event_id, 'addedId', added_id, 'existing', existing);
 END
