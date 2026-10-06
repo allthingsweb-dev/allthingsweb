@@ -269,8 +269,9 @@ export const recentWindow = Duration.days(30);
 
 /**
  * Evenings of talks that ended within `window` before `now` and have none
- * (no other program is asked for talks): what a weekly check fails on. Events further back are reported but don't fail
- * it, so one old gap can't keep the check red for good.
+ * (no other program is asked for talks): what a weekly check fails on.
+ * Events further back are reported but don't fail it, so one old gap can't
+ * keep the check red for good.
  */
 export function mustHaveTalks(
   reports: ReadonlyArray<EventCompleteness>,
@@ -283,6 +284,20 @@ export function mustHaveTalks(
       report.status === "past" &&
       DateTime.isGreaterThanOrEqualTo(report.endDate, since) &&
       report.gaps.some((g) => g.kind === "talks"),
+  );
+}
+
+/**
+ * Published evenings without a venue, past, live or upcoming: what a weekly
+ * check also fails on. Unlike talks, a venue is never lost to time (Luma
+ * keeps every address, even one it shows guests only, src/luma/venues.ts),
+ * so an evening of any age without one fails it until it has one.
+ */
+export function mustHaveVenues(
+  reports: ReadonlyArray<EventCompleteness>,
+): ReadonlyArray<EventCompleteness> {
+  return reports.filter((report) =>
+    report.gaps.some((g) => g.kind === "venue"),
   );
 }
 

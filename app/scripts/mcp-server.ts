@@ -10,6 +10,7 @@ import { z } from "zod";
 import { completenessReport } from "./completeness.js";
 import { addEventPost } from "./event-posts.js";
 import { promoChannels, promoDrafts } from "./promo.js";
+import { isPlanTool, planTool, planToolDefinitions } from "./plan.js";
 import {
   createEvent,
   getEventBySlug,
@@ -567,6 +568,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["slug"],
         },
       },
+      // Planning: ideas, wanted speakers, host prospects, notes (private)
+      ...planToolDefinitions,
       // Administrator tools
       {
         name: "add_user_to_admins",
@@ -614,6 +617,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name: toolName, arguments: args } = request.params;
 
   try {
+    if (isPlanTool(toolName)) {
+      const result = await planTool(toolName, args ?? {});
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    }
+
     switch (toolName) {
       // Event tools
       case "create_event": {
