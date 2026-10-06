@@ -670,12 +670,26 @@
       },
       "$description": "Small copy: bios, talk titles, tables, captions."
     },
+    "large": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      },
+      "$description": "The smallest text held to APCA Lc 60 rather than 75."
+    },
     "title": {
       "$value": {
         "value": 28,
         "unit": "px"
       },
       "$description": "Small titles: the wordmark in the header, the next evening's date label, swatch samples."
+    },
+    "display": {
+      "$value": {
+        "value": 36,
+        "unit": "px"
+      },
+      "$description": "The smallest text held to APCA Lc 45: headlines and marks."
     },
     "figure": {
       "$value": {

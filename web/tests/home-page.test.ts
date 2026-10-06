@@ -240,7 +240,9 @@ describe("the home page", () => {
     expect(html).toStartWith(
       '<!doctype html><html lang="en" data-theme="dark">',
     );
-    expect(html).toContain('<summary aria-label="mode: night">');
+    expect(html).toContain(
+      '<button type="button" popovertarget="mode-choices" aria-label="mode: night">',
+    );
     expect(html).toMatch(
       /<a href="\?theme=dark" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>night<\/span><\/a>/,
     );

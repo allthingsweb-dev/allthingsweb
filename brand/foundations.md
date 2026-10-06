@@ -141,3 +141,9 @@ Sizes are the largest. The wordmark, event lockup, label and lead shrink on narr
 ## Accessibility
 
 APCA targets above for all text; never color alone to carry meaning; real buttons and links; alt text that describes the moment in a photo; the cursor stops blinking for people who prefer reduced motion.
+
+- Text is set no smaller than its contrast allows: Lc 75 for small text, 60 at 24px and up, 45 at 36px and up. The palette shows a color too faint for text on a ground as a bar, not as text.
+- Every page starts with a link past the header to the page itself, and every control shows its focus.
+- The mode control is a popover. Escape or a click outside closes it, without script.
+- Long names and titles break rather than overflow, down to a 320px screen and at 200% zoom.
+- Every kind of page passes axe in the web tests, apart from the rules that need a browser. Color contrast is checked against the APCA targets above.

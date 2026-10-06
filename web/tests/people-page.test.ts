@@ -83,7 +83,7 @@ describe("the people page's portraits as variants", () => {
   );
 
   test("offer organizers at 168 and 336 pixels square, loaded at once", () => {
-    const sizes = "(max-width: 599.98px) 96px, 168px";
+    const sizes = "(max-width: 1023.98px) 96px, 168px";
     expect(html).toContain(
       [
         "<picture>",
