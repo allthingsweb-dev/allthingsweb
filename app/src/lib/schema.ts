@@ -277,6 +277,11 @@ export const eventsTable = pgTable(
     streetAddress: text("street_address"),
     shortLocation: text("short_location"),
     fullAddress: text("full_address"),
+    /**
+     * The venue is the one an organizer set: no sync replaces it
+     * (core/migrations/0020_venue_by_organizer.ts).
+     */
+    venueByOrganizer: boolean("venue_by_organizer").notNull().default(false),
     lumaEventId: text("luma_event_id").unique(),
     isHackathon: boolean("is_hackathon").notNull().default(false),
     isDraft: boolean("is_draft").notNull().default(false),

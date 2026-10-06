@@ -321,17 +321,20 @@ const make = Effect.gen(function* () {
   );
 
   /**
-   * A venue field: what Luma shows, else the stored value, unless that is
-   * Luma's placeholder, which gives way to the archive (or to NULL).
+   * A venue field: the stored one where an organizer set the venue
+   * (venue_by_organizer); else what Luma shows, else the stored value,
+   * unless that is Luma's placeholder, which gives way to the archive (or
+   * to NULL).
    */
   const venue = (column: VenueColumn) => {
     const stored = sql.literal(`e.${column}`);
     const archived = sql.literal(`a.${column}`);
-    return sql`COALESCE(excluded.${sql.literal(column)}, CASE
-      WHEN ${stored} ~* ${locationPlaceholderPattern}
-        THEN (SELECT ${archived} FROM archive a WHERE a.luma_event_id = e.luma_event_id)
-      ELSE ${stored}
-    END)`;
+    return sql`CASE WHEN e.venue_by_organizer THEN ${stored}
+      ELSE COALESCE(excluded.${sql.literal(column)}, CASE
+        WHEN ${stored} ~* ${locationPlaceholderPattern}
+          THEN (SELECT ${archived} FROM archive a WHERE a.luma_event_id = e.luma_event_id)
+        ELSE ${stored}
+      END) END`;
   };
 
   const write = (rows: ReadonlyArray<EventRow>, now: DateTime.Utc) => {

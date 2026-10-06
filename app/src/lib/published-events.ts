@@ -18,7 +18,9 @@ export async function getPublishedEvents(): Promise<Event[]> {
 
   // Transform to Event type
   const transformToEvent = (row: any): Event => {
-    const event = row.events;
+    // Whether the organizers set the venue is the syncs' business, not the
+    // public API's.
+    const { venueByOrganizer, ...event } = row.events;
     const previewImage = row.images || {
       url: "/hero-image-rocket.png",
       alt: `${event.name} preview`,

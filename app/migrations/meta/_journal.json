@@ -225,6 +225,13 @@
       "when": 1791268016114,
       "tag": "0031_x_user_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791325491947,
+      "tag": "0032_venue_by_organizer",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,8 @@ import { DataSourceError } from "./errors.ts";
  * any missing speakers, keeping its title and description; a new person reuses the one profile that already
  * has their exact name (several stop the run); event_people rows that exist
  * stay. An event is found by its Luma id, or by its slug where it has none.
+ * A `venue` an organizer gives replaces the stored one and marks it as
+ * theirs (events.venue_by_organizer), so no sync changes it after.
  * What an event lists under `remove` goes first: a talk taken off it, with
  * its speakers when no other evening has it, and a person's part in it,
  * named only by an existing profile. A dry run does all of it, reports, and
@@ -143,6 +145,18 @@ export const Lineups = Schema.Struct({
       hold: Hold,
       /** Set where the event has no recording link yet. */
       recordingUrl: Schema.optionalKey(Url),
+      /**
+       * Where it really was, where Luma's venue is wrong: written as the
+       * organizers' (venue_by_organizer), which no sync replaces.
+       */
+      venue: Schema.optionalKey(
+        Schema.Struct({
+          streetAddress: Schema.String.check(Schema.isNonEmpty()),
+          shortLocation: Schema.String.check(Schema.isNonEmpty()),
+          fullAddress: Schema.String.check(Schema.isNonEmpty()),
+          sources: Sources,
+        }),
+      ),
       talks: Schema.Array(
         Schema.Struct({
           title: Schema.String.check(Schema.isNonEmpty()),
@@ -240,6 +254,7 @@ export function applicable(lineups: Lineups): Lineups {
         event.talks.length > 0 ||
         event.people.length > 0 ||
         event.recordingUrl !== undefined ||
+        event.venue !== undefined ||
         (event.remove?.talks?.length ?? 0) > 0 ||
         (event.remove?.people?.length ?? 0) > 0,
     );
@@ -510,6 +525,20 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
             RETURNING 1`;
           lines.push(
             `  recording: ${recorded.length === 0 ? "already set" : "added"}`,
+          );
+        }
+        if (event.venue !== undefined) {
+          const { streetAddress, shortLocation, fullAddress } = event.venue;
+          const placed = yield* sql`
+            UPDATE events SET street_address = ${streetAddress},
+              short_location = ${shortLocation}, full_address = ${fullAddress},
+              venue_by_organizer = true, updated_at = now()
+            WHERE id = ${row.id}::uuid
+              AND (street_address, short_location, full_address, venue_by_organizer)
+                IS DISTINCT FROM (${streetAddress}, ${shortLocation}, ${fullAddress}, true)
+            RETURNING 1`;
+          lines.push(
+            `  venue: ${placed.length === 0 ? "already as written" : `set by the organizers: ${fullAddress}`}`,
           );
         }
         for (const talk of event.talks) {

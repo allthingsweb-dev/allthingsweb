@@ -1579,7 +1579,19 @@
             }
           ]
         }
-      ]
+      ],
+      "venue": {
+        "streetAddress": "CodeRabbit, 201 Spear St 18th floor (rooftop), San Francisco, CA 94105, USA",
+        "shortLocation": "CodeRabbit",
+        "fullAddress": "CodeRabbit, 201 Spear St 18th floor (rooftop), San Francisco, CA 94105, USA",
+        "sources": [
+          {
+            "confirmedBy": "Erik",
+            "on": "2026-10-06",
+            "in": "his answers to Claude's questions"
+          }
+        ]
+      }
     },
     {
       "lumaEventId": "evt-yqRYriugnX9wi2u",

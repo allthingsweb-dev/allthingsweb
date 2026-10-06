@@ -342,6 +342,46 @@ describe("applying lineups", () => {
     expect(await state(db)).toEqual(before);
   });
 
+  test("sets a venue as the organizers', which the sync then keeps", async () => {
+    const db = await database();
+    const placed: Lineups = {
+      people: {},
+      events: [
+        {
+          slug: "2026-08-12-react-at-acme",
+          name: "React at Acme",
+          talks: [],
+          people: [],
+          venue: {
+            streetAddress: "1 Market St, rooftop",
+            shortLocation: "Acme rooftop",
+            fullAddress: "Acme rooftop, 1 Market St, San Francisco, CA 94105",
+            sources: source,
+          },
+        },
+      ],
+    };
+    const exit = await apply(db, placed);
+    expect(Exit.isSuccess(exit) ? exit.value.lines : []).toContain(
+      "  venue: set by the organizers: Acme rooftop, 1 Market St, San Francisco, CA 94105",
+    );
+    const { rows } = await db.query(
+      `SELECT street_address, short_location, full_address, venue_by_organizer FROM events WHERE slug = '2026-08-12-react-at-acme'`,
+    );
+    expect(rows).toEqual([
+      {
+        street_address: "1 Market St, rooftop",
+        short_location: "Acme rooftop",
+        full_address: "Acme rooftop, 1 Market St, San Francisco, CA 94105",
+        venue_by_organizer: true,
+      },
+    ]);
+    const again = await apply(db, placed);
+    expect(Exit.isSuccess(again) ? again.value.lines : []).toContain(
+      "  venue: already as written",
+    );
+  });
+
   test("an event needs a Luma id or a slug", () => {
     const decode = Schema.decodeUnknownExit(Lineups);
     const event = { name: "Nameless", talks: [], people: [] };

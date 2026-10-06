@@ -229,6 +229,17 @@ describe("the fill", () => {
     expect((await fill(db)).asked).toEqual([]);
   });
 
+  test("never fills a venue the organizers keep", async () => {
+    const db = await database();
+    await db.exec(
+      `UPDATE events SET venue_by_organizer = true WHERE slug = '2026-11-05-upcoming'`,
+    );
+    const before = await venue(db);
+    const { asked } = await fill(db);
+    expect(asked).toEqual([]);
+    expect(await venue(db)).toEqual(before);
+  });
+
   test("takes Luma's placeholder for no venue, field by field", async () => {
     const db = await database();
     await db.exec(`UPDATE events SET

@@ -1,0 +1,2 @@
+-- An evening's venue an organizer set, which no sync changes; core/migrations/0020_venue_by_organizer.ts is the same change.
+ALTER TABLE "events" ADD COLUMN "venue_by_organizer" boolean DEFAULT false NOT NULL;

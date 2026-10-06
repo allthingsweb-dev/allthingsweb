@@ -72,7 +72,9 @@ export async function getExpandedEventById(
 async function getExpandedEventFromQuery(
   eventRow: any,
 ): Promise<ExpandedEvent> {
-  const event = eventRow.events;
+  // Whether the organizers set the venue is the syncs' business, not the
+  // public API's.
+  const { venueByOrganizer, ...event } = eventRow.events;
   const previewImage = eventRow.images || {
     url: "/hero-image-rocket.png",
     alt: `${event.name} preview`,

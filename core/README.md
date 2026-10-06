@@ -183,6 +183,13 @@ DATABASE_URL=… LUMA_API_KEY=… bun run luma:venues             # write them
 The completeness check fails on any published evening without a venue,
 however old, since Luma always knows where one was.
 
+Where Luma's venue is wrong, the organizers' replaces it: a `venue` in an
+evening's entry in `backfill/lineups.json`, with its sources, written by
+`bun run lineups` and marked `events.venue_by_organizer`. From then on
+neither sync, core's nor the app's, nor the venue fill changes it (All
+Things Sync was on CodeRabbit's 18th-floor rooftop, not the 12th floor
+Luma lists).
+
 ## Luma people import
 
 The calendar feed names no hosts and counts no guests. `src/luma/api.ts`

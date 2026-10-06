@@ -363,6 +363,28 @@ describe("core's Luma sync writes what the app's writes", () => {
     }
   });
 
+  test("a venue the organizers set stays, whatever Luma shows", async () => {
+    // The organizers know where it really was; Luma later shows Convex.
+    const ours = `${stored}
+      UPDATE events SET street_address = 'The real place, 1 Real St',
+        short_location = 'The real place',
+        full_address = 'The real place, 1 Real St, San Francisco',
+        venue_by_organizer = true
+      WHERE luma_event_id = 'evt-noVenue';`;
+    const { tables } = await parity(ours, [
+      { at: "2026-10-04T19:00:00Z", replies: [ok(calendar)] },
+      { at: "2026-11-04T20:00:00Z", replies: [ok(later)] },
+    ]);
+    for (const table of tables.slice(1)) {
+      expect(lumaEvents(table).get("evt-noVenue")).toMatchObject({
+        street_address: "The real place, 1 Real St",
+        short_location: "The real place",
+        full_address: "The real place, 1 Real St, San Francisco",
+        venue_by_organizer: true,
+      });
+    }
+  });
+
   test("a slug taken by a site-only event fails the whole sync", async () => {
     const { outcomes } = await parity(
       `INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, created_at, updated_at)
