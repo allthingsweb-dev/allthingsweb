@@ -474,8 +474,6 @@ main > section,
   aspect-ratio: 2 / 1;
 }
 
-/* The two sentences, set in the lead role: four columns hold each in two
-   balanced lines at 30px, and narrower screens stack them above the lists. */
 /* The two sentences, in the statement role, one line each at desktop
    widths (the statement measure); beside the lists on home, at the top of
    the head on /about. */
@@ -487,8 +485,16 @@ main > section,
   text-wrap: balance;
 }
 
+/*
+ * A statement beside another column stands at the foot of its cell: its
+ * rule stays on the columns' shared top line (below), and its last line
+ * comes down to their shared bottom. Stacked, its cell is its own height,
+ * so it reads as before. Every such statement is in this one rule.
+ */
 .band > .pitch {
   grid-column: span 5;
+  align-self: stretch;
+  justify-content: flex-end;
 }
 
 /*

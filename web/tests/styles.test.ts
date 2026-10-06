@@ -279,6 +279,29 @@ describe("a page in two columns", () => {
   });
 });
 
+describe("a statement beside another column", () => {
+  test("stands at the foot of its cell, every one by the one rule", () => {
+    // The pitch is a flex column (its sentences stacked), so the end of
+    // its main axis is the bottom of the cell it stretches to fill.
+    const pitch = rules.find(({ selector }) => selector === ".pitch");
+    expect(pitch?.body).toContain("display: flex");
+    expect(pitch?.body).toContain("flex-direction: column");
+    const anchored = rules.filter(({ body }) =>
+      body.includes("justify-content: flex-end"),
+    );
+    expect(anchored.map(({ selector }) => selector)).toEqual([
+      ".band > .pitch",
+    ]);
+    expect(anchored[0]?.body).toContain("align-self: stretch");
+    // Its cell spans the row: nothing in the band aligns it otherwise.
+    for (const { selector, body } of rules) {
+      if (selector.split(/,\s*/).some((part) => /^\.band\b/.test(part))) {
+        expect(body).not.toMatch(/align-(?:items|self|content): (?!stretch)/);
+      }
+    }
+  });
+});
+
 describe("the home page's two sentences", () => {
   test("take their type from the lead role alone", () => {
     for (const selector of [".pitch", ".pitch-place"]) {
