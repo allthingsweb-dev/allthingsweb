@@ -1,6 +1,6 @@
 {
-  "id": "bf0bf101-e5b0-40df-9cc7-12aa095a13a0",
-  "prevId": "a9c961ca-a7dc-4ed1-bcd2-555184d4dad5",
+  "id": "080b47f5-2077-4743-803a-0e717b5b089a",
+  "prevId": "40d4c6a4-be5b-4e52-b7f8-0ee6ab137ff8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -774,6 +774,18 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -805,7 +817,12 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "event_talks_position_check": {
+          "name": "event_talks_position_check",
+          "value": "\"position\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.events": {
@@ -1065,6 +1082,142 @@
         "events_topic_check": {
           "name": "events_topic_check",
           "value": "char_length(\"topic\") <= 24\n    AND \"topic\" IS NFC NORMALIZED\n    AND \"topic\" = lower(\"topic\" COLLATE \"pg_c_utf8\")\n    AND strpos(\"topic\", 'all things') = 0\n    AND \"topic\" COLLATE \"pg_c_utf8\" ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.external_talks": {
+      "name": "external_talks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "profile_id": {
+          "name": "profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_name": {
+          "name": "event_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "given_on": {
+          "name": "given_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "video_url": {
+          "name": "video_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "read_on": {
+          "name": "read_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "external_talks_profile_id_idx": {
+          "name": "external_talks_profile_id_idx",
+          "columns": [
+            {
+              "expression": "profile_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "external_talks_profile_id_profiles_id_fk": {
+          "name": "external_talks_profile_id_profiles_id_fk",
+          "tableFrom": "external_talks",
+          "tableTo": "profiles",
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "external_talks_profile_id_title_given_on_unique": {
+          "name": "external_talks_profile_id_title_given_on_unique",
+          "nullsNotDistinct": false,
+          "columns": ["profile_id", "title", "given_on"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "external_talks_kind_check": {
+          "name": "external_talks_kind_check",
+          "value": "\"kind\" IN ('conference', 'meetup', 'podcast', 'video', 'workshop')"
+        },
+        "external_talks_url_check": {
+          "name": "external_talks_url_check",
+          "value": "\"url\" ~ '^https://'"
+        },
+        "external_talks_video_url_check": {
+          "name": "external_talks_video_url_check",
+          "value": "\"video_url\" ~ '^https://'"
+        },
+        "external_talks_source_url_check": {
+          "name": "external_talks_source_url_check",
+          "value": "\"source_url\" ~ '^https://'"
         }
       },
       "isRLSEnabled": false
@@ -2219,6 +2372,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "x_followers": {
+          "name": "x_followers",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "x_followers_at": {
+          "name": "x_followers_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "x_followers_tried_at": {
+          "name": "x_followers_tried_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "slug": {
           "name": "slug",
           "type": "text",
@@ -2257,6 +2428,14 @@
         "profiles_luma_user_id_check": {
           "name": "profiles_luma_user_id_check",
           "value": "\"luma_user_id\" ~ '^usr-[A-Za-z0-9]+$'"
+        },
+        "profiles_x_followers_check": {
+          "name": "profiles_x_followers_check",
+          "value": "\"x_followers\" >= 0"
+        },
+        "profiles_x_followers_at_check": {
+          "name": "profiles_x_followers_at_check",
+          "value": "(\"x_followers\" IS NULL) = (\"x_followers_at\" IS NULL)"
         },
         "profiles_slug_check": {
           "name": "profiles_slug_check",

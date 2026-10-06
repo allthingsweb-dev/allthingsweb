@@ -150,6 +150,43 @@ describe("EventPages", () => {
     expect(talks.map((talk) => talk.format)).toEqual(["talk", "talk"]);
   });
 
+  test("lists talks in the evening's running order, with their starts; talks without a place follow, as attached", async () => {
+    const database = await seededDatabase();
+    try {
+      await database.exec(`
+        INSERT INTO talks (id, title, description, updated_at) VALUES
+          ('a0000000-0000-4000-8000-000000000099', 'Unplaced', '', now());
+        INSERT INTO event_talks (event_id, talk_id, created_at, updated_at) VALUES
+          ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000099', '2026-01-01T00:00:00Z', now());
+        UPDATE event_talks SET position = 0, starts_at = '2026-08-13T01:41:00Z'
+          WHERE talk_id = 'a0000000-0000-4000-8000-000000000001'
+            AND event_id = 'e0000000-0000-4000-8000-000000000001';
+        UPDATE event_talks SET position = 1
+          WHERE talk_id = 'a0000000-0000-4000-8000-000000000002'
+            AND event_id = 'e0000000-0000-4000-8000-000000000001';
+      `);
+      const { talks } = await readPage(
+        "2026-08-12-react-at-acme",
+        now,
+        database,
+      ).pipe(Effect.runPromise);
+      // Server components was attached second but is placed first; the
+      // unplaced talk, attached earliest, still follows the placed ones.
+      expect(talks.map((talk) => talk.title)).toEqual([
+        "Server components",
+        "Effect in production",
+        "Unplaced",
+      ]);
+      expect(
+        talks.map((talk) =>
+          talk.startsAt === null ? null : DateTime.formatIso(talk.startsAt),
+        ),
+      ).toEqual(["2026-08-13T01:41:00.000Z", null, null]);
+    } finally {
+      await database.close();
+    }
+  });
+
   test("reads who organized and co-hosted it, the MC, and how many went", async () => {
     const page = await read("2026-08-12-react-at-acme");
     // Luma counted 118 guests (tests/seed.sql); no people are recorded.

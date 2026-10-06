@@ -41,6 +41,7 @@ export const SITE_TABLES = [
   "event_images",
   "event_people",
   "event_posts",
+  "external_talks",
   "event_schedule_items",
   "event_notes",
   "profile_slugs",

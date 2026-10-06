@@ -139,6 +139,16 @@ export const profilesTable = pgTable(
      */
     lumaUserId: text("luma_user_id").unique(),
     /**
+     * How many follow them on X, as read at `xFollowersAt` from public data
+     * (core/src/followers.ts); speaker lists are ordered by it.
+     */
+    xFollowers: integer("x_followers"),
+    xFollowersAt: timestamp("x_followers_at", { withTimezone: true }),
+    /** When a count was last asked for, read or not: the least recent go first. */
+    xFollowersTriedAt: timestamp("x_followers_tried_at", {
+      withTimezone: true,
+    }),
+    /**
      * Their address, /people/<slug>: set by the database from the name
      * (core/migrations/0017_person_slugs.ts), on insert and when the name
      * changes. Leave it empty to have one made.
@@ -149,6 +159,11 @@ export const profilesTable = pgTable(
     check(
       "profiles_luma_user_id_check",
       sql`"luma_user_id" ~ '^usr-[A-Za-z0-9]+$'`,
+    ),
+    check("profiles_x_followers_check", sql`"x_followers" >= 0`),
+    check(
+      "profiles_x_followers_at_check",
+      sql`("x_followers" IS NULL) = ("x_followers_at" IS NULL)`,
     ),
     check("profiles_slug_check", sql`"slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
   ],
@@ -540,8 +555,18 @@ export const eventTalksTable = pgTable(
       .references(() => talksTable.id),
     createdAt,
     updatedAt,
+    /**
+     * The talk's place in the evening's running order, from 0; talks without
+     * one follow, in the order they were attached.
+     */
+    position: integer("position"),
+    /** When the talk started, where it is known. */
+    startsAt: timestamp("starts_at", { withTimezone: true }),
   },
-  (table) => [primaryKey({ columns: [table.eventId, table.talkId] })],
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.talkId] }),
+    check("event_talks_position_check", sql`"position" >= 0`),
+  ],
 );
 
 export const eventImagesTable = pgTable(
@@ -881,5 +906,58 @@ export const planningNotesTable = planningSchema.table(
     ),
     check("notes_body_check", sql`btrim("body") <> ''`),
     check("notes_author_check", sql`btrim("author") <> ''`),
+  ],
+);
+
+/** What kind of stage a talk given elsewhere was on. */
+export const externalTalkKinds = [
+  "conference",
+  "meetup",
+  "podcast",
+  "video",
+  "workshop",
+] as const;
+
+/**
+ * Talks people gave elsewhere: at conferences, other meetups, on podcasts
+ * and in videos, sourced like the lineups (core/backfill/external-talks.json).
+ * core/migrations/0016_external_talks.ts is the same change.
+ */
+export const externalTalksTable = pgTable(
+  "external_talks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profilesTable.id),
+    title: text("title").notNull(),
+    /** The conference, meetup, podcast or channel it was given at. */
+    eventName: text("event_name").notNull(),
+    kind: text("kind", { enum: externalTalkKinds }).notNull(),
+    givenOn: date("given_on", { mode: "string" }).notNull(),
+    /** The talk's, episode's or event's page. */
+    url: text("url"),
+    /** Its recording. */
+    videoUrl: text("video_url"),
+    /** Where the facts were read, and on what day. */
+    sourceUrl: text("source_url").notNull(),
+    readOn: date("read_on", { mode: "string" }).notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("external_talks_profile_id_idx").on(table.profileId),
+    unique("external_talks_profile_id_title_given_on_unique").on(
+      table.profileId,
+      table.title,
+      table.givenOn,
+    ),
+    check(
+      "external_talks_kind_check",
+      sql`"kind" IN ('conference', 'meetup', 'podcast', 'video', 'workshop')`,
+    ),
+    check("external_talks_url_check", sql`"url" ~ '^https://'`),
+    check("external_talks_video_url_check", sql`"video_url" ~ '^https://'`),
+    check("external_talks_source_url_check", sql`"source_url" ~ '^https://'`),
   ],
 );

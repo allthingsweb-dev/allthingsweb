@@ -606,5 +606,61 @@
       "read": "2026-10-05",
       "was": "Product Engineer at Vercel"
     }
+  },
+  {
+    "profileId": "2fb6b3b8-2bf7-437f-83e2-bc60ad00890a",
+    "name": "Ryan Vogel",
+    "twitterHandle": {
+      "value": "ryanvogel",
+      "source": "https://ryan.ceo",
+      "read": "2026-10-05",
+      "was": "ryandavogel"
+    }
+  },
+  {
+    "profileId": "460cca46-56d7-44da-a6a1-a2358ca28f3d",
+    "name": "Matt Palmer",
+    "twitterHandle": {
+      "value": "mattyp",
+      "source": "https://mattpalmer.io",
+      "read": "2026-10-05",
+      "was": "mattppal"
+    }
+  },
+  {
+    "profileId": "8b86e373-0709-4086-97e7-4e83102a6564",
+    "name": "Dan Goosewin",
+    "twitterHandle": {
+      "value": "Goosewin",
+      "source": "https://goosewin.com",
+      "read": "2026-10-05",
+      "was": "dan_goosewin"
+    }
+  },
+  {
+    "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
+    "name": "Andre Landgraf",
+    "twitterHandle": {
+      "value": "andrelandgraf",
+      "source": "https://github.com/andrelandgraf",
+      "read": "2026-10-05",
+      "was": "andrelandgraf94"
+    }
+  },
+  {
+    "profileId": "748690f9-037b-4c10-b0d7-3f64c3b31ad4",
+    "name": "Raouf Chebri",
+    "held": [
+      {
+        "field": "twitterHandle",
+        "value": null,
+        "sources": [
+          "https://github.com/raoufchebri",
+          "https://neon.com/blog/how-to-use-postgres-at-the-edge",
+          "https://dev.to/raoufchebri"
+        ],
+        "reason": "The stored _raoufai is unknown to X (FixTweet 404, 2026-10-05). His GitHub and an older Neon post give raoufdevrel, also unknown to X; dev.to (2022) gives raoufchebri, an account made after that link with 2 followers and no bio, so probably not his. His site chebri.com is down. Ask him for his handle."
+      }
+    ]
   }
 ]

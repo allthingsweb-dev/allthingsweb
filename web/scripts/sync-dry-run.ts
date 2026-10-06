@@ -1,3 +1,7 @@
+import { FollowerSource } from "allthings-core/src/followers.ts";
+import { CandidateSearches } from "allthings-core/src/posts/candidates.ts";
+import { PostSources } from "allthings-core/src/posts/sources.ts";
+import { EventPostWriter } from "allthings-core/src/posts/store.ts";
 import * as Database from "allthings-core/src/database.ts";
 import { CoverSource } from "allthings-core/src/ingest/covers.ts";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
@@ -73,11 +77,15 @@ const report = await Effect.runPromise(
         ShortSlugs.layer,
         LumaDescriptions.layer,
         ImageIngest.layer,
+        FollowerSource.fxtwitter,
+        CandidateSearches.layer,
+        PostSources.layer,
+        EventPostWriter.layer,
       ).pipe(
         Layer.provide(
           Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer),
         ),
-        Layer.provide(
+        Layer.provideMerge(
           Layer.mergeAll(Database.layer, FetchHttpClient.layer, untouched),
         ),
       ),

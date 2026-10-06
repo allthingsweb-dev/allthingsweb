@@ -35,6 +35,7 @@ const talk = (n: number, overrides: Partial<Talk> = {}): Talk => ({
   id: `t${n}`,
   title: `Talk ${n}`,
   format: "talk",
+  startsAt: null,
   description: `<p>About talk ${n}.</p>` as SafeHtml,
   speakers: [speaker(n)],
   ...overrides,

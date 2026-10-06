@@ -12,6 +12,9 @@ import hostLumaUserMigration from "./0010_host_luma_user.ts";
 import eventDescriptionMigration from "./0011_event_description.ts";
 import planningMigration from "./0012_planning.ts";
 import shortSlugsMigration from "./0013_short_slugs.ts";
+import talkOrderMigration from "./0014_talk_order.ts";
+import xFollowersMigration from "./0015_x_followers.ts";
+import externalTalksMigration from "./0016_external_talks.ts";
 import personSlugsMigration from "./0017_person_slugs.ts";
 import type { Migration } from "./statements.ts";
 
@@ -35,6 +38,9 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0011_event_description": eventDescriptionMigration,
   "0012_planning": planningMigration,
   "0013_short_slugs": shortSlugsMigration,
+  "0014_talk_order": talkOrderMigration,
+  "0015_x_followers": xFollowersMigration,
+  "0016_external_talks": externalTalksMigration,
   "0017_person_slugs": personSlugsMigration,
 };
 

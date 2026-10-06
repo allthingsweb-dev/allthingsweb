@@ -321,6 +321,7 @@ describe("the ledger", () => {
             id: "a1",
             title: "Two people, one talk",
             format: "talk",
+            startsAt: null,
             description: "<p>Hi</p>" as SafeHtml,
             speakers: [
               speaker({
@@ -366,6 +367,7 @@ describe("the ledger", () => {
             id: "a1",
             title: "Live episode",
             format: "fireside",
+            startsAt: null,
             description: null,
             speakers: [speaker()],
           },
@@ -428,6 +430,7 @@ describe("the ledger", () => {
       id: "a1",
       title: "My agents.md",
       format: "talk" as const,
+      startsAt: null,
       description: null,
       speakers: [speaker()],
     };
@@ -518,6 +521,7 @@ describe("the ledger", () => {
       id: "a1",
       title: "Opening words",
       format: "talk" as const,
+      startsAt: null,
       description: null,
       speakers: [speaker()],
     };
@@ -541,6 +545,7 @@ describe("the ledger", () => {
             id: "a1",
             title: "<b>bold</b>",
             format: "talk",
+            startsAt: null,
             description: null,
             speakers: [speaker({ name: "<i>x</i>", bio: "a < b" })],
           },
@@ -735,6 +740,7 @@ describe("who took part", () => {
             id: "a1",
             title: "With its creator",
             format: "fireside",
+            startsAt: null,
             description: null,
             speakers: [
               speaker({ id: "m", name: "Simon", role: "moderator" }),
@@ -745,6 +751,7 @@ describe("who took part", () => {
             id: "a2",
             title: "A talk",
             format: "talk",
+            startsAt: null,
             description: null,
             speakers: [speaker()],
           },
@@ -803,6 +810,7 @@ describe("the event page's images as variants", () => {
           id: "t",
           title: "A talk",
           format: "talk",
+          startsAt: null,
           description: null,
           speakers: [speaker({ portrait: photo("ada", 800, 800) })],
         },
@@ -896,6 +904,7 @@ describe("posts about the evening", () => {
             id: "a1",
             title: "A talk",
             format: "talk",
+            startsAt: null,
             description: null,
             speakers: [speaker()],
           },
