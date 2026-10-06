@@ -164,16 +164,26 @@ const count = (n: number, one: string, many: string) =>
 
 /** What the page says it is: their title, then their part at all things. */
 function description(person: PersonPage): string {
-  const talks = person.parts.filter((part) => part.kind === "talk").length;
+  const talks = (curation: "ours" | "shared") =>
+    person.parts.filter(
+      (part) => part.kind === "talk" && part.evening.curation === curation,
+    ).length;
+  const ours = talks("ours");
+  const shared = talks("shared");
   const done = [
     ...(person.hosted.length === 0
       ? []
       : [count(person.hosted.length, "evening hosted", "evenings hosted")]),
-    ...(talks === 0 ? [] : [count(talks, "talk", "talks")]),
+    ...(ours === 0 ? [] : [count(ours, "talk", "talks")]),
   ];
   const lead =
     person.title === null ? person.name : `${person.name}, ${person.title}`;
-  const at = done.length === 0 ? "" : ` ${done.join(" and ")} at all things.`;
+  const at = [
+    ...(done.length === 0 ? [] : [` ${done.join(" and ")} at all things.`]),
+    ...(shared === 0
+      ? []
+      : [` ${count(shared, "talk", "talks")} at evenings all things shared.`]),
+  ].join("");
   const bio = person.bio === null ? "" : ` ${shortBio(person.bio)}`;
   return `${lead}.${at}${bio}`.trim();
 }
@@ -188,7 +198,11 @@ export function personPage({
   images,
 }: PersonProps): string {
   const path = personPath(person.slug);
-  const stage = person.parts;
+  // Our evenings, then the ones we only shared: never one as the other.
+  const ours = person.parts.filter((part) => part.evening.curation === "ours");
+  const shared = person.parts.filter(
+    (part) => part.evening.curation === "shared",
+  );
   return Document({
     section: "people",
     meta: {
@@ -228,11 +242,18 @@ export function personPage({
               </p>
             </Section>
           )}
-          {stage.length === 0 ? (
+          {ours.length === 0 ? (
             ""
           ) : (
             <Section id="at-all-things" title="At all things">
-              <Parts parts={stage} />
+              <Parts parts={ours} />
+            </Section>
+          )}
+          {shared.length === 0 ? (
+            ""
+          ) : (
+            <Section id="shared" title="At evenings we shared">
+              <Parts parts={shared} />
             </Section>
           )}
           {elsewhere.length === 0 ? (
