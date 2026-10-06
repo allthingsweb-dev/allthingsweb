@@ -229,9 +229,16 @@ describe("a dry run", () => {
         syncedCount: 24,
         changedCount: 23,
       });
+      // Evenings the rehearsal rolled back are listed with their links too.
       expect(report.steps["slugs"]).toMatchObject({
         status: "done",
         written: null,
+        given: expect.arrayContaining([
+          {
+            slug: "2026-03-07-hackathon-weekend-evt-allDay",
+            shortSlug: "hackathon-weekend",
+          },
+        ]),
       });
       expect(
         await count(

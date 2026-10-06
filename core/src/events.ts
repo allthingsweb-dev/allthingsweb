@@ -115,7 +115,11 @@ const make = Effect.gen(function* () {
         ), '[]'::json) AS images
       FROM events e
       WHERE e.is_draft = false
-        AND (e.slug = ${slug} OR e.short_slug = ${slug})`,
+        AND (e.slug = ${slug} OR e.short_slug = ${slug})
+      -- No link equals another evening's slug (src/slugs.ts); were one to,
+      -- the link would win, as on its page.
+      ORDER BY e.short_slug = ${slug} DESC NULLS LAST
+      LIMIT 1`,
   });
 
   return Events.of({

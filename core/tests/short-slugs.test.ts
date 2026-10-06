@@ -5,6 +5,7 @@ import { EventPages } from "../src/event-page.ts";
 import { eventPathOf, eventUrl } from "../src/mappers.ts";
 import {
   baseSlug,
+  heldSlugs,
   isShortSlug,
   maxBaseLength,
   planShortSlugs,
@@ -13,7 +14,7 @@ import {
   shortSlugPattern,
   slugify,
 } from "../src/short-slugs.ts";
-import { ShortSlugs } from "../src/slugs.ts";
+import { type PendingEvening, ShortSlugs } from "../src/slugs.ts";
 import {
   clockLayer,
   now,
@@ -119,6 +120,16 @@ describe("a topic as a link", () => {
   });
 });
 
+/** Nothing held yet. */
+const none: ReadonlyMap<string, string> = new Map();
+
+/** `slugs`, each held by another evening. */
+const elsewhere = (...slugs: ReadonlyArray<string>) =>
+  heldSlugs(
+    slugs.map((slug) => ({ slug, eventId: "another" })),
+    [],
+  );
+
 describe("the rule", () => {
   /** production's evenings on 2026-10-05, as the backfill gives them links */
   const production = [
@@ -136,7 +147,7 @@ describe("the rule", () => {
   ];
 
   test("gives the first evening of a topic its bare link, and dates the later ones by month", () => {
-    expect(planShortSlugs(production, []).map(({ slug }) => slug)).toEqual([
+    expect(planShortSlugs(production, none).map(({ slug }) => slug)).toEqual([
       "remix-bay-area",
       "remix-bay-area-2024-05",
       "react-bay-area",
@@ -154,9 +165,12 @@ describe("the rule", () => {
   test("takes the evenings in the order they start, whatever the order given", () => {
     const shuffled = production.toReversed();
     expect(
-      planShortSlugs(shuffled, []).map(({ event, slug }) => [event.name, slug]),
+      planShortSlugs(shuffled, none).map(({ event, slug }) => [
+        event.name,
+        slug,
+      ]),
     ).toEqual(
-      planShortSlugs(production, []).map(({ event, slug }) => [
+      planShortSlugs(production, none).map(({ event, slug }) => [
         event.name,
         slug,
       ]),
@@ -170,7 +184,9 @@ describe("the rule", () => {
       evening("All Things Web", "2026-11-12T02:00:00Z", { eventId: "c" }),
       evening("All Things Web", "2026-11-12T02:00:00Z", { eventId: "d" }),
     ];
-    expect(planShortSlugs(later, ["web"]).map(({ slug }) => slug)).toEqual([
+    expect(
+      planShortSlugs(later, elsewhere("web")).map(({ slug }) => slug),
+    ).toEqual([
       "web-2026-11",
       "web-2026-11-11",
       "web-2026-11-11-2",
@@ -183,7 +199,7 @@ describe("the rule", () => {
     expect(
       planShortSlugs(
         [evening("All Things Web", "2026-12-01T02:00:00Z")],
-        ["web"],
+        elsewhere("web"),
       ).map(({ slug }) => slug),
     ).toEqual(["web-2026-11"]);
   });
@@ -193,20 +209,33 @@ describe("the rule", () => {
       expect(reservedSlugs.has(topic)).toBe(true);
       const [given] = planShortSlugs(
         [evening(`All Things ${topic}`, "2026-11-04T02:00:00Z", { topic })],
-        [],
+        none,
       );
       expect(given?.slug).toBe(`${topic}-2026-11`);
     }
   });
 
-  test("lets an evening take its own long slug, never another's", () => {
-    const venue = {
-      ...evening("Venue TBA", "2026-10-15T01:30:00Z"),
-      slug: "venue-tba",
-    };
-    expect(planShortSlugs([venue], ["venue-tba"])[0]?.slug).toBe("venue-tba");
+  test("lets an evening take a slug it holds, never another's", () => {
+    const venue = evening("Venue TBA", "2026-10-15T01:30:00Z");
+    // Its own long slug, already as short as its link would be.
     expect(
-      planShortSlugs([{ ...venue, slug: "other" }], ["venue-tba"])[0]?.slug,
+      planShortSlugs(
+        [venue],
+        heldSlugs([], [{ slug: "venue-tba", eventId: venue.eventId }]),
+      )[0]?.slug,
+    ).toBe("venue-tba");
+    expect(planShortSlugs([venue], elsewhere("venue-tba"))[0]?.slug).toBe(
+      "venue-tba-2026-10",
+    );
+    // A link another evening was given wins over the same long slug.
+    expect(
+      planShortSlugs(
+        [venue],
+        heldSlugs(
+          [{ slug: "venue-tba", eventId: "another" }],
+          [{ slug: "venue-tba", eventId: venue.eventId }],
+        ),
+      )[0]?.slug,
     ).toBe("venue-tba-2026-10");
   });
 });
@@ -239,9 +268,15 @@ describe("the step", () => {
     return db;
   };
 
-  const assign = (db: PGlite, dryRun = false) =>
+  const assign = (
+    db: PGlite,
+    dryRun = false,
+    pending: ReadonlyArray<PendingEvening> = [],
+  ) =>
     Effect.runPromise(
-      ShortSlugs.use((slugs) => slugs.assign({ dryRun })).pipe(
+      ShortSlugs.use((slugs) =>
+        slugs.assign(dryRun ? { dryRun, pending } : { dryRun }),
+      ).pipe(
         Effect.provide(
           ShortSlugs.layer.pipe(
             Layer.provideMerge(sqlLayer(db)),
@@ -282,6 +317,44 @@ describe("the step", () => {
     expect(rows[0]?.n).toBe(5);
     // A second run has nothing to give.
     expect(await assign(db)).toEqual({ given: [], written: 0 });
+  });
+
+  test("uses a link an evening holds but never used", async () => {
+    const db = await database();
+    await db.exec(
+      "INSERT INTO event_slugs (slug, event_id) VALUES ('react', 'e0000000-0000-4000-8000-000000000001')",
+    );
+    const { given, written } = await assign(db);
+    expect(written).toBe(5);
+    expect(given).toContainEqual({
+      eventId: "e0000000-0000-4000-8000-000000000001",
+      slug: "2026-08-12-react-at-acme",
+      shortSlug: "react",
+    });
+  });
+
+  test("a dry run lists the links the sync's new evenings would get, in turn", async () => {
+    const db = await database();
+    const { given, written } = await assign(db, true, [
+      {
+        eventId: "pending:evt-react2",
+        slug: "2026-07-01-all-things-react-evt-react2",
+        name: "All Things React",
+        topic: null,
+        curation: { kind: "ours" },
+        // Before React at Acme: it takes the bare link.
+        startDate: at("2026-07-02T01:00:00Z"),
+      },
+    ]);
+    expect(written).toBeNull();
+    expect(
+      given
+        .filter(({ shortSlug }) => shortSlug.startsWith("react"))
+        .map(({ slug, shortSlug }) => [slug, shortSlug]),
+    ).toEqual([
+      ["2026-07-01-all-things-react-evt-react2", "react"],
+      ["2026-08-12-react-at-acme", "react-2026-08"],
+    ]);
   });
 
   test("a dry run gives nothing", async () => {

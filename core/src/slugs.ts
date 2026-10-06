@@ -1,7 +1,7 @@
-import { Context, DateTime, Effect, Layer, Schema } from "effect";
+import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import type { DataSourceError } from "./errors.ts";
-import { planShortSlugs } from "./short-slugs.ts";
+import { heldSlugs, type NeedsSlug, planShortSlugs } from "./short-slugs.ts";
 import { orDataSourceError } from "./sql.ts";
 
 /**
@@ -31,9 +31,15 @@ const Unlinked = Schema.Struct({
   startDate: Schema.DateTimeUtcFromString,
 });
 
+/** A slug, and the evening that holds it. */
+const Held = Schema.Array(
+  Schema.Struct({ slug: Schema.String, eventId: Schema.String }),
+);
+
 const Read = Schema.Struct({
   unlinked: Schema.Array(Unlinked),
-  taken: Schema.Array(Schema.String),
+  links: Held,
+  longSlugs: Held,
 });
 
 const Written = Schema.Struct({ written: Schema.Int });
@@ -53,18 +59,33 @@ export interface SlugsResult {
   readonly written: number | null;
 }
 
+/** An evening a dry run of the sync would create, which the database lacks. */
+export interface PendingEvening extends NeedsSlug {
+  /** Its long slug. */
+  readonly slug: string;
+}
+
 export interface ShortSlugsShape {
-  /** Gives each published evening without a link its own, unless `dryRun`. */
-  readonly assign: (options: {
-    readonly dryRun: boolean;
-  }) => Effect.Effect<SlugsResult, DataSourceError>;
+  /**
+   * Gives each published evening without a link its own, unless `dryRun`.
+   * A dry run may name evenings the sync would create (`pending`), so it
+   * lists the links they would get too, in the order they all start.
+   */
+  readonly assign: (
+    options:
+      | { readonly dryRun: false }
+      | {
+          readonly dryRun: true;
+          readonly pending?: ReadonlyArray<PendingEvening>;
+        },
+  ) => Effect.Effect<SlugsResult, DataSourceError>;
 }
 
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  // Every link ever given and every long slug are taken: a link never
-  // shadows another evening's.
+  // Every link ever given and every long slug are held, each by its
+  // evening: a link never shadows another evening's.
   const read = sql`
     SELECT
       COALESCE((
@@ -77,12 +98,15 @@ const make = Effect.gen(function* () {
         WHERE e.is_draft = false AND e.short_slug IS NULL
       ), '[]'::json) AS unlinked,
       COALESCE((
-        SELECT json_agg(t.slug ORDER BY t.slug)
-        FROM (
-          SELECT slug FROM event_slugs
-          UNION SELECT slug FROM events
-        ) t
-      ), '[]'::json) AS taken`.pipe(
+        SELECT json_agg(json_build_object('slug', es.slug, 'eventId', es.event_id)
+          ORDER BY es.slug)
+        FROM event_slugs es
+      ), '[]'::json) AS links,
+      COALESCE((
+        SELECT json_agg(json_build_object('slug', e.slug, 'eventId', e.id)
+          ORDER BY e.slug)
+        FROM events e
+      ), '[]'::json) AS "longSlugs"`.pipe(
     Effect.flatMap(([row]) => Schema.decodeUnknownEffect(Read)(row)),
     orDataSourceError,
   );
@@ -92,19 +116,22 @@ const make = Effect.gen(function* () {
       given.map((link) => ({ event_id: link.eventId, slug: link.shortSlug })),
     );
     const at = DateTime.formatIso(now);
-    // The link is recorded, then used: the foreign key from events to
-    // event_slugs holds once the statement ends.
+    // The link is recorded (unless the evening holds it already), then
+    // used. The foreign key from events to event_slugs, checked once the
+    // statement ends, holds each link to its own evening: one another
+    // evening took meanwhile fails the statement.
     return sql`
-      WITH claimed AS (
+      WITH given AS (
+        SELECT * FROM jsonb_to_recordset(${rows}::jsonb) AS g(event_id uuid, slug text)
+      ), claimed AS (
         INSERT INTO event_slugs (slug, event_id, created_at)
-        SELECT g.slug, g.event_id, ${at}::timestamptz
-        FROM jsonb_to_recordset(${rows}::jsonb) AS g(event_id uuid, slug text)
-        RETURNING slug, event_id
+        SELECT g.slug, g.event_id, ${at}::timestamptz FROM given g
+        ON CONFLICT (slug) DO NOTHING
       ), used AS (
         UPDATE events e
-        SET short_slug = c.slug, updated_at = ${at}::timestamptz
-        FROM claimed c
-        WHERE e.id = c.event_id AND e.short_slug IS NULL
+        SET short_slug = g.slug, updated_at = ${at}::timestamptz
+        FROM given g
+        WHERE e.id = g.event_id AND e.short_slug IS NULL
         RETURNING 1
       )
       SELECT count(*)::int AS written FROM used`.pipe(
@@ -114,10 +141,15 @@ const make = Effect.gen(function* () {
     );
   };
 
-  const assign = ({ dryRun }: { readonly dryRun: boolean }) =>
+  const assign: ShortSlugsShape["assign"] = (options) =>
     Effect.gen(function* () {
-      const { unlinked, taken } = yield* read;
-      const given = planShortSlugs(unlinked, taken).map(
+      const { dryRun } = options;
+      const pending = options.dryRun ? (options.pending ?? []) : [];
+      const { unlinked, links, longSlugs } = yield* read;
+      const given = planShortSlugs(
+        [...unlinked, ...pending],
+        heldSlugs(links, longSlugs),
+      ).map(
         ({ event, slug }): GivenSlug => ({
           eventId: event.eventId,
           slug: event.slug,
@@ -130,7 +162,11 @@ const make = Effect.gen(function* () {
           ? 0
           : yield* write(given, yield* DateTime.now);
       return { given, written } satisfies SlugsResult;
-    }).pipe(Effect.withSpan("ShortSlugs.assign", { attributes: { dryRun } }));
+    }).pipe(
+      Effect.withSpan("ShortSlugs.assign", {
+        attributes: { dryRun: options.dryRun },
+      }),
+    );
 
   return ShortSlugs.of({ assign });
 });
@@ -140,4 +176,43 @@ export class ShortSlugs extends Context.Service<ShortSlugs, ShortSlugsShape>()(
 ) {
   /** Needs a `SqlClient`. */
   static readonly layer = Layer.effect(ShortSlugs, make);
+}
+
+const RehearsedFields = Schema.Struct({
+  name: Schema.String,
+  // Nested in JSON, so its instant is ISO text.
+  startDate: Schema.DateTimeUtcFromString,
+  isDraft: Schema.Boolean,
+});
+
+/**
+ * The published evenings a rehearsed sync would create (`created`, from
+ * src/luma/sync.ts), as a dry run of this step takes them: new evenings
+ * are ours and have no topic yet, as the sync inserts them.
+ */
+export function pendingEvenings(
+  created: ReadonlyArray<{
+    readonly lumaEventId: string;
+    readonly slug: string;
+    readonly fields: Readonly<Record<string, unknown>>;
+  }>,
+): ReadonlyArray<PendingEvening> {
+  return created.flatMap(({ lumaEventId, slug, fields }) =>
+    Option.match(Schema.decodeUnknownOption(RehearsedFields)(fields), {
+      onNone: () => [],
+      onSome: ({ name, startDate, isDraft }): Array<PendingEvening> =>
+        isDraft
+          ? []
+          : [
+              {
+                eventId: `pending:${lumaEventId}`,
+                slug,
+                name,
+                topic: null,
+                curation: { kind: "ours" },
+                startDate,
+              },
+            ],
+    }),
+  );
 }

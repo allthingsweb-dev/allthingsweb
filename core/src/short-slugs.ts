@@ -138,17 +138,33 @@ export function* slugCandidates(event: SlugSource): Generator<string> {
 }
 
 /**
+ * Every slug held, with the evening that holds it: each link given
+ * (`event_slugs`), and each long slug. A link wins over a long slug that
+ * is the same, since the link is that evening's for good.
+ */
+export function heldSlugs(
+  links: Iterable<{ readonly slug: string; readonly eventId: string }>,
+  longSlugs: Iterable<{ readonly slug: string; readonly eventId: string }>,
+): Map<string, string> {
+  const held = new Map<string, string>();
+  for (const { slug, eventId } of longSlugs) held.set(slug, eventId);
+  for (const { slug, eventId } of links) held.set(slug, eventId);
+  return held;
+}
+
+/**
  * The first link `event` may take: one no page is at and no other evening
- * holds. An evening may take its own long slug, when that is already as
- * short as its link would be.
+ * holds. One the evening itself holds already (its own long slug, say,
+ * when that is as short as its link would be) is its to take.
  */
 export function shortSlugFor(
-  event: SlugSource & { readonly slug?: string },
-  taken: ReadonlySet<string>,
+  event: SlugSource & { readonly eventId: string },
+  held: ReadonlyMap<string, string>,
 ): string {
   for (const slug of slugCandidates(event)) {
     if (reservedSlugs.has(slug)) continue;
-    if (!taken.has(slug) || slug === event.slug) return slug;
+    const holder = held.get(slug);
+    if (holder === undefined || holder === event.eventId) return slug;
   }
   // slugCandidates never ends; this is for the type checker.
   throw new Error("unreachable");
@@ -157,20 +173,19 @@ export function shortSlugFor(
 /** An evening that needs a link. */
 export interface NeedsSlug extends SlugSource {
   readonly eventId: string;
-  /** Its long slug, which it may take as its link. */
-  readonly slug?: string;
 }
 
 /**
  * Links for `events`, given in the order they start (then by id), so the
- * first evening of a topic takes the bare link. `taken` is every link and
- * slug already held; each link given here is taken for the next.
+ * first evening of a topic takes the bare link. `taken` is every slug
+ * already held, with who holds it (`heldSlugs`); each link given here is
+ * held for the next.
  */
 export function planShortSlugs<E extends NeedsSlug>(
   events: ReadonlyArray<E>,
-  taken: Iterable<string>,
+  taken: ReadonlyMap<string, string>,
 ): ReadonlyArray<{ readonly event: E; readonly slug: string }> {
-  const held = new Set(taken);
+  const held = new Map(taken);
   return events
     .toSorted(
       (a, b) =>
@@ -180,7 +195,7 @@ export function planShortSlugs<E extends NeedsSlug>(
     )
     .map((event) => {
       const slug = shortSlugFor(event, held);
-      held.add(slug);
+      held.set(slug, event.eventId);
       return { event, slug };
     });
 }

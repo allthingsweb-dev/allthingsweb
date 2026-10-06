@@ -1,6 +1,10 @@
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
-import { ShortSlugs } from "allthings-core/src/slugs.ts";
+import {
+  type PendingEvening,
+  pendingEvenings,
+  ShortSlugs,
+} from "allthings-core/src/slugs.ts";
 import { Clock, Context, Duration, Effect, Exit } from "effect";
 
 /**
@@ -135,8 +139,11 @@ const skipped = (name: string, reason: string) =>
  * Short links for the evenings without one (core's src/slugs.ts), as a step
  * reports them: each evening's long slug and its new link.
  */
-const slugs = (assigner: ShortSlugs["Service"], dryRun: boolean) =>
-  Effect.map(assigner.assign({ dryRun }), ({ given, written }) => ({
+const slugs = (
+  assigner: ShortSlugs["Service"],
+  options: Parameters<ShortSlugs["Service"]["assign"]>[0],
+) =>
+  Effect.map(assigner.assign(options), ({ given, written }) => ({
     written,
     given: given.map(({ slug, shortSlug }) => ({ slug, shortSlug })),
   }));
@@ -167,7 +174,10 @@ const write = (limits: SyncLimits) =>
     // a run that reads the calendar.
     if (steps["events"].status !== "done") return steps;
 
-    steps["slugs"] = yield* step("slugs", slugs(yield* ShortSlugs, false));
+    steps["slugs"] = yield* step(
+      "slugs",
+      slugs(yield* ShortSlugs, { dryRun: false }),
+    );
 
     const photosLeft = yield* windowLeft(limits.photos.window);
     steps["photos"] =
@@ -229,23 +239,32 @@ const dryRun = Effect.gen(function* () {
   const sync = yield* LumaSync;
   const ingest = yield* ImageIngest;
   const steps: Record<string, StepReport> = {};
+  // The evenings the sync would create, which the rehearsal rolls back: the
+  // links step lists theirs too.
+  let created: ReadonlyArray<PendingEvening> = [];
   steps["events"] = yield* step(
     "events",
-    Effect.map(sync.rehearse, (rehearsal) => ({
-      syncedCount: rehearsal.syncedCount,
-      changedCount: rehearsal.changedCount,
-      publishedCount: rehearsal.publishedCount,
-      created: rehearsal.created.map(({ slug, fields }) => ({
-        slug,
-        name: fields["name"],
-      })),
-      updated: rehearsal.updated.map(({ slug, changes }) => ({
-        slug,
-        changes,
-      })),
-    })),
+    Effect.map(sync.rehearse, (rehearsal) => {
+      created = pendingEvenings(rehearsal.created);
+      return {
+        syncedCount: rehearsal.syncedCount,
+        changedCount: rehearsal.changedCount,
+        publishedCount: rehearsal.publishedCount,
+        created: rehearsal.created.map(({ slug, fields }) => ({
+          slug,
+          name: fields["name"],
+        })),
+        updated: rehearsal.updated.map(({ slug, changes }) => ({
+          slug,
+          changes,
+        })),
+      };
+    }),
   );
-  steps["slugs"] = yield* step("slugs", slugs(yield* ShortSlugs, true));
+  steps["slugs"] = yield* step(
+    "slugs",
+    slugs(yield* ShortSlugs, { dryRun: true, pending: created }),
+  );
   steps["images"] = yield* step(
     "images",
     Effect.map(ingest.pending, (pending) => ({
