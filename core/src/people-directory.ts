@@ -7,6 +7,7 @@ import { displayName, eventTopic } from "./lockup.ts";
 import { eventStatus, personLinks } from "./mappers.ts";
 import { type StageRole, stageRole } from "./people.ts";
 import * as Rows from "./rows.ts";
+import { byFollowers } from "./followers.ts";
 import { siteSlug } from "./sql.ts";
 
 /**
@@ -112,6 +113,8 @@ export const PersonRow = Schema.Struct({
   twitterHandle: Schema.NullOr(Schema.String),
   blueskyHandle: Schema.NullOr(Schema.String),
   linkedinHandle: Schema.NullOr(Schema.String),
+  /** How many follow them on X, as last read (src/followers.ts). */
+  xFollowers: Schema.NullOr(Schema.Int),
   photo: Schema.NullOr(Rows.Photo),
   /** Whether a published evening names them as an organizer. */
   organizes: Schema.Boolean,
@@ -224,7 +227,9 @@ const personOrder: Order.Order<Person> = Order.combineAll([
 /**
  * The page's people from the statement's rows: the organizers in the order
  * of `organizerIds`, then the other organizers, then everyone else with a
- * talk, then everyone else who co-hosted or MC'd. Within a group (but the
+ * talk, then everyone else who co-hosted or MC'd. Speakers are ordered by
+ * how many follow them on X, most first (src/followers.ts); among equal
+ * counts, among those without one, and within the other groups (but the
  * organizers asked for), whoever took part most recently comes first.
  */
 export function toPeople(
@@ -233,6 +238,7 @@ export function toPeople(
   now: DateTime.Utc,
 ): PeopleView {
   const asked = new Set(organizerIds);
+  const followers = new Map(rows.map((row) => [row.id, row.xFollowers]));
   const people = rows.map((row) => ({
     person: toPerson(row, now),
     organizes: row.organizes,
@@ -256,7 +262,12 @@ export function toPeople(
       }),
       ...group(({ organizes }) => organizes),
     ],
-    speakers: group(({ person, organizes }) => !organizes && hasTalk(person)),
+    speakers: others
+      .filter(({ person, organizes }) => !organizes && hasTalk(person))
+      .map(({ person }) => person)
+      .toSorted(
+        byFollowers((person) => followers.get(person.id) ?? null, personOrder),
+      ),
     coHosts: group(
       ({ person, organizes }) =>
         !organizes && !hasTalk(person) && person.parts.length > 0,
@@ -316,6 +327,7 @@ const make = Effect.gen(function* () {
         p.twitter_handle AS "twitterHandle",
         p.bluesky_handle AS "blueskyHandle",
         p.linkedin_handle AS "linkedinHandle",
+        p.x_followers AS "xFollowers",
         (
           SELECT json_build_object(
             'url', i.url, 'alt', i.alt, 'width', i.width, 'height', i.height,

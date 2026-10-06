@@ -1,3 +1,4 @@
+import { FollowerSource } from "allthings-core/src/followers.ts";
 import { describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { ImageIngest, NewImageId } from "allthings-core/src/ingest/ingest.ts";
@@ -125,6 +126,11 @@ async function run(
     ShortSlugs.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
+    // Everyone has 7 followers on X here.
+    Layer.succeed(
+      FollowerSource,
+      FollowerSource.of({ read: () => Effect.succeed(7) }),
+    ),
   ).pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -174,7 +180,22 @@ describe("a sync run that writes", () => {
         "posts",
         "covers",
         "descriptions",
+        "followers",
       ]);
+      // Every profile with an X handle gets its count, with when it was read.
+      expect(report.steps["followers"]).toMatchObject({
+        status: "done",
+        failed: [],
+        remaining: 0,
+      });
+      expect(
+        await count(
+          db,
+          `SELECT count(*) AS n FROM profiles
+            WHERE twitter_handle IS NOT NULL AND btrim(twitter_handle) <> ''
+              AND (x_followers IS DISTINCT FROM 7 OR x_followers_at IS NULL)`,
+        ),
+      ).toBe(0);
       expect(report.steps["events"]).toMatchObject({
         status: "done",
         syncedCount: 24,
@@ -250,6 +271,7 @@ describe("a sync run that writes", () => {
         "posts",
         "covers",
         "descriptions",
+        "followers",
         "summary",
       ]);
       expect(logged.every((entry) => entry["source"] === "luma-sync")).toBe(

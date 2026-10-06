@@ -72,6 +72,31 @@ didn't have, each with its sources: talks to take off it (a talk on no
 other evening is deleted with its speakers) and people's parts in it
 (by an existing profile and role).
 
+## Speaker order: X followers
+
+Speaker lists are ordered by how many follow each person on X, most first.
+Nobody picks this order; it is how the order is decided. Among equal counts,
+and among people without one (who always come after everyone counted), the
+list keeps its own order (`byFollowers` in `src/followers.ts`; /people's
+speakers: whoever took part latest first).
+
+Each profile keeps a snapshot, `x_followers` with `x_followers_at`, read from
+public data: the FixTweet API now, X's own API once the app has keys. The sync
+Worker refreshes the missing and oldest snapshots on its schedule (off until
+the cutover, like the rest of it), a bounded number per run, reading for
+at most its window (30 s); a handle X doesn't know, or a failed read,
+leaves the snapshot as it was, and the least recently tried go first
+(`x_followers_tried_at`), so a handle that keeps failing never holds the
+slots. A count is only ever its handle's: changing
+or clearing `twitter_handle` clears the snapshot (a trigger, in both
+migrations), and a count read while the handle changed is not stored.
+
+```sh
+DATABASE_URL=… bun run followers --dry-run   # read the counts, write nothing
+DATABASE_URL=… bun run followers             # store them
+DATABASE_URL=… bun run followers --stale-days 0 --max 1000   # re-read everyone
+```
+
 ## Luma descriptions
 
 The feed's DESCRIPTION is only a link to the event's page, so each

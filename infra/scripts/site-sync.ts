@@ -62,6 +62,8 @@ interface ColumnGrants {
  *   row for each link given.
  * - images: one row per stored image, its id made by the sync.
  * - profiles, event_posts: rows still missing an image, and the image set.
+ *   Profiles also: the X follower refresh (core/src/followers.ts) reads each
+ *   handle and its snapshot, and writes the new count with when it was read.
  *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
@@ -135,8 +137,24 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
     ],
   },
   profiles: {
-    select: ["id", "name", "photo_source_url", "image", "created_at"],
-    update: ["image", "updated_at"],
+    select: [
+      "id",
+      "name",
+      "photo_source_url",
+      "image",
+      "created_at",
+      "twitter_handle",
+      "x_followers",
+      "x_followers_at",
+      "x_followers_tried_at",
+    ],
+    update: [
+      "image",
+      "updated_at",
+      "x_followers",
+      "x_followers_at",
+      "x_followers_tried_at",
+    ],
   },
   event_posts: {
     select: [

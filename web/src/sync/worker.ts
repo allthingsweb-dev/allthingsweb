@@ -1,4 +1,5 @@
 import { PgClient } from "@effect/sql-pg";
+import { FollowerSource } from "allthings-core/src/followers.ts";
 import { CoverSource } from "allthings-core/src/ingest/covers.ts";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { MediaBucket } from "allthings-core/src/ingest/media-bucket.ts";
@@ -78,9 +79,12 @@ export const syncLayer = (
     ShortSlugs.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
+    FollowerSource.fxtwitter,
   ).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer)),
-    Layer.provide(
+    // Merged, not only provided: the follower refresh writes through the
+    // run's SqlClient itself.
+    Layer.provideMerge(
       Layer.mergeAll(
         PgClient.layer({
           url: Redacted.make(env.HYPERDRIVE.connectionString),

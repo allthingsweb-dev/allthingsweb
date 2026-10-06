@@ -1,3 +1,4 @@
+import { FollowerSource } from "allthings-core/src/followers.ts";
 import * as Database from "allthings-core/src/database.ts";
 import { CoverSource } from "allthings-core/src/ingest/covers.ts";
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
@@ -73,11 +74,12 @@ const report = await Effect.runPromise(
         ShortSlugs.layer,
         LumaDescriptions.layer,
         ImageIngest.layer,
+        FollowerSource.fxtwitter,
       ).pipe(
         Layer.provide(
           Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer),
         ),
-        Layer.provide(
+        Layer.provideMerge(
           Layer.mergeAll(Database.layer, FetchHttpClient.layer, untouched),
         ),
       ),
