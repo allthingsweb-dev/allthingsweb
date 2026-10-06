@@ -24,9 +24,18 @@ const Url = HttpUrl.check(Schema.isPattern(/^https:\/\/\S+$/));
 /** The day a fact was read, YYYY-MM-DD. */
 const Day = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/));
 
-/** A value, where it was read, and when. */
+/**
+ * A value, where it was read, and when. `was` names the one stale value it
+ * may replace: a filled column is replaced only while it still holds
+ * exactly that, so an edit made since is never lost.
+ */
 const fact = <S extends Schema.Top>(value: S) =>
-  Schema.Struct({ value, source: Url, read: Day });
+  Schema.Struct({
+    value,
+    source: Url,
+    read: Day,
+    was: Schema.optionalKey(Schema.String.check(Schema.isNonEmpty())),
+  });
 
 /**
  * Hosts profile photos may come from: the app's ingestion list
@@ -220,7 +229,11 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
           const value = entry[field]?.value;
           if (value === undefined) continue;
           const current = stored(row, field);
-          if (isBlank(current)) {
+          const was = entry[field]?.was;
+          if (was !== undefined && current === was && current !== value) {
+            fill[field] = value;
+            notes.push(`${columns[field]} "${was}" → ${value}`);
+          } else if (isBlank(current)) {
             fill[field] = value;
             notes.push(
               `${columns[field]} ← ${value.length > 60 ? `${value.slice(0, 57)}…` : value}`,

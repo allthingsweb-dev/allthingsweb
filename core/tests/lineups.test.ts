@@ -399,7 +399,12 @@ describe("core/backfill/lineups.json", () => {
     ).toEqual([
       [
         "Effect San Francisco",
-        ["Fireside chat with Michael Arnaldi, creator of Effect"],
+        [
+          "Fireside chat with Michael Arnaldi, creator of Effect",
+          "State of Effect 2026",
+          "Alchemy 2.0",
+          "Effect panel",
+        ],
         ["mc simon-farshid"],
       ],
       [
@@ -439,6 +444,8 @@ describe("core/backfill/lineups.json", () => {
       "jeff-huber",
       "kevin-whinnery",
       "kiet-ho",
+      "kit-langton",
+      "kyle-mistele",
       "mateo-torres",
       "michael-arnaldi",
       "michael-grinich",
@@ -446,9 +453,11 @@ describe("core/backfill/lineups.json", () => {
       "neel-rao",
       "nicholas-pipitone",
       "nikhil-gupta",
+      "rhys-sullivan",
       "rostislav-melkumyan",
       "ryan-vogel",
       "sam-bhagwat",
+      "sam-goodwin",
       "sebastian-lorenz",
       "shane-thomas",
       "simon-farshid",

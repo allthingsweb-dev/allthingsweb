@@ -126,6 +126,29 @@ describe("applyPeople", () => {
     ]);
   });
 
+  test("replaces a filled value only while it is still the stale one the file names", async () => {
+    const db = await fresh();
+    const stale = (was: string) => [
+      {
+        profileId: ada,
+        name: "Ada Lovelace",
+        title: { value: "Mathematician", source, read, was },
+      },
+    ];
+    const kept = await apply(db, stale("Countess"));
+    expect(Exit.isSuccess(kept) ? kept.value : kept).toEqual([
+      'Ada Lovelace: title kept (already "Engineer")',
+    ]);
+    const replaced = await apply(db, stale("Engineer"));
+    expect(Exit.isSuccess(replaced) ? replaced.value : replaced).toEqual([
+      'Ada Lovelace: title "Engineer" → Mathematician',
+    ]);
+    const again = await apply(db, stale("Engineer"));
+    expect(Exit.isSuccess(again) ? again.value : again).toEqual([
+      "Ada Lovelace: unchanged",
+    ]);
+  });
+
   test("a handle stored as an empty string counts as blank", async () => {
     const db = await fresh();
     await db.exec(

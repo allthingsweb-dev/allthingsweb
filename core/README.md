@@ -211,6 +211,29 @@ DATABASE_URL=… bun run event-extras --dry-run   # do everything, print it, rol
 DATABASE_URL=… bun run event-extras             # write
 ```
 
+## Filling in profiles
+
+`backfill/people.json` fills what profiles of people on published events
+lack: a title, a bio, X, Bluesky and LinkedIn handles, and a photo. Every
+fact carries the URL it was read from and the day it was read, taken from
+public, keyless sources: the person's own X or Bluesky profile, GitHub,
+their site, a company team page or a conference speaker page.
+
+- A filled column is never overwritten; only blank ones (or handles stored
+  as empty strings) are set.
+- A bio is the person's own words, at most trimmed or put in the third
+  person; a terse profile line is no bio.
+- A photo is only ever a `photo_source_url` on a host the hourly ingestion
+  copies from (`app/src/lib/profile-photos/hosts.ts`), which then makes it
+  the profile's image.
+- Anything uncertain, a same-name collision above all, is kept under
+  `held` with its reason and never written.
+
+```sh
+DATABASE_URL=… bun run people --dry-run   # what would be filled, rolled back
+DATABASE_URL=… bun run people             # fill it, in one transaction
+```
+
 ## Hosting companies' links
 
 Each hosting company (`sponsors`) may store its own website and its X,

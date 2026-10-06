@@ -1,1 +1,612 @@
-[]
+[
+  {
+    "profileId": "a5c8ee05-af1e-4e98-aab9-d0bd4092d297",
+    "name": "Arthur Stockman",
+    "title": {
+      "value": "Freelance Developer / AI Engineer",
+      "source": "https://stockman.codes",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Arthur started coding at a young age, founded his first company in university (and sold it a couple years later), then founded and failed the second one.",
+      "source": "https://stockman.codes",
+      "read": "2026-10-05"
+    }
+  },
+  {
+    "profileId": "829ad53f-48c7-4786-8889-8670f9a1b3f1",
+    "name": "Hahnbee Lee",
+    "twitterHandle": {
+      "value": "hahnbeelee",
+      "source": "https://www.ycombinator.com/companies/mintlify",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "hahnbee-lee",
+      "source": "https://www.ycombinator.com/companies/mintlify",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": null,
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=hahnbeelee.bsky.social",
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=hahnbee.bsky.social",
+          "https://www.hahnbee.com/",
+          "https://www.ycombinator.com/companies/mintlify"
+        ],
+        "reason": "No Bluesky account found. The obvious handles return 'Profile not found'. Her site hahnbee.com ('Co-founder @ Mintlify') and the YC page link no Bluesky profile. Web search only found unrelated accounts (hanbee.bsky.social, hanbee1.bsky.social)."
+      }
+    ]
+  },
+  {
+    "profileId": "803cd0be-f8ad-4999-a764-e0aeb5e92225",
+    "name": "Ivan Chebykin",
+    "twitterHandle": {
+      "value": "ichebykin",
+      "source": "https://chebykin.org",
+      "read": "2026-10-05"
+    },
+    "blueskyHandle": {
+      "value": "chebykin.org",
+      "source": "https://chebykin.org",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "chebykin",
+      "source": "https://chebykin.org",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "title",
+        "value": null,
+        "sources": ["https://chebykin.org"],
+        "reason": "Not requested, but the known 'AI engineer at Meta' is out of date. His site says he is 'working on my own startup - SourceWizard. Before that I used to work at Meta AI in SF'. The X bio says 'Engineer turned founder'. Any Meta-based title should be revisited. His site gives no explicit title such as Founder."
+      }
+    ]
+  },
+  {
+    "profileId": "181d776e-1c8d-4af1-a0dc-ca6600a46c1c",
+    "name": "Mirela Prifti",
+    "bio": {
+      "value": "Mirela is a web designer focussing on web accessibility and usability.",
+      "source": "https://adplist.org/mentors/mirela-prifti",
+      "read": "2026-10-05"
+    }
+  },
+  {
+    "profileId": "9cbafec7-981f-498b-83a3-9aaefd935868",
+    "name": "Sebastian Lorenz",
+    "title": {
+      "value": "Chief Technology Officer, Edge & Node",
+      "source": "https://www.edgeandnode.com/company",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Based in Vienna, Sebastian is a full-stack engineer and software architect specializing in modern web technologies. With years of experience as a CTO and senior advisor across various companies, he currently serves as CTO at Edge&Node.",
+      "source": "https://web.archive.org/web/20260513193410/https://effect.website/events/effect-days/speakers/sebastian-lorenz",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "fubhy.bsky.social",
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=fubhy.bsky.social"
+        ],
+        "reason": "Not requested. displayName is 'Sebastian Lorenz' and the handle matches his GitHub login, but the account has no bio and 0 posts, and nothing he controls links it. Not cross-linked, so held."
+      }
+    ]
+  },
+  {
+    "profileId": "4815e292-05ea-49eb-b4d3-b6bc8775a958",
+    "name": "Abhi Aiyer",
+    "twitterHandle": {
+      "value": "abhiaiyer",
+      "source": "https://api.fxtwitter.com/abhiaiyer",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "abhi-aiyer-aa41bb42",
+      "source": "https://mastra.ai/about",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "photoSourceUrl",
+        "value": "https://avatars.githubusercontent.com/u/2359375",
+        "sources": [
+          "https://api.github.com/users/abhiaiyer91",
+          "https://api.fxtwitter.com/abhiaiyer"
+        ],
+        "reason": "Account identity is confirmed (GitHub abhiaiyer91: company mastra.ai, bio 'CTO/Co-Founder @mastra-ai'), and the URL returns image/jpeg. But both the GitHub and the X avatar (https://pbs.twimg.com/profile_images/2082204958808526848/jz2rjLpH_400x400.jpg) are the same group photo of five men in tuxedos. Presumably Abhi is the man in the center, but the photo does not clearly show one person. LinkedIn (media.licdn.com) returned 999 and no Bluesky account was found."
+      },
+      {
+        "field": "bio",
+        "value": null,
+        "sources": [
+          "https://api.fxtwitter.com/abhiaiyer",
+          "https://api.github.com/users/abhiaiyer91",
+          "https://mastra.ai/authors/abhi-aiyer"
+        ],
+        "reason": "only a terse profile bio"
+      }
+    ]
+  },
+  {
+    "profileId": "92da927e-104f-4bef-b86b-247941a28444",
+    "name": "David Cusatis",
+    "linkedinHandle": {
+      "value": "david-cusatis",
+      "source": "https://www.linkedin.com/in/david-cusatis/",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://media.licdn.com/dms/image/v2/D4E03AQGAEP3xab8u_w/profile-displayphoto-shrink_400_400/B4EZVNYfU_HUAk-/0/1740760020620?e=2147483647&v=beta&t=alJcCWc3IS0MWIdc96pNLzMhsqUGoQ0kYluVwlka0Ko",
+      "source": "https://www.linkedin.com/in/david-cusatis/",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "twitterHandle",
+        "value": null,
+        "sources": ["https://api.fxtwitter.com/dcusatis"],
+        "reason": "No X account found that is cross-linked to Range"
+      },
+      {
+        "field": "bio",
+        "value": null,
+        "sources": ["https://www.range.com/public/about-us"],
+        "reason": "No bio in his own words was found. The Range about page text about him is written by co-founder Fahad Hassan, in the first person."
+      }
+    ]
+  },
+  {
+    "profileId": "813bcbac-7ef3-4414-8801-3c99db881f6b",
+    "name": "Greg Pstrucha",
+    "twitterHandle": {
+      "value": "grichadev",
+      "source": "https://api.fxtwitter.com/grichadev",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/2015189616777912320/yM57ZlqT_400x400.jpg",
+      "source": "https://api.fxtwitter.com/grichadev",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "greg-pstrucha",
+      "source": "https://gricha.dev",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "bio",
+        "value": null,
+        "sources": [
+          "https://api.fxtwitter.com/grichadev",
+          "https://api.github.com/users/gricha"
+        ],
+        "reason": "only a terse profile bio"
+      },
+      {
+        "field": "blueskyHandle",
+        "value": null,
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=Greg%20Pstrucha"
+        ],
+        "reason": "No Bluesky account found"
+      }
+    ]
+  },
+  {
+    "profileId": "034f4e87-345b-46e6-b984-2226d760f7fb",
+    "name": "Ivan Burazin",
+    "twitterHandle": {
+      "value": "ivanburazin",
+      "source": "https://api.fxtwitter.com/ivanburazin",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1549052013178134529/FljtGcgj_400x400.jpg",
+      "source": "https://api.fxtwitter.com/ivanburazin",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "ivanburazin",
+      "source": "https://www.linkedin.com/in/ivanburazin/",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Ivan Burazin is the co-founder and CEO of Daytona, a startup building agent cloud infrastructure for enterprises and AI labs. A longtime developer tools entrepreneur, Ivan previously co-founded Codeanywhere, one of the first cloud IDEs launched in 2009. He also created Shift, Croatia's flagship developer conference and the biggest in Southeast Europe, which was acquired by Infobip, where he went on to serve as Chief Developer Experience Officer.",
+      "source": "https://slush.org/2026-speakers/ivan-burazin",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "ivanburazin.bsky.social",
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=Ivan%20Burazin"
+        ],
+        "reason": "The display name matches, but the description is empty and nothing cross-links it to Daytona or his X account"
+      }
+    ]
+  },
+  {
+    "profileId": "94d586bf-53a4-433b-acdb-d81d5a6db3bd",
+    "name": "Jeff Huber",
+    "twitterHandle": {
+      "value": "jeffreyhuber",
+      "source": "https://api.fxtwitter.com/jeffreyhuber",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1588236352797126656/i-XMejJn_400x400.jpg",
+      "source": "https://api.fxtwitter.com/jeffreyhuber",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "jeffchuber",
+      "source": "https://www.linkedin.com/in/jeffchuber/",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "bio",
+        "value": null,
+        "sources": [
+          "https://api.fxtwitter.com/jeffreyhuber",
+          "https://jeffhuber.net/"
+        ],
+        "reason": "only a terse profile bio. The ai.engineer profile is editorial or generated, not in his own words."
+      },
+      {
+        "field": "blueskyHandle",
+        "value": null,
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=Jeff%20Huber"
+        ],
+        "reason": "No Bluesky account cross-linked to Chroma. jeffhuber.bsky.social is unrelated, and thejhuber.bsky.social is a different Jeff Huber (GRAIL)."
+      }
+    ]
+  },
+  {
+    "profileId": "22aa148d-27a9-4956-8ed4-89487191141c",
+    "name": "Kevin Whinnery",
+    "twitterHandle": {
+      "value": "kevinwhinnery",
+      "source": "https://www.kevin.mn/",
+      "read": "2026-10-05"
+    },
+    "blueskyHandle": {
+      "value": "kevin.mn",
+      "source": "https://www.kevin.mn/",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "kevinwhinnery",
+      "source": "https://www.kevin.mn/",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/2056622551426908160/tHqB5TID_400x400.jpg",
+      "source": "https://api.fxtwitter.com/kevinwhinnery",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Kevin Whinnery is an expert in developer tools, API design, and agent experience. Usually found in Minneapolis, SF, or NYC.",
+      "source": "https://www.kevin.mn/",
+      "read": "2026-10-05"
+    }
+  },
+  {
+    "profileId": "b2adfa27-deda-49a3-ab67-647d805a79f1",
+    "name": "Kiet Ho",
+    "twitterHandle": {
+      "value": "FlyaKiet",
+      "source": "https://www.ycombinator.com/companies/superset",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "kiet-ho",
+      "source": "https://www.ycombinator.com/companies/superset",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1723401610527735808/j6y7q1ZA_400x400.jpg",
+      "source": "https://api.fxtwitter.com/FlyaKiet",
+      "read": "2026-10-05"
+    },
+    "blueskyHandle": {
+      "value": "kietho.bsky.social",
+      "source": "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=kietho.bsky.social",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "bio",
+        "value": null,
+        "sources": [
+          "https://api.fxtwitter.com/FlyaKiet",
+          "https://api.github.com/users/Kitenite"
+        ],
+        "reason": "only a terse profile bio. The YC founder_bio field could not be attributed to Kiet with certainty, and it does not match his known background."
+      }
+    ]
+  },
+  {
+    "profileId": "332815b6-cee6-4819-b233-fc61244b5399",
+    "name": "Mateo Torres",
+    "twitterHandle": {
+      "value": "torresmateo",
+      "source": "https://torresmateo.com",
+      "read": "2026-10-05"
+    },
+    "blueskyHandle": {
+      "value": "torresmateo.com",
+      "source": "https://torresmateo.com",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "torresmateo",
+      "source": "https://torresmateo.com",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://avatars.githubusercontent.com/u/2292288",
+      "source": "https://api.github.com/users/torresmateo",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Mateo Torres is a Developer Advocate at Arcade.dev working on Agentic AI and LLM Tool Integration. Previously, he was a postdoctoral researcher in the field of Computational Biology at Cornell Unversity and FGV.",
+      "source": "https://torresmateo.com",
+      "read": "2026-10-05"
+    }
+  },
+  {
+    "profileId": "6c9ded36-168e-4b89-80b6-2c676f9bbcce",
+    "name": "Michael Grinich",
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1978687600656580608/m2TFWGlC_400x400.jpg",
+      "source": "https://api.fxtwitter.com/grinich",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Michael is the founder and CEO of WorkOS, a developer platform that enables companies to become Enterprise Ready through features like Single Sign-On, SCIM provisioning, Audit Logs, and RBAC.",
+      "source": "https://leaddev.com/community/michael-grinich",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "grinich.bsky.social",
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=grinich.bsky.social"
+        ],
+        "reason": "Display name 'Michael Grinich' and handle match his X handle, but the profile has 0 posts, a joke bio with no WorkOS mention, and no cross-link from his X, GitHub or workos.com. Not confirmed."
+      }
+    ]
+  },
+  {
+    "profileId": "a205eb8b-7da1-4e3c-8bcf-9306913593de",
+    "name": "Neel Rao",
+    "twitterHandle": {
+      "value": "neelmango",
+      "source": "https://api.fxtwitter.com/neelmango",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1249811791820931073/jOlVNh_p_400x400.jpg",
+      "source": "https://api.fxtwitter.com/neelmango",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "neel-rao-41797154",
+      "source": "https://neelmango.com",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Neel likes making games, 3D worlds, and things you can play with. Currently a Member of Technical Staff at OpenAI.",
+      "source": "https://neelmango.com",
+      "read": "2026-10-05"
+    }
+  },
+  {
+    "profileId": "12f8f874-eda6-4a0a-aa47-d67679b2ece8",
+    "name": "Nicholas Pipitone",
+    "twitterHandle": {
+      "value": "npip99",
+      "source": "https://api.fxtwitter.com/npip99",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1878979469983256576/p6anzq94_400x400.jpg",
+      "source": "https://api.fxtwitter.com/npip99",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "nicholas-pipitone",
+      "source": "https://www.linkedin.com/in/nicholas-pipitone/",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Cofounder & CTO @ ZeroEntropy (YC W25). His background is in theoretical mathematics and computer science. Dropped out of CMU to pursue startups. Worked on low-level C/C++/Assembly/GPU Code. CTO and/or main dev for 5 different startups. Created stat-arb algorithms and audited blockchains for bug bounties and hedge fund due diligence.",
+      "source": "https://www.ycombinator.com/companies/zeroentropy",
+      "read": "2026-10-05"
+    }
+  },
+  {
+    "profileId": "6ed25a3a-b623-4f00-9ab8-141eadda0748",
+    "name": "Nikhil Gupta",
+    "twitterHandle": {
+      "value": "nikhilro_",
+      "source": "https://api.fxtwitter.com/nikhilro_",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/2032705160590553088/OYYxzWVi_400x400.jpg",
+      "source": "https://api.fxtwitter.com/nikhilro_",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "nikhilro",
+      "source": "https://www.ycombinator.com/companies/vapi",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "bio",
+        "value": null,
+        "sources": [
+          "https://api.fxtwitter.com/nikhilro_",
+          "https://www.ycombinator.com/companies/vapi"
+        ],
+        "reason": "only a terse profile bio ('founder/cto @vapi_ai' on X; 'Founder, CTO @ Vapi' on YC)"
+      }
+    ]
+  },
+  {
+    "profileId": "059c4d56-c3dd-480f-8e3f-97f664823ad9",
+    "name": "Rostislav Melkumyan",
+    "photoSourceUrl": {
+      "value": "https://avatars.githubusercontent.com/u/25268506",
+      "source": "https://api.github.com/users/RostiMelk",
+      "read": "2026-10-05"
+    },
+    "blueskyHandle": {
+      "value": "rosti.no",
+      "source": "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=rosti.no",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "rostimelk",
+      "source": "https://rosti.no",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "twitterHandle",
+        "value": "rostimelk",
+        "sources": ["https://api.fxtwitter.com/rostimelk"],
+        "reason": "Name 'Melk', empty bio, no website, joined 2025-05. Nothing ties it to Sanity or rosti.no, and his site does not link an X account."
+      },
+      {
+        "field": "bio",
+        "value": "Rosti writes code and makes software go beep boop",
+        "sources": ["https://rosti.no"],
+        "reason": "His own words ('Hey! I'm Rosti. I write code and make software go beep boop'), but it is a playful one-liner of about the same weight as a terse profile bio. Other bios are also terse ('Breaking stuff at @sanity.io', 'Introducting bugs @ sanity.io'). Left to editorial judgment."
+      }
+    ]
+  },
+  {
+    "profileId": "f671b3cc-4058-4a4b-9613-e41ab7320de3",
+    "name": "Sam Bhagwat",
+    "twitterHandle": {
+      "value": "calcsam",
+      "source": "https://www.ycombinator.com/companies/mastra",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1609808333896310787/hwNl8YrT_400x400.jpg",
+      "source": "https://api.fxtwitter.com/calcsam",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "sambhagwat",
+      "source": "https://www.ycombinator.com/companies/mastra",
+      "read": "2026-10-05"
+    },
+    "blueskyHandle": {
+      "value": "calcsam.bsky.social",
+      "source": "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=calcsam.bsky.social",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Founder/CEO of Mastra. Spent last ~8yrs as cofounder of Gatsby.js, an open-source React website framework, scaled to $5M ARR, sold to Netlify. Eng <20 at Zenefits (W13) and Plangrid (W12). Spent two years knocking doors. Stanford '11.",
+      "source": "https://www.ycombinator.com/companies/mastra",
+      "read": "2026-10-05"
+    }
+  },
+  {
+    "profileId": "991c97b4-b920-4052-8e73-552fe57b802d",
+    "name": "Shane Thomas",
+    "twitterHandle": {
+      "value": "smthomas3",
+      "source": "https://www.ycombinator.com/companies/mastra",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1879344432295837696/UqdlnRvs_400x400.jpg",
+      "source": "https://api.fxtwitter.com/smthomas3",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "smthomas3",
+      "source": "https://www.ycombinator.com/companies/mastra",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Founder/CPO of Mastra. Prev: built Audiofeed (AI podcasting). Staff eng / head of product @ Gatsby. 15+ years in open source. State wrestling champion.",
+      "source": "https://www.ycombinator.com/companies/mastra",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": null,
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=smthomas3.bsky.social"
+        ],
+        "reason": "smthomas3.bsky.social does not exist and searching for the name found no matching account."
+      }
+    ]
+  },
+  {
+    "profileId": "ba3c81e8-064c-4931-aa98-6478cfdc19bc",
+    "name": "Tyler Slaton",
+    "photoSourceUrl": {
+      "value": "https://avatars.githubusercontent.com/u/54378333",
+      "source": "https://api.github.com/users/tylerslaton",
+      "read": "2026-10-05"
+    },
+    "linkedinHandle": {
+      "value": "michael-t-slaton",
+      "source": "https://hangzhou2025.gosim.org/speakers/michael-tyler-slaton/",
+      "read": "2026-10-05"
+    },
+    "bio": {
+      "value": "Tyler is an open-source engineer focused on the evolving boundary between humans and AI agents. He is currently part of the founding team at CopilotKit, the company behind AG-UI, where they're working to standardize how users interact with AI agents across applications. Previously, he has worked at companies like Red Hat and Oracle, as well as various startups, giving him perspective on both enterprise-scale challenges and the rapid iteration needed in emerging technologies. Through the process of building AG-UI, he has had a front-row seat to the practical challenges of creating truly intuitive agent-user interfaces.",
+      "source": "https://hangzhou2025.gosim.org/speakers/michael-tyler-slaton/",
+      "read": "2026-10-05"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "tylerslaton.bsky.social",
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.searchActors?q=Tyler%20Slaton"
+        ],
+        "reason": "Display name is just 'Tyler' with no bio, and nothing links it to CopilotKit, GitHub tylerslaton or tylerslaton.dev."
+      },
+      {
+        "field": "twitterHandle",
+        "value": null,
+        "sources": ["https://api.fxtwitter.com/tylerslaton"],
+        "reason": "x.com/tylerslaton does not exist (404), and no X account for him was found through GOSIM, GitHub, his site or search."
+      }
+    ]
+  },
+  {
+    "profileId": "0f8bde0a-3828-4d02-8dfc-a016fa8ca68e",
+    "name": "Rhys Sullivan",
+    "title": {
+      "value": "Founder, executor.sh",
+      "source": "https://rhys.dev",
+      "read": "2026-10-05",
+      "was": "Product Engineer at Vercel"
+    }
+  }
+]
