@@ -333,21 +333,46 @@ describe("the mode switch", () => {
         `<!doctype html><html lang="en"${attribute}><head>`,
       );
       expect(html).toContain(`<meta name="color-scheme" content="${scheme}"/>`);
-      expect(html.match(/<a [^>]*aria-current="true"[^>]*>([^<]*)</)?.[1]).toBe(
-        current,
-      );
+      expect(html).toContain(`<summary aria-label="mode: ${current}">`);
+      expect(
+        html.match(/<a [^>]*aria-current="true"[^>]*>.*?<span>([^<]*)</)?.[1],
+      ).toBe(current);
       expect(response.headers.get("cache-control")).toBe(cacheControl);
       expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
     });
   }
 
-  it("is three links in the header, labelled mode, that crawlers don't follow", async (url) => {
+  it("is one control in the header, named for the mode, opening on three links crawlers don't follow", async (url) => {
     const { html } = await brand(url);
     const header = /<header class="site-header">(.*?)<\/header>/.exec(
       html,
     )?.[1];
-    expect(header).toContain(
-      '<nav class="modes at-type-meta" aria-labelledby="mode"><span id="mode">mode</span><ul><li><a href="?theme=system" rel="nofollow" aria-current="true">system</a></li><li><a href="?theme=light" rel="nofollow">paper</a></li><li><a href="?theme=dark" rel="nofollow">night</a></li></ul></nav>',
+    const mode = /<details class="mode">(.*?)<\/details>/.exec(
+      header ?? "",
+    )?.[1];
+    expect(mode).toStartWith(
+      '<summary aria-label="mode: system"><svg class="mode-icon"',
+    );
+    expect(
+      [
+        ...(mode ?? "").matchAll(
+          /<a href="([^"]+)" rel="nofollow"( aria-current="true")?>.*?<span>([a-z]+)<\/span><\/a>/g,
+        ),
+      ].map(
+        ([, href, current, name]) =>
+          `${href}${current === undefined ? "" : " *"} ${name}`,
+      ),
+    ).toEqual([
+      "?theme=system * system",
+      "?theme=light paper",
+      "?theme=dark night",
+    ]);
+  });
+
+  it("names the site's sections in the header, none current outside them", async (url) => {
+    const { html } = await brand(url);
+    expect(html).toContain(
+      '<nav class="site-nav at-type-meta" aria-label="site"><ul><li><a href="/events">events</a></li><li><a href="/people">people</a></li><li><a href="/about">about</a></li></ul></nav>',
     );
   });
 

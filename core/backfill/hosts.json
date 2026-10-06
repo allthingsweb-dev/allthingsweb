@@ -4,6 +4,10 @@
     "website": {
       "value": "https://startups.aws.com/lp/aws-gen-ai-loft-san-francisco",
       "source": "https://startups.aws.com/lp/aws-gen-ai-loft-san-francisco"
+    },
+    "lumaUserId": {
+      "value": "usr-BhL1mNyX78ZX6D1",
+      "source": "https://luma.com/user/usr-BhL1mNyX78ZX6D1"
     }
   },
   {
@@ -72,6 +76,10 @@
     "linkedinHandle": {
       "value": "coderabbitai",
       "source": "https://www.coderabbit.ai/"
+    },
+    "lumaUserId": {
+      "value": "usr-JXlbUjgX4yopD83",
+      "source": "https://luma.com/user/usr-JXlbUjgX4yopD83"
     }
   },
   {
@@ -110,6 +118,33 @@
     "linkedinHandle": {
       "value": "discord",
       "source": "https://www.linkedin.com/company/discord"
+    }
+  },
+  {
+    "name": "Expo",
+    "about": {
+      "value": "Expo is the fastest way to build native apps for iOS, Android, and the web with React.",
+      "source": "https://expo.dev"
+    },
+    "website": {
+      "value": "https://expo.dev",
+      "source": "https://expo.dev"
+    },
+    "twitterHandle": {
+      "value": "expo",
+      "source": "https://expo.dev"
+    },
+    "blueskyHandle": {
+      "value": "expo.dev",
+      "source": "https://expo.dev"
+    },
+    "linkedinHandle": {
+      "value": "expo-dev",
+      "source": "https://expo.dev"
+    },
+    "lumaUserId": {
+      "value": "usr-L8BVdvj3UBbIcMx",
+      "source": "https://luma.com/user/usr-L8BVdvj3UBbIcMx"
     }
   },
   {
@@ -190,6 +225,10 @@
     "linkedinHandle": {
       "value": "neondatabase",
       "source": "https://neon.com/"
+    },
+    "lumaUserId": {
+      "value": "usr-wW0WUs17mpQGOzF",
+      "source": "https://luma.com/user/usr-wW0WUs17mpQGOzF"
     }
   },
   {
@@ -228,6 +267,10 @@
     "linkedinHandle": {
       "value": "getsentry",
       "source": "https://sentry.io/welcome/"
+    },
+    "lumaUserId": {
+      "value": "usr-IVQaHdc6Lwy9XS5",
+      "source": "https://luma.com/user/usr-IVQaHdc6Lwy9XS5"
     }
   },
   {
@@ -266,6 +309,10 @@
     "linkedinHandle": {
       "value": "vapi-ai",
       "source": "https://vapi.ai/"
+    },
+    "lumaUserId": {
+      "value": "usr-F2U0GPKWWiWV6C5",
+      "source": "https://luma.com/user/usr-F2U0GPKWWiWV6C5"
     }
   },
   {
@@ -285,6 +332,29 @@
     "linkedinHandle": {
       "value": "vercel",
       "source": "https://vercel.com/"
+    }
+  },
+  {
+    "name": "WorkOS",
+    "about": {
+      "value": "Developer APIs/SDKs for Enterprise Ready features like Single Sign-On, Directory Sync, Audit Logging, and more.",
+      "source": "https://workos.com"
+    },
+    "website": {
+      "value": "https://workos.com",
+      "source": "https://workos.com"
+    },
+    "twitterHandle": {
+      "value": "workos",
+      "source": "https://workos.com"
+    },
+    "linkedinHandle": {
+      "value": "workos-inc",
+      "source": "https://workos.com"
+    },
+    "lumaUserId": {
+      "value": "usr-E3DO0cozB1ceWEv",
+      "source": "https://luma.com/user/usr-E3DO0cozB1ceWEv"
     }
   }
 ]

@@ -13,9 +13,13 @@ import type { LumaEventPeople, LumaHost } from "./api.ts";
  *   similarity, when one profile has that name and no Luma user id, and no
  *   other unmatched host goes by it. It is reported, for review.
  *
+ * A host whose Luma user id is a hosting company's (`sponsors.luma_user_id`)
+ * is that company, not a person: the company is attached to the event as one
+ * of its hosting companies, and no profile is matched or made for it.
+ *
  * Anyone else is reported and left out until an organizer decides. Nothing
  * is created without that decision: Luma's hosts include companies' accounts
- * ("Sentry", "CodeRabbit"), and people go by other names there ("Liz" for
+ * not yet on record, and people go by other names there ("Liz" for
  * Elizabeth, no accent), so a profile made from every unknown host would be
  * wrong or a duplicate as often as not.
  *
@@ -29,6 +33,19 @@ export interface StoredProfile {
   readonly name: string;
   readonly lumaUserId: string | null;
   readonly profileType: "organizer" | "member";
+}
+
+/** A hosting company with its Luma account on record. */
+export interface StoredCompany {
+  readonly id: string;
+  readonly name: string;
+  readonly lumaUserId: string;
+}
+
+/** A hosting company the import attaches to an event, as Luma lists it. */
+export interface PlannedHost {
+  readonly eventId: string;
+  readonly companyId: string;
 }
 
 /** An event of ours, and what Luma showed of its people. */
@@ -95,6 +112,13 @@ export type Review =
       readonly name: string;
     }
   | {
+      readonly _tag: "Company";
+      readonly lumaEventId: string;
+      readonly lumaUserId: string;
+      readonly name: string;
+      readonly companyId: string;
+    }
+  | {
       readonly _tag: "Unmatched";
       readonly lumaEventId: string;
       readonly lumaUserId: string;
@@ -107,6 +131,12 @@ export interface PeoplePlan {
   readonly newProfiles: ReadonlyArray<NewProfile>;
   /** The import's rows for each of {@link replacedEventIds}, in full. */
   readonly people: ReadonlyArray<PlannedPerson>;
+  /**
+   * Hosting companies Luma lists as hosts, to attach to their events. The
+   * import only adds them: a company an organizer attached stays, and so
+   * does one Luma stops listing.
+   */
+  readonly hosts: ReadonlyArray<PlannedHost>;
   /**
    * Events whose rows from Luma are replaced by {@link people}: those Luma
    * listed hosts for. An event Luma showed no hosts for keeps its rows.
@@ -286,14 +316,36 @@ export function planPeople(
   events: ReadonlyArray<FetchedEvent>,
   profiles: ReadonlyArray<StoredProfile>,
   decisions: Decisions = noDecisions,
+  companies: ReadonlyArray<StoredCompany> = [],
 ): PeoplePlan {
+  const companyOf = new Map(
+    companies.map((company) => [company.lumaUserId, company] as const),
+  );
+  // Companies' accounts are matched to the company, never to a person.
   const hosts = new Map<string, LumaHost>();
   for (const event of events) {
     for (const host of event.people.hosts) {
-      if (!hosts.has(host.lumaUserId)) hosts.set(host.lumaUserId, host);
+      if (!companyOf.has(host.lumaUserId) && !hosts.has(host.lumaUserId)) {
+        hosts.set(host.lumaUserId, host);
+      }
     }
   }
-  const { matches, problems } = matchHosts(hosts, profiles, decisions);
+  const matched = matchHosts(hosts, profiles, decisions);
+  const { matches } = matched;
+  const problems = [
+    ...matched.problems.filter(
+      (problem) =>
+        ![...companyOf.keys()].some((id) =>
+          problem.startsWith(`${id} is not a host`),
+        ),
+    ),
+    ...[...new Set([...decisions.create, ...Object.keys(decisions.link)])]
+      .filter((lumaUserId) => companyOf.has(lumaUserId))
+      .map(
+        (lumaUserId) =>
+          `${lumaUserId} is the hosting company ${companyOf.get(lumaUserId)?.name ?? ""}, not a person; nothing to decide`,
+      ),
+  ];
 
   const links: Array<Link> = [];
   const newProfiles: Array<NewProfile> = [];
@@ -311,6 +363,7 @@ export function planPeople(
   }
 
   const people: Array<PlannedPerson> = [];
+  const plannedHosts: Array<PlannedHost> = [];
   const replacedEventIds: Array<string> = [];
   const guestCounts: Array<GuestCounts> = [];
   const review: Array<Review> = [];
@@ -320,6 +373,26 @@ export function planPeople(
         eventId,
         guestCount: luma.guestCount,
         checkedInCount: luma.checkedInCount,
+      });
+    }
+    for (const host of luma.hosts) {
+      const company = companyOf.get(host.lumaUserId);
+      if (
+        company === undefined ||
+        plannedHosts.some(
+          (planned) =>
+            planned.eventId === eventId && planned.companyId === company.id,
+        )
+      ) {
+        continue;
+      }
+      plannedHosts.push({ eventId, companyId: company.id });
+      review.push({
+        _tag: "Company",
+        lumaEventId: luma.lumaEventId,
+        lumaUserId: host.lumaUserId,
+        name: company.name,
+        companyId: company.id,
       });
     }
     if (luma.hosts.length === 0) continue;
@@ -332,6 +405,7 @@ export function planPeople(
     for (const host of luma.hosts) {
       const { lumaUserId } = host;
       const match = matches.get(lumaUserId);
+      // A company's account has no match: it was planned as a host above.
       if (seen.has(lumaUserId) || match === undefined) continue;
       seen.add(lumaUserId);
       const { lumaEventId } = luma;
@@ -374,6 +448,7 @@ export function planPeople(
     links,
     newProfiles,
     people,
+    hosts: plannedHosts,
     replacedEventIds,
     guestCounts,
     review,

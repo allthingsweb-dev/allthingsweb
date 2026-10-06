@@ -178,14 +178,12 @@ describe("the edge cache", () => {
     );
   });
 
-  it("keeps an event page in its own mode, and a visitor's mode over it", async ({
+  it("keeps an event page in the system's mode, and a visitor's mode apart from it", async ({
     Cached,
   }) => {
     const path = `/${slugs.bare}`;
     const own = await warm(Cached, path);
-    expect(own.html).toStartWith(
-      '<!doctype html><html lang="en" data-theme="light">',
-    );
+    expect(own.html).toStartWith('<!doctype html><html lang="en"><head>');
     const night = await warm(Cached, path, {
       headers: { cookie: "theme=dark" },
     });

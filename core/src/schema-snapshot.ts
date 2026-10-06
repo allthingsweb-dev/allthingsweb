@@ -6,8 +6,9 @@ import type { SqlError } from "effect/sql/SqlError";
  * A database's schema as sorted lines of text, read from the catalog, so two
  * databases can be compared exactly and their differences read as a diff.
  *
- * It covers the schemas the app's tables live in: `public`, and `neon_auth`,
- * whose `users_sync` table Neon Auth owns and the app references. Each line is
+ * It covers the schemas the app's tables live in: `public`; `neon_auth`,
+ * whose `users_sync` table Neon Auth owns and the app references; and
+ * `planning`, the organizers' private planning (migrations/0011_planning.ts). Each line is
  * one object: a relation (with its row security and options), a column (its
  * position among the table's live columns, type, nullability, default,
  * identity, generation and collation), a constraint (primary, unique, check
@@ -22,7 +23,11 @@ import type { SqlError } from "effect/sql/SqlError";
  */
 
 /** The schemas compared. */
-export const schemas: ReadonlyArray<string> = ["public", "neon_auth"];
+export const schemas: ReadonlyArray<string> = [
+  "public",
+  "neon_auth",
+  "planning",
+];
 
 /**
  * Objects the platform keeps in those schemas that no migration creates, each

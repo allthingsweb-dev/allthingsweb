@@ -1,14 +1,20 @@
 import type { PropsWithChildren } from "@kitajs/html";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { built } from "../assets.ts";
-import { aboutPath, hosts, socials } from "../links.ts";
+import {
+  aboutPath,
+  everyEvening,
+  hosts,
+  peoplePage,
+  socials,
+} from "../links.ts";
 import { Metadata, type PageMeta } from "./metadata.tsx";
 import { type ImageMode, Portrait } from "./picture.tsx";
-import { choices, type Theme } from "./theme.ts";
+import { type Choice, choices, type Theme } from "./theme.ts";
 
 /**
- * The frame of every page: the document, the header with the wordmark and
- * the mode, and the footer that signs off with the hosts and the socials.
+ * The frame of every page: the document, the header with the wordmark, the
+ * site's pages and the mode, and the footer that signs off with the hosts and the socials.
  * Pages are server-rendered HTML with no JavaScript; the cursor blinks in
  * CSS, and the mode is chosen with links (see theme.ts).
  */
@@ -25,43 +31,105 @@ export function Wordmark() {
   );
 }
 
-/**
- * The mode: the system's, Paper or Night. Each choice is a link to
- * `?theme=` on this page, which the Worker remembers and redirects from;
- * the current one says so with aria-current. Crawlers are asked not to
- * follow them. On a page with a mode of its own, such as an event's, the
- * first choice is that mode rather than the system's, and says so.
- */
-function ModeSwitch({
-  theme,
-  pageTheme,
-}: {
-  readonly theme: Theme | undefined;
-  readonly pageTheme: Theme | undefined;
-}) {
-  const current = theme ?? "system";
+/** The sections the header names, which a page says it belongs to. */
+export type Section = "events" | "people" | "about";
+
+/** The site's sections, as the header names them, in its order. */
+export const sections: ReadonlyArray<{
+  readonly section: Section;
+  readonly path: `/${string}`;
+}> = [
+  { section: "events", path: everyEvening },
+  { section: "people", path: peoplePage },
+  { section: "about", path: aboutPath },
+];
+
+/** The site's sections, the page's own marked with aria-current. */
+function SiteNav({ section }: { readonly section: Section | undefined }) {
   return (
-    <nav class="modes at-type-meta" aria-labelledby="mode">
-      <span id="mode">mode</span>
+    <nav class="site-nav at-type-meta" aria-label="site">
       <ul>
-        {choices.map(({ choice, label: name }) => {
-          const label =
-            choice === "system" && pageTheme !== undefined ? "event" : name;
-          return (
-            <li>
-              <a
-                href={`?theme=${choice}`}
-                rel="nofollow"
-                aria-current={choice === current ? "true" : undefined}
-                safe
-              >
-                {label}
-              </a>
-            </li>
-          );
-        })}
+        {sections.map((entry) => (
+          <li>
+            <a
+              href={entry.path}
+              aria-current={entry.section === section ? "page" : undefined}
+            >
+              {entry.section}
+            </a>
+          </li>
+        ))}
       </ul>
     </nav>
+  );
+}
+
+/**
+ * The mode's three icons, drawn to the same 16-unit grid in the text color:
+ * the system's (half filled, either way), Paper (an open disc) and Night (a
+ * filled one).
+ */
+function ModeIcon({ choice }: { readonly choice: Choice }) {
+  return (
+    <svg
+      class="mode-icon"
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="6.25"
+        fill={choice === "dark" ? "currentColor" : "none"}
+        stroke="currentColor"
+        stroke-width="1.5"
+      />
+      {choice === "system" ? (
+        <path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor" />
+      ) : (
+        ""
+      )}
+    </svg>
+  );
+}
+
+/**
+ * The mode, as one small control: a disclosure (<details>) whose summary is
+ * the current mode's icon, opening on the three choices. Without
+ * JavaScript, as the site is: <details> opens and closes natively, and
+ * each choice is still a link to `?theme=` on this page, which the Worker
+ * remembers and redirects from (theme.ts), so choosing reloads the page
+ * closed. The summary's accessible name says what it is and what is
+ * chosen; the current choice says so with aria-current. Crawlers are asked
+ * not to follow the links.
+ */
+function ModeSwitch({ theme }: { readonly theme: Theme | undefined }) {
+  const current = theme ?? "system";
+  const currentName =
+    choices.find(({ choice }) => choice === current)?.label ?? current;
+  return (
+    <details class="mode">
+      <summary aria-label={`mode: ${currentName}`}>
+        <ModeIcon choice={current} />
+      </summary>
+      <ul class="at-type-meta">
+        {choices.map(({ choice, label }) => (
+          <li>
+            <a
+              href={`?theme=${choice}`}
+              rel="nofollow"
+              aria-current={choice === current ? "true" : undefined}
+            >
+              <ModeIcon choice={choice} />
+              <span safe>{label}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -119,15 +187,16 @@ export interface DocumentProps {
   readonly origin: string;
   /** The mode the visitor fixed, if any (see theme.ts). */
   readonly theme: Theme | undefined;
-  /**
-   * The page's own mode, when the visitor fixed none: an event's (see
-   * core's mode.ts). Without one, the page follows the system.
-   */
-  readonly pageTheme?: Theme | undefined;
   /** The hosts' portraits, by profile id, for the footer. */
   readonly portraits: PortraitsById;
   /** How photos are shown (see picture.tsx). */
   readonly images: ImageMode;
+  /**
+   * The header section the page belongs to, marked as current: an evening's
+   * page belongs to the evenings. None for pages outside them, such as
+   * /brand.
+   */
+  readonly section?: Section | undefined;
 }
 
 /** A whole HTML document around `children`, the page's <main>. */
@@ -135,13 +204,13 @@ export function Document({
   meta,
   origin,
   theme,
-  pageTheme,
   portraits,
   images,
+  section,
   children,
 }: PropsWithChildren<DocumentProps>): string {
-  // What the page renders in: the visitor's choice, else the page's own.
-  const shown = theme ?? pageTheme;
+  // Every page is in the visitor's mode, the system's until they choose.
+  const shown = theme;
   const fonts = built.fonts.filter((font) => font.preload);
   const page = (
     <html lang="en" data-theme={shown}>
@@ -167,7 +236,10 @@ export function Document({
         <div class="page">
           <header class="site-header">
             <Wordmark />
-            <ModeSwitch theme={theme} pageTheme={pageTheme} />
+            <div class="site-tools">
+              <SiteNav section={section} />
+              <ModeSwitch theme={theme} />
+            </div>
           </header>
           <main>{children}</main>
           <Footer portraits={portraits} images={images} />

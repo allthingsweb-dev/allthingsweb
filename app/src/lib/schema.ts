@@ -9,6 +9,9 @@ import {
   primaryKey,
   check,
   index,
+  date,
+  pgSchema,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersSync as usersSyncTable } from "drizzle-orm/neon";
@@ -72,6 +75,12 @@ export const hostsTable = pgTable(
     blueskyHandle: text("bluesky_handle"),
     /** Its LinkedIn company page, the part after linkedin.com/company/. */
     linkedinHandle: text("linkedin_handle"),
+    /**
+     * Its Luma account, so the people import attaches it to the events Luma
+     * lists it as a host of. core/migrations/0010_host_luma_user.ts is the
+     * same change.
+     */
+    lumaUserId: text("luma_user_id").unique(),
   },
   () => [
     check(
@@ -89,6 +98,10 @@ export const hostsTable = pgTable(
     check(
       "sponsors_linkedin_handle_check",
       sql`"linkedin_handle" ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$'`,
+    ),
+    check(
+      "sponsors_luma_user_id_check",
+      sql`"luma_user_id" ~ '^usr-[A-Za-z0-9]+$'`,
     ),
   ],
 );
@@ -539,3 +552,265 @@ export const profileUsersTable = pgTable(
 
 export type InsertProfileUser = typeof profileUsersTable.$inferInsert;
 export type SelectProfileUser = typeof profileUsersTable.$inferSelect;
+
+/**
+ * Planning: ideas for evenings, speakers we'd like on stage and when they're
+ * free, companies we'd like to host, and notes on the people and companies
+ * we know. The rows are private; only this schema is public. It lives in its
+ * own Postgres schema, which no role the site reads or syncs with may use,
+ * so no grant on the tables in `public` can ever reach it.
+ * core/migrations/0011_planning.ts is the same change.
+ */
+export const planningSchema = pgSchema("planning");
+
+/** core's isTopic (core/src/lockup.ts) for `column`, as events_topic_check holds events.topic to it. */
+const topicRule = (column: string) =>
+  sql.raw(`char_length("${column}") <= 24
+    AND "${column}" IS NFC NORMALIZED
+    AND "${column}" = lower("${column}" COLLATE "pg_c_utf8")
+    AND strpos("${column}", 'all things') = 0
+    AND "${column}" COLLATE "pg_c_utf8" ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'`);
+
+const planningCreatedAt = timestamp("created_at", { withTimezone: true })
+  .notNull()
+  .defaultNow();
+
+const planningUpdatedAt = timestamp("updated_at", { withTimezone: true })
+  .notNull()
+  .defaultNow();
+
+export const ideaStatuses = [
+  "idea",
+  "drafting",
+  "scheduled",
+  "dropped",
+] as const;
+
+export const wantedSpeakerStatuses = [
+  "wanted",
+  "asked",
+  "confirmed",
+  "declined",
+] as const;
+
+export const hostProspectStatuses = [
+  "prospect",
+  "asked",
+  "confirmed",
+  "declined",
+] as const;
+
+export const availabilityKinds = ["available", "unavailable"] as const;
+
+/** Someone we know who has no profile yet. */
+export const planningContactsTable = planningSchema.table(
+  "contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    email: text("email"),
+    url: text("url"),
+    /** Where they work, when it's a company we know. */
+    sponsorId: uuid("sponsor_id").references(() => hostsTable.id),
+    createdAt: planningCreatedAt,
+    updatedAt: planningUpdatedAt,
+  },
+  () => [
+    check("contacts_name_check", sql`btrim("name") <> ''`),
+    check(
+      "contacts_email_check",
+      sql`"email" ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'`,
+    ),
+    check("contacts_url_check", sql`"url" ~ '^https://[^[:space:]]+$'`),
+  ],
+);
+
+/** An evening we might put on, from a first thought to a scheduled event. */
+export const planningIdeasTable = planningSchema.table(
+  "ideas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    pitch: text("pitch").notNull(),
+    program: text("program", { enum: eventPrograms }).notNull(),
+    topic: text("topic"),
+    status: text("status", { enum: ideaStatuses }).notNull().default("idea"),
+    /**
+     * The draft evening it became, then the event itself. Deleting that
+     * event is refused until the idea lets go of it.
+     */
+    eventId: uuid("event_id")
+      .unique()
+      .references(() => eventsTable.id),
+    /** A past evening it builds on. */
+    inspiredByEventId: uuid("inspired_by_event_id").references(
+      () => eventsTable.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: planningCreatedAt,
+    updatedAt: planningUpdatedAt,
+  },
+  () => [
+    check("ideas_title_check", sql`btrim("title") <> ''`),
+    check("ideas_pitch_check", sql`btrim("pitch") <> ''`),
+    check(
+      "ideas_program_check",
+      sql`"program" IN ('talks', 'open-floor', 'social', 'hackathon')`,
+    ),
+    check("ideas_topic_check", topicRule("topic")),
+    check(
+      "ideas_status_check",
+      sql`"status" IN ('idea', 'drafting', 'scheduled', 'dropped')`,
+    ),
+    check(
+      "ideas_scheduled_event_check",
+      sql`"status" <> 'scheduled' OR "event_id" IS NOT NULL`,
+    ),
+  ],
+);
+
+/** A speaker we'd like on stage: someone with a profile, or a contact. */
+export const planningWantedSpeakersTable = planningSchema.table(
+  "wanted_speakers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .unique()
+      .references(() => profilesTable.id),
+    contactId: uuid("contact_id")
+      .unique()
+      .references(() => planningContactsTable.id),
+    status: text("status", { enum: wantedSpeakerStatuses })
+      .notNull()
+      .default("wanted"),
+    note: text("note"),
+    createdAt: planningCreatedAt,
+    updatedAt: planningUpdatedAt,
+  },
+  () => [
+    check(
+      "wanted_speakers_person_check",
+      sql`num_nonnulls("profile_id", "contact_id") = 1`,
+    ),
+    check(
+      "wanted_speakers_status_check",
+      sql`"status" IN ('wanted', 'asked', 'confirmed', 'declined')`,
+    ),
+  ],
+);
+
+/** What a wanted speaker could speak about, as event topics are written. */
+export const planningWantedSpeakerTopicsTable = planningSchema.table(
+  "wanted_speaker_topics",
+  {
+    wantedSpeakerId: uuid("wanted_speaker_id")
+      .notNull()
+      .references(() => planningWantedSpeakersTable.id, {
+        onDelete: "cascade",
+      }),
+    topic: text("topic").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.wantedSpeakerId, table.topic] }),
+    index("wanted_speaker_topics_topic_idx").on(table.topic),
+    check("wanted_speaker_topics_topic_check", topicRule("topic")),
+  ],
+);
+
+/**
+ * When a wanted speaker is free, or isn't: dates (inclusive, either end
+ * open) and the words they used ("free after Dec").
+ */
+export const planningAvailabilityTable = planningSchema.table(
+  "availability",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    wantedSpeakerId: uuid("wanted_speaker_id")
+      .notNull()
+      .references(() => planningWantedSpeakersTable.id, {
+        onDelete: "cascade",
+      }),
+    kind: text("kind", { enum: availabilityKinds })
+      .notNull()
+      .default("available"),
+    startsOn: date("starts_on"),
+    endsOn: date("ends_on"),
+    note: text("note"),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    index("availability_wanted_speaker_id_idx").on(table.wantedSpeakerId),
+    check(
+      "availability_kind_check",
+      sql`"kind" IN ('available', 'unavailable')`,
+    ),
+    check("availability_order_check", sql`"starts_on" <= "ends_on"`),
+    check(
+      "availability_said_check",
+      sql`num_nonnulls("starts_on", "ends_on", "note") > 0`,
+    ),
+  ],
+);
+
+/** A company we'd like to host an evening: one we know, or a new name. */
+export const planningHostProspectsTable = planningSchema.table(
+  "host_prospects",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sponsorId: uuid("sponsor_id")
+      .unique()
+      .references(() => hostsTable.id),
+    /** A new company's name, unique in any case. */
+    companyName: text("company_name"),
+    contactId: uuid("contact_id").references(() => planningContactsTable.id),
+    status: text("status", { enum: hostProspectStatuses })
+      .notNull()
+      .default("prospect"),
+    note: text("note"),
+    createdAt: planningCreatedAt,
+    updatedAt: planningUpdatedAt,
+  },
+  (table) => [
+    uniqueIndex("host_prospects_company_name_unique").on(
+      sql`lower(${table.companyName})`,
+    ),
+    check(
+      "host_prospects_company_check",
+      sql`num_nonnulls("sponsor_id", "company_name") = 1`,
+    ),
+    check(
+      "host_prospects_company_name_check",
+      sql`btrim("company_name") <> ''`,
+    ),
+    check(
+      "host_prospects_status_check",
+      sql`"status" IN ('prospect', 'asked', 'confirmed', 'declined')`,
+    ),
+  ],
+);
+
+/** A note on a person or a company we know, in an organizer's words. */
+export const planningNotesTable = planningSchema.table(
+  "notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id").references(() => profilesTable.id),
+    sponsorId: uuid("sponsor_id").references(() => hostsTable.id),
+    contactId: uuid("contact_id").references(() => planningContactsTable.id),
+    body: text("body").notNull(),
+    /** Who wrote it, as they sign. */
+    author: text("author"),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    index("notes_profile_id_idx").on(table.profileId),
+    index("notes_sponsor_id_idx").on(table.sponsorId),
+    index("notes_contact_id_idx").on(table.contactId),
+    check(
+      "notes_subject_check",
+      sql`num_nonnulls("profile_id", "sponsor_id", "contact_id") = 1`,
+    ),
+    check("notes_body_check", sql`btrim("body") <> ''`),
+    check("notes_author_check", sql`btrim("author") <> ''`),
+  ],
+);

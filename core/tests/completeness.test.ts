@@ -7,6 +7,7 @@ import {
   eventCompleteness,
   gapKinds,
   mustHaveTalks,
+  mustHaveVenues,
   requiredGaps,
 } from "../src/completeness.ts";
 import { formatReport, reportJson } from "../src/completeness-report.ts";
@@ -332,6 +333,22 @@ describe("the weekly check", () => {
     expect(
       mustHaveTalks(reports, after, Duration.days(7)).map((r) => r.slug),
     ).toEqual(["2026-10-03T18:59:00Z"]);
+  });
+
+  test("fails on every evening without a venue, however long ago, and on upcoming ones", () => {
+    const nowhere = { fullAddress: null, streetAddress: null };
+    const reports: ReadonlyArray<EventCompleteness> = [
+      ended("2024-04-30T03:30:00Z", nowhere),
+      ended("2026-10-03T18:59:00Z", { ...nowhere, program: "social" }),
+      ended("2026-12-01T03:30:00Z", { ...nowhere, streetAddress: "  " }),
+      ended("2026-09-01T03:30:00Z"),
+      ended("2026-09-02T03:30:00Z", { fullAddress: null }),
+    ];
+    expect(mustHaveVenues(reports).map((r) => r.slug)).toEqual([
+      "2024-04-30T03:30:00Z",
+      "2026-10-03T18:59:00Z",
+      "2026-12-01T03:30:00Z",
+    ]);
   });
 });
 

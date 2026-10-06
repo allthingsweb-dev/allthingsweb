@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { ImageIngest, NewImageId } from "allthings-core/src/ingest/ingest.ts";
+import { LumaApi } from "allthings-core/src/luma/api.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   clockAt,
   migratedDatabase,
@@ -22,7 +24,7 @@ import {
   fixture,
   type Reply,
 } from "allthings-core/tests/support/luma.ts";
-import { DateTime, Effect, Exit, Layer } from "effect";
+import { DateTime, Effect, Exit, Layer, Option } from "effect";
 import { mediaBucket, pictures } from "../src/sync/bindings.ts";
 import {
   runSync,
@@ -68,6 +70,23 @@ const images = {
   "https://pbs.twimg.com/3.jpg": imageBytes("jpeg", "p3"),
 };
 
+/** Luma's API, faked: every event it is asked about is at CodeRabbit. */
+const placedApi = Layer.succeed(
+  LumaApi,
+  LumaApi.of({
+    eventPeople: Option.none(),
+    eventVenue: Option.some((lumaEventId: string) =>
+      Effect.succeed(
+        Option.some({
+          lumaEventId,
+          location: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
+          guestsOnly: true,
+        }),
+      ),
+    ),
+  }),
+);
+
 async function run(
   mode: SyncMode,
   limits: SyncLimits,
@@ -87,9 +106,14 @@ async function run(
   );
   const bucket = fakeBucket();
   const logged: Array<Record<string, unknown>> = [];
-  const layer = Layer.mergeAll(LumaSync.layer, ImageIngest.layer).pipe(
+  const layer = Layer.mergeAll(
+    LumaSync.layer,
+    LumaVenues.layer,
+    ImageIngest.layer,
+  ).pipe(
     Layer.provide(
       Layer.mergeAll(
+        placedApi,
         Luma.layer.pipe(
           Layer.provide(Layer.mergeAll(fakeLuma(feed).layer, configFrom())),
         ),
@@ -117,13 +141,19 @@ async function run(
 const count = async (db: PGlite, sql: string) =>
   Number((await db.query<{ n: number }>(sql)).rows[0]?.n);
 
+/** Published events with a Luma page and no venue. */
+const unplaced = `SELECT count(*) AS n FROM events
+  WHERE is_draft = false AND luma_event_id IS NOT NULL
+    AND COALESCE(full_address, street_address) IS NULL`;
+
 describe("a sync run that writes", () => {
-  test("syncs events, then stores photos, post images and covers, logging each step", async () => {
+  test("syncs events and fills in the venues the calendar hides, then stores photos, post images and covers, logging each step", async () => {
     const { db, report, logged, bucket } = await run("write", syncLimits.paid);
     try {
       expect(report.ok).toBe(true);
       expect(Object.keys(report.steps)).toEqual([
         "events",
+        "venues",
         "photos",
         "posts",
         "covers",
@@ -132,6 +162,24 @@ describe("a sync run that writes", () => {
         status: "done",
         syncedCount: 24,
       });
+      expect(report.steps["venues"]).toMatchObject({
+        status: "done",
+        filled: expect.arrayContaining([
+          {
+            slug: "blank-venue",
+            fullAddress: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
+          },
+        ]),
+      });
+      expect(await count(db, unplaced)).toBe(0);
+      // A venue name an organizer typed stays beside the address.
+      expect(
+        (
+          await db.query<{ short_location: string }>(
+            "SELECT short_location FROM events WHERE slug = 'venue-tba'",
+          )
+        ).rows[0]?.short_location,
+      ).toBe("Somewhere nice");
       expect(report.steps["photos"]).toMatchObject({
         status: "done",
         ingested: ["One", "Two", "Three"],
@@ -152,6 +200,7 @@ describe("a sync run that writes", () => {
       expect(logged.map((entry) => entry["step"])).toEqual([
         "start",
         "events",
+        "venues",
         "photos",
         "posts",
         "covers",
@@ -165,10 +214,11 @@ describe("a sync run that writes", () => {
     }
   });
 
-  test("on the Free plan, tries two images of each kind and leaves the rest for later runs", async () => {
+  test("on the Free plan, asks about two venues and tries two images of each kind, leaving the rest for later runs", async () => {
     const { db, report, bucket } = await run("write", syncLimits.free);
     try {
       expect(report.ok).toBe(true);
+      expect(report.steps["venues"]).toMatchObject({ asked: 2, written: 2 });
       expect(report.steps["photos"]).toMatchObject({
         ingested: ["One", "Two"],
       });
@@ -182,7 +232,7 @@ describe("a sync run that writes", () => {
     }
   });
 
-  test("stores no images when Luma's calendar can't be read, as the app's cron", async () => {
+  test("fills no venues and stores no images when Luma's calendar can't be read, as the app's cron", async () => {
     const { db, report, bucket } = await run("write", syncLimits.paid, [
       { status: 404 },
     ]);
@@ -210,6 +260,14 @@ describe("a dry run", () => {
         syncedCount: 24,
         changedCount: 23,
       });
+      expect(report.steps["venues"]).toMatchObject({
+        status: "done",
+        written: null,
+        filled: expect.arrayContaining([
+          expect.objectContaining({ slug: "blank-venue" }),
+        ]),
+      });
+      expect(await count(db, unplaced)).toBeGreaterThan(0);
       expect(report.steps["images"]).toMatchObject({
         status: "done",
         photos: ["One", "Two", "Three"],
@@ -406,7 +464,11 @@ describe("the Worker, from its bindings", () => {
       expect(report.steps["photos"]).toMatchObject({
         ingested: ["Ada Lovelace"],
       });
-      // Without LUMA_API_KEY, no covers are looked up, as in the app.
+      // Without LUMA_API_KEY, no venues are asked for and no covers are
+      // looked up, as in the app.
+      expect(report.steps["venues"]).toMatchObject({
+        skipped: "LUMA_API_KEY is not set",
+      });
       expect(report.steps["covers"]).toMatchObject({ ingested: [] });
       expect(put).toHaveLength(1);
       expect(put[0]).toStartWith("profiles/ada-lovelace-");

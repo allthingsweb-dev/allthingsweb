@@ -1,3 +1,4 @@
+import { portrait } from "allthings-brand/src/layout.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import {
   type Format,
@@ -249,13 +250,21 @@ export interface PortraitProps {
  */
 export function Portrait({ photo, mode, blank }: PortraitProps) {
   if (photo === undefined || !hasSource(photo, mode)) {
-    return <Img src={blank} alt="" width="36" height="36" last />;
+    return (
+      <Img
+        src={blank}
+        alt=""
+        width={String(portrait.xs)}
+        height={String(portrait.xs)}
+        last
+      />
+    );
   }
   return (
     <SquarePhoto
       photo={photo}
       mode={mode}
-      side={36}
+      side={portrait.xs}
       sides={[36, 72]}
       alt=""
       last

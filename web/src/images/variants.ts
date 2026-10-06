@@ -33,11 +33,11 @@ import { mediaOrigin } from "../links.ts";
 export const widths = [240, 360, 480, 720, 960, 1200] as const;
 
 /**
- * The squares portraits are offered at: the footer's 36 CSS pixels at 1x
- * and 2x; event pages' 44 (hosts) and 72 to 168 (speakers), and /people's
- * 64 to 72 (speakers) and 96 to 160 (organizers), at 1x to 3x.
+ * The squares portraits are offered at, for the portrait sizes in the brand's
+ * layout tokens: the footer's 36 CSS pixels at 1x and 2x; hosts' 44, and
+ * speakers' and organizers' 72 to 168, at 1x to 3x.
  */
-export const squares = [36, 72, 144, 160, 168, 216, 320, 336] as const;
+export const squares = [36, 72, 144, 168, 216, 336] as const;
 
 export type Width = (typeof widths)[number];
 export type Square = (typeof squares)[number];

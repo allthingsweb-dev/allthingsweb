@@ -155,6 +155,20 @@
       "when": 1791229095409,
       "tag": "0021_event_curation",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791235100701,
+      "tag": "0022_host_luma_user",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791246178685,
+      "tag": "0023_planning",
+      "breakpoints": true
     }
   ]
 }

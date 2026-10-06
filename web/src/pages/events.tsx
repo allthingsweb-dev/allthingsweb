@@ -1,7 +1,7 @@
 import type { EveningsView } from "allthings-core/src/evenings.ts";
 import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
-import { discord, lumaCalendar } from "../links.ts";
+import { discord, lumaCalendar, xHandle } from "../links.ts";
 import { Document } from "./document.tsx";
 import { gatheringTitle } from "./metadata.tsx";
 import { EveningRow } from "./evening-row.tsx";
@@ -14,9 +14,19 @@ import type { ImageMode } from "./picture.tsx";
  * /events: every evening, in the rows home lists them in. The evenings
  * still ahead come first, soonest first and with the cursor; then every
  * evening that has happened, latest first, under the year it happened in.
- * Beside them, the two actions the foundations give Luma and Discord
- * ("People and channels").
+ * Under the title, where to follow along, in a quiet line of words as the
+ * footer's socials are (brand/foundations.md, "People and channels").
  */
+
+/** Where to follow every evening, in the line under /events' title. */
+export const channels: ReadonlyArray<{
+  readonly name: string;
+  readonly href: string;
+}> = [
+  { name: "luma calendar", href: lumaCalendar },
+  { name: "discord", href: discord },
+  { name: "x", href: `https://x.com/${xHandle}` },
+];
 
 export interface EventsProps {
   readonly evenings: EveningsView;
@@ -87,6 +97,7 @@ export function eventsPage({
 }: EventsProps): string {
   const { ahead, past } = evenings;
   return Document({
+    section: "events",
     meta: {
       title: gatheringTitle("every evening"),
       description:
@@ -102,13 +113,15 @@ export function eventsPage({
       <div class="evenings">
         <div class="evenings-head">
           <h1 class="lockup at-type-event-lockup">every evening</h1>
-          <p class="list-links">
-            <a href={lumaCalendar}>subscribe on luma</a>
-            {" · "}
-            <a href={discord}>
-              talk between evenings <span aria-hidden="true">→</span> discord
-            </a>
-          </p>
+          <ul class="socials at-type-meta">
+            {channels.map((channel) => (
+              <li>
+                <a href={channel.href} safe>
+                  {channel.name}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
         <div class="evenings-lists">
           {ahead.length === 0 ? (

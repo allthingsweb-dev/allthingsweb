@@ -508,17 +508,17 @@ describe("/people with variants", () => {
       contentSecurityPolicy.variants,
     );
     expect(html).toContain(
-      `<img class="portrait" src="/img/160x160/jpeg/${version}/profiles/erik.jpg" srcset="/img/160x160/jpeg/${version}/profiles/erik.jpg 160w, /img/320x320/jpeg/${version}/profiles/erik.jpg 320w"`,
+      `<img class="portrait" src="/img/168x168/jpeg/${version}/profiles/erik.jpg" srcset="/img/168x168/jpeg/${version}/profiles/erik.jpg 168w, /img/336x336/jpeg/${version}/profiles/erik.jpg 336w"`,
     );
     for (const path of [...subresources(html), ...imageUrls(html)]) {
       expect(path).toMatch(/^\/(?!\/)/);
     }
     const { response: variant, body } = await get(
       Variants,
-      `/img/320x320/webp/${version}/profiles/erik.jpg`,
+      `/img/336x336/webp/${version}/profiles/erik.jpg`,
     );
     expect(variant.status).toBe(200);
-    expect(dimensions(body)).toEqual({ width: 320, height: 320 });
+    expect(dimensions(body)).toEqual({ width: 336, height: 336 });
   });
 });
 

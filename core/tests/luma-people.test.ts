@@ -606,6 +606,7 @@ describe("the import", () => {
       created: 0,
       written: 3,
       removed: 0,
+      hosted: 0,
       counted: 1,
     });
     expect(await people(db)).toEqual([
@@ -670,6 +671,7 @@ describe("the import", () => {
       created: 2,
       written: 6,
       removed: 0,
+      hosted: 0,
       counted: 1,
     });
     expect(await people(db)).toEqual([
@@ -768,8 +770,8 @@ describe("the import", () => {
     expect(formatImport(result)).toBe(
       [
         "Asked Luma about 2 published events; 0 not shown to us.",
-        "Planned: 6 hosts across 2 events, 3 profiles to link, 2 to create, guest counts for 1 event.",
-        "Wrote: 6 host rows added or reordered, 0 removed, 3 profiles linked, 2 created, guest counts changed for 1 event.",
+        "Planned: 6 hosts and 0 hosting companies across 2 events, 3 profiles to link, 2 to create, guest counts for 1 event.",
+        "Wrote: 6 host rows added or reordered, 0 removed, 0 hosting companies attached, 3 profiles linked, 2 created, guest counts changed for 1 event.",
         "To review:",
         "evt-react",
         "  matched by name: Grace Hopper (usr-Hopper1) is profile b0000000-0000-4000-8000-000000000002",
@@ -785,6 +787,71 @@ describe("the import", () => {
     );
   });
 
+  test("attaches a hosting company Luma lists as a host, once, and never makes it a person", async () => {
+    const db = await database();
+    await db.exec(`
+      INSERT INTO sponsors (id, name, about, luma_user_id, updated_at) VALUES
+        ('c0000000-0000-4000-8000-000000000900', 'Initech', 'Software.', 'usr-Johnson1', now());
+    `);
+    const result = await imported(db, undefined, { decisions: noDecisions });
+    expect(result.written?.hosted).toBe(1);
+    expect(result.plan.hosts).toEqual([
+      {
+        eventId: "e0000000-0000-4000-8000-000000000001",
+        companyId: "c0000000-0000-4000-8000-000000000900",
+      },
+    ]);
+    expect(
+      result.plan.review.filter(
+        (review) => review.lumaUserId === "usr-Johnson1",
+      ),
+    ).toEqual([
+      {
+        _tag: "Company",
+        lumaEventId: "evt-react",
+        lumaUserId: "usr-Johnson1",
+        name: "Initech",
+        companyId: "c0000000-0000-4000-8000-000000000900",
+      },
+    ]);
+    expect(formatImport(result)).toContain(
+      "  hosting company: Initech (usr-Johnson1)",
+    );
+    expect((await people(db)).map((row) => row.name)).not.toContain(
+      "Katherine Johnson",
+    );
+    const hosts = async () =>
+      (
+        await db.query<{ name: string }>(
+          `SELECT s.name FROM event_sponsors es JOIN sponsors s ON s.id = es.sponsor_id
+           WHERE es.event_id = 'e0000000-0000-4000-8000-000000000001' ORDER BY s.name`,
+        )
+      ).rows.map((row) => row.name);
+    expect(await hosts()).toEqual(["Acme", "Globex", "Initech"]);
+    // Again: nothing new to attach, and the hosts the site set stay.
+    const again = await imported(db, undefined, { decisions: noDecisions });
+    expect(again.written?.hosted).toBe(0);
+    expect(await hosts()).toEqual(["Acme", "Globex", "Initech"]);
+  });
+
+  test("refuses a decision about a hosting company's account", async () => {
+    const db = await database();
+    await db.exec(`
+      INSERT INTO sponsors (id, name, about, luma_user_id, updated_at) VALUES
+        ('c0000000-0000-4000-8000-000000000900', 'Initech', 'Software.', 'usr-Johnson1', now());
+    `);
+    const { exit } = await importInto(db, undefined, {
+      decisions: { create: ["usr-Johnson1"], link: {} },
+    });
+    expect(failure(exit)).toEqual(
+      new PeopleDecisionError({
+        problems: [
+          "usr-Johnson1 is the hosting company Initech, not a person; nothing to decide",
+        ],
+      }),
+    );
+  });
+
   test("a second import with nothing new changes nothing", async () => {
     const db = await database();
     await imported(db);
@@ -795,6 +862,7 @@ describe("the import", () => {
       created: 0,
       written: 0,
       removed: 0,
+      hosted: 0,
       counted: 0,
     });
     expect(again.plan.review.map((review) => review._tag)).toEqual([
