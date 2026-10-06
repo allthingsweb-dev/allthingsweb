@@ -246,6 +246,17 @@ describe("decodeExternalTalksFile", () => {
     }
   });
 
+  test("a note is kept with a talk, never empty", async () => {
+    const noted = {
+      ...first,
+      note: "The title is descriptive, per the speaker.",
+    };
+    expect(await decodes({ talks: [noted], held: [] })).toBe(true);
+    expect(await decodes({ talks: [{ ...first, note: "" }], held: [] })).toBe(
+      false,
+    );
+  });
+
   test("the file this branch carries decodes, each talk once", async () => {
     const text = await Bun.file(
       new URL("../backfill/external-talks.json", import.meta.url),

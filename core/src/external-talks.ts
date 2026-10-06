@@ -54,6 +54,12 @@ export const ExternalTalkEntry = Schema.Struct({
   videoUrl: Schema.NullOr(Url),
   source: Url,
   read: Day,
+  /**
+   * What the source alone doesn't say: a title that is the speaker's word
+   * or only descriptive, or a source that copies another. Kept in the file,
+   * never written.
+   */
+  note: Schema.optionalKey(Text),
 });
 export type ExternalTalkEntry = typeof ExternalTalkEntry.Type;
 

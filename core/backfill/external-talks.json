@@ -363,14 +363,54 @@
     {
       "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
       "name": "Erik Thorelli",
-      "title": "Make what agents want",
+      "title": "Make Something Agents Want",
       "eventName": "AgentsNexus India 2026",
       "kind": "conference",
       "givenOn": "2026-09-05",
       "url": "https://agentsnexus.io/agenda",
       "videoUrl": null,
       "source": "https://agentsnexus.io/agenda",
-      "read": "2026-10-05"
+      "read": "2026-10-05",
+      "note": "Title per Erik (chat, 2026-10-06); the agenda lists it as \"Make what agents want\"."
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "read": "2026-10-05",
+      "title": "Optimizing your codebase for Astra",
+      "eventName": "Bengaluru Burrow | Bengaluru Tech Week (CodeRabbit)",
+      "kind": "meetup",
+      "givenOn": "2026-09-05",
+      "url": "https://luma.com/codera-klde",
+      "videoUrl": null,
+      "source": "https://luma.com/codera-klde",
+      "note": "The title is descriptive, per Erik (chat, 2026-10-06): no title was published. He talked about Astra, just released, and how to optimize a codebase for it, after OpenAI's Astra/GPT-6 docs for high autonomy. The agenda lists the 12:00pm talk."
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "read": "2026-10-05",
+      "title": "Deploying AI Code Review at Scale",
+      "eventName": "AI Dev 26 x SF (DeepLearning.AI)",
+      "kind": "conference",
+      "givenOn": "2026-04-29",
+      "url": "https://ai-dev.deeplearning.ai/",
+      "videoUrl": "https://www.youtube.com/watch?v=zbuf9J5KgOM",
+      "source": "https://github.com/qredwoods/md-ai-dev-26-sf-sched/blob/main/schedule.md",
+      "note": "The day is from a copy of the official agenda (Day 2, April 29, 1:45-2:25 PM, Stage 1, as \"Deploying AI Code Review at Scale: Turning AI Velocity into a Reliable Quality Gate\"), linked from DeepLearning.AI's forum post https://community.deeplearning.ai/t/ai-dev-26-in-san-francisco/891368; the official agenda loads client-side and was never archived. The title is the official recording's."
+    },
+    {
+      "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+      "name": "Erik Thorelli",
+      "read": "2026-10-05",
+      "title": "Context Engineering for Intelligent AI Code Reviews",
+      "eventName": "AI Engineer Code Summit 2025",
+      "kind": "workshop",
+      "givenOn": "2025-11-22",
+      "url": "https://www.ai.engineer/code/2025/schedule",
+      "videoUrl": null,
+      "source": "https://www.ai.engineer/code/2025/schedule",
+      "note": "The schedule lists the workshop 4:10-5:30 PM with Erik Thorelli (Coderabbit) presenting, under David Loker's photo and title, so the slot may first have been booked for him."
     }
   ],
   "held": [
@@ -468,30 +508,6 @@
       "eventName": "13th DevOps Conclave & Awards 2026 (UBS Forums), Gurgaon",
       "sources": ["https://www.youtube.com/watch?v=Q9FUcEJdhTo"],
       "reason": "not a talk. This is a partner testimonial video from the event (Wednesday, 2 September 2026). No primary page shows Erik speaking there."
-    },
-    {
-      "name": "Erik Thorelli",
-      "title": "Talk at Bengaluru Burrow (title not published)",
-      "eventName": "Bengaluru Burrow | Bengaluru Tech Week (CodeRabbit)",
-      "sources": ["https://luma.com/codera-klde"],
-      "reason": "Talk is confirmed: the agenda reads '12:00pm: Talk by Erik Thorelli (Head of Developer Experience, CodeRabbit)' on Saturday 2026-09-05 (Asia/Kolkata, 11:30-14:00). No talk title is published anywhere I could find, and Erik is also the event host. Add it once Erik supplies the title."
-    },
-    {
-      "name": "Erik Thorelli",
-      "title": "Deploying AI Code Review at Scale",
-      "eventName": "AI Dev 26 x SF (DeepLearning.AI)",
-      "sources": [
-        "https://www.youtube.com/watch?v=zbuf9J5KgOM",
-        "https://www.eventbrite.com/e/ai-dev-26-x-sf-the-ai-developer-conference-tickets-1969285167949"
-      ],
-      "reason": "Official recording confirms the title (DeepLearningAI channel, published 2026-05-21). The conference ran April 28-29, 2026 at Pier 48, but no primary source says which day he spoke (the agenda loads client-side and isn't in the Wayback snapshot). The date is either 2026-04-28 or 2026-04-29."
-    },
-    {
-      "name": "Erik Thorelli",
-      "title": "Unknown (Agent Labs track speaker)",
-      "eventName": "AI Engineer Code Summit 2025 (NYC)",
-      "sources": ["https://www.ai.engineer/code/2025"],
-      "reason": "ai.engineer/code/2025 lists 'Erik Thorelli, Coderabbit' among Agent Labs track speakers for Nov 19-22, 2025, but neither the archive page nor the AIE CODE livestream descriptions I checked give a title or day."
     },
     {
       "name": "Erik Thorelli",
