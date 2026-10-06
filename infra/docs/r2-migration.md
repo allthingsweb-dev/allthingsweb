@@ -4,7 +4,7 @@ Status (Oct 6): Phase 1 is done. R2 and Workers Paid are on in the allthings acc
 
 - The staged bucket holds all 317 objects (1,372,325,671 bytes), copied in 97 s, and `verify` found every object identical.
 - allthings.dev is a pending zone there: `f65e1c6d54e9d2e850cf025190ef8915`, nameservers max/rosalie.ns.cloudflare.com, no records.
-- The new site (the prod Web Worker, #162) runs there on its `workers.dev` URL, against production's data. Its canonical origin is already allthings.dev.
+- The new site (the prod Web Worker) runs there on its `workers.dev` URL, against production's data. It was deployed on Oct 6 from #162, which makes `ORIGIN` allthings.dev on every stage and has prod deploy the Web Worker in this account. **#162 must be merged before Phase 2**: this runbook's deploys rely on it, and a prod deploy from a main without it would remove the Web Worker.
 
 The new site goes live on allthings.dev with the move. At activation, allthings.dev and www.allthings.dev attach to the prod Web Worker, in place of today's redirect to allthingsweb.dev. allthingsweb.dev keeps serving the old app until [the full cutover](#later-the-full-cutover). That cutover is written down here but not scheduled.
 
@@ -81,6 +81,8 @@ Run from `infra/` once this has merged. Nothing is passed by hand: the copy uses
 
 **Phase 2: the day of the move, before submitting it**
 
+Check first that #162 is on main: `infra/src/web.ts` exports `siteDomain`, and `infra/alchemy.run.ts` deploys the Web Worker in prod.
+
 1. `bun run deploy --stage prod --profile allthings` again. The zone is now in the account, so this attaches media.allthings.dev to the new bucket on the pending zone.
    - Check in the dashboard that the bucket's custom domain shows media.allthings.dev.
    - If R2 refuses a pending zone, the deploy fails here and changes nothing else. Then the attach happens in Phase 4 instead, and the window is longer (see Downtime).
@@ -121,7 +123,7 @@ From activation until step 2's deploy, allthings.dev and www don't answer. Their
 5. **Redeploy production on Vercel.** Changed env only reaches new deployments. Until then, uploads still go to the old bucket.
 6. Run `copy` again for anything uploaded to the old bucket before the redeploy, then `verify --public`.
 7. Run an end-to-end check: one upload through the admin, visible on media.allthings.dev and as an `/img` variant.
-8. **Point clients at the new host.** These are small PRs after activation, not before. Until then, allthings.dev redirects to allthingsweb.dev, and a redirect drops an MCP POST.
+8. **Point clients at the new host.** These are small PRs once step 3 passes, not before. Before activation, allthings.dev still redirects to allthingsweb.dev, and a redirect drops an MCP POST. After it, the new site answers on allthings.dev and allthingsweb.dev keeps serving the old app, so clients can switch to `https://allthings.dev/mcp`.
    - The CLI's default endpoint becomes `https://allthings.dev/mcp` (`atw-cli/src/client.ts` and `core/scripts/fixtures.ts`).
    - `infra/README.md`'s "default profile until the domain moves" sentence becomes past tense.
 
@@ -162,8 +164,15 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
 
 1. **The sync moves to the sync Worker.** In `infra/src/sync.ts`:
    - Set `schedule: "hourly"` with `mode: "dry-run"` first. Compare an hour's logged work with the Vercel cron's writes.
-   - Then set `mode: "write"` and remove the cron from `app/vercel.json` in the same change, so exactly one writer runs each hour.
+   - Then hand over, so the two never write in the same hour:
+     1. Remove the cron from `app/vercel.json` and deploy the app.
+     2. Wait for any run already started to finish. A run lasts at most its 60 s `maxDuration`.
+     3. Set `mode: "write"` and deploy prod.
+
+     Each run reads the whole calendar, so an hour skipped during the handover is caught up by the next run.
+
    - `/api/cron/luma-sync` becomes 410 in the legacy-URL manifest (`web/tests/support/legacy-urls.ts`).
+
 2. **Sign-in and the admin retire.** The manifest marks these paths pending today. They become 410:
    - `/handler/*` (Stack Auth)
    - `/profile` and `/api/v1/profile`
