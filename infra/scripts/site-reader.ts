@@ -1,8 +1,9 @@
 /**
  * Creates site_reader, or gives it a new password: the login role every stage
  * but prod reads production's database with, through Hyperdrive. It may only
- * SELECT the tables the public site reads, and every transaction it starts is
- * read-only.
+ * SELECT the tables the public site reads, and the migrator's record of what
+ * it has applied (MIGRATION_RECORD, which CI's migration guard reads), and
+ * every transaction it starts is read-only.
  *
  * It is created with SQL by the database owner, not in Neon's console or API,
  * because roles made there join neon_superuser: Neon's own "reader" role can
@@ -50,8 +51,18 @@ export const SITE_TABLES = [
 ] as const;
 
 /**
- * The SQL that leaves `role` with SELECT on SITE_TABLES and read-only
- * transactions, run as the owner. It names each table: nothing is granted
+ * Core's record of applied migrations (core/src/migrator.ts), which the
+ * migration guard (core/scripts/migration-guard.ts) reads to know which
+ * numbers production has taken. Only the record: nothing else in its schema.
+ */
+export const MIGRATION_RECORD = {
+  schema: "effect_sql",
+  table: "migrations",
+} as const;
+
+/**
+ * The SQL that leaves `role` with SELECT on SITE_TABLES and the migration
+ * record, and read-only transactions, run as the owner. It names each table: nothing is granted
  * on a whole schema, so a table added anywhere (planning's, say) is
  * private until it is listed here.
  */
@@ -59,6 +70,8 @@ export function grantStatements(role = SITE_READER): string[] {
   return [
     `GRANT USAGE ON SCHEMA public TO ${role}`,
     `GRANT SELECT ON ${SITE_TABLES.map((t) => `public.${t}`).join(", ")} TO ${role}`,
+    `GRANT USAGE ON SCHEMA ${MIGRATION_RECORD.schema} TO ${role}`,
+    `GRANT SELECT ON ${MIGRATION_RECORD.schema}.${MIGRATION_RECORD.table} TO ${role}`,
     `ALTER ROLE ${role} SET default_transaction_read_only = on`,
   ];
 }

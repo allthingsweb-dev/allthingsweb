@@ -620,6 +620,12 @@ until then (see below).
 - Add the lines the migration creates to
   `tests/fixtures/production-schema.txt`, which is production's catalog once
   every migration here has run (`bun run migrate`, below).
+- Its number must be free: CI's migration guard (`bun run migration-guard`,
+  `src/migration-guard.ts`, on every pull request and on main) fails when a
+  branch's migrations don't extend what production has applied, in order
+  (it reads `effect_sql.migrations` as site_reader), or when a pull request
+  adds a migration under a number another open pull request adds. The
+  failure names each migration to renumber, and the number it should take.
 
 `0001_baseline` is production's schema on 2026-10-04, read from its catalog,
 not a copy of `app/migrations`: production received changes by hand that
