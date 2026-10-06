@@ -37,7 +37,6 @@ CREATE TABLE "planning"."host_prospects" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "host_prospects_sponsor_id_unique" UNIQUE("sponsor_id"),
-	CONSTRAINT "host_prospects_company_name_unique" UNIQUE("company_name"),
 	CONSTRAINT "host_prospects_company_check" CHECK (num_nonnulls("sponsor_id", "company_name") = 1),
 	CONSTRAINT "host_prospects_company_name_check" CHECK (btrim("company_name") <> ''),
 	CONSTRAINT "host_prospects_status_check" CHECK ("status" IN ('prospect', 'asked', 'confirmed', 'declined'))
@@ -118,6 +117,7 @@ ALTER TABLE "planning"."wanted_speaker_topics" ADD CONSTRAINT "wanted_speaker_to
 ALTER TABLE "planning"."wanted_speakers" ADD CONSTRAINT "wanted_speakers_profile_id_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."profiles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "planning"."wanted_speakers" ADD CONSTRAINT "wanted_speakers_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "planning"."contacts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "availability_wanted_speaker_id_idx" ON "planning"."availability" USING btree ("wanted_speaker_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "host_prospects_company_name_unique" ON "planning"."host_prospects" USING btree (lower("company_name"));--> statement-breakpoint
 CREATE INDEX "notes_profile_id_idx" ON "planning"."notes" USING btree ("profile_id");--> statement-breakpoint
 CREATE INDEX "notes_sponsor_id_idx" ON "planning"."notes" USING btree ("sponsor_id");--> statement-breakpoint
 CREATE INDEX "notes_contact_id_idx" ON "planning"."notes" USING btree ("contact_id");--> statement-breakpoint

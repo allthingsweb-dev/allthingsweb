@@ -1,5 +1,5 @@
 {
-  "id": "3d218ed0-265f-4093-82c9-2fde124e885d",
+  "id": "df35a933-26ed-46a2-b204-142ae02eb13f",
   "prevId": "c16f812e-b391-4be0-9209-1239859ee0fb",
   "version": "7",
   "dialect": "postgresql",
@@ -1415,7 +1415,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "host_prospects_company_name_unique": {
+          "name": "host_prospects_company_name_unique",
+          "columns": [
+            {
+              "expression": "lower(\"company_name\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "host_prospects_sponsor_id_sponsors_id_fk": {
           "name": "host_prospects_sponsor_id_sponsors_id_fk",
@@ -1443,11 +1459,6 @@
           "name": "host_prospects_sponsor_id_unique",
           "nullsNotDistinct": false,
           "columns": ["sponsor_id"]
-        },
-        "host_prospects_company_name_unique": {
-          "name": "host_prospects_company_name_unique",
-          "nullsNotDistinct": false,
-          "columns": ["company_name"]
         }
       },
       "policies": {},

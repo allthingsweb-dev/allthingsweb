@@ -29,6 +29,8 @@ export interface Exposure {
 }
 
 export interface PlanningAudit {
+  /** Whether this database has the planning schema at all; an audit of none proves nothing. */
+  readonly schemaExists: boolean;
   /** Every relation in the planning schema, by name. */
   readonly relations: ReadonlyArray<string>;
   /** Site roles that exist on this database, each checked. */
@@ -45,6 +47,16 @@ const Row = Schema.Struct({
 
 export const auditPlanning = Effect.gen(function* () {
   const sql = yield* SqlClient;
+  const [schema] = yield* sql`
+    SELECT EXISTS (
+      SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'planning'
+    ) AS "exists"`.pipe(
+    Effect.flatMap(
+      Schema.decodeUnknownEffect(
+        Schema.Array(Schema.Struct({ exists: Schema.Boolean })),
+      ),
+    ),
+  );
   const relations = yield* sql`
     SELECT c.relname AS name
     FROM pg_catalog.pg_class c
@@ -118,14 +130,22 @@ export const auditPlanning = Effect.gen(function* () {
     Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Row))),
   );
   return {
+    schemaExists: schema?.exists === true,
     relations: relations.map((relation) => relation.name),
     checkedRoles: checked,
     exposures,
   } satisfies PlanningAudit;
 }).pipe(orDataSourceError);
 
+/** Whether the audit proves planning private: it exists, and nothing exposes it. */
+export const isPrivate = (audit: PlanningAudit): boolean =>
+  audit.schemaExists && audit.exposures.length === 0;
+
 /** The audit as lines to read. */
 export function formatAudit(audit: PlanningAudit): string {
+  if (!audit.schemaExists) {
+    return "✗ this database has no planning schema: nothing to prove (run bun run migrate first)";
+  }
   const lines = [
     `planning: ${audit.relations.length} relations (${audit.relations.join(", ")})`,
     `checked: ${audit.checkedRoles.length === 0 ? "no site role exists here" : audit.checkedRoles.join(", ")}, and PUBLIC`,

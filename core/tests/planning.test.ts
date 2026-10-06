@@ -397,6 +397,12 @@ describe("host prospects", () => {
     ).toBe(
       `Acme is a hosting company we know (${acme}): name it with sponsor.`,
     );
+    // The database holds the name unique in any case, whoever writes it.
+    await expect(
+      db.exec(
+        `INSERT INTO planning.host_prospects (company_name) VALUES ('MADE-UP CO')`,
+      ),
+    ).rejects.toThrow("host_prospects_company_name_unique");
   });
 });
 

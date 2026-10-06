@@ -163,6 +163,9 @@ if (serverUrl === undefined) {
       expect(
         await json("note", "add", "--sponsor", "Globex", "--body", "Made up."),
       ).toMatchObject({ about: "Globex", body: "Made up." });
+      expect(
+        await json("note", "add", "--sponsor=Globex", "--body=--made up"),
+      ).toMatchObject({ body: "--made up" });
     });
 
     test("refuses, saying why, and writes nothing", async () => {

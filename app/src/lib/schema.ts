@@ -11,6 +11,7 @@ import {
   index,
   date,
   pgSchema,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersSync as usersSyncTable } from "drizzle-orm/neon";
@@ -756,7 +757,8 @@ export const planningHostProspectsTable = planningSchema.table(
     sponsorId: uuid("sponsor_id")
       .unique()
       .references(() => hostsTable.id),
-    companyName: text("company_name").unique(),
+    /** A new company's name, unique in any case. */
+    companyName: text("company_name"),
     contactId: uuid("contact_id").references(() => planningContactsTable.id),
     status: text("status", { enum: hostProspectStatuses })
       .notNull()
@@ -765,7 +767,10 @@ export const planningHostProspectsTable = planningSchema.table(
     createdAt: planningCreatedAt,
     updatedAt: planningUpdatedAt,
   },
-  () => [
+  (table) => [
+    uniqueIndex("host_prospects_company_name_unique").on(
+      sql`lower(${table.companyName})`,
+    ),
     check(
       "host_prospects_company_check",
       sql`num_nonnulls("sponsor_id", "company_name") = 1`,

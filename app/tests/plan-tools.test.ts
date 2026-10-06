@@ -45,14 +45,10 @@ describe("planning tools", () => {
     ).toEqual([
       "idea",
       "add",
-      "--title",
-      "Made-up quiz",
-      "--pitch",
-      "Rounds.",
-      "--program",
-      "social",
-      "--inspired-by",
-      "2025-10-07-js-trivia-night-evt-2DtcNjNsqEqpgp6",
+      "--title=Made-up quiz",
+      "--pitch=Rounds.",
+      "--program=social",
+      "--inspired-by=2025-10-07-js-trivia-night-evt-2DtcNjNsqEqpgp6",
     ]);
   });
 
@@ -67,8 +63,7 @@ describe("planning tools", () => {
       "idea",
       "update",
       "--clear-topic",
-      "--event",
-      "2026-09-01-draft-night",
+      "--event=2026-09-01-draft-night",
       "--",
       "f0000000-0000-4000-8000-000000000001",
     ]);
@@ -89,14 +84,10 @@ describe("planning tools", () => {
     ).toEqual([
       "speaker",
       "add",
-      "--name",
-      "Made-up Person",
-      "--topic",
-      "ai",
-      "--topic",
-      "git",
-      "--window",
-      '{"startsOn":"2027-01-01","note":"free after Dec"}',
+      "--name=Made-up Person",
+      "--topic=ai",
+      "--topic=git",
+      '--window={"startsOn":"2027-01-01","note":"free after Dec"}',
     ]);
   });
 
@@ -106,4 +97,13 @@ describe("planning tools", () => {
       planArguments("add_wanted_speaker", { name: "X", topics: [] }),
     ).toThrow();
   });
+});
+
+test("a value that starts with a dash stays the flag's value", () => {
+  expect(
+    planArguments("add_planning_note", {
+      sponsor: "Acme",
+      body: "--not a flag",
+    }),
+  ).toEqual(["note", "add", "--sponsor=Acme", "--body=--not a flag"]);
 });

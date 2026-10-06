@@ -119,13 +119,14 @@ export const planning: ReadonlyArray<string> = [
     "created_at" timestamp with time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT "host_prospects_sponsor_id_unique" UNIQUE ("sponsor_id"),
-    CONSTRAINT "host_prospects_company_name_unique" UNIQUE ("company_name"),
     CONSTRAINT "host_prospects_company_check" CHECK (num_nonnulls("sponsor_id", "company_name") = 1),
     CONSTRAINT "host_prospects_company_name_check" CHECK (btrim("company_name") <> ''),
     CONSTRAINT "host_prospects_status_check" CHECK ("status" IN ('prospect', 'asked', 'confirmed', 'declined')),
     CONSTRAINT "host_prospects_sponsor_id_sponsors_id_fk" FOREIGN KEY ("sponsor_id") REFERENCES "public"."sponsors" ("id"),
     CONSTRAINT "host_prospects_contact_id_contacts_id_fk" FOREIGN KEY ("contact_id") REFERENCES "planning"."contacts" ("id")
   )`,
+  // A new company's name is unique in any case.
+  `CREATE UNIQUE INDEX "host_prospects_company_name_unique" ON "planning"."host_prospects" USING btree (lower("company_name"))`,
   `CREATE TABLE "planning"."notes" (
     "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     "profile_id" uuid,

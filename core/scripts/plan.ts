@@ -29,7 +29,11 @@ import {
   WindowInput,
 } from "../src/planning/model.ts";
 import { Planning, PlanningError } from "../src/planning/planning.ts";
-import { auditPlanning, formatAudit } from "../src/planning/privacy.ts";
+import {
+  auditPlanning,
+  formatAudit,
+  isPrivate,
+} from "../src/planning/privacy.ts";
 
 /**
  * Organizers' planning (src/planning/) at the Postgres at DATABASE_URL:
@@ -583,13 +587,16 @@ const audit = Command.make("audit", { json }, (options) =>
   Effect.gen(function* () {
     const result = yield* auditPlanning;
     yield* print(options.json, result, formatAudit);
-    return result.exposures.length === 0
-      ? undefined
-      : yield* refuse("A site role or PUBLIC may reach planning.");
+    if (isPrivate(result)) return undefined;
+    return yield* refuse(
+      result.schemaExists
+        ? "A site role or PUBLIC may reach planning."
+        : "There is no planning schema to audit.",
+    );
   }).pipe(Effect.provide(Database.layer)),
 ).pipe(
   Command.withDescription(
-    "Check that site_reader, site_sync and PUBLIC can't reach planning; fails if one can.",
+    "Check that site_reader, site_sync and PUBLIC can't reach planning; fails if one can, or if there is no planning schema.",
   ),
 );
 

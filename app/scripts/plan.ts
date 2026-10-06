@@ -114,13 +114,16 @@ export const planTools = Object.keys(planSchemas) as ReadonlyArray<PlanTool>;
 export const isPlanTool = (name: string): name is PlanTool =>
   Object.hasOwn(planSchemas, name);
 
-/** `--name value` when there is a value. */
+/**
+ * `--name=value` when there is a value. One argument, so a value that
+ * starts with a dash ("-x", "--two") is still the value, not another flag.
+ */
 const flag = (name: string, value: string | undefined): string[] =>
-  value === undefined ? [] : [`--${name}`, value];
+  value === undefined ? [] : [`--${name}=${value}`];
 
-/** `--name value` per value. */
+/** `--name=value` per value. */
 const flags = (name: string, values: ReadonlyArray<string> | undefined) =>
-  (values ?? []).flatMap((value) => [`--${name}`, value]);
+  (values ?? []).map((value) => `--${name}=${value}`);
 
 /** A value to set (`--name`), clear (`--clear-name`), or leave. */
 const setOrClear = (name: string, value: string | null | undefined) =>
@@ -519,7 +522,7 @@ export const planToolDefinitions: ReadonlyArray<{
   {
     name: "audit_planning",
     description:
-      "Check that the site's roles (site_reader, site_sync) and PUBLIC can't reach planning; fails if one can. Read-only.",
+      "Check that the site's roles (site_reader, site_sync) and PUBLIC can't reach planning; fails if one can, or if the database has no planning schema. Read-only.",
     inputSchema: { type: "object", properties: {}, required: [] },
   },
 ];

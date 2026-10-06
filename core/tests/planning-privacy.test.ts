@@ -14,7 +14,11 @@ import {
   grantStatements as syncGrants,
   SITE_SYNC,
 } from "../../infra/scripts/site-sync.ts";
-import { auditPlanning, siteRoles } from "../src/planning/privacy.ts";
+import {
+  auditPlanning,
+  isPrivate,
+  siteRoles,
+} from "../src/planning/privacy.ts";
 import { seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
@@ -142,10 +146,18 @@ describe("planning is private", () => {
 
   test("the audit finds nothing", async () => {
     expect(await audit()).toEqual({
+      schemaExists: true,
       relations: [...tables],
       checkedRoles: [SITE_READER, SITE_SYNC],
       exposures: [],
     });
+  });
+
+  test("an audit of a database without planning proves nothing", async () => {
+    await db.exec("DROP SCHEMA planning CASCADE");
+    const result = await audit();
+    expect(result).toMatchObject({ schemaExists: false, exposures: [] });
+    expect(isPrivate(result)).toBe(false);
   });
 
   test("the audit reports every grant that would expose it", async () => {
