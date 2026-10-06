@@ -54,6 +54,7 @@ export const EventRow = Schema.Struct({
   lumaDescription: Schema.NullOr(Schema.String),
   lumaSummary: Schema.NullOr(Schema.String),
   description: Schema.NullOr(Schema.String),
+  shortSlug: Schema.NullOr(Schema.String),
   previewImage: Schema.NullOr(ImageRow),
 });
 
@@ -177,7 +178,7 @@ const make = Effect.gen(function* () {
     e.created_at AS "createdAt", e.updated_at AS "updatedAt", e.topic,
     e.luma_guest_count AS "lumaGuestCount",
     e.luma_checked_in_count AS "lumaCheckedInCount", e.program,
-    e.curation, e.organized_by AS "organizedBy",
+    e.curation, e.organized_by AS "organizedBy", e.short_slug AS "shortSlug",
     e.luma_description AS "lumaDescription", e.luma_summary AS "lumaSummary",
     e.description,
     ${imageJson("e.preview_image")} AS "previewImage"`);

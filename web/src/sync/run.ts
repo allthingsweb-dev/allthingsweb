@@ -1,26 +1,35 @@
 import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
+import {
+  type PendingEvening,
+  pendingEvenings,
+  type PublishedDraft,
+  publishedDrafts,
+  ShortSlugs,
+} from "allthings-core/src/slugs.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { Clock, Context, Duration, Effect, Exit } from "effect";
 
 /**
  * One run of the hourly sync, as the app's cron runs it
  * (app/src/app/api/cron/luma-sync/route.ts): events from Luma's calendar
- * first, then the venues the calendar hides, from Luma's API, then the
- * images still missing (profile photos, post images, event covers), each
- * image phase in its own time window, then the events' descriptions from
- * Luma's API, in a window of their own, so slow answers from Luma never
- * cost the images theirs. (The app's cron does neither venues nor
- * descriptions.) Every step writes only what is missing or changed, so a
- * run repeated, or one cut short, leaves the database as consistent as
- * before and the next run carries on.
+ * first, then the venues the calendar hides, from Luma's API, then short
+ * links for the evenings without one, then the images still missing
+ * (profile photos, post images, event covers), each image phase in its own
+ * time window, then the events' descriptions from Luma's API, in a window
+ * of their own, so slow answers from Luma never cost the images theirs.
+ * (The app's cron does neither venues, links nor descriptions.) Every step
+ * writes only what is missing or changed, so a run repeated, or one cut
+ * short, leaves the database as consistent as before and the next run
+ * carries on.
  *
  * - `write` writes, as the app's cron does.
  * - `dry-run` writes nothing: the event sync is rehearsed (its statement in
  *   a transaction that rolls back), the venue fill lists the venues it
- *   would write, the image phases list what they would fetch, without
- *   fetching it, and the description import lists what it would change.
+ *   would write, the links it would give are listed, the image phases list
+ *   what they would fetch, without fetching it, and the description import
+ *   lists what it would change.
  *
  * Each step logs one JSON line, and the run one summary line, for Workers
  * Logs to index.
@@ -149,6 +158,19 @@ const skipped = (name: string, reason: string) =>
   } as const);
 
 /**
+ * Short links for the evenings without one (core's src/slugs.ts), as a step
+ * reports them: each evening's long slug and its new link.
+ */
+const slugs = (
+  assigner: ShortSlugs["Service"],
+  options: Parameters<ShortSlugs["Service"]["assign"]>[0],
+) =>
+  Effect.map(assigner.assign(options), ({ given, written }) => ({
+    written,
+    given: given.map(({ slug, shortSlug }) => ({ slug, shortSlug })),
+  }));
+
+/**
  * The venue fill (core's src/luma/venues.ts) within `limits`, as a step
  * reports it: each venue it wrote, and the events Luma has none for.
  */
@@ -204,8 +226,8 @@ const descriptions = (
   });
 
 /**
- * A run that writes, as the app's cron does, and fills in hidden venues
- * and imports descriptions.
+ * A run that writes, as the app's cron does, and fills in hidden venues,
+ * gives short links and imports descriptions.
  */
 const write = (limits: SyncLimits) =>
   Effect.gen(function* () {
@@ -228,13 +250,18 @@ const write = (limits: SyncLimits) =>
         publishedCount,
       })),
     );
-    // The app stops when the events fail: venues and images then wait
-    // for a run that reads the calendar.
+    // The app stops when the events fail: venues, links and images
+    // then wait for a run that reads the calendar.
     if (steps["events"].status !== "done") return steps;
 
     steps["venues"] = yield* step(
       "venues",
       venues(yield* LumaVenues, limits, false),
+    );
+
+    steps["slugs"] = yield* step(
+      "slugs",
+      slugs(yield* ShortSlugs, { dryRun: false }),
     );
 
     const photosLeft = yield* windowLeft(limits.photos.window);
@@ -303,25 +330,37 @@ const dryRun = (limits: SyncLimits) =>
     const sync = yield* LumaSync;
     const ingest = yield* ImageIngest;
     const steps: Record<string, StepReport> = {};
+    // The evenings the sync would create or publish, which the rehearsal
+    // rolls back: the links step lists theirs too.
+    let created: ReadonlyArray<PendingEvening> = [];
+    let published: ReadonlyArray<PublishedDraft> = [];
     steps["events"] = yield* step(
       "events",
-      Effect.map(sync.rehearse, (rehearsal) => ({
-        syncedCount: rehearsal.syncedCount,
-        changedCount: rehearsal.changedCount,
-        publishedCount: rehearsal.publishedCount,
-        created: rehearsal.created.map(({ slug, fields }) => ({
-          slug,
-          name: fields["name"],
-        })),
-        updated: rehearsal.updated.map(({ slug, changes }) => ({
-          slug,
-          changes,
-        })),
-      })),
+      Effect.map(sync.rehearse, (rehearsal) => {
+        created = pendingEvenings(rehearsal.created);
+        published = publishedDrafts(rehearsal.updated);
+        return {
+          syncedCount: rehearsal.syncedCount,
+          changedCount: rehearsal.changedCount,
+          publishedCount: rehearsal.publishedCount,
+          created: rehearsal.created.map(({ slug, fields }) => ({
+            slug,
+            name: fields["name"],
+          })),
+          updated: rehearsal.updated.map(({ slug, changes }) => ({
+            slug,
+            changes,
+          })),
+        };
+      }),
     );
     steps["venues"] = yield* step(
       "venues",
       venues(yield* LumaVenues, limits, true),
+    );
+    steps["slugs"] = yield* step(
+      "slugs",
+      slugs(yield* ShortSlugs, { dryRun: true, pending: created, published }),
     );
     steps["images"] = yield* step(
       "images",

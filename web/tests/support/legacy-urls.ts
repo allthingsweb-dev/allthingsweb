@@ -1,5 +1,5 @@
 import { mediaOrigin } from "../../src/links.ts";
-import { redirects, slugs } from "./event-catalog.ts";
+import { longSlugs, redirects, slugs } from "./event-catalog.ts";
 
 /**
  * Every URL the current site (allthingsweb.dev, the Next app in app/)
@@ -87,26 +87,39 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
     worker: { status: 301, location: "/people" },
     today: "200, the speakers list",
   },
+  // An evening's long slug is linked from Luma's descriptions, posts and
+  // QR codes: it leads to the evening's short link for good (core's
+  // src/short-slugs.ts), or is the page while the evening has none.
   {
     pattern: "/[slug]",
     source: "app route, sitemap, RSS items",
-    example: `/${slugs.past}`,
-    worker: html,
+    example: `/${longSlugs.past}`,
+    worker: { status: 301, location: `/${slugs.past}` },
+    today: "200, the event's page",
   },
   {
     pattern:
       "/2024-10-05-hackathon-at-sentry, /2025-04-26-hackathon-at-sentry, /2025-09-23-lightning-hackathon-at-sentry, /2024-12-03-all-things-web-at-convex, /2025-06-02-nextdevfm-live",
     source: "app routes with pages of their own",
-    example: `/${slugs.hackathon}`,
-    worker: html,
+    example: `/${longSlugs.hackathon}`,
+    worker: { status: 301, location: `/${slugs.hackathon}` },
     // Their schedules, awards, themes and the rest are the event's
     // schedule and notes (core/backfill/event-extras.json).
     today: "their own pages: schedules, prizes, themes, teams",
   },
+  // A shared evening's short link (core's src/short-slugs.ts): the app
+  // sends it to the evening's page until allthings.dev serves it.
+  {
+    pattern: "/shared/[slug]",
+    source: "app route, promotion drafts",
+    example: `/${slugs.shared}`,
+    worker: html,
+    today: "308 to the evening's long slug",
+  },
   {
     pattern: "/[slug] (a draft, or no event)",
     source: "app route",
-    example: `/${slugs.draft}`,
+    example: `/${longSlugs.draft}`,
     worker: notFound,
     today: "404",
   },
@@ -228,12 +241,12 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
       [
         "/api/v1/[slug]/preview.png",
         "each event's link-preview image",
-        `/og/${slugs.past}.png`,
+        `/og/${longSlugs.past}.png`,
       ],
       [
         "/api/v1/[slug]/thumbnail.png",
         "each event's thumbnail",
-        `/og/${slugs.past}.png`,
+        `/og/${longSlugs.past}.png`,
       ],
       [
         "/api/v1/speakers.png",
@@ -245,7 +258,7 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
     ([pattern, what, location]): LegacyUrl => ({
       pattern,
       source: "app route, every page's og:image",
-      example: pattern.replace("[slug]", slugs.past),
+      example: pattern.replace("[slug]", longSlugs.past),
       worker: { status: 301, location },
       today: `200, ${what}, drawn in the old brand`,
     }),
@@ -261,7 +274,7 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
   {
     pattern: "/api/v1/[slug]/qr.png",
     source: "app route",
-    example: `/api/v1/${slugs.past}/qr.png`,
+    example: `/api/v1/${longSlugs.past}/qr.png`,
     worker: png,
     today: "200, a QR code to the event",
   },

@@ -9,6 +9,9 @@ import {
   primaryKey,
   check,
   index,
+  foreignKey,
+  unique,
+  type AnyPgColumn,
   date,
   pgSchema,
   uniqueIndex,
@@ -268,8 +271,19 @@ export const eventsTable = pgTable(
     lumaSummary: text("luma_summary"),
     /** The site's own description, which nothing from Luma writes; shown first. */
     description: text("description"),
+    /**
+     * The short link the Worker serves the event at (allthings.dev/effect),
+     * one of its own in event_slugs; core gives it (core/src/slugs.ts), as
+     * core/migrations/0013_short_slugs.ts adds it. `slug` stays the app's.
+     */
+    shortSlug: text("short_slug").unique(),
   },
-  () => [
+  (table) => [
+    foreignKey({
+      name: "events_id_short_slug_event_slugs_fk",
+      columns: [table.id, table.shortSlug],
+      foreignColumns: [eventSlugsTable.eventId, eventSlugsTable.slug],
+    }),
     check("events_luma_guest_count_check", sql`"luma_guest_count" >= 0`),
     check(
       "events_program_check",
@@ -295,6 +309,28 @@ export const eventsTable = pgTable(
     AND "topic" = lower("topic" COLLATE "pg_c_utf8")
     AND strpos("topic", 'all things') = 0
     AND "topic" COLLATE "pg_c_utf8" ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'`,
+    ),
+  ],
+);
+
+/**
+ * Every short link an event has been given, for good: a link never comes to
+ * mean another event (core/src/short-slugs.ts).
+ */
+export const eventSlugsTable = pgTable(
+  "event_slugs",
+  {
+    slug: text("slug").primaryKey(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references((): AnyPgColumn => eventsTable.id),
+    createdAt,
+  },
+  (table) => [
+    unique("event_slugs_event_id_slug_unique").on(table.eventId, table.slug),
+    check(
+      "event_slugs_slug_check",
+      sql`"slug" ~ '^(shared/)?[a-z0-9]+(-[a-z0-9]+)*$'`,
     ),
   ],
 );
