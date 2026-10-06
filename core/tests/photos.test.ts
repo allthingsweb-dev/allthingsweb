@@ -362,7 +362,7 @@ describe("replacePhoto", () => {
 
   test("refuses an old photo something else uses, and changes no row", async () => {
     // tests/seed.sql's stage photo is also a post's image.
-    const { media } = fakeMedia();
+    const { media, puts } = fakeMedia();
     const before = await links();
     const error = await failure(
       replacePhoto(
@@ -374,6 +374,7 @@ describe("replacePhoto", () => {
     );
     expect(error.message).toContain("is also used by event_posts.image");
     expect(await links()).toEqual(before);
+    expect(puts).toHaveLength(0);
     expect(await imageRows(stage)).toBe(1);
   });
 

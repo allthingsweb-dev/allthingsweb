@@ -436,8 +436,9 @@ its position on the page (from 1) or its image id. The new photo is encoded
 and stored as above and takes the old one's place in the order. In the same
 transaction the old link and its `images` row are deleted, and only when
 nothing else points at that row (`imageReferences`, which a test holds to
-the schema's foreign keys); otherwise nothing changes. The old object stays
-in the bucket: nothing deletes one.
+the schema's foreign keys). That is checked before anything is stored, so a
+refusal stores nothing, and again under the transaction's lock. The old
+object stays in the bucket: nothing deletes one.
 
 ```sh
 DATABASE_URL=… bun run photos replace effect 5 retouched.jpg --alt "…" --dry-run   # encode, check, roll back

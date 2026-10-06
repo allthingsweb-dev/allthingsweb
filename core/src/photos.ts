@@ -344,6 +344,26 @@ export interface Replaced {
   };
 }
 
+/**
+ * Fails unless the evening's link is the one thing pointing at the image
+ * `old`: its row may only be deleted then.
+ */
+const onlyLinked = (old: { readonly id: string; readonly url: string }) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    for (const { table, column } of imageReferences) {
+      const counted = yield* sql<{ count: number }>`
+        SELECT count(*)::int AS count FROM ${sql(table)}
+        WHERE ${sql(column)} = ${old.id}::uuid`;
+      const allowed = table === "event_images" ? 1 : 0;
+      if (counted[0]!.count !== allowed) {
+        yield* fail(
+          `${old.url} is also used by ${table}.${column}; its row stays, and nothing was replaced.`,
+        );
+      }
+    }
+  });
+
 class ReplaceRolledBack extends Data.TaggedError("ReplaceRolledBack")<{
   readonly replaced: Replaced;
 }> {}
@@ -409,6 +429,8 @@ export const replacePhoto = (
     const existing = yield* sql<{ id: string }>`
       SELECT id::text AS id FROM images WHERE url = ${photo.url}`;
 
+    // Before anything is stored, so a refusal leaves no object behind.
+    yield* onlyLinked(old);
     if (!tools.dryRun) yield* store(photo, tools.media);
 
     const work = Effect.gen(function* () {
@@ -421,17 +443,8 @@ export const replacePhoto = (
       if (link === undefined) {
         return yield* fail(`${old.url} left ${event.slug} meanwhile.`);
       }
-      for (const { table, column } of imageReferences) {
-        const counted = yield* sql<{ count: number }>`
-          SELECT count(*)::int AS count FROM ${sql(table)}
-          WHERE ${sql(column)} = ${old.id}::uuid`;
-        const allowed = table === "event_images" ? 1 : 0;
-        if (counted[0]!.count !== allowed) {
-          return yield* fail(
-            `${old.url} is also used by ${table}.${column}; its row stays, and nothing was replaced.`,
-          );
-        }
-      }
+      // Again, under the lock: something may have started using it since.
+      yield* onlyLinked(old);
       const imageId = yield* imageRow(photo, existing[0]?.id);
       yield* sql`
         INSERT INTO event_images (event_id, image_id, created_at, updated_at)
