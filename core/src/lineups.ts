@@ -32,7 +32,18 @@ const Url = HttpUrl.check(Schema.isPattern(/^https:\/\/\S+$/));
  */
 const Confirmation = Schema.Struct({
   confirmedBy: Schema.String.check(Schema.isNonEmpty()),
-  on: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+  on: Schema.String.check(
+    Schema.makeFilter((value: string) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return "expected a YYYY-MM-DD day";
+      }
+      const day = new Date(`${value}T00:00:00Z`);
+      return !Number.isNaN(day.getTime()) &&
+        day.toISOString().slice(0, 10) === value
+        ? undefined
+        : `${value} is not a day on the calendar`;
+    }),
+  ),
   in: Schema.String.check(Schema.isNonEmpty()),
 });
 

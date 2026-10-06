@@ -375,6 +375,41 @@ describe("held entries", () => {
   });
 });
 
+describe("an organizer's word as a source", () => {
+  const withConfirmation = () => ({
+    people: {},
+    events: [
+      {
+        lumaEventId: "evt-react",
+        name: "React at Acme",
+        talks: [],
+        people: [],
+        hold: "only checks the source",
+      },
+    ],
+  });
+  const decodes = (on: string) =>
+    Exit.isSuccess(
+      Schema.decodeUnknownExit(Lineups)({
+        ...withConfirmation(),
+        people: {
+          erik: {
+            profileId: "b0000000-0000-4000-8000-000000000001",
+            sources: [{ confirmedBy: "Erik", on, in: "chat" }],
+          },
+        },
+      }),
+    );
+
+  test("needs a day on the calendar", () => {
+    expect(decodes("2026-10-05")).toBe(true);
+    expect(decodes("2024-02-29")).toBe(true);
+    expect(decodes("2026-02-30")).toBe(false);
+    expect(decodes("2026-13-01")).toBe(false);
+    expect(decodes("5 Oct 2026")).toBe(false);
+  });
+});
+
 describe("core/backfill/lineups.json", () => {
   const file = async () =>
     Schema.decodeUnknownSync(Schema.fromJsonString(Lineups))(
