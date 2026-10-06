@@ -109,7 +109,7 @@ One family, Archivo, used at three widths, plus Geist Mono for meta.
 
 Each role's letters are pulled back by their face's left side bearing (brand/type-metrics.json, measured from the fonts by brand/marks), so the wordmark, a 156px lockup and a mono meta line share one visual left edge. The statement role sets the two sentences beside a page's lists, one line each at desktop widths.
 
-Sizes are the largest. The wordmark, event lockup, label and lead shrink on narrow screens, each down to a floor its token sets.
+Sizes are the largest. The wordmark, event lockup, label, lead and statement shrink on narrow screens, each down to a floor its token sets.
 
 ## Layout
 

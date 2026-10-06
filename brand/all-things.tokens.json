@@ -255,7 +255,14 @@
       "$extensions": {
         "dev.allthings": {
           "width": "100%",
-          "letterSpacingEm": -0.01
+          "letterSpacingEm": -0.01,
+          "fluid": {
+            "min": {
+              "value": 18,
+              "unit": "px"
+            },
+            "viewport": 1.8
+          }
         }
       }
     },
