@@ -17,7 +17,8 @@ import { descriptionHtml, descriptionSummary } from "./description.ts";
  *   its one-line summary (src/luma/description.ts). Where Luma has none,
  *   the description is empty and the summary NULL; a NULL description means
  *   the event was never asked about. An event Luma does not show us (403,
- *   404) keeps what it has.
+ *   404) keeps what it has, and is marked asked (an empty description) if
+ *   it had nothing, so it holds no place in a capped run.
  * - The site: `events.description` and `events.tagline`, which the import
  *   never reads or writes. Pages show the site's description before Luma's,
  *   and the summary only while the tagline is a placeholder
@@ -77,8 +78,15 @@ export function planDescriptions(
   fetched: ReadonlyArray<Fetched>,
 ): ReadonlyArray<DescriptionChange> {
   return fetched.flatMap(({ event, description }) => {
-    if (Option.isNone(description)) return [];
-    const after = description.value;
+    // An event Luma doesn't show us keeps what it has; one never asked
+    // about is marked asked, with nothing.
+    const after = Option.getOrElse(
+      description,
+      (): Description => ({ html: null, summary: event.lumaSummary }),
+    );
+    if (Option.isNone(description) && event.lumaDescription !== null) {
+      return [];
+    }
     return storedHtml(after) === event.lumaDescription &&
       after.summary === event.lumaSummary
       ? []

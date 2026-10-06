@@ -405,7 +405,7 @@ describe("the import", () => {
     ]);
   });
 
-  test("an event Luma no longer shows keeps its description", async () => {
+  test("an event Luma no longer shows keeps its description, and one with none is marked asked", async () => {
     const db = await database();
     const done = planned(
       (
@@ -417,10 +417,14 @@ describe("the import", () => {
     );
     expect(done).toMatchObject({
       unavailable: ["evt-upcoming", "evt-react"],
-      changes: [],
-      written: 0,
+      changes: [{ slug: "2026-11-05-upcoming" }],
+      written: 1,
     });
-    expect((await stored(db))[0]?.luma_summary).toBe(summary);
+    const [acme, , soon] = await stored(db);
+    expect(acme?.luma_summary).toBe(summary);
+    // Asked, with nothing: it holds no place in a capped run.
+    expect(soon?.luma_description).toBe("");
+    expect(soon?.luma_summary).toBeNull();
   });
 
   test("a failure asking about any event writes nothing", async () => {
