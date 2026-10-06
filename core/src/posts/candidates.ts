@@ -49,6 +49,8 @@ export interface EventSignals {
    * a post is theirs by its author's id, whatever handle it has now.
    */
   readonly xUserIds: ReadonlyArray<string>;
+  /** Handles of those whose X account isn't known by id yet, lowercased. */
+  readonly xHandlesWithoutId: ReadonlyArray<string>;
   /** Each of them once, for X's `from:`: by id where it's known, else by handle. */
   readonly xFrom: ReadonlyArray<string>;
   readonly blueskyHandles: ReadonlyArray<string>;
@@ -168,11 +170,11 @@ export function scoreCandidate(
   const handles =
     post.platform === "x" ? signals.xHandles : signals.blueskyHandles;
   // An X author is theirs by id where the post gives one: a handle can
-  // change hands.
+  // change hands, so a handle counts only for someone whose id isn't known.
   const onStage =
     post.platform === "x" && post.authorId !== undefined
       ? signals.xUserIds.includes(post.authorId) ||
-        handles.includes(lower(post.authorHandle))
+        signals.xHandlesWithoutId.includes(lower(post.authorHandle))
       : handles.includes(lower(post.authorHandle));
   if (onStage) {
     score += add(2, `by @${post.authorHandle}, on its stage`);
@@ -676,6 +678,9 @@ export function toSignals(
     hosts: row.hosts,
     xHandles: unique(row.people.map((p) => handleOf(p.x))),
     xUserIds: unique(row.people.map((p) => p.xId)),
+    xHandlesWithoutId: unique(
+      row.people.map((p) => (p.xId === null ? handleOf(p.x) : null)),
+    ),
     xFrom: unique(row.people.map((p) => p.xId ?? handleOf(p.x))),
     blueskyHandles: unique(row.people.map((p) => handleOf(p.bluesky))),
   };

@@ -46,6 +46,7 @@ const signals: EventSignals = {
   xHandles: ["ada"],
   // Ada's X account isn't known by id yet.
   xUserIds: [],
+  xHandlesWithoutId: ["ada"],
   xFrom: ["ada"],
   blueskyHandles: ["ada.bsky.social"],
 };
@@ -147,7 +148,12 @@ describe("scoreCandidate", () => {
   });
 
   test("an X author is on stage by account id, whatever handle they post under now", () => {
-    const known = { ...signals, xUserIds: ["11"], xFrom: ["11"] };
+    const known = {
+      ...signals,
+      xUserIds: ["11"],
+      xHandlesWithoutId: [],
+      xFrom: ["11"],
+    };
     expect(
       scoreCandidate(
         known,
@@ -160,6 +166,20 @@ describe("scoreCandidate", () => {
         post({ platform: "x", authorHandle: "someone", authorId: "12" }),
       ).score,
     ).toBe(0);
+    // Whoever took @ada since isn't Ada: her id decides.
+    expect(
+      scoreCandidate(
+        known,
+        post({ platform: "x", authorHandle: "ada", authorId: "12" }),
+      ).score,
+    ).toBe(0);
+    // Without an id, the handle still counts.
+    expect(
+      scoreCandidate(
+        signals,
+        post({ platform: "x", authorHandle: "ada", authorId: "12" }),
+      ).score,
+    ).toBe(2);
     // X's from: takes the id where it's known.
     expect(xQueries(known)[1]).toBe(
       '(from:11) ("all things" OR "react") -is:retweet',
@@ -358,6 +378,7 @@ describe("toSignals", () => {
       hosts: ["Acme"],
       xHandles: ["ada", "grace"],
       xUserIds: ["13"],
+      xHandlesWithoutId: ["ada"],
       xFrom: ["ada", "13"],
       blueskyHandles: ["ada.bsky.social"],
     });
