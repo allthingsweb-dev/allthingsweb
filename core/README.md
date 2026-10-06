@@ -292,6 +292,45 @@ script. `tests/promo.test.ts` keeps each seeded evening's drafts as golden
 files in `tests/fixtures/promo/`; after an intended change, regenerate them
 with `UPDATE_GOLDEN=1 bun test tests/promo.test.ts` and read the diff.
 
+## Planning
+
+Every evening starts in `planning`, a Postgres schema of its own
+(`migrations/0011_planning.ts`): ideas for evenings (title, pitch, program,
+topic, and a status from `idea` through `drafting` to `scheduled`, or
+`dropped`, linked to the draft evening it becomes and to a past one it
+builds on), speakers we'd like on stage (a profile, or a contact without
+one) with their topics and when they're free or not, companies we'd like
+to host (one we know, or a new name) with who to talk to and when each last
+hosted, and notes on the people and companies we know.
+
+The schema is public; the rows are private. site_reader and site_sync are
+never granted the schema, so no grant on `public`, not even one on every
+table in it, reaches planning, and `tests/planning-privacy.test.ts` proves
+both roles, made with their scripts' own statements, are refused. The same
+test fails if any seed, fixture or backfill in this repository holds
+planning rows: they live only in the database, written through the CLI.
+
+`src/planning/` is the service, and `bun run plan` its CLI. It writes as the
+database owner, the only role that may use the schema. Each change runs in
+one transaction and prints the row as it now is; every command takes
+`--json`, which the admin MCP server's planning tools (`add_idea`,
+`list_wanted_speakers`, `search_planning`, `audit_planning` and the rest)
+read, so the tools and the CLI can never disagree. People and companies are
+named by id or exact name, events by slug, and a name two rows share is
+refused with both ids. Run it from `core/`:
+
+```sh
+DATABASE_URL=… bun run plan idea add --title "…" --pitch "…" --program social --inspired-by <slug>
+DATABASE_URL=… bun run plan idea update <id> --status drafting --event <draft slug>
+DATABASE_URL=… bun run plan speaker add --profile "Ada Lovelace" --topic effect \
+  --window '{"startsOn":"2027-01-01","note":"free after Dec"}'
+DATABASE_URL=… bun run plan speaker list --topic effect --available-on 2027-01-14
+DATABASE_URL=… bun run plan host add --sponsor CodeRabbit --contact-name "…" --note "…"
+DATABASE_URL=… bun run plan note add --profile "Ada Lovelace" --body "…" --author Erik
+DATABASE_URL=… bun run plan search "trivia"
+DATABASE_URL=… bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
+```
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's
