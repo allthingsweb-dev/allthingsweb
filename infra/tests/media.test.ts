@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { ALLTHINGS_ACCOUNT, productionRole } from "../src/media.ts";
+import {
+  ALLTHINGS_ACCOUNT,
+  productionRole,
+  siteServing,
+} from "../src/media.ts";
 
 const personal = "0123456789abcdef0123456789abcdef";
 
@@ -23,5 +27,25 @@ describe("productionRole", () => {
     expect(productionRole(personal, { id: "z", active: false })).toBeInstanceOf(
       Error,
     );
+  });
+});
+
+describe("siteServing", () => {
+  test("runs the site on workers.dev in the allthings account until allthings.dev is active there", () => {
+    expect(siteServing(ALLTHINGS_ACCOUNT, undefined)).toBe("workers.dev");
+    expect(siteServing(ALLTHINGS_ACCOUNT, { id: "z", active: false })).toBe(
+      "workers.dev",
+    );
+  });
+
+  test("serves allthings.dev once the zone is active in the allthings account", () => {
+    expect(siteServing(ALLTHINGS_ACCOUNT, { id: "z", active: true })).toBe(
+      "allthings.dev",
+    );
+  });
+
+  test("never runs the site in another account, where the redirect still answers allthings.dev", () => {
+    expect(siteServing(personal, { id: "z", active: true })).toBe("none");
+    expect(siteServing(personal, undefined)).toBe("none");
   });
 });

@@ -40,7 +40,7 @@ const command = Command.make(
     ),
     origin: Flag.String("origin").pipe(
       Flag.withDescription("The site's origin, for links to the evening."),
-      Flag.withDefault("https://allthingsweb.dev"),
+      Flag.withDefault("https://allthings.dev"),
     ),
     photoOrigin: Flag.String("photo-origin").pipe(
       Flag.withDescription("The origin photos are counted from."),

@@ -89,3 +89,22 @@ export const isProduction = Effect.map(
   Alchemy.Stack,
   ({ stage }) => stage === PRODUCTION,
 );
+
+/**
+ * Whether prod runs the new site in the deploying account, and on what:
+ * only in the allthings account, on its workers.dev URL until allthings.dev
+ * is active there, then on allthings.dev itself. Any other account (the one
+ * the domain is leaving) never runs it: its zone still answers allthings.dev
+ * with esthor/domains' redirect until the move.
+ */
+export type SiteServing = "none" | "workers.dev" | "allthings.dev";
+
+export const siteServing = (
+  accountId: string,
+  zone: MediaZone | undefined,
+): SiteServing =>
+  accountId !== ALLTHINGS_ACCOUNT
+    ? "none"
+    : zone?.active === true
+      ? "allthings.dev"
+      : "workers.dev";

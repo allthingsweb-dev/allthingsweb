@@ -3,7 +3,7 @@ import { Config, Context, Effect, Layer, Schema } from "effect";
 import { mediaOrigin } from "./links.ts";
 
 /**
- * An origin such as "https://allthingsweb.dev": an http(s) URL the public
+ * An origin such as "https://allthings.dev": an http(s) URL the public
  * contract accepts, with nothing after the host, so paths can be appended.
  */
 export const Origin = HttpUrl.check(

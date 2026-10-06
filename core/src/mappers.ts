@@ -12,7 +12,7 @@ import { sharedPrefix } from "./short-slugs.ts";
  * in as `now`, which callers read from the `Clock` with `DateTime.now`.
  *
  * `origin` is the site's origin without a trailing slash, such as
- * "https://allthingsweb.dev"; public URLs are built from it.
+ * "https://allthings.dev"; public URLs are built from it.
  */
 
 /** Upcoming before the start, live from the start through the end, then past. */
