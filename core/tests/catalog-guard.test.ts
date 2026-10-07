@@ -11,6 +11,9 @@ import { describe, expect, test } from "bun:test";
  * too, so moving a file onto the catalog takes it off the list.
  */
 
+/** Up to four sort terms before the one a rule looks for. */
+const sortTerms = String.raw`ORDER BY\s+(?:[\w.]+(?:\s+(?:ASC|DESC))?(?:\s+NULLS\s+(?:FIRST|LAST))?\s*,\s*){0,4}`;
+
 /** What stating a rule looks like in SQL. */
 const rules: ReadonlyArray<readonly [string, RegExp]> = [
   // Selecting by it, not reading it out: compared either way round, also
@@ -30,10 +33,13 @@ const rules: ReadonlyArray<readonly [string, RegExp]> = [
   ],
   ["ahead or over", /\bend_date\s*(?:<=|>=|<|>)/],
   ["ours or shared", /\bcuration\s*=\s*'/],
-  ["evenings' order", /ORDER BY\s+[a-z_.]*start_date\b/],
+  ["evenings' order", new RegExp(String.raw`${sortTerms}[a-z_.]*start_date\b`)],
   [
     "an evening's lineup",
-    /ORDER BY\s+(?:et\.position|ts\.created_at|es\.created_at|ep\.(?:role|position)|array_position\(\s*ARRAY\['organizer')/,
+    new RegExp(
+      sortTerms +
+        String.raw`(?:et\.position|ts\.created_at|es\.created_at|ep\.(?:role|position)|array_position\(\s*ARRAY\['organizer')`,
+    ),
   ],
 ];
 
@@ -124,12 +130,17 @@ describe("what stating a rule looks like", () => {
     ["e.end_date < $1", "ahead or over"],
     ["e.curation = 'ours'", "ours or shared"],
     ["ORDER BY e.start_date DESC, e.id", "evenings' order"],
+    ["ORDER BY n.position, e.start_date, e.id", "evenings' order"],
+    ["ORDER BY p.name, p.id, e.start_date DESC, e.id", "evenings' order"],
     [
       "ORDER BY et.position NULLS LAST, et.created_at, t.id",
       "an evening's lineup",
     ],
     ["json_agg(s.name ORDER BY es.created_at, s.id)", "an evening's lineup"],
     ["ORDER BY ep.position, ep.created_at, p.id", "an evening's lineup"],
+    ["ORDER BY t.id, ts.created_at", "an evening's lineup"],
+    ["ORDER BY s.name, es.created_at, s.id", "an evening's lineup"],
+    ["ORDER BY e.id DESC NULLS LAST, et.position", "an evening's lineup"],
     ["ORDER BY ep.role, ep.position", "an evening's lineup"],
     [
       "ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], ep.role)",
