@@ -5,30 +5,15 @@ import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/top-nav";
 import { AuthNav } from "@/components/auth-nav";
 import { stackServerApp } from "@/lib/stack";
-import { db } from "@/lib/db";
-import { administratorsTable } from "@/lib/schema";
-import { eq } from "drizzle-orm";
 import { toClientUser } from "@/lib/client-user";
 
 export async function PageLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "/";
 
-  // Get user and admin status for TopNav
+  // Whether someone is signed in, for TopNav's mobile menu.
   const user = await stackServerApp.getUser();
-  let isAdmin = false;
-  let clientUser = null;
-
-  if (user) {
-    const adminCheck = await db
-      .select()
-      .from(administratorsTable)
-      .where(eq(administratorsTable.userId, user.id))
-      .limit(1);
-
-    isAdmin = adminCheck.length > 0;
-    clientUser = toClientUser(user);
-  }
+  const clientUser = user ? toClientUser(user) : null;
 
   return (
     <div className="min-h-[100dvh] max-w-[100vw] w-full flex flex-col">
@@ -40,7 +25,7 @@ export async function PageLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </Button>
         )}
-        <TopNav authNav={<AuthNav />} user={clientUser} isAdmin={isAdmin} />
+        <TopNav authNav={<AuthNav />} user={clientUser} />
       </header>
       <main className="w-full flex flex-col items-center justify-center">
         {children}
