@@ -131,12 +131,14 @@ const { rows: profiles } = await db.query<{ name: string; slug: string }>(
 
 /** The evening a slug names: its long slug or its short link. */
 function idOf(slug: string): string {
-  // A short link wins over a long slug, as on the site (src/slugs.ts).
-  const event =
-    events.find((e) => e.short_slug === slug) ??
-    events.find((e) => e.slug === slug);
-  if (event === undefined) throw new Error(`no evening at ${slug}`);
-  return event.id;
+  // A short link wins over a long slug, as on the site (src/slugs.ts);
+  // a link an evening had before still names it.
+  const id =
+    events.find((e) => e.short_slug === slug)?.id ??
+    events.find((e) => e.slug === slug)?.id ??
+    oldLinks.find((link) => link.slug === slug)?.event_id;
+  if (id === undefined) throw new Error(`no evening at ${slug}`);
+  return id;
 }
 
 const ids = (list: ReadonlyArray<{ readonly slug: string }>) =>
@@ -400,10 +402,14 @@ describe("which evenings there are, and in what order", () => {
 
 describe("one evening, wherever it is asked for", () => {
   const published = events.filter((event) => !event.is_draft);
-  const links = published.flatMap((event) => [
-    event.slug,
-    ...(event.short_slug === null ? [] : [event.short_slug]),
-  ]);
+  const links = [
+    ...published.flatMap((event) => [
+      event.slug,
+      ...(event.short_slug === null ? [] : [event.short_slug]),
+    ]),
+    ...oldLinks.map((link) => link.slug),
+  ];
+  if (oldLinks.length === 0) throw new Error("the fixture has no old link");
 
   test.each(links)(
     "get_event, /api/v1/events/:id and the page agree on %s",
@@ -456,22 +462,6 @@ describe("one evening, wherever it is asked for", () => {
       expect(
         await surfaces.rest(`/api/v1/events/${draft?.id ?? ""}`),
       ).toBeUndefined();
-    },
-  );
-
-  test.each(oldLinks.map((link) => [link.slug, link.event_id]))(
-    "an evening's page finds it by a link it had before: %s",
-    async (slug, eventId) => {
-      expect((await eventPage(slug))?.id).toBe(eventId);
-    },
-  );
-
-  // D1: get_event resolves every link an evening had, as its page does.
-  test.failing.each(oldLinks.map((link) => [link.slug, link.event_id]))(
-    "get_event finds an evening by a link it had before, as its page does: %s",
-    async (slug, eventId) => {
-      const mcp = await surfaces.getEvent(slug);
-      expect(mcp === undefined ? undefined : idOf(mcp.slug)).toBe(eventId);
     },
   );
 });

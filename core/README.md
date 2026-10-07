@@ -67,8 +67,6 @@ link; the same people and talks from `list_speakers`, `/api/v1/speakers`,
 /people, people's pages, /about and the sitemap. Where they disagree today
 a test says so (`test.failing`), with what settles it:
 
-- `get_event` doesn't find an evening by a link it had before; its page
-  does.
 - A past evening's page can point to an evening we only share as the next
   one; home's hero is always ours.
 - `list_speakers` and `/api/v1/speakers` credit a talk at its evening's last
@@ -391,7 +389,8 @@ all use it. Its long slug, and any link it had before, redirect there
 (301): Luma's descriptions, posts and QR codes link the long ones. An
 evening without a link yet is served at its long slug. The v1 API and the
 MCP tools keep the long slug as the app publishes it, and `get_event` takes
-either.
+any link, as the evening's page does: the long slug, the short link, or
+one it had before (`resolve` in `src/catalog.ts`).
 
 `src/slugs.ts` gives every published evening without a link its own; drafts
 get none, so a cancelled evening holds no link. The hourly sync does it

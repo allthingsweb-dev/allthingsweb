@@ -4,8 +4,10 @@ import * as SqlSchema from "effect/sql/SqlSchema";
 import {
   hostsOf,
   latestFirst,
+  linkFirst,
   peopleOf,
   published,
+  resolve,
   talksOf,
 } from "./catalog.ts";
 import { type DataSourceError, EventNotFound } from "./errors.ts";
@@ -24,8 +26,8 @@ export interface EventsShape {
   >;
   /**
    * One published event with its talks and their speakers, its hosts, its
-   * people (organizers, co-hosts, MC) and its photos, by its long slug or
-   * its short link.
+   * people (organizers, co-hosts, MC) and its photos, by any link it has
+   * or had: its long slug, its short link, or one it had before.
    */
   readonly getPublished: (
     slug: string,
@@ -98,11 +100,8 @@ const make = Effect.gen(function* () {
           WHERE ei.event_id = e.id
         ), '[]'::json) AS images
       FROM events e
-      WHERE ${published(sql, "e")}
-        AND (e.slug = ${slug} OR e.short_slug = ${slug})
-      -- No link equals another evening's slug (src/slugs.ts); were one to,
-      -- the link would win, as on its page.
-      ORDER BY e.short_slug = ${slug} DESC NULLS LAST
+      WHERE ${published(sql, "e")} AND ${resolve(sql, "e", slug)}
+      ORDER BY ${linkFirst(sql, "e", slug)}
       LIMIT 1`,
   });
 

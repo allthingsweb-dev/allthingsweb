@@ -61,6 +61,32 @@ export const ours = (sql: SqlClient, e: EventAlias): Statement.Fragment =>
   sql`${column(sql, e, "curation")} = 'ours'`;
 
 /**
+ * The evening aliased `e` that `slug` names: its short link, a link it
+ * had before (`event_slugs`), or its long slug. Order by
+ * {@link linkFirst} and take one: no link equals another evening's slug
+ * (src/slugs.ts), and were one to, the link would win.
+ */
+export const resolve = (
+  sql: SqlClient,
+  e: EventAlias,
+  slug: string,
+): Statement.Fragment => sql`(
+    ${column(sql, e, "short_slug")} = ${slug}
+    OR ${column(sql, e, "slug")} = ${slug}
+    OR ${column(sql, e, "id")} = (
+      SELECT es.event_id FROM event_slugs es WHERE es.slug = ${slug}
+    )
+  )`;
+
+/** For {@link resolve}: the evening whose short link `slug` is, first. */
+export const linkFirst = (
+  sql: SqlClient,
+  e: EventAlias,
+  slug: string,
+): Statement.Fragment =>
+  sql`${column(sql, e, "short_slug")} = ${slug} DESC NULLS LAST`;
+
+/**
  * Soonest start first, for an ORDER BY. Ids break ties, so no order is
  * left to the planner.
  */
