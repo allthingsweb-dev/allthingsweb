@@ -65,7 +65,11 @@ jobs:
 
             # After the binaries, so the GitHub release never waits on npm.
             # Packing builds the bundle (prepack). A prerelease goes to the
-            # alpha dist-tag, so it never becomes what `bunx allthings` gets.
+            # alpha dist-tag and a release to latest. npm gives a package's
+            # first version latest whatever its tag, and latest can't be
+            # removed, so until a stable release exists latest follows the
+            # newest prerelease instead of staying on the first one. The
+            # step checks the registry's dist-tags before it calls it done.
             - name: 📦 Publish to npm
               working-directory: cli
               run: |
@@ -73,8 +77,44 @@ jobs:
                     echo "::error::The NPM_TOKEN repository secret is not set"
                     exit 1
                   fi
-                  DIST_TAG=latest
-                  if [[ "$GITHUB_REF_NAME" == *-* ]]; then DIST_TAG=alpha; fi
-                  bun publish --access public --tag "$DIST_TAG"
+                  VERSION="$GITHUB_REF_NAME"
+                  TAGS_URL="https://registry.npmjs.org/-/package/allthings/dist-tags"
+                  tags() { curl -fsS "$TAGS_URL" 2>/dev/null || echo '{}'; }
+                  if [[ "$VERSION" == *-* ]]; then
+                    bun publish --access public --tag alpha
+                    LATEST=$(tags | jq -r '.latest // ""')
+                    if [[ -z "$LATEST" || "$LATEST" == *-* ]]; then
+                      # Retried: the new version may not be visible yet.
+                      for _ in 1 2 3 4 5 6; do
+                        if curl -fsS -X PUT "$TAGS_URL/latest" \
+                          -H "authorization: Bearer $NPM_CONFIG_TOKEN" \
+                          -H "content-type: application/json" \
+                          --data "\"$VERSION\"" > /dev/null; then
+                          break
+                        fi
+                        sleep 10
+                      done
+                      WANT_LATEST="$VERSION"
+                    else
+                      WANT_LATEST="$LATEST"
+                    fi
+                    WANT_ALPHA="$VERSION"
+                  else
+                    bun publish --access public --tag latest
+                    WANT_LATEST="$VERSION"
+                    WANT_ALPHA=""
+                  fi
+                  # The registry may take a moment to show a new version.
+                  for _ in 1 2 3 4 5 6; do
+                    TAGS=$(tags)
+                    if [[ "$(jq -r '.latest // ""' <<<"$TAGS")" == "$WANT_LATEST" ]] &&
+                      [[ -z "$WANT_ALPHA" || "$(jq -r '.alpha // ""' <<<"$TAGS")" == "$WANT_ALPHA" ]]; then
+                      echo "npm dist-tags: $TAGS"
+                      exit 0
+                    fi
+                    sleep 10
+                  done
+                  echo "::error::npm dist-tags are $TAGS, not latest=$WANT_LATEST${WANT_ALPHA:+ alpha=$WANT_ALPHA}"
+                  exit 1
               env:
                   NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
