@@ -124,7 +124,7 @@ From activation until step 2's deploy, allthings.dev and www don't answer. Their
 6. Run `copy` again for anything uploaded to the old bucket before the redeploy, then `verify --public`.
 7. Run an end-to-end check: one upload through the admin, visible on media.allthings.dev and as an `/img` variant.
 8. **Point clients at the new host.** These are small PRs once step 3 passes, not before. Before activation, allthings.dev still redirects to allthingsweb.dev, and a redirect drops an MCP POST. After it, the new site answers on allthings.dev and allthingsweb.dev keeps serving the old app, so clients can switch to `https://allthings.dev/mcp`.
-   - The CLI's default endpoint becomes `https://allthings.dev/mcp` (`atw-cli/src/client.ts` and `core/scripts/fixtures.ts`).
+   - The CLI's default endpoint becomes `https://allthings.dev/mcp` (`siteOrigin` in `cli/src/config.ts`, and `core/scripts/fixtures.ts`).
    - `infra/README.md`'s "default profile until the domain moves" sentence becomes past tense.
 
 **Phase 5: after**

@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "atw-cli/**"
+      - "cli/**"
       - "app/src/lib/public-api/**"
       - "app/package.json"
       - "app/bun.lock"
@@ -13,7 +13,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - "atw-cli/**"
+      - "cli/**"
       - "app/src/lib/public-api/**"
       - "app/package.json"
       - "app/bun.lock"
@@ -44,24 +44,27 @@ jobs:
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 📥 Download CLI deps
-        working-directory: atw-cli
+        working-directory: cli
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 💄 Format check
-        working-directory: atw-cli
+        working-directory: cli
         run: bun run check
 
       - name: 🔍 Type check
-        working-directory: atw-cli
+        working-directory: cli
         run: bun run typecheck
 
       - name: 🏄 Run the tests
-        working-directory: atw-cli
+        working-directory: cli
         run: bun run test
 
       - name: 📦 Compile and smoke-test the binary
-        working-directory: atw-cli
+        working-directory: cli
         run: |
-          bun build --compile --minify src/index.ts --outfile atw
-          ./atw --version
-          ./atw --help
+          bun build --compile --minify src/index.ts --outfile allthings
+          ./allthings --version
+          ./allthings --help
+          # The old name still runs, with its note on stderr.
+          ln -s allthings atw
+          ./atw --version 2>&1 >/dev/null | grep -q "atw is now allthings"

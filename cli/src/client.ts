@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { commandName, defaultEndpoint } from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
 import {
   communitySchema,
@@ -10,8 +11,6 @@ import {
   type EventSummary,
   type Speaker,
 } from "./schemas.ts";
-
-export const defaultEndpoint = "https://allthingsweb.dev/mcp";
 
 /**
  * Whether a get_event tool error means the slug has no published event. The
@@ -146,7 +145,7 @@ export function createClient({
       } catch (error) {
         if (error instanceof CliError && error.exitCode === ExitCode.NotFound) {
           throw new CliError(
-            `No published event has the slug "${slug}". Run "atw events --all" to find one.`,
+            `No published event has the slug "${slug}". Run "${commandName} events --all" to find one.`,
             ExitCode.NotFound,
           );
         }

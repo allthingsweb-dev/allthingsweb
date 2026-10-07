@@ -1,6 +1,13 @@
 import { parseArgs } from "node:util";
 import packageJson from "../package.json" with { type: "json" };
-import { createClient, defaultEndpoint, type Client } from "./client.ts";
+import { createClient, type Client } from "./client.ts";
+import {
+  commandName,
+  defaultEndpoint,
+  endpointFrom,
+  endpointVariable,
+  legacyCommandName,
+} from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
 import {
   formatCommunity,
@@ -17,23 +24,25 @@ export type Io = {
   env: Record<string, string | undefined>;
   openUrl: (url: string) => Promise<void>;
   client?: Client;
+  /** True when started by its old name, `atw`, which still works for now. */
+  legacy?: boolean;
 };
 
-const help = `atw · All Things Web from your terminal and your agents
+const help = `${commandName} · evenings for people who build software, from your terminal and your agents
 
 Usage
-  atw events [--past | --all] [--limit <n>] [--json]
-  atw event <slug> [--json]
-  atw speakers [search] [--limit <n>] [--json]
-  atw rsvp <slug> [--print]
-  atw about [--json]
+  ${commandName} events [--past | --all] [--limit <n>] [--json]
+  ${commandName} event <slug> [--json]
+  ${commandName} speakers [search] [--limit <n>] [--json]
+  ${commandName} rsvp <slug> [--print]
+  ${commandName} about [--json]
 
 Examples
-  atw events                      What's coming up
-  atw events --past --limit 5     The five most recent events
-  atw event <slug> --json         Full details for scripts and agents
-  atw speakers react              Past speakers matching "react"
-  atw rsvp <slug>                 Open the event's RSVP page
+  ${commandName} events                      What's coming up
+  ${commandName} events --past --limit 5     The five most recent evenings
+  ${commandName} event <slug> --json         One evening in full, for scripts and agents
+  ${commandName} speakers react              Who has been on stage about react
+  ${commandName} rsvp <slug>                 Open the evening's page to say you're in
 
 Options
   --json        Print the public JSON contract instead of text
@@ -41,12 +50,12 @@ Options
   -v, --version Show the version
 
 Exit codes: 0 ok, 1 service error, 2 usage error, 3 event not found.
-Set ATW_MCP_URL to use another server (default ${defaultEndpoint}).
+Set ${endpointVariable} to use another server (default ${defaultEndpoint}).
 `;
 
 function usage(message: string): never {
   throw new CliError(
-    `${message}\nRun "atw --help" for usage.`,
+    `${message}\nRun "${commandName} --help" for usage.`,
     ExitCode.UsageError,
   );
 }
@@ -60,7 +69,11 @@ function parseLimit(value: string | undefined, fallback: number, max: number) {
   return limit;
 }
 
+/** What the old name prints, on stderr so scripts reading stdout are unaffected. */
+export const legacyNote = `${legacyCommandName} is now ${commandName}. The old name still works for now and goes away in a later release.\n`;
+
 export async function run(argv: string[], io: Io): Promise<ExitCode> {
+  if (io.legacy === true) io.stderr(legacyNote);
   try {
     const parsed = (() => {
       try {
@@ -96,8 +109,7 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
 
     const color = io.isTTY && !io.env["NO_COLOR"] && !values.json;
     const client =
-      io.client ??
-      createClient({ endpoint: io.env["ATW_MCP_URL"] ?? defaultEndpoint });
+      io.client ?? createClient({ endpoint: endpointFrom(io.env) });
     const print = (text: string, data: unknown) =>
       io.stdout(values.json ? `${JSON.stringify(data, null, 2)}\n` : text);
 
@@ -156,11 +168,11 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
     }
   } catch (error) {
     if (error instanceof CliError) {
-      io.stderr(`atw: ${error.message}\n`);
+      io.stderr(`${commandName}: ${error.message}\n`);
       return error.exitCode;
     }
     io.stderr(
-      `atw: ${error instanceof Error ? error.message : String(error)}\n`,
+      `${commandName}: ${error instanceof Error ? error.message : String(error)}\n`,
     );
     return ExitCode.ServiceError;
   }

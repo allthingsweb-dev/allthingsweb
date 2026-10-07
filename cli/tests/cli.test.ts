@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { run, type Io } from "../src/cli.ts";
+import { legacyNote, run, type Io } from "../src/cli.ts";
 import type { Client } from "../src/client.ts";
 import { CliError, ExitCode } from "../src/errors.ts";
 import { event, fakeClient, summary } from "./fixtures.ts";
@@ -34,12 +34,12 @@ async function exec(
   return { code, stdout, stderr, opened };
 }
 
-describe("atw", () => {
+describe("allthings", () => {
   test("prints help with examples and exit codes", async () => {
     for (const argv of [[], ["--help"], ["help"]]) {
       const { code, stdout } = await exec(argv);
       expect(code).toBe(ExitCode.Ok);
-      expect(stdout).toContain("atw events [--past | --all]");
+      expect(stdout).toContain("allthings events [--past | --all]");
       expect(stdout).toContain(
         "Exit codes: 0 ok, 1 service error, 2 usage error, 3 event not found.",
       );
@@ -63,7 +63,7 @@ describe("atw", () => {
     ]) {
       const { code, stderr } = await exec(argv);
       expect(code).toBe(ExitCode.UsageError);
-      expect(stderr).toContain('Run "atw --help" for usage.');
+      expect(stderr).toContain('Run "allthings --help" for usage.');
     }
   });
 
@@ -117,7 +117,7 @@ describe("atw", () => {
     });
     const { code, stderr } = await exec(["event", "x"], { client });
     expect(code).toBe(ExitCode.NotFound);
-    expect(stderr).toBe('atw: No published event has the slug "x".\n');
+    expect(stderr).toBe('allthings: No published event has the slug "x".\n');
   });
 
   test("rsvp prints the link and opens it only for a person at a terminal", async () => {
@@ -147,5 +147,32 @@ describe("atw", () => {
     expect(speakers.stdout).toContain("Ada Lovelace · Engineer");
     const about = await exec(["about"]);
     expect(about.stdout).toContain("https://discord.gg/B3Sm4b5mfD");
+  });
+});
+
+describe("atw, the old name", () => {
+  test("prints a note on stderr and otherwise behaves the same", async () => {
+    const io = (legacy: boolean) => {
+      let stdout = "";
+      let stderr = "";
+      const value: Io = {
+        stdout: (text) => (stdout += text),
+        stderr: (text) => (stderr += text),
+        isTTY: false,
+        env: {},
+        openUrl: async () => {},
+        client: fakeClient(),
+        legacy,
+      };
+      return { value, out: () => ({ stdout, stderr }) };
+    };
+    const legacy = io(true);
+    const current = io(false);
+    expect(await run(["events", "--json"], legacy.value)).toBe(ExitCode.Ok);
+    expect(await run(["events", "--json"], current.value)).toBe(ExitCode.Ok);
+    expect(legacy.out().stdout).toBe(current.out().stdout);
+    expect(legacy.out().stderr).toBe(legacyNote);
+    expect(current.out().stderr).toBe("");
+    expect(legacyNote).toContain("atw is now allthings");
   });
 });

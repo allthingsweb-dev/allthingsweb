@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "atw-cli",
+      "name": "allthings",
       "dependencies": {
         "zod": "^4.6.5",
       },

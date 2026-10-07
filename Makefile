@@ -9,7 +9,7 @@ PACKAGE_MANAGER := bun
 CURRENT_DIR := $(shell pwd)
 DEPENDENCIES := bun git
 APP_DIR := $(CURRENT_DIR)/app
-CLI_DIR := $(CURRENT_DIR)/atw-cli
+CLI_DIR := $(CURRENT_DIR)/cli
 
 .PHONY: list
 list:
@@ -59,13 +59,13 @@ serve: app/.env ## Serve the Next.js application
 
 .PHONY: build-cli
 build-cli:  ## Build CLI
-	@cd $(CLI_DIR) && bun build --compile --minify src/index --outfile atw-cli
+	@cd $(CLI_DIR) && bun build --compile --minify src/index --outfile allthings
 	@cd $(CLI_DIR) && rm -f .*.bun-build
 
 .PHONY: build-all-cli
 build-all-cli:  
 	@cd $(CLI_DIR) && for target in bun-linux-x64 bun-linux-arm64 bun-windows-x64 bun-darwin-x64 bun-darwin-arm64; do \
-		bun build --compile --minify src/index --outfile atw-cli-$$target --target=$$target; \
+		bun build --compile --minify src/index --outfile allthings-$$target --target=$$target; \
 	done
 	@cd $(CLI_DIR) && rm -f .*.bun-build
 
