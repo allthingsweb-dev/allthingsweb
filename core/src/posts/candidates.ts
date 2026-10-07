@@ -412,8 +412,10 @@ export const makeBlueskySearch = Effect.gen(function* () {
               // one); posts outside it are dropped after.
               .map((url) => ({ q: "*", url, sort: "latest" })),
             { q: `"${displayName(signals.name)}"`, ...window },
-            { q: `allthings ${topicWords}`, ...window },
             { q: `"all things" ${topicWords}`, ...window },
+            // The one-word name, after the spaced one: a budget keeps the
+            // spelling most posts so far use.
+            { q: `allthings ${topicWords}`, ...window },
             ...signals.blueskyHandles.flatMap((handle) => [
               { q: topicWords, author: handle, ...window },
               { q: topicWords, mentions: handle, ...window },

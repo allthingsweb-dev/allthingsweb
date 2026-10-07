@@ -8,6 +8,7 @@ import {
   Exit,
   Fiber,
   Layer,
+  Option,
 } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { HttpClient, HttpClientResponse, UrlParams } from "effect/http";
@@ -22,6 +23,7 @@ import {
   type FoundPost,
   fromBlueskyHit,
   fromXSearch,
+  makeBlueskySearch,
   makeXSearch,
   scoreCandidate,
   toSignals,
@@ -407,6 +409,41 @@ describe("what platforms answer", () => {
         postedAt: at("2026-08-13T03:00:00.000Z"),
       },
     ]);
+  });
+
+  test("Bluesky asks for the name spaced, then as one word, and a budget keeps the spaced one", async () => {
+    const asked = async (maxQueries?: number) => {
+      const queries: Array<string> = [];
+      const client = Layer.succeed(
+        HttpClient.HttpClient,
+        HttpClient.make((request) => {
+          queries.push(
+            Option.getOrElse(
+              UrlParams.getFirst(request.urlParams, "q"),
+              () => "",
+            ),
+          );
+          return Effect.succeed(
+            HttpClientResponse.fromWeb(request, Response.json({ posts: [] })),
+          );
+        }),
+      );
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const bluesky: CandidateSearchShape = yield* makeBlueskySearch;
+          return yield* bluesky.search(signals, maxQueries);
+        }).pipe(Effect.provide(client)),
+      );
+      return queries;
+    };
+    const all = await asked();
+    const spaced = all.indexOf('"all things" react');
+    expect(spaced).toBeGreaterThan(-1);
+    expect(all[spaced + 1]).toBe("allthings react");
+    // The three links and the name, then room for one more: the spaced name.
+    const budgeted = await asked(5);
+    expect(budgeted).toContain('"all things" react');
+    expect(budgeted).not.toContain("allthings react");
   });
 
   test("an X answer that isn't a search result fails that query; the others' posts stay", async () => {
