@@ -24,7 +24,7 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
   - `LUMA_API_KEY` as a secret: hidden venues, drafts, descriptions and cover lookups
   - `X_BEARER_TOKEN` as a secret: follower counts and the post finder's X search, billed per post it reads
 
-  It ships off, and runs nothing without every one of them: see [The Luma sync](#the-luma-sync).
+  It runs hourly in dry-run until the handover, and runs nothing without every one of them: see [The Luma sync](#the-luma-sync).
 
 ## Accounts and stages
 
@@ -82,18 +82,19 @@ The Sync Worker runs what the app's cron runs every hour. It syncs `events` from
 
 Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so each change is a one-line pull request:
 
-| `SYNC.`    | Now                                                   | Then                                                                |
-| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
-| `schedule` | `"off"`: no Cron Trigger at all                       | `"hourly"`: `0 * * * *`, once the app's cron stops at the cutover   |
-| `mode`     | `"dry-run"`: writes nothing, logs what it would write | `"write"`, after a few hours of dry runs look right in Workers Logs |
-| `plan`     | `"paid"`: the app's own limits, on Workers Paid       | unchanged                                                           |
+| `SYNC.`    | Now                                                   | Then                                                            |
+| ---------- | ----------------------------------------------------- | --------------------------------------------------------------- |
+| `schedule` | `"hourly"`: `0 * * * *`, beside the app's cron        | unchanged                                                       |
+| `mode`     | `"dry-run"`: writes nothing, logs what it would write | `"write"`, once the app's cron is gone (handover steps 2 and 3) |
+| `plan`     | `"paid"`: the app's own limits, on Workers Paid       | unchanged                                                       |
 
 Each run logs one JSON line per step and one summary line (`source: "luma-sync"`).
 
-**Off until the handover.** Two switches keep it from writing:
+**Dry runs until the handover.** It runs every hour and writes nothing:
 
-- `schedule: "off"` deploys the Worker with no Cron Trigger, so nothing can start a run. It answers every request with a 404.
+- `schedule: "hourly"` gives it a Cron Trigger at the top of every hour, as the app's cron has. It answers every request with a 404. It exists only where prod serves allthings.dev, so its first run follows the move-day deploy. `schedule: "off"` would deploy it with no Cron Trigger at all.
 - `mode: "dry-run"` writes nothing, even on a schedule. [`web/tests/sync.test.ts`](../web/tests/sync.test.ts) holds a dry run to leaving every row of every table as it found it, so it can run beside the app's cron.
+- A dry run still reads X (follower counts and the post search), and X bills each read. Writing nothing, it reads the same accounts again every hour once their counts are a week old: up to 40 accounts an hour (`syncLimits.paid.followers.maxProfiles`).
 
 **One writer.** Production has one writer at a time:
 
@@ -130,8 +131,8 @@ The secrets reach the Worker with prod's first deploy from the allthings account
 
 **The handover.** Each step is its own pull request. Merge one only once the one before it is deployed:
 
-1. **Dry runs on the schedule.** Set `schedule: "hourly"` and deploy prod (below). Each hour, the Worker logs what it would write while the app's cron writes.
-   - Compare a few hours of its `luma-sync` lines in Workers Logs with the app's "Luma calendar sync completed" lines in Vercel's logs.
+1. **Dry runs on the schedule.** `schedule: "hourly"`, on main. Deploy prod (below). Each hour, the Worker logs what it would write while the app's cron writes.
+   - Compare a few hours of its `luma-sync` lines in Workers Logs (below, "Reading its logs") with the app's "Luma calendar sync completed" lines in Vercel's logs.
    - A `preflight` line means a binding is missing: deploy again with it.
 2. **The app's cron stops.** Remove the `crons` entry from `app/vercel.json`, and merge between :05 and :55, away from the top of the hour.
    - Merging deploys the app to production on Vercel.
@@ -144,6 +145,23 @@ The secrets reach the Worker with prod's first deploy from the allthings account
 4. `/api/cron/luma-sync` becomes 410 in the legacy-URL manifest (`web/tests/support/legacy-urls.ts`).
 
 To hand back, reverse the order: set `mode: "dry-run"` and deploy prod first, then restore the cron in `app/vercel.json`. CI refuses the cron back while the Worker writes.
+
+**Reading its logs.** Workers Logs keeps each run's lines (Alchemy turns them on for every Worker), so a few hours of dry runs can be read at once. A prod deploy prints the Worker's script name as `syncWorker`; or look it up. With the cf CLI signed in to the allthings account (see [CI credentials](#ci-credentials)), from `infra/`:
+
+```sh
+export CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 NODE_OPTIONS=--dns-result-order=ipv4first
+SYNC_WORKER=$(bunx cf@1.0.0-beta.12 --profile allthings workers list 2>/dev/null |
+  jq -r '.. | .name? // empty' | grep '^allthings-sync-prod-')
+now=$(($(date +%s) * 1000))   # the last six hours, up to 500 lines, nothing saved
+body=$(jq -nc --arg svc "$SYNC_WORKER" --argjson to "$now" --argjson from "$((now - 6 * 3600000))" \
+  '{queryId: "luma-sync", timeframe: {from: $from, to: $to}, view: "events", limit: 500, dry: true,
+    parameters: {filters: [{key: "$metadata.service", operation: "eq", type: "string", value: $svc}]}}')
+bunx cf@1.0.0-beta.12 --profile allthings observability telemetry query --body "$body" 2>/dev/null |
+  jq -c '.events.events | sort_by(.timestamp)[] | [.source, (.source.message? | fromjson?)][]
+    | objects | select(.source == "luma-sync")'
+```
+
+Each line is one step's JSON, `start` to `summary`. To watch the next run live instead, `CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 bunx wrangler tail "$SYNC_WORKER" --format json` (signed in with `bunx wrangler login`) shows it at the top of the hour.
 
 **On Workers Free.** The allthings account is on Workers Paid now. On Workers Free, which it was on until October 2026, a Cron Trigger run gets:
 

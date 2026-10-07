@@ -77,8 +77,9 @@ export default Alchemy.Stack(
       ),
     });
 
-    // The hourly Luma sync, its schedule off until the cutover (src/sync.ts).
-    yield* Sync;
+    // The hourly Luma sync, in dry-run until the handover (src/sync.ts). Its
+    // script name is an output, for reading its logs (README, "The Luma sync").
+    const sync = yield* Sync;
 
     // The app on Vercel uploads through the Worker and links to the domain.
     // Development gets the token too, so admin scripts can upload from a
@@ -102,6 +103,7 @@ export default Alchemy.Stack(
       previewUrl,
       mediaBucket: MEDIA_BUCKET,
       mediaUploadUrl: upload.url.as<string>(),
+      syncWorker: sync.workerName.as<string>(),
     };
   }),
 );
