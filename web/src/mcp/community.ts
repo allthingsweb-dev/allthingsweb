@@ -1,18 +1,19 @@
 import type * as Contract from "allthings-core/src/contract.ts";
+import { siteDescription, siteName } from "../pages/metadata.tsx";
 
 /**
- * What get_community says about All Things Web, copied from
- * app/src/lib/community.ts and toPublicCommunity in
- * app/src/lib/public-api/mappers.ts; the parity test holds them equal.
+ * What get_community says about all things: its name and its two sentences
+ * as the site's own pages give them (pages/metadata.tsx), the rest as the
+ * old app (app/src/lib/community.ts) wrote it, under the new name.
  */
 export function community(origin: string): Contract.Community {
   return {
-    name: "All Things Web",
-    oneLiner: "A hacker club for everyone building the web.",
+    name: siteName,
+    oneLiner: siteDescription,
     introduction:
       "Just starting out, leading a company, or creating tools the world uses every day? Here, we meet as peers. Come learn, share what you’re building, ask questions, and find your people.",
     mission:
-      "All Things Web brings the San Francisco Bay Area tech community together on a level playing field. We make room to listen, learn, collaborate, connect, show off a project, and get support—whatever your experience or job title.",
+      "all things brings the San Francisco Bay Area tech community together on a level playing field. We make room to listen, learn, collaborate, connect, show off a project, and get support—whatever your experience or job title.",
     history:
       "Erik Thorelli and Andre Landgraf started this community to help rebuild San Francisco’s local tech meetup scene after COVID disrupted it. Our roots are in Remix Bay Area and React meetups: the spirit of an old hacker club, with the tools and ideas of today.",
     independence:

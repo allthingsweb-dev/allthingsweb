@@ -362,7 +362,6 @@ describe("MCP", () => {
     ["list_speakers", { query: "server components" }],
     ["list_speakers", { query: "nobody" }],
     ["list_speakers", { limit: 1 }],
-    ["get_community", {}],
     // Invalid arguments: the zod schemas word these errors.
     ["list_events", { limit: 0 }],
     ["list_events", { when: "tomorrow" }],
@@ -383,6 +382,43 @@ describe("MCP", () => {
       expect(toolAnswer(actual.body)).toEqual(toolAnswer(expected.body));
     });
   }
+
+  // The one deliberate difference: get_community describes all things by its
+  // name and its two sentences, where the app still says All Things Web.
+  it("get_community names all things, and otherwise answers as the app does", async ({
+    Web,
+  }) => {
+    const [actual, expected] = await mcp(Web, call("get_community", {}));
+    expect(actual.status).toBe(expected.status);
+    expect(actual.contentType).toBe(expected.contentType);
+    const appAnswer = toolAnswer(expected.body) as {
+      result: {
+        structuredContent: { mission: string };
+        content: ReadonlyArray<{ text: string }>;
+      };
+    };
+    const { mission } = appAnswer.result.structuredContent;
+    expect(mission).toStartWith("All Things Web brings ");
+    const rebranded = {
+      ...appAnswer.result.structuredContent,
+      name: "all things",
+      oneLiner:
+        "Evenings for people who build software. In the neighborhoods of San Francisco.",
+      mission: mission.replace("All Things Web brings ", "all things brings "),
+    };
+    expect(toolAnswer(actual.body)).toEqual({
+      ...appAnswer,
+      result: {
+        ...appAnswer.result,
+        structuredContent: rebranded,
+        content: appAnswer.result.content.map((part) => ({
+          ...part,
+          text: JSON.stringify(rebranded, null, 2),
+        })),
+      },
+    });
+    expect(actual.body).not.toMatch(/all things web/i);
+  });
 
   it("answers clients that skip initialize, as the CLI does", async ({
     Web,
