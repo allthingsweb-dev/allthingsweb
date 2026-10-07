@@ -63,7 +63,9 @@ Critical path: copy and verify the delta since Phase 1 → the domain move (earl
 
 The zone is already added, and DNSSEC is already off: the .dev registry holds no DS record. The live zone has no ordinary records to recreate. Its apex and www are Wrangler custom domains for esthor/domains' redirect Worker (to allthingsweb.dev). That redirect is not re-homed: after the move, the new site takes both names. [esthor/domains#232](https://github.com/esthor/domains/pull/232) only moves Terraform's zone ownership, and the personal-account Worker is deleted.
 
-`ops/rotate-alchemy-oauth.sh` signs both Alchemy profiles in again. That fixes the `allthings` profile's refresh, which fails since its OAuth client dropped a scope. Until then, prod deploys to the allthings account run with a short-lived account token from the cf CLI's `allthings` login. The token is created and deleted per deploy, as for Phase 1 and the Web Worker (Oct 6). It holds:
+**Credentials.** Prod deploys to the allthings account use Alchemy's `allthings` profile (`--profile allthings`). Its refresh failed after its OAuth client dropped a scope. Alchemy 2.0.0-beta.81 fixed that, and Erik signed both profiles in again with `ops/rotate-alchemy-oauth.sh` (Oct 6). Phase 2's deploy proves the profile works on move day, before anything depends on it.
+
+If it fails anyway, deploy with a short-lived account token from the cf CLI's `allthings` login instead, passed as `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Create it and delete it per deploy, as for Phase 1 and the Web Worker (Oct 6). It holds:
 
 - **Account:** Workers Scripts Write, Account Settings Read, Secrets Store Write, Hyperdrive Write, Workers R2 Storage Write.
 - **Zones:** Zone Read. Phase 4's deploy also attaches the site's custom domains and the www redirect rule, so it adds Workers Routes Write and Dynamic URL Redirects Write.
@@ -86,7 +88,7 @@ Run from `infra/` once this has merged. Nothing is passed by hand: the copy uses
 
 Check first that #162 is on main: `infra/src/web.ts` exports `siteDomain`, and `infra/alchemy.run.ts` deploys the Web Worker in prod.
 
-1. `bun run deploy --stage prod --profile allthings` again, so the stack is current on main. With the zone still pending, it changes nothing on the bucket: media.allthings.dev is attached in Phase 4. The output says `mediaDomain: not attached until allthings.dev is active in this account`.
+1. `bun run deploy --stage prod --profile allthings` again, with the secrets Phase 4's step 1 reads. This keeps the stack current on main, and proves the `allthings` profile and every secret work before the move. With the zone still pending, it changes nothing on the bucket: media.allthings.dev is attached in Phase 4. The output says `mediaDomain: not attached until allthings.dev is active in this account`.
 2. Ask organizers not to upload media for the next hour.
 3. Run `copy` and then `verify` (the delta since Phase 1). Both must exit 0 before the move.
    - A key never changes: the upload Worker refuses a key that exists (409), and every key carries a new UUID. So the delta should only add objects.
@@ -114,6 +116,7 @@ From activation until step 1's deploy, media.allthings.dev, allthings.dev and ww
    export NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential")
    export NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential")
    export LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential")
+   export X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token")
    until CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 NODE_OPTIONS=--dns-result-order=ipv4first \
        bunx cf@1.0.0-beta.12 --profile allthings zones get --zone f65e1c6d54e9d2e850cf025190ef8915 2>/dev/null |
        jq -e '(.result // .).status == "active"' >/dev/null; do
