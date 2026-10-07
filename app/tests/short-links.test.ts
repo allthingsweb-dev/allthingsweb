@@ -2,7 +2,10 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { generateDrizzleJson, generateMigration } from "drizzle-kit/api";
-import { longSlugForShortLink } from "../src/lib/short-links";
+import {
+  longSlugForShortLink,
+  shortLinkForLongSlug,
+} from "../src/lib/short-links";
 import * as schema from "../src/lib/schema";
 
 /**
@@ -50,5 +53,15 @@ test("a draft's link, and any other path, lead nowhere", async () => {
     "2026-09-15-all-things-agent-setups-evt-x",
   ]) {
     expect(await longSlugForShortLink(db, link)).toBeNull();
+  }
+});
+
+test("a published event's long slug leads to its short link, at the cutover", async () => {
+  expect(
+    await shortLinkForLongSlug(db, "2026-09-15-all-things-agent-setups-evt-x"),
+  ).toBe("agent-setups");
+  // A draft's, a short link itself, and any other path lead nowhere.
+  for (const slug of ["2026-10-01-a-draft", "agent-setups", "nothing"]) {
+    expect(await shortLinkForLongSlug(db, slug)).toBeNull();
   }
 });

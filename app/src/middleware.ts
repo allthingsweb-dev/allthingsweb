@@ -1,6 +1,38 @@
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
 import { NextRequest, NextResponse } from "next/server";
+import { cutoverConfig } from "@/lib/cutover/config";
+import { cutoverCacheControl, cutoverRedirect } from "@/lib/cutover/redirect";
+import { databaseConfig } from "@/lib/database/config";
+import { shortLinkForLongSlug } from "@/lib/short-links";
 
-export function middleware(request: NextRequest) {
+/** Paths the site's own pages are served at, which learn their path. */
+const pagePath = /^\/(?!api|media\/|_next\/static|_next\/image|favicon\.ico)/;
+
+/** The database, made the first time a long slug is looked up. */
+let database: ReturnType<typeof drizzle> | undefined;
+const shortLink = (slug: string) => {
+  database ??= drizzle({ client: neon(databaseConfig.databaseUrl) });
+  return shortLinkForLongSlug(database, slug);
+};
+
+export async function middleware(request: NextRequest) {
+  // The cutover: everything goes to allthings.dev (src/lib/cutover).
+  if (cutoverConfig.redirectToAllthingsDev) {
+    const { status, location } = await cutoverRedirect(
+      {
+        method: request.method,
+        pathname: request.nextUrl.pathname,
+        search: request.nextUrl.search,
+      },
+      shortLink,
+    );
+    const response = NextResponse.redirect(location, status);
+    response.headers.set("cache-control", cutoverCacheControl);
+    return response;
+  }
+
+  if (!pagePath.test(request.nextUrl.pathname)) return NextResponse.next();
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
@@ -12,15 +44,9 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - media (stored images)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api|media/|_next/static|_next/image|favicon.ico).*)",
-  ],
+  // Every path but Next's static files, so the cutover can redirect all the
+  // others; without it, only pages learn their path (pagePath), as before.
+  // The static files are the old pages' own, which nothing needs once
+  // those pages redirect, so they never run the middleware at all.
+  matcher: ["/((?!_next/static/).*)"],
 };

@@ -33,3 +33,19 @@ export async function longSlugForShortLink(
     .limit(1);
   return event?.slug ?? null;
 }
+
+/**
+ * The short link of the published event whose long slug is `slug`, if it
+ * has one: where the cutover sends the event's old address (cutover.ts).
+ */
+export async function shortLinkForLongSlug(
+  database: Pick<PgDatabase<PgQueryResultHKT>, "select">,
+  slug: string,
+): Promise<string | null> {
+  const [event] = await database
+    .select({ shortSlug: eventsTable.shortSlug })
+    .from(eventsTable)
+    .where(and(eq(eventsTable.isDraft, false), eq(eventsTable.slug, slug)))
+    .limit(1);
+  return event?.shortSlug ?? null;
+}
