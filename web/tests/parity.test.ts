@@ -73,11 +73,16 @@ await db.exec(`
     ('b0000000-0000-4000-8000-000000000302', 'Olga Organizer', 'Organizer', NULL, '', 'organizer', now()),
     ('b0000000-0000-4000-8000-000000000303', 'Mia MC', '', NULL, '', 'member', now());
   INSERT INTO talks (id, title, description, updated_at) VALUES
-    ('a0000000-0000-4000-8000-000000000301', 'Agents in production', '<p>Agents.</p>', now());
+    ('a0000000-0000-4000-8000-000000000301', 'Agents in production', '<p>Agents.</p>', now()),
+    -- Zed gave another talk with the same title at Café night: talks are
+    -- told apart by id, never by title.
+    ('a0000000-0000-4000-8000-000000000302', 'Lightning talk', '<p>Again.</p>', now());
   INSERT INTO talk_speakers (talk_id, speaker_id, created_at, updated_at) VALUES
-    ('a0000000-0000-4000-8000-000000000301', 'b0000000-0000-4000-8000-000000000301', '2026-01-01T00:00:09Z', now());
+    ('a0000000-0000-4000-8000-000000000301', 'b0000000-0000-4000-8000-000000000301', '2026-01-01T00:00:09Z', now()),
+    ('a0000000-0000-4000-8000-000000000302', 'b0000000-0000-4000-8000-000000000006', '2026-01-01T00:00:10Z', now());
   INSERT INTO event_talks (event_id, talk_id, created_at, updated_at) VALUES
-    ('${sharedPast}', 'a0000000-0000-4000-8000-000000000301', '2026-01-02T00:00:09Z', now());
+    ('${sharedPast}', 'a0000000-0000-4000-8000-000000000301', '2026-01-02T00:00:09Z', now()),
+    ('e0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000302', '2026-01-02T00:00:10Z', now());
 
   -- React at Acme runs Server components first, though Effect was attached first.
   UPDATE event_talks SET position = 0
@@ -126,7 +131,10 @@ const { rows: profiles } = await db.query<{ name: string; slug: string }>(
 
 /** The evening a slug names: its long slug or its short link. */
 function idOf(slug: string): string {
-  const event = events.find((e) => e.slug === slug || e.short_slug === slug);
+  // A short link wins over a long slug, as on the site (src/slugs.ts).
+  const event =
+    events.find((e) => e.short_slug === slug) ??
+    events.find((e) => e.slug === slug);
   if (event === undefined) throw new Error(`no evening at ${slug}`);
   return event.id;
 }
@@ -503,17 +511,43 @@ describe("who has been on stage", () => {
           "/api/v1/speakers",
         )
       )?.speakers ?? [];
-    const { rows: talks } = await db.query<{ id: string; title: string }>(
-      "SELECT id, title FROM talks",
+    // list_speakers names each talk by its title at an evening; the API
+    // lists each talk once, by id. The talk a title names at an evening is
+    // found by the speaker too, since one speaker may give two talks with
+    // one title.
+    const { rows: given } = await db.query<{
+      talk_id: string;
+      event_id: string;
+      title: string;
+      name: string;
+    }>(
+      `SELECT t.id AS talk_id, et.event_id, t.title, p.name
+       FROM talks t
+       JOIN event_talks et ON et.talk_id = t.id
+       JOIN talk_speakers ts ON ts.talk_id = t.id
+       JOIN profiles p ON p.id = ts.speaker_id`,
     );
-    const titleOf = new Map(talks.map((talk) => [talk.id, talk.title]));
+    const talkId = (name: string, title: string, eventId: string): string => {
+      const row = given.find(
+        (r) => r.name === name && r.title === title && r.event_id === eventId,
+      );
+      if (row === undefined) throw new Error(`${name} gave no ${title}`);
+      return row.talk_id;
+    };
     expect(mcp.length).toBeGreaterThan(0);
     expect(rest.map((s) => s.name)).toEqual(mcp.map((s) => s.name));
     for (const [i, speaker] of mcp.entries()) {
-      expect(rest[i]?.talkIds.map((id) => titleOf.get(id))).toEqual([
-        ...new Set(speaker.talks.map((talk) => talk.title)),
+      expect(rest[i]?.talkIds).toEqual([
+        ...new Set(
+          speaker.talks.map((talk) =>
+            talkId(speaker.name, talk.title, idOf(talk.eventSlug)),
+          ),
+        ),
       ]);
     }
+    // Zed's two lightning talks are two talks.
+    const zed = rest.find((speaker) => speaker.name === "Zed Nobody");
+    expect(zed?.talkIds).toHaveLength(2);
   });
 
   test("a person's page lists every talk list_speakers credits them with", async () => {
