@@ -4,7 +4,12 @@ import { SourceError } from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Redacted from "effect/Redacted";
 import { compatibility } from "../../web/src/compatibility.ts";
-import { MEDIA_DOMAIN, Media } from "./media.ts";
+import {
+  ALLTHINGS_ACCOUNT,
+  MEDIA_DOMAIN,
+  Media,
+  type MediaZone,
+} from "./media.ts";
 import { Writer } from "./reader.ts";
 
 /**
@@ -87,21 +92,53 @@ export const WriterDatabase = Cloudflare.Hyperdrive.Connection("Writer", {
   originConnectionLimit: 5,
 });
 
-export const Sync = Cloudflare.Worker("Sync", {
-  main: "../web/src/sync/worker.ts",
-  compatibility,
-  crons: cronsFor(SYNC.schedule),
-  env: {
-    HYPERDRIVE: WriterDatabase,
-    MEDIA: Media,
-    MEDIA_ORIGIN: `https://${MEDIA_DOMAIN}`,
-    IMAGES: Cloudflare.Images.Images("IMAGES"),
-    LUMA_API_KEY: requiredSecret("LUMA_API_KEY"),
-    // X's API for follower counts (core/src/followers.ts) and the post
-    // finder's search (core/src/posts/candidates.ts): the "allthings X app"
-    // bearer token. X bills each post a search returns.
-    X_BEARER_TOKEN: requiredSecret("X_BEARER_TOKEN"),
-    SYNC_MODE: SYNC.mode,
-    SYNC_PLAN: SYNC.plan,
-  },
-});
+/**
+ * Whether the sync stores images. Each one is recorded at its URL on
+ * media.allthings.dev, which serves the bucket of the account where
+ * allthings.dev is active. Until the domain moves in, that is the old
+ * account's bucket, which never gets what this account's Worker stores, so
+ * an image stored now would be a broken link until the move. So "wait": the
+ * image steps are skipped, and since they only fill in what is missing, the
+ * first run after the move-day deploy (then "store") catches up.
+ */
+export type SyncImages = "store" | "wait";
+
+/**
+ * Whether prod runs the Sync Worker in the deploying account, and how:
+ * only in the allthings account, whether allthings.dev is pending or active
+ * there (a Worker with only a Cron Trigger needs no domain), storing images
+ * once the zone is active. No other account ever runs it, so there is only
+ * ever one Sync Worker.
+ */
+export const syncPlan = (
+  accountId: string,
+  zone: MediaZone | undefined,
+): { readonly images: SyncImages } | undefined =>
+  accountId !== ALLTHINGS_ACCOUNT
+    ? undefined
+    : { images: zone?.active === true ? "store" : "wait" };
+
+/**
+ * The Sync Worker. Its logical id stays "Sync" whatever `images` is, so
+ * the move-day deploy updates the same Worker rather than replacing it.
+ */
+export const makeSync = (images: SyncImages) =>
+  Cloudflare.Worker("Sync", {
+    main: "../web/src/sync/worker.ts",
+    compatibility,
+    crons: cronsFor(SYNC.schedule),
+    env: {
+      HYPERDRIVE: WriterDatabase,
+      MEDIA: Media,
+      MEDIA_ORIGIN: `https://${MEDIA_DOMAIN}`,
+      IMAGES: Cloudflare.Images.Images("IMAGES"),
+      LUMA_API_KEY: requiredSecret("LUMA_API_KEY"),
+      // X's API for follower counts (core/src/followers.ts) and the post
+      // finder's search (core/src/posts/candidates.ts): the "allthings X
+      // app" bearer token. X bills each post a search returns.
+      X_BEARER_TOKEN: requiredSecret("X_BEARER_TOKEN"),
+      SYNC_MODE: SYNC.mode,
+      SYNC_PLAN: SYNC.plan,
+      SYNC_IMAGES: images,
+    },
+  });

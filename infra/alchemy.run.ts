@@ -13,7 +13,7 @@ import {
   siteServing,
 } from "./src/media.ts";
 import { PREVIEW, makePreview } from "./src/preview.ts";
-import { Sync } from "./src/sync.ts";
+import { makeSync, syncPlan } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
 import { Web, makeWeb, siteDomain } from "./src/web.ts";
@@ -58,10 +58,20 @@ export default Alchemy.Stack(
         : yield* makePreview(site.url.as<string>());
     const previewUrl = preview?.url.as<string>();
 
+    // The hourly Luma sync (src/sync.ts), in the allthings account only,
+    // whether allthings.dev is pending or active there: it needs no domain.
+    // Its script name is an output, for reading its logs (README, "The Luma
+    // sync").
+    const syncing = syncPlan(accountId, zone);
+    const sync =
+      syncing === undefined ? undefined : yield* makeSync(syncing.images);
+    const syncWorker = sync?.workerName.as<string>();
+
     if (role === "stage") {
       return {
         webUrl,
         previewUrl,
+        syncWorker,
         mediaBucket: MEDIA_BUCKET,
         mediaDomain: `not attached until ${MEDIA_ZONE} is active in this account`,
       };
@@ -76,10 +86,6 @@ export default Alchemy.Stack(
         Output.map((hash) => hash?.bundle ?? "unbuilt"),
       ),
     });
-
-    // The hourly Luma sync, in dry-run until the handover (src/sync.ts). Its
-    // script name is an output, for reading its logs (README, "The Luma sync").
-    const sync = yield* Sync;
 
     // The app on Vercel uploads through the Worker and links to the domain.
     // Development gets the token too, so admin scripts can upload from a
@@ -103,7 +109,7 @@ export default Alchemy.Stack(
       previewUrl,
       mediaBucket: MEDIA_BUCKET,
       mediaUploadUrl: upload.url.as<string>(),
-      syncWorker: sync.workerName.as<string>(),
+      syncWorker,
     };
   }),
 );

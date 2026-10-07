@@ -18,7 +18,7 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
 - **Images:** the Web Worker's `IMAGES` binding, wherever it runs. It resizes and re-encodes the photos on `media.allthings.dev` into the variants the pages load (`/img/…`, see [`web/src/images/variants.ts`](../web/src/images/variants.ts)), and the Worker keeps each in the edge cache. It is a binding, not a resource: transformations are billed to the allthings account per unique transformation per month, the first 5,000 free. Past those, new variants fail and the Worker sends the originals instead.
 - **Hyperdrive:** wherever the Web Worker runs. Its `HYPERDRIVE` binding, in front of production's Neon database as the read-only `site_reader` role, from `NEON_READER_URL` (see [Accounts and stages](#accounts-and-stages)).
 - **Vercel env:** `prod` deploys write `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` to every Vercel environment (the token is sensitive except in development, where Vercel doesn't allow it) with the Vercel CLI, so it needs to be signed in (`bunx vercel login`).
-- **Sync Worker:** `prod` only. The hourly Luma sync ([`web/src/sync/`](../web/src/sync/worker.ts)), off Vercel's cron and outside the site's Worker. It has its own bindings:
+- **Sync Worker:** `prod` only, and only in the allthings account, whether allthings.dev is pending or active there. The hourly Luma sync ([`web/src/sync/`](../web/src/sync/worker.ts)), off Vercel's cron and outside the site's Worker. It has its own bindings:
   - a `Writer` Hyperdrive in front of production as `site_sync`, from `NEON_SYNC_URL`, which never caches
   - the media bucket and the Images binding
   - `LUMA_API_KEY` as a secret: hidden venues, drafts, descriptions and cover lookups
@@ -53,7 +53,7 @@ The hourly Luma sync writes production as `site_sync`, a second login role made 
 
 [`core/tests/site-sync.test.ts`](../core/tests/site-sync.test.ts) runs the sync as the role and checks everything else is refused. The connection string is in the `NEON_SYNC_URL` repository secret and the "allthings site_sync" 1Password item.
 
-`prod` (media, the upload and sync Workers, and the Vercel env) follows the allthings.dev zone. Where the zone is active, prod serves: the bucket answers on `media.allthings.dev`, and the Workers and the Vercel env follow it. That is the `default` profile's account until the domain moves. In the allthings account before then, `bun run deploy --stage prod --profile allthings` stages the bucket (without `media.allthings.dev`: R2 refuses a custom domain on a pending zone) and runs the Web Worker on its `workers.dev` URL against production's data (it needs `NEON_READER_URL`). Once the zone is active there, the same deploy attaches `media.allthings.dev` to the bucket and `allthings.dev` and `www.allthings.dev` to the Web Worker. The `default` account never runs the Web Worker: until the move its zone answers allthings.dev with [esthor/domains](https://github.com/esthor/domains)' redirect. Any other account is refused, so a deploy from an account the domain has left can't drop the upload Worker or the Vercel env.
+`prod` (media, the upload Worker and the Vercel env) follows the allthings.dev zone. Where the zone is active, prod serves: the bucket answers on `media.allthings.dev`, and the Workers and the Vercel env follow it. That is the `default` profile's account until the domain moves. In the allthings account before then, `bun run deploy --stage prod --profile allthings` stages the bucket (without `media.allthings.dev`: R2 refuses a custom domain on a pending zone) and runs the Web Worker on its `workers.dev` URL against production's data (it needs `NEON_READER_URL`). It also runs the Sync Worker, which needs no domain (it needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN`). Once the zone is active there, the same deploy attaches `media.allthings.dev` to the bucket and `allthings.dev` and `www.allthings.dev` to the Web Worker. The `default` account never runs the Web Worker or the Sync Worker: until the move its zone answers allthings.dev with [esthor/domains](https://github.com/esthor/domains)' redirect. Any other account is refused, so a deploy from an account the domain has left can't drop the upload Worker or the Vercel env.
 
 ## Moving media
 
@@ -92,9 +92,11 @@ Each run logs one JSON line per step and one summary line (`source: "luma-sync"`
 
 **Dry runs until the handover.** It runs every hour and writes nothing:
 
-- `schedule: "hourly"` gives it a Cron Trigger at the top of every hour, as the app's cron has. It answers every request with a 404. It exists only where prod serves allthings.dev, so its first run follows the move-day deploy. `schedule: "off"` would deploy it with no Cron Trigger at all.
+- `schedule: "hourly"` gives it a Cron Trigger at the top of every hour, as the app's cron has. It answers every request with a 404. It runs in the allthings account alone, from prod's first deploy there, whether allthings.dev is pending or active (`syncPlan` in `src/sync.ts`). `schedule: "off"` would deploy it with no Cron Trigger at all.
 - `mode: "dry-run"` writes nothing, even on a schedule. [`web/tests/sync.test.ts`](../web/tests/sync.test.ts) holds a dry run to leaving every row of every table as it found it, so it can run beside the app's cron.
-- A dry run still reads X (follower counts and the post search), and X bills each read. Writing nothing, it reads the same accounts again every hour once their counts are a week old: up to 40 accounts an hour (`syncLimits.paid.followers.maxProfiles`).
+- A dry run never asks X, which bills each read: it skips the follower counts, and searches Bluesky alone for posts.
+
+**Images wait for the move.** Until allthings.dev is active in the allthings account, a run that writes stores no images (`SYNC_IMAGES: "wait"`). media.allthings.dev still serves the old account's bucket, which never gets what this Worker stores, so an image stored now would be a broken link until the move. The image steps only fill in what is missing, so the first run after the move-day deploy (`"store"`) catches up. That deploy updates the same Worker in place: its name is generated once and kept.
 
 **One writer.** Production has one writer at a time:
 
@@ -127,7 +129,7 @@ A deploy refuses sooner:
 - `NEON_SYNC_URL` must be a `site_sync` connection string.
 - `LUMA_API_KEY` and `X_BEARER_TOKEN` must be set and not blank.
 
-The secrets reach the Worker with prod's first deploy from the allthings account, on move day ([`scripts/move-day-deploy.sh`](scripts/move-day-deploy.sh)).
+The secrets reach the Worker with its first prod deploy from the allthings account, whether allthings.dev is pending or active there (below, "Deploying prod").
 
 **The handover.** Each step is its own pull request. Merge one only once the one before it is deployed:
 

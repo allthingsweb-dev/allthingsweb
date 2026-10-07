@@ -48,10 +48,12 @@ import {
   runSync,
   type SyncLimits,
   syncLimits,
+  type SyncImages,
   SyncLog,
   type SyncMode,
 } from "../src/sync/run.ts";
 import worker, {
+  imagesOf,
   limitsOf,
   modeOf,
   scheduledRun,
@@ -161,6 +163,13 @@ async function run(
   mode: SyncMode,
   limits: SyncLimits,
   feed: ReadonlyArray<Reply> = [{ body: calendar }],
+  {
+    images: storing = "store",
+    searches = [],
+  }: {
+    readonly images?: SyncImages;
+    readonly searches?: ReadonlyArray<CandidateSearches["Service"][number]>;
+  } = {},
 ) {
   const db = await migratedDatabase();
   await db.exec(seed);
@@ -203,7 +212,7 @@ async function run(
       }),
     ),
     // The post search finds nothing here; its own tests are core's.
-    Layer.succeed(CandidateSearches, []),
+    Layer.succeed(CandidateSearches, searches),
     Layer.succeed(
       PostSources,
       PostSources.of({
@@ -245,7 +254,7 @@ async function run(
     ),
   );
   const report = await Effect.runPromise(
-    runSync(mode, limits).pipe(Effect.provide(layer)),
+    runSync(mode, limits, { images: storing }).pipe(Effect.provide(layer)),
   );
   return { db, report, logged, bucket, before };
 }
@@ -411,6 +420,31 @@ describe("a sync run that writes", () => {
     }
   });
 
+  test("while images wait, writes everything else and stores no image, until media.allthings.dev serves its bucket", async () => {
+    const { db, report, bucket } = await run(
+      "write",
+      syncLimits.paid,
+      undefined,
+      { images: "wait" },
+    );
+    try {
+      expect(report.ok).toBe(true);
+      expect(report.steps["events"]).toMatchObject({ status: "done" });
+      expect(report.steps["descriptions"]).toMatchObject({ status: "done" });
+      for (const name of ["photos", "posts", "covers"]) {
+        expect(report.steps[name]).toEqual({
+          status: "skipped",
+          reason:
+            "media.allthings.dev doesn't serve this account's bucket yet: images wait for the deploy after the domain moves",
+        });
+      }
+      expect(bucket.log.put).toEqual([]);
+      expect(await count(db, "SELECT count(*) AS n FROM images")).toBe(2);
+    } finally {
+      await db.close();
+    }
+  });
+
   test("fills no venues, gives no links and stores no images when Luma's calendar can't be read, as the app's cron", async () => {
     const { db, report, bucket } = await run("write", syncLimits.paid, [
       { status: 404 },
@@ -427,6 +461,51 @@ describe("a sync run that writes", () => {
 });
 
 describe("a dry run", () => {
+  test("never asks X: no follower counts, and the post search asks only Bluesky", async () => {
+    /** Both platforms' searches, each run recording which it asked. */
+    const recording = (asked: Array<string>) =>
+      (["x", "bluesky"] as const).map((platform) => ({
+        platform,
+        search: () => {
+          asked.push(platform);
+          return Effect.succeed({ posts: [], requests: 1 });
+        },
+      }));
+    const dryAsked: Array<string> = [];
+    const wetAsked: Array<string> = [];
+    // Every past evening is recent here, so both runs have some to search.
+    const limits: SyncLimits = {
+      ...syncLimits.paid,
+      postSearch: { ...syncLimits.paid.postSearch, within: "3650 days" },
+    };
+    const dry = await run("dry-run", limits, undefined, {
+      searches: recording(dryAsked),
+    });
+    const wet = await run("write", limits, undefined, {
+      searches: recording(wetAsked),
+    });
+    try {
+      expect(dry.report.steps["followers"]).toEqual({
+        status: "skipped",
+        reason:
+          "a dry run reads nothing from X, which bills each account it reads",
+      });
+      expect(dry.report.steps["post-search"]).toMatchObject({
+        status: "done",
+        notSearched: ["x"],
+      });
+      // A run that writes asks both, so the dry run's leaving X out is
+      // what kept it from X.
+      expect(wet.report.steps["followers"]).toMatchObject({ status: "done" });
+      expect(wetAsked).toContain("x");
+      expect(dryAsked).toContain("bluesky");
+      expect(dryAsked).not.toContain("x");
+    } finally {
+      await dry.db.close();
+      await wet.db.close();
+    }
+  });
+
   test("leaves every row of every table as it found it, so it can run beside the app's cron", async () => {
     const { db, report, before } = await run("dry-run", syncLimits.paid);
     try {
@@ -512,6 +591,13 @@ describe("the Worker's switches", () => {
     expect(modeOf({ SYNC_MODE: "WRITE" })).toBe("dry-run");
     expect(limitsOf({ SYNC_PLAN: "paid" })).toBe(syncLimits.paid);
     expect(limitsOf({})).toBe(syncLimits.free);
+  });
+
+  test("only an explicit 'store' stores images", () => {
+    expect(imagesOf({ SYNC_IMAGES: "store" })).toBe("store");
+    expect(imagesOf({ SYNC_IMAGES: "wait" })).toBe("wait");
+    expect(imagesOf({})).toBe("wait");
+    expect(imagesOf({ SYNC_IMAGES: "STORE" })).toBe("wait");
   });
 });
 
@@ -751,6 +837,7 @@ function bindings(connectionString: string) {
     X_BEARER_TOKEN: xToken,
     SYNC_MODE: "write",
     SYNC_PLAN: "paid",
+    SYNC_IMAGES: "store",
   } satisfies SyncEnv;
   return { env, put };
 }
@@ -842,6 +929,34 @@ describe("the Worker, from its bindings", () => {
         step: "summary",
         ok: true,
       });
+    } finally {
+      logs.restore();
+      await server.stop();
+    }
+  });
+
+  test("a scheduled dry run, with X's token, sends nothing to X and writes nothing", async () => {
+    const db = await migratedDatabase();
+    await db.exec(stored);
+    await db.exec(
+      `UPDATE profiles SET twitter_handle = 'ada'
+       WHERE id = 'b0000000-0000-4000-8000-000000000001'`,
+    );
+    const server = await serve(db);
+    const internet = fakeInternet();
+    const { env, put } = bindings(server.url);
+    const logs = captureLogs();
+    try {
+      const report = await scheduledRun(
+        { ...env, SYNC_MODE: "dry-run" },
+        internet.fetch,
+      );
+      expect(report).toMatchObject({ mode: "dry-run", ok: true });
+      expect(
+        internet.fetched.filter((url) => url.hostname === "api.x.com"),
+      ).toEqual([]);
+      expect(put).toEqual([]);
+      expect(internet.unexpected).toEqual([]);
     } finally {
       logs.restore();
       await server.stop();
