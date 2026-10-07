@@ -13,10 +13,11 @@ import { describe, expect, test } from "bun:test";
 
 /** What stating a rule looks like in SQL. */
 const rules: ReadonlyArray<readonly [string, RegExp]> = [
-  // Selecting by it, not reading it out: `is_draft = …`, `NOT is_draft`.
+  // Selecting by it, not reading it out: `is_draft = …`, `NOT is_draft`,
+  // or a bare `WHERE e.is_draft`; never `SELECT e.is_draft AS …`.
   [
     "published or draft",
-    /\bis_draft\s*(?:=|<>|!=|\bIS\b)|\bNOT\s+(?:[a-z_]+\.)?is_draft\b/,
+    /\bis_draft\s*(?:=|<>|!=|\bIS\b)|\b(?:WHERE|AND|OR|NOT|WHEN|ON)\s+\(?\s*(?:[a-z_]+\.)?is_draft\b/i,
   ],
   ["ahead or over", /\bend_date\s*(?:<=|>=|<|>)/],
   ["ours or shared", /\bcuration\s*=\s*'/],
@@ -79,6 +80,41 @@ async function stated(path: string): Promise<ReadonlyArray<string>> {
   const text = await Bun.file(new URL(path, root)).text();
   return rules.flatMap(([name, pattern]) => (pattern.test(text) ? [name] : []));
 }
+
+describe("what stating a rule looks like", () => {
+  const states = (sql: string) =>
+    rules.flatMap(([name, pattern]) => (pattern.test(sql) ? [name] : []));
+
+  test.each([
+    "WHERE e.is_draft = false",
+    "WHERE is_draft = true",
+    "AND NOT e.is_draft",
+    "WHERE e.is_draft",
+    "OR (is_draft AND x)",
+    "CASE WHEN e.is_draft THEN 1 END",
+    "e.is_draft IS NOT TRUE",
+  ])("%s selects by published or draft", (sql) => {
+    expect(states(sql)).toEqual(["published or draft"]);
+  });
+
+  test.each([
+    'SELECT e.is_draft AS "isDraft"',
+    "SELECT luma_event_id, is_draft FROM events",
+    "is_draft: Schema.Boolean",
+    "isDraft: row.is_draft,",
+  ])("%s only reads it", (sql) => {
+    expect(states(sql)).toEqual([]);
+  });
+
+  test.each([
+    ["e.end_date >= now", "ahead or over"],
+    ["e.end_date < $1", "ahead or over"],
+    ["e.curation = 'ours'", "ours or shared"],
+    ["ORDER BY e.start_date DESC, e.id", "evenings' order"],
+  ])("%s states %s", (sql, name) => {
+    expect(states(sql)).toEqual([name]);
+  });
+});
 
 describe("the catalog's rules are stated once", () => {
   test("the catalog states each of them", async () => {
