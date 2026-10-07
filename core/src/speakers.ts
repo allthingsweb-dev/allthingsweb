@@ -1,4 +1,5 @@
 import { Context, DateTime, Effect, Layer, Order, Schema } from "effect";
+import { asOf } from "./clock.ts";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import { latestFirst, talkAppearances } from "./catalog.ts";
@@ -119,7 +120,7 @@ const make = Effect.gen(function* () {
   });
 
   return Speakers.of({
-    directory: DateTime.now.pipe(
+    directory: asOf.pipe(
       Effect.flatMap((now) => orDataSourceError(findRows(now))),
       Effect.map(toDirectory),
     ),

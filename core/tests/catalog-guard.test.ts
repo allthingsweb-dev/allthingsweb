@@ -71,6 +71,40 @@ const internal: Readonly<Record<string, string>> = {
   "core/src/talk-edits.ts": "edits talks, for the organizers",
 };
 
+/** Reading the current time, rather than the instant every read is as of. */
+const readsTheClock =
+  /\bDateTime\.now\b|\bClock\.currentTimeMillis\b|\bnew Date\(\)|\bDate\.now\(\)/;
+
+/** Where that instant is read (src/clock.ts's `asOf`). */
+const clock = "core/src/clock.ts";
+
+/**
+ * Code that isn't a public read and reads the current time for its own
+ * work: syncs, imports, reports, the organizers' tools, timings.
+ */
+const ownTime: Readonly<Record<string, string>> = {
+  "core/src/completeness.ts": "the completeness report",
+  "core/src/followers.ts": "the follower refresh",
+  "core/src/ingest/ingest.ts": "image ingestion",
+  "core/src/lineups.ts": "the lineups backfill, timing itself",
+  "core/src/luma/descriptions.ts": "Luma import",
+  "core/src/luma/drafts.ts": "Luma import of drafts",
+  "core/src/luma/luma.ts": "the Luma client",
+  "core/src/luma/people-sync.ts": "Luma import of people",
+  "core/src/luma/sync.ts": "the Luma sync",
+  "core/src/luma/venues.ts": "Luma import of venues",
+  "core/src/planning/planning.ts": "planning, for the organizers",
+  "core/src/posts/candidates.ts": "the post search",
+  "core/src/readiness/readiness.ts": "readiness, for the organizers",
+  "core/src/slugs.ts": "gives evenings their links",
+  "core/src/social/announce-discord.ts": "announcing on Discord",
+  "core/src/social/announce-x.ts": "announcing on X",
+  "core/src/social/announce.ts": "announcing",
+  "core/src/social/sent-posts.ts": "recording what was posted",
+  "web/src/images/route.ts": "timing image variants",
+  "web/src/sync/run.ts": "the sync Worker",
+};
+
 const root = new URL("../../", import.meta.url);
 
 const sources = [
@@ -163,6 +197,29 @@ describe("the catalog's rules are stated once", () => {
       if (!sources.includes(path) || (await stated(path)).length === 0) {
         stale.push(path);
       }
+    }
+    expect(stale).toEqual([]);
+  });
+});
+
+describe("every public read is as of one instant", () => {
+  test("no other file reads the current time unless it is listed", async () => {
+    const unlisted: Array<string> = [];
+    for (const path of sources) {
+      if (path === clock || path in ownTime) continue;
+      const text = await Bun.file(new URL(path, root)).text();
+      if (readsTheClock.test(text)) unlisted.push(path);
+    }
+    expect(unlisted).toEqual([]);
+  });
+
+  test("every listed file still reads it", async () => {
+    const stale: Array<string> = [];
+    for (const path of Object.keys(ownTime)) {
+      const text = sources.includes(path)
+        ? await Bun.file(new URL(path, root)).text()
+        : "";
+      if (!readsTheClock.test(text)) stale.push(path);
     }
     expect(stale).toEqual([]);
   });

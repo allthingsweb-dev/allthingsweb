@@ -1,5 +1,5 @@
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
-import { pageNow } from "./clock.ts";
+import { asOf } from "./clock.ts";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import type * as Contract from "./contract.ts";
@@ -685,7 +685,7 @@ const make = Effect.gen(function* () {
 
   const readPage = (slug: string, photoOrigin: string, draft: boolean) =>
     Effect.gen(function* () {
-      const now = yield* pageNow;
+      const now = yield* asOf;
       const row = yield* orDataSourceError(
         findPage({ slug, now, photoPrefix: `${photoOrigin}/`, draft }),
       );

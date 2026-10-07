@@ -10,7 +10,7 @@ import { sharedPrefix } from "./short-slugs.ts";
  * Repository rows to the public contract: a port of
  * app/src/lib/public-api/mappers.ts plus the list_events selection from
  * app/src/lib/mcp/tools.ts. Everything here is pure; the current time comes
- * in as `now`, which callers read from the `Clock` with `DateTime.now`.
+ * in as `now`, which callers read from the `Clock` with `asOf` (src/clock.ts).
  *
  * `origin` is the site's origin without a trailing slash, such as
  * "https://allthings.dev"; public URLs are built from it.
