@@ -222,15 +222,27 @@ describe("verdicts", () => {
     );
   });
 
-  // zod trims and strips tabs and newlines; served URLs must already be clean.
-  test.each([
+  // zod trims and strips tabs and newlines; served URLs must already be
+  // clean, so the contract rejects them and the CLI, which only reads what
+  // the server serves, lets them through: every URL field alike, an
+  // organizer's site too.
+  const unclean = [
     " https://allthings.dev",
     "https://allthings.dev\n",
     "https://all\tthings.dev",
-  ])("url %j is normalized by zod but rejected here", (url) => {
+  ];
+  test.each(unclean)("url %j is normalized by zod but rejected here", (url) => {
     expect(zodVerdict(summaryZod, withField("url", url)).ok).toBe(true);
     expect(effectVerdict(summary, withField("url", url)).ok).toBe(false);
   });
+  test.each(unclean)(
+    "an organizer's site %j is normalized by zod but rejected here",
+    (url) => {
+      const input = withField("organizer", { name: "Mastra", url });
+      expect(zodVerdict(summaryZod, input).ok).toBe(true);
+      expect(effectVerdict(summary, input).ok).toBe(false);
+    },
+  );
 });
 
 describe("errors", () => {

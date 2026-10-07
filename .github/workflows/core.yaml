@@ -85,6 +85,11 @@ jobs:
         working-directory: core
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
+      # tests/contract.test.ts reads the CLI's copy of the contract.
+      - name: 📥 Download CLI deps
+        working-directory: cli
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
+
       - name: 💄 Format check
         working-directory: core
         run: bun run check
