@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Effect, Exit } from "effect";
+import { Clock, Effect, Exit } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { settle } from "./support/luma.ts";
 
@@ -19,9 +19,25 @@ const realWork = (millis: number) =>
 describe("settle", () => {
   test("waits for slow real work without moving the clock", async () => {
     const exit = await run(
-      realWork(200).pipe(Effect.andThen(Effect.sleep("1 minute"))),
+      Effect.gen(function* () {
+        const before = yield* Clock.currentTimeMillis;
+        yield* realWork(200);
+        const after = yield* Clock.currentTimeMillis;
+        yield* Effect.sleep("1 minute");
+        return [before, after];
+      }),
     );
     expect(Exit.isSuccess(exit)).toBe(true);
+    if (Exit.isSuccess(exit)) expect(exit.value[1]).toBe(exit.value[0]);
+  });
+
+  test("waits for real work after nearly ten minutes of sleeps", async () => {
+    // Ten minutes of sleeps, less a second, then real work: each counts
+    // toward its own limit only.
+    const exit = await run(
+      Effect.sleep("599 seconds").pipe(Effect.andThen(realWork(50))),
+    );
+    expect(exit).toEqual(Exit.succeed("done"));
   });
 
   test("lets a retry's sleep elapse in test time, not real time", async () => {

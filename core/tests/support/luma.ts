@@ -103,7 +103,10 @@ export function fakeLumaBy(
 export const configFrom = (env: Record<string, string> = {}) =>
   Layer.succeed(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env }));
 
-/** Real time a test's own work may take, before settle gives up on it. */
+/**
+ * Real time one stretch of a test's own work may take, with nothing waiting
+ * on the clock, before settle gives up on it.
+ */
 const realWorkLimitMillis = 30_000;
 
 /**
@@ -149,12 +152,15 @@ export const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     const fiber = yield* Effect.forkChild(
       Effect.provideService(effect, Clock.Clock, counting),
     );
-    const realWork = Date.now();
+    // When the current stretch of real work began; undefined while
+    // something waits on the clock.
+    let realWork: number | undefined;
     let seconds = 0;
     for (;;) {
       yield* Effect.promise(() => Bun.sleep(0));
       if (fiber.pollUnsafe() !== undefined) return yield* Fiber.join(fiber);
       if (waiting === 0) {
+        realWork ??= Date.now();
         if (Date.now() - realWork > realWorkLimitMillis) {
           return yield* Effect.die(
             new Error("Did not settle: its own work took over 30 seconds."),
@@ -163,6 +169,7 @@ export const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
         yield* Effect.promise(() => Bun.sleep(1));
         continue;
       }
+      realWork = undefined;
       if (seconds === 600) {
         return yield* Effect.die(new Error("Did not settle in ten minutes."));
       }
