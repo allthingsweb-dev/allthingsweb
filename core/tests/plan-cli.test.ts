@@ -69,6 +69,35 @@ if (serverUrl === undefined) {
   };
 
   describe("bun run plan", () => {
+    test("a dry run prints the write and keeps nothing", async () => {
+      const dry = (await json(
+        "idea",
+        "add",
+        "--title",
+        "Made-up dry run",
+        "--pitch",
+        "Nothing kept.",
+        "--program",
+        "social",
+        "--dry-run",
+      )) as { id: string };
+      expect(dry).toMatchObject({ title: "Made-up dry run", status: "idea" });
+      const text = await plan(
+        "idea",
+        "add",
+        "--title",
+        "Made-up dry run",
+        "--pitch",
+        "Nothing kept.",
+        "--program",
+        "social",
+        "--dry-run",
+      );
+      expect(text.stdout).toContain("Dry run: rolled back, nothing was kept.");
+      const listed = (await json("idea", "list")) as Array<{ title: string }>;
+      expect(listed.map((idea) => idea.title)).not.toContain("Made-up dry run");
+    });
+
     test("adds, updates and lists an idea", async () => {
       const added = (await json(
         "idea",

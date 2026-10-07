@@ -801,9 +801,12 @@ one transaction and prints the row as it now is; every command takes
 `list_wanted_speakers`, `search_planning`, `audit_planning` and the rest)
 read, so the tools and the CLI can never disagree. People and companies are
 named by id or exact name, events by slug, and a name two rows share is
-refused with both ids. Run it from `core/`:
+refused with both ids. Every command that writes takes `--dry-run`: the write runs in a
+transaction that is rolled back, so it prints exactly what it would be and
+keeps nothing. Run it from `core/`:
 
 ```sh
+DATABASE_URL=… bun run plan idea add --title "…" --pitch "…" --program social --inspired-by <slug> --dry-run   # what it would be; kept: nothing
 DATABASE_URL=… bun run plan idea add --title "…" --pitch "…" --program social --inspired-by <slug>
 DATABASE_URL=… bun run plan idea update <id> --status drafting --event <draft slug>
 DATABASE_URL=… bun run plan speaker add --profile "Ada Lovelace" --topic effect \

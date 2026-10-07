@@ -28,6 +28,7 @@ import {
   Topic,
   WindowInput,
 } from "../src/planning/model.ts";
+import { rollingBackIf } from "../src/planning/dry-run.ts";
 import { Planning, PlanningError } from "../src/planning/planning.ts";
 import {
   auditPlanning,
@@ -55,6 +56,10 @@ import {
  *   bun run plan search <text>
  *   bun run plan audit        prove no site role may read planning; fails if one may
  *
+ * Every command that writes takes --dry-run: the write runs for real in a
+ * transaction that is rolled back, so it prints exactly what it would be,
+ * refuses what it would refuse, and keeps nothing.
+ *
  * It reads and writes the planning schema, which only the database owner
  * may use. The rows are private: never put them in a file in this
  * repository. DATABASE_URL comes from the environment only; .env files are
@@ -62,6 +67,13 @@ import {
  */
 
 const layer = Planning.layer.pipe(Layer.provideMerge(Database.layer));
+
+const dryRun = Flag.Boolean("dry-run").pipe(
+  Flag.withDescription(
+    "Make the change in a transaction that is rolled back: print what it would be, keep nothing.",
+  ),
+  Flag.withDefault(false),
+);
 
 const json = Flag.Boolean("json").pipe(
   Flag.withDescription("Print the result as JSON."),
@@ -139,6 +151,15 @@ const windows = (raw: ReadonlyArray<string>) =>
     ),
   );
 
+/** After a --dry-run write's output, that nothing was kept (not in JSON). */
+const dryRunNote = (options: {
+  readonly dryRun: boolean;
+  readonly json: boolean;
+}) =>
+  options.dryRun && !options.json
+    ? Console.log("Dry run: rolled back, nothing was kept.")
+    : Effect.void;
+
 const print = <A>(asJson: boolean, result: A, format: (result: A) => string) =>
   Console.log(asJson ? JSON.stringify(result, null, 2) : format(result));
 
@@ -197,6 +218,7 @@ const ideaAdd = Command.make(
     event: text("event", "The draft evening it became, by slug."),
     inspiredBy: text("inspired-by", "A past evening it builds on, by slug."),
     json,
+    dryRun,
   },
   (options) =>
     Effect.gen(function* () {
@@ -211,7 +233,11 @@ const ideaAdd = Command.make(
       });
       const added = yield* Planning.use((planning) => planning.addIdea(idea));
       yield* print(options.json, added, formatIdea);
-    }).pipe(Effect.provide(layer)),
+    }).pipe(
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
 ).pipe(Command.withDescription("Add an idea for an evening."));
 
 const ideaList = Command.make(
@@ -253,6 +279,7 @@ const ideaUpdate = Command.make(
       "Unlink the evening it builds on.",
     ),
     json,
+    dryRun,
   },
   (options) =>
     Effect.gen(function* () {
@@ -277,7 +304,11 @@ const ideaUpdate = Command.make(
         planning.updateIdea(options.id, changes),
       );
       yield* print(options.json, updated, formatIdea);
-    }).pipe(Effect.provide(layer)),
+    }).pipe(
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
 ).pipe(Command.withDescription("Change an idea."));
 
 const idea = Command.make("idea").pipe(
@@ -308,6 +339,7 @@ const speakerAdd = Command.make(
     note: text("note", "Why them, or what's been said."),
     window: windowFlag("window"),
     json,
+    dryRun,
   },
   (options) =>
     Effect.gen(function* () {
@@ -322,7 +354,11 @@ const speakerAdd = Command.make(
         planning.addWantedSpeaker(person, speaker),
       );
       yield* print(options.json, added, formatSpeaker);
-    }).pipe(Effect.provide(layer)),
+    }).pipe(
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
 ).pipe(Command.withDescription("Add a speaker we'd like on stage."));
 
 const speakerList = Command.make(
@@ -384,6 +420,7 @@ const speakerUpdate = Command.make(
       "An availability window to remove, by id; repeat for more.",
     ),
     json,
+    dryRun,
   },
   (options) =>
     Effect.gen(function* () {
@@ -399,7 +436,11 @@ const speakerUpdate = Command.make(
         planning.updateWantedSpeaker(options.id, changes),
       );
       yield* print(options.json, updated, formatSpeaker);
-    }).pipe(Effect.provide(layer)),
+    }).pipe(
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
 ).pipe(Command.withDescription("Change a wanted speaker."));
 
 const speaker = Command.make("speaker").pipe(
@@ -427,6 +468,7 @@ const hostAdd = Command.make(
     status: literal("status", HostStatus.literals, "Where we are with them"),
     note: text("note", "Why them, or what's been said."),
     json,
+    dryRun,
   },
   (options) =>
     Effect.gen(function* () {
@@ -461,7 +503,11 @@ const hostAdd = Command.make(
         planning.addHostProspect(company, contact, prospect),
       );
       return yield* print(options.json, added, formatHost);
-    }).pipe(Effect.provide(layer)),
+    }).pipe(
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
 ).pipe(Command.withDescription("Add a company we'd like to host an evening."));
 
 const hostList = Command.make(
@@ -496,6 +542,7 @@ const hostUpdate = Command.make(
     note: text("note", "A new note."),
     clearNote: clear("clear-note", "Remove the note."),
     json,
+    dryRun,
   },
   (options) =>
     Effect.gen(function* () {
@@ -507,7 +554,11 @@ const hostUpdate = Command.make(
         planning.updateHostProspect(options.id, changes),
       );
       yield* print(options.json, updated, formatHost);
-    }).pipe(Effect.provide(layer)),
+    }).pipe(
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
 ).pipe(Command.withDescription("Change a host prospect."));
 
 const host = Command.make("host").pipe(
@@ -524,6 +575,7 @@ const noteAdd = Command.make(
     body: Flag.String("body").pipe(Flag.withDescription("The note.")),
     author: text("author", "Who wrote it."),
     json,
+    dryRun,
   },
   (options) =>
     Effect.gen(function* () {
@@ -556,7 +608,11 @@ const noteAdd = Command.make(
         added,
         (note) => `note ${note.id} on ${note.about}: ${note.body}`,
       );
-    }).pipe(Effect.provide(layer)),
+    }).pipe(
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
 ).pipe(Command.withDescription("Add a note on a person or a company."));
 
 const note = Command.make("note").pipe(
