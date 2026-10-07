@@ -29,7 +29,9 @@ import {
  * - `prepare` says exactly what publishing would put out (the event as
  *   Luma has it, with the description the drafts write) and the approval
  *   token for it: the first 16 hex digits of the SHA-256 of that content,
- *   as canonical JSON. It refuses while readiness finds a blocker.
+ *   as canonical JSON. It refuses while readiness finds a blocker. An
+ *   evening with no talks that comes from an idea keeps the idea's pitch
+ *   as its description instead: the drafts write from talks.
  * - `publish` takes that token, works the content out again, and goes on
  *   only if it hashes the same, so what was approved is what goes out.
  *   Then it sets the description and the visibility in one update and
@@ -204,6 +206,49 @@ const make = Effect.gen(function* () {
       return row.luma_event_id;
     });
 
+  const OwnDescription = Schema.Array(
+    Schema.Struct({
+      curation: Schema.String,
+      talks: Schema.Int,
+      pitch: Schema.NullOr(Schema.String),
+    }),
+  );
+
+  /**
+   * The description publishing puts out for the draft at `slug`. The
+   * promotion drafts write it from the evening's talks, speakers and
+   * hosts; an evening with no talks on record (a trivia night, a social)
+   * has nothing for them to write, so one that comes from an idea keeps
+   * the idea's pitch, as `create` gave it.
+   */
+  const publishedDescription = (slug: string) =>
+    Effect.gen(function* () {
+      // Its talks, and the pitch of the idea it became, unless that idea was
+      // dropped (an evening has at most one idea).
+      const [own] = yield* sql`
+        SELECT
+          e.curation,
+          (SELECT count(*) FROM event_talks et WHERE et.event_id = e.id)::int AS talks,
+          (SELECT i.pitch FROM planning.ideas i
+            WHERE i.event_id = e.id AND i.status <> 'dropped') AS pitch
+        FROM events e
+        WHERE e.slug = ${slug}`.pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(OwnDescription)),
+        Effect.mapError((cause) => new DataSourceError({ cause })),
+      );
+      // A shared evening's Luma page is its organizer's: descriptionFor
+      // refuses it, idea or not.
+      if (
+        own !== undefined &&
+        own.curation === "ours" &&
+        own.talks === 0 &&
+        own.pitch !== null
+      ) {
+        return own.pitch;
+      }
+      return yield* descriptionFor(slug);
+    });
+
   /** The Luma event, which our calendar must manage. */
   const managed = (lumaEventId: string) =>
     luma.get(lumaEventId).pipe(
@@ -353,7 +398,7 @@ const make = Effect.gen(function* () {
       if (event.visibility === "public") {
         return yield* refuse(`${event.name} is already public on Luma.`);
       }
-      const outgoing = outgoingOf(event, yield* descriptionFor(slug));
+      const outgoing = outgoingOf(event, yield* publishedDescription(slug));
       return {
         outgoing,
         token: yield* approvalToken(outgoing),
