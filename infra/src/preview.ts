@@ -24,7 +24,7 @@ import { Database, SITE_ORIGIN } from "./web.ts";
  *   with static assets doesn't get `ctx.access`.
  *
  * Access needs the account's Zero Trust organization, the team domain
- * `allthings.cloudflareaccess.com` (`AccessTeam`), which Alchemy adopts
+ * `allthingsdev.cloudflareaccess.com` (`AccessTeam`), which Alchemy adopts
  * when it exists and creates when it doesn't.
  */
 
@@ -47,12 +47,15 @@ export const PREVIEW_VIEWERS = [
   "andre.timo.landgraf@gmail.com",
 ] as const;
 
-/** The account's Access team: allthings.cloudflareaccess.com. */
-export const ACCESS_TEAM_DOMAIN = "allthings.cloudflareaccess.com";
+/**
+ * The account's Access team, as allthings.dev is named: "allthings" is
+ * someone else's (team names are unique across Cloudflare).
+ */
+export const ACCESS_TEAM_DOMAIN = "allthingsdev.cloudflareaccess.com";
 
 export const AccessTeam = Cloudflare.Access.Organization("AccessTeam", {
   authDomain: ACCESS_TEAM_DOMAIN,
-  name: "allthings",
+  name: "allthingsdev",
 });
 
 export const PreviewAccess = Cloudflare.Access.Application("PreviewAccess", {
@@ -90,5 +93,8 @@ export const makePreview = (publicUrl: Output.Output<string> | string) =>
         PREVIEW_VIEWERS: PREVIEW_VIEWERS.join(","),
       },
       access,
+      // Its own workers.dev URL, where the organizers open it; Access
+      // covers it and the version previews alike.
+      workersDev: true,
     });
   });
