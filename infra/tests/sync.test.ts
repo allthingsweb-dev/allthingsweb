@@ -25,10 +25,15 @@ const write = (value?: string) =>
   );
 
 describe("the sync Worker", () => {
-  test("has no Cron Trigger and writes nothing until the cutover turns it on", () => {
-    expect(SYNC.schedule).toBe("off");
-    expect(cronsFor(SYNC.schedule)).toEqual([]);
+  test("runs hourly in dry-run, writing nothing beside the app's cron until the handover", () => {
+    expect(SYNC.schedule).toBe("hourly");
+    expect(cronsFor(SYNC.schedule)).toEqual(["0 * * * *"]);
     expect(SYNC.mode).toBe("dry-run");
+    expect(workerWrites(SYNC)).toBe(false);
+  });
+
+  test("has no Cron Trigger when off", () => {
+    expect(cronsFor("off")).toEqual([]);
   });
 
   test("runs at the top of every hour once on, as the app's cron does", () => {

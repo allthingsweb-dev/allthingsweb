@@ -124,7 +124,7 @@ From activation until step 1's deploy, media.allthings.dev, allthings.dev and ww
    - **media.allthings.dev** on the new bucket.
    - **The new site on allthings.dev:** the prod Web Worker's custom domain. www.allthings.dev gets a 301 to the apex (path and query kept) from a redirect rule in the zone, which runs before the Worker.
    - **The upload Worker** in the allthings account (new URL and token). It runs its put/delete check.
-   - **The sync Worker,** its schedule still off.
+   - **The sync Worker,** on its hourly schedule, in dry-run: its first run is at the next top of the hour.
    - **Vercel env:** `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` are written to it.
 
 2. Check media:
@@ -182,7 +182,7 @@ The source bucket stays intact, so any object can be re-copied at any time.
 This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. Its DNS stays at name.com, and the old app on Vercel keeps serving the site, sign-in, the admin and the hourly sync. Each step is its own PR, in this order:
 
 1. **The sync moves to the sync Worker.** The handover in [`infra/README.md`](../README.md#the-luma-sync) ("The handover"), one PR per step, so the two never write in the same hour:
-   1. Set `schedule: "hourly"` with `mode: "dry-run"` in `infra/src/sync.ts`, and deploy prod. Compare a few hours of the Worker's logged work with the Vercel cron's writes.
+   1. `schedule: "hourly"` with `mode: "dry-run"` in `infra/src/sync.ts` (done), and deploy prod. Compare a few hours of the Worker's logged work with the Vercel cron's writes.
    2. Remove the cron from `app/vercel.json`, away from the top of the hour, and let the app deploy. Wait for any run already started to finish. A run lasts at most its 60 s `maxDuration`.
    3. Set `mode: "write"` and deploy prod. CI refuses this while `app/vercel.json` still has the cron (`infra/tests/sync.test.ts`).
 

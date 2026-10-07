@@ -86,8 +86,8 @@ Each profile keeps a snapshot, `x_followers` with `x_followers_at`, read from
 public data: X's own API with the app's bearer token (`X_BEARER_TOKEN`), by
 user id, up to 100 accounts a request, $0.010 each on pay-per-use, or the
 keyless FixTweet API without it. The sync
-Worker refreshes the missing and oldest snapshots on its schedule (off until
-the cutover, like the rest of it), a bounded number per run, reading for
+Worker refreshes the missing and oldest snapshots on its schedule (a dry
+run until the cutover, like the rest of it), a bounded number per run, reading for
 at most its window (30 s); a handle X doesn't know, or a failed read,
 leaves the snapshot as it was, and the least recently tried go first
 (`x_followers_tried_at`), so a handle that keeps failing never holds the
@@ -423,8 +423,8 @@ DATABASE_URL=… bun run posts hide <post url>         # never show it
 X is searched only with `X_BEARER_TOKEN` (1Password: "allthings X app" in
 the `allthings` vault); recent search reaches seven days back, and
 `X_SEARCH=archive` uses full-archive search where the app has it. The sync
-Worker searches the last week's evenings on its schedule (off until the
-cutover) and queues what it finds as pending. As site_sync it can add posts
+Worker searches the last week's evenings on its schedule (a dry run until
+the cutover) and queues what it finds as pending. As site_sync it can add posts
 only through `public.queue_event_post` (migrations/0018_pending_posts.ts), a
 SECURITY DEFINER function with its search path pinned that checks every
 field and inserts nothing but pending posts; the role holds no INSERT on

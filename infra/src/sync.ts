@@ -13,12 +13,12 @@ import { Writer } from "./reader.ts";
  * constants, so turning it on is a one-line pull request:
  *
  * - `schedule`: "off" deploys it with no Cron Trigger at all; "hourly" runs
- *   it at the top of every hour, as the app's cron does. Off until the
- *   cutover, when the app's cron stops.
+ *   it at the top of every hour, as the app's cron does. Hourly since the
+ *   handover's first step, in dry-run beside the app's cron.
  * - `mode`: "dry-run" writes nothing and logs what it would write (the
  *   event sync rehearsed, the images it would fetch); "write" writes.
- *   Turning the schedule on in dry-run first shows an hour's work in Workers
- *   Logs before it writes anything.
+ *   Dry-run until the app's cron stops: each hour's work shows in Workers
+ *   Logs, to compare with the app's, before it writes anything.
  * - `plan`: the account's Workers plan. "paid" (the allthings account is on
  *   Workers Paid) runs with the app's own limits. "free" would keep each run
  *   within the Free plan's 50 subrequests (two venues, two descriptions and
@@ -26,7 +26,7 @@ import { Writer } from "./reader.ts";
  *   little for the calendar and image conversions. See infra/README.md.
  */
 export const SYNC = {
-  schedule: "off",
+  schedule: "hourly",
   mode: "dry-run",
   plan: "paid",
 } as const satisfies {
