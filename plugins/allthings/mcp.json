@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "all-things-web": {
+    "allthings": {
       "type": "streamable-http",
       "url": "https://allthingsweb.dev/mcp"
     }

@@ -1,14 +1,14 @@
 {
-  "name": "all-things-web",
+  "name": "allthings",
   "interface": {
-    "displayName": "All Things Web"
+    "displayName": "all things"
   },
   "plugins": [
     {
-      "name": "all-things-web",
+      "name": "allthings",
       "source": {
         "source": "local",
-        "path": "./plugins/all-things-web"
+        "path": "./plugins/allthings"
       },
       "policy": {
         "installation": "AVAILABLE",

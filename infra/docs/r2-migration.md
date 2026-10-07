@@ -126,6 +126,7 @@ From activation until step 2's deploy, allthings.dev and www don't answer. Their
 8. **Point clients at the new host.** These are small PRs once step 3 passes, not before. Before activation, allthings.dev still redirects to allthingsweb.dev, and a redirect drops an MCP POST. After it, the new site answers on allthings.dev and allthingsweb.dev keeps serving the old app, so clients can switch to `https://allthings.dev/mcp`.
    - The CLI's default endpoint becomes `https://allthings.dev/mcp` (`siteOrigin` in `cli/src/config.ts`, and `core/scripts/fixtures.ts`).
    - `infra/README.md`'s "default profile until the domain moves" sentence becomes past tense.
+   - The agent plugin's MCP server becomes `https://allthings.dev/mcp` (`plugins/allthings/mcp.json`, and the URL its test in `app/tests/agent-plugin.test.ts` expects).
 
 **Phase 5: after**
 
