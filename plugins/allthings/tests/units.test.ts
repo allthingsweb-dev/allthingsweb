@@ -48,6 +48,10 @@ describe("the city", () => {
     );
     expect(neighborhoodOf("1 Main St, Oakland, CA 94607")).toBeNull();
     expect(neighborhoodOf(null)).toBeNull();
+    // A known street address matches whole, never inside a longer number.
+    expect(neighborhoodOf("145 Fremont St, San Francisco, CA 94105")).toBe(
+      "East Cut",
+    );
   });
 });
 

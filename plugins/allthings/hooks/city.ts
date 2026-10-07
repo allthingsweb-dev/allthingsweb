@@ -153,18 +153,15 @@ export function neighborhoodOf(address: string | null): string | null {
     .replaceAll("’", "'")
     .replaceAll(/\bstreet\b/g, "st")
     .replaceAll(/\s+/g, " ");
+  // Words, so "45 fremont st" is found in "sentry, 45 fremont st, ..." and
+  // never inside "145 fremont st".
+  const words = ` ${plain.replaceAll(/[^a-z0-9']+/g, " ").trim()} `;
   for (const [street, neighborhood] of VENUES) {
-    if (new RegExp(`(^|[ ,])${escape(street)}\\b`).test(plain)) {
-      return neighborhood;
-    }
+    if (words.includes(` ${street} `)) return neighborhood;
   }
   if (!/san francisco|\bsf\b/.test(plain)) return null;
   const zip = /\b(94\d{3})\b/.exec(plain)?.[1];
   return zip === undefined ? null : (ZIPS[zip] ?? null);
-}
-
-function escape(text: string): string {
-  return text.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** Where a turn's walk starts: a number from its id, so each turn sets out somewhere else. */

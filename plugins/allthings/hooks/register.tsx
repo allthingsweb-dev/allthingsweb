@@ -85,6 +85,8 @@ let isWorking = false;
 let seed = 0;
 /** When the mod last asked the site, successfully or not. */
 let attemptedAt = 0;
+/** The refresh under way, which every caller meanwhile shares. */
+let refreshing: Promise<Evening | null | undefined> | null = null;
 /** Tool calls drawn inside an expanded group, whose rows carry their output. */
 const unfolded = new Set<string>();
 
@@ -484,10 +486,22 @@ async function upcomingEvening(
 
 /**
  * Asks the site for the next evening (list_events, upcoming, limit 1) and
- * keeps it. On a failure the cached one stays for GRACE_MS, then the band
- * goes quiet. Resolves undefined when the site couldn't be reached.
+ * keeps it; a call while one is under way gets that one's answer, so a
+ * timer and a command never ask twice. Resolves undefined when the site
+ * couldn't be reached.
  */
-async function refresh($: Engine): Promise<Evening | null | undefined> {
+function refresh($: Engine): Promise<Evening | null | undefined> {
+  refreshing ??= askForNext($).finally(() => {
+    refreshing = null;
+  });
+  return refreshing;
+}
+
+/**
+ * One request for the next evening, kept in $.state and the store. On a
+ * failure the cached evening stays for GRACE_MS, then the band goes quiet.
+ */
+async function askForNext($: Engine): Promise<Evening | null | undefined> {
   const now = await $.clock.now();
   attemptedAt = now;
   const endpoint = await endpointFor($);

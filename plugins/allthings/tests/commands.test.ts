@@ -133,6 +133,19 @@ describe("/at and /imin", () => {
     expect(answer.text).toBe("no evening at nope. /at shows the next one.");
   });
 
+  test("two /at runs at once share one list_events request", async ($, on) => {
+    const w = world(on, { site, now: AT.upcoming });
+    await $.session.start({ ...SESSION, isInteractive: false });
+    const [first, second] = await Promise.all([
+      $.command.run(typed("at")),
+      $.command.run(typed("at")),
+    ]);
+    expect(first.text).toBe(second.text);
+    expect(
+      w.requests.filter((request) => request.tool === "list_events"),
+    ).toHaveLength(1);
+  });
+
   test("/at with nothing ahead points at the site", async ($, on) => {
     world(on, { site: { upcoming: [] }, now: AT.upcoming });
     await $.session.start(SESSION);
