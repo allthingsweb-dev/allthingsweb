@@ -222,7 +222,7 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
    - Add allthingsweb.dev as a zone in the allthings account and point name.com's nameservers at it. This is the only DNS change, and it waits until this step.
    - Add allthingsweb.dev and www.allthingsweb.dev to the site's `redirects` in `siteDomain` (`infra/src/web.ts`). They become 301s to allthings.dev, with path and query kept, and the Worker's legacy handling does the rest.
    - Delete the Vercel project and its env, then Stack Auth's project and the app's Sentry project.
-   - Delete `app/` and its workflow. The parity tests that hold core to the app's schemas go with it, and the contract's "Event page on allthingsweb.dev." description changes to allthings.dev.
+   - Delete `app/` and its workflow. The parity tests that hold core to the app's schemas go with it, and so does their one exception: the contract's event-page description already names allthings.dev, where the app's names allthingsweb.dev.
 
 ## Open questions and assumptions
 

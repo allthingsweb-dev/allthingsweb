@@ -14,7 +14,12 @@ import speakers from "./fixtures/speakers.json";
  * valid and invalid values, and lossless decoding of live responses.
  *
  * The fixtures are live MCP responses captured from allthingsweb.dev.
+ *
+ * One description differs on purpose: an event's page is on allthings.dev,
+ * where the app still names its own host. The exception goes with app/.
  */
+const appEventPage = "Event page on allthingsweb.dev.";
+const eventPage = "Event page on allthings.dev.";
 
 type Pair = readonly [
   name: string,
@@ -65,8 +70,14 @@ function effectJsonSchema(schema: Schema.Top): Json {
   return normalize(document.schema as Json);
 }
 
+/** The app's JSON Schema, with its event-page description as core words it. */
 function zodJsonSchema(schema: z.ZodType): Json {
-  return normalize(z.toJSONSchema(schema) as Json);
+  const json = JSON.stringify(z.toJSONSchema(schema));
+  return normalize(
+    JSON.parse(
+      json.replaceAll(JSON.stringify(appEventPage), JSON.stringify(eventPage)),
+    ) as Json,
+  );
 }
 
 type Verdict = { ok: true; value: unknown } | { ok: false };
@@ -90,6 +101,13 @@ function zodVerdict(schema: z.ZodType, input: unknown): Verdict {
 describe("JSON Schema", () => {
   test.each(pairs)("%s matches the served zod schema", (_, effect, zod) => {
     expect(effectJsonSchema(effect)).toEqual(zodJsonSchema(zod));
+  });
+
+  test("an event's page is on allthings.dev, where the app names allthingsweb.dev", () => {
+    for (const [, effect, zod] of pairs.slice(0, 2)) {
+      expect(JSON.stringify(effectJsonSchema(effect))).toContain(eventPage);
+      expect(JSON.stringify(z.toJSONSchema(zod))).toContain(appEventPage);
+    }
   });
 });
 
