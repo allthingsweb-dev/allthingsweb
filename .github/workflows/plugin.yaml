@@ -1,0 +1,61 @@
+name: Claude plugin
+
+# The allthings plugin for Claude Code (plugins/allthings): its manifests
+# validate, its mod type-checks against the types Claude Code writes, and the
+# mod's tests pass under Claude Code's own test kit, with no session, sign-in
+# or network.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "plugins/**"
+      - ".claude-plugin/**"
+      - ".github/workflows/plugin.yaml"
+      - ".github/scripts/claude-code.sh"
+  pull_request:
+    paths:
+      - "plugins/**"
+      - ".claude-plugin/**"
+      - ".github/workflows/plugin.yaml"
+      - ".github/scripts/claude-code.sh"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Mods need 2.1.287 or later; bump this with the version the README names.
+  CLAUDE_CODE_VERSION: "2.1.293"
+  TYPESCRIPT_VERSION: "5.9.3"
+
+jobs:
+  mod:
+    name: 🧩 The mod validates, type-checks and passes its tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - name: 🤖 Install Claude Code and lay the mod's types
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/claude-code.sh"
+
+      - name: ✅ Validate the marketplace and the plugin
+        run: |
+          claude plugin validate --strict .
+          claude plugin validate --strict plugins/allthings
+
+      - name: 🔍 Type check the mod
+        run: bunx --package "typescript@${TYPESCRIPT_VERSION}" tsc -p plugins/allthings
+
+      - name: 🏄 Run the mod's tests
+        run: claude plugin test plugins/allthings

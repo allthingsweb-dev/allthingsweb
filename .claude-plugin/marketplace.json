@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "allthings",
+  "description": "allthings evenings in San Francisco, for people who build software, in Claude Code.",
+  "owner": {
+    "name": "allthings",
+    "url": "https://allthings.dev"
+  },
+  "plugins": [
+    {
+      "name": "allthings",
+      "source": "./plugins/allthings",
+      "description": "The next allthings evening above your prompt, /at and /imin, tool rows in the slash grammar, the allthings themes and voice, and the allthings MCP server.",
+      "category": "community"
+    }
+  ]
+}

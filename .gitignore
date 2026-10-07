@@ -30,3 +30,6 @@ playwright-report/
 
 # Alchemy local state, wherever a test or a deploy runs from
 .alchemy/
+
+# The types Claude Code lays beside a mod each time it loads it
+plugins/*/.claude-plugin/types/

@@ -50,6 +50,13 @@ jobs:
         working-directory: tools/pr-header
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
+      # The allthings mod (plugins/allthings) types against the declarations
+      # Claude Code lays beside it; its tsconfig extends them.
+      - name: 🤖 Lay the Claude Code mod's types
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/claude-code.sh"
+        env:
+          CLAUDE_CODE_VERSION: "2.1.293"
+
       # web/src imports the manifest its build writes to web/dist.
       - name: 🏗️ Build web
         working-directory: web
