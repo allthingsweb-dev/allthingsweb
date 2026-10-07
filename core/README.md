@@ -192,6 +192,27 @@ neither sync, core's nor the app's, nor the venue fill changes it (All
 Things Sync was on CodeRabbit's 18th-floor rooftop, not the 12th floor
 Luma lists).
 
+## Drafts the feed doesn't carry
+
+Luma's calendar feed carries no private event. Once the sync has stored
+an event as a draft (it went private, or was made private), the feed never
+says what became of it, and its row keeps the name and times it had: the
+draft stored as JS Trivia Night on 2026-04-29 is Markdown Trivia Night on
+2026-05-22 on Luma. `src/luma/drafts.ts` asks Luma's API about every
+draft we know, by its Luma id, and writes what Luma owns where it
+differs: the name, the times, and the venue unless the organizers set
+one. It only reads from Luma. Whether an evening is a draft stays the
+feed's: one Luma now shows publicly comes back in the feed and the sync
+publishes it, so the refresh only reports it. An event Luma no longer
+shows us (403, or 404 once cancelled) is left as it is. The hourly sync
+does it after the venues (web/src/sync/run.ts); to run it now, from
+`core/`:
+
+```sh
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:drafts --dry-run   # ask Luma, print what would change
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:drafts             # write it
+```
+
 ## Luma people import
 
 The calendar feed names no hosts and counts no guests. `src/luma/api.ts`

@@ -11,6 +11,7 @@ import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ShortSlugs } from "allthings-core/src/slugs.ts";
+import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   clockAt,
@@ -79,7 +80,7 @@ const images = {
 
 /**
  * Luma's API, faked: every event it is asked about is at CodeRabbit, and
- * has a description.
+ * has a description; every draft it is asked about is still private.
  */
 const placedApi = Layer.succeed(
   LumaApi,
@@ -91,6 +92,18 @@ const placedApi = Layer.succeed(
           lumaEventId,
           location: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
           guestsOnly: true,
+        }),
+      ),
+    ),
+    eventDetails: Option.some((lumaEventId: string) =>
+      Effect.succeed(
+        Option.some({
+          lumaEventId,
+          name: "Draft night",
+          startDate: DateTime.makeUnsafe("2026-11-05T01:00:00Z"),
+          endDate: DateTime.makeUnsafe("2026-11-05T04:00:00Z"),
+          visibility: "private" as const,
+          location: null,
         }),
       ),
     ),
@@ -127,6 +140,7 @@ async function run(
   const layer = Layer.mergeAll(
     LumaSync.layer,
     LumaVenues.layer,
+    LumaDrafts.layer,
     ShortSlugs.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
@@ -205,13 +219,14 @@ const unplaced = `SELECT count(*) AS n FROM events
     AND COALESCE(full_address, street_address) IS NULL`;
 
 describe("a sync run that writes", () => {
-  test("syncs events, fills in the venues the calendar hides and gives short links, stores photos, post images and covers, then imports descriptions, logging each step", async () => {
+  test("syncs events, fills in the venues the calendar hides, refreshes its drafts and gives short links, stores photos, post images and covers, then imports descriptions, logging each step", async () => {
     const { db, report, logged, bucket } = await run("write", syncLimits.paid);
     try {
       expect(report.ok).toBe(true);
       expect(Object.keys(report.steps)).toEqual([
         "events",
         "venues",
+        "drafts",
         "slugs",
         "photos",
         "posts",
@@ -239,6 +254,12 @@ describe("a sync run that writes", () => {
       expect(report.steps["events"]).toMatchObject({
         status: "done",
         syncedCount: 24,
+      });
+      // The seed's draft is still private on Luma, a month later and renamed.
+      expect(report.steps["drafts"]).toMatchObject({
+        status: "done",
+        public: [],
+        unavailable: [],
       });
       expect(report.steps["venues"]).toMatchObject({
         status: "done",
@@ -306,6 +327,7 @@ describe("a sync run that writes", () => {
         "start",
         "events",
         "venues",
+        "drafts",
         "slugs",
         "photos",
         "posts",

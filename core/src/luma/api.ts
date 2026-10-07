@@ -1,6 +1,7 @@
 import {
   Config,
   Context,
+  DateTime,
   Effect,
   Layer,
   Option,
@@ -83,8 +84,59 @@ export const ApiEvent = Schema.Struct({
   location_visibility: Schema.optionalKey(Schema.String),
   /** The description in the Markdown of Luma's editor; "" for none. */
   description_md: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  /** Its name and times, which a private event's are nowhere else. */
+  name: Schema.optionalKey(Schema.String),
+  start_at: Schema.optionalKey(Schema.String),
+  end_at: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  visibility: Schema.optionalKey(
+    Schema.Literals(["public", "members-only", "private"]),
+  ),
 });
 export type ApiEvent = typeof ApiEvent.Type;
+
+/**
+ * What Luma says an event is: its name, times, visibility and place. The
+ * calendar feed carries no private event, so a draft's are read here
+ * (src/luma/drafts.ts).
+ */
+export interface LumaEventDetails {
+  readonly lumaEventId: string;
+  readonly name: string;
+  readonly startDate: DateTime.Utc;
+  /** Null when Luma gives no end. */
+  readonly endDate: DateTime.Utc | null;
+  readonly visibility: "public" | "members-only" | "private";
+  /** The full address; null without one. */
+  readonly location: string | null;
+}
+
+/** An event's details from Luma's answer, or None when it lacks a name, start or visibility. */
+export function toEventDetails(
+  event: ApiEvent,
+): Option.Option<LumaEventDetails> {
+  const start =
+    event.start_at === undefined ? undefined : DateTime.make(event.start_at);
+  const end =
+    event.end_at === undefined || event.end_at === null
+      ? Option.none()
+      : DateTime.make(event.end_at);
+  if (
+    event.name === undefined ||
+    event.visibility === undefined ||
+    start === undefined ||
+    Option.isNone(start)
+  ) {
+    return Option.none();
+  }
+  return Option.some({
+    lumaEventId: event.id,
+    name: event.name,
+    startDate: DateTime.toUtc(start.value),
+    endDate: Option.isSome(end) ? DateTime.toUtc(end.value) : null,
+    visibility: event.visibility,
+    location: toEventVenue(event).location,
+  });
+}
 
 /** Where an event is, as Luma's API says, whoever the event page shows it to. */
 export interface LumaEventVenue {
@@ -198,6 +250,16 @@ export interface LumaApiShape {
    * event (403, or 404 for one deleted). `None` itself when LUMA_API_KEY is
    * not set.
    */
+  /**
+   * The event's name, times, visibility and place, or `None` where Luma
+   * does not show us the event (403, or 404 for one deleted) or leaves one
+   * out. `None` itself when LUMA_API_KEY is not set.
+   */
+  readonly eventDetails: Option.Option<
+    (
+      lumaEventId: string,
+    ) => Effect.Effect<Option.Option<LumaEventDetails>, LumaApiError>
+  >;
   readonly eventDescription: Option.Option<
     (
       lumaEventId: string,
@@ -279,7 +341,21 @@ const make = Effect.gen(function* () {
       )(lumaEventId).pipe(Effect.map(Option.map(toEventDescription))),
   );
 
-  return LumaApi.of({ eventPeople, eventVenue, eventDescription });
+  const eventDetails = Option.map(
+    key,
+    (apiKey) => (lumaEventId: string) =>
+      getEvent(
+        apiKey,
+        "LumaApi.eventDetails",
+      )(lumaEventId).pipe(Effect.map(Option.flatMap(toEventDetails))),
+  );
+
+  return LumaApi.of({
+    eventPeople,
+    eventVenue,
+    eventDescription,
+    eventDetails,
+  });
 });
 
 export class LumaApi extends Context.Service<LumaApi, LumaApiShape>()(

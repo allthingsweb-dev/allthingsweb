@@ -20,13 +20,15 @@ import {
   publishedDrafts,
   ShortSlugs,
 } from "allthings-core/src/slugs.ts";
+import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { Clock, Context, DateTime, Duration, Effect, Exit } from "effect";
 
 /**
  * One run of the hourly sync, as the app's cron runs it
  * (app/src/app/api/cron/luma-sync/route.ts): events from Luma's calendar
- * first, then the venues the calendar hides, from Luma's API, then short
+ * first, then the venues the calendar hides and the drafts it never
+ * carries, from Luma's API, then short
  * links for the evenings without one, then the images still missing
  * (profile photos, post images, event covers), each image phase in its own
  * time window, then the events' descriptions from Luma's API, in a window
@@ -72,6 +74,8 @@ export interface SyncLimits {
   readonly covers: { readonly maxItems?: number };
   /** Events without a venue asked about; every one by default. */
   readonly venues: { readonly maxEvents?: number };
+  /** Drafts asked about, which the feed never carries; every one by default. */
+  readonly drafts: { readonly maxEvents?: number };
   readonly descriptions: {
     /** The import is cut off after this long, writing nothing. */
     readonly window: Duration.Input;
@@ -110,15 +114,16 @@ export const syncLimits = {
     posts: { window: "20 seconds", maxItems: 40 },
     covers: {},
     venues: {},
+    drafts: {},
     descriptions: { window: "30 seconds" },
     followers: { maxProfiles: 40, staleAfter: "7 days", window: "30 seconds" },
     postSearch: { within: "7 days", maxEvents: 10, window: "5 minutes" },
   },
   /**
-   * Within 50 subrequests: the feed is one, each venue and each
+   * Within 50 subrequests: the feed is one, each venue, draft and
    * description one, and each image at most six (a cover lookup and its
-   * fallback, a download and three redirects), so two venues, two
-   * descriptions and two images of each kind are at most 41.
+   * fallback, a download and three redirects), so two venues, a draft, two
+   * descriptions and two images of each kind are at most 42.
    */
   free: {
     startBefore: "35 seconds",
@@ -127,13 +132,14 @@ export const syncLimits = {
     posts: { window: "20 seconds", maxItems: 2 },
     covers: { maxItems: 2 },
     venues: { maxEvents: 2 },
+    drafts: { maxEvents: 1 },
     descriptions: { window: "30 seconds", maxEvents: 2 },
     followers: { maxProfiles: 2, staleAfter: "7 days", window: "30 seconds" },
-    // What the 50 subrequests leave after the steps before it (41).
+    // What the 50 subrequests leave after the steps before it (42).
     postSearch: {
       within: "7 days",
       maxEvents: 1,
-      maxRequests: 8,
+      maxRequests: 7,
       window: "30 seconds",
     },
   },
@@ -242,6 +248,34 @@ const venues = (
   });
 
 /**
+ * The draft refresh (core's src/luma/drafts.ts) within `limits`, as a
+ * step reports it: each draft it changed, and the columns.
+ */
+const drafts = (
+  refresher: LumaDrafts["Service"],
+  limits: SyncLimits,
+  dryRun: boolean,
+) =>
+  Effect.gen(function* () {
+    const { maxEvents } = limits.drafts;
+    const result = yield* refresher.run({
+      dryRun,
+      ...(maxEvents === undefined ? {} : { maxEvents }),
+    });
+    if (result._tag === "Skipped") return { skipped: result.reason };
+    return {
+      asked: result.asked,
+      written: result.written,
+      refreshed: result.refreshed.map(({ slug, changes }) => ({
+        slug,
+        columns: changes.map(({ column }) => column),
+      })),
+      public: result.public,
+      unavailable: result.unavailable,
+    };
+  });
+
+/**
  * The description import (core's src/luma/descriptions.ts) within
  * `limits`, as a step reports it: which events it changed, each with its
  * summary.
@@ -300,6 +334,11 @@ const write = (limits: SyncLimits) =>
     steps["venues"] = yield* step(
       "venues",
       venues(yield* LumaVenues, limits, false),
+    );
+
+    steps["drafts"] = yield* step(
+      "drafts",
+      drafts(yield* LumaDrafts, limits, false),
     );
 
     steps["slugs"] = yield* step(
@@ -472,6 +511,10 @@ const dryRun = (limits: SyncLimits) =>
     steps["venues"] = yield* step(
       "venues",
       venues(yield* LumaVenues, limits, true),
+    );
+    steps["drafts"] = yield* step(
+      "drafts",
+      drafts(yield* LumaDrafts, limits, true),
     );
     steps["slugs"] = yield* step(
       "slugs",
