@@ -790,11 +790,12 @@ It is a secret: nothing prints it. The record is in the planning schema,
 so `DATABASE_URL` is the database owner. Nothing in the tests reaches
 Discord.
 
-````sh
+```sh
 DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --dry-run          # the message, where it goes, its token
 DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --approve <token>  # exactly that, once
 DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --sent <message id>  # record the message an unanswered send left
 DATABASE_URL=… bun run social discord <slug> --moment dayOf --release                                # let go of an unanswered send that left none
+```
 
 ## Posting to X
 
@@ -835,7 +836,7 @@ DATABASE_URL=… X_BEARER_TOKEN=… bun run social x <slug> --moment announce --
 OP_SERVICE_ACCOUNT_TOKEN=… DATABASE_URL=… X_BEARER_TOKEN=… X_CLIENT_ID=… X_CLIENT_SECRET=… \
   bun run social x <slug> --moment announce --approve <token>                           # exactly that, once
 OP_SERVICE_ACCOUNT_TOKEN=… bun run social x-sign-in --from-xurl                          # keep xurl's sign-in as ours
-````
+```
 
 ## Migrations
 
