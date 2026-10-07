@@ -21,6 +21,7 @@ import { LumaApi } from "../src/luma/api.ts";
 import { LumaDescriptions } from "../src/luma/descriptions.ts";
 import { Luma } from "../src/luma/luma.ts";
 import { LumaSync } from "../src/luma/sync.ts";
+import { LumaDrafts } from "../src/luma/drafts.ts";
 import { LumaVenues } from "../src/luma/venues.ts";
 import { ShortSlugs } from "../src/slugs.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
@@ -129,7 +130,10 @@ const fakes = () => ({
   now: Date.now,
 });
 
-/** Luma's API, faked: every event is at CodeRabbit and has a description. */
+/**
+ * Luma's API, faked: every event is at CodeRabbit, has a description, and
+ * was renamed and moved a week later.
+ */
 const fakeApi = Layer.succeed(
   LumaApi,
   LumaApi.of({
@@ -140,6 +144,18 @@ const fakeApi = Layer.succeed(
           lumaEventId,
           location: "CodeRabbit, 201 Spear St, San Francisco",
           guestsOnly: true,
+        }),
+      ),
+    ),
+    eventDetails: Option.some((lumaEventId: string) =>
+      Effect.succeed(
+        Option.some({
+          lumaEventId,
+          name: "Renamed on Luma",
+          startDate: DateTime.makeUnsafe("2026-11-05T01:00:00Z"),
+          endDate: DateTime.makeUnsafe("2026-11-05T04:00:00Z"),
+          visibility: "private" as const,
+          location: "CodeRabbit, 201 Spear St, San Francisco",
         }),
       ),
     ),
@@ -289,6 +305,25 @@ describe("site_sync", () => {
     if (result._tag === "Planned") {
       expect(result.written).toBeGreaterThan(0);
       expect(result.written).toBe(result.asked);
+    }
+  });
+
+  test("refreshes the drafts from Luma's API", async () => {
+    const layer = LumaDrafts.layer.pipe(
+      Layer.provide(fakeApi),
+      Layer.provideMerge(sqlLayer(db)),
+      Layer.provideMerge(clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z"))),
+    );
+    const result = await Effect.runPromise(
+      LumaDrafts.use((drafts) => drafts.run({ dryRun: false })).pipe(
+        Effect.provide(layer),
+      ),
+    );
+    expect(result).toMatchObject({ _tag: "Planned", unavailable: [] });
+    if (result._tag === "Planned") {
+      expect(result.asked).toBeGreaterThan(0);
+      expect(result.written).toBe(result.refreshed.length);
+      expect(result.written).toBeGreaterThan(0);
     }
   });
 

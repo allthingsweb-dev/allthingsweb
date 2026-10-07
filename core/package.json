@@ -13,6 +13,7 @@
     "luma:people": "bun --no-env-file scripts/luma-people.ts",
     "luma:descriptions": "bun --no-env-file scripts/luma-descriptions.ts",
     "luma:venues": "bun --no-env-file scripts/luma-venues.ts",
+    "luma:drafts": "bun --no-env-file scripts/luma-drafts.ts",
     "slugs": "bun --no-env-file scripts/slugs.ts",
     "completeness": "bun --no-env-file scripts/completeness.ts",
     "posts": "bun --no-env-file scripts/posts.ts",
