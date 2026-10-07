@@ -131,7 +131,7 @@ describe("the about page", () => {
       ["evenings", "36"],
       ["people on stage", "61"],
       ["hosting companies", "24"],
-      ["through the door", "8,215"],
+      ["said “I’m in”", "8,215"],
     ]);
     expect(soFar).toContain(
       'since <time datetime="2024-03-27T00:00:00.000Z">Tue Mar 26, 2024</time>',

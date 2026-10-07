@@ -485,7 +485,7 @@ describe("/about", () => {
       ["evenings", "2"],
       ["people on stage", "2"],
       ["hosting companies", "2"],
-      ["through the door", "146"],
+      ["said “I’m in”", "146"],
     ]);
     expect(html).toContain(
       'since <time datetime="2025-01-29T01:00:00.000Z">Tue Jan 28, 2025</time>',
