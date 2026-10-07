@@ -1,6 +1,5 @@
 /** Private or operational paths that should never appear in search results. */
 const disallowedPaths = [
-  "/handler",
   "/sentry-example-page",
   "/api/cron",
   "/api/sentry-example-api",
