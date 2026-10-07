@@ -151,7 +151,7 @@ describe("legacy URLs", () => {
   });
 
   it("answers what isn't found with the site's own page", async (url) => {
-    const response = await fetch(`${url}/admin/raw/talks`);
+    const response = await fetch(`${url}/no/such/page`);
     expect(response.status).toBe(404);
     expect(response.headers.get("content-type")).toBe(
       "text/html; charset=utf-8",
@@ -170,6 +170,35 @@ describe("legacy URLs", () => {
     expect(html).toContain(
       '<link rel="canonical" href="https://allthings.dev/logos/logo-1.91x1.png"/>',
     );
+  });
+
+  it("says sign-in, profiles and the admin are gone, for every method, and leads home", async (url) => {
+    for (const [path, method] of [
+      ["/profile", "GET"],
+      ["/handler/sign-in", "GET"],
+      ["/admin", "GET"],
+      ["/admin/raw/talks", "GET"],
+      ["/api/v1/profile", "PUT"],
+      ["/api/v1/admin/raw/talks", "DELETE"],
+      ["/api/v1/admin/upload-event-images", "POST"],
+    ] as const) {
+      const response = await fetch(`${url}${path}`, {
+        method,
+        redirect: "manual",
+      });
+      expect({ path, method, status: response.status }).toEqual({
+        path,
+        method,
+        status: 410,
+      });
+      expect(response.headers.get("content-type")).toBe(
+        "text/html; charset=utf-8",
+      );
+      expect(response.headers.get("cache-control")).toBe(CacheControl.page);
+      const html = await response.text();
+      expect(html).toContain('<a href="/">Go to the home page</a>');
+      expect(html).toContain('<meta name="robots" content="noindex">');
+    }
   });
 
   it("names a retired folder by its own path, never its route's", async (url) => {

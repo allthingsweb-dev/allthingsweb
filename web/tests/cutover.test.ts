@@ -84,7 +84,7 @@ describe("the cutover's redirect", () => {
     for (const [path, method] of [
       ["/mcp", "POST"],
       ["/api/v1/events?limit=3", "POST"],
-      ["/api/v1/admin/raw/talks", "DELETE"],
+      ["/api/v1/speakers", "DELETE"],
       [`/${longSlugs.past}`, "POST"],
       ["/speakers", "OPTIONS"],
     ] as const) {
