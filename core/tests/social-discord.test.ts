@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { Cause, Effect, Exit, Layer, Option } from "effect";
 import { approvalToken } from "../src/approval.ts";
 import { Promo } from "../src/promo/promo.ts";
+import type { SqlClient } from "effect/sql/SqlClient";
 import { DiscordAnnounce } from "../src/social/announce-discord.ts";
 import { Discord } from "../src/social/discord.ts";
 import { SentPosts } from "../src/social/sent-posts.ts";
@@ -44,6 +45,7 @@ const run = async <A, E>(
     readonly message?: ReadonlyArray<Reply>;
   },
   env: Record<string, string> = { DISCORD_WEBHOOK_URL: webhookUrl },
+  records: Layer.Layer<SentPosts, never, SqlClient> = SentPosts.layer,
 ) => {
   // GET the webhook reads it, POST ?wait=true sends, GET …/messages/<id> reads one back.
   const fake = fakeLumaBy(
@@ -63,7 +65,7 @@ const run = async <A, E>(
     Layer.provide(
       Layer.mergeAll(
         Promo.layer,
-        SentPosts.layer,
+        records,
         Discord.layer.pipe(
           Layer.provide(Layer.mergeAll(fake.layer, configFrom(env))),
         ),
@@ -400,6 +402,41 @@ describe("sending", () => {
     );
     const abandoned = await run((a) => a.release(slug, "dayOf"), {});
     expect(value(abandoned.exit).status).toBe("sending");
+    expect(await recorded()).toEqual([]);
+  });
+
+  test("a send whose claim is let go of before it goes out sends nothing", async () => {
+    const approved = await token();
+    // Between the claim and the send, an organizer lets go of it.
+    const releasedAfterClaim = Layer.effect(
+      SentPosts,
+      Effect.gen(function* () {
+        const real = yield* SentPosts;
+        return SentPosts.of({
+          ...real,
+          claim: (channel, at, moment, claimToken) =>
+            real
+              .claim(channel, at, moment, claimToken)
+              .pipe(
+                Effect.tap(() =>
+                  Effect.promise(() =>
+                    db.exec("DELETE FROM planning.sent_posts"),
+                  ),
+                ),
+              ),
+        });
+      }),
+    ).pipe(Layer.provide(SentPosts.layer));
+    const { exit, sends } = await run(
+      (a) => a.send(slug, "dayOf", approved),
+      { send: [message("1300000000000000001")] },
+      { DISCORD_WEBHOOK_URL: webhookUrl },
+      releasedAfterClaim,
+    );
+    expect(reason(exit)).toBe(
+      "The claim on this send was let go of before it went out: nothing was sent. Read it again with --dry-run.",
+    );
+    expect(sends).toEqual([]);
     expect(await recorded()).toEqual([]);
   });
 
