@@ -33,7 +33,7 @@ const rules: ReadonlyArray<readonly [string, RegExp]> = [
   ["evenings' order", /ORDER BY\s+[a-z_.]*start_date\b/],
   [
     "an evening's lineup",
-    /ORDER BY\s+(?:et\.position|ts\.created_at|es\.created_at|array_position\(\s*ARRAY\['organizer')/,
+    /ORDER BY\s+(?:et\.position|ts\.created_at|es\.created_at|ep\.(?:role|position)|array_position\(\s*ARRAY\['organizer')/,
   ],
 ];
 
@@ -129,6 +129,12 @@ describe("what stating a rule looks like", () => {
       "an evening's lineup",
     ],
     ["json_agg(s.name ORDER BY es.created_at, s.id)", "an evening's lineup"],
+    ["ORDER BY ep.position, ep.created_at, p.id", "an evening's lineup"],
+    ["ORDER BY ep.role, ep.position", "an evening's lineup"],
+    [
+      "ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], ep.role)",
+      "an evening's lineup",
+    ],
   ])("%s states %s", (sql, name) => {
     expect(states(sql)).toEqual([name]);
   });
