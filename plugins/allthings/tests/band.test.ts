@@ -105,12 +105,15 @@ describe("the next evening's band", () => {
     const w = world(on, { site: { upcoming: [SUMMARY] }, now: AT.today });
     await $.session.start(SESSION);
     await w.clock.advance(1);
-    const ui = await $.ui.mount({ ...BAND, surface: "terminal" });
-    expect(textOf(await ui.find({ key: "band" }))).toStartWith(
+    const before = await $.ui.mount({ ...BAND, surface: "terminal" });
+    expect(textOf(await before.find({ key: "band" }))).toStartWith(
       "tonight · in 4h 30m · allthings/agent-setups_",
     );
+    // Off screen while the half hour passes, so its blinks draw nothing.
+    await before.unmount();
     await w.clock.advance(30 * MINUTE);
-    expect(textOf(await ui.find({ key: "band" }))).toStartWith(
+    const after = await $.ui.mount({ ...BAND, surface: "terminal" });
+    expect(textOf(await after.find({ key: "band" }))).toStartWith(
       "tonight · in 4h · allthings/agent-setups_",
     );
   });
