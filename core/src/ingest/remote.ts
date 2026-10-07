@@ -27,10 +27,17 @@ export const profilePhotoHosts: ReadonlySet<string> = new Set([
   "media.licdn.com",
 ]);
 
-/** Where images of posts about events come from: X's, Bluesky's and LinkedIn's CDNs. */
+/**
+ * Where images of posts about events come from: X's, Bluesky's and
+ * LinkedIn's CDNs. A Bluesky video post's image is its thumbnail on
+ * video.bsky.app, which redirects (302) to the same path on
+ * video.cdn.bsky.app; every redirect is checked against this list, so both.
+ */
 export const postImageHosts: ReadonlySet<string> = new Set([
   "pbs.twimg.com",
   "cdn.bsky.app",
+  "video.bsky.app",
+  "video.cdn.bsky.app",
   "media.licdn.com",
 ]);
 
