@@ -78,7 +78,7 @@ describe("MCP client", () => {
       ExitCode.NotFound,
     );
     expect(notFound.message).toBe(
-      `No published event has the slug "x". Run "atw events --all" to find one.`,
+      `No published event has the slug "x". Run "allthings events --all" to find one.`,
     );
 
     const down = respondWith({

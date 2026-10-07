@@ -39,7 +39,7 @@ jobs:
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 📥 Download CLI deps
-        working-directory: atw-cli
+        working-directory: cli
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
       - name: 📥 Download infra deps

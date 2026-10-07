@@ -211,19 +211,19 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
   // The public API and MCP
   {
     pattern: "/api/v1/events",
-    source: "app route, atw-cli",
+    source: "app route, the CLI",
     example: "/api/v1/events",
     worker: json,
   },
   {
     pattern: "/api/v1/events/[id]",
-    source: "app route, atw-cli",
+    source: "app route, the CLI",
     example: "/api/v1/events/e0000000-0000-4000-8000-000000000503",
     worker: json,
   },
   {
     pattern: "/api/v1/speakers",
-    source: "app route, atw-cli",
+    source: "app route, the CLI",
     example: "/api/v1/speakers",
     worker: json,
   },

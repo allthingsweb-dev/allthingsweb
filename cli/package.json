@@ -1,11 +1,12 @@
 {
-  "name": "atw-cli",
-  "version": "2.0.0-alpha.1",
-  "description": "All Things Web from your terminal and your agents.",
+  "name": "allthings",
+  "version": "2.0.0-alpha.2",
+  "description": "all things from your terminal and your agents: the evenings, who is on stage and how to get in.",
   "type": "module",
   "private": true,
   "bin": {
-    "atw": "./src/index.ts"
+    "allthings": "./src/index.ts",
+    "atw": "./src/atw.ts"
   },
   "scripts": {
     "fmt": "prettier --write .",

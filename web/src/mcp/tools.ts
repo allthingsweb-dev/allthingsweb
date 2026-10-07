@@ -17,7 +17,7 @@ import { community } from "./community.ts";
 /**
  * The public MCP tools, as app/src/lib/mcp/tools.ts declares them: the same
  * names, titles, descriptions, annotations, input schemas and error texts,
- * because agents and the CLI (atw-cli) rely on them.
+ * because agents and the CLI (cli/, `allthings`) rely on them.
  *
  * Input schemas stay in zod, the MCP SDK's own schema library and so already
  * in the bundle: they are what clients see in tools/list and they word the
