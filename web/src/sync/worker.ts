@@ -28,11 +28,11 @@ import {
   mediaBucket,
   pictures,
   type R2BucketBinding,
+  uploadWorkerBucket,
 } from "./bindings.ts";
 import {
   runSync,
   type SyncLimits,
-  type SyncImages,
   syncLimits,
   SyncLog,
   type SyncMode,
@@ -50,6 +50,9 @@ import {
  * - `HYPERDRIVE`: production's database as `site_sync`, from `NEON_SYNC_URL`.
  * - `MEDIA` and `MEDIA_ORIGIN`: the media bucket and where it is served.
  * - `IMAGES`: Cloudflare's Images binding.
+ * - `SYNC_IMAGES`: where images are stored (`SyncImages`): "bucket" through
+ *   `MEDIA`, or "upload" through the upload Worker at `MEDIA_UPLOAD_URL`,
+ *   with `MEDIA_UPLOAD_TOKEN` (secret), both then required.
  * - `LUMA_API_KEY` (secret): Luma's API, for hidden venues, drafts,
  *   descriptions and covers.
  * - `X_BEARER_TOKEN` (secret): X's API, for follower counts and the post
@@ -59,8 +62,6 @@ import {
  * - `SYNC_MODE`: "write", or "dry-run" (and anything else) to write nothing.
  * - `SYNC_PLAN`: "paid" for the app's limits, or "free" (and anything else)
  *   for runs small enough for the Workers Free plan.
- * - `SYNC_IMAGES`: "store" once media.allthings.dev serves this account's
- *   bucket, or "wait" (and anything else) to store no images yet.
  * - `LUMA_CALENDAR_API_ID`: the Luma calendar to sync; all things' own
  *   (`allThingsWebCalendarId`, core/src/luma/feed.ts) by default.
  * - `X_MAX_RESULTS`: how many posts each X search may return.
@@ -78,7 +79,9 @@ export interface SyncEnv {
   readonly X_BEARER_TOKEN: string;
   readonly SYNC_MODE?: string;
   readonly SYNC_PLAN?: string;
-  readonly SYNC_IMAGES?: string;
+  readonly SYNC_IMAGES: string;
+  readonly MEDIA_UPLOAD_URL?: string;
+  readonly MEDIA_UPLOAD_TOKEN?: string;
 }
 
 /** The mode `env` asks for; anything unrecognized writes nothing. */
@@ -89,10 +92,25 @@ export const modeOf = (env: { readonly SYNC_MODE?: unknown }): SyncMode =>
 export const limitsOf = (env: { readonly SYNC_PLAN?: unknown }): SyncLimits =>
   env.SYNC_PLAN === "paid" ? syncLimits.paid : syncLimits.free;
 
-/** Whether `env` lets a run store images; anything unrecognized waits. */
+/**
+ * Where a run stores images. media.allthings.dev serves the bucket of the
+ * account where allthings.dev is active, and every image is recorded at its
+ * URL there, so a run stores into that bucket:
+ * - "bucket": through this Worker's own `MEDIA` binding, once the domain is
+ *   active in this Worker's account.
+ * - "upload": until then, through the upload Worker beside that bucket
+ *   (infra/src/upload-worker.ts), as the app and core's scripts store.
+ * infra/src/sync.ts (`syncPlan`) decides it at deploy time.
+ */
+export type SyncImages = "bucket" | "upload";
+
+/** Where `env` says images go, or undefined: a run then doesn't start. */
 export const imagesOf = (env: {
   readonly SYNC_IMAGES?: unknown;
-}): SyncImages => (env.SYNC_IMAGES === "store" ? "store" : "wait");
+}): SyncImages | undefined =>
+  env.SYNC_IMAGES === "bucket" || env.SYNC_IMAGES === "upload"
+    ? env.SYNC_IMAGES
+    : undefined;
 
 const isText = (value: unknown): value is string =>
   typeof value === "string" && value.trim() !== "";
@@ -131,6 +149,19 @@ const required: ReadonlyArray<
   ["MEDIA", (env) => isBinding(env["MEDIA"], "put", "delete")],
   ["MEDIA_ORIGIN", (env) => isText(env["MEDIA_ORIGIN"])],
   ["IMAGES", (env) => isBinding(env["IMAGES"], "info", "input")],
+  ["SYNC_IMAGES", (env) => imagesOf(env) !== undefined],
+  // Only where images go through the upload Worker.
+  [
+    "MEDIA_UPLOAD_URL",
+    (env) =>
+      imagesOf(env) !== "upload" ||
+      (isText(env["MEDIA_UPLOAD_URL"]) &&
+        URL.parse(env["MEDIA_UPLOAD_URL"])?.protocol === "https:"),
+  ],
+  [
+    "MEDIA_UPLOAD_TOKEN",
+    (env) => imagesOf(env) !== "upload" || isText(env["MEDIA_UPLOAD_TOKEN"]),
+  ],
 ];
 
 /**
@@ -168,6 +199,22 @@ export const syncBindings = (
     : Result.succeed(env as SyncEnv & Readonly<Record<string, unknown>>);
 };
 
+/** The bucket a run stores images into, as `SYNC_IMAGES` says. */
+const bucketOf = (
+  env: SyncEnv & Readonly<Record<string, unknown>>,
+  fetch: typeof globalThis.fetch,
+) =>
+  imagesOf(env) === "upload" &&
+  env.MEDIA_UPLOAD_URL !== undefined &&
+  env.MEDIA_UPLOAD_TOKEN !== undefined
+    ? uploadWorkerBucket(
+        env.MEDIA_UPLOAD_URL,
+        env.MEDIA_UPLOAD_TOKEN,
+        env.MEDIA_ORIGIN,
+        fetch,
+      )
+    : mediaBucket(env.MEDIA, env.MEDIA_ORIGIN);
+
 /**
  * Everything a run needs, from the Worker's bindings. The database pool
  * belongs to the run and closes with it: workerd ties a socket to the
@@ -204,7 +251,7 @@ export const syncLayer = (
         FetchHttpClient.layer.pipe(
           Layer.provide(Layer.succeed(FetchHttpClient.Fetch, fetch)),
         ),
-        Layer.succeed(MediaBucket, mediaBucket(env.MEDIA, env.MEDIA_ORIGIN)),
+        Layer.succeed(MediaBucket, bucketOf(env, fetch)),
         Layer.succeed(Pictures, pictures(env.IMAGES)),
         ConfigProvider.layer(ConfigProvider.fromUnknown(env)),
       ),
@@ -237,9 +284,7 @@ export const scheduledRun = (
         });
         return yield* bindings.failure;
       }
-      return yield* runSync(modeOf(env), limitsOf(env), {
-        images: imagesOf(env),
-      }).pipe(
+      return yield* runSync(modeOf(env), limitsOf(env)).pipe(
         Effect.provide(syncLayer(bindings.success, fetch)),
         Effect.scoped,
       );

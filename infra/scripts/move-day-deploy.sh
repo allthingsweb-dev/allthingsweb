@@ -19,8 +19,13 @@ NEON_READER_URL=$(op read "op://allthings/allthings site_reader/credential")
 NEON_SYNC_URL=$(op read "op://allthings/allthings site_sync/credential")
 LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential")
 X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token")
+# The plan below runs while the zone is pending, when the Sync Worker
+# stores images through the old account's upload Worker.
+MEDIA_UPLOAD_URL=$(op read "op://allthings/allthings media upload/url")
+MEDIA_UPLOAD_TOKEN=$(op read "op://allthings/allthings media upload/token")
 : "${NEON_READER_URL:?empty}" "${NEON_SYNC_URL:?empty}" "${LUMA_API_KEY:?empty}" "${X_BEARER_TOKEN:?empty}"
-export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN
+: "${MEDIA_UPLOAD_URL:?empty}" "${MEDIA_UPLOAD_TOKEN:?empty}"
+export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN MEDIA_UPLOAD_URL MEDIA_UPLOAD_TOKEN
 
 # Prove the allthings profile can still deploy before waiting on it.
 bun run plan --stage prod --profile allthings >/dev/null

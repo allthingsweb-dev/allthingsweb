@@ -52,19 +52,6 @@ import { Clock, Context, DateTime, Duration, Effect, Exit } from "effect";
 export type SyncMode = "write" | "dry-run";
 
 /**
- * Whether a run that writes stores images: "store", or "wait" while
- * media.allthings.dev doesn't serve the bucket this Worker stores into (the
- * allthings account's, before the domain moves in). An image stored then
- * would be recorded at a URL that answers 404 until the move. Waiting
- * costs nothing: the image steps only fill in what is missing, so the first
- * run that stores catches up. (infra/src/sync.ts decides it, `syncPlan`.)
- */
-export type SyncImages = "store" | "wait";
-
-const imagesWait =
-  "media.allthings.dev doesn't serve this account's bucket yet: images wait for the deploy after the domain moves";
-
-/**
  * How much one run may do. The app's windows suit the Workers Paid plan
  * (a cron run there gets up to 15 minutes and 10,000 subrequests). On the
  * Free plan a run gets 10 ms of CPU and 50 subrequests to the internet, so
@@ -319,7 +306,7 @@ const descriptions = (
  * A run that writes, as the app's cron does, and fills in hidden venues,
  * gives short links and imports descriptions.
  */
-const write = (limits: SyncLimits, images: SyncImages) =>
+const write = (limits: SyncLimits) =>
   Effect.gen(function* () {
     const sync = yield* LumaSync;
     const ingest = yield* ImageIngest;
@@ -361,62 +348,56 @@ const write = (limits: SyncLimits, images: SyncImages) =>
 
     const photosLeft = yield* windowLeft(limits.photos.window);
     steps["photos"] =
-      images === "wait"
-        ? yield* skipped("photos", imagesWait)
-        : photosLeft <= 0
-          ? yield* skipped("photos", "no time left")
-          : yield* step(
-              "photos",
-              ingest
-                .profilePhotos({
-                  budget: photosLeft,
-                  ...(limits.photos.maxItems === undefined
-                    ? {}
-                    : { maxItems: limits.photos.maxItems }),
-                })
-                .pipe(Effect.map((result) => ({ ...result }))),
-            );
+      photosLeft <= 0
+        ? yield* skipped("photos", "no time left")
+        : yield* step(
+            "photos",
+            ingest
+              .profilePhotos({
+                budget: photosLeft,
+                ...(limits.photos.maxItems === undefined
+                  ? {}
+                  : { maxItems: limits.photos.maxItems }),
+              })
+              .pipe(Effect.map((result) => ({ ...result }))),
+          );
 
     const postsLeft = yield* windowLeft(limits.posts.window);
     steps["posts"] =
-      images === "wait"
-        ? yield* skipped("posts", imagesWait)
-        : postsLeft <= 0
-          ? yield* skipped("posts", "no time left")
-          : yield* step(
-              "posts",
-              ingest
-                .postImages({
-                  budget: postsLeft,
-                  ...(limits.posts.maxItems === undefined
-                    ? {}
-                    : { maxItems: limits.posts.maxItems }),
-                })
-                .pipe(Effect.map((result) => ({ ...result }))),
-            );
+      postsLeft <= 0
+        ? yield* skipped("posts", "no time left")
+        : yield* step(
+            "posts",
+            ingest
+              .postImages({
+                budget: postsLeft,
+                ...(limits.posts.maxItems === undefined
+                  ? {}
+                  : { maxItems: limits.posts.maxItems }),
+              })
+              .pipe(Effect.map((result) => ({ ...result }))),
+          );
 
     const now = yield* Clock.currentTimeMillis;
     const coversLeft = startBy - now;
     const cancelLeft = started + Duration.toMillis(limits.cancelAfter) - now;
     steps["covers"] =
-      images === "wait"
-        ? yield* skipped("covers", imagesWait)
-        : coversLeft <= 0
-          ? yield* skipped("covers", "no time left")
-          : yield* step(
-              "covers",
-              ingest
-                .covers({
-                  budget: coversLeft,
-                  ...(limits.covers.maxItems === undefined
-                    ? {}
-                    : { maxItems: limits.covers.maxItems }),
-                })
-                .pipe(
-                  Effect.map((result) => ({ ...result })),
-                  Effect.timeout(Math.max(0, cancelLeft)),
-                ),
-            );
+      coversLeft <= 0
+        ? yield* skipped("covers", "no time left")
+        : yield* step(
+            "covers",
+            ingest
+              .covers({
+                budget: coversLeft,
+                ...(limits.covers.maxItems === undefined
+                  ? {}
+                  : { maxItems: limits.covers.maxItems }),
+              })
+              .pipe(
+                Effect.map((result) => ({ ...result })),
+                Effect.timeout(Math.max(0, cancelLeft)),
+              ),
+          );
 
     steps["descriptions"] = yield* step(
       "descriptions",
@@ -572,21 +553,12 @@ const dryRun = (limits: SyncLimits) =>
     return steps;
   });
 
-/**
- * One run in `mode`, within `limits`, logged and reported. Never fails.
- * `images` is whether a run that writes stores images (see SyncImages).
- */
-export const runSync = (
-  mode: SyncMode,
-  limits: SyncLimits,
-  options: { readonly images: SyncImages },
-) =>
+/** One run in `mode`, within `limits`, logged and reported. Never fails. */
+export const runSync = (mode: SyncMode, limits: SyncLimits) =>
   Effect.gen(function* () {
     const started = yield* Clock.currentTimeMillis;
     yield* log({ step: "start", mode });
-    const steps = yield* mode === "write"
-      ? write(limits, options.images)
-      : dryRun(limits);
+    const steps = yield* mode === "write" ? write(limits) : dryRun(limits);
     const report: SyncReport = {
       mode,
       ok: Object.values(steps).every((outcome) => outcome.status !== "failed"),

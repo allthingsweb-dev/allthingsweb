@@ -93,21 +93,42 @@ export const WriterDatabase = Cloudflare.Hyperdrive.Connection("Writer", {
 });
 
 /**
- * Whether the sync stores images. Each one is recorded at its URL on
+ * Where the sync stores images. Each one is recorded at its URL on
  * media.allthings.dev, which serves the bucket of the account where
- * allthings.dev is active. Until the domain moves in, that is the old
- * account's bucket, which never gets what this account's Worker stores, so
- * an image stored now would be a broken link until the move. So "wait": the
- * image steps are skipped, and since they only fill in what is missing, the
- * first run after the move-day deploy (then "store") catches up.
+ * allthings.dev is active. So:
+ * - "upload" until the domain moves in: through the upload Worker beside
+ *   that bucket, in the account that still has the domain, as the app and
+ *   core's scripts store (MEDIA_UPLOAD_URL and MEDIA_UPLOAD_TOKEN).
+ * - "bucket" once it's active here: through the Sync Worker's own `MEDIA`
+ *   binding. The move-day deploy switches it.
+ * Either way no image waits, however long the move takes.
  */
-export type SyncImages = "store" | "wait";
+export type SyncImages = "bucket" | "upload";
+
+/**
+ * The upload Worker's URL, from the deploy's environment: HTTPS, and never
+ * printed with anything but the variable's name.
+ */
+export const uploadUrl = Config.String("MEDIA_UPLOAD_URL").pipe(
+  Config.mapEffect((value) =>
+    URL.parse(value.trim())?.protocol === "https:"
+      ? Effect.succeed(value.trim())
+      : Effect.fail(
+          new Config.ConfigError(
+            new SourceError({
+              message: "MEDIA_UPLOAD_URL is not an https URL",
+            }),
+          ),
+        ),
+  ),
+);
 
 /**
  * Whether prod runs the Sync Worker in the deploying account, and how:
  * only in the allthings account, whether allthings.dev is pending or active
  * there (a Worker with only a Cron Trigger needs no domain), storing images
- * once the zone is active. No other account ever runs it, so there is only
+ * through the upload Worker until the zone is active, then into its own
+ * bucket. No other account ever runs it, so there is only
  * ever one Sync Worker.
  */
 export const syncPlan = (
@@ -116,7 +137,7 @@ export const syncPlan = (
 ): { readonly images: SyncImages } | undefined =>
   accountId !== ALLTHINGS_ACCOUNT
     ? undefined
-    : { images: zone?.active === true ? "store" : "wait" };
+    : { images: zone?.active === true ? "bucket" : "upload" };
 
 /**
  * The Sync Worker. Its logical id stays "Sync" whatever `images` is, so
@@ -140,5 +161,12 @@ export const makeSync = (images: SyncImages) =>
       SYNC_MODE: SYNC.mode,
       SYNC_PLAN: SYNC.plan,
       SYNC_IMAGES: images,
+      // Only while images go through the upload Worker: required then.
+      ...(images === "upload"
+        ? {
+            MEDIA_UPLOAD_URL: uploadUrl,
+            MEDIA_UPLOAD_TOKEN: requiredSecret("MEDIA_UPLOAD_TOKEN"),
+          }
+        : {}),
     },
   });
