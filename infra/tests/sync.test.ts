@@ -9,8 +9,10 @@ import {
   cronsFor,
   requiredSecret,
   SYNC,
+  syncPlan,
   workerWrites,
 } from "../src/sync.ts";
+import { ALLTHINGS_ACCOUNT } from "../src/media.ts";
 
 /** What `Writer` makes of `NEON_SYNC_URL` set to `value` (or unset). */
 const write = (value?: string) =>
@@ -122,5 +124,28 @@ describe("requiredSecret", () => {
     const blank = secret("   ");
     if (Result.isSuccess(blank)) throw new Error("accepted a blank key");
     expect(blank.failure.message).toContain("LUMA_API_KEY is empty");
+  });
+});
+
+describe("syncPlan", () => {
+  const pending = { id: "z", active: false };
+  const active = { id: "z", active: true };
+
+  test("runs the Sync Worker in the allthings account before the domain moves in, without storing images", () => {
+    expect(syncPlan(ALLTHINGS_ACCOUNT, undefined)).toEqual({ images: "wait" });
+    expect(syncPlan(ALLTHINGS_ACCOUNT, pending)).toEqual({ images: "wait" });
+  });
+
+  test("stores images once allthings.dev is active there, so media.allthings.dev serves them", () => {
+    expect(syncPlan(ALLTHINGS_ACCOUNT, active)).toEqual({ images: "store" });
+  });
+
+  test("never runs it in another account, whatever its zone, so there is one Sync Worker", () => {
+    expect(
+      syncPlan("0123456789abcdef0123456789abcdef", active),
+    ).toBeUndefined();
+    expect(
+      syncPlan("0123456789abcdef0123456789abcdef", undefined),
+    ).toBeUndefined();
   });
 });

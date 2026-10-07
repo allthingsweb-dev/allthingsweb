@@ -32,6 +32,7 @@ import {
 import {
   runSync,
   type SyncLimits,
+  type SyncImages,
   syncLimits,
   SyncLog,
   type SyncMode,
@@ -58,6 +59,8 @@ import {
  * - `SYNC_MODE`: "write", or "dry-run" (and anything else) to write nothing.
  * - `SYNC_PLAN`: "paid" for the app's limits, or "free" (and anything else)
  *   for runs small enough for the Workers Free plan.
+ * - `SYNC_IMAGES`: "store" once media.allthings.dev serves this account's
+ *   bucket, or "wait" (and anything else) to store no images yet.
  * - `LUMA_CALENDAR_API_ID`: the Luma calendar to sync; all things' own
  *   (`allThingsWebCalendarId`, core/src/luma/feed.ts) by default.
  * - `X_MAX_RESULTS`: how many posts each X search may return.
@@ -75,6 +78,7 @@ export interface SyncEnv {
   readonly X_BEARER_TOKEN: string;
   readonly SYNC_MODE?: string;
   readonly SYNC_PLAN?: string;
+  readonly SYNC_IMAGES?: string;
 }
 
 /** The mode `env` asks for; anything unrecognized writes nothing. */
@@ -84,6 +88,11 @@ export const modeOf = (env: { readonly SYNC_MODE?: unknown }): SyncMode =>
 /** The limits `env` asks for; anything unrecognized gets the Free plan's. */
 export const limitsOf = (env: { readonly SYNC_PLAN?: unknown }): SyncLimits =>
   env.SYNC_PLAN === "paid" ? syncLimits.paid : syncLimits.free;
+
+/** Whether `env` lets a run store images; anything unrecognized waits. */
+export const imagesOf = (env: {
+  readonly SYNC_IMAGES?: unknown;
+}): SyncImages => (env.SYNC_IMAGES === "store" ? "store" : "wait");
 
 const isText = (value: unknown): value is string =>
   typeof value === "string" && value.trim() !== "";
@@ -228,7 +237,9 @@ export const scheduledRun = (
         });
         return yield* bindings.failure;
       }
-      return yield* runSync(modeOf(env), limitsOf(env)).pipe(
+      return yield* runSync(modeOf(env), limitsOf(env), {
+        images: imagesOf(env),
+      }).pipe(
         Effect.provide(syncLayer(bindings.success, fetch)),
         Effect.scoped,
       );

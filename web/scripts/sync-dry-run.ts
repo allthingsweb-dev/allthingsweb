@@ -70,7 +70,7 @@ const untouched = Layer.mergeAll(
 );
 
 const report = await Effect.runPromise(
-  runSync("dry-run", syncLimits.paid).pipe(
+  runSync("dry-run", syncLimits.paid, { images: "wait" }).pipe(
     Effect.provide(
       Layer.mergeAll(
         LumaSync.layer,
