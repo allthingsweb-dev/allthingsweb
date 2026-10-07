@@ -568,6 +568,38 @@ DATABASE_URL=… bun run hosts             # write it, in one transaction
 
 Applying is safe to repeat; a column the file doesn't name is left as it is.
 
+### Their logos
+
+`bun run hosts logo` sets a company's two square logos from local files: one
+for dark backgrounds (`square_logo_dark`) and one for light
+(`square_logo_light`). The company is named by its exact name or its id.
+Each file is encoded as the photos are (`scripts/encode.ts`: upright, at most
+4096 pixels on its long edge, JPEG, or WebP where it is see-through, every bit
+of metadata stripped). It is stored through the upload Worker and recorded
+in `images`, with the old admin's key and alt text:
+`sponsors/<name>-<dark|light>-<image id>.<jpg|webp>` and "Acme dark logo".
+`src/host-logos.ts` sets them through `src/image-columns.ts`.
+
+- **Deterministic.** The image id comes from the column, the company and the
+  file's SHA-256. So the dry run names the exact id, key and URL, and setting
+  the same file again changes nothing.
+- **`--dry-run`** encodes and reads, and prints exactly what would change and
+  an approval token for it. It stores and writes nothing, and needs no upload
+  credentials.
+- **`--approve <token>`** works the change out again and refuses before
+  storing anything unless it hashes to the token. It stores each new object,
+  checks the media origin serves exactly those bytes, and then, in one
+  transaction with the company and the logos it replaces locked, checks the
+  token once more and writes.
+- **A replaced logo** loses its `images` row only when nothing else points at
+  it (`imageReferences`); otherwise the output names what still uses it. Its
+  object stays in the bucket.
+
+```sh
+DATABASE_URL=… bun run hosts logo Acme --dark acme-dark.png --light acme-light.png --dry-run
+DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run hosts logo Acme --dark acme-dark.png --light acme-light.png --approve <token>
+```
+
 ## Promotion drafts
 
 `src/promo/` drafts an evening's promotion from its record, in the brand's

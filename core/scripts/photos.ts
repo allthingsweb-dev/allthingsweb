@@ -1,6 +1,6 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { basename } from "node:path";
-import { Config, Console, Effect, Option, Redacted } from "effect";
+import { Console, Effect, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import * as Database from "../src/database.ts";
 import {
@@ -16,8 +16,9 @@ import {
   type Replaced,
   replacePhoto,
 } from "../src/photos.ts";
-import { encodeKey, type Media } from "../src/reencode.ts";
 import { encode, placeholder } from "./encode.ts";
+import { mediaOrigin as origin, noMedia, uploadMedia } from "./media.ts";
+import { shellWord } from "./shell.ts";
 
 /**
  * An evening's photos (src/photos.ts), in the Postgres at DATABASE_URL.
@@ -56,45 +57,6 @@ import { encode, placeholder } from "./encode.ts";
  * come from the environment only; .env files are not read. Pass them
  * without printing them, as scripts/reencode-originals.ts shows.
  */
-
-const origin = "https://media.allthings.dev";
-
-/** The media origin, and the upload Worker behind it, over HTTP. */
-const httpMedia = (uploadUrl: string, token: Redacted.Redacted): Media => ({
-  size: async (url) => {
-    const response = await fetch(url, { method: "HEAD" });
-    if (response.status === 404) return undefined;
-    if (!response.ok) throw new Error(`HEAD ${url}: ${response.status}`);
-    const length = response.headers.get("content-length");
-    if (length === null) throw new Error(`HEAD ${url}: no content-length`);
-    return Number(length);
-  },
-  get: async (url) => {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`GET ${url}: ${response.status}`);
-    return new Uint8Array(await response.arrayBuffer());
-  },
-  put: async (key, bytes, contentType) => {
-    const response = await fetch(`${uploadUrl}/${encodeKey(key)}`, {
-      method: "PUT",
-      headers: {
-        authorization: `Bearer ${Redacted.value(token)}`,
-        "content-type": contentType,
-      },
-      body: bytes,
-    });
-    if (response.status === 409) return "exists";
-    if (!response.ok) throw new Error(`PUT ${key}: ${response.status}`);
-    return "created";
-  },
-});
-
-/** A dry run never reaches the bucket. */
-const noMedia: Media = {
-  size: () => Promise.reject(new Error("a dry run stores nothing")),
-  get: () => Promise.reject(new Error("a dry run stores nothing")),
-  put: () => Promise.reject(new Error("a dry run stores nothing")),
-};
 
 const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
 
@@ -149,12 +111,7 @@ const add = Command.make(
         });
         photos.push({ name: basename(path), bytes, alt: alt[index]! });
       }
-      const media = dryRun
-        ? noMedia
-        : httpMedia(
-            (yield* Config.String("MEDIA_UPLOAD_URL")).replace(/\/+$/, ""),
-            yield* Config.Redacted("MEDIA_UPLOAD_TOKEN"),
-          );
+      const media = dryRun ? noMedia : yield* uploadMedia;
       const results = yield* addPhotos(slug, photos, {
         media,
         encode,
@@ -226,12 +183,7 @@ const replace = Command.make(
         catch: (cause) =>
           new Error(`${file} could not be read: ${String(cause)}`),
       });
-      const media = dryRun
-        ? noMedia
-        : httpMedia(
-            (yield* Config.String("MEDIA_UPLOAD_URL")).replace(/\/+$/, ""),
-            yield* Config.Redacted("MEDIA_UPLOAD_TOKEN"),
-          );
+      const media = dryRun ? noMedia : yield* uploadMedia;
       const replaced = yield* replacePhoto(
         slug,
         parsed,
@@ -350,7 +302,7 @@ const remove = Command.make(
             : [
                 ...removalLines(removal, false),
                 `approval token: ${token}`,
-                `Nothing was changed. To make exactly this change: bun run photos remove ${slug} ${target} --approve ${token}`,
+                `Nothing was changed. To make exactly this change: bun run photos remove ${shellWord(slug)} ${shellWord(target)} --approve ${token}`,
               ].join("\n"),
         );
       }
