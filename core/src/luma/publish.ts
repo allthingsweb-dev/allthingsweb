@@ -208,7 +208,7 @@ const make = Effect.gen(function* () {
 
   const OwnDescription = Schema.Array(
     Schema.Struct({
-      shared: Schema.Boolean,
+      curation: Schema.String,
       talks: Schema.Int,
       pitch: Schema.NullOr(Schema.String),
     }),
@@ -227,7 +227,7 @@ const make = Effect.gen(function* () {
       // dropped (an evening has at most one idea).
       const [own] = yield* sql`
         SELECT
-          e.curation = 'shared' AS shared,
+          e.curation,
           (SELECT count(*) FROM event_talks et WHERE et.event_id = e.id)::int AS talks,
           (SELECT i.pitch FROM planning.ideas i
             WHERE i.event_id = e.id AND i.status <> 'dropped') AS pitch
@@ -240,7 +240,7 @@ const make = Effect.gen(function* () {
       // refuses it, idea or not.
       if (
         own !== undefined &&
-        !own.shared &&
+        own.curation === "ours" &&
         own.talks === 0 &&
         own.pitch !== null
       ) {
