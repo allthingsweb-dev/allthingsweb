@@ -109,10 +109,10 @@ From activation, media.allthings.dev, allthings.dev and www are unserved until P
 
 From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself.
 
-1. **Wait for activation, then deploy at once.** Start this before the move is submitted. It reads the deploy's secrets and stops if any is missing, checks that the `allthings` profile can still plan, then checks the zone every 10 seconds and runs the prod deploy (now "serve") once it is active. A failing check is reported and, five times in a row, stops it, as does any status other than pending or active:
+1. **Wait for activation, then deploy at once.** Start this before the move is submitted. It runs in Bash whatever your shell is, since it uses Bash syntax. It reads the deploy's secrets and stops if any is missing, checks that the `allthings` profile can still plan, then checks the zone every 10 seconds and runs the prod deploy (now "serve") once it is active. A failing check is reported and, five times in a row, stops it, as does any status other than pending or active:
 
-   ```sh
-   (
+   ```bash
+   bash <<'MOVE'
      set -euo pipefail
      # Read the secrets first, so nothing waits on 1Password at activation.
      # A failed read stops here, and so does an empty value.
@@ -146,7 +146,7 @@ From activation until step 1's deploy, media.allthings.dev, allthings.dev and ww
        fi
      done
      bun run deploy --stage prod --profile allthings
-   )
+   MOVE
    ```
 
    The deploy brings up:
