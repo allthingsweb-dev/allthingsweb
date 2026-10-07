@@ -696,6 +696,43 @@ describe("the report", () => {
     ).toBe(idea.id);
   });
 
+  test("a draft from an idea is checked as the idea's kind of evening", async () => {
+    await db.exec(`UPDATE events SET start_date = '2026-10-28T00:30:00Z', end_date = '2026-10-28T03:30:00Z',
+      street_address = '201 Spear St', full_address = '201 Spear St, San Francisco, CA 94105'
+      WHERE slug = '2026-09-01-draft-night';
+      DELETE FROM event_talks WHERE event_id = (SELECT id FROM events WHERE slug = '2026-09-01-draft-night');`);
+    const slug = "2026-09-01-draft-night";
+    const asTalks = await report({ _tag: "Event", slug });
+    expect(asTalks.subject).toMatchObject({ program: "talks" });
+    expect(kinds(asTalks.checks)).toContain("blocker talks");
+
+    const idea = await plan((p) =>
+      p.addIdea({
+        title: "Made-up quiz",
+        pitch: "Rounds.",
+        program: "social",
+        status: "drafting",
+        eventSlug: slug,
+      }),
+    );
+    const asSocial = await report({ _tag: "Event", slug });
+    expect(asSocial.subject).toMatchObject({ program: "social" });
+    expect(kinds(asSocial.checks)).not.toContain("blocker talks");
+    expect(asSocial.suggestions.speakers.lineup).toBe(false);
+    // The event's own program is unchanged: publish applies the idea's.
+    const [row] = (
+      await db.query<{ program: string }>(
+        `SELECT program FROM events WHERE slug = '${slug}'`,
+      )
+    ).rows;
+    expect(row?.program).toBe("talks");
+
+    await plan((p) => p.updateIdea(idea.id, { status: "dropped" }));
+    expect((await report({ _tag: "Event", slug })).subject).toMatchObject({
+      program: "talks",
+    });
+  });
+
   test("refuses what isn't there", async () => {
     expect(await refusal({ _tag: "Event", slug: "nope" })).toBe(
       'No event, published or draft, has the slug "nope".',

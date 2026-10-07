@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
@@ -249,6 +249,26 @@ const make = Effect.gen(function* () {
       return yield* descriptionFor(slug);
     });
 
+  /**
+   * Writes the program of the idea the draft at `slug` came from (unless
+   * that idea was dropped) to its event: planning keeps it while the
+   * evening is a draft, and publishing makes it the evening's.
+   */
+  const applyPlannedProgram = (slug: string) =>
+    Effect.flatMap(
+      DateTime.now,
+      (now) =>
+        sql`
+        UPDATE events e SET program = i.program,
+          updated_at = ${DateTime.formatIso(now)}::timestamptz
+        FROM planning.ideas i
+        WHERE i.event_id = e.id AND e.slug = ${slug}
+          AND i.status <> 'dropped' AND e.program IS DISTINCT FROM i.program`,
+    ).pipe(
+      Effect.asVoid,
+      Effect.mapError((cause) => new DataSourceError({ cause })),
+    );
+
   /** The Luma event, which our calendar must manage. */
   const managed = (lumaEventId: string) =>
     luma.get(lumaEventId).pipe(
@@ -415,6 +435,8 @@ const make = Effect.gen(function* () {
         );
       }
       const { outgoing } = prepared;
+      // The kind of evening its idea planned, kept private until now.
+      yield* applyPlannedProgram(slug);
       yield* luma.update(outgoing.lumaEventId, {
         description_md: outgoing.descriptionMd,
         visibility: "public",
