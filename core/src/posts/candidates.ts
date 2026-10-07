@@ -541,20 +541,42 @@ export const makeXSearch = Effect.gen(function* () {
         lastRequestAt = yield* Clock.currentTimeMillis;
         return yield* request;
       });
-    const send = (request: HttpClientRequest.HttpClientRequest) =>
+    /**
+     * One request, tried again after a 429 while `budget` allows: every
+     * attempt counts against its request limit, and none starts, nor waits,
+     * past its deadline. An attempt that gets no answer in 15 s is a failed
+     * query, never the whole search's end. None when the budget is spent.
+     */
+    const send = (
+      request: HttpClientRequest.HttpClientRequest,
+      budget: {
+        spent: number;
+        readonly limit: number;
+        readonly deadline: number;
+      },
+    ) =>
       Effect.gen(function* () {
-        for (let attempt = 0; ; attempt++) {
-          const response = yield* paced(client.execute(request));
+        for (let attempt = 0; budget.spent < budget.limit; attempt++) {
+          if ((yield* Clock.currentTimeMillis) >= budget.deadline) return null;
+          budget.spent++;
+          const response = yield* paced(
+            client.execute(request).pipe(
+              Effect.timeout(Duration.seconds(15)),
+              Effect.map((answer) => ({ answer, status: answer.status })),
+              Effect.orElseSucceed(() => ({ answer: null, status: 0 })),
+            ),
+          );
           if (response.status !== 429 || attempt >= 2) return response;
-          const reset = Number(response.headers["x-rate-limit-reset"]);
+          const reset = Number(response.answer?.headers["x-rate-limit-reset"]);
           const now = yield* Clock.currentTimeMillis;
           const untilReset = Number.isFinite(reset)
             ? reset * 1000 - now
             : 1_000;
-          yield* Effect.sleep(
-            Duration.millis(Math.min(10_000, Math.max(1_000, untilReset))),
-          );
+          const wait = Math.min(10_000, Math.max(1_000, untilReset));
+          if (now + wait >= budget.deadline) return response;
+          yield* Effect.sleep(Duration.millis(wait));
         }
+        return null;
       });
     return {
       platform: "x",
@@ -578,10 +600,16 @@ export const makeXSearch = Effect.gen(function* () {
           const found = new Map<string, FoundPost>();
           const queries = xQueries(signals).slice(0, maxQueries);
           if (queries.length === 0) return { posts: [], requests: 0 };
+          // Every request counts, retries too, and none runs past 30 s in.
+          const budget = {
+            spent: 0,
+            limit: maxQueries ?? Number.POSITIVE_INFINITY,
+            deadline: (yield* Clock.currentTimeMillis) + 30_000,
+          };
           // One refused query (a 429, say) keeps what the others found.
           const failures: Array<string> = [];
           for (const query of queries) {
-            const response = yield* send(
+            const sent = yield* send(
               HttpClientRequest.get(endpoint).pipe(
                 HttpClientRequest.bearerToken(Redacted.value(token.value)),
                 HttpClientRequest.setUrlParams({
@@ -597,7 +625,17 @@ export const makeXSearch = Effect.gen(function* () {
                 }),
                 HttpClientRequest.acceptJson,
               ),
+              budget,
             );
+            if (sent === null) {
+              failures.push("no requests or time left for this query");
+              continue;
+            }
+            if (sent.answer === null) {
+              failures.push("no answer in 15 s");
+              continue;
+            }
+            const response = sent.answer;
             if (response.status !== 200) {
               failures.push(`search answered ${response.status}`);
               continue;
@@ -621,37 +659,11 @@ export const makeXSearch = Effect.gen(function* () {
             return yield* new CandidateSearchError({
               platform: "x",
               reason: `every query failed: ${[...new Set(failures)].join("; ")}`,
-              requests: queries.length,
+              requests: budget.spent,
             });
           }
-          return { posts: [...found.values()], requests: queries.length };
-        }).pipe(
-          Effect.timeout(Duration.seconds(30)),
-          Effect.catchTags({
-            HttpClientError: () =>
-              Effect.fail(
-                new CandidateSearchError({
-                  platform: "x",
-                  reason: "no answer",
-                  requests: Math.min(
-                    xQueries(signals).length,
-                    maxQueries ?? Infinity,
-                  ),
-                }),
-              ),
-            TimeoutError: () =>
-              Effect.fail(
-                new CandidateSearchError({
-                  platform: "x",
-                  reason: "no answer in 30 s",
-                  requests: Math.min(
-                    xQueries(signals).length,
-                    maxQueries ?? Infinity,
-                  ),
-                }),
-              ),
-          }),
-        ),
+          return { posts: [...found.values()], requests: budget.spent };
+        }),
     } satisfies CandidateSearchShape;
   }
 });

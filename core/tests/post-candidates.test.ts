@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { ConfigProvider, DateTime, Effect, Layer } from "effect";
+import { ConfigProvider, DateTime, Effect, Exit, Layer } from "effect";
 import { HttpClient, HttpClientResponse, UrlParams } from "effect/http";
 import {
   bareLink,
@@ -445,7 +445,44 @@ describe("what platforms answer", () => {
     expect(found.posts.map((p) => p.url)).toEqual([
       "https://x.com/ada/status/31",
     ]);
+    // The retry counts as a request.
+    expect(found.requests).toBe(3);
   }, 15_000);
+
+  test("a 429 is tried again only while the run's requests allow", async () => {
+    let sent = 0;
+    const client = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) => {
+        sent++;
+        return Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            new Response("", { status: 429 }),
+          ),
+        );
+      }),
+    );
+    const exit = await Effect.runPromiseExit(
+      Effect.gen(function* () {
+        const x: CandidateSearchShape = yield* makeXSearch;
+        return yield* x.search(signals, 1);
+      }).pipe(
+        Effect.provide(client),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromEnv({
+            env: { X_BEARER_TOKEN: "test", X_SEARCH: "archive" },
+          }),
+        ),
+      ),
+    );
+    expect(sent).toBe(1);
+    expect(Exit.isFailure(exit) ? exit.cause.reasons[0] : null).toMatchObject({
+      _tag: "Fail",
+      error: { requests: 1 },
+    });
+  });
 
   test("X's queries: the evening's links and name, and its people saying all things", () => {
     expect(xQueries(signals)).toEqual([

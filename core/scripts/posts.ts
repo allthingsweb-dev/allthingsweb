@@ -172,7 +172,11 @@ const find = Command.make(
     ),
     maxRequests: Flag.Int("max-requests").pipe(
       Flag.withDescription(
-        "Send at most this many requests in the run (X bills each post a search returns).",
+        "Send at most this many requests in the run, 0 or more (X bills each post a search returns).",
+      ),
+      Flag.filter(
+        (max) => max >= 0,
+        (max) => `--max-requests must be 0 or more, not ${max}`,
       ),
       Flag.optional,
     ),
@@ -193,7 +197,8 @@ const find = Command.make(
           ? { maxRequests: maxRequests.value }
           : {}),
       });
-      // X bills each post its search returns; what this run read, priced.
+      // X bills each post its search returns; what this run kept, priced: a
+      // floor, since X also bills posts the finder drops (no author handle).
       const xPosts = reports.reduce(
         (sum, report) =>
           sum +
@@ -219,7 +224,7 @@ const find = Command.make(
       );
       if (!json) {
         yield* Console.log(
-          `X: ${xPosts} posts read, about $${(xPosts * xCostPerPost).toFixed(2)} at pay-per-use.`,
+          `X: ${xPosts} posts kept, so at least $${(xPosts * xCostPerPost).toFixed(2)} at pay-per-use.`,
         );
       }
     }).pipe(Effect.provide(candidatesLayer)),
