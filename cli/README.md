@@ -12,6 +12,12 @@ That installs the latest stable release in `~/.allthings/bin`. `allthings` 2 is 
 curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | ALLTHINGS_VERSION=2.0.0-alpha.2 bash
 ```
 
+It is also on npm as `allthings`, for Bun. Prereleases carry the `alpha` dist-tag:
+
+```sh
+bunx allthings@alpha events
+```
+
 ## Use
 
 ```sh
@@ -41,4 +47,6 @@ bun run src/index.ts events
 
 `src/config.ts` holds the site it talks to, `siteOrigin`. It stays on allthingsweb.dev until allthings.dev serves the new site: until then allthings.dev only redirects, and a redirect drops an MCP POST. It flips with the domain move (`infra/docs/r2-migration.md`, Phase 4).
 
-Releases are GitHub releases, cut by pushing a tag that matches `version` in `package.json` (`.github/workflows/cli-release.yaml`). A hyphenated tag (`2.0.0-alpha.2`) is a prerelease, and the installer skips it unless asked. Nothing is published to npm: the package is private.
+Releases are GitHub releases, cut by pushing an annotated tag that matches `version` in `package.json` (`.github/workflows/cli-release.yaml`). A hyphenated tag (`2.0.0-alpha.2`) is a prerelease, and the installer skips it unless asked.
+
+The same workflow then publishes the package to npm with `bun publish`, after the binaries. `bun run build` (which packing runs) bundles `src/index.ts` and `src/atw.ts` for Bun into `dist/`, and the package ships only that, with zod inside. A prerelease gets the `alpha` dist-tag, a release `latest`. npm gives a package's first version `latest` whatever its tag, and `latest` can't be removed, so until there is a stable release `latest` follows the newest prerelease. The step then checks the registry's dist-tags. Publishing uses the `NPM_TOKEN` repository secret.

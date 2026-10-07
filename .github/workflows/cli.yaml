@@ -68,3 +68,18 @@ jobs:
           # The old name still runs, with its note on stderr.
           ln -s allthings atw
           ./atw --version 2>&1 >/dev/null | grep -q "atw is now allthings"
+
+      # What npm would get: the packed bundle, installed and run as bunx runs it.
+      - name: 📦 Pack for npm and run it with bunx
+        working-directory: cli
+        run: |
+          pack="$RUNNER_TEMP/pack"
+          bun pm pack --destination "$pack"
+          try="$RUNNER_TEMP/try"
+          mkdir -p "$try"
+          cd "$try"
+          echo '{"name":"try","private":true}' > package.json
+          bun add "$pack"/allthings-*.tgz
+          bunx allthings --version
+          bunx allthings --help
+          bunx atw --version 2>&1 >/dev/null | grep -q "atw is now allthings"

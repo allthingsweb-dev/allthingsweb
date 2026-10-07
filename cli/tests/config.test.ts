@@ -52,11 +52,16 @@ describe("config", () => {
     }
   });
 
-  test("the package installs allthings, with atw as its alias", () => {
+  test("the package installs allthings, with atw as its alias, from its bundle", () => {
     expect(packageJson.name).toBe("allthings");
     expect(packageJson.bin).toEqual({
-      allthings: "./src/index.ts",
-      atw: "./src/atw.ts",
+      allthings: "./dist/index.js",
+      atw: "./dist/atw.js",
     });
+    // npm gets the bundle alone, which needs nothing installed beside it.
+    expect(packageJson.files).toEqual(["dist"]);
+    expect(packageJson).not.toHaveProperty("dependencies");
+    // bun publish refuses a private package.
+    expect(packageJson).not.toHaveProperty("private");
   });
 });
