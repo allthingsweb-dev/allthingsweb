@@ -6,6 +6,7 @@ description: Brief someone before an allthings evening in San Francisco: who is 
 1. Identify the evening. If the person names it loosely, call `list_events` (upcoming first, then past) and match on name or date; confirm when more than one fits.
 2. Call `get_event` with its slug.
 3. Write a short briefing:
+   - Whose it is: if `curation` is `"shared"`, say it is `organizer`'s evening, which allthings shares, and link their site when there is one.
    - When and where: the local date and time (America/Los_Angeles) and the venue's name and address. Hosts sometimes use a different floor or entrance than the street address suggests, so point the person to the `rsvpUrl` page for check-in details.
    - Talks: each talk's title, who gives it and their title, and a sentence or two on what it covers, taken from its description.
    - Who to meet: the speakers, with their public links, and the hosting company.

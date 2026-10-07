@@ -86,6 +86,33 @@ describe("allthings", () => {
     expect(stdout).toContain("rsvp  https://lu.ma/event/evt-1");
   });
 
+  test("marks an evening we share with who organizes it", async () => {
+    const shared = {
+      ...summary,
+      curation: "shared" as const,
+      organizer: { name: "Mastra", url: "https://mastra.ai/" },
+    };
+    const client = fakeClient({
+      listEvents: async () => [shared],
+      getEvent: async () => ({ ...event, ...shared }),
+    });
+    expect((await exec(["events"], { client })).stdout).toContain(
+      "Effect San Francisco [upcoming] shared · by Mastra",
+    );
+    const { stdout } = await exec(["event", summary.slug], { client });
+    expect(stdout).toContain("shared · by Mastra");
+    expect(stdout).toContain("by     https://mastra.ai/");
+    // Ours says nothing of it.
+    expect((await exec(["events"])).stdout).not.toContain("shared");
+    // Shared without a named organizer still says so.
+    const unnamed = fakeClient({
+      listEvents: async () => [{ ...shared, organizer: null }],
+    });
+    expect((await exec(["events"], { client: unnamed })).stdout).toContain(
+      "Effect San Francisco [upcoming] shared\n",
+    );
+  });
+
   test("--json prints exactly the public contract with no color", async () => {
     const { stdout } = await exec(["event", summary.slug, "--json"], {
       isTTY: true,

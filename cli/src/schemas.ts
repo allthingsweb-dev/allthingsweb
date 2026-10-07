@@ -2,7 +2,9 @@ import { z } from "zod";
 
 /**
  * The public allthings contract, as served by https://allthings.dev/mcp.
- * Mirrors app/src/lib/public-api/schemas.ts; a contract test keeps them equal.
+ * Mirrors core's (core/src/contract.ts), the one source of it;
+ * core/tests/contract.test.ts holds the two to the same JSON Schema and the
+ * same verdicts.
  */
 
 export const eventStatusSchema = z.enum(["upcoming", "live", "past"]);
@@ -28,6 +30,10 @@ export const eventSummarySchema = z.object({
   rsvpUrl: z.httpUrl().nullable(),
   recordingUrl: z.httpUrl().nullable(),
   isHackathon: z.boolean(),
+  curation: z.enum(["ours", "shared"]),
+  organizer: z
+    .object({ name: z.string(), url: z.httpUrl().nullable() })
+    .nullable(),
 });
 
 export const talkSpeakerSchema = z.object({

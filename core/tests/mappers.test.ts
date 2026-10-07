@@ -22,6 +22,7 @@ const event: Rows.Event = {
   recordingUrl: null,
   isHackathon: false,
   previewImage: null,
+  curation: { kind: "ours" },
 };
 
 describe("httpUrlOrNull", () => {

@@ -38,7 +38,7 @@ statement from it.
   `latestAppearanceFirst`). /people is our evenings' at any time; a
   person's page, every evening's; /about counts ours once over; the sitemap
   lists everyone at any; the speakers list (`list_speakers`,
-  `/api/v1/speakers`) counts any evening's talks once `ended`.
+  `/api/v1/speakers`) counts our evenings' talks once `ended`.
 
 Each surface still reads in one statement, since from a Worker every round
 trip costs more than the query, and builds it from these fragments. What a
@@ -64,11 +64,14 @@ seeded database at one instant: the same evenings in the same order from
 `list_events`, `/api/v1/events`, the feed, /events and home; the same
 lineup from `get_event`, `/api/v1/events/:id` and the event page, by every
 link; the same people and talks from `list_speakers`, `/api/v1/speakers`,
-/people, people's pages, /about and the sitemap. Where they disagree today
-a test says so (`test.failing`), with what settles it:
+/people, people's pages, /about and the sitemap; and whose each evening is,
+from `list_events` and /events.
 
-- `list_speakers` and `/api/v1/speakers` list the speakers of evenings we
-  only share.
+The public contract is `src/contract.ts`, the one source of it. The CLI's
+zod copy (`cli/src/schemas.ts`) is held to it by `tests/contract.test.ts`,
+which the core workflow runs whenever `cli/src` changes. The old app's
+schemas and answers are legacy: where tests still compare the Worker with
+the app, it is on the fields the app has.
 
 ## Luma sync
 
@@ -432,8 +435,13 @@ What follows from it:
   Home's hero is always our next evening, and its photos are of ours.
 - Its page says who organizes it, linked to their site, and has no "your
   hosts". Its structured data names the organizer, not us.
-- /about's numbers count our evenings alone, and the people page lists who
-  was on stage at ours; people from a shared evening are on its page.
+- /about's numbers count our evenings alone, and the people page and the
+  speakers list (`list_speakers`, `/api/v1/speakers`) list who was on
+  stage at ours; people from a shared evening are on its page.
+- The MCP tools say whose an evening is: `curation` (`ours` or `shared`)
+  and `organizer` (its name and site; null for ours), and the CLI marks a
+  shared one "shared · by Mastra". The v1 API publishes `curation` and
+  `organizedBy`.
 - Completeness asks a shared evening for no organizers, MC or topic.
 - Promotion drafts recommend it, by its organizer, and say why; it gets no
   Luma description or Meetup listing of ours.

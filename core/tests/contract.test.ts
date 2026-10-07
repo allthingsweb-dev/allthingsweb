@@ -1,19 +1,25 @@
 import { describe, expect, test } from "bun:test";
 import { Schema } from "effect";
 import { z } from "zod";
-import * as server from "../../app/src/lib/public-api/schemas.ts";
+import { isEventNotFound } from "../../cli/src/client.ts";
+import * as cli from "../../cli/src/schemas.ts";
 import * as core from "../src/contract.ts";
+import { EventNotFound } from "../src/errors.ts";
 import community from "./fixtures/community.json";
 import eventDetails from "./fixtures/event-details.json";
 import events from "./fixtures/events.json";
 import speakers from "./fixtures/speakers.json";
 
 /**
- * Holds the Effect contract to the zod one the app serves today: the same
- * JSON Schema (which is what MCP clients and agents see), the same verdicts on
- * valid and invalid values, and lossless decoding of live responses.
+ * Holds the CLI's zod copy of the contract (cli/src/schemas.ts) to the
+ * contract itself: the same JSON Schema (which is what MCP clients and
+ * agents see), the same verdicts on valid and invalid values, and lossless
+ * decoding of live responses. The app's zod schemas are legacy and no longer
+ * a reference.
  *
- * The fixtures are live MCP responses captured from allthingsweb.dev.
+ * The fixtures are live MCP responses captured from allthingsweb.dev
+ * before events said whose they are; each is read with the fields it lacks
+ * as they were then, every evening ours.
  */
 
 type Pair = readonly [
@@ -23,10 +29,10 @@ type Pair = readonly [
 ];
 
 const pairs: ReadonlyArray<Pair> = [
-  ["EventSummary", core.EventSummary, server.eventSummarySchema],
-  ["Event", core.Event, server.eventSchema],
-  ["Speaker", core.Speaker, server.speakerSchema],
-  ["Community", core.Community, server.communitySchema],
+  ["EventSummary", core.EventSummary, cli.eventSummarySchema],
+  ["Event", core.Event, cli.eventSchema],
+  ["Speaker", core.Speaker, cli.speakerSchema],
+  ["Community", core.Community, cli.communitySchema],
 ];
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -87,16 +93,35 @@ function zodVerdict(schema: z.ZodType, input: unknown): Verdict {
   return result.success ? { ok: true, value: result.data } : { ok: false };
 }
 
+/** A captured event with whose it is, as every evening then was: ours. */
+const asOurs = (event: object) => ({
+  ...event,
+  curation: "ours",
+  organizer: null,
+});
+
+/**
+ * `schema` without its descriptions. They are what agents read, and the
+ * MCP server serves them from this contract; the CLI's copy needs only the
+ * shapes.
+ */
+const shape = (schema: Json): Json =>
+  JSON.parse(
+    JSON.stringify(schema, (key, value: Json) =>
+      key === "description" ? undefined : value,
+    ),
+  );
+
 describe("JSON Schema", () => {
-  test.each(pairs)("%s matches the served zod schema", (_, effect, zod) => {
-    expect(effectJsonSchema(effect)).toEqual(zodJsonSchema(zod));
+  test.each(pairs)("%s has the CLI's zod schema's shape", (_, effect, zod) => {
+    expect(shape(effectJsonSchema(effect))).toEqual(shape(zodJsonSchema(zod)));
   });
 });
 
 describe("live responses", () => {
   const live: ReadonlyArray<readonly [string, Pair, ReadonlyArray<unknown>]> = [
-    ["list_events", pairs[0]!, events.events],
-    ["get_event", pairs[1]!, eventDetails.events],
+    ["list_events", pairs[0]!, events.events.map(asOurs)],
+    ["get_event", pairs[1]!, eventDetails.events.map(asOurs)],
     ["list_speakers", pairs[2]!, speakers.speakers],
     ["get_community", pairs[3]!, [community]],
   ];
@@ -116,7 +141,7 @@ describe("live responses", () => {
 });
 
 describe("verdicts", () => {
-  const base = events.events[0]!;
+  const base = asOurs(events.events[0]!);
   const [, summary, summaryZod] = pairs[0]!;
   const withField = (key: string, value: unknown) => ({
     ...base,
@@ -130,6 +155,21 @@ describe("verdicts", () => {
     ["an unknown extra key", withField("extra", 1)],
     ["a missing key", without("tagline")],
     ["a null venue", withField("venue", null)],
+    ["a shared evening", withField("curation", "shared")],
+    ["an unknown curation", withField("curation", "theirs")],
+    [
+      "an organizer with a site",
+      withField("organizer", { name: "Mastra", url: "https://mastra.ai/" }),
+    ],
+    [
+      "an organizer without a site",
+      withField("organizer", { name: "Mastra", url: null }),
+    ],
+    ["an organizer without a name", withField("organizer", { url: null })],
+    [
+      "an organizer's site that isn't a URL",
+      withField("organizer", { name: "Mastra", url: "mastra" }),
+    ],
     ["a venue with a missing name", withField("venue", { address: null })],
     ["an unknown status", withField("status", "cancelled")],
     ["another time zone", withField("timeZone", "UTC")],
@@ -182,13 +222,33 @@ describe("verdicts", () => {
     );
   });
 
-  // zod trims and strips tabs and newlines; served URLs must already be clean.
-  test.each([
+  // zod trims and strips tabs and newlines; served URLs must already be
+  // clean, so the contract rejects them and the CLI, which only reads what
+  // the server serves, lets them through: every URL field alike, an
+  // organizer's site too.
+  const unclean = [
     " https://allthings.dev",
     "https://allthings.dev\n",
     "https://all\tthings.dev",
-  ])("url %j is normalized by zod but rejected here", (url) => {
+  ];
+  test.each(unclean)("url %j is normalized by zod but rejected here", (url) => {
     expect(zodVerdict(summaryZod, withField("url", url)).ok).toBe(true);
     expect(effectVerdict(summary, withField("url", url)).ok).toBe(false);
+  });
+  test.each(unclean)(
+    "an organizer's site %j is normalized by zod but rejected here",
+    (url) => {
+      const input = withField("organizer", { name: "Mastra", url });
+      expect(zodVerdict(summaryZod, input).ok).toBe(true);
+      expect(effectVerdict(summary, input).ok).toBe(false);
+    },
+  );
+});
+
+describe("errors", () => {
+  test("the CLI recognizes get_event's not-found message", () => {
+    expect(
+      isEventNotFound(new EventNotFound({ slug: "no-such-event" }).message),
+    ).toBe(true);
   });
 });

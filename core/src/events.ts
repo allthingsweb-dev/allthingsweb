@@ -12,7 +12,12 @@ import {
 } from "./catalog.ts";
 import { type DataSourceError, EventNotFound } from "./errors.ts";
 import * as Rows from "./rows.ts";
-import { imageJson, orDataSourceError, profileJson } from "./sql.ts";
+import {
+  curationJson,
+  imageJson,
+  orDataSourceError,
+  profileJson,
+} from "./sql.ts";
 
 /**
  * Published events. Drafts never leave this service: they are filtered in SQL,
@@ -43,7 +48,8 @@ const make = Effect.gen(function* () {
     e.street_address AS "streetAddress", e.short_location AS "shortLocation",
     e.full_address AS "fullAddress", e.luma_event_id AS "lumaEventId",
     e.recording_url AS "recordingUrl", e.is_hackathon AS "isHackathon",
-    ${imageJson("e.preview_image")} AS "previewImage"`);
+    ${imageJson("e.preview_image")} AS "previewImage",
+    ${curationJson("e")} AS curation`);
 
   const listPublished = SqlSchema.findAll({
     Request: Schema.Void,

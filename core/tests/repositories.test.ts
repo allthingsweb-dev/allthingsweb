@@ -183,6 +183,7 @@ describe("Events", () => {
       recordingUrl: "https://www.youtube.com/watch?v=abc123",
       isHackathon: false,
       previewImage: cover,
+      curation: { kind: "ours" },
     });
     expect(
       published.find((event) => event.slug === "2026-10-03-hack-day"),

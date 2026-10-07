@@ -20,7 +20,32 @@ export const Image = Schema.Struct({
   version: Schema.String,
 });
 
-/** A published `events` row with its preview image, if it has one. */
+/**
+ * Who organizes a shared event: a company (`events.organized_by`, a
+ * `sponsors` row), with its own site and handles, where pages link out.
+ */
+export const Organizer = Schema.Struct({
+  name: Schema.String,
+  websiteUrl: Schema.NullOr(Schema.String),
+  twitterHandle: Schema.NullOr(Schema.String),
+  blueskyHandle: Schema.NullOr(Schema.String),
+  linkedinHandle: Schema.NullOr(Schema.String),
+});
+
+/**
+ * Whose evening an event is (`events.curation`): ours, or someone else's we
+ * share with our community because we think it's good, with who organizes
+ * it. The database holds the two together.
+ */
+export const Curation = Schema.Union([
+  Schema.Struct({ kind: Schema.Literal("ours") }),
+  Schema.Struct({ kind: Schema.Literal("shared"), organizer: Organizer }),
+]);
+
+/**
+ * A published `events` row with its preview image, if it has one, and whose
+ * evening it is.
+ */
 export const Event = Schema.Struct({
   id: Schema.String,
   slug: Schema.String,
@@ -35,6 +60,7 @@ export const Event = Schema.Struct({
   recordingUrl: Schema.NullOr(Schema.String),
   isHackathon: Schema.Boolean,
   previewImage: Schema.NullOr(Image),
+  curation: Curation,
 });
 
 /** A `profiles` row as a speaker: who they are and where to find them. */
@@ -61,28 +87,6 @@ export const EventProgram = Schema.Literals([
   "open-floor",
   "social",
   "hackathon",
-]);
-
-/**
- * Who organizes a shared event: a company (`events.organized_by`, a
- * `sponsors` row), with its own site and handles, where pages link out.
- */
-export const Organizer = Schema.Struct({
-  name: Schema.String,
-  websiteUrl: Schema.NullOr(Schema.String),
-  twitterHandle: Schema.NullOr(Schema.String),
-  blueskyHandle: Schema.NullOr(Schema.String),
-  linkedinHandle: Schema.NullOr(Schema.String),
-});
-
-/**
- * Whose evening an event is (`events.curation`): ours, or someone else's we
- * share with our community because we think it's good, with who organizes
- * it. The database holds the two together.
- */
-export const Curation = Schema.Union([
-  Schema.Struct({ kind: Schema.Literal("ours") }),
-  Schema.Struct({ kind: Schema.Literal("shared"), organizer: Organizer }),
 ]);
 
 /** How a talk is held (`talks.format`): see src/people.ts. */

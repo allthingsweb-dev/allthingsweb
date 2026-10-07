@@ -20,10 +20,15 @@ import { bundleBudgets, hyperdriveTo, testStack } from "./support/stack.ts";
 
 /**
  * The Worker, bundled as it deploys and running in workerd, against the app
- * it replaces. Both read one database: the production schema (core's
+ * it replaced. Both read one database: the production schema (core's
  * migrations) with core's seed, in PGlite. The app reads it in process; the
  * Worker connects over TCP with @effect/sql-pg through its Hyperdrive
  * binding, as it deploys.
+ *
+ * The app is legacy and no longer the reference for the contract: it never
+ * says whose an evening is (`curation`, `organizer`). The Worker's MCP
+ * answers are compared with it on every other field; core's contract and
+ * web/tests/parity.test.ts hold the rest.
  */
 
 const origin = "https://allthingsweb.dev";
@@ -136,8 +141,60 @@ type ToolMessage = {
   };
 };
 
-/** A tools/call answer, an event's attached lists in canonical order. */
-function toolAnswer(body: string): unknown {
+/** The fields the contract has and the legacy app never had. */
+const sinceTheApp = ["curation", "organizer"];
+
+/** JSON Schema `schema` without {@link sinceTheApp}'s properties. */
+function schemaAsTheAppHasIt(schema: Json): Json {
+  if (Array.isArray(schema)) return schema.map(schemaAsTheAppHasIt);
+  if (schema === null || typeof schema !== "object") return schema;
+  return Object.fromEntries(
+    Object.entries(schema).map(([key, value]) => {
+      if (key === "properties" && value !== null && typeof value === "object") {
+        return [
+          key,
+          schemaAsTheAppHasIt(
+            Object.fromEntries(
+              Object.entries(value).filter(
+                ([property]) => !sinceTheApp.includes(property),
+              ),
+            ),
+          ),
+        ];
+      }
+      if (key === "required" && Array.isArray(value)) {
+        return [
+          key,
+          value.filter(
+            (property) =>
+              typeof property !== "string" || !sinceTheApp.includes(property),
+          ),
+        ];
+      }
+      return [key, schemaAsTheAppHasIt(value)];
+    }),
+  );
+}
+
+/** `value` without {@link sinceTheApp}, wherever an event is in it. */
+function asTheAppHasIt(value: Json): Json {
+  if (Array.isArray(value)) return value.map(asTheAppHasIt);
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !sinceTheApp.includes(key))
+      .map(([key, field]) => [key, asTheAppHasIt(field)]),
+  );
+}
+
+/**
+ * A tools/call answer, an event's attached lists in canonical order, its
+ * content shaped by `shape` (in its JSON text too).
+ */
+function toolAnswer(
+  body: string,
+  shape: (value: Json) => Json = (value) => value,
+): unknown {
   const message = rpcMessage(body) as ToolMessage;
   const result = message.result;
   if (result?.structuredContent === undefined) return message;
@@ -145,11 +202,11 @@ function toolAnswer(body: string): unknown {
     ...message,
     result: {
       ...result,
-      structuredContent: ignoringAttachOrder(result.structuredContent),
+      structuredContent: shape(ignoringAttachOrder(result.structuredContent)),
       content: result.content?.map((part) => ({
         ...part,
         text: JSON.stringify(
-          ignoringAttachOrder(JSON.parse(part.text) as Json),
+          shape(ignoringAttachOrder(JSON.parse(part.text) as Json)),
           null,
           2,
         ),
@@ -342,11 +399,15 @@ describe("MCP", () => {
     expect(JSON.stringify(served.map(withoutOutput))).not.toMatch(
       /all things/i,
     );
-    // Output schemas come from core's Effect contract: the same JSON Schema,
-    // as core's contract test defines sameness.
+    // Output schemas come from core's Effect contract: the same JSON Schema
+    // as the app's, as core's contract test defines sameness, but for the
+    // fields the app never had.
     expect(
-      served.map((tool) => normalizeJsonSchema(tool.outputSchema)),
+      served.map((tool) =>
+        schemaAsTheAppHasIt(normalizeJsonSchema(tool.outputSchema)),
+      ),
     ).toEqual(today.map((tool) => normalizeJsonSchema(tool.outputSchema)));
+    expect(JSON.stringify(served[0]?.outputSchema)).toContain('"curation"');
   });
 
   const calls: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
@@ -385,7 +446,9 @@ describe("MCP", () => {
       const [actual, expected] = await mcp(Web, call(name, args));
       expect(actual.status).toBe(expected.status);
       expect(actual.contentType).toBe(expected.contentType);
-      expect(toolAnswer(actual.body)).toEqual(toolAnswer(expected.body));
+      expect(toolAnswer(actual.body, asTheAppHasIt)).toEqual(
+        toolAnswer(expected.body),
+      );
     });
   }
 
