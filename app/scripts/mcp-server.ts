@@ -14,6 +14,7 @@ import { approvePost, hidePost, listPendingPosts } from "./post-review.js";
 import { promoChannels, promoDrafts } from "./promo.js";
 import { isPlanTool, planTool, planToolDefinitions } from "./plan.js";
 import { draftReadiness, draftReadinessTool } from "./readiness.js";
+import { isLumaTool, lumaTool, lumaToolDefinitions } from "./luma-studio.js";
 import {
   createEvent,
   getEventBySlug,
@@ -691,6 +692,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Planning: ideas, wanted speakers, host prospects, notes (private)
       ...planToolDefinitions,
       draftReadinessTool,
+      ...lumaToolDefinitions,
       // Administrator tools
       {
         name: "add_user_to_admins",
@@ -738,6 +740,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name: toolName, arguments: args } = request.params;
 
   try {
+    if (isLumaTool(toolName)) {
+      const result = await lumaTool(toolName, args ?? {});
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    }
+
     if (isPlanTool(toolName)) {
       const result = await planTool(toolName, args ?? {});
       return {

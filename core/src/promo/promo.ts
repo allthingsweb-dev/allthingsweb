@@ -13,7 +13,7 @@ import {
 import { DraftTooLong } from "./limits.ts";
 
 /**
- * Promotion drafts for a published evening (drafts.ts), read from its page
+ * Promotion drafts for a published evening, or a draft one (drafts.ts), read from its page
  * and its people's stored handles. Read-only: production's site_reader
  * role is enough, and nothing is ever posted.
  */
@@ -23,6 +23,11 @@ export interface PromoOptions {
   readonly origin: string;
   /** The one origin the page counts photos from. */
   readonly photoOrigin: string;
+  /**
+   * Draft for a draft evening (EventPages.readDraft), as the event studio
+   * does before it goes out (src/luma/publish.ts); published by default.
+   */
+  readonly draft?: boolean;
 }
 
 export interface PromoShape {
@@ -108,9 +113,11 @@ const make = Effect.gen(function* () {
   };
 
   return Promo.of({
-    drafts: (slug, { origin, photoOrigin }) =>
+    drafts: (slug, { origin, photoOrigin, draft = false }) =>
       Effect.gen(function* () {
-        const event = yield* pages.read(slug, photoOrigin);
+        const event = draft
+          ? yield* pages.readDraft(slug, photoOrigin)
+          : yield* pages.read(slug, photoOrigin);
         const handles = yield* handlesOf(event);
         const hosts = yield* hostLinksOf(event);
         return yield* Effect.suspend(() => {

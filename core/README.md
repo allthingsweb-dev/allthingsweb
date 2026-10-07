@@ -642,6 +642,45 @@ DATABASE_URL=… bun run readiness --idea <id>
 It exits 1 when something blocks publishing, 2 on a draft that isn't there.
 The admin MCP server's `get_draft_readiness` runs the same script.
 
+## Putting an evening out on Luma
+
+`src/luma/publish.ts` takes an evening's Luma event from private draft to
+public through Luma's official API (`src/luma/write.ts`: `events/create`,
+`events/update`, `events/get`, `images/create-upload-url`, and the
+two-step `events/cancel`, each as docs.luma.com documents it), with the
+calendar's key in `LUMA_API_KEY`:
+
+- `create` makes the event **private**, always, in San Francisco's time
+  zone, from an idea's pitch when one is named. The hourly sync then
+  stores it as a draft, which readiness checks and the draft preview
+  shows.
+- `update` changes a private event: name, times, place (`--venue` for a
+  place Google Maps knows, so its name shows; `--address` as written), the
+  description the promotion drafts write, a cover uploaded to Luma's CDN.
+  A public event is refused.
+- `publish --dry-run` prints exactly what would go out: the event
+  as Luma has it, with the drafts' description, and its approval token,
+  the first 16 hex digits of the SHA-256 of that content as canonical
+  JSON. It refuses while readiness finds a blocker. With `--approve
+<token>` it works the content out again and goes on only if it hashes
+  the same, sets the description and the visibility in one update, and
+  reads the event back to check both took.
+- `cancel-test` deletes only a private test event named "allthings API
+  test…" with no guests.
+
+Writes are sent once: a timed-out create may have happened, and a retry
+could make a second event. Every write has `--dry-run`, which prints the
+body and sends nothing. Nothing in the tests reaches Luma.
+
+```sh
+LUMA_API_KEY=… DATABASE_URL=… bun run luma create --name "…" \
+  --start 2026-11-18T18:00:00-08:00 --end 2026-11-18T21:00:00-08:00 --venue "CodeRabbit, 201 Spear St" --idea <id> --dry-run
+LUMA_API_KEY=… DATABASE_URL=… bun run luma update --event <draft slug> --description-from-drafts --cover cover.png --dry-run
+LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --dry-run          # what would go out, and its token
+LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --approve <token>  # exactly that, public
+LUMA_API_KEY=… bun run luma show evt-…                                             # the event as Luma has it
+```
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's
