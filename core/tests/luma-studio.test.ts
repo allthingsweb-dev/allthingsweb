@@ -654,6 +654,14 @@ describe("publish", () => {
       expect(Exit.isFailure(exit)).toBe(true);
       expect(await program()).toBe("talks");
     }
+    // Luma took the update but couldn't be read back: it may be public, so
+    // the planned program stays.
+    const unknown = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [json(lumaEvent()), { status: 503 }],
+      "/v1/events/update": [json({})],
+    });
+    expect(Exit.isFailure(unknown.exit)).toBe(true);
+    expect(await program()).toBe("social");
   });
 
   test("refuses a token for anything else, sending no update", async () => {

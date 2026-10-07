@@ -446,7 +446,8 @@ const make = Effect.gen(function* () {
       const { outgoing } = prepared;
       // The kind of evening its idea planned, kept private until now, is
       // written first, so the evening is never public with the wrong one;
-      // if Luma doesn't make it public, the draft gets its own back.
+      // if Luma then says it isn't public, the draft gets its own back.
+      // When Luma can't say, the planned program stays.
       const before = yield* applyPlannedProgram(slug);
       const after = yield* Effect.gen(function* () {
         yield* luma.update(outgoing.lumaEventId, {
@@ -464,7 +465,15 @@ const make = Effect.gen(function* () {
         Effect.onError(() =>
           before === null
             ? Effect.void
-            : Effect.ignore(restoreProgram(slug, before)),
+            : Effect.ignore(
+                // Only once Luma says the event is still not public: after
+                // an update that may have gone through, it may be.
+                Effect.flatMap(luma.get(outgoing.lumaEventId), (now) =>
+                  now.visibility === "public"
+                    ? Effect.void
+                    : Effect.asVoid(restoreProgram(slug, before)),
+                ),
+              ),
         ),
       );
       if ((after.description_md ?? "") !== outgoing.descriptionMd) {
