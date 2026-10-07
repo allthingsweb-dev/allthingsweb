@@ -227,6 +227,72 @@ describe("create", () => {
 });
 
 describe("update", () => {
+  test("sets a private event's description to an idea's pitch, as create does", async () => {
+    const idea = await Effect.runPromise(
+      Planning.use((p) =>
+        p.addIdea({
+          title: "Made-up quiz",
+          pitch: "The hard one.\n\n**How it works**",
+          program: "social",
+        }),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const { exit, requests } = await run(
+      (s) =>
+        s.update(
+          { _tag: "Luma", lumaEventId: "evt-draft" },
+          { descriptionFromIdea: idea.id },
+          false,
+        ),
+      {
+        "/v1/events/get": [json(lumaEvent())],
+        "/v1/events/update": [json({})],
+      },
+    );
+    expect(value(exit).body).toEqual({
+      description_md: "The hard one.\n\n**How it works**",
+    });
+    expect(JSON.parse(requests[1]?.body ?? "")).toEqual({
+      event_id: "evt-draft",
+      description_md: "The hard one.\n\n**How it works**",
+    });
+
+    const unknown = await run(
+      (s) =>
+        s.update(
+          { _tag: "Luma", lumaEventId: "evt-draft" },
+          { descriptionFromIdea: "00000000-0000-4000-8000-000000000000" },
+          false,
+        ),
+      { "/v1/events/get": [json(lumaEvent())] },
+    );
+    expect(message(unknown.exit)).toBe(
+      "No idea has the id 00000000-0000-4000-8000-000000000000.",
+    );
+    const both = await run(
+      (s) =>
+        s.update(
+          { _tag: "Slug", slug: draft },
+          { descriptionFromIdea: idea.id, descriptionFromDrafts: draft },
+          false,
+        ),
+      { "/v1/events/get": [json(lumaEvent())] },
+    );
+    expect(message(both.exit)).toBe(
+      "Set the description from the drafts or from an idea, not both.",
+    );
+    for (const { requests: sent } of [unknown, both]) {
+      expect(sent.some((r) => r.url.endsWith("/v1/events/update"))).toBe(false);
+    }
+  });
+
   test("sets a private draft's description from its promotion drafts, and uploads a cover", async () => {
     const { exit, requests } = await run(
       (s) =>

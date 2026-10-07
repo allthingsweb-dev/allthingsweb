@@ -24,6 +24,7 @@ import { Readiness } from "../src/readiness/readiness.ts";
  *   bun run luma create --name "allthings/effect" --start 2026-11-18T18:00:00-08:00 \
  *     --end 2026-11-18T21:00:00-08:00 --venue "CodeRabbit, 201 Spear St" [--idea <id>] [--dry-run]
  *   bun run luma update --event <draft slug> --description-from-drafts [--cover cover.png] [--dry-run]
+ *   bun run luma update --luma evt-… --description-from-idea <id> [--dry-run]   the idea's pitch, as create sets it
  *   bun run luma update --luma evt-… --name "…"        before the sync has stored it
  *   bun run luma publish <draft slug> --dry-run        what would go out, and its approval token
  *   bun run luma publish <draft slug> --approve <token>   put out exactly that
@@ -201,6 +202,10 @@ const update = Command.make(
       ),
       Flag.withDefault(false),
     ),
+    descriptionFromIdea: text(
+      "description-from-idea",
+      "Set the description to this idea's pitch, as create does, by the idea's id.",
+    ),
     cover: text("cover", "A PNG or JPEG to upload as its cover."),
     dryRun,
     json,
@@ -239,6 +244,9 @@ const update = Command.make(
             ...(place === undefined ? {} : { place }),
             ...(options.descriptionFromDrafts && Option.isSome(options.event)
               ? { descriptionFromDrafts: options.event.value }
+              : {}),
+            ...(Option.isSome(options.descriptionFromIdea)
+              ? { descriptionFromIdea: options.descriptionFromIdea.value }
               : {}),
             ...(cover === undefined ? {} : { cover }),
           },

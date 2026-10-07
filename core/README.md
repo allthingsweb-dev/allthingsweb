@@ -876,6 +876,8 @@ calendar's key in `LUMA_API_KEY`:
 - `update` changes a private event: name, times, place (`--venue` for a
   place Google Maps knows, so its name shows; `--address` as written), the
   description the promotion drafts write, a cover uploaded to Luma's CDN.
+  `--description-from-idea <id>` sets the description to an idea's pitch
+  again, as `create` did, after the pitch changes.
   A public event is refused.
 - `publish --dry-run` prints exactly what would go out: the event
   as Luma has it, with the drafts' description, and its approval token,
@@ -895,6 +897,7 @@ body and sends nothing. Nothing in the tests reaches Luma.
 LUMA_API_KEY=… DATABASE_URL=… bun run luma create --name "…" \
   --start 2026-11-18T18:00:00-08:00 --end 2026-11-18T21:00:00-08:00 --venue "CodeRabbit, 201 Spear St" --idea <id> --dry-run
 LUMA_API_KEY=… DATABASE_URL=… bun run luma update --event <draft slug> --description-from-drafts --cover cover.png --dry-run
+LUMA_API_KEY=… DATABASE_URL=… bun run luma update --luma evt-… --description-from-idea <id> --dry-run
 LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --dry-run          # what would go out, and its token
 LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --approve <token>  # exactly that, public
 LUMA_API_KEY=… bun run luma show evt-…                                             # the event as Luma has it
