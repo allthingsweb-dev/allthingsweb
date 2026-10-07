@@ -8,6 +8,7 @@ import {
   drafts,
   hostsOf,
   linkFirst,
+  ours,
   peopleOf,
   published,
   resolve,
@@ -218,7 +219,10 @@ export interface EventPage {
   readonly posts: ReadonlyArray<Post>;
   /** Approved posts past {@link postLimit}, which the page doesn't list. */
   readonly morePosts: number;
-  /** The live or next evening other than this one, if one is announced. */
+  /**
+   * Our live or next evening other than this one, if one is announced: the
+   * evening home leads with, never one we only share.
+   */
   readonly next: Evening | undefined;
 }
 
@@ -580,7 +584,7 @@ const make = Effect.gen(function* () {
 
   // The lineup in the catalog's order, as every surface lists it; photos
   // in the order they were attached, the schedule and notes by position.
-  // "Next" is the soonest evening not yet over.
+  // "Next" is the soonest of ours not yet over, as home leads with it.
   const findPage = SqlSchema.findOneOption({
     Request,
     Result: EventPageRow,
@@ -668,7 +672,7 @@ const make = Effect.gen(function* () {
           SELECT ${sql.literal(listingJson)}
           FROM events e
           WHERE ${published(sql, "e")} AND ${ahead(sql, "e", now)}
-            AND e.id <> ev.id
+            AND ${ours(sql, "e")} AND e.id <> ev.id
           ORDER BY ${soonestFirst(sql, "e")}
           LIMIT 1
         ) AS next

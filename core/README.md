@@ -67,8 +67,6 @@ link; the same people and talks from `list_speakers`, `/api/v1/speakers`,
 /people, people's pages, /about and the sitemap. Where they disagree today
 a test says so (`test.failing`), with what settles it:
 
-- A past evening's page can point to an evening we only share as the next
-  one; home's hero is always ours.
 - `list_speakers` and `/api/v1/speakers` credit a talk at its evening's last
   instant, while the evening is still live, and list the speakers of
   evenings we only share.

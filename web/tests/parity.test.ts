@@ -484,9 +484,9 @@ describe("what comes next", () => {
     expect((await home(later)).next?.slug).toBe("2026-11-05-upcoming");
   });
 
-  // D2: an evening's page points to our next evening, as home leads with
-  // it, never to one we only share.
-  test.failing("an evening's page does too", async () => {
+  // An evening's page points to our next evening, as home leads with it,
+  // never to one we only share.
+  test("an evening's page does too", async () => {
     const page = await eventPage("react", later);
     expect(page?.next?.slug).toBe("2026-11-05-upcoming");
   });
