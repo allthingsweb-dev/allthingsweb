@@ -8,7 +8,12 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { completenessReport } from "./completeness.js";
-import { addEventPhotos, replaceEventPhoto } from "./event-photos.js";
+import {
+  addEventPhotos,
+  listEventPhotos,
+  removeEventPhoto,
+  replaceEventPhoto,
+} from "./event-photos.js";
 import { addEventPost } from "./event-posts.js";
 import {
   approvePost,
@@ -129,6 +134,17 @@ const ReplaceEventPhotoSchema = z.object({
   file: z.string().min(1),
   alt: z.string().min(1),
   dryRun: z.boolean().optional(),
+});
+
+const ListEventPhotosSchema = z.object({ slug: z.string().min(1) });
+
+const RemoveEventPhotoSchema = z.object({
+  slug: z.string().min(1),
+  photo: z.string().min(1),
+  approve: z
+    .string()
+    .regex(/^[0-9a-f]{16}$/)
+    .optional(),
 });
 
 const PendingPostsSchema = z.object({ slug: z.string().min(1).optional() });
@@ -636,6 +652,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["slug", "photo", "file", "alt"],
+        },
+      },
+      {
+        name: "list_event_photos",
+        description:
+          "An event's photos in the order its page shows them: each with its position (from 1), image id, URL, size and alt text. Read-only.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            slug: {
+              type: "string",
+              description: "The event's slug or short link",
+            },
+          },
+          required: ["slug"],
+        },
+      },
+      {
+        name: "remove_event_photo",
+        description:
+          "Remove one of an event's photos from its page, named by its image id or its position on the page (from 1). Without approve it is a dry run: it changes nothing and returns exactly what would change (the photo's link, and its image row only when nothing else uses that row) with an approval token. Show that to the organizer; with their go-ahead, call again with approve set to that token to make exactly that change. It is refused if the photo, its place or what uses its row changed since. The stored object always stays in the bucket.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            slug: {
+              type: "string",
+              description: "The event's slug or short link",
+            },
+            photo: {
+              type: "string",
+              description:
+                "The photo to remove: its image id, or its position on the page from 1",
+            },
+            approve: {
+              type: "string",
+              description:
+                "The approval token the dry run returned; leave it out for the dry run",
+            },
+          },
+          required: ["slug", "photo"],
         },
       },
       {
@@ -1180,6 +1236,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "replace_event_photo": {
         const result = await replaceEventPhoto(
           ReplaceEventPhotoSchema.parse(args ?? {}),
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "list_event_photos": {
+        const result = await listEventPhotos(
+          ListEventPhotosSchema.parse(args ?? {}),
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "remove_event_photo": {
+        const result = await removeEventPhoto(
+          RemoveEventPhotoSchema.parse(args ?? {}),
         );
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

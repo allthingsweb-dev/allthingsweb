@@ -1,13 +1,18 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { basename } from "node:path";
-import { Config, Console, Effect, Redacted } from "effect";
+import { Config, Console, Effect, Option, Redacted } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import * as Database from "../src/database.ts";
 import {
   addPhotos,
+  type ListedPhoto,
+  listPhotos,
   parseTarget,
   type PhotoFile,
   type PhotoResult,
+  planRemoval,
+  type Removal,
+  removePhoto,
   type Replaced,
   replacePhoto,
 } from "../src/photos.ts";
@@ -17,8 +22,11 @@ import { encode, placeholder } from "./encode.ts";
 /**
  * An evening's photos (src/photos.ts), in the Postgres at DATABASE_URL.
  *
+ *   bun run photos list <event slug> [--json]
  *   bun run photos add <event slug> <file>… --alt "…" [--alt "…"]… [--dry-run] [--json]
  *   bun run photos replace <event slug> <image id | position> <file> --alt "…" [--dry-run] [--json]
+ *   bun run photos remove <event slug> <image id | position> --dry-run [--json]
+ *   bun run photos remove <event slug> <image id | position> --approve <token> [--json]
  *
  * One --alt per file, in the files' order, saying what the photo shows
  * without naming anyone from their face. The photos go on the evening in
@@ -32,8 +40,16 @@ import { encode, placeholder } from "./encode.ts";
  * images row are deleted in the same transaction, only when nothing else
  * points at that row. The old object stays in the bucket.
  *
- * --dry-run encodes and checks every file and rehearses the database writes,
- * then rolls them back; it stores nothing and needs no upload credentials.
+ * remove unlinks one photo from the evening, and deletes its images row only
+ * when nothing else points at that row; its object stays in the bucket.
+ * --dry-run prints exactly that change and its approval token, and changes
+ * nothing; --approve <token> makes that change, and refuses it if the photo,
+ * its place or what uses its row changed since. Neither needs upload
+ * credentials, and list only reads.
+ *
+ * For add and replace, --dry-run encodes and checks every file and
+ * rehearses the database writes, then rolls them back; it stores nothing and
+ * needs no upload credentials.
  *
  * DATABASE_URL (the database owner's connection string), MEDIA_UPLOAD_URL
  * and MEDIA_UPLOAD_TOKEN (the upload Worker the app stores media through)
@@ -239,9 +255,124 @@ const replace = Command.make(
   ),
 );
 
+const listed = (photo: ListedPhoto) =>
+  `${photo.position}. ${photo.imageId} ${photo.url} (${photo.width}×${photo.height}) "${photo.alt}"`;
+
+const list = Command.make(
+  "list",
+  {
+    slug: Argument.String("slug").pipe(
+      Argument.withDescription("The evening's slug or short link."),
+    ),
+    json: Flag.Boolean("json").pipe(
+      Flag.withDescription("Print the photos as JSON."),
+      Flag.withDefault(false),
+    ),
+  },
+  ({ slug, json }) =>
+    Effect.gen(function* () {
+      const { event, photos } = yield* listPhotos(slug);
+      yield* Console.log(
+        json
+          ? JSON.stringify({ slug: event.slug, photos }, null, 2)
+          : [
+              `${event.slug}: ${photos.length} photo${photos.length === 1 ? "" : "s"}`,
+              ...photos.map(listed),
+            ].join("\n"),
+      );
+    }).pipe(Effect.provide(Database.layer)),
+).pipe(
+  Command.withDescription(
+    "List an evening's photos in the order its page shows them. Reads only.",
+  ),
+);
+
+/** A removal in a few lines: what goes, what stays; `done` once it is made. */
+const removalLines = (removal: Removal, done: boolean) => [
+  `photo ${removal.photo.position} of ${removal.event.slug}: image ${removal.photo.imageId} "${removal.photo.alt}"`,
+  `- ${done ? "unlinked" : "unlink"} it from ${removal.event.slug} (event_images, linked ${removal.photo.linkedAt})`,
+  removal.imageRow.action === "delete"
+    ? `- ${done ? "deleted" : "delete"} its images row: nothing else uses it`
+    : `- ${done ? "kept" : "keep"} its images row: also used by ${removal.imageRow.usedBy.join(", ")}`,
+  `- ${done ? "kept" : "keep"} its object in the bucket: ${removal.object.url}`,
+];
+
+const remove = Command.make(
+  "remove",
+  {
+    slug: Argument.String("slug").pipe(
+      Argument.withDescription("The evening's slug or short link."),
+    ),
+    target: Argument.String("photo").pipe(
+      Argument.withDescription(
+        "The photo to remove: its image id, or its position on the page (from 1).",
+      ),
+    ),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Print exactly what would change, and its approval token; change nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    approve: Flag.String("approve").pipe(
+      Flag.withDescription(
+        "The token --dry-run printed: make exactly that change, or refuse if anything moved since.",
+      ),
+      Flag.optional,
+    ),
+    json: Flag.Boolean("json").pipe(
+      Flag.withDescription("Print the result as JSON."),
+      Flag.withDefault(false),
+    ),
+  },
+  ({ slug, target, dryRun, approve, json }) =>
+    Effect.gen(function* () {
+      // Exactly one: read what would change, or make the change approved.
+      if (dryRun === Option.isSome(approve)) {
+        return yield* Effect.fail(
+          new Error(
+            "Give --dry-run to read what would change, or --approve <token> to make exactly that change.",
+          ),
+        );
+      }
+      const parsed =
+        parseTarget(target) ??
+        (yield* Effect.fail(
+          new Error(
+            `${target} is neither an image id nor a position (1, 2, …).`,
+          ),
+        ));
+      if (Option.isNone(approve)) {
+        const { removal, token } = yield* planRemoval(slug, parsed);
+        return yield* Console.log(
+          json
+            ? JSON.stringify({ dryRun: true, removal, token }, null, 2)
+            : [
+                ...removalLines(removal, false),
+                `approval token: ${token}`,
+                `Nothing was changed. To make exactly this change: bun run photos remove ${slug} ${target} --approve ${token}`,
+              ].join("\n"),
+        );
+      }
+      const removal = yield* removePhoto(slug, parsed, approve.value);
+      return yield* Console.log(
+        json
+          ? JSON.stringify({ dryRun: false, removal }, null, 2)
+          : [
+              `Removed photo ${removal.photo.position} from ${removal.event.slug}.`,
+              ...removalLines(removal, true).slice(1),
+            ].join("\n"),
+      );
+    }).pipe(Effect.provide(Database.layer)),
+).pipe(
+  Command.withDescription(
+    "Remove one of an evening's photos, exactly as a dry run showed it; its object stays in the bucket.",
+  ),
+);
+
 const photos = Command.make("photos").pipe(
   Command.withDescription("An evening's photos."),
-  Command.withSubcommands([add, replace]),
+  Command.withSubcommands([list, add, replace, remove]),
 );
 
 Command.run(photos, { version: "1.0.0" }).pipe(
