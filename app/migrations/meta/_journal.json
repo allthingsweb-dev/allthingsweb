@@ -232,6 +232,13 @@
       "when": 1791325491947,
       "tag": "0032_venue_by_organizer",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791347974208,
+      "tag": "0033_sent_posts",
+      "breakpoints": true
     }
   ]
 }

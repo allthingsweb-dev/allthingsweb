@@ -924,6 +924,56 @@ export const planningNotesTable = planningSchema.table(
   ],
 );
 
+/**
+ * Each evening's post we sent to a channel that can't be read back (a
+ * Discord webhook), claimed before it is sent so it goes out once.
+ * core/migrations/0021_sent_posts.ts is the same change.
+ */
+export const planningSentPostsTable = planningSchema.table(
+  "sent_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    channel: text("channel", { enum: ["discord"] }).notNull(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    moment: text("moment", { enum: ["announce", "dayOf", "recap"] }).notNull(),
+    /** The approval token of the exact text sent. */
+    token: text("token").notNull(),
+    status: text("status", { enum: ["sending", "unanswered", "sent"] })
+      .notNull()
+      .default("sending"),
+    messageId: text("message_id"),
+    url: text("url"),
+    claimedAt: timestamp("claimed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (table) => [
+    unique("sent_posts_channel_event_id_moment_unique").on(
+      table.channel,
+      table.eventId,
+      table.moment,
+    ),
+    check("sent_posts_channel_check", sql`"channel" IN ('discord')`),
+    check(
+      "sent_posts_moment_check",
+      sql`"moment" IN ('announce', 'dayOf', 'recap')`,
+    ),
+    check("sent_posts_token_check", sql`"token" ~ '^[0-9a-f]{16}$'`),
+    check(
+      "sent_posts_status_check",
+      sql`"status" IN ('sending', 'unanswered', 'sent')`,
+    ),
+    check(
+      "sent_posts_sent_check",
+      sql`("status" = 'sent') = ("message_id" IS NOT NULL AND "url" IS NOT NULL AND "sent_at" IS NOT NULL)`,
+    ),
+    check("sent_posts_url_check", sql`"url" ~ '^https://[^[:space:]]+$'`),
+  ],
+);
+
 /** What kind of stage a talk given elsewhere was on. */
 export const externalTalkKinds = [
   "conference",

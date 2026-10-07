@@ -44,6 +44,16 @@ column planning.notes #004 contact_id uuid
 column planning.notes #005 body text not null
 column planning.notes #006 author text
 column planning.notes #007 created_at timestamp with time zone not null default now()
+column planning.sent_posts #001 id uuid not null default gen_random_uuid()
+column planning.sent_posts #002 channel text not null
+column planning.sent_posts #003 event_id uuid not null
+column planning.sent_posts #004 moment text not null
+column planning.sent_posts #005 token text not null
+column planning.sent_posts #006 status text not null default 'sending'::text
+column planning.sent_posts #007 message_id text
+column planning.sent_posts #008 url text
+column planning.sent_posts #009 claimed_at timestamp with time zone not null default now()
+column planning.sent_posts #010 sent_at timestamp with time zone
 column planning.wanted_speaker_topics #001 wanted_speaker_id uuid not null
 column planning.wanted_speaker_topics #002 topic text not null
 column planning.wanted_speakers #001 id uuid not null default gen_random_uuid()
@@ -260,6 +270,15 @@ constraint planning.notes notes_pkey PRIMARY KEY (id)
 constraint planning.notes notes_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint planning.notes notes_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
 constraint planning.notes notes_subject_check CHECK ((num_nonnulls(profile_id, sponsor_id, contact_id) = 1))
+constraint planning.sent_posts sent_posts_channel_check CHECK ((channel = 'discord'::text))
+constraint planning.sent_posts sent_posts_channel_event_id_moment_unique UNIQUE (channel, event_id, moment)
+constraint planning.sent_posts sent_posts_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.sent_posts sent_posts_moment_check CHECK ((moment = ANY (ARRAY['announce'::text, 'dayOf'::text, 'recap'::text])))
+constraint planning.sent_posts sent_posts_pkey PRIMARY KEY (id)
+constraint planning.sent_posts sent_posts_sent_check CHECK (((status = 'sent'::text) = ((message_id IS NOT NULL) AND (url IS NOT NULL) AND (sent_at IS NOT NULL))))
+constraint planning.sent_posts sent_posts_status_check CHECK ((status = ANY (ARRAY['sending'::text, 'unanswered'::text, 'sent'::text])))
+constraint planning.sent_posts sent_posts_token_check CHECK ((token ~ '^[0-9a-f]{16}$'::text))
+constraint planning.sent_posts sent_posts_url_check CHECK ((url ~ '^https://[^[:space:]]+$'::text))
 constraint planning.wanted_speaker_topics wanted_speaker_topics_topic_check CHECK (((char_length(topic) <= 24) AND (topic IS NFC NORMALIZED) AND (topic = lower((topic COLLATE pg_c_utf8))) AND (strpos(topic, 'all things'::text) = 0) AND ((topic COLLATE pg_c_utf8) ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'::text)))
 constraint planning.wanted_speaker_topics wanted_speaker_topics_wanted_speaker_id_topic_pk PRIMARY KEY (wanted_speaker_id, topic)
 constraint planning.wanted_speaker_topics wanted_speaker_topics_wanted_speaker_id_wanted_speakers_id_fk FOREIGN KEY (wanted_speaker_id) REFERENCES planning.wanted_speakers(id) ON DELETE CASCADE
@@ -381,6 +400,8 @@ index planning.notes CREATE INDEX notes_contact_id_idx ON planning.notes USING b
 index planning.notes CREATE INDEX notes_profile_id_idx ON planning.notes USING btree (profile_id)
 index planning.notes CREATE INDEX notes_sponsor_id_idx ON planning.notes USING btree (sponsor_id)
 index planning.notes CREATE UNIQUE INDEX notes_pkey ON planning.notes USING btree (id)
+index planning.sent_posts CREATE UNIQUE INDEX sent_posts_channel_event_id_moment_unique ON planning.sent_posts USING btree (channel, event_id, moment)
+index planning.sent_posts CREATE UNIQUE INDEX sent_posts_pkey ON planning.sent_posts USING btree (id)
 index planning.wanted_speaker_topics CREATE INDEX wanted_speaker_topics_topic_idx ON planning.wanted_speaker_topics USING btree (topic)
 index planning.wanted_speaker_topics CREATE UNIQUE INDEX wanted_speaker_topics_wanted_speaker_id_topic_pk ON planning.wanted_speaker_topics USING btree (wanted_speaker_id, topic)
 index planning.wanted_speakers CREATE UNIQUE INDEX wanted_speakers_contact_id_unique ON planning.wanted_speakers USING btree (contact_id)
@@ -429,6 +450,7 @@ relation planning.contacts kind=r persistence=p rls=f force_rls=f replica_identi
 relation planning.host_prospects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.ideas kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.sent_posts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speaker_topics kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.administrators kind=r persistence=p rls=f force_rls=f replica_identity=d options=

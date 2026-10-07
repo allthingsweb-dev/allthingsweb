@@ -51,6 +51,8 @@ const madeUp = `
   INSERT INTO planning.host_prospects (company_name) VALUES ('Made-up Co');
   INSERT INTO planning.notes (contact_id, body) VALUES
     ('f1000000-0000-4000-8000-000000000001', 'Made up.');
+  INSERT INTO planning.sent_posts (channel, event_id, moment, token)
+    SELECT 'discord', id, 'announce', '0123456789abcdef' FROM events ORDER BY id LIMIT 1;
 `;
 
 let db: PGlite;
@@ -102,6 +104,7 @@ describe("planning is private", () => {
       "host_prospects",
       "ideas",
       "notes",
+      "sent_posts",
       "wanted_speaker_topics",
       "wanted_speakers",
     ]);
