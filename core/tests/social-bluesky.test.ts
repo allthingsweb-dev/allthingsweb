@@ -22,11 +22,15 @@ const text =
   "all things/react: talks by Linus, Grace Hopper and @ada.bsky.social.\n\nWed Aug 12, 6:00 PM, hosted at Globex and Acme.\n\nhttps://lu.ma/event/evt-react";
 
 const json = (value: unknown): Reply => ({ body: JSON.stringify(value) });
-const feed = (texts: ReadonlyArray<string>) =>
+const feed = (
+  texts: ReadonlyArray<string>,
+  page: { readonly cursor?: string; readonly first?: number } = {},
+) =>
   json({
+    ...(page.cursor === undefined ? {} : { cursor: page.cursor }),
     feed: texts.map((t, i) => ({
       post: {
-        uri: `at://${ourAccount.did}/app.bsky.feed.post/r${i}`,
+        uri: `at://${ourAccount.did}/app.bsky.feed.post/r${(page.first ?? 0) + i}`,
         record: { text: t },
       },
     })),
@@ -169,6 +173,38 @@ describe("the dry run", () => {
     });
     expect(value(exit).alreadyPosted).toBe(
       `at://${ourAccount.did}/app.bsky.feed.post/r0`,
+    );
+  });
+
+  test("reads the whole feed, so a post off the first page still counts", async () => {
+    const { exit, requests } = await run((a) => a.prepare(slug, "announce"), {
+      ...reads,
+      "/xrpc/app.bsky.feed.getAuthorFeed": [
+        feed(
+          Array.from({ length: 50 }, (_, i) => `Newer ${i}`),
+          { cursor: "page-2" },
+        ),
+        feed([text], { first: 50 }),
+      ],
+    });
+    expect(value(exit).alreadyPosted).toBe(
+      `at://${ourAccount.did}/app.bsky.feed.post/r50`,
+    );
+    const pages = requests.filter((r) => r.url.includes("getAuthorFeed"));
+    expect(pages.map((r) => new URL(r.url).searchParams.get("cursor"))).toEqual(
+      [null, "page-2"],
+    );
+  });
+
+  test("won't call a text new when the feed is too long to read", async () => {
+    const { exit } = await run((a) => a.prepare(slug, "announce"), {
+      ...reads,
+      "/xrpc/app.bsky.feed.getAuthorFeed": [
+        feed(["Something else"], { cursor: "more" }),
+      ],
+    });
+    expect(message(exit)).toBe(
+      "The account has more than 2000 posts: Bluesky's feed can't say whether this one is out.",
     );
   });
 });

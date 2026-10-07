@@ -29,6 +29,9 @@ import { Headers, HttpClient, HttpClientRequest } from "effect/http";
  */
 
 export const entryway = "https://bsky.social";
+
+/** How many pages of 50 the feed is read to, at most. */
+const maxPages = 40;
 export const appView = "https://public.api.bsky.app";
 
 export class BlueskyUnavailable extends Schema.TaggedError<BlueskyUnavailable>()(
@@ -155,6 +158,7 @@ const Session = Schema.Struct({
 const Resolved = Schema.Struct({ did: Schema.String });
 
 const Feed = Schema.Struct({
+  cursor: Schema.optionalKey(Schema.String),
   feed: Schema.Array(
     Schema.Struct({
       post: Schema.Struct({
@@ -178,7 +182,7 @@ export interface BlueskyShape {
   readonly resolveHandle: (
     handle: string,
   ) => Effect.Effect<Option.Option<string>, BlueskyUnavailable>;
-  /** The account's recent posts, newest first. */
+  /** Every post of the account's, newest first, replies left out. */
   readonly recentPosts: (
     did: string,
   ) => Effect.Effect<ReadonlyArray<PostedPost>, BlueskyUnavailable>;
@@ -286,25 +290,42 @@ const make = Effect.gen(function* () {
       ),
     );
 
+  /**
+   * The whole feed, a page of 50 at a time, so that a post pushed off the
+   * first page still counts. Past `maxPages` it refuses rather than say
+   * a text is new when it can't tell.
+   */
   const recentPosts = (did: string) =>
-    send(
-      HttpClientRequest.get(`${appView}/xrpc/app.bsky.feed.getAuthorFeed`).pipe(
-        HttpClientRequest.setUrlParams({
-          actor: did,
-          limit: "50",
-          filter: "posts_no_replies",
-        }),
-      ),
-      "the account's feed",
-    ).pipe(
-      Effect.flatMap(decode(Feed, "getAuthorFeed")),
-      Effect.map(({ feed }) =>
-        feed.map(({ post }) => ({
-          uri: post.uri,
-          text: post.record.text ?? "",
-        })),
-      ),
-    );
+    Effect.gen(function* () {
+      const posts: Array<PostedPost> = [];
+      let cursor: string | undefined;
+      for (let page = 0; page < maxPages; page++) {
+        const read = yield* send(
+          HttpClientRequest.get(
+            `${appView}/xrpc/app.bsky.feed.getAuthorFeed`,
+          ).pipe(
+            HttpClientRequest.setUrlParams({
+              actor: did,
+              limit: "50",
+              filter: "posts_no_replies",
+              ...(cursor === undefined ? {} : { cursor }),
+            }),
+          ),
+          "the account's feed",
+        ).pipe(Effect.flatMap(decode(Feed, "getAuthorFeed")));
+        posts.push(
+          ...read.feed.map(({ post }) => ({
+            uri: post.uri,
+            text: post.record.text ?? "",
+          })),
+        );
+        if (read.cursor === undefined || read.feed.length === 0) return posts;
+        cursor = read.cursor;
+      }
+      return yield* fail(
+        `The account has more than ${maxPages * 50} posts: Bluesky's feed can't say whether this one is out.`,
+      );
+    });
 
   const post = (content: PostContent, createdAt: string) =>
     Effect.gen(function* () {
