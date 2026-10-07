@@ -20,7 +20,7 @@ import { ogCards } from "../og/cards.ts";
 import { fullDate, listDate } from "./time.ts";
 
 /**
- * /about: what all things is, in the foundations' words ("Who we are"),
+ * /about: what allthings is, in the foundations' words ("Who we are"),
  * what it has done so far, counted from the data, where it came from (the
  * one place its former names appear, brand/foundations.md, "Name"), who
  * organizes it, how to host an evening or take the stage, and where else
@@ -152,7 +152,7 @@ function History({ about }: { readonly about: AboutView }) {
         ) : (
           <>
             <p safe>
-              {`Before they were all things, they went by ${series(names)}. Now there is one name, and each evening fills the slot after the slash.`}
+              {`Before they were allthings, they went by ${series(names)}. Now there is one name, and each evening fills the slot after the slash.`}
             </p>
             <ol class="history">
               {about.formerNames.map(({ evening }) => (
@@ -268,7 +268,7 @@ export function aboutPage({
                 An open door and a high bar.
               </p>
               <p>
-                all things is an open community for people who build software in
+                allthings is an open community for people who build software in
                 San Francisco: the person a month into their first job, the
                 maintainer of a library you install every day, the founder, the
                 creator, and everyone between. Everyone is welcome. What goes on

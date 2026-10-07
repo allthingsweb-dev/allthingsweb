@@ -19,7 +19,7 @@ afterAll(() => db.close());
 
 const slug = "2026-08-12-react-at-acme";
 const text =
-  "all things/react: talks by Linus, Grace Hopper and @ada.bsky.social.\n\nWed Aug 12, 6:00 PM, hosted at Globex and Acme.\n\nhttps://lu.ma/event/evt-react";
+  "allthings/react: talks by Linus, Grace Hopper and @ada.bsky.social.\n\nWed Aug 12, 6:00 PM, hosted at Globex and Acme.\n\nhttps://lu.ma/event/evt-react";
 
 const json = (value: unknown): Reply => ({ body: JSON.stringify(value) });
 const feed = (

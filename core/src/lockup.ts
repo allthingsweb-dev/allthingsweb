@@ -1,11 +1,12 @@
 /**
- * Each event is all things/<topic>, and lists write it at/<topic>
+ * Each event is allthings/<topic>, and lists write it at/<topic>
  * (brand/foundations.md, "Name"). An organizer may set the topic on the site
  * (`events.topic`); otherwise it is derived from the name, which people write
  * on Luma, not the brand, by one fixed rule:
  *
  * 1. Emoji and other pictographs go, then a trailing "!", "?" or ".".
- * 2. A leading "All Things " goes: "All Things Agent Setups" → "Agent Setups".
+ * 2. A leading name goes, the old way or the new: "All Things Agent Setups"
+ *    → "Agent Setups", "allthings/effect" → "effect".
  * 3. A trailing venue goes, since the place is said beside the name:
  *    "React Bay Area at Mux" → "React Bay Area", "… @ Vercel HQ" likewise.
  * 4. A trailing city goes: "Effect San Francisco" → "Effect".
@@ -74,7 +75,7 @@ export function displayName(name: string): string {
 export function topicOf(name: string): string | undefined {
   const topic = displayName(name)
     .replace(/[!?.]+$/, "")
-    .replace(/^all things\s+/i, "")
+    .replace(/^all\s*things(?:\s*\/\s*|\s+|$)/i, "")
     .replace(/\s+(?:at|@)\s+.+$/i, "")
     .replace(/\s+(?:in\s+)?(?:san francisco|sf)$/i, "")
     .trim()
@@ -85,7 +86,7 @@ export function topicOf(name: string): string | undefined {
 /**
  * The event's topic: the one the site set (`events.topic`, which the Luma
  * sync never writes), else the one its name yields. A shared event has
- * none: it is someone else's evening, never all things/anything, so it is
+ * none: it is someone else's evening, never allthings/anything, so it is
  * named as written.
  */
 export function eventTopic(event: {

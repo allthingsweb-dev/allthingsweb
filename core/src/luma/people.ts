@@ -23,7 +23,7 @@ import type { LumaEventPeople, LumaHost } from "./api.ts";
  * Elizabeth, no accent), so a profile made from every unknown host would be
  * wrong or a duplicate as often as not.
  *
- * A host whose profile is an all things organizer's is the event's
+ * A host whose profile is an allthings organizer's is the event's
  * organizer; everyone else is a co-host. Positions follow Luma's order.
  */
 

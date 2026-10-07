@@ -148,9 +148,11 @@ describe("times on an event page", () => {
 
 describe("the lockup", () => {
   test.each([
-    ["effect", "l", "all things/effect"],
-    ["observables", "l", "all things/observables"],
-    ["react native", "m", "all things/react native"],
+    ["effect", "l", "allthings/effect"],
+    // Exactly as long as "allthings/", then longer.
+    ["typescript", "l", "allthings/typescript"],
+    ["observables", "m", "allthings/observables"],
+    ["react native", "m", "allthings/react native"],
   ] as const)("at/%s is set %s and titled %s", (topic, size, title) => {
     expect(eventLockupSize({ topic })).toBe(size);
     expect(eventTitle({ topic, name: "Anything" })).toBe(title);
@@ -162,7 +164,7 @@ describe("the lockup", () => {
     expect(upcoming).toContain(
       `<h1 class="event-name event-name-s"><span>${name}</span><span class="at-cursor" aria-hidden="true">_</span></h1>`,
     );
-    expect(upcoming).toContain(`<title>${name} · all things/_</title>`);
+    expect(upcoming).toContain(`<title>${name} · allthings/_</title>`);
     const past = render(event({ topic: undefined, name, status: "past" }));
     expect(past).toContain(
       `<h1 class="event-name event-name-s"><span>${name}</span></h1>`,
@@ -309,7 +311,7 @@ describe("the ledger", () => {
     const html = render(event({ status: "past" }));
     expect(labels(html)).toEqual(["When", "Where", "Hosted at", "Next"]);
     expect(html).toContain(
-      '<p class="next-name">all things<span class="slash">/</span><span class="at-cursor" aria-hidden="true">_</span></p>',
+      '<p class="next-name">allthings<span class="slash">/</span><span class="at-cursor" aria-hidden="true">_</span></p>',
     );
     expect(html).toContain(
       '<a href="https://luma.com/allthingsweb">subscribe on luma</a>',
@@ -481,7 +483,7 @@ describe("the ledger", () => {
     );
     expect(html).not.toContain("your hosts");
     expect(html).toContain("<span>TypeScript AI Demo Day</span>");
-    expect(html).not.toContain('all things<span class="slash">/</span><wbr/>');
+    expect(html).not.toContain('allthings<span class="slash">/</span><wbr/>');
     expect(html).toContain(
       '"organizer":{"@type":"Organization","name":"Mastra","url":"https://mastra.ai/"}',
     );
@@ -732,7 +734,7 @@ describe("the calendar file", () => {
       [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//all things//event page//EN",
+        "PRODID:-//allthings//event page//EN",
         "CALSCALE:GREGORIAN",
         "BEGIN:VEVENT",
         "UID:e0000000-0000-4000-8000-000000000001@allthings.dev",

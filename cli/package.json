@@ -1,7 +1,7 @@
 {
   "name": "allthings",
   "version": "2.0.0-alpha.3",
-  "description": "all things from your terminal and your agents: the evenings, who is on stage and how to get in.",
+  "description": "allthings from your terminal and your agents: the evenings, who is on stage and how to get in.",
   "type": "module",
   "private": true,
   "bin": {

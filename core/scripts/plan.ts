@@ -192,7 +192,7 @@ const ideaAdd = Command.make(
     program: Flag.Literals("program", EventProgram.literals).pipe(
       Flag.withDescription("What kind of evening it is."),
     ),
-    topic: text("topic", "all things/<topic>, as event topics are written."),
+    topic: text("topic", "allthings/<topic>, as event topics are written."),
     status: literal("status", IdeaStatus.literals, "Where it stands"),
     event: text("event", "The draft evening it became, by slug."),
     inspiredBy: text("inspired-by", "A past evening it builds on, by slug."),

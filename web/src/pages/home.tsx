@@ -18,7 +18,7 @@ import { clockTime, day } from "./time.ts";
  * hero (when, the lockup, where and who hosts, "I'm in"), community photos
  * sit beside it, and the band below holds the two sentences, the evenings
  * after that and the latest ones. With nothing announced, the hero is the
- * open slot, all things/_, and its button subscribes to the calendar.
+ * open slot, allthings/_, and its button subscribes to the calendar.
  */
 
 export interface HomeProps {
@@ -33,12 +33,12 @@ export interface HomeProps {
 }
 
 /**
- * How large the hero sets a lockup: "all things/" and a short topic at the
+ * How large the hero sets a lockup: "allthings/" and a short topic at the
  * full size, longer topics a step down, a name that isn't a topic two.
  */
 export function lockupSize(evening: Evening): "l" | "m" | "s" {
   if (evening.topic === undefined) return "s";
-  return evening.topic.length <= "all things/".length ? "l" : "m";
+  return evening.topic.length <= "allthings/".length ? "l" : "m";
 }
 
 /** The hosts as the label line names them: "Convex & Clerk", "A, B & C". */
@@ -68,7 +68,7 @@ function Hero({ next }: { readonly next: Evening }) {
           </h1>
         ) : (
           <h1 id="next" class={`hero-name lockup-${lockupSize(next)}`}>
-            all things<span class="slash">/</span>
+            allthings<span class="slash">/</span>
             <br />
             <span safe>{next.topic}</span>
             <Cursor />
@@ -104,7 +104,7 @@ function OpenSlot() {
       <p class="at-type-meta">Next · soon</p>
       <div class="hero-lockup">
         <h1 id="next" class="hero-name lockup-l">
-          all things<span class="slash">/</span>
+          allthings<span class="slash">/</span>
           <br />
           <Cursor />
         </h1>
@@ -291,7 +291,7 @@ export function unavailablePage({
       <div class="intro">
         <p class="at-type-meta">temporarily unavailable</p>
         <h1 class="lockup at-type-event-lockup">
-          all things<span class="slash">/</span>
+          allthings<span class="slash">/</span>
           <Cursor />
         </h1>
         <p class="lead at-type-lead" safe>

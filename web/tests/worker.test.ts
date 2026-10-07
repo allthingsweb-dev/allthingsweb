@@ -329,12 +329,18 @@ describe("MCP", () => {
       "list_speakers",
       "get_community",
     ]);
-    // Names, titles, descriptions, annotations and input schemas, exactly.
+    // Names, titles, descriptions, annotations and input schemas, exactly,
+    // but for one deliberate difference: the Worker writes the name as one
+    // word, allthings, where the app still writes "all things".
     const withoutOutput = ({ outputSchema: _, ...tool }: Tool) => tool;
-    expect(served.map(withoutOutput)).toEqual(today.map(withoutOutput));
-    // They name the community as all things, never by its old name.
+    const todayText = JSON.stringify(today.map(withoutOutput));
+    expect(todayText).toContain("all things");
+    expect(served.map(withoutOutput)).toEqual(
+      JSON.parse(todayText.replaceAll("all things", "allthings")),
+    );
+    // They name the community as allthings, never by an old name.
     expect(JSON.stringify(served.map(withoutOutput))).not.toMatch(
-      /all things web/i,
+      /all things/i,
     );
     // Output schemas come from core's Effect contract: the same JSON Schema,
     // as core's contract test defines sameness.
@@ -383,9 +389,9 @@ describe("MCP", () => {
     });
   }
 
-  // The one deliberate difference: get_community describes all things by its
+  // The one deliberate difference: get_community describes allthings by its
   // name and its two sentences, where the app still says All Things Web.
-  it("get_community names all things, and otherwise answers as the app does", async ({
+  it("get_community names allthings, and otherwise answers as the app does", async ({
     Web,
   }) => {
     const [actual, expected] = await mcp(Web, call("get_community", {}));
@@ -401,10 +407,10 @@ describe("MCP", () => {
     expect(mission).toStartWith("All Things Web brings ");
     const rebranded = {
       ...appAnswer.result.structuredContent,
-      name: "all things",
+      name: "allthings",
       oneLiner:
         "Evenings for people who build software. In the neighborhoods of San Francisco.",
-      mission: mission.replace("All Things Web brings ", "all things brings "),
+      mission: mission.replace("All Things Web brings ", "allthings brings "),
     };
     expect(toolAnswer(actual.body)).toEqual({
       ...appAnswer,
@@ -417,7 +423,7 @@ describe("MCP", () => {
         })),
       },
     });
-    expect(actual.body).not.toMatch(/all things web/i);
+    expect(actual.body).not.toMatch(/all things/i);
   });
 
   it("answers clients that skip initialize, as the CLI does", async ({
@@ -489,7 +495,7 @@ describe("MCP", () => {
             content: [
               {
                 type: "text",
-                text: `all things ${subject} are temporarily unavailable. Please retry in a minute.`,
+                text: `allthings ${subject} are temporarily unavailable. Please retry in a minute.`,
               },
             ],
           },

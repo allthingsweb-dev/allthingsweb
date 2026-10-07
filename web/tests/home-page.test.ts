@@ -390,9 +390,9 @@ describe("lockupSize", () => {
     ["effect", "l"],
     ["react native", "m"],
     ["typescript ai demo day", "m"],
-    // Exactly as long as "all things/", then longer.
-    ["observables", "l"],
-    ["observability", "m"],
+    // Exactly as long as "allthings/", then longer.
+    ["typescript", "l"],
+    ["observables", "m"],
   ] as const)("at/%s is set %s", (topic, size) => {
     expect(lockupSize(evening({ topic }))).toBe(size);
   });

@@ -591,7 +591,7 @@ describe("who has been on stage", () => {
     },
   );
 
-  // D5: all things speakers are those of our evenings, as /people lists
+  // D5: allthings speakers are those of our evenings, as /people lists
   // them. Today list_speakers lists Mastra's speaker, whose evening we only
   // share.
   test.failing(

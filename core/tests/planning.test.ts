@@ -535,7 +535,7 @@ describe("as text", () => {
     ).toBe(
       [
         "Made-up quiz [idea] f0000000-0000-4000-8000-000000000001",
-        "  social · all things/quiz",
+        "  social · allthings/quiz",
         "  Rounds.",
         "  builds on: 2025-10-07-made-up (2025-10-07)",
       ].join("\n"),

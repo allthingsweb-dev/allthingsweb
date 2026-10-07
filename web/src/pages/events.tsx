@@ -101,7 +101,7 @@ export function eventsPage({
     meta: {
       title: gatheringTitle("every evening"),
       description:
-        "Every all things evening, ahead and past. In the neighborhoods of San Francisco.",
+        "Every allthings evening, ahead and past. In the neighborhoods of San Francisco.",
       path: "/events",
       image: ogCards.events,
     },

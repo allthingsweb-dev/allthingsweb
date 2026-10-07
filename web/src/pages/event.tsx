@@ -94,7 +94,7 @@ export interface EventPageProps {
 }
 
 /**
- * The page's title: all things/<topic>, or the name as written before the
+ * The page's title: allthings/<topic>, or the name as written before the
  * open slot when the name yields no topic.
  */
 export function eventTitle(event: Pick<EventPage, "topic" | "name">): Title {
@@ -111,7 +111,7 @@ export function eventLockupSize(
   event: Pick<EventPage, "topic">,
 ): "l" | "m" | "s" {
   if (event.topic === undefined) return "s";
-  return event.topic.length <= "all things/".length ? "l" : "m";
+  return event.topic.length <= "allthings/".length ? "l" : "m";
 }
 
 function Lockup({ event }: { readonly event: EventPage }) {
@@ -127,7 +127,7 @@ function Lockup({ event }: { readonly event: EventPage }) {
   }
   return (
     <h1 class={`event-name event-name-${size}`}>
-      all things<span class="slash">/</span>
+      allthings<span class="slash">/</span>
       <wbr />
       <span safe>{event.topic}</span>
       {cursor}
@@ -1212,7 +1212,7 @@ function Next({ next }: { readonly next: Evening | undefined }) {
       <Fact label="Next">
         <>
           <p class="next-name">
-            all things<span class="slash">/</span>
+            allthings<span class="slash">/</span>
             <Cursor />
           </p>
           <p class="fact-links">
@@ -1431,7 +1431,7 @@ export function notFoundPage({
       <div class="intro">
         <p class="at-type-meta">{said.status}</p>
         <h1 class="lockup at-type-event-lockup">
-          all things<span class="slash">/</span>
+          allthings<span class="slash">/</span>
           <Cursor />
         </h1>
         <p class="lead at-type-lead">{said.lead}</p>
@@ -1482,7 +1482,7 @@ export function eventUnavailablePage({
       <div class="intro">
         <p class="at-type-meta">temporarily unavailable</p>
         <h1 class="lockup at-type-event-lockup">
-          all things<span class="slash">/</span>
+          allthings<span class="slash">/</span>
           <Cursor />
         </h1>
         <p class="lead at-type-lead">

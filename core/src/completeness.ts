@@ -235,7 +235,7 @@ export function eventCompleteness(
 
   const address = event.fullAddress ?? event.streetAddress;
   if (address === null || isBlank(address)) gaps.push(gap("venue"));
-  // A shared evening is named as written, never all things/<topic>.
+  // A shared evening is named as written, never allthings/<topic>.
   if (event.curation.kind === "ours" && eventTopic(event) === undefined) {
     gaps.push(gap("topic"));
   }

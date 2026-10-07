@@ -242,7 +242,7 @@ describe("the RSS feed", () => {
   test("is well-formed RSS 2.0 that names its own address", () => {
     expect(XMLValidator.validate(xml)).toBe(true);
     const channel = channelOf(xml);
-    expect(channel.title).toBe("all things/_");
+    expect(channel.title).toBe("allthings/_");
     expect(channel.link).toBe("https://allthings.dev/");
     expect(channel["atom:link"]).toEqual({
       "@_href": "https://allthings.dev/rss",
@@ -404,7 +404,7 @@ describe("structured data", () => {
       isAccessibleForFree: true,
       organizer: {
         "@type": "Organization",
-        name: "all things",
+        name: "allthings",
         url: "https://allthings.dev",
       },
       location: {
@@ -467,7 +467,7 @@ describe("structured data", () => {
     expect(organization(origin, "Evenings.")).toEqual({
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "all things",
+      name: "allthings",
       url: "https://allthings.dev",
       description: "Evenings.",
       sameAs: socials.map((social) => social.href),
@@ -515,23 +515,23 @@ describe("page metadata", () => {
     for (const [html, title, path, description, card] of [
       [
         home,
-        "all things/_",
+        "allthings/_",
         "/",
         "Evenings for people who build software. In the neighborhoods of San Francisco.",
         ogCards.home,
       ],
       [
         index,
-        "every evening · all things/_",
+        "every evening · allthings/_",
         "/events",
-        "Every all things evening, ahead and past. In the neighborhoods of San Francisco.",
+        "Every allthings evening, ahead and past. In the neighborhoods of San Francisco.",
         ogCards.events,
       ],
       [
         brand,
-        "all things/brand",
+        "allthings/brand",
         "/brand",
-        "The all things/_ brand: palette, type, marks and the rules they follow.",
+        "The allthings/_ brand: palette, type, marks and the rules they follow.",
         ogCards.brand,
       ],
     ] as const) {
@@ -541,9 +541,9 @@ describe("page metadata", () => {
         expect.arrayContaining([
           `<meta name="description" content="${description}"/>`,
           `<link rel="canonical" href="${canonical}"/>`,
-          '<link rel="alternate" type="application/rss+xml" href="/rss" title="all things/_"/>',
+          '<link rel="alternate" type="application/rss+xml" href="/rss" title="allthings/_"/>',
           '<meta property="og:type" content="website"/>',
-          '<meta property="og:site_name" content="all things"/>',
+          '<meta property="og:site_name" content="allthings"/>',
           '<meta property="og:locale" content="en_US"/>',
           `<meta property="og:title" content="${title}"/>`,
           `<meta property="og:description" content="${description}"/>`,
@@ -613,7 +613,7 @@ describe("page metadata", () => {
     });
     // Text is escaped; a quoted attribute ends only at its quote.
     expect(html).toContain(
-      "<title>all things/&lt;/title&gt;&lt;b&gt;x&lt;/b&gt;</title>",
+      "<title>allthings/&lt;/title&gt;&lt;b&gt;x&lt;/b&gt;</title>",
     );
     expect(html).toContain(
       '<meta name="description" content="</title><item><title>pwned</title></item>]]><!-- & &#34;quotes&#34;',

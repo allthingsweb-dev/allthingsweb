@@ -8,6 +8,7 @@ import {
   Exit,
   Fiber,
   Layer,
+  Option,
 } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { HttpClient, HttpClientResponse, UrlParams } from "effect/http";
@@ -22,6 +23,7 @@ import {
   type FoundPost,
   fromBlueskyHit,
   fromXSearch,
+  makeBlueskySearch,
   makeXSearch,
   scoreCandidate,
   toSignals,
@@ -106,7 +108,7 @@ describe("scoreCandidate", () => {
       score: 4 + 3 + 1 + 2 + 1 + 2,
       reasons: [
         '+4 names "React at Acme"',
-        "+3 says all things",
+        "+3 says allthings",
         "+1 names Globex",
         "+2 by @Ada, on its stage",
         "+1 mentions @ada",
@@ -136,6 +138,10 @@ describe("scoreCandidate", () => {
     ).toEqual({ score: 2, reasons: ['+2 says "all things ai"'] });
     expect(
       scoreCandidate(ai, post({ text: "see you at all things/ai tonight" }))
+        .score,
+    ).toBe(3);
+    expect(
+      scoreCandidate(ai, post({ text: "see you at allthings/ai tonight" }))
         .score,
     ).toBe(3);
   });
@@ -192,7 +198,7 @@ describe("scoreCandidate", () => {
     ).toBe(2);
     // X's from: takes the id where it's known.
     expect(xQueries(known)[1]).toBe(
-      '(from:11) ("all things" OR "react") -is:retweet',
+      '(from:11) ("allthings" OR "all things" OR "react") -is:retweet',
     );
   });
 
@@ -403,6 +409,41 @@ describe("what platforms answer", () => {
         postedAt: at("2026-08-13T03:00:00.000Z"),
       },
     ]);
+  });
+
+  test("Bluesky asks for the name spaced, then as one word, and a budget keeps the spaced one", async () => {
+    const asked = async (maxQueries?: number) => {
+      const queries: Array<string> = [];
+      const client = Layer.succeed(
+        HttpClient.HttpClient,
+        HttpClient.make((request) => {
+          queries.push(
+            Option.getOrElse(
+              UrlParams.getFirst(request.urlParams, "q"),
+              () => "",
+            ),
+          );
+          return Effect.succeed(
+            HttpClientResponse.fromWeb(request, Response.json({ posts: [] })),
+          );
+        }),
+      );
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const bluesky: CandidateSearchShape = yield* makeBlueskySearch;
+          return yield* bluesky.search(signals, maxQueries);
+        }).pipe(Effect.provide(client)),
+      );
+      return queries;
+    };
+    const all = await asked();
+    const spaced = all.indexOf('"all things" react');
+    expect(spaced).toBeGreaterThan(-1);
+    expect(all[spaced + 1]).toBe("allthings react");
+    // The three links and the name, then room for one more: the spaced name.
+    const budgeted = await asked(5);
+    expect(budgeted).toContain('"all things" react');
+    expect(budgeted).not.toContain("allthings react");
   });
 
   test("an X answer that isn't a search result fails that query; the others' posts stay", async () => {
@@ -653,10 +694,10 @@ describe("what platforms answer", () => {
     });
   });
 
-  test("X's queries: the evening's links and name, and its people saying all things", () => {
+  test("X's queries: the evening's links and name, and its people saying allthings", () => {
     expect(xQueries(signals)).toEqual([
       '(url:"lu.ma/event/evt-react" OR url:"luma.com/react-at-acme" OR url:"allthings.dev/2026-08-12-react-at-acme" OR "React at Acme") -is:retweet',
-      '(from:ada) ("all things" OR "react") -is:retweet',
+      '(from:ada) ("allthings" OR "all things" OR "react") -is:retweet',
     ]);
   });
 });

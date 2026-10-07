@@ -265,8 +265,8 @@ export const fixedNames: ReadonlyArray<readonly [string, string]> = [
 export function webManifest(ground: string): string {
   return `${JSON.stringify(
     {
-      name: "all things",
-      short_name: "all things",
+      name: "allthings",
+      short_name: "allthings",
       description:
         "Evenings for people who build software. In the neighborhoods of San Francisco.",
       start_url: "/",

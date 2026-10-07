@@ -7,7 +7,7 @@ let handle:
   | undefined;
 
 /**
- * The all things Worker. Bindings are fixed for an isolate's lifetime, so the
+ * The allthings Worker. Bindings are fixed for an isolate's lifetime, so the
  * router and its settings are built on the first request and reused. With
  * an `EDGE_CACHE` binding, every GET goes through the data center's cache
  * first (see edge-cache.ts), under that binding's name: deployments set it,

@@ -314,7 +314,7 @@ export function peoplePage({
     meta: {
       title: gatheringTitle("people"),
       description:
-        "The organizers of all things, and everyone who has been on stage at its evenings in San Francisco.",
+        "The organizers of allthings, and everyone who has been on stage at its evenings in San Francisco.",
       path: "/people",
       image: ogCards.people,
     },

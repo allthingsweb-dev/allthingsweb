@@ -4,7 +4,7 @@ import type * as Rows from "./rows.ts";
 
 /**
  * Each evening's short link: the lockup is the link (brand/foundations.md,
- * "Name"), so all things/effect lives at allthings.dev/effect.
+ * "Name"), so allthings/effect lives at allthings.dev/effect.
  *
  * The rule, one evening at a time in the order they start:
  *
@@ -13,7 +13,7 @@ import type * as Rows from "./rows.ts";
  * 2. It takes the first of these no other evening holds: the base, then the
  *    base and its month in San Francisco (web-2024-11), then the day
  *    (web-2024-11-12), then a count (web-2024-11-12-2).
- * 3. A shared evening is someone else's, never all things/anything, so its
+ * 3. A shared evening is someone else's, never allthings/anything, so its
  *    link is under shared/ (shared/typescript-ai-demo-day): the bare root
  *    stays the lockup's alone.
  *

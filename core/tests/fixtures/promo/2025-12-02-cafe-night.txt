@@ -1,4 +1,4 @@
-# all things/café night
+# allthings/café night
 
 ## gaps in the record
 
@@ -6,7 +6,7 @@
 - Linus has no Bluesky handle on record, so Bluesky posts name them untagged.
 - Grace Hopper has no X or Bluesky handle on record, so posts name them untagged.
 
-## luma: description (535 / 5000)
+## luma: description (534 / 5000)
 
 **On stage**
 
@@ -36,11 +36,11 @@ Why RSC & streaming matter.
 
 Writes compilers.
 
-**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
 ## meetup
 
-title: all things/café night
+title: allthings/café night
 
 venue: 500 Coffee Ave, Oakland, CA
 
@@ -58,7 +58,7 @@ settings to set by hand:
 - [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
 - [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
 
-description (535 / 5000):
+description (534 / 5000):
 
 **On stage**
 
@@ -88,89 +88,89 @@ Why RSC & streaming matter.
 
 Writes compilers.
 
-**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
-## x: announce (83 / 280)
+## x: announce (82 / 280)
 
-all things/café night: talks by @linus, Grace Hopper and @ada.
+allthings/café night: talks by @linus, Grace Hopper and @ada.
 
 Tue Dec 2, 6:00 PM.
 
-## x: day-of (98 / 280)
+## x: day-of (97 / 280)
 
-Tonight: all things/café night.
+Tonight: allthings/café night.
 
 On stage: talks by @linus, Grace Hopper and @ada.
 
 Doors 6:00 PM.
 
-## x: recap (122 / 280)
+## x: recap (121 / 280)
 
-Thank you for coming to all things/café night.
+Thank you for coming to allthings/café night.
 
 On stage: talks by @linus, Grace Hopper and @ada.
 
 https://allthings.example/2025-12-02-caf%C3%A9-night
 
-## bluesky: announce (94 / 300)
+## bluesky: announce (93 / 300)
 
-all things/café night: talks by Linus, Grace Hopper and @ada.bsky.social.
+allthings/café night: talks by Linus, Grace Hopper and @ada.bsky.social.
 
 Tue Dec 2, 6:00 PM.
 
-## bluesky: day-of (109 / 300)
+## bluesky: day-of (108 / 300)
 
-Tonight: all things/café night.
+Tonight: allthings/café night.
 
 On stage: talks by Linus, Grace Hopper and @ada.bsky.social.
 
 Doors 6:00 PM.
 
-## bluesky: recap (162 / 300)
+## bluesky: recap (161 / 300)
 
-Thank you for coming to all things/café night.
+Thank you for coming to allthings/café night.
 
 On stage: talks by Linus, Grace Hopper and @ada.bsky.social.
 
 https://allthings.example/2025-12-02-caf%C3%A9-night
 
-## linkedin: announce (165 / 3000)
+## linkedin: announce (164 / 3000)
 
-all things/café night: talks by Linus, Grace Hopper and Ada Lovelace.
+allthings/café night: talks by Linus, Grace Hopper and Ada Lovelace.
 
 - Coffee & code: Linus
 - Server components: Grace Hopper and Ada Lovelace
 
 Tue Dec 2, 6:00 PM.
 
-## linkedin: day-of (105 / 3000)
+## linkedin: day-of (104 / 3000)
 
-Tonight: all things/café night.
+Tonight: allthings/café night.
 
 On stage: talks by Linus, Grace Hopper and Ada Lovelace.
 
 Doors 6:00 PM.
 
-## linkedin: recap (158 / 3000)
+## linkedin: recap (157 / 3000)
 
-Thank you for coming to all things/café night.
+Thank you for coming to allthings/café night.
 
 On stage: talks by Linus, Grace Hopper and Ada Lovelace.
 
 https://allthings.example/2025-12-02-caf%C3%A9-night
 
-## discord: announce (169 / 2000)
+## discord: announce (168 / 2000)
 
-**all things/café night**: talks by Linus, Grace Hopper and Ada Lovelace.
+**allthings/café night**: talks by Linus, Grace Hopper and Ada Lovelace.
 
 - Coffee & code: Linus
 - Server components: Grace Hopper and Ada Lovelace
 
 Tue Dec 2, 6:00 PM.
 
-## discord: day-of (145 / 2000)
+## discord: day-of (144 / 2000)
 
-**Tonight: all things/café night**
+**Tonight: allthings/café night**
 
 If you're in: doors 6:00 PM.
 
@@ -178,9 +178,9 @@ On stage: talks by Linus, Grace Hopper and Ada Lovelace.
 
 see you at/café night
 
-## discord: recap (158 / 2000)
+## discord: recap (157 / 2000)
 
-Thank you for coming to all things/café night.
+Thank you for coming to allthings/café night.
 
 On stage: talks by Linus, Grace Hopper and Ada Lovelace.
 

@@ -128,9 +128,9 @@ export function clockOf(instant: DateTime.Utc): string {
   return `${twelve}:${String(minute).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"}`;
 }
 
-/** "all things/effect", or the name as written when it has no topic. */
+/** "allthings/effect", or the name as written when it has no topic. */
 export const titleOf = (event: EventPage): string =>
-  event.topic === undefined ? event.name : `all things/${event.topic}`;
+  event.topic === undefined ? event.name : `allthings/${event.topic}`;
 
 /** A stored X handle as X spells it, or null when it isn't one. */
 export function xHandle(stored: string | null): string | null {
@@ -672,7 +672,7 @@ function descriptionBody(
     rules.length === 0
       ? null
       : rules.map((rule) => `- ${md(rule.text)}`).join("\n"),
-    `**[all things](${lumaCalendar})**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](${discordInvite})**.`,
+    `**[allthings](${lumaCalendar})**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](${discordInvite})**.`,
   );
 }
 

@@ -19,11 +19,11 @@ import { type Choice, choices, type Theme } from "./theme.ts";
  * CSS, and the mode is chosen with links (see theme.ts).
  */
 
-/** The master wordmark, all things/_, linking home. */
+/** The master wordmark, allthings/_, linking home. */
 export function Wordmark() {
   return (
-    <a class="wordmark" href="/" aria-label="all things, home">
-      all things<span class="slash">/</span>
+    <a class="wordmark" href="/" aria-label="allthings, home">
+      allthings<span class="slash">/</span>
       <span class="at-cursor" aria-hidden="true">
         _
       </span>
@@ -142,7 +142,7 @@ function ModeSwitch({ theme }: { readonly theme: Theme | undefined }) {
  * The hosts sign off with their portraits from their speaker profiles, or
  * the brand's blank avatar where there is none. The originals are large
  * (684 to 2160 px, megabytes) and shown at 36, so with variants they come
- * at 36 and 72 pixels (see picture.tsx). Who they are, and what all things
+ * at 36 and 72 pixels (see picture.tsx). Who they are, and what allthings
  * is, is on the about page their names link to.
  */
 function Footer({
@@ -171,7 +171,7 @@ function Footer({
           </a>
         </p>
       </div>
-      <nav aria-label="all things elsewhere">
+      <nav aria-label="allthings elsewhere">
         <ul class="socials at-type-meta">
           {socials.map((social) => (
             <li>

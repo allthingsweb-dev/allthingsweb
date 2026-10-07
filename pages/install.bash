@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the all things CLI, `allthings`, in ~/.allthings/bin, with `atw`
+# Installs the allthings CLI, `allthings`, in ~/.allthings/bin, with `atw`
 # beside it as the old name for now.
 #
 #   curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash

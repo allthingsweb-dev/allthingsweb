@@ -22,22 +22,22 @@ import type { Theme } from "./theme.ts";
  */
 
 /**
- * Every page's title carries the lockup: all things/<what the page is>,
+ * Every page's title carries the lockup: allthings/<what the page is>,
  * or, for a page that gathers others, its name before the open slot.
  */
-export type Title = `all things/${string}` | `${string} · all things/_`;
+export type Title = `allthings/${string}` | `${string} · allthings/_`;
 
-/** all things/`slot`. */
-export const lockup = (slot: string): Title => `all things/${slot}`;
+/** allthings/`slot`. */
+export const lockup = (slot: string): Title => `allthings/${slot}`;
 
-/** `name` · all things/_, for a page that gathers others, such as every evening. */
-export const gatheringTitle = (name: string): Title => `${name} · all things/_`;
+/** `name` · allthings/_, for a page that gathers others, such as every evening. */
+export const gatheringTitle = (name: string): Title => `${name} · allthings/_`;
 
-/** The home page's title, with the slot left open: all things/_. */
+/** The home page's title, with the slot left open: allthings/_. */
 export const homeTitle: Title = lockup("_");
 
 /** The site's name, as link previews show it. */
-export const siteName = "all things";
+export const siteName = "allthings";
 
 /** What the site is, in its own two sentences. */
 export const siteDescription =

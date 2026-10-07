@@ -304,7 +304,7 @@ describe("one row per evening", () => {
       images: "originals",
     });
     expect(rows(html)).toEqual(["talk: State of Effect 2026 · MC"]);
-    expect(html).not.toContain('aria-labelledby="at-all-things"');
+    expect(html).not.toContain('aria-labelledby="at-allthings"');
     expect(html).toContain(
       '<h2 id="hosted" class="at-type-meta">Hosted · 1 evening</h2>',
     );
@@ -510,14 +510,14 @@ describe("a person's page", () => {
       new RegExp(
         `<section class="about-part" aria-labelledby="${id}">[\\s\\S]*?</section>`,
       ).exec(html)?.[0] ?? "";
-    expect(section("at-all-things")).toContain("talk: Ours");
-    expect(section("at-all-things")).not.toContain("Theirs");
+    expect(section("at-allthings")).toContain("talk: Ours");
+    expect(section("at-allthings")).not.toContain("Theirs");
     expect(section("shared")).toContain(
       '<h2 id="shared" class="at-type-meta">At evenings we shared</h2>',
     );
     expect(section("shared")).toContain("Theirs too");
     expect(html).toContain(
-      "1 talk at all things. 2 talks at evenings all things shared.",
+      "1 talk at allthings. 2 talks at evenings allthings shared.",
     );
   });
 });

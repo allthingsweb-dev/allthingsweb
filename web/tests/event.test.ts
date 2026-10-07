@@ -114,7 +114,7 @@ describe("an upcoming evening", () => {
     expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
     expect(html).toStartWith('<!doctype html><html lang="en"><head>');
     expect(html).toContain('<meta name="color-scheme" content="light dark"/>');
-    expect(html).toContain("<title>all things/effect</title>");
+    expect(html).toContain("<title>allthings/effect</title>");
   });
 
   it("leads with the lockup, the cursor after it, then names each fact once", async ({
@@ -122,7 +122,7 @@ describe("an upcoming evening", () => {
   }) => {
     const { html } = await page(Events, slugs.upcoming);
     expect(html).toContain(
-      '<h1 class="event-name event-name-l">all things<span class="slash">/</span><wbr/><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></h1>',
+      '<h1 class="event-name event-name-l">allthings<span class="slash">/</span><wbr/><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></h1>',
     );
     expect(labels(html)).toEqual([
       "When",
@@ -297,7 +297,7 @@ describe("a past evening", () => {
   }) => {
     const { html } = await page(Events, slugs.past);
     expect(html).toContain(
-      '<h1 class="event-name event-name-l">all things<span class="slash">/</span><wbr/><span>web</span></h1>',
+      '<h1 class="event-name event-name-l">allthings<span class="slash">/</span><wbr/><span>web</span></h1>',
     );
     expect(labels(html)).toEqual([
       "When",
@@ -393,7 +393,7 @@ describe("a past daytime hackathon", () => {
   }) => {
     const { html } = await page(Events, slugs.hackathon);
     expect(html).toStartWith('<!doctype html><html lang="en"><head>');
-    expect(html).toContain("<title>all things/web hackathon</title>");
+    expect(html).toContain("<title>allthings/web hackathon</title>");
     expect(html).toContain('class="event-name event-name-m"');
     expect(labels(html)).toEqual([
       "When",

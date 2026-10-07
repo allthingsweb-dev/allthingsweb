@@ -236,8 +236,9 @@ describe("/brand", () => {
     expect(more).toEqual([]);
     // Another profile is named Andre Landgraf and has a photo.
     expect(html).not.toContain("not-andre");
-    const elsewhere =
-      /<nav aria-label="all things elsewhere">(.*?)<\/nav>/.exec(html)?.[1];
+    const elsewhere = /<nav aria-label="allthings elsewhere">(.*?)<\/nav>/.exec(
+      html,
+    )?.[1];
     expect(
       [...(elsewhere ?? "").matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)].map(
         ([, href, name]) => ({ name, href }),

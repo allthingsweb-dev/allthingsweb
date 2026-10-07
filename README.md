@@ -1,4 +1,4 @@
-# All Things Web dot Dev
+# allthings
 
 ---
 

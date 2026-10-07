@@ -61,8 +61,9 @@ export const speaker: Speaker = {
 };
 
 export const community: Community = {
-  name: "All Things Web",
-  oneLiner: "A hacker club for everyone building the web.",
+  name: "allthings",
+  oneLiner:
+    "Evenings for people who build software. In the neighborhoods of San Francisco.",
   introduction: "Intro.",
   mission: "Mission.",
   history: "History.",

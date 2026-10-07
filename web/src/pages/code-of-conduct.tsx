@@ -33,7 +33,7 @@ export function codeOfConductPage({
     meta: {
       title: gatheringTitle("code of conduct"),
       description:
-        "How we keep all things welcoming, respectful, and community first, and how to report a concern.",
+        "How we keep allthings welcoming, respectful, and community first, and how to report a concern.",
       path: codeOfConductPath,
       image: ogCards.codeOfConduct,
     },
@@ -46,7 +46,7 @@ export function codeOfConductPage({
         <div class="intro">
           <h1 class="lockup at-type-event-lockup">code of conduct</h1>
           <p class="lead at-type-lead">
-            all things is a place to learn, build, share, and connect on equal
+            allthings is a place to learn, build, share, and connect on equal
             footing.
           </p>
         </div>

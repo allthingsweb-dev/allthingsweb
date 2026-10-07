@@ -14,7 +14,7 @@ CLI_DIR := $(CURRENT_DIR)/cli
 .PHONY: list
 list:
 	@echo "${YELLOW}***${RED}***${RESTORE}***${YELLOW}***${RED}***${RESTORE}***${YELLOW}***${RED}***${RESTORE}***${YELLOW}***${RED}***${RESTORE}"
-	@echo "${RED}All Things Web: ${YELLOW}Available targets${RESTORE}:"
+	@echo "${RED}allthings: ${YELLOW}Available targets${RESTORE}:"
 	@grep -E '^[a-zA-Z-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf " ${YELLOW}%-15s${RESTORE} > %s\n", $$1, $$2}'
 	@echo "${RED}=================================${RESTORE}"
 

@@ -61,7 +61,7 @@ const settled: LaunchConfig = {
 
 /** A next evening with every part, the longest each is likely to be. */
 const hosted: NextEvening = {
-  title: "all things/react native",
+  title: "allthings/react native",
   when: "Wed Sep 30, 5:30 PM",
   where: "hosted at CodeRabbit and Acme Developer Tools in Potrero Hill",
   url: `${origin}/react-native-2026-09-30`,
@@ -124,8 +124,8 @@ describe("every draft fits its platform", () => {
 
   test("however long the next evening's name, Bluesky keeps the redirect and what's new", () => {
     for (const title of [
-      "all things/upcoming meetup and something else",
-      `all things/${"x".repeat(120)}`,
+      "allthings/upcoming meetup and something else",
+      `allthings/${"x".repeat(120)}`,
     ]) {
       const { bluesky } = launchDrafts({
         ...settled,
@@ -199,7 +199,7 @@ describe("diction", () => {
       const times = text.split(formerName).length - 1;
       expect({ name, times }).toEqual({ name, times: expected });
     }
-    expect(drafts.x[0]).toStartWith(`${formerName} is now all things.`);
+    expect(drafts.x[0]).toStartWith(`${formerName} is now allthings.`);
   });
 });
 
@@ -240,7 +240,7 @@ describe("what isn't settled", () => {
 describe("the next evening", () => {
   test("is named by its lockup, its time in San Francisco and its short link", () => {
     expect(next(upcoming)).toEqual({
-      title: "all things/upcoming meetup",
+      title: "allthings/upcoming meetup",
       when: "Thu Nov 5, 6:00 PM",
       where: null,
       url: `${origin}/${upcoming.slug}`,
