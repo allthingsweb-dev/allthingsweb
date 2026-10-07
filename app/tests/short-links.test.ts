@@ -16,7 +16,6 @@ import * as schema from "../src/lib/schema";
 const client = new PGlite();
 const db = drizzle(client);
 beforeAll(async () => {
-  await client.exec("CREATE SCHEMA IF NOT EXISTS neon_auth");
   for (const statement of await generateMigration(
     generateDrizzleJson({}),
     generateDrizzleJson(schema),

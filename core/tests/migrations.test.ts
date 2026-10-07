@@ -168,16 +168,31 @@ describe("core/migrations", () => {
   test("an invalid index shows in the snapshot", async () => {
     const db = keep(await migratedDatabase());
     await db.exec(
-      `UPDATE pg_catalog.pg_index SET indisvalid = false WHERE indexrelid = 'neon_auth.users_sync_deleted_at_idx'::regclass`,
+      `UPDATE pg_catalog.pg_index SET indisvalid = false WHERE indexrelid = 'public.event_posts_event_id_idx'::regclass`,
     );
     expect(SchemaSnapshot.diff(fromMigrations, await snapshotOf(db))).toEqual({
       missing: [
-        "index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at)",
+        "index public.event_posts CREATE INDEX event_posts_event_id_idx ON public.event_posts USING btree (event_id)",
       ],
       unexpected: [
-        "index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at) invalid",
+        "index public.event_posts CREATE INDEX event_posts_event_id_idx ON public.event_posts USING btree (event_id) invalid",
       ],
     });
+  });
+
+  test("nothing of the site's references Neon Auth, so turning it off changes nothing checked", async () => {
+    const db = keep(await migratedDatabase());
+    const references = await db.query<{ name: string }>(
+      `SELECT c.conname AS name FROM pg_catalog.pg_constraint c
+       WHERE c.confrelid IN (
+         SELECT r.oid FROM pg_catalog.pg_class r
+         JOIN pg_catalog.pg_namespace n ON n.oid = r.relnamespace
+         WHERE n.nspname = 'neon_auth')`,
+    );
+    expect(references.rows).toEqual([]);
+    // As turning Neon Auth off would leave it: no neon_auth at all.
+    await db.exec(`DROP SCHEMA "neon_auth" CASCADE`);
+    expect(await snapshotOf(db)).toEqual(fromMigrations);
   });
 
   test("a platform object does not change the snapshot", async () => {

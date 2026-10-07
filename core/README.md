@@ -1062,6 +1062,14 @@ those files do not record. The test lists each difference with its reason.
 migration adds, and the tests hold the migrations to it both in PGlite and on
 Postgres 17 (`tests/postgres.test.ts`, in CI).
 
+`neon_auth` is Neon Auth's schema, not ours. The baseline still makes a
+stand-in `neon_auth.users_sync` where Neon Auth isn't on (tests, local
+Postgres), because production had it in 2026-10. Since
+`0023_drop_admin_tables`, nothing of the site's references it, and the
+snapshot (`src/schema-snapshot.ts`) compares only `public` and `planning`.
+So Neon Auth on or off changes nothing the migrations or tests check; a
+test drops the schema to show it.
+
 ### Running them
 
 ```sh

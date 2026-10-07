@@ -1,10 +1,3 @@
-column neon_auth.users_sync #001 raw_json jsonb not null
-column neon_auth.users_sync #002 id text not null generated always as ((raw_json ->> 'id'::text)) stored
-column neon_auth.users_sync #003 name text generated always as ((raw_json ->> 'display_name'::text)) stored
-column neon_auth.users_sync #004 email text generated always as ((raw_json ->> 'primary_email'::text)) stored
-column neon_auth.users_sync #005 created_at timestamp with time zone generated always as (to_timestamp((trunc((((raw_json ->> 'signed_up_at_millis'::text))::bigint)::double precision) / (1000)::double precision))) stored
-column neon_auth.users_sync #006 updated_at timestamp with time zone
-column neon_auth.users_sync #007 deleted_at timestamp with time zone
 column planning.availability #001 id uuid not null default gen_random_uuid()
 column planning.availability #002 wanted_speaker_id uuid not null
 column planning.availability #003 kind text not null default 'available'::text
@@ -64,10 +57,6 @@ column planning.wanted_speakers #004 status text not null default 'wanted'::text
 column planning.wanted_speakers #005 note text
 column planning.wanted_speakers #006 created_at timestamp with time zone not null default now()
 column planning.wanted_speakers #007 updated_at timestamp with time zone not null default now()
-column public.administrators #001 id uuid not null default gen_random_uuid()
-column public.administrators #002 user_id text not null
-column public.administrators #003 created_at timestamp with time zone not null default now()
-column public.administrators #004 updated_at timestamp with time zone not null
 column public.event_images #001 event_id uuid not null
 column public.event_images #002 image_id uuid not null
 column public.event_images #003 created_at timestamp with time zone not null default now()
@@ -184,10 +173,6 @@ column public.images #008 height integer not null
 column public.profile_slugs #001 slug text not null
 column public.profile_slugs #002 profile_id uuid not null
 column public.profile_slugs #003 created_at timestamp with time zone not null default now()
-column public.profile_users #001 profile_id uuid not null
-column public.profile_users #002 user_id text not null
-column public.profile_users #003 created_at timestamp with time zone not null default now()
-column public.profile_users #004 updated_at timestamp with time zone not null
 column public.profiles #001 id uuid not null default gen_random_uuid()
 column public.profiles #002 name text not null
 column public.profiles #003 title text not null
@@ -236,7 +221,6 @@ column public.talks #003 description text not null
 column public.talks #004 created_at timestamp with time zone not null default now()
 column public.talks #005 updated_at timestamp with time zone not null
 column public.talks #006 format text not null default 'talk'::text
-constraint neon_auth.users_sync users_sync_pkey PRIMARY KEY (id)
 constraint planning.availability availability_kind_check CHECK ((kind = ANY (ARRAY['available'::text, 'unavailable'::text])))
 constraint planning.availability availability_order_check CHECK ((starts_on <= ends_on))
 constraint planning.availability availability_pkey PRIMARY KEY (id)
@@ -290,8 +274,6 @@ constraint planning.wanted_speakers wanted_speakers_pkey PRIMARY KEY (id)
 constraint planning.wanted_speakers wanted_speakers_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint planning.wanted_speakers wanted_speakers_profile_id_unique UNIQUE (profile_id)
 constraint planning.wanted_speakers wanted_speakers_status_check CHECK ((status = ANY (ARRAY['wanted'::text, 'asked'::text, 'confirmed'::text, 'declined'::text])))
-constraint public.administrators administrators_pkey PRIMARY KEY (id)
-constraint public.administrators administrators_user_id_users_sync_id_fk FOREIGN KEY (user_id) REFERENCES neon_auth.users_sync(id)
 constraint public.event_images event_images_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint public.event_images event_images_event_id_image_id_pk PRIMARY KEY (event_id, image_id)
 constraint public.event_images event_images_image_id_images_id_fk FOREIGN KEY (image_id) REFERENCES images(id)
@@ -354,10 +336,6 @@ constraint public.images images_pkey PRIMARY KEY (id)
 constraint public.profile_slugs profile_slugs_pkey PRIMARY KEY (slug)
 constraint public.profile_slugs profile_slugs_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
 constraint public.profile_slugs profile_slugs_slug_check CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
-constraint public.profile_users profile_users_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
-constraint public.profile_users profile_users_profile_id_unique UNIQUE (profile_id)
-constraint public.profile_users profile_users_profile_id_user_id_pk PRIMARY KEY (profile_id, user_id)
-constraint public.profile_users profile_users_user_id_users_sync_id_fk FOREIGN KEY (user_id) REFERENCES neon_auth.users_sync(id)
 constraint public.profiles profiles_image_images_id_fk FOREIGN KEY (image) REFERENCES images(id) ON DELETE SET NULL
 constraint public.profiles profiles_luma_user_id_check CHECK ((luma_user_id ~ '^usr-[A-Za-z0-9]+$'::text))
 constraint public.profiles profiles_luma_user_id_unique UNIQUE (luma_user_id)
@@ -387,8 +365,6 @@ constraint public.talk_speakers talk_speakers_talk_id_talks_id_fk FOREIGN KEY (t
 constraint public.talks talks_format_check CHECK ((format = ANY (ARRAY['talk'::text, 'panel'::text, 'fireside'::text])))
 constraint public.talks talks_pkey PRIMARY KEY (id)
 enum public.profile_type ('organizer', 'member')
-index neon_auth.users_sync CREATE INDEX users_sync_deleted_at_idx ON neon_auth.users_sync USING btree (deleted_at)
-index neon_auth.users_sync CREATE UNIQUE INDEX users_sync_pkey ON neon_auth.users_sync USING btree (id)
 index planning.availability CREATE INDEX availability_wanted_speaker_id_idx ON planning.availability USING btree (wanted_speaker_id)
 index planning.availability CREATE UNIQUE INDEX availability_pkey ON planning.availability USING btree (id)
 index planning.contacts CREATE UNIQUE INDEX contacts_pkey ON planning.contacts USING btree (id)
@@ -408,7 +384,6 @@ index planning.wanted_speaker_topics CREATE UNIQUE INDEX wanted_speaker_topics_w
 index planning.wanted_speakers CREATE UNIQUE INDEX wanted_speakers_contact_id_unique ON planning.wanted_speakers USING btree (contact_id)
 index planning.wanted_speakers CREATE UNIQUE INDEX wanted_speakers_pkey ON planning.wanted_speakers USING btree (id)
 index planning.wanted_speakers CREATE UNIQUE INDEX wanted_speakers_profile_id_unique ON planning.wanted_speakers USING btree (profile_id)
-index public.administrators CREATE UNIQUE INDEX administrators_pkey ON public.administrators USING btree (id)
 index public.event_images CREATE UNIQUE INDEX event_images_event_id_image_id_pk ON public.event_images USING btree (event_id, image_id)
 index public.event_notes CREATE UNIQUE INDEX event_notes_event_id_position_pk ON public.event_notes USING btree (event_id, "position")
 index public.event_people CREATE UNIQUE INDEX event_people_event_id_profile_id_role_pk ON public.event_people USING btree (event_id, profile_id, role)
@@ -433,8 +408,6 @@ index public.external_talks CREATE UNIQUE INDEX external_talks_profile_id_title_
 index public.images CREATE UNIQUE INDEX images_pkey ON public.images USING btree (id)
 index public.profile_slugs CREATE INDEX profile_slugs_profile_id_idx ON public.profile_slugs USING btree (profile_id)
 index public.profile_slugs CREATE UNIQUE INDEX profile_slugs_pkey ON public.profile_slugs USING btree (slug)
-index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_unique ON public.profile_users USING btree (profile_id)
-index public.profile_users CREATE UNIQUE INDEX profile_users_profile_id_user_id_pk ON public.profile_users USING btree (profile_id, user_id)
 index public.profiles CREATE UNIQUE INDEX profiles_luma_user_id_unique ON public.profiles USING btree (luma_user_id)
 index public.profiles CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
 index public.profiles CREATE UNIQUE INDEX profiles_slug_unique ON public.profiles USING btree (slug)
@@ -445,7 +418,6 @@ index public.sponsors CREATE UNIQUE INDEX sponsors_name_unique ON public.sponsor
 index public.sponsors CREATE UNIQUE INDEX sponsors_pkey ON public.sponsors USING btree (id)
 index public.talk_speakers CREATE UNIQUE INDEX talk_speakers_talk_id_speaker_id_pk ON public.talk_speakers USING btree (talk_id, speaker_id)
 index public.talks CREATE UNIQUE INDEX talks_pkey ON public.talks USING btree (id)
-relation neon_auth.users_sync kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.availability kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.contacts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.host_prospects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
@@ -454,7 +426,6 @@ relation planning.notes kind=r persistence=p rls=f force_rls=f replica_identity=
 relation planning.sent_posts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speaker_topics kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
-relation public.administrators kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_images kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_people kind=r persistence=p rls=f force_rls=f replica_identity=d options=
@@ -468,7 +439,6 @@ relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f
 relation public.external_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.images kind=r persistence=p rls=f force_rls=f replica_identity=f options=
 relation public.profile_slugs kind=r persistence=p rls=f force_rls=f replica_identity=d options=
-relation public.profile_users kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.profiles kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.redirects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.sponsors kind=r persistence=p rls=f force_rls=f replica_identity=d options=
