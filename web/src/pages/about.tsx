@@ -69,7 +69,7 @@ function SoFar({ about }: { readonly about: AboutView }) {
     { value: about.evenings, label: "evenings" },
     { value: about.speakers, label: "people on stage" },
     { value: about.hostingCompanies, label: "hosting companies" },
-    { value: about.guests, label: "guests, as Luma counted them" },
+    { value: about.guests, label: "through the door" },
   ].filter(({ value }) => value > 0);
   if (tally.length === 0) return "";
   return (
