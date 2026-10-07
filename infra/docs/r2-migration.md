@@ -180,12 +180,24 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
 
    With the admin gone, the upload Worker has no caller. Remove `MediaUpload`, its check and the Vercel env writes from the stack. The sync Worker still stores Luma's images in the bucket itself.
 
-3. **allthingsweb.dev redirects to allthings.dev** through the Next app's own `redirects()` in `app/next.config.ts`. No DNS change is needed.
-   - **Targets.** Each path goes to the same path on allthings.dev, with the query kept. The Worker already answers every legacy URL as the manifest says: renamed event slugs redirect once more, and retired paths return 410.
-   - **One hop.** Where the manifest's answer is itself a redirect, the Next redirect goes straight to its target.
-   - **No drift.** A test generates the Next redirects from the manifest, so the two can't drift apart.
-   - **Status codes.** Pages and feeds get 301. `/mcp` and `/api/*` get 308, which keeps a POST's method and body.
+3. **allthingsweb.dev redirects to allthings.dev.** The old Next app does it, behind one flag that ships off. No DNS change is needed.
+   - **The code.** `app/src/middleware.ts` runs on every path. With `ALLTHINGS_DEV_REDIRECT=on`, it answers each request with a redirect from `app/src/lib/cutover/redirect.ts`; with the variable unset or `off`, it redirects nothing.
+   - **One hop.** Where the Worker would only redirect again, the redirect goes straight to its target:
+     - an event's long slug goes to its short link, looked up in the database;
+     - `/speakers` goes to `/people`, and `/rss.xml` to `/rss`;
+     - a trailing slash is dropped;
+     - the old link-preview images go to `/og/…` cards;
+     - `/_next/image` for a photo on the media origin goes to the photo.
+   - **Everything else** goes to the same path and query on allthings.dev. That includes the API, `/mcp`, `/r/*` and the retired paths, and the Worker answers each as the legacy-URL manifest says.
+   - **Status codes.** GET and HEAD get 301. Any other method gets 308, which keeps a POST's method and body. Each redirect is cached for an hour, so turning the flag back off takes hold within one.
+   - **Person anchors.** A fragment never reaches a server. The browser keeps `#p-<id>` across the redirect, and allthings.dev/people still has those anchors.
+   - **No drift.** `web/tests/cutover.test.ts` holds every pattern in the manifest to its exact target, so the two can't drift apart.
    - **Ordering.** Steps 1 and 2 come first, so nothing the app still serves is redirected away.
+   - **The flip:**
+     1. Set it: `vercel env add ALLTHINGS_DEV_REDIRECT production`, with the value `on`.
+     2. Redeploy production: Vercel applies an env change only to new deployments. Use `vercel redeploy` on the latest production deployment, or the Vercel MCP's `create_deployment` with its deployment id.
+     3. Check `curl -sI https://allthingsweb.dev/speakers`: it should answer `301` with `location: https://allthings.dev/people`. Check an event's long slug too, which should go to its short link.
+   - **Undo.** Set the variable to `off` and redeploy. Browsers that cached a redirect follow it for at most an hour.
 4. **Vercel retires.** allthingsweb.dev's redirects then need a home off Vercel:
    - Add allthingsweb.dev as a zone in the allthings account and point name.com's nameservers at it. This is the only DNS change, and it waits until this step.
    - Add allthingsweb.dev and www.allthingsweb.dev to the site's `redirects` in `siteDomain` (`infra/src/web.ts`). They become 301s to allthings.dev, with path and query kept, and the Worker's legacy handling does the rest.
