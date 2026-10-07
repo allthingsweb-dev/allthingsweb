@@ -852,7 +852,7 @@ describe("the Worker, from its bindings", () => {
 describe("the Worker, without what it needs", () => {
   /** Every binding a run needs, none of them reachable: nothing may use them. */
   const complete = () =>
-    bindings("postgres://site_sync:unused@127.0.0.1:1/neondb").env;
+    bindings("postgres://site_sync@127.0.0.1:1/neondb").env;
 
   const cases: ReadonlyArray<
     readonly [string, Readonly<Record<string, unknown>>, ReadonlyArray<string>]
@@ -936,7 +936,7 @@ describe("the Worker, without what it needs", () => {
           },
         ]);
         const said = `${(error as Error).message} ${JSON.stringify(logs.lines)}`;
-        for (const secret of [lumaKey, xToken, "unused@"]) {
+        for (const secret of [lumaKey, xToken, "127.0.0.1:1"]) {
           expect(said).not.toContain(secret);
         }
       } finally {

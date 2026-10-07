@@ -21,6 +21,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     name: 🏗️ Infra

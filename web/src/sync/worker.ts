@@ -58,8 +58,9 @@ import {
  * - `SYNC_MODE`: "write", or "dry-run" (and anything else) to write nothing.
  * - `SYNC_PLAN`: "paid" for the app's limits, or "free" (and anything else)
  *   for runs small enough for the Workers Free plan.
- * - `LUMA_CALENDAR_API_ID`, and `X_MAX_RESULTS` to bound what each X search
- *   returns.
+ * - `LUMA_CALENDAR_API_ID`: the Luma calendar to sync; all things' own
+ *   (`allThingsWebCalendarId`, core/src/luma/feed.ts) by default.
+ * - `X_MAX_RESULTS`: how many posts each X search may return.
  *
  * It answers no requests: the Cron Trigger is its only way in, and whether
  * it has one is decided at deploy time (`SYNC.schedule`).
