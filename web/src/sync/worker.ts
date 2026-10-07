@@ -205,22 +205,15 @@ const bucketOf = (
   fetch: typeof globalThis.fetch,
 ) => {
   const images = imagesOf(env);
-  switch (images) {
-    case "bucket":
-      return mediaBucket(env.MEDIA, env.MEDIA_ORIGIN);
-    case "upload": {
-      const { MEDIA_UPLOAD_URL: url, MEDIA_UPLOAD_TOKEN: token } = env;
-      // syncBindings refuses this before any run; never the other bucket.
-      if (url === undefined || token === undefined) {
-        throw new Error(
-          'SYNC_IMAGES is "upload" without MEDIA_UPLOAD_URL and MEDIA_UPLOAD_TOKEN',
-        );
-      }
-      return uploadWorkerBucket(url, token, env.MEDIA_ORIGIN, fetch);
-    }
-    case undefined:
-      throw new Error('SYNC_IMAGES is neither "bucket" nor "upload"');
+  if (images === "bucket") return mediaBucket(env.MEDIA, env.MEDIA_ORIGIN);
+  const { MEDIA_UPLOAD_URL: url, MEDIA_UPLOAD_TOKEN: token } = env;
+  // syncBindings refuses both before any run: never the other bucket.
+  if (images === undefined || url === undefined || token === undefined) {
+    throw new Error(
+      'SYNC_IMAGES is not "bucket", nor "upload" with MEDIA_UPLOAD_URL and MEDIA_UPLOAD_TOKEN',
+    );
   }
+  return uploadWorkerBucket(url, token, env.MEDIA_ORIGIN, fetch);
 };
 
 /**

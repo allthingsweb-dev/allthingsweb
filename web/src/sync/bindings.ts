@@ -81,6 +81,9 @@ export const mediaBucket = (bucket: R2BucketBinding, origin: string) =>
  * The upload Worker, like the binding, never replaces an object: it answers
  * 409 where one exists. Nothing it answers ever carries the token.
  */
+/** The longest one request to the upload Worker may take. */
+export const uploadTimeout = "30 seconds";
+
 export const uploadWorkerBucket = (
   uploadUrl: string,
   token: string,
@@ -94,9 +97,10 @@ export const uploadWorkerBucket = (
     body?: { readonly bytes: Uint8Array; readonly contentType: string },
   ) =>
     Effect.tryPromise({
-      try: () =>
+      try: (signal) =>
         fetch(`${base}/${encodeKey(key)}`, {
           method,
+          signal,
           headers: {
             authorization: `Bearer ${token}`,
             ...(body === undefined ? {} : { "content-type": body.contentType }),
@@ -108,7 +112,18 @@ export const uploadWorkerBucket = (
           reason: `${method === "PUT" ? "Storing" : "Deleting"} ${key} through the upload Worker failed`,
           cause,
         }),
-    });
+    }).pipe(
+      // Each request is bounded, and its fetch aborted with it.
+      Effect.timeoutOrElse({
+        duration: uploadTimeout,
+        orElse: () =>
+          Effect.fail(
+            new MediaBucketError({
+              reason: `${method === "PUT" ? "Storing" : "Deleting"} ${key} through the upload Worker took over 30 s`,
+            }),
+          ),
+      }),
+    );
   return MediaBucket.of({
     put: (key, bytes, contentType) =>
       bytes.byteLength > maxMediaBytes

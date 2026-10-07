@@ -31,6 +31,7 @@ import {
   fakeLuma,
   fixture,
   type Reply,
+  settle,
 } from "allthings-core/tests/support/luma.ts";
 import { DateTime, Effect, Exit, Layer, Option, Result } from "effect";
 import { grantStatements, SITE_SYNC } from "../../infra/scripts/site-sync.ts";
@@ -661,6 +662,35 @@ describe("the upload Worker as the bucket", () => {
     expect(
       Exit.isFailure(await Effect.runPromiseExit(bucket(500).remove("x.png"))),
     ).toBe(true);
+  });
+
+  test("gives up on a request after 30 s, and aborts its fetch", async () => {
+    let aborted = false;
+    const hanging = Object.assign(
+      (_input: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            aborted = true;
+            reject(new Error("aborted"));
+          });
+        }),
+      { preconnect: globalThis.fetch.preconnect },
+    );
+    const slow = uploadWorkerBucket(
+      "https://upload.example.workers.dev",
+      "secret-token",
+      "https://media.allthings.dev",
+      hanging,
+    );
+    const exit = await Effect.runPromiseExit(
+      settle(slow.put("slow.png", new Uint8Array([1]), "image/png")).pipe(
+        Effect.provide(clockAt(at)),
+      ),
+    );
+    expect(failure(exit)).toBe(
+      "Storing slow.png through the upload Worker took over 30 s",
+    );
+    expect(aborted).toBe(true);
   });
 });
 
