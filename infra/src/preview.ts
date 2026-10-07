@@ -32,11 +32,11 @@ import { Database, SITE_ORIGIN } from "./web.ts";
  * Whether prod deploys the preview: a reviewed one-line switch, as the
  * sync's are (src/sync.ts). Access must be on for the account first: a
  * stack that declares an Access application where Zero Trust is off fails
- * to plan at all, which would stop every prod deploy. Off until the
- * allthings account has its Zero Trust organization; then on, in a pull
- * request of its own.
+ * to plan at all, which would stop every prod deploy. On since the
+ * allthings account has its Zero Trust organization (team allthings, Free,
+ * turned on in October 2026).
  */
-export const PREVIEW: { readonly deploy: boolean } = { deploy: false };
+export const PREVIEW: { readonly deploy: boolean } = { deploy: true };
 
 /**
  * Who may see drafts, by the email they sign in with. Andre's is the one
