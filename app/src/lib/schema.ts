@@ -17,9 +17,6 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { usersSync as usersSyncTable } from "drizzle-orm/neon";
-
-export { usersSyncTable };
 
 const createdAt = timestamp("created_at", { withTimezone: true })
   .notNull()
@@ -630,37 +627,6 @@ export type InsertEventReviewSession =
   typeof eventReviewSessionsTable.$inferInsert;
 export type SelectEventReviewSession =
   typeof eventReviewSessionsTable.$inferSelect;
-
-export const administratorsTable = pgTable("administrators", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => usersSyncTable.id),
-  createdAt,
-  updatedAt,
-});
-
-export type InsertAdministrator = typeof administratorsTable.$inferInsert;
-export type SelectAdministrator = typeof administratorsTable.$inferSelect;
-
-export const profileUsersTable = pgTable(
-  "profile_users",
-  {
-    profileId: uuid("profile_id")
-      .notNull()
-      .references(() => profilesTable.id)
-      .unique(), // One profile can only be associated with one user
-    userId: text("user_id")
-      .notNull()
-      .references(() => usersSyncTable.id),
-    createdAt,
-    updatedAt,
-  },
-  (table) => [primaryKey({ columns: [table.profileId, table.userId] })],
-);
-
-export type InsertProfileUser = typeof profileUsersTable.$inferInsert;
-export type SelectProfileUser = typeof profileUsersTable.$inferSelect;
 
 /**
  * Planning: ideas for evenings, speakers we'd like on stage and when they're

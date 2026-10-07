@@ -4,7 +4,7 @@
  *
  *   bun run fixtures [endpoint]
  */
-const endpoint = process.argv[2] ?? "https://allthingsweb.dev/mcp";
+const endpoint = process.argv[2] ?? "https://allthings.dev/mcp";
 const dir = new URL("../tests/fixtures/", import.meta.url);
 
 async function call(name: string, args: Record<string, unknown>) {

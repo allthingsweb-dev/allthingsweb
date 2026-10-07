@@ -1,5 +1,6 @@
 import { Effect, type Schema } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
+import { hostOrder } from "./catalog.ts";
 import { DataSourceError } from "./errors.ts";
 
 /**
@@ -63,7 +64,7 @@ export const listingJson: string = `json_build_object(
     'streetAddress', e.street_address, 'shortLocation', e.short_location,
     'fullAddress', e.full_address, 'lumaEventId', e.luma_event_id,
     'hosts', COALESCE((
-      SELECT json_agg(s.name ORDER BY es.created_at, s.id)
+      SELECT json_agg(s.name ORDER BY ${hostOrder})
       FROM event_sponsors es
       JOIN sponsors s ON s.id = es.sponsor_id
       WHERE es.event_id = e.id

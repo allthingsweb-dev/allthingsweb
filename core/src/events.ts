@@ -1,6 +1,13 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
+import {
+  hostsOf,
+  latestFirst,
+  peopleOf,
+  published,
+  talksOf,
+} from "./catalog.ts";
 import { type DataSourceError, EventNotFound } from "./errors.ts";
 import * as Rows from "./rows.ts";
 import { imageJson, orDataSourceError, profileJson } from "./sql.ts";
@@ -36,22 +43,18 @@ const make = Effect.gen(function* () {
     e.recording_url AS "recordingUrl", e.is_hackathon AS "isHackathon",
     ${imageJson("e.preview_image")} AS "previewImage"`);
 
-  // The id breaks ties between events that start together, which the app
-  // leaves to the planner.
   const listPublished = SqlSchema.findAll({
     Request: Schema.Void,
     Result: Rows.Event,
     execute: () => sql`
       SELECT ${eventColumns}
       FROM events e
-      WHERE e.is_draft = false
-      ORDER BY e.start_date DESC, e.id`,
+      WHERE ${published(sql, "e")}
+      ORDER BY ${latestFirst(sql, "e")}`,
   });
 
-  // Talks, speakers, hosts and photos are listed in the order they were
-  // attached: the join row's created_at, then id. The app reads them without
-  // ORDER BY, which leaves their order to the query planner. People come by
-  // role (organizers, co-hosts, the MC), then their position in it.
+  // The lineup in the catalog's order; photos in the order they were
+  // attached, the join row's created_at, then id.
   const findPublished = SqlSchema.findOneOption({
     Request: Schema.String,
     Result: Rows.EventDetails,
@@ -59,47 +62,28 @@ const make = Effect.gen(function* () {
       SELECT ${eventColumns},
         e.luma_guest_count AS "lumaGuestCount",
         e.luma_checked_in_count AS "lumaCheckedInCount",
-        COALESCE((
-          SELECT json_agg(json_build_object(
-            'id', t.id,
-            'title', t.title,
-            'description', t.description,
-            'format', t.format,
-            'speakers', COALESCE((
-              SELECT json_agg(
-                (${sql.literal(profileJson)})::jsonb || jsonb_build_object('role', ts.role)
-                ORDER BY ts.created_at, p.id)
-              FROM talk_speakers ts
-              JOIN profiles p ON p.id = ts.speaker_id
-              WHERE ts.talk_id = t.id
-            ), '[]'::json)
-          ) ORDER BY et.position NULLS LAST, et.created_at, t.id)
-          FROM event_talks et
-          JOIN talks t ON t.id = et.talk_id
-          WHERE et.event_id = e.id
-        ), '[]'::json) AS talks,
-        COALESCE((
-          SELECT json_agg(json_build_object(
+        ${talksOf(sql, "e", {
+          talk: sql`'id', t.id, 'title', t.title,
+            'description', t.description, 'format', t.format`,
+          speaker: sql`(${sql.literal(profileJson)})::jsonb
+            || jsonb_build_object('role', ts.role)`,
+        })} AS talks,
+        ${hostsOf(
+          sql,
+          "e",
+          sql`json_build_object(
             'id', s.id,
             'name', s.name,
             'about', s.about,
             'squareLogoLight', ${sql.literal(imageJson("s.square_logo_light"))},
             'squareLogoDark', ${sql.literal(imageJson("s.square_logo_dark"))}
-          ) ORDER BY es.created_at, s.id)
-          FROM event_sponsors es
-          JOIN sponsors s ON s.id = es.sponsor_id
-          WHERE es.event_id = e.id
-        ), '[]'::json) AS hosts,
-        COALESCE((
-          SELECT json_agg(json_build_object(
-            'role', ep.role,
-            'profile', ${sql.literal(profileJson)}
-          ) ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], ep.role),
-            ep.position, ep.created_at, p.id)
-          FROM event_people ep
-          JOIN profiles p ON p.id = ep.profile_id
-          WHERE ep.event_id = e.id
-        ), '[]'::json) AS people,
+          )`,
+        )} AS hosts,
+        ${peopleOf(
+          sql,
+          "e",
+          sql`json_build_object('role', ep.role, 'profile', ${sql.literal(profileJson)})`,
+        )} AS people,
         COALESCE((
           SELECT json_agg(json_build_object(
             'url', img.url,
@@ -114,7 +98,7 @@ const make = Effect.gen(function* () {
           WHERE ei.event_id = e.id
         ), '[]'::json) AS images
       FROM events e
-      WHERE e.is_draft = false
+      WHERE ${published(sql, "e")}
         AND (e.slug = ${slug} OR e.short_slug = ${slug})
       -- No link equals another evening's slug (src/slugs.ts); were one to,
       -- the link would win, as on its page.

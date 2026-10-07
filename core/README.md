@@ -3,6 +3,74 @@
 The data layer the Worker (`web/`) runs on: repositories over Postgres with
 Effect SQL, and the migrations that define the schema.
 
+## One catalog
+
+The site's pages, the MCP tools (which the CLI and the Claude plugin
+call), the v1 API and the feeds all say which evenings and people there
+are. They must say the same, so each fact is stated once, in
+`src/catalog.ts`, as a typed SQL fragment, with its TypeScript twin where
+something is sorted or decided in code. The surfaces move onto it one at a
+time; until one has, it states these facts in its own SQL, and the parity
+test below is what holds it to the others.
+
+- **Which evenings are public:** `published(e)`. An evening is found by
+  its long slug, its short link or a link it had before (`resolve`), the
+  short link winning.
+- **Their order:** `soonestFirst(e)` and `latestFirst(e)`, ids breaking
+  ties, and the `Order` that `selectEvents` sorts by.
+- **Ahead or over:** `ahead(e, now)` and `ended(e, now)`, which agree with
+  `eventStatus` (live through its end) at every instant, a test holds. `now`
+  is one instant for every surface: the `Clock`'s, at the start of its
+  minute (`src/clock.ts`).
+- **Ours or shared:** `ours(e)`. Whether a surface counts the evenings we
+  share is a named choice, never a filter written inline.
+- **An evening's lineup:** its talks in running order, each talk's
+  speakers in the order they were attached, with their part; its hosts, as
+  attached; its people, by role. `talksOf`, `hostsOf` and `peopleOf` read
+  them in that order, each surface choosing the fields it publishes, and
+  `talkOrder`, `speakerOrder`, `hostOrder` and `peopleOrder` are the
+  orders themselves, for a statement that joins them its own way.
+- **A person's appearances:** their talks and their parts at published
+  evenings, as one relation, scoped by whose evenings (ours, or any) and
+  when (over, or any). The speakers list, /people, a person's page, /about's
+  numbers and the sitemap are each one scope of it.
+
+Each surface still reads in one statement, since from a Worker every round
+trip costs more than the query, and builds it from these fragments. What a
+surface adds is how it shows what the catalog selects: home's limits, its
+hero (always ours) and its photos; /events by year; an event page's posts,
+schedule, notes, venue and guest count; the people page's groups and its
+X-follower order; the API's and the tools' published fields, long slugs,
+limits, search and error texts. None of that decides which evenings or
+people there are, or their order.
+
+`tests/catalog-guard.test.ts` reads core's and the Worker's source and
+fails on any file that states one of these rules itself (selecting by
+`is_draft`, a comparison on `end_date`, `curation = '…'`, an `ORDER BY` on
+`start_date`, or a lineup's order) outside `src/catalog.ts`. It lists the
+public reads not yet moved, each with what moves it, and the code that
+isn't a public read (the Luma sync, the organizers' tools, the reports),
+each with why. Both lists only shrink: a listed file that states no rule
+fails it too. `tests/catalog.test.ts` holds
+the fragments to the schema, and `ahead` and `ended` to `eventStatus` at
+every instant around an evening's start and end.
+
+`web/tests/parity.test.ts` holds the surfaces to each other over one
+seeded database at one instant: the same evenings in the same order from
+`list_events`, `/api/v1/events`, the feed, /events and home; the same
+lineup from `get_event`, `/api/v1/events/:id` and the event page, by every
+link; the same people and talks from `list_speakers`, `/api/v1/speakers`,
+/people, people's pages, /about and the sitemap. Where they disagree today
+a test says so (`test.failing`), with what settles it:
+
+- `get_event` doesn't find an evening by a link it had before; its page
+  does.
+- A past evening's page can point to an evening we only share as the next
+  one; home's hero is always ours.
+- `list_speakers` and `/api/v1/speakers` credit a talk at its evening's last
+  instant, while the evening is still live, and list the speakers of
+  evenings we only share.
+
 ## Luma sync
 
 `src/luma/` is the app's hourly Luma calendar sync (`app/src/lib/luma/`) as
@@ -1007,6 +1075,14 @@ those files do not record. The test lists each difference with its reason.
 `tests/fixtures/production-schema.txt` is that catalog plus what each later
 migration adds, and the tests hold the migrations to it both in PGlite and on
 Postgres 17 (`tests/postgres.test.ts`, in CI).
+
+`neon_auth` is Neon Auth's schema, not ours. The baseline still makes a
+stand-in `neon_auth.users_sync` where Neon Auth isn't on (tests, local
+Postgres), because production had it in 2026-10. Since
+`0023_drop_admin_tables`, nothing of the site's references it, and the
+snapshot (`src/schema-snapshot.ts`) compares only `public` and `planning`.
+So Neon Auth on or off changes nothing the migrations or tests check; a
+test drops the schema to show it.
 
 ### Running them
 

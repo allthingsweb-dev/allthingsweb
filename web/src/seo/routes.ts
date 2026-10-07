@@ -1,3 +1,4 @@
+import { ourAccount } from "allthings-core/src/social/account.ts";
 import { Effect, Layer } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
@@ -15,7 +16,8 @@ import { sitemapXml } from "./sitemap.ts";
  * What crawlers and feed readers read, at the paths the current site
  * serves them, so that search engines and subscribers carry over:
  * /robots.txt, /sitemap.xml, /rss, and /rss.xml, which redirects to /rss
- * for good as it does today.
+ * for good as it does today. Also /.well-known/atproto-did, which Bluesky
+ * reads to verify a handle on this domain.
  */
 
 const text = (
@@ -52,6 +54,17 @@ const robots = HttpRouter.add(
       { vary: "host" },
     );
   }),
+);
+
+/**
+ * Our Bluesky account's DID, exactly and alone, as Bluesky's handle check
+ * expects it: what lets the account take this domain as its handle. It
+ * needs no data, so it answers even when the database can't be read.
+ */
+const atprotoDid = HttpRouter.add(
+  "GET",
+  "/.well-known/atproto-did",
+  text(ourAccount.did, "text/plain; charset=utf-8", CacheControl.page),
 );
 
 /**
@@ -122,4 +135,10 @@ const rssXmlRedirect = HttpRouter.add(
   }),
 );
 
-export const seoRoutes = Layer.mergeAll(robots, sitemap, rss, rssXmlRedirect);
+export const seoRoutes = Layer.mergeAll(
+  robots,
+  atprotoDid,
+  sitemap,
+  rss,
+  rssXmlRedirect,
+);

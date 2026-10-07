@@ -1,6 +1,7 @@
 import { Data, Effect } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken, isApprovalToken } from "./approval.ts";
+import { speakerOrder, talkOrder } from "./catalog.ts";
 
 /**
  * Editing a talk that exists: its title, its description and its speakers
@@ -88,7 +89,7 @@ const speakersOf = (talkId: string) =>
       FROM talk_speakers ts
       JOIN profiles p ON p.id = ts.speaker_id
       WHERE ts.talk_id = ${talkId}::uuid
-      ORDER BY ts.created_at, p.id`;
+      ORDER BY ${sql.literal(speakerOrder)}`;
   });
 
 /** The profile `profile` names: its id or its slug. */
@@ -270,7 +271,7 @@ export const listTalks = (slug: string) =>
       SELECT t.id::text AS id, t.title, t.format
       FROM event_talks et JOIN talks t ON t.id = et.talk_id
       WHERE et.event_id = ${event.id}::uuid
-      ORDER BY et.position NULLS LAST, et.created_at, t.id`;
+      ORDER BY ${sql.literal(talkOrder)}`;
     const listed: Array<{
       readonly id: string;
       readonly title: string;

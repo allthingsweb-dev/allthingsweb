@@ -25,6 +25,30 @@ const appRoutes = Array.from(
       : `/${file.split("/").slice(2, -1).join("/")}`,
 ).toSorted();
 
+/**
+ * The admin's and the members' profile routes the old app served before it
+ * dropped them, which a wildcard entry still covers: each must answer as its
+ * entry says, though the app's tree no longer has them to find.
+ */
+const retiredRoutes = [
+  "/admin",
+  "/admin/assign-profile",
+  "/admin/images",
+  "/admin/raw",
+  "/admin/raw/hosts",
+  "/admin/raw/profiles",
+  "/admin/raw/talks",
+  "/admin/upload-images",
+  "/api/v1/admin/assign-profile",
+  "/api/v1/admin/delete-event-image",
+  "/api/v1/admin/raw/hosts",
+  "/api/v1/admin/raw/profiles",
+  "/api/v1/admin/raw/talks",
+  "/api/v1/admin/upload-event-images",
+  "/api/v1/profile",
+  "/profile",
+];
+
 /** The app's public files, as paths: app/public/favicon.ico is "/favicon.ico". */
 const publicFiles = Array.from(
   new Bun.Glob("**/*").scanSync(`${app}public`),
@@ -94,7 +118,7 @@ describe("legacy URLs", () => {
   }
 
   it("names every route in the app's tree", () => {
-    expect(appRoutes.length).toBeGreaterThan(40);
+    expect(appRoutes.length).toBeGreaterThan(25);
     expect(
       appRoutes.filter((route) => routeEntryFor(route) === undefined),
     ).toEqual([]);
@@ -104,7 +128,7 @@ describe("legacy URLs", () => {
   it("answers every route a wildcard entry covers as that entry says", async (url) => {
     // Routes without parameters, such as /admin/raw/talks under /admin/*: one
     // example per entry would not show that each of them answers alike.
-    const covered = appRoutes.flatMap((route) => {
+    const covered = [...appRoutes, ...retiredRoutes].flatMap((route) => {
       const entry = routeEntryFor(route);
       return entry?.pattern.includes("*") === true && !route.includes("[")
         ? [{ route, entry }]

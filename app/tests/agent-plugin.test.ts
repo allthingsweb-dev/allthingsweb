@@ -31,10 +31,7 @@ describe("the allthings agent plugin", () => {
     expect(Object.keys(config.mcpServers)).toEqual(["allthings"]);
     expect(config.mcpServers.allthings).toEqual({
       type: "streamable-http",
-      // allthingsweb.dev until allthings.dev serves the new site: before the
-      // domain moves, allthings.dev only redirects, and a redirect drops an
-      // MCP POST. It flips with the move (infra/docs/r2-migration.md).
-      url: "https://allthingsweb.dev/mcp",
+      url: "https://allthings.dev/mcp",
     });
   });
 

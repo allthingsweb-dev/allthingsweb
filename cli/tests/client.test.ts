@@ -142,7 +142,7 @@ describe("MCP client", () => {
       ExitCode.ServiceError,
     );
     expect(error.message).toBe(
-      "Could not reach https://allthingsweb.dev/mcp: timed out",
+      "Could not reach https://allthings.dev/mcp: timed out",
     );
   });
 });

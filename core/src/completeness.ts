@@ -5,7 +5,8 @@ import type { DataSourceError } from "./errors.ts";
 import { formats, rulesFor, rulesMissing } from "./formats.ts";
 import { eventTopic } from "./lockup.ts";
 import { eventTagline } from "./tagline.ts";
-import { eventStatus, httpUrlOrNull } from "./mappers.ts";
+import { eventStatus, hostsOf, peopleOf, talksOf } from "./catalog.ts";
+import { httpUrlOrNull } from "./mappers.ts";
 import * as Rows from "./rows.ts";
 import { curationJson, orDataSourceError } from "./sql.ts";
 
@@ -364,8 +365,8 @@ const personJson = `json_build_object('id', p.id, 'name', p.name, 'title', p.tit
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  // In each list's attach order, as the event page shows it; people by role
-  // and position. Ties break on ids, so the report never reorders.
+  // The lineup in the catalog's order, as the event page shows it, so the
+  // report never reorders.
   const records = (where: Statement.Fragment) =>
     sql`
       SELECT e.slug, e.name, e.topic, e.tagline, e.description,
@@ -377,23 +378,14 @@ const make = Effect.gen(function* () {
         e.preview_image IS NOT NULL AS "hasCover",
         e.luma_guest_count AS "lumaGuestCount",
         (SELECT count(*)::int FROM event_images ei WHERE ei.event_id = e.id) AS photos,
-        COALESCE((
-          SELECT json_agg(json_build_object(
-            'title', t.title,
-            'description', t.description,
-            'speakers', COALESCE((
-              SELECT json_agg(${sql.literal(personJson)} ORDER BY ts.created_at, p.id)
-              FROM talk_speakers ts
-              JOIN profiles p ON p.id = ts.speaker_id
-              WHERE ts.talk_id = t.id
-            ), '[]'::json)
-          ) ORDER BY et.position NULLS LAST, et.created_at, t.id)
-          FROM event_talks et
-          JOIN talks t ON t.id = et.talk_id
-          WHERE et.event_id = e.id
-        ), '[]'::json) AS talks,
-        COALESCE((
-          SELECT json_agg(json_build_object(
+        ${talksOf(sql, "e", {
+          talk: sql`'title', t.title, 'description', t.description`,
+          speaker: sql.literal(personJson),
+        })} AS talks,
+        ${hostsOf(
+          sql,
+          "e",
+          sql`json_build_object(
             'name', s.name,
             'about', s.about,
             'hasLogo', s.square_logo_light IS NOT NULL OR s.square_logo_dark IS NOT NULL,
@@ -401,21 +393,13 @@ const make = Effect.gen(function* () {
             'twitterHandle', s.twitter_handle,
             'blueskyHandle', s.bluesky_handle,
             'linkedinHandle', s.linkedin_handle
-          ) ORDER BY es.created_at, s.id)
-          FROM event_sponsors es
-          JOIN sponsors s ON s.id = es.sponsor_id
-          WHERE es.event_id = e.id
-        ), '[]'::json) AS hosts,
-        COALESCE((
-          SELECT json_agg(json_build_object(
-            'role', ep.role,
-            'person', ${sql.literal(personJson)}
-          ) ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], ep.role),
-            ep.position, ep.created_at, p.id)
-          FROM event_people ep
-          JOIN profiles p ON p.id = ep.profile_id
-          WHERE ep.event_id = e.id
-        ), '[]'::json) AS people
+          )`,
+        )} AS hosts,
+        ${peopleOf(
+          sql,
+          "e",
+          sql`json_build_object('role', ep.role, 'person', ${sql.literal(personJson)})`,
+        )} AS people
       FROM events e
       WHERE ${where}
       ORDER BY e.start_date DESC, e.id`.pipe(

@@ -39,6 +39,6 @@ bun run check && bun run typecheck && bun test
 bun run src/index.ts events
 ```
 
-`src/config.ts` holds the site it talks to, `siteOrigin`. It stays on allthingsweb.dev until allthings.dev serves the new site: until then allthings.dev only redirects, and a redirect drops an MCP POST. It flips with the domain move (`infra/docs/r2-migration.md`, Phase 4).
+`src/config.ts` holds the site it talks to, `siteOrigin`: https://allthings.dev, whose MCP server is at `/mcp`.
 
 Releases are GitHub releases, cut by pushing a tag that matches `version` in `package.json` (`.github/workflows/cli-release.yaml`). A hyphenated tag (`2.0.0-alpha.2`) is a prerelease, and the installer skips it unless asked. Nothing is published to npm: the package is private.

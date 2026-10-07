@@ -246,6 +246,13 @@
       "when": 1791353526953,
       "tag": "0034_x_sent_posts",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791397442585,
+      "tag": "0035_drop_admin_tables",
+      "breakpoints": true
     }
   ]
 }

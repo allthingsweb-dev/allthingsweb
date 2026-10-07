@@ -5,7 +5,7 @@ describe("robots.txt", () => {
   const robots = generateRobotsTxt("https://allthingsweb.dev");
 
   test("keeps private and operational paths out of search", () => {
-    for (const path of ["/admin", "/handler", "/profile", "/api/cron"]) {
+    for (const path of ["/api/cron"]) {
       expect(robots).toContain(`Disallow: ${path}\n`);
     }
   });

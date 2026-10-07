@@ -1,3 +1,9 @@
+import {
+  hostsOf,
+  latestFirst,
+  published,
+  talksOf,
+} from "allthings-core/src/catalog.ts";
 import * as Rows from "allthings-core/src/rows.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Context, DateTime, Effect, Layer, type Option, Schema } from "effect";
@@ -126,10 +132,10 @@ export interface V1DataShape {
     DataSourceError
   >;
   /**
-   * The event with this id, drafts included; `id` must already be a valid
+   * The published event with this id; `id` must already be a valid
    * Postgres uuid. Talks, speakers, hosts and photos come in attach order.
    */
-  readonly findEvent: (
+  readonly findPublishedEvent: (
     id: string,
   ) => Effect.Effect<Option.Option<EventDetailsRow>, DataSourceError>;
   /**
@@ -183,56 +189,42 @@ const make = Effect.gen(function* () {
     e.description,
     ${imageJson("e.preview_image")} AS "previewImage"`);
 
-  // The app orders by start only; the id makes ties deterministic.
   const listPublished = SqlSchema.findAll({
     Request: Schema.Void,
     Result: EventRow,
     execute: () => sql`
       SELECT ${eventColumns}
       FROM events e
-      WHERE e.is_draft = false
-      ORDER BY e.start_date DESC, e.id`,
+      WHERE ${published(sql, "e")}
+      ORDER BY ${latestFirst(sql, "e")}`,
   });
 
-  // The app reads talks, speakers, hosts and photos without ORDER BY; these
-  // follow attach order, the join row's created_at and then the id, as core does.
+  // The app reads talks, speakers, hosts and photos without ORDER BY; the
+  // lineup follows the catalog's order, photos the order they were attached.
   const findById = SqlSchema.findOneOption({
     Request: Schema.String,
     Result: EventDetailsRow,
     execute: (id) => sql`
       SELECT ${eventColumns},
-        COALESCE((
-          SELECT json_agg(json_build_object(
-            'id', t.id,
-            'title', t.title,
-            'description', t.description,
-            'speakers', COALESCE((
-              SELECT json_agg(json_build_object(
-                'id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio,
-                ${sql.literal(handleColumns)},
-                'image', ${sql.literal(imageJson("p.image"))}
-              ) ORDER BY ts.created_at, p.id)
-              FROM talk_speakers ts
-              JOIN profiles p ON p.id = ts.speaker_id
-              WHERE ts.talk_id = t.id
-            ), '[]'::json)
-          ) ORDER BY et.position NULLS LAST, et.created_at, t.id)
-          FROM event_talks et
-          JOIN talks t ON t.id = et.talk_id
-          WHERE et.event_id = e.id
-        ), '[]'::json) AS talks,
-        COALESCE((
-          SELECT json_agg(json_build_object(
+        ${talksOf(sql, "e", {
+          talk: sql`'id', t.id, 'title', t.title, 'description', t.description`,
+          speaker: sql`json_build_object(
+            'id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio,
+            ${sql.literal(handleColumns)},
+            'image', ${sql.literal(imageJson("p.image"))}
+          )`,
+        })} AS talks,
+        ${hostsOf(
+          sql,
+          "e",
+          sql`json_build_object(
             'id', s.id,
             'name', s.name,
             'about', s.about,
             'squareLogoLight', ${sql.literal(imageJson("s.square_logo_light"))},
             'squareLogoDark', ${sql.literal(imageJson("s.square_logo_dark"))}
-          ) ORDER BY es.created_at, s.id)
-          FROM event_sponsors es
-          JOIN sponsors s ON s.id = es.sponsor_id
-          WHERE es.event_id = e.id
-        ), '[]'::json) AS hosts,
+          )`,
+        )} AS hosts,
         COALESCE((
           SELECT json_agg(${sql.literal(imageObject("img"))} ORDER BY ei.created_at, img.id)
           FROM event_images ei
@@ -240,10 +232,13 @@ const make = Effect.gen(function* () {
           WHERE ei.event_id = e.id
         ), '[]'::json) AS images
       FROM events e
-      WHERE e.id = ${id}::uuid`,
+      WHERE e.id = ${id}::uuid AND ${published(sql, "e")}`,
   });
 
-  // The app's own query (app/src/lib/speaker-directory.ts), every column kept.
+  // The app's own query (app/src/lib/speaker-directory.ts), every column
+  // kept. Ended here includes the event's last instant, as in core's
+  // Speakers, which the catalog's `ended` doesn't (core/README.md, "One
+  // catalog").
   const findDirectory = SqlSchema.findAll({
     Request: Schema.DateTimeUtcFromDate,
     Result: DirectoryRow,
@@ -261,13 +256,13 @@ const make = Effect.gen(function* () {
       JOIN talks t ON t.id = ts.talk_id
       JOIN event_talks et ON et.talk_id = t.id
       JOIN events e ON e.id = et.event_id
-      WHERE e.is_draft = false AND e.end_date <= ${now}
+      WHERE ${published(sql, "e")} AND e.end_date <= ${now}
       ORDER BY p.name, p.id, e.start_date DESC, e.id, t.id`,
   });
 
   return V1Data.of({
     listPublishedEvents: orDataSourceError(listPublished(undefined)),
-    findEvent: (id) => orDataSourceError(findById(id)),
+    findPublishedEvent: (id) => orDataSourceError(findById(id)),
     directory: DateTime.now.pipe(
       Effect.flatMap((now) => orDataSourceError(findDirectory(now))),
     ),
