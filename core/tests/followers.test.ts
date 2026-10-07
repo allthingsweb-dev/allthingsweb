@@ -639,6 +639,44 @@ describe("refreshFollowers", () => {
     ]);
   });
 
+  test("a batch X refuses fails its profiles until a later run, never one request each", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await refresh(db, { ada: 120, linus: 9000, future: 3 });
+    await db.exec(
+      `UPDATE profiles SET x_followers_at = x_followers_at - interval '30 days' WHERE twitter_handle IS NOT NULL`,
+    );
+    const paths: Array<string> = [];
+    const refusing = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) => {
+        paths.push(new URL(request.url).pathname);
+        return Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            new Response("", { status: 503 }),
+          ),
+        );
+      }),
+    );
+    const report = await Effect.runPromise(
+      refreshFollowers({
+        dryRun: false,
+        maxProfiles: 10,
+        staleAfter: "7 days",
+      }).pipe(
+        Effect.provide(
+          // The real clock: the retries wait a second or two.
+          Layer.mergeAll(xApiSource(refusing), sqlLayer(db)),
+        ),
+      ),
+    );
+    // The batch, tried three times (503s retry); no lookup per id.
+    expect(paths.every((path) => path === "/2/users")).toBe(true);
+    expect(report.failed).toHaveLength(3);
+    expect(report.refreshed).toEqual([]);
+  }, 15_000);
+
   test("a dry run reads and reports, and writes nothing", async () => {
     const db = await seededDatabase();
     databases.push(db);

@@ -438,23 +438,44 @@ export const refreshFollowers = (options: RefreshOptions) =>
     const write = <A, E>(effect: Effect.Effect<A, E>) =>
       effect.pipe(Effect.mapError((cause) => new DataSourceError({ cause })));
     let unread = 0;
-    // Every known id in as few requests as the source allows; what that
-    // misses is read one by one below.
+    // Every known id in as few requests as the source allows, within the
+    // run's time. A batch X refuses (a 429, say) fails its profiles until a
+    // later run, never one request each; one that runs out of time leaves
+    // them unread.
     const ids = batch.flatMap((row) =>
       row.xUserId === null ? [] : [row.xUserId],
     );
-    const prefetched =
-      source.readByIds === undefined || ids.length === 0
-        ? new Map<string, XAccount | FollowerReadError>()
-        : yield* source
-            .readByIds(ids)
-            .pipe(
-              Effect.orElseSucceed(
-                () => new Map<string, XAccount | FollowerReadError>(),
-              ),
-            );
+    const prefetched = new Map<string, XAccount | FollowerReadError>();
+    let prefetchOutOfTime = false;
+    if (source.readByIds !== undefined && ids.length > 0) {
+      const left =
+        options.until === undefined
+          ? null
+          : DateTime.toEpochMillis(options.until) -
+            DateTime.toEpochMillis(yield* DateTime.now);
+      const batchRead = source.readByIds(ids);
+      const read = yield* Effect.result(
+        left === null
+          ? batchRead.pipe(Effect.map(Option.some))
+          : batchRead.pipe(Effect.timeoutOption(Math.max(0, left))),
+      );
+      if (read._tag === "Failure") {
+        for (const id of ids) prefetched.set(id, read.failure);
+      } else if (Option.isNone(read.success)) {
+        prefetchOutOfTime = true;
+      } else {
+        for (const [id, account] of read.success.value) {
+          prefetched.set(id, account);
+        }
+      }
+    }
     for (const [index, row] of batch.entries()) {
       const handle = xHandleOf(row.twitterHandle) ?? "";
+      // The batch ran out of the run's time: this and the rest wait.
+      if (prefetchOutOfTime) {
+        unread = batch.length - index;
+        break;
+      }
       const known =
         row.xUserId === null ? undefined : prefetched.get(row.xUserId);
       // By id where both are known: the account, whatever its handle now.
