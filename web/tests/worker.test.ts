@@ -391,27 +391,27 @@ describe("MCP", () => {
     const [actual, expected] = await mcp(Web, call("get_community", {}));
     expect(actual.status).toBe(expected.status);
     expect(actual.contentType).toBe(expected.contentType);
-    const app = toolAnswer(expected.body) as {
+    const appAnswer = toolAnswer(expected.body) as {
       result: {
         structuredContent: { mission: string };
         content: ReadonlyArray<{ text: string }>;
       };
     };
-    const { mission } = app.result.structuredContent;
+    const { mission } = appAnswer.result.structuredContent;
     expect(mission).toStartWith("All Things Web brings ");
     const rebranded = {
-      ...app.result.structuredContent,
+      ...appAnswer.result.structuredContent,
       name: "all things",
       oneLiner:
         "Evenings for people who build software. In the neighborhoods of San Francisco.",
       mission: mission.replace("All Things Web brings ", "all things brings "),
     };
     expect(toolAnswer(actual.body)).toEqual({
-      ...app,
+      ...appAnswer,
       result: {
-        ...app.result,
+        ...appAnswer.result,
         structuredContent: rebranded,
-        content: app.result.content.map((part) => ({
+        content: appAnswer.result.content.map((part) => ({
           ...part,
           text: JSON.stringify(rebranded, null, 2),
         })),
