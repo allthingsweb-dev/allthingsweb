@@ -710,17 +710,11 @@
       "source": "https://luma.com/tsai",
       "read": "2026-10-06"
     },
-    "held": [
-      {
-        "field": "title",
-        "value": null,
-        "sources": [
-          "https://www.linkedin.com/in/nehavarshneya/",
-          "https://luma.com/mossfoundingagent"
-        ],
-        "reason": "She no longer seems to be at Mastra. Her public LinkedIn lists Moss (YC F25) as her current company (schema worksFor: Moss (YC F25); page title 'Neha Varshneya - Moss (YC F25)'), her recent posts talk about 'my work at Moss' from 'a GTM perspective', and she hosted Moss's Luma event on 2026-10-01. No page I read states her job title at Moss. A likely candidate is 'GTM at Moss', but confirm it first. Don't use 'at Mastra'; it's outdated."
-      }
-    ]
+    "title": {
+      "value": "GTM Leader for Developer Tools & AI",
+      "source": "https://x.com/NehaVarshneya",
+      "read": "2026-10-06"
+    }
   },
   {
     "profileId": "e506570b-c2a9-42b5-a8f6-9d14b4c1ee05",
@@ -1032,40 +1026,30 @@
   {
     "profileId": "d346e7d4-eebf-4753-a303-77194ac745f3",
     "name": "Lewis Ellis",
-    "held": [
-      {
-        "field": "twitterHandle",
-        "value": "LewisJEllis",
-        "sources": ["https://x.com/LewisJEllis"],
-        "reason": "Only if the identity above is confirmed. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
-      },
-      {
-        "field": "linkedinHandle",
-        "value": "lewisjellis",
-        "sources": ["https://www.linkedin.com/in/lewisjellis/"],
-        "reason": "Only if the identity above is confirmed. LinkedIn's result title is 'Lewis Ellis - Software at Conductor'. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
-      },
-      {
-        "field": "title",
-        "value": "Software at Conductor",
-        "sources": [
-          "https://x.com/LewisJEllis",
-          "https://www.linkedin.com/in/lewisjellis/"
-        ],
-        "reason": "Only if the identity above is confirmed. This is his latest title, and it is not dated to October 2025. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
-      },
-      {
-        "field": "bio",
-        "value": "Software nerd helping make Conductor. Likes penguins, bikes, JavaScript, Lua, Redis, SQL, devtools, numbers, making stuff go faster.",
-        "sources": ["https://x.com/LewisJEllis"],
-        "reason": "Only if the identity above is confirmed. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
-      },
-      {
-        "field": "photoSourceUrl",
-        "value": "https://avatars.githubusercontent.com/u/1445984?v=4",
-        "sources": ["https://github.com/LewisJEllis"],
-        "reason": "Only if the identity above is confirmed. It is a real photo of him; his Luma avatar is Luma's default. (His Luma profile is empty and the event page doesn't name him: His Luma profile is empty (default avatar, no links), and nothing on the JS Trivia Night page names him. The likely match is Lewis J. Ellis: San Francisco, JavaScript, ex-Sentry, a trivia/Mathcamp person. His X bio says 'software nerd helping make @conductor_build'. But no page ties him to the evening. Erik should confirm before any of these are used.)"
-      }
-    ]
+    "title": {
+      "value": "Software at Conductor",
+      "source": "https://www.linkedin.com/in/lewisjellis/",
+      "read": "2026-10-06"
+    },
+    "bio": {
+      "value": "Software nerd helping make Conductor. Likes penguins, bikes, JavaScript, Lua, Redis, SQL, devtools, numbers, making stuff go faster.",
+      "source": "https://x.com/LewisJEllis",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "LewisJEllis",
+      "source": "https://github.com/LewisJEllis",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "lewisjellis",
+      "source": "https://www.linkedin.com/in/lewisjellis/",
+      "read": "2026-10-06"
+    },
+    "photoSourceUrl": {
+      "value": "https://avatars.githubusercontent.com/u/1445984?v=4",
+      "source": "https://github.com/LewisJEllis",
+      "read": "2026-10-06"
+    }
   }
 ]
