@@ -207,7 +207,11 @@ const make = Effect.gen(function* () {
     });
 
   const OwnDescription = Schema.Array(
-    Schema.Struct({ talks: Schema.Int, pitch: Schema.NullOr(Schema.String) }),
+    Schema.Struct({
+      shared: Schema.Boolean,
+      talks: Schema.Int,
+      pitch: Schema.NullOr(Schema.String),
+    }),
   );
 
   /**
@@ -223,6 +227,7 @@ const make = Effect.gen(function* () {
       // dropped (an evening has at most one idea).
       const [own] = yield* sql`
         SELECT
+          e.curation = 'shared' AS shared,
           (SELECT count(*) FROM event_talks et WHERE et.event_id = e.id)::int AS talks,
           (SELECT i.pitch FROM planning.ideas i
             WHERE i.event_id = e.id AND i.status <> 'dropped') AS pitch
@@ -231,7 +236,14 @@ const make = Effect.gen(function* () {
         Effect.flatMap(Schema.decodeUnknownEffect(OwnDescription)),
         Effect.mapError((cause) => new DataSourceError({ cause })),
       );
-      if (own !== undefined && own.talks === 0 && own.pitch !== null) {
+      // A shared evening's Luma page is its organizer's: descriptionFor
+      // refuses it, idea or not.
+      if (
+        own !== undefined &&
+        !own.shared &&
+        own.talks === 0 &&
+        own.pitch !== null
+      ) {
         return own.pitch;
       }
       return yield* descriptionFor(slug);

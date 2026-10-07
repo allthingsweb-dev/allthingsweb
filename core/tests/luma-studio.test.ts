@@ -432,6 +432,38 @@ describe("publish", () => {
     );
   });
 
+  test("a shared evening is refused, idea or not", async () => {
+    await db.exec(`
+      UPDATE events SET program = 'social', curation = 'shared',
+        organized_by = (SELECT id FROM sponsors ORDER BY id LIMIT 1)
+      WHERE slug = '${draft}';
+      DELETE FROM event_talks WHERE event_id = (SELECT id FROM events WHERE slug = '${draft}');`);
+    await Effect.runPromise(
+      Planning.use((p) =>
+        p.addIdea({
+          title: "Made-up quiz",
+          pitch: "Not ours to publish.",
+          program: "social",
+          status: "drafting",
+          eventSlug: draft,
+        }),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const { exit } = await run((s) => s.prepare(draft), {
+      "/v1/events/get": [json(lumaEvent())],
+    });
+    expect(message(exit)).toContain(
+      "is shared: its Luma page is its organizer's.",
+    );
+  });
+
   test("a dropped idea's pitch is not used", async () => {
     await db.exec(`
       UPDATE events SET program = 'social' WHERE slug = '${draft}';
