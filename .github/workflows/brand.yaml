@@ -6,6 +6,9 @@ on:
     paths:
       - "brand/**"
       - "app/public/brand/**"
+      # The Claude Code plugin's themes and palette, held to the tokens.
+      - "plugins/allthings/themes/**"
+      - "plugins/allthings/hooks/palette.ts"
       - "package.json"
       - "bun.lock"
       - ".github/workflows/brand.yaml"
@@ -14,6 +17,8 @@ on:
     paths:
       - "brand/**"
       - "app/public/brand/**"
+      - "plugins/allthings/themes/**"
+      - "plugins/allthings/hooks/palette.ts"
       - "package.json"
       - "bun.lock"
       - ".github/workflows/brand.yaml"

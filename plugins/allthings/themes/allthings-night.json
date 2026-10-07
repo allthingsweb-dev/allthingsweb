@@ -1,0 +1,24 @@
+{
+  "name": "allthings night",
+  "base": "dark",
+  "overrides": {
+    "claude": "#FF6A3D",
+    "claudeShimmer": "#FF9B7A",
+    "text": "#F4F1EC",
+    "inactive": "#DACFFF",
+    "inactiveShimmer": "#E3DCF7",
+    "suggestion": "#DACFFF",
+    "permission": "#DACFFF",
+    "permissionShimmer": "#E3DCF7",
+    "remember": "#DACFFF",
+    "promptBorder": "#332E48",
+    "promptBorderShimmer": "#DACFFF",
+    "userMessageBackground": "#242033",
+    "userMessageBackgroundHover": "#332E48",
+    "bashMessageBackgroundColor": "#242033",
+    "memoryBackgroundColor": "#242033",
+    "selectionBg": "#332E48",
+    "briefLabelYou": "#DACFFF",
+    "briefLabelClaude": "#FF6A3D"
+  }
+}

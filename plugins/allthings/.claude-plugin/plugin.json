@@ -1,0 +1,22 @@
+{
+  "name": "allthings",
+  "version": "0.3.0",
+  "description": "allthings evenings in San Francisco, for people who build software: the next evening above your prompt, /at and /imin, tool rows in the slash grammar, and the allthings themes and voice.",
+  "author": {
+    "name": "allthings",
+    "url": "https://allthings.dev"
+  },
+  "homepage": "https://allthings.dev",
+  "repository": "https://github.com/allthingsweb-dev/allthingsweb",
+  "keywords": [
+    "evenings",
+    "meetups",
+    "hackathons",
+    "san francisco",
+    "software",
+    "community",
+    "mod"
+  ],
+  "mcpServers": "./mcp.json",
+  "types": "./types/index.d.ts"
+}

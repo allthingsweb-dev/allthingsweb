@@ -1,0 +1,4 @@
+{
+  "description": "allthings/_ for Claude Code: tool rows in the slash grammar, the wandering spinner, the next evening's band, /at and /imin",
+  "modules": ["./register.tsx"]
+}

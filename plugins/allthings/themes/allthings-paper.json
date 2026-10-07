@@ -1,0 +1,24 @@
+{
+  "name": "allthings paper",
+  "base": "light",
+  "overrides": {
+    "claude": "#C0362C",
+    "claudeShimmer": "#D9665D",
+    "text": "#141210",
+    "inactive": "#5E5A55",
+    "inactiveShimmer": "#8A857F",
+    "suggestion": "#5B34D6",
+    "permission": "#5B34D6",
+    "permissionShimmer": "#8466E0",
+    "remember": "#5B34D6",
+    "promptBorder": "#D2CCC3",
+    "promptBorderShimmer": "#C0362C",
+    "userMessageBackground": "#E6E2DC",
+    "userMessageBackgroundHover": "#D2CCC3",
+    "bashMessageBackgroundColor": "#E6E2DC",
+    "memoryBackgroundColor": "#E6E2DC",
+    "selectionBg": "#D2CCC3",
+    "briefLabelYou": "#5B34D6",
+    "briefLabelClaude": "#9A2B22"
+  }
+}
