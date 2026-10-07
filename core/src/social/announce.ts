@@ -12,6 +12,7 @@ import {
   postUrl,
   spansOf,
 } from "./bluesky.ts";
+import { ourAccount } from "./account.ts";
 
 /**
  * Posting an evening's promotion draft (src/promo/) to Bluesky, from our
@@ -29,11 +30,7 @@ import {
  * Nothing posts without a token, and a token is good for one text only.
  */
 
-/** Our account: @allthingsweb.dev. */
-export const ourAccount = {
-  handle: "allthingsweb.dev",
-  did: "did:plc:2udktehieuvck4emsuoasldh",
-} as const;
+export { ourAccount };
 
 /** The site's origin and the photo origin the drafts link to and count from. */
 const siteOrigin = "https://allthings.dev";
