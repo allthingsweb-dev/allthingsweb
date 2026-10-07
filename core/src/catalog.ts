@@ -180,3 +180,99 @@ export const peopleOf = (
     JOIN profiles p ON p.id = ep.profile_id
     WHERE ep.event_id = ${column(sql, e, "id")}
   ), '[]'::json)`;
+
+/*
+ * A person's appearances: their talks and their parts (organizer, co-host,
+ * MC) at published evenings, as one relation each. Who counts where is a
+ * scope of it: whose evenings, and when.
+ */
+
+/** Whose evenings an appearance counts at: ours, or any we list. */
+export type Whose = "ours" | "any";
+
+/**
+ * When an appearance counts: at any evening, or once its evening is over
+ * at an instant (`ended`, as {@link eventStatus} has it). The speakers
+ * list counts a talk from its evening's last instant, while it is still
+ * live (`endedOrEnding`), until it reads `ended` like the rest.
+ */
+export type When =
+  | "any"
+  | { readonly ended: DateTime.Utc | Date }
+  | { readonly endedOrEnding: DateTime.Utc | Date };
+
+const scoped = (
+  sql: SqlClient,
+  scope: { readonly whose: Whose; readonly when: When },
+): Statement.Fragment => {
+  const when = scope.when;
+  return sql.and([
+    published(sql, "e"),
+    ...(scope.whose === "ours" ? [ours(sql, "e")] : []),
+    ...(when === "any"
+      ? []
+      : "ended" in when
+        ? [ended(sql, "e", when.ended)]
+        : [sql`e.end_date <= ${instant(when.endedOrEnding)}`]),
+  ]);
+};
+
+/**
+ * Talks given, one row per speaker, talk and evening, as a subquery:
+ * `profile_id`, `role` (speaking or moderating), `talk_id`, `position` and
+ * `listed_at` (where the talk is in its evening's running order), and the
+ * evening's `event_id` and `start_date`. Join talks, profiles and events by
+ * id for the rest.
+ */
+export const talkAppearances = (
+  sql: SqlClient,
+  scope: { readonly whose: Whose; readonly when: When },
+): Statement.Fragment => sql`(
+    SELECT ts.speaker_id AS profile_id, ts.role, ts.talk_id,
+      et.position, et.created_at AS listed_at,
+      e.id AS event_id, e.start_date
+    FROM talk_speakers ts
+    JOIN event_talks et ON et.talk_id = ts.talk_id
+    JOIN events e ON e.id = et.event_id
+    WHERE ${scoped(sql, scope)}
+  )`;
+
+/**
+ * Parts in evenings as a whole, one row per person, role and evening, as a
+ * subquery: `profile_id`, `role` (organizer, co-host or MC), and the
+ * evening's `event_id` and `start_date`.
+ */
+export const roleAppearances = (
+  sql: SqlClient,
+  scope: { readonly whose: Whose; readonly when: When },
+): Statement.Fragment => sql`(
+    SELECT ep.profile_id, ep.role, e.id AS event_id, e.start_date
+    FROM event_people ep
+    JOIN events e ON e.id = ep.event_id
+    WHERE ${scoped(sql, scope)}
+  )`;
+
+/**
+ * Talks given, latest evening first, then in their evening's running order,
+ * for rows of {@link talkAppearances}.
+ */
+export const latestTalkFirst = (
+  sql: SqlClient,
+  a: AppearanceAlias,
+): Statement.Fragment =>
+  sql.literal(
+    `${a}.start_date DESC, ${a}.event_id, ${a}.position NULLS LAST, ${a}.listed_at, ${a}.talk_id`,
+  );
+
+/** How statements alias a relation of appearances. */
+export type AppearanceAlias = "a" | "g" | "x";
+
+/**
+ * Appearances latest evening first, for rows with an evening's
+ * `start_date` and `event_id`: ids break ties between evenings that start
+ * together.
+ */
+export const latestAppearanceFirst = (
+  sql: SqlClient,
+  a: AppearanceAlias,
+): Statement.Fragment => sql.literal(`${a}.start_date DESC, ${a}.event_id`);

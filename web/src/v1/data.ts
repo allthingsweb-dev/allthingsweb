@@ -2,6 +2,7 @@ import {
   hostsOf,
   latestFirst,
   published,
+  talkAppearances,
   talksOf,
 } from "allthings-core/src/catalog.ts";
 import * as Rows from "allthings-core/src/rows.ts";
@@ -236,9 +237,7 @@ const make = Effect.gen(function* () {
   });
 
   // The app's own query (app/src/lib/speaker-directory.ts), every column
-  // kept. Ended here includes the event's last instant, as in core's
-  // Speakers, which the catalog's `ended` doesn't (core/README.md, "One
-  // catalog").
+  // kept: the talks core's Speakers lists, in its order.
   const findDirectory = SqlSchema.findAll({
     Request: Schema.DateTimeUtcFromDate,
     Result: DirectoryRow,
@@ -251,13 +250,14 @@ const make = Effect.gen(function* () {
           'image', ${sql.literal(imageJson("p.image"))}
         ) AS profile,
         t.id AS "talkId"
-      FROM profiles p
-      JOIN talk_speakers ts ON ts.speaker_id = p.id
-      JOIN talks t ON t.id = ts.talk_id
-      JOIN event_talks et ON et.talk_id = t.id
-      JOIN events e ON e.id = et.event_id
-      WHERE ${published(sql, "e")} AND e.end_date <= ${now}
-      ORDER BY p.name, p.id, e.start_date DESC, e.id, t.id`,
+      FROM ${talkAppearances(sql, {
+        whose: "any",
+        when: { endedOrEnding: now },
+      })} a
+      JOIN profiles p ON p.id = a.profile_id
+      JOIN talks t ON t.id = a.talk_id
+      JOIN events e ON e.id = a.event_id
+      ORDER BY p.name, p.id, ${latestFirst(sql, "e")}, t.id`,
   });
 
   return V1Data.of({

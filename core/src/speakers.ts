@@ -1,7 +1,7 @@
 import { Context, DateTime, Effect, Layer, Order, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
-import { published } from "./catalog.ts";
+import { latestFirst, talkAppearances } from "./catalog.ts";
 import type { DataSourceError } from "./errors.ts";
 import * as Rows from "./rows.ts";
 import { orDataSourceError, profileJson } from "./sql.ts";
@@ -97,10 +97,9 @@ export const toDirectory = (
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  // An event's talks join the directory once the event has ended; drafts
-  // never. Ended here includes the event's last instant, which eventStatus
-  // still calls live (the catalog's `ended` doesn't): README, "One
-  // catalog".
+  // Talks at any published evening join the directory once it has ended,
+  // counting its last instant, which eventStatus still calls live
+  // (`endedOrEnding`; README, "One catalog").
   const findRows = SqlSchema.findAll({
     Request: Schema.DateTimeUtcFromDate,
     Result: Rows.DirectoryRow,
@@ -110,13 +109,14 @@ const make = Effect.gen(function* () {
         t.id AS "talkId", t.title AS "talkTitle", t.description AS "talkDescription",
         e.id AS "eventId", e.name AS "eventName", e.slug AS "eventSlug",
         e.start_date AS "eventStart"
-      FROM profiles p
-      JOIN talk_speakers ts ON ts.speaker_id = p.id
-      JOIN talks t ON t.id = ts.talk_id
-      JOIN event_talks et ON et.talk_id = t.id
-      JOIN events e ON e.id = et.event_id
-      WHERE ${published(sql, "e")} AND e.end_date <= ${now}
-      ORDER BY p.name, p.id, e.start_date DESC, e.id, t.id`,
+      FROM ${talkAppearances(sql, {
+        whose: "any",
+        when: { endedOrEnding: now },
+      })} a
+      JOIN profiles p ON p.id = a.profile_id
+      JOIN talks t ON t.id = a.talk_id
+      JOIN events e ON e.id = a.event_id
+      ORDER BY p.name, p.id, ${latestFirst(sql, "e")}, t.id`,
   });
 
   return Speakers.of({
