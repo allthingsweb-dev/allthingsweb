@@ -20,6 +20,7 @@ import { promoChannels, promoDrafts } from "./promo.js";
 import { isPlanTool, planTool, planToolDefinitions } from "./plan.js";
 import { draftReadiness, draftReadinessTool } from "./readiness.js";
 import { isLumaTool, lumaTool, lumaToolDefinitions } from "./luma-studio.js";
+import { isSocialTool, socialTool, socialToolDefinitions } from "./social.js";
 import {
   createEvent,
   getEventBySlug,
@@ -724,6 +725,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       ...planToolDefinitions,
       draftReadinessTool,
       ...lumaToolDefinitions,
+      ...socialToolDefinitions,
       // Administrator tools
       {
         name: "add_user_to_admins",
@@ -773,6 +775,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     if (isLumaTool(toolName)) {
       const result = await lumaTool(toolName, args ?? {});
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    }
+
+    if (isSocialTool(toolName)) {
+      const result = await socialTool(toolName, args ?? {});
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };

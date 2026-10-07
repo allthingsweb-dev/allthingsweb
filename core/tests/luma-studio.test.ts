@@ -1,13 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { Cause, Effect, Exit, Layer } from "effect";
-import {
-  approvalToken,
-  canonicalJson,
-  instant,
-  outgoingOf,
-  Studio,
-} from "../src/luma/publish.ts";
+import { approvalToken, canonicalJson } from "../src/approval.ts";
+import { instant, outgoingOf, Studio } from "../src/luma/publish.ts";
 import { LumaWrite, type ManagedEvent } from "../src/luma/write.ts";
 import { Planning } from "../src/planning/planning.ts";
 import { Promo } from "../src/promo/promo.ts";
