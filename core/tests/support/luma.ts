@@ -104,18 +104,76 @@ export const configFrom = (env: Record<string, string> = {}) =>
   Layer.succeed(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env }));
 
 /**
+ * Real time one stretch of a test's own work may take, with nothing waiting
+ * on the clock, before settle gives up on it.
+ */
+const realWorkLimitMillis = 30_000;
+
+/**
  * Runs `effect` to its end under a TestClock, moving the clock a second at a
- * time so that its retries' sleeps and timeouts elapse, and letting real work
- * (such as reading a response body) finish in between. Gives up after ten
+ * time so that its retries' sleeps and timeouts elapse. Gives up after ten
  * minutes of test time.
+ *
+ * The clock moves only while something waits on it. While nothing does, the
+ * effect is doing real work (a query, reading a response body), and the
+ * clock stands still until that is done, however long it takes in real time
+ * (up to {@link realWorkLimitMillis}): a busy machine never turns a slow
+ * query into ten minutes of retries. Before each second, real work queued
+ * since gets its turn.
+ *
+ * What it can't see is real work running beside a sleep that is pending,
+ * such as a slow query under a timeout: the clock moves for the sleep. The
+ * code these tests drive never does that: its timeouts wrap requests, and
+ * the fakes answer them in memory (see tests/settle.test.ts).
  */
 export const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   Effect.gen(function* () {
-    const fiber = yield* Effect.forkChild(effect);
-    for (let second = 0; second <= 600; second++) {
+    const clock = yield* Clock.Clock;
+    let waiting = 0;
+    const counting: Clock.Clock = {
+      currentTimeMillisUnsafe: () => clock.currentTimeMillisUnsafe(),
+      currentTimeMillis: clock.currentTimeMillis,
+      currentTimeNanosUnsafe: () => clock.currentTimeNanosUnsafe(),
+      currentTimeNanos: clock.currentTimeNanos,
+      monotonicTimeNanosUnsafe: () => clock.monotonicTimeNanosUnsafe(),
+      monotonicTimeNanos: clock.monotonicTimeNanos,
+      sleep: (duration) =>
+        Effect.acquireUseRelease(
+          Effect.sync(() => {
+            waiting++;
+          }),
+          () => clock.sleep(duration),
+          () =>
+            Effect.sync(() => {
+              waiting--;
+            }),
+        ),
+    };
+    const fiber = yield* Effect.forkChild(
+      Effect.provideService(effect, Clock.Clock, counting),
+    );
+    // When the current stretch of real work began; undefined while
+    // something waits on the clock.
+    let realWork: number | undefined;
+    let seconds = 0;
+    for (;;) {
       yield* Effect.promise(() => Bun.sleep(0));
       if (fiber.pollUnsafe() !== undefined) return yield* Fiber.join(fiber);
+      if (waiting === 0) {
+        realWork ??= Date.now();
+        if (Date.now() - realWork > realWorkLimitMillis) {
+          return yield* Effect.die(
+            new Error("Did not settle: its own work took over 30 seconds."),
+          );
+        }
+        yield* Effect.promise(() => Bun.sleep(1));
+        continue;
+      }
+      realWork = undefined;
+      if (seconds === 600) {
+        return yield* Effect.die(new Error("Did not settle in ten minutes."));
+      }
       yield* TestClock.adjust("1 second");
+      seconds++;
     }
-    return yield* Effect.die(new Error("Did not settle in ten minutes."));
   });
