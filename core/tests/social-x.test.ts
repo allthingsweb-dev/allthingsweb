@@ -347,6 +347,65 @@ describe("posting", () => {
     });
   });
 
+  describe("a claim the record can't settle still says what happened", () => {
+    const failing = (which: "drop" | "markUnanswered") =>
+      Layer.effect(
+        SentPosts,
+        Effect.gen(function* () {
+          const real = yield* SentPosts;
+          return SentPosts.of({
+            ...real,
+            [which]: () =>
+              Effect.fail(new DataSourceError({ cause: "connection lost" })),
+          });
+        }),
+      ).pipe(Layer.provide(SentPosts.layer));
+    const stuck = (then: string) =>
+      ` The record couldn't take that, so the claim still says it's going: five minutes after it started, ${then}`;
+    const releaseIt = `let go of it with bun run social x ${slug} --moment announce --release.`;
+
+    test("a sign-in that failed", async () => {
+      const approved = await token();
+      const { exit, posted } = await run(
+        (a) => a.post(slug, "announce", approved),
+        signedIn,
+        { stored: null, records: failing("drop") },
+      );
+      expect(reason(exit)).toBe(
+        `No X sign-in is stored: run bun run social x-sign-in --from-xurl first. Nothing was posted.${stuck(releaseIt)}`,
+      );
+      expect(posted).toEqual([]);
+    });
+
+    test("a post X refused", async () => {
+      const approved = await token();
+      const { exit } = await run(
+        (a) => a.post(slug, "announce", approved),
+        {
+          ...signedIn,
+          "/2/tweets": [json({ detail: "duplicate content" }, 403)],
+        },
+        { records: failing("drop") },
+      );
+      expect(reason(exit)).toBe(
+        `X refused the post: 403: nothing was posted.${stuck(releaseIt)}`,
+      );
+    });
+
+    test("a post X didn't answer", async () => {
+      const approved = await token();
+      const { exit } = await run(
+        (a) => a.post(slug, "announce", approved),
+        { ...signedIn, "/2/tweets": ["drop"] },
+        { records: failing("markUnanswered") },
+      );
+      expect(reason(exit)).toBe(
+        `X didn't answer the post, so it may be out. ${settleHint}${stuck("settle it as above.")}`,
+      );
+      expect(await recorded()).toMatchObject([{ status: "sending" }]);
+    });
+  });
+
   test("a post the record didn't take says how to record it", async () => {
     const approved = await token();
     const unrecorded = Layer.effect(

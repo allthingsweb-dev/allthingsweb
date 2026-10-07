@@ -216,9 +216,31 @@ const make = Effect.gen(function* () {
         );
       }
       const id = claim.value.id;
+      /**
+       * Refuses with `said` once `update` has settled the claim; if the
+       * record can't take `update`, the claim counts as abandoned five
+       * minutes after it started, and `then` says what to do at that point.
+       */
+      const afterwards = (
+        update: Effect.Effect<void, DataSourceError>,
+        said: string,
+        then: string,
+      ) =>
+        update.pipe(
+          Effect.matchEffect({
+            onSuccess: () => refuse(said),
+            onFailure: () =>
+              refuse(
+                `${said} The record couldn't take that, so the claim still says it's going: five minutes after it started, ${then}`,
+              ),
+          }),
+        );
+      const releaseIt = `let go of it with ${command(slug, moment, "--release")}.`;
       // Nothing has been posted yet: a sign-in that fails lets go of the claim.
       const access = yield* signedIn.pipe(
-        Effect.tapError(() => sentPosts.drop(id)),
+        Effect.catchTag("PostRefused", (refusal) =>
+          afterwards(sentPosts.drop(id), refusal.reason, releaseIt),
+        ),
       );
       // Fenced: a claim let go of while this stalled is not posted on.
       if (!(yield* sentPosts.hold(id))) {
@@ -231,13 +253,15 @@ const make = Effect.gen(function* () {
         .pipe(
           Effect.catchTag("XUnavailable", (error) =>
             error.outcome === "refused"
-              ? Effect.andThen(sentPosts.drop(id), () =>
-                  refuse(`${error.reason}: nothing was posted.`),
+              ? afterwards(
+                  sentPosts.drop(id),
+                  `${error.reason}: nothing was posted.`,
+                  releaseIt,
                 )
-              : Effect.andThen(sentPosts.markUnanswered(id), () =>
-                  refuse(
-                    `${error.reason}, so it may be out. ${settleHint(slug, moment)}`,
-                  ),
+              : afterwards(
+                  sentPosts.markUnanswered(id),
+                  `${error.reason}, so it may be out. ${settleHint(slug, moment)}`,
+                  "settle it as above.",
                 ),
           ),
         );
