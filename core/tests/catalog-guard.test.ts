@@ -17,7 +17,7 @@ const rules: ReadonlyArray<readonly [string, RegExp]> = [
   // or a bare `WHERE e.is_draft`; never `SELECT e.is_draft AS …`.
   [
     "published or draft",
-    /\bis_draft\s*(?:=|<>|!=|\bIS\b)|\b(?:WHERE|AND|OR|NOT|WHEN|ON)\s+\(?\s*(?:[a-z_]+\.)?is_draft\b/i,
+    /\bis_draft\s*(?:=|<>|!=|\bIS\b)|\b(?:WHERE|AND|OR|NOT|WHEN|ON)[\s(]+(?:[a-z_]+\.)?is_draft\b/i,
   ],
   ["ahead or over", /\bend_date\s*(?:<=|>=|<|>)/],
   ["ours or shared", /\bcuration\s*=\s*'/],
@@ -91,6 +91,7 @@ describe("what stating a rule looks like", () => {
     "AND NOT e.is_draft",
     "WHERE e.is_draft",
     "OR (is_draft AND x)",
+    "WHERE ((e.is_draft))",
     "CASE WHEN e.is_draft THEN 1 END",
     "e.is_draft IS NOT TRUE",
   ])("%s selects by published or draft", (sql) => {
