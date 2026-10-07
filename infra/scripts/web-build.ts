@@ -11,9 +11,16 @@
  */
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-/** web/dist, from infra/scripts. */
-export const WEB_DIST = new URL("../../web/dist/", import.meta.url).pathname;
+/**
+ * web/dist, from this script's URL, as a file path: decoded, so a
+ * repository under a path with spaces is found.
+ */
+export const webDistFrom = (scriptUrl: string): string =>
+  fileURLToPath(new URL("../../web/dist/", scriptUrl));
+
+export const WEB_DIST = webDistFrom(import.meta.url);
 
 const isDirectory = (path: string) =>
   existsSync(path) && statSync(path).isDirectory();

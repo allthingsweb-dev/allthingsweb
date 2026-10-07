@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import packageJson from "../package.json";
-import { webBuildProblem } from "../scripts/web-build.ts";
+import { webBuildProblem, webDistFrom } from "../scripts/web-build.ts";
 
 const missing =
   "web/dist/public is missing: run `bun run build` in web/ first (after `bun install` at the repository root)";
@@ -40,6 +40,14 @@ describe("webBuildProblem", () => {
 });
 
 describe("infra's plan and deploy", () => {
+  test("check web's own dist, as a file path, even under a path with spaces", () => {
+    expect(
+      webDistFrom(
+        "file:///Users/a%20b/allthingsweb/infra/scripts/web-build.ts",
+      ),
+    ).toBe("/Users/a b/allthingsweb/web/dist/");
+  });
+
   test("check web's build before Alchemy runs", () => {
     for (const script of [
       packageJson.scripts.plan,
