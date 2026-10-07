@@ -185,7 +185,7 @@ describe("verifyAccess", () => {
     });
   });
 
-  test("publishedKeys keeps the team's keys for an hour", async () => {
+  test("publishedKeys keeps the team's keys for an hour, and refetches at most every 30 seconds", async () => {
     let calls = 0;
     let clock = 0;
     const source = publishedKeys(
@@ -200,7 +200,12 @@ describe("verifyAccess", () => {
     clock = 3_599_000;
     await source(team, false);
     expect(calls).toBe(1);
+    // An unknown key asks again, but not within 30 seconds of the last ask.
     await source(team, true);
+    expect(calls).toBe(2);
+    clock = 3_620_000;
+    await source(team, true);
+    expect(calls).toBe(2);
     clock = 7_300_000;
     await source(team, false);
     expect(calls).toBe(3);

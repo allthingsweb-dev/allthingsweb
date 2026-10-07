@@ -69,7 +69,11 @@ export type KeySource = (
   refresh: boolean,
 ) => Promise<ReadonlyArray<PublicJwk>>;
 
-/** The team's keys from `https://<team>/cdn-cgi/access/certs`, kept for an hour. */
+/**
+ * The team's keys from `https://<team>/cdn-cgi/access/certs`, kept for an
+ * hour, and asked for again at most every 30 seconds when a token names a
+ * key they lack.
+ */
 export function publishedKeys(
   fetcher: typeof fetch = fetch,
   now: () => number = Date.now,
@@ -80,7 +84,14 @@ export function publishedKeys(
   >();
   return async (teamDomain, refresh) => {
     const known = kept.get(teamDomain);
-    if (!refresh && known !== undefined && now() - known.at < 3_600_000) {
+    const age = known === undefined ? Infinity : now() - known.at;
+    // Kept an hour; asked again sooner only for a key it lacks, and never
+    // within 30 seconds of the last ask, so tokens naming made-up keys
+    // can't make the Worker fetch the keys on every request.
+    if (
+      known !== undefined &&
+      (age < 30_000 || (!refresh && age < 3_600_000))
+    ) {
       return known.keys;
     }
     const response = await fetcher(
