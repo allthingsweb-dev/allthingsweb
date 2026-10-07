@@ -5,7 +5,13 @@ import {
   type SocialChannel,
   socialChannels,
 } from "./drafts.ts";
-import { lengthOn, limits } from "./limits.ts";
+import {
+  type LaunchChannel,
+  launchChannels,
+  type LaunchDrafts,
+  type MeetupAnnouncement,
+} from "./launch.ts";
+import { lengthOn, limits, type Platform } from "./limits.ts";
 
 /** Where a draft goes: Luma, Meetup, or one of the social channels. */
 export type Channel = "luma" | "meetup" | SocialChannel;
@@ -117,5 +123,129 @@ export function draftsJson(
           ),
         ]),
     ),
+  };
+}
+
+/** "(212 / 280)" on a platform, or "(212 characters)" where none limits it. */
+const measureLaunch = (platform: Platform | null, text: string) =>
+  platform === null
+    ? `(${text.length} characters)`
+    : `(${lengthOn(platform, text)} / ${limits[platform]})`;
+
+/** The launch kit's drafts for `selected` channels as text to read and copy from. */
+export function formatLaunch(
+  drafts: LaunchDrafts,
+  selected: ReadonlyArray<LaunchChannel> = launchChannels,
+): string {
+  const single = (channel: "bluesky" | "linkedin" | "discord") =>
+    `## ${channel} ${measureLaunch(channel, drafts[channel])}\n\n${drafts[channel]}`;
+  const section: Readonly<Record<LaunchChannel, () => string>> = {
+    x: () =>
+      drafts.x
+        .map(
+          (post, index) =>
+            `## x: thread ${index + 1}/${drafts.x.length} ${measureLaunch("x", post)}\n\n${post}`,
+        )
+        .join("\n\n"),
+    bluesky: () => single("bluesky"),
+    linkedin: () => single("linkedin"),
+    discord: () => single("discord"),
+    luma: () =>
+      `## luma: newsletter ${measureLaunch("luma", drafts.luma.body)}\n\nsubject: ${drafts.luma.subject}\n\n${drafts.luma.body}`,
+    meetup: () =>
+      drafts.meetup
+        .map(
+          ({ group, subject, body }) =>
+            `## meetup: ${group.name} ${measureLaunch("meetup", body)}\n\ngroup: ${group.url}\n\nsubject: ${subject}\n\n${body}`,
+        )
+        .join("\n\n"),
+    about: () =>
+      `## about: history ${measureLaunch(null, drafts.about)}\n\n${drafts.about}`,
+  };
+  const sections = selected.map((channel) => section[channel]());
+  const list = (title: string, items: ReadonlyArray<string>, mark: string) =>
+    items.length === 0
+      ? []
+      : [`## ${title}\n\n${items.map((item) => `${mark}${item}`).join("\n")}`];
+  return (
+    [
+      "# launch: all things",
+      ...list("gaps", drafts.gaps, "- "),
+      ...list("before posting", drafts.checklist, "- [ ] "),
+      ...sections,
+    ].join("\n\n") + "\n"
+  );
+}
+
+/** A launch draft with its length, and its platform's limit where one has one. */
+const measuredLaunch = (
+  platform: Platform | null,
+  text: string,
+): MeasuredLaunch => ({
+  text,
+  length: platform === null ? text.length : lengthOn(platform, text),
+  limit: platform === null ? null : limits[platform],
+});
+
+/** A launch draft as JSON: its text, its length, and its platform's limit or null. */
+export interface MeasuredLaunch {
+  readonly text: string;
+  readonly length: number;
+  readonly limit: number | null;
+}
+
+/** The launch kit as JSON: each selected channel's drafts, measured. */
+export interface LaunchJson {
+  readonly gaps: ReadonlyArray<string>;
+  readonly checklist: ReadonlyArray<string>;
+  readonly x?: ReadonlyArray<MeasuredLaunch>;
+  readonly bluesky?: MeasuredLaunch;
+  readonly linkedin?: MeasuredLaunch;
+  readonly discord?: MeasuredLaunch;
+  readonly luma?: { readonly subject: string; readonly body: MeasuredLaunch };
+  readonly meetup?: ReadonlyArray<
+    Omit<MeetupAnnouncement, "body"> & { readonly body: MeasuredLaunch }
+  >;
+  readonly about?: MeasuredLaunch;
+}
+
+/** The launch kit's drafts for `selected` channels as JSON, each with its length. */
+export function launchJson(
+  drafts: LaunchDrafts,
+  selected: ReadonlyArray<LaunchChannel> = launchChannels,
+): LaunchJson {
+  const has = (channel: LaunchChannel) => selected.includes(channel);
+  return {
+    gaps: drafts.gaps,
+    checklist: drafts.checklist,
+    ...(has("x")
+      ? { x: drafts.x.map((post) => measuredLaunch("x", post)) }
+      : {}),
+    ...(has("bluesky")
+      ? { bluesky: measuredLaunch("bluesky", drafts.bluesky) }
+      : {}),
+    ...(has("linkedin")
+      ? { linkedin: measuredLaunch("linkedin", drafts.linkedin) }
+      : {}),
+    ...(has("discord")
+      ? { discord: measuredLaunch("discord", drafts.discord) }
+      : {}),
+    ...(has("luma")
+      ? {
+          luma: {
+            subject: drafts.luma.subject,
+            body: measuredLaunch("luma", drafts.luma.body),
+          },
+        }
+      : {}),
+    ...(has("meetup")
+      ? {
+          meetup: drafts.meetup.map(({ body, ...announcement }) => ({
+            ...announcement,
+            body: measuredLaunch("meetup", body),
+          })),
+        }
+      : {}),
+    ...(has("about") ? { about: measuredLaunch(null, drafts.about) } : {}),
   };
 }

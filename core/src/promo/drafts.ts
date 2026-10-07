@@ -233,7 +233,7 @@ function stagePhrase(
  * Where, said before the evening: "hosted at CodeRabbit in East Cut", or
  * the place alone when no company hosts it.
  */
-function wherePhrase(
+export function wherePhrase(
   event: EventPage,
   hostName: (name: string) => string = (name) => name,
 ): string | null {
@@ -562,7 +562,7 @@ export const mdUrl = (url: string) =>
     : url;
 
 /** Markdown's own characters in a name or title, escaped. */
-const md = (text: string) => text.replace(/([\\`*_[\]<>#])/g, "\\$1");
+export const md = (text: string) => text.replace(/([\\`*_[\]<>#])/g, "\\$1");
 
 /** Every line its own paragraph: Meetup's editor wants a blank line between each. */
 const blankLined = (text: string) =>

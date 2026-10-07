@@ -27,6 +27,7 @@
     "curation": "bun --no-env-file scripts/curation.ts",
     "promo": "bun --no-env-file scripts/promo.ts",
     "promo:cover": "bun --no-env-file scripts/meetup-cover.ts",
+    "promo:launch": "bun --no-env-file scripts/promo-launch.ts",
     "plan": "bun --no-env-file scripts/plan.ts",
     "readiness": "bun --no-env-file scripts/readiness.ts",
     "luma": "bun --no-env-file scripts/luma.ts",

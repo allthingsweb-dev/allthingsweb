@@ -1,0 +1,144 @@
+# launch: all things
+
+## before posting
+
+- [ ] allthings.dev serves the new site and every allthingsweb.dev address redirects to it, as every draft says (infra/docs/r2-migration.md, the full cutover). Post nothing before.
+- [ ] Every published evening has its short link, as the drafts say: bun run slugs --dry-run (in core/) gives none, or run it without --dry-run first.
+- [ ] Post the X thread from @allthingsdev, each post a reply to the one before.
+- [ ] Display names say all things before the posts do: X, Bluesky, the LinkedIn page, the Discord server and the Luma calendar.
+- [ ] Send each Meetup announcement from its own group, to all its members.
+
+## x: thread 1/6 (259 / 280)
+
+All Things Web is now all things.
+
+The same evenings for people who build software, in the neighborhoods of San Francisco, under one name: all things/_. Each evening fills the slot after the slash.
+
+The site is allthings.dev. allthingsweb.dev redirects there.
+
+## x: thread 2/6 (236 / 280)
+
+Every evening has a short link, its name as an address: all things/effect lives at allthings.dev/effect.
+
+A link, once given, is that evening's for good, so nothing printed, posted or put in a QR code ever comes to mean another evening.
+
+## x: thread 3/6 (159 / 280)
+
+Everyone who has been on stage has a page now, at allthings.dev/people: their talks and parts at our evenings, latest first, and the talks they gave elsewhere.
+
+## x: thread 4/6 (147 / 280)
+
+Some evenings aren't ours. When someone else runs one we think is good, we share it: it's listed beside ours, marked shared, with who organizes it.
+
+## x: thread 5/6 (213 / 280)
+
+Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look: judges run each one and its tests.
+
+github.com/allthingsweb-dev/hack
+
+## x: thread 6/6 (126 / 280)
+
+Next: all things/upcoming meetup, Thu Nov 5, 6:00 PM.
+
+https://allthings.dev/2026-11-05-upcoming
+
+Talk between evenings → discord.gg/B3Sm4b5mfD
+
+## bluesky (293 / 300)
+
+All Things Web is now all things, at allthings.dev. allthingsweb.dev redirects there.
+
+New: a short link for every evening, a page for everyone who's been on stage, evenings we share, and at/hack.
+
+Next: all things/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-11-05-upcoming
+
+## linkedin (1100 / 3000)
+
+All Things Web is now all things.
+
+The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. What changes is the name, all things/_, where each evening fills the slot after the slash: all things/effect, all things/expo.
+
+The site is now allthings.dev, and allthingsweb.dev redirects there. With it:
+
+- Every evening has a short link, allthings.dev/<topic>. A link, once given, is that evening's for good.
+- Everyone who has been on stage has a page, at allthings.dev/people: their talks and parts at our evenings, and the talks they gave elsewhere.
+- Evenings other people run that we think are good are listed beside ours, marked shared, with who organizes them.
+- Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look. github.com/allthingsweb-dev/hack
+
+Next: all things/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-11-05-upcoming
+
+Talk between evenings → discord.gg/B3Sm4b5mfD
+On X: x.com/allthingsdev
+
+## discord (780 / 2000)
+
+**All Things Web is now all things.**
+
+Same evenings, same server. The name is all things/\_, and each evening fills the slot after the slash: all things/effect, all things/expo.
+
+**What changed**
+- The site is **allthings.dev**; allthingsweb.dev redirects there.
+- Every evening has a short link, allthings.dev/\<topic\>. Once given, it's that evening's for good.
+- Everyone who has been on stage has a page: allthings.dev/people.
+- Evenings other people run that we think are good are listed beside ours, marked shared.
+- Hackathons start from **at/hack**, a template: fork it, build, hand in a public repo. <https://github.com/allthingsweb-dev/hack>
+
+**Next: all things/upcoming meetup, Thu Nov 5, 6:00 PM.** <https://allthings.dev/2026-11-05-upcoming>
+
+On X: **@allthingsdev**
+
+## luma: newsletter (1106 / 5000)
+
+subject: These evenings are now all things
+
+All Things Web is now all things: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, all things/\_. Each evening fills the slot after the slash: all things/effect, all things/expo.
+
+Nothing changes here: you keep following this calendar, and every evening's seats are still taken here.
+
+**What changed**
+
+- The site is **[allthings.dev](https://allthings.dev)**, and allthingsweb.dev redirects there.
+- Every evening has a short link, allthings.dev/\<topic\>. Once given, it's that evening's for good.
+- Everyone who has been on stage has a page: allthings.dev/people.
+- Evenings other people run that we think are good are listed beside ours, marked shared.
+- Hackathons start from **at/hack**, a template: fork it, build, hand in a public repo. <https://github.com/allthingsweb-dev/hack>
+
+**Next: all things/upcoming meetup, Thu Nov 5, 6:00 PM.** [allthings.dev/2026-11-05-upcoming](https://allthings.dev/2026-11-05-upcoming)
+
+Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**. On X: **[@allthingsdev](https://x.com/allthingsdev)**.
+
+## meetup: React San Francisco Bay Area (788 / 5000)
+
+group: https://www.meetup.com/reactjs-san-francisco/
+
+subject: React San Francisco Bay Area's evenings are now all things
+
+The evenings React San Francisco Bay Area lists went by All Things Web. They're now all things: one name, all things/_, and each evening fills the slot after the slash.
+
+Nothing changes for you here. This group continues under all things, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthingsweb); the list on Meetup is a waitlist.
+
+What's new on allthings.dev (allthingsweb.dev redirects there): a short link for every evening, allthings.dev/<topic>; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.
+
+Next: all things/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-11-05-upcoming
+
+Talk between evenings → discord.gg/B3Sm4b5mfD
+
+## meetup: Remix Bay Area (774 / 5000)
+
+group: https://www.meetup.com/remix-bay-area/
+
+subject: Remix Bay Area's evenings are now all things
+
+The evenings Remix Bay Area lists went by All Things Web. They're now all things: one name, all things/_, and each evening fills the slot after the slash.
+
+Nothing changes for you here. This group continues under all things, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthingsweb); the list on Meetup is a waitlist.
+
+What's new on allthings.dev (allthingsweb.dev redirects there): a short link for every evening, allthings.dev/<topic>; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.
+
+Next: all things/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-11-05-upcoming
+
+Talk between evenings → discord.gg/B3Sm4b5mfD
+
+## about: history (331 characters)
+
+With the name, the site moved from allthingsweb.dev to allthings.dev, and the old addresses redirect. Each evening has its short link, allthings.dev/<topic>, and keeps it. Everyone who has been on stage has a page. Evenings others run that we think are good are listed beside ours, marked shared. And hackathons start from at/hack.
