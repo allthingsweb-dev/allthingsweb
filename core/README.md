@@ -41,6 +41,16 @@ X-follower order; the API's and the tools' published fields, long slugs,
 limits, search and error texts. None of that decides which evenings or
 people there are, or their order.
 
+`tests/catalog-guard.test.ts` reads core's and the Worker's source and
+fails on any file that states one of these rules itself (`is_draft`, a
+comparison on `end_date`, `curation = '…'`, an `ORDER BY` on `start_date`)
+outside `src/catalog.ts`. It lists the public reads not yet moved, each with
+what moves it, and the code that isn't a public read (the Luma sync, the
+organizers' tools, the reports), each with why. Both lists only shrink: a
+listed file that states no rule fails it too. `tests/catalog.test.ts` holds
+the fragments to the schema, and `ahead` and `ended` to `eventStatus` at
+every instant around an evening's start and end.
+
 `web/tests/parity.test.ts` holds the surfaces to each other over one
 seeded database at one instant: the same evenings in the same order from
 `list_events`, `/api/v1/events`, the feed, /events and home; the same

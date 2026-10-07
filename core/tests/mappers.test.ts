@@ -24,17 +24,6 @@ const event: Rows.Event = {
   previewImage: null,
 };
 
-describe("eventStatus", () => {
-  test.each([
-    ["2026-08-13T00:59:59.999Z", "upcoming"],
-    ["2026-08-13T01:00:00.000Z", "live"],
-    ["2026-08-13T04:00:00.000Z", "live"],
-    ["2026-08-13T04:00:00.001Z", "past"],
-  ] as const)("at %s it is %s", (now, status) => {
-    expect(Mappers.eventStatus(event, at(now))).toBe(status);
-  });
-});
-
 describe("httpUrlOrNull", () => {
   test.each([
     [null, null],

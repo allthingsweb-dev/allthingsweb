@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
+import { latestFirst, published } from "./catalog.ts";
 import { type DataSourceError, EventNotFound } from "./errors.ts";
 import * as Rows from "./rows.ts";
 import { imageJson, orDataSourceError, profileJson } from "./sql.ts";
@@ -36,16 +37,14 @@ const make = Effect.gen(function* () {
     e.recording_url AS "recordingUrl", e.is_hackathon AS "isHackathon",
     ${imageJson("e.preview_image")} AS "previewImage"`);
 
-  // The id breaks ties between events that start together, which the app
-  // leaves to the planner.
   const listPublished = SqlSchema.findAll({
     Request: Schema.Void,
     Result: Rows.Event,
     execute: () => sql`
       SELECT ${eventColumns}
       FROM events e
-      WHERE e.is_draft = false
-      ORDER BY e.start_date DESC, e.id`,
+      WHERE ${published(sql, "e")}
+      ORDER BY ${latestFirst(sql, "e")}`,
   });
 
   // Talks, speakers, hosts and photos are listed in the order they were
@@ -114,7 +113,7 @@ const make = Effect.gen(function* () {
           WHERE ei.event_id = e.id
         ), '[]'::json) AS images
       FROM events e
-      WHERE e.is_draft = false
+      WHERE ${published(sql, "e")}
         AND (e.slug = ${slug} OR e.short_slug = ${slug})
       -- No link equals another evening's slug (src/slugs.ts); were one to,
       -- the link would win, as on its page.
