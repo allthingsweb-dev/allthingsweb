@@ -682,9 +682,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            url: { type: "string", description: "The post's URL" },
+            url: {
+              type: "string",
+              minLength: 1,
+              description: "The post's URL",
+            },
             slug: {
               type: "string",
+              minLength: 1,
               description: "The slug of the event it is about",
             },
           },

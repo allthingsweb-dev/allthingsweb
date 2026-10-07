@@ -936,6 +936,67 @@ describe("findCandidates", () => {
     expect(rows).toEqual([{ slug: "2026-10-03-hack-day" }]);
   });
 
+  test("another evening's Luma page is read before a post is filed, or the post waits", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await db.exec(
+      `UPDATE events SET luma_event_id = 'evt-hack' WHERE slug = '2026-10-03-hack-day'`,
+    );
+    // Luma names the hack day's page; nothing else has one.
+    const luma = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            request.url.endsWith("/event/evt-hack")
+              ? new Response(
+                  '<link rel="canonical" href="https://luma.com/hack-day-sf">',
+                )
+              : new Response("", { status: 404 }),
+          ),
+        ),
+      ),
+    );
+    // Found for "Ends now", which it names, but it links the hack day's
+    // Luma page: only that page, once read, says which evening it's about.
+    const linksHackDay = post({
+      platform: "bluesky",
+      url: "https://bsky.app/profile/did:plc:abc/post/3lumalink",
+      text: "Ends now is wrapping up, on to the next one",
+      links: ["https://luma.com/hack-day-sf"],
+      postedAt: at("2026-10-03T18:00:00Z"),
+    });
+    const find = (maxRequests?: number) =>
+      Effect.runPromise(
+        findCandidates({
+          scope: { _tag: "Slugs", slugs: ["2026-10-03-ends-now"] },
+          dryRun: true,
+          ...(maxRequests === undefined ? {} : { maxRequests }),
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              fakeSearches([linksHackDay]),
+              luma,
+              EventPostWriter.layer.pipe(Layer.provideMerge(sqlLayer(db))),
+              fakeSources,
+              clockLayer,
+            ),
+          ),
+        ),
+      );
+    const [read] = await find();
+    expect(read?.candidates.map((c) => c.outcome)).toEqual([
+      "for 2026-10-03-hack-day: would add",
+    ]);
+    // With no request left to read that page, the post waits rather than
+    // being filed on what the run hasn't read.
+    const [tight] = await find(2);
+    expect(tight?.candidates.map((c) => c.outcome)).toEqual([
+      "left for a later run: another evening's Luma page is unread",
+    ]);
+  });
+
   test("a dry run scores and adds nothing", async () => {
     const db = await seededDatabase();
     databases.push(db);

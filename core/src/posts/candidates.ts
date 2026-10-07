@@ -882,12 +882,35 @@ export const findCandidates = (options: CandidateOptions) =>
         orDataSourceError,
       );
     const rows = yield* readRows(which);
-    // Every published evening, which a post found for another may be about.
-    const allRows = scope._tag === "Past" ? rows : yield* readRows(sql`TRUE`);
-    // Luma pages read this run, so later evenings' posts can be matched to them.
+    const events = rows.slice(0, options.maxEvents ?? rows.length);
+    // The evenings a post found for one of these may be about instead: any
+    // whose window can overlap a searched one's, so within both windows'
+    // span of the searched evenings. Past searches them all already.
+    const span = Duration.sum(windowBefore, windowAfter);
+    const [first, ...more] = events;
+    const allRows =
+      scope._tag === "Past" || first === undefined
+        ? rows
+        : yield* readRows(sql`e.end_date >= ${DateTime.toDateUtc(
+            DateTime.subtractDuration(
+              more.reduce(
+                (earliest, row) => DateTime.min(earliest, row.startDate),
+                first.startDate,
+              ),
+              span,
+            ),
+          )}
+            AND e.start_date <= ${DateTime.toDateUtc(
+              DateTime.addDuration(
+                more.reduce(
+                  (latest, row) => DateTime.max(latest, row.endDate),
+                  first.endDate,
+                ),
+                span,
+              ),
+            )}`);
+    // Luma pages read this run, by slug, so a post can be matched to them.
     const lumaPages = new Map<string, string | null>();
-    const chosen = rows;
-    const events = chosen.slice(0, options.maxEvents ?? chosen.length);
 
     /** The evening's Luma page, as Luma names it, or null. */
     const lumaPage = (lumaEventId: string | null) =>
@@ -917,23 +940,29 @@ export const findCandidates = (options: CandidateOptions) =>
       left -= granted;
       return granted;
     };
+    /**
+     * The evening's signals with its Luma page, read once a run and
+     * counted; none when no request is left to read it.
+     */
+    const readSignals = (row: typeof SignalsRow.Type) =>
+      Effect.gen(function* () {
+        if (lumaPages.has(row.slug)) {
+          return toSignals(row, lumaPages.get(row.slug) ?? null);
+        }
+        if (row.lumaEventId !== null && spend(1) === 0) return null;
+        const page =
+          row.lumaEventId === null ? null : yield* lumaPage(row.lumaEventId);
+        lumaPages.set(row.slug, page);
+        return toSignals(row, page);
+      });
     const reports: Array<CandidateReport> = [];
     for (const row of events) {
       if (left <= 0) break;
-      const page =
-        row.lumaEventId !== null && spend(1) === 1
-          ? yield* lumaPage(row.lumaEventId)
-          : null;
-      const signals = toSignals(row, page);
-      lumaPages.set(row.slug, page);
-      // The evenings a post found here could be about: this one, as read,
-      // and every other, with its Luma page where this run read it.
-      const evenings = [
-        signals,
-        ...allRows
-          .filter((other) => other.slug !== row.slug)
-          .map((other) => toSignals(other, lumaPages.get(other.slug) ?? null)),
-      ];
+      const signals = (yield* readSignals(row)) ?? toSignals(row, null);
+      // Every other evening a post found here could be about, by its window.
+      const others = allRows
+        .filter((other) => other.slug !== row.slug)
+        .map((other) => ({ row: other, window: toSignals(other, null) }));
       const searched: Record<string, number | string> = {};
       const found = new Map<string, FoundPost>();
       for (const search of searches) {
@@ -956,7 +985,32 @@ export const findCandidates = (options: CandidateOptions) =>
       const candidates: Array<CandidateReport["candidates"][number]> = [];
       for (const post of found.values()) {
         if (!inWindow(signals, post.postedAt)) continue;
-        // Filed under the evening it's about, which may be another.
+        // Filed under the evening it's about, which may be another: each
+        // whose window holds it is scored with its Luma page, so one isn't
+        // lost on a link this run hasn't read. Without a request left to
+        // read one, the post waits for a run that can.
+        const evenings = [signals];
+        let unread = false;
+        for (const other of others) {
+          if (!inWindow(other.window, post.postedAt)) continue;
+          const read = yield* readSignals(other.row);
+          if (read === null) {
+            unread = true;
+            break;
+          }
+          evenings.push(read);
+        }
+        if (unread) {
+          const { score, reasons } = scoreCandidate(signals, post);
+          candidates.push({
+            url: post.url,
+            score,
+            reasons,
+            outcome:
+              "left for a later run: another evening's Luma page is unread",
+          });
+          continue;
+        }
         const about = assignEvening(post, evenings) ?? signals;
         const { score, reasons } = scoreCandidate(about, post);
         if (score < candidateThreshold) continue;
