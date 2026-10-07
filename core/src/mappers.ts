@@ -103,6 +103,14 @@ export function toEventSummary(
     rsvpUrl: rsvpUrl(event.lumaEventId),
     recordingUrl: httpUrlOrNull(event.recordingUrl),
     isHackathon: event.isHackathon,
+    curation: event.curation.kind,
+    organizer:
+      event.curation.kind === "shared"
+        ? {
+            name: event.curation.organizer.name,
+            url: httpUrlOrNull(event.curation.organizer.websiteUrl),
+          }
+        : null,
   };
 }
 

@@ -37,9 +37,9 @@ import { mcpRequest, rpcMessage } from "./support/http.ts";
  * compared by id, since the API and the pages name an evening by different
  * slugs.
  *
- * A `test.failing` is a disagreement found when this test was written,
- * each with the decision that resolves it; it fails once the surfaces
- * agree, so the fix updates it.
+ * A disagreement found when this test was written was a `test.failing`,
+ * with the decision that resolved it; each is settled now, and the
+ * surfaces agree on all of it.
  */
 
 const origin = "https://allthings.dev";
@@ -159,6 +159,8 @@ interface ToolResult {
 interface Summary {
   readonly slug: string;
   readonly status: Contract.EventStatus;
+  readonly curation: "ours" | "shared";
+  readonly organizer: { readonly name: string } | null;
 }
 
 interface McpEvent extends Summary {
@@ -355,6 +357,28 @@ describe("which evenings there are, and in what order", () => {
     expect(new Set([...ids(view.ahead), ...ids(view.past)])).toEqual(
       new Set(ids(await surfaces.listEvents("all"))),
     );
+  });
+
+  test("list_events says whose each evening is, as /events does", async () => {
+    const view = await evenings();
+    const pages = new Map(
+      [...view.ahead, ...view.past].map((e) => [
+        idOf(e.slug),
+        e.curation.kind === "shared"
+          ? { curation: "shared", organizer: e.curation.organizer.name }
+          : { curation: "ours", organizer: null },
+      ]),
+    );
+    const listed = await surfaces.listEvents("all");
+    expect(listed.filter((e) => e.curation === "shared").length).toBe(2);
+    for (const event of listed) {
+      const id = idOf(event.slug);
+      expect({ id, ...pages.get(id) }).toEqual({
+        id,
+        curation: event.curation,
+        organizer: event.organizer?.name ?? null,
+      });
+    }
   });
 
   test("every surface gives an evening the same status", async () => {
@@ -613,37 +637,33 @@ describe("who has been on stage", () => {
     }
   });
 
-  // D5: allthings speakers are those of our evenings, as /people lists
-  // them. Today list_speakers lists Mastra's speaker, whose evening we only
-  // share.
-  test.failing(
-    "everyone list_speakers lists is on /people with those talks",
-    async () => {
-      const view = await people();
-      const onPeople = new Map(
-        [...view.organizers, ...view.speakers, ...view.coHosts].map((p) => [
-          p.name,
-          p,
-        ]),
+  // allthings speakers are those of our evenings, as /people lists them:
+  // never Mastra's speaker, whose evening we only share.
+  test("everyone list_speakers lists is on /people with those talks", async () => {
+    const view = await people();
+    const onPeople = new Map(
+      [...view.organizers, ...view.speakers, ...view.coHosts].map((p) => [
+        p.name,
+        p,
+      ]),
+    );
+    for (const speaker of await surfaces.listSpeakers()) {
+      const listed = onPeople.get(speaker.name);
+      expect(listed?.name).toBe(speaker.name);
+      const given = (listed?.parts ?? []).flatMap((part) =>
+        part.kind === "talk"
+          ? [`${part.title} @ ${idOf(part.evening.slug)}`]
+          : [],
       );
-      for (const speaker of await surfaces.listSpeakers()) {
-        const listed = onPeople.get(speaker.name);
-        expect(listed?.name).toBe(speaker.name);
-        const given = (listed?.parts ?? []).flatMap((part) =>
-          part.kind === "talk"
-            ? [`${part.title} @ ${idOf(part.evening.slug)}`]
-            : [],
-        );
-        for (const talk of speaker.talks) {
-          expect(given).toContain(`${talk.title} @ ${idOf(talk.eventSlug)}`);
-        }
+      for (const talk of speaker.talks) {
+        expect(given).toContain(`${talk.title} @ ${idOf(talk.eventSlug)}`);
       }
-    },
-  );
+    }
+  });
 
-  // D5: /about counts the speakers of our evenings that are over, which
-  // list_speakers lists once it leaves out the evenings we only share.
-  test.failing("/about counts the speakers list_speakers lists", async () => {
+  // /about counts the speakers of our evenings that are over, which
+  // list_speakers lists.
+  test("/about counts the speakers list_speakers lists", async () => {
     const about = await surfaces.read(
       About.use((repository) => repository.read([], photoOrigin)),
     );

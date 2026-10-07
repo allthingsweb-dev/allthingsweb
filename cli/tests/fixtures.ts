@@ -19,6 +19,8 @@ export const summary: EventSummary = {
   rsvpUrl: "https://lu.ma/event/evt-1",
   recordingUrl: null,
   isHackathon: false,
+  curation: "ours",
+  organizer: null,
 };
 
 export const event: Event = {

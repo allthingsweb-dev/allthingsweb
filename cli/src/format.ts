@@ -8,6 +8,17 @@ export function createStyler(color: boolean) {
     color ? styleText(style, text, { validateStream: false }) : text;
 }
 
+/**
+ * "shared · by Mastra" for an evening we share, as the site marks it, or
+ * "shared" when who organizes it isn't said.
+ */
+function sharedBy(event: EventSummary): string | null {
+  if (event.curation !== "shared") return null;
+  return event.organizer === null
+    ? "shared"
+    : `shared · by ${event.organizer.name}`;
+}
+
 function formatWhere(event: EventSummary): string | null {
   return event.venue?.name ?? event.venue?.address ?? null;
 }
@@ -48,8 +59,9 @@ export function formatEventList(
             ? ""
             : ` ${style("yellow", `[${event.status}]`)}`;
         const where = formatWhere(event);
+        const shared = sharedBy(event);
         return [
-          `${style("bold", event.name)}${status}`,
+          `${style("bold", event.name)}${status}${shared ? ` ${style("dim", shared)}` : ""}`,
           `  ${withTimeZone(event)}${where ? ` · ${where}` : ""}`,
           event.rsvpUrl && event.status !== "past"
             ? `  ${style("dim", "rsvp")}  ${event.rsvpUrl}`
@@ -65,9 +77,11 @@ export function formatEventList(
 
 export function formatEvent(event: Event, color: boolean): string {
   const style = createStyler(color);
+  const shared = sharedBy(event);
   const lines = [
     style("bold", event.name),
     event.tagline,
+    ...(shared === null ? [] : [style("dim", shared)]),
     "",
     `${style("dim", "when ")}  ${withTimeZone(event)}`,
   ];
@@ -81,6 +95,9 @@ export function formatEvent(event: Event, color: boolean): string {
     lines.push(`${style("dim", "video")}  ${event.recordingUrl}`);
   }
   lines.push(`${style("dim", "page ")}  ${event.url}`);
+  if (event.organizer?.url) {
+    lines.push(`${style("dim", "by   ")}  ${event.organizer.url}`);
+  }
   for (const talk of event.talks) {
     lines.push("", style("bold", talk.title));
     const speakers = talk.speakers

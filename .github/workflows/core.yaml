@@ -5,6 +5,8 @@ on:
     branches: ["main"]
     paths:
       - "core/**"
+      # tests/contract.test.ts holds the CLI's copy of the contract to core's.
+      - "cli/src/**"
       - "docs/event-formats.md"
       - "infra/scripts/site-sync.ts"
       - "infra/scripts/login-role.ts"
@@ -20,6 +22,8 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - "core/**"
+      # tests/contract.test.ts holds the CLI's copy of the contract to core's.
+      - "cli/src/**"
       - "docs/event-formats.md"
       - "infra/scripts/site-sync.ts"
       - "infra/scripts/login-role.ts"

@@ -16,8 +16,8 @@ export class EventNotFound extends Schema.TaggedError<EventNotFound>()(
   { slug: Schema.String },
 ) {
   /**
-   * The text clients see. The CLI maps it to its "not found" exit code, so it
-   * must stay identical to app/src/lib/public-api/errors.ts.
+   * The text clients see. The CLI maps it to its "not found" exit code
+   * (cli/src/client.ts); tests/contract.test.ts holds the two together.
    */
   override get message(): string {
     return `No published event has the slug "${this.slug}". Use list_events to find one.`;

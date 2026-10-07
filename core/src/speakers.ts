@@ -98,8 +98,10 @@ export const toDirectory = (
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  // Talks at any published evening join the directory once it is over, as
-  // eventStatus has it: not at its last instant, while it is still live.
+  // Talks at our published evenings join the directory once the evening
+  // is over, as eventStatus has it: not at its last instant, while it is
+  // still live. An evening we only share is someone else's: its speakers
+  // aren't allthings speakers.
   const findRows = SqlSchema.findAll({
     Request: Schema.DateTimeUtcFromDate,
     Result: Rows.DirectoryRow,
@@ -110,7 +112,7 @@ const make = Effect.gen(function* () {
         e.id AS "eventId", e.name AS "eventName", e.slug AS "eventSlug",
         e.start_date AS "eventStart"
       FROM ${talkAppearances(sql, {
-        whose: "any",
+        whose: "ours",
         when: { ended: now },
       })} a
       JOIN profiles p ON p.id = a.profile_id

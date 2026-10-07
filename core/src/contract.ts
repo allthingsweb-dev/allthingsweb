@@ -1,10 +1,11 @@
 import { Schema } from "effect";
 
 /**
- * The public allthings contract: the shapes served by the MCP server and the
- * public API, and consumed by the CLI. These Effect schemas will replace the
- * zod ones in app/src/lib/public-api/schemas.ts; until then a contract test
- * holds them to the same shapes, the same validation and today's live data.
+ * The public allthings contract: the shapes served by the MCP server, and
+ * consumed by the CLI and agents. This is the one source of it: the CLI's
+ * zod copy (cli/src/schemas.ts) is held to it by tests/contract.test.ts,
+ * the same JSON Schema and the same verdicts. The app's zod schemas
+ * (app/src/lib/public-api/schemas.ts) are legacy and no longer a reference.
  */
 
 // zod's `domain` regex, so hosts are judged exactly as `z.httpUrl()` judges them.
@@ -65,6 +66,12 @@ export const PersonLinks = Schema.Struct({
   linkedin: Schema.NullOr(HttpUrl),
 });
 
+/** Whose evening it is. */
+export const Curation = Schema.Literals(["ours", "shared"]).annotate({
+  description:
+    "Whose evening it is: one of allthings' own (ours), or someone else's evening we share with the community (shared).",
+});
+
 export const EventSummary = Schema.Struct({
   slug: Schema.String.annotate({
     description: "Stable identifier; pass it to get_event.",
@@ -93,6 +100,13 @@ export const EventSummary = Schema.Struct({
   }),
   recordingUrl: Schema.NullOr(HttpUrl),
   isHackathon: Schema.Boolean,
+  curation: Curation,
+  organizer: Schema.NullOr(
+    Schema.Struct({ name: Schema.String, url: Schema.NullOr(HttpUrl) }),
+  ).annotate({
+    description:
+      "Who organizes an evening we share, and their site; null for ours.",
+  }),
 });
 
 export const TalkSpeaker = Schema.Struct({

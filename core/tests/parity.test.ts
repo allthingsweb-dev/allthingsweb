@@ -16,8 +16,14 @@ import {
 /**
  * Runs the app's own MCP tools, wired to its own drizzle queries as
  * app/src/app/mcp/route.ts wires them, and core's repositories and mappers
- * against one seeded database, and requires the same answers. This is what
- * lets the Worker replace the app without clients noticing.
+ * against one seeded database, and requires the same answers on what the
+ * app answers. This is what let the Worker replace the app without clients
+ * noticing.
+ *
+ * The app is legacy and no longer the reference for the contract: it never
+ * says whose an evening is, and lists speakers by its own rule. Its events
+ * are compared on every field it has; list_speakers is the contract's alone
+ * (web/tests/parity.test.ts holds it to the Worker's other surfaces).
  *
  * The app's modules are loaded at runtime rather than imported: the app's own
  * compiler checks them, and core's stricter settings would reject code that is
@@ -142,6 +148,18 @@ const ignoringAttachOrder = (event: Contract.Event): Contract.Event => ({
   hosts: canonical(event.hosts),
 });
 
+/** An event as the app answers it: without whose it is. */
+const theAppsFields = <E extends Contract.EventSummary>({
+  curation: _curation,
+  organizer: _organizer,
+  ...fields
+}: E) => fields;
+
+/** list_events as the app answers it. */
+type AppEventList = {
+  readonly events: Array<ReturnType<typeof theAppsFields>>;
+};
+
 afterAll(() => db.close());
 
 describe("core answers as the app's MCP tools do", () => {
@@ -159,9 +177,9 @@ describe("core answers as the app's MCP tools do", () => {
         ),
       );
       expect(summaries.length).toBeGreaterThan(0);
-      expect(valid(EventList, { events: summaries })).toEqual(
-        valid(EventList, appResult.structuredContent),
-      );
+      expect(
+        valid(EventList, { events: summaries }).events.map(theAppsFields),
+      ).toEqual((appResult.structuredContent as AppEventList).events);
     },
   );
 
@@ -171,8 +189,8 @@ describe("core answers as the app's MCP tools do", () => {
     const events = Mappers.selectEvents(rows, "all", now)
       .slice(0, 2)
       .map((row) => Mappers.toEventSummary(row, origin, now));
-    expect(valid(EventList, { events })).toEqual(
-      valid(EventList, appResult.structuredContent),
+    expect(valid(EventList, { events }).events.map(theAppsFields)).toEqual(
+      (appResult.structuredContent as AppEventList).events,
     );
   });
 
@@ -193,8 +211,8 @@ describe("core answers as the app's MCP tools do", () => {
         Effect.map((found) => valid(Contract.Event, found)),
       ),
     );
-    expect(ignoringAttachOrder(event)).toEqual(
-      ignoringAttachOrder(valid(Contract.Event, appResult.structuredContent)),
+    expect(theAppsFields(ignoringAttachOrder(event))).toEqual(
+      ignoringAttachOrder(appResult.structuredContent as Contract.Event),
     );
   });
 
