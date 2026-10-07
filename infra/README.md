@@ -24,7 +24,7 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
   - `LUMA_API_KEY` as a secret: hidden venues, drafts, descriptions and cover lookups
   - `X_BEARER_TOKEN` as a secret: follower counts and the post finder's X search, billed per post it reads
 
-  It runs hourly in dry-run until the handover, and runs nothing without every one of them: see [The Luma sync](#the-luma-sync).
+  It writes every hour, as the sync's one writer since the app's cron stopped, and runs nothing without every one of them: see [The Luma sync](#the-luma-sync).
 
 ## Accounts and stages
 
@@ -82,18 +82,18 @@ The Sync Worker runs what the app's cron runs every hour. It syncs `events` from
 
 Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so each change is a one-line pull request:
 
-| `SYNC.`    | Now                                                   | Then                                                            |
-| ---------- | ----------------------------------------------------- | --------------------------------------------------------------- |
-| `schedule` | `"hourly"`: `0 * * * *`, beside the app's cron        | unchanged                                                       |
-| `mode`     | `"dry-run"`: writes nothing, logs what it would write | `"write"`, once the app's cron is gone (handover steps 2 and 3) |
-| `plan`     | `"paid"`: the app's own limits, on Workers Paid       | unchanged                                                       |
+| `SYNC.`    | Now                                                            | Then                                  |
+| ---------- | -------------------------------------------------------------- | ------------------------------------- |
+| `schedule` | `"hourly"`: `0 * * * *`, as the app's cron was                 | unchanged                             |
+| `mode`     | `"write"`: the sync's one writer, since the app's cron stopped | `"dry-run"` only to hand back (below) |
+| `plan`     | `"paid"`: the app's own limits, on Workers Paid                | unchanged                             |
 
 Each run logs one JSON line per step and one summary line (`source: "luma-sync"`).
 
-**Dry runs until the handover.** It runs every hour and writes nothing:
+**It writes every hour.** The handover is done (below):
 
 - `schedule: "hourly"` gives it a Cron Trigger at the top of every hour, as the app's cron has. It answers every request with a 404. It runs in the allthings account alone, from prod's first deploy there, whether allthings.dev is pending or active (`syncPlan` in `src/sync.ts`). `schedule: "off"` would deploy it with no Cron Trigger at all.
-- `mode: "dry-run"` writes nothing, even on a schedule. [`web/tests/sync.test.ts`](../web/tests/sync.test.ts) holds a dry run to leaving every row of every table as it found it, so it can run beside the app's cron.
+- `mode: "write"` writes. `mode: "dry-run"` would write nothing, even on a schedule: [`web/tests/sync.test.ts`](../web/tests/sync.test.ts) holds a dry run to leaving every row of every table as it found it, so it could run beside another writer.
 - A dry run never asks X, which bills each read: it skips the follower counts, and searches Bluesky alone for posts.
 
 **Images never wait for the move.** Every image is recorded at its URL on media.allthings.dev, which serves the bucket of the account where allthings.dev is active, so the Sync Worker stores into that bucket (`SYNC_IMAGES`, from `syncPlan`):
@@ -139,14 +139,14 @@ The secrets reach the Worker with its first prod deploy from the allthings accou
 
 **The handover.** Each step is its own pull request. Merge one only once the one before it is deployed:
 
-1. **Dry runs on the schedule.** `schedule: "hourly"`, on main. Deploy prod (below). Each hour, the Worker logs what it would write while the app's cron writes.
+1. **Dry runs on the schedule** (done, 2026-10-07). `schedule: "hourly"`. Deploy prod (below). Each hour, the Worker logs what it would write while the app's cron writes.
    - Compare a few hours of its `luma-sync` lines in Workers Logs (below, "Reading its logs") with the app's "Luma calendar sync completed" lines in Vercel's logs.
    - A `preflight` line means a binding is missing: deploy again with it.
-2. **The app's cron stops.** Remove the `crons` entry from `app/vercel.json`, and merge between :05 and :55, away from the top of the hour.
+2. **The app's cron stops** (done, #206). Remove the `crons` entry from `app/vercel.json`, and merge between :05 and :55, away from the top of the hour.
    - Merging deploys the app to production on Vercel.
    - Wait until that deployment is ready and the project's Cron Jobs settings list no job.
    - Then wait out any run already started: 60 s at most, its `maxDuration`.
-3. **The Worker writes.** Set `mode: "write"`, merge, and deploy prod.
+3. **The Worker writes** (this step's pull request). Set `mode: "write"`, merge, and deploy prod.
    - CI refuses this while `app/vercel.json` still has the cron.
    - The first write is at the next top of the hour.
    - Each run reads the whole calendar, so an hour skipped during the handover is caught up.

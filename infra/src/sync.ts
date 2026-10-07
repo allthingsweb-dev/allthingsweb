@@ -18,12 +18,12 @@ import { Writer } from "./reader.ts";
  * constants, so turning it on is a one-line pull request:
  *
  * - `schedule`: "off" deploys it with no Cron Trigger at all; "hourly" runs
- *   it at the top of every hour, as the app's cron does. Hourly since the
- *   handover's first step, in dry-run beside the app's cron.
+ *   it at the top of every hour, as the app's cron did. Hourly since the
+ *   handover's first step.
  * - `mode`: "dry-run" writes nothing and logs what it would write (the
  *   event sync rehearsed, the images it would fetch); "write" writes.
- *   Dry-run until the app's cron stops: each hour's work shows in Workers
- *   Logs, to compare with the app's, before it writes anything.
+ *   "write" since the app's cron stopped (app/vercel.json): the Worker is
+ *   the sync's one writer. Back to "dry-run" before the app's cron returns.
  * - `plan`: the account's Workers plan. "paid" (the allthings account is on
  *   Workers Paid) runs with the app's own limits. "free" would keep each run
  *   within the Free plan's 50 subrequests (two venues, two descriptions and
@@ -32,7 +32,7 @@ import { Writer } from "./reader.ts";
  */
 export const SYNC = {
   schedule: "hourly",
-  mode: "dry-run",
+  mode: "write",
   plan: "paid",
 } as const satisfies {
   schedule: "off" | "hourly";

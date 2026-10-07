@@ -183,7 +183,7 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
 
 1. **The sync moves to the sync Worker.** The handover in [`infra/README.md`](../README.md#the-luma-sync) ("The handover"), one PR per step, so the two never write in the same hour: It needs no zone: the Sync Worker runs in the allthings account while allthings.dev is still pending, so the handover can finish before the domain moves.
    1. `schedule: "hourly"` with `mode: "dry-run"` in `infra/src/sync.ts` (done), and deploy prod. Compare a few hours of the Worker's logged work with the Vercel cron's writes.
-   2. Remove the cron from `app/vercel.json`, away from the top of the hour, and let the app deploy. Wait for any run already started to finish. A run lasts at most its 60 s `maxDuration`.
+   2. Remove the cron from `app/vercel.json` (done, #206), away from the top of the hour, and let the app deploy. Wait for any run already started to finish. A run lasts at most its 60 s `maxDuration`.
    3. Set `mode: "write"` and deploy prod. CI refuses this while `app/vercel.json` still has the cron (`infra/tests/sync.test.ts`).
 
    Each run reads the whole calendar, so an hour skipped during the handover is caught up by the next run.
