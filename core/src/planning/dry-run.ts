@@ -14,6 +14,9 @@ class RolledBack extends Schema.TaggedError<RolledBack>()("RolledBack", {}) {}
 export const rolledBack = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
+    // This call's own sentinel: a failure of `effect` that shares its tag
+    // is never mistaken for the rollback.
+    const sentinel = new RolledBack();
     let result: A | undefined;
     yield* sql
       .withTransaction(
@@ -23,10 +26,15 @@ export const rolledBack = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
               result = value;
             }),
           ),
-          Effect.andThen(Effect.fail(new RolledBack())),
+          Effect.andThen(Effect.fail(sentinel)),
         ),
       )
-      .pipe(Effect.catchTag("RolledBack", () => Effect.void));
+      .pipe(
+        Effect.catchIf(
+          (error): error is RolledBack => error === sentinel,
+          () => Effect.void,
+        ),
+      );
     return result as A;
   });
 

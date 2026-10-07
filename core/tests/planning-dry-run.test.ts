@@ -77,6 +77,13 @@ describe("a dry run", () => {
     expect(await ideas()).toBe(0);
   });
 
+  test("a failure that shares the rollback's tag still fails", async () => {
+    const lookalike = { _tag: "RolledBack" as const };
+    const exit = await run(rolledBack(Effect.fail(lookalike)));
+    if (Exit.isSuccess(exit)) throw new Error("expected the failure");
+    expect(Cause.squash(exit.cause)).toBe(lookalike);
+  });
+
   test("without --dry-run the write is kept", async () => {
     const exit = await run(rollingBackIf(false)(addIdea));
     expect(Exit.isSuccess(exit)).toBe(true);
