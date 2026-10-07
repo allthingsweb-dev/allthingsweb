@@ -194,7 +194,11 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
    - `/profile` and `/api/v1/profile`
    - `/admin` and `/api/v1/admin/*`
 
-   With the admin gone, the upload Worker has no caller. Remove `MediaUpload`, its check and the Vercel env writes from the stack. The sync Worker still stores Luma's images in the bucket itself.
+   **The upload Worker stays.** The admin is not its only caller, so `MediaUpload`, its check and the Vercel env writes stay in the stack. These store media through it:
+   - `core/scripts/photos.ts` (`bun run photos`), which adds and replaces an evening's photos.
+   - `core/scripts/reencode-originals.ts` (`bun run reencode`), which re-encodes oversized originals.
+   - The admin MCP server on stdio (`app/scripts/mcp-server.ts`). `add_event_photos` and `replace_event_photo` run `bun run photos`. `create_profile`, `set_profile_image`, `create_host`, `delete_event_images` and `delete_orphaned_image` use the app's media store (`app/scripts/functions.ts`).
+   - The Vercel cron's image ingestion (`app/src/lib/remote-images/bucket.ts`), which stores Luma covers, profile photos and post images. It stops when step 1 removes the cron; the sync Worker then stores Luma's images in the bucket itself.
 
 3. **allthingsweb.dev redirects to allthings.dev.** The old Next app does it, behind one flag that ships off. No DNS change is needed.
    - **The code.** `app/src/middleware.ts` runs on every path. With `ALLTHINGS_DEV_REDIRECT=on`, it answers each request with a redirect from `app/src/lib/cutover/redirect.ts`; with the variable unset or `off`, it redirects nothing.
