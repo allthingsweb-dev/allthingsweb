@@ -123,6 +123,8 @@ export interface UpdateInput {
   readonly place?: LumaPlace;
   /** Set the description the promotion drafts write for the draft at this slug. */
   readonly descriptionFromDrafts?: string;
+  /** Set the description to this idea's pitch, as `create` does. */
+  readonly descriptionFromIdea?: string;
   readonly cover?: {
     readonly bytes: Uint8Array;
     readonly contentType: "image/jpeg" | "image/png";
@@ -276,6 +278,15 @@ const make = Effect.gen(function* () {
       return { body, lumaEventId };
     });
 
+  /** An idea's pitch, the description `create` gives its event. */
+  const pitchOf = (ideaId: string) =>
+    Effect.flatMap(planning.listIdeas(), (ideas) => {
+      const idea = ideas.find((candidate) => candidate.id === ideaId);
+      return idea === undefined
+        ? refuse(`No idea has the id ${ideaId}.`)
+        : Effect.succeed(idea.pitch);
+    });
+
   const update = (ref: EventRef, input: UpdateInput, dryRun: boolean) =>
     Effect.gen(function* () {
       const lumaEventId =
@@ -290,10 +301,20 @@ const make = Effect.gen(function* () {
         input.startAt ?? event.start_at,
         input.endAt ?? event.end_at ?? undefined,
       );
+      if (
+        input.descriptionFromDrafts !== undefined &&
+        input.descriptionFromIdea !== undefined
+      ) {
+        return yield* refuse(
+          "Set the description from the drafts or from an idea, not both.",
+        );
+      }
       const description =
-        input.descriptionFromDrafts === undefined
-          ? undefined
-          : yield* descriptionFor(input.descriptionFromDrafts);
+        input.descriptionFromDrafts !== undefined
+          ? yield* descriptionFor(input.descriptionFromDrafts)
+          : input.descriptionFromIdea !== undefined
+            ? yield* pitchOf(input.descriptionFromIdea)
+            : undefined;
       const coverUrl =
         input.cover === undefined || dryRun
           ? undefined
