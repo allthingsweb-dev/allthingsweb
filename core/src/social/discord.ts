@@ -199,7 +199,8 @@ const make = Effect.gen(function* () {
         ),
         "the message",
       );
-      // Sent: an answer we can't read still means the message is out.
+      // Discord took it, but an answer we can't read has no id: that is
+      // DiscordUnanswered, so the claim waits for an organizer's --sent.
       const read = yield* decode(MessageBody, "the message")(body);
       return { id: read.id };
     });

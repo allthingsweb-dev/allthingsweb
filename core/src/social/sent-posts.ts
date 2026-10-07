@@ -36,7 +36,11 @@ import type { Moment } from "../promo/drafts.ts";
 
 export type RecordedChannel = "discord";
 
-/** How long a send may take before its claim counts as abandoned. */
+/**
+ * How long a send may take before its claim counts as abandoned. It must
+ * outlast the longest send: each request gives up after 30 seconds
+ * (src/social/discord.ts), and `hold` renews the claim just before it.
+ */
 export const staleAfter = Duration.minutes(5);
 
 export interface SentPost {
@@ -91,6 +95,11 @@ export interface SentPostsShape {
     messageId: string,
     url: string,
   ) => Effect.Effect<SentPost, DataSourceError>;
+  /**
+   * Renews the claim `id` just before its send: false when it was let go
+   * of meanwhile, and the send must not start.
+   */
+  readonly hold: (id: string) => Effect.Effect<boolean, DataSourceError>;
   /** Records that the claim `id`'s send went unanswered. */
   readonly markUnanswered: (id: string) => Effect.Effect<void, DataSourceError>;
   /** Drops the claim `id` while it is sending: the platform refused it. */
@@ -168,6 +177,15 @@ const make = Effect.gen(function* () {
       ),
     );
 
+  const hold = (id: string) =>
+    Effect.flatMap(now, (at) =>
+      sql`UPDATE planning.sent_posts SET claimed_at = ${at}::timestamptz
+          WHERE id = ${id} AND status = 'sending' RETURNING id`.pipe(
+        Effect.map((held) => held.length === 1),
+        Effect.mapError((cause) => new DataSourceError({ cause })),
+      ),
+    );
+
   const markUnanswered = (id: string) =>
     sql`UPDATE planning.sent_posts SET status = 'unanswered'
         WHERE id = ${id} AND status = 'sending'`.pipe(
@@ -202,6 +220,7 @@ const make = Effect.gen(function* () {
     find,
     claim,
     markSent,
+    hold,
     markUnanswered,
     drop,
     release,

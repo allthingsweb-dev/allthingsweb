@@ -164,6 +164,12 @@ const make = Effect.gen(function* () {
             : `No evening has the slug "${slug}".`,
         );
       }
+      // Fenced: a claim let go of while this stalled is not sent on.
+      if (!(yield* sentPosts.hold(claim.value.id))) {
+        return yield* refuse(
+          "The claim on this send was let go of before it went out: nothing was sent. Read it again with --dry-run.",
+        );
+      }
       const { id } = yield* discord.send(prepared.message).pipe(
         Effect.catchTag("DiscordRefused", (error) =>
           Effect.andThen(sentPosts.drop(claim.value.id), () =>

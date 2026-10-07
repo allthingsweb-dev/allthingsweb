@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
-import { Cause, Effect, Exit, Layer } from "effect";
+import { Cause, Effect, Exit, Layer, Option } from "effect";
 import { approvalToken } from "../src/approval.ts";
 import { Promo } from "../src/promo/promo.ts";
 import { DiscordAnnounce } from "../src/social/announce-discord.ts";
@@ -401,6 +401,36 @@ describe("sending", () => {
     const abandoned = await run((a) => a.release(slug, "dayOf"), {});
     expect(value(abandoned.exit).status).toBe("sending");
     expect(await recorded()).toEqual([]);
+  });
+
+  test("a claim let go of while its holder stalled can't be sent on", async () => {
+    const records = (effect: Effect.Effect<unknown, unknown, SentPosts>) =>
+      Effect.runPromise(
+        effect.pipe(
+          Effect.provide(SentPosts.layer),
+          Effect.provide(sqlLayer(db)),
+          Effect.provide(clockLayer),
+        ),
+      );
+    const claim = (await records(
+      SentPosts.use((p) =>
+        p.claim("discord", slug, "dayOf", "0123456789abcdef"),
+      ),
+    )) as Option.Option<{ readonly id: string }>;
+    const id = Option.getOrThrow(claim).id;
+    expect(await records(SentPosts.use((p) => p.hold(id)))).toBe(true);
+    // Abandoned: five minutes on, an organizer lets go of it.
+    await db.exec(
+      "UPDATE planning.sent_posts SET claimed_at = '2026-10-03T18:54:00Z'",
+    );
+    expect(
+      Option.isSome(
+        (await records(
+          SentPosts.use((p) => p.release(id)),
+        )) as Option.Option<unknown>,
+      ),
+    ).toBe(true);
+    expect(await records(SentPosts.use((p) => p.hold(id)))).toBe(false);
   });
 
   test("a sent message is never released", async () => {
