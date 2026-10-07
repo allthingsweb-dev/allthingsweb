@@ -88,6 +88,16 @@ const hyperdrivePool = (binding: HyperdriveBinding) =>
  * would: as a `DataSourceError`, which clients see as "temporarily
  * unavailable".
  */
+/** The request's pool: on Hyperdrive when the Worker has the binding, otherwise at `DATABASE_URL`. */
+export const pool = Layer.unwrap(
+  Effect.gen(function* () {
+    return Option.match(yield* Hyperdrive, {
+      onNone: () => Database.layer,
+      onSome: hyperdrivePool,
+    });
+  }),
+);
+
 export const repositories: Layer.Layer<Repositories, DataSourceError> =
   Layer.effectContext(
     Layer.build(
@@ -104,17 +114,6 @@ export const repositories: Layer.Layer<Repositories, DataSourceError> =
         Redirects.layer,
         Speakers.layer,
         V1Data.layer,
-      ).pipe(
-        Layer.provide(
-          Layer.unwrap(
-            Effect.gen(function* () {
-              return Option.match(yield* Hyperdrive, {
-                onNone: () => Database.layer,
-                onSome: hyperdrivePool,
-              });
-            }),
-          ),
-        ),
-      ),
+      ).pipe(Layer.provide(pool)),
     ).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
   );
