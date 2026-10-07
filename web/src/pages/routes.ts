@@ -36,6 +36,7 @@ import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
+import { gatheringTitle } from "./metadata.tsx";
 import { peoplePage } from "./people.tsx";
 import { personPage } from "./person.tsx";
 import type { ImageMode } from "./picture.tsx";
@@ -667,6 +668,52 @@ const retired = retiredPaths.map((route) => {
 });
 
 /**
+ * Sign-in (Stack Auth), members' profiles and the admin, which the current
+ * site served and the Worker never will: retired with it (410).
+ */
+export const retiredSignInPaths = [
+  "/profile",
+  "/handler/*",
+  // "/admin/*" is /admin too.
+  "/admin/*",
+  "/api/v1/profile",
+  "/api/v1/admin/*",
+] as const;
+
+/**
+ * What a retired sign-in, profile or admin path answers: a short plain page
+ * that leads to the home page. It reads nothing, so it never fails.
+ */
+export const retiredSignInPage = `<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>${gatheringTitle("gone")}</title>
+<h1>Gone</h1>
+<p>Sign-in, profiles and the admin were retired with the old site.</p>
+<p><a href="/">Go to the home page</a></p>
+</html>
+`;
+
+/**
+ * The retired sign-in, profile and admin paths, for every method: the old
+ * site's cutover redirect sends a POST or a DELETE on with a 308, and it
+ * finds them gone too.
+ */
+const retiredSignIn = retiredSignInPaths.map((route) =>
+  HttpRouter.add(
+    "*",
+    route,
+    HttpServerResponse.text(retiredSignInPage, {
+      status: 410,
+      contentType: "text/html; charset=utf-8",
+      headers: { "cache-control": CacheControl.page },
+    }),
+  ),
+);
+
+/**
  * Every other path. One with a trailing slash is the page without it, as
  * the current site redirects it (308); the rest are not found, with the
  * site's own page, cached only briefly.
@@ -705,5 +752,6 @@ export const pageRoutes = Layer.mergeAll(
   shortLink,
   nextImage,
   ...retired,
+  ...retiredSignIn,
   elsewhere,
 );

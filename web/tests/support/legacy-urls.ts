@@ -306,10 +306,10 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
       pattern,
       source: "app route (robots.txt disallows it)",
       example,
-      worker: notFound,
+      // Sign-in, profiles and the admin, retired with the old site: a short
+      // plain page that leads home, for every method (pages/routes.ts).
+      worker: gone,
       today,
-      pending:
-        "sign-in, profiles and the admin aren't on the Worker: Erik decides whether they are retired (410) or kept at another host",
     }),
   ),
   {
