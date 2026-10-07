@@ -1,7 +1,8 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { ConfigProvider, DateTime, Effect, Layer } from "effect";
-import { HttpClient, HttpClientResponse } from "effect/http";
+import { ConfigProvider, DateTime, Effect, Exit, Fiber, Layer } from "effect";
+import * as TestClock from "effect/testing/TestClock";
+import { HttpClient, HttpClientResponse, UrlParams } from "effect/http";
 import {
   bareLink,
   CandidateSearches,
@@ -332,6 +333,204 @@ describe("what platforms answer", () => {
     expect(found.posts.map((p) => p.url)).toEqual([
       "https://x.com/ada/status/21",
     ]);
+  });
+
+  test("asks X for 25 posts a request unless X_MAX_RESULTS says otherwise, within X's bounds", async () => {
+    const asked = async (env: Record<string, string>) => {
+      const sizes: Array<string | null> = [];
+      const client = Layer.succeed(
+        HttpClient.HttpClient,
+        HttpClient.make((request) => {
+          sizes.push(
+            new URLSearchParams(UrlParams.toString(request.urlParams)).get(
+              "max_results",
+            ),
+          );
+          return Effect.succeed(
+            HttpClientResponse.fromWeb(request, Response.json({})),
+          );
+        }),
+      );
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const x: CandidateSearchShape = yield* makeXSearch;
+          return yield* x.search(
+            {
+              ...signals,
+              startsAt: at("2026-10-02T01:00:00Z"),
+              endsAt: at("2026-10-02T04:00:00Z"),
+            },
+            1,
+          );
+        }).pipe(
+          Effect.provide(Layer.merge(client, clockLayer)),
+          Effect.provideService(
+            ConfigProvider.ConfigProvider,
+            ConfigProvider.fromEnv({ env: { X_BEARER_TOKEN: "test", ...env } }),
+          ),
+        ),
+      );
+      return sizes;
+    };
+    expect(await asked({})).toEqual(["25"]);
+    expect(await asked({ X_MAX_RESULTS: "40" })).toEqual(["40"]);
+    // Recent search takes 10 to 100; full-archive search up to 500.
+    expect(await asked({ X_MAX_RESULTS: "1" })).toEqual(["10"]);
+    expect(await asked({ X_MAX_RESULTS: "900" })).toEqual(["100"]);
+    expect(await asked({ X_MAX_RESULTS: "900", X_SEARCH: "archive" })).toEqual([
+      "500",
+    ]);
+  });
+
+  test("full-archive requests a second apart, and a 429 tried again after X's reset", async () => {
+    const sentAt: Array<number> = [];
+    let first = true;
+    const client = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) => {
+        sentAt.push(Date.now());
+        if (first) {
+          first = false;
+          return Effect.succeed(
+            HttpClientResponse.fromWeb(
+              request,
+              new Response("", {
+                status: 429,
+                // Reset at once: the wait is the floor, a second.
+                headers: {
+                  "x-rate-limit-reset": String(Math.floor(Date.now() / 1000)),
+                },
+              }),
+            ),
+          );
+        }
+        return Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            Response.json({
+              data: [
+                {
+                  id: "31",
+                  text: "React at Acme!",
+                  author_id: "u1",
+                  created_at: "2026-08-13T03:00:00.000Z",
+                },
+              ],
+              includes: { users: [{ id: "u1", username: "ada" }] },
+            }),
+          ),
+        );
+      }),
+    );
+    // The real clock: the waits are real, a second or so each.
+    const found = await Effect.runPromise(
+      Effect.gen(function* () {
+        const x: CandidateSearchShape = yield* makeXSearch;
+        return yield* x.search(signals);
+      }).pipe(
+        Effect.provide(client),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromEnv({
+            env: { X_BEARER_TOKEN: "test", X_SEARCH: "archive" },
+          }),
+        ),
+      ),
+    );
+    // The 429, its retry, then the second query.
+    expect(sentAt).toHaveLength(3);
+    for (const [i, sent] of sentAt.entries()) {
+      if (i > 0)
+        expect(sent - (sentAt[i - 1] ?? 0)).toBeGreaterThanOrEqual(950);
+    }
+    expect(found.posts.map((p) => p.url)).toEqual([
+      "https://x.com/ada/status/31",
+    ]);
+    // The retry counts as a request.
+    expect(found.requests).toBe(3);
+  }, 15_000);
+
+  test("a 429 is tried again only while the run's requests allow", async () => {
+    let sent = 0;
+    const client = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) => {
+        sent++;
+        return Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            new Response("", { status: 429 }),
+          ),
+        );
+      }),
+    );
+    const exit = await Effect.runPromiseExit(
+      Effect.gen(function* () {
+        const x: CandidateSearchShape = yield* makeXSearch;
+        return yield* x.search(signals, 1);
+      }).pipe(
+        Effect.provide(client),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromEnv({
+            env: { X_BEARER_TOKEN: "test", X_SEARCH: "archive" },
+          }),
+        ),
+      ),
+    );
+    expect(sent).toBe(1);
+    expect(Exit.isFailure(exit) ? exit.cause.reasons[0] : null).toMatchObject({
+      _tag: "Fail",
+      error: { requests: 1 },
+    });
+  });
+
+  test("an X answer whose body stalls fails that query after 15 s, never the run", async () => {
+    const client = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            // Headers at once, then a body that never comes.
+            new Response(new ReadableStream({ start() {} }), {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }),
+          ),
+        ),
+      ),
+    );
+    const exit = await Effect.runPromiseExit(
+      Effect.gen(function* () {
+        const x: CandidateSearchShape = yield* makeXSearch;
+        const fiber = yield* Effect.forkChild(
+          x.search(
+            {
+              ...signals,
+              startsAt: at("2026-10-02T01:00:00Z"),
+              endsAt: at("2026-10-02T04:00:00Z"),
+            },
+            1,
+          ),
+        );
+        for (let i = 0; i < 20; i++) {
+          yield* Effect.yieldNow;
+          yield* TestClock.adjust("1 second");
+        }
+        return yield* Fiber.join(fiber);
+      }).pipe(
+        Effect.provide(Layer.merge(client, clockLayer)),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromEnv({ env: { X_BEARER_TOKEN: "test" } }),
+        ),
+      ),
+    );
+    expect(Exit.isFailure(exit) ? exit.cause.reasons[0] : null).toMatchObject({
+      _tag: "Fail",
+      error: { reason: "every query failed: the answer stalled for 15 s" },
+    });
   });
 
   test("X's queries: the evening's links and name, and its people saying all things", () => {

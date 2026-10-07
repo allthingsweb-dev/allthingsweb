@@ -56,6 +56,9 @@ export const Sync = Cloudflare.Worker("Sync", {
     MEDIA_ORIGIN: `https://${MEDIA_DOMAIN}`,
     IMAGES: Cloudflare.Images.Images("IMAGES"),
     LUMA_API_KEY: Config.Redacted("LUMA_API_KEY"),
+    // X's search for the post finder (core/src/posts/candidates.ts): the
+    // "allthings X app" bearer token. X bills each post a search returns.
+    X_BEARER_TOKEN: Config.Redacted("X_BEARER_TOKEN"),
     SYNC_MODE: SYNC.mode,
     SYNC_PLAN: SYNC.plan,
   },
