@@ -327,7 +327,7 @@ const make = Effect.gen(function* () {
                 level: "blocker",
                 subject: null,
                 message:
-                  "No draft evening yet: make its private Luma event, and the sync stores it as a draft.",
+                  "No draft evening yet: make its private Luma event (bun run luma create), then store it as a draft (bun run luma:drafts --add evt-…).",
               },
             ]
           : draftChecks(

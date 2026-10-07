@@ -178,7 +178,7 @@ const create = Command.make(
         result,
         result.lumaEventId === null
           ? `Would create, private:\n${JSON.stringify(result.body, null, 2)}`
-          : `Created ${result.lumaEventId}, private. The hourly sync stores it as a draft; then link the idea with plan idea update <id> --status drafting --event <slug>.`,
+          : `Created ${result.lumaEventId}, private. Store it as a draft with bun run luma:drafts --add ${result.lumaEventId} (the feed never carries a private event); then link the idea with plan idea update <id> --status drafting --event <slug>.`,
       );
     }).pipe(Effect.provide(layer)),
 ).pipe(Command.withDescription("Make an evening's Luma event, private."));

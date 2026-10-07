@@ -20,8 +20,9 @@ import {
  * exactly what goes out.
  *
  * - `create` makes a **private** event (never anything else), from an
- *   idea's pitch when one is named. The hourly sync then stores it as a
- *   draft, which readiness checks and the preview shows.
+ *   idea's pitch when one is named. The calendar feed never carries a
+ *   private event, so `bun run luma:drafts --add` stores it as a draft
+ *   (src/luma/drafts.ts), which readiness checks and the preview shows.
  * - `update` changes a private event: its name, times, place, its
  *   description from the promotion drafts, its cover. A public one is
  *   refused: what the public sees changes only through `publish`.
