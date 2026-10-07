@@ -15,6 +15,7 @@ import { Promo } from "../src/promo/promo.ts";
  *   bun run promo <slug>                          every draft
  *   bun run promo <slug> --channel x --channel discord
  *   bun run promo <slug> --json                   with each draft's length
+ *   bun run promo <draft slug> --draft            a draft evening's, as the studio reads it
  *
  * DATABASE_URL comes from the environment only; .env files are not read:
  *
@@ -46,11 +47,17 @@ const command = Command.make(
       Flag.withDescription("The origin photos are counted from."),
       Flag.withDefault("https://media.allthings.dev"),
     ),
+    draft: Flag.Boolean("draft").pipe(
+      Flag.withDescription(
+        "Draft for a draft evening (not yet published), as the event studio does.",
+      ),
+      Flag.withDefault(false),
+    ),
   },
-  ({ slug, channel, json, origin, photoOrigin }) =>
+  ({ slug, channel, json, origin, photoOrigin, draft }) =>
     Effect.gen(function* () {
       const drafts = yield* Promo.use((promo) =>
-        promo.drafts(slug, { origin, photoOrigin }),
+        promo.drafts(slug, { origin, photoOrigin, draft }),
       );
       const selected = channel.length === 0 ? channels : channel;
       yield* Console.log(

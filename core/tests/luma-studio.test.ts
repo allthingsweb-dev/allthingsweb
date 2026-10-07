@@ -398,6 +398,67 @@ describe("publish", () => {
     expect(requests.map((r) => r.method)).toEqual(["GET"]);
   });
 
+  test("an evening with no talks that comes from an idea keeps the idea's pitch", async () => {
+    // The draft as a social evening, its talks gone, from an idea.
+    await db.exec(`
+      UPDATE events SET program = 'social' WHERE slug = '${draft}';
+      DELETE FROM event_talks WHERE event_id = (SELECT id FROM events WHERE slug = '${draft}');`);
+    const pitch = "The hard one.\n\n**How it works**\n\n- Teams of up to four.";
+    await Effect.runPromise(
+      Planning.use((p) =>
+        p.addIdea({
+          title: "Made-up quiz",
+          pitch,
+          program: "social",
+          status: "drafting",
+          eventSlug: draft,
+        }),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const { exit } = await run((s) => s.prepare(draft), {
+      "/v1/events/get": [json(lumaEvent())],
+    });
+    const prepared = value(exit);
+    expect(prepared.outgoing.descriptionMd).toBe(pitch);
+    expect(prepared.token).toBe(
+      await Effect.runPromise(approvalToken(prepared.outgoing)),
+    );
+  });
+
+  test("an evening with talks takes the drafts' description, idea or not", async () => {
+    await Effect.runPromise(
+      Planning.use((p) =>
+        p.addIdea({
+          title: "Made-up talks",
+          pitch: "Not this.",
+          program: "talks",
+          status: "drafting",
+          eventSlug: draft,
+        }),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const { exit } = await run((s) => s.prepare(draft), {
+      "/v1/events/get": [json(lumaEvent())],
+    });
+    const description = value(exit).outgoing.descriptionMd;
+    expect(description).toContain("Hosted at **[Acme]");
+    expect(description).not.toContain("Not this.");
+  });
+
   test("puts out exactly what was approved, and checks Luma took it", async () => {
     const prepared = value(
       (

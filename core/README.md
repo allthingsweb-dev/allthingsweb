@@ -750,6 +750,7 @@ Drafts only: nothing posts.
 DATABASE_URL=… bun run promo <slug>                              # every draft, as text
 DATABASE_URL=… bun run promo <slug> --channel x --channel meetup # only these
 DATABASE_URL=… bun run promo <slug> --json                       # with each draft's length and limit
+DATABASE_URL=… bun run promo <draft slug> --draft                # a draft evening's, as the studio reads it
 ```
 
 Meetup crops covers to 16:9, which would cut a square Luma cover.
@@ -899,6 +900,9 @@ calendar's key in `LUMA_API_KEY`:
 <token>` it works the content out again and goes on only if it hashes
   the same, sets the description and the visibility in one update, and
   reads the event back to check both took.
+  An evening with no talks on record that comes from an idea (a trivia
+  night, a social) publishes with the idea's pitch instead: the drafts
+  write their description from talks, and it has none.
 - `cancel-test` deletes only a private test event named "allthings API
   test…" with no guests.
 
