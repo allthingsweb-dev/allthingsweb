@@ -1,4 +1,5 @@
-import { DateTime, Effect, Schema } from "effect";
+import { DateTime, Effect, Order, Schema } from "effect";
+import { byStart, eventStatus } from "./catalog.ts";
 import * as Contract from "./contract.ts";
 import { htmlToPlainText, sanitizeRichText } from "./rich-text.ts";
 import type * as Rows from "./rows.ts";
@@ -14,16 +15,6 @@ import { sharedPrefix } from "./short-slugs.ts";
  * `origin` is the site's origin without a trailing slash, such as
  * "https://allthings.dev"; public URLs are built from it.
  */
-
-/** Upcoming before the start, live from the start through the end, then past. */
-export function eventStatus(
-  event: Pick<Rows.Event, "startDate" | "endDate">,
-  now: DateTime.Utc,
-): Contract.EventStatus {
-  if (DateTime.isLessThan(now, event.startDate)) return "upcoming";
-  if (DateTime.isLessThanOrEqualTo(now, event.endDate)) return "live";
-  return "past";
-}
 
 const isHttpUrl = Schema.is(Contract.HttpUrl);
 
@@ -179,17 +170,11 @@ export type EventSelection = "upcoming" | "past" | "all";
 export function selectEvents<
   E extends Pick<Rows.Event, "startDate" | "endDate">,
 >(events: ReadonlyArray<E>, when: EventSelection, now: DateTime.Utc): Array<E> {
-  const direction = when === "upcoming" ? 1 : -1;
   return events
     .filter((event) => {
       if (when === "all") return true;
       const isPast = eventStatus(event, now) === "past";
       return when === "past" ? isPast : !isPast;
     })
-    .toSorted(
-      (a, b) =>
-        direction *
-        (DateTime.toEpochMillis(a.startDate) -
-          DateTime.toEpochMillis(b.startDate)),
-    );
+    .toSorted(when === "upcoming" ? byStart : Order.flip(byStart));
 }

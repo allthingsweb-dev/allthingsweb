@@ -5,7 +5,8 @@ import type { DataSourceError } from "./errors.ts";
 import { formats, rulesFor, rulesMissing } from "./formats.ts";
 import { eventTopic } from "./lockup.ts";
 import { eventTagline } from "./tagline.ts";
-import { eventStatus, httpUrlOrNull } from "./mappers.ts";
+import { eventStatus } from "./catalog.ts";
+import { httpUrlOrNull } from "./mappers.ts";
 import * as Rows from "./rows.ts";
 import { curationJson, orDataSourceError } from "./sql.ts";
 
