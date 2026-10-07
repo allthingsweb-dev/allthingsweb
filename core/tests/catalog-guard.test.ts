@@ -13,7 +13,21 @@ import { describe, expect, test } from "bun:test";
 
 /** What stating a rule looks like in SQL. */
 const rules: ReadonlyArray<readonly [string, RegExp]> = [
-  ["published or draft", /\bis_draft\b/],
+  // Selecting by it, not reading it out: compared either way round, also
+  // inside a function (`COALESCE(is_draft, false) = …`), negated, or bare
+  // after WHERE and the like; never `SELECT e.is_draft AS …`.
+  [
+    "published or draft",
+    new RegExp(
+      [
+        String.raw`\bis_draft\s*(?:=|<>|!=|\bIS\b)`,
+        String.raw`(?:=|<>|!=)\s*(?:[a-z_]+\.)?is_draft\b`,
+        String.raw`\(\s*(?:[a-z_]+\.)?is_draft\b[^()]*\)\s*(?:=|<>|!=|\bIS\b)`,
+        String.raw`\b(?:WHERE|AND|OR|NOT|WHEN|ON)[\s(]+(?:[a-z_]+\.)?is_draft\b`,
+      ].join("|"),
+      "i",
+    ),
+  ],
   ["ahead or over", /\bend_date\s*(?:<=|>=|<|>)/],
   ["ours or shared", /\bcuration\s*=\s*'/],
   ["evenings' order", /ORDER BY\s+[a-z_.]*start_date\b/],
@@ -35,7 +49,8 @@ const notYetMoved: Readonly<Record<string, string>> = {
   "core/src/speakers.ts":
     "list_speakers: ended through the last instant, until that is settled",
   "web/src/seo/data.ts": "the feeds: the shared selection and appearances",
-  "web/src/v1/data.ts": "the v1 API",
+  "web/src/v1/data.ts":
+    "/api/v1/speakers: ended through the last instant, until that is settled",
 };
 
 /**
@@ -49,7 +64,6 @@ const internal: Readonly<Record<string, string>> = {
   "core/src/luma/descriptions.ts": "Luma import",
   "core/src/luma/drafts.ts": "Luma import of drafts",
   "core/src/luma/people-sync.ts": "Luma import of people",
-  "core/src/luma/publish.ts": "publishes a draft on Luma",
   "core/src/luma/sync.ts": "the Luma sync, which writes is_draft",
   "core/src/luma/venues.ts": "Luma import of venues",
   "core/src/planning/planning.ts": "planning, for the organizers",
@@ -75,6 +89,44 @@ async function stated(path: string): Promise<ReadonlyArray<string>> {
   const text = await Bun.file(new URL(path, root)).text();
   return rules.flatMap(([name, pattern]) => (pattern.test(text) ? [name] : []));
 }
+
+describe("what stating a rule looks like", () => {
+  const states = (sql: string) =>
+    rules.flatMap(([name, pattern]) => (pattern.test(sql) ? [name] : []));
+
+  test.each([
+    "WHERE e.is_draft = false",
+    "WHERE is_draft = true",
+    "AND NOT e.is_draft",
+    "WHERE e.is_draft",
+    "OR (is_draft AND x)",
+    "WHERE ((e.is_draft))",
+    "WHERE false = e.is_draft",
+    "WHERE COALESCE(e.is_draft, false) = false",
+    "CASE WHEN e.is_draft THEN 1 END",
+    "e.is_draft IS NOT TRUE",
+  ])("%s selects by published or draft", (sql) => {
+    expect(states(sql)).toEqual(["published or draft"]);
+  });
+
+  test.each([
+    'SELECT e.is_draft AS "isDraft"',
+    "SELECT luma_event_id, is_draft FROM events",
+    "is_draft: Schema.Boolean",
+    "isDraft: row.is_draft,",
+  ])("%s only reads it", (sql) => {
+    expect(states(sql)).toEqual([]);
+  });
+
+  test.each([
+    ["e.end_date >= now", "ahead or over"],
+    ["e.end_date < $1", "ahead or over"],
+    ["e.curation = 'ours'", "ours or shared"],
+    ["ORDER BY e.start_date DESC, e.id", "evenings' order"],
+  ])("%s states %s", (sql, name) => {
+    expect(states(sql)).toEqual([name]);
+  });
+});
 
 describe("the catalog's rules are stated once", () => {
   test("the catalog states each of them", async () => {

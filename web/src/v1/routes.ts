@@ -51,8 +51,8 @@ const events = HttpRouter.add(
 /** One event by its id, a uuid; drafts are not found. */
 const event = (id: string) =>
   Effect.gen(function* () {
-    const row = yield* V1Data.use((data) => data.findEvent(id));
-    if (Option.isNone(row) || row.value.isDraft) return yield* notFound;
+    const row = yield* V1Data.use((data) => data.findPublishedEvent(id));
+    if (Option.isNone(row)) return yield* notFound;
     return yield* respond(
       { event: yield* eventDetailsJson(row.value) },
       200,

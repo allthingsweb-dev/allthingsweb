@@ -1,3 +1,4 @@
+import { latestFirst, published } from "allthings-core/src/catalog.ts";
 import * as Rows from "allthings-core/src/rows.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Context, DateTime, Effect, Layer, type Option, Schema } from "effect";
@@ -126,10 +127,10 @@ export interface V1DataShape {
     DataSourceError
   >;
   /**
-   * The event with this id, drafts included; `id` must already be a valid
+   * The published event with this id; `id` must already be a valid
    * Postgres uuid. Talks, speakers, hosts and photos come in attach order.
    */
-  readonly findEvent: (
+  readonly findPublishedEvent: (
     id: string,
   ) => Effect.Effect<Option.Option<EventDetailsRow>, DataSourceError>;
   /**
@@ -183,15 +184,14 @@ const make = Effect.gen(function* () {
     e.description,
     ${imageJson("e.preview_image")} AS "previewImage"`);
 
-  // The app orders by start only; the id makes ties deterministic.
   const listPublished = SqlSchema.findAll({
     Request: Schema.Void,
     Result: EventRow,
     execute: () => sql`
       SELECT ${eventColumns}
       FROM events e
-      WHERE e.is_draft = false
-      ORDER BY e.start_date DESC, e.id`,
+      WHERE ${published(sql, "e")}
+      ORDER BY ${latestFirst(sql, "e")}`,
   });
 
   // The app reads talks, speakers, hosts and photos without ORDER BY; these
@@ -240,10 +240,13 @@ const make = Effect.gen(function* () {
           WHERE ei.event_id = e.id
         ), '[]'::json) AS images
       FROM events e
-      WHERE e.id = ${id}::uuid`,
+      WHERE e.id = ${id}::uuid AND ${published(sql, "e")}`,
   });
 
-  // The app's own query (app/src/lib/speaker-directory.ts), every column kept.
+  // The app's own query (app/src/lib/speaker-directory.ts), every column
+  // kept. Ended here includes the event's last instant, as in core's
+  // Speakers, which the catalog's `ended` doesn't (core/README.md, "One
+  // catalog").
   const findDirectory = SqlSchema.findAll({
     Request: Schema.DateTimeUtcFromDate,
     Result: DirectoryRow,
@@ -261,13 +264,13 @@ const make = Effect.gen(function* () {
       JOIN talks t ON t.id = ts.talk_id
       JOIN event_talks et ON et.talk_id = t.id
       JOIN events e ON e.id = et.event_id
-      WHERE e.is_draft = false AND e.end_date <= ${now}
+      WHERE ${published(sql, "e")} AND e.end_date <= ${now}
       ORDER BY p.name, p.id, e.start_date DESC, e.id, t.id`,
   });
 
   return V1Data.of({
     listPublishedEvents: orDataSourceError(listPublished(undefined)),
-    findEvent: (id) => orDataSourceError(findById(id)),
+    findPublishedEvent: (id) => orDataSourceError(findById(id)),
     directory: DateTime.now.pipe(
       Effect.flatMap((now) => orDataSourceError(findDirectory(now))),
     ),
