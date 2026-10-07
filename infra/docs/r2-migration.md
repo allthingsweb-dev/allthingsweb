@@ -189,12 +189,16 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
    Each run reads the whole calendar, so an hour skipped during the handover is caught up by the next run.
    - `/api/cron/luma-sync` becomes 410 in the legacy-URL manifest (`web/tests/support/legacy-urls.ts`).
 
-2. **Sign-in and the admin retire.** The manifest marks these paths pending today. They become 410:
+2. **Sign-in and the admin retire.** The legacy-URL manifest marks these paths retired, and the Worker answers each with 410 Gone and a short page that leads home (`retiredSignInPaths` in `web/src/pages/routes.ts`):
    - `/handler/*` (Stack Auth)
    - `/profile` and `/api/v1/profile`
    - `/admin` and `/api/v1/admin/*`
 
-   With the admin gone, the upload Worker has no caller. Remove `MediaUpload`, its check and the Vercel env writes from the stack. The sync Worker still stores Luma's images in the bucket itself.
+   **The upload Worker stays.** The admin is not its only caller, so `MediaUpload`, its check and the Vercel env writes stay in the stack. These store media through it:
+   - `core/scripts/photos.ts` (`bun run photos`), which adds and replaces an evening's photos.
+   - `core/scripts/reencode-originals.ts` (`bun run reencode`), which re-encodes oversized originals.
+   - The admin MCP server on stdio (`app/scripts/mcp-server.ts`). `add_event_photos` and `replace_event_photo` run `bun run photos`. `create_profile`, `set_profile_image`, `create_host`, `delete_event_images` and `delete_orphaned_image` use the app's media store (`app/scripts/functions.ts`), whose `appMediaStore().put` and `removeStoredObject` write to and delete from the bucket through the upload Worker at `MEDIA_UPLOAD_URL`, with `MEDIA_UPLOAD_TOKEN`.
+   - The Vercel cron's image ingestion (`app/src/lib/remote-images/bucket.ts`), which stores Luma covers, profile photos and post images. It stops when step 1.2 removes the cron. From step 1.3 the sync Worker stores Luma covers, profile photos and post images in the bucket itself. Each run in `write` mode stores the images it finds still missing, as many as its time and item limits allow, and later runs store the rest. So nothing the handover skipped is lost.
 
 3. **allthingsweb.dev redirects to allthings.dev.** The old Next app does it, behind one flag that ships off. No DNS change is needed.
    - **The code.** `app/src/middleware.ts` runs on every path. With `ALLTHINGS_DEV_REDIRECT=on`, it answers each request with a redirect from `app/src/lib/cutover/redirect.ts`; with the variable unset or `off`, it redirects nothing.
