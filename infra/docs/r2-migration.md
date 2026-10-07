@@ -109,7 +109,7 @@ From activation, media.allthings.dev, allthings.dev and www are unserved until P
 
 From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself.
 
-1. **Wait for activation, then deploy at once.** Start this before the move is submitted. It reads the deploy's secrets and stops if any is missing, checks that the `allthings` profile can still plan, then checks the zone every 10 seconds and runs the prod deploy (now "serve") once it is active:
+1. **Wait for activation, then deploy at once.** Start this before the move is submitted. It reads the deploy's secrets and stops if any is missing, checks that the `allthings` profile can still plan, then checks the zone every 10 seconds and runs the prod deploy (now "serve") once it is active. A failing check is reported and, five times in a row, stops it, as does any status other than pending or active:
 
    ```sh
    (
@@ -124,10 +124,26 @@ From activation until step 1's deploy, media.allthings.dev, allthings.dev and ww
      export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN
      # Prove the allthings profile can still deploy before waiting on it.
      bun run plan --stage prod --profile allthings >/dev/null
-     until CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 NODE_OPTIONS=--dns-result-order=ipv4first \
-         bunx cf@1.0.0-beta.12 --profile allthings zones get --zone f65e1c6d54e9d2e850cf025190ef8915 2>/dev/null |
-         jq -e '(.result // .).status == "active"' >/dev/null; do
-       sleep 10
+     # Wait for the zone to turn active. A failed check is reported, and five
+     # in a row stop the wait, so a broken check can't silently hold the
+     # deploy back; any status but pending or active stops it too.
+     failures=0
+     while true; do
+       if zone=$(CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 NODE_OPTIONS=--dns-result-order=ipv4first \
+           bunx cf@1.0.0-beta.12 --profile allthings zones get --zone f65e1c6d54e9d2e850cf025190ef8915 2>/dev/null) &&
+         status=$(jq -er '(.result // .).status' <<<"$zone"); then
+         failures=0
+         case "$status" in
+           active) break ;;
+           pending) sleep 10 ;;
+           *) echo "allthings.dev is $status, not pending or active: stopping" >&2; exit 1 ;;
+         esac
+       else
+         failures=$((failures + 1))
+         echo "zone check failed ($failures in a row)" >&2
+         if ((failures >= 5)); then echo "zone check keeps failing: stopping" >&2; exit 1; fi
+         sleep 10
+       fi
      done
      bun run deploy --stage prod --profile allthings
    )
