@@ -3,7 +3,7 @@
   "mcpServers": {
     "allthings": {
       "type": "streamable-http",
-      "url": "https://allthingsweb.dev/mcp"
+      "url": "https://allthings.dev/mcp"
     }
   }
 }

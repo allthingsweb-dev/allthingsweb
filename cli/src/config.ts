@@ -1,12 +1,5 @@
-/**
- * The site the CLI talks to, and the one value that moves it. allthingsweb.dev
- * serves the MCP server until allthings.dev does: before the domain moves,
- * allthings.dev only redirects there, and a redirect drops an MCP POST. Flip
- * this to "https://allthings.dev" once the new site answers on it
- * (infra/docs/r2-migration.md, Phase 4).
- */
-export const siteOrigin: "https://allthingsweb.dev" | "https://allthings.dev" =
-  "https://allthingsweb.dev";
+/** The site the CLI talks to: its MCP server is at `/mcp`. */
+export const siteOrigin = "https://allthings.dev";
 
 /** The public MCP server every command reads from. */
 export const defaultEndpoint = `${siteOrigin}/mcp`;

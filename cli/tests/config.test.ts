@@ -8,13 +8,9 @@ import {
 import packageJson from "../package.json";
 
 describe("config", () => {
-  test("the default endpoint is the site's MCP server", () => {
-    expect(defaultEndpoint).toBe(`${siteOrigin}/mcp`);
-    // Until allthings.dev serves the new site, it only redirects, and a
-    // redirect drops an MCP POST.
-    expect(["https://allthingsweb.dev", "https://allthings.dev"]).toContain(
-      siteOrigin,
-    );
+  test("the default endpoint is the site's MCP server, on allthings.dev", () => {
+    expect(siteOrigin).toBe("https://allthings.dev");
+    expect(defaultEndpoint).toBe("https://allthings.dev/mcp");
   });
 
   test("ALLTHINGS_MCP_URL wins, then ATW_MCP_URL, then the default", () => {
