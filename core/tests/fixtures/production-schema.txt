@@ -54,6 +54,7 @@ column planning.sent_posts #007 message_id text
 column planning.sent_posts #008 url text
 column planning.sent_posts #009 claimed_at timestamp with time zone not null default now()
 column planning.sent_posts #010 sent_at timestamp with time zone
+column planning.sent_posts #011 body text
 column planning.wanted_speaker_topics #001 wanted_speaker_id uuid not null
 column planning.wanted_speaker_topics #002 topic text not null
 column planning.wanted_speakers #001 id uuid not null default gen_random_uuid()
@@ -270,7 +271,7 @@ constraint planning.notes notes_pkey PRIMARY KEY (id)
 constraint planning.notes notes_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint planning.notes notes_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
 constraint planning.notes notes_subject_check CHECK ((num_nonnulls(profile_id, sponsor_id, contact_id) = 1))
-constraint planning.sent_posts sent_posts_channel_check CHECK ((channel = 'discord'::text))
+constraint planning.sent_posts sent_posts_channel_check CHECK ((channel = ANY (ARRAY['discord'::text, 'x'::text])))
 constraint planning.sent_posts sent_posts_channel_event_id_moment_unique UNIQUE (channel, event_id, moment)
 constraint planning.sent_posts sent_posts_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
 constraint planning.sent_posts sent_posts_moment_check CHECK ((moment = ANY (ARRAY['announce'::text, 'dayOf'::text, 'recap'::text])))

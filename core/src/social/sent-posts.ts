@@ -34,12 +34,13 @@ import type { Moment } from "../promo/drafts.ts";
  * never as a site role.
  */
 
-export type RecordedChannel = "discord";
+export type RecordedChannel = "discord" | "x";
 
 /**
  * How long a send may take before its claim counts as abandoned. It must
  * outlast the longest send: each request gives up after 30 seconds
- * (src/social/discord.ts), and `hold` renews the claim just before it.
+ * (src/social/discord.ts, src/social/x.ts), and `hold` renews the claim
+ * just before it.
  */
 export const staleAfter = Duration.minutes(5);
 
@@ -47,6 +48,8 @@ export interface SentPost {
   readonly id: string;
   readonly status: "sending" | "unanswered" | "sent";
   readonly token: string;
+  /** The exact text approved, so a post found later can be checked against it. */
+  readonly body: string | null;
   readonly messageId: string | null;
   readonly url: string | null;
   readonly claimedAt: string;
@@ -58,6 +61,7 @@ const SentPostRows = Schema.Array(
     id: Schema.String,
     status: Schema.Literals(["sending", "unanswered", "sent"]),
     token: Schema.String,
+    body: Schema.NullOr(Schema.String),
     messageId: Schema.NullOr(Schema.String),
     url: Schema.NullOr(Schema.String),
     claimedAt: Schema.String,
@@ -82,12 +86,16 @@ export interface SentPostsShape {
     slug: string,
     moment: Moment,
   ) => Effect.Effect<Option.Option<SentPost>, DataSourceError>;
-  /** Claims it for `token`: the claim, or None when one already holds it. */
+  /**
+   * Claims it for `token`, the approval of exactly `body`: the claim, or
+   * None when one already holds it.
+   */
   readonly claim: (
     channel: RecordedChannel,
     slug: string,
     moment: Moment,
     token: string,
+    body: string,
   ) => Effect.Effect<Option.Option<SentPost>, DataSourceError>;
   /** Records the claim `id`, unless already sent, as `messageId` at `url`. */
   readonly markSent: (
@@ -118,7 +126,7 @@ const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
   const columns = sql.literal(
-    `s.id, s.status, s.token, s.message_id AS "messageId", s.url,
+    `s.id, s.status, s.token, s.body, s.message_id AS "messageId", s.url,
      ${iso("s.claimed_at")} AS "claimedAt", ${iso("s.sent_at")} AS "sentAt"`,
   );
 
@@ -144,12 +152,13 @@ const make = Effect.gen(function* () {
     slug: string,
     moment: Moment,
     token: string,
+    body: string,
   ) =>
     Effect.flatMap(now, (claimedAt) =>
       rows(
         sql`WITH s AS (
-              INSERT INTO planning.sent_posts (channel, event_id, moment, token, claimed_at)
-              SELECT ${channel}, e.id, ${moment}, ${token}, ${claimedAt}::timestamptz
+              INSERT INTO planning.sent_posts (channel, event_id, moment, token, body, claimed_at)
+              SELECT ${channel}, e.id, ${moment}, ${token}, ${body}, ${claimedAt}::timestamptz
               FROM events e WHERE e.slug = ${slug}
               ON CONFLICT (channel, event_id, moment) DO NOTHING
               RETURNING *

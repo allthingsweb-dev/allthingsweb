@@ -126,7 +126,7 @@ export const socialToolDefinitions: ReadonlyArray<{
   {
     name: "social_post",
     description:
-      "Post exactly what an organizer approved, once: approve is the token social_prepare_post printed for it, and anything changed since is refused, as is a post already out (or, on Discord, a send that went unanswered, until an organizer settles it with the CLI: --sent or --release). Only on an organizer's explicit go.",
+      "Post exactly what an organizer approved, once: approve is the token social_prepare_post printed for it, and anything changed since is refused, as is a post already out (or, on Discord and X, a send that went unanswered, until an organizer settles it with the CLI: --sent or --release). Only on an organizer's explicit go.",
     inputSchema: {
       type: "object",
       properties: {

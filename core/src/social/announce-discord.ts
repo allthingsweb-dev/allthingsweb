@@ -155,7 +155,13 @@ const make = Effect.gen(function* () {
       if (prepared.sent !== null) {
         return yield* refuse(yield* held(prepared.sent, slug, moment));
       }
-      const claim = yield* sentPosts.claim("discord", slug, moment, token);
+      const claim = yield* sentPosts.claim(
+        "discord",
+        slug,
+        moment,
+        token,
+        prepared.message.content,
+      );
       if (Option.isNone(claim)) {
         const record = yield* sentPosts.find("discord", slug, moment);
         return yield* refuse(
