@@ -31,6 +31,8 @@ export interface Request {
   readonly accept: string | undefined;
   /** The Luma API key it carried, if any. */
   readonly apiKey: string | undefined;
+  /** Its Authorization header, if any. */
+  readonly authorization: string | undefined;
   /** The Clock's time when it was sent. */
   readonly at: number;
 }
@@ -66,6 +68,7 @@ export function fakeLumaBy(
             : undefined,
         accept: request.headers["accept"],
         apiKey: request.headers["x-luma-api-key"],
+        authorization: request.headers["authorization"],
         at: yield* Clock.currentTimeMillis,
       });
       const which = key(url);
