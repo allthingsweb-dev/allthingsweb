@@ -1,6 +1,15 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { DateTime, Duration, Effect, Exit, Layer, Order } from "effect";
+import {
+  ConfigProvider,
+  DateTime,
+  Duration,
+  Effect,
+  Exit,
+  Layer,
+  Order,
+} from "effect";
+import { HttpClient, HttpClientResponse, UrlParams } from "effect/http";
 import {
   byFollowers,
   FollowerReadError,
@@ -149,6 +158,90 @@ describe("FollowerSource.fxtwitter", () => {
     expect((failure(other.exit) as FollowerReadError).reason).toBe(
       "FixTweet served @someone_else (code 200)",
     );
+  });
+});
+
+/** X's API, answering `users` by id from `known`; every request recorded. */
+const fakeXApi = (
+  known: Readonly<Record<string, { username: string; followers: number }>>,
+) => {
+  const requests: Array<{ path: string; ids: string | null }> = [];
+  const layer = Layer.succeed(
+    HttpClient.HttpClient,
+    HttpClient.make((request) => {
+      const url = new URL(request.url);
+      const params = new URLSearchParams(UrlParams.toString(request.urlParams));
+      const ids = params.get("ids");
+      requests.push({ path: url.pathname, ids });
+      const userOf = (id: string) => {
+        const k = known[id];
+        return k === undefined
+          ? undefined
+          : {
+              id,
+              username: k.username,
+              public_metrics: { followers_count: k.followers },
+            };
+      };
+      const body =
+        url.pathname === "/2/users"
+          ? {
+              data: (ids ?? "").split(",").flatMap((id) => {
+                const u = userOf(id);
+                return u === undefined ? [] : [u];
+              }),
+              errors: (ids ?? "")
+                .split(",")
+                .filter((id) => userOf(id) === undefined)
+                .map((id) => ({
+                  value: id,
+                  resource_id: id,
+                  title: "Not Found Error",
+                  detail: `Could not find user with ids: [${id}].`,
+                })),
+            }
+          : (() => {
+              const handle = url.pathname.split("/").at(-1) ?? "";
+              const found = Object.entries(known).find(
+                ([, k]) => k.username.toLowerCase() === handle.toLowerCase(),
+              );
+              return found === undefined ? {} : { data: userOf(found[0]) };
+            })();
+      return Effect.succeed(
+        HttpClientResponse.fromWeb(request, Response.json(body)),
+      );
+    }),
+  );
+  return { layer, requests };
+};
+
+/** FollowerSource.xApi over `http`, with a bearer token. */
+const xApiSource = (http: Layer.Layer<HttpClient.HttpClient>) =>
+  FollowerSource.xApi.pipe(
+    Layer.provide(http),
+    Layer.provide(
+      Layer.succeed(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromEnv({ env: { X_BEARER_TOKEN: "test" } }),
+      ),
+    ),
+  );
+
+describe("FollowerSource.xApi", () => {
+  test("reads accounts by id, up to 100 a request, and says which X doesn't have", async () => {
+    const x = fakeXApi({ "11": { username: "ada", followers: 120 } });
+    const found = await Effect.runPromise(
+      FollowerSource.use(
+        (source) => source.readByIds?.(["11", "12"]) ?? Effect.die("no batch"),
+      ).pipe(Effect.provide(xApiSource(x.layer))),
+    );
+    expect(found.get("11")).toEqual({
+      id: "11",
+      handle: "ada",
+      followers: 120,
+    });
+    expect(found.get("12")).toBeInstanceOf(FollowerReadError);
+    expect(x.requests).toEqual([{ path: "/2/users", ids: "11,12" }]);
   });
 });
 
@@ -509,6 +602,80 @@ describe("refreshFollowers", () => {
       report.failed.filter((line) => line.includes("has this X account (11)")),
     ).toHaveLength(2);
   });
+
+  test("with X's API, reads every known id in one request and finds a renamed account", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await refresh(db, { ada: 120, linus: 9000, future: 3 });
+    await db.exec(
+      `UPDATE profiles SET x_followers_at = x_followers_at - interval '30 days' WHERE twitter_handle IS NOT NULL`,
+    );
+    // Ada renamed her account; her id is the same.
+    const x = fakeXApi({
+      "11": { username: "ada_renamed", followers: 130 },
+      "13": { username: "linus", followers: 9100 },
+      "15": { username: "future", followers: 4 },
+    });
+    const report = await Effect.runPromise(
+      refreshFollowers({
+        dryRun: false,
+        maxProfiles: 10,
+        staleAfter: "7 days",
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(xApiSource(x.layer), sqlLayer(db), clockLayer),
+        ),
+      ),
+    );
+    expect(x.requests).toEqual([
+      { path: "/2/users", ids: expect.stringMatching(/^(1[135],){2}1[135]$/) },
+    ]);
+    expect(report.renamed).toEqual(["Ada Lovelace: @ada → @ada_renamed"]);
+    expect(report.failed).toEqual([]);
+    expect(await snapshots(db)).toEqual([
+      ["Ada Lovelace", 130],
+      ["Future Speaker", 4],
+      ["Linus", 9100],
+    ]);
+  });
+
+  test("a batch X refuses fails its profiles until a later run, never one request each", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await refresh(db, { ada: 120, linus: 9000, future: 3 });
+    await db.exec(
+      `UPDATE profiles SET x_followers_at = x_followers_at - interval '30 days' WHERE twitter_handle IS NOT NULL`,
+    );
+    const paths: Array<string> = [];
+    const refusing = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) => {
+        paths.push(new URL(request.url).pathname);
+        return Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            new Response("", { status: 503 }),
+          ),
+        );
+      }),
+    );
+    const report = await Effect.runPromise(
+      refreshFollowers({
+        dryRun: false,
+        maxProfiles: 10,
+        staleAfter: "7 days",
+      }).pipe(
+        Effect.provide(
+          // The real clock: the retries wait a second or two.
+          Layer.mergeAll(xApiSource(refusing), sqlLayer(db)),
+        ),
+      ),
+    );
+    // The batch, tried three times (503s retry); no lookup per id.
+    expect(paths.every((path) => path === "/2/users")).toBe(true);
+    expect(report.failed).toHaveLength(3);
+    expect(report.refreshed).toEqual([]);
+  }, 15_000);
 
   test("a dry run reads and reports, and writes nothing", async () => {
     const db = await seededDatabase();

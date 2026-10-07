@@ -1,4 +1,5 @@
 import {
+  Config,
   Context,
   DateTime,
   Duration,
@@ -6,6 +7,7 @@ import {
   Layer,
   Option,
   Order,
+  Redacted,
   Schedule,
   Schema,
 } from "effect";
@@ -21,8 +23,10 @@ import { orDataSourceError } from "./sql.ts";
  * take from it: most followed first. It is not an option anyone picks; it
  * is how the order is decided.
  *
- * The counts come from public data: the FixTweet API (api.fxtwitter.com)
- * now, X's own API once the app has keys. A refresh reads the profiles
+ * The counts come from X's own API with the app's bearer token
+ * (X_BEARER_TOKEN), which reads up to 100 accounts a request by user id
+ * and is billed per user it returns ($0.010 on pay-per-use), or, without
+ * the token, the keyless FixTweet API (api.fxtwitter.com). A refresh reads the profiles
  * whose snapshot is missing or oldest first, a bounded number per run, so
  * the sync Worker's schedule and the CLI (`bun run followers`) can both
  * run it; a handle X doesn't know, or a failed read, leaves the stored
@@ -98,7 +102,49 @@ export interface FollowerSourceShape {
   readonly readById?: (
     id: string,
   ) => Effect.Effect<XAccount, FollowerReadError>;
+  /**
+   * The accounts with these user ids, in as few requests as the source
+   * allows: each id's account, or why it can't be read.
+   */
+  readonly readByIds?: (
+    ids: ReadonlyArray<string>,
+  ) => Effect.Effect<
+    ReadonlyMap<string, XAccount | FollowerReadError>,
+    FollowerReadError
+  >;
 }
+
+/** A user as X's API answers: its id, handle and public counts. */
+const XApiUser = Schema.Struct({
+  id: Schema.String.check(Schema.isPattern(/^[0-9]{1,20}$/)),
+  username: Schema.String,
+  public_metrics: Schema.Struct({
+    followers_count: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  }),
+});
+const XApiOne = Schema.Struct({ data: XApiUser });
+const XApiMany = Schema.Struct({
+  data: Schema.optionalKey(Schema.Array(XApiUser)),
+  errors: Schema.optionalKey(
+    Schema.Array(
+      Schema.Struct({
+        value: Schema.optionalKey(Schema.String),
+        resource_id: Schema.optionalKey(Schema.String),
+        title: Schema.optionalKey(Schema.String),
+        detail: Schema.optionalKey(Schema.String),
+      }),
+    ),
+  ),
+});
+
+const accountOf = (user: typeof XApiUser.Type): XAccount => ({
+  id: user.id,
+  handle: user.username,
+  followers: user.public_metrics.followers_count,
+});
+
+/** X's users lookup takes up to 100 ids a request. */
+const idsPerRequest = 100;
 
 /** Follower counts from the FixTweet API, keyless. */
 export class FollowerSource extends Context.Service<
@@ -177,6 +223,138 @@ export class FollowerSource extends Context.Service<
           }),
         );
       return FollowerSource.of({ read });
+    }),
+  );
+
+  /**
+   * Follower counts from X's own API with the app's bearer token
+   * (X_BEARER_TOKEN): by handle, by user id, and by up to 100 ids a
+   * request, so a renamed account is found by its id. X bills each user a
+   * lookup returns ($0.010 on pay-per-use). Needs an `HttpClient`.
+   */
+  static readonly xApi = Layer.effect(
+    FollowerSource,
+    Effect.gen(function* () {
+      const token = yield* Config.Redacted("X_BEARER_TOKEN");
+      const client = yield* HttpClient.HttpClient;
+      const get = <A>(
+        what: string,
+        url: string,
+        params: Record<string, string>,
+        decode: (body: unknown) => Effect.Effect<A, unknown>,
+      ) =>
+        Effect.gen(function* () {
+          const response = yield* client.execute(
+            HttpClientRequest.get(url).pipe(
+              HttpClientRequest.bearerToken(Redacted.value(token)),
+              HttpClientRequest.setUrlParams({
+                "user.fields": "public_metrics",
+                ...params,
+              }),
+              HttpClientRequest.acceptJson,
+            ),
+          );
+          if (response.status !== 200) {
+            return yield* new FollowerReadError({
+              handle: what,
+              reason: `X answered ${response.status}`,
+              retryable: response.status === 429 || response.status >= 500,
+            });
+          }
+          return yield* response.json.pipe(
+            Effect.flatMap(decode),
+            Effect.mapError(
+              () =>
+                new FollowerReadError({
+                  handle: what,
+                  reason: "X's answer is not a user",
+                  retryable: false,
+                }),
+            ),
+          );
+        }).pipe(
+          Effect.timeout(Duration.seconds(15)),
+          Effect.catchTags({
+            HttpClientError: () =>
+              Effect.fail(
+                new FollowerReadError({
+                  handle: what,
+                  reason: "no answer",
+                  retryable: true,
+                }),
+              ),
+            TimeoutError: () =>
+              Effect.fail(
+                new FollowerReadError({
+                  handle: what,
+                  reason: "no answer in 15 s",
+                  retryable: true,
+                }),
+              ),
+          }),
+          Effect.retry({
+            schedule: Schedule.exponential(Duration.seconds(1)),
+            times: 2,
+            while: (error) => error.retryable,
+          }),
+        );
+      const read = (handle: string) =>
+        get(
+          handle,
+          `https://api.x.com/2/users/by/username/${encodeURIComponent(handle)}`,
+          {},
+          Schema.decodeUnknownEffect(XApiOne),
+        ).pipe(Effect.map(({ data }) => accountOf(data)));
+      const readById = (id: string) =>
+        get(
+          id,
+          `https://api.x.com/2/users/${encodeURIComponent(id)}`,
+          {},
+          Schema.decodeUnknownEffect(XApiOne),
+        ).pipe(Effect.map(({ data }) => accountOf(data)));
+      const readByIds = (ids: ReadonlyArray<string>) =>
+        Effect.gen(function* () {
+          const found = new Map<string, XAccount | FollowerReadError>();
+          for (let start = 0; start < ids.length; start += idsPerRequest) {
+            const chunk = ids.slice(start, start + idsPerRequest);
+            const answer = yield* get(
+              `${chunk.length} ids`,
+              "https://api.x.com/2/users",
+              { ids: chunk.join(",") },
+              Schema.decodeUnknownEffect(XApiMany),
+            );
+            for (const user of answer.data ?? []) {
+              found.set(user.id, accountOf(user));
+            }
+            for (const error of answer.errors ?? []) {
+              const id = error.resource_id ?? error.value;
+              if (id === undefined || found.has(id)) continue;
+              found.set(
+                id,
+                new FollowerReadError({
+                  handle: id,
+                  reason: `X has no such account: ${error.detail ?? error.title ?? "not found"}`,
+                  retryable: false,
+                }),
+              );
+            }
+          }
+          return found;
+        });
+      return FollowerSource.of({ read, readById, readByIds });
+    }),
+  );
+
+  /**
+   * X's own API where the app has its bearer token (X_BEARER_TOKEN), else
+   * FixTweet. Needs an `HttpClient`.
+   */
+  static readonly fromConfig = Layer.unwrap(
+    Effect.gen(function* () {
+      const token = yield* Config.option(Config.Redacted("X_BEARER_TOKEN"));
+      return Option.isSome(token)
+        ? FollowerSource.xApi
+        : FollowerSource.fxtwitter;
     }),
   );
 }
@@ -260,13 +438,55 @@ export const refreshFollowers = (options: RefreshOptions) =>
     const write = <A, E>(effect: Effect.Effect<A, E>) =>
       effect.pipe(Effect.mapError((cause) => new DataSourceError({ cause })));
     let unread = 0;
+    // Every known id in as few requests as the source allows, within the
+    // run's time. A batch X refuses (a 429, say) fails its profiles until a
+    // later run, never one request each; one that runs out of time leaves
+    // them unread.
+    const ids = batch.flatMap((row) =>
+      row.xUserId === null ? [] : [row.xUserId],
+    );
+    const prefetched = new Map<string, XAccount | FollowerReadError>();
+    let prefetchOutOfTime = false;
+    if (source.readByIds !== undefined && ids.length > 0) {
+      const left =
+        options.until === undefined
+          ? null
+          : DateTime.toEpochMillis(options.until) -
+            DateTime.toEpochMillis(yield* DateTime.now);
+      const batchRead = source.readByIds(ids);
+      const read = yield* Effect.result(
+        left === null
+          ? batchRead.pipe(Effect.map(Option.some))
+          : batchRead.pipe(Effect.timeoutOption(Math.max(0, left))),
+      );
+      if (read._tag === "Failure") {
+        for (const id of ids) prefetched.set(id, read.failure);
+      } else if (Option.isNone(read.success)) {
+        prefetchOutOfTime = true;
+      } else {
+        for (const [id, account] of read.success.value) {
+          prefetched.set(id, account);
+        }
+      }
+    }
     for (const [index, row] of batch.entries()) {
       const handle = xHandleOf(row.twitterHandle) ?? "";
+      // The batch ran out of the run's time: this and the rest wait.
+      if (prefetchOutOfTime) {
+        unread = batch.length - index;
+        break;
+      }
+      const known =
+        row.xUserId === null ? undefined : prefetched.get(row.xUserId);
       // By id where both are known: the account, whatever its handle now.
       const byId =
-        row.xUserId !== null && source.readById !== undefined
-          ? source.readById(row.xUserId)
-          : null;
+        known !== undefined
+          ? known instanceof FollowerReadError
+            ? Effect.fail(known)
+            : Effect.succeed(known)
+          : row.xUserId !== null && source.readById !== undefined
+            ? source.readById(row.xUserId)
+            : null;
       const reading = byId ?? source.read(handle);
       // What is left of the run's time, if it has an end.
       const left =

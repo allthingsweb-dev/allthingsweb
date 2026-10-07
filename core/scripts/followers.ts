@@ -7,7 +7,8 @@ import { FollowerSource, refreshFollowers } from "../src/followers.ts";
 
 /**
  * Refreshes X follower counts (src/followers.ts) in the Postgres at
- * DATABASE_URL, from the FixTweet API: the profiles whose snapshot is
+ * DATABASE_URL, from X's own API with X_BEARER_TOKEN (by user id, in
+ * batches), else the FixTweet API: the profiles whose snapshot is
  * missing or older than --stale-days, oldest first, at most --max. The sync
  * Worker does the same on its schedule; this is for now.
  *
@@ -62,7 +63,7 @@ const command = Command.make(
     }).pipe(
       Effect.provide(
         Layer.mergeAll(
-          FollowerSource.fxtwitter.pipe(Layer.provide(FetchHttpClient.layer)),
+          FollowerSource.fromConfig.pipe(Layer.provide(FetchHttpClient.layer)),
           Database.layer,
         ),
       ),

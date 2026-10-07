@@ -77,7 +77,7 @@ const report = await Effect.runPromise(
         ShortSlugs.layer,
         LumaDescriptions.layer,
         ImageIngest.layer,
-        FollowerSource.fxtwitter,
+        FollowerSource.fromConfig,
         CandidateSearches.layer,
         PostSources.layer,
         EventPostWriter.layer,
