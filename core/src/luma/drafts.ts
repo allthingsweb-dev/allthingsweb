@@ -3,7 +3,8 @@ import { SqlClient } from "effect/sql/SqlClient";
 import type { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
 import { LumaApi, type LumaApiError, type LumaEventDetails } from "./api.ts";
-import { venueColumns } from "./sync.ts";
+import { defaultTagline } from "../tagline.ts";
+import { eventSlug, venueColumns } from "./sync.ts";
 
 /**
  * Keeps the drafts we know in line with Luma. Luma's calendar feed carries
@@ -88,11 +89,49 @@ export interface DraftsOptions {
   readonly maxEvents?: number;
 }
 
+/** Why a private event wasn't stored as a draft; nothing was written. */
+export class DraftNotAdded extends Schema.TaggedError<DraftNotAdded>()(
+  "DraftNotAdded",
+  { reason: Schema.String },
+) {
+  override get message(): string {
+    return this.reason;
+  }
+}
+
+/** A private Luma event stored, or to be stored, as a draft evening. */
+export interface DraftAdded {
+  readonly lumaEventId: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly venue: string | null;
+  /** False on a dry run: nothing was written. */
+  readonly written: boolean;
+}
+
 export interface LumaDraftsShape {
   /** Asks Luma and, unless `dryRun`, writes what changed, all or nothing. */
   readonly run: (
     options: DraftsOptions,
   ) => Effect.Effect<DraftsRefresh, LumaApiError | DataSourceError>;
+  /**
+   * Stores the private event `lumaEventId` as a draft evening, as the sync
+   * would store it had the feed carried it: its name, times and venue from
+   * Luma's API, and the sync's slug and placeholder tagline. The calendar
+   * feed carries no private event, so an evening the studio makes private
+   * (`bun run luma create`) reaches the database, readiness and the draft
+   * preview only this way. A public event is the feed's, and one already
+   * stored is refused. Unless `dryRun`.
+   */
+  readonly add: (
+    lumaEventId: string,
+    options: { readonly dryRun: boolean },
+  ) => Effect.Effect<
+    DraftAdded,
+    DraftNotAdded | LumaApiError | DataSourceError
+  >;
 }
 
 const iso = (instant: DateTime.Utc): string => DateTime.formatIso(instant);
@@ -255,7 +294,84 @@ const make = Effect.gen(function* () {
         }),
     }).pipe(Effect.withSpan("LumaDrafts.run", { attributes: { dryRun } }));
 
-  return LumaDrafts.of({ run });
+  const refuse = (reason: string) => Effect.fail(new DraftNotAdded({ reason }));
+
+  const storedSlug = (lumaEventId: string) =>
+    sql`SELECT slug FROM events WHERE luma_event_id = ${lumaEventId}`.pipe(
+      Effect.flatMap(
+        Schema.decodeUnknownEffect(
+          Schema.Array(Schema.Struct({ slug: Schema.String })),
+        ),
+      ),
+      Effect.map(([row]) => Option.fromNullishOr(row?.slug)),
+      orDataSourceError,
+    );
+
+  const add = (lumaEventId: string, { dryRun }: { readonly dryRun: boolean }) =>
+    Effect.gen(function* () {
+      if (Option.isNone(api.eventDetails)) {
+        return yield* refuse(
+          "LUMA_API_KEY is not set: Luma can't be asked about the event.",
+        );
+      }
+      const details = yield* api.eventDetails.value(lumaEventId);
+      if (Option.isNone(details)) {
+        return yield* refuse(
+          `Luma doesn't show us ${lumaEventId}, or gives it no name or start.`,
+        );
+      }
+      const event = details.value;
+      if (event.visibility !== "private") {
+        return yield* refuse(
+          `${event.name} is ${event.visibility} on Luma: the calendar feed brings it in. Only a private event is added as a draft.`,
+        );
+      }
+      if (event.endDate === null) {
+        return yield* refuse(
+          `${event.name} has no end on Luma: give it one first.`,
+        );
+      }
+      const already = yield* storedSlug(lumaEventId);
+      if (Option.isSome(already)) {
+        return yield* refuse(
+          `${event.name} is already stored, as ${already.value}.`,
+        );
+      }
+      const slug = eventSlug(event);
+      const venue = venueColumns(event.location);
+      const added = {
+        lumaEventId,
+        slug,
+        name: event.name,
+        startDate: DateTime.formatIso(event.startDate),
+        endDate: DateTime.formatIso(event.endDate),
+        venue: venue.shortLocation,
+        written: false,
+      } satisfies DraftAdded;
+      if (dryRun) return added;
+      const at = DateTime.formatIso(yield* DateTime.now);
+      // The sync's own insert for a new event, as a draft; a row stored
+      // meanwhile (by a sync, or another add) is left as it is.
+      const inserted = yield* sql`
+        INSERT INTO events (
+          luma_event_id, name, start_date, end_date, is_draft, slug, tagline,
+          attendee_limit, street_address, short_location, full_address,
+          created_at, updated_at)
+        VALUES (${lumaEventId}, ${event.name}, ${added.startDate}::timestamptz,
+          ${added.endDate}::timestamptz, true, ${slug}, ${defaultTagline}, 0,
+          ${venue.streetAddress}, ${venue.shortLocation}, ${venue.fullAddress},
+          ${at}::timestamptz, ${at}::timestamptz)
+        ON CONFLICT (luma_event_id) DO NOTHING
+        RETURNING slug`.pipe(orDataSourceError);
+      if (inserted.length === 0) {
+        return yield* refuse(
+          `${event.name} was stored meanwhile: nothing was written.`,
+        );
+      }
+      return { ...added, written: true };
+    }).pipe(Effect.withSpan("LumaDrafts.add", { attributes: { dryRun } }));
+
+  return LumaDrafts.of({ run, add });
 });
 
 export class LumaDrafts extends Context.Service<LumaDrafts, LumaDraftsShape>()(
@@ -263,6 +379,16 @@ export class LumaDrafts extends Context.Service<LumaDrafts, LumaDraftsShape>()(
 ) {
   /** Needs `LumaApi` and a `SqlClient`. */
   static readonly layer = Layer.effect(LumaDrafts, make);
+}
+
+/** A stored, or would-be, draft as text for an organizer. */
+export function formatAdded(added: DraftAdded): string {
+  return [
+    `${added.written ? "Stored" : "Would store (dry run: nothing written)"} ${added.lumaEventId} as the draft ${added.slug}:`,
+    `  ${added.name}`,
+    `  ${added.startDate} → ${added.endDate}`,
+    `  ${added.venue ?? "no venue yet"}`,
+  ].join("\n");
 }
 
 /** "1 draft", "2 drafts". */

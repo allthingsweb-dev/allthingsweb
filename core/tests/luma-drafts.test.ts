@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { DateTime, Effect, Exit, Layer, Option } from "effect";
+import { Cause, DateTime, Effect, Exit, Layer, Option } from "effect";
 import { LumaApi } from "../src/luma/api.ts";
 import {
   draftChanges,
@@ -270,5 +270,111 @@ describe("a venue the organizers set meanwhile", () => {
       short_location: "Secret",
       full_address: "1 Market St, San Francisco",
     });
+  });
+});
+
+describe("adding a private event as a draft", () => {
+  /** Luma's answer for a new private evening the studio made. */
+  const fresh = (overrides: Record<string, unknown> = {}) =>
+    answer({
+      id: "evt-new",
+      name: "allthings/trivia",
+      start_at: "2026-10-28T01:00:00.000Z",
+      end_at: "2026-10-28T04:30:00.000Z",
+      geo_address_json: {
+        full_address: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
+      },
+      ...overrides,
+    });
+
+  const add = async (
+    replies: ReadonlyArray<Reply>,
+    dryRun: boolean,
+    lumaEventId = "evt-new",
+    env: Record<string, string> = { LUMA_API_KEY: "test-key" },
+  ) => {
+    const luma = fakeLumaBy(() => "", { "": replies });
+    const layer = LumaDrafts.layer.pipe(
+      Layer.provide(
+        LumaApi.layer.pipe(
+          Layer.provide(Layer.mergeAll(luma.layer, configFrom(env))),
+        ),
+      ),
+      Layer.provideMerge(sqlLayer(db)),
+      Layer.provideMerge(clockLayer),
+    );
+    const exit = await Effect.runPromiseExit(
+      settle(
+        LumaDrafts.use((drafts) => drafts.add(lumaEventId, { dryRun })),
+      ).pipe(Effect.provide(layer)),
+    );
+    return { exit, requests: luma.requests };
+  };
+
+  const row = async () =>
+    (
+      await db.query<Record<string, unknown>>(
+        `SELECT slug, name, start_date::text AS start, end_date::text AS end, is_draft, tagline, short_location, full_address
+         FROM events WHERE luma_event_id = 'evt-new'`,
+      )
+    ).rows[0];
+
+  const reason = (exit: Exit.Exit<unknown, unknown>) => {
+    if (Exit.isSuccess(exit)) throw new Error("expected a refusal");
+    return String(Cause.squash(exit.cause));
+  };
+
+  test("a dry run asks Luma once and writes nothing", async () => {
+    const { exit, requests } = await add([fresh()], true);
+    if (Exit.isFailure(exit)) throw new Error(String(exit.cause));
+    expect(exit.value).toEqual({
+      lumaEventId: "evt-new",
+      slug: "2026-10-27-allthings-trivia-evt-new",
+      name: "allthings/trivia",
+      startDate: "2026-10-28T01:00:00.000Z",
+      endDate: "2026-10-28T04:30:00.000Z",
+      venue: "CodeRabbit",
+      written: false,
+    });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.url).toContain("/v1/events/get");
+    expect(await row()).toBeUndefined();
+  });
+
+  test("stores it as the sync would, as a draft", async () => {
+    const { exit } = await add([fresh()], false);
+    if (Exit.isFailure(exit)) throw new Error(String(exit.cause));
+    expect(exit.value.written).toBe(true);
+    expect(await row()).toEqual({
+      slug: "2026-10-27-allthings-trivia-evt-new",
+      name: "allthings/trivia",
+      start: "2026-10-28 01:00:00+00",
+      end: "2026-10-28 04:30:00+00",
+      is_draft: true,
+      tagline: "See Luma for event details and registration.",
+      short_location: "CodeRabbit",
+      full_address: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
+    });
+    // The refresh knows it from then on.
+    const { result } = await run([answer(), fresh()], true);
+    expect(result).toMatchObject({ asked: 2 });
+  });
+
+  test("refuses a public event, one already stored, one Luma doesn't show, and no key", async () => {
+    expect(
+      reason((await add([fresh({ visibility: "public" })], false)).exit),
+    ).toContain(
+      "allthings/trivia is public on Luma: the calendar feed brings it in.",
+    );
+    expect(reason((await add([answer()], false, "evt-draft")).exit)).toContain(
+      "Markdown Trivia Night is already stored, as 2026-09-01-draft-night.",
+    );
+    expect(reason((await add([{ status: 404 }], false)).exit)).toContain(
+      "Luma doesn't show us evt-new",
+    );
+    const keyless = await add([fresh()], false, "evt-new", {});
+    expect(reason(keyless.exit)).toContain("LUMA_API_KEY is not set");
+    expect(keyless.requests).toEqual([]);
+    expect(await row()).toBeUndefined();
   });
 });

@@ -311,6 +311,18 @@ DATABASE_URL=… LUMA_API_KEY=… bun run luma:drafts --dry-run   # ask Luma, pr
 DATABASE_URL=… LUMA_API_KEY=… bun run luma:drafts             # write it
 ```
 
+For the same reason, an evening made private from the start (`bun run
+luma create`) never reaches the database by the feed. `--add <evt-…>`
+stores one: it asks Luma's API for the event and inserts it as the sync
+would have, as a draft, with the sync's slug and placeholder tagline. It
+refuses an event that isn't private (the feed brings those in) and one
+already stored. From then on the refresh keeps it in line.
+
+```sh
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:drafts --add evt-… --dry-run   # what it would store
+DATABASE_URL=… LUMA_API_KEY=… bun run luma:drafts --add evt-…             # store it
+```
+
 ## Luma people import
 
 The calendar feed names no hosts and counts no guests. `src/luma/api.ts`
@@ -871,9 +883,10 @@ two-step `events/cancel`, each as docs.luma.com documents it), with the
 calendar's key in `LUMA_API_KEY`:
 
 - `create` makes the event **private**, always, in San Francisco's time
-  zone, from an idea's pitch when one is named. The hourly sync then
-  stores it as a draft, which readiness checks and the draft preview
-  shows.
+  zone, from an idea's pitch when one is named. The calendar feed never
+  carries a private event, so `luma:drafts --add` stores it as a draft
+  (see "Drafts the feed doesn't carry"), which readiness checks and the
+  draft preview shows.
 - `update` changes a private event: name, times, place (`--venue` for a
   place Google Maps knows, so its name shows; `--address` as written), the
   description the promotion drafts write, a cover uploaded to Luma's CDN.
