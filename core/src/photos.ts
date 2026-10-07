@@ -490,20 +490,23 @@ export interface ListedPhoto {
 /** The evening at `slug`, and its photos in the order its page lists them. */
 export const listPhotos = (slug: string) =>
   Effect.gen(function* () {
-    const sql = yield* SqlClient;
     const event = yield* findEvent(slug);
+    return { event, photos: yield* photosOf(event.id) };
+  });
+
+/** The photos of the evening `eventId`, in the order its page lists them. */
+const photosOf = (eventId: string) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
     const rows = yield* sql<Omit<ListedPhoto, "position">>`
       SELECT img.id::text AS "imageId", img.url, img.alt, img.width, img.height
       FROM event_images ei
       JOIN images img ON img.id = ei.image_id
-      WHERE ei.event_id = ${event.id}::uuid
+      WHERE ei.event_id = ${eventId}::uuid
       ORDER BY ei.created_at, img.id`;
-    return {
-      event,
-      photos: rows.map(
-        (row, index): ListedPhoto => ({ ...row, position: index + 1 }),
-      ),
-    };
+    return rows.map(
+      (row, index): ListedPhoto => ({ ...row, position: index + 1 }),
+    );
   });
 
 /**
@@ -552,14 +555,21 @@ const otherUses = (id: string, except: number) =>
 
 /**
  * The removal of the photo `target` from the evening at `slug`, as the
- * database holds it now. Under `lock`, inside a transaction, the link and
- * the image's row are locked first, so nothing can move the one or start
- * using the other before the transaction ends.
+ * database holds it now. Under `lock`, inside a transaction, the evening,
+ * the link and the image's row are locked first. Until the transaction
+ * ends, no photo can be added and no other removal or replacement run
+ * ahead of it, and nothing can start using the image's row.
  */
 const removalOf = (slug: string, target: PhotoTarget, lock: boolean) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
-    const { event, photos } = yield* listPhotos(slug);
+    const event = yield* findEvent(slug);
+    if (lock) {
+      // Adding a photo to the evening (its link's foreign key) waits for this
+      // lock, and so does another removal, so the positions hold.
+      yield* sql`SELECT 1 FROM events WHERE id = ${event.id}::uuid FOR UPDATE`;
+    }
+    const photos = yield* photosOf(event.id);
     const photo =
       target._tag === "Position"
         ? photos[target.position - 1]
@@ -615,11 +625,11 @@ export const planRemoval = (slug: string, target: PhotoTarget) =>
 
 /**
  * Removes the photo `target` from the evening at `slug`, exactly as the dry
- * run that printed `token` showed: in one transaction, with the link and the
- * image's row locked, the removal is worked out again and refused unless it
- * hashes to `token`. The link is deleted, and the image's row with it only
- * when nothing else points at that row. The stored object stays in the
- * bucket: nothing here deletes one.
+ * run that printed `token` showed: in one transaction, with the evening, the
+ * link and the image's row locked, the removal is worked out again and
+ * refused unless it hashes to `token`. The link is deleted, and the
+ * image's row with it only when nothing else points at that row. The
+ * stored object stays in the bucket: nothing here deletes one.
  */
 export const removePhoto = (slug: string, target: PhotoTarget, token: string) =>
   Effect.gen(function* () {
