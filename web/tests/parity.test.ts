@@ -74,12 +74,12 @@ await db.exec(`
     ('b0000000-0000-4000-8000-000000000303', 'Mia MC', '', NULL, '', 'member', now());
   INSERT INTO talks (id, title, description, updated_at) VALUES
     ('a0000000-0000-4000-8000-000000000301', 'Agents in production', '<p>Agents.</p>', now()),
-    -- Zed gave another talk with the same title at Café night: talks are
+    -- Linus gave another talk with the same title at Café night: talks are
     -- told apart by id, never by title.
-    ('a0000000-0000-4000-8000-000000000302', 'Lightning talk', '<p>Again.</p>', now());
+    ('a0000000-0000-4000-8000-000000000302', 'Effect in production', '<p>Again.</p>', now());
   INSERT INTO talk_speakers (talk_id, speaker_id, created_at, updated_at) VALUES
     ('a0000000-0000-4000-8000-000000000301', 'b0000000-0000-4000-8000-000000000301', '2026-01-01T00:00:09Z', now()),
-    ('a0000000-0000-4000-8000-000000000302', 'b0000000-0000-4000-8000-000000000006', '2026-01-01T00:00:10Z', now());
+    ('a0000000-0000-4000-8000-000000000302', 'b0000000-0000-4000-8000-000000000003', '2026-01-01T00:00:10Z', now());
   INSERT INTO event_talks (event_id, talk_id, created_at, updated_at) VALUES
     ('${sharedPast}', 'a0000000-0000-4000-8000-000000000301', '2026-01-02T00:00:09Z', now()),
     ('e0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000302', '2026-01-02T00:00:10Z', now());
@@ -535,9 +535,9 @@ describe("who has been on stage", () => {
         ),
       ]);
     }
-    // Zed's two lightning talks are two talks.
-    const zed = rest.find((speaker) => speaker.name === "Zed Nobody");
-    expect(zed?.talkIds).toHaveLength(2);
+    // Linus's two talks called Effect in production are two talks.
+    const linus = rest.find((speaker) => speaker.name === "Linus");
+    expect(linus?.talkIds).toHaveLength(3);
   });
 
   test("a person's page lists every talk list_speakers credits them with", async () => {
@@ -571,25 +571,22 @@ describe("who has been on stage", () => {
     }
   });
 
-  // D3: a talk has been given once its evening is over, by the rule that
-  // says it is (eventStatus: live through its end). Today list_speakers
-  // credits Ends now's speaker at its last instant, while it is still live.
-  test.failing(
-    "list_speakers credits a talk only once its evening is over",
-    async () => {
-      const statusOf = new Map(
-        (await surfaces.listEvents("all")).map((e) => [idOf(e.slug), e.status]),
-      );
-      for (const speaker of await surfaces.listSpeakers()) {
-        for (const talk of speaker.talks) {
-          expect([talk.eventSlug, statusOf.get(idOf(talk.eventSlug))]).toEqual([
-            talk.eventSlug,
-            "past",
-          ]);
-        }
+  // A talk has been given once its evening is over, by the rule that says
+  // it is (eventStatus: live through its end): not at Ends now's last
+  // instant, while it is still live.
+  test("list_speakers credits a talk only once its evening is over", async () => {
+    const statusOf = new Map(
+      (await surfaces.listEvents("all")).map((e) => [idOf(e.slug), e.status]),
+    );
+    for (const speaker of await surfaces.listSpeakers()) {
+      for (const talk of speaker.talks) {
+        expect([talk.eventSlug, statusOf.get(idOf(talk.eventSlug))]).toEqual([
+          talk.eventSlug,
+          "past",
+        ]);
       }
-    },
-  );
+    }
+  });
 
   // D5: all things speakers are those of our evenings, as /people lists
   // them. Today list_speakers lists Mastra's speaker, whose evening we only
@@ -619,9 +616,8 @@ describe("who has been on stage", () => {
     },
   );
 
-  // D3 and D5 together: /about counts the speakers of our evenings that
-  // are over, which list_speakers lists once both hold; this flips with
-  // whichever lands second.
+  // D5: /about counts the speakers of our evenings that are over, which
+  // list_speakers lists once it leaves out the evenings we only share.
   test.failing("/about counts the speakers list_speakers lists", async () => {
     const about = await surfaces.read(
       About.use((repository) => repository.read([], photoOrigin)),

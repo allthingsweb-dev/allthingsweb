@@ -218,14 +218,9 @@ export type Whose = "ours" | "any";
 
 /**
  * When an appearance counts: at any evening, or once its evening is over
- * at an instant (`ended`, as {@link eventStatus} has it). The speakers
- * list counts a talk from its evening's last instant, while it is still
- * live (`endedOrEnding`), until it reads `ended` like the rest.
+ * at an instant (`ended`, as {@link eventStatus} has it).
  */
-export type When =
-  | "any"
-  | { readonly ended: DateTime.Utc | Date }
-  | { readonly endedOrEnding: DateTime.Utc | Date };
+export type When = "any" | { readonly ended: DateTime.Utc | Date };
 
 const scoped = (
   sql: SqlClient,
@@ -235,11 +230,7 @@ const scoped = (
   return sql.and([
     published(sql, "e"),
     ...(scope.whose === "ours" ? [ours(sql, "e")] : []),
-    ...(when === "any"
-      ? []
-      : "ended" in when
-        ? [ended(sql, "e", when.ended)]
-        : [sql`e.end_date <= ${instant(when.endedOrEnding)}`]),
+    ...(when === "any" ? [] : [ended(sql, "e", when.ended)]),
   ]);
 };
 

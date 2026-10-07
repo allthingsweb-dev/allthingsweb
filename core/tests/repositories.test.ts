@@ -347,7 +347,11 @@ describe("Events", () => {
 
 describe("Speakers", () => {
   test("lists speakers of ended, published events by name, with each appearance", async () => {
-    const directory = await run(Speakers.use((speakers) => speakers.directory));
+    // Just after Ends now is over.
+    const directory = await run(
+      Speakers.use((speakers) => speakers.directory),
+      { at: at("2026-10-03T19:00:00.001Z") },
+    );
     expect(directory.speakers).toEqual([
       { profile: ada, talkIds: ["a0000000-0000-4000-8000-000000000001"] },
       { profile: grace, talkIds: ["a0000000-0000-4000-8000-000000000001"] },
@@ -393,12 +397,15 @@ describe("Speakers", () => {
           { at: at(iso) },
         )
       ).speakers.map((speaker) => speaker.profile.name);
-    // A millisecond before "Ends now" ends, Zed has not spoken yet.
-    expect(await names("2026-10-03T18:59:59.999Z")).toEqual([
-      "Ada Lovelace",
-      "Grace Hopper",
-      "Linus",
-    ]);
+    // Until "Ends now" is over, its last instant included, Zed has not
+    // spoken yet: the evening is live (eventStatus).
+    for (const iso of ["2026-10-03T18:59:59.999Z", "2026-10-03T19:00:00Z"]) {
+      expect(await names(iso)).toEqual([
+        "Ada Lovelace",
+        "Grace Hopper",
+        "Linus",
+      ]);
+    }
     // Once everything is over, only the draft's speaker and the unattached
     // profile are left out.
     expect(await names("2027-01-01T00:00:00Z")).toEqual([

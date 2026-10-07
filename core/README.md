@@ -35,10 +35,8 @@ statement from it.
   once `ended`), latest evening first (`latestTalkFirst`,
   `latestAppearanceFirst`). /people is our evenings' at any time; a
   person's page, every evening's; /about counts ours once over; the sitemap
-  lists everyone at any. The speakers list (`list_speakers`,
-  `/api/v1/speakers`) counts any evening's talks from its last instant on
-  (`endedOrEnding`), while it is still live, until it counts them once
-  `ended` like the rest.
+  lists everyone at any; the speakers list (`list_speakers`,
+  `/api/v1/speakers`) counts any evening's talks once `ended`.
 
 Each surface still reads in one statement, since from a Worker every round
 trip costs more than the query, and builds it from these fragments. What a
@@ -67,9 +65,8 @@ link; the same people and talks from `list_speakers`, `/api/v1/speakers`,
 /people, people's pages, /about and the sitemap. Where they disagree today
 a test says so (`test.failing`), with what settles it:
 
-- `list_speakers` and `/api/v1/speakers` credit a talk at its evening's last
-  instant, while the evening is still live, and list the speakers of
-  evenings we only share.
+- `list_speakers` and `/api/v1/speakers` list the speakers of evenings we
+  only share.
 
 ## Luma sync
 

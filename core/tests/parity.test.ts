@@ -212,17 +212,24 @@ describe("core answers as the app's MCP tools do", () => {
     expect(appResult.content.map((part) => part.text)).toEqual([error.message]);
   });
 
+  // The app is legacy and no longer the reference for list_speakers: it
+  // credits a talk at its evening's last instant, while the evening is
+  // still live, and core doesn't (core/README.md, "One catalog").
+  // web/tests/parity.test.ts holds list_speakers to the Worker's other
+  // surfaces; here, its answer is the contract's and lists the speakers of
+  // the evenings over at the clock.
   test("list_speakers", async () => {
-    const appResult = await callApp("list_speakers", { limit: 200 });
     const coreSpeakers = await runCore(
       Speakers.use((speakers) => speakers.directory).pipe(
         Effect.map((directory) => Mappers.toSpeakers(directory, origin)),
       ),
     );
-    expect(coreSpeakers.length).toBeGreaterThan(0);
-    expect(valid(SpeakerList, { speakers: coreSpeakers })).toEqual(
-      valid(SpeakerList, appResult.structuredContent),
-    );
+    const listed = valid(SpeakerList, { speakers: coreSpeakers });
+    expect(listed.speakers.map((speaker) => speaker.name)).toEqual([
+      "Ada Lovelace",
+      "Grace Hopper",
+      "Linus",
+    ]);
   });
 });
 
