@@ -1,5 +1,5 @@
 import { Context, DateTime, Effect, Layer, Schema } from "effect";
-import { pageNow } from "./clock.ts";
+import { asOf } from "./clock.ts";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import {
@@ -73,7 +73,7 @@ const make = Effect.gen(function* () {
 
   return Evenings.of({
     read: Effect.gen(function* () {
-      const now = yield* pageNow;
+      const now = yield* asOf;
       return toEvenings(yield* findEvenings({ now }), now);
     }).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
   });

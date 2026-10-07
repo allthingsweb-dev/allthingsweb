@@ -1,3 +1,4 @@
+import { asOf } from "allthings-core/src/clock.ts";
 import { Drafts } from "allthings-core/src/drafts.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
@@ -126,7 +127,7 @@ const draftPage = HttpRouter.add(
     // Not a draft: a published evening, or a page of the site, is the
     // public site's to show.
     if (Option.isNone(found)) return yield* toPublic(request.url);
-    const now = yield* DateTime.now;
+    const now = yield* asOf;
     return htmlResponse(
       eventPage({ event: found.value, origin, theme, portraits, images, now }),
       acceptEncoding,

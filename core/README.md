@@ -19,8 +19,10 @@ statement from it.
   ties, and the `Order` that `selectEvents` sorts by.
 - **Ahead or over:** `ahead(e, now)` and `ended(e, now)`, which agree with
   `eventStatus` (live through its end) at every instant, a test holds. `now`
-  is one instant for every surface: the `Clock`'s, at the start of its
-  minute (`src/clock.ts`).
+  is one instant for every surface, `asOf` (`src/clock.ts`): the
+  `Clock`'s, at the start of its minute. The pages, the feeds, the MCP
+  tools and the v1 API all read it, never the time itself; the guard below
+  lists the code that reads the time for its own work.
 - **Ours or shared:** `ours(e)`. Whether a surface counts the evenings we
   share is a named choice, never a filter written inline.
 - **An evening's lineup:** its talks in running order, each talk's

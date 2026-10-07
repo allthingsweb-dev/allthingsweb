@@ -371,6 +371,31 @@ describe("which evenings there are, and in what order", () => {
     }
   });
 
+  test("every surface reads the evenings as of the same minute", async () => {
+    // Half a minute after Ends now is over, every surface reads as of
+    // 19:00, its last instant, when it is live, and credits no talk of it.
+    const halfMinute = surfacesAt(DateTime.makeUnsafe("2026-10-03T19:00:30Z"));
+    const view = await halfMinute.read(
+      Evenings.use((repository) => repository.read),
+    );
+    const pages = new Map(
+      [...view.ahead, ...view.past].map((e) => [idOf(e.slug), e.status]),
+    );
+    expect(pages.get("e0000000-0000-4000-8000-000000000005")).toBe("live");
+    for (const event of await halfMinute.listEvents("all")) {
+      const id = idOf(event.slug);
+      expect({ id, status: pages.get(id) }).toEqual({
+        id,
+        status: event.status,
+      });
+    }
+    const credited = (await halfMinute.listSpeakers()).flatMap((speaker) =>
+      speaker.talks.map((talk) => talk.eventSlug),
+    );
+    expect(credited.length).toBeGreaterThan(0);
+    expect(credited).not.toContain("2026-10-03-ends-now");
+  });
+
   test("home leads with our next evening and lists the rest as /events orders them", async () => {
     const view = await evenings();
     const page = await home();

@@ -8,6 +8,7 @@ import {
   Schema,
 } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { asOf } from "./clock.ts";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import type * as Contract from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
@@ -570,7 +571,7 @@ const make = Effect.gen(function* () {
     read: (organizerIds, photoOrigin) =>
       Effect.gen(function* () {
         const [first, ...rest] = organizerIds;
-        const now = yield* DateTime.now;
+        const now = yield* asOf;
         // Without organizers to ask for, an id no profile has keeps the
         // statement one shape.
         const rows = yield* findPeople({
@@ -585,7 +586,7 @@ const make = Effect.gen(function* () {
       }).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
     person: (slug, photoOrigin) =>
       Effect.gen(function* () {
-        const now = yield* DateTime.now;
+        const now = yield* asOf;
         const [row] = yield* findPeople({
           // No one is asked for by id: only the slug finds them.
           organizerIds: ["00000000-0000-0000-0000-000000000000"],

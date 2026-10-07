@@ -347,10 +347,11 @@ describe("Events", () => {
 
 describe("Speakers", () => {
   test("lists speakers of ended, published events by name, with each appearance", async () => {
-    // Just after Ends now is over.
+    // The minute after Ends now is over: the directory is read as of the
+    // start of the minute (asOf).
     const directory = await run(
       Speakers.use((speakers) => speakers.directory),
-      { at: at("2026-10-03T19:00:00.001Z") },
+      { at: at("2026-10-03T19:01:00Z") },
     );
     expect(directory.speakers).toEqual([
       { profile: ada, talkIds: ["a0000000-0000-4000-8000-000000000001"] },
@@ -398,8 +399,13 @@ describe("Speakers", () => {
         )
       ).speakers.map((speaker) => speaker.profile.name);
     // Until "Ends now" is over, its last instant included, Zed has not
-    // spoken yet: the evening is live (eventStatus).
-    for (const iso of ["2026-10-03T18:59:59.999Z", "2026-10-03T19:00:00Z"]) {
+    // spoken yet: the evening is live (eventStatus). Read as of the
+    // minute, so is any instant within the minute it ends.
+    for (const iso of [
+      "2026-10-03T18:59:59.999Z",
+      "2026-10-03T19:00:00Z",
+      "2026-10-03T19:00:59.999Z",
+    ]) {
       expect(await names(iso)).toEqual([
         "Ada Lovelace",
         "Grace Hopper",

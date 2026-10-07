@@ -3,12 +3,13 @@ import type {
   McpServer,
   StandardSchemaWithJSON,
 } from "@modelcontextprotocol/server";
+import { asOf } from "allthings-core/src/clock.ts";
 import * as Contract from "allthings-core/src/contract.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Events } from "allthings-core/src/events.ts";
 import * as Mappers from "allthings-core/src/mappers.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
-import { DateTime, Effect, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { z } from "zod";
 import { type Repositories, repositories } from "../database.ts";
 import { Site } from "../site.ts";
@@ -110,7 +111,7 @@ const listEvents = (when: Mappers.EventSelection, limit: number) =>
   Effect.gen(function* () {
     const { origin } = yield* Site;
     const rows = yield* Events.use((events) => events.listPublished);
-    const now = yield* DateTime.now;
+    const now = yield* asOf;
     const events = Mappers.selectEvents(rows, when, now)
       .slice(0, limit)
       .map((row) => Mappers.toEventSummary(row, origin, now));
@@ -121,7 +122,7 @@ const getEvent = (slug: string) =>
   Effect.gen(function* () {
     const { origin } = yield* Site;
     const row = yield* Events.use((events) => events.getPublished(slug));
-    return succeed(yield* Mappers.toEvent(row, origin, yield* DateTime.now));
+    return succeed(yield* Mappers.toEvent(row, origin, yield* asOf));
   }).pipe(
     // Not found is an answer, not a failure: the CLI keys its exit code off it.
     Effect.catchTag("EventNotFound", (error) =>

@@ -1,4 +1,5 @@
 import { About } from "allthings-core/src/about.ts";
+import { asOf } from "allthings-core/src/clock.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
@@ -15,7 +16,7 @@ import {
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
 import { sharedPrefix } from "allthings-core/src/short-slugs.ts";
-import { DateTime, Duration, Effect, Layer, Option } from "effect";
+import { Duration, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
@@ -447,7 +448,7 @@ const eventAt = (prefix: EventPrefix) =>
           Effect.provide(repositories),
           Effect.timed,
           Effect.bindTo("timed"),
-          Effect.bind("now", () => DateTime.now),
+          Effect.bind("now", () => asOf),
           Effect.map(({ timed: [took, [found, { portraits, read }]], now }) => {
             const db = Duration.toMillis(took);
             return Option.match(found, {

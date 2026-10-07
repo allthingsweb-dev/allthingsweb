@@ -5,9 +5,10 @@ import {
   talkAppearances,
   talksOf,
 } from "allthings-core/src/catalog.ts";
+import { asOf } from "allthings-core/src/clock.ts";
 import * as Rows from "allthings-core/src/rows.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
-import { Context, DateTime, Effect, Layer, type Option, Schema } from "effect";
+import { Context, Effect, Layer, type Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 
@@ -263,7 +264,7 @@ const make = Effect.gen(function* () {
   return V1Data.of({
     listPublishedEvents: orDataSourceError(listPublished(undefined)),
     findPublishedEvent: (id) => orDataSourceError(findById(id)),
-    directory: DateTime.now.pipe(
+    directory: asOf.pipe(
       Effect.flatMap((now) => orDataSourceError(findDirectory(now))),
     ),
   });
