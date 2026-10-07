@@ -23,7 +23,7 @@ const handler = createMcpHandler(
     }),
   {
     serverInfo: {
-      name: "all-things-web",
+      name: "allthings",
       version: packageJson.version,
     },
   },

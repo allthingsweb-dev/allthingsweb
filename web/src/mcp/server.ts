@@ -18,7 +18,7 @@ export function mcpHandler(
   const handler = createMcpHandler(
     () => {
       const server = new McpServer({
-        name: "all-things-web",
+        name: "allthings",
         version: packageJson.version,
       });
       registerTools(server, run);

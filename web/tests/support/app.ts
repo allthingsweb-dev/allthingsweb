@@ -86,7 +86,7 @@ export async function loadApp(
           throw error;
         },
       }),
-    { serverInfo: { name: "all-things-web", version } },
+    { serverInfo: { name: "allthings", version } },
   );
 
   const eventPath = /^\/api\/v1\/events\/([^/]+)$/;
