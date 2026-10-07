@@ -102,7 +102,7 @@ interface Footer {
  * blank avatar stands in and the page says so with `read: false`: it is
  * then sent as a failure is, never stored, so the next request tries again.
  */
-const footer = <R>(
+export const footer = <R>(
   portraits: Effect.Effect<PortraitsById, DataSourceError, R>,
 ): Effect.Effect<Footer, never, R> =>
   portraits.pipe(
@@ -115,7 +115,7 @@ const footer = <R>(
   );
 
 /** The hosts' portraits, by the profile ids links.ts names. */
-const hostPortraits = Portraits.use((repository) =>
+export const hostPortraits = Portraits.use((repository) =>
   repository.read(
     hosts.map((host) => host.profileId),
     mediaOrigin,

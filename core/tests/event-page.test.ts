@@ -452,6 +452,26 @@ describe("EventPages", () => {
     }
   });
 
+  test("readDraft reads a draft as a page, and only a draft", async () => {
+    const draft = (slug: string) =>
+      Effect.provide(
+        EventPages.use((pages) => pages.readDraft(slug, photoOrigin)),
+        EventPages.layer.pipe(
+          Layer.provideMerge(sqlLayer(db)),
+          Layer.provideMerge(clockAt(now)),
+        ),
+      );
+    const page = await Effect.runPromise(draft("2026-09-01-draft-night"));
+    expect(page).toMatchObject({
+      slug: "2026-09-01-draft-night",
+      name: "Draft night",
+    });
+    for (const slug of ["2026-08-12-react-at-acme", "no-such-evening"]) {
+      const error = await Effect.runPromise(Effect.flip(draft(slug)));
+      expect(error).toBeInstanceOf(EventNotFound);
+    }
+  });
+
   test("matches the slug exactly", async () => {
     const error = await Effect.runPromise(
       Effect.flip(readPage("2026-08-12-REACT-at-acme")),

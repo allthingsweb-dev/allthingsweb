@@ -529,12 +529,24 @@ export interface EventPagesShape {
     slug: string,
     photoOrigin: string,
   ) => Effect.Effect<EventPage, EventNotFound | DataSourceError>;
+  /**
+   * The draft at `slug` (its long slug, or a short link it has), read as
+   * a published one is: what the draft preview renders, behind Cloudflare
+   * Access (web/src/preview/). A published event is not a draft, so it is
+   * not found here; no public route ever calls this.
+   */
+  readonly readDraft: (
+    slug: string,
+    photoOrigin: string,
+  ) => Effect.Effect<EventPage, EventNotFound | DataSourceError>;
 }
 
 const Request = Schema.Struct({
   slug: Schema.String,
   now: Schema.DateTimeUtcFromDate,
   photoPrefix: Schema.String,
+  /** Whether the page is a draft's: the preview reads only drafts, every public route only published events. */
+  draft: Schema.Boolean,
 });
 
 const make = Effect.gen(function* () {
@@ -561,7 +573,7 @@ const make = Effect.gen(function* () {
   const findPage = SqlSchema.findOneOption({
     Request,
     Result: EventPageRow,
-    execute: ({ slug, now, photoPrefix }) => sql`
+    execute: ({ slug, now, photoPrefix, draft }) => sql`
       SELECT
         ev.id, ${sql.literal(siteSlug("ev"))} AS slug, ev.name, ev.topic,
         ev.tagline, ev.description,
@@ -672,7 +684,7 @@ const make = Effect.gen(function* () {
           LIMIT 1
         ) AS next
       FROM events ev
-      WHERE ev.is_draft = false AND (
+      WHERE ev.is_draft = ${draft} AND (
         ev.short_slug = ${slug} OR ev.slug = ${slug}
         OR ev.id = (SELECT es.event_id FROM event_slugs es WHERE es.slug = ${slug})
       )
@@ -682,18 +694,21 @@ const make = Effect.gen(function* () {
       LIMIT 1`,
   });
 
+  const readPage = (slug: string, photoOrigin: string, draft: boolean) =>
+    Effect.gen(function* () {
+      const now = yield* pageNow;
+      const row = yield* orDataSourceError(
+        findPage({ slug, now, photoPrefix: `${photoOrigin}/`, draft }),
+      );
+      if (Option.isNone(row)) {
+        return yield* Effect.fail(new EventNotFound({ slug }));
+      }
+      return yield* toEventPage(row.value, now, photoOrigin);
+    });
+
   return EventPages.of({
-    read: (slug, photoOrigin) =>
-      Effect.gen(function* () {
-        const now = yield* pageNow;
-        const row = yield* orDataSourceError(
-          findPage({ slug, now, photoPrefix: `${photoOrigin}/` }),
-        );
-        if (Option.isNone(row)) {
-          return yield* Effect.fail(new EventNotFound({ slug }));
-        }
-        return yield* toEventPage(row.value, now, photoOrigin);
-      }),
+    read: (slug, photoOrigin) => readPage(slug, photoOrigin, false),
+    readDraft: (slug, photoOrigin) => readPage(slug, photoOrigin, true),
   });
 });
 

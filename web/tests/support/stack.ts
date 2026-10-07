@@ -23,6 +23,13 @@ export interface WorkerEnv {
   readonly IMAGES?: true;
   /** Where the Worker fetches the originals of image variants. */
   readonly MEDIA_ORIGIN?: string;
+  /** Which Worker: the site (src/worker.ts, the default) or the draft preview (src/preview/worker.ts). */
+  readonly entry?: "site" | "preview";
+  /** The draft preview's settings (src/preview/access.ts). */
+  readonly ACCESS_TEAM_DOMAIN?: string;
+  readonly ACCESS_AUD?: string;
+  readonly PREVIEW_VIEWERS?: string;
+  readonly PUBLIC_URL?: string;
 }
 
 /**
@@ -61,13 +68,18 @@ export const testStack = <const Name extends string>(
     Effect.gen(function* () {
       const urls = [];
       for (const [worker, env] of Object.entries<WorkerEnv>(workers)) {
-        const { HYPERDRIVE: origin, IMAGES: images, ...rest } = env;
+        const { HYPERDRIVE: origin, IMAGES: images, entry, ...rest } = env;
         const settings =
           images === undefined
             ? rest
             : { ...rest, IMAGES: Cloudflare.Images.Images("IMAGES") };
         const { url } = yield* Cloudflare.Worker(worker, {
-          main: new URL("../../src/worker.ts", import.meta.url).pathname,
+          main: new URL(
+            entry === "preview"
+              ? "../../src/preview/worker.ts"
+              : "../../src/worker.ts",
+            import.meta.url,
+          ).pathname,
           compatibility,
           assets: new URL("../../dist/public", import.meta.url).pathname,
           env:

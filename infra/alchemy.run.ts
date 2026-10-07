@@ -12,6 +12,7 @@ import {
   productionRole,
   siteServing,
 } from "./src/media.ts";
+import { PREVIEW, makePreview } from "./src/preview.ts";
 import { Sync } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
@@ -50,10 +51,17 @@ export default Alchemy.Stack(
               : undefined,
           );
     const webUrl = site?.url.as<string>();
+    // The draft preview, behind Access, beside the site (src/preview.ts).
+    const preview =
+      site === undefined || !PREVIEW.deploy
+        ? undefined
+        : yield* makePreview(site.url.as<string>());
+    const previewUrl = preview?.url.as<string>();
 
     if (role === "stage") {
       return {
         webUrl,
+        previewUrl,
         mediaBucket: MEDIA_BUCKET,
         mediaDomain:
           zone === undefined
@@ -94,6 +102,7 @@ export default Alchemy.Stack(
 
     return {
       webUrl,
+      previewUrl,
       mediaBucket: MEDIA_BUCKET,
       mediaUploadUrl: upload.url.as<string>(),
     };
