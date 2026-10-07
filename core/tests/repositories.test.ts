@@ -298,6 +298,41 @@ describe("Events", () => {
     expect(event.talks[1]).toEqual(serverComponents);
   });
 
+  test("is found by any link it has or had, the short link first", async () => {
+    const linked = await seededDatabase();
+    try {
+      await linked.exec(`
+        INSERT INTO event_slugs (slug, event_id) VALUES
+          ('react-at-acme', 'e0000000-0000-4000-8000-000000000001'),
+          ('react', 'e0000000-0000-4000-8000-000000000001'),
+          ('draft', 'e0000000-0000-4000-8000-000000000002');
+        UPDATE events SET short_slug = 'react'
+          WHERE id = 'e0000000-0000-4000-8000-000000000001';
+      `);
+      for (const slug of [
+        "react",
+        "react-at-acme",
+        "2026-08-12-react-at-acme",
+      ]) {
+        const event = await run(
+          Events.use((events) => events.getPublished(slug)),
+          { database: linked },
+        );
+        expect([slug, event.id]).toEqual([
+          slug,
+          "e0000000-0000-4000-8000-000000000001",
+        ]);
+      }
+      const error = await run(
+        Effect.flip(Events.use((events) => events.getPublished("draft"))),
+        { database: linked },
+      );
+      expect(error).toEqual(new EventNotFound({ slug: "draft" }));
+    } finally {
+      await linked.close();
+    }
+  });
+
   test.each([
     "2026-09-01-draft-night",
     "no-such-event",

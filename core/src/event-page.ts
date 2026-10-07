@@ -7,8 +7,10 @@ import {
   ahead,
   drafts,
   hostsOf,
+  linkFirst,
   peopleOf,
   published,
+  resolve,
   soonestFirst,
   talksOf,
 } from "./catalog.ts";
@@ -671,13 +673,9 @@ const make = Effect.gen(function* () {
           LIMIT 1
         ) AS next
       FROM events ev
-      WHERE ${draft ? drafts(sql, "ev") : published(sql, "ev")} AND (
-        ev.short_slug = ${slug} OR ev.slug = ${slug}
-        OR ev.id = (SELECT es.event_id FROM event_slugs es WHERE es.slug = ${slug})
-      )
-      -- No link equals another evening's slug (src/slugs.ts); were one to,
-      -- the link would win.
-      ORDER BY ev.short_slug = ${slug} DESC NULLS LAST
+      WHERE ${draft ? drafts(sql, "ev") : published(sql, "ev")}
+        AND ${resolve(sql, "ev", slug)}
+      ORDER BY ${linkFirst(sql, "ev", slug)}
       LIMIT 1`,
   });
 
