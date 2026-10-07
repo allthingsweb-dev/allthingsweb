@@ -7,8 +7,8 @@
     "check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "plan": "alchemy plan",
-    "deploy": "alchemy deploy"
+    "plan": "bun scripts/web-build.ts && alchemy plan",
+    "deploy": "bun scripts/web-build.ts && alchemy deploy"
   },
   "dependencies": {
     "@distilled.cloud/cloudflare": "1.0.0-rc.13",
