@@ -204,7 +204,7 @@ describe("the mode", () => {
 });
 
 describe("the ledger", () => {
-  test("says where in the neighborhood's name, the venue's, and the address on the map", () => {
+  test("says where in the neighborhood's name, labelled as one, the venue's, and the address on the map", () => {
     const html = render(
       event({
         hosts: ["Convex"],
@@ -217,7 +217,7 @@ describe("the ledger", () => {
       }),
     );
     expect(html).toContain(
-      `<p class="fact-head place">Potrero Hill</p><p class="venue">Convex HQ</p><p><a href="${googleMaps("444 De Haro St #218, San Francisco, CA 94107, USA")}"><span>444 De Haro St #218, San Francisco, CA 94107, USA</span>`,
+      `<dd><p class="at-type-meta">neighborhood</p><p class="fact-head place">Potrero Hill</p><p class="venue">Convex HQ</p><p><a href="${googleMaps("444 De Haro St #218, San Francisco, CA 94107, USA")}"><span>444 De Haro St #218, San Francisco, CA 94107, USA</span>`,
     );
   });
 

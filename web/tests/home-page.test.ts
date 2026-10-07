@@ -140,6 +140,19 @@ describe("the home page", () => {
     expect(html).toContain('<div class="lists">');
   });
 
+  test("names each row's neighborhood to a screen reader, under no column label of its own", () => {
+    // The two sentences beside the lists say the places are neighborhoods;
+    // Recently's line holds its links where /events labels the column.
+    const html = render(view({ afterThat: [evening({ slug: "later" })] }));
+    expect(html).toContain(
+      '<span class="place at-type-list-place"><span class="visually-hidden">, neighborhood: </span><span>East Cut</span></span>',
+    );
+    expect(html).toContain(
+      '<span class="place at-type-list-place"><span class="visually-hidden">, neighborhood: </span><span>FiDi</span></span>',
+    );
+    expect(html).not.toContain("list-column");
+  });
+
   test("calls a live evening's time now", () => {
     expect(render(view({ next: evening({ status: "live" }) }))).toContain(
       ">Now · Wed Sep 30 · 5:30 PM</time>",

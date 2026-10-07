@@ -186,6 +186,9 @@ function When({ event }: { readonly event: EventPage }) {
 /**
  * The neighborhood, the venue and its address, linked to the map. The
  * venue's name is left out when it is a host's, which "Hosted at" names.
+ * The neighborhood is said to be one, in a small label over it, as
+ * co-hosts and the MC are over theirs: set large, it could read as the
+ * venue's name.
  */
 function Where({
   venue,
@@ -204,6 +207,11 @@ function Where({
   return (
     <Fact label="Where">
       <>
+        {venue.neighborhood === null ? (
+          ""
+        ) : (
+          <p class="at-type-meta">neighborhood</p>
+        )}
         {head === undefined ? (
           ""
         ) : (
