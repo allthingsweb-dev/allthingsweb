@@ -22,6 +22,7 @@
     "external-talks": "bun --no-env-file scripts/external-talks.ts",
     "followers": "bun --no-env-file scripts/followers.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts",
+    "talks": "bun --no-env-file scripts/talks.ts",
     "people": "bun --no-env-file scripts/people.ts",
     "event-extras": "bun --no-env-file scripts/event-extras.ts",
     "programs": "bun --no-env-file scripts/programs.ts",
