@@ -1,4 +1,5 @@
 import {
+  Clock,
   Config,
   Context,
   DateTime,
@@ -527,6 +528,34 @@ export const makeXSearch = Effect.gen(function* () {
     const endpoint = archive
       ? "https://api.x.com/2/tweets/search/all"
       : "https://api.x.com/2/tweets/search/recent";
+    // Full-archive search takes one request a second: requests are spaced
+    // so, across evenings too, and a 429 waits for X's reset, at most 10 s,
+    // then tries again, twice.
+    const spacingMs = archive ? 1_100 : 0;
+    let lastRequestAt = Number.NEGATIVE_INFINITY;
+    const paced = <A, E, R>(request: Effect.Effect<A, E, R>) =>
+      Effect.gen(function* () {
+        const now = yield* Clock.currentTimeMillis;
+        const wait = lastRequestAt + spacingMs - now;
+        if (wait > 0) yield* Effect.sleep(Duration.millis(wait));
+        lastRequestAt = yield* Clock.currentTimeMillis;
+        return yield* request;
+      });
+    const send = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.gen(function* () {
+        for (let attempt = 0; ; attempt++) {
+          const response = yield* paced(client.execute(request));
+          if (response.status !== 429 || attempt >= 2) return response;
+          const reset = Number(response.headers["x-rate-limit-reset"]);
+          const now = yield* Clock.currentTimeMillis;
+          const untilReset = Number.isFinite(reset)
+            ? reset * 1000 - now
+            : 1_000;
+          yield* Effect.sleep(
+            Duration.millis(Math.min(10_000, Math.max(1_000, untilReset))),
+          );
+        }
+      });
     return {
       platform: "x",
       search: (signals, maxQueries) =>
@@ -552,7 +581,7 @@ export const makeXSearch = Effect.gen(function* () {
           // One refused query (a 429, say) keeps what the others found.
           const failures: Array<string> = [];
           for (const query of queries) {
-            const response = yield* client.execute(
+            const response = yield* send(
               HttpClientRequest.get(endpoint).pipe(
                 HttpClientRequest.bearerToken(Redacted.value(token.value)),
                 HttpClientRequest.setUrlParams({

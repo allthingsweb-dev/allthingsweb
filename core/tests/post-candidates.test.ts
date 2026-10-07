@@ -381,6 +381,71 @@ describe("what platforms answer", () => {
     ]);
   });
 
+  test("full-archive requests a second apart, and a 429 tried again after X's reset", async () => {
+    const sentAt: Array<number> = [];
+    let first = true;
+    const client = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) => {
+        sentAt.push(Date.now());
+        if (first) {
+          first = false;
+          return Effect.succeed(
+            HttpClientResponse.fromWeb(
+              request,
+              new Response("", {
+                status: 429,
+                // Reset at once: the wait is the floor, a second.
+                headers: {
+                  "x-rate-limit-reset": String(Math.floor(Date.now() / 1000)),
+                },
+              }),
+            ),
+          );
+        }
+        return Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            Response.json({
+              data: [
+                {
+                  id: "31",
+                  text: "React at Acme!",
+                  author_id: "u1",
+                  created_at: "2026-08-13T03:00:00.000Z",
+                },
+              ],
+              includes: { users: [{ id: "u1", username: "ada" }] },
+            }),
+          ),
+        );
+      }),
+    );
+    // The real clock: the waits are real, a second or so each.
+    const found = await Effect.runPromise(
+      Effect.gen(function* () {
+        const x: CandidateSearchShape = yield* makeXSearch;
+        return yield* x.search(signals);
+      }).pipe(
+        Effect.provide(client),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromEnv({
+            env: { X_BEARER_TOKEN: "test", X_SEARCH: "archive" },
+          }),
+        ),
+      ),
+    );
+    // The 429, its retry, then the second query.
+    expect(sentAt).toHaveLength(3);
+    for (const [i, at] of sentAt.entries()) {
+      if (i > 0) expect(at - (sentAt[i - 1] ?? 0)).toBeGreaterThanOrEqual(950);
+    }
+    expect(found.posts.map((p) => p.url)).toEqual([
+      "https://x.com/ada/status/31",
+    ]);
+  }, 15_000);
+
   test("X's queries: the evening's links and name, and its people saying all things", () => {
     expect(xQueries(signals)).toEqual([
       '(url:"lu.ma/event/evt-react" OR url:"luma.com/react-at-acme" OR url:"allthings.dev/2026-08-12-react-at-acme" OR "React at Acme") -is:retweet',
