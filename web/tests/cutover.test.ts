@@ -2,6 +2,7 @@ import { eventPathOf } from "allthings-core/src/mappers.ts";
 import { describe, expect, test } from "bun:test";
 import {
   cutoverRedirect,
+  lookupTimeout,
   mediaOrigin as appMediaOrigin,
   newOrigin,
   shortLinkPath,
@@ -129,6 +130,54 @@ describe("the cutover's redirect", () => {
     expect((await redirectOf("/%E0%A4%A")).location).toBe(
       "https://allthings.dev/%E0%A4%A",
     );
+    // One that throws before it returns, as a bad connection string would.
+    expect(
+      await cutoverRedirect(
+        { method: "GET", pathname: `/${longSlugs.past}`, search: "" },
+        () => {
+          throw new Error("no database");
+        },
+      ),
+    ).toEqual({
+      status: 301,
+      location: `https://allthings.dev/${longSlugs.past}`,
+    });
+  });
+
+  test(`goes on without a lookup that takes longer than ${lookupTimeout} ms`, async () => {
+    const started = Date.now();
+    expect(
+      await cutoverRedirect(
+        { method: "GET", pathname: `/${longSlugs.past}`, search: "" },
+        () => new Promise(() => undefined),
+      ),
+    ).toEqual({
+      status: 301,
+      location: `https://allthings.dev/${longSlugs.past}`,
+    });
+    expect(Date.now() - started).toBeLessThan(lookupTimeout + 1000);
+  });
+
+  test("never looks up the site's own pages or files", async () => {
+    const asked: Array<string> = [];
+    for (const path of [
+      "/about",
+      "/mcp",
+      "/rss",
+      "/people",
+      "/robots.txt",
+      "/favicon.ico",
+      "/manifest.webmanifest",
+    ]) {
+      await cutoverRedirect(
+        { method: "GET", pathname: path, search: "" },
+        async (slug) => {
+          asked.push(slug);
+          return null;
+        },
+      );
+    }
+    expect(asked).toEqual([]);
   });
 
   test("writes short links as core does, and knows the same media origin", () => {

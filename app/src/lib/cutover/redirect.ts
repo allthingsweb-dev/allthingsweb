@@ -66,6 +66,49 @@ const cards: Readonly<Record<string, string>> = {
   "/api/v1/speakers.png": "/og/people.png",
 };
 
+/**
+ * The site's own top-level pages and endpoints, which are never an event's
+ * long slug, so they are never looked up (a file, with a ".", isn't either).
+ */
+const ownPaths: ReadonlySet<string> = new Set([
+  "about",
+  "admin",
+  "api",
+  "code-of-conduct",
+  "handler",
+  "mcp",
+  "monitoring",
+  "people",
+  "profile",
+  "r",
+  "rss",
+  "sentry-example-page",
+  "shared",
+]);
+
+/** How long a lookup may take before the redirect goes on without it. */
+export const lookupTimeout = 1500;
+
+/**
+ * `shortLink(slug)`, or null when it throws, rejects or takes longer than
+ * {@link lookupTimeout}: a lookup only saves a hop, so it never holds the
+ * redirect up.
+ */
+const lookup = (
+  shortLink: (longSlug: string) => Promise<string | null>,
+  slug: string,
+): Promise<string | null> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    Promise.resolve()
+      .then(() => shortLink(slug))
+      .catch(() => null),
+    new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), lookupTimeout);
+    }),
+  ]).finally(() => clearTimeout(timer));
+};
+
 /** Paths the new site renamed, by their old name. */
 const renamed: Readonly<Record<string, string>> = {
   "/speakers": "/people",
@@ -127,8 +170,10 @@ export async function cutoverRedirect(
     } catch {
       return same(pathname);
     }
-    const link = await shortLink(slug).catch(() => null);
-    if (link !== null && link !== slug) return same(shortLinkPath(link));
+    if (!slug.includes(".") && !ownPaths.has(slug)) {
+      const link = await lookup(shortLink, slug);
+      if (link !== null && link !== slug) return same(shortLinkPath(link));
+    }
   }
   return same(pathname);
 }

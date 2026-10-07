@@ -44,8 +44,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Every path, so the cutover can redirect all of them; without it, only
-  // pages learn their path (pagePath), as before: not the API, Next's
-  // static files and image optimizer, stored images or the favicon.
-  matcher: ["/:path*"],
+  // Every path but Next's static files, so the cutover can redirect all the
+  // others; without it, only pages learn their path (pagePath), as before.
+  // The static files are the old pages' own, which nothing needs once
+  // those pages redirect, so they never run the middleware at all.
+  matcher: ["/((?!_next/static/).*)"],
 };

@@ -9,7 +9,8 @@ import { z } from "zod";
 const cutoverEnvConfig = configSchema("Cutover", {
   redirect: server({
     env: "ALLTHINGS_DEV_REDIRECT",
-    schema: z.enum(["on", "off"]).default("off"),
+    // Anything but "on", a mistyped value included, leaves it off.
+    schema: z.enum(["on", "off"]).default("off").catch("off"),
   }),
 });
 
