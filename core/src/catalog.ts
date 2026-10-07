@@ -15,8 +15,15 @@ import type * as Rows from "./rows.ts";
  * one of a few constants, never input.
  */
 
-/** How statements alias the events table. */
-export type EventAlias = "e" | "ev";
+/**
+ * How statements alias the events table (`e`, `ev`), or a subquery of
+ * it that keeps its columns' names (`x`, `y`).
+ */
+export type EventAlias = "e" | "ev" | "x" | "y";
+
+/** An instant as a statement's parameter. */
+const instant = (now: DateTime.Utc | Date): Date =>
+  now instanceof Date ? now : DateTime.toDateUtc(now);
 
 const column = (sql: SqlClient, e: EventAlias, name: string) =>
   sql.literal(`${e}.${name}`);
@@ -32,17 +39,15 @@ export const published = (sql: SqlClient, e: EventAlias): Statement.Fragment =>
 export const ahead = (
   sql: SqlClient,
   e: EventAlias,
-  now: DateTime.Utc,
-): Statement.Fragment =>
-  sql`${column(sql, e, "end_date")} >= ${DateTime.toDateUtc(now)}`;
+  now: DateTime.Utc | Date,
+): Statement.Fragment => sql`${column(sql, e, "end_date")} >= ${instant(now)}`;
 
 /** Evenings over at `now`: past, as {@link eventStatus} has it. */
 export const ended = (
   sql: SqlClient,
   e: EventAlias,
-  now: DateTime.Utc,
-): Statement.Fragment =>
-  sql`${column(sql, e, "end_date")} < ${DateTime.toDateUtc(now)}`;
+  now: DateTime.Utc | Date,
+): Statement.Fragment => sql`${column(sql, e, "end_date")} < ${instant(now)}`;
 
 /** Our own evenings, not those we share. */
 export const ours = (sql: SqlClient, e: EventAlias): Statement.Fragment =>

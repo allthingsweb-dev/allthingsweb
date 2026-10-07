@@ -42,13 +42,11 @@ const catalog = "core/src/catalog.ts";
  */
 const notYetMoved: Readonly<Record<string, string>> = {
   "core/src/about.ts": "/about's numbers: a person's appearances",
-  "core/src/evenings.ts": "/events: the shared selection",
   "core/src/event-page.ts": "the event page: its lineup and what's next",
-  "core/src/home.ts": "home: the shared selection",
   "core/src/people-directory.ts": "/people: a person's appearances",
   "core/src/speakers.ts":
     "list_speakers: ended through the last instant, until that is settled",
-  "web/src/seo/data.ts": "the feeds: the shared selection and appearances",
+  "web/src/seo/data.ts": "the sitemap's people: a person's appearances",
   "web/src/v1/data.ts":
     "/api/v1/speakers: ended through the last instant, until that is settled",
 };
