@@ -223,6 +223,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
 
   const checklist = [
     `${site} serves the new site and every ${formerDomain} address redirects to it, as every draft says (infra/docs/r2-migration.md, the full cutover). Post nothing before.`,
+    `Every published evening has its short link, as the drafts say: bun run slugs --dry-run (in core/) gives none, or run it without --dry-run first.`,
     `Post the X thread from @${handle}, each post a reply to the one before.`,
     "Display names say all things before the posts do: X, Bluesky, the LinkedIn page, the Discord server and the Luma calendar.",
     "Send each Meetup announcement from its own group, to all its members.",
@@ -260,9 +261,17 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
       `New: a short link for every evening, a page for everyone who's been on stage, evenings we share, and at/hack.`,
       `${nextLine(false)} ${next.url}`,
     ),
+    // However long the next evening's name, the redirect and what's new
+    // stay; the next evening is its link alone, at the least.
     paragraphs(
-      `${formerName} is now all things, at ${site}.`,
+      `${formerName} is now all things, at ${site}. ${formerDomain} redirects there.`,
+      "New: short links, person pages, shared evenings and at/hack.",
       `${nextLine(false)} ${next.url}`,
+    ),
+    paragraphs(
+      `${formerName} is now all things, at ${site}. ${formerDomain} redirects there.`,
+      "New: short links, person pages, shared evenings and at/hack.",
+      `Next: ${next.url}`,
     ),
   ]);
 
@@ -305,7 +314,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   ]);
 
   const luma: Announcement = {
-    subject: `${formerName} is now all things`,
+    subject: "These evenings are now all things",
     body: fitOn("luma", [
       paragraphs(
         `${formerName} is now all things: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, all things/\\_. Each evening fills the slot after the slash: ${examples}.`,

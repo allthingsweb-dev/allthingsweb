@@ -8,6 +8,7 @@
 ## before posting
 
 - [ ] allthings.dev serves the new site and every allthingsweb.dev address redirects to it, as every draft says (infra/docs/r2-migration.md, the full cutover). Post nothing before.
+- [ ] Every published evening has its short link, as the drafts say: bun run slugs --dry-run (in core/) gives none, or run it without --dry-run first.
 - [ ] Post the X thread from @[x-handle], each post a reply to the one before.
 - [ ] Display names say all things before the posts do: X, Bluesky, the LinkedIn page, the Discord server and the Luma calendar.
 - [ ] Send each Meetup announcement from its own group, to all its members.
@@ -93,7 +94,7 @@ On X: **@\[x-handle\]**
 
 ## luma: newsletter (1082 / 5000)
 
-subject: All Things Web is now all things
+subject: These evenings are now all things
 
 All Things Web is now all things: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, all things/\_. Each evening fills the slot after the slash: all things/effect, all things/expo.
 

@@ -122,6 +122,24 @@ describe("every draft fits its platform", () => {
     });
   }
 
+  test("however long the next evening's name, Bluesky keeps the redirect and what's new", () => {
+    for (const title of [
+      "all things/upcoming meetup and something else",
+      `all things/${"x".repeat(120)}`,
+    ]) {
+      const { bluesky } = launchDrafts({
+        ...settled,
+        next: { ...hosted, title },
+      });
+      expect(fits("bluesky", bluesky)).toBe(true);
+      expect(bluesky).toContain("allthingsweb.dev redirects there.");
+      expect(bluesky).toContain(
+        "New: short links, person pages, shared evenings and at/hack.",
+      );
+      expect(bluesky).toContain(hosted.url);
+    }
+  });
+
   test("a next evening with every part is named whole where there is room", () => {
     const drafts = launchDrafts({ origin, xHandle: null, next: hosted });
     expect(drafts.x.at(-1)).toContain(`${hosted.when}, ${hosted.where}.`);
@@ -162,18 +180,26 @@ describe("diction", () => {
     }
   });
 
-  test("the old name is said once a draft at most, as what we were, never on /about", () => {
+  test("the old name is said once a message, as what we were, never on /about", () => {
     const drafts = launchDrafts(settled);
-    for (const [, name, text] of everyDraft(drafts)) {
+    // As each is read: the thread whole, a subject with its body.
+    const messages: ReadonlyArray<readonly [string, string, number]> = [
+      ["x thread", drafts.x.join("\n\n"), 1],
+      ["bluesky", drafts.bluesky, 1],
+      ["linkedin", drafts.linkedin, 1],
+      ["discord", drafts.discord, 1],
+      ["luma", `${drafts.luma.subject}\n\n${drafts.luma.body}`, 1],
+      ...drafts.meetup.map(
+        ({ group, subject, body }) =>
+          [`meetup ${group.name}`, `${subject}\n\n${body}`, 1] as const,
+      ),
+      ["about", drafts.about, 0],
+    ];
+    for (const [name, text, expected] of messages) {
       const times = text.split(formerName).length - 1;
-      const expected =
-        name === "about" ||
-        (name.startsWith("x ") && name !== "x 1") ||
-        (name.startsWith("meetup ") && name.endsWith(" subject"))
-          ? 0
-          : 1;
       expect({ name, times }).toEqual({ name, times: expected });
     }
+    expect(drafts.x[0]).toStartWith(`${formerName} is now all things.`);
   });
 });
 
