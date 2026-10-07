@@ -350,8 +350,9 @@ const make = Effect.gen(function* () {
       } satisfies DraftAdded;
       if (dryRun) return added;
       const at = DateTime.formatIso(yield* DateTime.now);
-      // The sync's own insert for a new event, as a draft; a row stored
-      // meanwhile (by a sync, or another add) is left as it is.
+      // The sync's own insert for a new event, as a draft. A row stored
+      // meanwhile (by a sync, or another add), or another evening holding
+      // its slug, is left as it is: no unique column is overwritten.
       const inserted = yield* sql`
         INSERT INTO events (
           luma_event_id, name, start_date, end_date, is_draft, slug, tagline,
@@ -361,11 +362,11 @@ const make = Effect.gen(function* () {
           ${added.endDate}::timestamptz, true, ${slug}, ${defaultTagline}, 0,
           ${venue.streetAddress}, ${venue.shortLocation}, ${venue.fullAddress},
           ${at}::timestamptz, ${at}::timestamptz)
-        ON CONFLICT (luma_event_id) DO NOTHING
+        ON CONFLICT DO NOTHING
         RETURNING slug`.pipe(orDataSourceError);
       if (inserted.length === 0) {
         return yield* refuse(
-          `${event.name} was stored meanwhile: nothing was written.`,
+          `${event.name} was stored meanwhile, or another evening has the slug ${slug}: nothing was written.`,
         );
       }
       return { ...added, written: true };

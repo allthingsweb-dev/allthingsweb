@@ -372,6 +372,12 @@ describe("adding a private event as a draft", () => {
     expect(reason((await add([{ status: 404 }], false)).exit)).toContain(
       "Luma doesn't show us evt-new",
     );
+    await db.exec(
+      "UPDATE events SET slug = '2026-10-27-allthings-trivia-evt-new' WHERE luma_event_id = 'evt-draft'",
+    );
+    expect(reason((await add([fresh()], false)).exit)).toContain(
+      "allthings/trivia was stored meanwhile, or another evening has the slug 2026-10-27-allthings-trivia-evt-new",
+    );
     const keyless = await add([fresh()], false, "evt-new", {});
     expect(reason(keyless.exit)).toContain("LUMA_API_KEY is not set");
     expect(keyless.requests).toEqual([]);

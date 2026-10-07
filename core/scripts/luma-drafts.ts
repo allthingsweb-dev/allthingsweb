@@ -55,7 +55,7 @@ const command = Command.make(
     ),
 ).pipe(
   Command.withDescription(
-    "Refresh each draft's name, times and venue from Luma's API.",
+    "Refresh each draft's name, times and venue from Luma's API, or with --add, store a private Luma event as a draft.",
   ),
 );
 
