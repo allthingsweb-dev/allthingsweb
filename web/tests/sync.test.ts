@@ -1209,6 +1209,16 @@ describe("the Worker, without what it needs", () => {
       ["MEDIA_UPLOAD_URL"],
     ],
     [
+      "an upload Worker URL ending in an empty query",
+      {
+        ...complete(),
+        SYNC_IMAGES: "upload",
+        MEDIA_UPLOAD_URL: "https://upload.example.workers.dev/?",
+        MEDIA_UPLOAD_TOKEN: uploadToken,
+      },
+      ["MEDIA_UPLOAD_URL"],
+    ],
+    [
       "an unknown place for images",
       { ...complete(), SYNC_IMAGES: "store" },
       ["SYNC_IMAGES"],

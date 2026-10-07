@@ -123,6 +123,9 @@ const isText = (value: unknown): value is string =>
 export const isUploadRoot = (value: string): boolean => {
   const url = URL.parse(value.trim());
   return (
+    // Not even an empty query or fragment: "https://host/?" parses with
+    // none, but a key appended to it would still land after the "?".
+    !/[?#]/.test(value) &&
     url?.protocol === "https:" &&
     url.pathname === "/" &&
     url.search === "" &&

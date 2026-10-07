@@ -191,6 +191,8 @@ describe("uploadUrl", () => {
       "https://upload.example.workers.dev/media",
       "https://upload.example.workers.dev/?key=a",
       "https://upload.example.workers.dev/#a",
+      "https://upload.example.workers.dev/?",
+      "https://upload.example.workers.dev/#",
     ]) {
       const result = read(value);
       if (Result.isSuccess(result)) throw new Error(`accepted ${value}`);
