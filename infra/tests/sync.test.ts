@@ -28,11 +28,11 @@ const write = (value?: string) =>
   );
 
 describe("the sync Worker", () => {
-  test("runs hourly in dry-run, writing nothing beside the app's cron until the handover", () => {
+  test("writes every hour, the sync's one writer now the app's cron is gone", () => {
     expect(SYNC.schedule).toBe("hourly");
     expect(cronsFor(SYNC.schedule)).toEqual(["0 * * * *"]);
-    expect(SYNC.mode).toBe("dry-run");
-    expect(workerWrites(SYNC)).toBe(false);
+    expect(SYNC.mode).toBe("write");
+    expect(workerWrites(SYNC)).toBe(true);
   });
 
   test("has no Cron Trigger when off", () => {
