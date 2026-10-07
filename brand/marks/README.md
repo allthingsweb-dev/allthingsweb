@@ -1,6 +1,6 @@
 # Marks
 
-The all things/\_ marks, generated from the design tokens and the Archivo
+The allthings/\_ marks, generated from the design tokens and the Archivo
 typeface. The output lives in [`app/public/brand`](../../app/public/brand).
 
 | File                                                       | What it is                                                                                     |

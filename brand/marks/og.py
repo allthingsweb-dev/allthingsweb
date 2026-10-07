@@ -161,7 +161,7 @@ class Page:
     title: str
     #: The big line(s); "" in a line is the open slot (the cursor alone).
     lines: tuple[str, ...]
-    #: Whether the first line is the lockup's "all things/".
+    #: Whether the first line is the lockup's "allthings/".
     lockup: bool
     meta: str
     lead: tuple[str, ...]
@@ -173,10 +173,10 @@ SENTENCES = (
 )
 
 PAGES = (
-    Page("og-home.png", "all things/_", ("",), True, "San Francisco", SENTENCES),
+    Page("og-home.png", "allthings/_", ("",), True, "San Francisco", SENTENCES),
     Page(
         "og-events.png",
-        "every evening · all things/_",
+        "every evening · allthings/_",
         ("every evening",),
         False,
         "ahead and past",
@@ -184,7 +184,7 @@ PAGES = (
     ),
     Page(
         "og-people.png",
-        "people · all things/_",
+        "people · allthings/_",
         ("people",),
         False,
         "organizers and speakers",
@@ -192,7 +192,7 @@ PAGES = (
     ),
     Page(
         "og-about.png",
-        "about · all things/_",
+        "about · allthings/_",
         ("about",),
         False,
         "who we are",
@@ -200,7 +200,7 @@ PAGES = (
     ),
     Page(
         "og-code-of-conduct.png",
-        "code of conduct · all things/_",
+        "code of conduct · allthings/_",
         ("code of conduct",),
         False,
         "welcoming, respectful, community first",
@@ -208,7 +208,7 @@ PAGES = (
     ),
     Page(
         "og-brand.png",
-        "all things/brand",
+        "allthings/brand",
         ("brand",),
         True,
         "palette, type, marks",
@@ -216,7 +216,7 @@ PAGES = (
     ),
     Page(
         "og-not-found.png",
-        "not found · all things/_",
+        "not found · allthings/_",
         ("not found",),
         False,
         "404",
@@ -233,7 +233,7 @@ def page_card(setter: Setter, c: dict[str, str], page: Page) -> str:
     # The big words: the lockup, or a page's name under the small wordmark.
     lines: list[list[Span]] = []
     if page.lockup:
-        lines.append([Span("all things", p["text"]), Span("/", p["accent"])])
+        lines.append([Span("allthings", p["text"]), Span("/", p["accent"])])
     style = LOCKUP if page.lockup else NAME
     for line in page.lines:
         lines.append([Span(line, p["text"])] if line else [])
@@ -250,7 +250,7 @@ def page_card(setter: Setter, c: dict[str, str], page: Page) -> str:
             )
     if not page.lockup:
         wordmark = [
-            Span("all things", p["text"]),
+            Span("allthings", p["text"]),
             Span("/", p["accent"]),
             Span("_", p["accent"]),
         ]
@@ -269,7 +269,7 @@ def event_ground(setter: Setter, c: dict[str, str], night: bool) -> str:
     style = Style("archivo", 800, 112, 56, -0.05)
     x = W - MARGIN - setter.width(mark, style)
     parts = [ground(c, night), setter.draw(mark, style, x, H - MARGIN)]
-    return card("".join(parts), "all things/_")
+    return card("".join(parts), "allthings/_")
 
 
 # What the Worker draws event cards with: each role's instance, written as

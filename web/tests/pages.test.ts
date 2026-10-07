@@ -215,7 +215,7 @@ describe("/brand", () => {
   it("renders brand/foundations.md under the page's own title", async (url) => {
     const { html } = await brand(url);
     expect(html).toContain("<h1 ");
-    expect(html).toContain("<h2>all things/_ — brand foundations</h2>");
+    expect(html).toContain("<h2>allthings/_ — brand foundations</h2>");
     expect(html).toContain("<h3>Who we are</h3>");
     expect(html).toContain(
       '<section class="scroll" aria-label="Color" tabindex="0"><table>',

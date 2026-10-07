@@ -17,12 +17,12 @@ import { clockTime, day, year } from "../pages/time.ts";
  *
  *     THU OCT 16 · 6:00 PM                         (meta, Geist Mono)
  *
- *     all things/                                  (the lockup, Archivo 800)
+ *     allthings/                                   (the lockup, Archivo 800)
  *     effect_
  *
  *     EAST CUT · CODERABBIT                    a/  (label, Archivo 700 75%)
  *
- * The lockup is all things/<topic>, or the name as written when it has no
+ * The lockup is allthings/<topic>, or the name as written when it has no
  * topic, as large as fits; the cursor follows while the evening is ahead.
  * Its old covers carry the old name, so they are never used.
  */
@@ -32,11 +32,14 @@ export const cardHeight = 630;
 const margin = 72;
 const measure = cardWidth - 2 * margin;
 
+/** The word a topic's lockup starts with, before the slash. */
+const lockupWord = "allthings";
+
 /** What a card says, and nothing else: its version is a hash of this. */
 export interface CardFacts {
   readonly slug: string;
   readonly mode: EventPage["mode"];
-  /** all things/<topic>, or `name` alone when there is none. */
+  /** allthings/<topic>, or `name` alone when there is none. */
   readonly topic: string | undefined;
   readonly name: string;
   /** Whether the cursor follows: the evening is ahead or on now. */
@@ -199,7 +202,7 @@ export function layoutCard(
     });
   }
 
-  // The lockup above it: "all things/" over the topic, or the name.
+  // The lockup above it: "allthings/" over the topic, or the name.
   const words = facts.topic ?? facts.name;
   const maxLines = facts.topic === undefined ? 3 : 2;
   const cursorWidth = (size: number) => textWidth(metrics.lockup, "_", size);
@@ -234,9 +237,8 @@ export function layoutCard(
   const lockupLeft = margin - Math.round(size * 0.04);
 
   if (facts.topic !== undefined) {
-    const allThings = "all things";
     texts.push({
-      text: allThings,
+      text: lockupWord,
       font: "lockup",
       size,
       color: colors.text,
@@ -248,7 +250,9 @@ export function layoutCard(
       font: "lockup",
       size,
       color: colors.slash,
-      left: Math.round(lockupLeft + textWidth(metrics.lockup, allThings, size)),
+      left: Math.round(
+        lockupLeft + textWidth(metrics.lockup, lockupWord, size),
+      ),
       top: top("lockup", size, baseline),
     });
     baseline += lineHeight;
@@ -288,13 +292,15 @@ function fnv(text: string): string {
 }
 
 /**
- * The card's version: a hash of what it says and of the ground and fonts
- * it is drawn with, so a link preview fetches it again when any changes.
+ * The card's version: a hash of what it says (its facts and the lockup's
+ * word) and of the ground and fonts it is drawn with, so a link preview
+ * fetches it again when any changes.
  */
 export const cardVersion = (facts: CardFacts): string =>
   fnv(
     JSON.stringify([
       facts,
+      lockupWord,
       built.og.cards.eventNight.src,
       built.og.cards.eventPaper.src,
       built.og.fonts,

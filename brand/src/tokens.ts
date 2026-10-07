@@ -3,7 +3,7 @@ import source from "../all-things.tokens.json" with { type: "json" };
 import metricsSource from "../type-metrics.json" with { type: "json" };
 
 /**
- * The all things/_ design tokens: all-things.tokens.json, in the W3C Design
+ * The allthings/_ design tokens: all-things.tokens.json, in the W3C Design
  * Tokens Community Group format, validated. Everything that draws the brand
  * (the site's CSS, the marks, covers) reads them from here.
  */

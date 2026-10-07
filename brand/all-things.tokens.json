@@ -1,5 +1,5 @@
 {
-  "$description": "all things/_ design tokens. Source of truth for color, type, layout and motion; see brand/foundations.md.",
+  "$description": "allthings/_ design tokens. Source of truth for color, type, layout and motion; see brand/foundations.md.",
   "color": {
     "$type": "color",
     "paper": {
@@ -167,7 +167,7 @@
           "unit": "px"
         }
       },
-      "$description": "all things/<topic>.",
+      "$description": "allthings/<topic>.",
       "$extensions": {
         "dev.allthings": {
           "width": "112%",
