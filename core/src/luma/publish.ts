@@ -255,7 +255,12 @@ const make = Effect.gen(function* () {
     );
 
   const checkTimes = (start: string | undefined, end: string | undefined) => {
-    if (start !== undefined && end !== undefined && end <= start) {
+    if (
+      start !== undefined &&
+      end !== undefined &&
+      // Luma may answer with an offset: compare instants, not text.
+      Date.parse(end) <= Date.parse(start)
+    ) {
       return refuse("An evening ends after it starts.");
     }
     return Effect.void;

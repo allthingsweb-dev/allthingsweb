@@ -509,3 +509,45 @@ describe("reading Luma's answers", () => {
     expect(await read(viewedBody, viewed.id)).toMatchObject({ access: "view" });
   });
 });
+
+describe("times as Luma writes them", () => {
+  test("an update compares instants, whatever offset Luma answers with", async () => {
+    // Luma answers 6 PM in San Francisco with an offset; the new end is 9 PM.
+    const { exit } = await run(
+      (s) =>
+        s.update(
+          { _tag: "Luma", lumaEventId: "evt-draft" },
+          { endAt: "2026-11-18T05:00:00.000Z" },
+          true,
+        ),
+      {
+        "/v1/events/get": [
+          json(
+            lumaEvent({
+              start_at: "2026-11-17T18:00:00-08:00",
+              end_at: "2026-11-17T20:00:00-08:00",
+            }),
+          ),
+        ],
+      },
+    );
+    expect(value(exit).body).toEqual({
+      end_at: "2026-11-18T05:00:00.000Z",
+      timezone: "America/Los_Angeles",
+    });
+    const backwards = await run(
+      (s) =>
+        s.update(
+          { _tag: "Luma", lumaEventId: "evt-draft" },
+          { endAt: "2026-11-18T01:00:00.000Z" },
+          true,
+        ),
+      {
+        "/v1/events/get": [
+          json(lumaEvent({ start_at: "2026-11-17T18:00:00-08:00" })),
+        ],
+      },
+    );
+    expect(message(backwards.exit)).toBe("An evening ends after it starts.");
+  });
+});

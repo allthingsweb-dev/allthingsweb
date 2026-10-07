@@ -12,9 +12,9 @@ import {
  */
 describe("Luma tools", () => {
   test("each tool lists the inputs its schema takes", () => {
-    expect(lumaToolDefinitions.map((tool) => tool.name).toSorted()).toEqual(
-      Object.keys(lumaSchemas).toSorted(),
-    );
+    expect(
+      lumaToolDefinitions.map((tool): string => tool.name).toSorted(),
+    ).toEqual(Object.keys(lumaSchemas).toSorted());
     for (const definition of lumaToolDefinitions) {
       const shape = lumaSchemas[definition.name].shape as Record<
         string,
