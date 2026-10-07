@@ -17,7 +17,7 @@ const core = fileURLToPath(new URL("../../core/", import.meta.url));
  * the CLI never disagree.
  */
 
-export const socialChannels = ["bluesky"] as const;
+export const socialChannels = ["bluesky", "discord"] as const;
 const moments = ["announce", "dayOf", "recap"] as const;
 
 export const socialSchemas = {
@@ -93,7 +93,8 @@ const common = {
   channel: {
     type: "string",
     enum: [...socialChannels],
-    description: "Where: bluesky (@allthingsweb.dev)",
+    description:
+      "Where: bluesky (@allthingsweb.dev), or discord (our server, through its channel webhook)",
   },
   slug: { type: "string", description: "The published evening's slug" },
   moment: {
@@ -115,7 +116,7 @@ export const socialToolDefinitions: ReadonlyArray<{
   {
     name: "social_prepare_post",
     description:
-      "The exact post an evening's promotion draft makes on a platform (text, links and mentions), whether our account already posted it, and its approval token. Read-only: posts nothing.",
+      "The exact post an evening's promotion draft makes on a platform (text, links and mentions; for Discord, the channel it goes to), whether it already went out, and its approval token. Read-only: posts nothing.",
     inputSchema: {
       type: "object",
       properties: common,
@@ -125,7 +126,7 @@ export const socialToolDefinitions: ReadonlyArray<{
   {
     name: "social_post",
     description:
-      "Post exactly what an organizer approved, once: approve is the token social_prepare_post printed for it, and anything changed since is refused, as is a text our account already posted. Only on an organizer's explicit go.",
+      "Post exactly what an organizer approved, once: approve is the token social_prepare_post printed for it, and anything changed since is refused, as is a post already out (or, on Discord, a send that went unanswered, until an organizer settles it with the CLI: --sent or --release). Only on an organizer's explicit go.",
     inputSchema: {
       type: "object",
       properties: {

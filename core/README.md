@@ -753,6 +753,50 @@ DATABASE_URL=… BLUESKY_HANDLE=… BLUESKY_APP_PASSWORD=… \
   bun run social bluesky <slug> --moment announce --approve <token>        # exactly that, once
 ```
 
+## Sending to the Discord
+
+`src/social/announce-discord.ts` sends an evening's Discord draft to our
+server through its channel webhook (`src/social/discord.ts`: `GET` the
+webhook, and `POST` it with `?wait=true`, as Discord's docs describe them),
+exactly as an organizer approved it. `allowed_mentions` is empty, so no
+text in a draft can ping anyone.
+
+A webhook can post but can't read the channel, so `planning.sent_posts`
+(`migrations/0021_sent_posts.ts`, `src/social/sent-posts.ts`) records
+what was sent: one row per channel, evening and moment.
+
+- `--dry-run` reads only. It prints the message, the server and channel
+  the webhook posts to, whether that moment was already sent, and the
+  approval token. The token covers the webhook, its channel, the evening,
+  the moment and the message.
+- `--approve <token>` makes the message again and goes on only if it
+  hashes the same and nothing was sent or started for that moment. Then
+  it claims the moment, sends once and records the message's page.
+  - If Discord refuses the message (4xx), the claim is dropped.
+  - If there's no answer (30 seconds at most), or a 5xx, the claim is kept
+    as `unanswered`, since the message may be out. Nothing goes out again
+    until an organizer has looked in the channel and settled it:
+    - `--sent <message id>` when the message is there. The webhook reads
+      it back by id, and it must hash to the approved token, even if the
+      draft has changed since.
+    - `--release` when it isn't, so it can be approved again.
+  - A claim still `sending` five minutes on counts as unanswered (its
+    process died). One that is younger is still going, so neither command
+    touches it.
+  - A sent message is never released.
+
+The webhook URL is the 1Password item "allthings Discord webhook" (`url`).
+It is a secret: nothing prints it. The record is in the planning schema,
+so `DATABASE_URL` is the database owner. Nothing in the tests reaches
+Discord.
+
+```sh
+DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --dry-run          # the message, where it goes, its token
+DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --approve <token>  # exactly that, once
+DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --sent <message id>  # record the message an unanswered send left
+DATABASE_URL=… bun run social discord <slug> --moment dayOf --release                                # let go of an unanswered send that left none
+```
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's

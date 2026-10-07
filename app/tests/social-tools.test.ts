@@ -59,5 +59,19 @@ describe("posting tools", () => {
     expect(() =>
       socialArguments("social_prepare_post", { ...post, channel: "myspace" }),
     ).toThrow();
+    expect(
+      socialArguments("social_prepare_post", {
+        ...post,
+        channel: "discord",
+        moment: "dayOf",
+      }),
+    ).toEqual([
+      "discord",
+      "--moment=dayOf",
+      "--dry-run",
+      "--json",
+      "--",
+      "evening",
+    ]);
   });
 });
