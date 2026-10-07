@@ -109,20 +109,28 @@ From activation, media.allthings.dev, allthings.dev and www are unserved until P
 
 From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself.
 
-1. **Wait for activation, then deploy at once.** Start this before the move is submitted. It reads the deploy's secrets, checks the zone every 10 seconds, then runs the prod deploy (now "serve"):
+1. **Wait for activation, then deploy at once.** Start this before the move is submitted. It reads the deploy's secrets and stops if any is missing, checks that the `allthings` profile can still plan, then checks the zone every 10 seconds and runs the prod deploy (now "serve") once it is active:
 
    ```sh
-   # Read the secrets first, so nothing waits on 1Password at activation.
-   export NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential")
-   export NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential")
-   export LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential")
-   export X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token")
-   until CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 NODE_OPTIONS=--dns-result-order=ipv4first \
-       bunx cf@1.0.0-beta.12 --profile allthings zones get --zone f65e1c6d54e9d2e850cf025190ef8915 2>/dev/null |
-       jq -e '(.result // .).status == "active"' >/dev/null; do
-     sleep 10
-   done
-   bun run deploy --stage prod --profile allthings
+   (
+     set -euo pipefail
+     # Read the secrets first, so nothing waits on 1Password at activation.
+     # A failed read stops here, and so does an empty value.
+     NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential")
+     NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential")
+     LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential")
+     X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token")
+     : "${NEON_READER_URL:?empty}" "${NEON_SYNC_URL:?empty}" "${LUMA_API_KEY:?empty}" "${X_BEARER_TOKEN:?empty}"
+     export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN
+     # Prove the allthings profile can still deploy before waiting on it.
+     bun run plan --stage prod --profile allthings >/dev/null
+     until CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 NODE_OPTIONS=--dns-result-order=ipv4first \
+         bunx cf@1.0.0-beta.12 --profile allthings zones get --zone f65e1c6d54e9d2e850cf025190ef8915 2>/dev/null |
+         jq -e '(.result // .).status == "active"' >/dev/null; do
+       sleep 10
+     done
+     bun run deploy --stage prod --profile allthings
+   )
    ```
 
    The deploy brings up:
