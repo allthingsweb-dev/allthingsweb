@@ -305,6 +305,26 @@ describe("EventPages", () => {
     expect(later.next).toBeUndefined();
   });
 
+  test("points to our next evening, never one we only share", async () => {
+    const shared = await seededDatabase();
+    try {
+      await shared.exec(`
+        INSERT INTO sponsors (id, name, about, updated_at) VALUES
+          ('c0000000-0000-4000-8000-000000000900', 'Mastra', '', now());
+        UPDATE events SET curation = 'shared', organized_by = 'c0000000-0000-4000-8000-000000000900'
+          WHERE slug = '2026-10-03-ends-now';
+      `);
+      const page = await Effect.runPromise(
+        readPage("2026-08-12-react-at-acme", now, shared),
+      );
+      // Ends now is sooner, but someone else's: the hack day is ours.
+      expect(page.next?.slug).toBe("2026-10-03-hack-day");
+      expect(page.next?.curation).toEqual({ kind: "ours" });
+    } finally {
+      await shared.close();
+    }
+  });
+
   test("reads a live daytime hackathon without a venue or Luma page", async () => {
     const page = await read("2026-10-03-hack-day");
     expect(page).toMatchObject({
