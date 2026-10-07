@@ -557,6 +557,28 @@ script. `tests/promo.test.ts` keeps each seeded evening's drafts as golden
 files in `tests/fixtures/promo/`; after an intended change, regenerate them
 with `UPDATE_GOLDEN=1 bun test tests/promo.test.ts` and read the diff.
 
+### The launch kit
+
+`src/promo/launch.ts` drafts the rebrand's announcement: an X thread, posts
+for Bluesky, the LinkedIn company page and Discord, the Luma calendar's
+newsletter, an announcement for each Meetup group the evenings are listed
+in, and a note for /about's history. It says what changed (the name and
+the domain, short links, person pages, shared evenings, the at/hack
+starter) and names the next evening. What isn't settled is one value with
+a placeholder and a gap: the X handle (`launchXHandle`) and the next
+evening. A checklist of what has to be true before posting comes first.
+
+```sh
+bun run promo:launch                                  # every draft, placeholders for what isn't settled
+bun run promo:launch --channel x --channel discord    # only these
+bun run promo:launch --x-handle allthingsdev          # before launchXHandle is set
+DATABASE_URL=… bun run promo:launch --next <slug>     # naming a published, upcoming evening of ours
+```
+
+Only `--next` reads the database. `tests/promo-launch.test.ts` keeps the
+kit with placeholders and settled as golden files; regenerate them with
+`UPDATE_GOLDEN=1 bun test tests/promo-launch.test.ts`.
+
 ## Planning
 
 Every evening starts in `planning`, a Postgres schema of its own
