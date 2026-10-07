@@ -203,17 +203,25 @@ export const syncBindings = (
 const bucketOf = (
   env: SyncEnv & Readonly<Record<string, unknown>>,
   fetch: typeof globalThis.fetch,
-) =>
-  imagesOf(env) === "upload" &&
-  env.MEDIA_UPLOAD_URL !== undefined &&
-  env.MEDIA_UPLOAD_TOKEN !== undefined
-    ? uploadWorkerBucket(
-        env.MEDIA_UPLOAD_URL,
-        env.MEDIA_UPLOAD_TOKEN,
-        env.MEDIA_ORIGIN,
-        fetch,
-      )
-    : mediaBucket(env.MEDIA, env.MEDIA_ORIGIN);
+) => {
+  const images = imagesOf(env);
+  switch (images) {
+    case "bucket":
+      return mediaBucket(env.MEDIA, env.MEDIA_ORIGIN);
+    case "upload": {
+      const { MEDIA_UPLOAD_URL: url, MEDIA_UPLOAD_TOKEN: token } = env;
+      // syncBindings refuses this before any run; never the other bucket.
+      if (url === undefined || token === undefined) {
+        throw new Error(
+          'SYNC_IMAGES is "upload" without MEDIA_UPLOAD_URL and MEDIA_UPLOAD_TOKEN',
+        );
+      }
+      return uploadWorkerBucket(url, token, env.MEDIA_ORIGIN, fetch);
+    }
+    case undefined:
+      throw new Error('SYNC_IMAGES is neither "bucket" nor "upload"');
+  }
+};
 
 /**
  * Everything a run needs, from the Worker's bindings. The database pool
