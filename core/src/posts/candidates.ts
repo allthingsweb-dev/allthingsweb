@@ -913,24 +913,19 @@ export const findCandidates = (options: CandidateOptions) =>
     const lumaPages = new Map<string, string | null>();
 
     /** The evening's Luma page, as Luma names it, or null. */
-    const lumaPage = (lumaEventId: string | null) =>
-      lumaEventId === null
-        ? Effect.succeed(null)
-        : client
-            .execute(
-              HttpClientRequest.get(`https://luma.com/event/${lumaEventId}`),
-            )
-            .pipe(
-              Effect.flatMap((response) => response.text),
-              Effect.map(
-                (html) =>
-                  /<link rel="canonical" href="(https:\/\/luma\.com\/[^"]+)"/.exec(
-                    html,
-                  )?.[1] ?? null,
-              ),
-              Effect.timeout(Duration.seconds(15)),
-              Effect.orElseSucceed(() => null),
-            );
+    const lumaPage = (lumaEventId: string) =>
+      client
+        .execute(HttpClientRequest.get(`https://luma.com/event/${lumaEventId}`))
+        .pipe(
+          Effect.flatMap((response) => response.text),
+          Effect.map(
+            (html) =>
+              /<link rel="canonical" href="(https:\/\/luma\.com\/[^"]+)"/.exec(
+                html,
+              )?.[1] ?? null,
+          ),
+          Effect.timeout(Duration.seconds(15)),
+        );
 
     // Requests left: a Luma page and each add are counted before they are
     // sent; a search may send at most what is left, and reports what it sent.
@@ -940,20 +935,32 @@ export const findCandidates = (options: CandidateOptions) =>
       left -= granted;
       return granted;
     };
+    // Luma pages that failed to read this run, which aren't tried again.
+    const unreadable = new Set<string>();
     /**
      * The evening's signals with its Luma page, read once a run and
-     * counted; none when no request is left to read it.
+     * counted; none when its page is unread: no request was left to read
+     * it, or reading it failed. A page read without a canonical link is
+     * read, and gives none.
      */
     const readSignals = (row: typeof SignalsRow.Type) =>
       Effect.gen(function* () {
+        if (unreadable.has(row.slug)) return null;
         if (lumaPages.has(row.slug)) {
           return toSignals(row, lumaPages.get(row.slug) ?? null);
         }
-        if (row.lumaEventId !== null && spend(1) === 0) return null;
-        const page =
-          row.lumaEventId === null ? null : yield* lumaPage(row.lumaEventId);
-        lumaPages.set(row.slug, page);
-        return toSignals(row, page);
+        if (row.lumaEventId === null) {
+          lumaPages.set(row.slug, null);
+          return toSignals(row, null);
+        }
+        if (spend(1) === 0) return null;
+        const read = yield* Effect.result(lumaPage(row.lumaEventId));
+        if (read._tag === "Failure") {
+          unreadable.add(row.slug);
+          return null;
+        }
+        lumaPages.set(row.slug, read.success);
+        return toSignals(row, read.success);
       });
     const reports: Array<CandidateReport> = [];
     for (const row of events) {

@@ -942,7 +942,19 @@ describe("findCandidates", () => {
     await db.exec(
       `UPDATE events SET luma_event_id = 'evt-hack' WHERE slug = '2026-10-03-hack-day'`,
     );
-    // Luma names the hack day's page; nothing else has one.
+    // Luma names the hack day's page, unless reading it fails; nothing
+    // else has one.
+    let hackPageFails = false;
+    const hackPage = () =>
+      hackPageFails
+        ? new Response(
+            new ReadableStream({
+              start: (controller) => controller.error(new Error("reset")),
+            }),
+          )
+        : new Response(
+            '<link rel="canonical" href="https://luma.com/hack-day-sf">',
+          );
     const luma = Layer.succeed(
       HttpClient.HttpClient,
       HttpClient.make((request) =>
@@ -950,9 +962,7 @@ describe("findCandidates", () => {
           HttpClientResponse.fromWeb(
             request,
             request.url.endsWith("/event/evt-hack")
-              ? new Response(
-                  '<link rel="canonical" href="https://luma.com/hack-day-sf">',
-                )
+              ? hackPage()
               : new Response("", { status: 404 }),
           ),
         ),
@@ -993,6 +1003,12 @@ describe("findCandidates", () => {
     // being filed on what the run hasn't read.
     const [tight] = await find(2);
     expect(tight?.candidates.map((c) => c.outcome)).toEqual([
+      "left for a later run: another evening's Luma page is unread",
+    ]);
+    // A page that fails to read is unread too, not a page without a link.
+    hackPageFails = true;
+    const [failed] = await find();
+    expect(failed?.candidates.map((c) => c.outcome)).toEqual([
       "left for a later run: another evening's Luma page is unread",
     ]);
   });
