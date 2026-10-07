@@ -109,14 +109,30 @@ export type SyncImages = "bucket" | "upload";
  * The upload Worker's URL, from the deploy's environment: HTTPS, and never
  * printed with anything but the variable's name.
  */
+/**
+ * Whether `value` is an https URL with nothing after its host: the Sync
+ * Worker puts each key right after it, and the upload Worker reads the key
+ * from the path alone, so a path, query or fragment would misplace it.
+ * (web/src/sync/worker.ts checks the same before a run.)
+ */
+export const isUploadRoot = (value: string): boolean => {
+  const url = URL.parse(value.trim());
+  return (
+    url?.protocol === "https:" &&
+    url.pathname === "/" &&
+    url.search === "" &&
+    url.hash === ""
+  );
+};
+
 export const uploadUrl = Config.String("MEDIA_UPLOAD_URL").pipe(
   Config.mapEffect((value) =>
-    URL.parse(value.trim())?.protocol === "https:"
+    isUploadRoot(value)
       ? Effect.succeed(value.trim())
       : Effect.fail(
           new Config.ConfigError(
             new SourceError({
-              message: "MEDIA_UPLOAD_URL is not an https URL",
+              message: "MEDIA_UPLOAD_URL is not an https root URL",
             }),
           ),
         ),

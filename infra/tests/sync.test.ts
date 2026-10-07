@@ -166,6 +166,13 @@ describe("uploadUrl", () => {
     );
 
   test("is the upload Worker's https URL", () => {
+    for (const root of [
+      "https://allthings-mediaupload-prod-x.example.workers.dev/",
+      " https://allthings-mediaupload-prod-x.example.workers.dev ",
+    ]) {
+      const rooted = read(root);
+      if (Result.isFailure(rooted)) throw new Error(rooted.failure.message);
+    }
     const result = read(
       "https://allthings-mediaupload-prod-x.example.workers.dev",
     );
@@ -175,9 +182,16 @@ describe("uploadUrl", () => {
     );
   });
 
-  test("fails the deploy when unset or not https", () => {
+  test("fails the deploy when unset, not https, or with anything after the host", () => {
     expect(Result.isFailure(read())).toBe(true);
-    for (const value of ["http://upload.example", "upload.example", "  "]) {
+    for (const value of [
+      "http://upload.example",
+      "upload.example",
+      "  ",
+      "https://upload.example.workers.dev/media",
+      "https://upload.example.workers.dev/?key=a",
+      "https://upload.example.workers.dev/#a",
+    ]) {
       const result = read(value);
       if (Result.isSuccess(result)) throw new Error(`accepted ${value}`);
       expect(result.failure.message).toContain("MEDIA_UPLOAD_URL");

@@ -115,6 +115,21 @@ export const imagesOf = (env: {
 const isText = (value: unknown): value is string =>
   typeof value === "string" && value.trim() !== "";
 
+/**
+ * An https URL with nothing after its host, as the upload Worker's must be:
+ * each key goes right after it, and the upload Worker reads the key from the
+ * path alone. (infra/src/sync.ts checks the same at deploy.)
+ */
+export const isUploadRoot = (value: string): boolean => {
+  const url = URL.parse(value.trim());
+  return (
+    url?.protocol === "https:" &&
+    url.pathname === "/" &&
+    url.search === "" &&
+    url.hash === ""
+  );
+};
+
 /** Whether `value` is an object with each of `methods`. */
 const isBinding = (value: unknown, ...methods: ReadonlyArray<string>) =>
   typeof value === "object" &&
@@ -156,7 +171,7 @@ const required: ReadonlyArray<
     (env) =>
       imagesOf(env) !== "upload" ||
       (isText(env["MEDIA_UPLOAD_URL"]) &&
-        URL.parse(env["MEDIA_UPLOAD_URL"])?.protocol === "https:"),
+        isUploadRoot(env["MEDIA_UPLOAD_URL"])),
   ],
   [
     "MEDIA_UPLOAD_TOKEN",

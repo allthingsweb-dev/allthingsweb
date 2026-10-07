@@ -115,6 +115,7 @@ The move can take as long as it takes. The deploy that switches updates the same
 - `HYPERDRIVE`, from `NEON_SYNC_URL`
 - `LUMA_API_KEY` and `X_BEARER_TOKEN`
 - `MEDIA`, `MEDIA_ORIGIN` and `IMAGES`
+- `SYNC_IMAGES`, `"bucket"` or `"upload"`, and for `"upload"` also `MEDIA_UPLOAD_URL` (an https root URL, nothing after the host) and `MEDIA_UPLOAD_TOKEN`
 
 A blank secret counts as missing. Without any of them, it opens no connection and sends no request. It logs one line naming each missing binding, never a value, and fails its invocation, so the Cron Trigger's event shows the failure:
 
