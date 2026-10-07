@@ -63,13 +63,35 @@ jobs:
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            # After the binaries, so the GitHub release never waits on npm.
+    # Its own job, after the GitHub release, so the release never waits on
+    # npm and a failed publish can be re-run alone.
+    npm:
+        name: Publish to npm
+        needs: releaseandpublish
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - name: ⬇️ Checkout repo
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  persist-credentials: false
+
+            - name: ⎔ Setup bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+            - name: 📥 Download deps
+              run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
+              working-directory: cli
+
             # Packing builds the bundle (prepack). A prerelease goes to the
             # alpha dist-tag and a release to latest. npm gives a package's
             # first version latest whatever its tag, and latest can't be
             # removed, so until a stable release exists latest follows the
-            # newest prerelease instead of staying on the first one. The
-            # step checks the registry's dist-tags before it calls it done.
+            # newest prerelease instead of staying on the first one. What
+            # latest is gets read before publishing, and a failed read stops
+            # the step: it never counts as "no stable release yet". The step
+            # checks the registry's dist-tags before it calls it done.
             - name: 📦 Publish to npm
               working-directory: cli
               run: |
@@ -79,10 +101,29 @@ jobs:
                   fi
                   VERSION="$GITHUB_REF_NAME"
                   TAGS_URL="https://registry.npmjs.org/-/package/allthings/dist-tags"
-                  tags() { curl -fsS "$TAGS_URL" 2>/dev/null || echo '{}'; }
+                  # The dist-tags as JSON, {} if the package doesn't exist
+                  # (404); any other answer is retried, then fails.
+                  tags() {
+                    local out code
+                    for _ in 1 2 3 4 5 6; do
+                      if out=$(curl -sS -w '\n%{http_code}' "$TAGS_URL"); then
+                        code="${out##*$'\n'}"
+                        case "$code" in
+                          200) printf '%s\n' "${out%$'\n'*}"; return 0 ;;
+                          404) echo '{}'; return 0 ;;
+                        esac
+                      fi
+                      sleep 10
+                    done
+                    echo "::error::Could not read npm dist-tags" >&2
+                    return 1
+                  }
+                  # Its own assignment, so a failed read stops the step.
+                  BEFORE=$(tags)
+                  LATEST=$(jq -r '.latest // ""' <<<"$BEFORE")
                   if [[ "$VERSION" == *-* ]]; then
                     bun publish --access public --tag alpha
-                    LATEST=$(tags | jq -r '.latest // ""')
+                    WANT_ALPHA="$VERSION"
                     if [[ -z "$LATEST" || "$LATEST" == *-* ]]; then
                       # Retried: the new version may not be visible yet.
                       for _ in 1 2 3 4 5 6; do
@@ -98,7 +139,6 @@ jobs:
                     else
                       WANT_LATEST="$LATEST"
                     fi
-                    WANT_ALPHA="$VERSION"
                   else
                     bun publish --access public --tag latest
                     WANT_LATEST="$VERSION"
