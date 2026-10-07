@@ -895,6 +895,35 @@ export const planningNotesTable = planningSchema.table(
  * it is sent so it goes out once. core/migrations/0021_sent_posts.ts and
  * 0022_x_sent_posts.ts are the same changes.
  */
+/**
+ * Who organizes, co-hosts and MCs an evening that isn't published yet,
+ * kept private in planning until publishing copies it to event_people.
+ * core/migrations/0024_draft_lineup.ts is the same change.
+ */
+export const planningDraftPeopleTable = planningSchema.table(
+  "draft_people",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profilesTable.id),
+    role: text("role", { enum: eventPersonRoles }).notNull(),
+    /** Order among the evening's people in the same role, from 0. */
+    position: integer("position").notNull(),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.profileId, table.role] }),
+    check(
+      "draft_people_role_check",
+      sql`"role" IN ('organizer', 'co-host', 'mc')`,
+    ),
+    check("draft_people_position_check", sql`"position" >= 0`),
+  ],
+);
+
 export const planningSentPostsTable = planningSchema.table(
   "sent_posts",
   {

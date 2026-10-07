@@ -188,7 +188,45 @@ export interface PlanningShape {
   readonly search: (
     query: string,
   ) => Effect.Effect<ReadonlyArray<SearchHit>, Failure>;
+  /** The draft at `slug`'s private lineup, by role and order. */
+  readonly draftLineup: (
+    slug: string,
+  ) => Effect.Effect<ReadonlyArray<DraftPerson>, Failure>;
+  /**
+   * Makes `people` the whole private lineup of the draft at `slug`, in
+   * their order within each role. A published evening is refused: its
+   * lineup is the public one (core/backfill/lineups.json).
+   */
+  readonly setDraftLineup: (
+    slug: string,
+    people: ReadonlyArray<{
+      readonly role: DraftRole;
+      readonly profile: string;
+    }>,
+  ) => Effect.Effect<ReadonlyArray<DraftPerson>, Failure>;
 }
+
+/** A part someone has at an evening, as event_people names it. */
+export type DraftRole = "organizer" | "co-host" | "mc";
+
+/** Someone in an unpublished evening's private lineup. */
+export interface DraftPerson {
+  readonly role: DraftRole;
+  readonly position: number;
+  readonly profileId: string;
+  readonly name: string;
+}
+
+const DraftPersonRows = Schema.Array(
+  Schema.Struct({
+    role: Schema.Literals(["organizer", "co-host", "mc"]),
+    position: Schema.Int,
+    profileId: Schema.String,
+    name: Schema.String,
+  }),
+);
+
+const roleOrder = ["organizer", "co-host", "mc"] as const;
 
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
@@ -770,7 +808,74 @@ const make = Effect.gen(function* () {
       return yield* Schema.decodeUnknownEffect(Schema.Array(SearchHit))(rows);
     }).pipe(run);
 
+  const DraftRows = Schema.Array(
+    Schema.Struct({ id: Schema.String, isDraft: Schema.Boolean }),
+  );
+
+  const readLineup = (eventId: string) =>
+    sql`
+      SELECT d.role, d.position, d.profile_id AS "profileId", p.name
+      FROM planning.draft_people d JOIN profiles p ON p.id = d.profile_id
+      WHERE d.event_id = ${eventId}
+      ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], d.role), d.position`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(DraftPersonRows)),
+    );
+
+  /** The evening at `slug`, which must still be a draft. */
+  const draftEvent = (slug: string) =>
+    sql`SELECT id, is_draft AS "isDraft" FROM events WHERE slug = ${slug}`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(DraftRows)),
+      Effect.flatMap(([row]) =>
+        row === undefined
+          ? refuse(`No event, published or draft, has the slug "${slug}".`)
+          : !row.isDraft
+            ? refuse(
+                `${slug} is published: its lineup is the public one (core/backfill/lineups.json).`,
+              )
+            : Effect.succeed(row.id),
+      ),
+    );
+
+  const draftLineup = (slug: string) =>
+    Effect.flatMap(draftEvent(slug), readLineup).pipe(run);
+
+  const setDraftLineup: PlanningShape["setDraftLineup"] = (slug, people) =>
+    inTransaction(
+      Effect.gen(function* () {
+        const eventId = yield* draftEvent(slug);
+        const resolved = yield* Effect.forEach(people, (entry) =>
+          Effect.map(profile(entry.profile), (found) => ({
+            role: entry.role,
+            profileId: found.id,
+            name: found.name,
+          })),
+        );
+        const seen = new Set<string>();
+        for (const entry of resolved) {
+          const key = `${entry.role} ${entry.profileId}`;
+          if (seen.has(key)) {
+            return yield* refuse(
+              `${entry.name} is named twice as ${entry.role}.`,
+            );
+          }
+          seen.add(key);
+        }
+        yield* sql`DELETE FROM planning.draft_people WHERE event_id = ${eventId}`;
+        for (const role of roleOrder) {
+          const inRole = resolved.filter((entry) => entry.role === role);
+          for (const [position, entry] of inRole.entries()) {
+            yield* sql`
+              INSERT INTO planning.draft_people (event_id, profile_id, role, position)
+              VALUES (${eventId}, ${entry.profileId}, ${role}, ${position})`;
+          }
+        }
+        return yield* readLineup(eventId);
+      }),
+    );
+
   return Planning.of({
+    draftLineup,
+    setDraftLineup,
     addIdea,
     updateIdea,
     listIdeas,

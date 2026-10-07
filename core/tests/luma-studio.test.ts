@@ -664,6 +664,66 @@ describe("publish", () => {
     expect(await program()).toBe("social");
   });
 
+  test("publishing copies the draft's private lineup to the evening, and takes it back if Luma doesn't", async () => {
+    await Effect.runPromise(
+      Planning.use((p) =>
+        p.setDraftLineup(draft, [
+          { role: "organizer", profile: "Ada Lovelace" },
+          { role: "mc", profile: "Ada Lovelace" },
+        ]),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const lineup = async () =>
+      (
+        await db.query<{ name: string; role: string; source: string }>(
+          `SELECT p.name, ep.role, ep.source FROM event_people ep
+           JOIN profiles p ON p.id = ep.profile_id JOIN events e ON e.id = ep.event_id
+           WHERE e.slug = '${draft}' ORDER BY ep.role, p.name`,
+        )
+      ).rows;
+    const before = await lineup();
+    const prepared = value(
+      (
+        await run((s) => s.prepare(draft), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    expect(await lineup()).toEqual(before);
+    const refused = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [json(lumaEvent())],
+      "/v1/events/update": [{ status: 503 }],
+    });
+    expect(Exit.isFailure(refused.exit)).toBe(true);
+    expect(await lineup()).toEqual(before);
+    const { exit } = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [
+        json(lumaEvent()),
+        json(
+          lumaEvent({
+            visibility: "public",
+            description_md: prepared.outgoing.descriptionMd,
+          }),
+        ),
+      ],
+      "/v1/events/update": [json({})],
+    });
+    expect(Exit.isSuccess(exit)).toBe(true);
+    expect(await lineup()).toEqual(
+      expect.arrayContaining([
+        { name: "Ada Lovelace", role: "organizer", source: "site" },
+        { name: "Ada Lovelace", role: "mc", source: "site" },
+      ]),
+    );
+  });
+
   test("refuses a token for anything else, sending no update", async () => {
     const prepared = value(
       (

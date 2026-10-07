@@ -278,6 +278,44 @@ const make = Effect.gen(function* () {
   const restoreProgram = (slug: string, program: string) =>
     sql`UPDATE events SET program = ${program} WHERE slug = ${slug}`;
 
+  const Copied = Schema.Array(
+    Schema.Struct({
+      eventId: Schema.String,
+      profileId: Schema.String,
+      role: Schema.String,
+    }),
+  );
+
+  /**
+   * Copies the private lineup planning keeps for the draft at `slug`
+   * (planning.draft_people) to its public one, leaving anyone already on
+   * it as they are: the rows it added.
+   */
+  const copyPlannedLineup = (slug: string) =>
+    Effect.flatMap(DateTime.now, (now) => {
+      const at = DateTime.formatIso(now);
+      return sql`
+        INSERT INTO event_people (event_id, profile_id, role, position, source, created_at, updated_at)
+        SELECT d.event_id, d.profile_id, d.role, d.position, 'site',
+          ${at}::timestamptz, ${at}::timestamptz
+        FROM planning.draft_people d JOIN events e ON e.id = d.event_id
+        WHERE e.slug = ${slug}
+        ON CONFLICT DO NOTHING
+        RETURNING event_id AS "eventId", profile_id AS "profileId", role`;
+    }).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Copied)),
+      Effect.mapError((cause) => new DataSourceError({ cause })),
+    );
+
+  /** Takes back the rows `copyPlannedLineup` added. */
+  const uncopy = (rows: typeof Copied.Type) =>
+    sql`
+      DELETE FROM event_people ep
+      USING jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
+        AS r("eventId" uuid, "profileId" uuid, role text)
+      WHERE ep.event_id = r."eventId" AND ep.profile_id = r."profileId"
+        AND ep.role = r.role`;
+
   /** The Luma event, which our calendar must manage. */
   const managed = (lumaEventId: string) =>
     luma.get(lumaEventId).pipe(
@@ -444,11 +482,12 @@ const make = Effect.gen(function* () {
         );
       }
       const { outgoing } = prepared;
-      // The kind of evening its idea planned, kept private until now, is
-      // written first, so the evening is never public with the wrong one;
-      // if Luma then says it isn't public, the draft gets its own back.
-      // When Luma can't say, the planned program stays.
+      // The kind of evening its idea planned and the lineup it kept, both
+      // private until now, are written first, so the evening is never
+      // public without them; if Luma then says it isn't public, the draft
+      // gets its own back. When Luma can't say, they stay.
       const before = yield* applyPlannedProgram(slug);
+      const copied = yield* copyPlannedLineup(slug);
       const after = yield* Effect.gen(function* () {
         yield* luma.update(outgoing.lumaEventId, {
           description_md: outgoing.descriptionMd,
@@ -463,7 +502,7 @@ const make = Effect.gen(function* () {
         return read;
       }).pipe(
         Effect.onError(() =>
-          before === null
+          before === null && copied.length === 0
             ? Effect.void
             : Effect.ignore(
                 // Only once Luma says the event is still not public: after
@@ -471,7 +510,14 @@ const make = Effect.gen(function* () {
                 Effect.flatMap(luma.get(outgoing.lumaEventId), (now) =>
                   now.visibility === "public"
                     ? Effect.void
-                    : Effect.asVoid(restoreProgram(slug, before)),
+                    : Effect.all([
+                        before === null
+                          ? Effect.void
+                          : Effect.asVoid(restoreProgram(slug, before)),
+                        copied.length === 0
+                          ? Effect.void
+                          : Effect.asVoid(uncopy(copied)),
+                      ]),
                 ),
               ),
         ),

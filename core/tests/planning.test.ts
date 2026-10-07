@@ -480,6 +480,67 @@ describe("notes and search", () => {
   });
 });
 
+describe("a draft's private lineup", () => {
+  test("is made whole, in order within each role, and read back", async () => {
+    const set = await plan((p) =>
+      p.setDraftLineup(draftEvening, [
+        { role: "mc", profile: "Ada Lovelace" },
+        { role: "organizer", profile: "Grace Hopper" },
+        { role: "organizer", profile: "linus" },
+      ]),
+    );
+    expect(
+      set.map(({ role, position, name }) => [role, position, name]),
+    ).toEqual([
+      ["organizer", 0, "Grace Hopper"],
+      ["organizer", 1, "Linus"],
+      ["mc", 0, "Ada Lovelace"],
+    ]);
+    expect(await plan((p) => p.draftLineup(draftEvening))).toEqual(set);
+    // Set again, it is the whole lineup, not an addition.
+    const again = await plan((p) =>
+      p.setDraftLineup(draftEvening, [{ role: "mc", profile: "Linus" }]),
+    );
+    expect(again.map(({ role, name }) => [role, name])).toEqual([
+      ["mc", "Linus"],
+    ]);
+    expect(await count("draft_people")).toBe(1);
+    // Nothing of it reaches the public lineup.
+    const publicPeople = (
+      await db.query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM event_people ep JOIN events e ON e.id = ep.event_id WHERE e.slug = '2026-09-01-draft-night'",
+      )
+    ).rows[0]?.count;
+    expect(publicPeople).toBe(0);
+  });
+
+  test("refuses a published evening, a name twice, and an unknown profile, writing nothing", async () => {
+    expect(
+      await refusal((p) =>
+        p.setDraftLineup(pastEvening, [{ role: "mc", profile: "Linus" }]),
+      ),
+    ).toBe(
+      `${pastEvening} is published: its lineup is the public one (core/backfill/lineups.json).`,
+    );
+    expect(
+      await refusal((p) =>
+        p.setDraftLineup(draftEvening, [
+          { role: "mc", profile: "Linus" },
+          { role: "mc", profile: "linus" },
+        ]),
+      ),
+    ).toBe("Linus is named twice as mc.");
+    expect(
+      await refusal((p) =>
+        p.setDraftLineup(draftEvening, [
+          { role: "mc", profile: "Nobody Here" },
+        ]),
+      ),
+    ).toBe('No profile is "Nobody Here".');
+    expect(await count("draft_people")).toBe(0);
+  });
+});
+
 describe("pure rules", () => {
   test("isAvailableOn", () => {
     const free = {
