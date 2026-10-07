@@ -4,8 +4,10 @@ import { CoverSource, type CoverSourceShape } from "../src/ingest/covers.ts";
 import { ImageIngest, rotate } from "../src/ingest/ingest.ts";
 import { processForStorage } from "../src/ingest/pictures.ts";
 import {
+  coverHosts,
   downloadImage,
   maxImageBytes,
+  postImageHosts,
   profilePhotoHosts,
 } from "../src/ingest/remote.ts";
 import { looksLikeImage } from "../src/ingest/signature.ts";
@@ -404,6 +406,57 @@ describe("a run's share", () => {
       expect(photos.ingested).toEqual(["Ada Lovelace"]);
     } finally {
       await db.close();
+    }
+  });
+});
+
+describe("the allowed hosts", () => {
+  test("are exactly these, for each kind of image", () => {
+    expect([...coverHosts].toSorted()).toEqual([
+      "cdn.lu.ma",
+      "images.lumacdn.com",
+      "images.unsplash.com",
+    ]);
+    expect([...profilePhotoHosts].toSorted()).toEqual([
+      "avatars.githubusercontent.com",
+      "bookface-images.s3.amazonaws.com",
+      "images.lumacdn.com",
+      "media.licdn.com",
+      "pbs.twimg.com",
+    ]);
+    expect([...postImageHosts].toSorted()).toEqual([
+      "cdn.bsky.app",
+      "media.licdn.com",
+      "pbs.twimg.com",
+      "video.bsky.app",
+      "video.cdn.bsky.app",
+    ]);
+  });
+
+  test("take a Bluesky video post's thumbnail through its redirect to Bluesky's video CDN, for posts alone", async () => {
+    const thumbnail = imageBytes("jpeg", "video");
+    const path = "did:plc:abc/bafkreithumb/thumbnail.jpg";
+    const answers = {
+      [`https://video.bsky.app/watch/${encodeURIComponent("did:plc:abc")}/bafkreithumb/thumbnail.jpg`]: `https://video.cdn.bsky.app/hls/${path}`,
+      [`https://video.cdn.bsky.app/hls/${path}`]: thumbnail,
+    };
+    const url = Object.keys(answers)[0] ?? "";
+    const post = fakeHosts(answers);
+    const exit = await Effect.runPromiseExit(
+      downloadImage(url, postImageHosts).pipe(Effect.provide(post.layer)),
+    );
+    expect(Exit.isSuccess(exit) && exit.value).toEqual(thumbnail);
+    expect(post.asked).toEqual([url, `https://video.cdn.bsky.app/hls/${path}`]);
+    // A profile photo or a cover may not come from there.
+    for (const hosts of [profilePhotoHosts, coverHosts]) {
+      const other = fakeHosts(answers);
+      const refused = await Effect.runPromiseExit(
+        downloadImage(url, hosts).pipe(Effect.provide(other.layer)),
+      );
+      expect(failure(refused)).toBe(
+        "URL is not on an allowed host: https://video.bsky.app",
+      );
+      expect(other.asked).toEqual([]);
     }
   });
 });
