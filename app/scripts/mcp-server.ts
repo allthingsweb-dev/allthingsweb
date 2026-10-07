@@ -46,9 +46,6 @@ import {
   deleteEventImages,
   deleteOrphanedImage,
   addImagesToEvent,
-  addUserToAdmins,
-  removeUserFromAdmins,
-  listAdmins,
   getLumaEvent,
 } from "./functions.js";
 
@@ -782,44 +779,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       draftReadinessTool,
       ...lumaToolDefinitions,
       ...socialToolDefinitions,
-      // Administrator tools
-      {
-        name: "add_user_to_admins",
-        description: "Add a user to administrators by user ID",
-        inputSchema: {
-          type: "object",
-          properties: {
-            userId: {
-              type: "string",
-              description: "User ID from neon_auth.users_sync table",
-            },
-          },
-          required: ["userId"],
-        },
-      },
-      {
-        name: "remove_user_from_admins",
-        description: "Remove a user from administrators by user ID",
-        inputSchema: {
-          type: "object",
-          properties: {
-            userId: {
-              type: "string",
-              description: "User ID to remove from administrators",
-            },
-          },
-          required: ["userId"],
-        },
-      },
-      {
-        name: "list_admins",
-        description: "List all administrators with user details",
-        inputSchema: {
-          type: "object",
-          properties: {},
-          required: [],
-        },
-      },
     ],
   };
 });
@@ -1142,33 +1101,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      // Administrator tools
-      case "add_user_to_admins": {
-        const { userId } = args as { userId: string };
-        const result = await addUserToAdmins(userId);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "remove_user_from_admins": {
-        const { userId } = args as { userId: string };
-        const result = await removeUserFromAdmins(userId);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
-
       case "get_completeness_report": {
         const { slug } = (args ?? {}) as { slug?: string };
         const result = await completenessReport(slug);
@@ -1270,18 +1202,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_promo_drafts": {
         const text = await promoDrafts(GetPromoDraftsSchema.parse(args ?? {}));
         return { content: [{ type: "text", text }] };
-      }
-
-      case "list_admins": {
-        const result = await listAdmins();
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
       }
 
       default:
