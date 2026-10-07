@@ -123,11 +123,36 @@ describe("the evenings index", () => {
       'datetime="2025-01-01T05:00:00.000Z">12.31.24</time>',
     );
     expect(y2024[0]).toContain(
-      '<span class="place at-type-list-place">Mission</span>',
+      '<span class="place at-type-list-place"><span class="visually-hidden">, neighborhood: </span><span>Mission</span></span>',
     );
     for (const row of [...y2024, ...rows(section(html, "evenings-2026"))]) {
       expect(row).not.toContain("at-cursor");
     }
+  });
+
+  test("labels each list's place column on its title's line: the places are neighborhoods", async () => {
+    const html = render(view);
+    const label =
+      '<p class="list-column at-type-meta" aria-hidden="true">Neighborhood</p>';
+    for (const id of ["upcoming", "evenings-2026", "evenings-2024"]) {
+      expect(section(html, id)).toContain(`</h2>${label}</div><ol>`);
+    }
+    // A screen reader hears it in each row rather than over the column.
+    for (const row of rows(html)) {
+      expect(row.includes('class="place')).toBe(
+        row.includes('<span class="visually-hidden">, neighborhood: </span>'),
+      );
+    }
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+
+  test("labels no place column in a list without a neighborhood", () => {
+    const html = render({
+      ahead: view.ahead.slice(1),
+      past: view.past,
+    });
+    expect(section(html, "upcoming")).not.toContain("list-column");
+    expect(section(html, "evenings-2026")).toContain("list-column");
   });
 
   test("lists an evening we only share in the same rows, named as written and marked", async () => {

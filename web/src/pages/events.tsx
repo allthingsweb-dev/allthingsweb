@@ -16,6 +16,8 @@ import type { ImageMode } from "./picture.tsx";
  * evening that has happened, latest first, under the year it happened in.
  * Under the title, where to follow along, in a quiet line of words as the
  * footer's socials are (brand/foundations.md, "People and channels").
+ * Each list labels its right-hand column, on its year's line: the places
+ * are neighborhoods.
  */
 
 /** Where to follow every evening, in the line under /events' title. */
@@ -77,6 +79,14 @@ function EveningList({
         <h2 id={id} class="list-title at-type-meta" safe>
           {title}
         </h2>
+        {evenings.some((evening) => evening.neighborhood !== null) ? (
+          // Each row names its neighborhood to a screen reader (evening-row.tsx).
+          <p class="list-column at-type-meta" aria-hidden="true">
+            Neighborhood
+          </p>
+        ) : (
+          ""
+        )}
       </div>
       <ol>
         {evenings.map((evening) => (

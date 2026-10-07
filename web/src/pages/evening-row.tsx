@@ -9,6 +9,10 @@ import { listDate } from "./time.ts";
  * than the date but clearly secondary. Home and the evenings index share
  * it, so a row reads the same wherever it is. An evening we only share is
  * named as written and marked as shared, with who organizes it.
+ *
+ * The place is a neighborhood: the evenings index labels its column, and a
+ * screen reader hears it named in each row, as a list has no column header
+ * to announce.
  */
 
 /** The cursor means "not yet happened": upcoming and live evenings carry it. */
@@ -80,8 +84,9 @@ export function EveningRow({ evening }: { readonly evening: Evening }) {
         {evening.neighborhood === null ? (
           ""
         ) : (
-          <span class="place at-type-list-place" safe>
-            {evening.neighborhood}
+          <span class="place at-type-list-place">
+            <span class="visually-hidden">, neighborhood: </span>
+            <span safe>{evening.neighborhood}</span>
           </span>
         )}
       </a>
