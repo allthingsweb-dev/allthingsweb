@@ -2,6 +2,13 @@ import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { pageNow } from "./clock.ts";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
+import {
+  ahead,
+  ended,
+  latestFirst,
+  published,
+  soonestFirst,
+} from "./catalog.ts";
 import { DataSourceError } from "./errors.ts";
 import { type Evening, toEvening } from "./home.ts";
 import * as Rows from "./rows.ts";
@@ -46,23 +53,21 @@ const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
   const listing = sql.literal(listingJson);
 
-  // As on home: an evening is ahead through its end (eventStatus), and ids
-  // break ties between equal starts, so the order never depends on the
-  // planner.
+  // As on home: ahead soonest first, over latest first.
   const findEvenings = SqlSchema.findOne({
     Request,
     Result: EveningsRow,
     execute: ({ now }) => sql`
       SELECT
         COALESCE((
-          SELECT json_agg(${listing} ORDER BY e.start_date, e.id)
+          SELECT json_agg(${listing} ORDER BY ${soonestFirst(sql, "e")})
           FROM events e
-          WHERE e.is_draft = false AND e.end_date >= ${now}
+          WHERE ${published(sql, "e")} AND ${ahead(sql, "e", now)}
         ), '[]'::json) AS ahead,
         COALESCE((
-          SELECT json_agg(${listing} ORDER BY e.start_date DESC, e.id)
+          SELECT json_agg(${listing} ORDER BY ${latestFirst(sql, "e")})
           FROM events e
-          WHERE e.is_draft = false AND e.end_date < ${now}
+          WHERE ${published(sql, "e")} AND ${ended(sql, "e", now)}
         ), '[]'::json) AS past`,
   });
 

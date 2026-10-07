@@ -3,6 +3,14 @@ import { pageNow } from "./clock.ts";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import type * as Contract from "./contract.ts";
+import {
+  ahead,
+  ended,
+  latestFirst,
+  ours,
+  published,
+  soonestFirst,
+} from "./catalog.ts";
 import { DataSourceError } from "./errors.ts";
 import { displayName, eventTopic } from "./lockup.ts";
 import { eventStatus } from "./catalog.ts";
@@ -114,10 +122,9 @@ const make = Effect.gen(function* () {
 
   const listing = sql.literal(listingJson);
 
-  // An event is live through its end, so "ahead" is everything that hasn't
-  // ended (as eventStatus has it). "Next" is the soonest of ours; "ahead"
-  // holds enough to list the rest after it. Ids break ties between equal
-  // starts.
+  // "Next" is the soonest of ours not yet over; "ahead" holds enough to
+  // list the rest after it. Photos are of ours that are over, the first
+  // attached of each, latest evening first.
   const findHome = SqlSchema.findOne({
     Request,
     Result: Rows.HomeRow,
@@ -126,53 +133,53 @@ const make = Effect.gen(function* () {
         (
           SELECT ${listing}
           FROM events e
-          WHERE e.is_draft = false AND e.end_date >= ${now}
-            AND e.curation = 'ours'
-          ORDER BY e.start_date, e.id
+          WHERE ${published(sql, "e")} AND ${ahead(sql, "e", now)}
+            AND ${ours(sql, "e")}
+          ORDER BY ${soonestFirst(sql, "e")}
           LIMIT 1
         ) AS next,
         COALESCE((
-          SELECT json_agg(x.listing ORDER BY x.start_date, x.id)
+          SELECT json_agg(x.listing ORDER BY ${soonestFirst(sql, "x")})
           FROM (
             SELECT ${listing} AS listing, e.start_date, e.id
             FROM events e
-            WHERE e.is_draft = false AND e.end_date >= ${now}
-            ORDER BY e.start_date, e.id
+            WHERE ${published(sql, "e")} AND ${ahead(sql, "e", now)}
+            ORDER BY ${soonestFirst(sql, "e")}
             LIMIT ${1 + afterThatLimit}
           ) x
         ), '[]'::json) AS ahead,
         COALESCE((
-          SELECT json_agg(x.listing ORDER BY x.start_date DESC, x.id)
+          SELECT json_agg(x.listing ORDER BY ${latestFirst(sql, "x")})
           FROM (
             SELECT ${listing} AS listing, e.start_date, e.id
             FROM events e
-            WHERE e.is_draft = false AND e.end_date < ${now}
-            ORDER BY e.start_date DESC, e.id
+            WHERE ${published(sql, "e")} AND ${ended(sql, "e", now)}
+            ORDER BY ${latestFirst(sql, "e")}
             LIMIT ${recentlyLimit}
           ) x
         ), '[]'::json) AS recent,
         COALESCE((
           SELECT json_agg(json_build_object(
-            'url', p.url, 'alt', p.alt, 'width', p.width, 'height', p.height,
-            'version', p.version
-          ) ORDER BY p.start_date DESC, p.event_id)
+            'url', y.url, 'alt', y.alt, 'width', y.width, 'height', y.height,
+            'version', y.version
+          ) ORDER BY ${latestFirst(sql, "y")})
           FROM (
             SELECT * FROM (
               SELECT DISTINCT ON (e.id)
-                e.id AS event_id, e.start_date,
+                e.id, e.start_date,
                 img.url, img.alt, img.width, img.height,
                 floor(extract(epoch FROM img.updated_at))::bigint::text AS version
               FROM events e
               JOIN event_images ei ON ei.event_id = e.id
               JOIN images img ON img.id = ei.image_id
-              WHERE e.is_draft = false AND e.end_date < ${now}
-                AND e.curation = 'ours'
+              WHERE ${published(sql, "e")} AND ${ended(sql, "e", now)}
+                AND ${ours(sql, "e")}
                 AND starts_with(img.url, ${photoPrefix})
               ORDER BY e.id, ei.created_at, img.id
-            ) first_photos
-            ORDER BY start_date DESC, event_id
+            ) x
+            ORDER BY ${latestFirst(sql, "x")}
             LIMIT ${photoLimit}
-          ) p
+          ) y
         ), '[]'::json) AS photos`,
   });
 

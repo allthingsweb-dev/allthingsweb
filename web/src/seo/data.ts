@@ -1,3 +1,4 @@
+import { latestFirst, published } from "allthings-core/src/catalog.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { siteSlug } from "allthings-core/src/sql.ts";
 import { eventTagline } from "allthings-core/src/tagline.ts";
@@ -70,8 +71,8 @@ const make = Effect.gen(function* () {
         e.start_date AS "startDate",
         e.created_at AS "createdAt", e.updated_at AS "updatedAt"
       FROM events e
-      WHERE e.is_draft = false
-      ORDER BY e.start_date DESC, e.id`,
+      WHERE ${published(sql, "e")}
+      ORDER BY ${latestFirst(sql, "e")}`,
   });
   const listPeople = SqlSchema.findAll({
     Request: Schema.Void,
