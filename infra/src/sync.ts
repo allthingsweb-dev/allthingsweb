@@ -1,5 +1,8 @@
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Config from "effect/Config";
+import { SourceError } from "effect/ConfigProvider";
+import * as Effect from "effect/Effect";
+import * as Redacted from "effect/Redacted";
 import { compatibility } from "../../web/src/compatibility.ts";
 import { MEDIA_DOMAIN, Media } from "./media.ts";
 import { Writer } from "./reader.ts";
@@ -37,6 +40,44 @@ export const cronsFor = (schedule: "off" | "hourly"): string[] =>
   schedule === "hourly" ? ["0 * * * *"] : [];
 
 /**
+ * The app's cron (app/vercel.json), which runs the same sync on Vercel and
+ * writes production until the cutover.
+ */
+export const APP_SYNC_CRON = "/api/cron/luma-sync";
+
+/**
+ * Whether the Worker writes production with these switches: on a schedule,
+ * in "write" mode. Production has one writer, so the Worker may write only
+ * once the app's cron is gone from app/vercel.json, and the app's cron may
+ * only come back once the Worker stops writing. infra/tests/sync.test.ts
+ * holds the two files to that, so a pull request that would make two
+ * writers fails CI.
+ */
+export const workerWrites = (sync: {
+  readonly schedule: "off" | "hourly";
+  readonly mode: "dry-run" | "write";
+}): boolean => sync.schedule === "hourly" && sync.mode === "write";
+
+/**
+ * A secret from the deploy's environment, for a Worker that can't run
+ * without it. Unset or blank, the deploy fails before changing anything,
+ * naming the variable but never its value. (The Worker also refuses to run
+ * without it: web/src/sync/worker.ts.)
+ */
+export const requiredSecret = (name: string) =>
+  Config.Redacted(name).pipe(
+    Config.mapEffect((value) =>
+      Redacted.value(value).trim() === ""
+        ? Effect.fail(
+            new Config.ConfigError(
+              new SourceError({ message: `${name} is empty` }),
+            ),
+          )
+        : Effect.succeed(value),
+    ),
+  );
+
+/**
  * Production's database as site_sync, for the sync alone. It never caches:
  * the sync reads what it is about to write, and must see the last write.
  */
@@ -55,10 +96,11 @@ export const Sync = Cloudflare.Worker("Sync", {
     MEDIA: Media,
     MEDIA_ORIGIN: `https://${MEDIA_DOMAIN}`,
     IMAGES: Cloudflare.Images.Images("IMAGES"),
-    LUMA_API_KEY: Config.Redacted("LUMA_API_KEY"),
-    // X's search for the post finder (core/src/posts/candidates.ts): the
-    // "allthings X app" bearer token. X bills each post a search returns.
-    X_BEARER_TOKEN: Config.Redacted("X_BEARER_TOKEN"),
+    LUMA_API_KEY: requiredSecret("LUMA_API_KEY"),
+    // X's API for follower counts (core/src/followers.ts) and the post
+    // finder's search (core/src/posts/candidates.ts): the "allthings X app"
+    // bearer token. X bills each post a search returns.
+    X_BEARER_TOKEN: requiredSecret("X_BEARER_TOKEN"),
     SYNC_MODE: SYNC.mode,
     SYNC_PLAN: SYNC.plan,
   },

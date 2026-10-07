@@ -6,6 +6,8 @@ on:
     paths:
       - "web/**"
       - "core/**"
+      - "infra/scripts/site-sync.ts"
+      - "infra/scripts/login-role.ts"
       - "brand/**"
       - "tools/xss-scan/**"
       - "app/public/brand/**"
@@ -22,6 +24,8 @@ on:
     paths:
       - "web/**"
       - "core/**"
+      - "infra/scripts/site-sync.ts"
+      - "infra/scripts/login-role.ts"
       - "brand/**"
       - "tools/xss-scan/**"
       - "app/public/brand/**"

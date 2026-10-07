@@ -6,6 +6,8 @@ on:
     paths:
       - "core/**"
       - "docs/event-formats.md"
+      - "infra/scripts/site-sync.ts"
+      - "infra/scripts/login-role.ts"
       - "package.json"
       - "bun.lock"
       - "app/src/lib/**"
@@ -19,6 +21,8 @@ on:
     paths:
       - "core/**"
       - "docs/event-formats.md"
+      - "infra/scripts/site-sync.ts"
+      - "infra/scripts/login-role.ts"
       - "package.json"
       - "bun.lock"
       - "app/src/lib/**"

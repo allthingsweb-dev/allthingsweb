@@ -14,9 +14,15 @@ import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
-import { ConfigProvider, Effect, Layer, Redacted } from "effect";
+import {
+  ConfigProvider,
+  Effect,
+  Layer,
+  Redacted,
+  Result,
+  Schema,
+} from "effect";
 import { FetchHttpClient } from "effect/http";
-import type { ExecutionContext } from "../app.ts";
 import {
   type ImagesInfoBinding,
   mediaBucket,
@@ -27,6 +33,7 @@ import {
   runSync,
   type SyncLimits,
   syncLimits,
+  SyncLog,
   type SyncMode,
   type SyncReport,
 } from "./run.ts";
@@ -38,21 +45,24 @@ import {
  * Hyperdrive, which never caches) and the media bucket. The site's bundle,
  * and its cold start, stay as they were.
  *
- * Its bindings (infra/src/sync.ts):
- * - `HYPERDRIVE`: production's database as `site_sync`.
+ * Its bindings (infra/src/sync.ts), each required (see `syncBindings`):
+ * - `HYPERDRIVE`: production's database as `site_sync`, from `NEON_SYNC_URL`.
  * - `MEDIA` and `MEDIA_ORIGIN`: the media bucket and where it is served.
  * - `IMAGES`: Cloudflare's Images binding.
- * - `LUMA_API_KEY` (secret), `LUMA_CALENDAR_API_ID` (optional).
- * - `X_BEARER_TOKEN` (secret): the post search's X source; without it, X
- *   is skipped. `X_MAX_RESULTS` (optional) bounds what each search returns.
+ * - `LUMA_API_KEY` (secret): Luma's API, for hidden venues, drafts,
+ *   descriptions and covers.
+ * - `X_BEARER_TOKEN` (secret): X's API, for follower counts and the post
+ *   search.
+ *
+ * And its switches, optional:
  * - `SYNC_MODE`: "write", or "dry-run" (and anything else) to write nothing.
  * - `SYNC_PLAN`: "paid" for the app's limits, or "free" (and anything else)
  *   for runs small enough for the Workers Free plan.
- * - `X_BEARER_TOKEN` (secret, optional): the X app's token, for the post
- *   search; without it, only Bluesky is searched.
+ * - `LUMA_CALENDAR_API_ID`, and `X_MAX_RESULTS` to bound what each X search
+ *   returns.
  *
  * It answers no requests: the Cron Trigger is its only way in, and whether
- * it has one is decided at deploy time (`SYNC_SCHEDULE`).
+ * it has one is decided at deploy time (`SYNC.schedule`).
  */
 
 export interface SyncEnv {
@@ -60,17 +70,93 @@ export interface SyncEnv {
   readonly MEDIA: R2BucketBinding;
   readonly MEDIA_ORIGIN: string;
   readonly IMAGES: ImagesInfoBinding;
+  readonly LUMA_API_KEY: string;
+  readonly X_BEARER_TOKEN: string;
   readonly SYNC_MODE?: string;
   readonly SYNC_PLAN?: string;
 }
 
 /** The mode `env` asks for; anything unrecognized writes nothing. */
-export const modeOf = (env: Pick<SyncEnv, "SYNC_MODE">): SyncMode =>
+export const modeOf = (env: { readonly SYNC_MODE?: unknown }): SyncMode =>
   env.SYNC_MODE === "write" ? "write" : "dry-run";
 
 /** The limits `env` asks for; anything unrecognized gets the Free plan's. */
-export const limitsOf = (env: Pick<SyncEnv, "SYNC_PLAN">): SyncLimits =>
+export const limitsOf = (env: { readonly SYNC_PLAN?: unknown }): SyncLimits =>
   env.SYNC_PLAN === "paid" ? syncLimits.paid : syncLimits.free;
+
+const isText = (value: unknown): value is string =>
+  typeof value === "string" && value.trim() !== "";
+
+/** Whether `value` is an object with each of `methods`. */
+const isBinding = (value: unknown, ...methods: ReadonlyArray<string>) =>
+  typeof value === "object" &&
+  value !== null &&
+  methods.every(
+    (method) =>
+      typeof (value as Readonly<Record<string, unknown>>)[method] ===
+      "function",
+  );
+
+/**
+ * What a run can't go without, each with how a missing one is named: by
+ * the variable the deploy sets it from, so the log says what to set.
+ */
+const required: ReadonlyArray<
+  readonly [
+    name: string,
+    present: (env: Readonly<Record<string, unknown>>) => boolean,
+  ]
+> = [
+  [
+    "HYPERDRIVE (NEON_SYNC_URL)",
+    (env) =>
+      isBinding(env["HYPERDRIVE"]) &&
+      isText(
+        (env["HYPERDRIVE"] as { readonly connectionString?: unknown })
+          .connectionString,
+      ),
+  ],
+  ["LUMA_API_KEY", (env) => isText(env["LUMA_API_KEY"])],
+  ["X_BEARER_TOKEN", (env) => isText(env["X_BEARER_TOKEN"])],
+  ["MEDIA", (env) => isBinding(env["MEDIA"], "put", "delete")],
+  ["MEDIA_ORIGIN", (env) => isText(env["MEDIA_ORIGIN"])],
+  ["IMAGES", (env) => isBinding(env["IMAGES"], "info", "input")],
+];
+
+/**
+ * The Worker started without a binding a run needs. Nothing ran: no
+ * database connection was opened and nothing was fetched. It names each
+ * binding, never a value.
+ */
+export class SyncBindingsMissing extends Schema.TaggedError<SyncBindingsMissing>()(
+  "SyncBindingsMissing",
+  { missing: Schema.Array(Schema.String) },
+) {
+  override get message(): string {
+    return `The sync Worker ran nothing: it has no ${this.missing.join(", ")}. Set ${this.missing.length === 1 ? "it" : "them"} by deploying prod with each in the environment (infra/README.md, "The Luma sync").`;
+  }
+}
+
+/**
+ * `env` as a run's bindings, or every one it lacks. A blank secret counts
+ * as missing: a run without Luma's key would sync events but skip venues,
+ * drafts, descriptions and covers, and one without X's token would read
+ * follower counts from another source, each a quieter run than the one
+ * reviewed. So a run has all of them, or doesn't start.
+ */
+export const syncBindings = (
+  env: Readonly<Record<string, unknown>>,
+): Result.Result<
+  SyncEnv & Readonly<Record<string, unknown>>,
+  SyncBindingsMissing
+> => {
+  const missing = required
+    .filter(([, present]) => !present(env))
+    .map(([name]) => name);
+  return missing.length > 0
+    ? Result.fail(new SyncBindingsMissing({ missing }))
+    : Result.succeed(env as SyncEnv & Readonly<Record<string, unknown>>);
+};
 
 /**
  * Everything a run needs, from the Worker's bindings. The database pool
@@ -115,26 +201,49 @@ export const syncLayer = (
     ),
   );
 
-/** One scheduled run, as the Cron Trigger starts it. */
+/**
+ * One scheduled run, as the Cron Trigger starts it. Without every binding
+ * it needs it fails closed: it logs one line naming each missing binding
+ * (`step: "preflight"`) and rejects with `SyncBindingsMissing`, before
+ * opening a connection or fetching anything.
+ */
 export const scheduledRun = (
-  env: SyncEnv & Readonly<Record<string, unknown>>,
-  /** How it reaches Luma and the image hosts: the runtime's fetch, or a test's. */
+  env: Readonly<Record<string, unknown>>,
+  /** How it reaches Luma, X and the image hosts: the runtime's fetch, or a test's. */
   fetch: typeof globalThis.fetch = globalThis.fetch,
 ): Promise<SyncReport> =>
   Effect.runPromise(
-    runSync(modeOf(env), limitsOf(env)).pipe(
-      Effect.provide(syncLayer(env, fetch)),
-      Effect.scoped,
-    ),
+    Effect.gen(function* () {
+      const bindings = syncBindings(env);
+      if (Result.isFailure(bindings)) {
+        const log = yield* SyncLog;
+        log({
+          source: "luma-sync",
+          step: "preflight",
+          status: "failed",
+          mode: modeOf(env),
+          missing: bindings.failure.missing,
+          reason: bindings.failure.message,
+        });
+        return yield* bindings.failure;
+      }
+      return yield* runSync(modeOf(env), limitsOf(env)).pipe(
+        Effect.provide(syncLayer(bindings.success, fetch)),
+        Effect.scoped,
+      );
+    }),
   );
 
 export default {
-  scheduled(
+  /**
+   * Returns the run, rather than handing it to `waitUntil`, so a run that
+   * can't start fails its invocation and the Cron Trigger's event says so.
+   */
+  async scheduled(
     _controller: unknown,
-    env: SyncEnv & Readonly<Record<string, unknown>>,
-    context: ExecutionContext,
-  ): void {
-    context.waitUntil(scheduledRun(env));
+    env: Readonly<Record<string, unknown>>,
+  ): Promise<void> {
+    await scheduledRun(env);
   },
   fetch(): Response {
     return new Response("Not found", { status: 404 });

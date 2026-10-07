@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "infra/**"
+      - "app/vercel.json"
       - "web/src/compatibility.ts"
       - ".github/workflows/infra-ci.yaml"
       - ".github/scripts/bun-install.sh"
@@ -12,6 +13,7 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - "infra/**"
+      - "app/vercel.json"
       - "web/src/compatibility.ts"
       - ".github/workflows/infra-ci.yaml"
       - ".github/scripts/bun-install.sh"

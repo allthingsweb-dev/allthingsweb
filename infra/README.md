@@ -21,10 +21,10 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
 - **Sync Worker:** `prod` only. The hourly Luma sync ([`web/src/sync/`](../web/src/sync/worker.ts)), off Vercel's cron and outside the site's Worker. It has its own bindings:
   - a `Writer` Hyperdrive in front of production as `site_sync`, from `NEON_SYNC_URL`, which never caches
   - the media bucket and the Images binding
-  - `LUMA_API_KEY` as a secret
-  - `X_BEARER_TOKEN` as a secret: the post finder's X search, billed per post it returns
+  - `LUMA_API_KEY` as a secret: hidden venues, drafts, descriptions and cover lookups
+  - `X_BEARER_TOKEN` as a secret: follower counts and the post finder's X search, billed per post it reads
 
-  It ships off: see [The Luma sync](#the-luma-sync).
+  It ships off, and runs nothing without every one of them: see [The Luma sync](#the-luma-sync).
 
 ## Accounts and stages
 
@@ -88,6 +88,61 @@ Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so
 
 Each run logs one JSON line per step and one summary line (`source: "luma-sync"`).
 
+**Off until the handover.** Two switches keep it from writing:
+
+- `schedule: "off"` deploys the Worker with no Cron Trigger, so nothing can start a run. It answers every request with a 404.
+- `mode: "dry-run"` writes nothing, even on a schedule. [`web/tests/sync.test.ts`](../web/tests/sync.test.ts) holds a dry run to leaving every row of every table as it found it, so it can run beside the app's cron.
+
+**One writer.** Production has one writer at a time:
+
+- the app's cron (`/api/cron/luma-sync` in [`app/vercel.json`](../app/vercel.json))
+- or the Worker (`schedule: "hourly"` with `mode: "write"`; `workerWrites` in `src/sync.ts`)
+
+[`tests/sync.test.ts`](tests/sync.test.ts) fails when both would write, and Infra CI runs on every change to `app/vercel.json`. So the handover takes two pull requests, with the app's cron out first (below).
+
+**It fails closed.** A run needs every binding:
+
+- `HYPERDRIVE`, from `NEON_SYNC_URL`
+- `LUMA_API_KEY` and `X_BEARER_TOKEN`
+- `MEDIA`, `MEDIA_ORIGIN` and `IMAGES`
+
+A blank secret counts as missing. Without any of them, it opens no connection and sends no request. It logs one line naming each missing binding, never a value, and fails its invocation, so the Cron Trigger's event shows the failure:
+
+```json
+{
+  "source": "luma-sync",
+  "step": "preflight",
+  "status": "failed",
+  "mode": "write",
+  "missing": ["LUMA_API_KEY"],
+  "reason": "The sync Worker ran nothing: it has no LUMA_API_KEY. …"
+}
+```
+
+A deploy refuses sooner:
+
+- `NEON_SYNC_URL` must be a `site_sync` connection string.
+- `LUMA_API_KEY` and `X_BEARER_TOKEN` must be set and not blank.
+
+The secrets reach the Worker with prod's first deploy from the allthings account, on move day ([`scripts/move-day-deploy.sh`](scripts/move-day-deploy.sh)).
+
+**The handover.** Each step is its own pull request. Merge one only once the one before it is deployed:
+
+1. **Dry runs on the schedule.** Set `schedule: "hourly"` and deploy prod (below). Each hour, the Worker logs what it would write while the app's cron writes.
+   - Compare a few hours of its `luma-sync` lines in Workers Logs with the app's "Luma calendar sync completed" lines in Vercel's logs.
+   - A `preflight` line means a binding is missing: deploy again with it.
+2. **The app's cron stops.** Remove the `crons` entry from `app/vercel.json`, and merge between :05 and :55, away from the top of the hour.
+   - Merging deploys the app to production on Vercel.
+   - Wait until that deployment is ready and the project's Cron Jobs settings list no job.
+   - Then wait out any run already started: 60 s at most, its `maxDuration`.
+3. **The Worker writes.** Set `mode: "write"`, merge, and deploy prod.
+   - CI refuses this while `app/vercel.json` still has the cron.
+   - The first write is at the next top of the hour.
+   - Each run reads the whole calendar, so an hour skipped during the handover is caught up.
+4. `/api/cron/luma-sync` becomes 410 in the legacy-URL manifest (`web/tests/support/legacy-urls.ts`).
+
+To hand back, reverse the order: set `mode: "dry-run"` and deploy prod first, then restore the cron in `app/vercel.json`. CI refuses the cron back while the Worker writes.
+
 **On Workers Free.** The allthings account is on Workers Paid now. On Workers Free, which it was on until October 2026, a Cron Trigger run gets:
 
 - **10 ms of CPU.** Reading the calendar (30-odd events) and converting images will very likely take more. If so, the runtime stops the run with "exceeded CPU": events not written, or images left for later. Each step stays consistent.
@@ -96,7 +151,7 @@ Each run logs one JSON line per step and one summary line (`source: "luma-sync"`
 
 On Workers Paid, a run hourly or less often gets up to 15 minutes of CPU and 10,000 subrequests, and `plan: "paid"` lifts the per-kind limits.
 
-**Deploying prod.** It now also needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN` (the post finder's X search), passed without printing them:
+**Deploying prod.** It now also needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN` (follower counts and the post finder's X search), passed without printing them:
 
 ```sh
 NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential") \

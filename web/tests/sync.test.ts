@@ -3,7 +3,7 @@ import { CandidateSearches } from "allthings-core/src/posts/candidates.ts";
 import { PostSources } from "allthings-core/src/posts/sources.ts";
 import { EventPostWriter } from "allthings-core/src/posts/store.ts";
 import { HttpClient, HttpClientResponse } from "effect/http";
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { ImageIngest, NewImageId } from "allthings-core/src/ingest/ingest.ts";
 import { LumaApi } from "allthings-core/src/luma/api.ts";
@@ -32,8 +32,18 @@ import {
   fixture,
   type Reply,
 } from "allthings-core/tests/support/luma.ts";
-import { DateTime, Effect, Exit, Layer, Option } from "effect";
-import { mediaBucket, pictures } from "../src/sync/bindings.ts";
+import { DateTime, Effect, Exit, Layer, Option, Result } from "effect";
+import { grantStatements, SITE_SYNC } from "../../infra/scripts/site-sync.ts";
+import {
+  provisionLoginRole,
+  type Statements,
+} from "../../infra/scripts/login-role.ts";
+import {
+  type ImagesInfoBinding,
+  mediaBucket,
+  pictures,
+  type R2BucketBinding,
+} from "../src/sync/bindings.ts";
 import {
   runSync,
   type SyncLimits,
@@ -41,7 +51,14 @@ import {
   SyncLog,
   type SyncMode,
 } from "../src/sync/run.ts";
-import { limitsOf, modeOf, scheduledRun } from "../src/sync/worker.ts";
+import worker, {
+  limitsOf,
+  modeOf,
+  scheduledRun,
+  SyncBindingsMissing,
+  syncBindings,
+  type SyncEnv,
+} from "../src/sync/worker.ts";
 import { serve } from "./support/socket.ts";
 
 /**
@@ -118,6 +135,28 @@ const placedApi = Layer.succeed(
   }),
 );
 
+/**
+ * Every row of every table outside Postgres's own schemas, in a fixed order:
+ * equal snapshots mean nothing was written.
+ */
+async function snapshot(db: PGlite) {
+  const tables = await db.query<{ name: string }>(
+    `SELECT format('%I.%I', table_schema, table_name) AS name
+       FROM information_schema.tables
+      WHERE table_type = 'BASE TABLE'
+        AND table_schema NOT IN ('pg_catalog', 'information_schema')
+      ORDER BY 1`,
+  );
+  const rows: Record<string, ReadonlyArray<string>> = {};
+  for (const { name } of tables.rows) {
+    const result = await db.query<{ row: string }>(
+      `SELECT t::text AS row FROM ${name} t ORDER BY 1`,
+    );
+    rows[name] = result.rows.map(({ row }) => row);
+  }
+  return rows;
+}
+
 async function run(
   mode: SyncMode,
   limits: SyncLimits,
@@ -125,6 +164,7 @@ async function run(
 ) {
   const db = await migratedDatabase();
   await db.exec(seed);
+  const before = await snapshot(db);
   const missing = await db.query<{ luma_event_id: string }>(
     "SELECT luma_event_id FROM events WHERE preview_image IS NULL AND luma_event_id IS NOT NULL",
   );
@@ -207,7 +247,7 @@ async function run(
   const report = await Effect.runPromise(
     runSync(mode, limits).pipe(Effect.provide(layer)),
   );
-  return { db, report, logged, bucket };
+  return { db, report, logged, bucket, before };
 }
 
 const count = async (db: PGlite, sql: string) =>
@@ -220,9 +260,13 @@ const unplaced = `SELECT count(*) AS n FROM events
 
 describe("a sync run that writes", () => {
   test("syncs events, fills in the venues the calendar hides, refreshes its drafts and gives short links, stores photos, post images and covers, then imports descriptions, logging each step", async () => {
-    const { db, report, logged, bucket } = await run("write", syncLimits.paid);
+    const { db, report, logged, bucket, before } = await run(
+      "write",
+      syncLimits.paid,
+    );
     try {
       expect(report.ok).toBe(true);
+      expect(await snapshot(db)).not.toEqual(before);
       expect(Object.keys(report.steps)).toEqual([
         "events",
         "venues",
@@ -383,6 +427,16 @@ describe("a sync run that writes", () => {
 });
 
 describe("a dry run", () => {
+  test("leaves every row of every table as it found it, so it can run beside the app's cron", async () => {
+    const { db, report, before } = await run("dry-run", syncLimits.paid);
+    try {
+      expect(report.ok).toBe(true);
+      expect(await snapshot(db)).toEqual(before);
+    } finally {
+      await db.close();
+    }
+  });
+
   test("writes and stores nothing, and reports what a run would do", async () => {
     const { db, report, bucket, logged } = await run(
       "dry-run",
@@ -562,85 +616,351 @@ describe("the Images binding", () => {
   });
 });
 
+/** The script's connection, as the owner: PGlite behind Bun.SQL's `unsafe`. */
+const owner = (database: PGlite): Statements => ({
+  unsafe: async (query, values) =>
+    (await database.query(query, values === undefined ? [] : [...values])).rows,
+});
+
+const lumaKey = "luma-test-key";
+const xToken = "x-test-token";
+
+/** A request's URL, whatever form fetch was given it in. */
+const urlOf = (input: string | URL | Request) =>
+  new URL(
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url,
+  );
+
+const json = (body: unknown) =>
+  new Response(JSON.stringify(body), {
+    headers: { "content-type": "application/json" },
+  });
+
+/**
+ * Luma, X, Bluesky and the image hosts, answered here: every event is at
+ * CodeRabbit with a cover and a description, and still private (only drafts
+ * are asked whether they are); every X handle has 7 followers; no search
+ * finds a post. Anything else is a 404, and listed in `unexpected`.
+ */
+function fakeInternet() {
+  const fetched: Array<URL> = [];
+  const unexpected: Array<string> = [];
+  const xIds = new Map<string, string>();
+  const xUser = (id: string, username: string) => ({
+    id,
+    username,
+    public_metrics: { followers_count: 7 },
+  });
+  const fetch = Object.assign(
+    async (input: string | URL | Request) => {
+      const url = urlOf(input);
+      fetched.push(url);
+      const event = url.searchParams.get("event_id");
+      if (url.href.startsWith("https://api.luma.com/ics/")) {
+        return new Response(calendar);
+      }
+      if (url.href.startsWith("https://public-api.luma.com/v1/events/get")) {
+        return json({
+          id: event,
+          access: "manage",
+          hosts: [],
+          geo_address_json: {
+            full_address: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
+          },
+          location_visibility: "guests-only",
+          description_md: `# Talks\n\nAn evening about ${event}, with talks and time to talk.`,
+          name: "Draft night",
+          start_at: "2026-11-05T01:00:00Z",
+          end_at: "2026-11-05T04:00:00Z",
+          visibility: "private",
+          cover_url: cover,
+        });
+      }
+      if (url.href in images) {
+        return new Response(images[url.href as keyof typeof images]);
+      }
+      if (url.href === "https://avatars.githubusercontent.com/u/1") {
+        return new Response(imageBytes("jpeg", "ada"));
+      }
+      const byName = /^\/2\/users\/by\/username\/([^/]+)$/.exec(url.pathname);
+      if (url.hostname === "api.x.com" && byName?.[1] !== undefined) {
+        const handle = decodeURIComponent(byName[1]);
+        const id = String(1000 + xIds.size);
+        xIds.set(id, handle);
+        return json({ data: xUser(id, handle) });
+      }
+      if (url.hostname === "api.x.com" && url.pathname === "/2/users") {
+        const ids = (url.searchParams.get("ids") ?? "").split(",");
+        return json({
+          data: ids.flatMap((id) => {
+            const handle = xIds.get(id);
+            return handle === undefined ? [] : [xUser(id, handle)];
+          }),
+        });
+      }
+      if (url.href.startsWith("https://api.x.com/2/tweets/search/")) {
+        return json({ meta: { result_count: 0 } });
+      }
+      if (
+        url.href.startsWith(
+          "https://api.bsky.app/xrpc/app.bsky.feed.searchPosts",
+        )
+      ) {
+        return json({ posts: [] });
+      }
+      if (url.href.startsWith("https://luma.com/event/")) {
+        return new Response("<html></html>");
+      }
+      unexpected.push(url.href);
+      return new Response(null, { status: 404 });
+    },
+    { preconnect: globalThis.fetch.preconnect },
+  );
+  return { fetch, fetched, unexpected };
+}
+
+/** Bindings that store and convert, recording each key stored. */
+function bindings(connectionString: string) {
+  const put: Array<string> = [];
+  const media: R2BucketBinding = {
+    put: async (key) => {
+      put.push(key);
+      return { key };
+    },
+    delete: async () => undefined,
+  };
+  const transforms: ImagesInfoBinding = {
+    info: async () => ({ format: "image/jpeg", width: 400, height: 400 }),
+    input: () => ({
+      transform: () => ({
+        output: async () => ({ response: () => new Response("p") }),
+      }),
+      output: async () => ({ response: () => new Response("j") }),
+    }),
+  };
+  const env = {
+    HYPERDRIVE: { connectionString },
+    MEDIA: media,
+    MEDIA_ORIGIN: "https://media.allthings.dev",
+    IMAGES: transforms,
+    LUMA_API_KEY: lumaKey,
+    X_BEARER_TOKEN: xToken,
+    SYNC_MODE: "write",
+    SYNC_PLAN: "paid",
+  } satisfies SyncEnv;
+  return { env, put };
+}
+
+/** What the run logs, kept here instead of printed. */
+function captureLogs() {
+  const lines: Array<Record<string, unknown>> = [];
+  const spy = spyOn(console, "log").mockImplementation((line: unknown) => {
+    lines.push(JSON.parse(String(line)) as Record<string, unknown>);
+  });
+  return { lines, restore: () => spy.mockRestore() };
+}
+
 describe("the Worker, from its bindings", () => {
-  test("a scheduled run reads through HYPERDRIVE, fetches Luma and the image hosts, and stores in MEDIA", async () => {
+  test("a scheduled run, as site_sync, reads through HYPERDRIVE, asks Luma and X, and stores in MEDIA, every step done", async () => {
     const db = await migratedDatabase();
     await db.exec(stored);
     await db.exec(
-      `UPDATE profiles SET photo_source_url = 'https://avatars.githubusercontent.com/u/1'
+      `UPDATE profiles SET photo_source_url = 'https://avatars.githubusercontent.com/u/1',
+         twitter_handle = 'ada'
        WHERE id = 'b0000000-0000-4000-8000-000000000001'`,
     );
+    // The role as production has it, from its script's own statements;
+    // every connection through the socket then runs as it.
+    await provisionLoginRole(owner(db), SITE_SYNC, "test-only");
+    for (const statement of grantStatements()) await db.exec(statement);
+    await db.exec(`SET ROLE ${SITE_SYNC}`);
     const server = await serve(db);
-    const fetched: Array<string> = [];
-    // Given to the run, not put on globalThis: Effect keeps the first fetch it
-    // finds there for the process.
-    const fakeFetch = Object.assign(
-      async (input: string | URL | Request) => {
-        const url =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.href
-              : input.url;
-        fetched.push(url);
-        return url.startsWith("https://api.luma.com/ics/")
-          ? new Response(calendar)
-          : url === "https://avatars.githubusercontent.com/u/1"
-            ? new Response(imageBytes("jpeg", "ada"))
-            : new Response(null, { status: 404 });
-      },
-      { preconnect: globalThis.fetch.preconnect },
-    );
-    const put: Array<string> = [];
+    const internet = fakeInternet();
+    const { env, put } = bindings(server.url);
+    const logs = captureLogs();
     try {
-      const report = await scheduledRun(
-        {
-          HYPERDRIVE: { connectionString: server.url },
-          MEDIA: {
-            put: async (key) => {
-              put.push(key);
-              return { key };
-            },
-            delete: async () => undefined,
-          },
-          MEDIA_ORIGIN: "https://media.allthings.dev",
-          IMAGES: {
-            info: async () => ({
-              format: "image/jpeg",
-              width: 400,
-              height: 400,
-            }),
-            input: () => ({
-              transform: () => ({
-                output: async () => ({ response: () => new Response("p") }),
-              }),
-              output: async () => ({ response: () => new Response("j") }),
-            }),
-          },
-          SYNC_MODE: "write",
-          SYNC_PLAN: "paid",
-        },
-        fakeFetch,
+      const report = await scheduledRun(env, internet.fetch);
+      expect(
+        (await db.query<{ role: string }>("SELECT current_user AS role"))
+          .rows[0]?.role,
+      ).toBe(SITE_SYNC);
+      // and the role held: it can't delete.
+      await expect(db.exec("DELETE FROM events")).rejects.toThrow(
+        "permission denied",
       );
       expect(report).toMatchObject({ mode: "write", ok: true });
+      for (const [name, outcome] of Object.entries(report.steps)) {
+        expect([name, outcome.status]).toEqual([name, "done"]);
+      }
       expect(report.steps["events"]).toMatchObject({ syncedCount: 24 });
+      // With Luma's key: hidden venues, drafts, descriptions and covers.
+      expect(report.steps["venues"]).toMatchObject({
+        unavailable: [],
+        filled: expect.arrayContaining([
+          expect.objectContaining({ slug: "blank-venue" }),
+        ]),
+      });
+      expect(report.steps["drafts"]).toMatchObject({ unavailable: [] });
+      // Read before any matcher: Bun's toMatchObject leaves its matchers
+      // in what it was given.
+      const described = report.steps["descriptions"];
+      if (described?.status !== "done") throw new Error("no descriptions");
+      expect(described["unavailable"]).toEqual([]);
+      expect(described["written"]).toBeTypeOf("number");
+      expect(Number(described["written"])).toBeGreaterThan(0);
+      expect(report.steps["covers"]).toMatchObject({
+        ingested: expect.arrayContaining([expect.any(String)]),
+      });
       expect(report.steps["photos"]).toMatchObject({
         ingested: ["Ada Lovelace"],
       });
-      // Without LUMA_API_KEY, no venues or descriptions are asked for and
-      // no covers are looked up, as in the app.
-      expect(report.steps["venues"]).toMatchObject({
-        skipped: "LUMA_API_KEY is not set",
+      // With X's token: the count is X's own, stored with the account's id.
+      expect(report.steps["followers"]).toMatchObject({ failed: [] });
+      const ada = await db.query<{ x_followers: number; x_user_id: string }>(
+        "SELECT x_followers, x_user_id FROM profiles WHERE id = 'b0000000-0000-4000-8000-000000000001'",
+      );
+      expect(ada.rows[0]).toEqual({ x_followers: 7, x_user_id: "1000" });
+      const xRequests = internet.fetched.filter(
+        (url) => url.hostname === "api.x.com",
+      );
+      expect(xRequests.length).toBeGreaterThan(0);
+      expect(put.some((key) => key.startsWith("profiles/ada-lovelace-"))).toBe(
+        true,
+      );
+      expect(put.some((key) => key.startsWith("events/"))).toBe(true);
+      // Nothing was asked of a host this test doesn't answer.
+      expect(internet.unexpected).toEqual([]);
+      expect(internet.fetched[0]?.href).toStartWith(
+        "https://api.luma.com/ics/get",
+      );
+      expect(logs.lines.at(-1)).toMatchObject({
+        source: "luma-sync",
+        step: "summary",
+        ok: true,
       });
-      expect(report.steps["descriptions"]).toMatchObject({
-        skipped: "LUMA_API_KEY is not set",
-      });
-      expect(report.steps["covers"]).toMatchObject({ ingested: [] });
-      expect(put).toHaveLength(1);
-      expect(put[0]).toStartWith("profiles/ada-lovelace-");
-      expect(fetched[0]).toStartWith("https://api.luma.com/ics/get");
     } finally {
+      logs.restore();
       await server.stop();
     }
+  });
+});
+
+describe("the Worker, without what it needs", () => {
+  /** Every binding a run needs, none of them reachable: nothing may use them. */
+  const complete = () =>
+    bindings("postgres://site_sync:unused@127.0.0.1:1/neondb").env;
+
+  const cases: ReadonlyArray<
+    readonly [string, Readonly<Record<string, unknown>>, ReadonlyArray<string>]
+  > = [
+    [
+      "no secrets, as before move day",
+      { ...complete(), LUMA_API_KEY: undefined, X_BEARER_TOKEN: undefined },
+      ["LUMA_API_KEY", "X_BEARER_TOKEN"],
+    ],
+    [
+      "no database",
+      { ...complete(), HYPERDRIVE: undefined },
+      ["HYPERDRIVE (NEON_SYNC_URL)"],
+    ],
+    [
+      "a database without a connection string",
+      { ...complete(), HYPERDRIVE: { connectionString: "" } },
+      ["HYPERDRIVE (NEON_SYNC_URL)"],
+    ],
+    [
+      "no Luma key",
+      { ...complete(), LUMA_API_KEY: undefined },
+      ["LUMA_API_KEY"],
+    ],
+    [
+      "a blank Luma key",
+      { ...complete(), LUMA_API_KEY: "  " },
+      ["LUMA_API_KEY"],
+    ],
+    [
+      "no X token",
+      { ...complete(), X_BEARER_TOKEN: undefined },
+      ["X_BEARER_TOKEN"],
+    ],
+    [
+      "no bucket, origin or Images binding",
+      {
+        ...complete(),
+        MEDIA: undefined,
+        MEDIA_ORIGIN: undefined,
+        IMAGES: undefined,
+      },
+      ["MEDIA", "MEDIA_ORIGIN", "IMAGES"],
+    ],
+    [
+      "nothing at all",
+      {},
+      [
+        "HYPERDRIVE (NEON_SYNC_URL)",
+        "LUMA_API_KEY",
+        "X_BEARER_TOKEN",
+        "MEDIA",
+        "MEDIA_ORIGIN",
+        "IMAGES",
+      ],
+    ],
+  ];
+
+  for (const [name, env, missing] of cases) {
+    test(`with ${name}, runs nothing and names what is missing`, async () => {
+      const internet = fakeInternet();
+      const logs = captureLogs();
+      try {
+        const error = await scheduledRun(env, internet.fetch).then(
+          () => undefined,
+          (rejected: unknown) => rejected,
+        );
+        expect(error).toBeInstanceOf(SyncBindingsMissing);
+        expect((error as SyncBindingsMissing).missing).toEqual(missing);
+        // No request, so no database connection either: the layer that
+        // would open one is never built.
+        expect(internet.fetched).toEqual([]);
+        expect(logs.lines).toEqual([
+          {
+            source: "luma-sync",
+            step: "preflight",
+            status: "failed",
+            mode: modeOf(env),
+            missing,
+            reason: (error as SyncBindingsMissing).message,
+          },
+        ]);
+        const said = `${(error as Error).message} ${JSON.stringify(logs.lines)}`;
+        for (const secret of [lumaKey, xToken, "unused@"]) {
+          expect(said).not.toContain(secret);
+        }
+      } finally {
+        logs.restore();
+      }
+    });
+  }
+
+  test("fails the Cron Trigger's invocation, so its event says so", async () => {
+    const logs = captureLogs();
+    try {
+      const invocation = worker.scheduled(
+        {},
+        { ...complete(), LUMA_API_KEY: undefined },
+      );
+      await expect(invocation).rejects.toThrow(
+        "The sync Worker ran nothing: it has no LUMA_API_KEY.",
+      );
+    } finally {
+      logs.restore();
+    }
+  });
+
+  test("starts with every binding", () => {
+    expect(Result.isSuccess(syncBindings(complete()))).toBe(true);
   });
 });
