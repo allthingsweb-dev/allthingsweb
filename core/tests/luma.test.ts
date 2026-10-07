@@ -294,6 +294,8 @@ describe("asking Luma", () => {
     expect(requests).toEqual([
       {
         url: "https://api.luma.com/ics/get?entity=calendar&id=cal-3AAimKnRVQEId4r",
+        method: "GET",
+        body: undefined,
         accept: "text/calendar",
         apiKey: undefined,
         at: DateTime.toEpochMillis(start),

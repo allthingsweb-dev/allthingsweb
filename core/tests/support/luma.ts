@@ -25,6 +25,9 @@ export type Reply =
 
 export interface Request {
   readonly url: string;
+  readonly method: string;
+  /** Its body as text, for a JSON or byte body; undefined without one. */
+  readonly body: string | undefined;
   readonly accept: string | undefined;
   /** The Luma API key it carried, if any. */
   readonly apiKey: string | undefined;
@@ -56,6 +59,11 @@ export function fakeLumaBy(
     Effect.gen(function* () {
       requests.push({
         url: url.href,
+        method: request.method,
+        body:
+          request.body._tag === "Uint8Array"
+            ? new TextDecoder().decode(request.body.body)
+            : undefined,
         accept: request.headers["accept"],
         apiKey: request.headers["x-luma-api-key"],
         at: yield* Clock.currentTimeMillis,
