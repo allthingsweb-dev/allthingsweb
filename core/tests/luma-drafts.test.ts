@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { DateTime, Effect, Exit, Layer } from "effect";
+import { DateTime, Effect, Exit, Layer, Option } from "effect";
 import { LumaApi } from "../src/luma/api.ts";
 import {
   draftChanges,
@@ -219,5 +219,56 @@ describe("draftChanges", () => {
         location: null,
       }),
     ).toEqual([]);
+  });
+});
+
+describe("a venue the organizers set meanwhile", () => {
+  test("stays theirs, while the rest of the refresh is written", async () => {
+    // Luma answers while an organizer sets the venue: after the refresh
+    // read the draft, before it writes.
+    const api = Layer.succeed(
+      LumaApi,
+      LumaApi.of({
+        eventPeople: Option.none(),
+        eventVenue: Option.none(),
+        eventDescription: Option.none(),
+        eventDetails: Option.some((lumaEventId: string) =>
+          Effect.promise(() =>
+            db.exec(
+              `UPDATE events SET venue_by_organizer = true, street_address = '1 Market St', full_address = '1 Market St, San Francisco' WHERE luma_event_id = '${lumaEventId}'`,
+            ),
+          ).pipe(
+            Effect.as(
+              Option.some({
+                lumaEventId,
+                name: "Markdown Trivia Night",
+                startDate: DateTime.makeUnsafe("2026-11-21T01:30:00Z"),
+                endDate: null,
+                visibility: "private" as const,
+                location: "Standard Deviant Brewing Pier 70, 1070 Maryland St",
+              }),
+            ),
+          ),
+        ),
+      }),
+    );
+    const result = await Effect.runPromise(
+      LumaDrafts.use((drafts) => drafts.run({ dryRun: false })).pipe(
+        Effect.provide(
+          LumaDrafts.layer.pipe(
+            Layer.provide(api),
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    expect(result).toMatchObject({ written: 1 });
+    expect(await stored()).toMatchObject({
+      name: "Markdown Trivia Night",
+      street_address: "1 Market St",
+      short_location: "Secret",
+      full_address: "1 Market St, San Francisco",
+    });
   });
 });

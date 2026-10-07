@@ -165,15 +165,25 @@ const make = Effect.gen(function* () {
      */
     const fresh = (column: DraftChange["column"]) =>
       sql.literal(`COALESCE(c.${column}, e.${column})`);
+    /**
+     * A venue column as `fresh` would write it, unless the organizers set
+     * the venue since it was read: then it stays theirs.
+     */
+    const venue = (
+      column: "street_address" | "short_location" | "full_address",
+    ) =>
+      sql.literal(
+        `CASE WHEN e.venue_by_organizer THEN e.${column} ELSE COALESCE(c.${column}, e.${column}) END`,
+      );
     return sql`
       WITH written AS (
         UPDATE events e SET
           name = ${fresh("name")},
           start_date = ${fresh("start_date")},
           end_date = ${fresh("end_date")},
-          street_address = ${fresh("street_address")},
-          short_location = ${fresh("short_location")},
-          full_address = ${fresh("full_address")},
+          street_address = ${venue("street_address")},
+          short_location = ${venue("short_location")},
+          full_address = ${venue("full_address")},
           updated_at = ${at}::timestamptz
         FROM jsonb_to_recordset(${rows}::jsonb) AS c(
           event_id uuid, name text, start_date timestamptz,
