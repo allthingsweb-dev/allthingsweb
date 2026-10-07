@@ -52,7 +52,6 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@resvg/resvg-js": "^2.6.2",
     "@sentry/nextjs": "^10.29.0",
-    "@stackframe/stack": "^2.8.36",
     "@types/heic-convert": "^2.1.0",
     "better-env": "^0.3.2",
     "class-variance-authority": "^0.7.1",

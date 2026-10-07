@@ -1,4 +1,3 @@
-import { authConfig } from "./auth/config";
 import { cronConfig } from "./cron/config";
 import { databaseConfig } from "./database/config";
 import { instanceConfig } from "./instance/config";
@@ -10,7 +9,6 @@ export const mainConfig = {
   instance: instanceConfig,
   database: {
     databaseUrl: databaseConfig.databaseUrl,
-    neonAuth: authConfig,
   },
   media: mediaConfig,
   resend: {

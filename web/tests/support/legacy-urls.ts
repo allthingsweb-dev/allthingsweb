@@ -296,7 +296,11 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
   ...(
     [
       ["/profile", "/profile", "404: the app dropped members' profiles"],
-      ["/handler/[...stack]", "/handler/sign-in", "200, Stack Auth's sign-in"],
+      [
+        "/handler/[...stack]",
+        "/handler/sign-in",
+        "404: the app dropped sign-in",
+      ],
       ["/admin, /admin/*", "/admin", "404: the app dropped the admin"],
       [
         "/api/v1/profile",
