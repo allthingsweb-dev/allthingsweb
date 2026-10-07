@@ -131,7 +131,15 @@ const make = Effect.gen(function* () {
           "No X sign-in is stored: run bun run social x-sign-in --from-xurl first. Nothing was posted.",
         );
       }
-      const tokens = yield* x.refresh(stored.value);
+      const tokens = yield* x
+        .refresh(stored.value)
+        .pipe(
+          Effect.catchTag("XUnavailable", (error) =>
+            refuse(
+              `${error.reason}, so nothing was posted. X may have spent the stored sign-in anyway: if the next try is refused too, sign @${ourXAccount.handle} in again (xurl auth oauth2 --app allthings ${ourXAccount.handle}), then bun run social x-sign-in --from-xurl.`,
+            ),
+          ),
+        );
       // X has spent the stored token: keep the new one before anything else.
       yield* signIn
         .write(tokens.refresh)

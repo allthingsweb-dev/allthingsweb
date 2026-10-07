@@ -313,6 +313,19 @@ describe("posting", () => {
     expect(posted).toHaveLength(1);
   });
 
+  test("a sign-in X doesn't answer posts nothing, and says how to sign in again", async () => {
+    const approved = await token();
+    const { exit, posted, stored } = await run(
+      (a) => a.post(slug, "announce", approved),
+      { ...reads, "/2/oauth2/token": ["drop"] },
+    );
+    expect(reason(exit)).toMatch(
+      /^X didn't answer the sign-in, so nothing was posted. X may have spent the stored sign-in anyway/,
+    );
+    expect(posted).toEqual([]);
+    expect(stored.value).toBe("refresh-1");
+  });
+
   test("a sign-in X refuses posts nothing", async () => {
     const approved = await token();
     const { exit, posted } = await run(
@@ -322,7 +335,9 @@ describe("posting", () => {
         "/2/oauth2/token": [json({ error: "invalid_request" }, 400)],
       },
     );
-    expect(reason(exit)).toBe("X refused the sign-in: 400");
+    expect(reason(exit)).toBe(
+      "X refused the sign-in: 400, so nothing was posted. X may have spent the stored sign-in anyway: if the next try is refused too, sign @allthingswebdev in again (xurl auth oauth2 --app allthings allthingswebdev), then bun run social x-sign-in --from-xurl.",
+    );
     expect(posted).toEqual([]);
   });
 });
