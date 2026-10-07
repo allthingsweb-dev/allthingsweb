@@ -4,13 +4,17 @@ import { Effect } from "effect";
 import type { SqlClient } from "effect/sql/SqlClient";
 import sharp from "sharp";
 import { encode, placeholder } from "../scripts/encode.ts";
+import { approvalToken, isApprovalToken } from "../src/approval.ts";
 import {
   addPhotos,
   contentHash,
   imageReferences,
+  listPhotos,
   parseTarget,
   type PhotoFile,
   photoKey,
+  planRemoval,
+  removePhoto,
   replacePhoto,
 } from "../src/photos.ts";
 import {
@@ -444,6 +448,166 @@ describe("replacePhoto", () => {
     expect(references).toEqual(
       imageReferences.map((reference) => ({ ...reference })),
     );
+  });
+});
+
+describe("listPhotos", () => {
+  test("lists the evening's photos in the order its page shows them", async () => {
+    const listed = await run(listPhotos("2026-08-12-react-at-acme"));
+    expect(listed.event).toEqual({
+      id: acme,
+      slug: "2026-08-12-react-at-acme",
+    });
+    expect(listed.photos).toEqual([
+      {
+        position: 1,
+        imageId: "d0000000-0000-4000-8000-000000000004",
+        url: "https://storage.example/photos/stage.jpg",
+        alt: "The stage",
+        width: 1600,
+        height: 900,
+      },
+      {
+        position: 2,
+        imageId: "d0000000-0000-4000-8000-000000000003",
+        url: "https://storage.example/photos/crowd.jpg",
+        alt: "The crowd",
+        width: 1600,
+        height: 1067,
+      },
+    ]);
+  });
+
+  test("refuses an evening that isn't there", async () => {
+    const error = await failure(listPhotos("no-such-evening"));
+    expect(error.message).toBe("No event at no-such-evening.");
+  });
+});
+
+describe("removePhoto", () => {
+  const stage = "d0000000-0000-4000-8000-000000000004";
+  const crowd = "d0000000-0000-4000-8000-000000000003";
+  const slug = "2026-08-12-react-at-acme";
+  const second = { _tag: "Position", position: 2 } as const;
+  const first = { _tag: "Position", position: 1 } as const;
+
+  const imageRows = async (id: string) =>
+    (await db.query(`SELECT 1 FROM images WHERE id = $1`, [id])).rows.length;
+  const linked = async () =>
+    (
+      await db.query<{ id: string }>(
+        `SELECT image_id AS id FROM event_images
+         WHERE event_id = $1 ORDER BY created_at, image_id`,
+        [acme],
+      )
+    ).rows.map((row) => row.id);
+
+  test("a dry run says exactly what would change, with its token, and changes nothing", async () => {
+    const { removal, token } = await run(planRemoval(slug, second));
+    expect(removal).toEqual({
+      event: { id: acme, slug },
+      photo: {
+        position: 2,
+        imageId: crowd,
+        url: "https://storage.example/photos/crowd.jpg",
+        alt: "The crowd",
+        width: 1600,
+        height: 1067,
+        linkedAt: "2026-01-04T00:00:02.000Z",
+      },
+      imageRow: { action: "delete" },
+      object: {
+        url: "https://storage.example/photos/crowd.jpg",
+        action: "keep",
+      },
+    });
+    expect(token).toBe(await Effect.runPromise(approvalToken(removal)));
+    expect(isApprovalToken(token)).toBe(true);
+    expect(await linked()).toEqual([stage, crowd]);
+    expect(await imageRows(crowd)).toBe(1);
+  });
+
+  test("removes the photo it approved: its link and its unused row, never the object", async () => {
+    const { removal, token } = await run(planRemoval(slug, second));
+    const removed = await run(removePhoto(slug, second, token));
+    expect(removed).toEqual(removal);
+    expect(await linked()).toEqual([stage]);
+    expect(await imageRows(crowd)).toBe(0);
+  });
+
+  test("keeps the row of a photo something else uses, and says what", async () => {
+    // tests/seed.sql's stage photo is also a post's image.
+    const { removal, token } = await run(planRemoval(slug, first));
+    expect(removal.imageRow).toEqual({
+      action: "keep",
+      usedBy: ["event_posts.image"],
+    });
+    await run(removePhoto(slug, first, token));
+    expect(await linked()).toEqual([crowd]);
+    expect(await imageRows(stage)).toBe(1);
+  });
+
+  test("finds the photo by its image id", async () => {
+    const target = { _tag: "ImageId", id: crowd } as const;
+    const { removal, token } = await run(planRemoval(slug, target));
+    expect(removal.photo.position).toBe(2);
+    await run(removePhoto(slug, target, token));
+    expect(await linked()).toEqual([stage]);
+  });
+
+  test("refuses when what the position names changed since the dry run, and changes nothing", async () => {
+    const { token } = await run(planRemoval(slug, first));
+    // Someone else removes the stage photo: photo 1 is now the crowd.
+    await db.query(
+      `DELETE FROM event_images WHERE event_id = $1 AND image_id = $2`,
+      [acme, stage],
+    );
+    const error = await failure(removePhoto(slug, first, token));
+    expect(error.message).toStartWith(
+      `The removal has changed since ${token} was approved: it is now `,
+    );
+    expect(await linked()).toEqual([crowd]);
+    expect(await imageRows(crowd)).toBe(1);
+  });
+
+  test("refuses when what uses the image's row changed since the dry run", async () => {
+    const { token } = await run(planRemoval(slug, second));
+    // The crowd photo becomes a profile's image meanwhile: its row must stay.
+    await db.query(
+      `UPDATE profiles SET image = $1 WHERE id = (SELECT id FROM profiles ORDER BY id LIMIT 1)`,
+      [crowd],
+    );
+    const error = await failure(removePhoto(slug, second, token));
+    expect(error.message).toContain("has changed since");
+    expect(await linked()).toEqual([stage, crowd]);
+    expect(await imageRows(crowd)).toBe(1);
+  });
+
+  test("refuses a token that isn't one, or isn't this removal's", async () => {
+    const malformed = await failure(removePhoto(slug, second, "yes"));
+    expect(malformed.message).toBe(
+      "yes is not an approval token: give the one photos remove --dry-run printed.",
+    );
+    const { token } = await run(planRemoval(slug, first));
+    const other = await failure(removePhoto(slug, second, token));
+    expect(other.message).toContain("has changed since");
+    expect(await linked()).toEqual([stage, crowd]);
+  });
+
+  test.each([
+    [
+      "a position past the last photo",
+      { _tag: "Position", position: 3 },
+      "2026-08-12-react-at-acme has 2 photos, no photo 3.",
+    ],
+    [
+      "an image that is not the evening's",
+      { _tag: "ImageId", id: "d0000000-0000-4000-8000-000000000002" },
+      "Image d0000000-0000-4000-8000-000000000002 is not one of 2026-08-12-react-at-acme's photos.",
+    ],
+  ] as const)("refuses %s", async (_, target, message) => {
+    const error = await failure(planRemoval(slug, target));
+    expect(error.message).toBe(message);
   });
 });
 

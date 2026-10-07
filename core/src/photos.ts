@@ -1,5 +1,6 @@
 import { Data, Effect } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { approvalToken, isApprovalToken } from "./approval.ts";
 import {
   type Encoded,
   type Encoder,
@@ -10,8 +11,9 @@ import {
 } from "./reencode.ts";
 
 /**
- * Adding an evening's photos, and replacing one (scripts/photos.ts, and the
- * admin MCP server's `add_event_photos` and `replace_event_photo`): each
+ * Listing an evening's photos, adding them, and replacing or removing one
+ * (scripts/photos.ts, and the admin MCP server's `list_event_photos`,
+ * `add_event_photos`, `replace_event_photo` and `remove_event_photo`): each
  * file is re-encoded the way the bucket keeps photos (upright, at most
  * {@link maxEdge} pixels on its long edge, JPEG, no metadata, so no
  * location), stored through the upload Worker under a key named after its
@@ -28,6 +30,10 @@ import {
  * - **Replaced in place.** A replacement takes the old photo's place in the
  *   order; the old link and its `images` row go only when nothing else
  *   points at that row. No object is ever deleted from the bucket.
+ * - **Removed only as approved.** A removal unlinks the photo, and deletes
+ *   its `images` row only when nothing else points at it. A dry run prints
+ *   exactly that with an approval token; the removal goes ahead only while
+ *   it still hashes to that token. Its object stays in the bucket.
  * - **All or nothing in the database.** Objects are stored first, then one
  *   transaction writes every row. A dry run encodes and checks everything
  *   and rehearses that transaction, then rolls it back; it stores nothing.
@@ -468,4 +474,188 @@ export const replacePhoto = (
           Effect.succeed(rolledBack.replaced),
         ),
       );
+  });
+
+/** One of an evening's photos, as its page lists them. */
+export interface ListedPhoto {
+  /** Its place on the page, from 1. */
+  readonly position: number;
+  readonly imageId: string;
+  readonly url: string;
+  readonly alt: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The evening at `slug`, and its photos in the order its page lists them. */
+export const listPhotos = (slug: string) =>
+  Effect.gen(function* () {
+    const event = yield* findEvent(slug);
+    return { event, photos: yield* photosOf(event.id) };
+  });
+
+/** The photos of the evening `eventId`, in the order its page lists them. */
+const photosOf = (eventId: string) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const rows = yield* sql<Omit<ListedPhoto, "position">>`
+      SELECT img.id::text AS "imageId", img.url, img.alt, img.width, img.height
+      FROM event_images ei
+      JOIN images img ON img.id = ei.image_id
+      WHERE ei.event_id = ${eventId}::uuid
+      ORDER BY ei.created_at, img.id`;
+    return rows.map(
+      (row, index): ListedPhoto => ({ ...row, position: index + 1 }),
+    );
+  });
+
+/**
+ * Removing one of an evening's photos, exactly as a dry run showed it: what
+ * the run reads, and what it will do. The approval token is the hash of
+ * this, so a photo that moved, or an image row something else started (or
+ * stopped) using, makes a new one.
+ */
+export interface Removal {
+  readonly event: { readonly id: string; readonly slug: string };
+  readonly photo: ListedPhoto & {
+    /** Its link's `event_images.created_at`, which places it on the page. */
+    readonly linkedAt: string;
+  };
+  /**
+   * "delete" when the evening's link is the one thing pointing at the
+   * image's row; otherwise "keep", with what else uses it.
+   */
+  readonly imageRow:
+    | { readonly action: "delete" }
+    | { readonly action: "keep"; readonly usedBy: ReadonlyArray<string> };
+  /** The stored object, which is never deleted: it stays in the bucket. */
+  readonly object: { readonly url: string; readonly action: "keep" };
+}
+
+/** A removal and its approval token, from a dry run. */
+export interface PlannedRemoval {
+  readonly removal: Removal;
+  readonly token: string;
+}
+
+/** What else points at the image `id`, besides `except` links of event_images: "table.column" each. */
+const otherUses = (id: string, except: number) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const uses: Array<string> = [];
+    for (const { table, column } of imageReferences) {
+      const counted = yield* sql<{ count: number }>`
+        SELECT count(*)::int AS count FROM ${sql(table)}
+        WHERE ${sql(column)} = ${id}::uuid`;
+      const allowed = table === "event_images" ? except : 0;
+      if (counted[0]!.count > allowed) uses.push(`${table}.${column}`);
+    }
+    return uses;
+  });
+
+/**
+ * The removal of the photo `target` from the evening at `slug`, as the
+ * database holds it now. Under `lock`, inside a transaction, the evening,
+ * the link and the image's row are locked first. Until the transaction
+ * ends, no photo can be added and no other removal or replacement run
+ * ahead of it, and nothing can start using the image's row.
+ */
+const removalOf = (slug: string, target: PhotoTarget, lock: boolean) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const event = yield* findEvent(slug);
+    if (lock) {
+      // Adding a photo to the evening (its link's foreign key) waits for this
+      // lock, and so does another removal, so the positions hold.
+      yield* sql`SELECT 1 FROM events WHERE id = ${event.id}::uuid FOR UPDATE`;
+    }
+    const photos = yield* photosOf(event.id);
+    const photo =
+      target._tag === "Position"
+        ? photos[target.position - 1]
+        : photos.find((listed) => listed.imageId === target.id);
+    if (photo === undefined) {
+      return yield* fail(
+        target._tag === "Position"
+          ? `${event.slug} has ${photos.length} photos, no photo ${target.position}.`
+          : `Image ${target.id} is not one of ${event.slug}'s photos.`,
+      );
+    }
+    const links = lock
+      ? yield* sql<{ linkedAt: Date }>`
+          SELECT created_at AS "linkedAt" FROM event_images
+          WHERE event_id = ${event.id}::uuid AND image_id = ${photo.imageId}::uuid
+          FOR UPDATE`
+      : yield* sql<{ linkedAt: Date }>`
+          SELECT created_at AS "linkedAt" FROM event_images
+          WHERE event_id = ${event.id}::uuid AND image_id = ${photo.imageId}::uuid`;
+    const link = links[0];
+    if (link === undefined) {
+      return yield* fail(`${photo.url} left ${event.slug} meanwhile.`);
+    }
+    if (lock) {
+      // A new reference to the row waits for this lock, so the count holds.
+      yield* sql`SELECT 1 FROM images WHERE id = ${photo.imageId}::uuid FOR UPDATE`;
+    }
+    const usedBy = yield* otherUses(photo.imageId, 1);
+    const removal: Removal = {
+      event: { id: event.id, slug: event.slug },
+      photo: { ...photo, linkedAt: new Date(link.linkedAt).toISOString() },
+      imageRow:
+        usedBy.length === 0 ? { action: "delete" } : { action: "keep", usedBy },
+      object: { url: photo.url, action: "keep" },
+    };
+    return removal;
+  });
+
+/**
+ * What removing the photo `target` (its image id, or its place from 1) from
+ * the evening at `slug` would do, and the approval token for exactly that.
+ * It only reads.
+ */
+export const planRemoval = (slug: string, target: PhotoTarget) =>
+  Effect.gen(function* () {
+    const removal = yield* removalOf(slug, target, false);
+    const planned: PlannedRemoval = {
+      removal,
+      token: yield* approvalToken(removal),
+    };
+    return planned;
+  });
+
+/**
+ * Removes the photo `target` from the evening at `slug`, exactly as the dry
+ * run that printed `token` showed: in one transaction, with the evening, the
+ * link and the image's row locked, the removal is worked out again and
+ * refused unless it hashes to `token`. The link is deleted, and the
+ * image's row with it only when nothing else points at that row. The
+ * stored object stays in the bucket: nothing here deletes one.
+ */
+export const removePhoto = (slug: string, target: PhotoTarget, token: string) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    if (!isApprovalToken(token)) {
+      return yield* fail(
+        `${token} is not an approval token: give the one photos remove --dry-run printed.`,
+      );
+    }
+    return yield* sql.withTransaction(
+      Effect.gen(function* () {
+        const removal = yield* removalOf(slug, target, true);
+        const now = yield* approvalToken(removal);
+        if (now !== token) {
+          return yield* fail(
+            `The removal has changed since ${token} was approved: it is now ${now}. Read it again with --dry-run, and approve that.`,
+          );
+        }
+        yield* sql`
+          DELETE FROM event_images
+          WHERE event_id = ${removal.event.id}::uuid
+            AND image_id = ${removal.photo.imageId}::uuid`;
+        if (removal.imageRow.action === "delete") {
+          yield* sql`DELETE FROM images WHERE id = ${removal.photo.imageId}::uuid`;
+        }
+        return removal;
+      }),
+    );
   });

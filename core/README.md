@@ -470,9 +470,28 @@ DATABASE_URL=… bun run photos replace effect 5 retouched.jpg --alt "…" --dry
 DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run photos replace effect 5 retouched.jpg --alt "…"
 ```
 
-The admin MCP server's `add_event_photos` and `replace_event_photo` run the
-same script. `tests/photos.test.ts` runs it against `tests/seed.sql` with a
-media origin that only keeps what it is given.
+To take a photo off an evening, list its photos, then remove one by its
+position on the page (from 1) or its image id. `--dry-run` prints exactly
+what would change, and an approval token for it, and changes nothing.
+`--approve <token>` makes that change in one transaction, after working it
+out again under lock. It refuses if anything moved since the dry run: the
+photo, its place, or what else points at its `images` row. The photo's link
+is deleted. Its `images` row goes too, but only when nothing else points at
+it; otherwise the output names what still uses it. The object stays in the
+bucket, and the output says so. Neither step needs the upload Worker, and
+`list` only reads.
+
+```sh
+DATABASE_URL=… bun run photos list effect                          # positions, image ids, alt texts
+DATABASE_URL=… bun run photos remove effect 5 --dry-run            # what would change, and its token
+DATABASE_URL=… bun run photos remove effect 5 --approve <token>    # exactly that change
+```
+
+The admin MCP server's `list_event_photos`, `add_event_photos`,
+`replace_event_photo` and `remove_event_photo` run the same script.
+`remove_event_photo` without `approve` is the dry run. `tests/photos.test.ts`
+runs it against `tests/seed.sql` with a media origin that only keeps what it
+is given.
 
 ## Schedules and notes
 
