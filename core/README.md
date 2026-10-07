@@ -544,6 +544,34 @@ DATABASE_URL=… bun run people --dry-run   # what would be filled, rolled back
 DATABASE_URL=… bun run people             # fill it, in one transaction
 ```
 
+### A photo from a file
+
+`bun run people photo` sets a profile's photo from a local file, for a person
+whose photo no public source has. The profile is named by its id, its slug
+(as `/people/<slug>` has it) or its exact name, if only one profile has it.
+The file is encoded as the photos are (upright, at most 4096 pixels on its
+long edge, JPEG, or WebP where it is see-through, every bit of metadata
+stripped). It is stored through the upload Worker and recorded in `images`,
+with the old admin's key and alt text: `profiles/<name>-<image id>.<jpg|webp>`
+(`profilePhotoKey`, as the ingestion keys photos) and the person's name.
+`src/profile-photo.ts` sets it through `src/image-columns.ts`, as
+`hosts logo` sets logos:
+
+- **Deterministic.** The image id comes from the profile and the file's
+  SHA-256, so the dry run names the exact id, key and URL.
+- **`--dry-run`** prints exactly what would change, and an approval token for
+  it. It stores and writes nothing.
+- **`--approve <token>`** refuses before storing anything unless the change
+  still hashes to the token. It checks the token again in its transaction,
+  with the profile and its old photo locked.
+- **The old photo** loses its `images` row only when nothing else points at
+  it, such as a post's author avatar. Its object stays in the bucket.
+
+```sh
+DATABASE_URL=… bun run people photo ada-lovelace ada.jpg --dry-run
+DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run people photo ada-lovelace ada.jpg --approve <token>
+```
+
 ## Hosting companies' links
 
 Each hosting company (`sponsors`) may store its own website, its X, Bluesky

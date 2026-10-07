@@ -13,12 +13,12 @@ import {
 
 /**
  * Setting a row's image columns from local files, exactly as a dry run
- * showed it: a hosting company's two logos (src/host-logos.ts) and, the
- * same way, a profile's photo. Each file is encoded the way the bucket
- * keeps photos (scripts/encode.ts: upright, at most {@link maxEdge} pixels
- * on its long edge, JPEG, or WebP where it is see-through, no metadata),
- * stored through the upload Worker, recorded in `images`, and set in its
- * column.
+ * showed it: a hosting company's two logos (src/host-logos.ts) and a
+ * profile's photo (src/profile-photo.ts). Each file is encoded the way the
+ * bucket keeps photos (scripts/encode.ts: upright, at most {@link maxEdge}
+ * pixels on its long edge, JPEG, or WebP where it is see-through, no
+ * metadata), stored through the upload Worker, recorded in `images`, and
+ * set in its column.
  *
  * - **Deterministic.** An image's id is derived from its column, its row
  *   and the SHA-256 of the file, and its key from that id, so the dry run
