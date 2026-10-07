@@ -1,4 +1,5 @@
 import {
+  encodeKey,
   MediaBucket,
   MediaBucketError,
   maxMediaBytes,
@@ -71,6 +72,94 @@ export const mediaBucket = (bucket: R2BucketBinding, origin: string) =>
           new MediaBucketError({ reason: `Deleting ${key} failed`, cause }),
       }),
   });
+
+/**
+ * The bucket behind `origin`, reached through the upload Worker at
+ * `uploadUrl` (infra/src/upload-worker.ts) with its bearer token. That is how
+ * the sync stores images while media.allthings.dev serves a bucket in another
+ * account than this Worker's, the one the app and core's scripts store to.
+ * The upload Worker, like the binding, never replaces an object: it answers
+ * 409 where one exists. Nothing it answers ever carries the token.
+ */
+/** The longest one request to the upload Worker may take. */
+export const uploadTimeout = "30 seconds";
+
+export const uploadWorkerBucket = (
+  uploadUrl: string,
+  token: string,
+  origin: string,
+  fetch: typeof globalThis.fetch,
+) => {
+  const base = uploadUrl.replace(/\/+$/, "");
+  const send = (
+    key: string,
+    method: "PUT" | "DELETE",
+    body?: { readonly bytes: Uint8Array; readonly contentType: string },
+  ) =>
+    Effect.tryPromise({
+      try: (signal) =>
+        fetch(`${base}/${encodeKey(key)}`, {
+          method,
+          signal,
+          headers: {
+            authorization: `Bearer ${token}`,
+            ...(body === undefined ? {} : { "content-type": body.contentType }),
+          },
+          ...(body === undefined ? {} : { body: body.bytes }),
+        }),
+      catch: (cause) =>
+        new MediaBucketError({
+          reason: `${method === "PUT" ? "Storing" : "Deleting"} ${key} through the upload Worker failed`,
+          cause,
+        }),
+    }).pipe(
+      // Each request is bounded, and its fetch aborted with it.
+      Effect.timeoutOrElse({
+        duration: uploadTimeout,
+        orElse: () =>
+          Effect.fail(
+            new MediaBucketError({
+              reason: `${method === "PUT" ? "Storing" : "Deleting"} ${key} through the upload Worker took over 30 s`,
+            }),
+          ),
+      }),
+    );
+  return MediaBucket.of({
+    put: (key, bytes, contentType) =>
+      bytes.byteLength > maxMediaBytes
+        ? Effect.fail(
+            new MediaBucketError({
+              reason: `${key} is ${bytes.byteLength} bytes, over the ${maxMediaBytes} an image may be`,
+            }),
+          )
+        : send(key, "PUT", { bytes, contentType }).pipe(
+            Effect.flatMap((response) =>
+              response.status === 201
+                ? Effect.succeed(publicUrl(origin, key))
+                : Effect.fail(
+                    new MediaBucketError({
+                      reason:
+                        response.status === 409
+                          ? `An object already exists at ${key}`
+                          : `Storing ${key} through the upload Worker answered ${response.status}`,
+                    }),
+                  ),
+            ),
+          ),
+    remove: (key) =>
+      send(key, "DELETE").pipe(
+        Effect.flatMap((response) =>
+          response.status === 204
+            ? Effect.void
+            : Effect.fail(
+                new MediaBucketError({
+                  reason: `Deleting ${key} through the upload Worker answered ${response.status}`,
+                }),
+              ),
+        ),
+      ),
+  });
+};
 
 /** What the sync uses of the Images binding (workerd's `ImagesBinding`). */
 export interface ImagesInfoBinding {

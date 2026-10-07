@@ -12,7 +12,7 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
 ```
 
 - **Media:** `prod` only. An R2 bucket served on `media.allthings.dev`, kept even if removed from the stack. Its objects never change under a key and are never overwritten when copied (see [Moving media](#moving-media)).
-- **Upload Worker:** `prod` only. Stores and deletes media for the app while it runs on Vercel. The bucket is a binding and callers present a token Alchemy generates. It never replaces an object (409 for a key that exists): the site caches variants of each photo for a year under URLs derived from its key, so a replacement goes under a new key. Every deploy proves uploads work by storing and deleting one object.
+- **Upload Worker:** `prod` only. Stores and deletes media for the app while it runs on Vercel, for core's scripts, and for the Sync Worker until allthings.dev moves into its account. The bucket is a binding and callers present a token Alchemy generates. It never replaces an object (409 for a key that exists): the site caches variants of each photo for a year under URLs derived from its key, so a replacement goes under a new key. Every deploy proves uploads work by storing and deleting one object.
 - **Web Worker:** `web/` (the public API, the MCP server, the home page and `/brand`), on every stage; previews run nothing else. In `prod` it runs only in the allthings account: on its `workers.dev` URL until allthings.dev is active there, then on `allthings.dev`, with `www.allthings.dev` redirected (301, path and query kept) to it. Its `ORIGIN` is `https://allthings.dev` on every stage, so canonical URLs, the sitemap, feeds, calendar files, structured data and link previews always name allthings.dev, and robots.txt admits crawlers only on that host. Alchemy bundles it with web's dependencies and uploads `web/dist/public` as its static assets, so run `bun install` at the repository root and `bun run build` in `web/` before planning or deploying. `bun run plan` and `bun run deploy` check first ([`scripts/web-build.ts`](scripts/web-build.ts)) and stop at once without it: Alchemy itself would wait at "Computing plan" with no end.
 - **Draft preview:** `prod` only, in the allthings account, while `PREVIEW.deploy` is on ([`src/preview.ts`](src/preview.ts)). Its own Worker ([`web/src/preview/`](../web/src/preview/app.ts)) renders each draft evening's real page for the organizers, so the Web Worker never reads a draft. Cloudflare Access sits in front of it: an application whose one policy admits `PREVIEW_VIEWERS`, signing in with a one-time PIN sent to their email (the only login it allows), which the Worker enrolls in. The Worker also checks the token Access signs (team keys, this application's audience, the same viewers) and refuses anything else, and every answer is `no-store` and `noindex`. Access needs the account's Zero Trust organization (`allthingsdev.cloudflareaccess.com`; `allthings` is taken). A stack that declares an Access application where Zero Trust is off fails to plan, so `PREVIEW.deploy` is the switch: on, now that the account has it.
 - **Images:** the Web Worker's `IMAGES` binding, wherever it runs. It resizes and re-encodes the photos on `media.allthings.dev` into the variants the pages load (`/img/…`, see [`web/src/images/variants.ts`](../web/src/images/variants.ts)), and the Worker keeps each in the edge cache. It is a binding, not a resource: transformations are billed to the allthings account per unique transformation per month, the first 5,000 free. Past those, new variants fail and the Worker sends the originals instead.
@@ -53,7 +53,7 @@ The hourly Luma sync writes production as `site_sync`, a second login role made 
 
 [`core/tests/site-sync.test.ts`](../core/tests/site-sync.test.ts) runs the sync as the role and checks everything else is refused. The connection string is in the `NEON_SYNC_URL` repository secret and the "allthings site_sync" 1Password item.
 
-`prod` (media, the upload Worker and the Vercel env) follows the allthings.dev zone. Where the zone is active, prod serves: the bucket answers on `media.allthings.dev`, and the Workers and the Vercel env follow it. That is the `default` profile's account until the domain moves. In the allthings account before then, `bun run deploy --stage prod --profile allthings` stages the bucket (without `media.allthings.dev`: R2 refuses a custom domain on a pending zone) and runs the Web Worker on its `workers.dev` URL against production's data (it needs `NEON_READER_URL`). It also runs the Sync Worker, which needs no domain (it needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN`). Once the zone is active there, the same deploy attaches `media.allthings.dev` to the bucket and `allthings.dev` and `www.allthings.dev` to the Web Worker. The `default` account never runs the Web Worker or the Sync Worker: until the move its zone answers allthings.dev with [esthor/domains](https://github.com/esthor/domains)' redirect. Any other account is refused, so a deploy from an account the domain has left can't drop the upload Worker or the Vercel env.
+`prod` (media, the upload Worker and the Vercel env) follows the allthings.dev zone. Where the zone is active, prod serves: the bucket answers on `media.allthings.dev`, and the Workers and the Vercel env follow it. That is the `default` profile's account until the domain moves. In the allthings account before then, `bun run deploy --stage prod --profile allthings` stages the bucket (without `media.allthings.dev`: R2 refuses a custom domain on a pending zone) and runs the Web Worker on its `workers.dev` URL against production's data (it needs `NEON_READER_URL`). It also runs the Sync Worker, which needs no domain (it needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN`, and until the move `MEDIA_UPLOAD_URL` and `MEDIA_UPLOAD_TOKEN`). Once the zone is active there, the same deploy attaches `media.allthings.dev` to the bucket and `allthings.dev` and `www.allthings.dev` to the Web Worker. The `default` account never runs the Web Worker or the Sync Worker: until the move its zone answers allthings.dev with [esthor/domains](https://github.com/esthor/domains)' redirect. Any other account is refused, so a deploy from an account the domain has left can't drop the upload Worker or the Vercel env.
 
 ## Moving media
 
@@ -96,7 +96,12 @@ Each run logs one JSON line per step and one summary line (`source: "luma-sync"`
 - `mode: "dry-run"` writes nothing, even on a schedule. [`web/tests/sync.test.ts`](../web/tests/sync.test.ts) holds a dry run to leaving every row of every table as it found it, so it can run beside the app's cron.
 - A dry run never asks X, which bills each read: it skips the follower counts, and searches Bluesky alone for posts.
 
-**Images wait for the move.** Until allthings.dev is active in the allthings account, a run that writes stores no images (`SYNC_IMAGES: "wait"`). media.allthings.dev still serves the old account's bucket, which never gets what this Worker stores, so an image stored now would be a broken link until the move. The image steps only fill in what is missing, so the first run after the move-day deploy (`"store"`) catches up. That deploy updates the same Worker in place: its name is generated once and kept.
+**Images never wait for the move.** Every image is recorded at its URL on media.allthings.dev, which serves the bucket of the account where allthings.dev is active, so the Sync Worker stores into that bucket (`SYNC_IMAGES`, from `syncPlan`):
+
+- `"upload"` while allthings.dev is pending in the allthings account: through the upload Worker beside the bucket that serves it now, in the account that still has the domain, as the app and core's scripts do. The deploy then needs that Worker's `MEDIA_UPLOAD_URL` and `MEDIA_UPLOAD_TOKEN` (below).
+- `"bucket"` once it's active there: through the Sync Worker's own `MEDIA` binding. The move-day deploy switches it, and no longer needs the two.
+
+The move can take as long as it takes. The deploy that switches updates the same Worker in place: its name is generated once and kept.
 
 **One writer.** Production has one writer at a time:
 
@@ -110,6 +115,7 @@ Each run logs one JSON line per step and one summary line (`source: "luma-sync"`
 - `HYPERDRIVE`, from `NEON_SYNC_URL`
 - `LUMA_API_KEY` and `X_BEARER_TOKEN`
 - `MEDIA`, `MEDIA_ORIGIN` and `IMAGES`
+- `SYNC_IMAGES`, `"bucket"` or `"upload"`, and for `"upload"` also `MEDIA_UPLOAD_URL` (an https root URL, nothing after the host) and `MEDIA_UPLOAD_TOKEN`
 
 A blank secret counts as missing. Without any of them, it opens no connection and sends no request. It logs one line naming each missing binding, never a value, and fails its invocation, so the Cron Trigger's event shows the failure:
 
@@ -173,9 +179,11 @@ Each line is one step's JSON, `start` to `summary`. To watch the next run live i
 
 On Workers Paid, a run hourly or less often gets up to 15 minutes of CPU and 10,000 subrequests, and `plan: "paid"` lifts the per-kind limits.
 
-**Deploying prod.** It now also needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN` (follower counts and the post finder's X search), passed without printing them:
+**Deploying prod.** It now also needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN` (follower counts and the post finder's X search), and while allthings.dev is pending in the allthings account the upload Worker's `MEDIA_UPLOAD_URL` and `MEDIA_UPLOAD_TOKEN` ("allthings media upload" in the `allthings` vault), passed without printing them:
 
 ```sh
+MEDIA_UPLOAD_URL=$(op read "op://allthings/allthings media upload/url") \
+MEDIA_UPLOAD_TOKEN=$(op read "op://allthings/allthings media upload/token") \
 NEON_SYNC_URL=$(op read "op://allthings/allthings site_sync/credential") \
 LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
 X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token") \

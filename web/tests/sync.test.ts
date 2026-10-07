@@ -31,6 +31,7 @@ import {
   fakeLuma,
   fixture,
   type Reply,
+  settle,
 } from "allthings-core/tests/support/luma.ts";
 import { DateTime, Effect, Exit, Layer, Option, Result } from "effect";
 import { grantStatements, SITE_SYNC } from "../../infra/scripts/site-sync.ts";
@@ -43,12 +44,12 @@ import {
   mediaBucket,
   pictures,
   type R2BucketBinding,
+  uploadWorkerBucket,
 } from "../src/sync/bindings.ts";
 import {
   runSync,
   type SyncLimits,
   syncLimits,
-  type SyncImages,
   SyncLog,
   type SyncMode,
 } from "../src/sync/run.ts";
@@ -164,10 +165,8 @@ async function run(
   limits: SyncLimits,
   feed: ReadonlyArray<Reply> = [{ body: calendar }],
   {
-    images: storing = "store",
     searches = [],
   }: {
-    readonly images?: SyncImages;
     readonly searches?: ReadonlyArray<CandidateSearches["Service"][number]>;
   } = {},
 ) {
@@ -254,7 +253,7 @@ async function run(
     ),
   );
   const report = await Effect.runPromise(
-    runSync(mode, limits, { images: storing }).pipe(Effect.provide(layer)),
+    runSync(mode, limits).pipe(Effect.provide(layer)),
   );
   return { db, report, logged, bucket, before };
 }
@@ -420,31 +419,6 @@ describe("a sync run that writes", () => {
     }
   });
 
-  test("while images wait, writes everything else and stores no image, until media.allthings.dev serves its bucket", async () => {
-    const { db, report, bucket } = await run(
-      "write",
-      syncLimits.paid,
-      undefined,
-      { images: "wait" },
-    );
-    try {
-      expect(report.ok).toBe(true);
-      expect(report.steps["events"]).toMatchObject({ status: "done" });
-      expect(report.steps["descriptions"]).toMatchObject({ status: "done" });
-      for (const name of ["photos", "posts", "covers"]) {
-        expect(report.steps[name]).toEqual({
-          status: "skipped",
-          reason:
-            "media.allthings.dev doesn't serve this account's bucket yet: images wait for the deploy after the domain moves",
-        });
-      }
-      expect(bucket.log.put).toEqual([]);
-      expect(await count(db, "SELECT count(*) AS n FROM images")).toBe(2);
-    } finally {
-      await db.close();
-    }
-  });
-
   test("fills no venues, gives no links and stores no images when Luma's calendar can't be read, as the app's cron", async () => {
     const { db, report, bucket } = await run("write", syncLimits.paid, [
       { status: 404 },
@@ -593,11 +567,130 @@ describe("the Worker's switches", () => {
     expect(limitsOf({})).toBe(syncLimits.free);
   });
 
-  test("only an explicit 'store' stores images", () => {
-    expect(imagesOf({ SYNC_IMAGES: "store" })).toBe("store");
-    expect(imagesOf({ SYNC_IMAGES: "wait" })).toBe("wait");
-    expect(imagesOf({})).toBe("wait");
-    expect(imagesOf({ SYNC_IMAGES: "STORE" })).toBe("wait");
+  test("images go to the bucket or through the upload Worker, as the deploy says, and nowhere else", () => {
+    expect(imagesOf({ SYNC_IMAGES: "bucket" })).toBe("bucket");
+    expect(imagesOf({ SYNC_IMAGES: "upload" })).toBe("upload");
+    expect(imagesOf({})).toBeUndefined();
+    expect(imagesOf({ SYNC_IMAGES: "store" })).toBeUndefined();
+  });
+});
+
+describe("the upload Worker as the bucket", () => {
+  const calls: Array<{
+    url: string;
+    method: string | undefined;
+    authorization: string | null;
+    type: string | null;
+  }> = [];
+  const answering = (status: number) =>
+    Object.assign(
+      async (input: string | URL | Request, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        calls.push({
+          url: urlOf(input).href,
+          method: init?.method,
+          authorization: headers.get("authorization"),
+          type: headers.get("content-type"),
+        });
+        return new Response(null, { status });
+      },
+      { preconnect: globalThis.fetch.preconnect },
+    );
+  const bucket = (status: number) =>
+    uploadWorkerBucket(
+      "https://upload.example.workers.dev/",
+      "secret-token",
+      "https://media.allthings.dev",
+      answering(status),
+    );
+  const failure = (exit: Exit.Exit<unknown, { message: string }>) =>
+    Exit.isFailure(exit) && exit.cause.reasons[0]?._tag === "Fail"
+      ? exit.cause.reasons[0].error.message
+      : undefined;
+
+  test("stores with the token and answers the public URL on the media origin", async () => {
+    calls.length = 0;
+    expect(
+      await Effect.runPromise(
+        bucket(201).put(
+          "profiles/erik-peña-1.png",
+          new Uint8Array([1]),
+          "image/png",
+        ),
+      ),
+    ).toBe("https://media.allthings.dev/profiles/erik-pe%C3%B1a-1.png");
+    expect(calls).toEqual([
+      {
+        url: "https://upload.example.workers.dev/profiles/erik-pe%C3%B1a-1.png",
+        method: "PUT",
+        authorization: "Bearer secret-token",
+        type: "image/png",
+      },
+    ]);
+  });
+
+  test("never replaces an object, and fails on any other answer without saying the token", async () => {
+    const taken = await Effect.runPromiseExit(
+      bucket(409).put("taken.png", new Uint8Array([1]), "image/png"),
+    );
+    expect(failure(taken)).toBe("An object already exists at taken.png");
+    const down = await Effect.runPromiseExit(
+      bucket(503).put("a.png", new Uint8Array([1]), "image/png"),
+    );
+    expect(failure(down)).toBe(
+      "Storing a.png through the upload Worker answered 503",
+    );
+    expect(failure(down)).not.toContain("secret-token");
+  });
+
+  test("refuses an image too big without sending it, and deletes with the token", async () => {
+    calls.length = 0;
+    const huge = await Effect.runPromiseExit(
+      bucket(201).put("huge.png", new Uint8Array(20_000_001), "image/png"),
+    );
+    expect(Exit.isFailure(huge)).toBe(true);
+    expect(calls).toEqual([]);
+    await Effect.runPromise(bucket(204).remove("gone.png"));
+    expect(calls).toEqual([
+      {
+        url: "https://upload.example.workers.dev/gone.png",
+        method: "DELETE",
+        authorization: "Bearer secret-token",
+        type: null,
+      },
+    ]);
+    expect(
+      Exit.isFailure(await Effect.runPromiseExit(bucket(500).remove("x.png"))),
+    ).toBe(true);
+  });
+
+  test("gives up on a request after 30 s, and aborts its fetch", async () => {
+    let aborted = false;
+    const hanging = Object.assign(
+      (_input: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            aborted = true;
+            reject(new Error("aborted"));
+          });
+        }),
+      { preconnect: globalThis.fetch.preconnect },
+    );
+    const slow = uploadWorkerBucket(
+      "https://upload.example.workers.dev",
+      "secret-token",
+      "https://media.allthings.dev",
+      hanging,
+    );
+    const exit = await Effect.runPromiseExit(
+      settle(slow.put("slow.png", new Uint8Array([1]), "image/png")).pipe(
+        Effect.provide(clockAt(at)),
+      ),
+    );
+    expect(failure(exit)).toBe(
+      "Storing slow.png through the upload Worker took over 30 s",
+    );
+    expect(aborted).toBe(true);
   });
 });
 
@@ -710,6 +803,8 @@ const owner = (database: PGlite): Statements => ({
 
 const lumaKey = "luma-test-key";
 const xToken = "x-test-token";
+const uploadToken = "upload-test-token";
+const uploadOrigin = "https://allthings-mediaupload.test";
 
 /** A request's URL, whatever form fetch was given it in. */
 const urlOf = (input: string | URL | Request) =>
@@ -736,15 +831,29 @@ function fakeInternet() {
   const fetched: Array<URL> = [];
   const unexpected: Array<string> = [];
   const xIds = new Map<string, string>();
+  /** What reached the upload Worker: method, key, and whether the token came with it. */
+  const uploads: Array<{ method: string; key: string; authorized: boolean }> =
+    [];
   const xUser = (id: string, username: string) => ({
     id,
     username,
     public_metrics: { followers_count: 7 },
   });
   const fetch = Object.assign(
-    async (input: string | URL | Request) => {
+    async (input: string | URL | Request, init?: RequestInit) => {
       const url = urlOf(input);
       fetched.push(url);
+      if (url.origin === uploadOrigin) {
+        const method = init?.method ?? "GET";
+        uploads.push({
+          method,
+          key: decodeURIComponent(url.pathname.slice(1)),
+          authorized:
+            new Headers(init?.headers).get("authorization") ===
+            `Bearer ${uploadToken}`,
+        });
+        return new Response(null, { status: method === "PUT" ? 201 : 204 });
+      }
       const event = url.searchParams.get("event_id");
       if (url.href.startsWith("https://api.luma.com/ics/")) {
         return new Response(calendar);
@@ -806,7 +915,7 @@ function fakeInternet() {
     },
     { preconnect: globalThis.fetch.preconnect },
   );
-  return { fetch, fetched, unexpected };
+  return { fetch, fetched, unexpected, uploads };
 }
 
 /** Bindings that store and convert, recording each key stored. */
@@ -837,7 +946,7 @@ function bindings(connectionString: string) {
     X_BEARER_TOKEN: xToken,
     SYNC_MODE: "write",
     SYNC_PLAN: "paid",
-    SYNC_IMAGES: "store",
+    SYNC_IMAGES: "bucket",
   } satisfies SyncEnv;
   return { env, put };
 }
@@ -935,6 +1044,55 @@ describe("the Worker, from its bindings", () => {
     }
   });
 
+  test("a scheduled run storing through the upload Worker never touches its own bucket", async () => {
+    const db = await migratedDatabase();
+    await db.exec(stored);
+    await db.exec(
+      `UPDATE profiles SET photo_source_url = 'https://avatars.githubusercontent.com/u/1'
+       WHERE id = 'b0000000-0000-4000-8000-000000000001'`,
+    );
+    const server = await serve(db);
+    const internet = fakeInternet();
+    const { env, put } = bindings(server.url);
+    const logs = captureLogs();
+    try {
+      const report = await scheduledRun(
+        {
+          ...env,
+          SYNC_IMAGES: "upload",
+          MEDIA_UPLOAD_URL: `${uploadOrigin}/`,
+          MEDIA_UPLOAD_TOKEN: uploadToken,
+        },
+        internet.fetch,
+      );
+      expect(report).toMatchObject({ mode: "write", ok: true });
+      expect(put).toEqual([]);
+      expect(internet.uploads.length).toBeGreaterThan(0);
+      expect(
+        internet.uploads.every(
+          ({ method, authorized }) => method === "PUT" && authorized,
+        ),
+      ).toBe(true);
+      expect(
+        internet.uploads.some(({ key }) =>
+          key.startsWith("profiles/ada-lovelace-"),
+        ),
+      ).toBe(true);
+      // Recorded where media.allthings.dev serves them.
+      const urls = await db.query<{ url: string }>("SELECT url FROM images");
+      expect(
+        urls.rows.every(({ url }) =>
+          url.startsWith("https://media.allthings.dev/"),
+        ),
+      ).toBe(true);
+      expect(JSON.stringify(logs.lines)).not.toContain(uploadToken);
+      expect(internet.unexpected).toEqual([]);
+    } finally {
+      logs.restore();
+      await server.stop();
+    }
+  });
+
   test("a scheduled dry run, with X's token, sends nothing to X and writes nothing", async () => {
     const db = await migratedDatabase();
     await db.exec(stored);
@@ -1022,7 +1180,48 @@ describe("the Worker, without what it needs", () => {
         "MEDIA",
         "MEDIA_ORIGIN",
         "IMAGES",
+        "SYNC_IMAGES",
       ],
+    ],
+    [
+      "images going through the upload Worker without its URL or token",
+      { ...complete(), SYNC_IMAGES: "upload" },
+      ["MEDIA_UPLOAD_URL", "MEDIA_UPLOAD_TOKEN"],
+    ],
+    [
+      "an upload Worker that isn't HTTPS",
+      {
+        ...complete(),
+        SYNC_IMAGES: "upload",
+        MEDIA_UPLOAD_URL: "http://upload.example.workers.dev",
+        MEDIA_UPLOAD_TOKEN: uploadToken,
+      },
+      ["MEDIA_UPLOAD_URL"],
+    ],
+    [
+      "an upload Worker URL with a path after its host",
+      {
+        ...complete(),
+        SYNC_IMAGES: "upload",
+        MEDIA_UPLOAD_URL: "https://upload.example.workers.dev/media?x=1",
+        MEDIA_UPLOAD_TOKEN: uploadToken,
+      },
+      ["MEDIA_UPLOAD_URL"],
+    ],
+    [
+      "an upload Worker URL ending in an empty query",
+      {
+        ...complete(),
+        SYNC_IMAGES: "upload",
+        MEDIA_UPLOAD_URL: "https://upload.example.workers.dev/?",
+        MEDIA_UPLOAD_TOKEN: uploadToken,
+      },
+      ["MEDIA_UPLOAD_URL"],
+    ],
+    [
+      "an unknown place for images",
+      { ...complete(), SYNC_IMAGES: "store" },
+      ["SYNC_IMAGES"],
     ],
   ];
 
@@ -1051,7 +1250,7 @@ describe("the Worker, without what it needs", () => {
           },
         ]);
         const said = `${(error as Error).message} ${JSON.stringify(logs.lines)}`;
-        for (const secret of [lumaKey, xToken, "127.0.0.1:1"]) {
+        for (const secret of [lumaKey, xToken, uploadToken, "127.0.0.1:1"]) {
           expect(said).not.toContain(secret);
         }
       } finally {

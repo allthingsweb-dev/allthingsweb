@@ -10,6 +10,7 @@ import {
   requiredSecret,
   SYNC,
   syncPlan,
+  uploadUrl,
   workerWrites,
 } from "../src/sync.ts";
 import { ALLTHINGS_ACCOUNT } from "../src/media.ts";
@@ -131,13 +132,15 @@ describe("syncPlan", () => {
   const pending = { id: "z", active: false };
   const active = { id: "z", active: true };
 
-  test("runs the Sync Worker in the allthings account before the domain moves in, without storing images", () => {
-    expect(syncPlan(ALLTHINGS_ACCOUNT, undefined)).toEqual({ images: "wait" });
-    expect(syncPlan(ALLTHINGS_ACCOUNT, pending)).toEqual({ images: "wait" });
+  test("runs the Sync Worker in the allthings account before the domain moves in, storing images through the upload Worker", () => {
+    expect(syncPlan(ALLTHINGS_ACCOUNT, undefined)).toEqual({
+      images: "upload",
+    });
+    expect(syncPlan(ALLTHINGS_ACCOUNT, pending)).toEqual({ images: "upload" });
   });
 
-  test("stores images once allthings.dev is active there, so media.allthings.dev serves them", () => {
-    expect(syncPlan(ALLTHINGS_ACCOUNT, active)).toEqual({ images: "store" });
+  test("stores images into its own bucket once allthings.dev is active there", () => {
+    expect(syncPlan(ALLTHINGS_ACCOUNT, active)).toEqual({ images: "bucket" });
   });
 
   test("never runs it in another account, whatever its zone, so there is one Sync Worker", () => {
@@ -147,5 +150,53 @@ describe("syncPlan", () => {
     expect(
       syncPlan("0123456789abcdef0123456789abcdef", undefined),
     ).toBeUndefined();
+  });
+});
+
+describe("uploadUrl", () => {
+  const read = (value?: string) =>
+    Effect.runSync(
+      Effect.result(
+        uploadUrl.parse(
+          ConfigProvider.fromEnvRecord(
+            value === undefined ? {} : { MEDIA_UPLOAD_URL: value },
+          ),
+        ),
+      ),
+    );
+
+  test("is the upload Worker's https URL", () => {
+    for (const root of [
+      "https://allthings-mediaupload-prod-x.example.workers.dev/",
+      " https://allthings-mediaupload-prod-x.example.workers.dev ",
+    ]) {
+      const rooted = read(root);
+      if (Result.isFailure(rooted)) throw new Error(rooted.failure.message);
+    }
+    const result = read(
+      "https://allthings-mediaupload-prod-x.example.workers.dev",
+    );
+    if (Result.isFailure(result)) throw new Error(result.failure.message);
+    expect(result.success).toBe(
+      "https://allthings-mediaupload-prod-x.example.workers.dev",
+    );
+  });
+
+  test("fails the deploy when unset, not https, or with anything after the host", () => {
+    expect(Result.isFailure(read())).toBe(true);
+    for (const value of [
+      "http://upload.example",
+      "upload.example",
+      "  ",
+      "https://upload.example.workers.dev/media",
+      "https://upload.example.workers.dev/?key=a",
+      "https://upload.example.workers.dev/#a",
+      "https://upload.example.workers.dev/?",
+      "https://upload.example.workers.dev/#",
+    ]) {
+      const result = read(value);
+      if (Result.isSuccess(result)) throw new Error(`accepted ${value}`);
+      expect(result.failure.message).toContain("MEDIA_UPLOAD_URL");
+    }
   });
 });

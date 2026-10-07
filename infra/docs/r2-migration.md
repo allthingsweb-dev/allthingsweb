@@ -124,7 +124,7 @@ From activation until step 1's deploy, media.allthings.dev, allthings.dev and ww
    - **media.allthings.dev** on the new bucket.
    - **The new site on allthings.dev:** the prod Web Worker's custom domain. www.allthings.dev gets a 301 to the apex (path and query kept) from a redirect rule in the zone, which runs before the Worker.
    - **The upload Worker** in the allthings account (new URL and token). It runs its put/delete check.
-   - **The sync Worker,** the same one, updated in place: from now on a run that writes stores images too (`SYNC_IMAGES: "store"`). They waited while media.allthings.dev served the old bucket.
+   - **The sync Worker,** the same one, updated in place: it now stores images into its own bucket (`SYNC_IMAGES: "bucket"`), no longer through the old account's upload Worker.
    - **Vercel env:** `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` are written to it.
 
 2. Check media:
