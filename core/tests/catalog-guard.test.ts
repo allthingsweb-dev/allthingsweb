@@ -13,7 +13,11 @@ import { describe, expect, test } from "bun:test";
 
 /** What stating a rule looks like in SQL. */
 const rules: ReadonlyArray<readonly [string, RegExp]> = [
-  ["published or draft", /\bis_draft\b/],
+  // Selecting by it, not reading it out: `is_draft = …`, `NOT is_draft`.
+  [
+    "published or draft",
+    /\bis_draft\s*(?:=|<>|!=|\bIS\b)|\bNOT\s+(?:[a-z_]+\.)?is_draft\b/,
+  ],
   ["ahead or over", /\bend_date\s*(?:<=|>=|<|>)/],
   ["ours or shared", /\bcuration\s*=\s*'/],
   ["evenings' order", /ORDER BY\s+[a-z_.]*start_date\b/],
@@ -35,7 +39,8 @@ const notYetMoved: Readonly<Record<string, string>> = {
   "core/src/speakers.ts":
     "list_speakers: ended through the last instant, until that is settled",
   "web/src/seo/data.ts": "the feeds: the shared selection and appearances",
-  "web/src/v1/data.ts": "the v1 API",
+  "web/src/v1/data.ts":
+    "/api/v1/speakers: ended through the last instant, until that is settled",
 };
 
 /**
@@ -49,7 +54,6 @@ const internal: Readonly<Record<string, string>> = {
   "core/src/luma/descriptions.ts": "Luma import",
   "core/src/luma/drafts.ts": "Luma import of drafts",
   "core/src/luma/people-sync.ts": "Luma import of people",
-  "core/src/luma/publish.ts": "publishes a draft on Luma",
   "core/src/luma/sync.ts": "the Luma sync, which writes is_draft",
   "core/src/luma/venues.ts": "Luma import of venues",
   "core/src/planning/planning.ts": "planning, for the organizers",
