@@ -1,4 +1,5 @@
 import { eventPathOf } from "allthings-core/src/mappers.ts";
+import { ourAccount } from "allthings-core/src/social/account.ts";
 
 /**
  * Where all things is besides this site, and who hosts it. Every page's
@@ -77,7 +78,7 @@ export const socials: ReadonlyArray<Social> = [
   { name: "youtube", href: "https://www.youtube.com/@allthingsweb-dev" },
   { name: "github", href: "https://github.com/allthingsweb-dev/allthingsweb" },
   { name: "x", href: `https://x.com/${xHandle}` },
-  { name: "bluesky", href: "https://bsky.app/profile/allthingsweb.dev" },
+  { name: "bluesky", href: `https://bsky.app/profile/${ourAccount.handle}` },
   {
     name: "linkedin",
     href: "https://www.linkedin.com/company/all-things-web-dev/",

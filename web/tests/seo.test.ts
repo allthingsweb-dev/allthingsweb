@@ -1,4 +1,5 @@
 import { describe, expect } from "bun:test";
+import { ourAccount } from "allthings-core/src/social/account.ts";
 import { migratedDatabase } from "allthings-core/tests/support/database.ts";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
@@ -141,6 +142,24 @@ describe("robots.txt", () => {
       expect(response.headers.get("cache-control")).toBe(CacheControl.page);
       expect(response.headers.get("vary")).toBe("host");
       expect(body).toBe("User-agent: *\nDisallow: /\n");
+    }
+  });
+});
+
+describe("/.well-known/atproto-did", () => {
+  it("is our Bluesky account's DID alone, even while data can't be read", async (urls) => {
+    for (const url of [urls.Site, urls.Unreachable]) {
+      const { response, body } = await get(`${url}/.well-known/atproto-did`, {
+        headers: { host: "allthings.dev" },
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe(
+        "text/plain; charset=utf-8",
+      );
+      expect(response.headers.get("cache-control")).toBe(CacheControl.page);
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(body).toBe("did:plc:2udktehieuvck4emsuoasldh");
+      expect(body).toBe(ourAccount.did);
     }
   });
 });
