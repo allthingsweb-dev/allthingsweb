@@ -1,4 +1,9 @@
-import { latestFirst, published } from "allthings-core/src/catalog.ts";
+import {
+  hostsOf,
+  latestFirst,
+  published,
+  talksOf,
+} from "allthings-core/src/catalog.ts";
 import * as Rows from "allthings-core/src/rows.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { Context, DateTime, Effect, Layer, type Option, Schema } from "effect";
@@ -194,45 +199,32 @@ const make = Effect.gen(function* () {
       ORDER BY ${latestFirst(sql, "e")}`,
   });
 
-  // The app reads talks, speakers, hosts and photos without ORDER BY; these
-  // follow attach order, the join row's created_at and then the id, as core does.
+  // The app reads talks, speakers, hosts and photos without ORDER BY; the
+  // lineup follows the catalog's order, photos the order they were attached.
   const findById = SqlSchema.findOneOption({
     Request: Schema.String,
     Result: EventDetailsRow,
     execute: (id) => sql`
       SELECT ${eventColumns},
-        COALESCE((
-          SELECT json_agg(json_build_object(
-            'id', t.id,
-            'title', t.title,
-            'description', t.description,
-            'speakers', COALESCE((
-              SELECT json_agg(json_build_object(
-                'id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio,
-                ${sql.literal(handleColumns)},
-                'image', ${sql.literal(imageJson("p.image"))}
-              ) ORDER BY ts.created_at, p.id)
-              FROM talk_speakers ts
-              JOIN profiles p ON p.id = ts.speaker_id
-              WHERE ts.talk_id = t.id
-            ), '[]'::json)
-          ) ORDER BY et.position NULLS LAST, et.created_at, t.id)
-          FROM event_talks et
-          JOIN talks t ON t.id = et.talk_id
-          WHERE et.event_id = e.id
-        ), '[]'::json) AS talks,
-        COALESCE((
-          SELECT json_agg(json_build_object(
+        ${talksOf(sql, "e", {
+          talk: sql`'id', t.id, 'title', t.title, 'description', t.description`,
+          speaker: sql`json_build_object(
+            'id', p.id, 'name', p.name, 'title', p.title, 'bio', p.bio,
+            ${sql.literal(handleColumns)},
+            'image', ${sql.literal(imageJson("p.image"))}
+          )`,
+        })} AS talks,
+        ${hostsOf(
+          sql,
+          "e",
+          sql`json_build_object(
             'id', s.id,
             'name', s.name,
             'about', s.about,
             'squareLogoLight', ${sql.literal(imageJson("s.square_logo_light"))},
             'squareLogoDark', ${sql.literal(imageJson("s.square_logo_dark"))}
-          ) ORDER BY es.created_at, s.id)
-          FROM event_sponsors es
-          JOIN sponsors s ON s.id = es.sponsor_id
-          WHERE es.event_id = e.id
-        ), '[]'::json) AS hosts,
+          )`,
+        )} AS hosts,
         COALESCE((
           SELECT json_agg(${sql.literal(imageObject("img"))} ORDER BY ei.created_at, img.id)
           FROM event_images ei
