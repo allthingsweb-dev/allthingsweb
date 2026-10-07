@@ -492,12 +492,13 @@ describe("removePhoto", () => {
   const first = { _tag: "Position", position: 1 } as const;
 
   const imageRows = async (id: string) =>
-    (await db.query(`SELECT 1 FROM images WHERE id = '${id}'`)).rows.length;
+    (await db.query(`SELECT 1 FROM images WHERE id = $1`, [id])).rows.length;
   const linked = async () =>
     (
       await db.query<{ id: string }>(
         `SELECT image_id AS id FROM event_images
-         WHERE event_id = '${acme}' ORDER BY created_at, image_id`,
+         WHERE event_id = $1 ORDER BY created_at, image_id`,
+        [acme],
       )
     ).rows.map((row) => row.id);
 
@@ -557,8 +558,9 @@ describe("removePhoto", () => {
   test("refuses when what the position names changed since the dry run, and changes nothing", async () => {
     const { token } = await run(planRemoval(slug, first));
     // Someone else removes the stage photo: photo 1 is now the crowd.
-    await db.exec(
-      `DELETE FROM event_images WHERE event_id = '${acme}' AND image_id = '${stage}'`,
+    await db.query(
+      `DELETE FROM event_images WHERE event_id = $1 AND image_id = $2`,
+      [acme, stage],
     );
     const error = await failure(removePhoto(slug, first, token));
     expect(error.message).toStartWith(
@@ -571,8 +573,9 @@ describe("removePhoto", () => {
   test("refuses when what uses the image's row changed since the dry run", async () => {
     const { token } = await run(planRemoval(slug, second));
     // The crowd photo becomes a profile's image meanwhile: its row must stay.
-    await db.exec(
-      `UPDATE profiles SET image = '${crowd}' WHERE id = (SELECT id FROM profiles ORDER BY id LIMIT 1)`,
+    await db.query(
+      `UPDATE profiles SET image = $1 WHERE id = (SELECT id FROM profiles ORDER BY id LIMIT 1)`,
+      [crowd],
     );
     const error = await failure(removePhoto(slug, second, token));
     expect(error.message).toContain("has changed since");
