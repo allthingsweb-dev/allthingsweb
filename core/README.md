@@ -74,6 +74,34 @@ didn't have, each with its sources: talks to take off it (a talk on no
 other evening is deleted with its speakers) and people's parts in it
 (by an existing profile and role).
 
+### Editing a talk
+
+`bun run talks update` edits a talk that exists (`src/talk-edits.ts`): its
+title, its description (editor HTML, as the site stores it) and its
+speakers. The old admin did this. A lineup never changes a talk's title or
+description, and never takes a speaker off a talk it keeps. What a run isn't
+given stays as it is. `talks list` prints an evening's talks, in page order,
+with their ids and speakers.
+
+- **Speakers** are the talk's whole list, in the order its page shows them,
+  one `--speaker` each, by profile slug or id, with `:moderator` for a
+  moderator. A changed list replaces the old one in `talk_speakers`, in that
+  order.
+- **`--dry-run`** prints each value as it is and as it will be, as a diff,
+  and an approval token for that change. It changes nothing.
+- **`--approve <token>`**, with the same values, locks the talk and works
+  the change out again in one transaction. It refuses unless the change
+  still hashes to the token, so a title or a speaker changed in between
+  stops it.
+
+```sh
+DATABASE_URL=… bun run talks list effect   # ids, titles, speakers
+DATABASE_URL=… bun run talks update <talk id> --title "…" --description-file talk.html \
+  --speaker ada-lovelace --speaker grace-hopper:moderator --dry-run
+DATABASE_URL=… bun run talks update <talk id> --title "…" --description-file talk.html \
+  --speaker ada-lovelace --speaker grace-hopper:moderator --approve <token>
+```
+
 ## Speaker order: X followers
 
 Speaker lists are ordered by how many follow each person on X, most first.
