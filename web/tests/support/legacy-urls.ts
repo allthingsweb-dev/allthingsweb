@@ -295,11 +295,19 @@ export const legacyUrls: ReadonlyArray<LegacyUrl> = [
   ),
   ...(
     [
-      ["/profile", "/profile", "200, a member's profile (sign-in)"],
+      ["/profile", "/profile", "404: the app dropped members' profiles"],
       ["/handler/[...stack]", "/handler/sign-in", "200, Stack Auth's sign-in"],
-      ["/admin, /admin/*", "/admin", "307 to sign-in, then the admin"],
-      ["/api/v1/profile", "/api/v1/profile", "401 without a session"],
-      ["/api/v1/admin/*", "/api/v1/admin/raw/talks", "401 without a session"],
+      ["/admin, /admin/*", "/admin", "404: the app dropped the admin"],
+      [
+        "/api/v1/profile",
+        "/api/v1/profile",
+        "404: the app dropped members' profiles",
+      ],
+      [
+        "/api/v1/admin/*",
+        "/api/v1/admin/raw/talks",
+        "404: the app dropped the admin",
+      ],
     ] as const
   ).map(
     ([pattern, example, today]): LegacyUrl => ({

@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { MenuIcon, User, Shield, LogOut } from "lucide-react";
+import { MenuIcon, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ModeToggle } from "@/components/theme-toggle";
@@ -14,10 +14,9 @@ import type { ClientUser } from "@/lib/client-user";
 interface TopNavProps {
   authNav: React.ReactNode;
   user?: ClientUser | null;
-  isAdmin?: boolean;
 }
 
-export function TopNav({ authNav, user, isAdmin }: TopNavProps) {
+export function TopNav({ authNav, user }: TopNavProps) {
   return (
     <nav className="ml-auto flex items-center gap-4">
       {/* Mobile: Dark mode toggle and hamburger menu side by side */}
@@ -31,7 +30,7 @@ export function TopNav({ authNav, user, isAdmin }: TopNavProps) {
             <MenuIcon className="w-6 h-6" />
           </PopoverTrigger>
           <PopoverContent align="end" className="w-56 p-4">
-            <LinkList user={user} isAdmin={isAdmin} isMobile={true} />
+            <LinkList user={user} isMobile={true} />
           </PopoverContent>
         </Popover>
       </div>
@@ -49,12 +48,10 @@ export function TopNav({ authNav, user, isAdmin }: TopNavProps) {
 function LinkList({
   className,
   user,
-  isAdmin,
   isMobile = false,
 }: {
   className?: string;
   user?: ClientUser | null;
-  isAdmin?: boolean;
   isMobile?: boolean;
 }) {
   const handleSignOut = () => {
@@ -84,26 +81,6 @@ function LinkList({
       {isMobile && user && (
         <>
           <li className="pt-3 border-t border-border">
-            <Link
-              href="/profile"
-              className="flex items-center gap-2 text-sm font-medium hover:underline underline-offset-4 transition-colors duration-200 py-2 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-sm"
-            >
-              <User className="h-4 w-4" />
-              My Profile
-            </Link>
-          </li>
-          {isAdmin && (
-            <li>
-              <Link
-                href="/admin"
-                className="flex items-center gap-2 text-sm font-medium hover:underline underline-offset-4 transition-colors duration-200 py-2 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-sm"
-              >
-                <Shield className="h-4 w-4" />
-                Admin
-              </Link>
-            </li>
-          )}
-          <li>
             <button
               onClick={handleSignOut}
               className="flex items-center gap-2 text-sm font-medium hover:underline underline-offset-4 transition-colors duration-200 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-sm text-red-600 hover:text-red-700 w-full text-left"
