@@ -724,6 +724,35 @@ LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --approve <t
 LUMA_API_KEY=… bun run luma show evt-…                                             # the event as Luma has it
 ```
 
+## Posting to Bluesky
+
+`src/social/announce.ts` posts an evening's Bluesky draft (the promotion
+drafts' announce, day-of or recap text) from @allthingsweb.dev, exactly as
+an organizer approved it, through the AT Protocol (`src/social/bluesky.ts`:
+`createSession` on bsky.social, `createRecord` on the account's PDS, and
+`resolveHandle` and `getAuthorFeed` on the public AppView):
+
+- `--dry-run` reads only: it prints the post, with a facet for every link
+  and every mention whose handle Bluesky resolves (by UTF-8 byte offsets;
+  a handle it doesn't stays plain text), says whether our account already
+  posted that text, and prints its approval token, the first 16 hex digits
+  of the SHA-256 of the account, evening, moment and post as canonical
+  JSON (`src/approval.ts`, which Luma publishing shares). It needs no
+  password.
+- `--approve <token>` makes the post again and goes on only if it hashes
+  the same, our account hasn't posted that text, and the app password
+  signs in as our DID. Then it posts once: a post Bluesky didn't take is
+  never retried, and the feed check stops a second try from doubling it.
+
+The app password is the 1Password item "allthings Bluesky" (`handle`,
+`app password`). Nothing in the tests reaches Bluesky.
+
+```sh
+DATABASE_URL=… bun run social bluesky <slug> --moment announce --dry-run   # the post, and its token
+DATABASE_URL=… BLUESKY_HANDLE=… BLUESKY_APP_PASSWORD=… \
+  bun run social bluesky <slug> --moment announce --approve <token>        # exactly that, once
+```
+
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's

@@ -32,6 +32,7 @@
     "plan": "bun --no-env-file scripts/plan.ts",
     "readiness": "bun --no-env-file scripts/readiness.ts",
     "luma": "bun --no-env-file scripts/luma.ts",
+    "social": "bun --no-env-file scripts/social.ts",
     "formats:doc": "bun --no-env-file scripts/formats-doc.ts",
     "reencode": "bun --no-env-file scripts/reencode-originals.ts",
     "sync:rehearse": "bun --no-env-file scripts/sync-rehearsal.ts"

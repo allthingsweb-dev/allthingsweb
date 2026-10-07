@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { approvalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
 import { Planning, PlanningError } from "../planning/planning.ts";
 import { DraftTooLong } from "../promo/limits.ts";
@@ -100,34 +101,6 @@ export const outgoingOf = (
   descriptionMd,
   visibility: "public",
 });
-
-/** `value` as JSON with every object's keys sorted: the same content, the same text. */
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value !== null && typeof value === "object") {
-    return `{${Object.keys(value)
-      .toSorted()
-      .map(
-        (key) =>
-          `${JSON.stringify(key)}:${canonicalJson((value as Record<string, unknown>)[key])}`,
-      )
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
-
-/** The approval token for `outgoing`. */
-export const approvalToken = (outgoing: Outgoing) =>
-  Effect.promise(async () => {
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(canonicalJson(outgoing)),
-    );
-    return [...new Uint8Array(digest)]
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("")
-      .slice(0, 16);
-  });
 
 /** What `create` takes. */
 export interface CreateInput {
