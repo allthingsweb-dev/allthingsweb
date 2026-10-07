@@ -10,7 +10,7 @@ export const summary: EventSummary = {
   slug: "2026-09-30-effect",
   name: "Effect San Francisco",
   tagline: "An evening with Michael Arnaldi",
-  url: "https://allthingsweb.dev/2026-09-30-effect",
+  url: "https://allthings.dev/2026-09-30-effect",
   status: "upcoming",
   startsAt: "2026-10-01T00:30:00.000Z",
   endsAt: "2026-10-01T03:30:00.000Z",
@@ -54,7 +54,7 @@ export const speaker: Speaker = {
       title: "Analytical engines",
       eventName: "All Things Web",
       eventSlug: "2024-05-14-remix",
-      eventUrl: "https://allthingsweb.dev/2024-05-14-remix",
+      eventUrl: "https://allthings.dev/2024-05-14-remix",
       date: "2024-05-15T01:00:00.000Z",
     },
   ],
@@ -69,10 +69,10 @@ export const community: Community = {
   independence: "Independence.",
   hosting: "Hosting.",
   links: {
-    website: "https://allthingsweb.dev",
+    website: "https://allthings.dev",
     events: "https://luma.com/allthingsweb",
     discord: "https://discord.gg/B3Sm4b5mfD",
-    codeOfConduct: "https://allthingsweb.dev/code-of-conduct",
+    codeOfConduct: "https://allthings.dev/code-of-conduct",
   },
 };
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * The public All Things Web contract, as served by https://allthingsweb.dev/mcp.
+ * The public all things contract, as served by https://allthings.dev/mcp.
  * Mirrors app/src/lib/public-api/schemas.ts; a contract test keeps them equal.
  */
 
