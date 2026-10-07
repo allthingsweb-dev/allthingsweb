@@ -24,7 +24,7 @@ import * as Database from "../src/database.ts";
  *
  * DATABASE_URL comes from the environment only; .env files are not read:
  *
- *   DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") \
+ *   DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") \
  *     bun run completeness
  */
 

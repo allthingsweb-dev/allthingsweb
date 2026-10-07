@@ -20,7 +20,7 @@ import { LumaDescriptions } from "../src/luma/descriptions.ts";
  * are not read. Without LUMA_API_KEY it says so and does nothing. Pass both
  * without printing them, e.g.
  *
- *   DATABASE_URL=… LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+ *   DATABASE_URL=… LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
  *     bun run luma:descriptions --dry-run
  */
 

@@ -23,8 +23,10 @@ committed. `bun run sync:rehearse` prints that report for the database at
 dry run also proves the role's grants:
 
 ```sh
-DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") bun run sync:rehearse
+DATABASE_URL=$(op read "op://allthings/allthings site_sync/credential") bun run sync:rehearse
 ```
+
+Every `op://` reference in this repository reads the `allthings` 1Password vault. Your own `op` session (the 1Password desktop app integration) can read it, and agents read it with `OP_SERVICE_ACCOUNT_TOKEN`.
 
 ## Image ingestion
 
@@ -232,7 +234,7 @@ include companies' accounts not yet on record and people under other names.
 Run it from `core/`:
 
 ```sh
-DATABASE_URL=… LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+DATABASE_URL=… LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
   bun run luma:people --dry-run                          # ask Luma, print the plan and what to review
 bun run luma:people --create usr-… --link usr-…=<profile id> --dry-run   # decide the hosts it listed
 bun run luma:people --create usr-… --link usr-…=<profile id>             # write
@@ -360,7 +362,7 @@ required. Nothing reads text for meaning, so a description's tense is not
 judged.
 
 ```sh
-DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") bun run completeness          # table, then each event's gaps
+DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run completeness          # table, then each event's gaps
 DATABASE_URL=… bun run completeness --json   # the same, for tools
 DATABASE_URL=… bun run completeness --check  # also fail if an evening of talks that ended in the last 30 days has none,
                                              # or any published evening, past or upcoming, has no venue

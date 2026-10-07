@@ -6,16 +6,18 @@
 #
 #   bash scripts/move-day-deploy.sh
 #
-# Secrets come from 1Password and are never printed.
+# Secrets come from the allthings 1Password vault and are never printed:
+# your own op session (the desktop app integration) can read it, and agents
+# read it with OP_SERVICE_ACCOUNT_TOKEN.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Read the secrets first, so nothing waits on 1Password at activation.
 # A failed read stops here, and so does an empty value.
-NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential")
-NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential")
-LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential")
+NEON_READER_URL=$(op read "op://allthings/allthings site_reader/credential")
+NEON_SYNC_URL=$(op read "op://allthings/allthings site_sync/credential")
+LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential")
 X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token")
 : "${NEON_READER_URL:?empty}" "${NEON_SYNC_URL:?empty}" "${LUMA_API_KEY:?empty}" "${X_BEARER_TOKEN:?empty}"
 export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN

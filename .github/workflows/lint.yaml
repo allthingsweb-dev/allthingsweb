@@ -57,3 +57,9 @@ jobs:
 
       - name: 🧹 Lint
         run: bun run lint
+
+      # Core CI runs only when core changes, and a reference into another
+      # 1Password vault can land in any file, so every pull request checks.
+      - name: 🔑 Check 1Password references
+        working-directory: core
+        run: bun test tests/vault.test.ts

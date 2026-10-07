@@ -28,7 +28,7 @@ import {
  * read-only site_reader role is enough. DATABASE_URL comes from the
  * environment only; .env files are not read:
  *
- *   DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") \
+ *   DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") \
  *     bun run promo:launch --next <slug>
  */
 

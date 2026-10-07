@@ -37,8 +37,8 @@ import { runSync, syncLimits } from "../src/sync/run.ts";
  * descriptions, and
  * list the covers it would look up. Pass both without printing them:
  *
- *   DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") \
- *   LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+ *   DATABASE_URL=$(op read "op://allthings/allthings site_sync/credential") \
+ *   LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
  *     bun scripts/sync-dry-run.ts
  */
 
