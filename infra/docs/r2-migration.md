@@ -197,7 +197,7 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
    **The upload Worker stays.** The admin is not its only caller, so `MediaUpload`, its check and the Vercel env writes stay in the stack. These store media through it:
    - `core/scripts/photos.ts` (`bun run photos`), which adds and replaces an evening's photos.
    - `core/scripts/reencode-originals.ts` (`bun run reencode`), which re-encodes oversized originals.
-   - The admin MCP server on stdio (`app/scripts/mcp-server.ts`). `add_event_photos` and `replace_event_photo` run `bun run photos`. `create_profile`, `set_profile_image`, `create_host`, `delete_event_images` and `delete_orphaned_image` use the app's media store (`app/scripts/functions.ts`).
+   - The admin MCP server on stdio (`app/scripts/mcp-server.ts`). `add_event_photos` and `replace_event_photo` run `bun run photos`. `create_profile`, `set_profile_image`, `create_host`, `delete_event_images` and `delete_orphaned_image` use the app's media store (`app/scripts/functions.ts`), whose `appMediaStore().put` and `removeStoredObject` write to and delete from the bucket through the upload Worker at `MEDIA_UPLOAD_URL`, with `MEDIA_UPLOAD_TOKEN`.
    - The Vercel cron's image ingestion (`app/src/lib/remote-images/bucket.ts`), which stores Luma covers, profile photos and post images. It stops when step 1.2 removes the cron. From step 1.3 the sync Worker stores Luma covers, profile photos and post images in the bucket itself, and its first run in `write` mode stores any it finds still missing, so nothing the handover skipped is lost.
 
 3. **allthingsweb.dev redirects to allthings.dev.** The old Next app does it, behind one flag that ships off. No DNS change is needed.
