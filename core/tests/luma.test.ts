@@ -298,6 +298,7 @@ describe("asking Luma", () => {
         body: undefined,
         accept: "text/calendar",
         apiKey: undefined,
+        authorization: undefined,
         at: DateTime.toEpochMillis(start),
       },
     ]);

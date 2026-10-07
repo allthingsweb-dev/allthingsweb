@@ -60,6 +60,20 @@ describe("posting tools", () => {
       socialArguments("social_prepare_post", { ...post, channel: "myspace" }),
     ).toThrow();
     expect(
+      socialArguments("social_post", {
+        ...post,
+        channel: "x",
+        approve: "0123456789abcdef",
+      }),
+    ).toEqual([
+      "x",
+      "--moment=announce",
+      "--approve=0123456789abcdef",
+      "--json",
+      "--",
+      "evening",
+    ]);
+    expect(
       socialArguments("social_prepare_post", {
         ...post,
         channel: "discord",

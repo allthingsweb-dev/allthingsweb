@@ -14,9 +14,16 @@ import {
   DiscordAnnounce,
   type PreparedMessage,
 } from "../src/social/announce-discord.ts";
+import {
+  adoptSignIn,
+  type PreparedXPost,
+  XAnnounce,
+} from "../src/social/announce-x.ts";
 import { Bluesky } from "../src/social/bluesky.ts";
 import { Discord } from "../src/social/discord.ts";
 import { SentPosts } from "../src/social/sent-posts.ts";
+import { X } from "../src/social/x.ts";
+import { fromXurl, signInItem, XSignIn } from "../src/social/x-sign-in.ts";
 
 /**
  * Posts an evening's promotion draft (src/promo/) from our accounts, exactly
@@ -28,13 +35,20 @@ import { SentPosts } from "../src/social/sent-posts.ts";
  *   bun run social discord <slug> --moment dayOf --approve <token>      send exactly that, once
  *   bun run social discord <slug> --moment dayOf --sent <id>     record the message an unanswered send left
  *   bun run social discord <slug> --moment dayOf --release       let go of an unanswered send that left none
+ *   bun run social x <slug> --moment announce --dry-run          the post, and its approval token
+ *   bun run social x <slug> --moment announce --approve <token>  post exactly that, once
+ *   bun run social x-sign-in --from-xurl                          keep xurl's sign-in as ours
  *
  * --dry-run reads only: for Bluesky, the draft, the handles it mentions,
  * and our recent posts; for Discord, the draft, the webhook, and the
- * record of what was sent (planning.sent_posts). DATABASE_URL,
- * BLUESKY_HANDLE, BLUESKY_APP_PASSWORD and DISCORD_WEBHOOK_URL come from
- * the environment only; .env files are not read. Bluesky's dry run needs
- * no password; Discord's record needs the database owner.
+ * record of what was sent (planning.sent_posts); for X, the draft and our
+ * last ten posts, with the app's bearer token. DATABASE_URL,
+ * BLUESKY_HANDLE, BLUESKY_APP_PASSWORD, DISCORD_WEBHOOK_URL,
+ * X_BEARER_TOKEN, X_CLIENT_ID and X_CLIENT_SECRET come from the
+ * environment only; .env files are not read. No dry run signs in;
+ * Discord's record needs the database owner. X's sign-in is kept in
+ * 1Password (through op, with OP_SERVICE_ACCOUNT_TOKEN), and each post
+ * stores the new one.
  */
 
 const bluesky = Announce.layer.pipe(
@@ -57,6 +71,29 @@ const discord = DiscordAnnounce.layer.pipe(
   ),
   Layer.provide(Database.layer),
 );
+
+const xLayer = XAnnounce.layer.pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      Promo.layer,
+      X.layer.pipe(Layer.provide(FetchHttpClient.layer)),
+      XSignIn.onePassword,
+    ),
+  ),
+  Layer.provide(Database.layer),
+);
+
+const describeX = (prepared: PreparedXPost) =>
+  [
+    `X @${prepared.account.handle} · ${prepared.slug} · ${prepared.moment}`,
+    "---",
+    prepared.text,
+    "---",
+    prepared.alreadyPosted === null
+      ? "not posted yet"
+      : `already posted: ${prepared.alreadyPosted}`,
+    `approval token: ${prepared.token}`,
+  ].join("\n");
 
 const describePost = (prepared: PreparedPost) =>
   [
@@ -224,9 +261,99 @@ const discordCommand = Command.make(
   ),
 );
 
+const xCommand = Command.make(
+  "x",
+  { slug, moment, dryRun, approve, json },
+  (options) =>
+    Effect.gen(function* () {
+      if (options.dryRun === Option.isSome(options.approve)) {
+        return yield* new PostRefused({
+          reason:
+            "Give --dry-run to read the post, or --approve <token> to post exactly that.",
+        });
+      }
+      if (Option.isNone(options.approve)) {
+        const prepared = yield* XAnnounce.use((announce) =>
+          announce.prepare(options.slug, options.moment),
+        );
+        return yield* Console.log(
+          options.json
+            ? JSON.stringify(prepared, null, 2)
+            : `${describeX(prepared)}\nNothing was posted. To post exactly this: bun run social x ${options.slug} --moment ${options.moment} --approve ${prepared.token}`,
+        );
+      }
+      const token = options.approve.value;
+      const posted = yield* XAnnounce.use((announce) =>
+        announce.post(options.slug, options.moment, token),
+      );
+      return yield* Console.log(
+        options.json
+          ? JSON.stringify(posted, null, 2)
+          : `Posted: ${posted.url}\n${describeX(posted)}`,
+      );
+    }).pipe(Effect.provide(xLayer)),
+).pipe(
+  Command.withDescription(
+    "Post an evening's X draft as @allthingswebdev, exactly as approved.",
+  ),
+);
+
+const xSignIn = Command.make(
+  "x-sign-in",
+  {
+    fromXurl: Flag.Boolean("from-xurl").pipe(
+      Flag.withDescription(
+        'Keep the sign-in xurl stored for @allthingswebdev (its app "allthings").',
+      ),
+      Flag.withDefault(false),
+    ),
+    store: Flag.String("xurl-store").pipe(
+      Flag.withDescription("xurl's store (default ~/.xurl/auth.yml)."),
+      Flag.optional,
+    ),
+  },
+  (options) =>
+    Effect.gen(function* () {
+      if (!options.fromXurl) {
+        return yield* new PostRefused({
+          reason: "Give --from-xurl: xurl's sign-in is the one this keeps.",
+        });
+      }
+      const path = Option.getOrElse(
+        options.store,
+        () => `${process.env["HOME"] ?? ""}/.xurl/auth.yml`,
+      );
+      const yaml = yield* Effect.tryPromise({
+        try: () => Bun.file(path).text(),
+        catch: () =>
+          new PostRefused({ reason: `xurl's store ${path} can't be read.` }),
+      });
+      const made = yield* fromXurl(yaml, "allthings", "allthingswebdev").pipe(
+        Effect.catchTag("SignInUnavailable", (error) =>
+          Effect.fail(new PostRefused({ reason: error.reason })),
+        ),
+      );
+      const { verified } = yield* adoptSignIn(made);
+      return yield* Console.log(
+        `Kept xurl's sign-in${verified ? " for @allthingswebdev" : " (its access token has expired, so the first post checks the account)"} in 1Password "${signInItem.item}" (${signInItem.field}). Nothing was posted. The first post spends xurl's copy: xurl auth oauth2 --app allthings allthingswebdev signs xurl in again.`,
+      );
+    }).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          X.layer.pipe(Layer.provide(FetchHttpClient.layer)),
+          XSignIn.onePassword,
+        ),
+      ),
+    ),
+).pipe(
+  Command.withDescription(
+    "Keep @allthingswebdev's X sign-in (from xurl) in 1Password for posting.",
+  ),
+);
+
 const social = Command.make("social").pipe(
   Command.withDescription("Post an evening's drafts from our accounts."),
-  Command.withSubcommands([blueskyCommand, discordCommand]),
+  Command.withSubcommands([blueskyCommand, discordCommand, xCommand, xSignIn]),
 );
 
 // A refusal, or Bluesky not answering, is the answer, not a crash: its

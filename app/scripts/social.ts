@@ -17,7 +17,7 @@ const core = fileURLToPath(new URL("../../core/", import.meta.url));
  * the CLI never disagree.
  */
 
-export const socialChannels = ["bluesky", "discord"] as const;
+export const socialChannels = ["bluesky", "discord", "x"] as const;
 const moments = ["announce", "dayOf", "recap"] as const;
 
 export const socialSchemas = {
@@ -94,7 +94,7 @@ const common = {
     type: "string",
     enum: [...socialChannels],
     description:
-      "Where: bluesky (@allthingsweb.dev), or discord (our server, through its channel webhook)",
+      "Where: bluesky (@allthingsweb.dev), discord (our server, through its channel webhook), or x (@allthingswebdev)",
   },
   slug: { type: "string", description: "The published evening's slug" },
   moment: {
