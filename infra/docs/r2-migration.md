@@ -16,15 +16,17 @@ The new site goes live on allthings.dev with the move. At activation, allthings.
 - When allthings.dev turns active in the allthings account, the old zone is marked Moved Away. Cloudflare's edge then routes media.allthings.dev by the new zone's config.
 - From that moment, the old bucket's custom domain no longer serves anything.
 
-So for zero downtime, the new bucket must be **full, verified, and already attached to media.allthings.dev before the move happens**. If R2 is still off on Oct 11, the move takes media offline. The image rows store absolute `https://media.allthings.dev/...` URLs, so there is no host to fall back to.
+**media.allthings.dev can't be attached ahead of time.** R2 refuses a custom domain on a pending zone. It answers "The specified zone id is not valid", found on a prod deploy on Oct 6. So the stack attaches it only once the zone is active (`mediaDomains` in `src/media.ts`), and media.allthings.dev is unserved from activation until the first deploy after it. The image rows store absolute `https://media.allthings.dev/...` URLs, so there is no host to fall back to.
 
-Critical path: attach media.allthings.dev to the pending zone → copy and verify the delta since Phase 1 → the domain move (earliest Oct 11), then the prod deploy that attaches allthings.dev and www to the new site right after activation. That date is the registrar's 10-day rule; the domain was registered Sep 30.
+The new bucket must therefore be **full and verified before the move**, and the deploy that attaches it must run **the moment the zone turns active**. Phase 4 starts with a command that waits for activation and deploys at once.
+
+Critical path: copy and verify the delta since Phase 1 → the domain move (earliest Oct 11) → at activation, the prod deploy that attaches media.allthings.dev, allthings.dev and www together. That date is the registrar's 10-day rule; the domain was registered Sep 30.
 
 ## What this change adds
 
 - **[`src/media.ts`](../src/media.ts): prod follows the zone.** `productionRole(accountId, zone)` decides:
   - **serve:** allthings.dev is active in the deploying account. This is today's prod: the bucket on the domain, the upload Worker, and the Vercel env. `alchemy plan --stage prod` in the current account shows `[Media] noop`, so nothing changes there.
-  - **stage:** the allthings account before the move. The bucket `allthings-media` is declared, and since #162 the Web Worker on its `workers.dev` URL. In serve, the Web Worker also takes allthings.dev and www. Once the zone has been added there (pending), media.allthings.dev is attached ahead of time, so it serves from the instant the zone turns active.
+  - **stage:** the allthings account before the move. The bucket `allthings-media` is declared, and since #162 the Web Worker on its `workers.dev` URL. In serve, the Web Worker also takes allthings.dev and www, and the bucket takes media.allthings.dev. Nothing is attached while the zone is pending, because R2 and Worker custom domains both need an active zone.
   - **refused:** any other account, for example the personal one after the domain has left. Without this, a stray deploy from there would drop the upload Worker and the Vercel env.
   - I checked this with a real plan: `plan --stage prod --profile allthings` reaches the bucket and stops at "Please enable R2". That is the gate.
 - **[`scripts/copy-media.ts`](../scripts/copy-media.ts) and [`src/media-copy.ts`](../src/media-copy.ts): the copy.** Commands are `plan`, `copy [--record file]` and `verify [--public https://media.allthings.dev]`.
@@ -54,13 +56,16 @@ Critical path: attach media.allthings.dev to the pending zone → copy and verif
 
 1. ~~**Workers Paid and R2** on the allthings account~~ (done Oct 5).
 2. **The move.** Submit it from the personal account (Manage Domain → Configuration), then accept it in the allthings account within 5 days. Cloudflare has no API for it.
-3. **Optional, your call:** an Advanced Certificate (ACM, about $10/month, cancel after) ordered on the pending zone.
-   - Per Cloudflare's docs, it deploys the moment the zone turns active. That removes the remaining TLS gap (see Downtime).
-   - It's a cost and taste call, so I haven't decided it.
+3. **Recommended, your call:** an Advanced Certificate (ACM, about $10/month, cancel after) ordered on the pending zone, covering `allthings.dev` and `*.allthings.dev`.
+   - Per Cloudflare's docs, it deploys the moment the zone turns active.
+   - Since media.allthings.dev, allthings.dev and www can only be attached after activation, the move-day gap is the deploy plus however long the new hostnames' certificates take. The ACM certificate removes the certificate part, leaving about the deploy's minute (see Downtime).
+   - It's a cost call, so it's yours; I'd order it.
 
 The zone is already added, and DNSSEC is already off: the .dev registry holds no DS record. The live zone has no ordinary records to recreate. Its apex and www are Wrangler custom domains for esthor/domains' redirect Worker (to allthingsweb.dev). That redirect is not re-homed: after the move, the new site takes both names. [esthor/domains#232](https://github.com/esthor/domains/pull/232) only moves Terraform's zone ownership, and the personal-account Worker is deleted.
 
-`ops/rotate-alchemy-oauth.sh` signs both Alchemy profiles in again. That fixes the `allthings` profile's refresh, which fails since its OAuth client dropped a scope. Until then, prod deploys to the allthings account run with a short-lived account token from the cf CLI's `allthings` login. The token is created and deleted per deploy, as for Phase 1 and the Web Worker (Oct 6). It holds:
+**Credentials.** Prod deploys to the allthings account use Alchemy's `allthings` profile (`--profile allthings`). Its refresh failed after its OAuth client dropped a scope. Alchemy 2.0.0-beta.81 fixed that, and Erik signed both profiles in again with `ops/rotate-alchemy-oauth.sh` (Oct 6). Phase 2's deploy proves the profile works on move day, before anything depends on it.
+
+If it fails anyway, deploy with a short-lived account token from the cf CLI's `allthings` login instead, passed as `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Create it and delete it per deploy, as for Phase 1 and the Web Worker (Oct 6). It holds:
 
 - **Account:** Workers Scripts Write, Account Settings Read, Secrets Store Write, Hyperdrive Write, Workers R2 Storage Write.
 - **Zones:** Zone Read. Phase 4's deploy also attaches the site's custom domains and the www redirect rule, so it adds Workers Routes Write and Dynamic URL Redirects Write.
@@ -83,9 +88,7 @@ Run from `infra/` once this has merged. Nothing is passed by hand: the copy uses
 
 Check first that #162 is on main: `infra/src/web.ts` exports `siteDomain`, and `infra/alchemy.run.ts` deploys the Web Worker in prod.
 
-1. `bun run deploy --stage prod --profile allthings` again. The zone is now in the account, so this attaches media.allthings.dev to the new bucket on the pending zone.
-   - Check in the dashboard that the bucket's custom domain shows media.allthings.dev.
-   - If R2 refuses a pending zone, the deploy fails here and changes nothing else. Then the attach happens in Phase 4 instead, and the window is longer (see Downtime).
+1. `bun run deploy --stage prod --profile allthings` again, with the secrets Phase 4's step 1 reads. This keeps the stack current on main, and proves the `allthings` profile and every secret work before the move. With the zone still pending, it changes nothing on the bucket: media.allthings.dev is attached in Phase 4. The output says `mediaDomain: not attached until allthings.dev is active in this account`.
 2. Ask organizers not to upload media for the next hour.
 3. Run `copy` and then `verify` (the delta since Phase 1). Both must exit 0 before the move.
    - A key never changes: the upload Worker refuses a key that exists (409), and every key carries a new UUID. So the delta should only add objects.
@@ -98,20 +101,35 @@ Check first that #162 is on main: `infra/src/web.ts` exports `siteDomain`, and `
 
 **Phase 3: the move**
 
-Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account, and media.allthings.dev now serves the new bucket. `dig +short NS allthings.dev` then answers max/rosalie.
+Before submitting, start `bash scripts/move-day-deploy.sh` (Phase 4, step 1) in a terminal, so the deploy follows activation within seconds. Then Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account. `dig +short NS allthings.dev` then answers max/rosalie.
+
+From activation, media.allthings.dev, allthings.dev and www are unserved until Phase 4's deploy attaches them. The old zone is marked Moved Away, and its custom domains go with it.
 
 **Phase 4: right after activation**
 
-From activation until step 2's deploy, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and Worker custom domains need an active zone. media.allthings.dev is unaffected, since Phase 2 pre-attached it.
+From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself.
 
-1. Run these checks:
-   - `curl -sI https://media.allthings.dev/<a few keys>` must return 200 with a valid certificate.
-   - `verify --public https://media.allthings.dev` must exit 0.
-2. `bun run deploy --stage prod --profile allthings` (now "serve"), with `NEON_READER_URL`, `NEON_SYNC_URL` and `LUMA_API_KEY` passed as `infra/README.md` shows. This brings up:
+1. **Wait for activation, then deploy at once.** Start [`scripts/move-day-deploy.sh`](../scripts/move-day-deploy.sh) before the move is submitted:
+
+   ```sh
+   bash scripts/move-day-deploy.sh
+   ```
+
+   - It reads the deploy's secrets from 1Password and stops if any read fails or is empty.
+   - It plans prod with the `allthings` profile, so a sign-in problem shows up while everything still serves.
+   - It checks the zone every 10 seconds. Each failed check is reported, and five in a row stop it, as does any status other than pending or active.
+   - Once the zone is active, it runs the prod deploy (now "serve").
+
+   The deploy brings up:
+   - **media.allthings.dev** on the new bucket.
    - **The new site on allthings.dev:** the prod Web Worker's custom domain. www.allthings.dev gets a 301 to the apex (path and query kept) from a redirect rule in the zone, which runs before the Worker.
    - **The upload Worker** in the allthings account (new URL and token). It runs its put/delete check.
    - **The sync Worker,** its schedule still off.
    - **Vercel env:** `MEDIA_UPLOAD_URL`, `MEDIA_UPLOAD_TOKEN` and `MEDIA_PUBLIC_URL` are written to it.
+
+2. Check media:
+   - `curl -sI https://media.allthings.dev/<a few keys>` must return 200 with a valid certificate.
+   - `verify --public https://media.allthings.dev` must exit 0.
 3. Check the site:
    - `curl -sI https://allthings.dev/` must return 200 with a valid certificate.
    - `curl -sI 'https://www.allthings.dev/events?x=1'` must return 301 to `https://allthings.dev/events?x=1`.
@@ -137,25 +155,25 @@ From activation until step 2's deploy, allthings.dev and www don't answer. Their
 
 ## Downtime: what can still go wrong
 
-- **With a pre-attach and the ACM certificate:** none expected. The edge has the bucket and the certificate ready at activation.
-- **With a pre-attach and no ACM:** media.allthings.dev may fail TLS until Universal SSL issues for the new zone, usually minutes. Most image traffic rides caches through that window:
-  - the Worker's `/img` variants in `caches.default`
-  - Vercel's optimized images
-  - browser caches
+media.allthings.dev, allthings.dev and www are all unserved from activation until Phase 4's deploy attaches them. R2 refuses a custom domain on a pending zone, so this window can't be closed in advance, only kept short:
 
-  Direct links to originals, such as old link previews, would fail for those minutes.
+- **The deploy:** under a minute. Phase 4's command starts it within 10 seconds of activation.
+- **Certificates:**
+  - With the ACM certificate, none: it is live at activation and covers every name.
+  - Without it, each new hostname waits for its own certificate, usually minutes.
 
-- **If R2 won't pre-attach on a pending zone:** the window is attach time plus certificate time. The same caches soften it.
-- **allthings.dev and www:** dark from activation until Phase 4's deploy attaches them, plus the time their edge certificates take.
-  - The deploy itself takes under a minute.
-  - allthings.dev has only ever redirected to allthingsweb.dev, so little links to it yet.
-  - The ACM certificate, if ordered, covers these names too.
+Most image traffic rides caches through that window:
+
+- the Worker's `/img` variants in `caches.default`
+- Vercel's optimized images
+- browser caches
+
+Direct links to originals, such as old link previews, fail for those minutes. allthings.dev has only ever redirected to allthingsweb.dev, so little links to it yet.
 
 **There is no rollback for the zone once it moves.** The registration is transfer-locked for 30 days after the move. All de-risking therefore happens before the move:
 
 - the copy is verified
-- the domain is pre-attached
-- Phase 4 is scripted
+- Phase 4's deploy is ready, and waits for activation
 
 The source bucket stays intact, so any object can be re-copied at any time.
 
@@ -207,7 +225,7 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
 
 ## Open questions and assumptions
 
-1. **Whether R2 accepts a custom domain on a pending zone.** This is unverified. The stack tries it in Phase 2; failing is safe.
+1. **R2 on a pending zone.** Settled on Oct 6: R2 refuses it ("The specified zone id is not valid"), so the stack attaches media.allthings.dev only once the zone is active.
 2. **When the zone activates.** That a Registrar move activates the new account's zone promptly is unverified. I'll watch the zone's status during Phase 3.
 3. **allthings.dev's certificate after activation.** It is unverified that Worker custom domains on a just-activated zone get their edge certificate within minutes. I'll time it in Phase 4.
 4. **Pre-existing drift.** `plan --stage prod` on main already shows `[MediaUpload] update` (an undeployed change on main). It's moot after Phase 4, which deploys a fresh upload Worker in the allthings account.

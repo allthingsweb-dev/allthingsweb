@@ -25,9 +25,10 @@ export interface MediaZone {
  * - `serve`: allthings.dev is active here, so its bucket answers on
  *   media.allthings.dev and the upload Worker and Vercel's settings follow it.
  * - `stage`: the allthings account while the domain hasn't moved in. Only the
- *   bucket, for scripts/copy-media.ts to fill, with media.allthings.dev
- *   attached ahead of time once the zone is added here (pending), so the
- *   domain serves this copy from the moment the zone turns active.
+ *   bucket, for scripts/copy-media.ts to fill. media.allthings.dev isn't
+ *   attached yet: R2 refuses a custom domain on a pending zone ("The
+ *   specified zone id is not valid"), so the first deploy after the zone
+ *   turns active attaches it (see {@link mediaDomains}).
  *
  * Anywhere else prod is refused: an account the domain has left would
  * otherwise drop the upload Worker and the Vercel settings the app relies on.
@@ -68,18 +69,26 @@ export const mediaZone = Effect.gen(function* () {
 });
 
 /**
+ * The bucket's custom domains: media.allthings.dev once allthings.dev is
+ * active in this account, and none before. R2 only attaches a custom domain
+ * to an active zone; on a pending one it answers "The specified zone id is
+ * not valid", which would fail the whole deploy.
+ */
+export const mediaDomains = (zone: MediaZone | undefined) =>
+  zone?.active === true
+    ? [{ name: MEDIA_DOMAIN, zone: zone.id, minTLS: "1.2" as const }]
+    : [];
+
+/**
  * Event covers, speaker photos and host logos, served on media.allthings.dev
- * when allthings.dev is a zone of this account. Production only: the bucket
+ * when allthings.dev is active in this account. Production only: the bucket
  * is kept even if this declaration goes away.
  */
 export const Media = Effect.gen(function* () {
   const { zone } = yield* mediaZone;
   return yield* Cloudflare.R2.Bucket("Media", {
     name: MEDIA_BUCKET,
-    domains:
-      zone === undefined
-        ? []
-        : [{ name: MEDIA_DOMAIN, zone: zone.id, minTLS: "1.2" as const }],
+    domains: mediaDomains(zone),
     forceDestroy: false,
   }).pipe(RemovalPolicy.retain());
 });
