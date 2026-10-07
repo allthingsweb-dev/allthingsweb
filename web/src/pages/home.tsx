@@ -36,7 +36,7 @@ export interface HomeProps {
  * How large the hero sets a lockup: "allthings/" and a short topic at the
  * full size, longer topics a step down, a name that isn't a topic two.
  */
-export function lockupSize(evening: Evening): "l" | "m" | "s" {
+export function lockupSize(evening: Pick<Evening, "topic">): "l" | "m" | "s" {
   if (evening.topic === undefined) return "s";
   return evening.topic.length <= "allthings/".length ? "l" : "m";
 }

@@ -122,7 +122,7 @@ describe("an upcoming evening", () => {
   }) => {
     const { html } = await page(Events, slugs.upcoming);
     expect(html).toContain(
-      '<h1 class="event-name event-name-l">allthings<span class="slash">/</span><wbr/><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></h1>',
+      '<h1 class="event-name event-name-l">allthings<span class="slash">/</span><br/><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></h1>',
     );
     expect(labels(html)).toEqual([
       "When",
@@ -297,7 +297,7 @@ describe("a past evening", () => {
   }) => {
     const { html } = await page(Events, slugs.past);
     expect(html).toContain(
-      '<h1 class="event-name event-name-l">allthings<span class="slash">/</span><wbr/><span>web</span></h1>',
+      '<h1 class="event-name event-name-l">allthings<span class="slash">/</span><br/><span>web</span></h1>',
     );
     expect(labels(html)).toEqual([
       "When",
