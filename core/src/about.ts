@@ -3,6 +3,13 @@ import { pageNow } from "./clock.ts";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import type * as Contract from "./contract.ts";
+import {
+  ended,
+  ours,
+  published,
+  soonestFirst,
+  talkAppearances,
+} from "./catalog.ts";
 import { DataSourceError } from "./errors.ts";
 import { guestCountFloor } from "./event-page.ts";
 import { type Evening, toEvening } from "./home.ts";
@@ -158,16 +165,13 @@ const make = Effect.gen(function* () {
     execute: ({ now, organizerIds, names, photoPrefix }) => sql`
       WITH held AS (
         SELECT e.* FROM events e
-        WHERE e.is_draft = false AND e.end_date < ${now}
-          AND e.curation = 'ours'
+        WHERE ${sql.and([published(sql, "e"), ended(sql, "e", now), ours(sql, "e")])}
       )
       SELECT
         (SELECT count(*)::int FROM held) AS evenings,
         (
-          SELECT count(DISTINCT ts.speaker_id)::int
-          FROM held e
-          JOIN event_talks et ON et.event_id = e.id
-          JOIN talk_speakers ts ON ts.talk_id = et.talk_id
+          SELECT count(DISTINCT a.profile_id)::int
+          FROM ${talkAppearances(sql, { whose: "ours", when: { ended: now } })} a
         ) AS speakers,
         (
           SELECT count(DISTINCT es.sponsor_id)::int
@@ -182,7 +186,7 @@ const make = Effect.gen(function* () {
         (
           SELECT ${sql.literal(listingJson)}
           FROM held e
-          ORDER BY e.start_date, e.id
+          ORDER BY ${soonestFirst(sql, "e")}
           LIMIT 1
         ) AS first,
         COALESCE((
@@ -194,7 +198,7 @@ const make = Effect.gen(function* () {
             FROM json_array_elements_text(${names}::json)
               WITH ORDINALITY AS n(name, position)
             JOIN held e ON starts_with(lower(e.name), lower(n.name))
-            ORDER BY n.position, e.start_date, e.id
+            ORDER BY n.position, ${soonestFirst(sql, "e")}
           ) f
         ), '[]'::json) AS "formerNames",
         COALESCE((

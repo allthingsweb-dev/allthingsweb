@@ -12,7 +12,13 @@ import * as SqlSchema from "effect/sql/SqlSchema";
 import type * as Contract from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
 import { displayName, eventTopic } from "./lockup.ts";
-import { eventStatus } from "./catalog.ts";
+import {
+  eventStatus,
+  latestAppearanceFirst,
+  latestTalkFirst,
+  roleAppearances,
+  talkAppearances,
+} from "./catalog.ts";
 import { personLinks } from "./mappers.ts";
 import { type StageRole, stageRole } from "./people.ts";
 import * as Rows from "./rows.ts";
@@ -468,29 +474,29 @@ const make = Effect.gen(function* () {
   const findPeople = SqlSchema.findAll({
     Request,
     Result: PersonRow,
-    execute: ({ organizerIds, photoPrefix, slug }) => sql`
+    execute: ({ organizerIds, photoPrefix, slug }) => {
+      // The page lists our evenings' people; a person's own page, every
+      // evening they took part in.
+      const scope = {
+        whose: slug === null ? "ours" : "any",
+        when: "any",
+      } as const;
+      return sql`
       WITH talks_given AS (
-        SELECT ts.speaker_id AS profile_id, ts.role, t.id AS talk_id,
-          t.title, t.format, et.position, et.created_at AS listed_at,
-          e.id AS event_id, ${sql.literal(siteSlug("e"))} AS slug, e.curation,
-          e.name, e.topic,
-          e.start_date, e.end_date
-        FROM talk_speakers ts
-        JOIN talks t ON t.id = ts.talk_id
-        JOIN event_talks et ON et.talk_id = t.id
-        JOIN events e ON e.id = et.event_id
-        WHERE e.is_draft = false
-          AND (e.curation = 'ours' OR ${slug}::text IS NOT NULL)
+        SELECT a.profile_id, a.role, a.talk_id, t.title, t.format,
+          a.position, a.listed_at, a.event_id,
+          ${sql.literal(siteSlug("e"))} AS slug, e.curation, e.name, e.topic,
+          a.start_date, e.end_date
+        FROM ${talkAppearances(sql, scope)} a
+        JOIN talks t ON t.id = a.talk_id
+        JOIN events e ON e.id = a.event_id
       ),
       parts AS (
-        SELECT ep.profile_id, ep.role,
-          e.id AS event_id, ${sql.literal(siteSlug("e"))} AS slug, e.curation,
-          e.name, e.topic,
-          e.start_date, e.end_date
-        FROM event_people ep
-        JOIN events e ON e.id = ep.event_id
-        WHERE e.is_draft = false
-          AND (e.curation = 'ours' OR ${slug}::text IS NOT NULL)
+        SELECT a.profile_id, a.role, a.event_id,
+          ${sql.literal(siteSlug("e"))} AS slug, e.curation, e.name, e.topic,
+          a.start_date, e.end_date
+        FROM ${roleAppearances(sql, scope)} a
+        JOIN events e ON e.id = a.event_id
       )
       SELECT p.id, p.slug, p.name, p.title, p.bio,
         p.twitter_handle AS "twitterHandle",
@@ -515,8 +521,7 @@ const make = Effect.gen(function* () {
             'slug', g.slug, 'curation', g.curation, 'name', g.name,
             'topic', g.topic,
             'startDate', g.start_date, 'endDate', g.end_date
-          ) ORDER BY g.start_date DESC, g.event_id, g.position NULLS LAST,
-            g.listed_at, g.talk_id)
+          ) ORDER BY ${latestTalkFirst(sql, "g")})
           FROM talks_given g
           WHERE g.profile_id = p.id
         ), '[]'::json) AS talks,
@@ -525,7 +530,7 @@ const make = Effect.gen(function* () {
             'role', x.role, 'slug', x.slug, 'curation', x.curation,
             'name', x.name, 'topic', x.topic,
             'startDate', x.start_date, 'endDate', x.end_date
-          ) ORDER BY x.start_date DESC, x.event_id, x.role)
+          ) ORDER BY ${latestAppearanceFirst(sql, "x")}, x.role)
           FROM parts x
           WHERE x.profile_id = p.id AND x.role IN ('co-host', 'mc')
         ), '[]'::json) AS roles,
@@ -534,7 +539,7 @@ const make = Effect.gen(function* () {
             'slug', x.slug, 'curation', x.curation, 'name', x.name,
             'topic', x.topic,
             'startDate', x.start_date, 'endDate', x.end_date
-          ) ORDER BY x.start_date DESC, x.event_id)
+          ) ORDER BY ${latestAppearanceFirst(sql, "x")})
           FROM parts x
           WHERE x.profile_id = p.id AND x.role = 'organizer'
         ), '[]'::json) AS hosted
@@ -545,7 +550,8 @@ const make = Effect.gen(function* () {
           OR EXISTS (SELECT 1 FROM parts x WHERE x.profile_id = p.id)
         ))
         OR p.slug = ${slug}
-      ORDER BY p.id`,
+      ORDER BY p.id`;
+    },
   });
 
   // A slug someone had before: theirs now, unless someone else has it now.

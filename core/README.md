@@ -9,9 +9,8 @@ The site's pages, the MCP tools (which the CLI and the Claude plugin
 call), the v1 API and the feeds all say which evenings and people there
 are. They must say the same, so each fact is stated once, in
 `src/catalog.ts`, as a typed SQL fragment, with its TypeScript twin where
-something is sorted or decided in code. The surfaces move onto it one at a
-time; until one has, it states these facts in its own SQL, and the parity
-test below is what holds it to the others.
+something is sorted or decided in code. Every public read builds its
+statement from it.
 
 - **Which evenings are public:** `published(e)`. An evening is found by
   its long slug, its short link or a link it had before (`resolve`), the
@@ -30,10 +29,16 @@ test below is what holds it to the others.
   them in that order, each surface choosing the fields it publishes, and
   `talkOrder`, `speakerOrder`, `hostOrder` and `peopleOrder` are the
   orders themselves, for a statement that joins them its own way.
-- **A person's appearances:** their talks and their parts at published
-  evenings, as one relation, scoped by whose evenings (ours, or any) and
-  when (over, or any). The speakers list, /people, a person's page, /about's
-  numbers and the sitemap are each one scope of it.
+- **A person's appearances:** their talks (`talkAppearances`) and their
+  parts in evenings as a whole (`roleAppearances`) at published evenings,
+  each scoped by whose evenings (`ours` or `any`) and when (`any`, or
+  once `ended`), latest evening first (`latestTalkFirst`,
+  `latestAppearanceFirst`). /people is our evenings' at any time; a
+  person's page, every evening's; /about counts ours once over; the sitemap
+  lists everyone at any. The speakers list (`list_speakers`,
+  `/api/v1/speakers`) counts any evening's talks from its last instant on
+  (`endedOrEnding`), while it is still live, until it counts them once
+  `ended` like the rest.
 
 Each surface still reads in one statement, since from a Worker every round
 trip costs more than the query, and builds it from these fragments. What a
@@ -48,12 +53,11 @@ people there are, or their order.
 fails on any file that states one of these rules itself (selecting by
 `is_draft`, a comparison on `end_date`, `curation = '…'`, an `ORDER BY` on
 `start_date`, or a lineup's order) outside `src/catalog.ts`. It lists the
-public reads not yet moved, each with what moves it, and the code that
-isn't a public read (the Luma sync, the organizers' tools, the reports),
-each with why. Both lists only shrink: a listed file that states no rule
-fails it too. `tests/catalog.test.ts` holds
-the fragments to the schema, and `ahead` and `ended` to `eventStatus` at
-every instant around an evening's start and end.
+code that isn't a public read (the Luma sync, the organizers' tools, the
+reports), each with why; the list only shrinks, and a listed file that
+states no rule fails it too. `tests/catalog.test.ts` holds the fragments to
+the schema, `ahead` and `ended` to `eventStatus` at every instant around
+an evening's start and end, and each scope of a person's appearances.
 
 `web/tests/parity.test.ts` holds the surfaces to each other over one
 seeded database at one instant: the same evenings in the same order from

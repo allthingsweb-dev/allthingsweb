@@ -8,7 +8,9 @@ import {
   latestFirst,
   ours,
   published,
+  roleAppearances,
   soonestFirst,
+  talkAppearances,
 } from "../src/catalog.ts";
 import { seededDatabase, sqlLayer } from "./support/database.ts";
 
@@ -18,12 +20,19 @@ import { seededDatabase, sqlLayer } from "./support/database.ts";
  * it isn't past, at every instant around its start and end.
  */
 
-/** The seed, plus two evenings that start together, attached out of id order. */
+/**
+ * The seed, plus two evenings that start together, attached out of id
+ * order, and the upcoming one shared: someone else's we list.
+ */
 const db = await seededDatabase();
 await db.exec(`
   INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, is_draft, updated_at) VALUES
     ('e0000000-0000-4000-8000-000000000402', '2027-01-01-tie-b', 'Tie B', '', '2027-01-01T02:00:00Z', '2027-01-01T05:00:00Z', 10, false, false, now()),
     ('e0000000-0000-4000-8000-000000000401', '2027-01-01-tie-a', 'Tie A', '', '2027-01-01T02:00:00Z', '2027-01-01T05:00:00Z', 10, false, false, now());
+  INSERT INTO sponsors (id, name, about, updated_at) VALUES
+    ('c0000000-0000-4000-8000-000000000900', 'Mastra', '', now());
+  UPDATE events SET curation = 'shared', organized_by = 'c0000000-0000-4000-8000-000000000900'
+    WHERE slug = '2026-11-05-upcoming';
 `);
 afterAll(() => db.close());
 
@@ -111,12 +120,6 @@ describe("published, ours and their order", () => {
   });
 
   test("ours leaves out the evenings we share", async () => {
-    await db.exec(`
-      INSERT INTO sponsors (id, name, about, updated_at) VALUES
-        ('c0000000-0000-4000-8000-000000000900', 'Mastra', '', now());
-      UPDATE events SET curation = 'shared', organized_by = 'c0000000-0000-4000-8000-000000000900'
-        WHERE slug = '2026-11-05-upcoming';
-    `);
     const rows = await withSql(
       (sql) => sql<{ slug: string }>`
         SELECT e.slug FROM events e
@@ -131,5 +134,63 @@ describe("published, ours and their order", () => {
       "2027-01-01-tie-a",
       "2027-01-01-tie-b",
     ]);
+  });
+});
+
+describe("appearances", () => {
+  // Ends now (Zed's lightning talk) ends at 19:00 on 3 October; React at Acme
+  // and Café night are over; the draft's talk never counts.
+  const lastInstant = at("2026-10-03T19:00:00Z");
+
+  const speakers = (scope: Parameters<typeof talkAppearances>[1]) =>
+    withSql(
+      (sql) => sql<{ name: string }>`
+        SELECT DISTINCT p.name FROM ${talkAppearances(sql, scope)} a
+        JOIN profiles p ON p.id = a.profile_id
+        ORDER BY p.name`,
+    ).then((rows) => rows.map((row) => row.name));
+
+  test("talks at any published evening, never a draft's", async () => {
+    expect(await speakers({ whose: "any", when: "any" })).toEqual([
+      "Ada Lovelace",
+      "Future Speaker",
+      "Grace Hopper",
+      "Linus",
+      "Zed Nobody",
+    ]);
+  });
+
+  test("ended leaves out an evening at its last instant; endedOrEnding counts it", async () => {
+    const over = ["Ada Lovelace", "Grace Hopper", "Linus"];
+    expect(
+      await speakers({ whose: "any", when: { ended: lastInstant } }),
+    ).toEqual(over);
+    expect(
+      await speakers({ whose: "any", when: { endedOrEnding: lastInstant } }),
+    ).toEqual([...over, "Zed Nobody"]);
+  });
+
+  test("ours leaves out the evenings we share", async () => {
+    // Future Speaker's evening is the one shared.
+    expect(await speakers({ whose: "ours", when: "any" })).not.toContain(
+      "Future Speaker",
+    );
+    expect(await speakers({ whose: "any", when: "any" })).toContain(
+      "Future Speaker",
+    );
+  });
+
+  test("parts in evenings as a whole, by the same scope", async () => {
+    await db.exec(`
+      INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
+        ('e0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000007', 'co-host', 0, 'site', now()),
+        ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003', 'mc', 0, 'site', now());
+    `);
+    const rows = await withSql(
+      (sql) => sql<{ name: string; role: string }>`
+        SELECT p.name, a.role FROM ${roleAppearances(sql, { whose: "ours", when: { ended: lastInstant } })} a
+        JOIN profiles p ON p.id = a.profile_id`,
+    );
+    expect(rows).toEqual([{ name: "Linus", role: "mc" }]);
   });
 });

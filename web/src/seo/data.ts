@@ -1,4 +1,9 @@
-import { latestFirst, published } from "allthings-core/src/catalog.ts";
+import {
+  latestFirst,
+  published,
+  roleAppearances,
+  talkAppearances,
+} from "allthings-core/src/catalog.ts";
 import { DataSourceError } from "allthings-core/src/errors.ts";
 import { siteSlug } from "allthings-core/src/sql.ts";
 import { eventTagline } from "allthings-core/src/tagline.ts";
@@ -81,14 +86,11 @@ const make = Effect.gen(function* () {
       SELECT p.slug, p.updated_at AS "updatedAt"
       FROM profiles p
       WHERE EXISTS (
-          SELECT 1 FROM talk_speakers ts
-          JOIN event_talks et ON et.talk_id = ts.talk_id
-          JOIN events e ON e.id = et.event_id
-          WHERE ts.speaker_id = p.id AND e.is_draft = false
+          SELECT 1 FROM ${talkAppearances(sql, { whose: "any", when: "any" })} a
+          WHERE a.profile_id = p.id
         ) OR EXISTS (
-          SELECT 1 FROM event_people ep
-          JOIN events e ON e.id = ep.event_id
-          WHERE ep.profile_id = p.id AND e.is_draft = false
+          SELECT 1 FROM ${roleAppearances(sql, { whose: "any", when: "any" })} a
+          WHERE a.profile_id = p.id
         )
       ORDER BY p.slug`,
   });
