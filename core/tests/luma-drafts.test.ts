@@ -132,6 +132,12 @@ describe("the draft refresh", () => {
               after:
                 "Standard Deviant Brewing Pier 70, 1070 Maryland St, San Francisco, CA 94107",
             },
+            // Its description, as the import of published ones stores it.
+            {
+              column: "luma_description",
+              before: null,
+              after: "<p>Server components in practice.</p>\n",
+            },
           ],
         },
       ],
@@ -148,6 +154,16 @@ describe("the draft refresh", () => {
   test("writes it, still a draft, and then has nothing to change", async () => {
     const { result } = await run([answer()], false);
     expect(result).toMatchObject({ written: 1 });
+    const [description] = (
+      await db.query<{ html: string | null; summary: string | null }>(
+        "SELECT luma_description AS html, luma_summary AS summary FROM events WHERE luma_event_id = 'evt-draft'",
+      )
+    ).rows;
+    // Too short a sentence for a summary, as in the import of published ones.
+    expect(description).toEqual({
+      html: "<p>Server components in practice.</p>\n",
+      summary: null,
+    });
     expect(await stored()).toMatchObject({
       name: "Markdown Trivia Night",
       start: "2026-11-21 01:30:00+00",
@@ -169,6 +185,7 @@ describe("the draft refresh", () => {
       "name",
       "start_date",
       "end_date",
+      "luma_description",
     ]);
     expect(await stored()).toMatchObject({ street_address: "1 Market St" });
   });
@@ -206,6 +223,8 @@ describe("draftChanges", () => {
     streetAddress: "1 Market St",
     shortLocation: "1 Market St",
     fullAddress: "1 Market St",
+    lumaDescription: null,
+    lumaSummary: null,
   };
 
   test("is empty when Luma says what is stored, and keeps what Luma doesn't say", () => {
@@ -217,6 +236,7 @@ describe("draftChanges", () => {
         endDate: null,
         visibility: "private",
         location: null,
+        description: null,
       }),
     ).toEqual([]);
   });
@@ -246,6 +266,7 @@ describe("a venue the organizers set meanwhile", () => {
                 endDate: null,
                 visibility: "private" as const,
                 location: "Standard Deviant Brewing Pier 70, 1070 Maryland St",
+                description: null,
               }),
             ),
           ),
@@ -314,7 +335,7 @@ describe("adding a private event as a draft", () => {
   const row = async () =>
     (
       await db.query<Record<string, unknown>>(
-        `SELECT slug, name, start_date::text AS start, end_date::text AS end, is_draft, tagline, short_location, full_address
+        `SELECT slug, name, start_date::text AS start, end_date::text AS end, is_draft, tagline, short_location, full_address, luma_description
          FROM events WHERE luma_event_id = 'evt-new'`,
       )
     ).rows[0];
@@ -354,6 +375,7 @@ describe("adding a private event as a draft", () => {
       tagline: "See Luma for event details and registration.",
       short_location: "CodeRabbit",
       full_address: "CodeRabbit, 201 Spear St, San Francisco, CA 94105",
+      luma_description: "<p>Server components in practice.</p>\n",
     });
     // The refresh knows it from then on.
     const { result } = await run([answer(), fresh()], true);
@@ -384,5 +406,32 @@ describe("adding a private event as a draft", () => {
     expect(reason(keyless.exit)).toContain("LUMA_API_KEY is not set");
     expect(keyless.requests).toEqual([]);
     expect(await row()).toBeUndefined();
+  });
+});
+
+describe("a draft's description", () => {
+  const description = async () =>
+    (
+      await db.query<{ html: string | null; summary: string | null }>(
+        "SELECT luma_description AS html, luma_summary AS summary FROM events WHERE luma_event_id = 'evt-draft'",
+      )
+    ).rows[0];
+
+  test("follows Luma: an edited one replaces it, a removed one empties it and its summary", async () => {
+    await run(
+      [
+        answer({
+          description_md:
+            "**How it works**\n\nTeams of up to four, and a wager round at the end.",
+        }),
+      ],
+      false,
+    );
+    expect(await description()).toEqual({
+      html: "<p><strong>How it works</strong></p>\n<p>Teams of up to four, and a wager round at the end.</p>\n",
+      summary: "Teams of up to four, and a wager round at the end.",
+    });
+    await run([answer({ description_md: "" })], false);
+    expect(await description()).toEqual({ html: "", summary: null });
   });
 });

@@ -124,6 +124,7 @@ const placedApi = Layer.succeed(
           endDate: DateTime.makeUnsafe("2026-11-05T04:00:00Z"),
           visibility: "private" as const,
           location: null,
+          description: null,
         }),
       ),
     ),

@@ -108,6 +108,8 @@ export interface LumaEventDetails {
   readonly visibility: "public" | "members-only" | "private";
   /** The full address; null without one. */
   readonly location: string | null;
+  /** The description, in the Markdown of Luma's editor; null when Luma gives none. */
+  readonly description: string | null;
 }
 
 /** An event's details from Luma's answer, or None when it lacks a name, start or visibility. */
@@ -135,6 +137,7 @@ export function toEventDetails(
     endDate: Option.isSome(end) ? DateTime.toUtc(end.value) : null,
     visibility: event.visibility,
     location: toEventVenue(event).location,
+    description: event.description_md ?? null,
   });
 }
 

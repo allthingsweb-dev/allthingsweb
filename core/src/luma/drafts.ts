@@ -4,6 +4,7 @@ import type { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
 import { LumaApi, type LumaApiError, type LumaEventDetails } from "./api.ts";
 import { defaultTagline } from "../tagline.ts";
+import { descriptionHtml, descriptionSummary } from "./description.ts";
 import { eventSlug, venueColumns } from "./sync.ts";
 
 /**
@@ -42,8 +43,20 @@ const StoredDraft = Schema.Struct({
   streetAddress: Schema.NullOr(Schema.String),
   shortLocation: Schema.NullOr(Schema.String),
   fullAddress: Schema.NullOr(Schema.String),
+  lumaDescription: Schema.NullOr(Schema.String),
+  lumaSummary: Schema.NullOr(Schema.String),
 });
 export type StoredDraft = typeof StoredDraft.Type;
+
+/**
+ * A draft's description as Luma has it, as the import of published ones
+ * stores it (src/luma/descriptions.ts): sanitized rich text ("" for none)
+ * and its one-line summary.
+ */
+export interface DraftDescription {
+  readonly html: string;
+  readonly summary: string | null;
+}
 
 /** One column a refresh would change: before and after. */
 export interface DraftChange {
@@ -53,7 +66,9 @@ export interface DraftChange {
     | "end_date"
     | "street_address"
     | "short_location"
-    | "full_address";
+    | "full_address"
+    | "luma_description"
+    | "luma_summary";
   readonly before: string | null;
   readonly after: string | null;
 }
@@ -144,6 +159,7 @@ const iso = (instant: DateTime.Utc): string => DateTime.formatIso(instant);
 export function draftChanges(
   stored: StoredDraft,
   details: LumaEventDetails,
+  description?: DraftDescription,
 ): ReadonlyArray<DraftChange> {
   const changes: Array<DraftChange> = [];
   const compare = (
@@ -164,10 +180,23 @@ export function draftChanges(
     compare("short_location", stored.shortLocation, venue.shortLocation);
     compare("full_address", stored.fullAddress, venue.fullAddress);
   }
+  if (description !== undefined) {
+    compare("luma_description", stored.lumaDescription, description.html);
+    compare("luma_summary", stored.lumaSummary, description.summary);
+  }
   return changes;
 }
 
 const Written = Schema.Struct({ written: Schema.Int });
+
+/** Luma's description of a draft, as the import of published ones stores it. */
+const describeDraft = (
+  markdown: string | null,
+): Effect.Effect<DraftDescription> =>
+  Effect.map(descriptionHtml(markdown), (html) => ({
+    html: html ?? "",
+    summary: descriptionSummary(markdown),
+  }));
 
 const make = Effect.gen(function* () {
   const api = yield* LumaApi;
@@ -179,7 +208,8 @@ const make = Effect.gen(function* () {
         e.name, e.start_date AS "startDate", e.end_date AS "endDate",
         e.venue_by_organizer AS "venueByOrganizer",
         e.street_address AS "streetAddress",
-        e.short_location AS "shortLocation", e.full_address AS "fullAddress"
+        e.short_location AS "shortLocation", e.full_address AS "fullAddress",
+        e.luma_description AS "lumaDescription", e.luma_summary AS "lumaSummary"
       FROM events e
       WHERE e.is_draft = true AND e.luma_event_id IS NOT NULL
       ORDER BY e.start_date, e.id
@@ -194,6 +224,9 @@ const make = Effect.gen(function* () {
         event_id: eventId,
         ...Object.fromEntries(
           changes.map(({ column, after }) => [column, after]),
+        ),
+        summary_planned: changes.some(
+          ({ column }) => column === "luma_summary",
         ),
       })),
     );
@@ -223,11 +256,17 @@ const make = Effect.gen(function* () {
           street_address = ${venue("street_address")},
           short_location = ${venue("short_location")},
           full_address = ${venue("full_address")},
+          luma_description = COALESCE(c.luma_description, e.luma_description),
+          -- A summary Luma's description no longer has is planned as null:
+          -- summary_planned tells it from a summary that doesn't change.
+          luma_summary = CASE WHEN c.summary_planned THEN c.luma_summary
+            ELSE e.luma_summary END,
           updated_at = ${at}::timestamptz
         FROM jsonb_to_recordset(${rows}::jsonb) AS c(
           event_id uuid, name text, start_date timestamptz,
           end_date timestamptz, street_address text, short_location text,
-          full_address text)
+          full_address text, luma_description text, luma_summary text,
+          summary_planned boolean)
         WHERE e.id = c.event_id AND e.is_draft = true
         RETURNING 1
       )
@@ -251,16 +290,20 @@ const make = Effect.gen(function* () {
           const answers = yield* Effect.forEach(
             drafts,
             (draft) =>
-              Effect.map(eventDetails(draft.lumaEventId), (details) => ({
-                draft,
-                details,
-              })),
+              Effect.flatMap(eventDetails(draft.lumaEventId), (details) =>
+                Effect.map(
+                  Option.isSome(details)
+                    ? describeDraft(details.value.description)
+                    : Effect.succeed(undefined),
+                  (description) => ({ draft, details, description }),
+                ),
+              ),
             { concurrency },
           );
           const refreshed: Array<DraftRefresh> = [];
           const shownPublicly: Array<string> = [];
           const unavailable: Array<string> = [];
-          for (const { draft, details } of answers) {
+          for (const { draft, details, description } of answers) {
             if (Option.isNone(details)) {
               unavailable.push(draft.lumaEventId);
               continue;
@@ -268,7 +311,7 @@ const make = Effect.gen(function* () {
             if (details.value.visibility === "public") {
               shownPublicly.push(draft.slug);
             }
-            const changes = draftChanges(draft, details.value);
+            const changes = draftChanges(draft, details.value, description);
             if (changes.length > 0) {
               refreshed.push({
                 eventId: draft.eventId,
@@ -338,6 +381,7 @@ const make = Effect.gen(function* () {
         );
       }
       const slug = eventSlug(event);
+      const description = yield* describeDraft(event.description);
       // Another evening holding the slug is refused here too, so a dry run
       // says what the write would.
       const taken =
@@ -368,10 +412,11 @@ const make = Effect.gen(function* () {
         INSERT INTO events (
           luma_event_id, name, start_date, end_date, is_draft, slug, tagline,
           attendee_limit, street_address, short_location, full_address,
-          created_at, updated_at)
+          luma_description, luma_summary, created_at, updated_at)
         VALUES (${lumaEventId}, ${event.name}, ${added.startDate}::timestamptz,
           ${added.endDate}::timestamptz, true, ${slug}, ${defaultTagline}, 0,
           ${venue.streetAddress}, ${venue.shortLocation}, ${venue.fullAddress},
+          ${description.html}, ${description.summary},
           ${at}::timestamptz, ${at}::timestamptz)
         ON CONFLICT DO NOTHING
         RETURNING slug`.pipe(orDataSourceError);
@@ -403,6 +448,10 @@ export function formatAdded(added: DraftAdded): string {
   ].join("\n");
 }
 
+/** A description's size, rather than all of it. */
+const size = (html: string | null): string =>
+  html === null ? "∅" : html === "" ? "none" : `${html.length} chars`;
+
 /** "1 draft", "2 drafts". */
 const count = (n: number, noun: string): string =>
   `${n} ${noun}${n === 1 ? "" : "s"}`;
@@ -421,9 +470,10 @@ export function formatDrafts(result: DraftsRefresh): string {
       : `Refreshed ${count(result.written, "draft")}.`,
     ...result.refreshed.flatMap((draft) => [
       `  ${draft.slug}:`,
-      ...draft.changes.map(
-        (change) =>
-          `    ${change.column}: ${change.before ?? "∅"} → ${change.after ?? "∅"}`,
+      ...draft.changes.map((change) =>
+        change.column === "luma_description"
+          ? `    luma_description: ${size(change.before)} → ${size(change.after)}`
+          : `    ${change.column}: ${change.before ?? "∅"} → ${change.after ?? "∅"}`,
       ),
     ]),
   ];
