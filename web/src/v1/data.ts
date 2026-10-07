@@ -252,7 +252,7 @@ const make = Effect.gen(function* () {
         t.id AS "talkId"
       FROM ${talkAppearances(sql, {
         whose: "any",
-        when: { endedOrEnding: now },
+        when: { ended: now },
       })} a
       JOIN profiles p ON p.id = a.profile_id
       JOIN talks t ON t.id = a.talk_id

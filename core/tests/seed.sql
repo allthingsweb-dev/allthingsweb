@@ -19,7 +19,7 @@ INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limi
   ('e0000000-0000-4000-8000-000000000002', '2026-09-01-draft-night', 'Draft night', 'Not announced', '2026-09-02T01:00:00Z', '2026-09-02T04:00:00Z', 50, NULL, 'Secret', NULL, 'evt-draft', false, true, NULL, NULL, now()),
   -- Upcoming, with a venue name but no address, and a Luma id that needs encoding.
   ('e0000000-0000-4000-8000-000000000004', '2026-11-05-upcoming', 'Upcoming meetup', 'Soon', '2026-11-06T02:00:00Z', '2026-11-06T05:00:00Z', 100, NULL, 'TBA', NULL, 'evt with space', false, false, NULL, NULL, now()),
-  -- Ends exactly at the test clock: still live, and already in the directory.
+  -- Ends exactly at the test clock: still live, so not yet in the directory.
   ('e0000000-0000-4000-8000-000000000005', '2026-10-03-ends-now', 'Ends now', 'Just finished', '2026-10-03T15:00:00Z', '2026-10-03T19:00:00Z', 30, NULL, 'Park', 'Golden Gate Park', NULL, false, false, NULL, 'not a url', now()),
   -- Past, with a slug that needs encoding, an address but no venue name, and a
   -- recording URL that must not be published.

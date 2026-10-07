@@ -160,13 +160,16 @@ describe("appearances", () => {
     ]);
   });
 
-  test("ended leaves out an evening at its last instant; endedOrEnding counts it", async () => {
+  test("ended leaves out an evening at its last instant, while it is live", async () => {
     const over = ["Ada Lovelace", "Grace Hopper", "Linus"];
     expect(
       await speakers({ whose: "any", when: { ended: lastInstant } }),
     ).toEqual(over);
     expect(
-      await speakers({ whose: "any", when: { endedOrEnding: lastInstant } }),
+      await speakers({
+        whose: "any",
+        when: { ended: at("2026-10-03T19:00:00.001Z") },
+      }),
     ).toEqual([...over, "Zed Nobody"]);
   });
 
