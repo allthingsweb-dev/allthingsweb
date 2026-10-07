@@ -185,6 +185,34 @@ describe("verifyAccess", () => {
     });
   });
 
+  test("publishedKeys fetches once for requests that ask together, and again after a failure", async () => {
+    let calls = 0;
+    let fail = true;
+    const source = publishedKeys(
+      (async () => {
+        calls += 1;
+        await Bun.sleep(5);
+        if (fail) return new Response("down", { status: 503 });
+        return Response.json({ keys: [signing.jwk] });
+      }) as unknown as typeof fetch,
+      () => 0,
+    );
+    const failed = await Promise.allSettled([
+      source(team, false),
+      source(team, false),
+    ]);
+    expect(failed.map((result) => result.status)).toEqual([
+      "rejected",
+      "rejected",
+    ]);
+    expect(calls).toBe(1);
+    fail = false;
+    expect(
+      await Promise.all([source(team, false), source(team, true)]),
+    ).toEqual([[signing.jwk], [signing.jwk]]);
+    expect(calls).toBe(2);
+  });
+
   test("publishedKeys keeps the team's keys for an hour, and refetches at most every 30 seconds", async () => {
     let calls = 0;
     let clock = 0;

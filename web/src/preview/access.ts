@@ -82,18 +82,11 @@ export function publishedKeys(
     string,
     { keys: ReadonlyArray<PublicJwk>; at: number }
   >();
-  return async (teamDomain, refresh) => {
-    const known = kept.get(teamDomain);
-    const age = known === undefined ? Infinity : now() - known.at;
-    // Kept an hour; asked again sooner only for a key it lacks, and never
-    // within 30 seconds of the last ask, so tokens naming made-up keys
-    // can't make the Worker fetch the keys on every request.
-    if (
-      known !== undefined &&
-      (age < 30_000 || (!refresh && age < 3_600_000))
-    ) {
-      return known.keys;
-    }
+  // One fetch per team at a time: requests that need the keys while they
+  // are being fetched wait for that fetch, and a failed one is forgotten,
+  // so the next request tries again.
+  const fetching = new Map<string, Promise<ReadonlyArray<PublicJwk>>>();
+  const fetchKeys = async (teamDomain: string) => {
     const response = await fetcher(
       `https://${teamDomain}/cdn-cgi/access/certs`,
     );
@@ -112,6 +105,26 @@ export function publishedKeys(
       : [];
     kept.set(teamDomain, { keys, at: now() });
     return keys;
+  };
+  return (teamDomain, refresh) => {
+    const known = kept.get(teamDomain);
+    const age = known === undefined ? Infinity : now() - known.at;
+    // Kept an hour; asked again sooner only for a key it lacks, and never
+    // within 30 seconds of the last ask, so tokens naming made-up keys
+    // can't make the Worker fetch the keys on every request.
+    if (
+      known !== undefined &&
+      (age < 30_000 || (!refresh && age < 3_600_000))
+    ) {
+      return Promise.resolve(known.keys);
+    }
+    const pending = fetching.get(teamDomain);
+    if (pending !== undefined) return pending;
+    const started = fetchKeys(teamDomain).finally(() => {
+      fetching.delete(teamDomain);
+    });
+    fetching.set(teamDomain, started);
+    return started;
   };
 }
 
