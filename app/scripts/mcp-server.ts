@@ -10,7 +10,12 @@ import { z } from "zod";
 import { completenessReport } from "./completeness.js";
 import { addEventPhotos, replaceEventPhoto } from "./event-photos.js";
 import { addEventPost } from "./event-posts.js";
-import { approvePost, hidePost, listPendingPosts } from "./post-review.js";
+import {
+  approvePost,
+  hidePost,
+  listPendingPosts,
+  movePost,
+} from "./post-review.js";
 import { promoChannels, promoDrafts } from "./promo.js";
 import { isPlanTool, planTool, planToolDefinitions } from "./plan.js";
 import { draftReadiness, draftReadinessTool } from "./readiness.js";
@@ -127,6 +132,11 @@ const ReplaceEventPhotoSchema = z.object({
 
 const PendingPostsSchema = z.object({ slug: z.string().min(1).optional() });
 const PostUrlSchema = z.object({ url: z.string().min(1) });
+
+const MovePostSchema = z.object({
+  url: z.string().min(1),
+  slug: z.string().min(1),
+});
 
 const GetPromoDraftsSchema = z.object({
   slug: z.string().min(1),
@@ -666,6 +676,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["url"],
         },
       },
+      {
+        name: "move_post",
+        description:
+          "Move a stored post to the event it is about, keeping its status: for a post filed under the wrong evening.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            url: {
+              type: "string",
+              minLength: 1,
+              description: "The post's URL",
+            },
+            slug: {
+              type: "string",
+              minLength: 1,
+              description: "The slug of the event it is about",
+            },
+          },
+          required: ["url", "slug"],
+        },
+      },
       // Promotion
       {
         name: "get_promo_drafts",
@@ -1103,6 +1134,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "hide_post": {
         const result = await hidePost(PostUrlSchema.parse(args ?? {}).url);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      case "move_post": {
+        const { url, slug } = MovePostSchema.parse(args ?? {});
+        const result = await movePost(url, slug);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };

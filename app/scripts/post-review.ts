@@ -16,6 +16,7 @@ const core = fileURLToPath(new URL("../../core/", import.meta.url));
 const posts = async (
   args: ReadonlyArray<string>,
   url?: string,
+  after: ReadonlyArray<string> = [],
 ): Promise<unknown> => {
   const { stdout } = await run(
     "bun",
@@ -26,7 +27,7 @@ const posts = async (
       ...args,
       "--json",
       // A URL goes after "--", so one starting with "-" is never a flag.
-      ...(url === undefined ? [] : ["--", url]),
+      ...(url === undefined ? [] : ["--", url, ...after]),
     ],
     {
       cwd: core,
@@ -48,3 +49,7 @@ export const approvePost = (url: string) => posts(["approve"], url);
 
 /** Hides the post at `url`: it never shows. */
 export const hidePost = (url: string) => posts(["hide"], url);
+
+/** Moves the post at `url` to the evening with `slug`, keeping its status. */
+export const movePost = (url: string, slug: string) =>
+  posts(["move"], url, [slug]);

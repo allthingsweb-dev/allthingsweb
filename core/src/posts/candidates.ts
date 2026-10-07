@@ -205,6 +205,45 @@ export const inWindow = (signals: EventSignals, postedAt: DateTime.Utc) =>
     maximum: DateTime.addDuration(signals.endsAt, windowAfter),
   });
 
+/**
+ * The evening a post is about, of `evenings`: whichever it scores best for
+ * among those whose window holds it, the nearest in time on a tie. A post
+ * the search for one evening found may name, link or have been posted on
+ * the night of another; it goes to that one. None when no window holds it.
+ */
+export function assignEvening<E extends EventSignals>(
+  post: Pick<
+    FoundPost,
+    | "platform"
+    | "authorHandle"
+    | "authorId"
+    | "text"
+    | "links"
+    | "mentions"
+    | "postedAt"
+  >,
+  evenings: ReadonlyArray<E>,
+): E | null {
+  const distance = (evening: E) =>
+    Math.abs(
+      DateTime.toEpochMillis(evening.startsAt) -
+        DateTime.toEpochMillis(post.postedAt),
+    );
+  let best: { evening: E; score: number } | null = null;
+  for (const evening of evenings) {
+    if (!inWindow(evening, post.postedAt)) continue;
+    const { score } = scoreCandidate(evening, post);
+    if (
+      best === null ||
+      score > best.score ||
+      (score === best.score && distance(evening) < distance(best.evening))
+    ) {
+      best = { evening, score };
+    }
+  }
+  return best?.evening ?? null;
+}
+
 /** A search platform could not be read; the evening's other searches go on. */
 export class CandidateSearchError extends Schema.TaggedError<CandidateSearchError>()(
   "CandidateSearchError",
@@ -815,7 +854,8 @@ export const findCandidates = (options: CandidateOptions) =>
             // take a slot from one that has finished.
             sql`e.end_date >= ${DateTime.toDateUtc(recentSince)}
               AND e.end_date < ${DateTime.toDateUtc(now)}`;
-    const rows = yield* sql`
+    const readRows = (where: typeof which) =>
+      sql`
       SELECT e.slug, e.name, e.topic, e.start_date AS "startDate",
         e.end_date AS "endDate", e.luma_event_id AS "lumaEventId",
         COALESCE((
@@ -836,33 +876,56 @@ export const findCandidates = (options: CandidateOptions) =>
         ), '[]'::json) AS people
       FROM events e
       WHERE e.is_draft = false AND e.start_date <= ${DateTime.toDateUtc(now)}
-        AND ${which}
+        AND ${where}
       ORDER BY e.start_date DESC, e.id`.pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(SignalsRow))),
-      orDataSourceError,
-    );
-    const chosen = rows;
-    const events = chosen.slice(0, options.maxEvents ?? chosen.length);
+        Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(SignalsRow))),
+        orDataSourceError,
+      );
+    const rows = yield* readRows(which);
+    const events = rows.slice(0, options.maxEvents ?? rows.length);
+    // The evenings a post found for one of these may be about instead: any
+    // whose window can overlap a searched one's, so within both windows'
+    // span of the searched evenings. Past searches them all already.
+    const span = Duration.sum(windowBefore, windowAfter);
+    const [first, ...more] = events;
+    const allRows =
+      scope._tag === "Past" || first === undefined
+        ? rows
+        : yield* readRows(sql`e.end_date >= ${DateTime.toDateUtc(
+            DateTime.subtractDuration(
+              more.reduce(
+                (earliest, row) => DateTime.min(earliest, row.startDate),
+                first.startDate,
+              ),
+              span,
+            ),
+          )}
+            AND e.start_date <= ${DateTime.toDateUtc(
+              DateTime.addDuration(
+                more.reduce(
+                  (latest, row) => DateTime.max(latest, row.endDate),
+                  first.endDate,
+                ),
+                span,
+              ),
+            )}`);
+    // Luma pages read this run, by slug, so a post can be matched to them.
+    const lumaPages = new Map<string, string | null>();
 
     /** The evening's Luma page, as Luma names it, or null. */
-    const lumaPage = (lumaEventId: string | null) =>
-      lumaEventId === null
-        ? Effect.succeed(null)
-        : client
-            .execute(
-              HttpClientRequest.get(`https://luma.com/event/${lumaEventId}`),
-            )
-            .pipe(
-              Effect.flatMap((response) => response.text),
-              Effect.map(
-                (html) =>
-                  /<link rel="canonical" href="(https:\/\/luma\.com\/[^"]+)"/.exec(
-                    html,
-                  )?.[1] ?? null,
-              ),
-              Effect.timeout(Duration.seconds(15)),
-              Effect.orElseSucceed(() => null),
-            );
+    const lumaPage = (lumaEventId: string) =>
+      client
+        .execute(HttpClientRequest.get(`https://luma.com/event/${lumaEventId}`))
+        .pipe(
+          Effect.flatMap((response) => response.text),
+          Effect.map(
+            (html) =>
+              /<link rel="canonical" href="(https:\/\/luma\.com\/[^"]+)"/.exec(
+                html,
+              )?.[1] ?? null,
+          ),
+          Effect.timeout(Duration.seconds(15)),
+        );
 
     // Requests left: a Luma page and each add are counted before they are
     // sent; a search may send at most what is left, and reports what it sent.
@@ -872,14 +935,41 @@ export const findCandidates = (options: CandidateOptions) =>
       left -= granted;
       return granted;
     };
+    // Luma pages that failed to read this run, which aren't tried again.
+    const unreadable = new Set<string>();
+    /**
+     * The evening's signals with its Luma page, read once a run and
+     * counted; none when its page is unread: no request was left to read
+     * it, or reading it failed. A page read without a canonical link is
+     * read, and gives none.
+     */
+    const readSignals = (row: typeof SignalsRow.Type) =>
+      Effect.gen(function* () {
+        if (unreadable.has(row.slug)) return null;
+        if (lumaPages.has(row.slug)) {
+          return toSignals(row, lumaPages.get(row.slug) ?? null);
+        }
+        if (row.lumaEventId === null) {
+          lumaPages.set(row.slug, null);
+          return toSignals(row, null);
+        }
+        if (spend(1) === 0) return null;
+        const read = yield* Effect.result(lumaPage(row.lumaEventId));
+        if (read._tag === "Failure") {
+          unreadable.add(row.slug);
+          return null;
+        }
+        lumaPages.set(row.slug, read.success);
+        return toSignals(row, read.success);
+      });
     const reports: Array<CandidateReport> = [];
     for (const row of events) {
       if (left <= 0) break;
-      const page =
-        row.lumaEventId !== null && spend(1) === 1
-          ? yield* lumaPage(row.lumaEventId)
-          : null;
-      const signals = toSignals(row, page);
+      const signals = (yield* readSignals(row)) ?? toSignals(row, null);
+      // Every other evening a post found here could be about, by its window.
+      const others = allRows
+        .filter((other) => other.slug !== row.slug)
+        .map((other) => ({ row: other, window: toSignals(other, null) }));
       const searched: Record<string, number | string> = {};
       const found = new Map<string, FoundPost>();
       for (const search of searches) {
@@ -902,32 +992,62 @@ export const findCandidates = (options: CandidateOptions) =>
       const candidates: Array<CandidateReport["candidates"][number]> = [];
       for (const post of found.values()) {
         if (!inWindow(signals, post.postedAt)) continue;
-        const { score, reasons } = scoreCandidate(signals, post);
+        // Filed under the evening it's about, which may be another: each
+        // whose window holds it is scored with its Luma page, so one isn't
+        // lost on a link this run hasn't read. Without a request left to
+        // read one, the post waits for a run that can.
+        const evenings = [signals];
+        let unread = false;
+        for (const other of others) {
+          if (!inWindow(other.window, post.postedAt)) continue;
+          const read = yield* readSignals(other.row);
+          if (read === null) {
+            unread = true;
+            break;
+          }
+          evenings.push(read);
+        }
+        if (unread) {
+          const { score, reasons } = scoreCandidate(signals, post);
+          candidates.push({
+            url: post.url,
+            score,
+            reasons,
+            outcome:
+              "left for a later run: another evening's Luma page is unread",
+          });
+          continue;
+        }
+        const about = assignEvening(post, evenings) ?? signals;
+        const { score, reasons } = scoreCandidate(about, post);
         if (score < candidateThreshold) continue;
+        const elsewhere =
+          about.slug === signals.slug ? "" : `for ${about.slug}: `;
         // Adding reads the post from its platform: one request.
         if (spend(1) === 0) {
           candidates.push({
             url: post.url,
             score,
             reasons,
-            outcome: "left for a later run",
+            outcome: `${elsewhere}left for a later run`,
           });
           continue;
         }
         const added = yield* Effect.result(
-          addPost(signals.slug, post.url, {
+          addPost(about.slug, post.url, {
             dryRun: options.dryRun,
             status: "pending",
           }),
         );
         const outcome =
-          added._tag === "Failure"
+          elsewhere +
+          (added._tag === "Failure"
             ? `failed: ${added.failure.message}`
             : added.success._tag === "Added"
               ? "added"
               : added.success._tag === "WouldAdd"
                 ? "would add"
-                : `already there (${added.success.status}, ${added.success.eventSlug})`;
+                : `already there (${added.success.status}, ${added.success.eventSlug})`);
         candidates.push({ url: post.url, score, reasons, outcome });
       }
       candidates.sort(
