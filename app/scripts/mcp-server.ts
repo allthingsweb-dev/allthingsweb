@@ -135,7 +135,7 @@ const GetPromoDraftsSchema = z.object({
 
 const server = new Server(
   {
-    name: "allthingsweb-scripts",
+    name: "allthings-scripts",
     version: "1.0.0",
   },
   {

@@ -87,7 +87,7 @@ describe("MCP client", () => {
         content: [
           {
             type: "text",
-            text: "All Things Web events are temporarily unavailable.",
+            text: "all things events are temporarily unavailable.",
           },
         ],
       },

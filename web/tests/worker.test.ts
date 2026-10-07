@@ -302,6 +302,11 @@ describe("MCP", () => {
       },
     });
     expect(actual).toEqual(expected);
+    // The server introduces itself by the new name.
+    expect(
+      (rpcMessage(actual.body) as { result: { serverInfo: { name: string } } })
+        .result.serverInfo.name,
+    ).toBe("allthings");
   });
 
   it("lists the same tools, with the same input and output schemas", async ({
@@ -327,6 +332,10 @@ describe("MCP", () => {
     // Names, titles, descriptions, annotations and input schemas, exactly.
     const withoutOutput = ({ outputSchema: _, ...tool }: Tool) => tool;
     expect(served.map(withoutOutput)).toEqual(today.map(withoutOutput));
+    // They name the community as all things, never by its old name.
+    expect(JSON.stringify(served.map(withoutOutput))).not.toMatch(
+      /all things web/i,
+    );
     // Output schemas come from core's Effect contract: the same JSON Schema,
     // as core's contract test defines sameness.
     expect(
@@ -444,7 +453,7 @@ describe("MCP", () => {
             content: [
               {
                 type: "text",
-                text: `All Things Web ${subject} are temporarily unavailable. Please retry in a minute.`,
+                text: `all things ${subject} are temporarily unavailable. Please retry in a minute.`,
               },
             ],
           },
