@@ -31,6 +31,10 @@ const rules: ReadonlyArray<readonly [string, RegExp]> = [
   ["ahead or over", /\bend_date\s*(?:<=|>=|<|>)/],
   ["ours or shared", /\bcuration\s*=\s*'/],
   ["evenings' order", /ORDER BY\s+[a-z_.]*start_date\b/],
+  [
+    "an evening's lineup",
+    /ORDER BY\s+(?:et\.position|ts\.created_at|es\.created_at|array_position\(\s*ARRAY\['organizer')/,
+  ],
 ];
 
 /** Where the rules are written. */
@@ -42,7 +46,6 @@ const catalog = "core/src/catalog.ts";
  */
 const notYetMoved: Readonly<Record<string, string>> = {
   "core/src/about.ts": "/about's numbers: a person's appearances",
-  "core/src/event-page.ts": "the event page: its lineup and what's next",
   "core/src/people-directory.ts": "/people: a person's appearances",
   "core/src/speakers.ts":
     "list_speakers: ended through the last instant, until that is settled",
@@ -121,6 +124,11 @@ describe("what stating a rule looks like", () => {
     ["e.end_date < $1", "ahead or over"],
     ["e.curation = 'ours'", "ours or shared"],
     ["ORDER BY e.start_date DESC, e.id", "evenings' order"],
+    [
+      "ORDER BY et.position NULLS LAST, et.created_at, t.id",
+      "an evening's lineup",
+    ],
+    ["json_agg(s.name ORDER BY es.created_at, s.id)", "an evening's lineup"],
   ])("%s states %s", (sql, name) => {
     expect(states(sql)).toEqual([name]);
   });

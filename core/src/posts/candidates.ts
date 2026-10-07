@@ -12,6 +12,7 @@ import {
 } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { SqlClient } from "effect/sql/SqlClient";
+import { hostOrder } from "../catalog.ts";
 import { displayName } from "../lockup.ts";
 import { orDataSourceError } from "../sql.ts";
 import { addPost } from "./add.ts";
@@ -859,7 +860,7 @@ export const findCandidates = (options: CandidateOptions) =>
       SELECT e.slug, e.name, e.topic, e.start_date AS "startDate",
         e.end_date AS "endDate", e.luma_event_id AS "lumaEventId",
         COALESCE((
-          SELECT json_agg(s.name ORDER BY es.created_at, s.id)
+          SELECT json_agg(s.name ORDER BY ${sql.literal(hostOrder)})
           FROM event_sponsors es JOIN sponsors s ON s.id = es.sponsor_id
           WHERE es.event_id = e.id
         ), '[]'::json) AS hosts,

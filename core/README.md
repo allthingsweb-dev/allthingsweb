@@ -25,8 +25,11 @@ test below is what holds it to the others.
 - **Ours or shared:** `ours(e)`. Whether a surface counts the evenings we
   share is a named choice, never a filter written inline.
 - **An evening's lineup:** its talks in running order, each talk's
-  speakers in the order they were attached, with their part; its hosts;
-  its people, by role.
+  speakers in the order they were attached, with their part; its hosts, as
+  attached; its people, by role. `talksOf`, `hostsOf` and `peopleOf` read
+  them in that order, each surface choosing the fields it publishes, and
+  `talkOrder`, `speakerOrder`, `hostOrder` and `peopleOrder` are the
+  orders themselves, for a statement that joins them its own way.
 - **A person's appearances:** their talks and their parts at published
   evenings, as one relation, scoped by whose evenings (ours, or any) and
   when (over, or any). The speakers list, /people, a person's page, /about's
@@ -44,10 +47,11 @@ people there are, or their order.
 `tests/catalog-guard.test.ts` reads core's and the Worker's source and
 fails on any file that states one of these rules itself (selecting by
 `is_draft`, a comparison on `end_date`, `curation = '…'`, an `ORDER BY` on
-`start_date`) outside `src/catalog.ts`. It lists the public reads not yet moved, each with
-what moves it, and the code that isn't a public read (the Luma sync, the
-organizers' tools, the reports), each with why. Both lists only shrink: a
-listed file that states no rule fails it too. `tests/catalog.test.ts` holds
+`start_date`, or a lineup's order) outside `src/catalog.ts`. It lists the
+public reads not yet moved, each with what moves it, and the code that
+isn't a public read (the Luma sync, the organizers' tools, the reports),
+each with why. Both lists only shrink: a listed file that states no rule
+fails it too. `tests/catalog.test.ts` holds
 the fragments to the schema, and `ahead` and `ended` to `eventStatus` at
 every instant around an evening's start and end.
 
