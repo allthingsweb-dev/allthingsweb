@@ -144,7 +144,7 @@ export interface EventPage {
   readonly slug: string;
   /** The name as written, without emoji. */
   readonly name: string;
-  /** all things/<topic>: the one the site set, else the name's, if any. */
+  /** allthings/<topic>: the one the site set, else the name's, if any. */
   readonly topic: string | undefined;
   /**
    * The evening in one line: the organizers' tagline, or the summary of

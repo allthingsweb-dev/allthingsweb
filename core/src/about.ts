@@ -18,7 +18,7 @@ import * as Rows from "./rows.ts";
 import { listingJson } from "./sql.ts";
 
 /**
- * What the about page says about all things, read as of the `Clock` in one
+ * What the about page says about allthings, read as of the `Clock` in one
  * statement: how many evenings it has held and who came, where each of the
  * names it went by first appeared, and its organizers as their profiles
  * have them. Every number is counted from the data, at our published
@@ -26,7 +26,7 @@ import { listingJson } from "./sql.ts";
  */
 
 /**
- * The names the evenings went by before they were all things, oldest
+ * The names the evenings went by before they were allthings, oldest
  * first: brand/foundations.md keeps "All Things Web" as history, and the
  * meetups before it are where it began. An evening went by one when its
  * name starts with it, as Luma has it.

@@ -120,7 +120,7 @@ Each phase starts nothing new after its budget, and `pending` is the dry run: it
 
 ## Who took part
 
-`event_people` holds a person's part in an event as a whole: an all things
+`event_people` holds a person's part in an event as a whole: an allthings
 organizer, a co-host or the MC. Who was on stage, and in what capacity, is on
 the talks: `talks.format` (a talk, a panel or a fireside chat) and each
 speaker's `talk_speakers.role` (speaking or moderating), so a panelist is a
@@ -364,7 +364,7 @@ DATABASE_URL=… bun run programs             # write
 
 ## Short links
 
-The lockup is the link (brand/foundations.md, "Name"): all things/effect
+The lockup is the link (brand/foundations.md, "Name"): allthings/effect
 lives at allthings.dev/effect. `src/short-slugs.ts` is the rule, taking
 evenings in the order they start:
 
@@ -374,7 +374,7 @@ evenings in the order they start:
 2. It takes the first of these that no other evening holds and no page is
    at: the base, then the base with its month in San Francisco
    (`web-2024-11`), then the day (`web-2024-11-12`), then a count.
-3. A shared evening is someone else's, never all things/anything, so its
+3. A shared evening is someone else's, never allthings/anything, so its
    link is under `shared/` (`shared/typescript-ai-demo-day`). The bare root
    is the lockup's alone, and a shared name can't take a topic ours might
    want.
@@ -419,7 +419,7 @@ discriminated type: `{ kind: "ours" }` or `{ kind: "shared", organizer }`.
 
 What follows from it:
 
-- A shared evening is named as written, never all things/<topic>
+- A shared evening is named as written, never allthings/<topic>
   (`eventTopic`), on its page, in lists, in feeds and on its card.
 - /events and home list it in the same rows, marked "shared · by Mastra".
   Home's hero is always our next evening, and its photos are of ours.
@@ -508,7 +508,7 @@ keyless) and, once the X app has a token, X's search, for posts that link
 the evening's Luma page or its page on the site, name it, or come from or
 mention the people on its stage, from two weeks before it to a week after.
 Each post is scored the same way every time (`scoreCandidate`: a link to
-the evening, its name, "all things" with its topic, a host, its people,
+the evening, its name, "allthings" with its topic, a host, its people,
 the night itself), and the ones that score at least 5 are added as
 `pending`. Nothing is approved here: an organizer approves or hides each.
 

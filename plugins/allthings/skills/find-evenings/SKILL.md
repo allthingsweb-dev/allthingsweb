@@ -1,9 +1,9 @@
 ---
 name: find-evenings
-description: Find upcoming all things evenings in San Francisco (talks, open floors, socials and hackathons for people who build software) and help someone pick one. Use when someone asks about web development, JavaScript, TypeScript, React or AI engineering meetups, hackathons or tech events in San Francisco or the Bay Area.
+description: Find upcoming allthings evenings in San Francisco (talks, open floors, socials and hackathons for people who build software) and help someone pick one. Use when someone asks about web development, JavaScript, TypeScript, React or AI engineering meetups, hackathons or tech events in San Francisco or the Bay Area.
 ---
 
-all things is an open community for people who build software in San Francisco, from someone a month into their first job to the maintainers of libraries you install every day. Evenings are free; the hosting company gives the space, food and drinks. Each evening is named all things/<topic>, always lowercase: use the name the tools return.
+allthings is an open community for people who build software in San Francisco, from someone a month into their first job to the maintainers of libraries you install every day. Evenings are free; the hosting company gives the space, food and drinks. Each evening is named allthings/<topic>, always lowercase: use the name the tools return.
 
 1. Call `list_events` with `when: "upcoming"`. Evenings come soonest first, and one happening now is included with `status: "live"`.
 2. If nothing is upcoming, say so plainly, point to the calendar from `get_community` (`links.events`), and offer recent evenings (`when: "past"`) to show what they are like.

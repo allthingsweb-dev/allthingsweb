@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 
 /**
- * The public all things contract: the shapes served by the MCP server and the
+ * The public allthings contract: the shapes served by the MCP server and the
  * public API, and consumed by the CLI. These Effect schemas will replace the
  * zod ones in app/src/lib/public-api/schemas.ts; until then a contract test
  * holds them to the same shapes, the same validation and today's live data.

@@ -144,8 +144,8 @@ export function scoreCandidate(
   const named = name.split(/\s+/).length >= 2 && hasPhrase(words, name);
   if (named) score += add(4, `names "${name}"`);
   // The name, as people write it: "All Things Web", "allthings",
-  // "#allthingsweb", "all things/effect". "All things <topic>" alone is
-  // common English ("all things AI"), so it earns less.
+  // "#allthingsweb", "allthings/effect", "all things/effect". "All things
+  // <topic>" alone is common English ("all things AI"), so it earns less.
   const topicLockup =
     signals.topic === null
       ? null
@@ -156,7 +156,7 @@ export function scoreCandidate(
   if (
     /all\s*things\s*web|allthings|#allthingsweb|all\s*things\s*\//i.test(words)
   ) {
-    score += add(3, "says all things");
+    score += add(3, "says allthings");
   } else if (topicLockup?.test(words) === true) {
     score += add(2, `says "all things ${signals.topic ?? ""}"`);
   } else if (signals.topic !== null && hasPhrase(words, signals.topic)) {
@@ -412,6 +412,7 @@ export const makeBlueskySearch = Effect.gen(function* () {
               // one); posts outside it are dropped after.
               .map((url) => ({ q: "*", url, sort: "latest" })),
             { q: `"${displayName(signals.name)}"`, ...window },
+            { q: `allthings ${topicWords}`, ...window },
             { q: `"all things" ${topicWords}`, ...window },
             ...signals.blueskyHandles.flatMap((handle) => [
               { q: topicWords, author: handle, ...window },
@@ -511,7 +512,7 @@ export function fromXSearch(
   });
 }
 
-/** X's query for `signals`: the evening's links and name, or its people saying all things. */
+/** X's query for `signals`: the evening's links and name, or its people saying allthings. */
 export function xQueries(signals: EventSignals): ReadonlyArray<string> {
   const quoted = (s: string) => `"${s.replace(/"/g, "")}"`;
   const about = [
@@ -520,6 +521,7 @@ export function xQueries(signals: EventSignals): ReadonlyArray<string> {
   ].join(" OR ");
   const people = signals.xFrom.map((who) => `from:${who}`).join(" OR ");
   const words = [
+    quoted("allthings"),
     quoted("all things"),
     ...(signals.topic === null ? [] : [quoted(signals.topic)]),
   ].join(" OR ");

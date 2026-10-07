@@ -156,7 +156,7 @@ describe("the dry run", () => {
       a.prepare(slug, "announce"),
     );
     const post = value(exit);
-    expect(post.text).toContain("all things/react");
+    expect(post.text).toContain("allthings/react");
     expect(post.sent).toBeNull();
     expect(post.token).toBe(
       await Effect.runPromise(

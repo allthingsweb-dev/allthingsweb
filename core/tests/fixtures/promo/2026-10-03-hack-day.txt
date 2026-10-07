@@ -1,11 +1,11 @@
-# all things/hack day
+# allthings/hack day
 
 ## gaps in the record
 
 - No Luma event is linked, so nothing says where to take a seat.
 - No host or venue is on record, so nothing says where.
 
-## luma: description (314 / 5000)
+## luma: description (313 / 5000)
 
 Build something
 
@@ -17,11 +17,11 @@ Build something
 
 Writes compilers.
 
-**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
 ## meetup
 
-title: all things/hack day
+title: allthings/hack day
 
 venue: (none on record)
 
@@ -39,7 +39,7 @@ settings to set by hand:
 - [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
 - [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
 
-description (314 / 5000):
+description (313 / 5000):
 
 Build something
 
@@ -51,87 +51,87 @@ Build something
 
 Writes compilers.
 
-**[all things](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
-## x: announce (57 / 280)
+## x: announce (56 / 280)
 
-all things/hack day: a talk by @ada.
+allthings/hack day: a talk by @ada.
 
 Sat Oct 3, 9:00 AM.
 
-## x: day-of (70 / 280)
+## x: day-of (69 / 280)
 
-Today: all things/hack day.
+Today: allthings/hack day.
 
 On stage: a talk by @ada.
 
 Doors 9:00 AM.
 
-## x: recap (96 / 280)
+## x: recap (95 / 280)
 
-Thank you for coming to all things/hack day.
+Thank you for coming to allthings/hack day.
 
 On stage: a talk by @ada.
 
 https://allthings.example/2026-10-03-hack-day
 
-## bluesky: announce (69 / 300)
+## bluesky: announce (68 / 300)
 
-all things/hack day: a talk by @ada.bsky.social.
+allthings/hack day: a talk by @ada.bsky.social.
 
 Sat Oct 3, 9:00 AM.
 
-## bluesky: day-of (82 / 300)
+## bluesky: day-of (81 / 300)
 
-Today: all things/hack day.
+Today: allthings/hack day.
 
 On stage: a talk by @ada.bsky.social.
 
 Doors 9:00 AM.
 
-## bluesky: recap (130 / 300)
+## bluesky: recap (129 / 300)
 
-Thank you for coming to all things/hack day.
+Thank you for coming to allthings/hack day.
 
 On stage: a talk by @ada.bsky.social.
 
 https://allthings.example/2026-10-03-hack-day
 
-## linkedin: announce (82 / 3000)
+## linkedin: announce (81 / 3000)
 
-all things/hack day: a talk by Ada Lovelace.
+allthings/hack day: a talk by Ada Lovelace.
 
 Build something
 
 Sat Oct 3, 9:00 AM.
 
-## linkedin: day-of (78 / 3000)
+## linkedin: day-of (77 / 3000)
 
-Today: all things/hack day.
+Today: allthings/hack day.
 
 On stage: a talk by Ada Lovelace.
 
 Doors 9:00 AM.
 
-## linkedin: recap (126 / 3000)
+## linkedin: recap (125 / 3000)
 
-Thank you for coming to all things/hack day.
+Thank you for coming to allthings/hack day.
 
 On stage: a talk by Ada Lovelace.
 
 https://allthings.example/2026-10-03-hack-day
 
-## discord: announce (86 / 2000)
+## discord: announce (85 / 2000)
 
-**all things/hack day**: a talk by Ada Lovelace.
+**allthings/hack day**: a talk by Ada Lovelace.
 
 Build something
 
 Sat Oct 3, 9:00 AM.
 
-## discord: day-of (116 / 2000)
+## discord: day-of (115 / 2000)
 
-**Today: all things/hack day**
+**Today: allthings/hack day**
 
 If you're in: doors 9:00 AM.
 
@@ -139,9 +139,9 @@ On stage: a talk by Ada Lovelace.
 
 see you at/hack day
 
-## discord: recap (126 / 2000)
+## discord: recap (125 / 2000)
 
-Thank you for coming to all things/hack day.
+Thank you for coming to allthings/hack day.
 
 On stage: a talk by Ada Lovelace.
 

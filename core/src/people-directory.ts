@@ -42,7 +42,7 @@ export interface PartEvening {
   readonly curation: "ours" | "shared";
   /** The name as written, without emoji. */
   readonly name: string;
-  /** all things/<topic>, by the lockup's rule (see lockup.ts), if any. */
+  /** allthings/<topic>, by the lockup's rule (see lockup.ts), if any. */
   readonly topic: string | undefined;
   /** At the `Clock`'s now: an evening still ahead carries the cursor. */
   readonly status: Contract.EventStatus;

@@ -243,7 +243,7 @@ describe("Home", () => {
           linkedinHandle: null,
         },
       });
-      // Shared, it is named as written: no all things/<topic>.
+      // Shared, it is named as written: no allthings/<topic>.
       expect(home.afterThat[0]?.topic).toBeUndefined();
       // Photos are of our evenings alone.
       expect(home.photos.map((photo) => photo.alt)).not.toContain("The stage");

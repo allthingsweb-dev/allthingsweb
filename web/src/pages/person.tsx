@@ -128,7 +128,7 @@ function Elsewhere({ talks }: { readonly talks: ReadonlyArray<ExternalTalk> }) {
 const count = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`;
 
-/** What the page says it is: their title, then their part at all things. */
+/** What the page says it is: their title, then their part at allthings. */
 function description(person: PersonPage): string {
   const talks = (curation: "ours" | "shared") =>
     person.parts.filter(
@@ -145,10 +145,10 @@ function description(person: PersonPage): string {
   const lead =
     person.title === null ? person.name : `${person.name}, ${person.title}`;
   const at = [
-    ...(done.length === 0 ? [] : [` ${done.join(" and ")} at all things.`]),
+    ...(done.length === 0 ? [] : [` ${done.join(" and ")} at allthings.`]),
     ...(shared === 0
       ? []
-      : [` ${count(shared, "talk", "talks")} at evenings all things shared.`]),
+      : [` ${count(shared, "talk", "talks")} at evenings allthings shared.`]),
   ].join("");
   const bio = person.bio === null ? "" : ` ${shortBio(person.bio)}`;
   return `${lead}.${at}${bio}`.trim();
@@ -209,7 +209,7 @@ export function personPage({
           {ours.length === 0 ? (
             ""
           ) : (
-            <Section id="at-all-things" title="At all things">
+            <Section id="at-allthings" title="At allthings">
               <Appearances rows={ours} />
             </Section>
           )}

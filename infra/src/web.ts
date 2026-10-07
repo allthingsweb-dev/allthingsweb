@@ -21,7 +21,7 @@ export const SITE_HOST = "allthings.dev";
 export const SITE_ORIGIN = `https://${SITE_HOST}`;
 
 /**
- * The all things Worker (web/): the public API, the MCP server, the home
+ * The allthings Worker (web/): the public API, the MCP server, the home
  * page, the evenings index, each event's page, the people and about pages
  * and /brand. Alchemy bundles ../web/src/worker.ts with web's own
  * dependencies and uploads ../web/dist/public as its static assets, so first

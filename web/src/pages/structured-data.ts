@@ -13,7 +13,7 @@ import { personPath, socials } from "../links.ts";
 const context = "https://schema.org";
 
 /** The site's name in structured data, as metadata.tsx names the site. */
-const organizationName = "all things";
+const organizationName = "allthings";
 
 interface OrganizationRef {
   readonly "@type": "Organization";

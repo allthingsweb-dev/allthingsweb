@@ -99,7 +99,7 @@ const withDataSource =
         Effect.logError(`MCP tool ${tool} failed`, cause).pipe(
           Effect.as(
             fail(
-              `all things ${subject} are temporarily unavailable. Please retry in a minute.`,
+              `allthings ${subject} are temporarily unavailable. Please retry in a minute.`,
             ),
           ),
         ),
@@ -163,7 +163,7 @@ export function registerTools(server: McpServer, run: RunTool): void {
     {
       title: "List events",
       description:
-        "List all things events in San Francisco. Upcoming (including live) events come soonest first; past events come most recent first. Registration always happens at each event's rsvpUrl.",
+        "List allthings events in San Francisco. Upcoming (including live) events come soonest first; past events come most recent first. Registration always happens at each event's rsvpUrl.",
       inputSchema: z.object({
         when: z
           .enum(["upcoming", "past", "all"])
@@ -184,7 +184,7 @@ export function registerTools(server: McpServer, run: RunTool): void {
     {
       title: "Get event",
       description:
-        "Get one all things event by slug: schedule, venue, talks with speakers, hosting companies and where to register.",
+        "Get one allthings event by slug: schedule, venue, talks with speakers, hosting companies and where to register.",
       inputSchema: z.object({
         slug: z.string().min(1).describe("Event slug from list_events."),
       }),
@@ -199,7 +199,7 @@ export function registerTools(server: McpServer, run: RunTool): void {
     {
       title: "List speakers",
       description:
-        "List people who have spoken at past all things events, with their talks. Optionally filter by a case-insensitive name, title or talk search.",
+        "List people who have spoken at past allthings events, with their talks. Optionally filter by a case-insensitive name, title or talk search.",
       inputSchema: z.object({
         query: z.string().trim().min(1).optional(),
         limit: z.number().int().min(1).max(200).default(50),
@@ -215,9 +215,9 @@ export function registerTools(server: McpServer, run: RunTool): void {
   server.registerTool(
     "get_community",
     {
-      title: "About all things",
+      title: "About allthings",
       description:
-        "What all things is: mission, history, how hosting works, and links to events, Discord and the code of conduct.",
+        "What allthings is: mission, history, how hosting works, and links to events, Discord and the code of conduct.",
       inputSchema: z.object({}),
       outputSchema: outputSchema(Schema.Struct(Contract.Community.fields)),
       annotations: readOnly,

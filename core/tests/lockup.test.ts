@@ -50,6 +50,9 @@ describe("topicOf", () => {
 
   test.each([
     ["all things effect", "effect"],
+    ["allthings/effect", "effect"],
+    ["allthings effect", "effect"],
+    ["allthings/React Native at Vercel", "react native"],
     ["ALL THINGS  Expo", "expo"],
     ["Effect SF", "effect"],
     ["Effect in San Francisco", "effect"],
@@ -66,6 +69,8 @@ describe("topicOf", () => {
     "",
     "🎉",
     "All Things",
+    "allthings",
+    "allthings/_",
     "All Things Web: Season 2",
     "React / Remix",
     "Kickoff - Day 1",

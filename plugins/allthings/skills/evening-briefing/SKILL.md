@@ -1,6 +1,6 @@
 ---
 name: evening-briefing
-description: Brief someone before an all things evening in San Francisco: who is on stage and what they built, the schedule, where to go and how to get in. Use when someone is going to, or considering, a specific all things event, meetup or hackathon and wants to prepare.
+description: Brief someone before an allthings evening in San Francisco: who is on stage and what they built, the schedule, where to go and how to get in. Use when someone is going to, or considering, a specific allthings event, meetup or hackathon and wants to prepare.
 ---
 
 1. Identify the evening. If the person names it loosely, call `list_events` (upcoming first, then past) and match on name or date; confirm when more than one fits.

@@ -169,7 +169,7 @@ export function formatLaunch(
       : [`## ${title}\n\n${items.map((item) => `${mark}${item}`).join("\n")}`];
   return (
     [
-      "# launch: all things",
+      "# launch: allthings",
       ...list("gaps", drafts.gaps, "- "),
       ...list("before posting", drafts.checklist, "- [ ] "),
       ...sections,

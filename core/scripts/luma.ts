@@ -21,7 +21,7 @@ import { Readiness } from "../src/readiness/readiness.ts";
  * An evening's Luma event, from private draft to public (src/luma/publish.ts),
  * with the calendar's key in LUMA_API_KEY and the database at DATABASE_URL:
  *
- *   bun run luma create --name "All Things Effect" --start 2026-11-18T18:00:00-08:00 \
+ *   bun run luma create --name "allthings/effect" --start 2026-11-18T18:00:00-08:00 \
  *     --end 2026-11-18T21:00:00-08:00 --venue "CodeRabbit, 201 Spear St" [--idea <id>] [--dry-run]
  *   bun run luma update --event <draft slug> --description-from-drafts [--cover cover.png] [--dry-run]
  *   bun run luma update --luma evt-… --name "…"        before the sync has stored it

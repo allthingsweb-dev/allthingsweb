@@ -113,7 +113,7 @@ describe("the about page", () => {
     expect(who).toContain(
       "We have never taken money or sold a stage, so we never call anyone a sponsor.",
     );
-    expect(html).toContain("<title>about · all things/_</title>");
+    expect(html).toContain("<title>about · allthings/_</title>");
     expect(html).toContain(
       '<link rel="canonical" href="https://allthings.dev/about"/>',
     );
@@ -159,7 +159,7 @@ describe("the about page", () => {
   test("tells where it came from with the names the data shows, each linked to its first evening", () => {
     const history = part(render(view()), "history");
     expect(history).toContain(
-      "Before they were all things, they went by Remix Bay Area, React Bay Area and All Things Web.",
+      "Before they were allthings, they went by Remix Bay Area, React Bay Area and All Things Web.",
     );
     expect(
       [...history.matchAll(/<a class="row" href="([^"]+)">/g)].map(

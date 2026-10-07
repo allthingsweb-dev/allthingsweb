@@ -86,7 +86,7 @@ const index = HttpRouter.add(
       )
       .join("");
     return HttpServerResponse.text(
-      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Drafts · all things</title></head><body><main><h1>Drafts</h1>${items === "" ? "<p>No drafts.</p>" : `<ul>${items}</ul>`}</main></body></html>`,
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Drafts · allthings</title></head><body><main><h1>Drafts</h1>${items === "" ? "<p>No drafts.</p>" : `<ul>${items}</ul>`}</main></body></html>`,
       { contentType: "text/html; charset=utf-8" },
     );
   }),

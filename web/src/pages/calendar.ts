@@ -14,7 +14,7 @@ export const calendarPath = (slug: string): `/${string}` =>
   `${eventPathOf(slug)}/calendar.ics`;
 
 /** Who made the file, as RFC 5545 asks: a name no other product uses. */
-const productId = "-//all things//event page//EN";
+const productId = "-//allthings//event page//EN";
 
 /** Ids are unique to the event, under the site's domain. */
 const uidDomain = "allthings.dev";

@@ -385,7 +385,7 @@ main > section,
   grid-column: span 7;
 }
 
-/* "all things/" fills the column at the largest size. */
+/* "allthings/" fills the column at the largest size. */
 .hero-name {
   font-weight: 800;
   font-stretch: 112%;

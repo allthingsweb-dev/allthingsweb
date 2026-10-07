@@ -231,8 +231,8 @@ describe("diction", () => {
 
   test("an evening is named by its lockup, a daytime event says today", async () => {
     const acme = await read("2026-08-12-react-at-acme");
-    expect(acme.title).toBe("all things/react");
-    expect(acme.social.x.dayOf).toStartWith("Tonight: all things/react.");
+    expect(acme.title).toBe("allthings/react");
+    expect(acme.social.x.dayOf).toStartWith("Tonight: allthings/react.");
     expect(acme.social.discord.dayOf).toContain("see you at/react");
     const hack = await read("2026-10-03-hack-day");
     expect(hack.social.x.dayOf).toStartWith("Today:");
@@ -265,7 +265,7 @@ describe("Meetup", () => {
       expect(text).toContain(
         "Hosted at **Globex** and **[Acme](https://acme.example/)**",
       );
-      expect(text).toContain("**[all things](https://luma.com/allthingsweb)**");
+      expect(text).toContain("**[allthings](https://luma.com/allthingsweb)**");
     }
   });
 
@@ -488,7 +488,7 @@ describe("an evening we only share", () => {
       for (const channel of ["x", "bluesky", "linkedin", "discord"] as const) {
         for (const moment of ["announce", "dayOf", "recap"] as const) {
           const text = drafts.social[channel][moment];
-          expect(text).not.toContain("all things/");
+          expect(text).not.toContain("allthings/");
           expect(text).not.toContain("see you");
           expect(text).not.toContain("Thank you for coming");
           expect(text).not.toContain("If you're in");

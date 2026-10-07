@@ -1,4 +1,4 @@
-# launch: all things
+# launch: allthings
 
 ## gaps
 
@@ -10,20 +10,20 @@
 - [ ] allthings.dev serves the new site and every allthingsweb.dev address redirects to it, as every draft says (infra/docs/r2-migration.md, the full cutover). Post nothing before.
 - [ ] Every published evening has its short link, as the drafts say: bun run slugs --dry-run (in core/) gives none, or run it without --dry-run first.
 - [ ] Post the X thread from @[x-handle], each post a reply to the one before.
-- [ ] Display names say all things before the posts do: X, Bluesky, the LinkedIn page, the Discord server and the Luma calendar.
+- [ ] Display names say allthings before the posts do: X, Bluesky, the LinkedIn page, the Discord server and the Luma calendar.
 - [ ] Send each Meetup announcement from its own group, to all its members.
 
-## x: thread 1/6 (259 / 280)
+## x: thread 1/6 (257 / 280)
 
-All Things Web is now all things.
+All Things Web is now allthings.
 
-The same evenings for people who build software, in the neighborhoods of San Francisco, under one name: all things/_. Each evening fills the slot after the slash.
+The same evenings for people who build software, in the neighborhoods of San Francisco, under one name: allthings/_. Each evening fills the slot after the slash.
 
 The site is allthings.dev. allthingsweb.dev redirects there.
 
-## x: thread 2/6 (236 / 280)
+## x: thread 2/6 (235 / 280)
 
-Every evening has a short link, its name as an address: all things/effect lives at allthings.dev/effect.
+Every evening has a short link, its name as an address: allthings/effect lives at allthings.dev/effect.
 
 A link, once given, is that evening's for good, so nothing printed, posted or put in a QR code ever comes to mean another evening.
 
@@ -49,19 +49,19 @@ https://allthings.dev/[next]
 
 Talk between evenings → discord.gg/B3Sm4b5mfD
 
-## bluesky (261 / 300)
+## bluesky (260 / 300)
 
-All Things Web is now all things, at allthings.dev. allthingsweb.dev redirects there.
+All Things Web is now allthings, at allthings.dev. allthingsweb.dev redirects there.
 
 New: a short link for every evening, a page for everyone who's been on stage, evenings we share, and at/hack.
 
 Next: [next evening], [day, time]. https://allthings.dev/[next]
 
-## linkedin (1081 / 3000)
+## linkedin (1077 / 3000)
 
-All Things Web is now all things.
+All Things Web is now allthings.
 
-The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. What changes is the name, all things/_, where each evening fills the slot after the slash: all things/effect, all things/expo.
+The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. What changes is the name, allthings/_, where each evening fills the slot after the slash: allthings/effect, allthings/expo.
 
 The site is now allthings.dev, and allthingsweb.dev redirects there. With it:
 
@@ -75,11 +75,11 @@ Next: [next evening], [day, time], [hosted at …]. https://allthings.dev/[next]
 Talk between evenings → discord.gg/B3Sm4b5mfD
 On X: x.com/[x-handle]
 
-## discord (769 / 2000)
+## discord (765 / 2000)
 
-**All Things Web is now all things.**
+**All Things Web is now allthings.**
 
-Same evenings, same server. The name is all things/\_, and each evening fills the slot after the slash: all things/effect, all things/expo.
+Same evenings, same server. The name is allthings/\_, and each evening fills the slot after the slash: allthings/effect, allthings/expo.
 
 **What changed**
 - The site is **allthings.dev**; allthingsweb.dev redirects there.
@@ -92,11 +92,11 @@ Same evenings, same server. The name is all things/\_, and each evening fills th
 
 On X: **@\[x-handle\]**
 
-## luma: newsletter (1082 / 5000)
+## luma: newsletter (1078 / 5000)
 
-subject: These evenings are now all things
+subject: These evenings are now allthings
 
-All Things Web is now all things: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, all things/\_. Each evening fills the slot after the slash: all things/effect, all things/expo.
+All Things Web is now allthings: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, allthings/\_. Each evening fills the slot after the slash: allthings/effect, allthings/expo.
 
 Nothing changes here: you keep following this calendar, and every evening's seats are still taken here.
 
@@ -112,15 +112,15 @@ Nothing changes here: you keep following this calendar, and every evening's seat
 
 Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**. On X: **[@\[x-handle\]](https://x.com/[x-handle])**.
 
-## meetup: React San Francisco Bay Area (771 / 5000)
+## meetup: React San Francisco Bay Area (768 / 5000)
 
 group: https://www.meetup.com/reactjs-san-francisco/
 
-subject: React San Francisco Bay Area's evenings are now all things
+subject: React San Francisco Bay Area's evenings are now allthings
 
-The evenings React San Francisco Bay Area lists went by All Things Web. They're now all things: one name, all things/_, and each evening fills the slot after the slash.
+The evenings React San Francisco Bay Area lists went by All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.
 
-Nothing changes for you here. This group continues under all things, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthingsweb); the list on Meetup is a waitlist.
+Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthingsweb); the list on Meetup is a waitlist.
 
 What's new on allthings.dev (allthingsweb.dev redirects there): a short link for every evening, allthings.dev/<topic>; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.
 
@@ -128,15 +128,15 @@ Next: [next evening], [day, time], [hosted at …]. https://allthings.dev/[next]
 
 Talk between evenings → discord.gg/B3Sm4b5mfD
 
-## meetup: Remix Bay Area (757 / 5000)
+## meetup: Remix Bay Area (754 / 5000)
 
 group: https://www.meetup.com/remix-bay-area/
 
-subject: Remix Bay Area's evenings are now all things
+subject: Remix Bay Area's evenings are now allthings
 
-The evenings Remix Bay Area lists went by All Things Web. They're now all things: one name, all things/_, and each evening fills the slot after the slash.
+The evenings Remix Bay Area lists went by All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.
 
-Nothing changes for you here. This group continues under all things, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthingsweb); the list on Meetup is a waitlist.
+Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthingsweb); the list on Meetup is a waitlist.
 
 What's new on allthings.dev (allthingsweb.dev redirects there): a short link for every evening, allthings.dev/<topic>; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.
 

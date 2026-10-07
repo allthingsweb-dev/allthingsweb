@@ -34,7 +34,7 @@ export const CalendarId = Schema.String.check(
   Schema.isPattern(/^cal-[A-Za-z0-9]+$/),
 );
 
-/** The calendar to read: LUMA_CALENDAR_API_ID, or All Things Web's. */
+/** The calendar to read: LUMA_CALENDAR_API_ID, or allthings' own. */
 export const calendarIdConfig: Config.Config<string> = Config.schema(
   CalendarId,
   "LUMA_CALENDAR_API_ID",

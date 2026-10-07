@@ -38,7 +38,7 @@ export interface Evening {
   readonly slug: string;
   /** The name as written, without emoji. */
   readonly name: string;
-  /** all things/<topic>: the one the site set, else the name's, if any (see lockup.ts). */
+  /** allthings/<topic>: the one the site set, else the name's, if any (see lockup.ts). */
   readonly topic: string | undefined;
   /** At the `Clock`'s now. */
   readonly status: Contract.EventStatus;

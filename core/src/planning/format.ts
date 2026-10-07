@@ -56,7 +56,7 @@ export function formatWindow(window: Window): string {
 export function formatIdea(idea: Idea): string {
   return [
     `${idea.title} [${idea.status}] ${idea.id}`,
-    `  ${idea.program}${idea.topic === null ? "" : ` · all things/${idea.topic}`}`,
+    `  ${idea.program}${idea.topic === null ? "" : ` · allthings/${idea.topic}`}`,
     `  ${idea.pitch}`,
     ...(idea.event === null ? [] : [`  event: ${event(idea.event)}`]),
     ...(idea.inspiredBy === null

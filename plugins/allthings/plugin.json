@@ -1,10 +1,10 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "allthings",
-  "version": "0.2.1",
-  "description": "Find all things evenings in San Francisco, for people who build software: what's coming up, who's on stage and what they built, who's hosting, and where to say you're in.",
+  "version": "0.2.2",
+  "description": "Find allthings evenings in San Francisco, for people who build software: what's coming up, who's on stage and what they built, who's hosting, and where to say you're in.",
   "author": {
-    "name": "all things",
+    "name": "allthings",
     "url": "https://allthings.dev"
   },
   "homepage": "https://allthings.dev",
@@ -20,7 +20,7 @@
   "extensions": {
     "com.openai": {
       "interface": {
-        "displayName": "all things",
+        "displayName": "allthings",
         "shortDescription": "Evenings for people who build software in SF",
         "category": "Productivity",
         "composerIcon": "./assets/icon.png",

@@ -413,7 +413,7 @@ describe("/people/<slug>", () => {
     expect(html).toContain(
       '<link rel="canonical" href="https://allthings.dev/people/ada-lovelace"/>',
     );
-    expect(html).toContain("<title>Ada Lovelace · all things/_</title>");
+    expect(html).toContain("<title>Ada Lovelace · allthings/_</title>");
     const jsonLd = JSON.parse(
       /<script type="application\/ld\+json">(.*?)<\/script>/.exec(html)?.[1] ??
         "{}",

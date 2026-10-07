@@ -325,7 +325,7 @@ const person = page(
 );
 
 /**
- * The about page: what all things is, what it has done so far and where it
+ * The about page: what allthings is, what it has done so far and where it
  * came from, its organizers (the hosts links.ts names), and how to take
  * part.
  */

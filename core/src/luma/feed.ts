@@ -12,7 +12,7 @@ import { DateTime, Effect, Option, Schema } from "effect";
  * app would reject fails here with a {@link LumaFeedError}.
  */
 
-/** The All Things Web calendar; `LUMA_CALENDAR_API_ID` names another. */
+/** The allthings calendar; `LUMA_CALENDAR_API_ID` names another. */
 export const allThingsWebCalendarId = "cal-3AAimKnRVQEId4r";
 
 /** Dates, and times without a zone of their own, are read in this zone. */

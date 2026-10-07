@@ -106,7 +106,7 @@ describe("scoreCandidate", () => {
       score: 4 + 3 + 1 + 2 + 1 + 2,
       reasons: [
         '+4 names "React at Acme"',
-        "+3 says all things",
+        "+3 says allthings",
         "+1 names Globex",
         "+2 by @Ada, on its stage",
         "+1 mentions @ada",
@@ -136,6 +136,10 @@ describe("scoreCandidate", () => {
     ).toEqual({ score: 2, reasons: ['+2 says "all things ai"'] });
     expect(
       scoreCandidate(ai, post({ text: "see you at all things/ai tonight" }))
+        .score,
+    ).toBe(3);
+    expect(
+      scoreCandidate(ai, post({ text: "see you at allthings/ai tonight" }))
         .score,
     ).toBe(3);
   });
@@ -192,7 +196,7 @@ describe("scoreCandidate", () => {
     ).toBe(2);
     // X's from: takes the id where it's known.
     expect(xQueries(known)[1]).toBe(
-      '(from:11) ("all things" OR "react") -is:retweet',
+      '(from:11) ("allthings" OR "all things" OR "react") -is:retweet',
     );
   });
 
@@ -653,10 +657,10 @@ describe("what platforms answer", () => {
     });
   });
 
-  test("X's queries: the evening's links and name, and its people saying all things", () => {
+  test("X's queries: the evening's links and name, and its people saying allthings", () => {
     expect(xQueries(signals)).toEqual([
       '(url:"lu.ma/event/evt-react" OR url:"luma.com/react-at-acme" OR url:"allthings.dev/2026-08-12-react-at-acme" OR "React at Acme") -is:retweet',
-      '(from:ada) ("all things" OR "react") -is:retweet',
+      '(from:ada) ("allthings" OR "all things" OR "react") -is:retweet',
     ]);
   });
 });

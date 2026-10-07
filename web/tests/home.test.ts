@@ -168,7 +168,7 @@ describe("/ with evenings announced", () => {
       `Next · ${day} · ${time}`,
     );
     expect(html).toContain(
-      '<h1 id="next" class="hero-name lockup-l">all things<span class="slash">/</span><br/><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></h1>',
+      '<h1 id="next" class="hero-name lockup-l">allthings<span class="slash">/</span><br/><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></h1>',
     );
     expect(html).toContain('<p class="hero-label">East Cut · CodeRabbit</p>');
     expect(html).toContain(
@@ -267,7 +267,7 @@ describe("/ with nothing announced", () => {
     expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
     expect(html).toContain('<p class="at-type-meta">Next · soon</p>');
     expect(html).toContain(
-      '<h1 id="next" class="hero-name lockup-l">all things<span class="slash">/</span><br/><span class="at-cursor" aria-hidden="true">_</span></h1>',
+      '<h1 id="next" class="hero-name lockup-l">allthings<span class="slash">/</span><br/><span class="at-cursor" aria-hidden="true">_</span></h1>',
     );
     expect(html).toContain(
       '<a class="button" href="https://luma.com/allthingsweb">Subscribe on Luma <span aria-hidden="true">→</span></a>',

@@ -191,14 +191,14 @@ function Specimen({ role }: { readonly role: TypeRole }) {
     case "wordmark":
       return (
         <p class={className}>
-          all things<span class="slash">/</span>
+          allthings<span class="slash">/</span>
           <span class="at-cursor">_</span>
         </p>
       );
     case "eventLockup":
       return (
         <p class={className}>
-          all things<span class="slash">/</span>effect
+          allthings<span class="slash">/</span>effect
           <span class="at-cursor">_</span>
         </p>
       );
@@ -318,14 +318,14 @@ function Marks() {
       <div class="marks">
         <MarkTile
           image={marks.wordmark}
-          alt="all things/_"
+          alt="allthings/_"
           caption="wordmark · paper"
           theme="light"
           size="wide"
         />
         <MarkTile
           image={marks.wordmarkNight}
-          alt="all things/_"
+          alt="allthings/_"
           caption="wordmark · night"
           theme="dark"
           size="wide"
@@ -384,7 +384,7 @@ function brandContent(): string {
         <div class="intro">
           <p class="at-type-meta">brand · the living style guide</p>
           <h1 class="lockup at-type-event-lockup">
-            all things<span class="slash">/</span>brand
+            allthings<span class="slash">/</span>brand
           </h1>
           <p class="lead at-type-lead">
             Palette, type and marks, drawn from the tokens the site is built
@@ -428,7 +428,7 @@ export function brandPage({
     meta: {
       title: lockup("brand"),
       description:
-        "The all things/_ brand: palette, type, marks and the rules they follow.",
+        "The allthings/_ brand: palette, type, marks and the rules they follow.",
       path: "/brand",
       image: ogCards.brand,
     },

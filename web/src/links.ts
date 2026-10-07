@@ -2,7 +2,7 @@ import { eventPathOf } from "allthings-core/src/mappers.ts";
 import { ourAccount } from "allthings-core/src/social/account.ts";
 
 /**
- * Where all things is besides this site, and who hosts it. Every page's
+ * Where allthings is besides this site, and who hosts it. Every page's
  * footer reads them; brand/foundations.md ("People and channels") says how
  * they are shown.
  */
@@ -31,7 +31,7 @@ export const eventPath = (slug: string): `/${string}` => eventPathOf(slug);
 /** Every evening, listed: this site's evenings index (pages/events.tsx). */
 export const everyEvening = "/events";
 
-/** What all things is, where it came from and who organizes it. */
+/** What allthings is, where it came from and who organizes it. */
 export const aboutPath = "/about";
 
 /** Where everyone who organized, spoke at or co-hosted an evening is listed. */
