@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Clock, Effect, Exit } from "effect";
+import { Clock, Effect, Exit, Option } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { settle } from "./support/luma.ts";
 
@@ -53,7 +53,7 @@ describe("settle", () => {
     const exit = await run(
       Effect.never.pipe(Effect.timeoutOption("30 seconds")),
     );
-    expect(exit).toEqual(Exit.succeed(expect.anything()));
+    expect(exit).toEqual(Exit.succeed(Option.none()));
   });
 
   test("gives up after ten minutes of test time", async () => {
