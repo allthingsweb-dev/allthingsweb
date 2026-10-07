@@ -13,11 +13,20 @@ import { describe, expect, test } from "bun:test";
 
 /** What stating a rule looks like in SQL. */
 const rules: ReadonlyArray<readonly [string, RegExp]> = [
-  // Selecting by it, not reading it out: `is_draft = …`, `NOT is_draft`,
-  // or a bare `WHERE e.is_draft`; never `SELECT e.is_draft AS …`.
+  // Selecting by it, not reading it out: compared either way round, also
+  // inside a function (`COALESCE(is_draft, false) = …`), negated, or bare
+  // after WHERE and the like; never `SELECT e.is_draft AS …`.
   [
     "published or draft",
-    /\bis_draft\s*(?:=|<>|!=|\bIS\b)|\b(?:WHERE|AND|OR|NOT|WHEN|ON)[\s(]+(?:[a-z_]+\.)?is_draft\b/i,
+    new RegExp(
+      [
+        String.raw`\bis_draft\s*(?:=|<>|!=|\bIS\b)`,
+        String.raw`(?:=|<>|!=)\s*(?:[a-z_]+\.)?is_draft\b`,
+        String.raw`\(\s*(?:[a-z_]+\.)?is_draft\b[^()]*\)\s*(?:=|<>|!=|\bIS\b)`,
+        String.raw`\b(?:WHERE|AND|OR|NOT|WHEN|ON)[\s(]+(?:[a-z_]+\.)?is_draft\b`,
+      ].join("|"),
+      "i",
+    ),
   ],
   ["ahead or over", /\bend_date\s*(?:<=|>=|<|>)/],
   ["ours or shared", /\bcuration\s*=\s*'/],
@@ -92,6 +101,8 @@ describe("what stating a rule looks like", () => {
     "WHERE e.is_draft",
     "OR (is_draft AND x)",
     "WHERE ((e.is_draft))",
+    "WHERE false = e.is_draft",
+    "WHERE COALESCE(e.is_draft, false) = false",
     "CASE WHEN e.is_draft THEN 1 END",
     "e.is_draft IS NOT TRUE",
   ])("%s selects by published or draft", (sql) => {
