@@ -117,6 +117,11 @@ const realWorkLimitMillis = 30_000;
  * (up to {@link realWorkLimitMillis}): a busy machine never turns a slow
  * query into ten minutes of retries. Before each second, real work queued
  * since gets its turn.
+ *
+ * What it can't see is real work running beside a sleep that is pending,
+ * such as a slow query under a timeout: the clock moves for the sleep. The
+ * code these tests drive never does that: its timeouts wrap requests, and
+ * the fakes answer them in memory (see tests/settle.test.ts).
  */
 export const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   Effect.gen(function* () {
