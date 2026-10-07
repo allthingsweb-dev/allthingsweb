@@ -181,15 +181,12 @@ The source bucket stays intact, so any object can be re-copied at any time.
 
 This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. Its DNS stays at name.com, and the old app on Vercel keeps serving the site, sign-in, the admin and the hourly sync. Each step is its own PR, in this order:
 
-1. **The sync moves to the sync Worker.** In `infra/src/sync.ts`:
-   - Set `schedule: "hourly"` with `mode: "dry-run"` first. Compare an hour's logged work with the Vercel cron's writes.
-   - Then hand over, so the two never write in the same hour:
-     1. Remove the cron from `app/vercel.json` and deploy the app.
-     2. Wait for any run already started to finish. A run lasts at most its 60 s `maxDuration`.
-     3. Set `mode: "write"` and deploy prod.
+1. **The sync moves to the sync Worker.** The handover in [`infra/README.md`](../README.md#the-luma-sync) ("The handover"), one PR per step, so the two never write in the same hour:
+   1. Set `schedule: "hourly"` with `mode: "dry-run"` in `infra/src/sync.ts`, and deploy prod. Compare a few hours of the Worker's logged work with the Vercel cron's writes.
+   2. Remove the cron from `app/vercel.json`, away from the top of the hour, and let the app deploy. Wait for any run already started to finish. A run lasts at most its 60 s `maxDuration`.
+   3. Set `mode: "write"` and deploy prod. CI refuses this while `app/vercel.json` still has the cron (`infra/tests/sync.test.ts`).
 
-     Each run reads the whole calendar, so an hour skipped during the handover is caught up by the next run.
-
+   Each run reads the whole calendar, so an hour skipped during the handover is caught up by the next run.
    - `/api/cron/luma-sync` becomes 410 in the legacy-URL manifest (`web/tests/support/legacy-urls.ts`).
 
 2. **Sign-in and the admin retire.** The manifest marks these paths pending today. They become 410:
