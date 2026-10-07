@@ -338,6 +338,17 @@ const make = Effect.gen(function* () {
         );
       }
       const slug = eventSlug(event);
+      // Another evening holding the slug is refused here too, so a dry run
+      // says what the write would.
+      const taken =
+        yield* sql`SELECT 1 AS taken FROM events WHERE slug = ${slug}`.pipe(
+          orDataSourceError,
+        );
+      if (taken.length > 0) {
+        return yield* refuse(
+          `Another evening has the slug ${slug}: nothing was written.`,
+        );
+      }
       const venue = venueColumns(event.location);
       const added = {
         lumaEventId,
