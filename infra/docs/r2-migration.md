@@ -101,7 +101,7 @@ Check first that #162 is on main: `infra/src/web.ts` exports `siteDomain`, and `
 
 **Phase 3: the move**
 
-Before submitting, start Phase 4's step 1 (the wait-and-deploy command) in a terminal, so the deploy follows activation within seconds. Then Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account. `dig +short NS allthings.dev` then answers max/rosalie.
+Before submitting, start `bash scripts/move-day-deploy.sh` (Phase 4, step 1) in a terminal, so the deploy follows activation within seconds. Then Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account. `dig +short NS allthings.dev` then answers max/rosalie.
 
 From activation, media.allthings.dev, allthings.dev and www are unserved until Phase 4's deploy attaches them. The old zone is marked Moved Away, and its custom domains go with it.
 
@@ -109,45 +109,16 @@ From activation, media.allthings.dev, allthings.dev and www are unserved until P
 
 From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself.
 
-1. **Wait for activation, then deploy at once.** Start this before the move is submitted. It runs in Bash whatever your shell is, since it uses Bash syntax. It reads the deploy's secrets and stops if any is missing, checks that the `allthings` profile can still plan, then checks the zone every 10 seconds and runs the prod deploy (now "serve") once it is active. A failing check is reported and, five times in a row, stops it, as does any status other than pending or active:
+1. **Wait for activation, then deploy at once.** Start [`scripts/move-day-deploy.sh`](../scripts/move-day-deploy.sh) before the move is submitted:
 
-   ```bash
-   bash <<'MOVE'
-     set -euo pipefail
-     # Read the secrets first, so nothing waits on 1Password at activation.
-     # A failed read stops here, and so does an empty value.
-     NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential")
-     NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential")
-     LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential")
-     X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token")
-     : "${NEON_READER_URL:?empty}" "${NEON_SYNC_URL:?empty}" "${LUMA_API_KEY:?empty}" "${X_BEARER_TOKEN:?empty}"
-     export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN
-     # Prove the allthings profile can still deploy before waiting on it.
-     bun run plan --stage prod --profile allthings >/dev/null
-     # Wait for the zone to turn active. A failed check is reported, and five
-     # in a row stop the wait, so a broken check can't silently hold the
-     # deploy back; any status but pending or active stops it too.
-     failures=0
-     while true; do
-       if zone=$(CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 NODE_OPTIONS=--dns-result-order=ipv4first \
-           bunx cf@1.0.0-beta.12 --profile allthings zones get --zone f65e1c6d54e9d2e850cf025190ef8915 2>/dev/null) &&
-         status=$(jq -er '(.result // .).status' <<<"$zone"); then
-         failures=0
-         case "$status" in
-           active) break ;;
-           pending) sleep 10 ;;
-           *) echo "allthings.dev is $status, not pending or active: stopping" >&2; exit 1 ;;
-         esac
-       else
-         failures=$((failures + 1))
-         echo "zone check failed ($failures in a row)" >&2
-         if ((failures >= 5)); then echo "zone check keeps failing: stopping" >&2; exit 1; fi
-         sleep 10
-       fi
-     done
-     bun run deploy --stage prod --profile allthings
-   MOVE
+   ```sh
+   bash scripts/move-day-deploy.sh
    ```
+
+   - It reads the deploy's secrets from 1Password and stops if any read fails or is empty.
+   - It plans prod with the `allthings` profile, so a sign-in problem shows up while everything still serves.
+   - It checks the zone every 10 seconds. Each failed check is reported, and five in a row stop it, as does any status other than pending or active.
+   - Once the zone is active, it runs the prod deploy (now "serve").
 
    The deploy brings up:
    - **media.allthings.dev** on the new bucket.
