@@ -163,6 +163,7 @@ const Feed = Schema.Struct({
     Schema.Struct({
       post: Schema.Struct({
         uri: Schema.String,
+        author: Schema.Struct({ did: Schema.String }),
         record: Schema.Struct({ text: Schema.optionalKey(Schema.String) }),
       }),
     }),
@@ -182,7 +183,7 @@ export interface BlueskyShape {
   readonly resolveHandle: (
     handle: string,
   ) => Effect.Effect<Option.Option<string>, BlueskyUnavailable>;
-  /** Every post of the account's, newest first, replies left out. */
+  /** Every post of the account's own, newest first, replies and reposts left out. */
   readonly recentPosts: (
     did: string,
   ) => Effect.Effect<ReadonlyArray<PostedPost>, BlueskyUnavailable>;
@@ -313,13 +314,21 @@ const make = Effect.gen(function* () {
           ),
           "the account's feed",
         ).pipe(Effect.flatMap(decode(Feed, "getAuthorFeed")));
+        // The feed lists what the account reposted too: only its own count.
         posts.push(
-          ...read.feed.map(({ post }) => ({
-            uri: post.uri,
-            text: post.record.text ?? "",
-          })),
+          ...read.feed
+            .filter(({ post }) => post.author.did === did)
+            .map(({ post }) => ({
+              uri: post.uri,
+              text: post.record.text ?? "",
+            })),
         );
         if (read.cursor === undefined || read.feed.length === 0) return posts;
+        if (read.cursor === cursor) {
+          return yield* fail(
+            "Bluesky's feed gave the same page twice: it can't say whether this post is out.",
+          );
+        }
         cursor = read.cursor;
       }
       return yield* fail(

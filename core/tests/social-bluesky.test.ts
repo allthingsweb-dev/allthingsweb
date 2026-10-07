@@ -24,13 +24,18 @@ const text =
 const json = (value: unknown): Reply => ({ body: JSON.stringify(value) });
 const feed = (
   texts: ReadonlyArray<string>,
-  page: { readonly cursor?: string; readonly first?: number } = {},
+  page: {
+    readonly cursor?: string;
+    readonly first?: number;
+    readonly author?: string;
+  } = {},
 ) =>
   json({
     ...(page.cursor === undefined ? {} : { cursor: page.cursor }),
     feed: texts.map((t, i) => ({
       post: {
-        uri: `at://${ourAccount.did}/app.bsky.feed.post/r${(page.first ?? 0) + i}`,
+        uri: `at://${page.author ?? ourAccount.did}/app.bsky.feed.post/r${(page.first ?? 0) + i}`,
+        author: { did: page.author ?? ourAccount.did },
         record: { text: t },
       },
     })),
@@ -197,15 +202,48 @@ describe("the dry run", () => {
   });
 
   test("won't call a text new when the feed is too long to read", async () => {
-    const { exit } = await run((a) => a.prepare(slug, "announce"), {
+    const { exit, requests } = await run((a) => a.prepare(slug, "announce"), {
       ...reads,
-      "/xrpc/app.bsky.feed.getAuthorFeed": [
-        feed(["Something else"], { cursor: "more" }),
-      ],
+      "/xrpc/app.bsky.feed.getAuthorFeed": Array.from(
+        { length: 41 },
+        (_page, n) =>
+          feed(
+            Array.from({ length: 50 }, (_post, i) => `Post ${n * 50 + i}`),
+            { cursor: `page-${n + 2}`, first: n * 50 },
+          ),
+      ),
     });
     expect(message(exit)).toBe(
       "The account has more than 2000 posts: Bluesky's feed can't say whether this one is out.",
     );
+    expect(
+      requests.filter((r) => r.url.includes("getAuthorFeed")),
+    ).toHaveLength(40);
+  });
+
+  test("won't read a page the feed gives twice", async () => {
+    const { exit, requests } = await run((a) => a.prepare(slug, "announce"), {
+      ...reads,
+      "/xrpc/app.bsky.feed.getAuthorFeed": [
+        feed(["Something else"], { cursor: "stuck" }),
+      ],
+    });
+    expect(message(exit)).toBe(
+      "Bluesky's feed gave the same page twice: it can't say whether this post is out.",
+    );
+    expect(
+      requests.filter((r) => r.url.includes("getAuthorFeed")),
+    ).toHaveLength(2);
+  });
+
+  test("a post the account reposted isn't its own", async () => {
+    const { exit } = await run((a) => a.prepare(slug, "announce"), {
+      ...reads,
+      "/xrpc/app.bsky.feed.getAuthorFeed": [
+        feed([text], { author: "did:plc:someoneelse" }),
+      ],
+    });
+    expect(value(exit).alreadyPosted).toBeNull();
   });
 });
 
