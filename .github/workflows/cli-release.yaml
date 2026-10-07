@@ -62,3 +62,19 @@ jobs:
                   done
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            # After the binaries, so the GitHub release never waits on npm.
+            # Packing builds the bundle (prepack). A prerelease goes to the
+            # alpha dist-tag, so it never becomes what `bunx allthings` gets.
+            - name: 📦 Publish to npm
+              working-directory: cli
+              run: |
+                  if [ -z "${NPM_CONFIG_TOKEN:-}" ]; then
+                    echo "::error::The NPM_TOKEN repository secret is not set"
+                    exit 1
+                  fi
+                  DIST_TAG=latest
+                  if [[ "$GITHUB_REF_NAME" == *-* ]]; then DIST_TAG=alpha; fi
+                  bun publish --access public --tag "$DIST_TAG"
+              env:
+                  NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
