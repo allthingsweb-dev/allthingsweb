@@ -109,9 +109,10 @@ const social = Command.make("social").pipe(
   Command.withSubcommands([bluesky]),
 );
 
-// A refusal is the answer, not a crash: its reason alone, on stderr, and exit 1.
+// A refusal, or Bluesky not answering, is the answer, not a crash: its
+// reason alone, on stderr, and exit 1.
 Command.run(social, { version: "1.0.0" }).pipe(
-  Effect.catchTag("PostRefused", (refusal) =>
+  Effect.catchTag(["PostRefused", "BlueskyUnavailable"], (refusal) =>
     Effect.sync(() => {
       console.error(refusal.reason);
       process.exitCode = 1;
