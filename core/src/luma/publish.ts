@@ -206,7 +206,9 @@ const make = Effect.gen(function* () {
       return row.luma_event_id;
     });
 
-  const TalkCount = Schema.Array(Schema.Struct({ talks: Schema.Int }));
+  const OwnDescription = Schema.Array(
+    Schema.Struct({ talks: Schema.Int, pitch: Schema.NullOr(Schema.String) }),
+  );
 
   /**
    * The description publishing puts out for the draft at `slug`. The
@@ -217,18 +219,20 @@ const make = Effect.gen(function* () {
    */
   const publishedDescription = (slug: string) =>
     Effect.gen(function* () {
-      const [counted] = yield* sql`
-        SELECT count(et.*)::int AS talks
-        FROM events e LEFT JOIN event_talks et ON et.event_id = e.id
+      // Its talks, and the pitch of the idea it became, unless that idea was
+      // dropped (an evening has at most one idea).
+      const [own] = yield* sql`
+        SELECT
+          (SELECT count(*) FROM event_talks et WHERE et.event_id = e.id)::int AS talks,
+          (SELECT i.pitch FROM planning.ideas i
+            WHERE i.event_id = e.id AND i.status <> 'dropped') AS pitch
+        FROM events e
         WHERE e.slug = ${slug}`.pipe(
-        Effect.flatMap(Schema.decodeUnknownEffect(TalkCount)),
+        Effect.flatMap(Schema.decodeUnknownEffect(OwnDescription)),
         Effect.mapError((cause) => new DataSourceError({ cause })),
       );
-      if ((counted?.talks ?? 0) === 0) {
-        const idea = (yield* planning.listIdeas()).find(
-          (candidate) => candidate.event?.slug === slug,
-        );
-        if (idea !== undefined) return idea.pitch;
+      if (own !== undefined && own.talks === 0 && own.pitch !== null) {
+        return own.pitch;
       }
       return yield* descriptionFor(slug);
     });

@@ -432,6 +432,36 @@ describe("publish", () => {
     );
   });
 
+  test("a dropped idea's pitch is not used", async () => {
+    await db.exec(`
+      UPDATE events SET program = 'social' WHERE slug = '${draft}';
+      DELETE FROM event_talks WHERE event_id = (SELECT id FROM events WHERE slug = '${draft}');`);
+    await Effect.runPromise(
+      Planning.use((p) =>
+        p.addIdea({
+          title: "Made-up quiz",
+          pitch: "Dropped, not this.",
+          program: "social",
+          status: "dropped",
+          eventSlug: draft,
+        }),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const { exit } = await run((s) => s.prepare(draft), {
+      "/v1/events/get": [json(lumaEvent())],
+    });
+    const description = value(exit).outgoing.descriptionMd;
+    expect(description).not.toContain("Dropped, not this.");
+    expect(description).toContain("Hosted at **[Acme]");
+  });
+
   test("an evening with talks takes the drafts' description, idea or not", async () => {
     await Effect.runPromise(
       Planning.use((p) =>
