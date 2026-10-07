@@ -10,7 +10,6 @@ import * as schema from "../../src/lib/schema";
  * without what production runs.
  */
 export async function createSchema(client: PGlite): Promise<void> {
-  await client.exec("CREATE SCHEMA IF NOT EXISTS neon_auth");
   for (const statement of await generateMigration(
     generateDrizzleJson({}),
     generateDrizzleJson(schema),

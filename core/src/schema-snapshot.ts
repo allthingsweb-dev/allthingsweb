@@ -6,15 +6,18 @@ import type { SqlError } from "effect/sql/SqlError";
  * A database's schema as sorted lines of text, read from the catalog, so two
  * databases can be compared exactly and their differences read as a diff.
  *
- * It covers the schemas the app's tables live in: `public`; `neon_auth`,
- * whose `users_sync` table Neon Auth owns and the app references; and
- * `planning`, the organizers' private planning (migrations/0012_planning.ts). Each line is
- * one object: a relation (with its row security and options), a column (its
- * position among the table's live columns, type, nullability, default,
- * identity, generation and collation), a constraint (primary, unique, check
- * and foreign keys with their actions, as Postgres prints them), an index (its
- * full definition, and whether it is valid), an enum (labels in order), a domain or other type, a
- * sequence, a view, a trigger, a row security policy, a routine or a comment.
+ * It covers the schemas the app's tables live in: `public`, and `planning`,
+ * the organizers' private planning (migrations/0012_planning.ts). Not
+ * `neon_auth`: since migrations/0023_drop_admin_tables.ts nothing of the
+ * site's references it, and it is Neon's to keep or drop, so whether Neon
+ * Auth is on never changes the snapshot. Each line is one object: a
+ * relation (with its row security and options), a column (its position
+ * among the table's live columns, type, nullability, default, identity,
+ * generation and collation), a constraint (primary, unique, check and
+ * foreign keys with their actions, as Postgres prints them), an index (its
+ * full definition, and whether it is valid), an enum (labels in order), a
+ * domain or other type, a sequence, a view, a trigger, a row security
+ * policy, a routine or a comment.
  *
  * Owners and grants are left out: they belong to the environment (Neon's
  * roles), not to the schema the migrations create. So are the NOT NULL
@@ -23,11 +26,7 @@ import type { SqlError } from "effect/sql/SqlError";
  */
 
 /** The schemas compared. */
-export const schemas: ReadonlyArray<string> = [
-  "public",
-  "neon_auth",
-  "planning",
-];
+export const schemas: ReadonlyArray<string> = ["public", "planning"];
 
 /**
  * Objects the platform keeps in those schemas that no migration creates, each
