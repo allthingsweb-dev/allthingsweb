@@ -1,7 +1,7 @@
 [project]
 name = "allthings-marks"
 version = "0.1.0"
-description = "Generates the all things/_ marks as SVG outlines and PNG icons."
+description = "Generates the allthings/_ marks as SVG outlines and PNG icons."
 requires-python = ">=3.12"
 dependencies = [
   "fonttools>=4.60",

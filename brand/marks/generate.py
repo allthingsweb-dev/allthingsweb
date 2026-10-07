@@ -1,4 +1,4 @@
-"""Generates the all things/_ marks as SVG outlines and PNG icons.
+"""Generates the allthings/_ marks as SVG outlines and PNG icons.
 
 The marks are set in Archivo (SIL Open Font License), shaped with HarfBuzz so
 kerning matches the browser, and written as plain SVG paths: no font is
@@ -317,7 +317,7 @@ def build() -> dict[Path, bytes]:
 
     wordmark = setter.set(
         [
-            Run("all things", brand.weight, "text"),
+            Run("allthings", brand.weight, "text"),
             Run("/", brand.weight, "accent"),
             Run("_", CURSOR_WEIGHT, "accent", cursor=True),
         ],
@@ -334,7 +334,7 @@ def build() -> dict[Path, bytes]:
 
     px = brand.font_size / setter.upem
     blink = blink_style(brand.cursor_blink_ms)
-    title = "all things/_"
+    title = "allthings/_"
     icon = tile_svg(mark, on_night, c["night"], ICON_INK_WIDTH, title)
     favicon = tile_svg(
         a_slash(FAVICON_WEIGHT), on_night, c["night"], FAVICON_INK_WIDTH, title
@@ -410,7 +410,7 @@ def matches(path: Path, data: bytes) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generates the all things/_ marks.")
+    parser = argparse.ArgumentParser(description="Generates the allthings/_ marks.")
     parser.add_argument(
         "--check", action="store_true", help="fail if committed marks are stale"
     )

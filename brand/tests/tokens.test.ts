@@ -17,7 +17,7 @@ const hexes = Object.fromEntries(
   colors(tokens).map((color) => [color.name, color.hex]),
 );
 
-describe("all things/_ design tokens", () => {
+describe("allthings/_ design tokens", () => {
   test("keep the locked palette", () => {
     expect(hexes).toMatchObject({
       paper: "#F4F1EC",

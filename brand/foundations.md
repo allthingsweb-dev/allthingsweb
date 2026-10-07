@@ -1,10 +1,10 @@
-# all things/\_ — brand foundations
+# allthings/\_ — brand foundations
 
 The rules every page, cover, slide, email and line of copy is checked against. Design tokens, components and templates implement these; when they disagree, this document wins and they get fixed.
 
 ## Who we are
 
-**An open door and a high bar.** All Things is an open community for people who build software in San Francisco: the person a month into their first job, the maintainer of a library you install every day, the founder, the creator, and everyone between. Everyone is welcome. What goes on stage has earned its place.
+**An open door and a high bar.** allthings is an open community for people who build software in San Francisco: the person a month into their first job, the maintainer of a library you install every day, the founder, the creator, and everyone between. Everyone is welcome. What goes on stage has earned its place.
 
 > Evenings for people who build software.
 > In the neighborhoods of San Francisco.
@@ -15,12 +15,12 @@ Every evening is one of four formats: talks, an open floor, a social evening or 
 
 ## Name
 
-- The name is **all things**, always lowercase. The master wordmark is **all things/\_**: the slot after the slash is left open, and every event fills it.
-- Each event is **all things/&lt;topic&gt;**: all things/effect, all things/expo. The topic is lowercase, short and specific.
-- "all things" abbreviates to **at**. Lists and running copy use **at/&lt;topic&gt;** (at/effect, at/react native).
+- The name is **allthings**: one word, always lowercase, as in allthings.dev, the `allthings` command and our handles. The master wordmark is **allthings/\_**: the slot after the slash is left open, and every event fills it.
+- Each event is **allthings/&lt;topic&gt;**: allthings/effect, allthings/expo. The topic is lowercase, short and specific.
+- "allthings" abbreviates to **at**. Lists and running copy use **at/&lt;topic&gt;** (at/effect, at/react native).
 - The sign-off is **see you at/&lt;topic&gt;**, exactly in that form. It belongs after someone commits: the confirmation state, the calendar invite title, the reminder email subject. Never beside the button that asks.
-- **The cursor means "not yet happened".** Upcoming and live events carry a blinking \_ (all things/effect\_); past events lose it (all things/expo). The master wordmark always keeps it.
-- The lockup is the link. allthings.dev/effect is the address of all things/effect.
+- **The cursor means "not yet happened".** Upcoming and live events carry a blinking \_ (allthings/effect\_); past events lose it (allthings/expo). The master wordmark always keeps it.
+- The lockup is the link. allthings.dev/effect is the address of allthings/effect.
 - "All Things Web" is our history. It appears on the history page and in launch messaging, never in the brand.
 
 ## Voice
@@ -60,7 +60,7 @@ Derive new ones from the venue's address, and prefer the local name over the off
 
 ## Marks
 
-- **Master wordmark:** all things/\_ in Archivo 800 at 112% width, with the cursor blinking once a second. With reduced motion, the cursor stays solid.
+- **Master wordmark:** allthings/\_ in Archivo 800 at 112% width, with the cursor blinking once a second. With reduced motion, the cursor stays solid.
 - **Logo and app icon:** **a/**. The tail of the a runs into the slash: a beginning, with what comes next implied.
 - The slash is always Bridge on light grounds and Glow on Night.
 - Don't stack the letters (a/ over t/), drop the slash, set the marks in another typeface, or add effects.

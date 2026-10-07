@@ -21,20 +21,20 @@ const sentences =
   "Evenings for people who build software. In the neighborhoods of San Francisco.";
 
 export const ogCards = {
-  home: card(cards.home, `all things/_ · ${sentences}`),
-  events: card(cards.events, `every evening · all things/_ · ${sentences}`),
-  people: card(cards.people, `people · all things/_ · ${sentences}`),
-  about: card(cards.about, `about · all things/_ · ${sentences}`),
+  home: card(cards.home, `allthings/_ · ${sentences}`),
+  events: card(cards.events, `every evening · allthings/_ · ${sentences}`),
+  people: card(cards.people, `people · allthings/_ · ${sentences}`),
+  about: card(cards.about, `about · allthings/_ · ${sentences}`),
   codeOfConduct: card(
     cards.codeOfConduct,
-    "code of conduct · all things/_ · How we treat each other at every evening, and how to report a concern.",
+    "code of conduct · allthings/_ · How we treat each other at every evening, and how to report a concern.",
   ),
   brand: card(
     cards.brand,
-    "all things/brand · The rules every page, cover and line of copy is checked against.",
+    "allthings/brand · The rules every page, cover and line of copy is checked against.",
   ),
   notFound: card(
     cards.notFound,
-    "not found · all things/_ · No evening lives at this address.",
+    "not found · allthings/_ · No evening lives at this address.",
   ),
 } as const satisfies Record<string, OgImage>;

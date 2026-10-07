@@ -78,17 +78,17 @@ describe("an event's card", () => {
     // In San Francisco's year: 11 PM on New Year's Eve there is already next year in UTC.
     const lastNight = DateTime.makeUnsafe("2027-01-01T07:00:00Z");
     expect(cardFacts(event(), lastNight).when).toBe("WED SEP 30 · 5:30 PM");
-    const card = eventCard(event(march2024), "all things/effect", now);
+    const card = eventCard(event(march2024), "allthings/effect", now);
     expect(card.alt).toBe(
-      "all things/effect · Tue Mar 26, 2024 · 5:00 PM · East Cut · CodeRabbit",
+      "allthings/effect · Tue Mar 26, 2024 · 5:00 PM · East Cut · CodeRabbit",
     );
   });
 
   test("changes its version when the year comes to be said", () => {
-    const thisYear = eventCard(event(), "all things/effect", now);
+    const thisYear = eventCard(event(), "allthings/effect", now);
     const nextYear = eventCard(
       event(),
-      "all things/effect",
+      "allthings/effect",
       DateTime.makeUnsafe("2027-03-01T00:00:00Z"),
     );
     expect(nextYear.src).not.toBe(thisYear.src);
@@ -97,34 +97,34 @@ describe("an event's card", () => {
     expect(
       eventCard(
         event(),
-        "all things/effect",
+        "allthings/effect",
         DateTime.makeUnsafe("2026-12-31T20:00:00Z"),
       ).src,
     ).toBe(thisYear.src);
   });
 
-  test("says when, all things/<topic> with the cursor ahead, and where and who hosts", () => {
+  test("says when, allthings/<topic> with the cursor ahead, and where and who hosts", () => {
     const texts = layout();
     expect(texts.map(({ text, font }) => [font, text])).toEqual([
       ["meta", "WED SEP 30 · 5:30 PM"],
       ["label", "EAST CUT · CODERABBIT"],
-      ["lockup", "all things"],
+      ["lockup", "allthings"],
       ["lockup", "/"],
       ["lockup", "effect"],
       ["lockup", "_"],
     ]);
     const night = (role: string) => roleColor(tokens, "night", role).hex;
-    const [meta, label, allThings, slash, topic, cursor] = texts;
+    const [meta, label, word, slash, topic, cursor] = texts;
     expect(meta?.color).toBe(night("meta"));
     expect(label?.color).toBe(night("link"));
-    expect(allThings?.color).toBe(night("text"));
+    expect(word?.color).toBe(night("text"));
     expect(slash?.color).toBe(night("slash"));
     expect(cursor?.color).toBe(night("slash"));
-    // The slash follows "all things"; the cursor follows the topic.
+    // The slash follows "allthings"; the cursor follows the topic.
     expect(slash?.left).toBe(
       Math.round(
-        (allThings?.left ?? 0) +
-          textWidth(measured.lockup, "all things", allThings?.size ?? 0),
+        (word?.left ?? 0) +
+          textWidth(measured.lockup, "allthings", word?.size ?? 0),
       ),
     );
     expect(cursor?.top).toBe(topic?.top);
@@ -174,7 +174,7 @@ describe("an event's card", () => {
     }).filter(
       ({ font, text }) => font === "lockup" && text !== "_" && text !== "/",
     );
-    expect(name.map(({ text }) => text)).not.toContain("all things");
+    expect(name.map(({ text }) => text)).not.toContain("allthings");
     expect(name.length).toBeLessThanOrEqual(3);
   });
 
@@ -192,12 +192,12 @@ describe("an event's card", () => {
   });
 
   test("is named by its page with a version that changes when what it says does", () => {
-    const card = eventCard(event(), "all things/effect", now);
+    const card = eventCard(event(), "allthings/effect", now);
     expect(card).toEqual({
       src: `/og/2026-09-30-all-things-effect.png?v=${cardVersion(cardFacts(event(), now))}`,
       width: 1200,
       height: 630,
-      alt: "all things/effect · Wed Sep 30 · 5:30 PM · East Cut · CodeRabbit",
+      alt: "allthings/effect · Wed Sep 30 · 5:30 PM · East Cut · CodeRabbit",
     });
     expect(cardVersion(cardFacts(event({ hosts: ["Clerk"] }), now))).not.toBe(
       cardVersion(cardFacts(event(), now)),
