@@ -420,11 +420,23 @@ describe("one evening, wherever it is asked for", () => {
   );
 
   test("React at Acme runs in its running order on every surface", async () => {
-    const mcp = await surfaces.getEvent("react");
-    expect(mcp?.talks.map((talk) => talk.title)).toEqual([
-      "Server components",
-      "Effect in production",
-    ]);
+    const order = ["Server components", "Effect in production"];
+    const titles = (
+      event:
+        | { readonly talks: ReadonlyArray<{ readonly title: string }> }
+        | undefined,
+    ) => event?.talks.map((talk) => talk.title);
+    expect(titles(await surfaces.getEvent("react"))).toEqual(order);
+    expect(titles(await eventPage("react"))).toEqual(order);
+    expect(
+      titles(
+        (
+          await surfaces.rest<{ readonly event: RestEvent }>(
+            `/api/v1/events/${reactAtAcme}`,
+          )
+        )?.event,
+      ),
+    ).toEqual(order);
   });
 
   test.each(events.filter((event) => event.is_draft).map((e) => e.slug))(
