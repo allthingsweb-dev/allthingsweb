@@ -21,6 +21,7 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
   - a `Writer` Hyperdrive in front of production as `site_sync`, from `NEON_SYNC_URL`, which never caches
   - the media bucket and the Images binding
   - `LUMA_API_KEY` as a secret
+  - `X_BEARER_TOKEN` as a secret: the post finder's X search, billed per post it returns
 
   It ships off: see [The Luma sync](#the-luma-sync).
 
@@ -94,11 +95,12 @@ Each run logs one JSON line per step and one summary line (`source: "luma-sync"`
 
 On Workers Paid, a run hourly or less often gets up to 15 minutes of CPU and 10,000 subrequests, and `plan: "paid"` lifts the per-kind limits.
 
-**Deploying prod.** It now also needs `NEON_SYNC_URL` and `LUMA_API_KEY`, passed without printing them:
+**Deploying prod.** It now also needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN` (the post finder's X search), passed without printing them:
 
 ```sh
 NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential") \
 LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token") \
   bun run deploy --stage prod
 ```
 

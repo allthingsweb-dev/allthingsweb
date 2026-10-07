@@ -28,7 +28,9 @@ import { addPost } from "./add.ts";
  * - X: the v2 search API with the app's bearer token (`X_BEARER_TOKEN`,
  *   from 1Password's "allthings X app" in the `allthings` vault). Without
  *   it, X is skipped. Recent search reaches seven days back;
- *   `X_SEARCH=archive` uses full-archive search, which needs that access.
+ *   `X_SEARCH=archive` uses full-archive search, which pay-per-use access
+ *   has. X bills each post a search returns ($0.005 on pay-per-use, once a
+ *   UTC day), so `X_MAX_RESULTS` (25 unless set) bounds each request.
  */
 
 /** Everything about an evening a post could point at. */
@@ -487,6 +489,15 @@ export function xQueries(signals: EventSignals): ReadonlyArray<string> {
 }
 
 /**
+ * Posts an X search request returns unless `X_MAX_RESULTS` says otherwise:
+ * X bills each one, so a run's cost is at most its requests times this.
+ */
+export const xDefaultMaxResults = 25;
+
+/** What X charges per post a search returns, on pay-per-use (docs.x.com, 2026-10). */
+export const xCostPerPost = 0.005;
+
+/**
  * X's v2 search with the app's bearer token, when `X_BEARER_TOKEN` is
  * configured; without it, a search that finds nothing and says why.
  */
@@ -496,6 +507,10 @@ export const makeXSearch = Effect.gen(function* () {
     const archive =
       (yield* Config.String("X_SEARCH").pipe(Config.withDefault("recent"))) ===
       "archive";
+    // Each post a search returns is billed: at most this many a request.
+    const maxResults = yield* Config.Int("X_MAX_RESULTS").pipe(
+      Config.withDefault(xDefaultMaxResults),
+    );
     const client = yield* HttpClient.HttpClient;
     if (Option.isNone(token)) {
       return {
@@ -544,7 +559,9 @@ export const makeXSearch = Effect.gen(function* () {
                   query,
                   start_time: iso(earliest),
                   end_time: iso(latest),
-                  max_results: "100",
+                  max_results: String(
+                    Math.min(archive ? 500 : 100, Math.max(10, maxResults)),
+                  ),
                   "tweet.fields": "created_at,author_id,entities",
                   expansions: "author_id",
                   "user.fields": "username",

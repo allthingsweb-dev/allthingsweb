@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { ConfigProvider, DateTime, Effect, Layer } from "effect";
-import { HttpClient, HttpClientResponse } from "effect/http";
+import { HttpClient, HttpClientResponse, UrlParams } from "effect/http";
 import {
   bareLink,
   CandidateSearches,
@@ -331,6 +331,53 @@ describe("what platforms answer", () => {
     expect(found.requests).toBe(2);
     expect(found.posts.map((p) => p.url)).toEqual([
       "https://x.com/ada/status/21",
+    ]);
+  });
+
+  test("asks X for 25 posts a request unless X_MAX_RESULTS says otherwise, within X's bounds", async () => {
+    const asked = async (env: Record<string, string>) => {
+      const sizes: Array<string | null> = [];
+      const client = Layer.succeed(
+        HttpClient.HttpClient,
+        HttpClient.make((request) => {
+          sizes.push(
+            new URLSearchParams(UrlParams.toString(request.urlParams)).get(
+              "max_results",
+            ),
+          );
+          return Effect.succeed(
+            HttpClientResponse.fromWeb(request, Response.json({})),
+          );
+        }),
+      );
+      await Effect.runPromise(
+        Effect.gen(function* () {
+          const x: CandidateSearchShape = yield* makeXSearch;
+          return yield* x.search(
+            {
+              ...signals,
+              startsAt: at("2026-10-02T01:00:00Z"),
+              endsAt: at("2026-10-02T04:00:00Z"),
+            },
+            1,
+          );
+        }).pipe(
+          Effect.provide(Layer.merge(client, clockLayer)),
+          Effect.provideService(
+            ConfigProvider.ConfigProvider,
+            ConfigProvider.fromEnv({ env: { X_BEARER_TOKEN: "test", ...env } }),
+          ),
+        ),
+      );
+      return sizes;
+    };
+    expect(await asked({})).toEqual(["25"]);
+    expect(await asked({ X_MAX_RESULTS: "40" })).toEqual(["40"]);
+    // Recent search takes 10 to 100; full-archive search up to 500.
+    expect(await asked({ X_MAX_RESULTS: "1" })).toEqual(["10"]);
+    expect(await asked({ X_MAX_RESULTS: "900" })).toEqual(["100"]);
+    expect(await asked({ X_MAX_RESULTS: "900", X_SEARCH: "archive" })).toEqual([
+      "500",
     ]);
   });
 

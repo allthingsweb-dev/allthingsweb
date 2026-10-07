@@ -4,7 +4,11 @@ import { Argument, Command, Flag } from "effect/cli";
 import { FetchHttpClient } from "effect/http";
 import * as Database from "../src/database.ts";
 import { type AddPostResult, addPost, BackfillFile } from "../src/posts/add.ts";
-import { CandidateSearches, findCandidates } from "../src/posts/candidates.ts";
+import {
+  CandidateSearches,
+  findCandidates,
+  xCostPerPost,
+} from "../src/posts/candidates.ts";
 import {
   pendingJson,
   pendingPosts,
@@ -166,10 +170,16 @@ const find = Command.make(
       Flag.withDescription("Search every published evening that has started."),
       Flag.withDefault(false),
     ),
+    maxRequests: Flag.Int("max-requests").pipe(
+      Flag.withDescription(
+        "Send at most this many requests in the run (X bills each post a search returns).",
+      ),
+      Flag.optional,
+    ),
     dryRun: dryRunFlag,
     json: jsonFlag,
   },
-  ({ slug, past, dryRun, json }) =>
+  ({ slug, past, maxRequests, dryRun, json }) =>
     Effect.gen(function* () {
       const reports = yield* findCandidates({
         scope:
@@ -179,7 +189,17 @@ const find = Command.make(
               ? { _tag: "Past" }
               : { _tag: "Recent", within: "7 days" },
         dryRun,
+        ...(Option.isSome(maxRequests)
+          ? { maxRequests: maxRequests.value }
+          : {}),
       });
+      // X bills each post its search returns; what this run read, priced.
+      const xPosts = reports.reduce(
+        (sum, report) =>
+          sum +
+          (typeof report.searched["x"] === "number" ? report.searched["x"] : 0),
+        0,
+      );
       yield* Console.log(
         json
           ? JSON.stringify(reports, null, 2)
@@ -197,6 +217,11 @@ const find = Command.make(
               )
               .join("\n"),
       );
+      if (!json) {
+        yield* Console.log(
+          `X: ${xPosts} posts read, about $${(xPosts * xCostPerPost).toFixed(2)} at pay-per-use.`,
+        );
+      }
     }).pipe(Effect.provide(candidatesLayer)),
 ).pipe(
   Command.withDescription(

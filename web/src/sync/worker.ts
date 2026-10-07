@@ -42,6 +42,8 @@ import {
  * - `MEDIA` and `MEDIA_ORIGIN`: the media bucket and where it is served.
  * - `IMAGES`: Cloudflare's Images binding.
  * - `LUMA_API_KEY` (secret), `LUMA_CALENDAR_API_ID` (optional).
+ * - `X_BEARER_TOKEN` (secret): the post search's X source; without it, X
+ *   is skipped. `X_MAX_RESULTS` (optional) bounds what each search returns.
  * - `SYNC_MODE`: "write", or "dry-run" (and anything else) to write nothing.
  * - `SYNC_PLAN`: "paid" for the app's limits, or "free" (and anything else)
  *   for runs small enough for the Workers Free plan.
