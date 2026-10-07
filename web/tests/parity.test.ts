@@ -400,22 +400,22 @@ describe("one evening, wherever it is asked for", () => {
   test.each(links)(
     "get_event, /api/v1/events/:id and the page agree on %s",
     async (slug) => {
+      // Each surface is asked on its own, so one that fails doesn't hide
+      // what the others say.
+      const id = idOf(slug);
       const mcp = await surfaces.getEvent(slug);
       const page = await eventPage(slug);
-      expect(mcp).toBeDefined();
-      expect(page).toBeDefined();
-      if (mcp === undefined || page === undefined) return;
       const rest = (
         await surfaces.rest<{ readonly event: RestEvent }>(
-          `/api/v1/events/${page.id}`,
+          `/api/v1/events/${id}`,
         )
       )?.event;
-      expect(idOf(mcp.slug)).toBe(page.id);
-      expect(rest?.id).toBe(page.id);
-      expect(lineup(mcp)).toEqual(lineup(page));
-      expect(rest === undefined ? undefined : lineup(rest)).toEqual(
-        lineup(page),
-      );
+      expect(page?.id).toBe(id);
+      expect(mcp === undefined ? undefined : idOf(mcp.slug)).toBe(id);
+      expect(rest?.id).toBe(id);
+      const expected = page === undefined ? undefined : lineup(page);
+      expect(mcp === undefined ? undefined : lineup(mcp)).toEqual(expected);
+      expect(rest === undefined ? undefined : lineup(rest)).toEqual(expected);
     },
   );
 
@@ -439,11 +439,17 @@ describe("one evening, wherever it is asked for", () => {
     },
   );
 
+  test.each(oldLinks.map((link) => [link.slug, link.event_id]))(
+    "an evening's page finds it by a link it had before: %s",
+    async (slug, eventId) => {
+      expect((await eventPage(slug))?.id).toBe(eventId);
+    },
+  );
+
   // D1: get_event resolves every link an evening had, as its page does.
   test.failing.each(oldLinks.map((link) => [link.slug, link.event_id]))(
     "get_event finds an evening by a link it had before, as its page does: %s",
     async (slug, eventId) => {
-      expect((await eventPage(slug))?.id).toBe(eventId);
       const mcp = await surfaces.getEvent(slug);
       expect(mcp === undefined ? undefined : idOf(mcp.slug)).toBe(eventId);
     },
@@ -456,19 +462,24 @@ describe("what comes next", () => {
     expect(page?.next?.slug).toBe((await home()).next?.slug);
   });
 
+  // On 10 October, Mastra's demo day is the soonest evening, and ours on
+  // 5 November is the next.
+  const later = surfacesAt(DateTime.makeUnsafe("2026-10-10T00:00:00Z"));
+
+  test("home leads with ours when an evening we only share is the soonest", async () => {
+    const view = await later.read(
+      Evenings.use((repository) => repository.read),
+    );
+    expect(view.ahead[0]?.slug).toBe("2026-10-20-mastra-demo-day");
+    expect((await home(later)).next?.slug).toBe("2026-11-05-upcoming");
+  });
+
   // D2: an evening's page points to our next evening, as home leads with
-  // it, never to one we only share. On 10 October, Mastra's demo day is
-  // the soonest evening and ours on 5 November is the next.
-  test.failing(
-    "it does when an evening we only share is the soonest",
-    async () => {
-      const later = surfacesAt(DateTime.makeUnsafe("2026-10-10T00:00:00Z"));
-      const page = await eventPage("react", later);
-      const next = (await home(later)).next;
-      expect(next?.slug).toBe("2026-11-05-upcoming");
-      expect(page?.next?.slug).toBe(next?.slug);
-    },
-  );
+  // it, never to one we only share.
+  test.failing("an evening's page does too", async () => {
+    const page = await eventPage("react", later);
+    expect(page?.next?.slug).toBe("2026-11-05-upcoming");
+  });
 });
 
 describe("who has been on stage", () => {
