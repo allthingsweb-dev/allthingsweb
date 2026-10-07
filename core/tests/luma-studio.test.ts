@@ -603,6 +603,59 @@ describe("publish", () => {
     expect(await program()).toBe("social");
   });
 
+  test("a draft Luma doesn't make public keeps the program it had", async () => {
+    await Effect.runPromise(
+      Planning.use((p) =>
+        p.addIdea({
+          title: "Made-up social",
+          pitch: "Not this.",
+          program: "social",
+          status: "drafting",
+          eventSlug: draft,
+        }),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const program = async () =>
+      (
+        await db.query<{ program: string }>(
+          `SELECT program FROM events WHERE slug = '${draft}'`,
+        )
+      ).rows[0]?.program;
+    const prepared = value(
+      (
+        await run((s) => s.prepare(draft), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    for (const replies of [
+      // Luma refuses the update.
+      {
+        "/v1/events/get": [json(lumaEvent())],
+        "/v1/events/update": [{ status: 503 }],
+      },
+      // Luma takes it, and the event is still private.
+      {
+        "/v1/events/get": [json(lumaEvent()), json(lumaEvent())],
+        "/v1/events/update": [json({})],
+      },
+    ]) {
+      const { exit } = await run(
+        (s) => s.publish(draft, prepared.token),
+        replies,
+      );
+      expect(Exit.isFailure(exit)).toBe(true);
+      expect(await program()).toBe("talks");
+    }
+  });
+
   test("refuses a token for anything else, sending no update", async () => {
     const prepared = value(
       (
