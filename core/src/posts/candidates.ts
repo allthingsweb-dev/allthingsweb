@@ -642,13 +642,19 @@ export const makeXSearch = Effect.gen(function* () {
             }
             // An answer that isn't a search result is one failed query; what
             // the others found stays.
+            // The body too has 15 s: X may send its headers, then stall.
             const answer = yield* Effect.result(
               response.json.pipe(
                 Effect.flatMap(Schema.decodeUnknownEffect(XSearchAnswer)),
+                Effect.timeout(Duration.seconds(15)),
               ),
             );
             if (answer._tag === "Failure") {
-              failures.push("the answer is not a search result");
+              failures.push(
+                answer.failure._tag === "TimeoutError"
+                  ? "the answer stalled for 15 s"
+                  : "the answer is not a search result",
+              );
               continue;
             }
             for (const post of fromXSearch(answer.success)) {

@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { ConfigProvider, DateTime, Effect, Exit, Layer } from "effect";
+import { ConfigProvider, DateTime, Effect, Exit, Fiber, Layer } from "effect";
+import * as TestClock from "effect/testing/TestClock";
 import { HttpClient, HttpClientResponse, UrlParams } from "effect/http";
 import {
   bareLink,
@@ -481,6 +482,54 @@ describe("what platforms answer", () => {
     expect(Exit.isFailure(exit) ? exit.cause.reasons[0] : null).toMatchObject({
       _tag: "Fail",
       error: { requests: 1 },
+    });
+  });
+
+  test("an X answer whose body stalls fails that query after 15 s, never the run", async () => {
+    const client = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            // Headers at once, then a body that never comes.
+            new Response(new ReadableStream({ start() {} }), {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }),
+          ),
+        ),
+      ),
+    );
+    const exit = await Effect.runPromiseExit(
+      Effect.gen(function* () {
+        const x: CandidateSearchShape = yield* makeXSearch;
+        const fiber = yield* Effect.forkChild(
+          x.search(
+            {
+              ...signals,
+              startsAt: at("2026-10-02T01:00:00Z"),
+              endsAt: at("2026-10-02T04:00:00Z"),
+            },
+            1,
+          ),
+        );
+        for (let i = 0; i < 20; i++) {
+          yield* Effect.yieldNow;
+          yield* TestClock.adjust("1 second");
+        }
+        return yield* Fiber.join(fiber);
+      }).pipe(
+        Effect.provide(Layer.merge(client, clockLayer)),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromEnv({ env: { X_BEARER_TOKEN: "test" } }),
+        ),
+      ),
+    );
+    expect(Exit.isFailure(exit) ? exit.cause.reasons[0] : null).toMatchObject({
+      _tag: "Fail",
+      error: { reason: "every query failed: the answer stalled for 15 s" },
     });
   });
 
