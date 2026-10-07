@@ -4,7 +4,7 @@
 #
 #   curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash
 #
-# ALLTHINGS_VERSION=2.0.0-alpha.2 installs that (pre)release; the default is
+# ALLTHINGS_VERSION=2.0.0-alpha.3 installs that (pre)release; the default is
 # the latest stable release. ALLTHINGS_HOME moves the install (~/.allthings).
 set -euo pipefail
 

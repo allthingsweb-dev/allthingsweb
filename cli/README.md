@@ -9,7 +9,7 @@ curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash
 That installs the latest stable release in `~/.allthings/bin`. `allthings` 2 is in prerelease until the launch, so ask for one by name:
 
 ```sh
-curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | ALLTHINGS_VERSION=2.0.0-alpha.2 bash
+curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | ALLTHINGS_VERSION=2.0.0-alpha.3 bash
 ```
 
 ## Use
