@@ -542,6 +542,33 @@ describe("a post an unanswered post left", () => {
     expect(posted).toEqual([]);
   });
 
+  test("isn't recorded when its claim is let go of while X reads it back", async () => {
+    await leaveUnanswered();
+    const text = (await prepared()).text;
+    const releasedFirst = Layer.effect(
+      SentPosts,
+      Effect.gen(function* () {
+        const real = yield* SentPosts;
+        return SentPosts.of({
+          ...real,
+          markSent: (id, messageId, url) =>
+            Effect.promise(() =>
+              db.exec("DELETE FROM planning.sent_posts"),
+            ).pipe(Effect.andThen(real.markSent(id, messageId, url))),
+        });
+      }),
+    ).pipe(Layer.provide(SentPosts.layer));
+    const { exit } = await run(
+      (a) => a.recordSent(slug, "announce", "1999"),
+      { "/2/tweets/1999": [found("1999", asListed(text))] },
+      { records: releasedFirst },
+    );
+    expect(reason(exit)).toBe(
+      "The claim was let go of while this ran: nothing was recorded. Read it again with --dry-run.",
+    );
+    expect(await recorded()).toEqual([]);
+  });
+
   test("is checked against the text approved, even once the draft has changed", async () => {
     const text = (await prepared()).text;
     await leaveUnanswered();

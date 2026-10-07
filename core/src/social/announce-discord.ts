@@ -192,7 +192,12 @@ const make = Effect.gen(function* () {
       );
       const url = messageUrl(prepared.webhook, id);
       const record = yield* sentPosts.markSent(claim.value.id, id, url);
-      return { ...prepared, sent: record, messageId: id, url };
+      if (Option.isNone(record)) {
+        return yield* refuse(
+          `Sent as ${url}, but its claim was let go of while it went out, so nothing records it: don't approve it again.`,
+        );
+      }
+      return { ...prepared, sent: record.value, messageId: id, url };
     });
 
   /** The moment's record, if an organizer may settle it now. */
@@ -244,11 +249,17 @@ const make = Effect.gen(function* () {
           `Message ${messageId} doesn't say what was approved (${record.token}), so it isn't this send: nothing was recorded.`,
         );
       }
-      return yield* sentPosts.markSent(
+      const sent = yield* sentPosts.markSent(
         record.id,
         found.value.id,
         messageUrl(webhook, found.value.id),
       );
+      if (Option.isNone(sent)) {
+        return yield* refuse(
+          "The claim was let go of while this ran: nothing was recorded. Read it again with --dry-run.",
+        );
+      }
+      return sent.value;
     });
 
   const release = (slug: string, moment: Moment) =>

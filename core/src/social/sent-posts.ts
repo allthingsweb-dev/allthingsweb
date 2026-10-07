@@ -97,12 +97,15 @@ export interface SentPostsShape {
     token: string,
     body: string,
   ) => Effect.Effect<Option.Option<SentPost>, DataSourceError>;
-  /** Records the claim `id`, unless already sent, as `messageId` at `url`. */
+  /**
+   * Records the claim `id`, unless already sent, as `messageId` at `url`:
+   * the record, or None when the claim was let go of meanwhile.
+   */
   readonly markSent: (
     id: string,
     messageId: string,
     url: string,
-  ) => Effect.Effect<SentPost, DataSourceError>;
+  ) => Effect.Effect<Option.Option<SentPost>, DataSourceError>;
   /**
    * Renews the claim `id` just before its send: false when it was let go
    * of meanwhile, and the send must not start.
@@ -178,13 +181,7 @@ const make = Effect.gen(function* () {
             )
             SELECT ${columns} FROM s`,
       ),
-    ).pipe(
-      Effect.flatMap(([row]) =>
-        row === undefined
-          ? Effect.die(`no claim ${id} is waiting to be marked sent`)
-          : Effect.succeed(row),
-      ),
-    );
+    ).pipe(Effect.map(first));
 
   const hold = (id: string) =>
     Effect.flatMap(now, (at) =>

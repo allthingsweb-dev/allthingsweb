@@ -266,7 +266,7 @@ const make = Effect.gen(function* () {
           ),
         );
       const url = xPostUrl(ourXAccount.handle, created.id);
-      yield* sentPosts
+      const record = yield* sentPosts
         .markSent(id, created.id, url)
         .pipe(
           Effect.catchTag("DataSourceError", () =>
@@ -275,6 +275,11 @@ const make = Effect.gen(function* () {
             ),
           ),
         );
+      if (Option.isNone(record)) {
+        return yield* refuse(
+          `Posted as ${url}, but its claim was let go of while it went out, so nothing records it: don't approve it again.`,
+        );
+      }
       return { ...prepared, id: created.id, url };
     });
 
@@ -315,11 +320,17 @@ const make = Effect.gen(function* () {
           `Post ${postId} doesn't say what was approved (${record.token}), so it isn't this post: nothing was recorded.`,
         );
       }
-      return yield* sentPosts.markSent(
+      const sent = yield* sentPosts.markSent(
         record.id,
         found.value.id,
         xPostUrl(ourXAccount.handle, found.value.id),
       );
+      if (Option.isNone(sent)) {
+        return yield* refuse(
+          "The claim was let go of while this ran: nothing was recorded. Read it again with --dry-run.",
+        );
+      }
+      return sent.value;
     });
 
   const release = (slug: string, moment: Moment) =>
