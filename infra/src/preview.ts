@@ -13,8 +13,10 @@ import { Database, SITE_ORIGIN } from "./web.ts";
  * Cloudflare Access twice over:
  *
  * - **At the edge.** `PreviewAccess` is an Access application whose one
- *   policy lets in `PREVIEW_VIEWERS`, signing in with a one-time code to
- *   their email (Access's own login, no identity provider to run). The
+ *   policy lets in `PREVIEW_VIEWERS`, signing in with a one-time PIN sent
+ *   to their email (`OneTimePin`, Access's own login: no identity
+ *   provider to run, and no Cloudflare account needed), the only login it
+ *   allows, so the login page goes straight to it. The
  *   Worker enrolls itself in it (`access`), which covers its workers.dev
  *   URL, every domain it may get and its version previews.
  * - **In the Worker.** Access signs each request it lets through; the
@@ -58,17 +60,28 @@ export const AccessTeam = Cloudflare.Access.Organization("AccessTeam", {
   name: "allthingsdev",
 });
 
-export const PreviewAccess = Cloudflare.Access.Application("PreviewAccess", {
-  type: "self_hosted",
-  name: "allthings draft preview",
-  sessionDuration: "24h",
-  policies: [
-    {
-      name: "The organizers",
-      decision: "allow",
-      include: PREVIEW_VIEWERS.map((email) => ({ email })),
-    },
-  ],
+/** Access's one-time PIN login: a code sent to the email signing in. */
+export const OneTimePin = Cloudflare.Access.IdentityProvider("OneTimePin", {
+  type: "onetimepin",
+});
+
+/** The preview's Access application, allowing only the one-time PIN login. */
+export const makePreviewAccess = Effect.gen(function* () {
+  const pin = yield* OneTimePin;
+  return yield* Cloudflare.Access.Application("PreviewAccess", {
+    type: "self_hosted",
+    name: "allthings draft preview",
+    sessionDuration: "24h",
+    allowedIdps: [pin.identityProviderId],
+    autoRedirectToIdentity: true,
+    policies: [
+      {
+        name: "The organizers",
+        decision: "allow",
+        include: PREVIEW_VIEWERS.map((email) => ({ email })),
+      },
+    ],
+  });
 });
 
 /**
@@ -78,7 +91,7 @@ export const PreviewAccess = Cloudflare.Access.Application("PreviewAccess", {
 export const makePreview = (publicUrl: Output.Output<string> | string) =>
   Effect.gen(function* () {
     const team = yield* AccessTeam;
-    const access = yield* PreviewAccess;
+    const access = yield* makePreviewAccess;
     return yield* Cloudflare.Worker("Preview", {
       main: "../web/src/preview/worker.ts",
       compatibility,
