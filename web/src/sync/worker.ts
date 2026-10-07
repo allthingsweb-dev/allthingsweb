@@ -84,7 +84,7 @@ export const syncLayer = (
     ShortSlugs.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
-    FollowerSource.fxtwitter,
+    FollowerSource.fromConfig,
     CandidateSearches.layer,
     PostSources.layer,
     // As site_sync: found posts go in only as pending.

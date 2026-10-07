@@ -81,7 +81,9 @@ list keeps its own order (`byFollowers` in `src/followers.ts`; /people's
 speakers: whoever took part latest first).
 
 Each profile keeps a snapshot, `x_followers` with `x_followers_at`, read from
-public data: the FixTweet API now, X's own API once the app has keys. The sync
+public data: X's own API with the app's bearer token (`X_BEARER_TOKEN`), by
+user id, up to 100 accounts a request, $0.010 each on pay-per-use, or the
+keyless FixTweet API without it. The sync
 Worker refreshes the missing and oldest snapshots on its schedule (off until
 the cutover, like the rest of it), a bounded number per run, reading for
 at most its window (30 s); a handle X doesn't know, or a failed read,
