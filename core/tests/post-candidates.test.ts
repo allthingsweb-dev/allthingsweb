@@ -438,8 +438,9 @@ describe("what platforms answer", () => {
     );
     // The 429, its retry, then the second query.
     expect(sentAt).toHaveLength(3);
-    for (const [i, at] of sentAt.entries()) {
-      if (i > 0) expect(at - (sentAt[i - 1] ?? 0)).toBeGreaterThanOrEqual(950);
+    for (const [i, sent] of sentAt.entries()) {
+      if (i > 0)
+        expect(sent - (sentAt[i - 1] ?? 0)).toBeGreaterThanOrEqual(950);
     }
     expect(found.posts.map((p) => p.url)).toEqual([
       "https://x.com/ada/status/31",
