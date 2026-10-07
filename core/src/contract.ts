@@ -71,7 +71,7 @@ export const EventSummary = Schema.Struct({
   }),
   name: Schema.String,
   tagline: Schema.String,
-  url: HttpUrl.annotate({ description: "Event page on allthingsweb.dev." }),
+  url: HttpUrl.annotate({ description: "Event page on allthings.dev." }),
   status: EventStatus,
   startsAt: IsoInstant.annotate({
     description: "Start time as an ISO 8601 UTC instant.",

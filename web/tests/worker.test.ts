@@ -337,10 +337,25 @@ describe("MCP", () => {
       /all things web/i,
     );
     // Output schemas come from core's Effect contract: the same JSON Schema,
-    // as core's contract test defines sameness.
-    expect(
+    // as core's contract test defines sameness, with its one deliberate
+    // difference: an event's page is on allthings.dev, where the app names
+    // allthingsweb.dev.
+    const servedSchemas = JSON.stringify(
       served.map((tool) => normalizeJsonSchema(tool.outputSchema)),
-    ).toEqual(today.map((tool) => normalizeJsonSchema(tool.outputSchema)));
+    );
+    const appSchemas = JSON.stringify(
+      today.map((tool) => normalizeJsonSchema(tool.outputSchema)),
+    );
+    expect(appSchemas).toContain('"Event page on allthingsweb.dev."');
+    expect(JSON.parse(servedSchemas)).toEqual(
+      JSON.parse(
+        appSchemas.replaceAll(
+          '"Event page on allthingsweb.dev."',
+          '"Event page on allthings.dev."',
+        ),
+      ),
+    );
+    expect(servedSchemas).not.toContain("allthingsweb.dev");
   });
 
   const calls: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
