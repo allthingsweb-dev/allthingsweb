@@ -15,7 +15,7 @@ import { Promo } from "../src/promo/promo.ts";
  *   bun run promo <slug>                          every draft
  *   bun run promo <slug> --channel x --channel discord
  *   bun run promo <slug> --json                   with each draft's length
- *   bun run promo <draft slug> --draft            a draft evening's, as the studio reads it
+ *   bun run promo <draft slug> --draft            drafts for a draft evening, as the studio reads it
  *
  * DATABASE_URL comes from the environment only; .env files are not read:
  *
