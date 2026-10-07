@@ -37,9 +37,11 @@ allthings has its own Cloudflare account (`af627f300cd00c4dca56aacf05bea050`), s
 Each stage's Hyperdrive connects to production's Neon branch as `site_reader`, which may only `SELECT` the tables the public site reads and starts every transaction read-only, so nothing outside prod can write production's data or read anything else. The stack refuses a `NEON_READER_URL` for any other role, including Neon's own `reader`, which belongs to `neon_superuser` and can write. [`scripts/site-reader.ts`](scripts/site-reader.ts) creates the role or rotates its password, and stores the connection string in the repository secret and 1Password. Previews only read, so Hyperdrive caches query results for 60 seconds and may serve them up to 15 seconds stale while it refreshes them; each stage holds at most about 5 connections to Neon. CI deploys with the `NEON_READER_URL` repository secret, a direct (not pooled) connection string. On your machine, pass the same string without printing it:
 
 ```sh
-NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential") \
+NEON_READER_URL=$(op read "op://allthings/allthings site_reader/credential") \
   bun run deploy --profile allthings
 ```
+
+Every `op://` reference in this repository reads the `allthings` 1Password vault. Your own `op` session (the 1Password desktop app integration) can read it, and agents read it with `OP_SERVICE_ACCOUNT_TOKEN`.
 
 `alchemy destroy` needs no `NEON_READER_URL`.
 
@@ -154,19 +156,19 @@ On Workers Paid, a run hourly or less often gets up to 15 minutes of CPU and 10,
 **Deploying prod.** It now also needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN` (follower counts and the post finder's X search), passed without printing them:
 
 ```sh
-NEON_SYNC_URL=$(op read "op://Private/allthings site_sync/credential") \
-LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+NEON_SYNC_URL=$(op read "op://allthings/allthings site_sync/credential") \
+LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
 X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token") \
   bun run deploy --stage prod
 ```
 
-From the allthings account (`--profile allthings`), prod also runs the Web Worker, so add `NEON_READER_URL=$(op read "op://Private/allthings site_reader/credential")`.
+From the allthings account (`--profile allthings`), prod also runs the Web Worker, so add `NEON_READER_URL=$(op read "op://allthings/allthings site_reader/credential")`.
 
 **The dry run, from a maintainer's machine.** [`web/scripts/sync-dry-run.ts`](../web/scripts/sync-dry-run.ts) runs the same program in `dry-run` mode against the database at `DATABASE_URL`, and writes nothing. The event sync is rehearsed in a transaction that rolls back, and the image phases list what they'd fetch. Run it as `site_sync`, which also proves the role's grants:
 
 ```sh
-cd web && DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") \
-  LUMA_API_KEY=$(op read "op://Private/allthings Luma API key/credential") \
+cd web && DATABASE_URL=$(op read "op://allthings/allthings site_sync/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
   bun scripts/sync-dry-run.ts
 ```
 

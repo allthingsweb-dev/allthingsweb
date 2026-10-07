@@ -20,6 +20,7 @@ import {
   siteRoles,
 } from "../src/planning/privacy.ts";
 import { seededDatabase, sqlLayer } from "./support/database.ts";
+import { repositoryFiles, root } from "./support/repository.ts";
 
 /**
  * Planning's rows (migrations/0012_planning.ts) are private, and these tests
@@ -186,22 +187,6 @@ describe("planning is private", () => {
     ]);
   });
 });
-
-/** The repository's root. */
-const root = new URL("../../", import.meta.url).pathname;
-
-/** Every file in the repository, tracked or new, that git doesn't ignore. */
-const repositoryFiles = (): ReadonlyArray<string> => {
-  const listed = Bun.spawnSync(
-    ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-    { cwd: root },
-  );
-  if (listed.exitCode !== 0) throw new Error(listed.stderr.toString());
-  return listed.stdout
-    .toString()
-    .split("\n")
-    .filter((path) => path !== "");
-};
 
 /**
  * Files that hold data rather than code: anything in a backfill, fixtures

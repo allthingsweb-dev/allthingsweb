@@ -18,7 +18,9 @@
  *     --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
  *     bun infra/scripts/site-reader.ts
  *
- * VAULT names the 1Password vault (default: Private).
+ * VAULT names the 1Password vault (default: allthings, the one vault this
+ * repository reads its credentials from, and the only one agents' service
+ * account can read).
  */
 import {
   connectionStringFor,
@@ -81,7 +83,7 @@ const item = "allthings site_reader";
 async function main(): Promise<void> {
   const owner = process.env["OWNER_URL"];
   if (!owner) throw new Error("OWNER_URL is required (see this file's header)");
-  const vault = process.env["VAULT"] ?? "Private";
+  const vault = process.env["VAULT"] ?? "allthings";
 
   const password = newPassword();
   const sql = new Bun.SQL(owner);

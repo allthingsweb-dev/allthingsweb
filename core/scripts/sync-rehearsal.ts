@@ -19,7 +19,7 @@ import { LumaSync, type SyncRehearsal } from "../src/luma/sync.ts";
  * the role the sync writes as, so the rehearsal also proves its grants, and
  * pass it without printing it:
  *
- *   DATABASE_URL=$(op read "op://Private/allthings site_sync/credential") \
+ *   DATABASE_URL=$(op read "op://allthings/allthings site_sync/credential") \
  *     bun run sync:rehearse
  */
 

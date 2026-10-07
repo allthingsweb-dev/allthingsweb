@@ -18,7 +18,7 @@ import { Promo } from "../src/promo/promo.ts";
  *
  * DATABASE_URL comes from the environment only; .env files are not read:
  *
- *   DATABASE_URL=$(op read "op://Private/allthings site_reader/credential") \
+ *   DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") \
  *     bun run promo 2026-06-26-all-things-effect-w-michael-arnaldi
  */
 
