@@ -63,10 +63,7 @@ export default Alchemy.Stack(
         webUrl,
         previewUrl,
         mediaBucket: MEDIA_BUCKET,
-        mediaDomain:
-          zone === undefined
-            ? `not attached until ${MEDIA_ZONE} is added to this account`
-            : `attached; serves once ${MEDIA_ZONE} is active here`,
+        mediaDomain: `not attached until ${MEDIA_ZONE} is active in this account`,
       };
     }
 

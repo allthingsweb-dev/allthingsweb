@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   ALLTHINGS_ACCOUNT,
+  mediaDomains,
   productionRole,
   siteServing,
 } from "../src/media.ts";
@@ -47,5 +48,18 @@ describe("siteServing", () => {
   test("never runs the site in another account, where the redirect still answers allthings.dev", () => {
     expect(siteServing(personal, { id: "z", active: true })).toBe("none");
     expect(siteServing(personal, undefined)).toBe("none");
+  });
+});
+
+describe("mediaDomains", () => {
+  test("attaches media.allthings.dev only once the zone is active", () => {
+    expect(mediaDomains({ id: "z", active: true })).toEqual([
+      { name: "media.allthings.dev", zone: "z", minTLS: "1.2" },
+    ]);
+  });
+
+  test("attaches nothing to a pending zone, which R2 refuses, or without one", () => {
+    expect(mediaDomains({ id: "z", active: false })).toEqual([]);
+    expect(mediaDomains(undefined)).toEqual([]);
   });
 });
