@@ -483,7 +483,7 @@ describe("the ledger", () => {
     );
     expect(html).not.toContain("your hosts");
     expect(html).toContain("<span>TypeScript AI Demo Day</span>");
-    expect(html).not.toContain('allthings<span class="slash">/</span><wbr/>');
+    expect(html).not.toContain('allthings<span class="slash">/</span><br/>');
     expect(html).toContain(
       '"organizer":{"@type":"Organization","name":"Mastra","url":"https://mastra.ai/"}',
     );

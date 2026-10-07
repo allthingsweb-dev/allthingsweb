@@ -105,7 +105,9 @@ export function eventTitle(event: Pick<EventPage, "topic" | "name">): Title {
 
 /**
  * How large the lockup is set: a short topic at the full 112px, a longer
- * one a step down, a name that isn't a topic two.
+ * one a step down, a name that isn't a topic two. Each size is also a share
+ * of the page's width, so the lockup fits it at every width
+ * (tests/lockup-fit.test.ts).
  */
 export function eventLockupSize(
   event: Pick<EventPage, "topic">,
@@ -114,6 +116,11 @@ export function eventLockupSize(
   return event.topic.length <= "allthings/".length ? "l" : "m";
 }
 
+/**
+ * The page's name: "allthings/" over the topic, as home's hero and the
+ * link-preview card set it, so the line that fills the page is always the
+ * one the sizes are made for; or the name as written.
+ */
 function Lockup({ event }: { readonly event: EventPage }) {
   const cursor = event.status === "past" ? "" : <Cursor />;
   const size = eventLockupSize(event);
@@ -128,7 +135,7 @@ function Lockup({ event }: { readonly event: EventPage }) {
   return (
     <h1 class={`event-name event-name-${size}`}>
       allthings<span class="slash">/</span>
-      <wbr />
+      <br />
       <span safe>{event.topic}</span>
       {cursor}
     </h1>
