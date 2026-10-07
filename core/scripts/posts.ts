@@ -12,6 +12,7 @@ import {
 import {
   pendingJson,
   pendingPosts,
+  movePost,
   setPostStatus,
 } from "../src/posts/review.ts";
 import { PostSources } from "../src/posts/sources.ts";
@@ -302,6 +303,50 @@ const statusCommand = (name: "approve" | "hide") =>
     ),
   );
 
+const move = Command.make(
+  "move",
+  {
+    url: Argument.String("url").pipe(
+      Argument.withDescription("The post's URL."),
+    ),
+    slug: Argument.String("slug").pipe(
+      Argument.withDescription("The evening it is about."),
+    ),
+    json: jsonFlag,
+  },
+  ({ url, slug, json }) =>
+    Effect.gen(function* () {
+      const moved = yield* movePost(url, slug);
+      yield* Console.log(
+        json
+          ? JSON.stringify(moved, null, 2)
+          : moved._tag === "Moved"
+            ? `${moved.url}: ${moved.from} → ${moved.to} (still ${moved.status})`
+            : moved._tag === "Unchanged"
+              ? `${moved.url}: already on ${moved.eventSlug}`
+              : moved._tag === "NoSuchEvening"
+                ? `${moved.url}: no evening has the slug ${moved.slug}`
+                : moved._tag === "Ambiguous"
+                  ? `${moved.url}: several stored posts match, name one by its URL: ${moved.matches.join(", ")}`
+                  : `${moved.url}: no stored post`,
+      );
+      // As JSON, every outcome is an answer (the MCP tool shows it); in
+      // text, one that moved nothing it should have is a failure.
+      if (
+        !json &&
+        (moved._tag === "NotFound" ||
+          moved._tag === "NoSuchEvening" ||
+          moved._tag === "Ambiguous")
+      ) {
+        yield* Effect.fail(new Error(`Did not move ${url}: ${moved._tag}`));
+      }
+    }).pipe(Effect.provide(Database.layer)),
+).pipe(
+  Command.withDescription(
+    "Move a post to the evening it is about, keeping its status.",
+  ),
+);
+
 const posts = Command.make("posts").pipe(
   Command.withDescription("Posts about events."),
   Command.withSubcommands([
@@ -311,6 +356,7 @@ const posts = Command.make("posts").pipe(
     pending,
     statusCommand("approve"),
     statusCommand("hide"),
+    move,
   ]),
 );
 

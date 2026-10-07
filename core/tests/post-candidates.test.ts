@@ -1,6 +1,14 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { ConfigProvider, DateTime, Effect, Exit, Fiber, Layer } from "effect";
+import {
+  ConfigProvider,
+  DateTime,
+  Duration,
+  Effect,
+  Exit,
+  Fiber,
+  Layer,
+} from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { HttpClient, HttpClientResponse, UrlParams } from "effect/http";
 import {
@@ -9,6 +17,7 @@ import {
   CandidateSearchError,
   type CandidateSearchShape,
   type EventSignals,
+  assignEvening,
   findCandidates,
   type FoundPost,
   fromBlueskyHit,
@@ -18,7 +27,7 @@ import {
   toSignals,
   xQueries,
 } from "../src/posts/candidates.ts";
-import { pendingPosts, setPostStatus } from "../src/posts/review.ts";
+import { movePost, pendingPosts, setPostStatus } from "../src/posts/review.ts";
 import { PostSources } from "../src/posts/sources.ts";
 import { EventPostWriter } from "../src/posts/store.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
@@ -200,6 +209,117 @@ describe("scoreCandidate", () => {
         post({ platform: "bluesky", authorHandle: "ada.bsky.social" }),
       ).score,
     ).toBe(2);
+  });
+});
+
+describe("assignEvening", () => {
+  /** An evening of ours, its name, start and host as the signals have them. */
+  const evening = (
+    slug: string,
+    name: string,
+    startsAt: string,
+    hosts: ReadonlyArray<string> = [],
+  ): EventSignals => ({
+    slug,
+    name,
+    topic: null,
+    startsAt: at(startsAt),
+    endsAt: DateTime.addDuration(at(startsAt), Duration.hours(3)),
+    links: [`https://allthings.dev/${slug}`],
+    hosts,
+    xHandles: [],
+    xUserIds: [],
+    xHandlesWithoutId: [],
+    xFrom: [],
+    blueskyHandles: [],
+  });
+
+  test("a post on another evening's night goes to that evening", () => {
+    // Goosewin's post, which the search for NextDev.fm Live found.
+    const vapi = evening(
+      "2025-05-28-vapi",
+      "All Things Web at Vapi",
+      "2025-05-29T01:00:00Z",
+      ["Vapi"],
+    );
+    const nextdev = evening(
+      "2025-06-02-nextdevfm-live",
+      "NextDev.fm Live",
+      "2025-06-03T01:00:00Z",
+    );
+    expect(
+      assignEvening(
+        post({
+          platform: "x",
+          text: "talking voice ai + mcp tonight at all things web w/ vapi in sf. so excited!",
+          postedAt: at("2025-05-28T20:56:00Z"),
+        }),
+        [nextdev, vapi],
+      )?.slug,
+    ).toBe("2025-05-28-vapi");
+  });
+
+  test("a post that names another evening's host and topic goes to that one", () => {
+    // Erik's shoutout, which the search for React Bay Area at Cisco Meraki found.
+    const meraki = evening(
+      "2024-09-24-meraki",
+      "React Bay Area at Cisco Meraki",
+      "2024-09-25T01:00:00Z",
+      ["Cisco Meraki"],
+    );
+    const hackathon = {
+      ...evening(
+        "2024-10-05-hackathon",
+        "Open Source Hackathon",
+        "2024-10-05T16:00:00Z",
+        ["Sentry"],
+      ),
+      topic: "hackathon",
+    };
+    expect(
+      assignEvening(
+        post({
+          platform: "x",
+          text: "Shoutout to the All Things Web crew for organizing this first open source hackathon. Big thanks to @getsentry for the space!",
+          postedAt: at("2024-09-30T14:34:00Z"),
+        }),
+        [meraki, hackathon],
+      )?.slug,
+    ).toBe("2024-10-05-hackathon");
+  });
+
+  test("the evening the post names wins over the one whose search found it", () => {
+    const found = evening(
+      "2026-03-01-a",
+      "All Things Web at Acme",
+      "2026-03-02T01:00:00Z",
+    );
+    const named = evening(
+      "2026-03-08-b",
+      "All Things Web at Globex",
+      "2026-03-09T01:00:00Z",
+    );
+    expect(
+      assignEvening(
+        post({
+          platform: "x",
+          text: "See you at All Things Web at Globex!",
+          postedAt: at("2026-03-05T12:00:00Z"),
+        }),
+        [found, named],
+      )?.slug,
+    ).toBe("2026-03-08-b");
+    // Outside every evening's window, it's about none of them.
+    expect(
+      assignEvening(
+        post({
+          platform: "x",
+          text: "hi",
+          postedAt: at("2027-01-01T00:00:00Z"),
+        }),
+        [found, named],
+      ),
+    ).toBeNull();
   });
 });
 
@@ -779,6 +899,43 @@ describe("findCandidates", () => {
     ]);
   });
 
+  test("a post found for one evening that names another is filed under that one", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    // The search for "Ends now" finds a post about the hack day, that day.
+    const aboutHackDay = post({
+      platform: "bluesky",
+      url: "https://bsky.app/profile/did:plc:abc/post/3hackday",
+      text: "Hack day was so much fun, thanks all",
+      links: ["https://allthings.dev/2026-10-03-hack-day"],
+      postedAt: at("2026-10-03T22:00:00Z"),
+    });
+    const [report] = await Effect.runPromise(
+      findCandidates({
+        scope: { _tag: "Slugs", slugs: ["2026-10-03-ends-now"] },
+        dryRun: false,
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            fakeSearches([aboutHackDay]),
+            noLuma,
+            EventPostWriter.layer.pipe(Layer.provideMerge(sqlLayer(db))),
+            fakeSources,
+            clockLayer,
+          ),
+        ),
+      ),
+    );
+    expect(report?.candidates.map((c) => c.outcome)).toEqual([
+      "for 2026-10-03-hack-day: added",
+    ]);
+    const { rows } = await db.query<{ slug: string }>(
+      `SELECT e.slug FROM event_posts p JOIN events e ON e.id = p.event_id WHERE p.url = $1`,
+      [aboutHackDay.url],
+    );
+    expect(rows).toEqual([{ slug: "2026-10-03-hack-day" }]);
+  });
+
   test("a dry run scores and adds nothing", async () => {
     const db = await seededDatabase();
     databases.push(db);
@@ -847,6 +1004,39 @@ describe("reviewing", () => {
       "SELECT status FROM event_posts WHERE url LIKE '%/post/3same'",
     );
     expect(rows.map((r) => r.status)).toEqual(["pending", "pending"]);
+  });
+
+  test("moves a post to the evening it is about, keeping its status", async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    const linkedin =
+      "https://www.linkedin.com/feed/update/urn:li:activity:7360000000000000000/";
+    const move = (url: string, slug: string) =>
+      Effect.runPromise(movePost(url, slug).pipe(Effect.provide(sqlLayer(db))));
+    expect(await move(linkedin, "2026-10-03-hack-day")).toEqual({
+      _tag: "Moved",
+      url: linkedin,
+      from: "2026-08-12-react-at-acme",
+      to: "2026-10-03-hack-day",
+      status: "pending",
+    });
+    expect(await move(linkedin, "2026-10-03-hack-day")).toMatchObject({
+      _tag: "Unchanged",
+    });
+    expect(await move(linkedin, "no-such-evening")).toMatchObject({
+      _tag: "NoSuchEvening",
+      slug: "no-such-evening",
+    });
+    expect(
+      await move("https://x.com/nobody/status/42", "2026-10-03-hack-day"),
+    ).toEqual({
+      _tag: "NotFound",
+      url: "https://x.com/nobody/status/42",
+    });
+    const pending = await Effect.runPromise(
+      pendingPosts("2026-10-03-hack-day").pipe(Effect.provide(sqlLayer(db))),
+    );
+    expect(pending.map((p) => p.url)).toEqual([linkedin]);
   });
 
   test("approve and hide, by URL; a hidden post stays hidden through later searches", async () => {

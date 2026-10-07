@@ -205,6 +205,45 @@ export const inWindow = (signals: EventSignals, postedAt: DateTime.Utc) =>
     maximum: DateTime.addDuration(signals.endsAt, windowAfter),
   });
 
+/**
+ * The evening a post is about, of `evenings`: whichever it scores best for
+ * among those whose window holds it, the nearest in time on a tie. A post
+ * the search for one evening found may name, link or have been posted on
+ * the night of another; it goes to that one. None when no window holds it.
+ */
+export function assignEvening<E extends EventSignals>(
+  post: Pick<
+    FoundPost,
+    | "platform"
+    | "authorHandle"
+    | "authorId"
+    | "text"
+    | "links"
+    | "mentions"
+    | "postedAt"
+  >,
+  evenings: ReadonlyArray<E>,
+): E | null {
+  const distance = (evening: E) =>
+    Math.abs(
+      DateTime.toEpochMillis(evening.startsAt) -
+        DateTime.toEpochMillis(post.postedAt),
+    );
+  let best: { evening: E; score: number } | null = null;
+  for (const evening of evenings) {
+    if (!inWindow(evening, post.postedAt)) continue;
+    const { score } = scoreCandidate(evening, post);
+    if (
+      best === null ||
+      score > best.score ||
+      (score === best.score && distance(evening) < distance(best.evening))
+    ) {
+      best = { evening, score };
+    }
+  }
+  return best?.evening ?? null;
+}
+
 /** A search platform could not be read; the evening's other searches go on. */
 export class CandidateSearchError extends Schema.TaggedError<CandidateSearchError>()(
   "CandidateSearchError",
@@ -815,7 +854,8 @@ export const findCandidates = (options: CandidateOptions) =>
             // take a slot from one that has finished.
             sql`e.end_date >= ${DateTime.toDateUtc(recentSince)}
               AND e.end_date < ${DateTime.toDateUtc(now)}`;
-    const rows = yield* sql`
+    const readRows = (where: typeof which) =>
+      sql`
       SELECT e.slug, e.name, e.topic, e.start_date AS "startDate",
         e.end_date AS "endDate", e.luma_event_id AS "lumaEventId",
         COALESCE((
@@ -836,11 +876,16 @@ export const findCandidates = (options: CandidateOptions) =>
         ), '[]'::json) AS people
       FROM events e
       WHERE e.is_draft = false AND e.start_date <= ${DateTime.toDateUtc(now)}
-        AND ${which}
+        AND ${where}
       ORDER BY e.start_date DESC, e.id`.pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(SignalsRow))),
-      orDataSourceError,
-    );
+        Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(SignalsRow))),
+        orDataSourceError,
+      );
+    const rows = yield* readRows(which);
+    // Every published evening, which a post found for another may be about.
+    const allRows = scope._tag === "Past" ? rows : yield* readRows(sql`TRUE`);
+    // Luma pages read this run, so later evenings' posts can be matched to them.
+    const lumaPages = new Map<string, string | null>();
     const chosen = rows;
     const events = chosen.slice(0, options.maxEvents ?? chosen.length);
 
@@ -880,6 +925,15 @@ export const findCandidates = (options: CandidateOptions) =>
           ? yield* lumaPage(row.lumaEventId)
           : null;
       const signals = toSignals(row, page);
+      lumaPages.set(row.slug, page);
+      // The evenings a post found here could be about: this one, as read,
+      // and every other, with its Luma page where this run read it.
+      const evenings = [
+        signals,
+        ...allRows
+          .filter((other) => other.slug !== row.slug)
+          .map((other) => toSignals(other, lumaPages.get(other.slug) ?? null)),
+      ];
       const searched: Record<string, number | string> = {};
       const found = new Map<string, FoundPost>();
       for (const search of searches) {
@@ -902,32 +956,37 @@ export const findCandidates = (options: CandidateOptions) =>
       const candidates: Array<CandidateReport["candidates"][number]> = [];
       for (const post of found.values()) {
         if (!inWindow(signals, post.postedAt)) continue;
-        const { score, reasons } = scoreCandidate(signals, post);
+        // Filed under the evening it's about, which may be another.
+        const about = assignEvening(post, evenings) ?? signals;
+        const { score, reasons } = scoreCandidate(about, post);
         if (score < candidateThreshold) continue;
+        const elsewhere =
+          about.slug === signals.slug ? "" : `for ${about.slug}: `;
         // Adding reads the post from its platform: one request.
         if (spend(1) === 0) {
           candidates.push({
             url: post.url,
             score,
             reasons,
-            outcome: "left for a later run",
+            outcome: `${elsewhere}left for a later run`,
           });
           continue;
         }
         const added = yield* Effect.result(
-          addPost(signals.slug, post.url, {
+          addPost(about.slug, post.url, {
             dryRun: options.dryRun,
             status: "pending",
           }),
         );
         const outcome =
-          added._tag === "Failure"
+          elsewhere +
+          (added._tag === "Failure"
             ? `failed: ${added.failure.message}`
             : added.success._tag === "Added"
               ? "added"
               : added.success._tag === "WouldAdd"
                 ? "would add"
-                : `already there (${added.success.status}, ${added.success.eventSlug})`;
+                : `already there (${added.success.status}, ${added.success.eventSlug})`);
         candidates.push({ url: post.url, score, reasons, outcome });
       }
       candidates.sort(
