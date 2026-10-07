@@ -925,21 +925,23 @@ export const planningNotesTable = planningSchema.table(
 );
 
 /**
- * Each evening's post we sent to a channel that can't be read back (a
- * Discord webhook), claimed before it is sent so it goes out once.
- * core/migrations/0021_sent_posts.ts is the same change.
+ * Each evening's post we sent to a Discord webhook or to X, claimed before
+ * it is sent so it goes out once. core/migrations/0021_sent_posts.ts and
+ * 0022_x_sent_posts.ts are the same changes.
  */
 export const planningSentPostsTable = planningSchema.table(
   "sent_posts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    channel: text("channel", { enum: ["discord"] }).notNull(),
+    channel: text("channel", { enum: ["discord", "x"] }).notNull(),
     eventId: uuid("event_id")
       .notNull()
       .references(() => eventsTable.id),
     moment: text("moment", { enum: ["announce", "dayOf", "recap"] }).notNull(),
     /** The approval token of the exact text sent. */
     token: text("token").notNull(),
+    /** The exact text approved, so a post found later can be checked against it. */
+    body: text("body"),
     status: text("status", { enum: ["sending", "unanswered", "sent"] })
       .notNull()
       .default("sending"),
@@ -956,7 +958,7 @@ export const planningSentPostsTable = planningSchema.table(
       table.eventId,
       table.moment,
     ),
-    check("sent_posts_channel_check", sql`"channel" IN ('discord')`),
+    check("sent_posts_channel_check", sql`"channel" IN ('discord', 'x')`),
     check(
       "sent_posts_moment_check",
       sql`"moment" IN ('announce', 'dayOf', 'recap')`,

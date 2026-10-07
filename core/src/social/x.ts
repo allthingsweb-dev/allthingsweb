@@ -11,12 +11,12 @@ import { Headers, HttpClient, HttpClientRequest } from "effect/http";
 
 /**
  * X's API v2, as docs.x.com documents it: what the event studio needs to
- * post an evening's announcement as our account, and to check it hasn't
- * already.
+ * post an evening's announcement as our account. Which posts went out is
+ * kept in planning.sent_posts (src/social/sent-posts.ts), not read here.
  *
- * - `GET /2/users/:id/tweets` with the app's bearer token (X_BEARER_TOKEN):
- *   the account's latest posts. It needs no sign-in, and each post read is
- *   billed, so it reads the last ten.
+ * - `GET /2/tweets/:id` with the app's bearer token (X_BEARER_TOKEN): one
+ *   post and its author, so that a post found on x.com after a create went
+ *   unanswered can be recorded as the one sent. Each read is billed.
  * - `POST /2/oauth2/token` with `grant_type=refresh_token`, as the app
  *   (X_CLIENT_ID and X_CLIENT_SECRET, by HTTP Basic): an access token for
  *   two hours, and a new refresh token. The one used is spent, so the
@@ -24,26 +24,33 @@ import { Headers, HttpClient, HttpClientRequest } from "effect/http";
  * - `GET /2/users/me` and `POST /2/tweets` with that access token: who it
  *   signs in as, and one post.
  *
- * A post is sent once: a create that went unanswered (no answer in 30
- * seconds counts as none) may have happened, so the caller reads the
- * account's posts before trying again.
+ * A request is sent once. An answer that says X didn't do it (a 4xx) is
+ * `refused`; no answer (none in 30 seconds counts as none), a 5xx, or a
+ * 2xx we can't read is `unanswered`, for X may have.
  */
 
 export const xApi = "https://api.x.com";
 
 export class XUnavailable extends Schema.TaggedError<XUnavailable>()(
   "XUnavailable",
-  { reason: Schema.String },
+  {
+    reason: Schema.String,
+    /** `refused`: X answered that it didn't; `unanswered`: it may have. */
+    outcome: Schema.Literals(["refused", "unanswered"]),
+    /** The HTTP status X answered with, when it answered. */
+    status: Schema.optionalKey(Schema.Number),
+  },
 ) {
   override get message(): string {
     return this.reason;
   }
 }
 
-/** A post of ours, as X lists it. */
+/** A post, as X reads it back: links shortened to t.co. */
 export interface XPost {
   readonly id: string;
   readonly text: string;
+  readonly authorId: string;
 }
 
 /** What a refresh gives: both are secrets, and the refresh token is new. */
@@ -52,9 +59,14 @@ export interface XTokens {
   readonly refresh: Redacted.Redacted;
 }
 
-const Timeline = Schema.Struct({
+/** X answers a post it can't find with 200 and no `data`. */
+const Lookup = Schema.Struct({
   data: Schema.optionalKey(
-    Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.String })),
+    Schema.Struct({
+      id: Schema.String,
+      text: Schema.String,
+      author_id: Schema.String,
+    }),
   ),
 });
 
@@ -72,10 +84,10 @@ const Created = Schema.Struct({
 });
 
 export interface XShape {
-  /** The account's latest posts, newest first, replies and reposts left out. */
-  readonly recentPosts: (
-    userId: string,
-  ) => Effect.Effect<ReadonlyArray<XPost>, XUnavailable>;
+  /** One post by id, with the app's token: None when X has no such post. */
+  readonly lookup: (
+    id: string,
+  ) => Effect.Effect<Option.Option<XPost>, XUnavailable>;
   /** Spends `refreshToken` for an access token and the next refresh token. */
   readonly refresh: (
     refreshToken: Redacted.Redacted,
@@ -105,7 +117,9 @@ const make = Effect.gen(function* () {
   );
   const redactedNames = yield* Headers.CurrentRedactedNames;
 
-  const fail = (reason: string) => Effect.fail(new XUnavailable({ reason }));
+  /** A failure before anything was sent: nothing happened. */
+  const fail = (reason: string) =>
+    Effect.fail(new XUnavailable({ reason, outcome: "refused" }));
 
   /** One request, sent once; its body, or why it failed. */
   const send = (
@@ -118,11 +132,18 @@ const make = Effect.gen(function* () {
         return yield* response.text;
       }
       return yield* new XUnavailable({
-        reason: `X refused ${what}: ${response.status}`,
+        reason: `X ${response.status >= 500 ? "failed" : "refused"} ${what}: ${response.status}`,
+        outcome: response.status >= 500 ? "unanswered" : "refused",
+        status: response.status,
       });
     }).pipe(
       Effect.catchTag("HttpClientError", () =>
-        Effect.fail(new XUnavailable({ reason: `X didn't answer ${what}` })),
+        Effect.fail(
+          new XUnavailable({
+            reason: `X didn't answer ${what}`,
+            outcome: "unanswered",
+          }),
+        ),
       ),
       Effect.timeoutOrElse({
         duration: "30 seconds",
@@ -130,6 +151,7 @@ const make = Effect.gen(function* () {
           Effect.fail(
             new XUnavailable({
               reason: `X didn't answer ${what} in 30 seconds`,
+              outcome: "unanswered",
             }),
           ),
       }),
@@ -147,31 +169,38 @@ const make = Effect.gen(function* () {
           () =>
             new XUnavailable({
               reason: `X's answer to ${what} is not as documented`,
+              outcome: "unanswered",
             }),
         ),
       ) as Effect.Effect<S["Type"], XUnavailable>;
 
-  const recentPosts = (userId: string) =>
+  const lookup = (id: string) =>
     Effect.gen(function* () {
       if (Option.isNone(bearer)) {
-        return yield* fail(
-          "X_BEARER_TOKEN is not set: our posts on X can't be read.",
-        );
+        return yield* fail("X_BEARER_TOKEN is not set: no post can be read.");
       }
+      if (!/^\d{1,20}$/.test(id)) return Option.none<XPost>();
       const body = yield* send(
-        HttpClientRequest.get(
-          `${xApi}/2/users/${encodeURIComponent(userId)}/tweets`,
-        ).pipe(
+        HttpClientRequest.get(`${xApi}/2/tweets/${id}`).pipe(
           HttpClientRequest.bearerToken(Redacted.value(bearer.value)),
-          HttpClientRequest.setUrlParams({
-            max_results: "10",
-            exclude: "replies,retweets",
-          }),
+          HttpClientRequest.setUrlParams({ "tweet.fields": "author_id" }),
         ),
-        "the account's posts",
+        "the post",
+      ).pipe(
+        Effect.map(Option.some),
+        Effect.catchTag("XUnavailable", (error) =>
+          error.status === 404 ? Effect.succeedNone : Effect.fail(error),
+        ),
       );
-      const { data } = yield* decode(Timeline, "the account's posts")(body);
-      return data ?? [];
+      if (Option.isNone(body)) return Option.none<XPost>();
+      const { data } = yield* decode(Lookup, "the post")(body.value);
+      return data === undefined
+        ? Option.none<XPost>()
+        : Option.some({
+            id: data.id,
+            text: data.text,
+            authorId: data.author_id,
+          });
     });
 
   const refresh = (refreshToken: Redacted.Redacted) =>
@@ -224,7 +253,7 @@ const make = Effect.gen(function* () {
       Effect.map(({ data }) => ({ id: data.id })),
     );
 
-  return X.of({ recentPosts, refresh, me, post });
+  return X.of({ lookup, refresh, me, post });
 });
 
 export class X extends Context.Service<X, XShape>()("allthings/X") {

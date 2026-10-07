@@ -802,22 +802,34 @@ DATABASE_URL=… bun run social discord <slug> --moment dayOf --release         
 `src/social/announce-x.ts` posts an evening's X draft as @allthingswebdev,
 exactly as an organizer approved it, through X's API v2 (`src/social/x.ts`).
 
-- `--dry-run` reads only, with the app's bearer token (`X_BEARER_TOKEN`).
-  It prints the post, says whether our account already posted that text,
-  and prints the approval token (the SHA-256 of the account, evening,
-  moment and text).
-  - The check reads our last ten posts. X bills each post read.
-  - X shortens links to t.co and escapes `&`, so links compare as one and
-    entities are read back.
-  - It doesn't sign in.
+What went out is recorded in `planning.sent_posts`, as for Discord (see
+"Sending to the Discord"), with the exact text approved
+(`migrations/0022_x_sent_posts.ts`). Nothing reads our posts on X to find
+out.
+
+- `--dry-run` reads only, and nothing from X. It prints the post, the
+  moment's record (not posted yet, sent, or not settled), and the approval
+  token (the SHA-256 of the account, evening, moment and text). It doesn't
+  sign in.
 - `--approve <token>` makes the post again and goes on only if it hashes
-  the same and our account hasn't posted that text. Then, in order:
+  the same and nothing was posted or started for that moment. It claims
+  the moment, then, in order:
   1. Signs in with the stored OAuth 2.0 refresh token, as the app
      (`X_CLIENT_ID`, `X_CLIENT_SECRET`).
   2. Stores the new refresh token X hands back, before anything else.
      X spends a refresh token when it is used.
   3. Checks that the sign-in is our account (`/2/users/me`).
-  4. Posts once. A post X didn't take is never retried.
+  4. Renews the claim and posts once.
+
+  Anything that stops it before step 4 drops the claim, and so does X
+  refusing the post (a 4xx; X refuses a duplicate text with 403). No
+  answer (30 seconds at most), or a 5xx, marks it `unanswered`. Nothing is
+  posted again until an organizer has looked at our profile:
+  - `--sent <post id>` when the post is there. X reads it back with the
+    app's bearer token (one billed read), and it must be ours and say the
+    text approved. X shortens links to t.co and escapes `&`, so links
+    compare as one and entities are read back.
+  - `--release` when it isn't, so it can be approved again.
 
 The sign-in lives in the 1Password item "allthings X app", field
 `oauth2 refresh token` (`src/social/x-sign-in.ts`, through `op` with
@@ -828,13 +840,16 @@ this user can read, removed right after, never on its command line.
 allthings allthingswebdev` made. While xurl's access token is unexpired, it
 first checks that the token is our account. The first post spends xurl's
 copy; that same xurl command signs xurl in again. The client ID, client
-secret and bearer token are in the same item. Nothing in the tests reaches
-X or 1Password.
+secret and bearer token are in the same item. `DATABASE_URL` is the
+database owner, since the record is in the planning schema. Nothing in the
+tests reaches X or 1Password.
 
 ```sh
-DATABASE_URL=… X_BEARER_TOKEN=… bun run social x <slug> --moment announce --dry-run     # the post, and its token
-OP_SERVICE_ACCOUNT_TOKEN=… DATABASE_URL=… X_BEARER_TOKEN=… X_CLIENT_ID=… X_CLIENT_SECRET=… \
+DATABASE_URL=… bun run social x <slug> --moment announce --dry-run                       # the post, and its token
+OP_SERVICE_ACCOUNT_TOKEN=… DATABASE_URL=… X_CLIENT_ID=… X_CLIENT_SECRET=… \
   bun run social x <slug> --moment announce --approve <token>                           # exactly that, once
+DATABASE_URL=… X_BEARER_TOKEN=… bun run social x <slug> --moment announce --sent <post id>  # record the post an unanswered post left
+DATABASE_URL=… bun run social x <slug> --moment announce --release                       # let go of an unanswered post that left none
 OP_SERVICE_ACCOUNT_TOKEN=… bun run social x-sign-in --from-xurl                          # keep xurl's sign-in as ours
 ```
 

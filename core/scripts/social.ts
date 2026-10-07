@@ -37,16 +37,18 @@ import { fromXurl, signInItem, XSignIn } from "../src/social/x-sign-in.ts";
  *   bun run social discord <slug> --moment dayOf --release       let go of an unanswered send that left none
  *   bun run social x <slug> --moment announce --dry-run          the post, and its approval token
  *   bun run social x <slug> --moment announce --approve <token>  post exactly that, once
+ *   bun run social x <slug> --moment announce --sent <id>         record the post an unanswered post left
+ *   bun run social x <slug> --moment announce --release           let go of an unanswered post that left none
  *   bun run social x-sign-in --from-xurl                          keep xurl's sign-in as ours
  *
  * --dry-run reads only: for Bluesky, the draft, the handles it mentions,
  * and our recent posts; for Discord, the draft, the webhook, and the
- * record of what was sent (planning.sent_posts); for X, the draft and our
- * last ten posts, with the app's bearer token. DATABASE_URL,
+ * record of what was sent (planning.sent_posts); for X, the draft and the
+ * same record, and nothing from X. DATABASE_URL,
  * BLUESKY_HANDLE, BLUESKY_APP_PASSWORD, DISCORD_WEBHOOK_URL,
  * X_BEARER_TOKEN, X_CLIENT_ID and X_CLIENT_SECRET come from the
- * environment only; .env files are not read. No dry run signs in;
- * Discord's record needs the database owner. X's sign-in is kept in
+ * environment only; .env files are not read. No dry run signs in; the
+ * record (Discord's and X's) needs the database owner. X's sign-in is kept in
  * 1Password (through op, with OP_SERVICE_ACCOUNT_TOKEN), and each post
  * stores the new one.
  */
@@ -78,6 +80,7 @@ const xLayer = XAnnounce.layer.pipe(
       Promo.layer,
       X.layer.pipe(Layer.provide(FetchHttpClient.layer)),
       XSignIn.onePassword,
+      SentPosts.layer,
     ),
   ),
   Layer.provide(Database.layer),
@@ -89,9 +92,11 @@ const describeX = (prepared: PreparedXPost) =>
     "---",
     prepared.text,
     "---",
-    prepared.alreadyPosted === null
+    prepared.sent === null
       ? "not posted yet"
-      : `already posted: ${prepared.alreadyPosted}`,
+      : prepared.sent.status === "sent"
+        ? `already posted: ${prepared.sent.url ?? ""}`
+        : `a post started at ${prepared.sent.claimedAt} isn't settled (${prepared.sent.status})`,
     `approval token: ${prepared.token}`,
   ].join("\n");
 
@@ -263,14 +268,59 @@ const discordCommand = Command.make(
 
 const xCommand = Command.make(
   "x",
-  { slug, moment, dryRun, approve, json },
+  {
+    slug,
+    moment,
+    dryRun,
+    approve,
+    sent: Flag.String("sent").pipe(
+      Flag.withDescription(
+        "Record the post an unanswered post left on our profile, by its id.",
+      ),
+      Flag.optional,
+    ),
+    release: Flag.Boolean("release").pipe(
+      Flag.withDescription(
+        "Let go of an unanswered post, once you've seen it isn't on our profile.",
+      ),
+      Flag.withDefault(false),
+    ),
+    json,
+  },
   (options) =>
     Effect.gen(function* () {
-      if (options.dryRun === Option.isSome(options.approve)) {
+      const chosen = [
+        options.dryRun,
+        Option.isSome(options.approve),
+        Option.isSome(options.sent),
+        options.release,
+      ].filter(Boolean).length;
+      if (chosen !== 1) {
         return yield* new PostRefused({
           reason:
-            "Give --dry-run to read the post, or --approve <token> to post exactly that.",
+            "Give one of --dry-run to read the post, --approve <token> to post exactly that, or, for a post that went unanswered, --sent <post id> to record the post it left or --release to let go of it.",
         });
+      }
+      if (Option.isSome(options.sent)) {
+        const postId = options.sent.value;
+        const recorded = yield* XAnnounce.use((announce) =>
+          announce.recordSent(options.slug, options.moment, postId),
+        );
+        return yield* Console.log(
+          options.json
+            ? JSON.stringify(recorded, null, 2)
+            : `Recorded as posted: ${recorded.url ?? postId}. Nothing was posted.`,
+        );
+      }
+      if (options.release) {
+        const released = yield* XAnnounce.use((announce) =>
+          announce.release(options.slug, options.moment),
+        );
+        return yield* Console.log(
+          options.json
+            ? JSON.stringify(released, null, 2)
+            : `Let go of the post started at ${released.claimedAt}. Nothing was posted; read it again with --dry-run to approve it.`,
+        );
       }
       if (Option.isNone(options.approve)) {
         const prepared = yield* XAnnounce.use((announce) =>

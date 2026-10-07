@@ -414,9 +414,9 @@ describe("sending", () => {
         const real = yield* SentPosts;
         return SentPosts.of({
           ...real,
-          claim: (channel, at, moment, claimToken) =>
+          claim: (channel, at, moment, claimToken, body) =>
             real
-              .claim(channel, at, moment, claimToken)
+              .claim(channel, at, moment, claimToken, body)
               .pipe(
                 Effect.tap(() =>
                   Effect.promise(() =>
@@ -451,7 +451,7 @@ describe("sending", () => {
       );
     const claim = (await records(
       SentPosts.use((p) =>
-        p.claim("discord", slug, "dayOf", "0123456789abcdef"),
+        p.claim("discord", slug, "dayOf", "0123456789abcdef", "Hello"),
       ),
     )) as Option.Option<{ readonly id: string }>;
     const id = Option.getOrThrow(claim).id;
