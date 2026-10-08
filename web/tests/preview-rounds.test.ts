@@ -329,6 +329,39 @@ describe("without the answers key", () => {
   });
 });
 
+describe("a previous answers key that can't be one", () => {
+  test("turns rounds off, rather than leaving some unopened", async () => {
+    const broken = makePreviewHandler(
+      { ...env, COLLAB_ANSWERS_PREVIOUS_KEY: "truncated" },
+      { keys, now: () => now },
+    );
+    const html = await (
+      await broken(
+        new Request(`${origin}/${longSlugs.draft}`, {
+          headers: {
+            "cf-access-jwt-assertion": await token("simon@example.com"),
+          },
+        }),
+      )
+    ).text();
+    expect(html).not.toContain('name="round"');
+    const absent = makePreviewHandler(
+      { ...env, COLLAB_ANSWERS_PREVIOUS_KEY: "" },
+      { keys, now: () => now },
+    );
+    const fine = await (
+      await absent(
+        new Request(`${origin}/${longSlugs.draft}`, {
+          headers: {
+            "cf-access-jwt-assertion": await token("simon@example.com"),
+          },
+        }),
+      )
+    ).text();
+    expect(fine).toContain('name="round"');
+  });
+});
+
 describe("parseRoundForm", () => {
   const count = { questions: 1, backups: 1 };
   test("takes a draft with some written, and refuses one with nothing", () => {

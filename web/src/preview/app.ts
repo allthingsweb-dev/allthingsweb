@@ -509,7 +509,11 @@ export const writeLimits = { tenMinutes: 20, day: 200 } as const;
 /** Everything a collaborator writes, as the audit names it: what the limits count. */
 const writes = ["comment.add", "round.save"];
 
-/** The answers keys from the Worker's bindings: the one it seals with, then any it only opens with. */
+/**
+ * The answers keys from the Worker's bindings: the one it seals with, then
+ * any it only opens with. None when the current one is missing or either
+ * one set is malformed: then no round is shown or taken.
+ */
 export const answersKeysOf = (
   env: Readonly<Record<string, unknown>>,
 ): Option.Option<ReadonlyArray<string>> => {
@@ -523,12 +527,13 @@ export const answersKeysOf = (
   }
   const problem = keyProblem(previous, "COLLAB_ANSWERS_PREVIOUS_KEY");
   if (problem !== undefined) {
-    // Rounds sealed with it won't open, and the audit records each as
-    // refused: say why, without the value.
+    // Set but unusable is a mistake in the deploy: rounds are off until
+    // it's put right, rather than some of them quietly not opening. Said
+    // without the value.
     console.error(
-      `Draft preview: ${problem}; rounds sealed with it won't open.`,
+      `Draft preview: ${problem}; rounds are off until it is fixed.`,
     );
-    return Option.some([current]);
+    return Option.none();
   }
   return Option.some([current, previous]);
 };
