@@ -230,6 +230,9 @@ on the page, in its structured data and in the feed (`src/tagline.ts`).
 The four "<name> at All Things Web" taglines the app's first sync wrote
 became that placeholder in the migration.
 
+Drafts' descriptions come with the draft refresh (see "Drafts the feed
+doesn't carry").
+
 The hourly sync imports descriptions after the events and images, in a
 window of their own (web/src/sync/run.ts).
 To run it now, for every event, from `core/`:
@@ -299,8 +302,10 @@ says what became of it, and its row keeps the name and times it had: the
 draft stored as JS Trivia Night on 2026-04-29 is Markdown Trivia Night on
 2026-05-22 on Luma. `src/luma/drafts.ts` asks Luma's API about every
 draft we know, by its Luma id, and writes what Luma owns where it
-differs: the name, the times, and the venue unless the organizers set
-one. It only reads from Luma. Whether an evening is a draft stays the
+differs: the name, the times, the venue unless the organizers set one,
+and its description and summary, converted as the import of published
+evenings converts them (so the draft preview shows its About text). It
+only reads from Luma. Whether an evening is a draft stays the
 feed's: one Luma now shows publicly comes back in the feed and the sync
 publishes it, so the refresh only reports it. An event Luma no longer
 shows us (403, or 404 once cancelled) is left as it is. The hourly sync
