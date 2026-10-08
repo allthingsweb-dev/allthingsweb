@@ -1,0 +1,34 @@
+{
+  "photos": [
+    {
+      "image": "bc451adf-c545-4199-af2b-fa936510e9e4",
+      "evening": "2025-02-25-all-things-web-at-sentry",
+      "why": "A full house at Sentry faces the speaker and the screen, with downtown's towers lit through the windows behind."
+    },
+    {
+      "image": "8bdbe774-e836-4f25-b00f-f72e0eac7465",
+      "evening": "2026-02-25-devtool-ax-demos",
+      "why": "Wall-to-wall rows of builders watching the demos, the room packed to the brick at the back."
+    },
+    {
+      "image": "3ff438b8-0305-4de8-a111-5a66ec9610f0",
+      "evening": "2025-11-04-all-things-react-native",
+      "why": "A long hall filled with rows facing the talk, the welcome slide on both screens."
+    },
+    {
+      "image": "e6cefbd6-baa4-4c52-ad4a-00e4575da3a7",
+      "evening": "2025-04-26-hackathon-at-sentry",
+      "why": "Every table of the hackathon full, laptops open, the whole floor turned to the stage."
+    },
+    {
+      "image": "c3df965b-aff5-471e-9924-2df803d2e8ca",
+      "evening": "2025-02-25-all-things-web-at-sentry",
+      "why": "Rows of faces across the whole floor, laughing at the talk."
+    },
+    {
+      "image": "4f99680b-b046-406a-b3f8-edffc67a7611",
+      "evening": "2024-11-12-all-things-web-at-vercel",
+      "why": "A crowd filling Vercel's floor, facing the speaker."
+    }
+  ]
+}

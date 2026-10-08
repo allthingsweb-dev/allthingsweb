@@ -35,13 +35,15 @@ const photoOrigin = "https://storage.example";
 interface Options {
   readonly at?: DateTime.Utc;
   readonly database?: PGlite;
+  /** The hand-picked hero photos' image ids; none unless given. */
+  readonly curated?: ReadonlyArray<string>;
 }
 
-/** Home as `options` set the clock and database. */
+/** Home as `options` set the clock, database and hero photos. */
 const readHome = (options: Options) =>
   Effect.provide(
     Home.use((repository) => repository.read(photoOrigin)),
-    Home.layer.pipe(
+    Home.layerCurating(options.curated ?? []).pipe(
       Layer.provideMerge(sqlLayer(options.database ?? db)),
       Layer.provideMerge(clockAt(options.at ?? now)),
     ),
@@ -216,6 +218,58 @@ describe("Home", () => {
       "The stage",
       "Coffee at Café night",
     ]);
+  });
+
+  const image = (n: number) =>
+    `d0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  const alts = (home: HomeView) => home.photos.map((photo) => photo.alt);
+
+  test("shows the hand-picked photos in their order, skipping any it can't show, up to the limit", async () => {
+    const home = await read({
+      curated: [
+        image(104), // a draft's
+        "d0000000-0000-4000-8000-000000000999", // no such image
+        image(101), // on another origin
+        image(3),
+        image(105), // an evening that hasn't happened yet
+        image(103),
+        image(102),
+        image(4), // past the limit
+      ],
+    });
+    expect(alts(home)).toEqual([
+      "The crowd",
+      "Later at Café night",
+      "Coffee at Café night",
+    ]);
+    // Several of one evening are fine: they were picked to be shown.
+    expect(alts(await read({ curated: [image(4), image(3)] }))).toEqual([
+      "The stage",
+      "The crowd",
+    ]);
+  });
+
+  test("shows the latest evenings' photos when it can show none of the hand-picked ones", async () => {
+    const latest = ["The stage", "Coffee at Café night"];
+    expect(alts(await read({ curated: [] }))).toEqual(latest);
+    expect(
+      alts(await read({ curated: [image(104), image(101), image(105)] })),
+    ).toEqual(latest);
+    // A hand-picked photo of an evening we only share is not shown either.
+    const shared = await seededDatabase();
+    try {
+      await shared.exec(`
+        INSERT INTO sponsors (id, name, about, website_url, twitter_handle, updated_at) VALUES
+          ('c0000000-0000-4000-8000-000000000900', 'Mastra', 'Agents in TypeScript.', 'https://mastra.ai', 'mastra', now());
+        UPDATE events SET curation = 'shared', organized_by = 'c0000000-0000-4000-8000-000000000900'
+          WHERE slug = '2026-08-12-react-at-acme';
+      `);
+      expect(
+        alts(await read({ database: shared, curated: [image(3), image(4)] })),
+      ).toEqual([]);
+    } finally {
+      await shared.close();
+    }
   });
 
   test("leads with our next evening, never one we only share, which it lists marked", async () => {
