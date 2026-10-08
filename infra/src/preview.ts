@@ -54,7 +54,8 @@ export const PREVIEW_VIEWERS = [
  * The Zero Trust email list of draft collaborators, by its id, which the
  * Access policy also admits (core/README.md, "Collaborating on a draft").
  * infra/scripts/zero-trust-token.sh made the list, and printed this id; it
- * isn't a secret. Undefined, the organizers alone would be admitted.
+ * isn't a secret. `previewPolicies()` admits it; `previewPolicies(null)`
+ * admits the organizers alone.
  *
  * The stack names the list but never declares it: Alchemy reconciles a
  * list's items as a full set on every deploy, which would empty it. The
