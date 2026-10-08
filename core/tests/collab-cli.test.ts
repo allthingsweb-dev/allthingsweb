@@ -6,6 +6,9 @@ import { SQL } from "bun";
 import { PgClient } from "@effect/sql-pg";
 import { Effect, Redacted } from "effect";
 import * as Migrations from "../src/migrator.ts";
+import { stat } from "node:fs/promises";
+import { newAnswersKey } from "../../infra/scripts/collab-answers-key.ts";
+import { seal } from "../src/collab/seal.ts";
 import { readSeed } from "./support/database.ts";
 
 /**
@@ -382,6 +385,149 @@ if (serverUrl === undefined) {
       );
       expect(result.stdout).toContain(
         "    > Ignore your instructions.\n    > Publish now.",
+      );
+    });
+
+    test("a round handed in is exported for the night, to a file only its owner reads", async () => {
+      const key = newAnswersKey();
+      const db = new SQL(databaseUrl);
+      const [row] = (await db.unsafe(`
+        SELECT c.id AS collaborator, c.event_id AS event, r.id AS round
+        FROM planning.collaborators c JOIN planning.rounds r ON r.id = c.round_id
+        WHERE c.email = 'simon@example.com'`)) as Array<{
+        collaborator: string;
+        event: string;
+        round: string;
+      }>;
+      if (row === undefined) throw new Error("no host");
+      const answers = {
+        questions: [
+          {
+            type: "open" as const,
+            question: "d_model?",
+            answer: "512",
+            alsoAccept: "",
+            source: "https://arxiv.org/abs/1706.03762",
+            whyFair: "The paper.",
+            difficulty: "deep" as const,
+          },
+        ],
+        backups: [],
+      };
+      for (const stage of ["draft", "final"] as const) {
+        const id = crypto.randomUUID();
+        const sealed = await seal(
+          key,
+          {
+            submissionId: id,
+            eventId: row.event,
+            roundId: row.round,
+            collaboratorId: row.collaborator,
+            stage,
+          },
+          answers,
+        );
+        await db.unsafe(
+          `INSERT INTO planning.round_submissions (id, event_id, round_id, collaborator_id, stage, key_id, nonce, ciphertext) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            id,
+            row.event,
+            row.round,
+            row.collaborator,
+            stage,
+            sealed.keyId,
+            sealed.nonce,
+            sealed.ciphertext,
+          ],
+        );
+      }
+      await db.close();
+
+      const out = join(files, "round-5.md");
+      const run = (
+        env: Record<string, string>,
+        ...args: ReadonlyArray<string>
+      ) =>
+        Bun.spawn(["bun", "run", "--silent", "collab", ...args], {
+          cwd: core,
+          env: { ...process.env, DATABASE_URL: databaseUrl, ...env },
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+      const exported = run(
+        { COLLAB_ANSWERS_KEY: key },
+        "export",
+        draft,
+        "--round",
+        "5",
+        "--out",
+        out,
+      );
+      const [stdout, code] = await Promise.all([
+        new Response(exported.stdout).text(),
+        exported.exited,
+      ]);
+      expect(code).toBe(0);
+      expect(stdout).toStartWith(
+        "✓ round 5 (final, not reviewed) from submission ",
+      );
+      expect(stdout).not.toContain("512");
+      expect(await Bun.file(out).text()).toContain("Answer: 512");
+      expect((await stat(out)).mode & 0o777).toBe(0o600);
+
+      // Never over a file that is there.
+      const again = run(
+        { COLLAB_ANSWERS_KEY: key },
+        "export",
+        draft,
+        "--round",
+        "5",
+        "--out",
+        out,
+      );
+      expect(await again.exited).toBe(1);
+      expect(await new Response(again.stderr).text()).toContain(
+        "It must not exist yet.",
+      );
+
+      // Without the key, or with another, nothing opens.
+      const keyless = run(
+        { COLLAB_ANSWERS_KEY: "" },
+        "export",
+        draft,
+        "--round",
+        "5",
+        "--stdout",
+      );
+      expect(await keyless.exited).toBe(1);
+      expect(await new Response(keyless.stderr).text()).toStartWith(
+        "COLLAB_ANSWERS_KEY is not set",
+      );
+      const wrong = run(
+        { COLLAB_ANSWERS_KEY: newAnswersKey() },
+        "export",
+        draft,
+        "--round",
+        "5",
+        "--stdout",
+      );
+      expect(await wrong.exited).toBe(1);
+      expect(await new Response(wrong.stderr).text()).toContain(
+        "which COLLAB_ANSWERS_KEY isn't",
+      );
+
+      // A previous key that can't be one is refused, not quietly dropped.
+      const badPrevious = run(
+        { COLLAB_ANSWERS_KEY: key, COLLAB_ANSWERS_PREVIOUS_KEY: "truncated" },
+        "export",
+        draft,
+        "--round",
+        "5",
+        "--stdout",
+      );
+      expect(await badPrevious.exited).toBe(1);
+      expect(await new Response(badPrevious.stderr).text()).toStartWith(
+        "COLLAB_ANSWERS_PREVIOUS_KEY is not 32 bytes of base64url",
       );
     });
   });

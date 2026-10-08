@@ -4,6 +4,7 @@ import type * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
 import { compatibility } from "../../web/src/compatibility.ts";
 import { Collaborator } from "./reader.ts";
+import { requiredSecret } from "./sync.ts";
 import { Database, SITE_ORIGIN } from "./web.ts";
 
 /**
@@ -151,6 +152,11 @@ export const makePreview = (publicUrl: Output.Output<string> | string) =>
         // Signs the collaborators' forms (web/src/preview/forms.ts): made once,
         // kept in Alchemy's state, and known to nothing but this Worker.
         COLLAB_FORM_KEY: Alchemy.makeRandom("CollabFormKey"),
+        // Seals and opens the rounds' answer keys (core/src/collab/seal.ts).
+        // Not Alchemy's: the studio opens them too, for the night, so it is
+        // made into 1Password by scripts/collab-answers-key.ts, and a prod
+        // deploy reads it from there.
+        COLLAB_ANSWERS_KEY: requiredSecret("COLLAB_ANSWERS_KEY"),
         IMAGES: Cloudflare.Images.Images("IMAGES"),
         ACCESS_TEAM_DOMAIN: team.authDomain,
         ACCESS_AUD: access.aud,

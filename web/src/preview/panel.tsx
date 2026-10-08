@@ -1,5 +1,6 @@
+import type { Question, RoundAnswers } from "allthings-core/src/collab/seal.ts";
 import { briefHtml } from "./brief.ts";
-import type { Panel, PanelComment, Person } from "./collab.ts";
+import type { Panel, PanelComment, PanelRound, Person } from "./collab.ts";
 
 /**
  * The "for collaborators" panel under an evening's page in the draft
@@ -28,7 +29,230 @@ const roleName = (role: string) => roleNames[role] ?? role;
 export interface PanelForms {
   readonly action: string;
   readonly commentToken: string;
+  /** Where a round posts, and its form's token; none without the answers key. */
+  readonly roundAction: string;
+  readonly roundToken: string | null;
   readonly notice: string | null;
+}
+
+/** A round's latest save, opened for the panel (null if it doesn't open), with its review. */
+export interface OpenedRound {
+  readonly id: string;
+  readonly roundId: string;
+  readonly stage: "draft" | "final";
+  readonly at: string;
+  readonly by: string | null;
+  readonly decision: string | null;
+  readonly note: string | null;
+  readonly answers: RoundAnswers | null;
+}
+
+const questionTypes = [
+  "guess the output",
+  "spot the bug",
+  "name that error",
+  "visual",
+  "open",
+] as const;
+const difficulties = ["gettable", "deep", "brutal"] as const;
+
+const decisions: Readonly<Record<string, string>> = {
+  accepted: "accepted",
+  rejected: "not taken",
+  changes_requested: "changes asked for",
+};
+
+const empty: Question = {
+  type: null,
+  question: "",
+  answer: "",
+  alsoAccept: "",
+  source: "",
+  whyFair: "",
+  difficulty: null,
+};
+
+/** One question's fields, prefilled with what was saved. */
+function QuestionFields({
+  n,
+  label,
+  question,
+}: {
+  readonly n: number;
+  readonly label: string;
+  readonly question: Question;
+}) {
+  const text = (name: string, title: string, value: string, max: number) => (
+    <label>
+      <span class="at-type-meta" safe>
+        {title}
+      </span>
+      <input
+        type="text"
+        name={`q${n}_${name}`}
+        value={value}
+        maxlength={String(max)}
+      />
+    </label>
+  );
+  return (
+    <fieldset class="collab-question">
+      <legend class="at-type-meta" safe>
+        {label}
+      </legend>
+      <label>
+        <span class="at-type-meta">type</span>
+        <select name={`q${n}_type`}>
+          <option value="">choose</option>
+          {questionTypes.map((type) => (
+            <option value={type} selected={question.type === type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span class="at-type-meta">question</span>
+        <textarea name={`q${n}_question`} rows="3" maxlength="1000" safe>
+          {question.question}
+        </textarea>
+      </label>
+      {text("answer", "answer", question.answer, 500)}
+      {text("also", "also accept", question.alsoAccept, 500)}
+      {text("source", "source (https)", question.source, 500)}
+      {text("fair", "why it's fair", question.whyFair, 300)}
+      <label>
+        <span class="at-type-meta">difficulty</span>
+        <select name={`q${n}_difficulty`}>
+          <option value="">choose</option>
+          {difficulties.map((difficulty) => (
+            <option
+              value={difficulty}
+              selected={question.difficulty === difficulty}
+            >
+              {difficulty}
+            </option>
+          ))}
+        </select>
+      </label>
+    </fieldset>
+  );
+}
+
+const savedLine = (saved: OpenedRound) =>
+  [
+    saved.stage === "final" ? "handed in" : "draft saved",
+    commentDay.format(new Date(saved.at)).toLowerCase(),
+    ...(saved.by === null ? [] : [`by ${saved.by}`]),
+    saved.decision === null
+      ? "not reviewed yet"
+      : (decisions[saved.decision] ?? saved.decision),
+  ].join(" · ");
+
+/** The round a host writes: what was saved and how it was reviewed, then the form. */
+function RoundForm({
+  round,
+  saved,
+  forms,
+}: {
+  readonly round: PanelRound;
+  readonly saved: OpenedRound | undefined;
+  readonly forms: PanelForms;
+}) {
+  const answers = saved?.answers ?? null;
+  const at = (list: ReadonlyArray<Question> | undefined, i: number) =>
+    list?.[i] ?? empty;
+  return (
+    <>
+      {saved === undefined ? (
+        <p>Nothing saved yet.</p>
+      ) : (
+        <p class="at-type-meta" safe>
+          {savedLine(saved)}
+        </p>
+      )}
+      {saved?.note == null ? (
+        ""
+      ) : (
+        <p class="collab-comment" safe>
+          {saved.note}
+        </p>
+      )}
+      {forms.roundToken === null ? (
+        ""
+      ) : (
+        <form
+          class="collab-form collab-round"
+          method="post"
+          action={forms.roundAction}
+        >
+          <input type="hidden" name="token" value={forms.roundToken} />
+          <input type="hidden" name="round" value={round.id} />
+          {Array.from({ length: round.questions }, (_, i) => (
+            <QuestionFields
+              n={i + 1}
+              label={`question ${i + 1}`}
+              question={at(answers?.questions, i)}
+            />
+          ))}
+          {Array.from({ length: round.backups }, (_, i) => (
+            <QuestionFields
+              n={round.questions + i + 1}
+              label={`backup ${i + 1}`}
+              question={at(answers?.backups, i)}
+            />
+          ))}
+          <div class="collab-actions">
+            <button class="button" type="submit" name="stage" value="draft">
+              save the draft
+            </button>
+            <button class="button" type="submit" name="stage" value="final">
+              hand it in
+            </button>
+          </div>
+        </form>
+      )}
+    </>
+  );
+}
+
+/** A round as the organizers read it here: the latest save, its questions and answers. */
+function RoundRead({ saved }: { readonly saved: OpenedRound | undefined }) {
+  if (saved === undefined) return <p>Nothing handed in yet.</p>;
+  const answers = saved.answers;
+  const rows = (list: ReadonlyArray<Question>, label: string) =>
+    list.map((q, i) => (
+      <li>
+        <p class="at-type-meta" safe>
+          {`${label} ${i + 1} · ${q.type ?? "no type"} · ${q.difficulty ?? "no difficulty"}`}
+        </p>
+        <p safe>{q.question}</p>
+        <p
+          safe
+        >{`Answer: ${q.answer}${q.alsoAccept === "" ? "" : ` (also ${q.alsoAccept})`}`}</p>
+        <p class="at-type-meta" safe>
+          {q.source}
+        </p>
+      </li>
+    ));
+  return (
+    <>
+      <p class="at-type-meta" safe>
+        {savedLine(saved)}
+      </p>
+      {answers === null ? (
+        <p>This save doesn't open with the preview's key.</p>
+      ) : (
+        <details>
+          <summary>the questions and answers</summary>
+          <ol class="collab-list">
+            {rows(answers.questions, "question")}
+            {rows(answers.backups, "backup")}
+          </ol>
+        </details>
+      )}
+    </>
+  );
 }
 
 /** Who may comment: everyone but a viewer. */
@@ -132,10 +356,32 @@ const personLine = (person: Person) =>
 export function CollabPanel({
   panel,
   forms,
+  opened = [],
 }: {
   readonly panel: Panel;
   readonly forms?: PanelForms;
+  /** The rounds' latest saves the signer may see, opened. */
+  readonly opened?: ReadonlyArray<OpenedRound>;
 }) {
+  const organizes = panel.roles.includes("organizer");
+  const savedFor = (roundId: string) =>
+    opened.find((round) => round.roundId === roundId);
+  const roundComments = (roundId: string) => (
+    <>
+      <Comments
+        comments={panel.comments.filter((c) => c.roundId === roundId)}
+      />
+      {forms === undefined ? (
+        ""
+      ) : (
+        <CommentBox
+          forms={forms}
+          on={`round:${roundId}`}
+          label="comment on the round, for its hosts and the organizers"
+        />
+      )}
+    </>
+  );
   const writes =
     forms !== undefined && panel.roles.some((role) => writers.has(role));
   const yourRounds = panel.rounds.filter((round) =>
@@ -204,6 +450,32 @@ export function CollabPanel({
             </ul>
           </Fact>
         )}
+        {yourRounds.map((round) => (
+          <Fact label={`Your round: ${round.title}`}>
+            <div id="collab-round">
+              {forms === undefined ? (
+                <p>Rounds can't be saved here yet.</p>
+              ) : (
+                <RoundForm
+                  round={round}
+                  saved={savedFor(round.id)}
+                  forms={forms}
+                />
+              )}
+              {roundComments(round.id)}
+            </div>
+          </Fact>
+        ))}
+        {organizes
+          ? panel.rounds.map((round) => (
+              <Fact label={`Round ${round.position}: ${round.title}`}>
+                <>
+                  <RoundRead saved={savedFor(round.id)} />
+                  {roundComments(round.id)}
+                </>
+              </Fact>
+            ))
+          : ""}
         {panel.brief.map((section) => {
           const safeBody = briefHtml(section.body);
           return (

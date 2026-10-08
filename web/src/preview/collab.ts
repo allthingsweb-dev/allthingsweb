@@ -124,6 +124,25 @@ export interface CollabShape {
     request: RequestRecord,
     limits: WriteLimits,
   ) => Effect.Effect<WriteOutcome, DataSourceError>;
+  /** The latest save of each round the signer may see (their own, or every one for an organizer). */
+  readonly rounds: (
+    signer: Signer,
+    evening: Evening,
+  ) => Effect.Effect<ReadonlyArray<StoredRound>, DataSourceError>;
+  /** Who of the signer's invitations hosts `roundId`: the collaborator a save is in the name of. */
+  readonly hostOf: (
+    signer: Signer,
+    evening: Evening,
+    roundId: string,
+  ) => Effect.Effect<string | null, DataSourceError>;
+  /** Adds a sealed save, and its line in the audit, in one transaction. */
+  readonly saveRound: (
+    signer: Signer,
+    evening: Evening,
+    save: NewRoundSave,
+    request: RequestRecord,
+    limits: WriteLimits,
+  ) => Effect.Effect<WriteOutcome, DataSourceError>;
   /** A line in the audit, in the signer's name, on its own: for what was refused. */
   readonly record: (
     signer: Signer,
@@ -143,6 +162,33 @@ export interface WriteLimits {
 
 /** What became of a write: taken, refused by who may write there, or over the limits. */
 export type WriteOutcome = "ok" | "refused" | "limited";
+
+/** A round's latest save the signer may see, still sealed, with its latest review. */
+export const StoredRound = Schema.Struct({
+  id: Schema.String,
+  roundId: Schema.String,
+  collaboratorId: Schema.String,
+  by: Schema.NullOr(Schema.String),
+  stage: Schema.Literals(["draft", "final"]),
+  keyId: Schema.String,
+  nonce: Schema.Uint8Array,
+  ciphertext: Schema.Uint8Array,
+  at: Schema.String,
+  decision: Schema.NullOr(Schema.String),
+  note: Schema.NullOr(Schema.String),
+});
+export type StoredRound = typeof StoredRound.Type;
+
+/** A save as the Worker adds it: sealed for the id it was given. */
+export interface NewRoundSave {
+  readonly id: string;
+  readonly roundId: string;
+  readonly collaboratorId: string;
+  readonly stage: "draft" | "final";
+  readonly keyId: string;
+  readonly nonce: Uint8Array;
+  readonly ciphertext: Uint8Array;
+}
 
 /** A comment as the Worker adds it, once its form is checked. */
 export interface NewComment {
@@ -355,6 +401,67 @@ const make = Effect.gen(function* () {
       }),
     );
 
+  const rounds: CollabShape["rounds"] = (signer, on) =>
+    as(
+      signer,
+      sql`
+        SELECT s.id, s.round_id AS "roundId", s.collaborator_id AS "collaboratorId",
+          (SELECT p.name FROM planning.collab_roster(${on.id}) p WHERE p.collaborator_id = s.collaborator_id) AS by,
+          s.stage, s.key_id AS "keyId", s.nonce, s.ciphertext,
+          ${sql.unsafe(iso("s.created_at"))} AS at,
+          v.decision, v.note
+        FROM planning.round_submissions s
+        LEFT JOIN LATERAL (
+          SELECT r.decision, r.note FROM planning.reviews r
+          WHERE r.round_submission_id = s.id ORDER BY r.created_at DESC, r.id LIMIT 1
+        ) v ON true
+        WHERE s.event_id = ${on.id}
+          AND NOT EXISTS (
+            SELECT 1 FROM planning.round_submissions n
+            WHERE n.round_id = s.round_id AND (n.created_at, n.id) > (s.created_at, s.id)
+          )
+        ORDER BY s.round_id`.pipe(Effect.flatMap(rows(StoredRound))),
+    );
+
+  const hostOf: CollabShape["hostOf"] = (signer, on, roundId) =>
+    as(
+      signer,
+      sql`
+        SELECT m.collaborator_id AS id FROM planning.collab_memberships() m
+        WHERE m.event_id = ${on.id} AND m.role = 'round_host' AND m.round_id = ${roundId}::uuid
+        LIMIT 1`.pipe(
+        Effect.flatMap(rows(Schema.Struct({ id: Schema.String }))),
+        Effect.map(([row]) => row?.id ?? null),
+      ),
+    );
+
+  const saveRound: CollabShape["saveRound"] = (
+    signer,
+    on,
+    save,
+    request,
+    limits,
+  ) =>
+    as(
+      signer,
+      Effect.gen(function* () {
+        if (yield* overLimits(signer, limits)) return "limited" as const;
+        yield* sql`
+          INSERT INTO planning.round_submissions (id, event_id, round_id, collaborator_id, stage, key_id, nonce, ciphertext)
+          VALUES (${save.id}, ${on.id}, ${save.roundId}, ${save.collaboratorId}, ${save.stage}, ${save.keyId},
+            ${save.nonce}, ${save.ciphertext})`;
+        yield* insertAudit(signer, {
+          ...request,
+          eventId: on.id,
+          action: "round.save",
+          outcome: "ok",
+          targetId: save.id,
+          detail: save.stage,
+        });
+        return "ok" as const;
+      }),
+    );
+
   const record: CollabShape["record"] = (signer, entry) =>
     as(signer, insertAudit(signer, entry).pipe(Effect.asVoid));
 
@@ -363,6 +470,9 @@ const make = Effect.gen(function* () {
     evening,
     panel,
     comment,
+    rounds,
+    hostOf,
+    saveRound,
     record,
   } satisfies CollabShape;
 });

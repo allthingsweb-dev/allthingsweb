@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Console, Effect, Layer, Option, Result, Schema } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
@@ -9,7 +10,13 @@ import {
   type ListSync,
 } from "../src/collab/access.ts";
 import { parseBrief } from "../src/collab/brief.ts";
-import { type Approval, Collab } from "../src/collab/collab.ts";
+import { keyProblem } from "../src/collab/seal.ts";
+import {
+  type Approval,
+  Collab,
+  type OpenedText,
+} from "../src/collab/collab.ts";
+import { approvalToken } from "../src/approval.ts";
 import {
   describeBrief,
   describeInvitation,
@@ -53,6 +60,8 @@ import { PlanningError } from "../src/planning/planning.ts";
  *   bun run collab logistics list <slug>
  *   bun run collab submissions <slug>                        who handed in what, never its content
  *   bun run collab review round|logistics <id> --decision accepted --reviewer Erik [--note …] [--approve <token>]
+ *   bun run collab show <submission id> --out round.md           one save, opened, to a file
+ *   bun run collab export <slug> --round 5 --out round-5.md        a round's latest handed in, for the night
  *   bun run collab comments <slug>
  *   bun run collab comment hide <id>
  *   bun run collab audit <slug> [--limit 100]
@@ -564,6 +573,123 @@ const review = Command.make(
   ),
 );
 
+/**
+ * The answers keys from the environment: COLLAB_ANSWERS_KEY ("allthings
+ * collab answers key" in 1Password), then COLLAB_ANSWERS_PREVIOUS_KEY if a
+ * rotation left one. Never printed.
+ */
+const answersKeys = Effect.gen(function* () {
+  const current = process.env["COLLAB_ANSWERS_KEY"] ?? "";
+  if (current === "") {
+    return yield* refuse(
+      'COLLAB_ANSWERS_KEY is not set: pass it from 1Password ("allthings collab answers key") without printing it.',
+    );
+  }
+  const problem = keyProblem(current);
+  if (problem !== undefined) return yield* refuse(problem);
+  const previous = process.env["COLLAB_ANSWERS_PREVIOUS_KEY"] ?? "";
+  if (previous === "") return [current];
+  const previousProblem = keyProblem(previous, "COLLAB_ANSWERS_PREVIOUS_KEY");
+  if (previousProblem !== undefined) return yield* refuse(previousProblem);
+  return [current, previous];
+});
+
+const outFlags = {
+  out: Flag.String("out").pipe(
+    Flag.withDescription(
+      "The file to write, only you may read it; it must not exist yet.",
+    ),
+    Flag.optional,
+  ),
+  stdout: Flag.Boolean("stdout").pipe(
+    Flag.withDescription("Print the answer key instead of writing a file."),
+    Flag.withDefault(false),
+  ),
+};
+
+/** Writes an opened round where asked: a new file only its owner reads, or stdout when asked outright. */
+const deliver = (
+  opened: OpenedText,
+  options: {
+    readonly out: Option.Option<string>;
+    readonly stdout: boolean;
+    readonly json: boolean;
+  },
+) =>
+  Effect.gen(function* () {
+    if (options.stdout === Option.isSome(options.out)) {
+      return yield* refuse(
+        "Give --out <file> to write it, or --stdout to print it.",
+      );
+    }
+    if (options.stdout) return yield* Console.log(opened.text);
+    const path = Option.getOrThrow(options.out);
+    yield* Effect.tryPromise({
+      try: () =>
+        writeFile(path, `${opened.text}\n`, { mode: 0o600, flag: "wx" }),
+      catch: (cause) =>
+        new PlanningError({
+          reason: `Couldn't write ${path}: ${cause instanceof Error ? cause.message : String(cause)}. It must not exist yet.`,
+        }),
+    });
+    const digest = yield* approvalToken(opened.text);
+    const result = {
+      submission: opened.submission,
+      round: opened.round,
+      stage: opened.stage,
+      decision: opened.decision,
+      path,
+      digest,
+    };
+    return yield* print(
+      options.json,
+      result,
+      (r) =>
+        `✓ round ${r.round} (${r.stage}, ${r.decision ?? "not reviewed"}) from submission ${r.submission}, to ${r.path} (digest ${r.digest})`,
+    );
+  });
+
+const show = Command.make(
+  "show",
+  { id: id("submission"), ...outFlags, json },
+  (options) =>
+    Effect.gen(function* () {
+      const keys = yield* answersKeys;
+      const opened = yield* Collab.use((collab) =>
+        collab.openRound({ submission: options.id }, keys),
+      );
+      yield* deliver(opened, options);
+    }).pipe(Effect.provide(layer)),
+).pipe(
+  Command.withDescription(
+    "Open one round submission: its questions and answer key, to a file only you may read.",
+  ),
+);
+
+const exportRound = Command.make(
+  "export",
+  {
+    slug,
+    round: Flag.Int("round").pipe(
+      Flag.withDescription("The round, by its position."),
+    ),
+    ...outFlags,
+    json,
+  },
+  (options) =>
+    Effect.gen(function* () {
+      const keys = yield* answersKeys;
+      const opened = yield* Collab.use((collab) =>
+        collab.openRound({ event: options.slug, round: options.round }, keys),
+      );
+      yield* deliver(opened, options);
+    }).pipe(Effect.provide(layer)),
+).pipe(
+  Command.withDescription(
+    "A round's latest save handed in, as its answer key for the night, to a file only you may read.",
+  ),
+);
+
 const comments = Command.make("comments", { slug, json }, (options) =>
   Collab.use((collab) => collab.comments(options.slug)).pipe(
     Effect.flatMap((rows) => print(options.json, rows, formatComments)),
@@ -680,6 +806,8 @@ const collab = Command.make("collab").pipe(
     logistics,
     submissions,
     review,
+    show,
+    exportRound,
     comments,
     comment,
     audit,

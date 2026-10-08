@@ -39,13 +39,22 @@ import {
   type Evening,
   type Signer,
 } from "./collab.ts";
-import { CollabPanel, type PanelForms } from "./panel.tsx";
+import { CollabPanel, type OpenedRound, type PanelForms } from "./panel.tsx";
+import {
+  keyProblem,
+  open,
+  Question,
+  seal,
+} from "allthings-core/src/collab/seal.ts";
 import {
   CommentForm,
   commentLimit,
   formToken,
   isFormToken,
+  parseRoundForm,
   readForm,
+  roundLimit,
+  type RoundQuestion,
   sameOrigin,
   written,
 } from "./forms.ts";
@@ -137,7 +146,13 @@ const formKeyOf = (env: Readonly<Record<string, unknown>>) => {
 /** Notices a page shows after a form, by the code the redirect names: nothing a visitor wrote is echoed. */
 const notices: Readonly<Record<string, string>> = {
   comment: "Your comment is in.",
+  round: "Your round is saved.",
 };
+
+/** The keys rounds are sealed with (core/src/collab/seal.ts), from the Worker's bindings: none without them. */
+export class AnswersKeys extends Context.Reference<
+  Option.Option<ReadonlyArray<string>>
+>("allthings/web/preview/AnswersKeys", { defaultValue: () => Option.none() }) {}
 
 /** What a signer who may see nothing is told, here and before routing alike. */
 export const refusal =
@@ -260,19 +275,78 @@ const draftPage = HttpRouter.add(
       ? Option.none()
       : yield* withCollab((collab) => collab.panel(who, evening.value));
     const key = yield* FormKey;
+    // Each round the signer may see, opened; every one opened is a line
+    // in the audit.
+    const keys = yield* AnswersKeys;
+    const opened: ReadonlyArray<OpenedRound> =
+      Option.isNone(evening) || Option.isNone(panel) || Option.isNone(keys)
+        ? []
+        : yield* Effect.gen(function* () {
+            const stored = Option.getOrElse(
+              yield* withCollab((collab) => collab.rounds(who, evening.value)),
+              () => [],
+            );
+            const rounds = yield* Effect.promise(() =>
+              Promise.all(
+                stored.map(async (row) => ({
+                  id: row.id,
+                  roundId: row.roundId,
+                  stage: row.stage,
+                  at: row.at,
+                  by: row.by,
+                  decision: row.decision,
+                  note: row.note,
+                  answers:
+                    (await open(
+                      keys.value,
+                      {
+                        submissionId: row.id,
+                        eventId: evening.value.id,
+                        roundId: row.roundId,
+                        collaboratorId: row.collaboratorId,
+                        stage: row.stage,
+                      },
+                      row,
+                    )) ?? null,
+                })),
+              ),
+            );
+            yield* withCollab((collab) =>
+              Effect.forEach(rounds, (round) =>
+                collab.record(who, {
+                  eventId: evening.value.id,
+                  action: "round.view",
+                  outcome: round.answers === null ? "refused" : "ok",
+                  targetId: round.id,
+                  requestId: request.headers["cf-ray"] ?? null,
+                  detail:
+                    round.answers === null
+                      ? "it doesn't open with this Worker's keys"
+                      : null,
+                }),
+              ),
+            );
+            return rounds;
+          });
+    const token = (form: string) =>
+      Option.isNone(evening) || Option.isNone(key)
+        ? Effect.succeed("")
+        : Effect.promise(() =>
+            formToken(key.value, {
+              email: who.email,
+              eventId: evening.value.id,
+              form,
+              issuedAt: who.issuedAt,
+            }),
+          );
     const forms: PanelForms | undefined =
       Option.isNone(evening) || Option.isNone(key)
         ? undefined
         : {
             action: `/${encodeURIComponent(evening.value.slug)}/comments`,
-            commentToken: yield* Effect.promise(() =>
-              formToken(key.value, {
-                email: who.email,
-                eventId: evening.value.id,
-                form: "comment",
-                issuedAt: who.issuedAt,
-              }),
-            ),
+            commentToken: yield* token("comment"),
+            roundAction: `/${encodeURIComponent(evening.value.slug)}/round`,
+            roundToken: Option.isNone(keys) ? null : yield* token("round"),
             notice:
               notices[
                 new URL(request.url, "http://x").searchParams.get("said") ?? ""
@@ -291,6 +365,7 @@ const draftPage = HttpRouter.add(
           ? {
               after: CollabPanel({
                 panel: panel.value,
+                opened,
                 ...(forms === undefined ? {} : { forms }),
               }),
             }
@@ -357,6 +432,7 @@ export function makePreviewHandler(
         Assets.layer(env),
         Layer.succeed(CollabDatabase, collabUrl(env)),
         Layer.succeed(FormKey, formKeyOf(env)),
+        Layer.succeed(AnswersKeys, answersKeysOf(env)),
       ),
     ),
   );
@@ -431,15 +507,60 @@ function withPreviewHeaders(response: Response): Response {
 export const writeLimits = { tenMinutes: 20, day: 200 } as const;
 
 /** Everything a collaborator writes, as the audit names it: what the limits count. */
-const writes = ["comment.add"];
+const writes = ["comment.add", "round.save"];
+
+/**
+ * The answers keys from the Worker's bindings: the one it seals with, then
+ * any it only opens with. None when the current one is missing or either
+ * one set is malformed: then no round is shown or taken.
+ */
+export const answersKeysOf = (
+  env: Readonly<Record<string, unknown>>,
+): Option.Option<ReadonlyArray<string>> => {
+  const current = env["COLLAB_ANSWERS_KEY"];
+  if (typeof current !== "string" || keyProblem(current) !== undefined) {
+    return Option.none();
+  }
+  const previous = env["COLLAB_ANSWERS_PREVIOUS_KEY"];
+  if (typeof previous !== "string" || previous === "") {
+    return Option.some([current]);
+  }
+  const problem = keyProblem(previous, "COLLAB_ANSWERS_PREVIOUS_KEY");
+  if (problem !== undefined) {
+    // Set but unusable is a mistake in the deploy: rounds are off until
+    // it's put right, rather than some of them quietly not opening. Said
+    // without the value.
+    console.error(
+      `Draft preview: ${problem}; rounds are off until it is fixed.`,
+    );
+    return Option.none();
+  }
+  return Option.some([current, previous]);
+};
+
+/** What a form names: which one it is, its audit action, its size limit and its notice. */
+const formKinds = {
+  comments: {
+    form: "comment",
+    action: "comment.add",
+    limit: commentLimit,
+    said: "comment",
+  },
+  round: {
+    form: "round",
+    action: "round.save",
+    limit: roundLimit,
+    said: "round",
+  },
+} as const;
 
 /**
  * A form from the preview's page. In order, before anything is written:
- * the path, where it came from, its encoding and size, its fields, the
- * evening (one the signer may help with, or none), its token, and the
- * signer's rate. Each refusal is recorded in the signer's name, and
- * answered with its reason alone; a comment that is in redirects back to
- * the page, which says so.
+ * the path, where it came from, its encoding and size, the evening (one the
+ * signer may help with, or none), its token, its fields, and the signer's
+ * rate. Each refusal is recorded in the signer's name, and answered with
+ * its reason alone; what is taken redirects back to the page, which says
+ * so.
  */
 async function post(
   request: Request,
@@ -448,9 +569,18 @@ async function post(
 ): Promise<Response> {
   const key = formKeyOf(env);
   const url = collabUrl(env);
-  const path = /^\/([^/]+)\/comments$/.exec(new URL(request.url).pathname);
+  const path = /^\/([^/]+)\/(comments|round)$/.exec(
+    new URL(request.url).pathname,
+  );
   if (path === null) return answer("Not found.", 404);
-  if (Option.isNone(key) || Option.isNone(url)) {
+  const kind = formKinds[path[2] as keyof typeof formKinds];
+  const what = kind.form === "comment" ? "Your comment" : "Your round";
+  const answers = answersKeysOf(env);
+  if (
+    Option.isNone(key) ||
+    Option.isNone(url) ||
+    (kind.form === "round" && Option.isNone(answers))
+  ) {
     return answer("Collaboration isn't configured.", 503);
   }
   // A path whose encoding doesn't decode names no evening.
@@ -476,34 +606,21 @@ async function post(
     await run((collab) =>
       collab.record(who, {
         eventId,
-        action: "comment.add",
+        action: kind.action,
         outcome,
         targetId: null,
         requestId,
         detail: reason,
       }),
     );
-    return answer(`Your comment wasn't saved: ${reason}`, status);
+    return answer(`${what} wasn't saved: ${reason}`, status);
   };
 
   if (!sameOrigin(request)) {
     return refuse(403, "refused", "it didn't come from this page.");
   }
-  const body = await readForm(request, commentLimit);
+  const body = await readForm(request, kind.limit);
   if (!body.ok) return refuse(body.status, "invalid", body.reason);
-  const decoded = Schema.decodeUnknownOption(CommentForm)({
-    token: body.fields["token"],
-    on: body.fields["on"],
-    body: written(body.fields["body"] ?? ""),
-  });
-  if (Option.isNone(decoded)) {
-    return refuse(
-      400,
-      "invalid",
-      "a comment is 1 to 2000 characters of text, on the evening, a section or a round.",
-    );
-  }
-  const form = decoded.value;
   const evening = await run((collab) => collab.evening(who, slug));
   if (Option.isNone(evening)) {
     return refuse(404, "refused", "there is no such evening for you.");
@@ -511,8 +628,8 @@ async function post(
   const eventId = evening.value.id;
   const signedForm = await isFormToken(
     key.value,
-    { email: who.email, eventId, form: "comment", issuedAt: who.issuedAt },
-    form.token,
+    { email: who.email, eventId, form: kind.form, issuedAt: who.issuedAt },
+    body.fields["token"] ?? "",
   );
   if (!signedForm) {
     return refuse(
@@ -522,21 +639,102 @@ async function post(
       eventId,
     );
   }
-  const [kind, id = null] = form.on.split(":");
-  const added = await run((collab) =>
-    collab.comment(
+  const back = new Response(null, {
+    status: 303,
+    headers: {
+      location: `/${encodeURIComponent(slug)}?said=${kind.said}#${kind.form === "comment" ? "collab-comments" : "collab-round"}`,
+    },
+  });
+  const limits = { actions: writes, ...writeLimits };
+
+  if (kind.form === "comment") {
+    const decoded = Schema.decodeUnknownOption(CommentForm)({
+      token: body.fields["token"],
+      on: body.fields["on"],
+      body: written(body.fields["body"] ?? ""),
+    });
+    if (Option.isNone(decoded)) {
+      return refuse(
+        400,
+        "invalid",
+        "a comment is 1 to 2000 characters of text, on the evening, a section or a round.",
+        eventId,
+      );
+    }
+    const [target, id = null] = decoded.value.on.split(":");
+    const added = await run((collab) =>
+      collab.comment(
+        who,
+        evening.value,
+        {
+          body: decoded.value.body,
+          sectionId: target === "section" ? id : null,
+          roundId: target === "round" ? id : null,
+        },
+        { requestId },
+        limits,
+      ),
+    );
+    if (added === "limited") {
+      return refuse(
+        429,
+        "limited",
+        "that's a lot at once. Try again later.",
+        eventId,
+      );
+    }
+    if (added === "refused") {
+      return refuse(403, "refused", "you can't comment there.", eventId);
+    }
+    return back;
+  }
+
+  // A round: only its host saves it, in their own name.
+  const roundId = body.fields["round"] ?? "";
+  const panel = await run((collab) => collab.panel(who, evening.value));
+  const round = panel.rounds.find((r) => r.id === roundId);
+  const host =
+    round === undefined
+      ? null
+      : await run((collab) => collab.hostOf(who, evening.value, round.id));
+  if (round === undefined || host === null) {
+    return refuse(403, "refused", "you don't host that round.", eventId);
+  }
+  const parsed = parseRoundForm(body.fields, round);
+  if (!parsed.ok) return refuse(400, "invalid", parsed.reason, eventId);
+  const id = crypto.randomUUID();
+  const sealed = await seal(
+    Option.getOrThrow(answers)[0] ?? "",
+    {
+      submissionId: id,
+      eventId,
+      roundId: round.id,
+      collaboratorId: host,
+      stage: parsed.stage,
+    },
+    {
+      questions: parsed.questions.map(asQuestion),
+      backups: parsed.backups.map(asQuestion),
+    },
+  );
+  const saved = await run((collab) =>
+    collab.saveRound(
       who,
       evening.value,
       {
-        body: form.body,
-        sectionId: kind === "section" ? id : null,
-        roundId: kind === "round" ? id : null,
+        id,
+        roundId: round.id,
+        collaboratorId: host,
+        stage: parsed.stage,
+        keyId: sealed.keyId,
+        nonce: sealed.nonce,
+        ciphertext: sealed.ciphertext,
       },
       { requestId },
-      { actions: writes, ...writeLimits },
+      limits,
     ),
   );
-  if (added === "limited") {
+  if (saved === "limited") {
     return refuse(
       429,
       "limited",
@@ -544,13 +742,9 @@ async function post(
       eventId,
     );
   }
-  if (added === "refused") {
-    return refuse(403, "refused", "you can't comment there.", eventId);
-  }
-  return new Response(null, {
-    status: 303,
-    headers: {
-      location: `/${encodeURIComponent(slug)}?said=comment#collab-comments`,
-    },
-  });
+  return back;
 }
+
+/** A form's question as the seal keeps it: its type and difficulty, as the form checked them. */
+const asQuestion = (q: RoundQuestion): Question =>
+  Schema.decodeUnknownSync(Question)(q);
