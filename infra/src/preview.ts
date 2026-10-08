@@ -50,6 +50,41 @@ export const PREVIEW_VIEWERS = [
 ] as const;
 
 /**
+ * The Zero Trust email list of draft collaborators, by its id, which the
+ * Access policy also admits (core/README.md, "Collaborating on a draft").
+ * Undefined until infra/scripts/zero-trust-token.sh has made the list:
+ * then the organizers alone are admitted, as before. Set it to the id the
+ * script prints, in a pull request of its own.
+ *
+ * The stack names the list but never declares it: Alchemy reconciles a
+ * list's items as a full set on every deploy, which would empty it. The
+ * studio (`bun run collab`, core/src/collab/access.ts) keeps its items equal
+ * to the active invitations. The list admits someone at the edge only; the
+ * Worker still checks their invitation on every request.
+ */
+export const COLLABORATOR_LIST_ID: string | undefined = undefined;
+
+/** The preview's Access policies: the organizers, and the collaborators' list once it exists. */
+export const previewPolicies = (
+  listId: string | undefined = COLLABORATOR_LIST_ID,
+) => [
+  {
+    name: "The organizers",
+    decision: "allow" as const,
+    include: PREVIEW_VIEWERS.map((email) => ({ email })),
+  },
+  ...(listId === undefined
+    ? []
+    : [
+        {
+          name: "Invited collaborators",
+          decision: "allow" as const,
+          include: [{ emailList: { id: listId } }],
+        },
+      ]),
+];
+
+/**
  * The account's Access team, as allthings.dev is named: "allthings" is
  * someone else's (team names are unique across Cloudflare).
  */
@@ -74,13 +109,7 @@ export const makePreviewAccess = Effect.gen(function* () {
     sessionDuration: "24h",
     allowedIdps: [pin.identityProviderId],
     autoRedirectToIdentity: true,
-    policies: [
-      {
-        name: "The organizers",
-        decision: "allow",
-        include: PREVIEW_VIEWERS.map((email) => ({ email })),
-      },
-    ],
+    policies: previewPolicies(),
   });
 });
 

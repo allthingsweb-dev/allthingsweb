@@ -1,7 +1,13 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
-import { Console, Effect, Layer, Option, Schema } from "effect";
+import { Console, Effect, Layer, Option, Result, Schema } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
+import { FetchHttpClient } from "effect/http";
 import * as Database from "../src/database.ts";
+import {
+  AccessError,
+  AccessList,
+  type ListSync,
+} from "../src/collab/access.ts";
 import { parseBrief } from "../src/collab/brief.ts";
 import { type Approval, Collab } from "../src/collab/collab.ts";
 import {
@@ -63,6 +69,32 @@ import { PlanningError } from "../src/planning/planning.ts";
  */
 
 const layer = Collab.layer.pipe(Layer.provideMerge(Database.layer));
+
+/** The edge's list of collaborators, through Cloudflare's API (src/collab/access.ts). */
+const edge = AccessList.cloudflare.pipe(Layer.provide(FetchHttpClient.layer));
+
+/**
+ * After an approved invitation or revocation is written: the edge's list set
+ * to every active invitation. The database is already right, and the Worker
+ * checks it on every request, so a failure here says so and how to finish.
+ */
+const syncEdge = Effect.gen(function* () {
+  const emails = yield* Collab.use((collab) => collab.activeEmails);
+  return yield* AccessList.use((access) => access.sync(emails));
+}).pipe(
+  Effect.catchTag("AccessError", (error) =>
+    Effect.fail(
+      new AccessError({
+        reason: `Written to the database, and the Worker already enforces it, but Access's list wasn't updated: ${error.reason}. Finish with: bun run collab access sync`,
+      }),
+    ),
+  ),
+);
+
+const formatSync = (sync: ListSync) =>
+  sync.added.length === 0 && sync.removed.length === 0
+    ? "✓ Access's list already matched"
+    : `✓ Access's list: ${[...sync.added.map((e) => `+${e}`), ...sync.removed.map((e) => `-${e}`)].join(" ")}`;
 
 const json = Flag.Boolean("json").pipe(
   Flag.withDescription("Print the result as JSON."),
@@ -163,6 +195,10 @@ const invite = Command.make(
   (options) =>
     Effect.gen(function* () {
       const round = value(options.round);
+      // Before anything is written: the edge can be updated too.
+      if (Option.isSome(options.approve)) {
+        yield* AccessList.use((access) => access.ready);
+      }
       const approval = yield* Collab.use((collab) =>
         collab.invite(
           {
@@ -190,7 +226,11 @@ const invite = Command.make(
           ...(round === undefined ? [] : ["--round", String(round)]),
         ])}`,
       );
-    }).pipe(Effect.provide(layer)),
+      if (approval.written) {
+        const synced = yield* syncEdge;
+        if (!options.json) yield* Console.log(formatSync(synced));
+      }
+    }).pipe(Effect.provide(Layer.mergeAll(layer, edge))),
 ).pipe(
   Command.withDescription(
     "Invite someone to help with an evening: read it and its token, then write it with --approve.",
@@ -202,6 +242,9 @@ const revoke = Command.make(
   { slug, email: required("email", "Whose invitation."), approve, json },
   (options) =>
     Effect.gen(function* () {
+      if (Option.isSome(options.approve)) {
+        yield* AccessList.use((access) => access.ready);
+      }
       const approval = yield* Collab.use((collab) =>
         collab.revoke(
           { event: options.slug, email: options.email },
@@ -214,7 +257,39 @@ const revoke = Command.make(
         describeRevocation,
         `bun run collab revoke ${shell([options.slug, "--email", approval.plan.email])}`,
       );
-    }).pipe(Effect.provide(layer)),
+      if (approval.written) {
+        // Both steps run whatever the other does: the list, so signing in
+        // again is turned away at the edge, and the sessions they already
+        // hold. Either failing says what's left, and how to finish it.
+        const email = approval.plan.email;
+        const synced = yield* Effect.result(syncEdge);
+        const ended = yield* Effect.result(
+          AccessList.use((access) => access.revokeSessions(email)),
+        );
+        const left = [
+          ...(Result.isFailure(synced) ? [synced.failure.message] : []),
+          ...(Result.isFailure(ended)
+            ? [
+                `Their Access sessions weren't ended: ${ended.failure.reason}. Finish with: bun run collab access end-sessions --email ${email}`,
+              ]
+            : []),
+        ];
+        if (!options.json) {
+          if (Result.isSuccess(synced)) {
+            yield* Console.log(formatSync(synced.success));
+          }
+          if (Result.isSuccess(ended)) {
+            yield* Console.log(`✓ ended ${email}'s Access sessions`);
+          }
+        }
+        if (left.length > 0) {
+          return yield* new AccessError({
+            reason: `Revoked in the database, which the Worker enforces on every request. ${left.join(" ")}`,
+          });
+        }
+      }
+      return undefined;
+    }).pipe(Effect.provide(Layer.mergeAll(layer, edge))),
 ).pipe(
   Command.withDescription(
     "Revoke an invitation: from the next request on, they see nothing.",
@@ -540,6 +615,57 @@ const audit = Command.make(
   ),
 );
 
+const accessSync = Command.make(
+  "sync",
+  {
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Say what would change on Access's list, and change nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    json,
+  },
+  (options) =>
+    Effect.gen(function* () {
+      const emails = yield* Collab.use((collab) => collab.activeEmails);
+      const result = yield* AccessList.use((access) =>
+        options.dryRun ? access.plan(emails) : access.sync(emails),
+      );
+      yield* print(options.json, result, (sync) =>
+        options.dryRun
+          ? `would change: ${[...sync.added.map((e) => `+${e}`), ...sync.removed.map((e) => `-${e}`)].join(" ") || "nothing"}`
+          : formatSync(sync),
+      );
+    }).pipe(Effect.provide(Layer.mergeAll(layer, edge))),
+).pipe(
+  Command.withDescription(
+    "Set Access's list of collaborators to every active invitation's email.",
+  ),
+);
+
+const accessEndSessions = Command.make(
+  "end-sessions",
+  { email: required("email", "Whose sessions."), json },
+  (options) =>
+    Effect.gen(function* () {
+      const email = options.email.trim().toLowerCase();
+      yield* AccessList.use((access) => access.revokeSessions(email));
+      yield* print(
+        options.json,
+        { email, ended: true },
+        () => `✓ ended ${email}'s Access sessions`,
+      );
+    }).pipe(Effect.provide(edge)),
+).pipe(Command.withDescription("End every Access session someone holds."));
+
+const access = Command.make("access").pipe(
+  Command.withDescription(
+    "The edge: Access's list of collaborators, and their sessions.",
+  ),
+  Command.withSubcommands([accessSync, accessEndSessions]),
+);
+
 const collab = Command.make("collab").pipe(
   Command.withDescription(
     "Collaborating on a draft evening: invitations, rounds, the brief, tasks, logistics, reviews, comments and the audit.",
@@ -557,12 +683,13 @@ const collab = Command.make("collab").pipe(
     comments,
     comment,
     audit,
+    access,
   ]),
 );
 
 // A refusal is the answer, not a crash: its reason alone, on stderr, and exit 1.
 Command.run(collab, { version: "1.0.0" }).pipe(
-  Effect.catchTag("PlanningError", (refusal) =>
+  Effect.catchTag(["PlanningError", "AccessError"], (refusal) =>
     Effect.sync(() => {
       console.error(refusal.reason);
       process.exitCode = 1;

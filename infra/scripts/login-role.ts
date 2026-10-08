@@ -154,58 +154,74 @@ export async function storeConnectionString(options: {
     );
   }
   try {
-    const replaced = (
-      JSON.parse(
-        await run([
-          "op",
-          "item",
-          "list",
-          "--vault",
-          options.vault,
-          "--format",
-          "json",
-        ]),
-      ) as Array<{ id: string; title: string }>
-    ).filter((existing) => existing.title === options.item);
-    const template = JSON.parse(
-      await run(["op", "item", "template", "get", "API Credential"]),
-    ) as { title?: string; fields: Array<{ id: string; value?: string }> };
-    template.title = options.item;
-    for (const field of template.fields) {
-      if (field.id === "credential") field.value = options.value;
-      if (field.id === "notesPlain") field.value = options.notes;
-    }
-    const dir = await mkdtemp(join(tmpdir(), "login-role-"));
-    try {
-      const file = join(dir, "item.json");
-      await writeFile(file, JSON.stringify(template), { mode: 0o600 });
-      await run([
-        "op",
-        "item",
-        "create",
-        "--vault",
-        options.vault,
-        "--template",
-        file,
-      ]);
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
-    for (const { id } of replaced) {
-      await run([
-        "op",
-        "item",
-        "delete",
-        id,
-        "--vault",
-        options.vault,
-        "--archive",
-      ]);
-    }
+    await storeItem(options);
   } catch (cause) {
     throw new Error(
       `${options.secret} has the new value, but 1Password ("${options.item}") may not: ${cause instanceof Error ? cause.message : String(cause)}. Rerun this script once 1Password answers.`,
       { cause },
     );
+  }
+}
+
+/**
+ * Stores `value` as the credential of a new 1Password item `item` in `vault`,
+ * then archives the items it replaces, so 1Password always holds a working
+ * value. 1Password's own API Credential template is passed as a file only
+ * this user can read, removed right after: op ignores the values of a
+ * template piped on stdin. The value is never an argument or printed.
+ */
+export async function storeItem(options: {
+  value: string;
+  item: string;
+  vault: string;
+  notes: string;
+}): Promise<void> {
+  const replaced = (
+    JSON.parse(
+      await run([
+        "op",
+        "item",
+        "list",
+        "--vault",
+        options.vault,
+        "--format",
+        "json",
+      ]),
+    ) as Array<{ id: string; title: string }>
+  ).filter((existing) => existing.title === options.item);
+  const template = JSON.parse(
+    await run(["op", "item", "template", "get", "API Credential"]),
+  ) as { title?: string; fields: Array<{ id: string; value?: string }> };
+  template.title = options.item;
+  for (const field of template.fields) {
+    if (field.id === "credential") field.value = options.value;
+    if (field.id === "notesPlain") field.value = options.notes;
+  }
+  const dir = await mkdtemp(join(tmpdir(), "login-role-"));
+  try {
+    const file = join(dir, "item.json");
+    await writeFile(file, JSON.stringify(template), { mode: 0o600 });
+    await run([
+      "op",
+      "item",
+      "create",
+      "--vault",
+      options.vault,
+      "--template",
+      file,
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+  for (const { id } of replaced) {
+    await run([
+      "op",
+      "item",
+      "delete",
+      id,
+      "--vault",
+      options.vault,
+      "--archive",
+    ]);
   }
 }
