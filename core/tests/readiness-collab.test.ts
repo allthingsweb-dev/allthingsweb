@@ -100,6 +100,13 @@ describe("collabChecks", () => {
           { position: 1, label: "HDMI", answer: null, decision: null },
           { position: 2, label: "Floor", answer: "unsure", decision: null },
           { position: 3, label: "Mics", answer: "yes", decision: null },
+          { position: 4, label: "Food", answer: "yes", decision: "rejected" },
+          {
+            position: 5,
+            label: "Door",
+            answer: "yes",
+            decision: "changes_requested",
+          },
         ],
         tasks: [
           {
@@ -123,12 +130,16 @@ describe("collabChecks", () => {
       "advice logistics",
       "advice logistics",
       "advice logistics",
+      "advice logistics",
+      "advice logistics",
       "advice task-overdue",
     ]);
     expect(checks.map((check) => check.message)).toEqual([
       'The venue hasn\'t answered "HDMI".',
       'The venue answered "Floor": unsure.',
       'The venue confirmed "Mics": not reviewed yet.',
+      'The venue confirmed "Food", and it was not taken: ask them again.',
+      'The venue confirmed "Door", and it was sent back for changes: ask them again.',
       '"Confirm the room" (for venue) was due 2026-10-12.',
     ]);
   });
@@ -169,6 +180,8 @@ describe("the report", () => {
         FROM events WHERE slug = '2026-09-01-draft-night';
       INSERT INTO planning.tasks (event_id, title, due_on, role)
         SELECT id, 'First drafts of your 8 + 1', '2026-10-01', 'round_host' FROM events WHERE slug = '2026-09-01-draft-night';
+      INSERT INTO planning.tasks (event_id, title, due_on, collaborator_id)
+        SELECT c.event_id, 'Your round, early', '2026-09-28', c.id FROM planning.collaborators c WHERE c.email = 'simon@example.com';
       INSERT INTO planning.logistics_items (event_id, position, label)
         SELECT id, 1, 'Projector with HDMI' FROM events WHERE slug = '2026-09-01-draft-night';`);
     const after = await report();
@@ -178,9 +191,11 @@ describe("the report", () => {
       "advice round-handed-in",
       "advice logistics",
       "advice task-overdue",
+      "advice task-overdue",
     ]);
+    // The host's own task is the earlier date.
     expect(added[0]?.message).toBe(
-      "round 5, AI isn't handed in, and was due 2026-10-01.",
+      "round 5, AI isn't handed in, and was due 2026-09-28.",
     );
     expect(formatReadiness(after)).toContain(
       'The venue hasn\'t answered "Projector with HDMI".',

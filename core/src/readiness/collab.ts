@@ -36,7 +36,7 @@ export const CollabFacts = Schema.Struct({
       handedIn: Schema.NullOr(Schema.String),
       /** That save's latest review. */
       decision: Schema.NullOr(Schema.String),
-      /** The date the round hosts' tasks set, the earliest still open. */
+      /** The earliest date still open of the tasks for every round host, or for this round's own. */
       due: Schema.NullOr(Schema.String),
     }),
   ),
@@ -118,7 +118,9 @@ export function collabChecks(
           ? `The venue hasn't answered "${item.label}".`
           : item.answer !== "yes"
             ? `The venue answered "${item.label}": ${item.answer}.`
-            : `The venue confirmed "${item.label}": not reviewed yet.`,
+            : item.decision === null
+              ? `The venue confirmed "${item.label}": not reviewed yet.`
+              : `The venue confirmed "${item.label}", and it was ${item.decision === "rejected" ? "not taken" : "sent back for changes"}: ask them again.`,
         item.label,
       ),
     );
@@ -148,7 +150,9 @@ export const collabFacts = (eventId: string) =>
         (SELECT v.decision FROM planning.reviews v WHERE v.round_submission_id = s.id
           ORDER BY v.created_at DESC, v.id LIMIT 1) AS decision,
         (SELECT min(t.due_on)::text FROM planning.tasks t
-          WHERE t.event_id = r.event_id AND t.role = 'round_host' AND t.done_at IS NULL) AS due
+          WHERE t.event_id = r.event_id AND t.done_at IS NULL
+            AND (t.role = 'round_host'
+              OR t.collaborator_id IN (SELECT c.id FROM planning.collaborators c WHERE c.round_id = r.id))) AS due
       FROM planning.rounds r
       LEFT JOIN LATERAL (
         SELECT n.id, n.created_at FROM planning.round_submissions n
