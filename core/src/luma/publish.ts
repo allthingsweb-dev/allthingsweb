@@ -648,7 +648,13 @@ const make = Effect.gen(function* () {
         // say, everything stays, and the claim lapses after claimLasts.
         const now = yield* Effect.option(luma.get(outgoing.lumaEventId));
         if (Option.isSome(now) && now.value.visibility === "public") {
-          yield* Effect.ignore(markPublished(slug));
+          yield* markPublished(slug).pipe(
+            Effect.catchTag("DataSourceError", () =>
+              refuse(
+                `${now.value.name} is public on Luma, but its publish wasn't recorded: lineup changes stay refused while its claim stands.`,
+              ),
+            ),
+          );
         } else if (Option.isSome(now)) {
           yield* sql
             .withTransaction(
@@ -674,7 +680,7 @@ const make = Effect.gen(function* () {
       yield* markPublished(slug).pipe(
         Effect.catchTag("DataSourceError", () =>
           refuse(
-            `${after.name} is public on Luma, but its publish wasn't recorded: lineup changes stay refused until the next sync.`,
+            `${after.name} is public on Luma, but its publish wasn't recorded: lineup changes stay refused while its claim stands.`,
           ),
         ),
       );
