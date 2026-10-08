@@ -1,0 +1,7 @@
+{
+  "$comment": "The studio's Cloudflare token for draft collaboration's edge: it keeps the Zero Trust list of collaborators equal to the active invitations, and ends a revoked collaborator's Access sessions (core/src/collab/access.ts). scripts/zero-trust-token.sh applies this file to the allthings account and stores the value in 1Password. Zero Trust Write is the narrowest group that writes Gateway lists; Access: Organizations Revoke only ends sessions. Grant nothing else.",
+  "name": "allthings studio (Zero Trust list and sessions)",
+  "account": "af627f300cd00c4dca56aacf05bea050",
+  "permissionGroups": ["Zero Trust Write", "Access: Organizations Revoke"],
+  "item": "allthings zero trust"
+}

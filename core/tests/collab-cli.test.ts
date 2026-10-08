@@ -15,7 +15,9 @@ import { readSeed } from "./support/database.ts";
  *
  * Needs `CORE_TEST_POSTGRES_URL`, as tests/postgres.test.ts does; the test
  * makes its own database there and drops it afterwards. The seed's draft
- * evening is moved ahead of now, so it takes invitations.
+ * evening is moved ahead of now, so it takes invitations. Cloudflare is a
+ * fake on this machine (CLOUDFLARE_API_BASE), holding the collaborators
+ * list and recording each session ended.
  */
 
 const serverUrl = process.env["CORE_TEST_POSTGRES_URL"];
@@ -44,7 +46,56 @@ if (serverUrl === undefined) {
   );
   await seeded.close();
   const files = await mkdtemp(join(tmpdir(), "collab-cli-"));
+
+  /** A fake Cloudflare: the collaborators list, and the sessions ended. */
+  const edge = { items: [] as Array<string>, ended: [] as Array<string> };
+  const prefix = "/accounts/af627f300cd00c4dca56aacf05bea050";
+  const ok = (result: unknown) => Response.json({ success: true, result });
+  const cloudflare = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    async fetch(request) {
+      if (request.headers.get("authorization") !== "Bearer test-only") {
+        return Response.json(
+          { success: false, errors: [{ message: "Authentication error" }] },
+          { status: 403 },
+        );
+      }
+      const path = new URL(request.url).pathname.slice(prefix.length);
+      if (path === "/gateway/lists") {
+        return ok([
+          {
+            id: "list-1",
+            name: "allthings draft collaborators",
+            type: "EMAIL",
+          },
+        ]);
+      }
+      if (path === "/gateway/lists/list-1" && request.method === "GET") {
+        return ok({
+          id: "list-1",
+          items: edge.items.map((value) => ({ value })),
+        });
+      }
+      if (path === "/gateway/lists/list-1" && request.method === "PUT") {
+        const body = (await request.json()) as {
+          items: Array<{ value: string }>;
+        };
+        edge.items = body.items.map((item) => item.value);
+        return ok({ id: "list-1" });
+      }
+      if (path === "/access/organizations/revoke_user") {
+        edge.ended.push(((await request.json()) as { email: string }).email);
+        return ok(true);
+      }
+      return Response.json(
+        { success: false, errors: [{ message: "not found" }] },
+        { status: 404 },
+      );
+    },
+  });
   afterAll(async () => {
+    await cloudflare.stop(true);
     await rm(files, { recursive: true, force: true });
     await admin.unsafe(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);
     await admin.close();
@@ -54,7 +105,12 @@ if (serverUrl === undefined) {
   const collab = async (...args: ReadonlyArray<string>) => {
     const child = Bun.spawn(["bun", "run", "--silent", "collab", ...args], {
       cwd: core,
-      env: { ...process.env, DATABASE_URL: databaseUrl },
+      env: {
+        ...process.env,
+        DATABASE_URL: databaseUrl,
+        CLOUDFLARE_API_BASE: `http://127.0.0.1:${cloudflare.port}`,
+        CLOUDFLARE_ZERO_TRUST_TOKEN: "test-only",
+      },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -101,6 +157,8 @@ if (serverUrl === undefined) {
 
       const written = await collab(...args, "--approve", token ?? "");
       expect(written.stdout).toStartWith("✓ invite Simon");
+      expect(written.stdout).toContain("✓ Access's list: +simon@example.com");
+      expect(edge.items).toEqual(["simon@example.com"]);
       expect(await json("list", draft)).toMatchObject([
         {
           email: "simon@example.com",
@@ -109,6 +167,95 @@ if (serverUrl === undefined) {
           active: true,
         },
       ]);
+    });
+
+    test("a revocation takes them off the list and ends their sessions", async () => {
+      const args = [
+        "invite",
+        draft,
+        "--email",
+        "gone@example.com",
+        "--name",
+        "Gone",
+        "--role",
+        "viewer",
+      ];
+      const read = await collab(...args);
+      const token = /--approve ([0-9a-f]{16})$/m.exec(read.stdout)?.[1] ?? "";
+      await collab(...args, "--approve", token);
+      expect(edge.items).toContain("gone@example.com");
+
+      const revoking = await collab(
+        "revoke",
+        draft,
+        "--email",
+        "gone@example.com",
+      );
+      const revokeToken =
+        /--approve ([0-9a-f]{16})$/m.exec(revoking.stdout)?.[1] ?? "";
+      const revoked = await collab(
+        "revoke",
+        draft,
+        "--email",
+        "gone@example.com",
+        "--approve",
+        revokeToken,
+      );
+      expect(revoked.code).toBe(0);
+      expect(edge.items).not.toContain("gone@example.com");
+      expect(edge.ended).toEqual(["gone@example.com"]);
+      expect(revoked.stdout).toContain(
+        "✓ ended gone@example.com's Access sessions",
+      );
+    });
+
+    test("without the token, an approval writes nothing", async () => {
+      const args = [
+        "invite",
+        draft,
+        "--email",
+        "late@example.com",
+        "--name",
+        "Late",
+        "--role",
+        "viewer",
+      ];
+      const read = await collab(...args);
+      const token = /--approve ([0-9a-f]{16})$/m.exec(read.stdout)?.[1] ?? "";
+      const child = Bun.spawn(
+        ["bun", "run", "--silent", "collab", ...args, "--approve", token],
+        {
+          cwd: core,
+          env: {
+            ...process.env,
+            DATABASE_URL: databaseUrl,
+            CLOUDFLARE_ZERO_TRUST_TOKEN: "",
+          },
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      );
+      const [stderr, code] = await Promise.all([
+        new Response(child.stderr).text(),
+        child.exited,
+      ]);
+      expect(code).toBe(1);
+      expect(stderr).toStartWith("CLOUDFLARE_ZERO_TRUST_TOKEN is ");
+      expect(stderr).toContain("Nothing was written.");
+      expect(
+        ((await json("list", draft)) as Array<{ email: string }>).map(
+          (c) => c.email,
+        ),
+      ).not.toContain("late@example.com");
+    });
+
+    test("access sync puts the list right, and its dry run says how", async () => {
+      edge.items = ["stranger@example.com", "simon@example.com"];
+      const dry = await collab("access", "sync", "--dry-run");
+      expect(dry.stdout.trim()).toBe("would change: -stranger@example.com");
+      expect(edge.items).toContain("stranger@example.com");
+      await collab("access", "sync");
+      expect(edge.items).toEqual(["simon@example.com"]);
     });
 
     test("a refusal is its reason on stderr, and exit 1", async () => {

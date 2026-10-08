@@ -221,3 +221,29 @@ NODE_OPTIONS=--dns-result-order=ipv4first bunx cf@1.0.0-beta.12 auth create allt
 bash infra/scripts/ci-token.sh            # create, or update the policies
 bash infra/scripts/ci-token.sh --rotate   # also roll the value and update the secret
 ```
+
+## The studio's Zero Trust token
+
+Draft collaboration's edge (core's README, "Collaborating on a draft") is kept by the studio, not by Alchemy:
+
+- The preview's Access policy admits the Zero Trust email list "allthings draft collaborators" besides the organizers, once `COLLABORATOR_LIST_ID` in [`src/preview.ts`](src/preview.ts) names it.
+- `bun run collab` sets the list's items to every active invitation whenever it invites or revokes. A revocation also ends that person's Access sessions.
+- Alchemy only names the list: it reconciles a list's items as a full set on every deploy, which would empty this one.
+
+The studio calls Cloudflare's API with an account-owned token that has only what [`zero-trust-token.json`](zero-trust-token.json) lists:
+
+- **Zero Trust Write:** the narrowest group that writes Gateway lists.
+- **Access: Organizations Revoke:** ends sessions, nothing else.
+
+[`scripts/zero-trust-token.sh`](scripts/zero-trust-token.sh) applies that file the way `ci-token.sh` applies its own:
+
+- It creates the token, or updates its policies in place.
+- The value goes straight from Cloudflare into 1Password ("allthings zero trust" in the `allthings` vault, field `credential`), never printed.
+- Then, with the token, it makes the list if it isn't there and prints the list's id, which isn't a secret. Set `COLLABORATOR_LIST_ID` to it in a pull request of its own, and deploy prod.
+
+Run it from the repository root, with cf signed in to the allthings account and op signed in through `OP_SERVICE_ACCOUNT_TOKEN`:
+
+```sh
+bash infra/scripts/zero-trust-token.sh            # create, or update the policies; make the list if it's missing
+bash infra/scripts/zero-trust-token.sh --rotate   # also roll the value and store it
+```

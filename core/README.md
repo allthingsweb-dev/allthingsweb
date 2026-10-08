@@ -1081,6 +1081,22 @@ brief again keeps a section someone commented on, matched by its heading,
 and refuses to drop it. Still to come: `collab show` and `collab export`,
 which open a round's sealed questions, with the round form.
 
+**The edge.** An approved invitation or revocation also sets Access's list
+of collaborators to every active invitation, and a revocation ends that
+person's Access sessions (src/collab/access.ts). Both need the studio's
+token, `CLOUDFLARE_ZERO_TRUST_TOKEN` ("allthings zero trust" in 1Password;
+infra/README.md, "The studio's Zero Trust token"), passed without printing
+it. Without the token, an approval writes nothing. If Cloudflare fails
+after the database was written, the command says so: the Worker already
+enforces the change, and `collab access sync` finishes it.
+
+```sh
+CLOUDFLARE_ZERO_TRUST_TOKEN=$(op read "op://allthings/allthings zero trust/credential") \
+  DATABASE_URL=… bun run collab invite <slug> … --approve <token>
+DATABASE_URL=… CLOUDFLARE_ZERO_TRUST_TOKEN=… bun run collab access sync [--dry-run]   # the list, set to the invitations
+CLOUDFLARE_ZERO_TRUST_TOKEN=… bun run collab access end-sessions --email …
+```
+
 Readiness learns the collaboration: a round not accepted by its deadline,
 an unconfirmed logistics item, or an overdue task is advice, then a
 blocker on the day.
