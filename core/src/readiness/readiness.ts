@@ -8,6 +8,7 @@ import { coverFactsOf } from "../cover.ts";
 import { eventTopic } from "../lockup.ts";
 import type { HostProspect, Idea, WantedSpeaker } from "../planning/model.ts";
 import { Planning, PlanningError } from "../planning/planning.ts";
+import { collabChecks, collabFacts } from "./collab.ts";
 import type { EventProgram } from "../rows.ts";
 import { ShortSlugs } from "../slugs.ts";
 import { sfDay } from "./calendar.ts";
@@ -454,7 +455,18 @@ const make = Effect.gen(function* () {
               },
         idea,
         ready: checks.every((entry) => entry.level !== "blocker"),
-        checks,
+        // What collaborating on it still needs: advice, never a blocker.
+        checks: [
+          ...checks,
+          ...(readable && fact !== undefined
+            ? collabChecks(
+                yield* collabFacts(fact.id).pipe(
+                  Effect.provideService(SqlClient, sql),
+                ),
+                today,
+              )
+            : []),
+        ],
         suggestions: {
           terms,
           speakers: {

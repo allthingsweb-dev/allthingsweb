@@ -16,6 +16,7 @@ import {
 import { eventMode } from "../mode.ts";
 import { neighborhoodOf } from "../places.ts";
 import { sfDay } from "./calendar.ts";
+import type { CollabCheckKind } from "./collab.ts";
 
 /**
  * Whether a draft evening is ready to go out, as checks over its record: a
@@ -58,7 +59,7 @@ export const draftCheckKinds = {
 export type DraftCheckKind = keyof typeof draftCheckKinds;
 
 export interface Check {
-  readonly kind: GapKind | DraftCheckKind;
+  readonly kind: GapKind | DraftCheckKind | CollabCheckKind;
   readonly level: CheckLevel;
   /** The talk, person, host or other evening it is about, if any. */
   readonly subject: string | null;
