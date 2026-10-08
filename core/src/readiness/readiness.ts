@@ -308,7 +308,22 @@ const make = Effect.gen(function* () {
       const [fact] = slug === null ? [] : yield* facts(slug);
       const events: ReadonlyArray<CalendarEvent> = yield* calendar;
 
-      const program: EventProgram = record?.program ?? idea?.program ?? "talks";
+      // A draft that came from an idea is the idea's kind of evening until it
+      // is published: the program is kept in planning, private, and publish
+      // writes it to the event (src/luma/publish.ts).
+      const planned =
+        record !== null &&
+        fact?.isDraft === true &&
+        idea !== null &&
+        idea.status !== "dropped"
+          ? idea.program
+          : null;
+      const checked =
+        record === null || planned === null
+          ? record
+          : { ...record, program: planned };
+      const program: EventProgram =
+        checked?.program ?? idea?.program ?? "talks";
       const topic =
         (record === null ? undefined : eventTopic(record)) ??
         idea?.topic ??
@@ -332,7 +347,7 @@ const make = Effect.gen(function* () {
             ]
           : draftChecks(
               {
-                record,
+                record: checked ?? record,
                 isDraft: fact.isDraft,
                 shortLocation: fact.shortLocation,
                 scheduleItems: fact.scheduleItems,

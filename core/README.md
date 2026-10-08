@@ -847,6 +847,11 @@ through its draft evening when it has one, else on its own, with everything
 still to do. Its checks and rankings are pure functions of what the database
 holds at the Clock's now.
 
+A draft that came from an idea is checked as the idea's kind of evening (a
+social, a hackathon): the program is kept in planning, private, while the
+evening is a draft, and publishing writes it to the event. A dropped idea
+no longer counts.
+
 **Checks.** The completeness rules run ahead of time, all but the ones only a
 past evening can have (photos, a recording, a guest count): what the report
 requires blocks publishing, the rest is advice. Then what only a draft is
@@ -914,6 +919,8 @@ calendar's key in `LUMA_API_KEY`:
   an idea (a trivia night, a social) publishes with the idea's pitch
   instead: the drafts write their description from talks, and it has none.
   A shared evening is refused, as before.
+  Publishing also writes the program of the idea the evening came from to
+  its event, which until then kept the program the sync gave it.
 - `cancel-test` deletes only a private test event named "allthings API
   test…" with no guests.
 

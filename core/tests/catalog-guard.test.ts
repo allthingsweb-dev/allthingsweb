@@ -91,6 +91,7 @@ const ownTime: Readonly<Record<string, string>> = {
   "core/src/luma/drafts.ts": "Luma import of drafts",
   "core/src/luma/luma.ts": "the Luma client",
   "core/src/luma/people-sync.ts": "Luma import of people",
+  "core/src/luma/publish.ts": "publishing, for the organizers",
   "core/src/luma/sync.ts": "the Luma sync",
   "core/src/luma/venues.ts": "Luma import of venues",
   "core/src/planning/planning.ts": "planning, for the organizers",

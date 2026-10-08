@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
@@ -249,6 +249,35 @@ const make = Effect.gen(function* () {
       return yield* descriptionFor(slug);
     });
 
+  /**
+   * Writes the program of the idea the draft at `slug` came from (unless
+   * that idea was dropped) to its event: planning keeps it while the
+   * evening is a draft, and publishing makes it the evening's.
+   */
+  const ProgramRows = Schema.Array(Schema.Struct({ before: Schema.String }));
+
+  /** The program the event had before, or null when nothing changed. */
+  const applyPlannedProgram = (slug: string) =>
+    Effect.flatMap(
+      DateTime.now,
+      (now) =>
+        sql`
+        UPDATE events e SET program = i.program,
+          updated_at = ${DateTime.formatIso(now)}::timestamptz
+        FROM planning.ideas i, events was
+        WHERE i.event_id = e.id AND e.slug = ${slug} AND was.id = e.id
+          AND i.status <> 'dropped' AND e.program IS DISTINCT FROM i.program
+        RETURNING was.program AS before`,
+    ).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(ProgramRows)),
+      Effect.map(([row]) => row?.before ?? null),
+      Effect.mapError((cause) => new DataSourceError({ cause })),
+    );
+
+  /** Gives the event at `slug` back the program it had. */
+  const restoreProgram = (slug: string, program: string) =>
+    sql`UPDATE events SET program = ${program} WHERE slug = ${slug}`;
+
   /** The Luma event, which our calendar must manage. */
   const managed = (lumaEventId: string) =>
     luma.get(lumaEventId).pipe(
@@ -415,16 +444,38 @@ const make = Effect.gen(function* () {
         );
       }
       const { outgoing } = prepared;
-      yield* luma.update(outgoing.lumaEventId, {
-        description_md: outgoing.descriptionMd,
-        visibility: "public",
-      });
-      const after = yield* luma.get(outgoing.lumaEventId);
-      if (after.visibility !== "public") {
-        return yield* refuse(
-          `Luma took the update but ${after.name} is still ${after.visibility}.`,
-        );
-      }
+      // The kind of evening its idea planned, kept private until now, is
+      // written first, so the evening is never public with the wrong one;
+      // if Luma then says it isn't public, the draft gets its own back.
+      // When Luma can't say, the planned program stays.
+      const before = yield* applyPlannedProgram(slug);
+      const after = yield* Effect.gen(function* () {
+        yield* luma.update(outgoing.lumaEventId, {
+          description_md: outgoing.descriptionMd,
+          visibility: "public",
+        });
+        const read = yield* luma.get(outgoing.lumaEventId);
+        if (read.visibility !== "public") {
+          return yield* refuse(
+            `Luma took the update but ${read.name} is still ${read.visibility}.`,
+          );
+        }
+        return read;
+      }).pipe(
+        Effect.onError(() =>
+          before === null
+            ? Effect.void
+            : Effect.ignore(
+                // Only once Luma says the event is still not public: after
+                // an update that may have gone through, it may be.
+                Effect.flatMap(luma.get(outgoing.lumaEventId), (now) =>
+                  now.visibility === "public"
+                    ? Effect.void
+                    : Effect.asVoid(restoreProgram(slug, before)),
+                ),
+              ),
+        ),
+      );
       if ((after.description_md ?? "") !== outgoing.descriptionMd) {
         yield* Effect.logWarning(
           "Luma rewrote the description as it stored it; check the event page.",
