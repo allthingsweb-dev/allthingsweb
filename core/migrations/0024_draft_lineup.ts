@@ -7,8 +7,9 @@ import { statements } from "./statements.ts";
  * Luma's hosts fill for published evenings), so nothing about an
  * unpublished evening goes into the repository or the public tables.
  * Readiness reads it for a draft; publishing copies it to event_people
- * (src/luma/publish.ts). Same columns and rules as event_people, but its
- * source.
+ * (src/luma/publish.ts) and stamps `published_at`: from then on the
+ * evening's lineup is the public one, and this one can't be changed. Same
+ * columns and rules as event_people, but its source.
  *
  * In the planning schema, so neither site role can read or write it
  * (tests/planning-privacy.test.ts). Ships with the app's drizzle migration
@@ -21,6 +22,7 @@ export const draftLineup: ReadonlyArray<string> = [
     "role" text NOT NULL,
     "position" integer NOT NULL,
     "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+    "published_at" timestamp with time zone,
     CONSTRAINT "draft_people_event_id_profile_id_role_pk" PRIMARY KEY("event_id","profile_id","role"),
     CONSTRAINT "draft_people_role_check" CHECK ("role" IN ('organizer', 'co-host', 'mc')),
     CONSTRAINT "draft_people_position_check" CHECK ("position" >= 0)

@@ -913,6 +913,8 @@ export const planningDraftPeopleTable = planningSchema.table(
     /** Order among the evening's people in the same role, from 0. */
     position: integer("position").notNull(),
     createdAt: planningCreatedAt,
+    /** When publishing copied it to the evening's public lineup. */
+    publishedAt: timestamp("published_at", { withTimezone: true }),
   },
   (table) => [
     primaryKey({ columns: [table.eventId, table.profileId, table.role] }),

@@ -5,6 +5,7 @@ CREATE TABLE "planning"."draft_people" (
 	"role" text NOT NULL,
 	"position" integer NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"published_at" timestamp with time zone,
 	CONSTRAINT "draft_people_event_id_profile_id_role_pk" PRIMARY KEY("event_id","profile_id","role"),
 	CONSTRAINT "draft_people_role_check" CHECK ("role" IN ('organizer', 'co-host', 'mc')),
 	CONSTRAINT "draft_people_position_check" CHECK ("position" >= 0)

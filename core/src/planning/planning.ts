@@ -809,26 +809,38 @@ const make = Effect.gen(function* () {
     }).pipe(run);
 
   const DraftRows = Schema.Array(
-    Schema.Struct({ id: Schema.String, isDraft: Schema.Boolean }),
+    Schema.Struct({
+      id: Schema.String,
+      isDraft: Schema.Boolean,
+      published: Schema.Boolean,
+    }),
   );
 
-  const readLineup = (eventId: string) =>
+  const readLineup = (draftId: string) =>
     sql`
       SELECT d.role, d.position, d.profile_id AS "profileId", p.name
       FROM planning.draft_people d JOIN profiles p ON p.id = d.profile_id
-      WHERE d.event_id = ${eventId}
+      WHERE d.event_id = ${draftId}
       ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], d.role), d.position`.pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(DraftPersonRows)),
     );
 
-  /** The evening at `slug`, which must still be a draft. */
+  /**
+   * The evening at `slug`, which must still be a draft. One whose lineup
+   * publishing already copied (`published_at`) is published on Luma,
+   * whatever the sync has caught up with, so its lineup is the public one.
+   */
   const draftEvent = (slug: string) =>
-    sql`SELECT id, is_draft AS "isDraft" FROM events WHERE slug = ${slug}`.pipe(
+    sql`
+      SELECT e.id, e.is_draft AS "isDraft",
+        EXISTS (SELECT 1 FROM planning.draft_people d
+          WHERE d.event_id = e.id AND d.published_at IS NOT NULL) AS published
+      FROM events e WHERE e.slug = ${slug}`.pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(DraftRows)),
       Effect.flatMap(([row]) =>
         row === undefined
           ? refuse(`No event, published or draft, has the slug "${slug}".`)
-          : !row.isDraft
+          : !row.isDraft || row.published
             ? refuse(
                 `${slug} is published: its lineup is the public one (core/backfill/lineups.json).`,
               )
@@ -842,12 +854,14 @@ const make = Effect.gen(function* () {
   const setDraftLineup: PlanningShape["setDraftLineup"] = (slug, people) =>
     inTransaction(
       Effect.gen(function* () {
-        const eventId = yield* draftEvent(slug);
+        // Lock the evening first, so lineup changes to it go one at a time.
+        yield* sql`SELECT id FROM events WHERE slug = ${slug} FOR UPDATE`;
+        const draftId = yield* draftEvent(slug);
         const resolved = yield* Effect.forEach(people, (entry) =>
-          Effect.map(profile(entry.profile), (found) => ({
+          Effect.map(profile(entry.profile), (named) => ({
             role: entry.role,
-            profileId: found.id,
-            name: found.name,
+            profileId: named.id,
+            name: named.name,
           })),
         );
         const seen = new Set<string>();
@@ -860,16 +874,16 @@ const make = Effect.gen(function* () {
           }
           seen.add(key);
         }
-        yield* sql`DELETE FROM planning.draft_people WHERE event_id = ${eventId}`;
+        yield* sql`DELETE FROM planning.draft_people WHERE event_id = ${draftId}`;
         for (const role of roleOrder) {
           const inRole = resolved.filter((entry) => entry.role === role);
           for (const [position, entry] of inRole.entries()) {
             yield* sql`
               INSERT INTO planning.draft_people (event_id, profile_id, role, position)
-              VALUES (${eventId}, ${entry.profileId}, ${role}, ${position})`;
+              VALUES (${draftId}, ${entry.profileId}, ${role}, ${position})`;
           }
         }
-        return yield* readLineup(eventId);
+        return yield* readLineup(draftId);
       }),
     );
 

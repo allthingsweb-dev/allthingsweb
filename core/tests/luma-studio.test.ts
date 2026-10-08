@@ -724,6 +724,80 @@ describe("publish", () => {
     );
   });
 
+  test("a lineup changed after approval is refused, and one copied can't be changed", async () => {
+    const planning = <A, E>(
+      f: (p: Planning["Service"]) => Effect.Effect<A, E>,
+    ) =>
+      Effect.runPromise(
+        Planning.use(f).pipe(
+          Effect.provide(
+            Planning.layer.pipe(
+              Layer.provideMerge(sqlLayer(db)),
+              Layer.provideMerge(clockLayer),
+            ),
+          ),
+        ),
+      );
+    await planning((p) =>
+      p.setDraftLineup(draft, [{ role: "mc", profile: "Ada Lovelace" }]),
+    );
+    const prepared = value(
+      (
+        await run((s) => s.prepare(draft), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    expect(prepared.lineup.map(({ role, name }) => [role, name])).toEqual([
+      ["mc", "Ada Lovelace"],
+    ]);
+    await planning((p) =>
+      p.setDraftLineup(draft, [{ role: "organizer", profile: "Ada Lovelace" }]),
+    );
+    const stale = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [json(lumaEvent())],
+      "/v1/events/update": [json({})],
+    });
+    expect(message(stale.exit)).toMatch(/^What would go out has changed since/);
+
+    const fresh = value(
+      (
+        await run((s) => s.prepare(draft), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    const published = await run((s) => s.publish(draft, fresh.token), {
+      "/v1/events/get": [
+        json(lumaEvent()),
+        json(
+          lumaEvent({
+            visibility: "public",
+            description_md: fresh.outgoing.descriptionMd,
+          }),
+        ),
+      ],
+      "/v1/events/update": [json({})],
+    });
+    expect(Exit.isSuccess(published.exit)).toBe(true);
+    // Copied, the evening is being published: its lineup is the public one.
+    const changed = await Effect.runPromiseExit(
+      Planning.use((p) =>
+        p.setDraftLineup(draft, [{ role: "mc", profile: "Linus" }]),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    expect(message(changed)).toBe(
+      `${draft} is published: its lineup is the public one (core/backfill/lineups.json).`,
+    );
+  });
+
   test("refuses a token for anything else, sending no update", async () => {
     const prepared = value(
       (

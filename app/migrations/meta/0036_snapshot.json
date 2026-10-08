@@ -1,5 +1,5 @@
 {
-  "id": "843c6075-30f4-4b4d-a9f6-c150455f2b3c",
+  "id": "d0e027d8-7cbd-4a4a-82a5-bbee863b104c",
   "prevId": "688e95e3-ba48-4822-9f86-af204699a2ec",
   "version": "7",
   "dialect": "postgresql",
@@ -40,12 +40,8 @@
           "name": "event_sponsors_event_id_events_id_fk",
           "tableFrom": "event_sponsors",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -53,12 +49,8 @@
           "name": "event_sponsors_sponsor_id_sponsors_id_fk",
           "tableFrom": "event_sponsors",
           "tableTo": "sponsors",
-          "columnsFrom": [
-            "sponsor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -66,10 +58,7 @@
       "compositePrimaryKeys": {
         "event_sponsors_event_id_sponsor_id_pk": {
           "name": "event_sponsors_event_id_sponsor_id_pk",
-          "columns": [
-            "event_id",
-            "sponsor_id"
-          ]
+          "columns": ["event_id", "sponsor_id"]
         }
       },
       "uniqueConstraints": {},
@@ -113,12 +102,8 @@
           "name": "event_images_event_id_events_id_fk",
           "tableFrom": "event_images",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -126,12 +111,8 @@
           "name": "event_images_image_id_images_id_fk",
           "tableFrom": "event_images",
           "tableTo": "images",
-          "columnsFrom": [
-            "image_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -139,10 +120,7 @@
       "compositePrimaryKeys": {
         "event_images_event_id_image_id_pk": {
           "name": "event_images_event_id_image_id_pk",
-          "columns": [
-            "event_id",
-            "image_id"
-          ]
+          "columns": ["event_id", "image_id"]
         }
       },
       "uniqueConstraints": {},
@@ -198,12 +176,8 @@
           "name": "event_notes_event_id_events_id_fk",
           "tableFrom": "event_notes",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -211,10 +185,7 @@
       "compositePrimaryKeys": {
         "event_notes_event_id_position_pk": {
           "name": "event_notes_event_id_position_pk",
-          "columns": [
-            "event_id",
-            "position"
-          ]
+          "columns": ["event_id", "position"]
         }
       },
       "uniqueConstraints": {},
@@ -281,12 +252,8 @@
           "name": "event_people_event_id_events_id_fk",
           "tableFrom": "event_people",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -294,12 +261,8 @@
           "name": "event_people_profile_id_profiles_id_fk",
           "tableFrom": "event_people",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -307,11 +270,7 @@
       "compositePrimaryKeys": {
         "event_people_event_id_profile_id_role_pk": {
           "name": "event_people_event_id_profile_id_role_pk",
-          "columns": [
-            "event_id",
-            "profile_id",
-            "role"
-          ]
+          "columns": ["event_id", "profile_id", "role"]
         }
       },
       "uniqueConstraints": {},
@@ -458,12 +417,8 @@
           "name": "event_posts_event_id_events_id_fk",
           "tableFrom": "event_posts",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -471,12 +426,8 @@
           "name": "event_posts_author_avatar_images_id_fk",
           "tableFrom": "event_posts",
           "tableTo": "images",
-          "columnsFrom": [
-            "author_avatar"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_avatar"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -484,12 +435,8 @@
           "name": "event_posts_image_images_id_fk",
           "tableFrom": "event_posts",
           "tableTo": "images",
-          "columnsFrom": [
-            "image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -499,9 +446,7 @@
         "event_posts_url_unique": {
           "name": "event_posts_url_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "url"
-          ]
+          "columns": ["url"]
         }
       },
       "policies": {},
@@ -598,12 +543,8 @@
           "name": "event_review_sessions_event_id_events_id_fk",
           "tableFrom": "event_review_sessions",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -613,16 +554,12 @@
         "event_review_sessions_event_id_unique": {
           "name": "event_review_sessions_event_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "event_id"
-          ]
+          "columns": ["event_id"]
         },
         "event_review_sessions_thread_id_unique": {
           "name": "event_review_sessions_thread_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "thread_id"
-          ]
+          "columns": ["thread_id"]
         }
       },
       "policies": {},
@@ -684,12 +621,8 @@
           "name": "event_schedule_items_event_id_events_id_fk",
           "tableFrom": "event_schedule_items",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -697,10 +630,7 @@
       "compositePrimaryKeys": {
         "event_schedule_items_event_id_position_pk": {
           "name": "event_schedule_items_event_id_position_pk",
-          "columns": [
-            "event_id",
-            "position"
-          ]
+          "columns": ["event_id", "position"]
         }
       },
       "uniqueConstraints": {},
@@ -743,12 +673,8 @@
           "name": "event_slugs_event_id_events_id_fk",
           "tableFrom": "event_slugs",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -758,10 +684,7 @@
         "event_slugs_event_id_slug_unique": {
           "name": "event_slugs_event_id_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "event_id",
-            "slug"
-          ]
+          "columns": ["event_id", "slug"]
         }
       },
       "policies": {},
@@ -821,12 +744,8 @@
           "name": "event_talks_event_id_events_id_fk",
           "tableFrom": "event_talks",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -834,12 +753,8 @@
           "name": "event_talks_talk_id_talks_id_fk",
           "tableFrom": "event_talks",
           "tableTo": "talks",
-          "columnsFrom": [
-            "talk_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["talk_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -847,10 +762,7 @@
       "compositePrimaryKeys": {
         "event_talks_event_id_talk_id_pk": {
           "name": "event_talks_event_id_talk_id_pk",
-          "columns": [
-            "event_id",
-            "talk_id"
-          ]
+          "columns": ["event_id", "talk_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1056,12 +968,8 @@
           "name": "events_preview_image_images_id_fk",
           "tableFrom": "events",
           "tableTo": "images",
-          "columnsFrom": [
-            "preview_image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["preview_image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1069,12 +977,8 @@
           "name": "events_organized_by_sponsors_id_fk",
           "tableFrom": "events",
           "tableTo": "sponsors",
-          "columnsFrom": [
-            "organized_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organized_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1082,14 +986,8 @@
           "name": "events_id_short_slug_event_slugs_fk",
           "tableFrom": "events",
           "tableTo": "event_slugs",
-          "columnsFrom": [
-            "id",
-            "short_slug"
-          ],
-          "columnsTo": [
-            "event_id",
-            "slug"
-          ],
+          "columnsFrom": ["id", "short_slug"],
+          "columnsTo": ["event_id", "slug"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1099,23 +997,17 @@
         "events_slug_unique": {
           "name": "events_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         },
         "events_luma_event_id_unique": {
           "name": "events_luma_event_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "luma_event_id"
-          ]
+          "columns": ["luma_event_id"]
         },
         "events_short_slug_unique": {
           "name": "events_short_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "short_slug"
-          ]
+          "columns": ["short_slug"]
         }
       },
       "policies": {},
@@ -1252,12 +1144,8 @@
           "name": "external_talks_profile_id_profiles_id_fk",
           "tableFrom": "external_talks",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1267,11 +1155,7 @@
         "external_talks_profile_id_title_given_on_unique": {
           "name": "external_talks_profile_id_title_given_on_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "profile_id",
-            "title",
-            "given_on"
-          ]
+          "columns": ["profile_id", "title", "given_on"]
         }
       },
       "policies": {},
@@ -1380,12 +1264,8 @@
           "name": "sponsors_square_logo_dark_images_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "images",
-          "columnsFrom": [
-            "square_logo_dark"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["square_logo_dark"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1393,12 +1273,8 @@
           "name": "sponsors_square_logo_light_images_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "images",
-          "columnsFrom": [
-            "square_logo_light"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["square_logo_light"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1408,16 +1284,12 @@
         "sponsors_name_unique": {
           "name": "sponsors_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         },
         "sponsors_luma_user_id_unique": {
           "name": "sponsors_luma_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "luma_user_id"
-          ]
+          "columns": ["luma_user_id"]
         }
       },
       "policies": {},
@@ -1581,12 +1453,8 @@
           "tableFrom": "availability",
           "tableTo": "wanted_speakers",
           "schemaTo": "planning",
-          "columnsFrom": [
-            "wanted_speaker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wanted_speaker_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1666,12 +1534,8 @@
           "name": "contacts_sponsor_id_sponsors_id_fk",
           "tableFrom": "contacts",
           "tableTo": "sponsors",
-          "columnsFrom": [
-            "sponsor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1729,6 +1593,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -1737,12 +1607,8 @@
           "name": "draft_people_event_id_events_id_fk",
           "tableFrom": "draft_people",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1750,12 +1616,8 @@
           "name": "draft_people_profile_id_profiles_id_fk",
           "tableFrom": "draft_people",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1763,11 +1625,7 @@
       "compositePrimaryKeys": {
         "draft_people_event_id_profile_id_role_pk": {
           "name": "draft_people_event_id_profile_id_role_pk",
-          "columns": [
-            "event_id",
-            "profile_id",
-            "role"
-          ]
+          "columns": ["event_id", "profile_id", "role"]
         }
       },
       "uniqueConstraints": {},
@@ -1863,12 +1721,8 @@
           "name": "host_prospects_sponsor_id_sponsors_id_fk",
           "tableFrom": "host_prospects",
           "tableTo": "sponsors",
-          "columnsFrom": [
-            "sponsor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1877,12 +1731,8 @@
           "tableFrom": "host_prospects",
           "tableTo": "contacts",
           "schemaTo": "planning",
-          "columnsFrom": [
-            "contact_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["contact_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1892,9 +1742,7 @@
         "host_prospects_sponsor_id_unique": {
           "name": "host_prospects_sponsor_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "sponsor_id"
-          ]
+          "columns": ["sponsor_id"]
         }
       },
       "policies": {},
@@ -1989,12 +1837,8 @@
           "name": "ideas_event_id_events_id_fk",
           "tableFrom": "ideas",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2002,12 +1846,8 @@
           "name": "ideas_inspired_by_event_id_events_id_fk",
           "tableFrom": "ideas",
           "tableTo": "events",
-          "columnsFrom": [
-            "inspired_by_event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inspired_by_event_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2017,9 +1857,7 @@
         "ideas_event_id_unique": {
           "name": "ideas_event_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "event_id"
-          ]
+          "columns": ["event_id"]
         }
       },
       "policies": {},
@@ -2152,12 +1990,8 @@
           "name": "notes_profile_id_profiles_id_fk",
           "tableFrom": "notes",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2165,12 +1999,8 @@
           "name": "notes_sponsor_id_sponsors_id_fk",
           "tableFrom": "notes",
           "tableTo": "sponsors",
-          "columnsFrom": [
-            "sponsor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sponsor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2179,12 +2009,8 @@
           "tableFrom": "notes",
           "tableTo": "contacts",
           "schemaTo": "planning",
-          "columnsFrom": [
-            "contact_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["contact_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2288,12 +2114,8 @@
           "name": "sent_posts_event_id_events_id_fk",
           "tableFrom": "sent_posts",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2303,11 +2125,7 @@
         "sent_posts_channel_event_id_moment_unique": {
           "name": "sent_posts_channel_event_id_moment_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "channel",
-            "event_id",
-            "moment"
-          ]
+          "columns": ["channel", "event_id", "moment"]
         }
       },
       "policies": {},
@@ -2379,12 +2197,8 @@
           "tableFrom": "wanted_speaker_topics",
           "tableTo": "wanted_speakers",
           "schemaTo": "planning",
-          "columnsFrom": [
-            "wanted_speaker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wanted_speaker_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2392,10 +2206,7 @@
       "compositePrimaryKeys": {
         "wanted_speaker_topics_wanted_speaker_id_topic_pk": {
           "name": "wanted_speaker_topics_wanted_speaker_id_topic_pk",
-          "columns": [
-            "wanted_speaker_id",
-            "topic"
-          ]
+          "columns": ["wanted_speaker_id", "topic"]
         }
       },
       "uniqueConstraints": {},
@@ -2465,12 +2276,8 @@
           "name": "wanted_speakers_profile_id_profiles_id_fk",
           "tableFrom": "wanted_speakers",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2479,12 +2286,8 @@
           "tableFrom": "wanted_speakers",
           "tableTo": "contacts",
           "schemaTo": "planning",
-          "columnsFrom": [
-            "contact_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["contact_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2494,16 +2297,12 @@
         "wanted_speakers_profile_id_unique": {
           "name": "wanted_speakers_profile_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "profile_id"
-          ]
+          "columns": ["profile_id"]
         },
         "wanted_speakers_contact_id_unique": {
           "name": "wanted_speakers_contact_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "contact_id"
-          ]
+          "columns": ["contact_id"]
         }
       },
       "policies": {},
@@ -2565,12 +2364,8 @@
           "name": "profile_slugs_profile_id_profiles_id_fk",
           "tableFrom": "profile_slugs",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2721,12 +2516,8 @@
           "name": "profiles_image_images_id_fk",
           "tableFrom": "profiles",
           "tableTo": "images",
-          "columnsFrom": [
-            "image"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2736,23 +2527,17 @@
         "profiles_luma_user_id_unique": {
           "name": "profiles_luma_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "luma_user_id"
-          ]
+          "columns": ["luma_user_id"]
         },
         "profiles_slug_unique": {
           "name": "profiles_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         },
         "profiles_x_user_id_unique": {
           "name": "profiles_x_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "x_user_id"
-          ]
+          "columns": ["x_user_id"]
         }
       },
       "policies": {},
@@ -2871,12 +2656,8 @@
           "name": "talk_speakers_talk_id_talks_id_fk",
           "tableFrom": "talk_speakers",
           "tableTo": "talks",
-          "columnsFrom": [
-            "talk_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["talk_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2884,12 +2665,8 @@
           "name": "talk_speakers_speaker_id_profiles_id_fk",
           "tableFrom": "talk_speakers",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "speaker_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["speaker_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2897,10 +2674,7 @@
       "compositePrimaryKeys": {
         "talk_speakers_talk_id_speaker_id_pk": {
           "name": "talk_speakers_talk_id_speaker_id_pk",
-          "columns": [
-            "talk_id",
-            "speaker_id"
-          ]
+          "columns": ["talk_id", "speaker_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2975,10 +2749,7 @@
     "public.profile_type": {
       "name": "profile_type",
       "schema": "public",
-      "values": [
-        "organizer",
-        "member"
-      ]
+      "values": ["organizer", "member"]
     }
   },
   "schemas": {

@@ -269,6 +269,7 @@ const describe = (prepared: Prepared) => {
     `when: ${outgoing.startAt} to ${outgoing.endAt ?? "?"} (${outgoing.timezone})`,
     `where: ${outgoing.address ?? "no address"}`,
     `cover: ${outgoing.coverUrl ?? "none"}`,
+    `lineup copied from planning: ${prepared.lineup.length === 0 ? "none" : prepared.lineup.map((person) => `${person.role} ${person.name}`).join(", ")}`,
     `description (${outgoing.descriptionMd.length} characters):`,
     "---",
     outgoing.descriptionMd,

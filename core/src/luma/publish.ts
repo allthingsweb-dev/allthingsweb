@@ -138,8 +138,21 @@ export type EventRef =
   | { readonly _tag: "Slug"; readonly slug: string }
   | { readonly _tag: "Luma"; readonly lumaEventId: string };
 
+/** Someone in the lineup planning kept for the draft, copied at publish. */
+export interface PlannedPerson {
+  readonly role: string;
+  readonly position: number;
+  readonly profileId: string;
+  readonly name: string;
+}
+
 export interface Prepared {
   readonly outgoing: Outgoing;
+  /**
+   * The private lineup publishing copies to the evening. The token covers
+   * it too, so a lineup changed after approval is refused.
+   */
+  readonly lineup: ReadonlyArray<PlannedPerson>;
   readonly token: string;
   /** Visibility now, before publishing. */
   readonly from: ManagedEvent["visibility"];
@@ -278,6 +291,37 @@ const make = Effect.gen(function* () {
   const restoreProgram = (slug: string, program: string) =>
     sql`UPDATE events SET program = ${program} WHERE slug = ${slug}`;
 
+  const roles = ["organizer", "co-host", "mc"];
+
+  const PlannedRows = Schema.Array(
+    Schema.Struct({
+      role: Schema.String,
+      position: Schema.Int,
+      profileId: Schema.String,
+      name: Schema.String,
+    }),
+  );
+
+  /** The private lineup planning keeps for the draft at `slug`, in order. */
+  const plannedLineup = (slug: string) =>
+    sql`
+      SELECT d.role, d.position, d.profile_id AS "profileId", p.name
+      FROM planning.draft_people d
+      JOIN events e ON e.id = d.event_id
+      JOIN profiles p ON p.id = d.profile_id
+      WHERE e.slug = ${slug}`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(PlannedRows)),
+      Effect.map((rows) =>
+        rows.toSorted(
+          (a, b) =>
+            roles.indexOf(a.role) - roles.indexOf(b.role) ||
+            a.position - b.position ||
+            a.profileId.localeCompare(b.profileId),
+        ),
+      ),
+      Effect.mapError((cause) => new DataSourceError({ cause })),
+    );
+
   const Copied = Schema.Array(
     Schema.Struct({
       eventId: Schema.String,
@@ -306,6 +350,15 @@ const make = Effect.gen(function* () {
       Effect.flatMap(Schema.decodeUnknownEffect(Copied)),
       Effect.mapError((cause) => new DataSourceError({ cause })),
     );
+
+  /**
+   * Stamps the draft's private lineup published, or (with null) not: from
+   * then on it can't be changed (src/planning/planning.ts).
+   */
+  const stampLineup = (slug: string, at: string | null) =>
+    sql`
+      UPDATE planning.draft_people d SET published_at = ${at}::timestamptz
+      FROM events e WHERE e.id = d.event_id AND e.slug = ${slug}`;
 
   /** Takes back the rows `copyPlannedLineup` added. */
   const uncopy = (rows: typeof Copied.Type) =>
@@ -466,9 +519,14 @@ const make = Effect.gen(function* () {
         return yield* refuse(`${event.name} is already public on Luma.`);
       }
       const outgoing = outgoingOf(event, yield* publishedDescription(slug));
+      const lineup = yield* plannedLineup(slug);
       return {
         outgoing,
-        token: yield* approvalToken(outgoing),
+        lineup,
+        // An evening without a private lineup hashes as it always has.
+        token: yield* approvalToken(
+          lineup.length === 0 ? outgoing : { ...outgoing, lineup },
+        ),
         from: event.visibility,
       };
     });
@@ -486,8 +544,22 @@ const make = Effect.gen(function* () {
       // private until now, are written first, so the evening is never
       // public without them; if Luma then says it isn't public, the draft
       // gets its own back. When Luma can't say, they stay.
-      const before = yield* applyPlannedProgram(slug);
-      const copied = yield* copyPlannedLineup(slug);
+      // In one transaction: none is kept without the others. The private
+      // lineup is stamped published, so it can't change from here on.
+      const stampedAt = DateTime.formatIso(yield* DateTime.now);
+      const [before, copied] = yield* sql
+        .withTransaction(
+          Effect.all([
+            applyPlannedProgram(slug),
+            copyPlannedLineup(slug),
+            Effect.asVoid(stampLineup(slug, stampedAt)),
+          ]),
+        )
+        .pipe(
+          Effect.catchTag("SqlError", (cause) =>
+            Effect.fail(new DataSourceError({ cause })),
+          ),
+        );
       const after = yield* Effect.gen(function* () {
         yield* luma.update(outgoing.lumaEventId, {
           description_md: outgoing.descriptionMd,
@@ -502,7 +574,7 @@ const make = Effect.gen(function* () {
         return read;
       }).pipe(
         Effect.onError(() =>
-          before === null && copied.length === 0
+          before === null && copied.length === 0 && prepared.lineup.length === 0
             ? Effect.void
             : Effect.ignore(
                 // Only once Luma says the event is still not public: after
@@ -517,6 +589,7 @@ const make = Effect.gen(function* () {
                         copied.length === 0
                           ? Effect.void
                           : Effect.asVoid(uncopy(copied)),
+                        Effect.asVoid(stampLineup(slug, null)),
                       ]),
                 ),
               ),

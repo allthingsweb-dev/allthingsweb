@@ -17,6 +17,7 @@ column planning.draft_people #002 profile_id uuid not null
 column planning.draft_people #003 role text not null
 column planning.draft_people #004 "position" integer not null
 column planning.draft_people #005 created_at timestamp with time zone not null default now()
+column planning.draft_people #006 published_at timestamp with time zone
 column planning.host_prospects #001 id uuid not null default gen_random_uuid()
 column planning.host_prospects #002 sponsor_id uuid
 column planning.host_prospects #003 company_name text
