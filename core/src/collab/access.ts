@@ -93,20 +93,25 @@ const Envelope = Schema.Struct({
     Schema.Array(Schema.Struct({ message: Schema.String })),
   ),
   result: Schema.optionalKey(Schema.Unknown),
-});
-
-const Lists = Schema.Array(
-  Schema.Struct({
-    id: Schema.String,
-    name: Schema.String,
-    type: Schema.String,
-  }),
-);
-const ListWithItems = Schema.Struct({
-  items: Schema.optionalKey(
-    Schema.NullOr(Schema.Array(Schema.Struct({ value: Schema.String }))),
+  result_info: Schema.optionalKey(
+    Schema.NullOr(
+      Schema.Struct({ page: Schema.optionalKey(Schema.NullOr(Schema.Number)) }),
+    ),
   ),
 });
+
+/** The most pages a list or its items are read across: 100 of 100 each. */
+const maxPages = 100;
+const perPage = 100;
+
+const ListEntry = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  type: Schema.String,
+});
+/** A page of a list's items: flat, or, as Cloudflare has answered it, nested one deep. */
+const Item = Schema.Struct({ value: Schema.String });
+const ItemEntry = Schema.Union([Item, Schema.Array(Item)]);
 
 /** The two sets' difference, sorted: what to add and what to remove. */
 export function difference(
@@ -190,7 +195,7 @@ export class AccessList extends Context.Service<AccessList, AccessListShape>()(
               reason: `${what}: Cloudflare answered ${response.status}: ${(body.errors ?? []).map((e) => e.message).join("; ") || "no reason given"}`,
             });
           }
-          return body.result;
+          return body;
         }).pipe(
           Effect.timeout(Duration.seconds(20)),
           Effect.catchTags({
@@ -213,11 +218,53 @@ export class AccessList extends Context.Service<AccessList, AccessListShape>()(
             ),
           );
 
+      /**
+       * Every page of `path`, as Cloudflare pages them: page 1, 2, … until
+       * one is empty, or the server says it answered another page than the
+       * one asked (an endpoint that doesn't page).
+       */
+      const pages = <S extends Schema.Top>(
+        what: string,
+        path: string,
+        entry: S,
+      ) =>
+        Effect.gen(function* () {
+          const all: Array<S["Type"]> = [];
+          for (let page = 1; page <= maxPages; page++) {
+            const answer = yield* call(
+              what,
+              HttpClientRequest.get(`${api}${path}`).pipe(
+                HttpClientRequest.setUrlParams({
+                  page: String(page),
+                  per_page: String(perPage),
+                }),
+              ),
+            );
+            const reported = answer.result_info?.page;
+            if (page > 1 && typeof reported === "number" && reported !== page) {
+              break;
+            }
+            const entries = yield* decode(
+              what,
+              Schema.NullOr(Schema.Array(entry)),
+            )(answer.result ?? null);
+            if (entries === null || entries.length === 0) break;
+            all.push(...entries);
+            if (page === maxPages) {
+              return yield* new AccessError({
+                reason: `${what}: more than ${maxPages * perPage} entries`,
+              });
+            }
+          }
+          return all;
+        });
+
       const listId = Effect.gen(function* () {
-        const lists = yield* call(
+        const lists = yield* pages(
           "listing Zero Trust lists",
-          HttpClientRequest.get(`${api}/gateway/lists`),
-        ).pipe(Effect.flatMap(decode("listing Zero Trust lists", Lists)));
+          "/gateway/lists",
+          ListEntry,
+        );
         const found = lists.filter((list) => list.name === COLLABORATOR_LIST);
         const [list, ...others] = found;
         if (list === undefined) {
@@ -233,15 +280,18 @@ export class AccessList extends Context.Service<AccessList, AccessListShape>()(
         return list.id;
       });
 
+      // The list's items, from their own endpoint, every page.
       const current = (id: string) =>
-        call(
+        pages(
           "reading the collaborators list",
-          HttpClientRequest.get(`${api}/gateway/lists/${id}`),
+          `/gateway/lists/${id}/items`,
+          ItemEntry,
         ).pipe(
-          Effect.flatMap(
-            decode("reading the collaborators list", ListWithItems),
+          Effect.map((entries) =>
+            entries
+              .flatMap((entry) => ("value" in entry ? [entry] : entry))
+              .map((item) => item.value),
           ),
-          Effect.map((list) => (list.items ?? []).map((item) => item.value)),
         );
 
       const plan: AccessListShape["plan"] = (emails) =>

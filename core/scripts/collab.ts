@@ -1,5 +1,5 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
-import { Console, Effect, Layer, Option, Schema } from "effect";
+import { Console, Effect, Layer, Option, Result, Schema } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { FetchHttpClient } from "effect/http";
 import * as Database from "../src/database.ts";
@@ -258,27 +258,37 @@ const revoke = Command.make(
         `bun run collab revoke ${shell([options.slug, "--email", approval.plan.email])}`,
       );
       if (approval.written) {
-        const synced = yield* syncEdge;
-        // Sessions they already hold end too: signing in again, the edge
-        // turns them away.
-        yield* AccessList.use((access) =>
-          access.revokeSessions(approval.plan.email),
-        ).pipe(
-          Effect.catchTag("AccessError", (error) =>
-            Effect.fail(
-              new AccessError({
-                reason: `Revoked, and off Access's list, but their sessions weren't ended: ${error.reason}. The Worker refuses them already; end them in Zero Trust, or run this revoke's session step again with: bun run collab access end-sessions --email ${approval.plan.email}`,
-              }),
-            ),
-          ),
+        // Both steps run whatever the other does: the list, so signing in
+        // again is turned away at the edge, and the sessions they already
+        // hold. Either failing says what's left, and how to finish it.
+        const email = approval.plan.email;
+        const synced = yield* Effect.result(syncEdge);
+        const ended = yield* Effect.result(
+          AccessList.use((access) => access.revokeSessions(email)),
         );
+        const left = [
+          ...(Result.isFailure(synced) ? [synced.failure.message] : []),
+          ...(Result.isFailure(ended)
+            ? [
+                `Their Access sessions weren't ended: ${ended.failure.reason}. Finish with: bun run collab access end-sessions --email ${email}`,
+              ]
+            : []),
+        ];
         if (!options.json) {
-          yield* Console.log(formatSync(synced));
-          yield* Console.log(
-            `✓ ended ${approval.plan.email}'s Access sessions`,
-          );
+          if (Result.isSuccess(synced)) {
+            yield* Console.log(formatSync(synced.success));
+          }
+          if (Result.isSuccess(ended)) {
+            yield* Console.log(`✓ ended ${email}'s Access sessions`);
+          }
+        }
+        if (left.length > 0) {
+          return yield* new AccessError({
+            reason: `Revoked in the database, which the Worker enforces on every request. ${left.join(" ")}`,
+          });
         }
       }
+      return undefined;
     }).pipe(Effect.provide(Layer.mergeAll(layer, edge))),
 ).pipe(
   Command.withDescription(

@@ -48,7 +48,12 @@ if (serverUrl === undefined) {
   const files = await mkdtemp(join(tmpdir(), "collab-cli-"));
 
   /** A fake Cloudflare: the collaborators list, and the sessions ended. */
-  const edge = { items: [] as Array<string>, ended: [] as Array<string> };
+  const edge = {
+    items: [] as Array<string>,
+    ended: [] as Array<string>,
+    /** Whether ending sessions fails, as Cloudflare might. */
+    refuseRevoke: false,
+  };
   const prefix = "/accounts/af627f300cd00c4dca56aacf05bea050";
   const ok = (result: unknown) => Response.json({ success: true, result });
   const cloudflare = Bun.serve({
@@ -61,21 +66,25 @@ if (serverUrl === undefined) {
           { status: 403 },
         );
       }
-      const path = new URL(request.url).pathname.slice(prefix.length);
+      const asked = new URL(request.url);
+      const path = asked.pathname.slice(prefix.length);
+      // One page of everything, as Cloudflare answers: page 2 is empty.
+      const first = (asked.searchParams.get("page") ?? "1") === "1";
       if (path === "/gateway/lists") {
-        return ok([
-          {
-            id: "list-1",
-            name: "allthings draft collaborators",
-            type: "EMAIL",
-          },
-        ]);
+        return ok(
+          first
+            ? [
+                {
+                  id: "list-1",
+                  name: "allthings draft collaborators",
+                  type: "EMAIL",
+                },
+              ]
+            : [],
+        );
       }
-      if (path === "/gateway/lists/list-1" && request.method === "GET") {
-        return ok({
-          id: "list-1",
-          items: edge.items.map((value) => ({ value })),
-        });
+      if (path === "/gateway/lists/list-1/items") {
+        return ok(first ? edge.items.map((value) => ({ value })) : []);
       }
       if (path === "/gateway/lists/list-1" && request.method === "PUT") {
         const body = (await request.json()) as {
@@ -85,6 +94,12 @@ if (serverUrl === undefined) {
         return ok({ id: "list-1" });
       }
       if (path === "/access/organizations/revoke_user") {
+        if (edge.refuseRevoke) {
+          return Response.json(
+            { success: false, errors: [{ message: "Internal error" }] },
+            { status: 500 },
+          );
+        }
         edge.ended.push(((await request.json()) as { email: string }).email);
         return ok(true);
       }
@@ -206,6 +221,50 @@ if (serverUrl === undefined) {
       expect(edge.ended).toEqual(["gone@example.com"]);
       expect(revoked.stdout).toContain(
         "✓ ended gone@example.com's Access sessions",
+      );
+    });
+
+    test("a revocation whose sessions can't be ended still leaves the list, and says how to finish", async () => {
+      const args = [
+        "invite",
+        draft,
+        "--email",
+        "stuck@example.com",
+        "--name",
+        "Stuck",
+        "--role",
+        "viewer",
+      ];
+      const read = await collab(...args);
+      await collab(
+        ...args,
+        "--approve",
+        /--approve ([0-9a-f]{16})$/m.exec(read.stdout)?.[1] ?? "",
+      );
+      const revoking = await collab(
+        "revoke",
+        draft,
+        "--email",
+        "stuck@example.com",
+      );
+      edge.refuseRevoke = true;
+      const revoked = await collab(
+        "revoke",
+        draft,
+        "--email",
+        "stuck@example.com",
+        "--approve",
+        /--approve ([0-9a-f]{16})$/m.exec(revoking.stdout)?.[1] ?? "",
+      );
+      edge.refuseRevoke = false;
+      expect(revoked.code).toBe(1);
+      expect(edge.items).not.toContain("stuck@example.com");
+      expect(revoked.stdout).toContain("-stuck@example.com");
+      expect(revoked.stderr).toStartWith(
+        "Revoked in the database, which the Worker enforces on every request. Their Access sessions weren't ended:",
+      );
+      expect(revoked.stderr).toContain(
+        "Finish with: bun run collab access end-sessions --email stuck@example.com",
       );
     });
 

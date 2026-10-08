@@ -79,7 +79,7 @@ export const previewPolicies = (
         {
           name: "Invited collaborators",
           decision: "allow" as const,
-          include: [{ emailList: listId }],
+          include: [{ emailList: { id: listId } }],
         },
       ]),
 ];

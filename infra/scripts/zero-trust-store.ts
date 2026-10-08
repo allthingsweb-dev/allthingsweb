@@ -41,16 +41,17 @@ export async function ensureList(
     authorization: `Bearer ${token}`,
     "content-type": "application/json",
   };
-  const call = async (init?: RequestInit) => {
+  const call = async (init?: RequestInit, query = "") => {
     const tries = options.tries ?? 6;
     for (let attempt = 1; ; attempt++) {
-      const response = await fetcher(api, { ...init, headers });
+      const response = await fetcher(`${api}${query}`, { ...init, headers });
       const body = (await response.json().catch(() => ({}))) as {
         success?: boolean;
         errors?: Array<{ message: string }>;
         result?: unknown;
+        result_info?: { page?: number | null } | null;
       };
-      if (response.ok && body.success !== false) return body.result;
+      if (response.ok && body.success !== false) return body;
       if (
         (response.status === 401 || response.status === 403) &&
         attempt < tries
@@ -63,11 +64,22 @@ export async function ensureList(
       );
     }
   };
-  const lists = (await call()) as Array<{
-    id: string;
-    name: string;
-    type: string;
-  }>;
+  // Every page, as Cloudflare pages lists: until one is empty, or the
+  // server answers another page than the one asked. A list on a later page
+  // is still found, so it is never made twice.
+  const lists: Array<{ id: string; name: string; type: string }> = [];
+  for (let page = 1; page <= 100; page++) {
+    const body = await call(undefined, `?page=${page}&per_page=100`);
+    const reported = body.result_info?.page;
+    if (page > 1 && typeof reported === "number" && reported !== page) break;
+    const entries = (body.result ?? []) as Array<{
+      id: string;
+      name: string;
+      type: string;
+    }>;
+    if (entries.length === 0) break;
+    lists.push(...entries);
+  }
   const found = lists.filter((list) => list.name === COLLABORATOR_LIST);
   if (found.length > 1 || found.some((list) => list.type !== "EMAIL")) {
     throw new Error(
@@ -76,16 +88,18 @@ export async function ensureList(
   }
   const [list] = found;
   if (list !== undefined) return { id: list.id, created: false };
-  const created = (await call({
-    method: "POST",
-    body: JSON.stringify({
-      name: COLLABORATOR_LIST,
-      type: "EMAIL",
-      description:
-        "Every active draft collaborator's email, set by bun run collab (core/src/collab/access.ts). Not managed by Alchemy.",
-      items: [],
-    }),
-  })) as { id?: string };
+  const created = ((
+    await call({
+      method: "POST",
+      body: JSON.stringify({
+        name: COLLABORATOR_LIST,
+        type: "EMAIL",
+        description:
+          "Every active draft collaborator's email, set by bun run collab (core/src/collab/access.ts). Not managed by Alchemy.",
+        items: [],
+      }),
+    })
+  ).result ?? {}) as { id?: string };
   if (typeof created.id !== "string")
     throw new Error("Cloudflare made the list but returned no id");
   return { id: created.id, created: true };

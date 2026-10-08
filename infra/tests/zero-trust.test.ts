@@ -34,7 +34,7 @@ describe("the preview's Access policies", () => {
       {
         name: "Invited collaborators",
         decision: "allow",
-        include: [{ emailList: "list-1" }],
+        include: [{ emailList: { id: "list-1" } }],
       },
     ]);
   });
@@ -57,9 +57,11 @@ test("the studio's token holds Zero Trust list writes and session revocation, no
 });
 
 describe("ensureList", () => {
+  /** A fake Cloudflare holding `lists`, `perPage` to a page as it pages them. */
   const fake = (
     lists: Array<{ id: string; name: string; type: string }>,
     refusals = 0,
+    perPage = 100,
   ) => {
     const sent: Array<{
       method: string;
@@ -67,7 +69,7 @@ describe("ensureList", () => {
       authorization: string | null;
     }> = [];
     let refused = 0;
-    const fetcher = async (_url: string, init?: RequestInit) => {
+    const fetcher = async (url: string, init?: RequestInit) => {
       const headers = new Headers(init?.headers);
       sent.push({
         method: init?.method ?? "GET",
@@ -84,8 +86,14 @@ describe("ensureList", () => {
           { status: 403 },
         );
       }
-      if ((init?.method ?? "GET") === "GET")
-        return Response.json({ success: true, result: lists });
+      if ((init?.method ?? "GET") === "GET") {
+        const page = Number(new URL(url).searchParams.get("page") ?? "1");
+        return Response.json({
+          success: true,
+          result: lists.slice((page - 1) * perPage, page * perPage),
+          result_info: { page },
+        });
+      }
       return Response.json({ success: true, result: { id: "made-1" } });
     };
     return { sent, fetcher };
@@ -100,8 +108,26 @@ describe("ensureList", () => {
       id: "list-1",
       created: false,
     });
-    expect(cf.sent.map((s) => s.method)).toEqual(["GET"]);
+    // Page 1, then an empty page 2: every page read.
+    expect(cf.sent.map((s) => s.method)).toEqual(["GET", "GET"]);
     expect(cf.sent[0]?.authorization).toBe("Bearer t");
+  });
+
+  test("finds it on a later page, and never makes a second", async () => {
+    const cf = fake(
+      [
+        { id: "a", name: "first", type: "EMAIL" },
+        { id: "b", name: "second", type: "IP" },
+        { id: "list-1", name: COLLABORATOR_LIST, type: "EMAIL" },
+      ],
+      0,
+      2,
+    );
+    expect(await ensureList("acct", "t", cf.fetcher)).toEqual({
+      id: "list-1",
+      created: false,
+    });
+    expect(cf.sent.map((s) => s.method)).toEqual(["GET", "GET", "GET"]);
   });
 
   test("makes it empty, as an email list, when it isn't there", async () => {
