@@ -11,6 +11,7 @@ import {
   Effect,
   Layer,
   Option,
+  Schema,
 } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
@@ -38,7 +39,16 @@ import {
   type Evening,
   type Signer,
 } from "./collab.ts";
-import { CollabPanel } from "./panel.tsx";
+import { CollabPanel, type PanelForms } from "./panel.tsx";
+import {
+  CommentForm,
+  commentLimit,
+  formToken,
+  isFormToken,
+  readForm,
+  sameOrigin,
+  written,
+} from "./forms.ts";
 
 /**
  * The draft preview: an evening's real page, rendered from its draft,
@@ -69,8 +79,13 @@ const preview = Layer.effectContext(
   ).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
 );
 
+/** Who Access signed in, and when: their forms' tokens are bound to it. */
+export interface SignedIn extends Signer {
+  readonly issuedAt: number;
+}
+
 /** Who Access signed in for this request (access.ts), set by the handler. */
-export class CurrentSigner extends Context.Reference<Option.Option<Signer>>(
+export class CurrentSigner extends Context.Reference<Option.Option<SignedIn>>(
   "allthings/web/preview/CurrentSigner",
   { defaultValue: () => Option.none() },
 ) {}
@@ -101,6 +116,28 @@ const withCollab = <A, E, R>(
       yield* Collab.use(f).pipe(Effect.provide(collabLayer(url.value))),
     );
   });
+
+/**
+ * The key the collaborators' forms are signed with (forms.ts), from the
+ * Worker's `COLLAB_FORM_KEY`: none without it, and then no form is shown
+ * and none is taken.
+ */
+export class FormKey extends Context.Reference<Option.Option<string>>(
+  "allthings/web/preview/FormKey",
+  { defaultValue: () => Option.none() },
+) {}
+
+const formKeyOf = (env: Readonly<Record<string, unknown>>) => {
+  const key = env["COLLAB_FORM_KEY"];
+  return typeof key === "string" && key.length >= 32
+    ? Option.some(key)
+    : Option.none<string>();
+};
+
+/** Notices a page shows after a form, by the code the redirect names: nothing a visitor wrote is echoed. */
+const notices: Readonly<Record<string, string>> = {
+  comment: "Your comment is in.",
+};
 
 /** What a signer who may see nothing is told, here and before routing alike. */
 export const refusal =
@@ -222,6 +259,25 @@ const draftPage = HttpRouter.add(
     const panel = Option.isNone(evening)
       ? Option.none()
       : yield* withCollab((collab) => collab.panel(who, evening.value));
+    const key = yield* FormKey;
+    const forms: PanelForms | undefined =
+      Option.isNone(evening) || Option.isNone(key)
+        ? undefined
+        : {
+            action: `/${encodeURIComponent(evening.value.slug)}/comments`,
+            commentToken: yield* Effect.promise(() =>
+              formToken(key.value, {
+                email: who.email,
+                eventId: evening.value.id,
+                form: "comment",
+                issuedAt: who.issuedAt,
+              }),
+            ),
+            notice:
+              notices[
+                new URL(request.url, "http://x").searchParams.get("said") ?? ""
+              ] ?? null,
+          };
     const now = yield* asOf;
     return htmlResponse(
       eventPage({
@@ -232,7 +288,12 @@ const draftPage = HttpRouter.add(
         images,
         now,
         ...(Option.isSome(panel)
-          ? { after: CollabPanel({ panel: panel.value }) }
+          ? {
+              after: CollabPanel({
+                panel: panel.value,
+                ...(forms === undefined ? {} : { forms }),
+              }),
+            }
           : {}),
       }),
       acceptEncoding,
@@ -295,6 +356,7 @@ export function makePreviewHandler(
         Images.layer(env),
         Assets.layer(env),
         Layer.succeed(CollabDatabase, collabUrl(env)),
+        Layer.succeed(FormKey, formKeyOf(env)),
       ),
     ),
   );
@@ -319,10 +381,16 @@ export function makePreviewHandler(
       reason: `could not check: ${cause instanceof Error ? cause.message : String(cause)}`,
     }));
     if (!verdict.allowed) return answer(refusal, 403);
-    const signed = Context.make(
-      CurrentSigner,
-      Option.some({ email: verdict.email, organizer: verdict.organizer }),
-    );
+    const who: SignedIn = {
+      email: verdict.email,
+      organizer: verdict.organizer,
+      issuedAt: verdict.issuedAt,
+    };
+    // Forms come here; the router only shows.
+    if (request.method === "POST") {
+      return withPreviewHeaders(await post(request, who, env));
+    }
+    const signed = Context.make(CurrentSigner, Option.some(who));
     const response = await handler(
       request,
       context === undefined
@@ -331,14 +399,158 @@ export function makePreviewHandler(
             context.waitUntil(promise),
           ),
     );
-    const headers = new Headers(response.headers);
-    for (const [name, value] of Object.entries(previewHeaders)) {
-      headers.set(name, value);
-    }
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
+    return withPreviewHeaders(response);
   };
+}
+
+/**
+ * `response` with what every preview answer carries; its pages' forms post
+ * back to the preview itself, so their policy allows that and nothing
+ * more: still no script.
+ */
+function withPreviewHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(previewHeaders)) {
+    headers.set(name, value);
+  }
+  const policy = headers.get("content-security-policy");
+  if (policy !== null) {
+    headers.set(
+      "content-security-policy",
+      policy.replace("form-action 'none'", "form-action 'self'"),
+    );
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/** How many writes one signer may make: in ten minutes, and in a day. */
+export const writeLimits = { tenMinutes: 20, day: 200 } as const;
+
+/** Everything a collaborator writes, as the audit names it: what the limits count. */
+const writes = ["comment.add"];
+
+/**
+ * A form from the preview's page. In order, before anything is written:
+ * the path, where it came from, its encoding and size, its fields, the
+ * evening (one the signer may help with, or none), its token, and the
+ * signer's rate. Each refusal is recorded in the signer's name, and
+ * answered with its reason alone; a comment that is in redirects back to
+ * the page, which says so.
+ */
+async function post(
+  request: Request,
+  who: SignedIn,
+  env: Readonly<Record<string, unknown>>,
+): Promise<Response> {
+  const key = formKeyOf(env);
+  const url = collabUrl(env);
+  const path = /^\/([^/]+)\/comments$/.exec(new URL(request.url).pathname);
+  if (path === null) return answer("Not found.", 404);
+  if (Option.isNone(key) || Option.isNone(url)) {
+    return answer("Collaboration isn't configured.", 503);
+  }
+  // A path whose encoding doesn't decode names no evening.
+  let slug: string;
+  try {
+    slug = decodeURIComponent(path[1] ?? "");
+  } catch {
+    return answer("Not found.", 404);
+  }
+  const requestId = request.headers.get("cf-ray");
+  const run = <A>(
+    f: (collab: Collab["Service"]) => Effect.Effect<A, DataSourceError>,
+  ) =>
+    Effect.runPromise(
+      Collab.use(f).pipe(Effect.provide(collabLayer(url.value))),
+    );
+  const refuse = async (
+    status: number,
+    outcome: "refused" | "invalid" | "limited",
+    reason: string,
+    eventId: string | null = null,
+  ) => {
+    await run((collab) =>
+      collab.record(who, {
+        eventId,
+        action: "comment.add",
+        outcome,
+        targetId: null,
+        requestId,
+        detail: reason,
+      }),
+    );
+    return answer(`Your comment wasn't saved: ${reason}`, status);
+  };
+
+  if (!sameOrigin(request)) {
+    return refuse(403, "refused", "it didn't come from this page.");
+  }
+  const body = await readForm(request, commentLimit);
+  if (!body.ok) return refuse(body.status, "invalid", body.reason);
+  const decoded = Schema.decodeUnknownOption(CommentForm)({
+    token: body.fields["token"],
+    on: body.fields["on"],
+    body: written(body.fields["body"] ?? ""),
+  });
+  if (Option.isNone(decoded)) {
+    return refuse(
+      400,
+      "invalid",
+      "a comment is 1 to 2000 characters of text, on the evening, a section or a round.",
+    );
+  }
+  const form = decoded.value;
+  const evening = await run((collab) => collab.evening(who, slug));
+  if (Option.isNone(evening)) {
+    return refuse(404, "refused", "there is no such evening for you.");
+  }
+  const eventId = evening.value.id;
+  const signedForm = await isFormToken(
+    key.value,
+    { email: who.email, eventId, form: "comment", issuedAt: who.issuedAt },
+    form.token,
+  );
+  if (!signedForm) {
+    return refuse(
+      403,
+      "refused",
+      "the form is out of date. Reload the page and try again.",
+      eventId,
+    );
+  }
+  const [kind, id = null] = form.on.split(":");
+  const added = await run((collab) =>
+    collab.comment(
+      who,
+      evening.value,
+      {
+        body: form.body,
+        sectionId: kind === "section" ? id : null,
+        roundId: kind === "round" ? id : null,
+      },
+      { requestId },
+      { actions: writes, ...writeLimits },
+    ),
+  );
+  if (added === "limited") {
+    return refuse(
+      429,
+      "limited",
+      "that's a lot at once. Try again later.",
+      eventId,
+    );
+  }
+  if (added === "refused") {
+    return refuse(403, "refused", "you can't comment there.", eventId);
+  }
+  return new Response(null, {
+    status: 303,
+    headers: {
+      location: `/${encodeURIComponent(slug)}?said=comment#collab-comments`,
+    },
+  });
 }

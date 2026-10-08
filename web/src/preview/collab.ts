@@ -112,6 +112,57 @@ export interface CollabShape {
     signer: Signer,
     evening: Evening,
   ) => Effect.Effect<Panel, DataSourceError>;
+  /**
+   * Adds the signer's comment, and its line in the audit, in one
+   * transaction; whether the tables' policies took it (a viewer's, or one
+   * on a round they don't host, they refuse).
+   */
+  readonly comment: (
+    signer: Signer,
+    evening: Evening,
+    comment: NewComment,
+    request: RequestRecord,
+    limits: WriteLimits,
+  ) => Effect.Effect<WriteOutcome, DataSourceError>;
+  /** A line in the audit, in the signer's name, on its own: for what was refused. */
+  readonly record: (
+    signer: Signer,
+    entry: AuditLine,
+  ) => Effect.Effect<void, DataSourceError>;
+}
+
+/**
+ * How many writes a signer may make, counted from the audit: the actions
+ * that count, and at most how many in ten minutes and in a day.
+ */
+export interface WriteLimits {
+  readonly actions: ReadonlyArray<string>;
+  readonly tenMinutes: number;
+  readonly day: number;
+}
+
+/** What became of a write: taken, refused by who may write there, or over the limits. */
+export type WriteOutcome = "ok" | "refused" | "limited";
+
+/** A comment as the Worker adds it, once its form is checked. */
+export interface NewComment {
+  readonly body: string;
+  readonly sectionId: string | null;
+  readonly roundId: string | null;
+}
+
+/** Which request did it: Cloudflare's ray, for the audit. */
+export interface RequestRecord {
+  readonly requestId: string | null;
+}
+
+/** One line of the audit (planning.collab_audit). */
+export interface AuditLine extends RequestRecord {
+  readonly eventId: string | null;
+  readonly action: string;
+  readonly outcome: "ok" | "refused" | "invalid" | "limited";
+  readonly targetId: string | null;
+  readonly detail: string | null;
 }
 
 const iso = (column: string) =>
@@ -228,7 +279,92 @@ const make = Effect.gen(function* () {
       }),
     );
 
-  return { evenings, evening, panel } satisfies CollabShape;
+  const insertAudit = (signer: Signer, entry: AuditLine) =>
+    sql`
+      INSERT INTO planning.collab_audit (actor_email, event_id, action, target_id, outcome, request_id, detail)
+      VALUES (${signer.email}, ${entry.eventId}, ${entry.action}, ${entry.targetId}, ${entry.outcome},
+        ${entry.requestId === null ? null : entry.requestId.slice(0, 64)},
+        ${entry.detail === null ? null : entry.detail.slice(0, 500)})`;
+
+  /**
+   * Whether the signer is over `limits`, asked inside the write's own
+   * transaction once it holds the signer's lock: requests sent at once wait
+   * their turn, and each counts the ones before it.
+   */
+  const overLimits = (signer: Signer, limits: WriteLimits) =>
+    Effect.gen(function* () {
+      yield* sql`SELECT pg_advisory_xact_lock(hashtext(${`collab-writes:${signer.email}`}))`;
+      const [counted] = yield* sql`
+        SELECT planning.collab_recent_actions(now() - interval '10 minutes', ${limits.actions})::int AS lately,
+          planning.collab_recent_actions(now() - interval '1 day', ${limits.actions})::int AS today`.pipe(
+        Effect.flatMap(
+          rows(Schema.Struct({ lately: Schema.Int, today: Schema.Int })),
+        ),
+      );
+      return (
+        (counted?.lately ?? 0) >= limits.tenMinutes ||
+        (counted?.today ?? 0) >= limits.day
+      );
+    });
+
+  const comment: CollabShape["comment"] = (
+    signer,
+    on,
+    added,
+    request,
+    limits,
+  ) =>
+    as(
+      signer,
+      Effect.gen(function* () {
+        if (yield* overLimits(signer, limits)) return "limited" as const;
+        // Asked first, as the policies would answer it: they refuse the
+        // same rows whatever this says, and a refusal there is a failure.
+        const [may] = yield* sql`
+          SELECT planning.collab_has_role(${on.id}, '{commenter,round_host,venue}')
+            AND (${added.sectionId}::uuid IS NULL OR EXISTS (
+              SELECT 1 FROM planning.brief_sections b WHERE b.id = ${added.sectionId}::uuid AND b.event_id = ${on.id}))
+            AND (${added.roundId}::uuid IS NULL
+              OR (EXISTS (SELECT 1 FROM planning.rounds r WHERE r.id = ${added.roundId}::uuid AND r.event_id = ${on.id})
+                AND (planning.collab_has_role(${on.id}, '{organizer}') OR planning.collab_hosts(${added.roundId}::uuid))))
+            AS allowed`.pipe(
+          Effect.flatMap(rows(Schema.Struct({ allowed: Schema.Boolean }))),
+        );
+        if (may?.allowed !== true) return "refused" as const;
+        const [mine] = yield* sql`
+          SELECT m.collaborator_id AS id, m.name FROM planning.collab_memberships() m
+          WHERE m.event_id = ${on.id} ORDER BY m.role = 'organizer' DESC, m.role LIMIT 1`.pipe(
+          Effect.flatMap(
+            rows(Schema.Struct({ id: Schema.String, name: Schema.String })),
+          ),
+        );
+        const id = crypto.randomUUID();
+        yield* sql`
+          INSERT INTO planning.comments (id, event_id, collaborator_id, author_name, author_email, section_id, round_id, body)
+          VALUES (${id}, ${on.id}, ${mine?.id ?? null}, ${mine?.name ?? "allthings"}, ${signer.email},
+            ${added.sectionId}, ${added.roundId}, ${added.body})`;
+        yield* insertAudit(signer, {
+          ...request,
+          eventId: on.id,
+          action: "comment.add",
+          outcome: "ok",
+          targetId: id,
+          detail: null,
+        });
+        return "ok" as const;
+      }),
+    );
+
+  const record: CollabShape["record"] = (signer, entry) =>
+    as(signer, insertAudit(signer, entry).pipe(Effect.asVoid));
+
+  return {
+    evenings,
+    evening,
+    panel,
+    comment,
+    record,
+  } satisfies CollabShape;
 });
 
 export class Collab extends Context.Service<Collab, CollabShape>()(

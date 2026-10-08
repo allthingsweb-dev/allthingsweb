@@ -21,6 +21,46 @@ const roleNames: Readonly<Record<string, string>> = {
 
 const roleName = (role: string) => roleNames[role] ?? role;
 
+/**
+ * The forms a signer who may write sees: where they post, the comment
+ * form's token (forms.ts), and the notice after one went in.
+ */
+export interface PanelForms {
+  readonly action: string;
+  readonly commentToken: string;
+  readonly notice: string | null;
+}
+
+/** Who may comment: everyone but a viewer. */
+const writers = new Set(["commenter", "round_host", "venue", "organizer"]);
+
+/** A comment form, on the evening, a brief section or a round. */
+function CommentBox({
+  forms,
+  on,
+  label,
+}: {
+  readonly forms: PanelForms;
+  readonly on: string;
+  readonly label: string;
+}) {
+  return (
+    <form class="collab-form" method="post" action={forms.action}>
+      <input type="hidden" name="token" value={forms.commentToken} />
+      <input type="hidden" name="on" value={on} />
+      <label>
+        <span class="at-type-meta" safe>
+          {label}
+        </span>
+        <textarea name="body" rows="3" maxlength="2000" required></textarea>
+      </label>
+      <button class="button" type="submit">
+        comment
+      </button>
+    </form>
+  );
+}
+
 const day = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
   weekday: "short",
@@ -89,7 +129,15 @@ const personLine = (person: Person) =>
   ].join(" · ");
 
 /** The panel, for `panel`'s signer. */
-export function CollabPanel({ panel }: { readonly panel: Panel }) {
+export function CollabPanel({
+  panel,
+  forms,
+}: {
+  readonly panel: Panel;
+  readonly forms?: PanelForms;
+}) {
+  const writes =
+    forms !== undefined && panel.roles.some((role) => writers.has(role));
   const yourRounds = panel.rounds.filter((round) =>
     panel.hosts.includes(round.id),
   );
@@ -105,6 +153,13 @@ export function CollabPanel({ panel }: { readonly panel: Panel }) {
       <h2 id="collab-title" class="collab-title">
         for collaborators
       </h2>
+      {forms?.notice == null ? (
+        ""
+      ) : (
+        <output class="collab-notice" safe>
+          {forms.notice}
+        </output>
+      )}
       <dl class="ledger">
         <Fact label="You">
           <>
@@ -160,16 +215,36 @@ export function CollabPanel({ panel }: { readonly panel: Panel }) {
                     (c) => c.sectionId === section.id,
                   )}
                 />
+                {writes && forms !== undefined ? (
+                  <CommentBox
+                    forms={forms}
+                    on={`section:${section.id}`}
+                    label="comment on this section"
+                  />
+                ) : (
+                  ""
+                )}
               </>
             </Fact>
           );
         })}
         <Fact label="Comments">
-          {onEvening.length === 0 ? (
-            <p>No comments yet.</p>
-          ) : (
-            <Comments comments={onEvening} />
-          )}
+          <div id="collab-comments">
+            {onEvening.length === 0 ? (
+              <p>No comments yet.</p>
+            ) : (
+              <Comments comments={onEvening} />
+            )}
+            {writes && forms !== undefined ? (
+              <CommentBox
+                forms={forms}
+                on="evening"
+                label="comment on the evening"
+              />
+            ) : (
+              ""
+            )}
+          </div>
         </Fact>
       </dl>
     </section>

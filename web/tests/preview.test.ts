@@ -131,6 +131,7 @@ describe("verifyAccess", () => {
       allowed: true,
       email: viewer,
       organizer: true,
+      issuedAt: seconds - 60,
     });
     expect(
       await verdict(await token({ email: "ANDRE@example.com", aud: audience })),
@@ -138,6 +139,7 @@ describe("verifyAccess", () => {
       allowed: true,
       email: "andre@example.com",
       organizer: true,
+      issuedAt: seconds - 60,
     });
   });
 
@@ -148,6 +150,7 @@ describe("verifyAccess", () => {
       allowed: true,
       email: "someone@example.com",
       organizer: false,
+      issuedAt: seconds - 60,
     });
   });
 
@@ -176,6 +179,11 @@ describe("verifyAccess", () => {
       "not valid yet",
     ],
     ["no email", () => token({ email: undefined }), "no email"],
+    [
+      "no time it was issued",
+      () => token({ iat: undefined }),
+      "no time it was issued",
+    ],
   ] as const) {
     test(`refuses ${name}`, async () => {
       expect(await verdict(await make())).toEqual({ allowed: false, reason });
