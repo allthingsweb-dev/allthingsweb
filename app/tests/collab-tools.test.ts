@@ -1,8 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { describe, expect, test } from "bun:test";
 import {
   type CollabTool,
   collabArguments,
@@ -14,28 +10,11 @@ import { planTools } from "../scripts/plan";
 
 /**
  * The admin MCP server's collaboration tools (scripts/collab.ts) as core's
- * `bun run collab` reads them. What the CLI does is tested in core
- * (tests/collab-cli.test.ts); here, that each tool's arguments are ones
- * the CLI takes, and that no tool returns a round's answers.
+ * `bun run collab` reads them, and that no tool returns a round's
+ * answers. That the CLI takes each tool's arguments is tested in core
+ * (tests/collab-tools.test.ts), whose CI installs it; what it does with
+ * them, in tests/collab-cli.test.ts.
  */
-
-const core = fileURLToPath(new URL("../../core/", import.meta.url));
-const files = await mkdtemp(join(tmpdir(), "collab-tools-"));
-const brief = join(files, "brief.md");
-await writeFile(brief, "## The pitch\n<!-- for: viewer -->\nHard.\n");
-afterAll(() => rm(files, { recursive: true, force: true }));
-
-/** Each run starts core's CLI cold: Bun's 5 s default is too little on CI. */
-const cliTimeout = 60_000;
-
-/** The CLI, run once before the tests, so the first isn't charged with Bun's own warm-up. */
-beforeAll(async () => {
-  await Bun.spawn(["bun", "run", "--silent", "collab", "--help"], {
-    cwd: core,
-    stdout: "ignore",
-    stderr: "ignore",
-  }).exited;
-}, cliTimeout);
 
 const id = "f0000000-0000-4000-8000-000000000001";
 const slug = "2026-10-27-allthings-trivia-evt-X4AFYwHLdOdGtMh";
@@ -65,7 +44,7 @@ const samples: { readonly [T in CollabTool]: unknown } = {
     dryRun: true,
   },
   collab_round_list: { slug },
-  collab_brief_set: { slug, from: brief, approve: "0123456789abcdef" },
+  collab_brief_set: { slug, from: "brief.md", approve: "0123456789abcdef" },
   collab_brief_show: { slug },
   collab_task_add: {
     slug,
@@ -93,8 +72,8 @@ const samples: { readonly [T in CollabTool]: unknown } = {
     note: "Q3 has two answers.",
     approve: "0123456789abcdef",
   },
-  collab_show: { id, out: join(files, "show.md") },
-  collab_export: { slug, round: 5, out: join(files, "round-5.md") },
+  collab_show: { id, out: "show.md" },
+  collab_export: { slug, round: 5, out: "round-5.md" },
   collab_comments: { slug },
   collab_comment_hide: { id, dryRun: true },
   collab_audit: { slug, limit: 50 },
@@ -184,52 +163,4 @@ describe("collaboration tools", () => {
       }),
     ).toThrow();
   });
-
-  // Each tool's arguments, as core's CLI parses them: with no database, a
-  // command it understands stops at the database (or the key it needs
-  // first), never at its usage.
-  for (const tool of collabTools) {
-    test(
-      `bun run collab takes ${tool}'s arguments`,
-      async () => {
-        const args = collabArguments(tool, samples[tool]);
-        const end = args.indexOf("--");
-        const withJson =
-          end === -1
-            ? [...args, "--json"]
-            : [...args.slice(0, end), "--json", ...args.slice(end)];
-        const env: Record<string, string> = { ...process.env } as Record<
-          string,
-          string
-        >;
-        delete env["DATABASE_URL"];
-        delete env["CLOUDFLARE_ZERO_TRUST_TOKEN"];
-        delete env["COLLAB_ANSWERS_KEY"];
-        const child = Bun.spawn(
-          ["bun", "run", "--silent", "collab", ...withJson],
-          {
-            cwd: core,
-            env,
-            stdout: "pipe",
-            stderr: "pipe",
-          },
-        );
-        const [stdout, stderr] = await Promise.all([
-          new Response(child.stdout).text(),
-          new Response(child.stderr).text(),
-          child.exited,
-        ]);
-        const said = `${stdout}${stderr}`;
-        expect(said).not.toContain("USAGE");
-        expect(
-          [
-            "DATABASE_URL",
-            "COLLAB_ANSWERS_KEY is not set",
-            "CLOUDFLARE_ZERO_TRUST_TOKEN is not set",
-          ].some((stop) => said.includes(stop)),
-        ).toBe(true);
-      },
-      cliTimeout,
-    );
-  }
 });

@@ -13,6 +13,8 @@ on:
       - "package.json"
       - "bun.lock"
       - "app/src/lib/**"
+      # tests/collab-tools.test.ts runs the admin MCP server's collab tools through the CLI.
+      - "app/scripts/collab.ts"
       - "app/migrations/**"
       - "app/package.json"
       - "app/bun.lock"
@@ -30,6 +32,8 @@ on:
       - "package.json"
       - "bun.lock"
       - "app/src/lib/**"
+      # tests/collab-tools.test.ts runs the admin MCP server's collab tools through the CLI.
+      - "app/scripts/collab.ts"
       - "app/migrations/**"
       - "app/package.json"
       - "app/bun.lock"
