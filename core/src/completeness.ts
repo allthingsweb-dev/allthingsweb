@@ -352,6 +352,14 @@ export interface CompletenessShape {
   readonly record: (
     slug: string,
   ) => Effect.Effect<EventRecord | null, DataSourceError>;
+  /**
+   * The private lineup planning keeps for the draft at `slug`
+   * (planning.draft_people), as the record's people. Only a role that may
+   * use planning can read it.
+   */
+  readonly plannedPeople: (
+    slug: string,
+  ) => Effect.Effect<EventRecord["people"], DataSourceError>;
   /** Every published event's report at the `Clock`'s now, latest first. */
   readonly report: Effect.Effect<
     ReadonlyArray<EventCompleteness>,
@@ -406,7 +414,26 @@ const make = Effect.gen(function* () {
       Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(EventRecord))),
     );
 
+  const Planned = Schema.Array(
+    Schema.Struct({ people: EventRecord.fields.people }),
+  );
+
   return Completeness.of({
+    plannedPeople: (slug) =>
+      sql`
+        SELECT COALESCE((
+          SELECT json_agg(
+            json_build_object('role', d.role, 'person', ${sql.literal(personJson)})
+            ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], d.role), d.position)
+          FROM planning.draft_people d
+          JOIN profiles p ON p.id = d.profile_id
+          JOIN events e ON e.id = d.event_id
+          WHERE e.slug = ${slug}
+        ), '[]'::json) AS people`.pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(Planned)),
+        Effect.map(([row]) => row?.people ?? []),
+        orDataSourceError,
+      ),
     record: (slug) =>
       records(sql`e.slug = ${slug}`).pipe(
         Effect.map(([event]) => event ?? null),

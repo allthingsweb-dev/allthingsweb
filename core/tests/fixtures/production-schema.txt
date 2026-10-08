@@ -12,6 +12,11 @@ column planning.contacts #004 url text
 column planning.contacts #005 sponsor_id uuid
 column planning.contacts #006 created_at timestamp with time zone not null default now()
 column planning.contacts #007 updated_at timestamp with time zone not null default now()
+column planning.draft_people #001 event_id uuid not null
+column planning.draft_people #002 profile_id uuid not null
+column planning.draft_people #003 role text not null
+column planning.draft_people #004 "position" integer not null
+column planning.draft_people #005 created_at timestamp with time zone not null default now()
 column planning.host_prospects #001 id uuid not null default gen_random_uuid()
 column planning.host_prospects #002 sponsor_id uuid
 column planning.host_prospects #003 company_name text
@@ -37,6 +42,10 @@ column planning.notes #004 contact_id uuid
 column planning.notes #005 body text not null
 column planning.notes #006 author text
 column planning.notes #007 created_at timestamp with time zone not null default now()
+column planning.publishes #001 event_id uuid not null
+column planning.publishes #002 status text not null
+column planning.publishes #003 claimed_at timestamp with time zone not null
+column planning.publishes #004 published_at timestamp with time zone
 column planning.sent_posts #001 id uuid not null default gen_random_uuid()
 column planning.sent_posts #002 channel text not null
 column planning.sent_posts #003 event_id uuid not null
@@ -231,6 +240,11 @@ constraint planning.contacts contacts_name_check CHECK ((btrim(name) <> ''::text
 constraint planning.contacts contacts_pkey PRIMARY KEY (id)
 constraint planning.contacts contacts_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
 constraint planning.contacts contacts_url_check CHECK ((url ~ '^https://[^[:space:]]+$'::text))
+constraint planning.draft_people draft_people_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.draft_people draft_people_event_id_profile_id_role_pk PRIMARY KEY (event_id, profile_id, role)
+constraint planning.draft_people draft_people_position_check CHECK (("position" >= 0))
+constraint planning.draft_people draft_people_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
+constraint planning.draft_people draft_people_role_check CHECK ((role = ANY (ARRAY['organizer'::text, 'co-host'::text, 'mc'::text])))
 constraint planning.host_prospects host_prospects_company_check CHECK ((num_nonnulls(sponsor_id, company_name) = 1))
 constraint planning.host_prospects host_prospects_company_name_check CHECK ((btrim(company_name) <> ''::text))
 constraint planning.host_prospects host_prospects_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES planning.contacts(id)
@@ -255,6 +269,10 @@ constraint planning.notes notes_pkey PRIMARY KEY (id)
 constraint planning.notes notes_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint planning.notes notes_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
 constraint planning.notes notes_subject_check CHECK ((num_nonnulls(profile_id, sponsor_id, contact_id) = 1))
+constraint planning.publishes publishes_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.publishes publishes_pkey PRIMARY KEY (event_id)
+constraint planning.publishes publishes_published_check CHECK (((status = 'published'::text) = (published_at IS NOT NULL)))
+constraint planning.publishes publishes_status_check CHECK ((status = ANY (ARRAY['publishing'::text, 'published'::text])))
 constraint planning.sent_posts sent_posts_channel_check CHECK ((channel = ANY (ARRAY['discord'::text, 'x'::text])))
 constraint planning.sent_posts sent_posts_channel_event_id_moment_unique UNIQUE (channel, event_id, moment)
 constraint planning.sent_posts sent_posts_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
@@ -368,6 +386,7 @@ enum public.profile_type ('organizer', 'member')
 index planning.availability CREATE INDEX availability_wanted_speaker_id_idx ON planning.availability USING btree (wanted_speaker_id)
 index planning.availability CREATE UNIQUE INDEX availability_pkey ON planning.availability USING btree (id)
 index planning.contacts CREATE UNIQUE INDEX contacts_pkey ON planning.contacts USING btree (id)
+index planning.draft_people CREATE UNIQUE INDEX draft_people_event_id_profile_id_role_pk ON planning.draft_people USING btree (event_id, profile_id, role)
 index planning.host_prospects CREATE UNIQUE INDEX host_prospects_company_name_unique ON planning.host_prospects USING btree (lower(company_name))
 index planning.host_prospects CREATE UNIQUE INDEX host_prospects_pkey ON planning.host_prospects USING btree (id)
 index planning.host_prospects CREATE UNIQUE INDEX host_prospects_sponsor_id_unique ON planning.host_prospects USING btree (sponsor_id)
@@ -377,6 +396,7 @@ index planning.notes CREATE INDEX notes_contact_id_idx ON planning.notes USING b
 index planning.notes CREATE INDEX notes_profile_id_idx ON planning.notes USING btree (profile_id)
 index planning.notes CREATE INDEX notes_sponsor_id_idx ON planning.notes USING btree (sponsor_id)
 index planning.notes CREATE UNIQUE INDEX notes_pkey ON planning.notes USING btree (id)
+index planning.publishes CREATE UNIQUE INDEX publishes_pkey ON planning.publishes USING btree (event_id)
 index planning.sent_posts CREATE UNIQUE INDEX sent_posts_channel_event_id_moment_unique ON planning.sent_posts USING btree (channel, event_id, moment)
 index planning.sent_posts CREATE UNIQUE INDEX sent_posts_pkey ON planning.sent_posts USING btree (id)
 index planning.wanted_speaker_topics CREATE INDEX wanted_speaker_topics_topic_idx ON planning.wanted_speaker_topics USING btree (topic)
@@ -420,9 +440,11 @@ index public.talk_speakers CREATE UNIQUE INDEX talk_speakers_talk_id_speaker_id_
 index public.talks CREATE UNIQUE INDEX talks_pkey ON public.talks USING btree (id)
 relation planning.availability kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.contacts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.draft_people kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.host_prospects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.ideas kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.publishes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.sent_posts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speaker_topics kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=

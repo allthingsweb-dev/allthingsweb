@@ -29,7 +29,11 @@ import {
   WindowInput,
 } from "../src/planning/model.ts";
 import { rollingBackIf } from "../src/planning/dry-run.ts";
-import { Planning, PlanningError } from "../src/planning/planning.ts";
+import {
+  type DraftPerson,
+  Planning,
+  PlanningError,
+} from "../src/planning/planning.ts";
 import {
   auditPlanning,
   formatAudit,
@@ -53,6 +57,8 @@ import {
  *   bun run plan host list [--status prospect]
  *   bun run plan host update <id> --status asked
  *   bun run plan note add --profile <id or name> | --sponsor … | --contact <id> --body … [--author Erik]
+ *   bun run plan lineup set <draft slug> --mc "Erik Thorelli" --organizer "Erik Thorelli" --organizer "Andre Landgraf"
+ *   bun run plan lineup show <draft slug>
  *   bun run plan search <text>
  *   bun run plan audit        prove no site role may read planning; fails if one may
  *
@@ -620,6 +626,76 @@ const note = Command.make("note").pipe(
   Command.withSubcommands([noteAdd]),
 );
 
+/** A draft's private lineup, one line each, by role and order. */
+const formatLineup = (people: ReadonlyArray<DraftPerson>): string =>
+  people.length === 0
+    ? "No lineup."
+    : people
+        .map((person) => `${person.role}: ${person.name} (${person.profileId})`)
+        .join("\n");
+
+const draftSlug = Argument.String("slug").pipe(
+  Argument.withDescription("The draft evening, by slug."),
+);
+
+const lineupSet = Command.make(
+  "set",
+  {
+    slug: draftSlug,
+    organizer: repeated(
+      "organizer",
+      "An organizer, by profile id or exact name; repeat, in order.",
+    ),
+    coHost: repeated(
+      "co-host",
+      "A co-host, by profile id or exact name; repeat, in order.",
+    ),
+    mc: repeated(
+      "mc",
+      "The MC, by profile id or exact name; repeat, in order.",
+    ),
+    json,
+    dryRun,
+  },
+  (options) =>
+    Planning.use((planning) =>
+      planning.setDraftLineup(options.slug, [
+        ...options.organizer.map((profile) => ({
+          role: "organizer" as const,
+          profile,
+        })),
+        ...options.coHost.map((profile) => ({
+          role: "co-host" as const,
+          profile,
+        })),
+        ...options.mc.map((profile) => ({ role: "mc" as const, profile })),
+      ]),
+    ).pipe(
+      Effect.flatMap((people) => print(options.json, people, formatLineup)),
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
+).pipe(
+  Command.withDescription(
+    "Make the whole private lineup of a draft evening: organizers, co-hosts, MC. Publishing copies it to the evening.",
+  ),
+);
+
+const lineupShow = Command.make("show", { slug: draftSlug, json }, (options) =>
+  Planning.use((planning) => planning.draftLineup(options.slug)).pipe(
+    Effect.flatMap((people) => print(options.json, people, formatLineup)),
+    Effect.provide(layer),
+  ),
+).pipe(Command.withDescription("A draft evening's private lineup."));
+
+const lineup = Command.make("lineup").pipe(
+  Command.withDescription(
+    "An unpublished evening's organizers, co-hosts and MC, kept private until it is published.",
+  ),
+  Command.withSubcommands([lineupSet, lineupShow]),
+);
+
 const search = Command.make(
   "search",
   {
@@ -660,7 +736,7 @@ const plan = Command.make("plan").pipe(
   Command.withDescription(
     "Organizers' planning: ideas, speakers, hosts, notes.",
   ),
-  Command.withSubcommands([idea, speaker, host, note, search, audit]),
+  Command.withSubcommands([idea, speaker, host, note, lineup, search, audit]),
 );
 
 // A refusal is the answer, not a crash: its reason alone, on stderr, and exit 1.

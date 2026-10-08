@@ -733,6 +733,25 @@ describe("the report", () => {
     });
   });
 
+  test("a draft's private lineup counts as its people", async () => {
+    await db.exec(`UPDATE events SET start_date = '2026-10-28T00:30:00Z', end_date = '2026-10-28T03:30:00Z',
+      street_address = '201 Spear St', full_address = '201 Spear St, San Francisco, CA 94105'
+      WHERE slug = '2026-09-01-draft-night'`);
+    const slug = "2026-09-01-draft-night";
+    expect(kinds((await report({ _tag: "Event", slug })).checks)).toContain(
+      "blocker people",
+    );
+    await plan((p) =>
+      p.setDraftLineup(slug, [
+        { role: "organizer", profile: "Ada Lovelace" },
+        { role: "mc", profile: "Ada Lovelace" },
+      ]),
+    );
+    const checks = kinds((await report({ _tag: "Event", slug })).checks);
+    expect(checks).not.toContain("blocker people");
+    expect(checks).not.toContain("blocker organizer");
+  });
+
   test("refuses what isn't there", async () => {
     expect(await refusal({ _tag: "Event", slug: "nope" })).toBe(
       'No event, published or draft, has the slug "nope".',

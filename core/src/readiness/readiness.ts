@@ -299,13 +299,36 @@ const make = Effect.gen(function* () {
           null;
       }
 
-      const record = slug === null ? null : yield* completeness.record(slug);
+      const stored = slug === null ? null : yield* completeness.record(slug);
+      const [fact] = slug === null ? [] : yield* facts(slug);
+      // A draft's lineup is kept private in planning until it is published
+      // (src/luma/publish.ts copies it): read with the public one.
+      const plannedPeople =
+        stored !== null && fact?.isDraft === true && readable
+          ? yield* completeness.plannedPeople(stored.slug)
+          : [];
+      const record =
+        stored === null || plannedPeople.length === 0
+          ? stored
+          : {
+              ...stored,
+              people: [
+                ...stored.people,
+                ...plannedPeople.filter(
+                  (entry) =>
+                    !stored.people.some(
+                      (own) =>
+                        own.role === entry.role &&
+                        own.person.id === entry.person.id,
+                    ),
+                ),
+              ],
+            };
       if (slug !== null && record === null) {
         return yield* new PlanningError({
           reason: `No event, published or draft, has the slug "${slug}".`,
         });
       }
-      const [fact] = slug === null ? [] : yield* facts(slug);
       const events: ReadonlyArray<CalendarEvent> = yield* calendar;
 
       // A draft that came from an idea is the idea's kind of evening until it

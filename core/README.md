@@ -810,7 +810,15 @@ topic, and a status from `idea` through `drafting` to `scheduled`, or
 builds on), speakers we'd like on stage (a profile, or a contact without
 one) with their topics and when they're free or not, companies we'd like
 to host (one we know, or a new name) with who to talk to and when each last
-hosted, and notes on the people and companies we know.
+hosted, notes on the people and companies we know, and an unpublished
+evening's lineup (`draft_people`, `migrations/0024_draft_lineup.ts`): its
+organizers, co-hosts and MC, which readiness reads for the draft and
+publishing copies to the evening's public lineup. Nothing about an
+unpublished evening goes into `core/backfill/lineups.json`, which is the
+lineup of published ones.
+Each publish is claimed in `publishes` before it writes anything, so two
+never overlap, and recorded published once Luma says so; from the claim
+on, the private lineup can't change.
 
 The schema is public; the rows are private. site_reader and site_sync are
 never granted the schema, so no grant on `public`, not even one on every
@@ -839,6 +847,8 @@ DATABASE_URL=… bun run plan speaker add --profile "Ada Lovelace" --topic effec
 DATABASE_URL=… bun run plan speaker list --topic effect --available-on 2027-01-14
 DATABASE_URL=… bun run plan host add --sponsor CodeRabbit --contact-name "…" --note "…"
 DATABASE_URL=… bun run plan note add --profile "Ada Lovelace" --body "…" --author Erik
+DATABASE_URL=… bun run plan lineup set <draft slug> --mc "Erik Thorelli" --organizer "Erik Thorelli" --organizer "Andre Landgraf" --dry-run
+DATABASE_URL=… bun run plan lineup show <draft slug>
 DATABASE_URL=… bun run plan search "trivia"
 DATABASE_URL=… bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
 ```

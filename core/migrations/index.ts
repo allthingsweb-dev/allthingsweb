@@ -22,6 +22,7 @@ import venueByOrganizerMigration from "./0020_venue_by_organizer.ts";
 import sentPostsMigration from "./0021_sent_posts.ts";
 import xSentPostsMigration from "./0022_x_sent_posts.ts";
 import dropAdminTablesMigration from "./0023_drop_admin_tables.ts";
+import draftLineupMigration from "./0024_draft_lineup.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -54,6 +55,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0021_sent_posts": sentPostsMigration,
   "0022_x_sent_posts": xSentPostsMigration,
   "0023_drop_admin_tables": dropAdminTablesMigration,
+  "0024_draft_lineup": draftLineupMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

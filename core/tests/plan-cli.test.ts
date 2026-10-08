@@ -98,6 +98,26 @@ if (serverUrl === undefined) {
       expect(listed.map((idea) => idea.title)).not.toContain("Made-up dry run");
     });
 
+    test("sets and shows a draft's private lineup", async () => {
+      expect(
+        await json(
+          "lineup",
+          "set",
+          "--mc",
+          "Ada Lovelace",
+          "--organizer",
+          "Grace Hopper",
+          "--",
+          "2026-09-01-draft-night",
+        ),
+      ).toMatchObject([
+        { role: "organizer", name: "Grace Hopper" },
+        { role: "mc", name: "Ada Lovelace" },
+      ]);
+      const shown = await plan("lineup", "show", "2026-09-01-draft-night");
+      expect(shown.stdout).toContain("mc: Ada Lovelace");
+    });
+
     test("adds, updates and lists an idea", async () => {
       const added = (await json(
         "idea",

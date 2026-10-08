@@ -664,6 +664,207 @@ describe("publish", () => {
     expect(await program()).toBe("social");
   });
 
+  test("publishing copies the draft's private lineup to the evening, and takes it back if Luma doesn't", async () => {
+    await Effect.runPromise(
+      Planning.use((p) =>
+        p.setDraftLineup(draft, [
+          { role: "organizer", profile: "Ada Lovelace" },
+          { role: "mc", profile: "Ada Lovelace" },
+        ]),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const lineup = async () =>
+      (
+        await db.query<{ name: string; role: string; source: string }>(
+          `SELECT p.name, ep.role, ep.source FROM event_people ep
+           JOIN profiles p ON p.id = ep.profile_id JOIN events e ON e.id = ep.event_id
+           WHERE e.slug = '${draft}' ORDER BY ep.role, p.name`,
+        )
+      ).rows;
+    const before = await lineup();
+    const prepared = value(
+      (
+        await run((s) => s.prepare(draft), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    expect(await lineup()).toEqual(before);
+    const refused = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [json(lumaEvent())],
+      "/v1/events/update": [{ status: 503 }],
+    });
+    expect(Exit.isFailure(refused.exit)).toBe(true);
+    expect(await lineup()).toEqual(before);
+    const { exit } = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [
+        json(lumaEvent()),
+        json(
+          lumaEvent({
+            visibility: "public",
+            description_md: prepared.outgoing.descriptionMd,
+          }),
+        ),
+      ],
+      "/v1/events/update": [json({})],
+    });
+    expect(Exit.isSuccess(exit)).toBe(true);
+    expect(await lineup()).toEqual(
+      expect.arrayContaining([
+        { name: "Ada Lovelace", role: "organizer", source: "site" },
+        { name: "Ada Lovelace", role: "mc", source: "site" },
+      ]),
+    );
+  });
+
+  test("a lineup changed after approval is refused, and one copied can't be changed", async () => {
+    const planning = <A, E>(
+      f: (p: Planning["Service"]) => Effect.Effect<A, E>,
+    ) =>
+      Effect.runPromise(
+        Planning.use(f).pipe(
+          Effect.provide(
+            Planning.layer.pipe(
+              Layer.provideMerge(sqlLayer(db)),
+              Layer.provideMerge(clockLayer),
+            ),
+          ),
+        ),
+      );
+    await planning((p) =>
+      p.setDraftLineup(draft, [{ role: "mc", profile: "Ada Lovelace" }]),
+    );
+    const prepared = value(
+      (
+        await run((s) => s.prepare(draft), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    expect(prepared.lineup.map(({ role, name }) => [role, name])).toEqual([
+      ["mc", "Ada Lovelace"],
+    ]);
+    await planning((p) =>
+      p.setDraftLineup(draft, [{ role: "organizer", profile: "Ada Lovelace" }]),
+    );
+    const stale = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [json(lumaEvent())],
+      "/v1/events/update": [json({})],
+    });
+    expect(message(stale.exit)).toMatch(/^What would go out has changed since/);
+
+    const fresh = value(
+      (
+        await run((s) => s.prepare(draft), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    const published = await run((s) => s.publish(draft, fresh.token), {
+      "/v1/events/get": [
+        json(lumaEvent()),
+        json(
+          lumaEvent({
+            visibility: "public",
+            description_md: fresh.outgoing.descriptionMd,
+          }),
+        ),
+      ],
+      "/v1/events/update": [json({})],
+    });
+    expect(Exit.isSuccess(published.exit)).toBe(true);
+    // Copied, the evening is being published: its lineup is the public one.
+    const changed = await Effect.runPromiseExit(
+      Planning.use((p) =>
+        p.setDraftLineup(draft, [{ role: "mc", profile: "Linus" }]),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    expect(message(changed)).toBe(
+      `${draft} is published: its lineup is the public one (core/backfill/lineups.json).`,
+    );
+  });
+
+  test("a publish is claimed: another can't overlap it, and once published the lineup is fixed, even with none", async () => {
+    const claims = async () =>
+      (
+        await db.query<{ status: string }>(
+          "SELECT status FROM planning.publishes ORDER BY status",
+        )
+      ).rows.map((row) => row.status);
+    const prepared = value(
+      (
+        await run((s) => s.prepare(draft), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    // Another publish holds the claim: this one sends nothing to Luma.
+    await db.exec(`INSERT INTO planning.publishes (event_id, status, claimed_at)
+      SELECT id, 'publishing', '2026-10-03T18:58:00Z' FROM events WHERE slug = '${draft}'`);
+    const overlapping = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [json(lumaEvent())],
+      "/v1/events/update": [json({})],
+    });
+    expect(message(overlapping.exit)).toMatch(
+      /^Another publish of 2026-09-01-draft-night started at 2026-10-03T18:58:00\.000Z and hasn't finished/,
+    );
+    expect(
+      overlapping.requests.some((r) => r.url.endsWith("/v1/events/update")),
+    ).toBe(false);
+    // Luma refuses: the claim goes, as if nothing had started.
+    await db.exec("DELETE FROM planning.publishes");
+    const refused = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [json(lumaEvent())],
+      "/v1/events/update": [{ status: 503 }],
+    });
+    expect(Exit.isFailure(refused.exit)).toBe(true);
+    expect(await claims()).toEqual([]);
+    // Published, with no private lineup: recorded, and the lineup is fixed.
+    const { exit } = await run((s) => s.publish(draft, prepared.token), {
+      "/v1/events/get": [
+        json(lumaEvent()),
+        json(
+          lumaEvent({
+            visibility: "public",
+            description_md: prepared.outgoing.descriptionMd,
+          }),
+        ),
+      ],
+      "/v1/events/update": [json({})],
+    });
+    expect(Exit.isSuccess(exit)).toBe(true);
+    expect(await claims()).toEqual(["published"]);
+    const changed = await Effect.runPromiseExit(
+      Planning.use((p) =>
+        p.setDraftLineup(draft, [{ role: "mc", profile: "Linus" }]),
+      ).pipe(
+        Effect.provide(
+          Planning.layer.pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    expect(message(changed)).toBe(
+      `${draft} is published: its lineup is the public one (core/backfill/lineups.json).`,
+    );
+  });
+
   test("refuses a token for anything else, sending no update", async () => {
     const prepared = value(
       (

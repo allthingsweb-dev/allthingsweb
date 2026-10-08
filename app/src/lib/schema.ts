@@ -895,6 +895,63 @@ export const planningNotesTable = planningSchema.table(
  * it is sent so it goes out once. core/migrations/0021_sent_posts.ts and
  * 0022_x_sent_posts.ts are the same changes.
  */
+/**
+ * Who organizes, co-hosts and MCs an evening that isn't published yet,
+ * kept private in planning until publishing copies it to event_people.
+ * core/migrations/0024_draft_lineup.ts is the same change.
+ */
+export const planningDraftPeopleTable = planningSchema.table(
+  "draft_people",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profilesTable.id),
+    role: text("role", { enum: eventPersonRoles }).notNull(),
+    /** Order among the evening's people in the same role, from 0. */
+    position: integer("position").notNull(),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    primaryKey({ columns: [table.eventId, table.profileId, table.role] }),
+    check(
+      "draft_people_role_check",
+      sql`"role" IN ('organizer', 'co-host', 'mc')`,
+    ),
+    check("draft_people_position_check", sql`"position" >= 0`),
+  ],
+);
+
+/**
+ * Each draft's publish, claimed before it starts so two never overlap,
+ * then published once Luma says so. While it is claimed or published, the
+ * draft's private lineup can't change. core/migrations/0024_draft_lineup.ts
+ * is the same change.
+ */
+export const planningPublishesTable = planningSchema.table(
+  "publishes",
+  {
+    eventId: uuid("event_id")
+      .primaryKey()
+      .references(() => eventsTable.id),
+    status: text("status", { enum: ["publishing", "published"] }).notNull(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }).notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  () => [
+    check(
+      "publishes_status_check",
+      sql`"status" IN ('publishing', 'published')`,
+    ),
+    check(
+      "publishes_published_check",
+      sql`("status" = 'published') = ("published_at" IS NOT NULL)`,
+    ),
+  ],
+);
+
 export const planningSentPostsTable = planningSchema.table(
   "sent_posts",
   {
