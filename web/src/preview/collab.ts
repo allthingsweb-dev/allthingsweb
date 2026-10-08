@@ -122,19 +122,27 @@ export interface CollabShape {
     evening: Evening,
     comment: NewComment,
     request: RequestRecord,
-  ) => Effect.Effect<boolean, DataSourceError>;
+    limits: WriteLimits,
+  ) => Effect.Effect<WriteOutcome, DataSourceError>;
   /** A line in the audit, in the signer's name, on its own: for what was refused. */
   readonly record: (
     signer: Signer,
     entry: AuditLine,
   ) => Effect.Effect<void, DataSourceError>;
-  /** How many of `actions` the signer took in the last `minutes`: the rate limits. */
-  readonly recent: (
-    signer: Signer,
-    actions: ReadonlyArray<string>,
-    minutes: number,
-  ) => Effect.Effect<number, DataSourceError>;
 }
+
+/**
+ * How many writes a signer may make, counted from the audit: the actions
+ * that count, and at most how many in ten minutes and in a day.
+ */
+export interface WriteLimits {
+  readonly actions: ReadonlyArray<string>;
+  readonly tenMinutes: number;
+  readonly day: number;
+}
+
+/** What became of a write: taken, refused by who may write there, or over the limits. */
+export type WriteOutcome = "ok" | "refused" | "limited";
 
 /** A comment as the Worker adds it, once its form is checked. */
 export interface NewComment {
@@ -278,10 +286,38 @@ const make = Effect.gen(function* () {
         ${entry.requestId === null ? null : entry.requestId.slice(0, 64)},
         ${entry.detail === null ? null : entry.detail.slice(0, 500)})`;
 
-  const comment: CollabShape["comment"] = (signer, on, added, request) =>
+  /**
+   * Whether the signer is over `limits`, asked inside the write's own
+   * transaction once it holds the signer's lock: requests sent at once wait
+   * their turn, and each counts the ones before it.
+   */
+  const overLimits = (signer: Signer, limits: WriteLimits) =>
+    Effect.gen(function* () {
+      yield* sql`SELECT pg_advisory_xact_lock(hashtext(${`collab-writes:${signer.email}`}))`;
+      const [counted] = yield* sql`
+        SELECT planning.collab_recent_actions(now() - interval '10 minutes', ${limits.actions})::int AS lately,
+          planning.collab_recent_actions(now() - interval '1 day', ${limits.actions})::int AS today`.pipe(
+        Effect.flatMap(
+          rows(Schema.Struct({ lately: Schema.Int, today: Schema.Int })),
+        ),
+      );
+      return (
+        (counted?.lately ?? 0) >= limits.tenMinutes ||
+        (counted?.today ?? 0) >= limits.day
+      );
+    });
+
+  const comment: CollabShape["comment"] = (
+    signer,
+    on,
+    added,
+    request,
+    limits,
+  ) =>
     as(
       signer,
       Effect.gen(function* () {
+        if (yield* overLimits(signer, limits)) return "limited" as const;
         // Asked first, as the policies would answer it: they refuse the
         // same rows whatever this says, and a refusal there is a failure.
         const [may] = yield* sql`
@@ -294,7 +330,7 @@ const make = Effect.gen(function* () {
             AS allowed`.pipe(
           Effect.flatMap(rows(Schema.Struct({ allowed: Schema.Boolean }))),
         );
-        if (may?.allowed !== true) return false;
+        if (may?.allowed !== true) return "refused" as const;
         const [mine] = yield* sql`
           SELECT m.collaborator_id AS id, m.name FROM planning.collab_memberships() m
           WHERE m.event_id = ${on.id} ORDER BY m.role = 'organizer' DESC, m.role LIMIT 1`.pipe(
@@ -315,21 +351,12 @@ const make = Effect.gen(function* () {
           targetId: id,
           detail: null,
         });
-        return true;
+        return "ok" as const;
       }),
     );
 
   const record: CollabShape["record"] = (signer, entry) =>
     as(signer, insertAudit(signer, entry).pipe(Effect.asVoid));
-
-  const recent: CollabShape["recent"] = (signer, actions, minutes) =>
-    as(
-      signer,
-      sql`SELECT planning.collab_recent_actions(now() - make_interval(mins => ${minutes}), ${actions})::int AS count`.pipe(
-        Effect.flatMap(rows(Schema.Struct({ count: Schema.Int }))),
-        Effect.map(([row]) => row?.count ?? 0),
-      ),
-    );
 
   return {
     evenings,
@@ -337,7 +364,6 @@ const make = Effect.gen(function* () {
     panel,
     comment,
     record,
-    recent,
   } satisfies CollabShape;
 });
 

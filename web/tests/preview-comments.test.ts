@@ -470,6 +470,22 @@ describe("a comment that is refused writes nothing but the audit's line", () => 
     );
   });
 
+  test("to a path whose encoding doesn't decode, as no evening", async () => {
+    const response = await handler(
+      new Request(`${origin}/%E0/comments`, {
+        method: "POST",
+        body: "on=evening&body=x",
+        headers: {
+          "cf-access-jwt-assertion": await token("carol@example.com"),
+          "content-type": "application/x-www-form-urlencoded",
+          "content-length": "17",
+          origin,
+        },
+      }),
+    );
+    expect(response.status).toBe(404);
+  });
+
   test("malformed: its fields, its encoding, its size", async () => {
     const before = (await comments()).length;
     const carol = (await pageToken("carol@example.com")) ?? "";

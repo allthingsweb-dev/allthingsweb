@@ -453,7 +453,13 @@ async function post(
   if (Option.isNone(key) || Option.isNone(url)) {
     return answer("Collaboration isn't configured.", 503);
   }
-  const slug = decodeURIComponent(path[1] ?? "");
+  // A path whose encoding doesn't decode names no evening.
+  let slug: string;
+  try {
+    slug = decodeURIComponent(path[1] ?? "");
+  } catch {
+    return answer("Not found.", 404);
+  }
   const requestId = request.headers.get("cf-ray");
   const run = <A>(
     f: (collab: Collab["Service"]) => Effect.Effect<A, DataSourceError>,
@@ -516,18 +522,6 @@ async function post(
       eventId,
     );
   }
-  const [lately, today] = await Promise.all([
-    run((collab) => collab.recent(who, writes, 10)),
-    run((collab) => collab.recent(who, writes, 24 * 60)),
-  ]);
-  if (lately >= writeLimits.tenMinutes || today >= writeLimits.day) {
-    return refuse(
-      429,
-      "limited",
-      "that's a lot at once. Try again later.",
-      eventId,
-    );
-  }
   const [kind, id = null] = form.on.split(":");
   const added = await run((collab) =>
     collab.comment(
@@ -539,9 +533,18 @@ async function post(
         roundId: kind === "round" ? id : null,
       },
       { requestId },
+      { actions: writes, ...writeLimits },
     ),
   );
-  if (!added) {
+  if (added === "limited") {
+    return refuse(
+      429,
+      "limited",
+      "that's a lot at once. Try again later.",
+      eventId,
+    );
+  }
+  if (added === "refused") {
     return refuse(403, "refused", "you can't comment there.", eventId);
   }
   return new Response(null, {
