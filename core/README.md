@@ -1115,9 +1115,11 @@ DATABASE_URL=… CLOUDFLARE_ZERO_TRUST_TOKEN=… bun run collab access sync [--d
 CLOUDFLARE_ZERO_TRUST_TOKEN=… bun run collab access end-sessions --email …
 ```
 
-Readiness learns the collaboration: a round not accepted by its deadline,
-an unconfirmed logistics item, or an overdue task is advice, then a
-blocker on the day.
+Readiness reports what the collaboration still needs (src/readiness/collab.ts),
+as advice: a round with no host, not handed in (late once its hosts' task
+date has passed), or handed in and not accepted; anything the venue hasn't
+confirmed and had accepted; and a task past its date. None of it blocks
+publishing: an evening goes out on Luma well before its rounds are due.
 
 **On the page.** The draft's page as the public will see it, and below it
 a "for collaborators" panel in the site's own design:
