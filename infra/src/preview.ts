@@ -53,9 +53,9 @@ export const PREVIEW_VIEWERS = [
 /**
  * The Zero Trust email list of draft collaborators, by its id, which the
  * Access policy also admits (core/README.md, "Collaborating on a draft").
- * Undefined until infra/scripts/zero-trust-token.sh has made the list:
- * then the organizers alone are admitted, as before. Set it to the id the
- * script prints, in a pull request of its own.
+ * infra/scripts/zero-trust-token.sh made the list, and printed this id; it
+ * isn't a secret. `previewPolicies()` admits it; `previewPolicies(null)`
+ * admits the organizers alone.
  *
  * The stack names the list but never declares it: Alchemy reconciles a
  * list's items as a full set on every deploy, which would empty it. The
@@ -63,18 +63,20 @@ export const PREVIEW_VIEWERS = [
  * to the active invitations. The list admits someone at the edge only; the
  * Worker still checks their invitation on every request.
  */
-export const COLLABORATOR_LIST_ID: string | undefined = undefined;
+export const COLLABORATOR_LIST_ID: string | undefined =
+  "c1bb53e8-ceb1-4adb-b63f-4458faae7d24";
 
 /** The preview's Access policies: the organizers, and the collaborators' list once it exists. */
 export const previewPolicies = (
-  listId: string | undefined = COLLABORATOR_LIST_ID,
+  /** The collaborators list, or null for none: the organizers alone. */
+  listId: string | null = COLLABORATOR_LIST_ID ?? null,
 ) => [
   {
     name: "The organizers",
     decision: "allow" as const,
     include: PREVIEW_VIEWERS.map((email) => ({ email })),
   },
-  ...(listId === undefined
+  ...(listId === null
     ? []
     : [
         {
