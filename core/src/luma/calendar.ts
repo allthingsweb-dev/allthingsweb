@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Duration, Effect, Layer } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { approvalToken } from "../approval.ts";
 import { siteOrigin, StudioRefused } from "./publish.ts";
@@ -163,6 +163,9 @@ const sha256 = (bytes: Uint8Array) =>
     crypto.subtle.digest("SHA-256", new Uint8Array(bytes)).then(hex),
   );
 
+/** The longest reading Luma's avatar now may take. */
+const avatarReadTimeout = Duration.seconds(20);
+
 /** A slug Luma takes: lowercase letters, digits and single hyphens. */
 const slugShape = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -180,7 +183,9 @@ const make = Effect.gen(function* () {
         response.status === 200 ? response.arrayBuffer : Effect.succeed(null),
       ),
       Effect.map((buffer) => (buffer === null ? null : new Uint8Array(buffer))),
-      // Unreadable is only "not known to be the same": it is uploaded again.
+      Effect.timeout(avatarReadTimeout),
+      // Unreadable or slow is only "not known to be the same": it is
+      // uploaded again.
       Effect.catch(() => Effect.succeed(null)),
     );
   };
@@ -258,8 +263,9 @@ const make = Effect.gen(function* () {
       yield* luma.updateCalendar(prepared.calendarId, fields);
       const after = yield* luma.getCalendar();
       const missed = prepared.changes.filter((change) =>
+        // The avatar took only if Luma shows exactly the one uploaded.
         change.field === "avatar_url"
-          ? after.avatar_url === change.from
+          ? after.avatar_url !== avatarUrl
           : comparable(change.field, after[change.field] ?? null) !==
             comparable(change.field, change.to),
       );

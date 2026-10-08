@@ -331,6 +331,18 @@ describe("approve", () => {
     );
   });
 
+  test("the avatar took only if Luma shows exactly the one uploaded", async () => {
+    const token = await tokenFor();
+    const other = "https://images.lumacdn.com/calendars/yy/other";
+    const { exit } = await run(
+      (c) => c.approve(token, {}),
+      replies({ ...calendarDone, avatar_url: other }),
+    );
+    expect(message(exit)).toBe(
+      `Luma took the update, but these don't read as sent: avatar_url is ${other}.`,
+    );
+  });
+
   test("refuses when there is nothing to change", async () => {
     const done = {
       "/v1/calendars/get": [json(calendarDone)],

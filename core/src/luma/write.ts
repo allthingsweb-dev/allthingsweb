@@ -313,7 +313,9 @@ const make = Effect.gen(function* () {
       }),
     getCalendar: () =>
       authorized(HttpClientRequest.get(`${apiOrigin}/v1/calendars/get`)).pipe(
-        Effect.flatMap((request) => sendWithRetries(client, request)),
+        Effect.flatMap((request) =>
+          sendWithRetries(client, request, "calendar"),
+        ),
         Effect.flatMap(decode(ManagedCalendar, "calendars/get")),
         withRedaction,
       ),
