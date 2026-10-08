@@ -407,7 +407,11 @@ const make = Effect.gen(function* () {
                 isDraft: fact.isDraft,
                 shortLocation: fact.shortLocation,
                 scheduleItems: fact.scheduleItems,
-                cover: yield* coverOf(fact),
+                // A shared evening's cover is its organizer's: nothing to read.
+                cover:
+                  (checked ?? record).curation.kind === "ours"
+                    ? yield* coverOf(fact)
+                    : "not ours",
               },
               events,
               now,
