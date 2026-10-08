@@ -16,6 +16,7 @@
  *
  *   bun infra/scripts/collab-answers-key.ts            # make the key, once
  *   bun infra/scripts/collab-answers-key.ts --rotate   # keep it as previous, make a new one
+ *   bun infra/scripts/collab-answers-key.ts --rotate --drop-previous   # when a previous one is there: it goes
  */
 import { run, storeItem } from "./login-role.ts";
 
@@ -30,6 +31,28 @@ export function newAnswersKey(): string {
     .replaceAll("+", "-")
     .replaceAll("/", "_")
     .replace(/=+$/, "");
+}
+
+/**
+ * Why a run must not go on, if it mustn't. A rotation keeps one key back:
+ * rotating again would archive it, and every round still sealed with it
+ * would stop opening, so it needs --drop-previous said outright.
+ */
+export function rotationRefusal(asked: {
+  readonly there: boolean;
+  readonly rotate: boolean;
+  readonly previousThere: boolean;
+  readonly dropPrevious: boolean;
+}): string | undefined {
+  if (
+    asked.there &&
+    asked.rotate &&
+    asked.previousThere &&
+    !asked.dropPrevious
+  ) {
+    return `"${PREVIOUS}" is already in 1Password: rotating again would drop it, and rounds sealed with it would stop opening. Export what you need first, then rerun with --rotate --drop-previous.`;
+  }
+  return undefined;
 }
 
 const notes =
@@ -49,7 +72,15 @@ async function main(): Promise<void> {
     );
   }
   const rotate = process.argv.includes("--rotate");
+  const dropPrevious = process.argv.includes("--drop-previous");
   const there = await exists(ITEM);
+  const refusal = rotationRefusal({
+    there,
+    rotate,
+    previousThere: there && rotate ? await exists(PREVIOUS) : false,
+    dropPrevious,
+  });
+  if (refusal !== undefined) throw new Error(refusal);
   if (there && !rotate) {
     console.log(
       `✓ "${ITEM}" is already in 1Password; nothing changed. --rotate keeps it as "${PREVIOUS}" and makes a new one.`,

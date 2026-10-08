@@ -518,11 +518,19 @@ export const answersKeysOf = (
     return Option.none();
   }
   const previous = env["COLLAB_ANSWERS_PREVIOUS_KEY"];
-  return Option.some(
-    typeof previous === "string" && keyProblem(previous) === undefined
-      ? [current, previous]
-      : [current],
-  );
+  if (typeof previous !== "string" || previous === "") {
+    return Option.some([current]);
+  }
+  const problem = keyProblem(previous, "COLLAB_ANSWERS_PREVIOUS_KEY");
+  if (problem !== undefined) {
+    // Rounds sealed with it won't open, and the audit records each as
+    // refused: say why, without the value.
+    console.error(
+      `Draft preview: ${problem}; rounds sealed with it won't open.`,
+    );
+    return Option.some([current]);
+  }
+  return Option.some([current, previous]);
 };
 
 /** What a form names: which one it is, its audit action, its size limit and its notice. */

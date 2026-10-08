@@ -515,6 +515,20 @@ if (serverUrl === undefined) {
       expect(await new Response(wrong.stderr).text()).toContain(
         "which COLLAB_ANSWERS_KEY isn't",
       );
+
+      // A previous key that can't be one is refused, not quietly dropped.
+      const badPrevious = run(
+        { COLLAB_ANSWERS_KEY: key, COLLAB_ANSWERS_PREVIOUS_KEY: "truncated" },
+        "export",
+        draft,
+        "--round",
+        "5",
+        "--stdout",
+      );
+      expect(await badPrevious.exited).toBe(1);
+      expect(await new Response(badPrevious.stderr).text()).toStartWith(
+        "COLLAB_ANSWERS_PREVIOUS_KEY is not 32 bytes of base64url",
+      );
     });
   });
 }

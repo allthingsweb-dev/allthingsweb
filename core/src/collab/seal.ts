@@ -84,9 +84,12 @@ const fromBase64url = (text: string): Uint8Array<ArrayBuffer> => {
 };
 
 /** Why `secret` can't be the answers key, or undefined. */
-export function keyProblem(secret: string): string | undefined {
+export function keyProblem(
+  secret: string,
+  name = "COLLAB_ANSWERS_KEY",
+): string | undefined {
   if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) {
-    return "COLLAB_ANSWERS_KEY is not 32 bytes of base64url";
+    return `${name} is not 32 bytes of base64url`;
   }
   return undefined;
 }
@@ -137,8 +140,9 @@ export async function seal(
 }
 
 /**
- * What `sealed` holds, opened with whichever of `secrets` its key id names;
- * undefined if none does, or it wasn't sealed for `row`.
+ * What `sealed` holds, opened with the first of `secrets` that its key id
+ * names and that opens it; undefined if none does, or it wasn't sealed for
+ * `row`.
  */
 export async function open(
   secrets: ReadonlyArray<string>,
@@ -162,7 +166,8 @@ export async function open(
         JSON.parse(new TextDecoder().decode(plain)),
       );
     } catch {
-      return undefined;
+      // Key ids are 32 bits: another key may share this one's. Try the next.
+      continue;
     }
   }
   return undefined;

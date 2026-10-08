@@ -588,9 +588,10 @@ const answersKeys = Effect.gen(function* () {
   const problem = keyProblem(current);
   if (problem !== undefined) return yield* refuse(problem);
   const previous = process.env["COLLAB_ANSWERS_PREVIOUS_KEY"] ?? "";
-  return previous !== "" && keyProblem(previous) === undefined
-    ? [current, previous]
-    : [current];
+  if (previous === "") return [current];
+  const previousProblem = keyProblem(previous, "COLLAB_ANSWERS_PREVIOUS_KEY");
+  if (previousProblem !== undefined) return yield* refuse(previousProblem);
+  return [current, previous];
 });
 
 const outFlags = {

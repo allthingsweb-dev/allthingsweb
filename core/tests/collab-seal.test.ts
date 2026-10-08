@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { newAnswersKey } from "../../infra/scripts/collab-answers-key.ts";
+import {
+  newAnswersKey,
+  rotationRefusal,
+} from "../../infra/scripts/collab-answers-key.ts";
 import {
   answerKey,
   keyIdOf,
@@ -139,5 +142,27 @@ test("the answer key reads in the brief's format", () => {
         "Difficulty: deep",
       ].join("\n"),
     ].join("\n\n"),
+  );
+});
+
+test("a second rotation keeps its previous key unless told to drop it", () => {
+  const run = {
+    there: true,
+    rotate: true,
+    previousThere: true,
+    dropPrevious: false,
+  };
+  expect(rotationRefusal(run)).toStartWith(
+    '"allthings collab answers key (previous)" is already in 1Password: rotating again would drop it',
+  );
+  expect(rotationRefusal({ ...run, dropPrevious: true })).toBeUndefined();
+  expect(rotationRefusal({ ...run, previousThere: false })).toBeUndefined();
+  expect(rotationRefusal({ ...run, rotate: false })).toBeUndefined();
+  expect(rotationRefusal({ ...run, there: false })).toBeUndefined();
+});
+
+test("a key's problem names the variable it came from", () => {
+  expect(keyProblem("short", "COLLAB_ANSWERS_PREVIOUS_KEY")).toBe(
+    "COLLAB_ANSWERS_PREVIOUS_KEY is not 32 bytes of base64url",
   );
 });
