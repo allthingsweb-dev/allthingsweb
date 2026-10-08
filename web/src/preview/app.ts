@@ -51,6 +51,8 @@ import {
   commentLimit,
   formToken,
   isFormToken,
+  LogisticsForm,
+  logisticsLimit,
   parseRoundForm,
   readForm,
   roundLimit,
@@ -147,6 +149,7 @@ const formKeyOf = (env: Readonly<Record<string, unknown>>) => {
 const notices: Readonly<Record<string, string>> = {
   comment: "Your comment is in.",
   round: "Your round is saved.",
+  logistics: "Your answer is in.",
 };
 
 /** The keys rounds are sealed with (core/src/collab/seal.ts), from the Worker's bindings: none without them. */
@@ -347,6 +350,8 @@ const draftPage = HttpRouter.add(
             commentToken: yield* token("comment"),
             roundAction: `/${encodeURIComponent(evening.value.slug)}/round`,
             roundToken: Option.isNone(keys) ? null : yield* token("round"),
+            logisticsAction: `/${encodeURIComponent(evening.value.slug)}/logistics`,
+            logisticsToken: yield* token("logistics"),
             notice:
               notices[
                 new URL(request.url, "http://x").searchParams.get("said") ?? ""
@@ -507,7 +512,7 @@ function withPreviewHeaders(response: Response): Response {
 export const writeLimits = { tenMinutes: 20, day: 200 } as const;
 
 /** Everything a collaborator writes, as the audit names it: what the limits count. */
-const writes = ["comment.add", "round.save"];
+const writes = ["comment.add", "round.save", "logistics.confirm"];
 
 /**
  * The answers keys from the Worker's bindings: the one it seals with, then
@@ -552,6 +557,19 @@ const formKinds = {
     limit: roundLimit,
     said: "round",
   },
+  logistics: {
+    form: "logistics",
+    action: "logistics.confirm",
+    limit: logisticsLimit,
+    said: "logistics",
+  },
+} as const;
+
+/** What a refusal says it was, and where a page goes back to after each form. */
+const formWords = {
+  comment: { what: "Your comment", anchor: "collab-comments" },
+  round: { what: "Your round", anchor: "collab-round" },
+  logistics: { what: "Your answer", anchor: "collab-logistics" },
 } as const;
 
 /**
@@ -569,12 +587,12 @@ async function post(
 ): Promise<Response> {
   const key = formKeyOf(env);
   const url = collabUrl(env);
-  const path = /^\/([^/]+)\/(comments|round)$/.exec(
+  const path = /^\/([^/]+)\/(comments|round|logistics)$/.exec(
     new URL(request.url).pathname,
   );
   if (path === null) return answer("Not found.", 404);
   const kind = formKinds[path[2] as keyof typeof formKinds];
-  const what = kind.form === "comment" ? "Your comment" : "Your round";
+  const { what, anchor } = formWords[kind.form];
   const answers = answersKeysOf(env);
   if (
     Option.isNone(key) ||
@@ -642,7 +660,7 @@ async function post(
   const back = new Response(null, {
     status: 303,
     headers: {
-      location: `/${encodeURIComponent(slug)}?said=${kind.said}#${kind.form === "comment" ? "collab-comments" : "collab-round"}`,
+      location: `/${encodeURIComponent(slug)}?said=${kind.said}#${anchor}`,
     },
   });
   const limits = { actions: writes, ...writeLimits };
@@ -685,6 +703,48 @@ async function post(
     }
     if (added === "refused") {
       return refuse(403, "refused", "you can't comment there.", eventId);
+    }
+    return back;
+  }
+
+  if (kind.form === "logistics") {
+    const decoded = Schema.decodeUnknownOption(LogisticsForm)({
+      token: body.fields["token"],
+      item: body.fields["item"],
+      answer: body.fields["answer"],
+      note: written(body.fields["note"] ?? ""),
+    });
+    if (Option.isNone(decoded)) {
+      return refuse(
+        400,
+        "invalid",
+        "an answer is yes, no or unsure, on one of the items, with a note of at most 1000 characters.",
+        eventId,
+      );
+    }
+    const confirmed = await run((collab) =>
+      collab.confirm(
+        who,
+        evening.value,
+        {
+          itemId: decoded.value.item,
+          answer: decoded.value.answer,
+          note: decoded.value.note === "" ? null : decoded.value.note,
+        },
+        { requestId },
+        limits,
+      ),
+    );
+    if (confirmed === "limited") {
+      return refuse(
+        429,
+        "limited",
+        "that's a lot at once. Try again later.",
+        eventId,
+      );
+    }
+    if (confirmed === "refused") {
+      return refuse(403, "refused", "only the venue answers these.", eventId);
     }
     return back;
   }

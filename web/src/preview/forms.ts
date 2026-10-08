@@ -177,6 +177,18 @@ export type CommentForm = typeof CommentForm.Type;
 /** A comment form's whole body, at most: 2000 characters of text, each up to 9 bytes encoded. */
 export const commentLimit = 20_000;
 
+/** The venue's answer to one item, as its form sends it: a note is optional. */
+export const LogisticsForm = Schema.Struct({
+  token: Schema.String,
+  item: Schema.String.check(Schema.isPattern(new RegExp(`^${id}$`))),
+  answer: Schema.Literals(["yes", "no", "unsure"]),
+  note: Schema.Union([Schema.Literal(""), Written(1000)]),
+});
+export type LogisticsForm = typeof LogisticsForm.Type;
+
+/** A logistics form's whole body, at most: a 1000-character note, encoded. */
+export const logisticsLimit = 10_000;
+
 /** A round's fields, each question's at most: what a host writes in the brief's format. */
 export const roundLimits = {
   question: 1000,

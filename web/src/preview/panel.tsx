@@ -1,6 +1,12 @@
 import type { Question, RoundAnswers } from "allthings-core/src/collab/seal.ts";
 import { briefHtml } from "./brief.ts";
-import type { Panel, PanelComment, PanelRound, Person } from "./collab.ts";
+import type {
+  Panel,
+  PanelComment,
+  PanelLogistics,
+  PanelRound,
+  Person,
+} from "./collab.ts";
 
 /**
  * The "for collaborators" panel under an evening's page in the draft
@@ -32,6 +38,9 @@ export interface PanelForms {
   /** Where a round posts, and its form's token; none without the answers key. */
   readonly roundAction: string;
   readonly roundToken: string | null;
+  /** Where the venue's answers post, and their form's token. */
+  readonly logisticsAction: string;
+  readonly logisticsToken: string;
   readonly notice: string | null;
 }
 
@@ -352,6 +361,87 @@ const personLine = (person: Person) =>
     ...(person.email === null ? [] : [person.email]),
   ].join(" · ");
 
+const answers = ["yes", "no", "unsure"] as const;
+
+/** An item's latest answer, as the meta line reads it. */
+const answeredLine = (item: PanelLogistics) =>
+  item.latest === null
+    ? "not answered yet"
+    : [
+        item.latest.answer,
+        ...(item.latest.by === null ? [] : [`by ${item.latest.by}`]),
+        commentDay.format(new Date(item.latest.at)).toLowerCase(),
+        item.latest.decision === null
+          ? "not reviewed yet"
+          : (decisions[item.latest.decision] ?? item.latest.decision),
+      ].join(" · ");
+
+/** What the venue confirms: each item, its latest answer, and for the venue, a form to answer it. */
+function Logistics({
+  items,
+  forms,
+  answers: answering,
+}: {
+  readonly items: ReadonlyArray<PanelLogistics>;
+  readonly forms: PanelForms | undefined;
+  readonly answers: boolean;
+}) {
+  return (
+    <ol class="collab-list" id="collab-logistics">
+      {items.map((item) => (
+        <li class="collab-item">
+          <p>
+            <strong safe>{item.label}</strong>
+          </p>
+          {item.detail === null ? "" : <p safe>{item.detail}</p>}
+          <p class="at-type-meta" safe>
+            {answeredLine(item)}
+          </p>
+          {item.latest?.note == null ? (
+            ""
+          ) : (
+            <p class="collab-comment" safe>
+              {item.latest.note}
+            </p>
+          )}
+          {answering && forms !== undefined ? (
+            <form
+              class="collab-form"
+              method="post"
+              action={forms.logisticsAction}
+            >
+              <input type="hidden" name="token" value={forms.logisticsToken} />
+              <input type="hidden" name="item" value={item.id} />
+              <label>
+                <span class="at-type-meta">your answer</span>
+                <select name="answer" required>
+                  {answers.map((answer) => (
+                    <option
+                      value={answer}
+                      selected={item.latest?.answer === answer}
+                    >
+                      {answer}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span class="at-type-meta">a note, if it needs one</span>
+                <input type="text" name="note" maxlength="1000" value="" />
+              </label>
+              <button class="button" type="submit">
+                answer
+              </button>
+            </form>
+          ) : (
+            ""
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /** The panel, for `panel`'s signer. */
 export function CollabPanel({
   panel,
@@ -466,6 +556,17 @@ export function CollabPanel({
             </div>
           </Fact>
         ))}
+        {panel.logistics.length === 0 ? (
+          ""
+        ) : (
+          <Fact label="What the venue confirms">
+            <Logistics
+              items={panel.logistics}
+              forms={forms}
+              answers={panel.roles.includes("venue")}
+            />
+          </Fact>
+        )}
         {organizes
           ? panel.rounds.map((round) => (
               <Fact label={`Round ${round.position}: ${round.title}`}>
