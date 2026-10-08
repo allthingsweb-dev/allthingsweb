@@ -83,6 +83,7 @@ const clock = "core/src/clock.ts";
  * work: syncs, imports, reports, the organizers' tools, timings.
  */
 const ownTime: Readonly<Record<string, string>> = {
+  "core/src/collab/collab.ts": "collaborating on a draft, for the organizers",
   "core/src/completeness.ts": "the completeness report",
   "core/src/followers.ts": "the follower refresh",
   "core/src/ingest/ingest.ts": "image ingestion",

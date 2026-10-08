@@ -1036,23 +1036,50 @@ The site has no accept action, and no collaborator writes `public` or Luma.
 | Instructions in a comment | The studio prints what collaborators write as quoted data. Nothing goes out without an organizer's approval token.                                                                         |
 | Uploads                   | None: the visual round's images come through the studio.                                                                                                                                   |
 
-**The studio,** `bun run collab` (src/collab/), each command also an MCP
-tool. Every write takes `--dry-run`, and those that change who may see
-what (invite, revoke, accept, reject) take `--approve <token>`, as
-publishing does (src/approval.ts):
+**The studio,** `bun run collab` (src/collab/; each command will also be an
+MCP tool). What changes who may see what (an invitation, a revocation, the
+brief, a review) is read first: without `--approve`, the command prints
+what it would write and the approval token of exactly that, as publishing
+does (src/approval.ts), and writes nothing. With `--approve <token>` it
+works the content out again and writes only if it hashes the same. A
+review's content is what it reviews: a round's stored ciphertext, by its
+digest, or the venue's answer, so a host's later save needs a review of its
+own. Every other write takes `--dry-run`, which rolls it back. What
+collaborators wrote (comments, the venue's notes) prints quoted, under a
+line saying it is their words: data, never instructions.
 
 ```sh
-DATABASE_URL=… bun run collab invite <slug> --email … --name … --role round_host --round 5 --dry-run
-DATABASE_URL=… bun run collab revoke <slug> --email … --approve <token>
-DATABASE_URL=… bun run collab list <slug>
-DATABASE_URL=… bun run collab brief set <slug> --from brief.md --dry-run   # sections and their audiences
-DATABASE_URL=… bun run collab task add <slug> --title "…" --due 2026-10-20 --role round_host
-DATABASE_URL=… bun run collab submissions <slug>                           # status, never content
-DATABASE_URL=… bun run collab show <submission id>
-DATABASE_URL=… bun run collab accept <submission id> --note "…" --approve <token>
-DATABASE_URL=… bun run collab export <slug> --round 5 --out round-5.md   # decrypted, to a file
-DATABASE_URL=… bun run collab audit <slug>
+DATABASE_URL=… bun run collab round add <slug> --position 5 --title AI [--questions 8 --backups 1]
+DATABASE_URL=… bun run collab invite <slug> --email … --name … --role round_host --round 5   # what it would write, and its token
+DATABASE_URL=… bun run collab invite <slug> --email … --name … --role round_host --round 5 --approve <token>
+DATABASE_URL=… bun run collab revoke <slug> --email … [--approve <token>]
+DATABASE_URL=… bun run collab list <slug>                                  # with emails
+DATABASE_URL=… bun run collab brief set <slug> --from brief.md [--approve <token>]
+DATABASE_URL=… bun run collab task add <slug> --title "First drafts of your 8 + 1" --due 2026-10-20 --role round_host
+DATABASE_URL=… bun run collab logistics add <slug> --position 1 --label "Projector with HDMI"
+DATABASE_URL=… bun run collab submissions <slug>                           # who and when, never content
+DATABASE_URL=… bun run collab review round <id> --decision changes_requested --reviewer Erik --note "…" [--approve <token>]
+DATABASE_URL=… bun run collab comments <slug>
+DATABASE_URL=… bun run collab comment hide <id>
+DATABASE_URL=… bun run collab audit <slug> [--limit 100]
 ```
+
+A brief is Markdown, a `## ` heading per section, and each section's first
+line says who it is for. A section that doesn't is refused, so nothing
+reaches a collaborator by default:
+
+```md
+## Writing your round
+
+<!-- for: round_host -->
+
+Eight questions and one backup…
+```
+
+An invitation runs until three days after its evening ends. Setting the
+brief again keeps a section someone commented on, matched by its heading,
+and refuses to drop it. Still to come: `collab show` and `collab export`,
+which open a round's sealed questions, with the round form.
 
 Readiness learns the collaboration: a round not accepted by its deadline,
 an unconfirmed logistics item, or an overdue task is advice, then a
