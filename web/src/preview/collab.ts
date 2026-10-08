@@ -82,6 +82,30 @@ export const PanelComment = Schema.Struct({
 });
 export type PanelComment = typeof PanelComment.Type;
 
+/** What the venue confirms, and its latest answer, if any. */
+export const PanelLogistics = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  detail: Schema.NullOr(Schema.String),
+  latest: Schema.NullOr(
+    Schema.Struct({
+      answer: Schema.Literals(["yes", "no", "unsure"]),
+      note: Schema.NullOr(Schema.String),
+      by: Schema.NullOr(Schema.String),
+      at: Schema.String,
+      decision: Schema.NullOr(Schema.String),
+    }),
+  ),
+});
+export type PanelLogistics = typeof PanelLogistics.Type;
+
+/** A venue's answer to an item, once its form is checked. */
+export interface NewConfirmation {
+  readonly itemId: string;
+  readonly answer: "yes" | "no" | "unsure";
+  readonly note: string | null;
+}
+
 /** What the panel under an evening's page shows the signer. */
 export interface Panel {
   /** The signer's roles on the evening; "organizer" for the stack's. */
@@ -95,6 +119,8 @@ export interface Panel {
   readonly brief: ReadonlyArray<Section>;
   readonly tasks: ReadonlyArray<PanelTask>;
   readonly comments: ReadonlyArray<PanelComment>;
+  /** What the venue confirms: only the venue and the organizers see any (the tables' row security). */
+  readonly logistics: ReadonlyArray<PanelLogistics>;
 }
 
 export interface CollabShape {
@@ -140,6 +166,19 @@ export interface CollabShape {
     signer: Signer,
     evening: Evening,
     save: NewRoundSave,
+    request: RequestRecord,
+    limits: WriteLimits,
+  ) => Effect.Effect<WriteOutcome, DataSourceError>;
+  /**
+   * Adds the venue's answer to an item, and its line in the audit, in one
+   * transaction: as the venue the signer is invited as, on an item of that
+   * evening. Only the venue answers: an organizer reads the answers here
+   * and reviews them in the studio.
+   */
+  readonly confirm: (
+    signer: Signer,
+    evening: Evening,
+    confirmation: NewConfirmation,
     request: RequestRecord,
     limits: WriteLimits,
   ) => Effect.Effect<WriteOutcome, DataSourceError>;
@@ -308,6 +347,19 @@ const make = Effect.gen(function* () {
           FROM planning.comments WHERE event_id = ${on.id} ORDER BY created_at, id`.pipe(
           Effect.flatMap(rows(PanelComment)),
         );
+        const logistics = yield* sql`
+          SELECT i.id, i.label, i.detail,
+            (SELECT json_build_object(
+                'answer', l.answer, 'note', l.note,
+                'by', (SELECT p.name FROM planning.collab_roster(i.event_id) p WHERE p.collaborator_id = l.collaborator_id),
+                'at', ${sql.unsafe(iso("l.created_at"))},
+                'decision', (SELECT v.decision FROM planning.reviews v WHERE v.logistics_confirmation_id = l.id
+                  ORDER BY v.created_at DESC, v.id LIMIT 1))
+              FROM planning.logistics_confirmations l WHERE l.item_id = i.id
+              ORDER BY l.created_at DESC, l.id DESC LIMIT 1) AS latest
+          FROM planning.logistics_items i WHERE i.event_id = ${on.id} ORDER BY i.position`.pipe(
+          Effect.flatMap(rows(PanelLogistics)),
+        );
         const roles =
           signer.organizer && !mine.some((m) => m.role === "organizer")
             ? ["organizer", ...mine.map((m) => m.role)]
@@ -321,6 +373,7 @@ const make = Effect.gen(function* () {
           brief,
           tasks,
           comments,
+          logistics,
         } satisfies Panel;
       }),
     );
@@ -462,6 +515,43 @@ const make = Effect.gen(function* () {
       }),
     );
 
+  const confirm: CollabShape["confirm"] = (
+    signer,
+    on,
+    confirmation,
+    request,
+    limits,
+  ) =>
+    as(
+      signer,
+      Effect.gen(function* () {
+        if (yield* overLimits(signer, limits)) return "limited" as const;
+        // Asked first, as the policies would answer it.
+        const [venue] = yield* sql`
+          SELECT m.collaborator_id AS id FROM planning.collab_memberships() m
+          WHERE m.event_id = ${on.id} AND m.role = 'venue'
+            AND EXISTS (SELECT 1 FROM planning.logistics_items i
+              WHERE i.id = ${confirmation.itemId}::uuid AND i.event_id = ${on.id})
+          LIMIT 1`.pipe(
+          Effect.flatMap(rows(Schema.Struct({ id: Schema.String }))),
+        );
+        if (venue === undefined) return "refused" as const;
+        const id = crypto.randomUUID();
+        yield* sql`
+          INSERT INTO planning.logistics_confirmations (id, event_id, item_id, collaborator_id, answer, note)
+          VALUES (${id}, ${on.id}, ${confirmation.itemId}, ${venue.id}, ${confirmation.answer}, ${confirmation.note})`;
+        yield* insertAudit(signer, {
+          ...request,
+          eventId: on.id,
+          action: "logistics.confirm",
+          outcome: "ok",
+          targetId: id,
+          detail: confirmation.answer,
+        });
+        return "ok" as const;
+      }),
+    );
+
   const record: CollabShape["record"] = (signer, entry) =>
     as(signer, insertAudit(signer, entry).pipe(Effect.asVoid));
 
@@ -473,6 +563,7 @@ const make = Effect.gen(function* () {
     rounds,
     hostOf,
     saveRound,
+    confirm,
     record,
   } satisfies CollabShape;
 });

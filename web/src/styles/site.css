@@ -1971,3 +1971,9 @@ th {
   flex-wrap: wrap;
   gap: var(--at-space-3);
 }
+
+/* What the venue confirms: an item at a time, ruled apart. */
+.collab-item + .collab-item {
+  padding-top: var(--at-space-3);
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
+}

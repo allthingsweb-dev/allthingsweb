@@ -972,7 +972,7 @@ The site has no accept action, and no collaborator writes `public` or Luma.
 - **A round host's questions and answer key** (`round_submissions`): the
   answer-key format as a form, each save a new row. Only that round's hosts
   and the organizers ever see it. Players never do.
-- **The venue** answers each logistics item: yes, no or unsure, with a note.
+- **The venue** answers each logistics item in the panel: yes, no or unsure, with a note of up to 1000 characters if it needs one. Each answer is a new row, and the latest shows, with its review. Only the venue and the organizers see the items, and only the venue answers them (`POST /<slug>/logistics`, through the same checks as every form).
 - **Comments** on the evening, a section, or a round. A comment on a round
   shows only to its hosts and the organizers. They're plain text, and the
   studio can hide one.
