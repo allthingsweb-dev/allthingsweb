@@ -267,6 +267,13 @@
       "when": 1791421422665,
       "tag": "0037_generated_cover",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791423178752,
+      "tag": "0038_draft_collaboration",
+      "breakpoints": true
     }
   ]
 }

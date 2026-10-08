@@ -15,6 +15,8 @@ import {
   date,
   pgSchema,
   uniqueIndex,
+  pgPolicy,
+  customType,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -1020,6 +1022,539 @@ export const planningSentPostsTable = planningSchema.table(
       sql`("status" = 'sent') = ("message_id" IS NOT NULL AND "url" IS NOT NULL AND "sent_at" IS NOT NULL)`,
     ),
     check("sent_posts_url_check", sql`"url" ~ '^https://[^[:space:]]+$'`),
+  ],
+);
+
+/**
+ * Collaborating on a draft evening: who an organizer invites to help, what
+ * they see, and what they hand in, with row security on every table.
+ * core/migrations/0026_draft_collaboration.ts is the same change, and says
+ * what each table and policy is for. The policies ask the `collab_*`
+ * functions, which drizzle can't declare: migrations/0038_draft_collaboration.sql creates them by
+ * hand, before the policies.
+ */
+export const collaboratorRoles = [
+  "viewer",
+  "commenter",
+  "round_host",
+  "venue",
+  "organizer",
+] as const;
+
+const bytea = customType<{ data: Uint8Array; driverData: Uint8Array }>({
+  dataType: () => "bytea",
+});
+
+const everyoneRoles = sql.raw(
+  `ARRAY['viewer', 'commenter', 'round_host', 'venue']::text[]`,
+);
+const writerRoles = sql.raw(
+  `ARRAY['commenter', 'round_host', 'venue']::text[]`,
+);
+const organizerRoles = sql.raw(`ARRAY['organizer']::text[]`);
+const venueRoles = sql.raw(`ARRAY['venue']::text[]`);
+
+/** An evening's rounds, for the hosts who write them. */
+export const planningRoundsTable = planningSchema.table(
+  "rounds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    position: integer("position").notNull(),
+    title: text("title").notNull(),
+    questions: integer("questions").notNull().default(8),
+    backups: integer("backups").notNull().default(1),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    unique("rounds_id_event_id_unique").on(table.id, table.eventId),
+    unique("rounds_event_id_position_unique").on(table.eventId, table.position),
+    check("rounds_position_check", sql`"position" > 0`),
+    check(
+      "rounds_title_check",
+      sql`btrim("title") <> '' AND char_length("title") <= 80`,
+    ),
+    check("rounds_questions_check", sql`"questions" BETWEEN 1 AND 20`),
+    check("rounds_backups_check", sql`"backups" BETWEEN 0 AND 5`),
+    pgPolicy("rounds_select", {
+      for: "select",
+      using: sql`planning.collab_has_role("event_id", ${everyoneRoles})`,
+    }),
+  ],
+);
+
+/** Who may help with an evening, by the email they sign in to Access with. */
+export const planningCollaboratorsTable = planningSchema
+  .table(
+    "collaborators",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      eventId: uuid("event_id")
+        .notNull()
+        .references(() => eventsTable.id),
+      email: text("email").notNull(),
+      name: text("name").notNull(),
+      role: text("role", { enum: collaboratorRoles }).notNull(),
+      roundId: uuid("round_id"),
+      invitedAt: timestamp("invited_at", { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+      expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+      revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    },
+    (table) => [
+      unique("collaborators_id_event_id_unique").on(table.id, table.eventId),
+      foreignKey({
+        name: "collaborators_round_fk",
+        columns: [table.roundId, table.eventId],
+        foreignColumns: [planningRoundsTable.id, planningRoundsTable.eventId],
+      }),
+      uniqueIndex("collaborators_active_unique")
+        .on(table.eventId, table.email)
+        .where(sql`"revoked_at" IS NULL`),
+      index("collaborators_email_idx")
+        .on(table.email)
+        .where(sql`"revoked_at" IS NULL`),
+      check(
+        "collaborators_email_check",
+        sql`"email" = lower("email") AND char_length("email") <= 254 AND "email" ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'`,
+      ),
+      check(
+        "collaborators_name_check",
+        sql`btrim("name") <> '' AND char_length("name") <= 80`,
+      ),
+      check(
+        "collaborators_role_check",
+        sql`"role" IN ('viewer', 'commenter', 'round_host', 'venue', 'organizer')`,
+      ),
+      check(
+        "collaborators_round_check",
+        sql`("role" = 'round_host') = ("round_id" IS NOT NULL)`,
+      ),
+      check("collaborators_expires_check", sql`"expires_at" > "invited_at"`),
+      check("collaborators_revoked_check", sql`"revoked_at" >= "invited_at"`),
+    ],
+  )
+  .enableRLS();
+
+/** The brief, a section at a time, each for the roles in its audiences. */
+export const planningBriefSectionsTable = planningSchema.table(
+  "brief_sections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    position: integer("position").notNull(),
+    heading: text("heading").notNull(),
+    body: text("body").notNull(),
+    audiences: text("audiences").array().notNull(),
+    updatedAt: planningUpdatedAt,
+  },
+  (table) => [
+    unique("brief_sections_id_event_id_unique").on(table.id, table.eventId),
+    unique("brief_sections_event_id_position_unique").on(
+      table.eventId,
+      table.position,
+    ),
+    check("brief_sections_position_check", sql`"position" > 0`),
+    check(
+      "brief_sections_heading_check",
+      sql`btrim("heading") <> '' AND char_length("heading") <= 120`,
+    ),
+    check(
+      "brief_sections_body_check",
+      sql`btrim("body") <> '' AND char_length("body") <= 20000`,
+    ),
+    check(
+      "brief_sections_audiences_check",
+      sql`cardinality("audiences") > 0 AND "audiences" <@ ARRAY['viewer', 'commenter', 'round_host', 'venue', 'organizer']::text[]`,
+    ),
+    pgPolicy("brief_sections_select", {
+      for: "select",
+      using: sql`planning.collab_has_role("event_id", ${organizerRoles}) OR EXISTS (
+        SELECT 1 FROM planning.collab_memberships() m
+        WHERE m.event_id = "brief_sections"."event_id" AND m.role = ANY ("brief_sections"."audiences")
+      )`,
+    }),
+  ],
+);
+
+/** What someone has to do, by when: everyone, a role, or one collaborator. */
+export const planningTasksTable = planningSchema.table(
+  "tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    title: text("title").notNull(),
+    dueOn: date("due_on"),
+    role: text("role", { enum: collaboratorRoles }),
+    collaboratorId: uuid("collaborator_id"),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    foreignKey({
+      name: "tasks_collaborator_fk",
+      columns: [table.collaboratorId, table.eventId],
+      foreignColumns: [
+        planningCollaboratorsTable.id,
+        planningCollaboratorsTable.eventId,
+      ],
+    }),
+    index("tasks_event_id_idx").on(table.eventId),
+    check(
+      "tasks_title_check",
+      sql`btrim("title") <> '' AND char_length("title") <= 200`,
+    ),
+    check(
+      "tasks_role_check",
+      sql`"role" IN ('viewer', 'commenter', 'round_host', 'venue', 'organizer')`,
+    ),
+    check("tasks_for_check", sql`num_nonnulls("role", "collaborator_id") <= 1`),
+    pgPolicy("tasks_select", {
+      for: "select",
+      using: sql`planning.collab_has_role("event_id", ${organizerRoles}) OR EXISTS (
+        SELECT 1 FROM planning.collab_memberships() m
+        WHERE m.event_id = "tasks"."event_id" AND (
+          m.collaborator_id = "tasks"."collaborator_id"
+          OR m.role = "tasks"."role"
+          OR ("tasks"."role" IS NULL AND "tasks"."collaborator_id" IS NULL)
+        )
+      )`,
+    }),
+  ],
+);
+
+/** What the venue is asked to confirm. */
+export const planningLogisticsItemsTable = planningSchema.table(
+  "logistics_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    position: integer("position").notNull(),
+    label: text("label").notNull(),
+    detail: text("detail"),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    unique("logistics_items_id_event_id_unique").on(table.id, table.eventId),
+    unique("logistics_items_event_id_position_unique").on(
+      table.eventId,
+      table.position,
+    ),
+    check("logistics_items_position_check", sql`"position" > 0`),
+    check(
+      "logistics_items_label_check",
+      sql`btrim("label") <> '' AND char_length("label") <= 120`,
+    ),
+    check(
+      "logistics_items_detail_check",
+      sql`btrim("detail") <> '' AND char_length("detail") <= 1000`,
+    ),
+    pgPolicy("logistics_items_select", {
+      for: "select",
+      using: sql`planning.collab_has_role("event_id", ${venueRoles})`,
+    }),
+  ],
+);
+
+/** The venue's answer to an item, each a new row. */
+export const planningLogisticsConfirmationsTable = planningSchema.table(
+  "logistics_confirmations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id").notNull(),
+    itemId: uuid("item_id").notNull(),
+    collaboratorId: uuid("collaborator_id").notNull(),
+    answer: text("answer", { enum: ["yes", "no", "unsure"] }).notNull(),
+    note: text("note"),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    foreignKey({
+      name: "logistics_confirmations_item_fk",
+      columns: [table.itemId, table.eventId],
+      foreignColumns: [
+        planningLogisticsItemsTable.id,
+        planningLogisticsItemsTable.eventId,
+      ],
+    }),
+    foreignKey({
+      name: "logistics_confirmations_collaborator_fk",
+      columns: [table.collaboratorId, table.eventId],
+      foreignColumns: [
+        planningCollaboratorsTable.id,
+        planningCollaboratorsTable.eventId,
+      ],
+    }),
+    index("logistics_confirmations_item_id_created_at_idx").on(
+      table.itemId,
+      table.createdAt,
+    ),
+    check(
+      "logistics_confirmations_answer_check",
+      sql`"answer" IN ('yes', 'no', 'unsure')`,
+    ),
+    check(
+      "logistics_confirmations_note_check",
+      sql`btrim("note") <> '' AND char_length("note") <= 1000`,
+    ),
+    pgPolicy("logistics_confirmations_select", {
+      for: "select",
+      using: sql`planning.collab_has_role("event_id", ${venueRoles})`,
+    }),
+    pgPolicy("logistics_confirmations_insert", {
+      for: "insert",
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM planning.collab_memberships() m
+        WHERE m.collaborator_id = "logistics_confirmations"."collaborator_id"
+          AND m.event_id = "logistics_confirmations"."event_id"
+          AND m.role IN ('venue', 'organizer')
+      )`,
+    }),
+  ],
+);
+
+/** A round host's questions and answer key, sealed by the Worker, each save a new row. */
+export const planningRoundSubmissionsTable = planningSchema.table(
+  "round_submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id").notNull(),
+    roundId: uuid("round_id").notNull(),
+    collaboratorId: uuid("collaborator_id").notNull(),
+    stage: text("stage", { enum: ["draft", "final"] }).notNull(),
+    keyId: text("key_id").notNull(),
+    nonce: bytea("nonce").notNull(),
+    ciphertext: bytea("ciphertext").notNull(),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    foreignKey({
+      name: "round_submissions_round_fk",
+      columns: [table.roundId, table.eventId],
+      foreignColumns: [planningRoundsTable.id, planningRoundsTable.eventId],
+    }),
+    foreignKey({
+      name: "round_submissions_collaborator_fk",
+      columns: [table.collaboratorId, table.eventId],
+      foreignColumns: [
+        planningCollaboratorsTable.id,
+        planningCollaboratorsTable.eventId,
+      ],
+    }),
+    index("round_submissions_round_id_created_at_idx").on(
+      table.roundId,
+      table.createdAt,
+    ),
+    check("round_submissions_stage_check", sql`"stage" IN ('draft', 'final')`),
+    check(
+      "round_submissions_key_id_check",
+      sql`"key_id" ~ '^[a-z0-9-]{1,32}$'`,
+    ),
+    check("round_submissions_nonce_check", sql`octet_length("nonce") = 12`),
+    check(
+      "round_submissions_ciphertext_check",
+      sql`octet_length("ciphertext") BETWEEN 17 AND 65552`,
+    ),
+    pgPolicy("round_submissions_select", {
+      for: "select",
+      using: sql`planning.collab_has_role("event_id", ${organizerRoles}) OR planning.collab_hosts("round_id")`,
+    }),
+    pgPolicy("round_submissions_insert", {
+      for: "insert",
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM planning.collab_memberships() m
+        WHERE m.collaborator_id = "round_submissions"."collaborator_id"
+          AND m.event_id = "round_submissions"."event_id"
+          AND m.role = 'round_host'
+          AND m.round_id = "round_submissions"."round_id"
+      )`,
+    }),
+  ],
+);
+
+/** An organizer's decision on a round submission or a logistics answer. */
+export const planningReviewsTable = planningSchema.table(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roundSubmissionId: uuid("round_submission_id").references(
+      () => planningRoundSubmissionsTable.id,
+    ),
+    logisticsConfirmationId: uuid("logistics_confirmation_id").references(
+      () => planningLogisticsConfirmationsTable.id,
+    ),
+    decision: text("decision", {
+      enum: ["accepted", "rejected", "changes_requested"],
+    }).notNull(),
+    note: text("note"),
+    reviewer: text("reviewer").notNull(),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    index("reviews_round_submission_id_idx").on(table.roundSubmissionId),
+    index("reviews_logistics_confirmation_id_idx").on(
+      table.logisticsConfirmationId,
+    ),
+    check(
+      "reviews_subject_check",
+      sql`num_nonnulls("round_submission_id", "logistics_confirmation_id") = 1`,
+    ),
+    check(
+      "reviews_decision_check",
+      sql`"decision" IN ('accepted', 'rejected', 'changes_requested')`,
+    ),
+    check(
+      "reviews_note_check",
+      sql`btrim("note") <> '' AND char_length("note") <= 2000`,
+    ),
+    check(
+      "reviews_reviewer_check",
+      sql`btrim("reviewer") <> '' AND char_length("reviewer") <= 80`,
+    ),
+    pgPolicy("reviews_select", {
+      for: "select",
+      using: sql`"round_submission_id" IN (SELECT s.id FROM planning.round_submissions s)
+        OR "logistics_confirmation_id" IN (SELECT l.id FROM planning.logistics_confirmations l)`,
+    }),
+  ],
+);
+
+/** A comment on the evening, a brief section or a round. */
+export const planningCommentsTable = planningSchema.table(
+  "comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    collaboratorId: uuid("collaborator_id"),
+    authorName: text("author_name").notNull(),
+    authorEmail: text("author_email").notNull(),
+    sectionId: uuid("section_id"),
+    roundId: uuid("round_id"),
+    body: text("body").notNull(),
+    createdAt: planningCreatedAt,
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+  },
+  (table) => [
+    foreignKey({
+      name: "comments_collaborator_fk",
+      columns: [table.collaboratorId, table.eventId],
+      foreignColumns: [
+        planningCollaboratorsTable.id,
+        planningCollaboratorsTable.eventId,
+      ],
+    }),
+    foreignKey({
+      name: "comments_section_fk",
+      columns: [table.sectionId, table.eventId],
+      foreignColumns: [
+        planningBriefSectionsTable.id,
+        planningBriefSectionsTable.eventId,
+      ],
+    }),
+    foreignKey({
+      name: "comments_round_fk",
+      columns: [table.roundId, table.eventId],
+      foreignColumns: [planningRoundsTable.id, planningRoundsTable.eventId],
+    }),
+    index("comments_event_id_created_at_idx").on(
+      table.eventId,
+      table.createdAt,
+    ),
+    check(
+      "comments_author_name_check",
+      sql`btrim("author_name") <> '' AND char_length("author_name") <= 80`,
+    ),
+    check(
+      "comments_author_email_check",
+      sql`"author_email" = lower("author_email") AND char_length("author_email") <= 254`,
+    ),
+    check(
+      "comments_target_check",
+      sql`num_nonnulls("section_id", "round_id") <= 1`,
+    ),
+    check(
+      "comments_body_check",
+      sql`btrim("body") <> '' AND char_length("body") <= 2000`,
+    ),
+    pgPolicy("comments_select", {
+      for: "select",
+      using: sql`"hidden_at" IS NULL AND (
+        planning.collab_has_role("event_id", ${organizerRoles}) OR (
+          planning.collab_has_role("event_id", ${everyoneRoles})
+          AND ("round_id" IS NULL OR planning.collab_hosts("round_id"))
+          AND ("section_id" IS NULL OR "section_id" IN (SELECT b.id FROM planning.brief_sections b))
+        )
+      )`,
+    }),
+    pgPolicy("comments_insert", {
+      for: "insert",
+      withCheck: sql`"hidden_at" IS NULL
+        AND "author_email" = planning.collab_email()
+        AND planning.collab_has_role("event_id", ${writerRoles})
+        AND ("round_id" IS NULL OR planning.collab_has_role("event_id", ${organizerRoles}) OR planning.collab_hosts("round_id"))
+        AND ("section_id" IS NULL OR "section_id" IN (SELECT b.id FROM planning.brief_sections b))
+        AND (
+          ("collaborator_id" IS NULL AND planning.collab_is_organizer())
+          OR "collaborator_id" IN (
+            SELECT m.collaborator_id FROM planning.collab_memberships() m
+            WHERE m.event_id = "comments"."event_id"
+          )
+        )`,
+    }),
+  ],
+);
+
+/** Every collaborator action, refused ones included; kept when its evening goes. */
+export const planningCollabAuditTable = planningSchema.table(
+  "collab_audit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    actorEmail: text("actor_email").notNull(),
+    eventId: uuid("event_id"),
+    action: text("action").notNull(),
+    targetId: uuid("target_id"),
+    outcome: text("outcome", {
+      enum: ["ok", "refused", "invalid", "limited"],
+    }).notNull(),
+    requestId: text("request_id"),
+    detail: text("detail"),
+  },
+  (table) => [
+    index("collab_audit_actor_email_at_idx").on(table.actorEmail, table.at),
+    index("collab_audit_event_id_at_idx").on(table.eventId, table.at),
+    check(
+      "collab_audit_actor_email_check",
+      sql`"actor_email" = lower("actor_email") AND char_length("actor_email") <= 254`,
+    ),
+    check(
+      "collab_audit_action_check",
+      sql`char_length("action") <= 48 AND "action" ~ '^[a-z_]+([.][a-z_]+)*$'`,
+    ),
+    check(
+      "collab_audit_outcome_check",
+      sql`"outcome" IN ('ok', 'refused', 'invalid', 'limited')`,
+    ),
+    check(
+      "collab_audit_request_id_check",
+      sql`char_length("request_id") <= 64`,
+    ),
+    check("collab_audit_detail_check", sql`char_length("detail") <= 500`),
+    pgPolicy("collab_audit_insert", {
+      for: "insert",
+      withCheck: sql`"actor_email" = planning.collab_email()`,
+    }),
   ],
 );
 

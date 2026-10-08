@@ -9,8 +9,9 @@ import { orDataSourceError } from "../sql.ts";
  * site_reader reads production for every stage's Hyperdrive and site_sync
  * writes it for the hourly sync (infra/scripts/site-reader.ts,
  * site-sync.ts). Neither may use the planning schema, nor hold any
- * privilege on what is in it, and PUBLIC, which every role belongs to, may
- * hold none either. `plan audit` runs this against production; the tests
+ * privilege on what is in it (its functions too: Postgres lets PUBLIC
+ * execute a new function unless it is revoked), and PUBLIC, which every
+ * role belongs to, may hold none either. `plan audit` runs this against production; the tests
  * run it on roles made with the scripts' own statements.
  *
  * Neon's own roles (neon_superuser, its member "reader", and the owner) can
@@ -102,6 +103,13 @@ export const auditPlanning = Effect.gen(function* () {
       FROM roles r, relations c, unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) AS p(privilege)
       WHERE c.relkind <> 'S' AND pg_catalog.has_any_column_privilege(r.oid, c.oid, p.privilege)
         AND NOT pg_catalog.has_table_privilege(r.oid, c.oid, p.privilege)
+    ), routines AS (
+      SELECT p.oid, p.proacl, p.proowner FROM pg_catalog.pg_proc p
+      WHERE p.pronamespace = (SELECT oid FROM planning)
+    ), routine_privileges AS (
+      SELECT r.rolname, f.oid::pg_catalog.regprocedure::text, 'EXECUTE'
+      FROM roles r, routines f
+      WHERE pg_catalog.has_function_privilege(r.oid, f.oid, 'EXECUTE')
     ), sequence_privileges AS (
       SELECT r.rolname, 'planning.' || c.relname, p.privilege
       FROM roles r, relations c, unnest(ARRAY['USAGE', 'SELECT', 'UPDATE']) AS p(privilege)
@@ -118,12 +126,19 @@ export const auditPlanning = Effect.gen(function* () {
       SELECT 'PUBLIC', 'planning.' || c.relname || '.' || t.attname, a.privilege_type
       FROM relations c JOIN pg_catalog.pg_attribute t ON t.attrelid = c.oid, aclexplode(t.attacl) a
       WHERE a.grantee = 0 AND t.attnum > 0 AND NOT t.attisdropped
+      UNION ALL
+      -- A function nobody granted or revoked anything on has a null ACL,
+      -- which Postgres reads as EXECUTE for PUBLIC.
+      SELECT 'PUBLIC', f.oid::pg_catalog.regprocedure::text, a.privilege_type
+      FROM routines f, aclexplode(coalesce(f.proacl, pg_catalog.acldefault('f', f.proowner))) a
+      WHERE a.grantee = 0
     )
     SELECT role, object, privilege FROM (
       SELECT * FROM schema_privileges
       UNION ALL SELECT * FROM table_privileges
       UNION ALL SELECT * FROM column_privileges
       UNION ALL SELECT * FROM sequence_privileges
+      UNION ALL SELECT * FROM routine_privileges
       UNION ALL SELECT * FROM public_grants
     ) found
     ORDER BY role, object, privilege`.pipe(

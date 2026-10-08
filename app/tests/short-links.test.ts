@@ -1,12 +1,11 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
-import { generateDrizzleJson, generateMigration } from "drizzle-kit/api";
 import {
   longSlugForShortLink,
   shortLinkForLongSlug,
 } from "../src/lib/short-links";
-import * as schema from "../src/lib/schema";
+import { createSchema } from "./support/schema";
 
 /**
  * Short links on the current site: each published event's, current or
@@ -16,11 +15,7 @@ import * as schema from "../src/lib/schema";
 const client = new PGlite();
 const db = drizzle(client);
 beforeAll(async () => {
-  for (const statement of await generateMigration(
-    generateDrizzleJson({}),
-    generateDrizzleJson(schema),
-  ))
-    await client.exec(statement);
+  await createSchema(client);
   await client.exec(`
     INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_draft, updated_at) VALUES
       ('e0000000-0000-4000-8000-000000000001', '2026-09-15-all-things-agent-setups-evt-x', 'All Things Agent Setups', '', now(), now() + interval '3 hours', 0, false, now()),

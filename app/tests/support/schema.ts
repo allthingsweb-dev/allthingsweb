@@ -5,18 +5,25 @@ import * as schema from "../../src/lib/schema";
 /**
  * The database the app's tests run against: the drizzle schema's tables,
  * then the code the migrations add that drizzle can't describe, such as
- * the trigger that gives every profile its slug (0029_person_slugs). Taken
- * from the migration files themselves, so a test database never runs
- * without what production runs.
+ * the trigger that gives every profile its slug (0029_person_slugs), then
+ * the row security policies, which ask functions of that code
+ * (0038_draft_collaboration). Taken from the migration files themselves,
+ * so a test database never runs without what production runs.
  */
 export async function createSchema(client: PGlite): Promise<void> {
-  for (const statement of await generateMigration(
+  const statements = await generateMigration(
     generateDrizzleJson({}),
     generateDrizzleJson(schema),
-  )) {
+  );
+  const isPolicy = (statement: string) =>
+    /^\s*CREATE POLICY\b/i.test(statement);
+  for (const statement of statements.filter((s) => !isPolicy(s))) {
     await client.exec(statement);
   }
   for (const statement of await databaseCode()) await client.exec(statement);
+  for (const statement of statements.filter(isPolicy)) {
+    await client.exec(statement);
+  }
 }
 
 /** Every function and trigger the migrations create, in their order. */

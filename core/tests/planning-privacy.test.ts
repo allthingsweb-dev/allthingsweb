@@ -58,6 +58,34 @@ const madeUp = `
     SELECT e.id, p.id, 'mc', 0 FROM events e, profiles p ORDER BY e.id, p.id LIMIT 1;
   INSERT INTO planning.publishes (event_id, status, claimed_at)
     SELECT id, 'publishing', now() FROM events ORDER BY id LIMIT 1;
+  CREATE TEMPORARY TABLE made_up_event AS SELECT id FROM events ORDER BY id LIMIT 1;
+  INSERT INTO planning.rounds (id, event_id, position, title)
+    SELECT 'f3000000-0000-4000-8000-000000000001', id, 1, 'Made-up round' FROM made_up_event;
+  INSERT INTO planning.collaborators (id, event_id, email, name, role, round_id, expires_at)
+    SELECT 'f4000000-0000-4000-8000-000000000001', id, 'made-up@example.com', 'Made Up',
+      'round_host', 'f3000000-0000-4000-8000-000000000001', now() + interval '1 day'
+    FROM made_up_event;
+  INSERT INTO planning.brief_sections (id, event_id, position, heading, body, audiences)
+    SELECT 'f5000000-0000-4000-8000-000000000001', id, 1, 'Made up', 'Made up.', '{viewer}'
+    FROM made_up_event;
+  INSERT INTO planning.tasks (event_id, title) SELECT id, 'Made up' FROM made_up_event;
+  INSERT INTO planning.logistics_items (id, event_id, position, label)
+    SELECT 'f6000000-0000-4000-8000-000000000001', id, 1, 'Made up' FROM made_up_event;
+  INSERT INTO planning.logistics_confirmations (event_id, item_id, collaborator_id, answer)
+    SELECT id, 'f6000000-0000-4000-8000-000000000001', 'f4000000-0000-4000-8000-000000000001', 'yes'
+    FROM made_up_event;
+  INSERT INTO planning.round_submissions (id, event_id, round_id, collaborator_id, stage, key_id, nonce, ciphertext)
+    SELECT 'f7000000-0000-4000-8000-000000000001', id, 'f3000000-0000-4000-8000-000000000001',
+      'f4000000-0000-4000-8000-000000000001', 'draft', 'made-up',
+      '\\x000000000000000000000000', '\\x0000000000000000000000000000000000'
+    FROM made_up_event;
+  INSERT INTO planning.reviews (round_submission_id, decision, reviewer)
+    VALUES ('f7000000-0000-4000-8000-000000000001', 'accepted', 'Made Up');
+  INSERT INTO planning.comments (event_id, collaborator_id, author_name, author_email, body)
+    SELECT id, 'f4000000-0000-4000-8000-000000000001', 'Made Up', 'made-up@example.com', 'Made up.'
+    FROM made_up_event;
+  INSERT INTO planning.collab_audit (actor_email, action, outcome)
+    VALUES ('made-up@example.com', 'comment.add', 'ok');
 `;
 
 let db: PGlite;
@@ -105,13 +133,23 @@ describe("planning is private", () => {
   test("every planning table holds a made-up row here", async () => {
     expect(tables).toEqual([
       "availability",
+      "brief_sections",
+      "collab_audit",
+      "collaborators",
+      "comments",
       "contacts",
       "draft_people",
       "host_prospects",
       "ideas",
+      "logistics_confirmations",
+      "logistics_items",
       "notes",
       "publishes",
+      "reviews",
+      "round_submissions",
+      "rounds",
       "sent_posts",
+      "tasks",
       "wanted_speaker_topics",
       "wanted_speakers",
     ]);
@@ -143,6 +181,27 @@ describe("planning is private", () => {
     });
   }
 
+  for (const role of siteRoles) {
+    test(`${role} can't call planning's functions`, async () => {
+      await db.exec(
+        `SELECT set_config('collab.email', 'made-up@example.com', false)`,
+      );
+      for (const call of [
+        `SELECT planning.collab_email()`,
+        `SELECT planning.collab_is_organizer()`,
+        `SELECT * FROM planning.collab_memberships()`,
+        `SELECT planning.collab_has_role(gen_random_uuid(), '{viewer}')`,
+        `SELECT planning.collab_hosts(gen_random_uuid())`,
+        `SELECT * FROM planning.collab_roster(gen_random_uuid())`,
+        `SELECT planning.collab_recent_actions(now(), '{comment.add}')`,
+      ]) {
+        expect(await refusalAs(role, call)).toBe(
+          "permission denied for schema planning",
+        );
+      }
+    });
+  }
+
   test("not even a grant on every table in public reaches it", async () => {
     await db.exec(
       `GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${SITE_READER}`,
@@ -161,6 +220,21 @@ describe("planning is private", () => {
       checkedRoles: [SITE_READER, SITE_SYNC],
       exposures: [],
     });
+  });
+
+  test("the audit reports a function anyone may execute", async () => {
+    // Postgres lets PUBLIC execute a new function until that is revoked, as
+    // migrations/0026_draft_collaboration.ts does for each of its own.
+    await db.exec(
+      `CREATE FUNCTION planning.made_up() RETURNS integer LANGUAGE sql AS 'SELECT 1'`,
+    );
+    expect((await audit()).exposures).toEqual([
+      { role: "PUBLIC", object: "planning.made_up()", privilege: "EXECUTE" },
+      { role: SITE_READER, object: "planning.made_up()", privilege: "EXECUTE" },
+      { role: SITE_SYNC, object: "planning.made_up()", privilege: "EXECUTE" },
+    ]);
+    await db.exec(`REVOKE ALL ON FUNCTION planning.made_up() FROM PUBLIC`);
+    expect((await audit()).exposures).toEqual([]);
   });
 
   test("an audit of a database without planning proves nothing", async () => {
