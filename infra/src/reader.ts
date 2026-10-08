@@ -13,6 +13,9 @@ export const READER_ROLE = "site_reader";
 /** The role the hourly sync writes as, created by scripts/site-sync.ts. */
 export const SYNC_ROLE = "site_sync";
 
+/** The role the draft preview collaborates as, created by scripts/draft-collab.ts. */
+export const COLLAB_ROLE = "draft_collab";
+
 const decoded = (component: string): string | undefined => {
   try {
     return decodeURIComponent(component);
@@ -89,4 +92,12 @@ export const Reader = Config.Redacted("NEON_READER_URL").pipe(
  */
 export const Writer = Config.Redacted("NEON_SYNC_URL").pipe(
   Config.mapEffect(roleOrigin("NEON_SYNC_URL", SYNC_ROLE, "sync's")),
+);
+
+/**
+ * Production's database as {@link COLLAB_ROLE}, from `NEON_COLLAB_URL`, for
+ * the draft preview's collaboration Hyperdrive. Resolved like {@link Reader}.
+ */
+export const Collaborator = Config.Redacted("NEON_COLLAB_URL").pipe(
+  Config.mapEffect(roleOrigin("NEON_COLLAB_URL", COLLAB_ROLE, "collaboration")),
 );

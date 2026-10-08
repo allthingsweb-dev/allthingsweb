@@ -3,7 +3,7 @@ import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Redacted from "effect/Redacted";
 import * as Result from "effect/Result";
-import { Reader } from "../src/reader.ts";
+import { Collaborator, Reader } from "../src/reader.ts";
 
 const secret = "s3cr%2Ft";
 
@@ -68,5 +68,41 @@ describe("Reader", () => {
 
   test("fails when NEON_READER_URL is unset", () => {
     expect(rejection()).toContain("NEON_READER_URL");
+  });
+});
+
+describe("the collaboration Hyperdrive's origin", () => {
+  const collab = (value?: string) =>
+    Effect.runSync(
+      Effect.result(
+        Collaborator.parse(
+          ConfigProvider.fromUnknown(
+            value === undefined ? {} : { NEON_COLLAB_URL: value },
+          ),
+        ),
+      ),
+    );
+
+  test("is draft_collab, and nothing else", () => {
+    const ok = collab(
+      "postgres://draft_collab:pw@ep-x.neon.tech/neondb?sslmode=require",
+    );
+    expect(Result.isSuccess(ok)).toBe(true);
+    for (const other of [
+      "postgres://site_reader:pw@ep-x.neon.tech/neondb",
+      "postgres://neondb_owner:pw@ep-x.neon.tech/neondb",
+    ]) {
+      const refused = collab(other);
+      expect(Result.isFailure(refused)).toBe(true);
+      expect(
+        String(Result.isFailure(refused) ? refused.failure : ""),
+      ).toContain(
+        'NEON_COLLAB_URL must be for the collaboration "draft_collab" role',
+      );
+      expect(
+        String(Result.isFailure(refused) ? refused.failure : ""),
+      ).not.toContain("pw");
+    }
+    expect(Result.isFailure(collab())).toBe(true);
   });
 });

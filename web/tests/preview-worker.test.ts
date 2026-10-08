@@ -67,7 +67,7 @@ describe("the preview Worker", () => {
         expect(response.headers.get("cache-control")).toBe("private, no-store");
         expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
         expect(await response.text()).toBe(
-          "Only the organizers can see drafts.",
+          "Only the organizers and the people they invite can see drafts.",
         );
       }
     }

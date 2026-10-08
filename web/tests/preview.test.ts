@@ -8,7 +8,11 @@ import {
   publishedKeys,
   verifyAccess,
 } from "../src/preview/access.ts";
-import { makePreviewHandler, previewHeaders } from "../src/preview/app.ts";
+import {
+  makePreviewHandler,
+  previewHeaders,
+  refusal,
+} from "../src/preview/app.ts";
 import { eventDatabase, longSlugs, slugs } from "./support/event-catalog.ts";
 import { serve } from "./support/socket.ts";
 
@@ -122,16 +126,28 @@ describe("verifyAccess", () => {
   const verdict = async (jwt: string | null) =>
     verifyAccess(jwt, settings, keys, now);
 
-  test("lets a viewer in", async () => {
+  test("lets an organizer in, as one", async () => {
     expect(await verdict(await token())).toEqual({
       allowed: true,
       email: viewer,
+      organizer: true,
     });
     expect(
       await verdict(await token({ email: "ANDRE@example.com", aud: audience })),
     ).toEqual({
       allowed: true,
       email: "andre@example.com",
+      organizer: true,
+    });
+  });
+
+  test("signs anyone else in as no organizer: what they see is the database's to say", async () => {
+    expect(
+      await verdict(await token({ email: "Someone@Example.com" })),
+    ).toEqual({
+      allowed: true,
+      email: "someone@example.com",
+      organizer: false,
     });
   });
 
@@ -139,9 +155,9 @@ describe("verifyAccess", () => {
     ["no token", async () => null, "no Access token"],
     ["garbage", async () => "not.a.jwt", "not a JWT"],
     [
-      "anyone else",
-      () => token({ email: "someone@example.com" }),
-      "not a viewer",
+      "an email that isn't one",
+      () => token({ email: "nobody" }),
+      "not an email",
     ],
     [
       "another application",
@@ -256,19 +272,30 @@ const get = async (path: string, jwt?: string) =>
   );
 
 describe("the preview", () => {
-  test("shows nothing, not even the list, without a viewer's token", async () => {
+  test("shows nothing, not even the list, without a token Access signed", async () => {
     for (const path of ["/", `/${slugs.draft}`]) {
-      for (const jwt of [
-        undefined,
-        await token({ email: "someone@example.com" }),
-      ]) {
+      for (const jwt of [undefined, await token({ aud: ["other"] })]) {
         const response = await get(path, jwt);
         expect(response.status).toBe(403);
         expect(response.headers.get("cache-control")).toBe("private, no-store");
         const body = await response.text();
-        expect(body).toBe("Only the organizers can see drafts.");
+        expect(body).toBe(refusal);
       }
     }
+  });
+
+  test("shows someone signed in but invited to nothing no list, and no draft", async () => {
+    const someone = await token({ email: "someone@example.com" });
+    const index = await get("/", someone);
+    expect(index.status).toBe(403);
+    expect(await index.text()).toBe(refusal);
+    // A draft answers as a slug nobody has: the public site's.
+    const draft = await get(`/${slugs.draft}`, someone);
+    expect(draft.status).toBe(302);
+    expect(draft.headers.get("location")).toBe(
+      `https://site.example/${slugs.draft}`,
+    );
+    expect(await draft.text()).not.toContain("All Things Draft");
   });
 
   test("lists the drafts", async () => {

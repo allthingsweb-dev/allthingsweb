@@ -91,6 +91,12 @@ export interface EventPageProps {
   readonly images: ImageMode;
   /** When the page is made: its card names the year of an evening in another. */
   readonly now: DateTime.DateTime;
+  /**
+   * What follows the evening on its page, already rendered: only the draft
+   * preview's collaborators' panel (web/src/preview/panel.tsx). The public
+   * site gives none.
+   */
+  readonly after?: JSX.Element;
 }
 
 /**
@@ -1276,7 +1282,10 @@ export function eventPage({
   portraits,
   images,
   now,
+  after,
 }: EventPageProps): string {
+  // Rendered by its own component, which escapes what it shows.
+  const safeAfter = after ?? "";
   const past = event.status === "past";
   const photos = showable(event.photos, images);
   const tagline = event.tagline.trim();
@@ -1374,6 +1383,7 @@ export function eventPage({
           )}
           {past ? <Next next={event.next} /> : ""}
         </dl>
+        {safeAfter}
       </article>
     ),
   });
