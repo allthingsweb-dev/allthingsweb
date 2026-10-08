@@ -365,7 +365,7 @@ CodeRabbit first.
         service.setBrief(draft, [reordered[0]!], read.token),
       ),
     ).toBe(
-      `Collaborators commented on "the pitch": keep those headings, or hide the comments first.`,
+      `Collaborators commented on "the pitch": keep those headings, which keep their comments.`,
     );
     expect(await count("brief_sections")).toBe(2);
   });

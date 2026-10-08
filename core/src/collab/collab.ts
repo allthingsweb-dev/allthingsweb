@@ -432,7 +432,7 @@ const make = Effect.gen(function* () {
           );
           if (missing.length > 0) {
             return yield* refuse(
-              `Collaborators commented on ${missing.map((h) => `"${h}"`).join(", ")}: keep those headings, or hide the comments first.`,
+              `Collaborators commented on ${missing.map((h) => `"${h}"`).join(", ")}: keep those headings, which keep their comments.`,
             );
           }
           // Positions move: park every row out of the way first.
