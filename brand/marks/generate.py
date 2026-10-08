@@ -36,7 +36,8 @@ TOKENS = ROOT / "brand/all-things.tokens.json"
 OUT = ROOT / "app/public/brand"
 # Link-preview cards and what the Worker draws event cards with (og.py).
 OG_OUT = ROOT / "brand/og"
-# The Luma calendar's cover (calendar_cover.py), uploaded by hand on Luma.
+# The Luma calendar's cover (calendar_cover.py), uploaded by hand on Luma,
+# and specimens of an evening's cover template (cover.py).
 COVERS_OUT = ROOT / "brand/covers"
 
 # Archivo variable font, pinned to a google/fonts commit and verified by hash.
@@ -385,6 +386,14 @@ def build() -> dict[Path, bytes]:
     calendar = bytes(
         resvg_py.svg_to_bytes(svg_string=calendar_cover_svg(Setter(faces), colors))
     )
+    # Imported here: cover.py reads the fonts and tokens through this module.
+    from cover import SPECIMEN_PIXELS, SPECIMENS, render
+
+    cover_setter = Setter(faces)
+    covers = {
+        name: render(facts, cover_setter, SPECIMEN_PIXELS)
+        for name, facts in SPECIMENS.items()
+    }
     return {
         **{
             OUT / name: content.encode() if isinstance(content, str) else content
@@ -392,6 +401,7 @@ def build() -> dict[Path, bytes]:
         },
         **{OG_OUT / name: content for name, content in og.items()},
         COVERS_OUT / "calendar.png": calendar,
+        **{COVERS_OUT / name: content for name, content in covers.items()},
         ROOT / "brand/type-metrics.json": type_insets(faces, json.loads(TOKENS.read_text())),
     }
 

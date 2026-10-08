@@ -327,6 +327,14 @@ export const eventsTable = pgTable(
      * core/migrations/0013_short_slugs.ts adds it. `slug` stays the app's.
      */
     shortSlug: text("short_slug").unique(),
+    /**
+     * The cover core's generator made, as `bun run luma cover` set it on
+     * Luma: its URL there, its PNG's SHA-256 and the approval token of the
+     * facts it says (core/migrations/0025_generated_cover.ts). All or none.
+     */
+    generatedCoverUrl: text("generated_cover_url"),
+    generatedCoverSha256: text("generated_cover_sha256"),
+    generatedCoverFacts: text("generated_cover_facts"),
   },
   (table) => [
     foreignKey({
@@ -359,6 +367,22 @@ export const eventsTable = pgTable(
     AND "topic" = lower("topic" COLLATE "pg_c_utf8")
     AND strpos("topic", 'all things') = 0
     AND "topic" COLLATE "pg_c_utf8" ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'`,
+    ),
+    check(
+      "events_generated_cover_check",
+      sql`num_nonnulls("generated_cover_url", "generated_cover_sha256", "generated_cover_facts") IN (0, 3)`,
+    ),
+    check(
+      "events_generated_cover_url_check",
+      sql`"generated_cover_url" ~ '^https://images\\.lumacdn\\.com/'`,
+    ),
+    check(
+      "events_generated_cover_sha256_check",
+      sql`"generated_cover_sha256" ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      "events_generated_cover_facts_check",
+      sql`"generated_cover_facts" ~ '^[0-9a-f]{16}$'`,
     ),
   ],
 );
