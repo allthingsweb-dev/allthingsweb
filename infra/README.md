@@ -226,7 +226,7 @@ bash infra/scripts/ci-token.sh --rotate   # also roll the value and update the s
 
 Draft collaboration's edge (core's README, "Collaborating on a draft") is kept by the studio, not by Alchemy:
 
-- The preview's Access policy admits the Zero Trust email list "allthings draft collaborators" besides the organizers, once `COLLABORATOR_LIST_ID` in [`src/preview.ts`](src/preview.ts) names it.
+- The preview's Access policy admits the Zero Trust email list "allthings draft collaborators" besides the organizers, by its id, `COLLABORATOR_LIST_ID` in [`src/preview.ts`](src/preview.ts).
 - `bun run collab` sets the list's items to every active invitation whenever it invites or revokes. A revocation also ends that person's Access sessions.
 - Alchemy only names the list: it reconciles a list's items as a full set on every deploy, which would empty this one.
 

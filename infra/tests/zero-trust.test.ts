@@ -13,9 +13,26 @@ import { COLLABORATOR_LIST, ensureList } from "../scripts/zero-trust-store.ts";
  */
 
 describe("the preview's Access policies", () => {
-  test("admit the organizers alone until the list exists", () => {
-    expect(COLLABORATOR_LIST_ID).toBeUndefined();
+  test("admit the studio's list of collaborators, besides the organizers", () => {
+    expect(COLLABORATOR_LIST_ID).toBe("c1bb53e8-ceb1-4adb-b63f-4458faae7d24");
     expect(previewPolicies()).toEqual([
+      {
+        name: "The organizers",
+        decision: "allow",
+        include: PREVIEW_VIEWERS.map((email) => ({ email })),
+      },
+      {
+        name: "Invited collaborators",
+        decision: "allow",
+        include: [
+          { emailList: { id: "c1bb53e8-ceb1-4adb-b63f-4458faae7d24" } },
+        ],
+      },
+    ]);
+  });
+
+  test("admit the organizers alone without a list", () => {
+    expect(previewPolicies(null)).toEqual([
       {
         name: "The organizers",
         decision: "allow",
