@@ -1,7 +1,10 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Context, DateTime, Effect, Layer, Schema } from "effect";
-import type { EventPage } from "./event-page.ts";
+import { approvalToken } from "./approval.ts";
+import type { EventPage, EventPages } from "./event-page.ts";
+import { siteOrigin } from "./site.ts";
+import type { ShortSlugs } from "./slugs.ts";
 
 /**
  * An evening's Luma cover: what it says, and drawing it. Every evening's
@@ -96,6 +99,51 @@ export function coverFacts(
     link: `${siteHost}/${linkSlug}`,
   };
 }
+
+/** The one origin pages load photos from; a cover reads none. */
+const photoOrigin = "https://media.allthings.dev";
+
+/** An evening a cover is drawn for, as the events row says it. */
+export interface CoverEvening {
+  readonly id: string;
+  readonly slug: string;
+  readonly shortSlug: string | null;
+  readonly lumaEventId: string;
+  readonly isDraft: boolean;
+}
+
+/**
+ * What `evening`'s cover says now, and the facts' approval token: what
+ * `generated_cover_facts` was when its cover was set, unless a fact has
+ * changed since (src/readiness/ compares them). Its link is the short link
+ * it has, or the one it gets when published.
+ */
+export const coverFactsOf = (
+  pages: EventPages["Service"],
+  slugs: ShortSlugs["Service"],
+  evening: CoverEvening,
+) =>
+  Effect.gen(function* () {
+    const page = yield* evening.isDraft
+      ? pages.readDraft(evening.slug, photoOrigin)
+      : pages.read(evening.slug, photoOrigin);
+    const link =
+      evening.shortSlug ??
+      (yield* slugs
+        .assign({
+          dryRun: true,
+          published: [{ lumaEventId: evening.lumaEventId }],
+        })
+        .pipe(
+          Effect.map(
+            ({ given }) =>
+              given.find((planned) => planned.eventId === evening.id)
+                ?.shortSlug ?? evening.slug,
+          ),
+        ));
+    const facts = coverFacts(page, link, new URL(siteOrigin).host);
+    return { facts, token: yield* approvalToken(facts) };
+  });
 
 /**
  * Whether `url` is one of Luma's own covers: the gallery a new event

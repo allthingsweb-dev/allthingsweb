@@ -10,6 +10,8 @@ import {
   SITE_READER,
 } from "../../infra/scripts/site-reader.ts";
 import type { EventRecord } from "../src/completeness.ts";
+import { coverFactsOf } from "../src/cover.ts";
+import { EventPages } from "../src/event-page.ts";
 import { formats, openSourceProjects, scheduleLines } from "../src/formats.ts";
 
 const [lightning, fullDaySize] = formats.hackathon.sizes;
@@ -33,6 +35,7 @@ import {
   type Wanted,
   wordsOf,
 } from "../src/readiness/suggestions.ts";
+import { ShortSlugs } from "../src/slugs.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
@@ -107,6 +110,7 @@ const facts = (
   isDraft: true,
   shortLocation: "CodeRabbit",
   scheduleItems: 0,
+  cover: "ours",
   ...more,
 });
 
@@ -292,13 +296,57 @@ describe("draftChecks", () => {
     expect(fullDay[0]?.message).toBe(fullDaySize.confirm ?? "");
   });
 
-  test("a cover blocks only once the Luma event exists", () => {
-    expect(kinds(draftChecks(facts({ hasCover: false }), [], now))).toEqual([
-      "blocker cover",
-    ]);
+  test("once the Luma event exists, a cover that isn't ours, or was drawn for other facts, blocks", () => {
+    const notOurs = draftChecks(facts({}, { cover: "not ours" }), [], now);
+    expect(kinds(notOurs)).toEqual(["blocker own-cover"]);
+    expect(notOurs[0]?.message).toBe(
+      "Its cover isn't ours (Luma's default, or one set by hand): draw and set it with bun run luma cover 2026-10-27-made-up --dry-run, then --approve <token>",
+    );
+    // Said once: the missing copy of a cover that isn't ours adds nothing.
     expect(
       kinds(
-        draftChecks(facts({ hasCover: false, lumaEventId: null }), [], now),
+        draftChecks(facts({ hasCover: false }, { cover: "not ours" }), [], now),
+      ),
+    ).toEqual(["blocker own-cover"]);
+    expect(kinds(draftChecks(facts({}, { cover: "stale" }), [], now))).toEqual([
+      "blocker cover-facts",
+    ]);
+    // Ours, and the site's copy not stored yet: the hourly ingestion brings it.
+    expect(kinds(draftChecks(facts({ hasCover: false }), [], now))).toEqual([
+      "advice cover",
+    ]);
+    // A shared evening's cover is its organizer's.
+    expect(
+      kinds(
+        draftChecks(
+          facts(
+            {
+              curation: {
+                kind: "shared",
+                organizer: {
+                  name: "Mastra",
+                  websiteUrl: null,
+                  twitterHandle: null,
+                  blueskyHandle: null,
+                  linkedinHandle: null,
+                },
+              },
+            },
+            { cover: "not ours" },
+          ),
+          [],
+          now,
+        ),
+      ).filter((kind) => kind.includes("cover")),
+    ).toEqual([]);
+    // Before the Luma event exists, there is no cover to have.
+    expect(
+      kinds(
+        draftChecks(
+          facts({ hasCover: false, lumaEventId: null }, { cover: "not ours" }),
+          [],
+          now,
+        ),
       ),
     ).toEqual(["advice luma-event", "advice cover"]);
   });
@@ -617,7 +665,7 @@ describe("the report", () => {
       "blocker people",
       "blocker person-photo",
       "blocker hosts",
-      "blocker cover",
+      "blocker own-cover",
       "advice person-links",
       "advice description",
     ]);
@@ -629,6 +677,48 @@ describe("the report", () => {
     expect(formatReadiness(result)).toContain(
       "✗ not ready: 4 things block publishing",
     );
+  });
+
+  test("a cover we set is ours while the evening's facts are the ones it says", async () => {
+    const draft = "2026-09-01-draft-night";
+    await db.exec(`UPDATE events SET start_date = '2026-10-28T00:30:00Z', end_date = '2026-10-28T03:30:00Z',
+      street_address = '201 Spear St', full_address = '201 Spear St, San Francisco, CA 94105'
+      WHERE slug = '${draft}'`);
+    const { token } = await Effect.runPromise(
+      Effect.gen(function* () {
+        return yield* coverFactsOf(yield* EventPages, yield* ShortSlugs, {
+          id: "e0000000-0000-4000-8000-000000000002",
+          slug: draft,
+          shortSlug: null,
+          lumaEventId: "evt-draft",
+          isDraft: true,
+        });
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(EventPages.layer, ShortSlugs.layer).pipe(
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    const record = (factsToken: string) =>
+      db.exec(`UPDATE events SET generated_cover_url = 'https://images.lumacdn.com/api-uploads/ab/ours.png',
+        generated_cover_sha256 = '${"a".repeat(64)}', generated_cover_facts = '${factsToken}'
+        WHERE slug = '${draft}'`);
+    const coverChecks = async () =>
+      kinds((await report({ _tag: "Event", slug: draft })).checks).filter(
+        (kind) => kind.includes("cover"),
+      );
+
+    expect(await coverChecks()).toEqual(["blocker own-cover"]);
+    await record(token);
+    // Ours; the site's copy follows with the ingestion.
+    expect(await coverChecks()).toEqual(["advice cover"]);
+    // Moved a day: the cover says the old one.
+    await db.exec(`UPDATE events SET start_date = '2026-10-29T00:30:00Z', end_date = '2026-10-29T03:30:00Z'
+      WHERE slug = '${draft}'`);
+    expect(await coverChecks()).toEqual(["blocker cover-facts"]);
   });
 
   test("an idea, with and then through its draft evening", async () => {

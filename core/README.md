@@ -879,7 +879,12 @@ asked:
   shared evening that day is advice
 - its venue is named and has a known neighborhood (`src/places.ts`)
 - a hackathon has its schedule
-- once the Luma event exists, a cover
+- once the Luma event exists (for an evening of ours), its cover is ours:
+  `bun run luma cover` set and recorded it, and the facts it says (day,
+  place, hosts, link) are still the evening's. A cover that isn't ours
+  (Luma's default, or one set by hand) blocks, and so does one drawn
+  before a fact changed; the site's copy of it, which the hourly
+  ingestion stores, is advice
 
 **Suggestions,** each ranked deterministically, so the same rows suggest
 the same in the same order:
@@ -1079,14 +1084,17 @@ calendar's key in `LUMA_API_KEY`:
   draft preview shows.
 - `update` changes a private event: name, times, place (`--venue` for a
   place Google Maps knows, so its name shows; `--address` as written), the
-  description the promotion drafts write, a cover uploaded to Luma's CDN.
+  description the promotion drafts write. Never a cover: that is
+  `luma cover`'s, drawn from the evening's facts (see "Its cover").
   `--description-from-idea <id>` sets the description to an idea's pitch
   again, as `create` did, after the pitch changes.
   A public event is refused.
 - `publish --dry-run` prints exactly what would go out: the event
   as Luma has it, with the drafts' description, and its approval token,
   the first 16 hex digits of the SHA-256 of that content as canonical
-  JSON. It refuses while readiness finds a blocker. With `--approve
+  JSON. It refuses while readiness finds a blocker, and while the cover
+  Luma shows isn't the one we set and recorded: Luma's default, or any
+  other (readiness reads only the record). With `--approve
 <token>` it works the content out again and goes on only if it hashes
   the same, sets the description and the visibility in one update, and
   reads the event back to check both took.
@@ -1106,7 +1114,7 @@ body and sends nothing. Nothing in the tests reaches Luma.
 ```sh
 LUMA_API_KEY=… DATABASE_URL=… bun run luma create --name "…" \
   --start 2026-11-18T18:00:00-08:00 --end 2026-11-18T21:00:00-08:00 --venue "CodeRabbit, 201 Spear St" --idea <id> --dry-run
-LUMA_API_KEY=… DATABASE_URL=… bun run luma update --event <draft slug> --description-from-drafts --cover cover.png --dry-run
+LUMA_API_KEY=… DATABASE_URL=… bun run luma update --event <draft slug> --description-from-drafts --dry-run
 LUMA_API_KEY=… DATABASE_URL=… bun run luma update --luma evt-… --description-from-idea <id> --dry-run
 LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --dry-run          # what would go out, and its token
 LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --approve <token>  # exactly that, public
@@ -1140,6 +1148,10 @@ with uv (`brand/marks/cover.py`). Same facts, same pixels.
   `generated_cover_facts` (the facts' approval token), from
   migrations/0025_generated_cover.ts. It lets go of the evening's stored
   copy of the old cover, so the hourly image ingestion stores the new one.
+
+Readiness compares against that record (see "Readiness"), and publishing
+against Luma itself: an evening of ours goes out only with the cover we
+set, saying what its facts say now.
 
 Only a private event of ours is changed. A public one changes only through
 publish and a shared one's Luma page is its organizer's; a public

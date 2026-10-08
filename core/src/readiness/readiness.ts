@@ -2,11 +2,14 @@ import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { Completeness } from "../completeness.ts";
 import { DataSourceError } from "../errors.ts";
+import { EventPages } from "../event-page.ts";
 import { formats } from "../formats.ts";
+import { coverFactsOf } from "../cover.ts";
 import { eventTopic } from "../lockup.ts";
 import type { HostProspect, Idea, WantedSpeaker } from "../planning/model.ts";
 import { Planning, PlanningError } from "../planning/planning.ts";
 import type { EventProgram } from "../rows.ts";
+import { ShortSlugs } from "../slugs.ts";
 import { sfDay } from "./calendar.ts";
 import { type CalendarEvent, type Check, draftChecks } from "./checks.ts";
 import {
@@ -111,6 +114,10 @@ export interface ReadinessShape {
 
 const Facts = Schema.Struct({
   id: Schema.String,
+  slug: Schema.String,
+  shortSlug: Schema.NullOr(Schema.String),
+  lumaEventId: Schema.NullOr(Schema.String),
+  generatedCoverFacts: Schema.NullOr(Schema.String),
   isDraft: Schema.Boolean,
   shortLocation: Schema.NullOr(Schema.String),
   scheduleItems: Schema.Number,
@@ -196,6 +203,29 @@ const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
   const completeness = yield* Completeness;
   const planning = yield* Planning;
+  const pages = yield* EventPages;
+  const slugs = yield* ShortSlugs;
+
+  /**
+   * Whether the evening's cover is ours and says what its facts say now:
+   * the facts' token recorded when it was set, against today's.
+   */
+  const coverOf = (fact: typeof Facts.Type) =>
+    fact.lumaEventId === null || fact.generatedCoverFacts === null
+      ? Effect.succeed("not ours" as const)
+      : coverFactsOf(pages, slugs, {
+          ...fact,
+          lumaEventId: fact.lumaEventId,
+        }).pipe(
+          Effect.map(({ token }) =>
+            token === fact.generatedCoverFacts
+              ? ("ours" as const)
+              : ("stale" as const),
+          ),
+          Effect.catchTag("EventNotFound", (cause) =>
+            Effect.fail(new DataSourceError({ cause })),
+          ),
+        );
 
   const decode =
     <S extends Schema.Top>(schema: S) =>
@@ -210,7 +240,10 @@ const make = Effect.gen(function* () {
 
   const facts = (slug: string) =>
     sql`
-      SELECT e.id, e.is_draft AS "isDraft", e.short_location AS "shortLocation",
+      SELECT e.id, e.slug, e.short_slug AS "shortSlug",
+        e.luma_event_id AS "lumaEventId",
+        e.generated_cover_facts AS "generatedCoverFacts",
+        e.is_draft AS "isDraft", e.short_location AS "shortLocation",
         (SELECT count(*)::int FROM event_schedule_items si WHERE si.event_id = e.id) AS "scheduleItems",
         COALESCE((SELECT json_agg(es.sponsor_id ORDER BY es.sponsor_id) FROM event_sponsors es WHERE es.event_id = e.id), '[]'::json) AS "hostIds",
         COALESCE((SELECT json_agg(DISTINCT id) FROM (
@@ -374,6 +407,7 @@ const make = Effect.gen(function* () {
                 isDraft: fact.isDraft,
                 shortLocation: fact.shortLocation,
                 scheduleItems: fact.scheduleItems,
+                cover: yield* coverOf(fact),
               },
               events,
               now,
@@ -484,6 +518,13 @@ export class Readiness extends Context.Service<Readiness, ReadinessShape>()(
   "allthings/Readiness",
 ) {
   static readonly layer = Layer.effect(Readiness, make).pipe(
-    Layer.provide(Layer.mergeAll(Completeness.layer, Planning.layer)),
+    Layer.provide(
+      Layer.mergeAll(
+        Completeness.layer,
+        Planning.layer,
+        EventPages.layer,
+        ShortSlugs.layer,
+      ),
+    ),
   );
 }

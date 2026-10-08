@@ -28,8 +28,10 @@ import { sfDay } from "./calendar.ts";
  * what only matters before an evening goes out: it is still a draft, its
  * date is ahead and sane and clear of other evenings that day, its venue
  * is named and placed, it has the schedule its format requires, and once
- * its private Luma event exists, it has a cover. What each program asks
- * for is its format's (src/formats.ts), never decided here.
+ * its private Luma event exists, its cover is ours: the one the brand's
+ * template drew from its facts as they are now, never Luma's default or
+ * one set by hand (src/luma/cover.ts). What each program asks for is its
+ * format's (src/formats.ts), never decided here.
  */
 
 /** Whether a check stops publishing, or only says what would make it better. */
@@ -49,6 +51,8 @@ export const draftCheckKinds = {
   "venue-name": "no venue name",
   neighborhood: "no neighborhood for the venue",
   schedule: "no schedule",
+  "own-cover": "a cover that isn't ours",
+  "cover-facts": "a cover drawn for facts that have changed",
 } as const;
 
 export type DraftCheckKind = keyof typeof draftCheckKinds;
@@ -76,6 +80,13 @@ export interface DraftFacts {
   /** The venue's name, as Luma's location name is stored. */
   readonly shortLocation: string | null;
   readonly scheduleItems: number;
+  /**
+   * Its Luma cover, by what was recorded when `bun run luma cover` set
+   * it: ours and drawn from its facts as they are now, ours but drawn
+   * before one changed, or not ours (none recorded: Luma's default, or one
+   * set by hand).
+   */
+  readonly cover: "ours" | "stale" | "not ours";
 }
 
 /** Another event on the calendar, published or draft. */
@@ -204,29 +215,51 @@ export function draftChecks(
     );
   }
 
+  // An evening of ours with its Luma event has our cover; a shared
+  // evening's Luma page, cover and all, is its organizer's.
+  const ownsCover =
+    record.lumaEventId !== null && record.curation.kind === "ours";
   const report = eventCompleteness(record, now);
   for (const gap of report.gaps) {
     if (pastOnly.has(gap.kind)) continue;
+    // A cover that isn't ours is said once, below.
+    if (gap.kind === "cover" && ownsCover && facts.cover !== "ours") continue;
     const { required, label } = gapKinds[gap.kind];
-    // A cover is made from the brand's template with the Luma event, so it
-    // blocks only once that event exists. A description is written on Luma
-    // and imported once the evening is public (src/luma/descriptions.ts),
-    // so before then it is advice.
+    // Whether its cover is ours is checked below, once the Luma event
+    // exists; the site's copy of it (this gap) follows with the hourly
+    // ingestion, so it is advice. A description is written on Luma and
+    // imported once the evening is public (src/luma/descriptions.ts), so
+    // before then it is advice too.
     const level: CheckLevel =
-      gap.kind === "description"
+      gap.kind === "description" || gap.kind === "cover"
         ? "advice"
-        : gap.kind === "cover"
-          ? record.lumaEventId === null
-            ? "advice"
-            : "blocker"
-          : required
-            ? "blocker"
-            : "advice";
+        : required
+          ? "blocker"
+          : "advice";
     const message =
       gap.subject === null
         ? capitalize(label)
         : `${capitalize(label)}: ${gap.subject}`;
     checks.push(check(gap.kind, level, message, gap.subject));
+  }
+
+  if (ownsCover && facts.cover === "not ours") {
+    checks.push(
+      check(
+        "own-cover",
+        "blocker",
+        `Its cover isn't ours (Luma's default, or one set by hand): draw and set it with bun run luma cover ${record.slug} --dry-run, then --approve <token>`,
+      ),
+    );
+  }
+  if (ownsCover && facts.cover === "stale") {
+    checks.push(
+      check(
+        "cover-facts",
+        "blocker",
+        `Its cover was drawn before its day, place, hosts or link changed: draw it again with bun run luma cover ${record.slug} --dry-run, then --approve <token>`,
+      ),
+    );
   }
 
   const hasVenue =

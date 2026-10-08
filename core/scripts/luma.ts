@@ -32,7 +32,7 @@ import { shellWord } from "./shell.ts";
  *
  *   bun run luma create --name "allthings/effect" --start 2026-11-18T18:00:00-08:00 \
  *     --end 2026-11-18T21:00:00-08:00 --venue "CodeRabbit, 201 Spear St" [--idea <id>] [--dry-run]
- *   bun run luma update --event <draft slug> --description-from-drafts [--cover cover.png] [--dry-run]
+ *   bun run luma update --event <draft slug> --description-from-drafts [--dry-run]
  *   bun run luma update --luma evt-… --description-from-idea <id> [--dry-run]   the idea's pitch, as create sets it
  *   bun run luma update --luma evt-… --name "…"        before the sync has stored it
  *   bun run luma publish <draft slug> --dry-run        what would go out, and its approval token
@@ -104,22 +104,6 @@ const placeOf = (
   }
   return Effect.succeed(undefined);
 };
-
-const coverOf = (path: string) =>
-  Effect.gen(function* () {
-    const bytes = new Uint8Array(
-      yield* Effect.promise(() => Bun.file(path).arrayBuffer()),
-    );
-    const png = [0x89, 0x50, 0x4e, 0x47].every((byte, i) => bytes[i] === byte);
-    const jpeg = [0xff, 0xd8, 0xff].every((byte, i) => bytes[i] === byte);
-    if (!png && !jpeg) {
-      return yield* refuse(`${path} is neither a PNG nor a JPEG.`);
-    }
-    return {
-      bytes,
-      contentType: png ? ("image/png" as const) : ("image/jpeg" as const),
-    };
-  });
 
 const print = (asJson: boolean, value: unknown, lines: string) =>
   Console.log(asJson ? JSON.stringify(value, null, 2) : lines);
@@ -219,7 +203,6 @@ const update = Command.make(
       "description-from-idea",
       "Set the description to this idea's pitch, as create does, by the idea's id.",
     ),
-    cover: text("cover", "A PNG or JPEG to upload as its cover."),
     dryRun,
     json,
   },
@@ -242,9 +225,6 @@ const update = Command.make(
       const startAt = yield* time("start", options.start);
       const endAt = yield* time("end", options.end);
       const place = yield* placeOf(options.venue, options.address);
-      const cover = Option.isSome(options.cover)
-        ? yield* coverOf(options.cover.value)
-        : undefined;
       const result = yield* Studio.use((studio) =>
         studio.update(
           ref,
@@ -261,7 +241,6 @@ const update = Command.make(
             ...(Option.isSome(options.descriptionFromIdea)
               ? { descriptionFromIdea: options.descriptionFromIdea.value }
               : {}),
-            ...(cover === undefined ? {} : { cover }),
           },
           options.dryRun,
         ),
@@ -269,7 +248,7 @@ const update = Command.make(
       return yield* print(
         options.json,
         result,
-        `${options.dryRun ? "Would update" : "Updated"} ${result.lumaEventId}:\n${JSON.stringify(result.body, null, 2)}${options.dryRun && cover !== undefined ? "\n(and upload the cover)" : ""}`,
+        `${options.dryRun ? "Would update" : "Updated"} ${result.lumaEventId}:\n${JSON.stringify(result.body, null, 2)}`,
       );
     }).pipe(Effect.provide(layer)),
 ).pipe(Command.withDescription("Change a private Luma event."));
