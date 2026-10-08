@@ -816,6 +816,9 @@ organizers, co-hosts and MC, which readiness reads for the draft and
 publishing copies to the evening's public lineup. Nothing about an
 unpublished evening goes into `core/backfill/lineups.json`, which is the
 lineup of published ones.
+Each publish is claimed in `publishes` before it writes anything, so two
+never overlap, and recorded published once Luma says so; from the claim
+on, the private lineup can't change.
 
 The schema is public; the rows are private. site_reader and site_sync are
 never granted the schema, so no grant on `public`, not even one on every

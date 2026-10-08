@@ -1,5 +1,5 @@
 {
-  "id": "d0e027d8-7cbd-4a4a-82a5-bbee863b104c",
+  "id": "c6d43326-bcec-40f6-943b-3af5e7419b1f",
   "prevId": "688e95e3-ba48-4822-9f86-af204699a2ec",
   "version": "7",
   "dialect": "postgresql",
@@ -1593,12 +1593,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "published_at": {
-          "name": "published_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -2030,6 +2024,62 @@
         "notes_author_check": {
           "name": "notes_author_check",
           "value": "btrim(\"author\") <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "planning.publishes": {
+      "name": "publishes",
+      "schema": "planning",
+      "columns": {
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "publishes_event_id_events_id_fk": {
+          "name": "publishes_event_id_events_id_fk",
+          "tableFrom": "publishes",
+          "tableTo": "events",
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "publishes_status_check": {
+          "name": "publishes_status_check",
+          "value": "\"status\" IN ('publishing', 'published')"
+        },
+        "publishes_published_check": {
+          "name": "publishes_published_check",
+          "value": "(\"status\" = 'published') = (\"published_at\" IS NOT NULL)"
         }
       },
       "isRLSEnabled": false

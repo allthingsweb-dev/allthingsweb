@@ -17,7 +17,6 @@ column planning.draft_people #002 profile_id uuid not null
 column planning.draft_people #003 role text not null
 column planning.draft_people #004 "position" integer not null
 column planning.draft_people #005 created_at timestamp with time zone not null default now()
-column planning.draft_people #006 published_at timestamp with time zone
 column planning.host_prospects #001 id uuid not null default gen_random_uuid()
 column planning.host_prospects #002 sponsor_id uuid
 column planning.host_prospects #003 company_name text
@@ -43,6 +42,10 @@ column planning.notes #004 contact_id uuid
 column planning.notes #005 body text not null
 column planning.notes #006 author text
 column planning.notes #007 created_at timestamp with time zone not null default now()
+column planning.publishes #001 event_id uuid not null
+column planning.publishes #002 status text not null
+column planning.publishes #003 claimed_at timestamp with time zone not null
+column planning.publishes #004 published_at timestamp with time zone
 column planning.sent_posts #001 id uuid not null default gen_random_uuid()
 column planning.sent_posts #002 channel text not null
 column planning.sent_posts #003 event_id uuid not null
@@ -266,6 +269,10 @@ constraint planning.notes notes_pkey PRIMARY KEY (id)
 constraint planning.notes notes_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint planning.notes notes_sponsor_id_sponsors_id_fk FOREIGN KEY (sponsor_id) REFERENCES sponsors(id)
 constraint planning.notes notes_subject_check CHECK ((num_nonnulls(profile_id, sponsor_id, contact_id) = 1))
+constraint planning.publishes publishes_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.publishes publishes_pkey PRIMARY KEY (event_id)
+constraint planning.publishes publishes_published_check CHECK (((status = 'published'::text) = (published_at IS NOT NULL)))
+constraint planning.publishes publishes_status_check CHECK ((status = ANY (ARRAY['publishing'::text, 'published'::text])))
 constraint planning.sent_posts sent_posts_channel_check CHECK ((channel = ANY (ARRAY['discord'::text, 'x'::text])))
 constraint planning.sent_posts sent_posts_channel_event_id_moment_unique UNIQUE (channel, event_id, moment)
 constraint planning.sent_posts sent_posts_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
@@ -389,6 +396,7 @@ index planning.notes CREATE INDEX notes_contact_id_idx ON planning.notes USING b
 index planning.notes CREATE INDEX notes_profile_id_idx ON planning.notes USING btree (profile_id)
 index planning.notes CREATE INDEX notes_sponsor_id_idx ON planning.notes USING btree (sponsor_id)
 index planning.notes CREATE UNIQUE INDEX notes_pkey ON planning.notes USING btree (id)
+index planning.publishes CREATE UNIQUE INDEX publishes_pkey ON planning.publishes USING btree (event_id)
 index planning.sent_posts CREATE UNIQUE INDEX sent_posts_channel_event_id_moment_unique ON planning.sent_posts USING btree (channel, event_id, moment)
 index planning.sent_posts CREATE UNIQUE INDEX sent_posts_pkey ON planning.sent_posts USING btree (id)
 index planning.wanted_speaker_topics CREATE INDEX wanted_speaker_topics_topic_idx ON planning.wanted_speaker_topics USING btree (topic)
@@ -436,6 +444,7 @@ relation planning.draft_people kind=r persistence=p rls=f force_rls=f replica_id
 relation planning.host_prospects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.ideas kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.publishes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.sent_posts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speaker_topics kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=

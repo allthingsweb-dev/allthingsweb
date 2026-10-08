@@ -913,8 +913,6 @@ export const planningDraftPeopleTable = planningSchema.table(
     /** Order among the evening's people in the same role, from 0. */
     position: integer("position").notNull(),
     createdAt: planningCreatedAt,
-    /** When publishing copied it to the evening's public lineup. */
-    publishedAt: timestamp("published_at", { withTimezone: true }),
   },
   (table) => [
     primaryKey({ columns: [table.eventId, table.profileId, table.role] }),
@@ -923,6 +921,34 @@ export const planningDraftPeopleTable = planningSchema.table(
       sql`"role" IN ('organizer', 'co-host', 'mc')`,
     ),
     check("draft_people_position_check", sql`"position" >= 0`),
+  ],
+);
+
+/**
+ * Each draft's publish, claimed before it starts so two never overlap,
+ * then published once Luma says so. While it is claimed or published, the
+ * draft's private lineup can't change. core/migrations/0024_draft_lineup.ts
+ * is the same change.
+ */
+export const planningPublishesTable = planningSchema.table(
+  "publishes",
+  {
+    eventId: uuid("event_id")
+      .primaryKey()
+      .references(() => eventsTable.id),
+    status: text("status", { enum: ["publishing", "published"] }).notNull(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }).notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  () => [
+    check(
+      "publishes_status_check",
+      sql`"status" IN ('publishing', 'published')`,
+    ),
+    check(
+      "publishes_published_check",
+      sql`("status" = 'published') = ("published_at" IS NOT NULL)`,
+    ),
   ],
 );
 

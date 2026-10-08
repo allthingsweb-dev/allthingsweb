@@ -56,6 +56,8 @@ const madeUp = `
     SELECT 'discord', id, 'announce', '0123456789abcdef' FROM events ORDER BY id LIMIT 1;
   INSERT INTO planning.draft_people (event_id, profile_id, role, position)
     SELECT e.id, p.id, 'mc', 0 FROM events e, profiles p ORDER BY e.id, p.id LIMIT 1;
+  INSERT INTO planning.publishes (event_id, status, claimed_at)
+    SELECT id, 'publishing', now() FROM events ORDER BY id LIMIT 1;
 `;
 
 let db: PGlite;
@@ -108,6 +110,7 @@ describe("planning is private", () => {
       "host_prospects",
       "ideas",
       "notes",
+      "publishes",
       "sent_posts",
       "wanted_speaker_topics",
       "wanted_speakers",

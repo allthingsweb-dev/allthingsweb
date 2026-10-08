@@ -826,15 +826,15 @@ const make = Effect.gen(function* () {
     );
 
   /**
-   * The evening at `slug`, which must still be a draft. One whose lineup
-   * publishing already copied (`published_at`) is published on Luma,
-   * whatever the sync has caught up with, so its lineup is the public one.
+   * The evening at `slug`, which must still be a draft. One being
+   * published, or published on Luma (planning.publishes) before the sync
+   * has caught up, has the public lineup.
    */
   const draftEvent = (slug: string) =>
     sql`
       SELECT e.id, e.is_draft AS "isDraft",
-        EXISTS (SELECT 1 FROM planning.draft_people d
-          WHERE d.event_id = e.id AND d.published_at IS NOT NULL) AS published
+        EXISTS (SELECT 1 FROM planning.publishes pb
+          WHERE pb.event_id = e.id) AS published
       FROM events e WHERE e.slug = ${slug}`.pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(DraftRows)),
       Effect.flatMap(([row]) =>

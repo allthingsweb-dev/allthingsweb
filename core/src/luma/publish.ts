@@ -1,4 +1,4 @@
-import { Context, DateTime, Effect, Layer, Schema } from "effect";
+import { Context, DateTime, Effect, Exit, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
@@ -351,14 +351,97 @@ const make = Effect.gen(function* () {
       Effect.mapError((cause) => new DataSourceError({ cause })),
     );
 
+  const ClaimRows = Schema.Array(
+    Schema.Struct({
+      status: Schema.Literals(["publishing", "published"]),
+      claimedAt: Schema.String,
+    }),
+  );
+
+  /** How long a publish may take before its claim counts as abandoned. */
+  const claimLasts = 5 * 60 * 1000;
+
+  /** Same people in the same parts and order. */
+  const sameLineup = (
+    a: ReadonlyArray<PlannedPerson>,
+    b: ReadonlyArray<PlannedPerson>,
+  ) =>
+    a.length === b.length &&
+    a.every(
+      (person, i) =>
+        person.role === b[i]?.role &&
+        person.profileId === b[i]?.profileId &&
+        person.position === b[i]?.position,
+    );
+
   /**
-   * Stamps the draft's private lineup published, or (with null) not: from
-   * then on it can't be changed (src/planning/planning.ts).
+   * Claims the draft at `slug`'s publish and writes what planning kept
+   * private for it (the idea's program, the lineup), all in one
+   * transaction with the evening's row locked, so no lineup change or
+   * other publish can come between. Refused while another publish holds
+   * it (for `claimLasts`), once it is published, and when the lineup is
+   * not the one approved. The program it had, and the rows it copied.
    */
-  const stampLineup = (slug: string, at: string | null) =>
-    sql`
-      UPDATE planning.draft_people d SET published_at = ${at}::timestamptz
-      FROM events e WHERE e.id = d.event_id AND e.slug = ${slug}`;
+  const claimPublish = (slug: string, approved: ReadonlyArray<PlannedPerson>) =>
+    Effect.flatMap(DateTime.now, (now) =>
+      sql.withTransaction(
+        Effect.gen(function* () {
+          const at = DateTime.formatIso(now);
+          yield* sql`SELECT id FROM events WHERE slug = ${slug} FOR UPDATE`;
+          const [claim] = yield* sql`
+            SELECT pb.status, to_char(pb.claimed_at AT TIME ZONE 'UTC',
+              'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "claimedAt"
+            FROM planning.publishes pb JOIN events e ON e.id = pb.event_id
+            WHERE e.slug = ${slug}`.pipe(
+            Effect.flatMap(Schema.decodeUnknownEffect(ClaimRows)),
+          );
+          if (claim?.status === "published") {
+            return yield* refuse(`${slug} is already published.`);
+          }
+          if (
+            claim !== undefined &&
+            DateTime.toEpochMillis(now) - Date.parse(claim.claimedAt) <
+              claimLasts
+          ) {
+            return yield* refuse(
+              `Another publish of ${slug} started at ${claim.claimedAt} and hasn't finished: wait, then read it again with --dry-run.`,
+            );
+          }
+          yield* sql`
+            INSERT INTO planning.publishes (event_id, status, claimed_at)
+            SELECT id, 'publishing', ${at}::timestamptz FROM events WHERE slug = ${slug}
+            ON CONFLICT (event_id) DO UPDATE
+              SET status = 'publishing', claimed_at = excluded.claimed_at,
+                published_at = NULL`;
+          if (!sameLineup(yield* plannedLineup(slug), approved)) {
+            return yield* refuse(
+              `The lineup of ${slug} changed since it was approved: read it again with --dry-run, and approve that.`,
+            );
+          }
+          const before = yield* applyPlannedProgram(slug);
+          const copied = yield* copyPlannedLineup(slug);
+          return { before, copied };
+        }),
+      ),
+    ).pipe(
+      Effect.catchTag(["SqlError", "SchemaError"], (cause) =>
+        Effect.fail(new DataSourceError({ cause })),
+      ),
+    );
+
+  /** Records the draft at `slug` published, as Luma now says. */
+  const markPublished = (slug: string) =>
+    Effect.flatMap(
+      DateTime.now,
+      (now) =>
+        sql`
+        UPDATE planning.publishes pb SET status = 'published',
+          published_at = ${DateTime.formatIso(now)}::timestamptz
+        FROM events e WHERE e.id = pb.event_id AND e.slug = ${slug}`,
+    ).pipe(
+      Effect.asVoid,
+      Effect.mapError((cause) => new DataSourceError({ cause })),
+    );
 
   /** Takes back the rows `copyPlannedLineup` added. */
   const uncopy = (rows: typeof Copied.Type) =>
@@ -540,59 +623,59 @@ const make = Effect.gen(function* () {
         );
       }
       const { outgoing } = prepared;
-      // The kind of evening its idea planned and the lineup it kept, both
-      // private until now, are written first, so the evening is never
-      // public without them; if Luma then says it isn't public, the draft
-      // gets its own back. When Luma can't say, they stay.
-      // In one transaction: none is kept without the others. The private
-      // lineup is stamped published, so it can't change from here on.
-      const stampedAt = DateTime.formatIso(yield* DateTime.now);
-      const [before, copied] = yield* sql
-        .withTransaction(
-          Effect.all([
-            applyPlannedProgram(slug),
-            copyPlannedLineup(slug),
-            Effect.asVoid(stampLineup(slug, stampedAt)),
-          ]),
-        )
-        .pipe(
-          Effect.catchTag("SqlError", (cause) =>
-            Effect.fail(new DataSourceError({ cause })),
-          ),
-        );
-      const after = yield* Effect.gen(function* () {
-        yield* luma.update(outgoing.lumaEventId, {
-          description_md: outgoing.descriptionMd,
-          visibility: "public",
-        });
-        const read = yield* luma.get(outgoing.lumaEventId);
-        if (read.visibility !== "public") {
-          return yield* refuse(
-            `Luma took the update but ${read.name} is still ${read.visibility}.`,
-          );
-        }
-        return read;
-      }).pipe(
-        Effect.onError(() =>
-          before === null && copied.length === 0 && prepared.lineup.length === 0
-            ? Effect.void
-            : Effect.ignore(
-                // Only once Luma says the event is still not public: after
-                // an update that may have gone through, it may be.
-                Effect.flatMap(luma.get(outgoing.lumaEventId), (now) =>
-                  now.visibility === "public"
-                    ? Effect.void
-                    : Effect.all([
-                        before === null
-                          ? Effect.void
-                          : Effect.asVoid(restoreProgram(slug, before)),
-                        copied.length === 0
-                          ? Effect.void
-                          : Effect.asVoid(uncopy(copied)),
-                        Effect.asVoid(stampLineup(slug, null)),
-                      ]),
+      // What planning kept private (the idea's program, the lineup) is
+      // written first, under a claim no other publish can take, so the
+      // evening is never public without it.
+      const { before, copied } = yield* claimPublish(slug, prepared.lineup);
+      const outcome = yield* Effect.exit(
+        Effect.gen(function* () {
+          yield* luma.update(outgoing.lumaEventId, {
+            description_md: outgoing.descriptionMd,
+            visibility: "public",
+          });
+          const read = yield* luma.get(outgoing.lumaEventId);
+          if (read.visibility !== "public") {
+            return yield* refuse(
+              `Luma took the update but ${read.name} is still ${read.visibility}.`,
+            );
+          }
+          return read;
+        }),
+      );
+      if (Exit.isFailure(outcome)) {
+        // Only once Luma says the event is still not public does the draft
+        // get its own back, all at once, and the claim go. When Luma can't
+        // say, everything stays, and the claim lapses after claimLasts.
+        const now = yield* Effect.option(luma.get(outgoing.lumaEventId));
+        if (Option.isSome(now) && now.value.visibility === "public") {
+          yield* Effect.ignore(markPublished(slug));
+        } else if (Option.isSome(now)) {
+          yield* sql
+            .withTransaction(
+              Effect.all([
+                before === null ? Effect.void : restoreProgram(slug, before),
+                copied.length === 0 ? Effect.void : uncopy(copied),
+                sql`
+                  DELETE FROM planning.publishes pb USING events e
+                  WHERE e.id = pb.event_id AND e.slug = ${slug}`,
+              ]),
+            )
+            .pipe(
+              Effect.catchTag("SqlError", () =>
+                refuse(
+                  `Luma didn't make ${outgoing.name} public, and taking back what this publish wrote failed: its claim lapses in five minutes, then publish again.`,
                 ),
               ),
+            );
+        }
+        return yield* Effect.failCause(outcome.cause);
+      }
+      const after = outcome.value;
+      yield* markPublished(slug).pipe(
+        Effect.catchTag("DataSourceError", () =>
+          refuse(
+            `${after.name} is public on Luma, but its publish wasn't recorded: lineup changes stay refused until the next sync.`,
+          ),
         ),
       );
       if ((after.description_md ?? "") !== outgoing.descriptionMd) {
