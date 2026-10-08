@@ -15,7 +15,8 @@ export const fixture = (name: string): Promise<string> =>
 export type Reply =
   | {
       readonly status?: number;
-      readonly body?: string;
+      /** Text, or bytes, as an image is served. */
+      readonly body?: string | Uint8Array;
       readonly headers?: Record<string, string>;
     }
   /** The connection fails. */

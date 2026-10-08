@@ -22,7 +22,8 @@ from pathlib import Path
 
 import resvg_py
 from metrics import type_insets
-from og import build_og
+from calendar_cover import calendar_cover_svg
+from og import Setter, build_og
 import uharfbuzz as hb
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
@@ -35,6 +36,8 @@ TOKENS = ROOT / "brand/all-things.tokens.json"
 OUT = ROOT / "app/public/brand"
 # Link-preview cards and what the Worker draws event cards with (og.py).
 OG_OUT = ROOT / "brand/og"
+# The Luma calendar's cover (calendar_cover.py), uploaded by hand on Luma.
+COVERS_OUT = ROOT / "brand/covers"
 
 # Archivo variable font, pinned to a google/fonts commit and verified by hash.
 FONT_URL = (
@@ -379,12 +382,16 @@ def build() -> dict[Path, bytes]:
         colors,
         lambda svg_text: bytes(resvg_py.svg_to_bytes(svg_string=svg_text)),
     )
+    calendar = bytes(
+        resvg_py.svg_to_bytes(svg_string=calendar_cover_svg(Setter(faces), colors))
+    )
     return {
         **{
             OUT / name: content.encode() if isinstance(content, str) else content
             for name, content in files.items()
         },
         **{OG_OUT / name: content for name, content in og.items()},
+        COVERS_OUT / "calendar.png": calendar,
         ROOT / "brand/type-metrics.json": type_insets(faces, json.loads(TOKENS.read_text())),
     }
 
@@ -431,7 +438,7 @@ def main() -> None:
     for path, data in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
-    print(f"Wrote {len(files)} marks to app/public/brand and brand/og")
+    print(f"Wrote {len(files)} marks to app/public/brand, brand/og and brand/covers")
 
 
 if __name__ == "__main__":

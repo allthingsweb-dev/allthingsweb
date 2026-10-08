@@ -18,6 +18,8 @@ import { LumaRejected, LumaUnavailable, sendWithRetries } from "./luma.ts";
  * - `POST /v1/events/cancel/request`, then `POST /v1/events/cancel`:
  *   Luma's two-step cancel, which deletes the event for good. Only the
  *   studio's own test events are ever cancelled (see publish.ts).
+ * - `GET /v1/calendars/get` and `POST /v1/calendars/update`: the calendar
+ *   the key belongs to, and changing what its page says (calendar.ts).
  *
  * Reads are retried as every Luma request is (luma.ts). Writes are sent
  * once: a create or an update that timed out may have happened, and a
@@ -52,6 +54,45 @@ export interface LumaEventFields {
   readonly max_capacity?: number;
   readonly visibility?: "public" | "members-only" | "private";
 }
+
+/**
+ * What `calendars/update` may change on the calendar, as Luma names it.
+ * Its cover and its social preview image are not among them: Luma's API
+ * can only read those.
+ */
+export interface CalendarFields {
+  readonly name?: string;
+  readonly slug?: string;
+  readonly description?: string;
+  readonly avatar_url?: string;
+  readonly tint_color?: string;
+  readonly website?: string | null;
+  readonly instagram_handle?: string | null;
+  readonly twitter_handle?: string | null;
+  readonly youtube_handle?: string | null;
+  readonly tiktok_handle?: string | null;
+  readonly linkedin_handle?: string | null;
+}
+
+/** The calendar as `calendars/get` answers. */
+export const ManagedCalendar = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  slug: Schema.NullOr(Schema.String),
+  url: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  avatar_url: Schema.NullOr(Schema.String),
+  cover_image_url: Schema.NullOr(Schema.String),
+  social_image_url: Schema.NullOr(Schema.String),
+  tint_color: Schema.NullOr(Schema.String),
+  website: Schema.NullOr(Schema.String),
+  instagram_handle: Schema.NullOr(Schema.String),
+  twitter_handle: Schema.NullOr(Schema.String),
+  youtube_handle: Schema.NullOr(Schema.String),
+  tiktok_handle: Schema.NullOr(Schema.String),
+  linkedin_handle: Schema.NullOr(Schema.String),
+});
+export type ManagedCalendar = typeof ManagedCalendar.Type;
 
 /** An event as its manager sees it: what publishing reads and checks. */
 export const ManagedEvent = Schema.Struct({
@@ -119,6 +160,12 @@ export interface LumaWriteShape {
   ) => Effect.Effect<string, LumaWriteError>;
   /** Cancels the event, which deletes it: Luma's two steps. */
   readonly cancel: (lumaEventId: string) => Effect.Effect<void, LumaWriteError>;
+  /** The calendar the key belongs to. */
+  readonly getCalendar: () => Effect.Effect<ManagedCalendar, LumaWriteError>;
+  readonly updateCalendar: (
+    calendarId: string,
+    fields: CalendarFields,
+  ) => Effect.Effect<void, LumaWriteError>;
 }
 
 const make = Effect.gen(function* () {
@@ -171,6 +218,7 @@ const make = Effect.gen(function* () {
   /** A write, sent once: see the module's note. */
   const sendOnce = (
     request: HttpClientRequest.HttpClientRequest,
+    resource: "event" | "calendar" = "event",
   ): Effect.Effect<string, LumaRejected | LumaUnavailable> =>
     Effect.gen(function* () {
       const response = yield* client.execute(request);
@@ -181,15 +229,12 @@ const make = Effect.gen(function* () {
         return yield* new LumaUnavailable({
           status: response.status,
           retryAfter: null,
-          resource: "event",
+          resource,
         });
       }
       const text = yield* response.text;
       yield* Effect.logWarning(`Luma refused a write: ${text.slice(0, 500)}`);
-      return yield* new LumaRejected({
-        status: response.status,
-        resource: "event",
-      });
+      return yield* new LumaRejected({ status: response.status, resource });
     }).pipe(
       Effect.catchTag("HttpClientError", (cause) =>
         Effect.fail(
@@ -197,7 +242,7 @@ const make = Effect.gen(function* () {
             status: null,
             retryAfter: null,
             cause,
-            resource: "event",
+            resource,
           }),
         ),
       ),
@@ -206,12 +251,16 @@ const make = Effect.gen(function* () {
   const post = (
     path: string,
     body: unknown,
+    resource: "event" | "calendar" = "event",
   ): Effect.Effect<string, LumaWriteError> =>
     authorized(
       HttpClientRequest.post(`${apiOrigin}${path}`).pipe(
         HttpClientRequest.bodyJsonUnsafe(body),
       ),
-    ).pipe(Effect.flatMap(sendOnce), withRedaction);
+    ).pipe(
+      Effect.flatMap((request) => sendOnce(request, resource)),
+      withRedaction,
+    );
 
   const get = (
     lumaEventId: string,
@@ -262,6 +311,18 @@ const make = Effect.gen(function* () {
           cancellation_token,
         });
       }),
+    getCalendar: () =>
+      authorized(HttpClientRequest.get(`${apiOrigin}/v1/calendars/get`)).pipe(
+        Effect.flatMap((request) => sendWithRetries(client, request)),
+        Effect.flatMap(decode(ManagedCalendar, "calendars/get")),
+        withRedaction,
+      ),
+    updateCalendar: (calendarId, fields) =>
+      post(
+        "/v1/calendars/update",
+        { calendar_id: calendarId, ...fields },
+        "calendar",
+      ).pipe(Effect.asVoid),
   });
 });
 
