@@ -31,6 +31,14 @@ import {
   publishedKeys,
   verifyAccess,
 } from "./access.ts";
+import {
+  Collab,
+  collabLayer,
+  collabUrl,
+  type Evening,
+  type Signer,
+} from "./collab.ts";
+import { CollabPanel } from "./panel.tsx";
 
 /**
  * The draft preview: an evening's real page, rendered from its draft,
@@ -39,8 +47,12 @@ import {
  * Worker: the public one never reads a draft (core's EventPages.read only
  * finds published evenings), and this one reads nothing but drafts.
  *
- * - `/` lists the drafts, soonest first.
- * - `/<slug>` is the draft's page, exactly as the public page will be.
+ * - `/` lists the drafts, soonest first, for an organizer; for an invited
+ *   collaborator, the evenings they are invited to.
+ * - `/<slug>` is the draft's page, exactly as the public page will be,
+ *   with the collaborators' panel under it (panel.tsx). A collaborator
+ *   sees only the evenings they are invited to, drafts or published; any
+ *   other slug answers as one that doesn't exist does.
  * - `/img/…` serves the photos' variants, as the site does.
  * - Anything else the page links to (the evenings, people, about) is the
  *   public site's: it redirects there.
@@ -56,6 +68,43 @@ const preview = Layer.effectContext(
     ),
   ).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
 );
+
+/** Who Access signed in for this request (access.ts), set by the handler. */
+export class CurrentSigner extends Context.Reference<Option.Option<Signer>>(
+  "allthings/web/preview/CurrentSigner",
+  { defaultValue: () => Option.none() },
+) {}
+
+/** Where collaboration is read (collab.ts), from the Worker's bindings. */
+export class CollabDatabase extends Context.Reference<Option.Option<string>>(
+  "allthings/web/preview/CollabDatabase",
+  { defaultValue: () => Option.none() },
+) {}
+
+/** The signer, who the handler always sets before routing. */
+const signer = Effect.gen(function* () {
+  const current = yield* CurrentSigner;
+  if (Option.isNone(current)) {
+    return yield* Effect.die("the preview routed a request nobody signed");
+  }
+  return current.value;
+});
+
+/** `f` over the request's collaboration reads; none when the Worker has no `COLLAB` binding. */
+const withCollab = <A, E, R>(
+  f: (collab: Collab["Service"]) => Effect.Effect<A, E, R>,
+) =>
+  Effect.gen(function* () {
+    const url = yield* CollabDatabase;
+    if (Option.isNone(url)) return Option.none<A>();
+    return Option.some(
+      yield* Collab.use(f).pipe(Effect.provide(collabLayer(url.value))),
+    );
+  });
+
+/** What a signer who may see nothing is told, here and before routing alike. */
+export const refusal =
+  "Only the organizers and the people they invite can see drafts.";
 
 const day = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Los_Angeles",
@@ -77,9 +126,30 @@ const index = HttpRouter.add(
   "GET",
   "/",
   Effect.gen(function* () {
+    const who = yield* signer;
     const drafts = yield* Drafts.use((list) => list.list).pipe(
       Effect.provide(preview),
     );
+    if (!who.organizer) {
+      const invited = Option.getOrElse(
+        yield* withCollab((collab) => collab.evenings(who)),
+        () => [] as ReadonlyArray<Evening>,
+      );
+      if (invited.length === 0) {
+        return HttpServerResponse.text(refusal, { status: 403 });
+      }
+      const names = new Map(drafts.map((draft) => [draft.slug, draft.name]));
+      const rows = invited
+        .map(
+          (evening) =>
+            `<li><a href="/${encodeURIComponent(evening.slug)}">${escape(names.get(evening.slug) ?? evening.slug)}</a></li>`,
+        )
+        .join("");
+      return HttpServerResponse.text(
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Your evenings · allthings</title></head><body><main><h1>Your evenings</h1><ul>${rows}</ul></main></body></html>`,
+        { contentType: "text/html; charset=utf-8" },
+      );
+    }
     const items = drafts
       .map(
         (draft) =>
@@ -114,22 +184,57 @@ const draftPage = HttpRouter.add(
     const theme = themeOf(request.cookies);
     const images = Option.isSome(yield* Images) ? "variants" : "originals";
     const acceptEncoding = request.headers["accept-encoding"];
+    const who = yield* signer;
+    // Which evening this is to the signer: one they are invited to (or, for
+    // an organizer, a draft or an evening with collaborators), or none.
+    const evening = Option.flatten(
+      yield* withCollab((collab) => collab.evening(who, slug)),
+    );
+    // A collaborator asking for any other evening is told what a slug
+    // nobody has is told: it is the public site's.
+    if (!who.organizer && Option.isNone(evening)) {
+      return yield* toPublic(request.url);
+    }
+    const read = (draft: boolean) =>
+      EventPages.use((pages) =>
+        draft
+          ? pages.readDraft(slug, mediaOrigin)
+          : pages.read(slug, mediaOrigin),
+      ).pipe(
+        Effect.map(Option.some),
+        Effect.catchTag("EventNotFound", () => Effect.succeedNone),
+      );
     const [found, { portraits }] = yield* Effect.all(
       [
-        EventPages.use((pages) => pages.readDraft(slug, mediaOrigin)).pipe(
-          Effect.map(Option.some),
-          Effect.catchTag("EventNotFound", () => Effect.succeedNone),
+        read(
+          Option.match(evening, {
+            onNone: () => true,
+            onSome: (e) => e.isDraft,
+          }),
         ),
         footer(hostPortraits),
       ],
       { concurrency: "unbounded" },
     ).pipe(Effect.provide(preview));
-    // Not a draft: a published evening, or a page of the site, is the
-    // public site's to show.
+    // Not a draft, nor an evening with collaborators: a published evening,
+    // or a page of the site, is the public site's to show.
     if (Option.isNone(found)) return yield* toPublic(request.url);
+    const panel = Option.isNone(evening)
+      ? Option.none()
+      : yield* withCollab((collab) => collab.panel(who, evening.value));
     const now = yield* asOf;
     return htmlResponse(
-      eventPage({ event: found.value, origin, theme, portraits, images, now }),
+      eventPage({
+        event: found.value,
+        origin,
+        theme,
+        portraits,
+        images,
+        now,
+        ...(Option.isSome(panel)
+          ? { after: CollabPanel({ panel: panel.value }) }
+          : {}),
+      }),
       acceptEncoding,
       { cacheControl: "failure", theme, images },
     );
@@ -189,6 +294,7 @@ export function makePreviewHandler(
         Hyperdrive.layer(env),
         Images.layer(env),
         Assets.layer(env),
+        Layer.succeed(CollabDatabase, collabUrl(env)),
       ),
     ),
   );
@@ -212,16 +318,19 @@ export function makePreviewHandler(
       allowed: false as const,
       reason: `could not check: ${cause instanceof Error ? cause.message : String(cause)}`,
     }));
-    if (!verdict.allowed) {
-      return answer("Only the organizers can see drafts.", 403);
-    }
-    const response =
+    if (!verdict.allowed) return answer(refusal, 403);
+    const signed = Context.make(
+      CurrentSigner,
+      Option.some({ email: verdict.email, organizer: verdict.organizer }),
+    );
+    const response = await handler(
+      request,
       context === undefined
-        ? await handler(request)
-        : await handler(
-            request,
-            Context.make(WaitUntil, (promise) => context.waitUntil(promise)),
-          );
+        ? signed
+        : Context.add(signed, WaitUntil, (promise) =>
+            context.waitUntil(promise),
+          ),
+    );
     const headers = new Headers(response.headers);
     for (const [name, value] of Object.entries(previewHeaders)) {
       headers.set(name, value);

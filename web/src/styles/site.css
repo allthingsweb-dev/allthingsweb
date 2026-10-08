@@ -1830,3 +1830,73 @@ th {
     grid-area: name;
   }
 }
+
+/*
+ * The draft preview's "for collaborators" panel (src/preview/panel.tsx),
+ * under an evening's page: a section of its own, then the page's ledger.
+ */
+.collab {
+  margin-top: var(--at-space-12);
+}
+
+.collab-title {
+  margin-bottom: var(--at-space-4);
+  font-size: var(--at-type-label-size);
+  font-weight: 700;
+  font-stretch: 75%;
+  text-indent: var(--at-type-label-inset);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.collab-list,
+.collab-comments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collab-done {
+  color: var(--at-meta);
+}
+
+.collab-brief {
+  max-width: var(--at-measure-prose);
+}
+
+.collab-brief > * + * {
+  margin-top: var(--at-space-3);
+}
+
+.collab-brief :is(ul, ol) {
+  margin-bottom: 0;
+  padding-left: var(--at-space-5);
+}
+
+.collab-brief table {
+  border-collapse: collapse;
+}
+
+.collab-brief :is(th, td) {
+  padding: var(--at-space-1) var(--at-space-3) var(--at-space-1) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.collab-comments {
+  gap: var(--at-space-3);
+  margin-top: var(--at-space-4);
+  padding-top: var(--at-space-3);
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+/* A comment keeps its writer's line breaks, at a reading measure. */
+.collab-comment {
+  max-width: var(--at-measure-prose);
+  white-space: pre-line;
+}

@@ -1,13 +1,19 @@
 /**
- * Who may see a draft: the Worker's own check of what Cloudflare Access
- * signed, behind Access at the edge (infra/src/preview.ts). Access lets a
- * request through only for the organizers' emails, and says so in a JWT
- * (the `Cf-Access-Jwt-Assertion` header) signed with its team's keys. The
- * Worker trusts nothing else: it verifies that token's signature against
- * the team's published keys, its issuer, its audience (this Worker's Access
- * application) and its times, and that its email is one of the viewers
- * the stack names. Anything missing or wrong is refused, settings
- * included: a preview without them shows nobody anything.
+ * Who signed in to the draft preview: the Worker's own check of what
+ * Cloudflare Access signed, behind Access at the edge (infra/src/preview.ts).
+ * Access lets a request through only for the organizers' emails and the
+ * invited collaborators' list, and says so in a JWT (the
+ * `Cf-Access-Jwt-Assertion` header) signed with its team's keys. The Worker
+ * trusts nothing else: it verifies that token's signature against the
+ * team's published keys, its issuer, its audience (this Worker's Access
+ * application), its times and its email. Anything missing or wrong is
+ * refused, settings included: a preview without them shows nobody
+ * anything.
+ *
+ * Who signed in is all this says, and whether they are one of the
+ * organizers the stack names. What anyone else may see is the database's
+ * to say, request by request (collab.ts): an invitation to that evening,
+ * or nothing.
  *
  * It reads the token rather than `ctx.access`, because a Worker with static
  * assets runs behind Cloudflare's asset router, which doesn't pass
@@ -20,7 +26,7 @@ export interface AccessSettings {
   readonly teamDomain: string;
   /** The audience tag of the Access application in front of this Worker. */
   readonly audience: string;
-  /** Who may see drafts, by the email they sign in with, lowercase. */
+  /** The organizers, who see every draft, by the email they sign in with, lowercase. */
   readonly viewers: ReadonlySet<string>;
 }
 
@@ -129,7 +135,13 @@ export function publishedKeys(
 }
 
 export type Verdict =
-  | { readonly allowed: true; readonly email: string }
+  | {
+      readonly allowed: true;
+      /** Who Access signed in, lowercase. */
+      readonly email: string;
+      /** Whether they are one of the organizers the stack names. */
+      readonly organizer: boolean;
+    }
   | { readonly allowed: false; readonly reason: string };
 
 const refuse = (reason: string): Verdict => ({ allowed: false, reason });
@@ -152,8 +164,9 @@ const json = (part: string): unknown => {
 const leeway = 60;
 
 /**
- * Whether `token` (the `Cf-Access-Jwt-Assertion` header, if any) lets its
- * bearer see drafts at `now` (milliseconds since the epoch).
+ * Who `token` (the `Cf-Access-Jwt-Assertion` header, if any) signs in at
+ * `now` (milliseconds since the epoch), and whether they organize: a token
+ * this application's Access signed, in its time, with an email.
  */
 export async function verifyAccess(
   token: string | null | undefined,
@@ -232,6 +245,6 @@ export async function verifyAccess(
   }
   if (typeof claims.email !== "string") return refuse("no email");
   const email = claims.email.toLowerCase();
-  if (!settings.viewers.has(email)) return refuse("not a viewer");
-  return { allowed: true, email };
+  if (!/^[^@\s]+@[^@\s]+$/.test(email)) return refuse("not an email");
+  return { allowed: true, email, organizer: settings.viewers.has(email) };
 }

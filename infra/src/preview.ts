@@ -2,6 +2,7 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import type * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
 import { compatibility } from "../../web/src/compatibility.ts";
+import { Collaborator } from "./reader.ts";
 import { Database, SITE_ORIGIN } from "./web.ts";
 
 /**
@@ -85,6 +86,20 @@ export const makePreviewAccess = Effect.gen(function* () {
 });
 
 /**
+ * Production's database as draft_collab, for collaborating on a draft
+ * (core/README.md, "Collaborating on a draft"): who is invited, the brief,
+ * and what collaborators hand in. It never caches, so a revoked invitation
+ * is refused on the very next request, and a collaborator sees what they
+ * just handed in. Pages themselves are still read through `Database`, as
+ * site_reader.
+ */
+export const CollabDatabase = Cloudflare.Hyperdrive.Connection("Collab", {
+  origin: Collaborator,
+  caching: { disabled: true },
+  originConnectionLimit: 5,
+});
+
+/**
  * The preview Worker, linking every page it doesn't show (the evenings,
  * people, a published evening) to the site at `publicUrl`.
  */
@@ -100,6 +115,7 @@ export const makePreview = (publicUrl: Output.Output<string> | string) =>
         ORIGIN: SITE_ORIGIN,
         PUBLIC_URL: publicUrl,
         HYPERDRIVE: Database,
+        COLLAB: CollabDatabase,
         IMAGES: Cloudflare.Images.Images("IMAGES"),
         ACCESS_TEAM_DOMAIN: team.authDomain,
         ACCESS_AUD: access.aud,
