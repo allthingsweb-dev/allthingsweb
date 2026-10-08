@@ -223,18 +223,11 @@ const make = Effect.gen(function* () {
       yield* luma.update(prepared.lumaEventId, { cover_url: fileUrl });
       const after = yield* luma.get(prepared.lumaEventId);
       const coverUrl = after.cover_url;
-      if (
-        coverUrl === null ||
-        coverUrl === prepared.current.url ||
-        isLumaDefaultCover(coverUrl)
-      ) {
-        return yield* refuse(
-          `Luma took the update but ${after.name}'s cover is ${coverUrl ?? "none"}, not the one uploaded (${fileUrl}).`,
-        );
-      }
+      // Only the uploaded cover is recorded as ours: anything else on the
+      // event now (the old one, Luma's default, another upload) is not.
       if (coverUrl !== fileUrl) {
-        yield* Effect.logWarning(
-          `Luma stored the cover at ${coverUrl}, not ${fileUrl}; that is what is recorded.`,
+        return yield* refuse(
+          `Luma took the update but ${after.name}'s cover is ${coverUrl ?? "none"}, not the one uploaded (${fileUrl}). Nothing was recorded.`,
         );
       }
       // Recorded only on the evening it was drawn for, while it is still
@@ -248,7 +241,13 @@ const make = Effect.gen(function* () {
           preview_image = NULL,
           updated_at = now()
         WHERE luma_event_id = ${prepared.lumaEventId}
-        RETURNING id`.pipe(orDataSourceError);
+        RETURNING id`.pipe(
+        Effect.catch((cause) =>
+          refuse(
+            `Luma has the cover (${coverUrl}), but recording it here failed: ${cause instanceof Error ? cause.message : String(cause)}. Run luma cover --dry-run and approve again to record it.`,
+          ),
+        ),
+      );
       if (recorded.length !== 1) {
         return yield* refuse(
           `Luma has the cover (${coverUrl}), but no evening here has ${prepared.lumaEventId} to record it on.`,

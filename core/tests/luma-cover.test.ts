@@ -456,28 +456,37 @@ describe("approve", () => {
     expect(requests).toHaveLength(1);
   });
 
-  test("records nothing when Luma doesn't show the new cover", async () => {
-    const token = await tokenFor();
-    const { exit } = await run(
-      (c) => c.approve({ _tag: "Slug", slug: draft }, token),
-      {
-        "/v1/events/get": [json(lumaEvent()), json(lumaEvent())],
-        "/v1/images/create-upload-url": [
-          json({
-            upload_url: "https://upload.example/put/abc",
-            file_url: uploaded,
-          }),
-        ],
-        "/put/abc": [{ status: 200 }],
-        "/v1/events/update": [json({})],
-      },
-    );
-    expect(message(exit)).toBe(
-      `Luma took the update but Draft night's cover is ${gallery}, not the one uploaded (${uploaded}).`,
-    );
-    expect(await recorded()).toMatchObject({
-      generated_cover_url: null,
-      preview_image: "d0000000-0000-4000-8000-000000000001",
-    });
-  });
+  test.each([
+    ["the old one", gallery],
+    ["another", "https://images.lumacdn.com/api-uploads/zz/someone-else.png"],
+  ])(
+    "records nothing when Luma shows %s, not the uploaded cover",
+    async (_which, shown) => {
+      const token = await tokenFor();
+      const { exit } = await run(
+        (c) => c.approve({ _tag: "Slug", slug: draft }, token),
+        {
+          "/v1/events/get": [
+            json(lumaEvent()),
+            json(lumaEvent({ cover_url: shown })),
+          ],
+          "/v1/images/create-upload-url": [
+            json({
+              upload_url: "https://upload.example/put/abc",
+              file_url: uploaded,
+            }),
+          ],
+          "/put/abc": [{ status: 200 }],
+          "/v1/events/update": [json({})],
+        },
+      );
+      expect(message(exit)).toBe(
+        `Luma took the update but Draft night's cover is ${shown}, not the one uploaded (${uploaded}). Nothing was recorded.`,
+      );
+      expect(await recorded()).toMatchObject({
+        generated_cover_url: null,
+        preview_image: "d0000000-0000-4000-8000-000000000001",
+      });
+    },
+  );
 });

@@ -146,6 +146,9 @@ export interface CoverRendererShape {
 /** Where the brand's generators are: `uv run cover.py` runs there. */
 const marks = new URL("../../brand/marks/", import.meta.url);
 
+/** The longest uv may take, the first run's install included. */
+const renderTimeoutMs = 120_000;
+
 /** Runs brand/marks/cover.py with uv, the facts on its stdin. */
 const renderWithUv = (facts: CoverFacts) =>
   Effect.tryPromise({
@@ -158,6 +161,8 @@ const renderWithUv = (facts: CoverFacts) =>
           stdin: new TextEncoder().encode(JSON.stringify(facts)),
           stdout: "pipe",
           stderr: "pipe",
+          // A cover draws in seconds; a stalled uv is stopped, and fails.
+          timeout: renderTimeoutMs,
         },
       );
       const [code, stderr] = await Promise.all([

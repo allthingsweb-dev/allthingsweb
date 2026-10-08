@@ -42,6 +42,7 @@ says only what is known. The same facts make the same pixels.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import sys
 from dataclasses import dataclass
@@ -247,13 +248,9 @@ def cover_svg(setter: Setter, colors: dict[str, str], facts: Facts) -> str:
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" '
         f'viewBox="0 0 {SIZE} {SIZE}" width="{PIXELS}" height="{PIXELS}" '
-        f'role="img" aria-label="{_escape(label)}"><title>{_escape(label)}</title>'
+        f'role="img" aria-label="{html.escape(label)}"><title>{html.escape(label)}</title>'
         f'{"".join(parts)}</svg>\n'
     )
-
-
-def _escape(text: str) -> str:
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace('"', "&quot;")
 
 
 def faces() -> dict[str, bytes]:
