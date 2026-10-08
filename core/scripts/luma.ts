@@ -3,6 +3,7 @@ import { Console, Effect, Layer, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { FetchHttpClient } from "effect/http";
 import * as Database from "../src/database.ts";
+import { Calendar, type PreparedCalendar } from "../src/luma/calendar.ts";
 import {
   type EventRef,
   instant,
@@ -16,6 +17,7 @@ import { LumaWrite } from "../src/luma/write.ts";
 import { Planning } from "../src/planning/planning.ts";
 import { Promo } from "../src/promo/promo.ts";
 import { Readiness } from "../src/readiness/readiness.ts";
+import { shellWord } from "./shell.ts";
 
 /**
  * An evening's Luma event, from private draft to public (src/luma/publish.ts),
@@ -29,6 +31,8 @@ import { Readiness } from "../src/readiness/readiness.ts";
  *   bun run luma publish <draft slug> --dry-run        what would go out, and its approval token
  *   bun run luma publish <draft slug> --approve <token>   put out exactly that
  *   bun run luma show evt-…                            the event as Luma has it
+ *   bun run luma calendar --dry-run [--slug <slug>]    how the calendar's page differs from the brand, and the token
+ *   bun run luma calendar --approve <token> [--slug <slug>]   make exactly those changes
  *   bun run luma cancel-test evt-…                     delete a test event (see testEventPrefix)
  *
  * Every event is made private; only publish, with the token of what was
@@ -358,11 +362,89 @@ const cancelTest = Command.make(
     ),
 ).pipe(Command.withDescription("Delete one of the studio's own test events."));
 
+const calendarLayer = Calendar.layer.pipe(
+  Layer.provide(LumaWrite.layer),
+  Layer.provide(FetchHttpClient.layer),
+);
+
+const describeCalendar = (prepared: PreparedCalendar) =>
+  [
+    `${prepared.url} · ${prepared.calendarId}`,
+    prepared.changes.length === 0
+      ? "nothing to change"
+      : prepared.changes
+          .map(
+            (change) =>
+              `${change.field}: ${JSON.stringify(change.from)} → ${JSON.stringify(change.to)}`,
+          )
+          .join("\n"),
+    `by hand in Luma's settings (its API can't): the cover (now ${prepared.byHand.coverImageUrl ?? "none"}) and the social preview image (now ${prepared.byHand.socialImageUrl ?? "none"})`,
+  ].join("\n");
+
+const calendar = Command.make(
+  "calendar",
+  {
+    slug: text(
+      "slug",
+      "Also move the calendar to luma.com/<slug>. Links to the old address stop working.",
+    ),
+    approve: text(
+      "approve",
+      "The token calendar --dry-run printed for the changes that were read: only those are made.",
+    ),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Print each change and its approval token; change nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    json,
+  },
+  (options) =>
+    Effect.gen(function* () {
+      if (options.dryRun === Option.isSome(options.approve)) {
+        return yield* refuse(
+          "Give --dry-run to read the changes, or --approve <token> to make exactly those.",
+        );
+      }
+      const slug = Option.isSome(options.slug)
+        ? { slug: options.slug.value }
+        : {};
+      const again = `bun run luma calendar${Option.isSome(options.slug) ? ` --slug ${shellWord(options.slug.value)}` : ""}`;
+      if (Option.isNone(options.approve)) {
+        const prepared = yield* Calendar.use((c) => c.prepare(slug));
+        return yield* print(
+          options.json,
+          prepared,
+          `${describeCalendar(prepared)}\napproval token: ${prepared.token}\nNothing was changed. To make exactly these changes: ${again} --approve ${prepared.token}`,
+        );
+      }
+      const token = options.approve.value;
+      const made = yield* Calendar.use((c) => c.approve(token, slug));
+      return yield* print(
+        options.json,
+        made,
+        `Changed:\n${describeCalendar(made)}`,
+      );
+    }).pipe(Effect.provide(calendarLayer)),
+).pipe(
+  Command.withDescription(
+    "Say how the Luma calendar's page differs from the brand, or make exactly the approved changes.",
+  ),
+);
+
 const luma = Command.make("luma").pipe(
   Command.withDescription(
     "An evening's Luma event, from private draft to public.",
   ),
-  Command.withSubcommands([create, update, publish, show, cancelTest]),
+  Command.withSubcommands([
+    create,
+    update,
+    publish,
+    show,
+    calendar,
+    cancelTest,
+  ]),
 );
 
 // A refusal is the answer, not a crash: its reason alone, on stderr, and exit 1.

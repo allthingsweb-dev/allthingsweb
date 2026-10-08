@@ -24,6 +24,14 @@ Link-preview cards (`og.py`) go to [`brand/og`](../og), 1200 x 630, on Night wit
 
 Geist Mono is downloaded from a pinned google/fonts commit and checked by SHA-256, as Archivo is.
 
+The Luma calendar's cover (`calendar_cover.py`) goes to [`brand/covers`](../covers):
+
+| File           | What it is                                                                                                                                                                                                                 |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `calendar.png` | 3500 x 1000 (Luma shows a calendar's cover at 3.5:1), on Night with its grain: the master wordmark with the slot open, over the two sentences, leaving the lower left clear for the avatar Luma sets there. Uploaded by hand, since Luma's API can't set it |
+
+The calendar's avatar is `icon-512.png`, and its social preview image (Luma asks for about 1.91:1) is `og-home.png`.
+
 Everything is a plain SVG path or a PNG rendered from one, so no font is
 needed to display the marks. Colors and the wordmark's weight, width and
 tracking come from

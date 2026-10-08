@@ -1103,6 +1103,37 @@ LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --approve <t
 LUMA_API_KEY=… bun run luma show evt-…                                             # the event as Luma has it
 ```
 
+### The calendar
+
+`src/luma/calendar.ts` holds what the Luma calendar's page should say, and
+sets it through Luma's API (`calendars/update`):
+
+- the name: allthings;
+- the two sentences from brand/foundations.md;
+- Bridge, the slash's color, as its tint;
+- the site, and the channels the site's footer lists (web/src/links.ts);
+- the a/ app icon as its avatar (app/public/brand/icon-512.png).
+
+`tests/luma-calendar.test.ts` holds each of these to its source. The address
+changes only with `--slug`, because links to luma.com/allthingsweb are
+everywhere. It works the way publish does:
+
+- `--dry-run` prints each field that differs, from what to what, and its
+  approval token.
+- `--approve <token>` makes exactly those changes in one update. It uploads
+  the avatar if Luma's isn't the same image, then reads the calendar back to
+  check each change took.
+
+Luma's API can't set a calendar's cover or its social preview image, so an
+organizer uploads those in the calendar's settings: `brand/covers/calendar.png`
+and `brand/og/og-home.png`.
+
+```sh
+LUMA_API_KEY=… bun run luma calendar --dry-run                    # what differs, and its token
+LUMA_API_KEY=… bun run luma calendar --dry-run --slug allthings   # and move it to luma.com/allthings
+LUMA_API_KEY=… bun run luma calendar --approve <token> [--slug allthings]
+```
+
 ## Posting to Bluesky
 
 `src/social/announce.ts` posts an evening's Bluesky draft (the promotion
