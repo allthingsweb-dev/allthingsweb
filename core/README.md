@@ -894,6 +894,160 @@ DATABASE_URL=… bun run readiness --idea <id>
 It exits 1 when something blocks publishing, 2 on a draft that isn't there.
 The admin MCP server's `get_draft_readiness` runs the same script.
 
+## Collaborating on a draft
+
+An organizer can invite outside collaborators to help make one evening:
+guest round hosts, a venue contact, a promo partner. They work on our own
+site, in the draft preview (web/src/preview/), never in a shared document.
+This is the design. It is being built in small pull requests, each
+described where it lands. Until a piece is here, the studio does that part
+by hand.
+
+**Who.** Each invitation is a row in `planning.collaborators`: an email,
+the name the others see, and a role. An invitation expires a few days
+after its evening ends, so collaboration carries on after the evening
+goes public (round hosts hand in after the announcement) and stops on its
+own.
+
+| Role         | Sees                                   | Writes                                        |
+| ------------ | -------------------------------------- | --------------------------------------------- |
+| `viewer`     | the page, the brief's sections for it  | nothing                                       |
+| `commenter`  | the same                               | comments                                      |
+| `round_host` | the same, and their own round          | comments, their round's questions and answers |
+| `venue`      | the same, and the logistics            | comments, logistics answers                   |
+| `organizer`  | everything on that evening, and emails | comments                                      |
+
+The stack's organizers (`PREVIEW_VIEWERS`, infra/src/preview.ts) are
+organizers of every evening. Only the studio invites, through
+`bun run collab invite … --dry-run | --approve <token>`, never the site.
+Revoking takes effect on the collaborator's next request.
+
+**Signing in, twice over:**
+
+- **At the edge.** The preview's Access application admits the organizers,
+  and an Access email list, "draft collaborators", that the studio keeps
+  equal to the active invitations whenever it invites or revokes. Revoking
+  also ends the person's Access sessions. The list's emails are never in
+  this repository. The studio does this with its own Cloudflare token,
+  limited to Zero Trust (infra/scripts, in 1Password as "allthings zero
+  trust").
+- **In the Worker.** It verifies the token Access signs, as it does now,
+  then decides on every request what the signer may do: organizer by the
+  stack's list, or collaborator by a row read from the database. It reads
+  that row through a Hyperdrive that never caches, so a revoked invitation
+  is refused at once.
+
+**What collaborators do.** Everything they write is a submission or a
+comment, and only ever added. Organizers accept or reject through the
+studio, and anything that changes the evening's own record goes through the
+commands that already change it (`bun run luma update`, `bun run plan`).
+The site has no accept action, and no collaborator writes `public` or Luma.
+
+- **The brief** is stored a section at a time (`brief_sections`), each with
+  the roles it is for. Sections about relationships, other venues, or
+  people not yet asked are for organizers only.
+- **Tasks** carry a due date and are for everyone, for a role, or for one
+  person: "first drafts of your 8 + 1 by Tue Oct 20".
+- **A round host's questions and answer key** (`round_submissions`): the
+  answer-key format as a form, each save a new row. Only that round's hosts
+  and the organizers ever see it. Players never do.
+- **The venue** answers each logistics item: yes, no or unsure, with a note.
+- **Comments** on the evening, a section, or a round. A comment on a round
+  shows only to its hosts and the organizers. They're plain text, and the
+  studio can hide one.
+
+**Security:**
+
+- **Least privilege.** The Worker writes as `draft_collab`, a login role
+  made like site_sync (infra/scripts/draft-collab.ts). It holds column
+  grants on these tables alone, adds rows without changing or deleting
+  any, and has statement timeouts. Not the owner: the owner reads all of
+  planning (contacts, notes on people, sent posts) and writes `public`, and
+  the Worker that takes outsiders' input is the code most exposed.
+  site_reader and site_sync are never granted any of it
+  (tests/planning-privacy.test.ts).
+- **Row security.** Every table has it. The policies read who is asking from
+  `collab.email` and `collab.organizer`, which the Worker sets in each
+  transaction from the verified token. So the database itself, and not only
+  the Worker's queries, keeps one evening from another and one host's round
+  from the next. The policies ask `SECURITY DEFINER` functions
+  (`planning.collab_*`), so the role never reads a collaborator's email
+  unless it organizes that evening.
+- **Answer keys are encrypted at rest** with AES-256-GCM. The Worker seals
+  each submission with a key it holds as a secret (kept in 1Password too).
+  The row's ids are bound into the seal, so a ciphertext can't be moved to
+  another host's row, and each row names its key, so the key can be
+  rotated. This doesn't protect against a compromised Worker. It does keep
+  answers out of database dumps, branches of production, and any tool that
+  prints planning's rows. `bun run collab export` decrypts a round for the
+  night into a file, not the terminal.
+- **Forms, with no scripts.** The pages run no JavaScript, as the site's
+  don't. Forms post to the same page, which then redirects. Every write
+  needs:
+  - a same-origin request (`Origin`, or `Sec-Fetch-Site: same-origin`);
+  - a form token: an HMAC of the signer, the evening, the form, and when
+    Access signed them in, keyed by a Worker secret;
+  - form encoding, under a size limit.
+
+  Each form is decoded with Effect Schema: trimmed and normalized text,
+  capped lengths, closed lists, https sources, exactly the round's number
+  of questions. Which round and evening a write is for comes from the
+  invitation, never from the form. The preview's Content-Security-Policy
+  gains `form-action 'self'` and nothing else: still no script source.
+
+- **Rate limits,** counted from the audit in the same transaction as the
+  write (`planning.collab_recent_actions`), so they are deterministic and
+  tested.
+- **The audit.** `collab_audit` records every action: each write, each view
+  of a round, each refused evening. It is written in the signer's name only
+  and read only through the studio.
+- **No PII leaks.** Collaborators see each other's names and roles, never
+  emails, unless they organize the evening. Secrets never reach a page.
+
+**Threats:**
+
+| Threat                    | Answer                                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A shared link             | It's no use without signing in as an invited email: Access refuses at the edge, and the Worker again.                                                                                      |
+| A forwarded PIN email     | The PIN expires in minutes, and each person signs in as themselves, so the audit names them. One revoke ends the invitation and the sessions. The invitation says never to forward a code. |
+| Guessing draft slugs      | Strangers stop at the edge. A collaborator asking for an evening they're not on gets the same answer as a slug that doesn't exist, and their list shows only their own evenings.           |
+| XSS in a comment          | Plain text, escaped by the templates and held to it by the xss-scan in CI, under a policy that runs no script.                                                                             |
+| Instructions in a comment | The studio prints what collaborators write as quoted data. Nothing goes out without an organizer's approval token.                                                                         |
+| Uploads                   | None: the visual round's images come through the studio.                                                                                                                                   |
+
+**The studio,** `bun run collab` (src/collab/), each command also an MCP
+tool. Every write takes `--dry-run`, and those that change who may see
+what (invite, revoke, accept, reject) take `--approve <token>`, as
+publishing does (src/approval.ts):
+
+```sh
+DATABASE_URL=… bun run collab invite <slug> --email … --name … --role round_host --round 5 --dry-run
+DATABASE_URL=… bun run collab revoke <slug> --email … --approve <token>
+DATABASE_URL=… bun run collab list <slug>
+DATABASE_URL=… bun run collab brief set <slug> --from brief.md --dry-run   # sections and their audiences
+DATABASE_URL=… bun run collab task add <slug> --title "…" --due 2026-10-20 --role round_host
+DATABASE_URL=… bun run collab submissions <slug>                           # status, never content
+DATABASE_URL=… bun run collab show <submission id>
+DATABASE_URL=… bun run collab accept <submission id> --note "…" --approve <token>
+DATABASE_URL=… bun run collab export <slug> --round 5 --out round-5.md   # decrypted, to a file
+DATABASE_URL=… bun run collab audit <slug>
+```
+
+Readiness learns the collaboration: a round not accepted by its deadline,
+an unconfirmed logistics item, or an overdue task is advice, then a
+blocker on the day.
+
+**On the page.** The draft's page as the public will see it, and below it
+a "for collaborators" panel in the site's own design:
+
+- your role and who else is on the evening;
+- your tasks with their dates;
+- the brief's sections for you;
+- your form;
+- the comments.
+
+It has the same grid, rules and type, and layout tokens only.
+
 ## Putting an evening out on Luma
 
 `src/luma/publish.ts` takes an evening's Luma event from private draft to
