@@ -183,6 +183,7 @@ export function homePage({
     theme,
     portraits,
     images,
+    section: "home",
     children: (
       <div class="home">
         <section
