@@ -112,6 +112,49 @@ export interface CollabShape {
     signer: Signer,
     evening: Evening,
   ) => Effect.Effect<Panel, DataSourceError>;
+  /**
+   * Adds the signer's comment, and its line in the audit, in one
+   * transaction; whether the tables' policies took it (a viewer's, or one
+   * on a round they don't host, they refuse).
+   */
+  readonly comment: (
+    signer: Signer,
+    evening: Evening,
+    comment: NewComment,
+    request: RequestRecord,
+  ) => Effect.Effect<boolean, DataSourceError>;
+  /** A line in the audit, in the signer's name, on its own: for what was refused. */
+  readonly record: (
+    signer: Signer,
+    entry: AuditLine,
+  ) => Effect.Effect<void, DataSourceError>;
+  /** How many of `actions` the signer took in the last `minutes`: the rate limits. */
+  readonly recent: (
+    signer: Signer,
+    actions: ReadonlyArray<string>,
+    minutes: number,
+  ) => Effect.Effect<number, DataSourceError>;
+}
+
+/** A comment as the Worker adds it, once its form is checked. */
+export interface NewComment {
+  readonly body: string;
+  readonly sectionId: string | null;
+  readonly roundId: string | null;
+}
+
+/** Which request did it: Cloudflare's ray, for the audit. */
+export interface RequestRecord {
+  readonly requestId: string | null;
+}
+
+/** One line of the audit (planning.collab_audit). */
+export interface AuditLine extends RequestRecord {
+  readonly eventId: string | null;
+  readonly action: string;
+  readonly outcome: "ok" | "refused" | "invalid" | "limited";
+  readonly targetId: string | null;
+  readonly detail: string | null;
 }
 
 const iso = (column: string) =>
@@ -228,7 +271,74 @@ const make = Effect.gen(function* () {
       }),
     );
 
-  return { evenings, evening, panel } satisfies CollabShape;
+  const insertAudit = (signer: Signer, entry: AuditLine) =>
+    sql`
+      INSERT INTO planning.collab_audit (actor_email, event_id, action, target_id, outcome, request_id, detail)
+      VALUES (${signer.email}, ${entry.eventId}, ${entry.action}, ${entry.targetId}, ${entry.outcome},
+        ${entry.requestId === null ? null : entry.requestId.slice(0, 64)},
+        ${entry.detail === null ? null : entry.detail.slice(0, 500)})`;
+
+  const comment: CollabShape["comment"] = (signer, on, added, request) =>
+    as(
+      signer,
+      Effect.gen(function* () {
+        // Asked first, as the policies would answer it: they refuse the
+        // same rows whatever this says, and a refusal there is a failure.
+        const [may] = yield* sql`
+          SELECT planning.collab_has_role(${on.id}, '{commenter,round_host,venue}')
+            AND (${added.sectionId}::uuid IS NULL OR EXISTS (
+              SELECT 1 FROM planning.brief_sections b WHERE b.id = ${added.sectionId}::uuid AND b.event_id = ${on.id}))
+            AND (${added.roundId}::uuid IS NULL
+              OR (EXISTS (SELECT 1 FROM planning.rounds r WHERE r.id = ${added.roundId}::uuid AND r.event_id = ${on.id})
+                AND (planning.collab_has_role(${on.id}, '{organizer}') OR planning.collab_hosts(${added.roundId}::uuid))))
+            AS allowed`.pipe(
+          Effect.flatMap(rows(Schema.Struct({ allowed: Schema.Boolean }))),
+        );
+        if (may?.allowed !== true) return false;
+        const [mine] = yield* sql`
+          SELECT m.collaborator_id AS id, m.name FROM planning.collab_memberships() m
+          WHERE m.event_id = ${on.id} ORDER BY m.role = 'organizer' DESC, m.role LIMIT 1`.pipe(
+          Effect.flatMap(
+            rows(Schema.Struct({ id: Schema.String, name: Schema.String })),
+          ),
+        );
+        const id = crypto.randomUUID();
+        yield* sql`
+          INSERT INTO planning.comments (id, event_id, collaborator_id, author_name, author_email, section_id, round_id, body)
+          VALUES (${id}, ${on.id}, ${mine?.id ?? null}, ${mine?.name ?? "allthings"}, ${signer.email},
+            ${added.sectionId}, ${added.roundId}, ${added.body})`;
+        yield* insertAudit(signer, {
+          ...request,
+          eventId: on.id,
+          action: "comment.add",
+          outcome: "ok",
+          targetId: id,
+          detail: null,
+        });
+        return true;
+      }),
+    );
+
+  const record: CollabShape["record"] = (signer, entry) =>
+    as(signer, insertAudit(signer, entry).pipe(Effect.asVoid));
+
+  const recent: CollabShape["recent"] = (signer, actions, minutes) =>
+    as(
+      signer,
+      sql`SELECT planning.collab_recent_actions(now() - make_interval(mins => ${minutes}), ${actions})::int AS count`.pipe(
+        Effect.flatMap(rows(Schema.Struct({ count: Schema.Int }))),
+        Effect.map(([row]) => row?.count ?? 0),
+      ),
+    );
+
+  return {
+    evenings,
+    evening,
+    panel,
+    comment,
+    record,
+    recent,
+  } satisfies CollabShape;
 });
 
 export class Collab extends Context.Service<Collab, CollabShape>()(

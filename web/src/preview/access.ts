@@ -141,6 +141,8 @@ export type Verdict =
       readonly email: string;
       /** Whether they are one of the organizers the stack names. */
       readonly organizer: boolean;
+      /** When Access signed them in (the token's `iat`, in seconds): their forms' tokens are bound to it. */
+      readonly issuedAt: number;
     }
   | { readonly allowed: false; readonly reason: string };
 
@@ -246,5 +248,11 @@ export async function verifyAccess(
   if (typeof claims.email !== "string") return refuse("no email");
   const email = claims.email.toLowerCase();
   if (!/^[^@\s]+@[^@\s]+$/.test(email)) return refuse("not an email");
-  return { allowed: true, email, organizer: settings.viewers.has(email) };
+  if (typeof claims.iat !== "number") return refuse("no time it was issued");
+  return {
+    allowed: true,
+    email,
+    organizer: settings.viewers.has(email),
+    issuedAt: claims.iat,
+  };
 }

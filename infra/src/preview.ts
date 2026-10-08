@@ -1,3 +1,4 @@
+import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import type * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
@@ -145,6 +146,9 @@ export const makePreview = (publicUrl: Output.Output<string> | string) =>
         PUBLIC_URL: publicUrl,
         HYPERDRIVE: Database,
         COLLAB: CollabDatabase,
+        // Signs the collaborators' forms (web/src/preview/forms.ts): made once,
+        // kept in Alchemy's state, and known to nothing but this Worker.
+        COLLAB_FORM_KEY: Alchemy.makeRandom("CollabFormKey"),
         IMAGES: Cloudflare.Images.Images("IMAGES"),
         ACCESS_TEAM_DOMAIN: team.authDomain,
         ACCESS_AUD: access.aud,
