@@ -1036,8 +1036,11 @@ The site has no accept action, and no collaborator writes `public` or Luma.
 | Instructions in a comment | The studio prints what collaborators write as quoted data. Nothing goes out without an organizer's approval token.                                                                         |
 | Uploads                   | None: the visual round's images come through the studio.                                                                                                                                   |
 
-**The studio,** `bun run collab` (src/collab/; each command will also be an
-MCP tool). What changes who may see what (an invitation, a revocation, the
+**The studio,** `bun run collab` (src/collab/), each command also an admin
+MCP tool (`collab_invite`, `collab_brief_set`, `collab_review`, … in
+app/scripts/collab.ts, which runs the CLI with `--json`). `collab_show` and
+`collab_export` open a round only into a file and return its path, so a
+round's answers never reach an agent's transcript. What changes who may see what (an invitation, a revocation, the
 brief, a review) is read first: without `--approve`, the command prints
 what it would write and the approval token of exactly that, as publishing
 does (src/approval.ts), and writes nothing. With `--approve <token>` it
