@@ -1,9 +1,15 @@
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Console, Effect, Layer, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { FetchHttpClient } from "effect/http";
+import { CoverRenderer } from "../src/cover.ts";
 import * as Database from "../src/database.ts";
+import { EventPages } from "../src/event-page.ts";
 import { Calendar, type PreparedCalendar } from "../src/luma/calendar.ts";
+import { Covers, type PreparedCover } from "../src/luma/cover.ts";
 import {
   type EventRef,
   instant,
@@ -17,6 +23,7 @@ import { LumaWrite } from "../src/luma/write.ts";
 import { Planning } from "../src/planning/planning.ts";
 import { Promo } from "../src/promo/promo.ts";
 import { Readiness } from "../src/readiness/readiness.ts";
+import { ShortSlugs } from "../src/slugs.ts";
 import { shellWord } from "./shell.ts";
 
 /**
@@ -30,6 +37,8 @@ import { shellWord } from "./shell.ts";
  *   bun run luma update --luma evt-… --name "…"        before the sync has stored it
  *   bun run luma publish <draft slug> --dry-run        what would go out, and its approval token
  *   bun run luma publish <draft slug> --approve <token>   put out exactly that
+ *   bun run luma cover <slug|evt-…> --dry-run          draw its cover from its facts, and the token
+ *   bun run luma cover <slug|evt-…> --approve <token>  set exactly that cover on its private event
  *   bun run luma show evt-…                            the event as Luma has it
  *   bun run luma calendar --dry-run [--slug <slug>]    how the calendar's page differs from the brand, and the token
  *   bun run luma calendar --approve <token> [--slug <slug>]   make exactly those changes
@@ -434,6 +443,117 @@ const calendar = Command.make(
   ),
 );
 
+const coverLayer = Covers.layer.pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      LumaWrite.layer.pipe(Layer.provide(FetchHttpClient.layer)),
+      EventPages.layer,
+      ShortSlugs.layer,
+      CoverRenderer.layer,
+    ),
+  ),
+  Layer.provideMerge(Database.layer),
+);
+
+/** A cover as it prints: the PNG itself stays out of JSON. */
+const coverJson = ({ png, ...rest }: PreparedCover) => ({
+  ...rest,
+  bytes: png.length,
+});
+
+const describeCover = (prepared: PreparedCover, file: string | null) => {
+  const { facts, current } = prepared;
+  const lockup =
+    facts.topic === null
+      ? facts.name
+      : `allthings/${facts.topic}${facts.ahead ? "_" : ""}`;
+  return [
+    `${prepared.name} · ${prepared.lumaEventId} · ${prepared.visibility}`,
+    `says: ${[
+      lockup,
+      `${facts.date} ${facts.time} ${facts.year}`,
+      facts.neighborhood,
+      facts.hosts === null ? facts.venue : `hosted at ${facts.hosts}`,
+      facts.link,
+    ]
+      .filter((part) => part !== null)
+      .join(" · ")} (${facts.mode})`,
+    `drawn: ${file ?? "(in memory)"} (${(prepared.png.length / 1e6).toFixed(1)} MB, sha256 ${prepared.sha256})`,
+    `replaces: ${current.url ?? "no cover"}${current.lumaDefault ? " (Luma's default)" : current.ours ? " (ours, as last set)" : current.url === null ? "" : " (not ours)"}`,
+  ].join("\n");
+};
+
+const cover = Command.make(
+  "cover",
+  {
+    event: Argument.String("event").pipe(
+      Argument.withDescription(
+        "The evening: its slug here or its short link, or its Luma id (evt-…).",
+      ),
+    ),
+    approve: text(
+      "approve",
+      "The token cover --dry-run printed for the cover that was looked at: only that is set.",
+    ),
+    out: text(
+      "out",
+      "Where --dry-run writes the drawn PNG to look at; by default a fresh temporary directory.",
+    ),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Draw the cover, write it to look at, and print its approval token; send nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    json,
+  },
+  (options) =>
+    Effect.gen(function* () {
+      if (options.dryRun === Option.isSome(options.approve)) {
+        return yield* refuse(
+          "Give --dry-run to draw the cover and read it, or --approve <token> to set exactly that.",
+        );
+      }
+      const ref: EventRef = options.event.startsWith("evt-")
+        ? { _tag: "Luma", lumaEventId: options.event }
+        : { _tag: "Slug", slug: options.event };
+      if (Option.isNone(options.approve)) {
+        const prepared = yield* Covers.use((covers) => covers.prepare(ref));
+        const file = Option.isSome(options.out)
+          ? options.out.value
+          : join(
+              yield* Effect.promise(() =>
+                mkdtemp(join(tmpdir(), "allthings-cover-")),
+              ),
+              `${prepared.slug}.png`,
+            );
+        yield* Effect.promise(() => Bun.write(file, prepared.png));
+        const next =
+          prepared.refused === null
+            ? `approval token: ${prepared.token}\nNothing was sent. To set exactly this: bun run luma cover ${shellWord(options.event)} --approve ${prepared.token}`
+            : `Nothing was sent, and approving it would be refused: ${prepared.refused}`;
+        // Drawn, but not to be set: the cover to look at, and exit 1.
+        if (prepared.refused !== null) process.exitCode = 1;
+        return yield* print(
+          options.json,
+          { ...coverJson(prepared), file },
+          `${describeCover(prepared, file)}\n${next}`,
+        );
+      }
+      const token = options.approve.value;
+      const set = yield* Covers.use((covers) => covers.approve(ref, token));
+      return yield* print(
+        options.json,
+        { ...coverJson(set), coverUrl: set.coverUrl },
+        `Set: ${set.coverUrl}\n${describeCover(set, null)}`,
+      );
+    }).pipe(Effect.provide(coverLayer)),
+).pipe(
+  Command.withDescription(
+    "Draw an evening's cover from its facts, or set exactly the one approved on its private Luma event.",
+  ),
+);
+
 const luma = Command.make("luma").pipe(
   Command.withDescription(
     "An evening's Luma event, from private draft to public.",
@@ -442,6 +562,7 @@ const luma = Command.make("luma").pipe(
     create,
     update,
     publish,
+    cover,
     show,
     calendar,
     cancelTest,
@@ -450,12 +571,18 @@ const luma = Command.make("luma").pipe(
 
 // A refusal is the answer, not a crash: its reason alone, on stderr, and exit 1.
 Command.run(luma, { version: "1.0.0" }).pipe(
-  Effect.catchTag("StudioRefused", (refusal) =>
-    Effect.sync(() => {
-      console.error(refusal.reason);
-      process.exitCode = 1;
-    }),
-  ),
+  Effect.catchTags({
+    StudioRefused: (refusal) =>
+      Effect.sync(() => {
+        console.error(refusal.reason);
+        process.exitCode = 1;
+      }),
+    CoverUnrendered: (failure) =>
+      Effect.sync(() => {
+        console.error(failure.reason);
+        process.exitCode = 1;
+      }),
+  }),
   Effect.provide(BunServices.layer),
   BunRuntime.runMain,
 );

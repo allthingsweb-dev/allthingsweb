@@ -1113,6 +1113,49 @@ LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --approve <t
 LUMA_API_KEY=… bun run luma show evt-…                                             # the event as Luma has it
 ```
 
+### Its cover
+
+Every evening's Luma cover is allthings-branded and its own, never one of
+Luma's defaults (images.lumacdn.com/gallery-images/, what a new event
+starts with). `src/cover.ts` says what the cover says, from the evening as
+its page reads it: allthings/<topic> (or the name, where it yields no
+topic), with the cursor while it is ahead; its day, hour and year in San
+Francisco; its neighborhood; who hosts it, or the venue's name with no host
+on record; its short link, the one a draft gets when it is published; and
+its mode, Night or Paper. The brand's template draws those facts, square,
+with uv (`brand/marks/cover.py`). Same facts, same pixels.
+
+`bun run luma cover` sets it, as publish does, in two steps:
+
+- `--dry-run` draws the cover, writes the PNG to look at (`--out`, or a
+  fresh temporary directory), says what it replaces on Luma (Luma's
+  default, the one we last set, or another) and prints the approval token:
+  the first 16 hex digits of the SHA-256 of the event, the facts, the PNG's
+  SHA-256 and the cover it replaces, as canonical JSON. It sends nothing.
+- `--approve <token>` draws and works it out again, and goes on only if it
+  hashes the same: a fact or Luma's cover changed in between stops it. It
+  uploads the PNG to Luma's CDN, sets it on the event, reads the event back
+  to check it took, and records it on the evening: `generated_cover_url`
+  (as Luma reads it back), `generated_cover_sha256` and
+  `generated_cover_facts` (the facts' approval token), from
+  migrations/0025_generated_cover.ts. It lets go of the evening's stored
+  copy of the old cover, so the hourly image ingestion stores the new one.
+
+Only a private event of ours is changed. A public one changes only through
+publish and a shared one's Luma page is its organizer's; a public
+evening's cover is still drawn to look at, and the dry run exits 1 saying
+why it wouldn't be set.
+
+```sh
+LUMA_API_KEY=… DATABASE_URL=… bun run luma cover <draft slug> --dry-run      # draw it, read it, and its token
+LUMA_API_KEY=… DATABASE_URL=… bun run luma cover <draft slug> --approve <token>
+LUMA_API_KEY=… DATABASE_URL=… bun run luma cover evt-… --dry-run --out cover.png
+```
+
+Nothing in the tests reaches Luma or runs uv: `tests/luma-cover.test.ts`
+draws with a stand-in renderer, and `uv run generate.py --check` in
+brand/marks holds the template to two past evenings' covers.
+
 ### The calendar
 
 `src/luma/calendar.ts` holds what the Luma calendar's page should say, and

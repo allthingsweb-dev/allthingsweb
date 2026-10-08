@@ -159,6 +159,9 @@ column public.events #026 luma_summary text
 column public.events #027 description text
 column public.events #028 short_slug text
 column public.events #029 venue_by_organizer boolean not null default false
+column public.events #030 generated_cover_url text
+column public.events #031 generated_cover_sha256 text
+column public.events #032 generated_cover_facts text
 column public.external_talks #001 id uuid not null default gen_random_uuid()
 column public.external_talks #002 profile_id uuid not null
 column public.external_talks #003 title text not null
@@ -331,6 +334,10 @@ constraint public.event_talks event_talks_position_check CHECK (("position" >= 0
 constraint public.event_talks event_talks_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id)
 constraint public.events events_curation_check CHECK ((curation = ANY (ARRAY['ours'::text, 'shared'::text])))
 constraint public.events events_curation_organizer_check CHECK (((curation = 'shared'::text) = (organized_by IS NOT NULL)))
+constraint public.events events_generated_cover_check CHECK ((num_nonnulls(generated_cover_url, generated_cover_sha256, generated_cover_facts) = ANY (ARRAY[0, 3])))
+constraint public.events events_generated_cover_facts_check CHECK ((generated_cover_facts ~ '^[0-9a-f]{16}$'::text))
+constraint public.events events_generated_cover_sha256_check CHECK ((generated_cover_sha256 ~ '^[0-9a-f]{64}$'::text))
+constraint public.events events_generated_cover_url_check CHECK ((generated_cover_url ~ '^https://images\.lumacdn\.com/'::text))
 constraint public.events events_id_short_slug_event_slugs_fk FOREIGN KEY (id, short_slug) REFERENCES event_slugs(event_id, slug)
 constraint public.events events_luma_checked_in_count_check CHECK ((luma_checked_in_count >= 0))
 constraint public.events events_luma_event_id_unique UNIQUE (luma_event_id)

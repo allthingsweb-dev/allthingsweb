@@ -31,6 +31,11 @@ The Luma calendar's cover (`calendar_cover.py`) goes to [`brand/covers`](../cove
 | `calendar.png` | 3500 x 1000 (Luma shows a calendar's cover at 3.5:1), on Night with its grain: the master wordmark with the slot open, over the two sentences, leaving the lower left clear for the avatar Luma sets there. Uploaded by hand, since Luma's API can't set it |
 
 The calendar's avatar is `icon-512.png`, and its social preview image (Luma asks for about 1.91:1) is `og-home.png`.
+An evening's Luma cover (`cover.py`) is drawn from its facts: square, 1600 x 1600 (Luma asks for at least 800), in the evening's mode, in the Swiss Index layout. The index of day, hour and year along the top; the lockup, `allthings/<topic>` with the cursor while the evening is ahead; the neighborhood, as large as fits, over who hosts it; and the short link beside the `a/` mark. Core writes the facts and sets the cover on Luma (`bun run luma cover`, core/README.md); by hand, `uv run cover.py --out cover.png < facts.json`. Same facts, same pixels.
+
+| File                                                                         | What it is                                                                                         |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [`specimen-night.png`, `specimen-paper.png`](../covers)                      | Two past evenings' covers, allthings/effect (Night) and allthings/open source hackathon (Paper), at 800 x 800, which `--check` holds the template to |
 
 Everything is a plain SVG path or a PNG rendered from one, so no font is
 needed to display the marks. Colors and the wordmark's weight, width and
