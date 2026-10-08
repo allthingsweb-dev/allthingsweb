@@ -1078,8 +1078,26 @@ Eight questions and one backup…
 
 An invitation runs until three days after its evening ends. Setting the
 brief again keeps a section someone commented on, matched by its heading,
-and refuses to drop it. Still to come: `collab show` and `collab export`,
-which open a round's sealed questions, with the round form.
+and refuses to drop it.
+
+**A round, for the night.** A round host writes their round in the panel
+under the evening's page: each question in the brief's answer-key format
+(type, question, answer, also accept, an https source, why it's fair,
+difficulty). They save it as a draft, or hand it in once every question has
+its type, question, answer, source and difficulty. The Worker seals each
+save before storing it (src/collab/seal.ts: AES-256-GCM, the row's ids
+bound in, the key named by its id) with `COLLAB_ANSWERS_KEY`. The form
+opens again with the latest save. Only that round's hosts and the organizers
+ever see it, and each time one is opened is a line in the audit. For the
+night, the studio opens a round with the same key, into a new file only its
+owner may read. It prints only the file's path and digest, never the
+answers, unless asked for `--stdout`:
+
+```sh
+COLLAB_ANSWERS_KEY=$(op read "op://allthings/allthings collab answers key/credential") \
+  DATABASE_URL=… bun run collab export <slug> --round 5 --out round-5.md   # the latest handed in
+DATABASE_URL=… COLLAB_ANSWERS_KEY=… bun run collab show <submission id> --out save.md
+```
 
 **The edge.** An approved invitation or revocation also sets Access's list
 of collaborators to every active invitation, and a revocation ends that

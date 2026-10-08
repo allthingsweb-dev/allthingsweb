@@ -1933,3 +1933,41 @@ th {
   margin-bottom: var(--at-space-4);
   font-weight: 600;
 }
+
+/* A round's form: a ruled block per question, its fields stacked at a reading measure. */
+.collab-round {
+  gap: var(--at-space-4);
+}
+
+.collab-question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-2);
+  width: 100%;
+  max-width: var(--at-measure-prose);
+  margin: 0;
+  padding: var(--at-space-3) 0 0;
+  border: 0;
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+.collab-question legend {
+  padding: 0;
+}
+
+.collab-form :is(input, select) {
+  width: 100%;
+  min-height: var(--at-size-target);
+  padding: 0 var(--at-space-2);
+  border: var(--at-stroke-hairline) solid var(--at-rule);
+  border-radius: 0;
+  background: var(--at-surface);
+  color: var(--at-text);
+  font: inherit;
+}
+
+.collab-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--at-space-3);
+}

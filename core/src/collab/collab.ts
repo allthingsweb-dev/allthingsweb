@@ -5,13 +5,14 @@ import { approvalToken, isApprovalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
 import { PlanningError } from "../planning/planning.ts";
 import { maxSections } from "./brief.ts";
+import { answerKey, open } from "./seal.ts";
 import {
   AuditEntry,
   type BriefPlan,
   type BriefSection,
   Collaborator,
   Comment,
-  type Decision,
+  Decision,
   type InvitationPlan,
   invitationGraceDays,
   LogisticsItem,
@@ -74,6 +75,15 @@ export interface ReviewInput {
   readonly reviewer: string;
 }
 
+/** A round opened for the night: its answer key, and which save it is. */
+export interface OpenedText {
+  readonly submission: string;
+  readonly round: number;
+  readonly stage: "draft" | "final";
+  readonly decision: Decision | null;
+  readonly text: string;
+}
+
 export interface NewLogisticsItem {
   readonly position: number;
   readonly label: string;
@@ -131,6 +141,16 @@ export interface CollabShape {
     input: ReviewInput,
     approve?: string,
   ) => Effect.Effect<Approval<ReviewPlan>, Failure>;
+  /**
+   * A round's questions and answer key as text, opened with `keys`: the
+   * save `target` names, or a round's latest one handed in.
+   */
+  readonly openRound: (
+    target:
+      | { readonly submission: string }
+      | { readonly event: string; readonly round: number },
+    keys: ReadonlyArray<string>,
+  ) => Effect.Effect<OpenedText, Failure>;
   readonly comments: (
     event: string,
   ) => Effect.Effect<ReadonlyArray<Comment>, Failure>;
@@ -650,6 +670,94 @@ const make = Effect.gen(function* () {
       }),
     );
 
+  const SealedRow = Schema.Struct({
+    id: Schema.String,
+    eventId: Schema.String,
+    roundId: Schema.String,
+    collaboratorId: Schema.String,
+    stage: Schema.Literals(["draft", "final"]),
+    keyId: Schema.String,
+    nonce: Schema.Uint8Array,
+    ciphertext: Schema.Uint8Array,
+    position: Schema.Int,
+    title: Schema.String,
+    decision: Schema.NullOr(Decision),
+  });
+
+  const openRound: CollabShape["openRound"] = (target, keys) =>
+    run(
+      Effect.gen(function* () {
+        const select = `
+          SELECT s.id, s.event_id AS "eventId", s.round_id AS "roundId", s.collaborator_id AS "collaboratorId",
+            s.stage, s.key_id AS "keyId", s.nonce, s.ciphertext, r.position, r.title,
+            (SELECT v.decision FROM planning.reviews v WHERE v.round_submission_id = s.id
+              ORDER BY v.created_at DESC, v.id LIMIT 1) AS decision
+          FROM planning.round_submissions s JOIN planning.rounds r ON r.id = s.round_id`;
+        let found: ReadonlyArray<typeof SealedRow.Type>;
+        if ("submission" in target) {
+          if (!isId(target.submission)) {
+            return yield* refuse(
+              `"${target.submission}" is not a submission's id.`,
+            );
+          }
+          found =
+            yield* sql`${sql.unsafe(select)} WHERE s.id = ${target.submission}`.pipe(
+              Effect.flatMap(rows(SealedRow)),
+            );
+          if (found.length === 0) {
+            return yield* refuse(
+              `No round submission has the id ${target.submission}.`,
+            );
+          }
+        } else {
+          const evening = yield* event(target.event);
+          found = yield* sql`${sql.unsafe(select)}
+            WHERE s.event_id = ${evening.id} AND r.position = ${target.round} AND s.stage = 'final'
+            ORDER BY s.created_at DESC, s.id DESC LIMIT 1`.pipe(
+            Effect.flatMap(rows(SealedRow)),
+          );
+          if (found.length === 0) {
+            return yield* refuse(
+              `Round ${target.round} of ${evening.slug} has nothing handed in yet: collab submissions ${evening.slug} lists its drafts.`,
+            );
+          }
+        }
+        const [row] = found;
+        if (row === undefined) return yield* Effect.die("no row");
+        const hosts =
+          (yield* roundsOf(row.eventId)).find((r) => r.id === row.roundId)
+            ?.hosts ?? [];
+        const answers = yield* Effect.promise(() =>
+          open(
+            keys,
+            {
+              submissionId: row.id,
+              eventId: row.eventId,
+              roundId: row.roundId,
+              collaboratorId: row.collaboratorId,
+              stage: row.stage,
+            },
+            { keyId: row.keyId, nonce: row.nonce, ciphertext: row.ciphertext },
+          ),
+        );
+        if (answers === undefined) {
+          return yield* refuse(
+            `Submission ${row.id} is sealed with ${row.keyId}, which COLLAB_ANSWERS_KEY isn't, or it doesn't open: nothing was written.`,
+          );
+        }
+        return {
+          submission: row.id,
+          round: row.position,
+          stage: row.stage,
+          decision: row.decision,
+          text: answerKey(
+            { position: row.position, title: row.title, hosts },
+            answers,
+          ),
+        };
+      }),
+    );
+
   const commentJson = `
     SELECT m.id, m.author_name AS by,
       CASE WHEN m.section_id IS NOT NULL THEN 'section: ' || (SELECT b.heading FROM planning.brief_sections b WHERE b.id = m.section_id)
@@ -721,6 +829,7 @@ const make = Effect.gen(function* () {
     logistics,
     submissions,
     review,
+    openRound,
     comments,
     hideComment,
     audit,

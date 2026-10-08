@@ -540,9 +540,9 @@ describe("a comment that is refused writes nothing but the audit's line", () => 
         raw: "on=evening",
         headers: { "content-length": "4" },
       }),
-      400,
+      403,
       "carol@example.com",
-      shape,
+      "the form is out of date. Reload the page and try again.",
       before,
     );
   });

@@ -176,3 +176,150 @@ export type CommentForm = typeof CommentForm.Type;
 
 /** A comment form's whole body, at most: 2000 characters of text, each up to 9 bytes encoded. */
 export const commentLimit = 20_000;
+
+/** A round's fields, each question's at most: what a host writes in the brief's format. */
+export const roundLimits = {
+  question: 1000,
+  answer: 500,
+  alsoAccept: 500,
+  source: 500,
+  whyFair: 300,
+} as const;
+
+/** A round form's whole body, at most: 25 questions of fields at their limits, encoded. */
+export const roundLimit = 300_000;
+
+const questionTypes = new Set([
+  "guess the output",
+  "spot the bug",
+  "name that error",
+  "visual",
+  "open",
+]);
+const difficulties = new Set(["gettable", "deep", "brutal"]);
+
+/** One question, as the round form and the seal hold it. */
+export interface RoundQuestion {
+  readonly type: string | null;
+  readonly question: string;
+  readonly answer: string;
+  readonly alsoAccept: string;
+  readonly source: string;
+  readonly whyFair: string;
+  readonly difficulty: string | null;
+}
+
+export type RoundFormResult =
+  | {
+      readonly ok: true;
+      readonly stage: "draft" | "final";
+      readonly roundId: string;
+      readonly questions: ReadonlyArray<RoundQuestion>;
+      readonly backups: ReadonlyArray<RoundQuestion>;
+    }
+  | { readonly ok: false; readonly reason: string };
+
+const isHttps = (value: string) => {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * A round form's fields: \`round\`, \`stage\` ("draft" to save, "final" to hand
+ * in), and for each of the round's questions then its backups, \`q<n>_type\`,
+ * \`q<n>_question\`, \`q<n>_answer\`, \`q<n>_also\`, \`q<n>_source\`, \`q<n>_fair\`
+ * and \`q<n>_difficulty\`. Every text is \`written\` and held to its limit; a
+ * source is an https link. A draft may leave anything empty but not all of
+ * it; a round handed in has every question, answer, source, type and
+ * difficulty. Nothing else is taken.
+ */
+export function parseRoundForm(
+  fields: Readonly<Record<string, string>>,
+  count: { readonly questions: number; readonly backups: number },
+): RoundFormResult {
+  const refuse = (reason: string): RoundFormResult => ({ ok: false, reason });
+  const stage = fields["stage"];
+  if (stage !== "draft" && stage !== "final") {
+    return refuse("save it as a draft, or hand it in.");
+  }
+  const roundId = fields["round"] ?? "";
+  if (!new RegExp(`^${id}$`).test(roundId))
+    return refuse("that isn't a round.");
+  const total = count.questions + count.backups;
+  const allowed = new Set(["token", "round", "stage"]);
+  const read: Array<RoundQuestion> = [];
+  for (let n = 1; n <= total; n++) {
+    const field = (name: string) => {
+      allowed.add(`q${n}_${name}`);
+      return written(fields[`q${n}_${name}`] ?? "");
+    };
+    const type = field("type");
+    const difficulty = field("difficulty");
+    const question = {
+      type: type === "" ? null : type,
+      question: field("question"),
+      answer: field("answer"),
+      alsoAccept: field("also"),
+      source: field("source"),
+      whyFair: field("fair"),
+      difficulty: difficulty === "" ? null : difficulty,
+    };
+    const label =
+      n <= count.questions ? `question ${n}` : `backup ${n - count.questions}`;
+    if (question.type !== null && !questionTypes.has(question.type)) {
+      return refuse(`${label}'s type isn't one of the brief's.`);
+    }
+    if (
+      question.difficulty !== null &&
+      !difficulties.has(question.difficulty)
+    ) {
+      return refuse(`${label}'s difficulty is gettable, deep or brutal.`);
+    }
+    for (const [name, max] of [
+      ["question", roundLimits.question],
+      ["answer", roundLimits.answer],
+      ["alsoAccept", roundLimits.alsoAccept],
+      ["source", roundLimits.source],
+      ["whyFair", roundLimits.whyFair],
+    ] as const) {
+      const value = question[name];
+      if (value.length > max || (value !== "" && !printable(value))) {
+        return refuse(
+          `${label}: a field is over ${max} characters, or holds a character that isn't text.`,
+        );
+      }
+    }
+    if (question.source !== "" && !isHttps(question.source)) {
+      return refuse(`${label}'s source is an https link.`);
+    }
+    if (
+      stage === "final" &&
+      (question.type === null ||
+        question.difficulty === null ||
+        question.question === "" ||
+        question.answer === "" ||
+        question.source === "")
+    ) {
+      return refuse(
+        `to hand it in, ${label} needs its type, question, answer, source and difficulty.`,
+      );
+    }
+    read.push(question);
+  }
+  if (Object.keys(fields).some((name) => !allowed.has(name))) {
+    return refuse("the form has a field it shouldn't.");
+  }
+  if (read.every((q) => q.question === "" && q.answer === "")) {
+    return refuse("write at least one question first.");
+  }
+  return {
+    ok: true,
+    stage,
+    roundId,
+    questions: read.slice(0, count.questions),
+    backups: read.slice(count.questions),
+  };
+}
