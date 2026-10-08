@@ -72,9 +72,16 @@ export async function getExpandedEventById(
 async function getExpandedEventFromQuery(
   eventRow: any,
 ): Promise<ExpandedEvent> {
-  // Whether the organizers set the venue is the syncs' business, not the
-  // public API's.
-  const { venueByOrganizer, ...event } = eventRow.events;
+  // Whether the organizers set the venue is the syncs' business, and the
+  // cover core's generator recorded (core/src/luma/cover.ts) the studio's,
+  // not the public API's.
+  const {
+    venueByOrganizer,
+    generatedCoverUrl,
+    generatedCoverSha256,
+    generatedCoverFacts,
+    ...event
+  } = eventRow.events;
   const previewImage = eventRow.images || {
     url: "/hero-image-rocket.png",
     alt: `${event.name} preview`,
