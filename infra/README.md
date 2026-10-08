@@ -53,6 +53,16 @@ The hourly Luma sync writes production as `site_sync`, a second login role made 
 
 [`core/tests/site-sync.test.ts`](../core/tests/site-sync.test.ts) runs the sync as the role and checks everything else is refused. The connection string is in the `NEON_SYNC_URL` repository secret and the "allthings site_sync" 1Password item.
 
+The draft preview reads and writes draft collaboration as `draft_collab` (see core's README, "Collaborating on a draft"), a third login role made the same way by [`scripts/draft-collab.ts`](scripts/draft-collab.ts):
+
+- It holds column grants on planning's collaboration tables alone: it reads what the panel shows and adds what collaborators hand in. It has no UPDATE, DELETE or TRUNCATE anywhere.
+- It has no privilege on `planning.collaborators`. It learns who is on an evening only through the `planning.collab_*` functions, which show emails to that evening's organizers alone.
+- On `public`, it may read only an evening's id, slug, draft flag and end.
+- Row security applies to every row it touches.
+- Its statements, lock waits and idle transactions time out at 15 seconds or less.
+
+[`core/tests/draft-collab.test.ts`](../core/tests/draft-collab.test.ts) makes the role with the script's statements. It checks that what the preview does succeeds, that everything else is refused, and that the role's privileges in the catalog are exactly the script's. The connection string goes into the `NEON_COLLAB_URL` repository secret and the "allthings draft_collab" 1Password item.
+
 `prod` (media, the upload Worker and the Vercel env) follows the allthings.dev zone. Where the zone is active, prod serves: the bucket answers on `media.allthings.dev`, and the Workers and the Vercel env follow it. That is the `default` profile's account until the domain moves. In the allthings account before then, `bun run deploy --stage prod --profile allthings` stages the bucket (without `media.allthings.dev`: R2 refuses a custom domain on a pending zone) and runs the Web Worker on its `workers.dev` URL against production's data (it needs `NEON_READER_URL`). It also runs the Sync Worker, which needs no domain (it needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN`, and until the move `MEDIA_UPLOAD_URL` and `MEDIA_UPLOAD_TOKEN`). Once the zone is active there, the same deploy attaches `media.allthings.dev` to the bucket and `allthings.dev` and `www.allthings.dev` to the Web Worker. The `default` account never runs the Web Worker or the Sync Worker: until the move its zone answers allthings.dev with [esthor/domains](https://github.com/esthor/domains)' redirect. Any other account is refused, so a deploy from an account the domain has left can't drop the upload Worker or the Vercel env.
 
 ## Moving media
