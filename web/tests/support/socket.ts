@@ -12,6 +12,9 @@ export async function serve(db: PGlite) {
     url: `postgres://postgres:postgres@${server.getServerConn()}/postgres`,
     stop: async () => {
       await server.stop();
+      // A socket the server just closed still runs its close handler, which
+      // asks the database about its transaction: let it, before closing it.
+      await new Promise((resolve) => setTimeout(resolve, 50));
       await db.close();
     },
   };
