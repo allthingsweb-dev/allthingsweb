@@ -171,8 +171,9 @@ export interface CollabShape {
   ) => Effect.Effect<WriteOutcome, DataSourceError>;
   /**
    * Adds the venue's answer to an item, and its line in the audit, in one
-   * transaction: as the venue (or an organizer of the evening) the signer is
-   * invited as, on an item of that evening.
+   * transaction: as the venue the signer is invited as, on an item of that
+   * evening. Only the venue answers: an organizer reads the answers here
+   * and reviews them in the studio.
    */
   readonly confirm: (
     signer: Signer,
@@ -528,10 +529,10 @@ const make = Effect.gen(function* () {
         // Asked first, as the policies would answer it.
         const [venue] = yield* sql`
           SELECT m.collaborator_id AS id FROM planning.collab_memberships() m
-          WHERE m.event_id = ${on.id} AND m.role IN ('venue', 'organizer')
+          WHERE m.event_id = ${on.id} AND m.role = 'venue'
             AND EXISTS (SELECT 1 FROM planning.logistics_items i
               WHERE i.id = ${confirmation.itemId}::uuid AND i.event_id = ${on.id})
-          ORDER BY m.role = 'venue' DESC LIMIT 1`.pipe(
+          LIMIT 1`.pipe(
           Effect.flatMap(rows(Schema.Struct({ id: Schema.String }))),
         );
         if (venue === undefined) return "refused" as const;

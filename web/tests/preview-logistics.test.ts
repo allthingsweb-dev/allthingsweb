@@ -78,6 +78,7 @@ await db.exec(`
   INSERT INTO planning.collaborators (event_id, email, name, role, invited_at, expires_at) VALUES
     ('${draft}', 'venue@example.com', 'CodeRabbit', 'venue', now() - interval '1 day', now() + interval '30 days'),
     ('${draft}', 'carol@example.com', 'Carol', 'commenter', now() - interval '1 day', now() + interval '30 days'),
+    ('${draft}', 'co-organizer@example.com', 'Co-organizer', 'organizer', now() - interval '1 day', now() + interval '30 days'),
     ('${otherDraft}', 'venue@example.com', 'CodeRabbit', 'venue', now() - interval '1 day', now() + interval '30 days');
   INSERT INTO planning.logistics_items (id, event_id, position, label, detail) VALUES
     ('${projector}', '${draft}', 1, 'Projector or large screen with HDMI', NULL),
@@ -252,6 +253,32 @@ describe("everyone else", () => {
     const before = (await confirmations()).length;
     const response = await answer(
       "carol@example.com",
+      { item: projector, answer: "yes" },
+      tokenValue,
+    );
+    expect(response.status).toBe(403);
+    expect(await response.text()).toBe(
+      "Your answer wasn't saved: only the venue answers these.",
+    );
+    expect((await confirmations()).length).toBe(before);
+  });
+
+  test("an organizer invited to the evening reads the answers, and can't answer for the venue", async () => {
+    const html = await page("co-organizer@example.com");
+    expect(html).toContain("What the venue confirms");
+    expect(html).not.toContain('name="item"');
+    const tokenValue = await formToken(
+      "test-only-form-key-0123456789abcdef0123456789",
+      {
+        email: "co-organizer@example.com",
+        eventId: draft,
+        form: "logistics",
+        issuedAt: seconds - 60,
+      },
+    );
+    const before = (await confirmations()).length;
+    const response = await answer(
+      "co-organizer@example.com",
       { item: projector, answer: "yes" },
       tokenValue,
     );
