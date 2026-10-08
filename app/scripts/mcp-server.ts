@@ -23,6 +23,7 @@ import {
 } from "./post-review.js";
 import { promoChannels, promoDrafts } from "./promo.js";
 import { isPlanTool, planTool, planToolDefinitions } from "./plan.js";
+import { collabTool, collabToolDefinitions, isCollabTool } from "./collab.js";
 import { draftReadiness, draftReadinessTool } from "./readiness.js";
 import { isLumaTool, lumaTool, lumaToolDefinitions } from "./luma-studio.js";
 import { isSocialTool, socialTool, socialToolDefinitions } from "./social.js";
@@ -776,6 +777,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       // Planning: ideas, wanted speakers, host prospects, notes (private)
       ...planToolDefinitions,
+      // Collaborating on a draft: invitations, rounds, brief, reviews (private)
+      ...collabToolDefinitions,
       draftReadinessTool,
       ...lumaToolDefinitions,
       ...socialToolDefinitions,
@@ -797,6 +800,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (isSocialTool(toolName)) {
       const result = await socialTool(toolName, args ?? {});
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    }
+
+    if (isCollabTool(toolName)) {
+      const result = await collabTool(toolName, args ?? {});
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
