@@ -931,11 +931,17 @@ Revoking takes effect on the collaborator's next request.
   this repository. The studio does this with its own Cloudflare token,
   limited to Zero Trust (infra/scripts, in 1Password as "allthings zero
   trust").
-- **In the Worker.** It verifies the token Access signs, as it does now,
-  then decides on every request what the signer may do: organizer by the
-  stack's list, or collaborator by a row read from the database. It reads
-  that row through a Hyperdrive that never caches, so a revoked invitation
-  is refused at once.
+- **In the Worker,** in two steps on every request:
+  - _Who signed in._ It verifies the token Access signs, as it does now:
+    the signature against the team's keys, the issuer, this application's
+    audience, the times, and an email. The check against `PREVIEW_VIEWERS`
+    moves out of this step, so an invited email passes it.
+  - _What they may do._ An organizer is someone on the stack's list. A
+    collaborator has an active invitation to the evening, read from the
+    database through a Hyperdrive that never caches, so a revoked one is
+    refused at once. Anyone else gets the answer of an evening that
+    doesn't exist, as before: Access let them in, and the Worker shows
+    them nothing.
 
 **What collaborators do.** Everything they write is a submission or a
 comment, and only ever added. Organizers accept or reject through the
