@@ -1,11 +1,13 @@
 import { Context, DateTime, Effect, Exit, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken } from "../approval.ts";
+import { isLumaDefaultCover } from "../cover.ts";
 import { DataSourceError } from "../errors.ts";
 import { Planning, PlanningError } from "../planning/planning.ts";
 import { DraftTooLong } from "../promo/limits.ts";
 import { Promo } from "../promo/promo.ts";
 import { Readiness } from "../readiness/readiness.ts";
+import { siteOrigin } from "../site.ts";
 import {
   type LumaEventFields,
   type LumaPlace,
@@ -24,12 +26,16 @@ import {
  *   private event, so `bun run luma:drafts --add` stores it as a draft
  *   (src/luma/drafts.ts), which readiness checks and the preview shows.
  * - `update` changes a private event: its name, times, place, its
- *   description from the promotion drafts, its cover. A public one is
- *   refused: what the public sees changes only through `publish`.
+ *   description from the promotion drafts. A public one is refused: what
+ *   the public sees changes only through `publish`. Its cover is set
+ *   only by `bun run luma cover` (src/luma/cover.ts), drawn from its
+ *   facts, so no other cover can be put on it here.
  * - `prepare` says exactly what publishing would put out (the event as
  *   Luma has it, with the description the drafts write) and the approval
  *   token for it: the first 16 hex digits of the SHA-256 of that content,
- *   as canonical JSON. It refuses while readiness finds a blocker. An
+ *   as canonical JSON. It refuses while readiness finds a blocker, and
+ *   while the cover Luma shows isn't the one we set: Luma's default, or
+ *   any other (readiness can only see what we recorded). An
  *   evening with no talks that comes from an idea keeps the idea's pitch
  *   as its description instead: the drafts write from talks.
  * - `publish` takes that token, works the content out again, and goes on
@@ -47,8 +53,7 @@ export const timezone = "America/Los_Angeles";
 /** How the studio's own test events are named; nothing else may be cancelled. */
 export const testEventPrefix = "allthings API test";
 
-/** The site's origin, for the drafts' links. */
-export const siteOrigin = "https://allthings.dev";
+export { siteOrigin } from "../site.ts";
 const photoOrigin = "https://media.allthings.dev";
 
 export class StudioRefused extends Schema.TaggedError<StudioRefused>()(
@@ -127,10 +132,6 @@ export interface UpdateInput {
   readonly descriptionFromDrafts?: string;
   /** Set the description to this idea's pitch, as `create` does. */
   readonly descriptionFromIdea?: string;
-  readonly cover?: {
-    readonly bytes: Uint8Array;
-    readonly contentType: "image/jpeg" | "image/png";
-  };
 }
 
 /** Which event: by the draft's slug here, or by Luma's id before the sync has it. */
@@ -190,6 +191,7 @@ export interface StudioShape {
 const Row = Schema.Struct({
   luma_event_id: Schema.NullOr(Schema.String),
   is_draft: Schema.Boolean,
+  generated_cover_url: Schema.NullOr(Schema.String),
 });
 
 const make = Effect.gen(function* () {
@@ -203,7 +205,8 @@ const make = Effect.gen(function* () {
   const draftAt = (slug: string) =>
     Effect.gen(function* () {
       const [row] = yield* sql`
-        SELECT luma_event_id, is_draft FROM events WHERE slug = ${slug}`.pipe(
+        SELECT luma_event_id, is_draft, generated_cover_url
+        FROM events WHERE slug = ${slug}`.pipe(
         Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Row))),
         Effect.mapError((cause) => new DataSourceError({ cause })),
       );
@@ -216,7 +219,10 @@ const make = Effect.gen(function* () {
       if (row.luma_event_id === null) {
         return yield* refuse(`${slug} has no Luma event.`);
       }
-      return row.luma_event_id;
+      return {
+        lumaEventId: row.luma_event_id,
+        generatedCoverUrl: row.generated_cover_url,
+      };
     });
 
   const OwnDescription = Schema.Array(
@@ -538,7 +544,9 @@ const make = Effect.gen(function* () {
   const update = (ref: EventRef, input: UpdateInput, dryRun: boolean) =>
     Effect.gen(function* () {
       const lumaEventId =
-        ref._tag === "Slug" ? yield* draftAt(ref.slug) : ref.lumaEventId;
+        ref._tag === "Slug"
+          ? (yield* draftAt(ref.slug)).lumaEventId
+          : ref.lumaEventId;
       const event = yield* managed(lumaEventId);
       if (event.visibility === "public") {
         return yield* refuse(
@@ -563,10 +571,6 @@ const make = Effect.gen(function* () {
           : input.descriptionFromIdea !== undefined
             ? yield* pitchOf(input.descriptionFromIdea)
             : undefined;
-      const coverUrl =
-        input.cover === undefined || dryRun
-          ? undefined
-          : yield* luma.uploadImage(input.cover.bytes, input.cover.contentType);
       const body = {
         ...(input.name === undefined ? {} : { name: input.name }),
         ...(input.startAt === undefined ? {} : { start_at: input.startAt }),
@@ -576,9 +580,8 @@ const make = Effect.gen(function* () {
           : { timezone }),
         ...(input.place === undefined ? {} : { geo_address_json: input.place }),
         ...(description === undefined ? {} : { description_md: description }),
-        ...(coverUrl === undefined ? {} : { cover_url: coverUrl }),
       } satisfies LumaEventFields;
-      if (Object.keys(body).length === 0 && input.cover === undefined) {
+      if (Object.keys(body).length === 0) {
         return yield* refuse("Nothing to change.");
       }
       if (!dryRun) yield* luma.update(lumaEventId, body);
@@ -587,7 +590,7 @@ const make = Effect.gen(function* () {
 
   const prepare = (slug: string) =>
     Effect.gen(function* () {
-      const lumaEventId = yield* draftAt(slug);
+      const { lumaEventId, generatedCoverUrl } = yield* draftAt(slug);
       const report = yield* readiness.report({ _tag: "Event", slug });
       const blockers = report.checks.filter(
         (check) => check.level === "blocker",
@@ -600,6 +603,18 @@ const make = Effect.gen(function* () {
       const event = yield* managed(lumaEventId);
       if (event.visibility === "public") {
         return yield* refuse(`${event.name} is already public on Luma.`);
+      }
+      // What Luma shows now, against what we set: readiness sees only the
+      // record, and a cover changed on Luma since is not ours.
+      if (isLumaDefaultCover(event.cover_url)) {
+        return yield* refuse(
+          `Not ready: its cover on Luma is Luma's default (${event.cover_url ?? ""}). Draw and set ours with bun run luma cover ${slug} --dry-run, then --approve <token>.`,
+        );
+      }
+      if (event.cover_url === null || event.cover_url !== generatedCoverUrl) {
+        return yield* refuse(
+          `Not ready: its cover on Luma (${event.cover_url ?? "none"}) isn't the one we set (${generatedCoverUrl ?? "none"}). Draw and set ours with bun run luma cover ${slug} --dry-run, then --approve <token>.`,
+        );
       }
       const outgoing = outgoingOf(event, yield* publishedDescription(slug));
       const lineup = yield* plannedLineup(slug);

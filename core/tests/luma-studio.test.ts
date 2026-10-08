@@ -2,11 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { Cause, Effect, Exit, Layer } from "effect";
 import { approvalToken, canonicalJson } from "../src/approval.ts";
+import { coverFactsOf } from "../src/cover.ts";
+import { EventPages } from "../src/event-page.ts";
 import { instant, outgoingOf, Studio } from "../src/luma/publish.ts";
 import { LumaWrite, type ManagedEvent } from "../src/luma/write.ts";
 import { Planning } from "../src/planning/planning.ts";
 import { Promo } from "../src/promo/promo.ts";
 import { Readiness } from "../src/readiness/readiness.ts";
+import { ShortSlugs } from "../src/slugs.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 import {
   configFrom,
@@ -60,9 +63,38 @@ const lumaEvent = (overrides: Partial<ManagedEvent> = {}): ManagedEvent => ({
 const json = (value: unknown): Reply => ({ body: JSON.stringify(value) });
 
 let db: PGlite;
+/** The cover `bun run luma cover` set and recorded, as Luma shows it (lumaEvent's). */
+const ourCover = "https://images.lumacdn.com/cover.png";
+
+/** Records our cover on the draft, drawn from its facts as they are now. */
+const recordOurCover = async () => {
+  const { token } = await Effect.runPromise(
+    Effect.gen(function* () {
+      return yield* coverFactsOf(yield* EventPages, yield* ShortSlugs, {
+        id: "e0000000-0000-4000-8000-000000000002",
+        slug: draft,
+        shortSlug: null,
+        lumaEventId: "evt-draft",
+        isDraft: true,
+      });
+    }).pipe(
+      Effect.provide(
+        Layer.mergeAll(EventPages.layer, ShortSlugs.layer).pipe(
+          Layer.provideMerge(sqlLayer(db)),
+          Layer.provideMerge(clockLayer),
+        ),
+      ),
+    ),
+  );
+  await db.exec(`UPDATE events SET generated_cover_url = '${ourCover}',
+    generated_cover_sha256 = '${"a".repeat(64)}', generated_cover_facts = '${token}'
+    WHERE slug = '${draft}'`);
+};
+
 beforeEach(async () => {
   db = await seededDatabase();
   await db.exec(ready);
+  await recordOurCover();
 });
 afterEach(() => db.close());
 
@@ -293,47 +325,29 @@ describe("update", () => {
     }
   });
 
-  test("sets a private draft's description from its promotion drafts, and uploads a cover", async () => {
+  test("sets a private draft's description from its promotion drafts, and never a cover", async () => {
     const { exit, requests } = await run(
       (s) =>
         s.update(
           { _tag: "Slug", slug: draft },
-          {
-            descriptionFromDrafts: draft,
-            cover: {
-              bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
-              contentType: "image/png",
-            },
-          },
+          { descriptionFromDrafts: draft },
           false,
         ),
       {
         "/v1/events/get": [json(lumaEvent())],
-        "/v1/images/create-upload-url": [
-          json({
-            upload_url: "https://upload.example/put/abc",
-            file_url: "https://images.lumacdn.com/new-cover.png",
-          }),
-        ],
-        "/put/abc": [{ status: 200 }],
         "/v1/events/update": [json({})],
       },
     );
     const { body } = value(exit);
-    expect(body.cover_url).toBe("https://images.lumacdn.com/new-cover.png");
     expect(body.description_md).toContain("**Secret talk**");
+    // Its cover is set only by luma cover, drawn from its facts.
+    expect("cover_url" in body).toBe(false);
     expect(
       requests.map(
         (r) => `${r.method} ${new URL(r.url).pathname} ${r.apiKey ?? "-"}`,
       ),
-    ).toEqual([
-      `GET /v1/events/get ${key}`,
-      `POST /v1/images/create-upload-url ${key}`,
-      // The upload URL is signed; the key never goes there.
-      "PUT /put/abc -",
-      `POST /v1/events/update ${key}`,
-    ]);
-    expect(JSON.parse(requests[3]?.body ?? "")).toEqual({
+    ).toEqual([`GET /v1/events/get ${key}`, `POST /v1/events/update ${key}`]);
+    expect(JSON.parse(requests[1]?.body ?? "")).toEqual({
       event_id: "evt-draft",
       ...body,
     });
@@ -893,8 +907,38 @@ describe("publish", () => {
       `DELETE FROM event_sponsors WHERE event_id = 'e0000000-0000-4000-8000-000000000002'`,
     );
     const { exit, requests } = await run((s) => s.prepare(draft), {});
-    expect(message(exit)).toBe("Not ready: No hosting company.");
+    // Its cover named the host, so it is drawn for facts that changed too.
+    expect(message(exit)).toBe(
+      "Not ready: No hosting company; Its cover was drawn before its day, place, hosts or link changed: draw it again with bun run luma cover 2026-09-01-draft-night --dry-run, then --approve <token>.",
+    );
     expect(requests).toEqual([]);
+  });
+
+  test("refuses while Luma shows a cover that isn't the one we set", async () => {
+    const gallery =
+      "https://images.lumacdn.com/gallery-images/kd/12b33577-492a-4ae2-af6f-f7cd814d862c";
+    const lumaDefault = await run((s) => s.prepare(draft), {
+      "/v1/events/get": [json(lumaEvent({ cover_url: gallery }))],
+    });
+    expect(message(lumaDefault.exit)).toBe(
+      `Not ready: its cover on Luma is Luma's default (${gallery}). Draw and set ours with bun run luma cover ${draft} --dry-run, then --approve <token>.`,
+    );
+    const byHand = "https://images.lumacdn.com/event-covers/xx/by-hand.png";
+    const another = await run((s) => s.prepare(draft), {
+      "/v1/events/get": [json(lumaEvent({ cover_url: byHand }))],
+    });
+    expect(message(another.exit)).toBe(
+      `Not ready: its cover on Luma (${byHand}) isn't the one we set (${ourCover}). Draw and set ours with bun run luma cover ${draft} --dry-run, then --approve <token>.`,
+    );
+    const none = await run((s) => s.prepare(draft), {
+      "/v1/events/get": [json(lumaEvent({ cover_url: null }))],
+    });
+    expect(message(none.exit)).toStartWith(
+      "Not ready: its cover on Luma (none)",
+    );
+    for (const { requests } of [lumaDefault, another, none]) {
+      expect(requests.some((r) => r.method === "POST")).toBe(false);
+    }
   });
 
   test("fails when Luma didn't make it public", async () => {

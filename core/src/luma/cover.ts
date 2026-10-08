@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken } from "../approval.ts";
 import {
   type CoverFacts,
-  coverFacts,
+  coverFactsOf,
   CoverRenderer,
   type CoverUnrendered,
   isLumaDefaultCover,
@@ -12,7 +12,7 @@ import {
 import { DataSourceError } from "../errors.ts";
 import { EventPages } from "../event-page.ts";
 import { ShortSlugs } from "../slugs.ts";
-import { type EventRef, siteOrigin, StudioRefused } from "./publish.ts";
+import { type EventRef, StudioRefused } from "./publish.ts";
 import { LumaWrite, type LumaWriteError, type ManagedEvent } from "./write.ts";
 
 /**
@@ -87,9 +87,6 @@ export interface CoversShape {
   >;
 }
 
-/** The one origin pages load photos from; a cover reads none. */
-const photoOrigin = "https://media.allthings.dev";
-
 const Row = Schema.Struct({
   id: Schema.String,
   slug: Schema.String,
@@ -108,7 +105,6 @@ const make = Effect.gen(function* () {
   const pages = yield* EventPages;
   const slugs = yield* ShortSlugs;
   const renderer = yield* CoverRenderer;
-  const siteHost = new URL(siteOrigin).host;
 
   const orDataSourceError = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     Effect.mapError(effect, (cause) => new DataSourceError({ cause }));
@@ -145,36 +141,18 @@ const make = Effect.gen(function* () {
       return { ...row, lumaEventId: row.lumaEventId };
     });
 
-  /** The short link the evening has, or the one it gets when published. */
-  const linkOf = (row: typeof Row.Type & { readonly lumaEventId: string }) =>
-    row.shortSlug !== null
-      ? Effect.succeed(row.shortSlug)
-      : slugs
-          .assign({
-            dryRun: true,
-            published: [{ lumaEventId: row.lumaEventId }],
-          })
-          .pipe(
-            Effect.map(
-              ({ given }) =>
-                given.find((link) => link.eventId === row.id)?.shortSlug ??
-                row.slug,
-            ),
-          );
-
   const prepare = (ref: EventRef) =>
     Effect.gen(function* () {
       const row = yield* eveningOf(ref);
-      const page = yield* (
-        row.isDraft
-          ? pages.readDraft(row.slug, photoOrigin)
-          : pages.read(row.slug, photoOrigin)
+      const { facts, token: factsToken } = yield* coverFactsOf(
+        pages,
+        slugs,
+        row,
       ).pipe(
         Effect.catchTag("EventNotFound", () =>
           refuse(`No evening, published or draft, is ${row.slug}.`),
         ),
       );
-      const facts = coverFacts(page, yield* linkOf(row), siteHost);
       const png = yield* renderer.render(facts);
       const digest = yield* sha256(png);
       const event = yield* luma.get(row.lumaEventId);
@@ -196,7 +174,7 @@ const make = Effect.gen(function* () {
         name: event.name,
         visibility: event.visibility,
         facts,
-        factsToken: yield* approvalToken(facts),
+        factsToken,
         sha256: digest,
         png,
         current,
