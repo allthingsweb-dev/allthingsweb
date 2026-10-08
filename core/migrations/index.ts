@@ -24,6 +24,7 @@ import xSentPostsMigration from "./0022_x_sent_posts.ts";
 import dropAdminTablesMigration from "./0023_drop_admin_tables.ts";
 import draftLineupMigration from "./0024_draft_lineup.ts";
 import generatedCoverMigration from "./0025_generated_cover.ts";
+import draftCollaborationMigration from "./0026_draft_collaboration.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -58,6 +59,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0023_drop_admin_tables": dropAdminTablesMigration,
   "0024_draft_lineup": draftLineupMigration,
   "0025_generated_cover": generatedCoverMigration,
+  "0026_draft_collaboration": draftCollaborationMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

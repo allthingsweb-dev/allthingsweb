@@ -1,3 +1,15 @@
+policy planning.brief_sections brief_sections_select 8cb64b9eb0929989240e36fd2f11b184
+policy planning.collab_audit collab_audit_insert 2fe33ef597754e3dbfeab9ef61184aba
+policy planning.comments comments_insert 7b35f3e4d075f2dcec9e9b464d49f40e
+policy planning.comments comments_select 5c5595a490bb0eea6527ca1d643fb276
+policy planning.logistics_confirmations logistics_confirmations_insert a0f21e656aeafb8b3774f2f66c7373fa
+policy planning.logistics_confirmations logistics_confirmations_select e7550dc5e8d6d8b584c073d38c317a7c
+policy planning.logistics_items logistics_items_select e7550dc5e8d6d8b584c073d38c317a7c
+policy planning.reviews reviews_select 2a13f7bbcb503cc4d575009eb0cd0692
+policy planning.round_submissions round_submissions_insert dbf8c730b2f2d92d29fea3c4bbd14746
+policy planning.round_submissions round_submissions_select 0677675cf2e2ccf34a8a40fbd631d86b
+policy planning.rounds rounds_select c9f1311d9cf608f84017adf879ddd8ef
+policy planning.tasks tasks_select 7cc8688eec21a491e7d5dbddfeec3213
 column planning.availability #001 id uuid not null default gen_random_uuid()
 column planning.availability #002 wanted_speaker_id uuid not null
 column planning.availability #003 kind text not null default 'available'::text
@@ -5,6 +17,41 @@ column planning.availability #004 starts_on date
 column planning.availability #005 ends_on date
 column planning.availability #006 note text
 column planning.availability #007 created_at timestamp with time zone not null default now()
+column planning.brief_sections #001 id uuid not null default gen_random_uuid()
+column planning.brief_sections #002 event_id uuid not null
+column planning.brief_sections #003 "position" integer not null
+column planning.brief_sections #004 heading text not null
+column planning.brief_sections #005 body text not null
+column planning.brief_sections #006 audiences text[] not null
+column planning.brief_sections #007 updated_at timestamp with time zone not null default now()
+column planning.collab_audit #001 id uuid not null default gen_random_uuid()
+column planning.collab_audit #002 at timestamp with time zone not null default now()
+column planning.collab_audit #003 actor_email text not null
+column planning.collab_audit #004 event_id uuid
+column planning.collab_audit #005 action text not null
+column planning.collab_audit #006 target_id uuid
+column planning.collab_audit #007 outcome text not null
+column planning.collab_audit #008 request_id text
+column planning.collab_audit #009 detail text
+column planning.collaborators #001 id uuid not null default gen_random_uuid()
+column planning.collaborators #002 event_id uuid not null
+column planning.collaborators #003 email text not null
+column planning.collaborators #004 name text not null
+column planning.collaborators #005 role text not null
+column planning.collaborators #006 round_id uuid
+column planning.collaborators #007 invited_at timestamp with time zone not null default now()
+column planning.collaborators #008 expires_at timestamp with time zone not null
+column planning.collaborators #009 revoked_at timestamp with time zone
+column planning.comments #001 id uuid not null default gen_random_uuid()
+column planning.comments #002 event_id uuid not null
+column planning.comments #003 collaborator_id uuid
+column planning.comments #004 author_name text not null
+column planning.comments #005 author_email text not null
+column planning.comments #006 section_id uuid
+column planning.comments #007 round_id uuid
+column planning.comments #008 body text not null
+column planning.comments #009 created_at timestamp with time zone not null default now()
+column planning.comments #010 hidden_at timestamp with time zone
 column planning.contacts #001 id uuid not null default gen_random_uuid()
 column planning.contacts #002 name text not null
 column planning.contacts #003 email text
@@ -35,6 +82,19 @@ column planning.ideas #007 event_id uuid
 column planning.ideas #008 inspired_by_event_id uuid
 column planning.ideas #009 created_at timestamp with time zone not null default now()
 column planning.ideas #010 updated_at timestamp with time zone not null default now()
+column planning.logistics_confirmations #001 id uuid not null default gen_random_uuid()
+column planning.logistics_confirmations #002 event_id uuid not null
+column planning.logistics_confirmations #003 item_id uuid not null
+column planning.logistics_confirmations #004 collaborator_id uuid not null
+column planning.logistics_confirmations #005 answer text not null
+column planning.logistics_confirmations #006 note text
+column planning.logistics_confirmations #007 created_at timestamp with time zone not null default now()
+column planning.logistics_items #001 id uuid not null default gen_random_uuid()
+column planning.logistics_items #002 event_id uuid not null
+column planning.logistics_items #003 "position" integer not null
+column planning.logistics_items #004 label text not null
+column planning.logistics_items #005 detail text
+column planning.logistics_items #006 created_at timestamp with time zone not null default now()
 column planning.notes #001 id uuid not null default gen_random_uuid()
 column planning.notes #002 profile_id uuid
 column planning.notes #003 sponsor_id uuid
@@ -46,6 +106,29 @@ column planning.publishes #001 event_id uuid not null
 column planning.publishes #002 status text not null
 column planning.publishes #003 claimed_at timestamp with time zone not null
 column planning.publishes #004 published_at timestamp with time zone
+column planning.reviews #001 id uuid not null default gen_random_uuid()
+column planning.reviews #002 round_submission_id uuid
+column planning.reviews #003 logistics_confirmation_id uuid
+column planning.reviews #004 decision text not null
+column planning.reviews #005 note text
+column planning.reviews #006 reviewer text not null
+column planning.reviews #007 created_at timestamp with time zone not null default now()
+column planning.round_submissions #001 id uuid not null default gen_random_uuid()
+column planning.round_submissions #002 event_id uuid not null
+column planning.round_submissions #003 round_id uuid not null
+column planning.round_submissions #004 collaborator_id uuid not null
+column planning.round_submissions #005 stage text not null
+column planning.round_submissions #006 key_id text not null
+column planning.round_submissions #007 nonce bytea not null
+column planning.round_submissions #008 ciphertext bytea not null
+column planning.round_submissions #009 created_at timestamp with time zone not null default now()
+column planning.rounds #001 id uuid not null default gen_random_uuid()
+column planning.rounds #002 event_id uuid not null
+column planning.rounds #003 "position" integer not null
+column planning.rounds #004 title text not null
+column planning.rounds #005 questions integer not null default 8
+column planning.rounds #006 backups integer not null default 1
+column planning.rounds #007 created_at timestamp with time zone not null default now()
 column planning.sent_posts #001 id uuid not null default gen_random_uuid()
 column planning.sent_posts #002 channel text not null
 column planning.sent_posts #003 event_id uuid not null
@@ -57,6 +140,14 @@ column planning.sent_posts #008 url text
 column planning.sent_posts #009 claimed_at timestamp with time zone not null default now()
 column planning.sent_posts #010 sent_at timestamp with time zone
 column planning.sent_posts #011 body text
+column planning.tasks #001 id uuid not null default gen_random_uuid()
+column planning.tasks #002 event_id uuid not null
+column planning.tasks #003 title text not null
+column planning.tasks #004 due_on date
+column planning.tasks #005 role text
+column planning.tasks #006 collaborator_id uuid
+column planning.tasks #007 done_at timestamp with time zone
+column planning.tasks #008 created_at timestamp with time zone not null default now()
 column planning.wanted_speaker_topics #001 wanted_speaker_id uuid not null
 column planning.wanted_speaker_topics #002 topic text not null
 column planning.wanted_speakers #001 id uuid not null default gen_random_uuid()
@@ -238,6 +329,39 @@ constraint planning.availability availability_order_check CHECK ((starts_on <= e
 constraint planning.availability availability_pkey PRIMARY KEY (id)
 constraint planning.availability availability_said_check CHECK ((num_nonnulls(starts_on, ends_on, note) > 0))
 constraint planning.availability availability_wanted_speaker_id_wanted_speakers_id_fk FOREIGN KEY (wanted_speaker_id) REFERENCES planning.wanted_speakers(id) ON DELETE CASCADE
+constraint planning.brief_sections brief_sections_audiences_check CHECK (((cardinality(audiences) > 0) AND (audiences <@ ARRAY['viewer'::text, 'commenter'::text, 'round_host'::text, 'venue'::text, 'organizer'::text])))
+constraint planning.brief_sections brief_sections_body_check CHECK (((btrim(body) <> ''::text) AND (char_length(body) <= 20000)))
+constraint planning.brief_sections brief_sections_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.brief_sections brief_sections_event_id_position_unique UNIQUE (event_id, "position")
+constraint planning.brief_sections brief_sections_heading_check CHECK (((btrim(heading) <> ''::text) AND (char_length(heading) <= 120)))
+constraint planning.brief_sections brief_sections_id_event_id_unique UNIQUE (id, event_id)
+constraint planning.brief_sections brief_sections_pkey PRIMARY KEY (id)
+constraint planning.brief_sections brief_sections_position_check CHECK (("position" > 0))
+constraint planning.collab_audit collab_audit_action_check CHECK (((char_length(action) <= 48) AND (action ~ '^[a-z_]+([.][a-z_]+)*$'::text)))
+constraint planning.collab_audit collab_audit_actor_email_check CHECK (((actor_email = lower(actor_email)) AND (char_length(actor_email) <= 254)))
+constraint planning.collab_audit collab_audit_detail_check CHECK ((char_length(detail) <= 500))
+constraint planning.collab_audit collab_audit_outcome_check CHECK ((outcome = ANY (ARRAY['ok'::text, 'refused'::text, 'invalid'::text, 'limited'::text])))
+constraint planning.collab_audit collab_audit_pkey PRIMARY KEY (id)
+constraint planning.collab_audit collab_audit_request_id_check CHECK ((char_length(request_id) <= 64))
+constraint planning.collaborators collaborators_email_check CHECK (((email = lower(email)) AND (char_length(email) <= 254) AND (email ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'::text)))
+constraint planning.collaborators collaborators_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.collaborators collaborators_expires_check CHECK ((expires_at > invited_at))
+constraint planning.collaborators collaborators_id_event_id_unique UNIQUE (id, event_id)
+constraint planning.collaborators collaborators_name_check CHECK (((btrim(name) <> ''::text) AND (char_length(name) <= 80)))
+constraint planning.collaborators collaborators_pkey PRIMARY KEY (id)
+constraint planning.collaborators collaborators_revoked_check CHECK ((revoked_at >= invited_at))
+constraint planning.collaborators collaborators_role_check CHECK ((role = ANY (ARRAY['viewer'::text, 'commenter'::text, 'round_host'::text, 'venue'::text, 'organizer'::text])))
+constraint planning.collaborators collaborators_round_check CHECK (((role = 'round_host'::text) = (round_id IS NOT NULL)))
+constraint planning.collaborators collaborators_round_fk FOREIGN KEY (round_id, event_id) REFERENCES planning.rounds(id, event_id)
+constraint planning.comments comments_author_email_check CHECK (((author_email = lower(author_email)) AND (char_length(author_email) <= 254)))
+constraint planning.comments comments_author_name_check CHECK (((btrim(author_name) <> ''::text) AND (char_length(author_name) <= 80)))
+constraint planning.comments comments_body_check CHECK (((btrim(body) <> ''::text) AND (char_length(body) <= 2000)))
+constraint planning.comments comments_collaborator_fk FOREIGN KEY (collaborator_id, event_id) REFERENCES planning.collaborators(id, event_id)
+constraint planning.comments comments_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.comments comments_pkey PRIMARY KEY (id)
+constraint planning.comments comments_round_fk FOREIGN KEY (round_id, event_id) REFERENCES planning.rounds(id, event_id)
+constraint planning.comments comments_section_fk FOREIGN KEY (section_id, event_id) REFERENCES planning.brief_sections(id, event_id)
+constraint planning.comments comments_target_check CHECK ((num_nonnulls(section_id, round_id) <= 1))
 constraint planning.contacts contacts_email_check CHECK ((email ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'::text))
 constraint planning.contacts contacts_name_check CHECK ((btrim(name) <> ''::text))
 constraint planning.contacts contacts_pkey PRIMARY KEY (id)
@@ -265,6 +389,18 @@ constraint planning.ideas ideas_scheduled_event_check CHECK (((status <> 'schedu
 constraint planning.ideas ideas_status_check CHECK ((status = ANY (ARRAY['idea'::text, 'drafting'::text, 'scheduled'::text, 'dropped'::text])))
 constraint planning.ideas ideas_title_check CHECK ((btrim(title) <> ''::text))
 constraint planning.ideas ideas_topic_check CHECK (((char_length(topic) <= 24) AND (topic IS NFC NORMALIZED) AND (topic = lower((topic COLLATE pg_c_utf8))) AND (strpos(topic, 'all things'::text) = 0) AND ((topic COLLATE pg_c_utf8) ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'::text)))
+constraint planning.logistics_confirmations logistics_confirmations_answer_check CHECK ((answer = ANY (ARRAY['yes'::text, 'no'::text, 'unsure'::text])))
+constraint planning.logistics_confirmations logistics_confirmations_collaborator_fk FOREIGN KEY (collaborator_id, event_id) REFERENCES planning.collaborators(id, event_id)
+constraint planning.logistics_confirmations logistics_confirmations_item_fk FOREIGN KEY (item_id, event_id) REFERENCES planning.logistics_items(id, event_id)
+constraint planning.logistics_confirmations logistics_confirmations_note_check CHECK (((btrim(note) <> ''::text) AND (char_length(note) <= 1000)))
+constraint planning.logistics_confirmations logistics_confirmations_pkey PRIMARY KEY (id)
+constraint planning.logistics_items logistics_items_detail_check CHECK (((btrim(detail) <> ''::text) AND (char_length(detail) <= 1000)))
+constraint planning.logistics_items logistics_items_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.logistics_items logistics_items_event_id_position_unique UNIQUE (event_id, "position")
+constraint planning.logistics_items logistics_items_id_event_id_unique UNIQUE (id, event_id)
+constraint planning.logistics_items logistics_items_label_check CHECK (((btrim(label) <> ''::text) AND (char_length(label) <= 120)))
+constraint planning.logistics_items logistics_items_pkey PRIMARY KEY (id)
+constraint planning.logistics_items logistics_items_position_check CHECK (("position" > 0))
 constraint planning.notes notes_author_check CHECK ((btrim(author) <> ''::text))
 constraint planning.notes notes_body_check CHECK ((btrim(body) <> ''::text))
 constraint planning.notes notes_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES planning.contacts(id)
@@ -276,6 +412,28 @@ constraint planning.publishes publishes_event_id_events_id_fk FOREIGN KEY (event
 constraint planning.publishes publishes_pkey PRIMARY KEY (event_id)
 constraint planning.publishes publishes_published_check CHECK (((status = 'published'::text) = (published_at IS NOT NULL)))
 constraint planning.publishes publishes_status_check CHECK ((status = ANY (ARRAY['publishing'::text, 'published'::text])))
+constraint planning.reviews reviews_decision_check CHECK ((decision = ANY (ARRAY['accepted'::text, 'rejected'::text, 'changes_requested'::text])))
+constraint planning.reviews reviews_logistics_confirmation_id_logistics_confirmations_id_fk FOREIGN KEY (logistics_confirmation_id) REFERENCES planning.logistics_confirmations(id)
+constraint planning.reviews reviews_note_check CHECK (((btrim(note) <> ''::text) AND (char_length(note) <= 2000)))
+constraint planning.reviews reviews_pkey PRIMARY KEY (id)
+constraint planning.reviews reviews_reviewer_check CHECK (((btrim(reviewer) <> ''::text) AND (char_length(reviewer) <= 80)))
+constraint planning.reviews reviews_round_submission_id_round_submissions_id_fk FOREIGN KEY (round_submission_id) REFERENCES planning.round_submissions(id)
+constraint planning.reviews reviews_subject_check CHECK ((num_nonnulls(round_submission_id, logistics_confirmation_id) = 1))
+constraint planning.round_submissions round_submissions_ciphertext_check CHECK (((octet_length(ciphertext) >= 17) AND (octet_length(ciphertext) <= 65552)))
+constraint planning.round_submissions round_submissions_collaborator_fk FOREIGN KEY (collaborator_id, event_id) REFERENCES planning.collaborators(id, event_id)
+constraint planning.round_submissions round_submissions_key_id_check CHECK ((key_id ~ '^[a-z0-9-]{1,32}$'::text))
+constraint planning.round_submissions round_submissions_nonce_check CHECK ((octet_length(nonce) = 12))
+constraint planning.round_submissions round_submissions_pkey PRIMARY KEY (id)
+constraint planning.round_submissions round_submissions_round_fk FOREIGN KEY (round_id, event_id) REFERENCES planning.rounds(id, event_id)
+constraint planning.round_submissions round_submissions_stage_check CHECK ((stage = ANY (ARRAY['draft'::text, 'final'::text])))
+constraint planning.rounds rounds_backups_check CHECK (((backups >= 0) AND (backups <= 5)))
+constraint planning.rounds rounds_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.rounds rounds_event_id_position_unique UNIQUE (event_id, "position")
+constraint planning.rounds rounds_id_event_id_unique UNIQUE (id, event_id)
+constraint planning.rounds rounds_pkey PRIMARY KEY (id)
+constraint planning.rounds rounds_position_check CHECK (("position" > 0))
+constraint planning.rounds rounds_questions_check CHECK (((questions >= 1) AND (questions <= 20)))
+constraint planning.rounds rounds_title_check CHECK (((btrim(title) <> ''::text) AND (char_length(title) <= 80)))
 constraint planning.sent_posts sent_posts_channel_check CHECK ((channel = ANY (ARRAY['discord'::text, 'x'::text])))
 constraint planning.sent_posts sent_posts_channel_event_id_moment_unique UNIQUE (channel, event_id, moment)
 constraint planning.sent_posts sent_posts_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
@@ -285,6 +443,12 @@ constraint planning.sent_posts sent_posts_sent_check CHECK (((status = 'sent'::t
 constraint planning.sent_posts sent_posts_status_check CHECK ((status = ANY (ARRAY['sending'::text, 'unanswered'::text, 'sent'::text])))
 constraint planning.sent_posts sent_posts_token_check CHECK ((token ~ '^[0-9a-f]{16}$'::text))
 constraint planning.sent_posts sent_posts_url_check CHECK ((url ~ '^https://[^[:space:]]+$'::text))
+constraint planning.tasks tasks_collaborator_fk FOREIGN KEY (collaborator_id, event_id) REFERENCES planning.collaborators(id, event_id)
+constraint planning.tasks tasks_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.tasks tasks_for_check CHECK ((num_nonnulls(role, collaborator_id) <= 1))
+constraint planning.tasks tasks_pkey PRIMARY KEY (id)
+constraint planning.tasks tasks_role_check CHECK ((role = ANY (ARRAY['viewer'::text, 'commenter'::text, 'round_host'::text, 'venue'::text, 'organizer'::text])))
+constraint planning.tasks tasks_title_check CHECK (((btrim(title) <> ''::text) AND (char_length(title) <= 200)))
 constraint planning.wanted_speaker_topics wanted_speaker_topics_topic_check CHECK (((char_length(topic) <= 24) AND (topic IS NFC NORMALIZED) AND (topic = lower((topic COLLATE pg_c_utf8))) AND (strpos(topic, 'all things'::text) = 0) AND ((topic COLLATE pg_c_utf8) ~ '^[[:alpha:][:digit:]](?:[[:alpha:][:digit:].&+#'']|(?<=[^ ]) (?=[^ ])|(?<=[[:alpha:][:digit:]])-(?=[[:alpha:][:digit:]]))*$'::text)))
 constraint planning.wanted_speaker_topics wanted_speaker_topics_wanted_speaker_id_topic_pk PRIMARY KEY (wanted_speaker_id, topic)
 constraint planning.wanted_speaker_topics wanted_speaker_topics_wanted_speaker_id_wanted_speakers_id_fk FOREIGN KEY (wanted_speaker_id) REFERENCES planning.wanted_speakers(id) ON DELETE CASCADE
@@ -392,6 +556,18 @@ constraint public.talks talks_pkey PRIMARY KEY (id)
 enum public.profile_type ('organizer', 'member')
 index planning.availability CREATE INDEX availability_wanted_speaker_id_idx ON planning.availability USING btree (wanted_speaker_id)
 index planning.availability CREATE UNIQUE INDEX availability_pkey ON planning.availability USING btree (id)
+index planning.brief_sections CREATE UNIQUE INDEX brief_sections_event_id_position_unique ON planning.brief_sections USING btree (event_id, "position")
+index planning.brief_sections CREATE UNIQUE INDEX brief_sections_id_event_id_unique ON planning.brief_sections USING btree (id, event_id)
+index planning.brief_sections CREATE UNIQUE INDEX brief_sections_pkey ON planning.brief_sections USING btree (id)
+index planning.collab_audit CREATE INDEX collab_audit_actor_email_at_idx ON planning.collab_audit USING btree (actor_email, at)
+index planning.collab_audit CREATE INDEX collab_audit_event_id_at_idx ON planning.collab_audit USING btree (event_id, at)
+index planning.collab_audit CREATE UNIQUE INDEX collab_audit_pkey ON planning.collab_audit USING btree (id)
+index planning.collaborators CREATE INDEX collaborators_email_idx ON planning.collaborators USING btree (email) WHERE (revoked_at IS NULL)
+index planning.collaborators CREATE UNIQUE INDEX collaborators_active_unique ON planning.collaborators USING btree (event_id, email) WHERE (revoked_at IS NULL)
+index planning.collaborators CREATE UNIQUE INDEX collaborators_id_event_id_unique ON planning.collaborators USING btree (id, event_id)
+index planning.collaborators CREATE UNIQUE INDEX collaborators_pkey ON planning.collaborators USING btree (id)
+index planning.comments CREATE INDEX comments_event_id_created_at_idx ON planning.comments USING btree (event_id, created_at)
+index planning.comments CREATE UNIQUE INDEX comments_pkey ON planning.comments USING btree (id)
 index planning.contacts CREATE UNIQUE INDEX contacts_pkey ON planning.contacts USING btree (id)
 index planning.draft_people CREATE UNIQUE INDEX draft_people_event_id_profile_id_role_pk ON planning.draft_people USING btree (event_id, profile_id, role)
 index planning.host_prospects CREATE UNIQUE INDEX host_prospects_company_name_unique ON planning.host_prospects USING btree (lower(company_name))
@@ -399,13 +575,28 @@ index planning.host_prospects CREATE UNIQUE INDEX host_prospects_pkey ON plannin
 index planning.host_prospects CREATE UNIQUE INDEX host_prospects_sponsor_id_unique ON planning.host_prospects USING btree (sponsor_id)
 index planning.ideas CREATE UNIQUE INDEX ideas_event_id_unique ON planning.ideas USING btree (event_id)
 index planning.ideas CREATE UNIQUE INDEX ideas_pkey ON planning.ideas USING btree (id)
+index planning.logistics_confirmations CREATE INDEX logistics_confirmations_item_id_created_at_idx ON planning.logistics_confirmations USING btree (item_id, created_at)
+index planning.logistics_confirmations CREATE UNIQUE INDEX logistics_confirmations_pkey ON planning.logistics_confirmations USING btree (id)
+index planning.logistics_items CREATE UNIQUE INDEX logistics_items_event_id_position_unique ON planning.logistics_items USING btree (event_id, "position")
+index planning.logistics_items CREATE UNIQUE INDEX logistics_items_id_event_id_unique ON planning.logistics_items USING btree (id, event_id)
+index planning.logistics_items CREATE UNIQUE INDEX logistics_items_pkey ON planning.logistics_items USING btree (id)
 index planning.notes CREATE INDEX notes_contact_id_idx ON planning.notes USING btree (contact_id)
 index planning.notes CREATE INDEX notes_profile_id_idx ON planning.notes USING btree (profile_id)
 index planning.notes CREATE INDEX notes_sponsor_id_idx ON planning.notes USING btree (sponsor_id)
 index planning.notes CREATE UNIQUE INDEX notes_pkey ON planning.notes USING btree (id)
 index planning.publishes CREATE UNIQUE INDEX publishes_pkey ON planning.publishes USING btree (event_id)
+index planning.reviews CREATE INDEX reviews_logistics_confirmation_id_idx ON planning.reviews USING btree (logistics_confirmation_id)
+index planning.reviews CREATE INDEX reviews_round_submission_id_idx ON planning.reviews USING btree (round_submission_id)
+index planning.reviews CREATE UNIQUE INDEX reviews_pkey ON planning.reviews USING btree (id)
+index planning.round_submissions CREATE INDEX round_submissions_round_id_created_at_idx ON planning.round_submissions USING btree (round_id, created_at)
+index planning.round_submissions CREATE UNIQUE INDEX round_submissions_pkey ON planning.round_submissions USING btree (id)
+index planning.rounds CREATE UNIQUE INDEX rounds_event_id_position_unique ON planning.rounds USING btree (event_id, "position")
+index planning.rounds CREATE UNIQUE INDEX rounds_id_event_id_unique ON planning.rounds USING btree (id, event_id)
+index planning.rounds CREATE UNIQUE INDEX rounds_pkey ON planning.rounds USING btree (id)
 index planning.sent_posts CREATE UNIQUE INDEX sent_posts_channel_event_id_moment_unique ON planning.sent_posts USING btree (channel, event_id, moment)
 index planning.sent_posts CREATE UNIQUE INDEX sent_posts_pkey ON planning.sent_posts USING btree (id)
+index planning.tasks CREATE INDEX tasks_event_id_idx ON planning.tasks USING btree (event_id)
+index planning.tasks CREATE UNIQUE INDEX tasks_pkey ON planning.tasks USING btree (id)
 index planning.wanted_speaker_topics CREATE INDEX wanted_speaker_topics_topic_idx ON planning.wanted_speaker_topics USING btree (topic)
 index planning.wanted_speaker_topics CREATE UNIQUE INDEX wanted_speaker_topics_wanted_speaker_id_topic_pk ON planning.wanted_speaker_topics USING btree (wanted_speaker_id, topic)
 index planning.wanted_speakers CREATE UNIQUE INDEX wanted_speakers_contact_id_unique ON planning.wanted_speakers USING btree (contact_id)
@@ -446,13 +637,23 @@ index public.sponsors CREATE UNIQUE INDEX sponsors_pkey ON public.sponsors USING
 index public.talk_speakers CREATE UNIQUE INDEX talk_speakers_talk_id_speaker_id_pk ON public.talk_speakers USING btree (talk_id, speaker_id)
 index public.talks CREATE UNIQUE INDEX talks_pkey ON public.talks USING btree (id)
 relation planning.availability kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.brief_sections kind=r persistence=p rls=t force_rls=f replica_identity=d options=
+relation planning.collab_audit kind=r persistence=p rls=t force_rls=f replica_identity=d options=
+relation planning.collaborators kind=r persistence=p rls=t force_rls=f replica_identity=d options=
+relation planning.comments kind=r persistence=p rls=t force_rls=f replica_identity=d options=
 relation planning.contacts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.draft_people kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.host_prospects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.ideas kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.logistics_confirmations kind=r persistence=p rls=t force_rls=f replica_identity=d options=
+relation planning.logistics_items kind=r persistence=p rls=t force_rls=f replica_identity=d options=
 relation planning.notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.publishes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.reviews kind=r persistence=p rls=t force_rls=f replica_identity=d options=
+relation planning.round_submissions kind=r persistence=p rls=t force_rls=f replica_identity=d options=
+relation planning.rounds kind=r persistence=p rls=t force_rls=f replica_identity=d options=
 relation planning.sent_posts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.tasks kind=r persistence=p rls=t force_rls=f replica_identity=d options=
 relation planning.wanted_speaker_topics kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.wanted_speakers kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation public.event_images kind=r persistence=p rls=f force_rls=f replica_identity=d options=
@@ -478,5 +679,12 @@ routine public.profiles_slug() ef8963d15307125b3db5291962fe8bdb
 routine public.profiles_x_followers_reset() 4ac4a680b9389601b58ce608772433c7
 routine public.queue_event_post(event_slug text, platform text, url text, author_name text, author_handle text, author_url text, author_avatar_source_url text, posted_at timestamp with time zone, post_text text, image_source_url text) 44d4c152b3cff60797d52581a1f6b5ba
 routine public.show_db_tree() afc3f368beed7e4fb52b8c71a7b77586
+routine planning.collab_email() c5db740197af4ad35082ca46b162a196
+routine planning.collab_has_role(p_event uuid, p_roles text[]) 667db27ca34bc6edb53a2adc46921d9c
+routine planning.collab_hosts(p_round uuid) 869f3655c39d9abff5bc7eb31664d63e
+routine planning.collab_is_organizer() 4ef1b555e46efd1d7fdc0de20d80722b
+routine planning.collab_memberships() c34f2b3eef5e5658337a424b02974dbc
+routine planning.collab_recent_actions(p_since timestamp with time zone, p_actions text[]) 819aa570ed4bd018d326688a634aa0b7
+routine planning.collab_roster(p_event uuid) 181ec3245586458c5c0d18db656e3cc7
 trigger CREATE TRIGGER profiles_slug BEFORE INSERT OR UPDATE OF name, slug ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_slug()
 trigger CREATE TRIGGER profiles_x_followers_reset BEFORE UPDATE OF twitter_handle ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_x_followers_reset()
