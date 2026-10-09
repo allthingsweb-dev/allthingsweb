@@ -12,7 +12,7 @@ import {
   soonestFirst,
 } from "./catalog.ts";
 import { DataSourceError } from "./errors.ts";
-import { heroPhotos } from "./hero-photos.ts";
+import { type HeroPick, heroPhotos } from "./hero-photos.ts";
 import { displayName, eventTopic } from "./lockup.ts";
 import { eventStatus } from "./catalog.ts";
 import { rsvpUrl } from "./mappers.ts";
@@ -120,8 +120,11 @@ const Request = Schema.Struct({
   photoPrefix: Schema.String,
 });
 
-/** Home, its mosaic preferring the images `curated` names, in that order. */
-const make = (curated: ReadonlyArray<string>) =>
+/**
+ * Home, its mosaic preferring the photos `curated` names, in that order: each
+ * an image shown only as a photo of the evening it names.
+ */
+const make = (curated: ReadonlyArray<HeroPick>) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
 
@@ -131,7 +134,9 @@ const make = (curated: ReadonlyArray<string>) =>
     // list the rest after it. Photos are of ours that are over: the curated
     // ones in their order, or, when none of those can be shown, the first
     // attached of each, latest evening first.
-    const curatedJson = JSON.stringify(curated);
+    const curatedJson = JSON.stringify(
+      curated.map(({ image, evening }) => ({ image, evening })),
+    );
     const findHome = SqlSchema.findOne({
       Request,
       Result: Rows.HomeRow,
@@ -174,15 +179,15 @@ const make = (curated: ReadonlyArray<string>) =>
             SELECT
               c.ord, img.url, img.alt, img.width, img.height,
               floor(extract(epoch FROM img.updated_at))::bigint::text AS version
-            FROM json_array_elements_text(${curatedJson}::json)
-              WITH ORDINALITY AS c(id, ord)
-            JOIN images img ON img.id = c.id::uuid
+            FROM json_array_elements(${curatedJson}::json)
+              WITH ORDINALITY AS c(pick, ord)
+            JOIN images img ON img.id = (c.pick->>'image')::uuid
             WHERE starts_with(img.url, ${photoPrefix})
               AND EXISTS (
                 SELECT 1
                 FROM event_images ei
                 JOIN events e ON e.id = ei.event_id
-                WHERE ei.image_id = img.id
+                WHERE ei.image_id = img.id AND e.slug = c.pick->>'evening'
                   AND ${published(sql, "e")} AND ${ended(sql, "e", now)}
                   AND ${ours(sql, "e")}
               )
@@ -226,12 +231,9 @@ const make = (curated: ReadonlyArray<string>) =>
 
 export class Home extends Context.Service<Home, HomeShape>()("allthings/Home") {
   /** Home with the hand-picked hero photos (core/backfill/hero-photos.json). */
-  static readonly layer = Layer.effect(
-    Home,
-    make(heroPhotos.map((photo) => photo.image)),
-  );
+  static readonly layer = Layer.effect(Home, make(heroPhotos));
 
-  /** Home with the mosaic preferring `curated`, image ids in order. */
-  static readonly layerCurating = (curated: ReadonlyArray<string>) =>
+  /** Home with the mosaic preferring `curated`, in order. */
+  static readonly layerCurating = (curated: ReadonlyArray<HeroPick>) =>
     Layer.effect(Home, make(curated));
 }

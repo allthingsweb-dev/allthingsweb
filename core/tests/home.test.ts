@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
 import { DateTime, Effect, Layer } from "effect";
 import { DataSourceError } from "../src/errors.ts";
+import type { HeroPick } from "../src/hero-photos.ts";
 import { afterThatLimit, Home, type HomeView } from "../src/home.ts";
 import { clockAt, now, seededDatabase, sqlLayer } from "./support/database.ts";
 
@@ -35,8 +36,8 @@ const photoOrigin = "https://storage.example";
 interface Options {
   readonly at?: DateTime.Utc;
   readonly database?: PGlite;
-  /** The hand-picked hero photos' image ids; none unless given. */
-  readonly curated?: ReadonlyArray<string>;
+  /** The hand-picked hero photos; none unless given. */
+  readonly curated?: ReadonlyArray<HeroPick>;
 }
 
 /** Home as `options` set the clock, database and hero photos. */
@@ -220,21 +221,29 @@ describe("Home", () => {
     ]);
   });
 
-  const image = (n: number) =>
-    `d0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  /** A hand-picked photo: the seeded image `n`, named as `evening`'s. */
+  const pick = (n: number, evening: string): HeroPick => ({
+    image: `d0000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
+    evening,
+  });
+  const acme = (n: number) => pick(n, "2026-08-12-react-at-acme");
+  const cafe = (n: number) => pick(n, "2025-12-02-café-night");
+  const draft = pick(104, "2026-09-01-draft-night");
+  const upcoming = pick(105, "2026-11-05-upcoming");
   const alts = (home: HomeView) => home.photos.map((photo) => photo.alt);
 
   test("shows the hand-picked photos in their order, skipping any it can't show, up to the limit", async () => {
     const home = await read({
       curated: [
-        image(104), // a draft's
-        "d0000000-0000-4000-8000-000000000999", // no such image
-        image(101), // on another origin
-        image(3),
-        image(105), // an evening that hasn't happened yet
-        image(103),
-        image(102),
-        image(4), // past the limit
+        draft,
+        acme(999), // no such image
+        cafe(101), // on another origin
+        cafe(3), // React at Acme's, named as Café night's
+        acme(3),
+        upcoming,
+        cafe(103),
+        cafe(102),
+        acme(4), // past the limit
       ],
     });
     expect(alts(home)).toEqual([
@@ -243,7 +252,7 @@ describe("Home", () => {
       "Coffee at Café night",
     ]);
     // Several of one evening are fine: they were picked to be shown.
-    expect(alts(await read({ curated: [image(4), image(3)] }))).toEqual([
+    expect(alts(await read({ curated: [acme(4), acme(3)] }))).toEqual([
       "The stage",
       "The crowd",
     ]);
@@ -253,7 +262,7 @@ describe("Home", () => {
     const latest = ["The stage", "Coffee at Café night"];
     expect(alts(await read({ curated: [] }))).toEqual(latest);
     expect(
-      alts(await read({ curated: [image(104), image(101), image(105)] })),
+      alts(await read({ curated: [draft, cafe(101), upcoming, cafe(4)] })),
     ).toEqual(latest);
     // A hand-picked photo of an evening we only share is not shown either.
     const shared = await seededDatabase();
@@ -265,7 +274,7 @@ describe("Home", () => {
           WHERE slug = '2026-08-12-react-at-acme';
       `);
       expect(
-        alts(await read({ database: shared, curated: [image(3), image(4)] })),
+        alts(await read({ database: shared, curated: [acme(3), acme(4)] })),
       ).toEqual([]);
     } finally {
       await shared.close();

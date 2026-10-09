@@ -9,8 +9,9 @@ import { ended, ours, published } from "./catalog.ts";
  * (core/backfill/hero-photos.json): real photos of our evenings that show
  * how big they are, full rooms and packed crowds facing a speaker. Home
  * shows the first of them it can (src/home.ts), in the file's order; the
- * first is the wide tile. Each names the evening it was taken at, which
- * `bun run hero-photos` checks against production (scripts/hero-photos.ts).
+ * first is the wide tile. Each names the evening it was taken at, and home
+ * shows it only as that evening's photo; `bun run hero-photos` checks the
+ * same against production (scripts/hero-photos.ts).
  */
 
 const Text = Schema.String.check(
@@ -29,6 +30,9 @@ export const HeroPhoto = Schema.Struct({
 });
 export type HeroPhoto = typeof HeroPhoto.Type;
 
+/** What home reads of a hand-picked photo: which image, of which evening. */
+export type HeroPick = Pick<HeroPhoto, "image" | "evening">;
+
 export const HeroPhotosFile = Schema.Struct({
   photos: Schema.Array(HeroPhoto),
 });
@@ -36,7 +40,7 @@ export type HeroPhotosFile = typeof HeroPhotosFile.Type;
 
 /** Images the file names more than once. */
 export function repeated(
-  photos: ReadonlyArray<HeroPhoto>,
+  photos: ReadonlyArray<HeroPick>,
 ): ReadonlyArray<string> {
   const images = photos.map((photo) => photo.image);
   return [...new Set(images.filter((image, i) => images.indexOf(image) !== i))];
@@ -64,7 +68,7 @@ const Found = Schema.Struct({
  * names, and that evening one of ours, published, and over.
  */
 export const heroPhotoProblems = (
-  photos: ReadonlyArray<HeroPhoto>,
+  photos: ReadonlyArray<HeroPick>,
   photoOrigin: string,
 ) =>
   Effect.gen(function* () {
@@ -73,7 +77,9 @@ export const heroPhotoProblems = (
     const rows = yield* sql`
       WITH c AS (
         SELECT (p->>'image')::uuid AS image, p->>'evening' AS evening, ord
-        FROM json_array_elements(${JSON.stringify(photos)}::json)
+        FROM json_array_elements(${JSON.stringify(
+          photos.map(({ image, evening }) => ({ image, evening })),
+        )}::json)
           WITH ORDINALITY AS x(p, ord)
       )
       SELECT

@@ -15,6 +15,8 @@ on:
     paths:
       - "core/backfill/hero-photos.json"
       - "core/src/hero-photos.ts"
+      - "core/src/home.ts"
+      - "core/src/catalog.ts"
       - "core/scripts/hero-photos.ts"
       - ".github/workflows/hero-photos.yaml"
   schedule:

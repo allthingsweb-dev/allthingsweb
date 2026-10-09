@@ -619,7 +619,8 @@ Home's mosaic shows photos picked by hand, in
 big they are, full rooms and packed crowds facing a speaker. Each names its
 image id, the evening it was taken at, and why it earns the spot. Home shows
 the first three it can, in the file's order, and the first is the wide
-tile. It skips one it can't show: gone, off the media origin, or of an
+tile. It shows each only as a photo of the evening it names, and skips one
+it can't show: gone, off the media origin, not that evening's, or of an
 evening that is a draft, someone else's or still ahead. When it can show
 none, or the file lists none, it falls back to the first photo of each of
 our latest evenings.
