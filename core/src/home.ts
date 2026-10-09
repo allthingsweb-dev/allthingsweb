@@ -12,6 +12,7 @@ import {
   soonestFirst,
 } from "./catalog.ts";
 import { DataSourceError } from "./errors.ts";
+import { type HeroPick, heroPhotos } from "./hero-photos.ts";
 import { displayName, eventTopic } from "./lockup.ts";
 import { eventStatus } from "./catalog.ts";
 import { rsvpUrl } from "./mappers.ts";
@@ -64,8 +65,10 @@ export interface HomeView {
   /** The latest evenings that have ended, latest first. */
   readonly recently: ReadonlyArray<Evening>;
   /**
-   * The first photo attached to each of the latest evenings with photos,
-   * latest first: one per evening, so the mosaic shows different nights.
+   * The hand-picked hero photos (src/hero-photos.ts) home can show, in
+   * their order. When it can show none of them, the first photo attached to
+   * each of the latest evenings with photos, latest first: one per evening,
+   * so the mosaic shows different nights.
    */
   readonly photos: ReadonlyArray<Rows.Photo>;
 }
@@ -117,18 +120,27 @@ const Request = Schema.Struct({
   photoPrefix: Schema.String,
 });
 
-const make = Effect.gen(function* () {
-  const sql = yield* SqlClient;
+/**
+ * Home, its mosaic preferring the photos `curated` names, in that order: each
+ * an image shown only as a photo of the evening it names.
+ */
+const make = (curated: ReadonlyArray<HeroPick>) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
 
-  const listing = sql.literal(listingJson);
+    const listing = sql.literal(listingJson);
 
-  // "Next" is the soonest of ours not yet over; "ahead" holds enough to
-  // list the rest after it. Photos are of ours that are over, the first
-  // attached of each, latest evening first.
-  const findHome = SqlSchema.findOne({
-    Request,
-    Result: Rows.HomeRow,
-    execute: ({ now, photoPrefix }) => sql`
+    // "Next" is the soonest of ours not yet over; "ahead" holds enough to
+    // list the rest after it. Photos are of ours that are over: the curated
+    // ones in their order, or, when none of those can be shown, the first
+    // attached of each, latest evening first.
+    const curatedJson = JSON.stringify(
+      curated.map(({ image, evening }) => ({ image, evening })),
+    );
+    const findHome = SqlSchema.findOne({
+      Request,
+      Result: Rows.HomeRow,
+      execute: ({ now, photoPrefix }) => sql`
       SELECT
         (
           SELECT ${listing}
@@ -162,6 +174,30 @@ const make = Effect.gen(function* () {
           SELECT json_agg(json_build_object(
             'url', y.url, 'alt', y.alt, 'width', y.width, 'height', y.height,
             'version', y.version
+          ) ORDER BY y.ord)
+          FROM (
+            SELECT
+              c.ord, img.url, img.alt, img.width, img.height,
+              floor(extract(epoch FROM img.updated_at))::bigint::text AS version
+            FROM json_array_elements(${curatedJson}::json)
+              WITH ORDINALITY AS c(pick, ord)
+            JOIN images img ON img.id = (c.pick->>'image')::uuid
+            WHERE starts_with(img.url, ${photoPrefix})
+              AND EXISTS (
+                SELECT 1
+                FROM event_images ei
+                JOIN events e ON e.id = ei.event_id
+                WHERE ei.image_id = img.id AND e.slug = c.pick->>'evening'
+                  AND ${published(sql, "e")} AND ${ended(sql, "e", now)}
+                  AND ${ours(sql, "e")}
+              )
+            ORDER BY c.ord
+            LIMIT ${photoLimit}
+          ) y
+        ), (
+          SELECT json_agg(json_build_object(
+            'url', y.url, 'alt', y.alt, 'width', y.width, 'height', y.height,
+            'version', y.version
           ) ORDER BY ${latestFirst(sql, "y")})
           FROM (
             SELECT * FROM (
@@ -181,18 +217,23 @@ const make = Effect.gen(function* () {
             LIMIT ${photoLimit}
           ) y
         ), '[]'::json) AS photos`,
-  });
+    });
 
-  return Home.of({
-    read: (photoOrigin) =>
-      Effect.gen(function* () {
-        const now = yield* asOf;
-        const row = yield* findHome({ now, photoPrefix: `${photoOrigin}/` });
-        return toHome(row, now);
-      }).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
+    return Home.of({
+      read: (photoOrigin) =>
+        Effect.gen(function* () {
+          const now = yield* asOf;
+          const row = yield* findHome({ now, photoPrefix: `${photoOrigin}/` });
+          return toHome(row, now);
+        }).pipe(Effect.mapError((cause) => new DataSourceError({ cause }))),
+    });
   });
-});
 
 export class Home extends Context.Service<Home, HomeShape>()("allthings/Home") {
-  static readonly layer = Layer.effect(Home, make);
+  /** Home with the hand-picked hero photos (core/backfill/hero-photos.json). */
+  static readonly layer = Layer.effect(Home, make(heroPhotos));
+
+  /** Home with the mosaic preferring `curated`, in order. */
+  static readonly layerCurating = (curated: ReadonlyArray<HeroPick>) =>
+    Layer.effect(Home, make(curated));
 }

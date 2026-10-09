@@ -16,6 +16,7 @@
     "luma:drafts": "bun --no-env-file scripts/luma-drafts.ts",
     "slugs": "bun --no-env-file scripts/slugs.ts",
     "completeness": "bun --no-env-file scripts/completeness.ts",
+    "hero-photos": "bun --no-env-file scripts/hero-photos.ts",
     "posts": "bun --no-env-file scripts/posts.ts",
     "photos": "bun --no-env-file scripts/photos.ts",
     "hosts": "bun --no-env-file scripts/hosts.ts",

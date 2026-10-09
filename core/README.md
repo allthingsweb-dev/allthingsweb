@@ -612,6 +612,28 @@ The admin MCP server's `list_event_photos`, `add_event_photos`,
 runs it against `tests/seed.sql` with a media origin that only keeps what it
 is given.
 
+### Home's photos
+
+Home's mosaic shows photos picked by hand, in
+`core/backfill/hero-photos.json`: real photos of our evenings that show how
+big they are, full rooms and packed crowds facing a speaker. Each names its
+image id, the evening it was taken at, and why it earns the spot. Home shows
+the first three it can, in the file's order, and the first is the wide
+tile. It shows each only as a photo of the evening it names, and skips one
+it can't show: gone, off the media origin, not that evening's, or of an
+evening that is a draft, someone else's or still ahead. When it can show
+none, or the file lists none, it falls back to the first photo of each of
+our latest evenings.
+
+Replacing or removing a photo deletes its `images` row, so a picked one can
+go. `bun run hero-photos` fails, naming each, when home can't show one of
+them; `.github/workflows/hero-photos.yaml` runs it against production when
+a pull request changes the file, on main, and every Monday.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run hero-photos
+```
+
 ## Schedules and notes
 
 Some events' pages say more than the record: a hackathon's schedule, its
