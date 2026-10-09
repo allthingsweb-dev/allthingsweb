@@ -375,7 +375,7 @@ describe("the mode switch", () => {
   it("names the site's sections in the header, none current outside them", async (url) => {
     const { html } = await brand(url);
     expect(html).toContain(
-      '<nav class="site-nav at-type-meta" aria-label="site"><ul><li><a href="/events">events</a></li><li><a href="/people">people</a></li><li><a href="/about">about</a></li></ul></nav>',
+      '<nav class="site-nav at-type-meta" aria-label="site"><ul><li><a href="/">home</a></li><li><a href="/events">events</a></li><li><a href="/people">people</a></li><li><a href="/about">about</a></li></ul></nav>',
     );
   });
 

@@ -4,6 +4,7 @@ import { built } from "../assets.ts";
 import {
   aboutPath,
   everyEvening,
+  homePath,
   hosts,
   peoplePage,
   socials,
@@ -32,13 +33,14 @@ export function Wordmark() {
 }
 
 /** The sections the header names, which a page says it belongs to. */
-export type Section = "events" | "people" | "about";
+export type Section = "home" | "events" | "people" | "about";
 
 /** The site's sections, as the header names them, in its order. */
 export const sections: ReadonlyArray<{
   readonly section: Section;
   readonly path: `/${string}`;
 }> = [
+  { section: "home", path: homePath },
   { section: "events", path: everyEvening },
   { section: "people", path: peoplePage },
   { section: "about", path: aboutPath },
@@ -198,9 +200,9 @@ export interface DocumentProps {
   /** How photos are shown (see picture.tsx). */
   readonly images: ImageMode;
   /**
-   * The header section the page belongs to, marked as current: an evening's
-   * page belongs to the evenings. None for pages outside them, such as
-   * /brand.
+   * The header section the page belongs to, marked as current: home is its
+   * own, and an evening's page belongs to the evenings. None for pages
+   * outside them, such as /brand.
    */
   readonly section?: Section | undefined;
 }

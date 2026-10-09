@@ -259,8 +259,14 @@ describe("the home page", () => {
     expect(html).toMatch(
       /<a href="\?theme=dark" rel="nofollow" aria-current="true"><svg[^]*?<\/svg><span>night<\/span><\/a>/,
     );
-    // The mode's choice alone: home is no section of the header.
-    expect(html.match(/aria-current/g)).toHaveLength(1);
+    // The mode's choice, and home in the header: nothing else.
+    expect(html.match(/aria-current/g)).toHaveLength(2);
+  });
+
+  test("names home first in the header, marked as the current page", () => {
+    expect(render(view())).toContain(
+      '<nav class="site-nav at-type-meta" aria-label="site"><ul><li><a href="/" aria-current="page">home</a></li><li><a href="/events">events</a></li><li><a href="/people">people</a></li><li><a href="/about">about</a></li></ul></nav>',
+    );
   });
 
   test.each([

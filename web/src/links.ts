@@ -28,6 +28,9 @@ export const mediaOrigin = "https://media.allthings.dev";
  */
 export const eventPath = (slug: string): `/${string}` => eventPathOf(slug);
 
+/** The home page: the next evening, photos of ours, and the latest ones (pages/home.tsx). */
+export const homePath = "/";
+
 /** Every evening, listed: this site's evenings index (pages/events.tsx). */
 export const everyEvening = "/events";
 
