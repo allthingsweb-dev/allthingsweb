@@ -866,6 +866,19 @@ Each publish is claimed in `publishes` before it writes anything, so two
 never overlap, and recorded published once Luma says so; from the claim
 on, the private lineup can't change.
 
+### Draft talks
+
+An unpublished evening's talks are private too (`draft_talks` and
+`draft_talk_people`, `migrations/0027_draft_talks.ts`): each a talk, a
+panel or a fireside, in running order, with the people on it named by their
+wanted speaker, so they can be on it before they've said yes or have a
+profile. Whether they've said yes is that wanted speaker's status, never
+kept twice. A talk has speakers, a panel a moderator and panelists, a
+fireside a moderator and a speaker; someone who declined can't be added.
+Readiness reads each as one of the draft's talks, with the speakers who
+have a profile, and blocks on everyone on it who hasn't said yes or has no
+profile yet, by name. Publishing doesn't copy them yet.
+
 The schema is public; the rows are private. site_reader and site_sync are
 never granted the schema, so no grant on `public`, not even one on every
 table in it, reaches planning, and `tests/planning-privacy.test.ts` proves
@@ -895,6 +908,9 @@ DATABASE_URL=… bun run plan host add --sponsor CodeRabbit --contact-name "…"
 DATABASE_URL=… bun run plan note add --profile "Ada Lovelace" --body "…" --author Erik
 DATABASE_URL=… bun run plan lineup set <draft slug> --mc "Erik Thorelli" --organizer "Erik Thorelli" --organizer "Andre Landgraf" --dry-run
 DATABASE_URL=… bun run plan lineup show <draft slug>
+DATABASE_URL=… bun run plan lineup talk add <draft slug> --kind panel --title "…" --moderator <wanted id> --panelist <wanted id> --dry-run
+DATABASE_URL=… bun run plan lineup talk list <draft slug>
+DATABASE_URL=… bun run plan lineup talk remove <draft slug> <talk id>
 DATABASE_URL=… bun run plan search "trivia"
 DATABASE_URL=… bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
 ```

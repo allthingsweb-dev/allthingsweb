@@ -249,5 +249,58 @@ if (serverUrl === undefined) {
     test("audits planning's privacy", async () => {
       expect(await json("audit")).toMatchObject({ exposures: [] });
     });
+
+    // Last: the wanted speaker it adds stays, and the tests above count them.
+    test("adds, lists and removes a draft's private talk", async () => {
+      const grace = (await json(
+        "speaker",
+        "add",
+        "--profile",
+        "Grace Hopper",
+        "--topic",
+        "postgres",
+      )) as { id: string };
+      const added = (await json(
+        "lineup",
+        "talk",
+        "add",
+        "--kind",
+        "panel",
+        "--title",
+        "Made-up panel",
+        "--moderator",
+        grace.id,
+        "--",
+        "2026-09-01-draft-night",
+      )) as Array<{ id: string }>;
+      expect(added).toMatchObject([
+        {
+          position: 1,
+          kind: "panel",
+          title: "Made-up panel",
+          people: [
+            { role: "moderator", name: "Grace Hopper", status: "wanted" },
+          ],
+        },
+      ]);
+      const listed = await plan(
+        "lineup",
+        "talk",
+        "list",
+        "2026-09-01-draft-night",
+      );
+      expect(listed.stdout).toContain("1. panel: Made-up panel");
+      expect(listed.stdout).toContain("moderator: Grace Hopper [wanted]");
+      expect(
+        await json(
+          "lineup",
+          "talk",
+          "remove",
+          "--",
+          "2026-09-01-draft-night",
+          added[0]?.id ?? "",
+        ),
+      ).toEqual([]);
+    });
   });
 }

@@ -978,6 +978,83 @@ export const planningPublishesTable = planningSchema.table(
   ],
 );
 
+/**
+ * The talks of an evening that isn't published yet, a panel or fireside
+ * included, kept private in planning: the people on them may not have said
+ * yes, or have no profile yet. core/migrations/0027_draft_talks.ts is the
+ * same change.
+ */
+export const planningDraftTalksTable = planningSchema.table(
+  "draft_talks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => eventsTable.id),
+    /** Its place in the evening's running order, from 1. */
+    position: integer("position").notNull(),
+    kind: text("kind", { enum: ["talk", "panel", "fireside"] }).notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    unique("draft_talks_event_id_position_unique").on(
+      table.eventId,
+      table.position,
+    ),
+    unique("draft_talks_event_id_title_unique").on(table.eventId, table.title),
+    check("draft_talks_position_check", sql`"position" > 0`),
+    check(
+      "draft_talks_kind_check",
+      sql`"kind" IN ('talk', 'panel', 'fireside')`,
+    ),
+    check(
+      "draft_talks_title_check",
+      sql`btrim("title") <> '' AND char_length("title") <= 120`,
+    ),
+    check(
+      "draft_talks_description_check",
+      sql`btrim("description") <> '' AND char_length("description") <= 4000`,
+    ),
+  ],
+);
+
+/**
+ * Who is on a draft talk, by the wanted speaker planning keeps for them,
+ * so whether they've said yes is that record's status, never kept twice.
+ * core/migrations/0027_draft_talks.ts is the same change.
+ */
+export const planningDraftTalkPeopleTable = planningSchema.table(
+  "draft_talk_people",
+  {
+    draftTalkId: uuid("draft_talk_id")
+      .notNull()
+      .references(() => planningDraftTalksTable.id),
+    wantedSpeakerId: uuid("wanted_speaker_id")
+      .notNull()
+      .references(() => planningWantedSpeakersTable.id),
+    role: text("role", {
+      enum: ["speaker", "panelist", "moderator"],
+    }).notNull(),
+    /** Order on the talk, from 0. */
+    position: integer("position").notNull(),
+    createdAt: planningCreatedAt,
+  },
+  (table) => [
+    primaryKey({ columns: [table.draftTalkId, table.wantedSpeakerId] }),
+    unique("draft_talk_people_draft_talk_id_position_unique").on(
+      table.draftTalkId,
+      table.position,
+    ),
+    check(
+      "draft_talk_people_role_check",
+      sql`"role" IN ('speaker', 'panelist', 'moderator')`,
+    ),
+    check("draft_talk_people_position_check", sql`"position" >= 0`),
+  ],
+);
+
 export const planningSentPostsTable = planningSchema.table(
   "sent_posts",
   {

@@ -4,6 +4,7 @@ import {
   eventCompleteness,
   type GapKind,
   gapKinds,
+  type PlannedTalk,
 } from "../completeness.ts";
 import {
   formats,
@@ -54,6 +55,8 @@ export const draftCheckKinds = {
   schedule: "no schedule",
   "own-cover": "a cover that isn't ours",
   "cover-facts": "a cover drawn for facts that have changed",
+  "talk-unconfirmed": "someone on a talk who hasn't said yes",
+  "talk-profile": "someone on a talk with no profile",
 } as const;
 
 export type DraftCheckKind = keyof typeof draftCheckKinds;
@@ -81,6 +84,12 @@ export interface DraftFacts {
   /** The venue's name, as Luma's location name is stored. */
   readonly shortLocation: string | null;
   readonly scheduleItems: number;
+  /**
+   * The talks planning keeps for it while it is a draft (already in
+   * `record`'s talks, with the speakers who have a profile): who is on
+   * each, whether they've said yes, and whether they have a profile.
+   */
+  readonly plannedTalks: ReadonlyArray<PlannedTalk>;
   /**
    * Its Luma cover, by what was recorded when `bun run luma cover` set
    * it: ours and drawn from its facts as they are now, ours but drawn
@@ -228,6 +237,16 @@ export function draftChecks(
     // cover. The site's copy (this gap) comes only with the ingestion, which
     // never carries a private event, so it can't be asked of a draft.
     if (gap.kind === "cover" && ownsCover) continue;
+    // A planned talk with people on it isn't without speakers: who has no
+    // profile yet is said once, below.
+    if (
+      gap.kind === "talk-speakers" &&
+      facts.plannedTalks.some(
+        (talk) => talk.title === gap.subject && talk.people.length > 0,
+      )
+    ) {
+      continue;
+    }
     const { required, label } = gapKinds[gap.kind];
     // Before the Luma event exists, there is no cover to have yet, so a
     // missing one is advice. A description is written on Luma and
@@ -263,6 +282,33 @@ export function draftChecks(
         `Its cover was drawn before its day, place, hosts or link changed: draw it again with bun run luma cover ${record.slug} --dry-run, then --approve <token>`,
       ),
     );
+  }
+
+  // Everyone on a planned talk says yes, and has a profile for the
+  // evening's page, before it goes out.
+  for (const talk of facts.plannedTalks) {
+    for (const entry of talk.people) {
+      if (entry.status !== "confirmed") {
+        checks.push(
+          check(
+            "talk-unconfirmed",
+            "blocker",
+            `${entry.name} hasn't said yes to being ${entry.role} on ${talk.title} (${entry.status}): when they do, bun run plan speaker update ${entry.wantedSpeakerId} --status confirmed`,
+            entry.name,
+          ),
+        );
+      }
+      if (entry.person === null) {
+        checks.push(
+          check(
+            "talk-profile",
+            "blocker",
+            `${entry.name}, ${entry.role} on ${talk.title}, has no profile yet: the evening's page needs one, with a title, bio and photo.`,
+            entry.name,
+          ),
+        );
+      }
+    }
   }
 
   const hasVenue =
