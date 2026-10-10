@@ -69,14 +69,19 @@ The event studio's commands (`bun run plan`, `readiness`, `luma`, `social`, `pos
 - It has no DDL, no ownership, no function, no TRUNCATE and no BYPASSRLS, so migrations, and the collaboration's tables, which have row security, stay the owner's.
 - Its statements, lock waits and idle transactions time out at 30 seconds or less.
 
-[`core/tests/studio-role.test.ts`](../core/tests/studio-role.test.ts) holds every column of `public` and `planning` to the script's grants, both ways, and the role's catalog privileges to its list exactly; core's `bun run test:studio` runs the studio's suites as the role. Its connection string goes only into the "allthings studio" 1Password item, never a repository secret: nothing in CI connects as it. Once the script's pull request is merged, the maintainer runs it from the repository root:
+[`core/tests/studio-role.test.ts`](../core/tests/studio-role.test.ts) holds every column of `public` and `planning` to the script's grants, both ways, and the role's catalog privileges to its list exactly; core's `bun run test:studio` runs the studio's suites as the role. Its connection string goes only into the "allthings studio" 1Password item, never a repository secret: nothing in CI connects as it. The maintainer runs it from the repository root, first as a plan, then to apply:
 
 ```sh
 OWNER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
   --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
+  bun infra/scripts/studio.ts --dry-run
+OWNER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
+  --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
   OP_SERVICE_ACCOUNT_TOKEN=$(security find-generic-password -s allthings-op -w) \
-  bun infra/scripts/studio.ts
+  bun infra/scripts/studio.ts --apply
 ```
+
+`--dry-run` makes the role and runs every grant in a transaction that is rolled back, and prints how its privileges would change and where its credential would go. `--apply` does it, then checks it: the catalog holds exactly `STUDIO_GRANTS`, and the connection string read back from 1Password signs in as `studio`.
 
 The database owner's connection is for migrations only. It is never stored in the vault or a repository secret: the maintainer fetches it with neonctl, as above, whenever it is needed.
 

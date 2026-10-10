@@ -67,6 +67,7 @@ export function differences(
   return found.toSorted();
 }
 
+/** Reads the vault's titles and field labels, and exits 1 on any difference from the list. */
 async function main(): Promise<void> {
   const listed = await vaultItems();
   const summaries = JSON.parse(

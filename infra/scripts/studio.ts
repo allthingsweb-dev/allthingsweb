@@ -32,11 +32,17 @@
  * OP_SERVICE_ACCOUNT_TOKEN, or your own session); it is never printed, and
  * no repository secret holds it: nothing in CI connects as the studio. Run
  * it from the repository root with the owner's connection string in the
- * environment, passed without printing it:
+ * environment, passed without printing it, first as a plan, then to apply:
  *
  *   OWNER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
  *     --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
- *     bun infra/scripts/studio.ts
+ *     bun infra/scripts/studio.ts --dry-run
+ *
+ * --dry-run makes the role and runs every grant in a transaction that is
+ * rolled back, and prints how its privileges would change and where its
+ * credential would go. --apply does it, then checks the result: the
+ * catalog holds exactly STUDIO_GRANTS, and the connection string read back
+ * from 1Password signs in as the studio.
  *
  * VAULT names the 1Password vault (default: allthings).
  */
@@ -44,6 +50,8 @@ import {
   connectionStringFor,
   newPassword,
   provisionLoginRole,
+  run,
+  type Statements,
   storeItem,
 } from "./login-role.ts";
 
@@ -369,9 +377,11 @@ export const STUDIO_SETTINGS = {
   idle_in_transaction_session_timeout: "30s",
 } as const;
 
+/** Column names as SQL identifiers, comma-separated. */
 const quoted = (columns: ReadonlyArray<string>) =>
   columns.map((column) => `"${column}"`).join(", ");
 
+/** `schema.table` as a quoted SQL identifier. */
 const qualified = (table: string) => {
   const [schema, name] = table.split(".");
   return `"${schema}"."${name}"`;
@@ -414,13 +424,128 @@ export function grantStatements(role = STUDIO): string[] {
   return statements;
 }
 
+/**
+ * The role's privileges as the catalog holds them, one line each: a
+ * table's (`planning.ideas select`), a column's
+ * (`planning.ideas insert title`) and a schema's (`schema public usage`).
+ */
+export const grantedQuery = `
+  SELECT n.nspname || '.' || c.relname || ' ' || lower(a.privilege_type) AS grant
+  FROM pg_catalog.pg_class c
+  JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace,
+  aclexplode(c.relacl) a
+  WHERE a.grantee = $1::regrole
+  UNION ALL
+  SELECT n.nspname || '.' || c.relname || ' ' || lower(a.privilege_type) || ' ' || t.attname
+  FROM pg_catalog.pg_attribute t
+  JOIN pg_catalog.pg_class c ON c.oid = t.attrelid
+  JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace,
+  aclexplode(t.attacl) a
+  WHERE a.grantee = $1::regrole
+  UNION ALL
+  SELECT 'schema ' || n.nspname || ' ' || lower(a.privilege_type)
+  FROM pg_catalog.pg_namespace n, aclexplode(n.nspacl) a
+  WHERE a.grantee = $1::regrole
+  ORDER BY 1`;
+
+/** What {@link grantedQuery} reads once {@link grantStatements} has run: STUDIO_GRANTS, line by line. */
+export function expectedPrivileges(): string[] {
+  return [
+    "schema planning usage",
+    "schema public usage",
+    ...Object.entries(STUDIO_GRANTS).flatMap(([table, grants]) => [
+      ...(grants.select === true ? [`${table} select`] : []),
+      ...(grants.delete === true ? [`${table} delete`] : []),
+      ...(grants.insert ?? []).map((column) => `${table} insert ${column}`),
+      ...(grants.update ?? []).map((column) => `${table} update ${column}`),
+    ]),
+  ].toSorted();
+}
+
+/** The role's privileges, read with {@link grantedQuery} as whoever `sql` is. */
+const granted = async (sql: Statements): Promise<string[]> =>
+  ((await sql.unsafe(grantedQuery, [STUDIO])) as Array<{ grant: string }>).map(
+    (row) => row.grant,
+  );
+
+/** Whether the role exists yet: before it does, `regrole` can't name it. */
+const exists = async (sql: Statements): Promise<boolean> =>
+  (
+    (await sql.unsafe("SELECT 1 FROM pg_roles WHERE rolname = $1", [
+      STUDIO,
+    ])) as unknown[]
+  ).length > 0;
+
+/** Lines in `to` and not `from`, as `+ line`, then the reverse, as `- line`. */
+const changes = (from: ReadonlyArray<string>, to: ReadonlyArray<string>) => [
+  ...to.filter((line) => !from.includes(line)).map((line) => `+ ${line}`),
+  ...from.filter((line) => !to.includes(line)).map((line) => `- ${line}`),
+];
+
 const item = "allthings studio";
 
-async function main(): Promise<void> {
-  const owner = process.env["OWNER_URL"];
-  if (!owner) throw new Error("OWNER_URL is required (see this file's header)");
-  const vault = process.env["VAULT"] ?? "allthings";
+/** Rolls the plan's transaction back once it has shown what it would do. */
+class Planned extends Error {}
 
+/**
+ * `--dry-run`: in a transaction that is always rolled back, makes the role
+ * (with a throwaway password) and runs every statement, then prints what
+ * would change in its privileges and where its credential would go. Nothing
+ * is kept, and nothing is stored in 1Password.
+ */
+async function plan(owner: string, vault: string): Promise<void> {
+  const sql = new Bun.SQL(owner);
+  try {
+    await sql.begin(async (transaction) => {
+      const before = (await exists(transaction))
+        ? await granted(transaction)
+        : [];
+      const isNew = await provisionLoginRole(
+        transaction,
+        STUDIO,
+        newPassword(),
+      );
+      for (const statement of grantStatements()) {
+        await transaction.unsafe(statement);
+      }
+      const after = await granted(transaction);
+      const expected = expectedPrivileges();
+      if (changes(after, expected).length > 0) {
+        throw new Error(
+          `The statements would leave ${STUDIO} with other privileges than STUDIO_GRANTS:\n${changes(after, expected).join("\n")}`,
+        );
+      }
+      const delta = changes(before, after);
+      console.log(
+        [
+          `${STUDIO} would be ${isNew ? "created" : "given a new password"}, with ${after.length} privileges on ${Object.keys(STUDIO_GRANTS).length} tables and 2 schemas.`,
+          delta.length === 0
+            ? "Its privileges would stay as they are."
+            : `Its privileges would change:\n${delta.join("\n")}`,
+          `Settings: ${Object.entries(STUDIO_SETTINGS)
+            .map(([name, value]) => `${name}=${value}`)
+            .join(", ")}.`,
+          `Its connection string would go to 1Password, "${item}" (credential) in ${vault}, and nowhere else.`,
+          "Nothing was changed. Run it again with --apply to do it.",
+        ].join("\n"),
+      );
+      throw new Planned();
+    });
+  } catch (error) {
+    if (!(error instanceof Planned)) throw error;
+  } finally {
+    await sql.end();
+  }
+}
+
+/**
+ * `--apply`: makes the role or gives it a new password, grants exactly
+ * STUDIO_GRANTS, stores its connection string in 1Password, and then checks
+ * both: the catalog holds exactly the expected privileges, and the stored
+ * connection string signs in as the studio. Nothing it reads or stores is
+ * printed.
+ */
+async function apply(owner: string, vault: string): Promise<void> {
   const password = newPassword();
   const sql = new Bun.SQL(owner);
   let created: boolean;
@@ -432,6 +557,12 @@ async function main(): Promise<void> {
       }
       return isNew;
     });
+    const wrong = changes(await granted(sql), expectedPrivileges());
+    if (wrong.length > 0) {
+      throw new Error(
+        `${STUDIO}'s privileges aren't STUDIO_GRANTS after the grants:\n${wrong.join("\n")}`,
+      );
+    }
   } finally {
     // A refused transaction changed nothing; the client closes either way.
     await sql.end();
@@ -451,8 +582,37 @@ async function main(): Promise<void> {
       { cause },
     );
   }
+
+  // Read back what 1Password now holds, and sign in with it.
+  const stored = (
+    await run(["op", "read", ["op:/", vault, item, "credential"].join("/")])
+  ).trim();
+  const studio = new Bun.SQL(stored);
+  try {
+    const [row] = (await studio.unsafe("SELECT current_user AS who")) as Array<{
+      who: string;
+    }>;
+    if (row?.who !== STUDIO) {
+      throw new Error(`1Password's "${item}" signs in as someone else`);
+    }
+  } finally {
+    await studio.end();
+  }
   console.log(
-    `✓ ${STUDIO} ${created ? "created" : "has a new password"}, grants on ${Object.keys(STUDIO_GRANTS).length} tables; 1Password ("${item}" in ${vault}) updated`,
+    `✓ ${STUDIO} ${created ? "created" : "has a new password"}, exactly STUDIO_GRANTS on ${Object.keys(STUDIO_GRANTS).length} tables; 1Password ("${item}" in ${vault}) updated, and it signs in as ${STUDIO}`,
+  );
+}
+
+/** Plans (--dry-run) or applies (--apply) the role on the database at OWNER_URL. */
+async function main(): Promise<void> {
+  const owner = process.env["OWNER_URL"];
+  if (!owner) throw new Error("OWNER_URL is required (see this file's header)");
+  const vault = process.env["VAULT"] ?? "allthings";
+  const mode = process.argv.slice(2);
+  if (mode.length === 1 && mode[0] === "--dry-run") return plan(owner, vault);
+  if (mode.length === 1 && mode[0] === "--apply") return apply(owner, vault);
+  throw new Error(
+    "Pass --dry-run to see what it would do, then --apply to do it (see this file's header).",
   );
 }
 

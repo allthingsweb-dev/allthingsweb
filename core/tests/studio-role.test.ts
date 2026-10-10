@@ -1,9 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { SQL } from "bun";
+import { PgClient } from "@effect/sql-pg";
+import * as Migrations from "../src/migrator.ts";
 import type { PGlite } from "@electric-sql/pglite";
-import { Cause, Effect, Exit, Layer } from "effect";
+import { Cause, Effect, Exit, Layer, Redacted } from "effect";
 import type { SqlClient } from "effect/sql/SqlClient";
 import { SITE_TABLES } from "../../infra/scripts/site-reader.ts";
 import {
+  expectedPrivileges,
+  grantedQuery,
   OWNER_ONLY,
   STUDIO,
   STUDIO_COMMANDS,
@@ -78,6 +83,7 @@ async function asStudio(
   return outcomes;
 }
 
+/** Runs one statement as the studio, rolled back: its refusal, or undefined. */
 const refusalAs = async (statement: string) => (await asStudio([statement]))[0];
 
 /** Every table in `public` and `planning`, with its columns (not generated ones: nothing writes those). */
@@ -94,6 +100,7 @@ const tables = async () => {
   return rows;
 };
 
+/** `schema.table` as a quoted SQL identifier. */
 const quoted = (table: string) =>
   table
     .split(".")
@@ -190,6 +197,10 @@ describe("its privileges in the catalog", () => {
       ]),
     ].toSorted();
     expect(granted.rows.map((row) => row.grant)).toEqual(expected);
+    // And the script's own check after --apply reads it the same way.
+    expect(expectedPrivileges()).toEqual(expected);
+    const read = await db.query<{ grant: string }>(grantedQuery, [STUDIO]);
+    expect(read.rows.map((row) => row.grant)).toEqual(expected);
   });
 
   test("execute only the harmless functions PUBLIC may, none SECURITY DEFINER", async () => {
@@ -432,3 +443,89 @@ describe("every studio command", () => {
     }
   });
 });
+
+/**
+ * The script itself, on a disposable Postgres (CORE_TEST_POSTGRES_URL, as
+ * tests/postgres.test.ts): its plan shows what would change and keeps
+ * nothing, and it does nothing without --dry-run or --apply. --apply also
+ * stores in 1Password, so it isn't run here; its check reads the catalog
+ * with grantedQuery, held to the script's list above.
+ */
+const serverUrl = process.env["CORE_TEST_POSTGRES_URL"];
+const repository = new URL("../../", import.meta.url).pathname;
+
+if (serverUrl === undefined) {
+  test.skip("infra/scripts/studio.ts (set CORE_TEST_POSTGRES_URL)", () => {});
+} else {
+  describe("infra/scripts/studio.ts", () => {
+    const admin = new SQL(serverUrl);
+    const database = `allthings_core_test_${process.pid}_studio`;
+    const url = new URL(serverUrl);
+    url.pathname = `/${database}`;
+
+    beforeAll(async () => {
+      await admin.unsafe(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);
+      await admin.unsafe(`CREATE DATABASE ${database}`);
+      await Effect.runPromise(
+        Migrations.run().pipe(
+          Effect.provide(PgClient.layer({ url: Redacted.make(url.href) })),
+        ),
+      );
+    });
+    afterAll(async () => {
+      await admin.unsafe(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);
+      await admin.close();
+    });
+
+    /** Runs the script with `args`, as the owner of the disposable database. */
+    const script = async (...args: ReadonlyArray<string>) => {
+      const child = Bun.spawn(["bun", "infra/scripts/studio.ts", ...args], {
+        cwd: repository,
+        env: { ...process.env, OWNER_URL: url.href },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const [stdout, stderr, code] = await Promise.all([
+        new Response(child.stdout).text(),
+        new Response(child.stderr).text(),
+        child.exited,
+      ]);
+      return { code, stdout, stderr };
+    };
+
+    /** What the role holds on the disposable database. */
+    const held = async () => {
+      const sql = new SQL(url.href);
+      try {
+        const rows: Array<{ n: number }> = await sql.unsafe(
+          `SELECT count(*)::int AS n FROM information_schema.table_privileges WHERE grantee = $1`,
+          [STUDIO],
+        );
+        return rows[0]?.n;
+      } finally {
+        await sql.close();
+      }
+    };
+
+    test("--dry-run shows every privilege it would grant, and keeps nothing", async () => {
+      const result = await script("--dry-run");
+      expect(result.stderr).toBe("");
+      expect(result.code).toBe(0);
+      for (const line of expectedPrivileges()) {
+        expect(result.stdout).toContain(`+ ${line}`);
+      }
+      expect(result.stdout).toContain(
+        'Its connection string would go to 1Password, "allthings studio" (credential) in allthings, and nowhere else.',
+      );
+      expect(result.stdout).toContain("Nothing was changed.");
+      expect(await held()).toBe(0);
+    }, 30_000);
+
+    test("without --dry-run or --apply, it does nothing", async () => {
+      const result = await script();
+      expect(result.code).not.toBe(0);
+      expect(result.stderr).toContain("Pass --dry-run");
+      expect(await held()).toBe(0);
+    });
+  });
+}
