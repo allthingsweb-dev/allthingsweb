@@ -77,9 +77,10 @@ OWNER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
   bun infra/scripts/studio.ts --dry-run
 OWNER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
   --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
-  OP_SERVICE_ACCOUNT_TOKEN=$(security find-generic-password -s allthings-op -w) \
   bun infra/scripts/studio.ts --apply
 ```
+
+`--apply` writes the item with `op`, so it needs `op` signed in to the vault: your own session, or the agents' `OP_SERVICE_ACCOUNT_TOKEN`.
 
 `--dry-run` makes the role and runs every grant in a transaction that is rolled back, and prints how its privileges would change and where its credential would go. `--apply` does it, then checks it: the catalog holds exactly `STUDIO_GRANTS`, and the connection string read back from 1Password signs in as `studio`.
 
