@@ -192,6 +192,8 @@ describe("the plan", () => {
     // In the shape Luma gives its own questions, e.g. "sqbwk30x".
     expect(questionId("Anything?")).toMatch(/^[a-z0-9]{8}$/);
     expect(questionId("Anything?")).not.toBe(questionId("Anything else?"));
+    // A hash short in base 36 is padded to eight.
+    expect(questionId("padding-1370")).toBe("0g6mpcml");
   });
 
   test("names what Luma's API can't set as asked, and plans nothing for it", () => {
