@@ -86,6 +86,11 @@ const madeUp = `
     FROM made_up_event;
   INSERT INTO planning.collab_audit (actor_email, action, outcome)
     VALUES ('made-up@example.com', 'comment.add', 'ok');
+  INSERT INTO planning.draft_talks (id, event_id, position, kind, title)
+    SELECT 'f8000000-0000-4000-8000-000000000001', id, 1, 'panel', 'Made-up panel'
+    FROM made_up_event;
+  INSERT INTO planning.draft_talk_people (draft_talk_id, wanted_speaker_id, role, position)
+    VALUES ('f8000000-0000-4000-8000-000000000001', 'f2000000-0000-4000-8000-000000000001', 'panelist', 0);
 `;
 
 let db: PGlite;
@@ -139,6 +144,8 @@ describe("planning is private", () => {
       "comments",
       "contacts",
       "draft_people",
+      "draft_talk_people",
+      "draft_talks",
       "host_prospects",
       "ideas",
       "logistics_confirmations",

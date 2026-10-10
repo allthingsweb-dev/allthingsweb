@@ -20,7 +20,7 @@ import {
   type PersonRef,
   SearchHit,
   type SpeakerChanges,
-  type SpeakerStatus,
+  SpeakerStatus,
   WantedSpeaker,
   type WindowInput,
 } from "./model.ts";
@@ -204,7 +204,103 @@ export interface PlanningShape {
       readonly profile: string;
     }>,
   ) => Effect.Effect<ReadonlyArray<DraftPerson>, Failure>;
+  /** The draft at `slug`'s private talks, in running order. */
+  readonly draftTalks: (
+    slug: string,
+  ) => Effect.Effect<ReadonlyArray<DraftTalk>, Failure>;
+  /**
+   * Adds `talk` after the draft at `slug`'s other private talks, with its
+   * people named by their wanted speaker's id, in order. A published
+   * evening is refused: its talks are the public ones
+   * (core/backfill/lineups.json).
+   */
+  readonly addDraftTalk: (
+    slug: string,
+    talk: NewDraftTalk,
+  ) => Effect.Effect<ReadonlyArray<DraftTalk>, Failure>;
+  /** Takes the private talk `id` off the draft at `slug`, people and all. */
+  readonly removeDraftTalk: (
+    slug: string,
+    id: string,
+  ) => Effect.Effect<ReadonlyArray<DraftTalk>, Failure>;
 }
+
+/** What a draft talk is: one speaker's talk, a panel, or a fireside chat. */
+export type DraftTalkKind = "talk" | "panel" | "fireside";
+
+/** A part on a draft talk. */
+export type DraftTalkRole = "speaker" | "panelist" | "moderator";
+
+/** The parts each kind of draft talk has room for. */
+export const draftTalkRoles: Readonly<
+  Record<DraftTalkKind, ReadonlyArray<DraftTalkRole>>
+> = {
+  talk: ["speaker"],
+  panel: ["moderator", "panelist"],
+  fireside: ["moderator", "speaker"],
+};
+
+/** Someone on a draft talk, as their wanted speaker record has them. */
+export interface DraftTalkPerson {
+  readonly role: DraftTalkRole;
+  readonly position: number;
+  readonly wantedSpeakerId: string;
+  readonly name: string;
+  /** Whether they've said yes: their wanted speaker's status. */
+  readonly status: SpeakerStatus;
+  /** Their profile, if they have one; the published evening needs it. */
+  readonly profileId: string | null;
+}
+
+/** A talk, panel or fireside on an unpublished evening, kept private. */
+export interface DraftTalk {
+  readonly id: string;
+  readonly position: number;
+  readonly kind: DraftTalkKind;
+  readonly title: string;
+  readonly description: string | null;
+  readonly people: ReadonlyArray<DraftTalkPerson>;
+}
+
+/** A draft talk to add. */
+export interface NewDraftTalk {
+  readonly kind: DraftTalkKind;
+  readonly title: string;
+  readonly description?: string;
+  readonly people: ReadonlyArray<{
+    readonly role: DraftTalkRole;
+    /** Their wanted speaker's id. */
+    readonly wantedSpeaker: string;
+  }>;
+}
+
+const DraftTalkRows = Schema.Array(
+  Schema.Struct({
+    id: Schema.String,
+    position: Schema.Int,
+    kind: Schema.Literals(["talk", "panel", "fireside"]),
+    title: Schema.String,
+    description: Schema.NullOr(Schema.String),
+    people: Schema.Array(
+      Schema.Struct({
+        role: Schema.Literals(["speaker", "panelist", "moderator"]),
+        position: Schema.Int,
+        wantedSpeakerId: Schema.String,
+        name: Schema.String,
+        status: SpeakerStatus,
+        profileId: Schema.NullOr(Schema.String),
+      }),
+    ),
+  }),
+);
+
+const WantedRows = Schema.Array(
+  Schema.Struct({
+    id: Schema.String,
+    name: Schema.String,
+    status: SpeakerStatus,
+  }),
+);
 
 /** A part someone has at an evening, as event_people names it. */
 export type DraftRole = "organizer" | "co-host" | "mc";
@@ -887,9 +983,150 @@ const make = Effect.gen(function* () {
       }),
     );
 
+  const readTalks = (draftId: string) =>
+    sql`
+      SELECT t.id, t.position, t.kind, t.title, t.description,
+        COALESCE((
+          SELECT json_agg(json_build_object(
+            'role', dp.role, 'position', dp.position,
+            'wantedSpeakerId', w.id, 'name', COALESCE(p.name, c.name),
+            'status', w.status, 'profileId', w.profile_id
+          ) ORDER BY dp.position)
+          FROM planning.draft_talk_people dp
+          JOIN planning.wanted_speakers w ON w.id = dp.wanted_speaker_id
+          LEFT JOIN profiles p ON p.id = w.profile_id
+          LEFT JOIN planning.contacts c ON c.id = w.contact_id
+          WHERE dp.draft_talk_id = t.id
+        ), '[]'::json) AS people
+      FROM planning.draft_talks t
+      WHERE t.event_id = ${draftId}
+      ORDER BY t.position`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(DraftTalkRows)),
+    );
+
+  const draftTalks = (slug: string) =>
+    Effect.flatMap(draftEvent(slug), readTalks).pipe(run);
+
+  /** The wanted speaker `id` names, or why it names none. */
+  const wantedSpeaker = (id: string) =>
+    Effect.gen(function* () {
+      if (!isId(id)) {
+        return yield* refuse(
+          `"${id}" is not a wanted speaker's id: see bun run plan speaker list.`,
+        );
+      }
+      const [row] = yield* sql`
+        SELECT w.id, COALESCE(p.name, c.name) AS name, w.status
+        FROM planning.wanted_speakers w
+        LEFT JOIN profiles p ON p.id = w.profile_id
+        LEFT JOIN planning.contacts c ON c.id = w.contact_id
+        WHERE w.id = ${id}`.pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(WantedRows)),
+      );
+      return row === undefined
+        ? yield* refuse(`No wanted speaker has the id ${id}.`)
+        : row;
+    });
+
+  const addDraftTalk: PlanningShape["addDraftTalk"] = (slug, talk) =>
+    inTransaction(
+      Effect.gen(function* () {
+        const title = talk.title.trim();
+        if (title === "" || title.length > 120) {
+          return yield* refuse("A talk's title is 1 to 120 characters.");
+        }
+        const description = talk.description?.trim();
+        if (
+          description !== undefined &&
+          (description === "" || description.length > 4000)
+        ) {
+          return yield* refuse(
+            "A talk's description, if given, is 1 to 4000 characters.",
+          );
+        }
+        const roles = draftTalkRoles[talk.kind];
+        for (const entry of talk.people) {
+          if (!roles.includes(entry.role)) {
+            return yield* refuse(
+              `A ${talk.kind} has no ${entry.role}: its people are ${roles.map((role) => `${role}s`).join(" and ")}.`,
+            );
+          }
+        }
+        if (
+          talk.people.filter((entry) => entry.role === "moderator").length > 1
+        ) {
+          return yield* refuse(`A ${talk.kind} has one moderator.`);
+        }
+        // Lock the evening first, so changes to its talks go one at a time.
+        yield* sql`SELECT id FROM events WHERE slug = ${slug} FOR UPDATE`;
+        const draftId = yield* draftEvent(slug);
+        const people = yield* Effect.forEach(talk.people, (entry) =>
+          Effect.map(wantedSpeaker(entry.wantedSpeaker), (wanted) => ({
+            role: entry.role,
+            wanted,
+          })),
+        );
+        const seen = new Set<string>();
+        for (const { wanted } of people) {
+          if (seen.has(wanted.id)) {
+            return yield* refuse(`${wanted.name} is named twice on the talk.`);
+          }
+          seen.add(wanted.id);
+          if (wanted.status === "declined") {
+            return yield* refuse(
+              `${wanted.name} declined: change their status first if that's changed.`,
+            );
+          }
+        }
+        const [added] = yield* sql`
+          INSERT INTO planning.draft_talks (event_id, position, kind, title, description)
+          SELECT ${draftId}, COALESCE(max(position), 0) + 1, ${talk.kind}, ${title}, ${description ?? null}
+          FROM planning.draft_talks WHERE event_id = ${draftId}
+          RETURNING id`.pipe(
+          Effect.flatMap(Schema.decodeUnknownEffect(IdRows)),
+        );
+        if (added === undefined) {
+          return yield* refuse(`The talk could not be added to ${slug}.`);
+        }
+        for (const [position, { role, wanted }] of people.entries()) {
+          yield* sql`
+            INSERT INTO planning.draft_talk_people (draft_talk_id, wanted_speaker_id, role, position)
+            VALUES (${added.id}, ${wanted.id}, ${role}, ${position})`;
+        }
+        return yield* readTalks(draftId);
+      }),
+    );
+
+  const removeDraftTalk: PlanningShape["removeDraftTalk"] = (slug, id) =>
+    inTransaction(
+      Effect.gen(function* () {
+        // Lock the evening first, so changes to its talks go one at a time.
+        yield* sql`SELECT id FROM events WHERE slug = ${slug} FOR UPDATE`;
+        const draftId = yield* draftEvent(slug);
+        const [talk] = isId(id)
+          ? yield* sql`
+              SELECT id FROM planning.draft_talks
+              WHERE id = ${id} AND event_id = ${draftId}`.pipe(
+              Effect.flatMap(Schema.decodeUnknownEffect(IdRows)),
+            )
+          : [];
+        if (talk === undefined) {
+          return yield* refuse(
+            `${slug} has no private talk with the id ${id}.`,
+          );
+        }
+        yield* sql`DELETE FROM planning.draft_talk_people WHERE draft_talk_id = ${talk.id}`;
+        yield* sql`DELETE FROM planning.draft_talks WHERE id = ${talk.id}`;
+        return yield* readTalks(draftId);
+      }),
+    );
+
   return Planning.of({
     draftLineup,
     setDraftLineup,
+    draftTalks,
+    addDraftTalk,
+    removeDraftTalk,
     addIdea,
     updateIdea,
     listIdeas,

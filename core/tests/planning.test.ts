@@ -541,6 +541,189 @@ describe("a draft's private lineup", () => {
   });
 });
 
+describe("a draft's private talks", () => {
+  const wanted = async () => {
+    const lovelace = await plan((p) =>
+      p.addWantedSpeaker(
+        { _tag: "Profile", ref: "Ada Lovelace" },
+        { topics: ["postgres"] },
+      ),
+    );
+    const newcomer = await plan((p) =>
+      p.addWantedSpeaker(
+        { _tag: "NewContact", contact: { name: "Made-up Panelist" } },
+        { topics: ["postgres"], status: "asked" },
+      ),
+    );
+    return { lovelace, newcomer };
+  };
+
+  /** The public talks of the draft evening, which the seed gives one. */
+  const publicTalks = async () =>
+    (
+      await db.query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM event_talks et JOIN events e ON e.id = et.event_id WHERE e.slug = '2026-09-01-draft-night'",
+      )
+    ).rows[0]?.count;
+
+  test("are added in running order with their people, read back and removed", async () => {
+    const seededTalks = await publicTalks();
+    const { lovelace, newcomer } = await wanted();
+    const first = await plan((p) =>
+      p.addDraftTalk(draftEvening, {
+        kind: "panel",
+        title: "  Made-up panel ",
+        people: [
+          { role: "moderator", wantedSpeaker: lovelace.id },
+          { role: "panelist", wantedSpeaker: newcomer.id },
+        ],
+      }),
+    );
+    expect(first).toEqual([
+      {
+        id: expect.any(String),
+        position: 1,
+        kind: "panel",
+        title: "Made-up panel",
+        description: null,
+        people: [
+          {
+            role: "moderator",
+            position: 0,
+            wantedSpeakerId: lovelace.id,
+            name: "Ada Lovelace",
+            status: "wanted",
+            profileId: "b0000000-0000-4000-8000-000000000001",
+          },
+          {
+            role: "panelist",
+            position: 1,
+            wantedSpeakerId: newcomer.id,
+            name: "Made-up Panelist",
+            status: "asked",
+            profileId: null,
+          },
+        ],
+      },
+    ]);
+    const both = await plan((p) =>
+      p.addDraftTalk(draftEvening, {
+        kind: "talk",
+        title: "Made-up talk",
+        description: "About something.",
+        people: [{ role: "speaker", wantedSpeaker: lovelace.id }],
+      }),
+    );
+    expect(both.map(({ position, title }) => [position, title])).toEqual([
+      [1, "Made-up panel"],
+      [2, "Made-up talk"],
+    ]);
+    expect(await plan((p) => p.draftTalks(draftEvening))).toEqual(both);
+    // A status changed on the wanted speaker is the talk's.
+    await plan((p) =>
+      p.updateWantedSpeaker(lovelace.id, { status: "confirmed" }),
+    );
+    const [panel] = await plan((p) => p.draftTalks(draftEvening));
+    expect(panel?.people[0]?.status).toBe("confirmed");
+    // Nothing of it reaches the public talks.
+    expect(await publicTalks()).toBe(seededTalks);
+    const left = await plan((p) =>
+      p.removeDraftTalk(draftEvening, panel?.id ?? ""),
+    );
+    expect(left.map(({ position, title }) => [position, title])).toEqual([
+      [2, "Made-up talk"],
+    ]);
+    expect(await count("draft_talk_people")).toBe(1);
+  });
+
+  test("refuses a published evening, a part its kind has no room for, a person twice or declined, and an unknown id, writing nothing", async () => {
+    const { lovelace, newcomer } = await wanted();
+    const panel = (
+      people: ReadonlyArray<{
+        role: "speaker" | "panelist" | "moderator";
+        wantedSpeaker: string;
+      }>,
+    ) => ({ kind: "panel", title: "Made-up panel", people }) as const;
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(
+          pastEvening,
+          panel([{ role: "panelist", wantedSpeaker: lovelace.id }]),
+        ),
+      ),
+    ).toBe(
+      `${pastEvening} is published: its lineup is the public one (core/backfill/lineups.json).`,
+    );
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(
+          draftEvening,
+          panel([{ role: "speaker", wantedSpeaker: lovelace.id }]),
+        ),
+      ),
+    ).toBe("A panel has no speaker: its people are moderators and panelists.");
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(
+          draftEvening,
+          panel([
+            { role: "moderator", wantedSpeaker: lovelace.id },
+            { role: "moderator", wantedSpeaker: newcomer.id },
+          ]),
+        ),
+      ),
+    ).toBe("A panel has one moderator.");
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(
+          draftEvening,
+          panel([
+            { role: "moderator", wantedSpeaker: lovelace.id },
+            { role: "panelist", wantedSpeaker: lovelace.id },
+          ]),
+        ),
+      ),
+    ).toBe("Ada Lovelace is named twice on the talk.");
+    await plan((p) =>
+      p.updateWantedSpeaker(newcomer.id, { status: "declined" }),
+    );
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(
+          draftEvening,
+          panel([{ role: "panelist", wantedSpeaker: newcomer.id }]),
+        ),
+      ),
+    ).toBe(
+      "Made-up Panelist declined: change their status first if that's changed.",
+    );
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(
+          draftEvening,
+          panel([{ role: "panelist", wantedSpeaker: "Ada Lovelace" }]),
+        ),
+      ),
+    ).toBe(
+      '"Ada Lovelace" is not a wanted speaker\'s id: see bun run plan speaker list.',
+    );
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(draftEvening, { kind: "talk", title: " ", people: [] }),
+      ),
+    ).toBe("A talk's title is 1 to 120 characters.");
+    expect(
+      await refusal((p) =>
+        p.removeDraftTalk(draftEvening, "00000000-0000-4000-8000-000000000000"),
+      ),
+    ).toBe(
+      `${draftEvening} has no private talk with the id 00000000-0000-4000-8000-000000000000.`,
+    );
+    expect(await count("draft_talks")).toBe(0);
+    expect(await count("draft_talk_people")).toBe(0);
+  });
+});
+
 describe("pure rules", () => {
   test("isAvailableOn", () => {
     const free = {

@@ -31,6 +31,7 @@ import {
 import { rollingBackIf } from "../src/planning/dry-run.ts";
 import {
   type DraftPerson,
+  type DraftTalk,
   Planning,
   PlanningError,
 } from "../src/planning/planning.ts";
@@ -59,6 +60,9 @@ import {
  *   bun run plan note add --profile <id or name> | --sponsor … | --contact <id> --body … [--author Erik]
  *   bun run plan lineup set <draft slug> --mc "Erik Thorelli" --organizer "Erik Thorelli" --organizer "Andre Landgraf"
  *   bun run plan lineup show <draft slug>
+ *   bun run plan lineup talk add <draft slug> --kind panel --title "…" --moderator <wanted id> --panelist <wanted id> --panelist <wanted id>
+ *   bun run plan lineup talk list <draft slug>
+ *   bun run plan lineup talk remove <draft slug> <talk id>
  *   bun run plan search <text>
  *   bun run plan audit        prove no site role may read planning; fails if one may
  *
@@ -689,11 +693,129 @@ const lineupShow = Command.make("show", { slug: draftSlug, json }, (options) =>
   ),
 ).pipe(Command.withDescription("A draft evening's private lineup."));
 
+/** A draft's private talks, in running order, each with its people and whether they've said yes. */
+const formatTalks = (talks: ReadonlyArray<DraftTalk>): string =>
+  talks.length === 0
+    ? "No talks."
+    : talks
+        .map((talk) =>
+          [
+            `${talk.position}. ${talk.kind}: ${talk.title} (${talk.id})`,
+            ...(talk.description === null ? [] : [`   ${talk.description}`]),
+            ...(talk.people.length === 0
+              ? ["   nobody on it yet"]
+              : talk.people.map(
+                  (person) =>
+                    `   ${person.role}: ${person.name} [${person.status}]${person.profileId === null ? " · no profile yet" : ""} (${person.wantedSpeakerId})`,
+                )),
+          ].join("\n"),
+        )
+        .join("\n\n");
+
+const talkAdd = Command.make(
+  "add",
+  {
+    slug: draftSlug,
+    title: Flag.String("title").pipe(Flag.withDescription("What it's called.")),
+    kind: Flag.Literals("kind", ["talk", "panel", "fireside"]).pipe(
+      Flag.withDescription(
+        "What it is (talk, panel, fireside): a talk has speakers, a panel a moderator and panelists, a fireside a moderator and a speaker.",
+      ),
+    ),
+    description: text("description", "What it's about."),
+    moderator: text("moderator", "The moderator, by wanted speaker id."),
+    panelist: repeated(
+      "panelist",
+      "A panelist, by wanted speaker id; repeat, in order.",
+    ),
+    speaker: repeated(
+      "speaker",
+      "A speaker, by wanted speaker id; repeat, in order.",
+    ),
+    json,
+    dryRun,
+  },
+  (options) => {
+    const description = value(options.description);
+    const moderator = value(options.moderator);
+    return Planning.use((planning) =>
+      planning.addDraftTalk(options.slug, {
+        kind: options.kind,
+        title: options.title,
+        ...(description === undefined ? {} : { description }),
+        people: [
+          ...(moderator === undefined
+            ? []
+            : [{ role: "moderator" as const, wantedSpeaker: moderator }]),
+          ...options.panelist.map((wantedSpeaker) => ({
+            role: "panelist" as const,
+            wantedSpeaker,
+          })),
+          ...options.speaker.map((wantedSpeaker) => ({
+            role: "speaker" as const,
+            wantedSpeaker,
+          })),
+        ],
+      }),
+    ).pipe(
+      Effect.flatMap((talks) => print(options.json, talks, formatTalks)),
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    );
+  },
+).pipe(
+  Command.withDescription(
+    "Add a talk, panel or fireside to a draft evening, after its others, with its people by their wanted speaker ids; whether they've said yes is their status there.",
+  ),
+);
+
+const talkRemove = Command.make(
+  "remove",
+  {
+    slug: draftSlug,
+    id: Argument.String("id").pipe(
+      Argument.withDescription("The talk's id, as talk list shows it."),
+    ),
+    json,
+    dryRun,
+  },
+  (options) =>
+    Planning.use((planning) =>
+      planning.removeDraftTalk(options.slug, options.id),
+    ).pipe(
+      Effect.flatMap((talks) => print(options.json, talks, formatTalks)),
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(layer),
+    ),
+).pipe(
+  Command.withDescription("Take a talk, and its people, off a draft evening."),
+);
+
+const talkList = Command.make("list", { slug: draftSlug, json }, (options) =>
+  Planning.use((planning) => planning.draftTalks(options.slug)).pipe(
+    Effect.flatMap((talks) => print(options.json, talks, formatTalks)),
+    Effect.provide(layer),
+  ),
+).pipe(
+  Command.withDescription(
+    "A draft evening's private talks, in running order, with who's on each and whether they've said yes.",
+  ),
+);
+
+const lineupTalk = Command.make("talk").pipe(
+  Command.withDescription(
+    "An unpublished evening's talks, panels and firesides, kept private with people who may not have said yes yet.",
+  ),
+  Command.withSubcommands([talkAdd, talkRemove, talkList]),
+);
+
 const lineup = Command.make("lineup").pipe(
   Command.withDescription(
-    "An unpublished evening's organizers, co-hosts and MC, kept private until it is published.",
+    "An unpublished evening's organizers, co-hosts, MC and talks, kept private until it is published.",
   ),
-  Command.withSubcommands([lineupSet, lineupShow]),
+  Command.withSubcommands([lineupSet, lineupShow, lineupTalk]),
 );
 
 const search = Command.make(

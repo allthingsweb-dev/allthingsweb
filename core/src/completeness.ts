@@ -130,6 +130,26 @@ export const EventRecord = Schema.Struct({
 });
 export type EventRecord = typeof EventRecord.Type;
 
+/**
+ * A talk planning keeps for a draft (planning.draft_talks), with who is on
+ * it, whether they've said yes (their wanted speaker's status), and their
+ * profile as the record's people have it, or null while they have none.
+ */
+export const PlannedTalk = Schema.Struct({
+  title: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  people: Schema.Array(
+    Schema.Struct({
+      role: Schema.Literals(["speaker", "panelist", "moderator"]),
+      wantedSpeakerId: Schema.String,
+      name: Schema.String,
+      status: Schema.Literals(["wanted", "asked", "confirmed", "declined"]),
+      person: Schema.NullOr(Person),
+    }),
+  ),
+});
+export type PlannedTalk = typeof PlannedTalk.Type;
+
 /** One event's report. */
 export interface EventCompleteness {
   readonly slug: string;
@@ -360,6 +380,14 @@ export interface CompletenessShape {
   readonly plannedPeople: (
     slug: string,
   ) => Effect.Effect<EventRecord["people"], DataSourceError>;
+  /**
+   * The private talks planning keeps for the draft at `slug`
+   * (planning.draft_talks), in running order. Only a role that may use
+   * planning can read them.
+   */
+  readonly plannedTalks: (
+    slug: string,
+  ) => Effect.Effect<ReadonlyArray<PlannedTalk>, DataSourceError>;
   /** Every published event's report at the `Clock`'s now, latest first. */
   readonly report: Effect.Effect<
     ReadonlyArray<EventCompleteness>,
@@ -432,6 +460,27 @@ const make = Effect.gen(function* () {
         ), '[]'::json) AS people`.pipe(
         Effect.flatMap(Schema.decodeUnknownEffect(Planned)),
         Effect.map(([row]) => row?.people ?? []),
+        orDataSourceError,
+      ),
+    plannedTalks: (slug) =>
+      sql`
+        SELECT t.title, t.description,
+          COALESCE((
+            SELECT json_agg(json_build_object(
+              'role', dp.role, 'wantedSpeakerId', w.id, 'name', COALESCE(p.name, c.name), 'status', w.status,
+              'person', CASE WHEN p.id IS NULL THEN NULL ELSE ${sql.literal(personJson)} END
+            ) ORDER BY dp.position)
+            FROM planning.draft_talk_people dp
+            JOIN planning.wanted_speakers w ON w.id = dp.wanted_speaker_id
+            LEFT JOIN profiles p ON p.id = w.profile_id
+            LEFT JOIN planning.contacts c ON c.id = w.contact_id
+            WHERE dp.draft_talk_id = t.id
+          ), '[]'::json) AS people
+        FROM planning.draft_talks t
+        JOIN events e ON e.id = t.event_id
+        WHERE e.slug = ${slug}
+        ORDER BY t.position`.pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(PlannedTalk))),
         orDataSourceError,
       ),
     record: (slug) =>

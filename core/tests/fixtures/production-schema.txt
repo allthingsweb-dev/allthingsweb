@@ -64,6 +64,18 @@ column planning.draft_people #002 profile_id uuid not null
 column planning.draft_people #003 role text not null
 column planning.draft_people #004 "position" integer not null
 column planning.draft_people #005 created_at timestamp with time zone not null default now()
+column planning.draft_talk_people #001 draft_talk_id uuid not null
+column planning.draft_talk_people #002 wanted_speaker_id uuid not null
+column planning.draft_talk_people #003 role text not null
+column planning.draft_talk_people #004 "position" integer not null
+column planning.draft_talk_people #005 created_at timestamp with time zone not null default now()
+column planning.draft_talks #001 id uuid not null default gen_random_uuid()
+column planning.draft_talks #002 event_id uuid not null
+column planning.draft_talks #003 "position" integer not null
+column planning.draft_talks #004 kind text not null
+column planning.draft_talks #005 title text not null
+column planning.draft_talks #006 description text
+column planning.draft_talks #007 created_at timestamp with time zone not null default now()
 column planning.host_prospects #001 id uuid not null default gen_random_uuid()
 column planning.host_prospects #002 sponsor_id uuid
 column planning.host_prospects #003 company_name text
@@ -372,6 +384,19 @@ constraint planning.draft_people draft_people_event_id_profile_id_role_pk PRIMAR
 constraint planning.draft_people draft_people_position_check CHECK (("position" >= 0))
 constraint planning.draft_people draft_people_profile_id_profiles_id_fk FOREIGN KEY (profile_id) REFERENCES profiles(id)
 constraint planning.draft_people draft_people_role_check CHECK ((role = ANY (ARRAY['organizer'::text, 'co-host'::text, 'mc'::text])))
+constraint planning.draft_talk_people draft_talk_people_draft_talk_id_draft_talks_id_fk FOREIGN KEY (draft_talk_id) REFERENCES planning.draft_talks(id)
+constraint planning.draft_talk_people draft_talk_people_draft_talk_id_position_unique UNIQUE (draft_talk_id, "position")
+constraint planning.draft_talk_people draft_talk_people_draft_talk_id_wanted_speaker_id_pk PRIMARY KEY (draft_talk_id, wanted_speaker_id)
+constraint planning.draft_talk_people draft_talk_people_position_check CHECK (("position" >= 0))
+constraint planning.draft_talk_people draft_talk_people_role_check CHECK ((role = ANY (ARRAY['speaker'::text, 'panelist'::text, 'moderator'::text])))
+constraint planning.draft_talk_people draft_talk_people_wanted_speaker_id_wanted_speakers_id_fk FOREIGN KEY (wanted_speaker_id) REFERENCES planning.wanted_speakers(id)
+constraint planning.draft_talks draft_talks_description_check CHECK (((btrim(description) <> ''::text) AND (char_length(description) <= 4000)))
+constraint planning.draft_talks draft_talks_event_id_events_id_fk FOREIGN KEY (event_id) REFERENCES events(id)
+constraint planning.draft_talks draft_talks_event_id_position_unique UNIQUE (event_id, "position")
+constraint planning.draft_talks draft_talks_kind_check CHECK ((kind = ANY (ARRAY['talk'::text, 'panel'::text, 'fireside'::text])))
+constraint planning.draft_talks draft_talks_pkey PRIMARY KEY (id)
+constraint planning.draft_talks draft_talks_position_check CHECK (("position" > 0))
+constraint planning.draft_talks draft_talks_title_check CHECK (((btrim(title) <> ''::text) AND (char_length(title) <= 120)))
 constraint planning.host_prospects host_prospects_company_check CHECK ((num_nonnulls(sponsor_id, company_name) = 1))
 constraint planning.host_prospects host_prospects_company_name_check CHECK ((btrim(company_name) <> ''::text))
 constraint planning.host_prospects host_prospects_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES planning.contacts(id)
@@ -570,6 +595,10 @@ index planning.comments CREATE INDEX comments_event_id_created_at_idx ON plannin
 index planning.comments CREATE UNIQUE INDEX comments_pkey ON planning.comments USING btree (id)
 index planning.contacts CREATE UNIQUE INDEX contacts_pkey ON planning.contacts USING btree (id)
 index planning.draft_people CREATE UNIQUE INDEX draft_people_event_id_profile_id_role_pk ON planning.draft_people USING btree (event_id, profile_id, role)
+index planning.draft_talk_people CREATE UNIQUE INDEX draft_talk_people_draft_talk_id_position_unique ON planning.draft_talk_people USING btree (draft_talk_id, "position")
+index planning.draft_talk_people CREATE UNIQUE INDEX draft_talk_people_draft_talk_id_wanted_speaker_id_pk ON planning.draft_talk_people USING btree (draft_talk_id, wanted_speaker_id)
+index planning.draft_talks CREATE UNIQUE INDEX draft_talks_event_id_position_unique ON planning.draft_talks USING btree (event_id, "position")
+index planning.draft_talks CREATE UNIQUE INDEX draft_talks_pkey ON planning.draft_talks USING btree (id)
 index planning.host_prospects CREATE UNIQUE INDEX host_prospects_company_name_unique ON planning.host_prospects USING btree (lower(company_name))
 index planning.host_prospects CREATE UNIQUE INDEX host_prospects_pkey ON planning.host_prospects USING btree (id)
 index planning.host_prospects CREATE UNIQUE INDEX host_prospects_sponsor_id_unique ON planning.host_prospects USING btree (sponsor_id)
@@ -643,6 +672,8 @@ relation planning.collaborators kind=r persistence=p rls=t force_rls=f replica_i
 relation planning.comments kind=r persistence=p rls=t force_rls=f replica_identity=d options=
 relation planning.contacts kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.draft_people kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.draft_talk_people kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.draft_talks kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.host_prospects kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.ideas kind=r persistence=p rls=f force_rls=f replica_identity=d options=
 relation planning.logistics_confirmations kind=r persistence=p rls=t force_rls=f replica_identity=d options=

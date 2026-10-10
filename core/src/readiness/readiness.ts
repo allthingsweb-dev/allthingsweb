@@ -341,11 +341,29 @@ const make = Effect.gen(function* () {
         stored !== null && fact?.isDraft === true && readable
           ? yield* completeness.plannedPeople(stored.slug)
           : [];
+      // So are its talks, with people who may not have said yes: each is
+      // read as a talk with the speakers who have a profile, and who
+      // hasn't said yes or has no profile is checked below.
+      const plannedTalks =
+        stored !== null && fact?.isDraft === true && readable
+          ? yield* completeness.plannedTalks(stored.slug)
+          : [];
       const record =
-        stored === null || plannedPeople.length === 0
+        stored === null ||
+        (plannedPeople.length === 0 && plannedTalks.length === 0)
           ? stored
           : {
               ...stored,
+              talks: [
+                ...stored.talks,
+                ...plannedTalks.map((talk) => ({
+                  title: talk.title,
+                  description: talk.description ?? "",
+                  speakers: talk.people.flatMap((entry) =>
+                    entry.person === null ? [] : [entry.person],
+                  ),
+                })),
+              ],
               people: [
                 ...stored.people,
                 ...plannedPeople.filter(
@@ -408,6 +426,7 @@ const make = Effect.gen(function* () {
                 isDraft: fact.isDraft,
                 shortLocation: fact.shortLocation,
                 scheduleItems: fact.scheduleItems,
+                plannedTalks,
                 // A shared evening's cover is its organizer's: nothing to read.
                 cover:
                   (checked ?? record).curation.kind === "ours"

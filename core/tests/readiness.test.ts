@@ -110,6 +110,7 @@ const facts = (
   isDraft: true,
   shortLocation: "CodeRabbit",
   scheduleItems: 0,
+  plannedTalks: [],
   cover: "ours",
   ...more,
 });
@@ -413,6 +414,72 @@ describe("draftChecks", () => {
         ),
       ),
     ).toEqual(["advice venue-name", "advice neighborhood"]);
+  });
+
+  test("on a planned talk, whoever hasn't said yes, or has no profile, blocks", () => {
+    const panel = {
+      title: "The panel",
+      description: null,
+      people: [
+        {
+          role: "moderator" as const,
+          wantedSpeakerId: "w1",
+          name: "Person s1",
+          status: "confirmed" as const,
+          person: person("s1"),
+        },
+        {
+          role: "panelist" as const,
+          wantedSpeakerId: "w2",
+          name: "Made-up Panelist",
+          status: "asked" as const,
+          person: null,
+        },
+      ],
+    };
+    // As readiness reads it: a talk with the speakers who have a profile.
+    const checks = draftChecks(
+      facts(
+        {
+          talks: [
+            {
+              title: "The panel",
+              description: "",
+              speakers: [person("s1")],
+            },
+          ],
+        },
+        { plannedTalks: [panel] },
+      ),
+      [],
+      now,
+    );
+    expect(kinds(checks)).toEqual([
+      "blocker talk-description",
+      "blocker talk-unconfirmed",
+      "blocker talk-profile",
+    ]);
+    expect(checks.map((entry) => entry.message).slice(1)).toEqual([
+      "Made-up Panelist hasn't said yes to being panelist on The panel (asked): when they do, bun run plan speaker update w2 --status confirmed",
+      "Made-up Panelist, panelist on The panel, has no profile yet: the evening's page needs one, with a title, bio and photo.",
+    ]);
+    // Nobody on it yet: it is a talk without speakers.
+    expect(
+      kinds(
+        draftChecks(
+          facts(
+            {
+              talks: [
+                { title: "The panel", description: "About.", speakers: [] },
+              ],
+            },
+            { plannedTalks: [{ ...panel, people: [] }] },
+          ),
+          [],
+          now,
+        ),
+      ),
+    ).toEqual(["blocker talk-speakers"]);
   });
 
   test("an evening already public says so", () => {
@@ -846,6 +913,50 @@ describe("the report", () => {
     const checks = kinds((await report({ _tag: "Event", slug })).checks);
     expect(checks).not.toContain("blocker people");
     expect(checks).not.toContain("blocker organizer");
+  });
+
+  test("a draft's private talks count as its talks, and name who hasn't said yes", async () => {
+    const slug = "2026-09-01-draft-night";
+    await db.exec(`UPDATE events SET start_date = '2026-10-28T00:30:00Z', end_date = '2026-10-28T03:30:00Z',
+      street_address = '201 Spear St', full_address = '201 Spear St, San Francisco, CA 94105'
+      WHERE slug = '${slug}'`);
+    const ada = await plan((p) =>
+      p.addWantedSpeaker(
+        { _tag: "Profile", ref: "Ada Lovelace" },
+        { topics: ["postgres"] },
+      ),
+    );
+    const newcomer = await plan((p) =>
+      p.addWantedSpeaker(
+        { _tag: "NewContact", contact: { name: "Made-up Panelist" } },
+        { topics: ["postgres"] },
+      ),
+    );
+    await plan((p) =>
+      p.addDraftTalk(slug, {
+        kind: "panel",
+        title: "Made-up panel",
+        description: "About Postgres.",
+        people: [
+          { role: "moderator", wantedSpeaker: ada.id },
+          { role: "panelist", wantedSpeaker: newcomer.id },
+        ],
+      }),
+    );
+    const talkChecks = async () =>
+      (await report({ _tag: "Event", slug })).checks
+        .filter((entry) => entry.kind.startsWith("talk"))
+        .map((entry) => `${entry.level} ${entry.kind} ${entry.subject}`);
+    expect(await talkChecks()).toEqual([
+      "blocker talk-unconfirmed Ada Lovelace",
+      "blocker talk-unconfirmed Made-up Panelist",
+      "blocker talk-profile Made-up Panelist",
+    ]);
+    await plan((p) => p.updateWantedSpeaker(ada.id, { status: "confirmed" }));
+    expect(await talkChecks()).toEqual([
+      "blocker talk-unconfirmed Made-up Panelist",
+      "blocker talk-profile Made-up Panelist",
+    ]);
   });
 
   test("refuses what isn't there", async () => {
