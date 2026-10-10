@@ -131,6 +131,14 @@ describe("Luma tools", () => {
     expect(() =>
       lumaArguments("luma_registration", { ...change, dryRun: false }),
     ).toThrow();
+    // An explicit dry run with a token is refused, never a write.
+    expect(() =>
+      lumaArguments("luma_registration", {
+        ...change,
+        dryRun: true,
+        approve: "0123456789abcdef",
+      }),
+    ).toThrow();
     expect(() =>
       lumaArguments("luma_registration", {
         event: "x",
@@ -139,6 +147,43 @@ describe("Luma tools", () => {
     ).toThrow();
     expect(() =>
       lumaArguments("luma_registration", { event: "x", capacity: 0 }),
+    ).toThrow();
+  });
+
+  test("hosts are listed with no changes, and a change is a dry run until approved", () => {
+    expect(
+      lumaArguments("luma_hosts", { event: "2026-10-27-made-up" }),
+    ).toEqual(["hosts", "--event=2026-10-27-made-up", "--json"]);
+    const change = {
+      event: "2026-10-27-made-up",
+      add: ["new@example.com"],
+      remove: ["usr-someone"],
+    };
+    expect(lumaArguments("luma_hosts", change)).toEqual([
+      "hosts",
+      "--event=2026-10-27-made-up",
+      "--add=new@example.com",
+      "--remove=usr-someone",
+      "--dry-run",
+      "--json",
+    ]);
+    expect(
+      lumaArguments("luma_hosts", { ...change, approve: "0123456789abcdef" }),
+    ).toContain("--approve=0123456789abcdef");
+    // A change without its token is never sent.
+    expect(() =>
+      lumaArguments("luma_hosts", { ...change, dryRun: false }),
+    ).toThrow();
+    // An explicit dry run with a token is refused, never a write.
+    expect(() =>
+      lumaArguments("luma_hosts", {
+        ...change,
+        dryRun: true,
+        approve: "0123456789abcdef",
+      }),
+    ).toThrow();
+    expect(() =>
+      lumaArguments("luma_hosts", { event: "x", approve: "0123456789abcdef" }),
     ).toThrow();
   });
 });
