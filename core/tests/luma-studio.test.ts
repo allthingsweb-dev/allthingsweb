@@ -751,7 +751,7 @@ describe("publish", () => {
     // instant may come in either order).
     expect((await logged()).map((line) => line.summary).toSorted()).toEqual(
       [
-        "Its lineup is now Ada Lovelace (organizer), Ada Lovelace (mc).",
+        "Its lineup is now 1 organizer, 1 mc.",
         "Claimed its publish, with 1 of its lineup copied to the public one.",
         "Luma didn't make it public: the 1 copied to its public lineup taken back, its claim let go.",
         "Claimed its publish, with 1 of its lineup copied to the public one.",

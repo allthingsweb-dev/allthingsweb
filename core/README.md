@@ -1010,8 +1010,10 @@ log, `planning.draft_log` (`migrations/0028_draft_log.ts`), in the same
 transaction as the write (`src/planning/draft-log.ts`): kept with it, or
 rolled back with it, so a dry run leaves none. Each line says who
 (`ALLTHINGS_ACTOR`), the command, a summary, and what changed as JSON:
-ids and the values set, never a secret or an email, which the table also
-refuses. The log is append-only: a trigger refuses any change or delete,
+ids, counts and the values a command chose among (kinds, roles, statuses,
+times, positions). Never anything someone typed or named (a title, a name,
+a note), an approval token, a secret or an email; the table refuses an
+email anyway. The log is append-only: a trigger refuses any change or delete,
 the owner's too.
 
 - `plan`: an idea that is or was the evening's (`idea add`, `idea
@@ -1022,8 +1024,8 @@ update`), `lineup set`, `lineup talk add` and `remove`, and its notes.
   first asks for the actor before it sends anything, and adds its line
   once Luma has it.
 - `collab`: invitations and revocations, rounds, the brief, tasks,
-  logistics, reviews (never their note) and hidden comments. An
-  invitation's line names the person and role, never their email.
+  logistics, reviews and hidden comments. An invitation's line names the
+  role, never the person or their email.
 
 `planning.draft_notes` holds what the organizers say about an evening: a
 note, a decision or a question, with who and when. Each is written once:

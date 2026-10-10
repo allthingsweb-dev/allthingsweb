@@ -400,7 +400,8 @@ describe("approve", () => {
       // Let go, so the ingestion stores the new cover.
       preview_image: null,
     });
-    // Recorded with its line in the draft's log, in the same transaction.
+    // Recorded with its line in the draft's log, in the same transaction:
+    // never the approval token of its facts.
     const { rows: lines } = await db.query(
       `SELECT actor, command, payload FROM planning.draft_log l
        JOIN events e ON e.id = l.event_id WHERE e.luma_event_id = 'evt-draft'`,
@@ -409,13 +410,11 @@ describe("approve", () => {
       {
         actor: "test/core",
         command: "luma cover",
-        payload: {
-          coverUrl: uploaded,
-          sha256: set.sha256,
-          facts: set.factsToken,
-        },
+        payload: { coverUrl: uploaded, sha256: set.sha256 },
       },
     ]);
+    expect(JSON.stringify(lines)).not.toContain(set.factsToken);
+    expect(JSON.stringify(lines)).not.toContain(token);
 
     // The next prepare sees the cover as ours.
     const again = await run((c) => c.prepare({ _tag: "Slug", slug: draft }), {

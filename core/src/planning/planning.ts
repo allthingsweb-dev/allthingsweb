@@ -572,10 +572,9 @@ const make = Effect.gen(function* () {
           yield* log({
             event: { id: event },
             command: "plan idea add",
-            summary: `It became idea "${idea.title.trim()}" (${idea.program}, ${idea.status ?? "idea"}).`,
+            summary: `It became an idea's evening (${idea.program}, ${idea.status ?? "idea"}).`,
             payload: {
               ideaId: row.id,
-              title: idea.title.trim(),
               program: idea.program,
               topic: idea.topic ?? null,
               status: idea.status ?? "idea",
@@ -1043,8 +1042,16 @@ const make = Effect.gen(function* () {
           summary: `Its lineup is now ${
             resolved.length === 0
               ? "empty"
-              : resolved
-                  .map((entry) => `${entry.name} (${entry.role})`)
+              : roleOrder
+                  .map(
+                    (role) =>
+                      [
+                        role,
+                        resolved.filter((entry) => entry.role === role).length,
+                      ] as const,
+                  )
+                  .filter(([, count]) => count > 0)
+                  .map(([role, count]) => `${count} ${role}`)
                   .join(", ")
           }.`,
           payload: {
@@ -1182,15 +1189,10 @@ const make = Effect.gen(function* () {
         yield* log({
           event: { id: draftId },
           command: "plan lineup talk add",
-          summary: `Added the ${talk.kind} "${title}"${
-            people.length === 0
-              ? ""
-              : ` with ${people.map(({ role, wanted }) => `${wanted.name} (${role})`).join(", ")}`
-          }.`,
+          summary: `Added a ${talk.kind} with ${people.length} ${people.length === 1 ? "person" : "people"} on it.`,
           payload: {
             talkId: added.id,
             kind: talk.kind,
-            title,
             people: people.map(({ role, wanted }) => ({
               role,
               wantedSpeakerId: wanted.id,

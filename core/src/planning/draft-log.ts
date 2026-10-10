@@ -13,9 +13,10 @@ import { SqlClient } from "effect/sql/SqlClient";
  * ask. Per-person database roles would make it proof, if that's ever
  * needed.
  *
- * An entry never holds a secret or a contact detail: its payload is built
- * from ids, names of things and the values a command set, never an email,
- * which the table's CHECK refuses anyway.
+ * An entry holds ids, counts and the values a command chose among (kinds,
+ * roles, statuses, times, positions): never anything someone typed or
+ * named (a title, a name, a note), an approval token, a secret or an
+ * email, which the table's CHECK refuses anyway.
  */
 
 /** ALLTHINGS_ACTOR's shape, as the tables check it. */

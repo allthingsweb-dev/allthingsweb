@@ -229,11 +229,11 @@ const make = Effect.gen(function* () {
             yield* logDraft({
               event: { lumaEventId: prepared.lumaEventId },
               command: "luma cover",
-              summary: `Set its cover on Luma, drawn from its facts as they are (${prepared.factsToken}).`,
+              summary:
+                "Set its cover on Luma, drawn from its facts as they are.",
               payload: {
                 coverUrl,
                 sha256: prepared.sha256,
-                facts: prepared.factsToken,
               },
             }).pipe(Effect.provideService(SqlClient, sql));
             return rows;

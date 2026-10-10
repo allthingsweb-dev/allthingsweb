@@ -366,9 +366,8 @@ const make = Effect.gen(function* () {
           yield* log({
             event: { id: evening.id },
             command: "collab invite",
-            summary: `Invited ${name} as ${input.role}${input.round === undefined ? "" : ` of round ${input.round}`}, until ${expiresAt}.`,
+            summary: `Invited a ${input.role}${input.round === undefined ? "" : ` of round ${input.round}`}, until ${expiresAt}.`,
             payload: {
-              name,
               role: input.role,
               round: input.round ?? null,
               expiresAt,
@@ -477,11 +476,10 @@ const make = Effect.gen(function* () {
         yield* log({
           event: { id: evening.id },
           command: "collab round add",
-          summary: `Added round ${added.position}, ${added.title} (${added.questions} questions, ${added.backups} backups).`,
+          summary: `Added round ${added.position} (${added.questions} questions, ${added.backups} backups).`,
           payload: {
             roundId: added.id,
             position: added.position,
-            title: added.title,
             questions: added.questions,
             backups: added.backups,
           },
@@ -622,10 +620,9 @@ const make = Effect.gen(function* () {
         yield* log({
           event: { id: evening.id },
           command: "collab task add",
-          summary: `Added a task for ${row.for}: ${row.title}${row.dueOn === null ? "" : ` (due ${row.dueOn})`}.`,
+          summary: `Added a task for ${task.role ?? (collaboratorId === null ? "everyone" : "one collaborator")}${row.dueOn === null ? "" : `, due ${row.dueOn}`}.`,
           payload: {
             taskId: row.id,
-            title: row.title,
             dueOn: row.dueOn,
             role: task.role ?? null,
             collaboratorId,
@@ -654,7 +651,7 @@ const make = Effect.gen(function* () {
         yield* log({
           event: { id: done.eventId },
           command: "collab task done",
-          summary: `Done: ${row.title}.`,
+          summary: "Marked a task done.",
           payload: { taskId: id },
         });
         return row;
@@ -718,11 +715,10 @@ const make = Effect.gen(function* () {
         yield* log({
           event: { id: evening.id },
           command: "collab logistics add",
-          summary: `Asked the venue to confirm ${added.position}: ${added.label}.`,
+          summary: `Asked the venue to confirm item ${added.position}.`,
           payload: {
             itemId: added.id,
             position: added.position,
-            label: added.label,
           },
         });
         return added;
@@ -800,16 +796,15 @@ const make = Effect.gen(function* () {
             INSERT INTO planning.reviews (round_submission_id, logistics_confirmation_id, decision, note, reviewer, created_at)
             VALUES (${input.subject === "round" ? input.id : null}, ${input.subject === "logistics" ? input.id : null},
               ${input.decision}, ${note ?? null}, ${reviewer}, ${yield* now})`;
-          // The note stays in the review: it is free text, and may say anything.
+          // The note and the reviewer's name stay in the review: typed text.
           yield* log({
             event: { id: found.eventId },
             command: "collab review",
-            summary: `${reviewer} reviewed a ${input.subject === "round" ? "round submission" : "logistics answer"}: ${input.decision}.`,
+            summary: `Reviewed a ${input.subject === "round" ? "round submission" : "logistics answer"}: ${input.decision}.`,
             payload: {
               subject: input.subject,
               id: input.id,
               decision: input.decision,
-              reviewer,
             },
           });
         }

@@ -113,8 +113,7 @@ describe("a write and its line", () => {
       {
         actor: "test/core",
         command: "plan lineup set",
-        summary:
-          "Its lineup is now Ada Lovelace (mc), Grace Hopper (organizer).",
+        summary: "Its lineup is now 1 organizer, 1 mc.",
         payload: {
           lineup: [
             { role: "mc", profileId: "b0000000-0000-4000-8000-000000000001" },
@@ -146,17 +145,13 @@ describe("a write and its line", () => {
   });
 
   test("a line that can't be written takes its write back", async () => {
-    // An email can't be in a line: this name would put one there.
+    // A log that refuses this one line, as a full disk or a broken grant
+    // would: the lineup goes back with it.
     await db.exec(
-      `UPDATE profiles SET name = 'ada@example.com' WHERE id = 'b0000000-0000-4000-8000-000000000001'`,
+      `ALTER TABLE planning.draft_log ADD CONSTRAINT made_up_refusal CHECK (command <> 'plan lineup set')`,
     );
-    await exit(
-      Planning.use((planning) =>
-        planning.setDraftLineup(draft, [
-          { role: "mc", profile: "ada@example.com" },
-        ]),
-      ),
-    );
+    const refused = await exit(Planning.use(lineup));
+    expect(Exit.isFailure(refused)).toBe(true);
     expect(await logOf()).toEqual([]);
     const { rows } = await db.query(
       `SELECT 1 FROM planning.draft_people WHERE event_id = '${draftId}'`,

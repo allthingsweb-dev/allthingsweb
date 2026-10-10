@@ -431,11 +431,10 @@ const make = Effect.gen(function* () {
                 : logDraft({
                     event: { lumaEventId },
                     command: "luma:drafts --add",
-                    summary: `Stored ${event.name} as a draft evening, ${slug}.`,
+                    summary: `Stored its private Luma event as a draft evening, ${slug}.`,
                     payload: {
                       lumaEventId,
                       slug,
-                      name: event.name,
                       startDate: added.startDate,
                       endDate: added.endDate,
                     },
