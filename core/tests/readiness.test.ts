@@ -311,10 +311,9 @@ describe("draftChecks", () => {
     expect(kinds(draftChecks(facts({}, { cover: "stale" }), [], now))).toEqual([
       "blocker cover-facts",
     ]);
-    // Ours, and the site's copy not stored yet: the hourly ingestion brings it.
-    expect(kinds(draftChecks(facts({ hasCover: false }), [], now))).toEqual([
-      "advice cover",
-    ]);
+    // Ours is the cover, though the site has no copy of it: the ingestion
+    // never carries a private event, so a draft can't have one.
+    expect(kinds(draftChecks(facts({ hasCover: false }), [], now))).toEqual([]);
     // A shared evening's cover is its organizer's.
     expect(
       kinds(
@@ -713,8 +712,15 @@ describe("the report", () => {
 
     expect(await coverChecks()).toEqual(["blocker own-cover"]);
     await record(token);
-    // Ours; the site's copy follows with the ingestion.
-    expect(await coverChecks()).toEqual(["advice cover"]);
+    // Ours: the cover `luma cover` set counts, with no preview image stored.
+    expect(
+      (
+        await db.query<{ hasPreview: boolean }>(
+          `SELECT preview_image IS NOT NULL AS "hasPreview" FROM events WHERE slug = '${draft}'`,
+        )
+      ).rows,
+    ).toEqual([{ hasPreview: false }]);
+    expect(await coverChecks()).toEqual([]);
     // Moved a day: the cover says the old one.
     await db.exec(`UPDATE events SET start_date = '2026-10-29T00:30:00Z', end_date = '2026-10-29T03:30:00Z'
       WHERE slug = '${draft}'`);

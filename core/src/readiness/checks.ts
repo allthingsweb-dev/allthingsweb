@@ -223,12 +223,14 @@ export function draftChecks(
   const report = eventCompleteness(record, now);
   for (const gap of report.gaps) {
     if (pastOnly.has(gap.kind)) continue;
-    // A cover that isn't ours is said once, below.
-    if (gap.kind === "cover" && ownsCover && facts.cover !== "ours") continue;
+    // Once its Luma event exists, its cover is the one `luma cover` set
+    // there: one that isn't ours is said once, below, and ours is the
+    // cover. The site's copy (this gap) comes only with the ingestion, which
+    // never carries a private event, so it can't be asked of a draft.
+    if (gap.kind === "cover" && ownsCover) continue;
     const { required, label } = gapKinds[gap.kind];
-    // Whether its cover is ours is checked below, once the Luma event
-    // exists; the site's copy of it (this gap) follows with the hourly
-    // ingestion, so it is advice. A description is written on Luma and
+    // Before the Luma event exists, there is no cover to have yet, so a
+    // missing one is advice. A description is written on Luma and
     // imported once the evening is public (src/luma/descriptions.ts), so
     // before then it is advice too.
     const level: CheckLevel =
