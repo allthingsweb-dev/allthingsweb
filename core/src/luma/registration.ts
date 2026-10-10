@@ -187,12 +187,20 @@ export function requestProblem(request: RegistrationRequest): string | null {
 }
 
 /**
- * A new question's id: the same label always gets the same one, so a plan
- * read twice is the same plan. A question already asked keeps its own.
+ * A new question's id, in the shape Luma gives its own: eight lowercase
+ * letters and digits (as `events/get` answers, e.g. "sqbwk30x"). Luma's
+ * API takes the id from us (`registration_questions[].id` is required);
+ * its own shape is the one sure to be taken. The same label always gets
+ * the same one, so a plan read twice is the same plan. A question already
+ * asked keeps its own.
  */
 export const questionId = (label: string): string => {
   const hash = new Bun.CryptoHasher("sha256").update(label).digest("hex");
-  return `q-${hash.slice(0, 12)}`;
+  // 48 bits in base 36 are 10 characters at most, so 8 are always there.
+  return BigInt(`0x${hash.slice(0, 12)}`)
+    .toString(36)
+    .padStart(8, "0")
+    .slice(-8);
 };
 
 /** The changes `request` makes to `current`, and what Luma can't do: no reads, no writes. */

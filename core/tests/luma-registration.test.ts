@@ -189,7 +189,9 @@ describe("the plan", () => {
     ).toEqual({ changes: [], gaps: [] });
     // The same label always gets the same new id.
     expect(questionId("Anything?")).toBe(questionId("Anything?"));
-    expect(questionId("Anything?")).toMatch(/^q-[0-9a-f]{12}$/);
+    // In the shape Luma gives its own questions, e.g. "sqbwk30x".
+    expect(questionId("Anything?")).toMatch(/^[a-z0-9]{8}$/);
+    expect(questionId("Anything?")).not.toBe(questionId("Anything else?"));
   });
 
   test("names what Luma's API can't set as asked, and plans nothing for it", () => {
