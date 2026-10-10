@@ -373,7 +373,6 @@ const make = Effect.gen(function* () {
           payload: {
             added: added.map((change) => ({ access: change.access })),
             removed,
-            token,
           },
         },
         refuse,

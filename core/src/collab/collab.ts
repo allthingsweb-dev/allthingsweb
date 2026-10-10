@@ -562,10 +562,8 @@ const make = Effect.gen(function* () {
             command: "collab brief set",
             summary: `Set the brief: ${sections.length} section${sections.length === 1 ? "" : "s"}.`,
             payload: {
-              token,
               sections: sections.map((section) => ({
                 position: section.position,
-                heading: section.heading,
                 audiences: section.audiences,
               })),
             },

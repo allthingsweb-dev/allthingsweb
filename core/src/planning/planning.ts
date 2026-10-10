@@ -666,7 +666,7 @@ const make = Effect.gen(function* () {
               evening === event
                 ? `Its idea changed: ${Object.keys(set).join(", ")}.`
                 : "It is no longer this idea's evening.",
-            payload: { ideaId: id, changed: set },
+            payload: { ideaId: id, changed: Object.keys(set) },
           });
         }
         return yield* ideas({ id }).pipe(

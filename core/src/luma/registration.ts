@@ -529,7 +529,6 @@ const make = Effect.gen(function* () {
           summary: `Set its registration on Luma: ${prepared.changes.map((change) => change.field).join(", ")}.`,
           payload: {
             fields: prepared.changes.map((change) => change.field),
-            token,
           },
         },
         refuse,

@@ -337,6 +337,10 @@ describe("approve", () => {
     ).token;
 
   test("sends exactly the plan the dry run printed, and checks it took", async () => {
+    // The evening is stored, so the change has its line in the draft's log.
+    await db.exec(
+      `UPDATE events SET luma_event_id = '${lumaEventId}' WHERE slug = '2026-09-01-draft-night'`,
+    );
     const token = await tokenFor();
     const { exit, requests } = await run(
       (h) => h.approve(draft, request, token),
@@ -366,6 +370,21 @@ describe("approve", () => {
       event_id: lumaEventId,
       email: "cohost@example.com",
     });
+    // Its line says what changed: never an email, nor the approval token.
+    const { rows: lines } = await db.query<{
+      command: string;
+      summary: string;
+      payload: unknown;
+    }>(`SELECT command, summary, payload FROM planning.draft_log`);
+    expect(lines).toEqual([
+      {
+        command: "luma hosts",
+        summary: "Changed its hosts on Luma: 1 added (none), 1 removed.",
+        payload: { added: [{ access: "none" }], removed: 1 },
+      },
+    ]);
+    expect(JSON.stringify(lines)).not.toContain("@");
+    expect(JSON.stringify(lines)).not.toContain(token);
   });
 
   test("refuses a token for any other plan, and sends nothing", async () => {

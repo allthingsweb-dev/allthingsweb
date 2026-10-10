@@ -627,7 +627,6 @@ const make = Effect.gen(function* () {
             summary: `Changed on Luma: ${Object.keys(body).join(", ")}.`,
             payload: {
               fields: Object.keys(body),
-              ...(body.name === undefined ? {} : { name: body.name }),
               ...(body.start_at === undefined
                 ? {}
                 : { startAt: body.start_at }),
