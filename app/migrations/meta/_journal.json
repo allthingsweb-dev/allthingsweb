@@ -281,6 +281,13 @@
       "when": 1791661826280,
       "tag": "0039_draft_talks",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791669234431,
+      "tag": "0040_draft_log",
+      "breakpoints": true
     }
   ]
 }

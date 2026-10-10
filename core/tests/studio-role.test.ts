@@ -410,6 +410,8 @@ const suites: Readonly<
   "luma update": ["luma-studio.test.ts", "promo.test.ts"],
   "luma publish": ["luma-studio.test.ts", "promo.test.ts"],
   "luma cover": ["luma-cover.test.ts"],
+  "luma registration": ["luma-registration.test.ts"],
+  "luma hosts": ["luma-hosts.test.ts"],
   "luma:drafts --add": ["luma-drafts.test.ts"],
   "social bluesky": ["social-bluesky.test.ts"],
   "social discord": ["social-discord.test.ts"],

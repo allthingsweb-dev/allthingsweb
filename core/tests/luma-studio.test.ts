@@ -125,6 +125,16 @@ const run = async <A, E>(
   return { exit, requests: luma.requests };
 };
 
+/** The draft's log, its commands and summaries, oldest first (src/planning/draft-log.ts). */
+const logged = async () =>
+  (
+    await db.query<{ command: string; summary: string }>(
+      `SELECT l.command, l.summary FROM planning.draft_log l
+       JOIN events e ON e.id = l.event_id WHERE e.slug = '${draft}'
+       ORDER BY l.at, l.command`,
+    )
+  ).rows;
+
 const message = (exit: Exit.Exit<unknown, unknown>) => {
   if (Exit.isSuccess(exit)) throw new Error("expected a failure");
   const error = Cause.squash(exit.cause);
@@ -735,6 +745,18 @@ describe("publish", () => {
         { name: "Ada Lovelace", role: "organizer", source: "site" },
         { name: "Ada Lovelace", role: "mc", source: "site" },
       ]),
+    );
+    // Each step in its draft's log: the lineup, the claim Luma refused and
+    // its taking back, then the claim and the publish (lines made in one
+    // instant may come in either order).
+    expect((await logged()).map((line) => line.summary).toSorted()).toEqual(
+      [
+        "Its lineup is now Ada Lovelace (organizer), Ada Lovelace (mc).",
+        "Claimed its publish, with 1 of its lineup copied to the public one.",
+        "Luma didn't make it public: the 1 copied to its public lineup taken back, its claim let go.",
+        "Claimed its publish, with 1 of its lineup copied to the public one.",
+        "Published: public on Luma at https://luma.com/draft-night.",
+      ].toSorted(),
     );
   });
 

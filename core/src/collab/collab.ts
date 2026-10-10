@@ -4,6 +4,11 @@ import type { SqlError } from "effect/sql/SqlError";
 import { approvalToken, isApprovalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
 import { PlanningError } from "../planning/planning.ts";
+import {
+  ActorRequired,
+  type DraftLogEntry,
+  logDraft,
+} from "../planning/draft-log.ts";
 import { readsEveryRow } from "../planning/privacy.ts";
 import { maxSections } from "./brief.ts";
 import { answerKey, open } from "./seal.ts";
@@ -214,18 +219,36 @@ const EventRow = Schema.Struct({
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  /** Folds SQL and decoding failures into DataSourceError, keeping PlanningError. */
+  /**
+   * Folds SQL and decoding failures into DataSourceError, and a missing
+   * ALLTHINGS_ACTOR into a refusal, keeping PlanningError.
+   */
   const run = <A>(
-    effect: Effect.Effect<A, PlanningError | SqlError | Schema.SchemaError>,
+    effect: Effect.Effect<
+      A,
+      PlanningError | SqlError | Schema.SchemaError | ActorRequired
+    >,
   ): Effect.Effect<A, Failure> =>
     effect.pipe(
       Effect.catchTag(["SqlError", "SchemaError"], (cause) =>
         Effect.fail(new DataSourceError({ cause })),
       ),
+      Effect.catchTag("ActorRequired", (missing) => refuse(missing.reason)),
     );
   const inTransaction = <A>(
-    effect: Effect.Effect<A, PlanningError | SqlError | Schema.SchemaError>,
+    effect: Effect.Effect<
+      A,
+      PlanningError | SqlError | Schema.SchemaError | ActorRequired
+    >,
   ) => run(sql.withTransaction(effect));
+
+  /**
+   * Appends to the evening's log in the write's own transaction
+   * (src/planning/draft-log.ts): every collab write does, as
+   * ALLTHINGS_ACTOR, and refuses without one, writing nothing.
+   */
+  const log = (entry: DraftLogEntry) =>
+    logDraft(entry).pipe(Effect.provideService(SqlClient, sql));
 
   const rows =
     <S extends Schema.Top>(schema: S) =>
@@ -340,6 +363,17 @@ const make = Effect.gen(function* () {
           yield* sql`
             INSERT INTO planning.collaborators (event_id, email, name, role, round_id, invited_at, expires_at)
             VALUES (${evening.id}, ${email}, ${name}, ${input.role}, ${roundId}, ${yield* now}, ${expiresAt})`;
+          yield* log({
+            event: { id: evening.id },
+            command: "collab invite",
+            summary: `Invited ${name} as ${input.role}${input.round === undefined ? "" : ` of round ${input.round}`}, until ${expiresAt}.`,
+            payload: {
+              name,
+              role: input.role,
+              round: input.round ?? null,
+              expiresAt,
+            },
+          });
         }
         return { plan, token, written: approved };
       }),
@@ -370,6 +404,12 @@ const make = Effect.gen(function* () {
           yield* sql`
             UPDATE planning.collaborators SET revoked_at = greatest(${yield* now}::timestamptz, invited_at)
             WHERE event_id = ${evening.id} AND email = ${email} AND revoked_at IS NULL`;
+          yield* log({
+            event: { id: evening.id },
+            command: "collab revoke",
+            summary: `Revoked a ${plan.role}'s invitation of ${plan.invitedAt}.`,
+            payload: { role: plan.role, invitedAt: plan.invitedAt },
+          });
         }
         return { plan, token, written: approved };
       }),
@@ -434,6 +474,18 @@ const make = Effect.gen(function* () {
         );
         if (added === undefined)
           return yield* Effect.die("the round just added is missing");
+        yield* log({
+          event: { id: evening.id },
+          command: "collab round add",
+          summary: `Added round ${added.position}, ${added.title} (${added.questions} questions, ${added.backups} backups).`,
+          payload: {
+            roundId: added.id,
+            position: added.position,
+            title: added.title,
+            questions: added.questions,
+            backups: added.backups,
+          },
+        });
         return added;
       }),
     );
@@ -505,6 +557,19 @@ const make = Effect.gen(function* () {
             }
           }
           yield* sql`DELETE FROM planning.brief_sections WHERE event_id = ${evening.id} AND position > 1000`;
+          yield* log({
+            event: { id: evening.id },
+            command: "collab brief set",
+            summary: `Set the brief: ${sections.length} section${sections.length === 1 ? "" : "s"}.`,
+            payload: {
+              token,
+              sections: sections.map((section) => ({
+                position: section.position,
+                heading: section.heading,
+                audiences: section.audiences,
+              })),
+            },
+          });
         }
         return { plan, token, written: approved };
       }),
@@ -556,6 +621,18 @@ const make = Effect.gen(function* () {
           );
         if (row === undefined)
           return yield* Effect.die("the task just added is missing");
+        yield* log({
+          event: { id: evening.id },
+          command: "collab task add",
+          summary: `Added a task for ${row.for}: ${row.title}${row.dueOn === null ? "" : ` (due ${row.dueOn})`}.`,
+          payload: {
+            taskId: row.id,
+            title: row.title,
+            dueOn: row.dueOn,
+            role: task.role ?? null,
+            collaboratorId,
+          },
+        });
         return row;
       }),
     );
@@ -565,14 +642,23 @@ const make = Effect.gen(function* () {
       Effect.gen(function* () {
         if (!isId(id)) return yield* refuse(`"${id}" is not a task's id.`);
         const updated = yield* sql`
-          UPDATE planning.tasks SET done_at = coalesce(done_at, ${yield* now}) WHERE id = ${id} RETURNING id`;
-        if (updated.length === 0)
+          UPDATE planning.tasks SET done_at = coalesce(done_at, ${yield* now}) WHERE id = ${id} RETURNING event_id AS "eventId"`.pipe(
+          Effect.flatMap(rows(Schema.Struct({ eventId: Schema.String }))),
+        );
+        const [done] = updated;
+        if (done === undefined)
           return yield* refuse(`No task has the id ${id}.`);
         const [row] =
           yield* sql`${sql.unsafe(taskJson)} WHERE t.id = ${id}`.pipe(
             Effect.flatMap(rows(Task)),
           );
         if (row === undefined) return yield* Effect.die("the task is missing");
+        yield* log({
+          event: { id: done.eventId },
+          command: "collab task done",
+          summary: `Done: ${row.title}.`,
+          payload: { taskId: id },
+        });
         return row;
       }),
     );
@@ -631,6 +717,16 @@ const make = Effect.gen(function* () {
         );
         if (added === undefined)
           return yield* Effect.die("the item just added is missing");
+        yield* log({
+          event: { id: evening.id },
+          command: "collab logistics add",
+          summary: `Asked the venue to confirm ${added.position}: ${added.label}.`,
+          payload: {
+            itemId: added.id,
+            position: added.position,
+            label: added.label,
+          },
+        });
         return added;
       }),
     );
@@ -677,9 +773,15 @@ const make = Effect.gen(function* () {
         }
         const [found] = yield* (
           input.subject === "round"
-            ? sql`SELECT ${sql.unsafe(digest)} AS content FROM planning.round_submissions s WHERE s.id = ${input.id}`
-            : sql`SELECT l.answer || ': ' || coalesce(l.note, '') AS content FROM planning.logistics_confirmations l WHERE l.id = ${input.id}`
-        ).pipe(Effect.flatMap(rows(Schema.Struct({ content: Schema.String }))));
+            ? sql`SELECT ${sql.unsafe(digest)} AS content, s.event_id AS "eventId" FROM planning.round_submissions s WHERE s.id = ${input.id}`
+            : sql`SELECT l.answer || ': ' || coalesce(l.note, '') AS content, l.event_id AS "eventId" FROM planning.logistics_confirmations l WHERE l.id = ${input.id}`
+        ).pipe(
+          Effect.flatMap(
+            rows(
+              Schema.Struct({ content: Schema.String, eventId: Schema.String }),
+            ),
+          ),
+        );
         if (found === undefined) {
           return yield* refuse(
             `No ${input.subject === "round" ? "round submission" : "logistics answer"} has the id ${input.id}.`,
@@ -700,6 +802,18 @@ const make = Effect.gen(function* () {
             INSERT INTO planning.reviews (round_submission_id, logistics_confirmation_id, decision, note, reviewer, created_at)
             VALUES (${input.subject === "round" ? input.id : null}, ${input.subject === "logistics" ? input.id : null},
               ${input.decision}, ${note ?? null}, ${reviewer}, ${yield* now})`;
+          // The note stays in the review: it is free text, and may say anything.
+          yield* log({
+            event: { id: found.eventId },
+            command: "collab review",
+            summary: `${reviewer} reviewed a ${input.subject === "round" ? "round submission" : "logistics answer"}: ${input.decision}.`,
+            payload: {
+              subject: input.subject,
+              id: input.id,
+              decision: input.decision,
+              reviewer,
+            },
+          });
         }
         return { plan, token, written: approved };
       }),
@@ -818,9 +932,18 @@ const make = Effect.gen(function* () {
         if (!isId(id)) return yield* refuse(`"${id}" is not a comment's id.`);
         const updated = yield* sql`
           UPDATE planning.comments SET hidden_at = coalesce(hidden_at, greatest(${yield* now}::timestamptz, created_at))
-          WHERE id = ${id} RETURNING id`;
-        if (updated.length === 0)
+          WHERE id = ${id} RETURNING event_id AS "eventId"`.pipe(
+          Effect.flatMap(rows(Schema.Struct({ eventId: Schema.String }))),
+        );
+        const [hidden] = updated;
+        if (hidden === undefined)
           return yield* refuse(`No comment has the id ${id}.`);
+        yield* log({
+          event: { id: hidden.eventId },
+          command: "collab comment hide",
+          summary: "Hid a comment.",
+          payload: { commentId: id },
+        });
         const [row] =
           yield* sql`${sql.unsafe(commentJson)} WHERE m.id = ${id}`.pipe(
             Effect.flatMap(rows(Comment)),

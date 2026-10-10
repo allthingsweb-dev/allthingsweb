@@ -106,8 +106,8 @@ infra/scripts/vault-items.ts` checks the list against the vault itself.
 
 The event studio's commands connect as `studio`, a login role made by
 [`infra/scripts/studio.ts`](../infra/scripts/studio.ts): `plan`,
-`readiness`, `luma create`, `update`, `publish` and `cover`,
-`luma:drafts --add`, `social bluesky`, `discord` and `x`, `posts`,
+`readiness`, `luma create`, `update`, `publish`, `cover`, `registration`
+and `hosts`, `luma:drafts --add`, `social bluesky`, `discord` and `x`, `posts`,
 `photos`, `people photo`, `hosts logo` and `talks`. Its connection string
 is the 1Password item "allthings studio" (`credential`), so every one of
 them runs as
@@ -118,6 +118,15 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pla
 
 and every invocation in this README says so; `tests/vault.test.ts` fails
 on one that doesn't.
+
+Every studio write also says who is writing: `ALLTHINGS_ACTOR`, set once
+in the environment, like `erik`, `andre`, `erik/claude-personal` or
+`erik/claude-work`. A write refuses to run without it, and writes
+nothing; reads never ask. It is a label the person or agent declares, not
+proof of who they are: everyone shares the one studio role. Per-person
+roles would make it proof, if that's ever needed. A write that touches a
+draft evening puts it in that evening's log (see "A draft's log, notes and
+status").
 
 - **Exactly what its commands use.** The script lists each grant with the
   command whose statement needs it: planning's tables (all but the
@@ -994,6 +1003,50 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pla
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
 ```
 
+### A draft's log, notes and status
+
+Every studio write that touches a draft evening appends a line to its
+log, `planning.draft_log` (`migrations/0028_draft_log.ts`), in the same
+transaction as the write (`src/planning/draft-log.ts`): kept with it, or
+rolled back with it, so a dry run leaves none. Each line says who
+(`ALLTHINGS_ACTOR`), the command, a summary, and what changed as JSON:
+ids and the values set, never a secret or an email, which the table also
+refuses. The log is append-only: a trigger refuses any change or delete,
+the owner's too.
+
+- `plan`: an idea that is or was the evening's (`idea add`, `idea
+update`), `lineup set`, `lineup talk add` and `remove`, and its notes.
+- `luma`: `luma:drafts --add` (the evening stored), `update`, `cover`,
+  `registration`, `hosts`, and `publish` (its claim, then published, or
+  taken back). Luma has no transaction to share: a write that goes to Luma
+  first asks for the actor before it sends anything, and adds its line
+  once Luma has it.
+- `collab`: invitations and revocations, rounds, the brief, tasks,
+  logistics, reviews (never their note) and hidden comments. An
+  invitation's line names the person and role, never their email.
+
+`planning.draft_notes` holds what the organizers say about an evening: a
+note, a decision or a question, with who and when. Each is written once:
+a trigger refuses any change but resolving an open question. Adding or
+resolving one is a write, with its line in the log.
+
+`plan status` is the draft in one read: its facts (private or public on
+Luma, its times, venue and program, and whether its cover is current,
+drawn for facts that have since changed, not ours, or none), readiness's
+blockers and advice, its lineup and talks with whether each person has
+said yes, the companies we'd like to host, its collaboration (rounds, active
+invitations by role, submissions; only as a role that reads every row of
+it), its open questions, decisions and notes, and the last 20 lines of its
+log. The admin MCP server's `draft_status`, `add_draft_note` and
+`resolve_draft_note` run the same commands.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan note <draft slug> --kind question --text "CodeRabbit or Vercel?" --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan note <draft slug> --kind decision --text "Five rounds, Erik MCs."
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan note resolve <question id>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan status <draft slug> [--json]
+```
+
 ## Readiness
 
 `src/readiness/` says whether a draft evening is ready to go out, and what
@@ -1458,10 +1511,16 @@ Questions are the whole list, in the order given across `--question`
 admin MCP server's `luma_registration` runs the same command.
 
 ```sh
-LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug>   # as Luma has it
-LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug> --approval on --waitlist on \
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma registration --event <slug>   # as Luma has it
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma registration --event <slug> --approval on --waitlist on \
   --capacity 120 --question "Your team?" --question-optional "Anything we should know?" --dry-run
-LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug> … --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma registration --event <slug> … --approve <token>
 ```
 
 ### Hosts
@@ -1495,10 +1554,16 @@ the evening is public, the Luma people import reads its hosts like any
 evening's.
 
 ```sh
-LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug>   # as Luma has them
-LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug> --add erik@example.com --access manager \
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma hosts --event <slug>   # as Luma has them
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma hosts --event <slug> --add erik@example.com --access manager \
   --add events@example.com --remove usr-… --dry-run
-LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug> … --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma hosts --event <slug> … --approve <token>
 ```
 
 ## Posting to Bluesky

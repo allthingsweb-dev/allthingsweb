@@ -29,6 +29,8 @@ import {
   WindowInput,
 } from "../src/planning/model.ts";
 import { rollingBackIf } from "../src/planning/dry-run.ts";
+import { Drafts, formatNote, formatStatus } from "../src/planning/draft.ts";
+import { Readiness } from "../src/readiness/readiness.ts";
 import {
   type DraftPerson,
   type DraftTalk,
@@ -58,6 +60,9 @@ import {
  *   bun run plan host list [--status prospect]
  *   bun run plan host update <id> --status asked
  *   bun run plan note add --profile <id or name> | --sponsor … | --contact <id> --body … [--author Erik]
+ *   bun run plan note <draft slug> --kind note|decision|question --text "…"   on the draft evening itself
+ *   bun run plan note resolve <question id>
+ *   bun run plan status <draft slug>    everything about a draft, in one read
  *   bun run plan lineup set <draft slug> --mc "Erik Thorelli" --organizer "Erik Thorelli" --organizer "Andre Landgraf"
  *   bun run plan lineup show <draft slug>
  *   bun run plan lineup talk add <draft slug> --kind panel --title "…" --moderator <wanted id> --panelist <wanted id> --panelist <wanted id>
@@ -65,6 +70,11 @@ import {
  *   bun run plan lineup talk remove <draft slug> <talk id>
  *   bun run plan search <text>
  *   bun run plan audit        prove no site role may read planning; fails if one may
+ *
+ * Every command that writes says who is writing, ALLTHINGS_ACTOR (like
+ * erik/claude-work: a label, not proof), and refuses without it; one that
+ * touches a draft evening appends to its log in the same transaction
+ * (src/planning/draft-log.ts). Reads don't ask.
  *
  * Every command that writes takes --dry-run: the write runs for real in a
  * transaction that is rolled back, so it prints exactly what it would be,
@@ -625,9 +635,94 @@ const noteAdd = Command.make(
     ),
 ).pipe(Command.withDescription("Add a note on a person or a company."));
 
-const note = Command.make("note").pipe(
-  Command.withDescription("Notes on the people and companies we know."),
-  Command.withSubcommands([noteAdd]),
+/** The drafts service, over planning and readiness, at DATABASE_URL. */
+const draftsLayer = Drafts.layer.pipe(
+  Layer.provideMerge(Readiness.layer),
+  Layer.provideMerge(Planning.layer),
+  Layer.provideMerge(Database.layer),
+);
+
+const noteResolve = Command.make(
+  "resolve",
+  {
+    id: Argument.String("id").pipe(
+      Argument.withDescription("The open question's id."),
+    ),
+    json,
+    dryRun,
+  },
+  (options) =>
+    Drafts.use((drafts) => drafts.resolveNote(options.id)).pipe(
+      Effect.flatMap((resolved) => print(options.json, resolved, formatNote)),
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(draftsLayer),
+    ),
+).pipe(Command.withDescription("Resolve a draft evening's open question."));
+
+/**
+ * `plan note <slug> --kind … --text …`: a note, decision or question on a
+ * draft evening (src/planning/draft.ts). `plan note add` is a note on a
+ * person or a company, and `plan note resolve` resolves a question.
+ */
+const note = Command.make(
+  "note",
+  {
+    slug: Argument.String("slug").pipe(
+      Argument.withDescription("The draft evening, by slug."),
+      Argument.optional,
+    ),
+    kind: Flag.Literals("kind", ["note", "decision", "question"]).pipe(
+      Flag.withDescription("What it is (note, decision, question)."),
+      Flag.optional,
+    ),
+    text: text("text", "What it says."),
+    json,
+    dryRun,
+  },
+  (options) =>
+    Effect.gen(function* () {
+      const slug = value(options.slug);
+      const kind = value(options.kind);
+      const said = value(options.text);
+      if (slug === undefined || kind === undefined || said === undefined) {
+        return yield* refuse(
+          'A draft\'s note: bun run plan note <slug> --kind note|decision|question --text "…" (or plan note add, on a person or a company; plan note resolve <id>).',
+        );
+      }
+      const added = yield* Drafts.use((drafts) =>
+        drafts.addNote(slug, kind, said),
+      );
+      return yield* print(options.json, added, formatNote);
+    }).pipe(
+      rollingBackIf(options.dryRun),
+      Effect.tap(() => dryRunNote(options)),
+      Effect.provide(draftsLayer),
+    ),
+).pipe(
+  Command.withDescription(
+    "A note, decision or question on a draft evening; notes on the people and companies we know (add); resolving a question (resolve).",
+  ),
+  Command.withSubcommands([noteAdd, noteResolve]),
+);
+
+const status = Command.make(
+  "status",
+  {
+    slug: Argument.String("slug").pipe(
+      Argument.withDescription("The draft evening, by slug."),
+    ),
+    json,
+  },
+  (options) =>
+    Drafts.use((drafts) => drafts.status(options.slug)).pipe(
+      Effect.flatMap((found) => print(options.json, found, formatStatus)),
+      Effect.provide(draftsLayer),
+    ),
+).pipe(
+  Command.withDescription(
+    "A draft evening in one read: its facts, readiness, lineup, collaboration, notes and log.",
+  ),
 );
 
 /** A draft's private lineup, one line each, by role and order. */
@@ -858,7 +953,16 @@ const plan = Command.make("plan").pipe(
   Command.withDescription(
     "Organizers' planning: ideas, speakers, hosts, notes.",
   ),
-  Command.withSubcommands([idea, speaker, host, note, lineup, search, audit]),
+  Command.withSubcommands([
+    idea,
+    speaker,
+    host,
+    note,
+    lineup,
+    status,
+    search,
+    audit,
+  ]),
 );
 
 // A refusal is the answer, not a crash: its reason alone, on stderr, and exit 1.

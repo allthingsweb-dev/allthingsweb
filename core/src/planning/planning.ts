@@ -24,6 +24,12 @@ import {
   WantedSpeaker,
   type WindowInput,
 } from "./model.ts";
+import {
+  ActorRequired,
+  currentActor,
+  type DraftLogEntry,
+  logDraft,
+} from "./draft-log.ts";
 
 /**
  * Organizers' planning (migrations/0012_planning.ts): ideas for evenings,
@@ -323,24 +329,44 @@ const DraftPersonRows = Schema.Array(
   }),
 );
 
-const roleOrder = ["organizer", "co-host", "mc"] as const;
+/** A draft lineup's roles, in the order it lists them. */
+export const draftRoleOrder = ["organizer", "co-host", "mc"] as const;
+const roleOrder = draftRoleOrder;
 
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  /** Folds SQL and decoding failures into DataSourceError, keeping PlanningError. */
+  /**
+   * Folds SQL and decoding failures into DataSourceError, and a missing
+   * ALLTHINGS_ACTOR into a refusal, keeping PlanningError.
+   */
   const run = <A>(
-    effect: Effect.Effect<A, PlanningError | SqlError | Schema.SchemaError>,
+    effect: Effect.Effect<
+      A,
+      PlanningError | SqlError | Schema.SchemaError | ActorRequired
+    >,
   ): Effect.Effect<A, Failure> =>
     effect.pipe(
       Effect.catchTag(["SqlError", "SchemaError"], (cause) =>
         Effect.fail(new DataSourceError({ cause })),
       ),
+      Effect.catchTag("ActorRequired", (missing) => refuse(missing.reason)),
     );
 
+  /** Appends to a draft's log on this service's connection (src/planning/draft-log.ts). */
+  const log = (entry: DraftLogEntry) =>
+    logDraft(entry).pipe(Effect.provideService(SqlClient, sql));
+
+  /**
+   * A write: it says who is writing first (ALLTHINGS_ACTOR), then runs in
+   * one transaction, with the entries it appends to a draft's log.
+   */
   const inTransaction = <A>(
-    effect: Effect.Effect<A, PlanningError | SqlError | Schema.SchemaError>,
-  ) => run(sql.withTransaction(effect));
+    effect: Effect.Effect<
+      A,
+      PlanningError | SqlError | Schema.SchemaError | ActorRequired
+    >,
+  ) => run(Effect.andThen(currentActor, sql.withTransaction(effect)));
 
   const IdRows = Schema.Array(Schema.Struct({ id: Schema.String }));
   const NamedRows = Schema.Array(
@@ -542,6 +568,20 @@ const make = Effect.gen(function* () {
         );
         if (row === undefined)
           return yield* Effect.die("INSERT returned no id");
+        if (event !== null) {
+          yield* log({
+            event: { id: event },
+            command: "plan idea add",
+            summary: `It became idea "${idea.title.trim()}" (${idea.program}, ${idea.status ?? "idea"}).`,
+            payload: {
+              ideaId: row.id,
+              title: idea.title.trim(),
+              program: idea.program,
+              topic: idea.topic ?? null,
+              status: idea.status ?? "idea",
+            },
+          });
+        }
         return yield* ideas({ id: row.id }).pipe(
           Effect.flatMap((rows) => found("idea", row.id, rows)),
         );
@@ -612,6 +652,23 @@ const make = Effect.gen(function* () {
         yield* sql`
           UPDATE planning.ideas SET ${sql.update(set)}, updated_at = now()
           WHERE id = ${id}`;
+        // Each evening the idea was or now is.
+        const evenings = new Set(
+          [current.event_id, event].filter(
+            (value): value is string => typeof value === "string",
+          ),
+        );
+        for (const evening of evenings) {
+          yield* log({
+            event: { id: evening },
+            command: "plan idea update",
+            summary:
+              evening === event
+                ? `Its idea changed: ${Object.keys(set).join(", ")}.`
+                : "It is no longer this idea's evening.",
+            payload: { ideaId: id, changed: set },
+          });
+        }
         return yield* ideas({ id }).pipe(
           Effect.flatMap((rows) => found("idea", id, rows)),
         );
@@ -980,6 +1037,23 @@ const make = Effect.gen(function* () {
               VALUES (${draftId}, ${entry.profileId}, ${role}, ${position})`;
           }
         }
+        yield* log({
+          event: { id: draftId },
+          command: "plan lineup set",
+          summary: `Its lineup is now ${
+            resolved.length === 0
+              ? "empty"
+              : resolved
+                  .map((entry) => `${entry.name} (${entry.role})`)
+                  .join(", ")
+          }.`,
+          payload: {
+            lineup: resolved.map(({ role, profileId }) => ({
+              role,
+              profileId,
+            })),
+          },
+        });
         return yield* readLineup(draftId);
       }),
     );
@@ -1105,6 +1179,24 @@ const make = Effect.gen(function* () {
             INSERT INTO planning.draft_talk_people (draft_talk_id, wanted_speaker_id, role, position)
             VALUES (${added.id}, ${wanted.id}, ${role}, ${position})`;
         }
+        yield* log({
+          event: { id: draftId },
+          command: "plan lineup talk add",
+          summary: `Added the ${talk.kind} "${title}"${
+            people.length === 0
+              ? ""
+              : ` with ${people.map(({ role, wanted }) => `${wanted.name} (${role})`).join(", ")}`
+          }.`,
+          payload: {
+            talkId: added.id,
+            kind: talk.kind,
+            title,
+            people: people.map(({ role, wanted }) => ({
+              role,
+              wantedSpeakerId: wanted.id,
+            })),
+          },
+        });
         return yield* readTalks(draftId);
       }),
     );
@@ -1129,6 +1221,12 @@ const make = Effect.gen(function* () {
         }
         yield* sql`DELETE FROM planning.draft_talk_people WHERE draft_talk_id = ${talk.id}`;
         yield* sql`DELETE FROM planning.draft_talks WHERE id = ${talk.id}`;
+        yield* log({
+          event: { id: draftId },
+          command: "plan lineup talk remove",
+          summary: "Removed a private talk.",
+          payload: { talkId: talk.id },
+        });
         return yield* readTalks(draftId);
       }),
     );

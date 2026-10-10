@@ -4,6 +4,12 @@ import { approvalToken } from "../approval.ts";
 import { isLumaDefaultCover } from "../cover.ts";
 import { DataSourceError } from "../errors.ts";
 import { Planning, PlanningError } from "../planning/planning.ts";
+import {
+  actorFor,
+  type DraftLogEntry,
+  logAfterLuma,
+  logDraft,
+} from "../planning/draft-log.ts";
 import { DraftTooLong } from "../promo/limits.ts";
 import { Promo } from "../promo/promo.ts";
 import { Readiness } from "../readiness/readiness.ts";
@@ -426,6 +432,18 @@ const make = Effect.gen(function* () {
           }
           const before = yield* applyPlannedProgram(slug);
           const copied = yield* copyPlannedLineup(slug);
+          yield* log({
+            event: { slug },
+            command: "luma publish",
+            summary: `Claimed its publish${before === null ? "" : `, its program set from its idea (was ${before})`}, with ${copied.length} of its lineup copied to the public one.`,
+            payload: {
+              programBefore: before,
+              copied: copied.map(({ profileId, role }) => ({
+                profileId,
+                role,
+              })),
+            },
+          });
           return { before, copied };
         }),
       ),
@@ -435,15 +453,30 @@ const make = Effect.gen(function* () {
       ),
     );
 
-  /** Records the draft at `slug` published, as Luma now says. */
-  const markPublished = (slug: string) =>
-    Effect.flatMap(
-      DateTime.now,
-      (now) =>
-        sql`
-        UPDATE planning.publishes pb SET status = 'published',
-          published_at = ${DateTime.formatIso(now)}::timestamptz
-        FROM events e WHERE e.id = pb.event_id AND e.slug = ${slug}`,
+  /** Appends to a draft's log on this service's connection (src/planning/draft-log.ts). */
+  const log = (entry: DraftLogEntry) =>
+    logDraft(entry).pipe(
+      Effect.provideService(SqlClient, sql),
+      Effect.catchTag("ActorRequired", (missing) => refuse(missing.reason)),
+    );
+
+  /** Records the draft at `slug` published, as Luma now says, with its line in the log. */
+  const markPublished = (slug: string, url: string) =>
+    Effect.flatMap(DateTime.now, (now) =>
+      sql.withTransaction(
+        Effect.andThen(
+          sql`
+          UPDATE planning.publishes pb SET status = 'published',
+            published_at = ${DateTime.formatIso(now)}::timestamptz
+          FROM events e WHERE e.id = pb.event_id AND e.slug = ${slug}`,
+          log({
+            event: { slug },
+            command: "luma publish",
+            summary: `Published: public on Luma at ${url}.`,
+            payload: { url },
+          }),
+        ),
+      ),
     ).pipe(
       Effect.asVoid,
       Effect.mapError((cause) => new DataSourceError({ cause })),
@@ -543,6 +576,7 @@ const make = Effect.gen(function* () {
 
   const update = (ref: EventRef, input: UpdateInput, dryRun: boolean) =>
     Effect.gen(function* () {
+      if (!dryRun) yield* actorFor(refuse);
       const lumaEventId =
         ref._tag === "Slug"
           ? (yield* draftAt(ref.slug)).lumaEventId
@@ -584,7 +618,25 @@ const make = Effect.gen(function* () {
       if (Object.keys(body).length === 0) {
         return yield* refuse("Nothing to change.");
       }
-      if (!dryRun) yield* luma.update(lumaEventId, body);
+      if (!dryRun) {
+        yield* luma.update(lumaEventId, body);
+        yield* logAfterLuma(
+          {
+            event: { lumaEventId },
+            command: "luma update",
+            summary: `Changed on Luma: ${Object.keys(body).join(", ")}.`,
+            payload: {
+              fields: Object.keys(body),
+              ...(body.name === undefined ? {} : { name: body.name }),
+              ...(body.start_at === undefined
+                ? {}
+                : { startAt: body.start_at }),
+              ...(body.end_at === undefined ? {} : { endAt: body.end_at }),
+            },
+          },
+          refuse,
+        ).pipe(Effect.provideService(SqlClient, sql));
+      }
       return { lumaEventId, body };
     });
 
@@ -631,6 +683,7 @@ const make = Effect.gen(function* () {
 
   const publish = (slug: string, token: string) =>
     Effect.gen(function* () {
+      yield* actorFor(refuse);
       const prepared = yield* prepare(slug);
       if (prepared.token !== token) {
         return yield* refuse(
@@ -663,7 +716,7 @@ const make = Effect.gen(function* () {
         // say, everything stays, and the claim lapses after claimLasts.
         const now = yield* Effect.option(luma.get(outgoing.lumaEventId));
         if (Option.isSome(now) && now.value.visibility === "public") {
-          yield* markPublished(slug).pipe(
+          yield* markPublished(slug, now.value.url).pipe(
             Effect.catchTag("DataSourceError", () =>
               refuse(
                 `${now.value.name} is public on Luma, but its publish wasn't recorded: lineup changes stay refused while its claim stands.`,
@@ -679,6 +732,20 @@ const make = Effect.gen(function* () {
                 sql`
                   DELETE FROM planning.publishes pb USING events e
                   WHERE e.id = pb.event_id AND e.slug = ${slug}`,
+                log({
+                  event: { slug },
+                  command: "luma publish",
+                  summary: `Luma didn't make it public: ${[
+                    before === null ? [] : ["its program"],
+                    copied.length === 0
+                      ? []
+                      : [`the ${copied.length} copied to its public lineup`],
+                  ]
+                    .flat()
+                    .map((what) => `${what} taken back, `)
+                    .join("")}its claim let go.`,
+                  payload: { programRestored: before, uncopied: copied.length },
+                }),
               ]),
             )
             .pipe(
@@ -692,7 +759,7 @@ const make = Effect.gen(function* () {
         return yield* Effect.failCause(outcome.cause);
       }
       const after = outcome.value;
-      yield* markPublished(slug).pipe(
+      yield* markPublished(slug, after.url).pipe(
         Effect.catchTag("DataSourceError", () =>
           refuse(
             `${after.name} is public on Luma, but its publish wasn't recorded: lineup changes stay refused while its claim stands.`,

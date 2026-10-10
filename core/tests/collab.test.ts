@@ -290,6 +290,14 @@ CodeRabbit first.
       "The pitch",
       "Venues",
     ]);
+    // Only the approved write has a line in the draft's log.
+    const { rows: lines } = await db.query(
+      `SELECT command, summary FROM planning.draft_log l
+       JOIN events e ON e.id = l.event_id WHERE e.slug = '${draft}'`,
+    );
+    expect(lines).toEqual([
+      { command: "collab brief set", summary: "Set the brief: 2 sections." },
+    ]);
     expect(await collab((service) => service.brief(draft))).toEqual([
       {
         position: 1,

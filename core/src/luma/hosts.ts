@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
+import { actorFor, logAfterLuma } from "../planning/draft-log.ts";
 import { type EventRef, StudioRefused } from "./publish.ts";
 import {
   LumaWrite,
@@ -321,6 +322,7 @@ const make = Effect.gen(function* () {
 
   const approve = (ref: EventRef, request: HostsRequest, token: string) =>
     Effect.gen(function* () {
+      yield* actorFor(refuse);
       const lumaEventId = yield* lumaIdOf(ref);
       const prepared = yield* prepareFrom(lumaEventId, request);
       if (prepared.token !== token) {
@@ -354,6 +356,28 @@ const make = Effect.gen(function* () {
             )}. Read them with bun run luma hosts and set them again.`,
         );
       }
+      // Hosts are named by email on Luma: the log keeps only what changed.
+      const added = prepared.changes.filter(
+        (change) => change.action === "add",
+      );
+      const removed = prepared.changes.length - added.length;
+      yield* logAfterLuma(
+        {
+          event: { lumaEventId },
+          command: "luma hosts",
+          summary: `Changed its hosts on Luma: ${added.length} added${
+            added.length === 0
+              ? ""
+              : ` (${added.map((change) => change.access).join(", ")})`
+          }, ${removed} removed.`,
+          payload: {
+            added: added.map((change) => ({ access: change.access })),
+            removed,
+            token,
+          },
+        },
+        refuse,
+      ).pipe(Effect.provideService(SqlClient, sql));
       return { ...prepared, hosts: after };
     });
 
