@@ -351,7 +351,28 @@ const about = dataPage(
 const labPages = Effect.promise(() => import("./lab/variants.tsx"));
 
 /**
- * /lab/home: the lab's index. It reads only the hosts' portraits, and is
+ * /lab: the lab's root, every exploration with its line. It reads only the
+ * hosts' portraits, and is cached as a page, as /brand is.
+ */
+const labRootIndex = page("/lab", ({ theme, acceptEncoding, images }) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const { labRootPage } = yield* Effect.promise(
+      () => import("./lab/labs.tsx"),
+    );
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      labRootPage({ origin, theme, portraits, images }),
+      acceptEncoding,
+      { cacheControl: read ? "page" : "failure", theme, images },
+    );
+  }),
+);
+
+/**
+ * /lab/home: the home lab's index. It reads only the hosts' portraits, and is
  * cached as a page, as /brand is.
  */
 const labIndex = page("/lab/home", ({ theme, acceptEncoding, images }) =>
@@ -836,6 +857,7 @@ export const pageRoutes = Layer.mergeAll(
   person,
   speakers,
   about,
+  labRootIndex,
   labIndex,
   labVariant,
   brand,

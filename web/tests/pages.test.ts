@@ -757,3 +757,25 @@ describe("simple dates", () => {
     expect(html).toMatch(/<time\b[^>]*>\d{4}\.\d{2}\.\d{2}<\/time>/);
   });
 });
+
+describe("/lab", () => {
+  it("lists the lab's explorations, cached as a page and kept out of search", async (url) => {
+    const response = await fetch(`${url}/lab`);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.page);
+    expect(response.headers.get("content-security-policy")).toBe(
+      contentSecurityPolicy.originals,
+    );
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow"/>');
+    expect(html).toContain('<a href="/lab/home">');
+    expect(html).not.toMatch(/<script|(?:\s|\/)on[a-z]+\s*=|javascript:/i);
+  });
+
+  it("is never stored without a database, which only its footer reads", async (_, noDatabase) => {
+    const response = await fetch(`${noDatabase}/lab`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    await response.arrayBuffer();
+  });
+});

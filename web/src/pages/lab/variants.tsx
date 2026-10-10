@@ -1,3 +1,4 @@
+import { labRoot } from "./paths.ts";
 import { Cursor } from "../evening-row.tsx";
 import { ContactSheet } from "./contact-sheet.tsx";
 import { DepthField } from "./depth-field.tsx";
@@ -79,14 +80,16 @@ export function variantPage(
 /** /lab/home: every variant, each with its line, and today's home to compare. */
 export function labIndexPage(page: LabPage): string {
   return LabDocument({
-    title: "lab",
+    title: "lab/home",
     description: "Experimental heroes for the home page.",
     path: labPath,
     page,
     children: (
       <div class="lab-index">
         <div class="lab-index-head">
-          <p class="at-type-meta">the home lab</p>
+          <p class="at-type-meta">
+            <a href={labRoot}>the lab</a> · home
+          </p>
           <h1 class="lab-index-name">
             allthings<span class="slash">/</span>lab
             <Cursor />
