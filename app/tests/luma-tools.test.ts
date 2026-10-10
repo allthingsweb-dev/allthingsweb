@@ -90,4 +90,55 @@ describe("Luma tools", () => {
       lumaArguments("luma_publish", { slug: "draft", approve: "yes" }),
     ).toThrow();
   });
+
+  test("registration reads with no changes, and a change is a dry run until approved", () => {
+    expect(
+      lumaArguments("luma_registration", { event: "2026-10-27-made-up" }),
+    ).toEqual(["registration", "--event=2026-10-27-made-up", "--json"]);
+    const change = {
+      event: "2026-10-27-made-up",
+      approval: true,
+      capacity: "none",
+      questions: [
+        { label: "Anything we should know?", required: false },
+        { label: "Your team?", required: true },
+      ],
+    };
+    expect(lumaArguments("luma_registration", change)).toEqual([
+      "registration",
+      "--event=2026-10-27-made-up",
+      "--approval=on",
+      "--capacity=none",
+      // In the order given, each as required or not.
+      "--question-optional=Anything we should know?",
+      "--question=Your team?",
+      "--dry-run",
+      "--json",
+    ]);
+    expect(
+      lumaArguments("luma_registration", {
+        ...change,
+        approve: "0123456789abcdef",
+      }),
+    ).toContain("--approve=0123456789abcdef");
+    expect(
+      lumaArguments("luma_registration", {
+        event: "x",
+        questions: [],
+      }),
+    ).toContain("--clear-questions");
+    // A change without its token is never sent.
+    expect(() =>
+      lumaArguments("luma_registration", { ...change, dryRun: false }),
+    ).toThrow();
+    expect(() =>
+      lumaArguments("luma_registration", {
+        event: "x",
+        approve: "0123456789abcdef",
+      }),
+    ).toThrow();
+    expect(() =>
+      lumaArguments("luma_registration", { event: "x", capacity: 0 }),
+    ).toThrow();
+  });
 });
