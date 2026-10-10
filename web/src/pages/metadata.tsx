@@ -70,6 +70,11 @@ export interface PageMeta {
   readonly image: OgImage;
   /** schema.org data about what the page is about, if any. */
   readonly structuredData?: ReadonlyArray<StructuredData>;
+  /**
+   * Kept out of search engines, and its links not followed: the home lab's
+   * pages (pages/lab/), which are experiments, not the site.
+   */
+  readonly noindex?: true;
 }
 
 /** Each mode's ground, for the browser's own chrome. */
@@ -131,6 +136,11 @@ export function Metadata({ meta, origin, theme }: MetadataProps) {
     <>
       <title safe>{unsafeTitle}</title>
       <meta name="description" content={meta.description} />
+      {meta.noindex === true ? (
+        <meta name="robots" content="noindex, nofollow" />
+      ) : (
+        ""
+      )}
       <link rel="canonical" href={canonical} />
       <link
         rel="alternate"

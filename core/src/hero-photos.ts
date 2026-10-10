@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import file from "../backfill/hero-photos.json" with { type: "json" };
+import wallFile from "../backfill/wall-photos.json" with { type: "json" };
 import { asOf } from "./clock.ts";
 import { ended, ours, published } from "./catalog.ts";
 
@@ -12,6 +13,10 @@ import { ended, ours, published } from "./catalog.ts";
  * first is the wide tile. Each names the evening it was taken at, and home
  * shows it only as that evening's photo; `bun run hero-photos` checks the
  * same against production (scripts/hero-photos.ts).
+ *
+ * The home lab's wall (core/backfill/wall-photos.json, src/community.ts) is
+ * a longer list of the same kind, about forty photos of crowds and energy
+ * across many evenings, held to the same rules and the same check.
  */
 
 const Text = Schema.String.check(
@@ -49,6 +54,10 @@ export function repeated(
 /** The hand-picked photos, in the order home prefers them. */
 export const heroPhotos: ReadonlyArray<HeroPhoto> =
   Schema.decodeUnknownSync(HeroPhotosFile)(file).photos;
+
+/** The home lab's wall of hand-picked photos, in the order it shows them. */
+export const wallPhotos: ReadonlyArray<HeroPhoto> =
+  Schema.decodeUnknownSync(HeroPhotosFile)(wallFile).photos;
 
 const Found = Schema.Struct({
   image: Schema.String,

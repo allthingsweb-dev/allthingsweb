@@ -2,6 +2,7 @@ import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { asOf } from "./clock.ts";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
+import type * as Statement from "effect/sql/Statement";
 import type * as Contract from "./contract.ts";
 import {
   ended,
@@ -52,7 +53,11 @@ export interface Organizer {
   readonly photo: Rows.Photo | null;
 }
 
-export interface AboutView {
+/**
+ * What allthings has done so far, counted at our published evenings that
+ * have ended: the about page's tally, which the home lab shows too.
+ */
+export interface Tally {
   /** Published evenings that have ended. */
   readonly evenings: number;
   /** Distinct people who have been on stage at them. */
@@ -64,6 +69,52 @@ export interface AboutView {
    * {@link guestCountFloor}: smaller counts are artifacts, not attendance.
    */
   readonly guests: number;
+}
+
+/** The tally's columns, as {@link tally} selects them. */
+export const TallyFields = {
+  evenings: Schema.Int,
+  speakers: Schema.Int,
+  hostingCompanies: Schema.Int,
+  guests: Schema.Int,
+} as const;
+
+/**
+ * Our evenings held as of `now` (published and ended), for a statement's
+ * `WITH held AS (…)`: what {@link tally} counts.
+ */
+export const held = (
+  sql: SqlClient,
+  now: DateTime.Utc | Date,
+): Statement.Fragment =>
+  sql`SELECT e.* FROM events e
+    WHERE ${sql.and([published(sql, "e"), ended(sql, "e", now), ours(sql, "e")])}`;
+
+/**
+ * The tally as four columns of a SELECT under `WITH held AS (…)`
+ * ({@link held}), each counted from the data; nothing is typed in.
+ */
+export const tally = (
+  sql: SqlClient,
+  now: DateTime.Utc | Date,
+): Statement.Fragment =>
+  sql`(SELECT count(*)::int FROM held) AS evenings,
+    (
+      SELECT count(DISTINCT a.profile_id)::int
+      FROM ${talkAppearances(sql, { whose: "ours", when: { ended: now } })} a
+    ) AS speakers,
+    (
+      SELECT count(DISTINCT es.sponsor_id)::int
+      FROM held e
+      JOIN event_sponsors es ON es.event_id = e.id
+    ) AS "hostingCompanies",
+    (
+      SELECT COALESCE(sum(e.luma_guest_count), 0)::int
+      FROM held e
+      WHERE e.luma_guest_count >= ${guestCountFloor}
+    ) AS guests`;
+
+export interface AboutView extends Tally {
   /** The first published evening, if there has been one. */
   readonly first: Evening | undefined;
   /** The first evening under each former name, oldest first. */
@@ -89,10 +140,7 @@ const OrganizerRow = Schema.Struct({
 
 /** What the about page reads, in one statement. */
 export const AboutRow = Schema.Struct({
-  evenings: Schema.Int,
-  speakers: Schema.Int,
-  hostingCompanies: Schema.Int,
-  guests: Schema.Int,
+  ...TallyFields,
   first: Schema.NullOr(Rows.Listing),
   formerNames: Schema.Array(
     Schema.Struct({
@@ -163,26 +211,9 @@ const make = Effect.gen(function* () {
     Request,
     Result: AboutRow,
     execute: ({ now, organizerIds, names, photoPrefix }) => sql`
-      WITH held AS (
-        SELECT e.* FROM events e
-        WHERE ${sql.and([published(sql, "e"), ended(sql, "e", now), ours(sql, "e")])}
-      )
+      WITH held AS (${held(sql, now)})
       SELECT
-        (SELECT count(*)::int FROM held) AS evenings,
-        (
-          SELECT count(DISTINCT a.profile_id)::int
-          FROM ${talkAppearances(sql, { whose: "ours", when: { ended: now } })} a
-        ) AS speakers,
-        (
-          SELECT count(DISTINCT es.sponsor_id)::int
-          FROM held e
-          JOIN event_sponsors es ON es.event_id = e.id
-        ) AS "hostingCompanies",
-        (
-          SELECT COALESCE(sum(e.luma_guest_count), 0)::int
-          FROM held e
-          WHERE e.luma_guest_count >= ${guestCountFloor}
-        ) AS guests,
+        ${tally(sql, now)},
         (
           SELECT ${sql.literal(listingJson)}
           FROM held e

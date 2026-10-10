@@ -457,3 +457,76 @@ describe("/ in a mode", () => {
     );
   });
 });
+
+describe("the home lab", () => {
+  const variantPaths = [
+    "/lab/home/wall",
+    "/lab/home/contact-sheet",
+    "/lab/home/slash-band",
+    "/lab/home/depth-field",
+    "/lab/home/faces",
+  ];
+
+  it("answers each variant as home, kept out of search, under the site's policy", async ({
+    Announced,
+  }) => {
+    for (const path of variantPaths) {
+      const response = await fetch(`${Announced}${path}`);
+      const html = await response.text();
+      expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe(
+        CacheControl.publicData,
+      );
+      expect(response.headers.get("content-security-policy")).toBe(
+        contentSecurityPolicy.originals,
+      );
+      expect(html).toContain(
+        '<meta name="robots" content="noindex, nofollow"/>',
+      );
+      expect(html).toContain('<div class="band">');
+      expect(withoutStructuredData(html)).not.toMatch(/<script/);
+      const css = await fetch(
+        `${Announced}${/<link rel="stylesheet" href="(\/assets\/lab\.[^"]+)"/.exec(html)?.[1] ?? "/missing"}`,
+      );
+      expect(css.status).toBe(200);
+      expect(await css.text()).toContain("prefers-reduced-motion");
+    }
+  });
+
+  it("lists the variants at /lab/home, linked from nowhere else", async ({
+    Announced,
+  }) => {
+    const response = await fetch(`${Announced}/lab/home`);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.page);
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow"/>');
+    for (const path of variantPaths) expect(html).toContain(`href="${path}"`);
+    const front = await (await fetch(`${Announced}/`)).text();
+    expect(front).not.toContain("/lab");
+  });
+
+  it("shows the wall from the evenings' photos and the tally as numbers", async ({
+    Announced,
+  }) => {
+    const html = await (await fetch(`${Announced}/lab/home/wall`)).text();
+    expect(html).toContain('class="wall-tile"');
+    expect(html).toContain(`src="${mediaOrigin}/`);
+    expect(html).toMatch(/<dd>[0-9,]+<\/dd>/);
+  });
+
+  it("doesn't find a variant it doesn't have", async ({ Announced }) => {
+    const response = await fetch(`${Announced}/lab/home/carousel`);
+    expect(response.status).toBe(404);
+    await response.arrayBuffer();
+  });
+
+  it("says plainly when its data can't be read, and is never cached", async ({
+    Unreachable,
+  }) => {
+    const response = await fetch(`${Unreachable}/lab/home/faces`);
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    await response.arrayBuffer();
+  });
+});

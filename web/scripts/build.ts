@@ -158,6 +158,27 @@ async function buildFonts(): Promise<{
   return { css: faces.join("\n"), fonts };
 }
 
+/**
+ * The home lab's stylesheet (src/styles/lab.css), which only its pages load,
+ * after the site's: its rules read the theme's custom properties from
+ * there, and its breakpoints are the theme's custom media queries.
+ */
+async function buildLabStylesheet(): Promise<string> {
+  const lab = await Bun.file(join(web, "src/styles/lab.css")).text();
+  const breakpoints = themeCss(tokens)
+    .split("\n")
+    .filter((line) => line.startsWith("@custom-media "));
+  const source = join(dist, "lab.css");
+  await Bun.write(source, expandCustomMedia([...breakpoints, lab].join("\n")));
+  const result = await Bun.build({ entrypoints: [source], minify: true });
+  const [output] = result.outputs;
+  if (!result.success || output === undefined) {
+    throw new AggregateError(result.logs, "The lab's stylesheet didn't build");
+  }
+  await rm(source);
+  return writeAsset("lab", "css", await output.text());
+}
+
 /** Night's grain (brand/texture/grain.svg), under its hashed name. */
 async function buildTextures(): Promise<Textures> {
   const grain = await Bun.file(join(root, "brand/texture/grain.svg")).bytes();
@@ -426,6 +447,8 @@ export function foundationsHtml(markdown: string): string {
 const buildSources = [
   "web/src/**/*",
   "core/src/**/*",
+  // The hand-picked photos and faces core bundles into the pages.
+  "core/backfill/*.json",
   "brand/src/**/*",
   "brand/all-things.tokens.json",
   "brand/foundations.md",
@@ -458,6 +481,8 @@ export interface BuildManifest {
   /** The build's content hash (see buildHash). */
   readonly build: string;
   readonly stylesheet: string;
+  /** The home lab's own stylesheet, which only its pages load. */
+  readonly labStylesheet: string;
   readonly fonts: ReadonlyArray<Font>;
   readonly marks: Marks;
   readonly og: { readonly cards: OgCards; readonly fonts: OgFonts };
@@ -484,6 +509,7 @@ export async function build(): Promise<BuildManifest> {
   const { css: fontFaces, fonts } = await buildFonts();
   const assets = {
     stylesheet: await buildStylesheet(fontFaces),
+    labStylesheet: await buildLabStylesheet(),
     fonts,
     marks: await buildMarks(),
     og: await buildOg(),

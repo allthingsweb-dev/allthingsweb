@@ -1,0 +1,1011 @@
+/*
+ * The home lab's own rules (web/src/pages/lab/), which only its pages
+ * load, after site.css. They are held to site.css's rules
+ * (web/tests/styles.test.ts): colors only from the theme's roles, or the
+ * palette where the slash is drawn; lengths only from the layout tokens,
+ * but for a hairline and em where a length follows the type; breakpoints
+ * only the tokens' custom media queries.
+ *
+ * Every animation here is CSS alone, moves only opacity and transforms,
+ * and stops for people who prefer reduced motion (the last rule), leaving
+ * each hero a still composition.
+ */
+
+/* The frame: the page's content stays in its column, and a region marked
+   .bleed runs from edge to edge. */
+
+.page.lab {
+  max-width: none;
+  padding: var(--at-layout-top) 0 var(--at-space-14);
+  display: grid;
+  grid-template-columns:
+    [full-start] minmax(var(--at-layout-margin), 1fr)
+    [content-start] minmax(
+      0,
+      calc(var(--at-layout-page) - 2 * var(--at-layout-margin))
+    )
+    [content-end] minmax(var(--at-layout-margin), 1fr)
+    [full-end];
+  gap: var(--at-layout-region) 0;
+}
+
+.lab > *,
+.lab main > *,
+.lab-home > * {
+  grid-column: content;
+}
+
+.lab > main,
+.lab main > .lab-home {
+  grid-column: full;
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+/* A subgrid keeps its parent's columns only without gaps of its own. */
+.lab > main {
+  gap: var(--at-layout-region) 0;
+}
+
+.lab-home {
+  gap: var(--at-layout-section) 0;
+}
+
+.lab-home > .bleed {
+  grid-column: full;
+}
+
+/* A bleed region lays its own content in the page's column. */
+.bleed {
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+.bleed > * {
+  grid-column: content;
+}
+
+/* The lab's index: the lockup, a line, and every variant with its own. */
+
+.lab-index {
+  display: grid;
+  grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
+  column-gap: var(--at-layout-gutter);
+  row-gap: var(--at-space-10);
+  align-items: start;
+}
+
+.lab-index-head {
+  grid-column: span 5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-5);
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+  padding-top: var(--at-space-3);
+}
+
+.lab-index-name {
+  font-size: var(--at-type-event-lockup-size);
+  font-weight: 800;
+  font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+
+.lab-index-lead {
+  max-width: var(--at-measure-lead);
+  color: var(--at-meta);
+}
+
+.lab-variants {
+  grid-column: span 7 / -1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--at-stroke-rule) solid var(--at-text);
+}
+
+.lab-variants a {
+  display: grid;
+  grid-template-columns: var(--at-size-tile-m) minmax(0, 1fr);
+  column-gap: var(--at-layout-gutter);
+  row-gap: var(--at-space-1);
+  align-items: baseline;
+  padding: var(--at-space-4) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
+  color: inherit;
+  text-decoration: none;
+}
+
+.lab-variant-name {
+  font-size: var(--at-type-list-name-size);
+  font-weight: 700;
+}
+
+.lab-variants a:hover .lab-variant-name {
+  text-decoration: underline var(--at-stroke-rule);
+  text-underline-offset: 0.18em;
+}
+
+.lab-variant-pitch {
+  max-width: var(--at-measure-prose);
+  color: var(--at-meta);
+}
+
+/* The tally: big numbers over mono labels. As a band, under a hero, the
+   numbers fill their cells; as columns, within a hero, they sit side by
+   side under the lockup. */
+
+.lab-tally dl {
+  display: grid;
+  margin: 0;
+}
+
+.lab-tally dl > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-2);
+  container-type: inline-size;
+}
+
+.lab-tally dd {
+  order: -1;
+  font-weight: 800;
+  font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lab-tally-band dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: var(--at-stroke-heavy) solid var(--at-text);
+}
+
+.lab-tally-band dl > div {
+  padding: var(--at-space-3) var(--at-space-4) 0 0;
+}
+
+.lab-tally-band dl > div + div {
+  border-left: var(--at-stroke-hairline) solid var(--at-rule);
+  padding-left: var(--at-space-4);
+}
+
+.lab-tally-band dd {
+  font-size: calc(var(--at-font-size-hero-l) * 1.45);
+}
+
+.lab-tally-columns dl {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lab-tally-columns dl > div {
+  padding: var(--at-space-2) var(--at-space-5) 0 0;
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+.lab-tally-columns dd {
+  font-size: min(
+    var(--at-font-size-figure),
+    calc(var(--at-font-size-hero-l) * 1.45)
+  );
+}
+
+/* The next evening, as a line under a hero that leads with something else. */
+
+.lab-next {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--at-space-3) var(--at-space-6);
+}
+
+.lab-next > .at-type-meta,
+.lab-next-name {
+  grid-column: 1 / -1;
+}
+
+.lab-next-name {
+  font-size: var(--at-font-size-figure);
+  font-weight: 800;
+  font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+
+/* wall: crowds from many evenings, dimmed under Night, each tile slowly
+   crossing to a second photo in place, the next evening on top. */
+
+.wall {
+  grid-template-rows: minmax(calc(var(--at-size-mark-wide) * 0.9), auto);
+}
+
+.wall-photos {
+  grid-column: full;
+  grid-row: 1;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: var(--at-stroke-rule);
+  overflow: hidden;
+}
+
+/* The scrim: Night over the whole wall, so the lockup reads on it. */
+.wall-photos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--at-ground);
+  opacity: 0.66;
+}
+
+.wall-tile {
+  position: relative;
+  overflow: hidden;
+  background: var(--at-surface);
+}
+
+.wall-tile picture,
+.wall-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wall-tile > :nth-child(2) {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: wall-cross 26s ease-in-out infinite;
+}
+
+@keyframes wall-cross {
+  0%,
+  40% {
+    opacity: 0;
+  }
+
+  50%,
+  90% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Each column, and each row, crosses at its own time and pace, so the wall
+   never turns over at once. */
+.wall-tile:nth-child(7n + 2) > :nth-child(2) {
+  animation-delay: -4s;
+}
+
+.wall-tile:nth-child(7n + 3) > :nth-child(2) {
+  animation-delay: -15s;
+}
+
+.wall-tile:nth-child(7n + 4) > :nth-child(2) {
+  animation-delay: -9s;
+}
+
+.wall-tile:nth-child(7n + 5) > :nth-child(2) {
+  animation-delay: -21s;
+}
+
+.wall-tile:nth-child(7n + 6) > :nth-child(2) {
+  animation-delay: -2s;
+}
+
+.wall-tile:nth-child(7n) > :nth-child(2) {
+  animation-delay: -12s;
+}
+
+.wall-tile:nth-child(n + 8) > :nth-child(2) {
+  animation-duration: 31s;
+}
+
+.wall-tile:nth-child(n + 15) > :nth-child(2) {
+  animation-duration: 23s;
+}
+
+.wall-text {
+  grid-row: 1;
+  z-index: 1;
+  align-self: end;
+  padding: var(--at-layout-block) 0;
+  text-shadow: 0 0 var(--at-space-6) var(--at-ground);
+}
+
+.wall-text .hero-text {
+  gap: var(--at-space-8);
+}
+
+/* contact-sheet: thirty-six dated frames beside the hero, like an archive. */
+
+.sheet {
+  grid-column: span 5 / -1;
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-3);
+  margin: 0;
+}
+
+.sheet ol {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--at-space-3) var(--at-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-1);
+  color: var(--at-meta);
+  text-decoration: none;
+}
+
+.frame img {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--at-surface);
+  outline: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+.frame:hover img {
+  outline: var(--at-stroke-rule) solid var(--at-link);
+}
+
+.frame:hover .frame-date {
+  color: var(--at-link);
+}
+
+.frame-date {
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.sheet figcaption {
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
+  padding-top: var(--at-space-2);
+}
+
+/* slash-band: the slash drawn huge behind the lockup as a neon tube, Glow
+   running into Bridge, its light slowly breathing; then a band of photos
+   cut on the slash's slant, drifting. */
+
+.slash-hero {
+  position: relative;
+  overflow: hidden;
+  grid-template-rows: minmax(calc(var(--at-size-mark-wide) * 0.95), auto);
+  background-image:
+    var(--at-texture),
+    radial-gradient(ellipse at 72% 38%, var(--at-surface), var(--at-ground) 62%);
+}
+
+.slash-light {
+  grid-column: full;
+  grid-row: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.neon {
+  position: absolute;
+  top: 0;
+  left: 52%;
+  height: 100%;
+  width: auto;
+  scale: 0.9;
+}
+
+.neon-glow-stop {
+  stop-color: var(--at-color-glow);
+}
+
+.neon-bridge-stop {
+  stop-color: var(--at-color-bridge);
+}
+
+/* A wide wash of the slash's light on the ground, breathing slowly. */
+.neon-wash {
+  filter: blur(var(--at-space-14));
+  opacity: 0.32;
+  animation: neon-wash 9s ease-in-out infinite alternate;
+}
+
+/* The glow around the tube, breathing with it. */
+.neon-glow path {
+  stroke-width: 30;
+}
+
+.neon-glow {
+  filter: blur(var(--at-space-4));
+  opacity: 0.8;
+  animation: neon-breathe 9s ease-in-out infinite alternate;
+}
+
+.neon-tube path {
+  stroke-width: 9;
+}
+
+.neon-tube {
+  filter: blur(var(--at-stroke-hairline));
+}
+
+/* The tube's hot core, nearly white. */
+.neon-core path {
+  stroke: var(--at-color-paper);
+  stroke-width: 2.5;
+}
+
+.neon-core {
+  opacity: 0.7;
+}
+
+@keyframes neon-wash {
+  from {
+    opacity: 0.18;
+  }
+
+  to {
+    opacity: 0.42;
+  }
+}
+
+@keyframes neon-breathe {
+  from {
+    opacity: 0.3;
+  }
+
+  to {
+    opacity: 0.9;
+  }
+}
+
+.slash-text {
+  grid-row: 1;
+  z-index: 1;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-12);
+  padding: var(--at-layout-block) 0;
+}
+
+.slash-text .hero-text {
+  max-width: var(--at-size-mark-wide);
+}
+
+.slash-text .lab-tally {
+  max-width: var(--at-size-mark-wide);
+}
+
+.slash-band {
+  row-gap: var(--at-space-4);
+}
+
+.slash-band-view {
+  grid-column: full;
+  overflow: hidden;
+  padding: var(--at-space-2) 0;
+}
+
+.slash-track {
+  display: flex;
+  width: max-content;
+  animation: band-drift 140s linear infinite;
+}
+
+.slash-track ul {
+  display: flex;
+  gap: var(--at-space-6);
+  margin: 0;
+  padding: 0 var(--at-space-6) 0 0;
+  list-style: none;
+}
+
+/* Each photo cut on the slash's slant: the tile leans 14°, the photo in
+   it leans back and fills it. */
+.slash-track li {
+  width: var(--at-size-tile-m);
+  height: var(--at-size-tile-l);
+  overflow: hidden;
+  transform: skewX(-14deg);
+  background: var(--at-surface);
+}
+
+.slash-track picture,
+.slash-track img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slash-track img {
+  transform: skewX(14deg) scale(1.3);
+}
+
+@keyframes band-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* depth-field: photos hanging at different depths around the statement,
+   drifting, in a field that sways so the near ones pass the far ones. */
+
+.depth {
+  position: relative;
+  overflow: hidden;
+  grid-template-rows: minmax(calc(var(--at-size-mark-wide) * 1.2), auto);
+}
+
+.depth-field {
+  grid-column: full;
+  grid-row: 1;
+  position: relative;
+  perspective: calc(var(--at-size-mark-wide) * 1.6);
+}
+
+.depth-sway {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: depth-sway 38s ease-in-out infinite alternate;
+}
+
+@keyframes depth-sway {
+  from {
+    transform: rotateY(-5deg) rotateX(2deg);
+  }
+
+  to {
+    transform: rotateY(5deg) rotateX(-2deg);
+  }
+}
+
+.depth-photo {
+  position: absolute;
+  width: var(--at-size-tile-m);
+  transform-style: preserve-3d;
+}
+
+.depth-drift {
+  animation: depth-drift 17s ease-in-out infinite alternate;
+}
+
+.depth-photo img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+@keyframes depth-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(var(--at-space-6), calc(var(--at-space-4) * -1), 0);
+  }
+}
+
+/* Near photos are large and bright, far ones small and dim: each place in
+   the field has its own size, depth and pace. They keep to the edges and
+   the bands above and below the statement, and run off the page. */
+.depth-photo:nth-child(1) {
+  top: 2%;
+  left: -6%;
+  width: var(--at-size-tile-l);
+  transform: translateZ(var(--at-space-14));
+}
+
+.depth-photo:nth-child(2) {
+  top: 3%;
+  left: 30%;
+  width: var(--at-size-tile-s);
+  transform: translateZ(calc(var(--at-space-14) * -4));
+  opacity: 0.5;
+}
+
+.depth-photo:nth-child(3) {
+  top: 1%;
+  left: 60%;
+  transform: translateZ(calc(var(--at-space-14) * -1));
+  opacity: 0.8;
+}
+
+.depth-photo:nth-child(4) {
+  top: 16%;
+  left: 87%;
+  width: var(--at-size-tile-s);
+  transform: translateZ(calc(var(--at-space-14) * -3));
+  opacity: 0.55;
+}
+
+.depth-photo:nth-child(5) {
+  top: 52%;
+  left: 84%;
+  width: var(--at-size-tile-l);
+  transform: translateZ(var(--at-space-14));
+}
+
+.depth-photo:nth-child(6) {
+  top: 86%;
+  left: 64%;
+  width: var(--at-size-tile-s);
+  transform: translateZ(calc(var(--at-space-14) * -2));
+  opacity: 0.65;
+}
+
+.depth-photo:nth-child(7) {
+  top: 84%;
+  left: 36%;
+  transform: translateZ(calc(var(--at-space-14) * -3));
+  opacity: 0.5;
+}
+
+.depth-photo:nth-child(8) {
+  top: 64%;
+  left: -2%;
+  transform: translateZ(calc(var(--at-space-14) * -1));
+  opacity: 0.85;
+}
+
+.depth-photo:nth-child(9) {
+  top: 36%;
+  left: 3%;
+  width: var(--at-size-tile-s);
+  transform: translateZ(calc(var(--at-space-14) * -4));
+  opacity: 0.45;
+}
+
+.depth-photo:nth-child(10) {
+  top: 9%;
+  left: 47%;
+  width: var(--at-size-tile-s);
+  transform: translateZ(calc(var(--at-space-14) * -5));
+  opacity: 0.4;
+}
+
+.depth-photo:nth-child(11) {
+  top: 90%;
+  left: 90%;
+  width: var(--at-size-tile-s);
+  transform: translateZ(calc(var(--at-space-14) * -2));
+  opacity: 0.6;
+}
+
+.depth-photo:nth-child(12) {
+  top: 80%;
+  left: 14%;
+  width: var(--at-size-tile-s);
+  transform: translateZ(calc(var(--at-space-14) * -5));
+  opacity: 0.4;
+}
+
+.depth-photo:nth-child(3n + 2) .depth-drift {
+  animation-duration: 23s;
+  animation-delay: -7s;
+}
+
+.depth-photo:nth-child(3n) .depth-drift {
+  animation-duration: 29s;
+  animation-delay: -13s;
+  animation-direction: alternate-reverse;
+}
+
+/* The statement, as wide as the page's middle allows, its size from it. */
+.depth-text {
+  grid-row: 1;
+  z-index: 1;
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-12);
+  width: 100%;
+  max-width: calc(var(--at-size-mark-wide) * 1.25);
+  padding: var(--at-layout-block) 0;
+  container-type: inline-size;
+  text-shadow: 0 0 var(--at-space-8) var(--at-ground);
+}
+
+.depth-statement {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-5);
+  font-size: var(--at-font-size-hero-m);
+  font-weight: 800;
+  font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.depth-after {
+  font-size: var(--at-type-lead-size);
+  font-weight: 500;
+  font-stretch: 100%;
+  text-indent: 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--at-meta);
+}
+
+/* faces: the wordmark across the page, its letters filled with people. */
+
+.faces {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-10);
+  container-type: inline-size;
+}
+
+/* The mosaic shows only through the heading, which blends over it. */
+.faces-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.faces-mosaic {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.faces-track {
+  display: flex;
+  width: max-content;
+  animation: band-drift 150s linear infinite;
+}
+
+.faces-track ul {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(4, var(--at-size-portrait-m));
+  grid-auto-columns: var(--at-size-portrait-m);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.faces-track picture,
+.faces-track img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.faces-word {
+  position: relative;
+  margin: 0;
+  font-size: var(--at-font-size-mural);
+  font-weight: 800;
+  font-stretch: 112%;
+  text-indent: var(--at-type-wordmark-inset);
+  line-height: 0.84;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+  padding: var(--at-space-2) 0 var(--at-space-4);
+}
+
+.faces-break {
+  display: none;
+}
+
+/*
+ * Two blends cut the mosaic to the letters, with the ground exactly the
+ * ground around them. On Paper, the heading (Ink letters on white) screens
+ * the mosaic: the photos in the letters, white around them; the copy over
+ * it (white letters on Paper) darkens that: Paper around, the photos left
+ * in the letters. On Night, white letters on Ink multiply, then Ink
+ * letters on Night lighten. The copy draws the slash and the cursor solid,
+ * and in the heading they are its ground, so nothing shows through them.
+ * Before the photos load, the letters are white.
+ */
+h1.faces-word {
+  background: var(--at-color-white);
+  color: var(--at-color-ink);
+  mix-blend-mode: screen;
+}
+
+h1.faces-word .slash,
+h1.faces-word .at-cursor {
+  color: var(--at-color-white);
+}
+
+.faces-ink {
+  position: absolute;
+  inset: 0;
+  background-color: var(--at-ground);
+  background-image: var(--at-texture);
+  color: var(--at-color-white);
+  mix-blend-mode: darken;
+  /* An edge in the text color keeps each letter whole over dark photos. */
+  -webkit-text-stroke: var(--at-stroke-rule) var(--at-text);
+}
+
+.faces-ink .slash,
+.faces-ink .at-cursor {
+  color: var(--at-slash);
+}
+
+[data-theme="dark"] h1.faces-word {
+  background: var(--at-color-ink);
+  color: var(--at-color-white);
+  mix-blend-mode: multiply;
+}
+
+[data-theme="dark"] h1.faces-word .slash,
+[data-theme="dark"] h1.faces-word .at-cursor {
+  color: var(--at-color-ink);
+}
+
+[data-theme="dark"] .faces-ink {
+  color: var(--at-color-ink);
+  mix-blend-mode: lighten;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) h1.faces-word {
+    background: var(--at-color-ink);
+    color: var(--at-color-white);
+    mix-blend-mode: multiply;
+  }
+
+  :root:not([data-theme="light"]) h1.faces-word .slash,
+  :root:not([data-theme="light"]) h1.faces-word .at-cursor {
+    color: var(--at-color-ink);
+  }
+
+  :root:not([data-theme="light"]) .faces-ink {
+    color: var(--at-color-ink);
+    mix-blend-mode: lighten;
+  }
+}
+
+/* Where the system draws its own colors, the heading is plain text. */
+@media (forced-colors: active) {
+  .faces-mosaic,
+  .faces-ink {
+    display: none;
+  }
+
+  h1.faces-word,
+  [data-theme="dark"] h1.faces-word {
+    mix-blend-mode: normal;
+  }
+}
+
+/* Narrower screens. */
+
+@media (--at-below-xl) {
+  .lab-index-head,
+  .lab-variants {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (--at-below-l) {
+  .sheet {
+    grid-column: 1 / -1;
+  }
+
+  .sheet ol {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sheet li:nth-child(n + 19) {
+    display: none;
+  }
+
+  .lab-tally-columns dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--at-space-5);
+  }
+
+  .lab-next {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+
+  .lab-tally-band dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--at-space-6);
+  }
+
+  .lab-tally-band dl > div:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .lab-variants a {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wall {
+    grid-template-rows: minmax(calc(var(--at-size-mark-wide) * 0.8), auto);
+  }
+
+  .wall-photos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(5, minmax(0, 1fr));
+  }
+
+  .wall-tile:nth-child(n + 16) {
+    display: none;
+  }
+
+  .neon {
+    left: 44%;
+  }
+
+  .slash-track li {
+    width: var(--at-size-tile-s);
+    height: var(--at-size-tile-m);
+  }
+
+  .depth-photo,
+  .depth-photo:nth-child(1),
+  .depth-photo:nth-child(5) {
+    width: calc(var(--at-size-tile-s) * 0.9);
+  }
+
+  .depth-photo:nth-child(2),
+  .depth-photo:nth-child(4),
+  .depth-photo:nth-child(9),
+  .depth-photo:nth-child(10),
+  .depth-photo:nth-child(11),
+  .depth-photo:nth-child(12) {
+    width: calc(var(--at-size-tile-s) * 0.6);
+  }
+
+  .depth-photo:nth-child(n + 11) {
+    display: none;
+  }
+
+  /* On a phone the field passes behind the statement: it stays dim. */
+  .depth-field .depth-photo {
+    opacity: 0.45;
+  }
+
+  /* allthings/_ on three lines, each as wide as the page allows. */
+  .faces-word {
+    font-size: calc(var(--at-font-size-mural) * 1.55);
+  }
+
+  .faces-break {
+    display: inline;
+  }
+}
+
+/* For people who prefer reduced motion, every hero holds still: the wall's
+   first photos, the slash's light at full, the band and the mosaic where
+   they start, the field without sway or drift. */
+@media (prefers-reduced-motion: reduce) {
+  .wall-tile > :nth-child(2),
+  .neon-wash,
+  .neon-glow,
+  .slash-track,
+  .depth-sway,
+  .depth-drift,
+  .faces-track {
+    animation: none;
+  }
+}

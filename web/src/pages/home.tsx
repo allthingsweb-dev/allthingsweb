@@ -47,19 +47,47 @@ export function hostNames(hosts: ReadonlyArray<string>): string {
   return `${hosts.slice(0, -1).join(", ")} & ${hosts.at(-1) ?? ""}`;
 }
 
-function Hero({ next }: { readonly next: Evening }) {
-  const label = [
+/** Where the next evening is and who hosts it: "East Cut · CodeRabbit". */
+export function nextLabel(next: Evening): string {
+  return [
     ...(next.neighborhood === null ? [] : [next.neighborhood]),
     ...(next.hosts.length === 0 ? [] : [hostNames(next.hosts)]),
   ].join(" · ");
+}
+
+/** When the next evening is, live or ahead: "Next · Wed Sep 30 · 5:30 PM". */
+export function NextWhen({ next }: { readonly next: Evening }) {
   const when = `${next.status === "live" ? "Now" : "Next"} · ${day(next.startsAt)} · ${clockTime(next.startsAt)}`;
   return (
+    <p class="at-type-meta">
+      <time datetime={DateTime.formatIso(next.startsAt)} safe>
+        {when}
+      </time>
+    </p>
+  );
+}
+
+/** "I'm in", to the next evening's Luma page, else its own. */
+export function ImIn({ next }: { readonly next: Evening }) {
+  return (
+    <a class="button" href={next.rsvpUrl ?? eventPath(next.slug)}>
+      I’m in
+      {next.rsvpUrl === null ? (
+        ""
+      ) : (
+        <span class="visually-hidden">, on Luma</span>
+      )}
+      <span aria-hidden="true">→</span>
+    </a>
+  );
+}
+
+/** The next evening as the hero: when, the lockup, where and who hosts, "I'm in". */
+export function Hero({ next }: { readonly next: Evening }) {
+  const label = nextLabel(next);
+  return (
     <>
-      <p class="at-type-meta">
-        <time datetime={DateTime.formatIso(next.startsAt)} safe>
-          {when}
-        </time>
-      </p>
+      <NextWhen next={next} />
       <div class="hero-lockup">
         {next.topic === undefined ? (
           <h1 id="next" class={`hero-name lockup-${lockupSize(next)}`}>
@@ -82,15 +110,7 @@ function Hero({ next }: { readonly next: Evening }) {
               {label}
             </p>
           )}
-          <a class="button" href={next.rsvpUrl ?? eventPath(next.slug)}>
-            I’m in
-            {next.rsvpUrl === null ? (
-              ""
-            ) : (
-              <span class="visually-hidden">, on Luma</span>
-            )}
-            <span aria-hidden="true">→</span>
-          </a>
+          <ImIn next={next} />
         </div>
       </div>
     </>
@@ -98,7 +118,7 @@ function Hero({ next }: { readonly next: Evening }) {
 }
 
 /** Nothing announced: the slot after the slash is open, and waits. */
-function OpenSlot() {
+export function OpenSlot() {
   return (
     <>
       <p class="at-type-meta">Next · soon</p>
@@ -161,6 +181,70 @@ function Mosaic({
   );
 }
 
+/**
+ * What home shows below its hero: the two sentences beside the evenings
+ * after the next one and the latest ones. The home lab's variants
+ * (pages/lab/) show it under theirs.
+ */
+export function HomeBand({ home }: { readonly home: HomeView }) {
+  const { next, afterThat, recently } = home;
+  return (
+    <div class="band">
+      <div class="pitch at-type-statement">
+        <p>Evenings for people who build software.</p>
+        <p class="pitch-place">In the neighborhoods of San Francisco.</p>
+      </div>
+      <div class={afterThat.length === 0 ? "lists" : "lists two"}>
+        {afterThat.length === 0 ? (
+          ""
+        ) : (
+          <section class="list after-that" aria-labelledby="after-that">
+            <div class="list-head">
+              <h2 id="after-that" class="list-title at-type-meta">
+                After that
+              </h2>
+            </div>
+            <ol>
+              {afterThat.map((evening) => (
+                <EveningRow evening={evening} />
+              ))}
+            </ol>
+          </section>
+        )}
+        {recently.length === 0 ? (
+          ""
+        ) : (
+          <section class="list recently" aria-labelledby="recently">
+            <div class="list-head">
+              <h2 id="recently" class="list-title at-type-meta">
+                Recently
+              </h2>
+              <p class="list-links">
+                <a href={everyEvening}>
+                  every evening <span aria-hidden="true">→</span>
+                </a>
+                {next === undefined ? (
+                  ""
+                ) : (
+                  <>
+                    {" · "}
+                    <a href={lumaCalendar}>subscribe on luma</a>
+                  </>
+                )}
+              </p>
+            </div>
+            <ol>
+              {recently.map((evening) => (
+                <EveningRow evening={evening} />
+              ))}
+            </ol>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** The whole home page for `home`, in the visitor's mode, signed off by the hosts. */
 export function homePage({
   home,
@@ -169,7 +253,7 @@ export function homePage({
   portraits,
   images,
 }: HomeProps): string {
-  const { next, afterThat, recently } = home;
+  const { next } = home;
   const photos = showable(home.photos, images);
   return Document({
     meta: {
@@ -199,59 +283,7 @@ export function homePage({
             <Mosaic photos={photos} images={images} />
           )}
         </section>
-        <div class="band">
-          <div class="pitch at-type-statement">
-            <p>Evenings for people who build software.</p>
-            <p class="pitch-place">In the neighborhoods of San Francisco.</p>
-          </div>
-          <div class={afterThat.length === 0 ? "lists" : "lists two"}>
-            {afterThat.length === 0 ? (
-              ""
-            ) : (
-              <section class="list after-that" aria-labelledby="after-that">
-                <div class="list-head">
-                  <h2 id="after-that" class="list-title at-type-meta">
-                    After that
-                  </h2>
-                </div>
-                <ol>
-                  {afterThat.map((evening) => (
-                    <EveningRow evening={evening} />
-                  ))}
-                </ol>
-              </section>
-            )}
-            {recently.length === 0 ? (
-              ""
-            ) : (
-              <section class="list recently" aria-labelledby="recently">
-                <div class="list-head">
-                  <h2 id="recently" class="list-title at-type-meta">
-                    Recently
-                  </h2>
-                  <p class="list-links">
-                    <a href={everyEvening}>
-                      every evening <span aria-hidden="true">→</span>
-                    </a>
-                    {next === undefined ? (
-                      ""
-                    ) : (
-                      <>
-                        {" · "}
-                        <a href={lumaCalendar}>subscribe on luma</a>
-                      </>
-                    )}
-                  </p>
-                </div>
-                <ol>
-                  {recently.map((evening) => (
-                    <EveningRow evening={evening} />
-                  ))}
-                </ol>
-              </section>
-            )}
-          </div>
-        </div>
+        <HomeBand home={home} />
       </div>
     ),
   });
