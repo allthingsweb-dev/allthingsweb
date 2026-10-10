@@ -1,3 +1,4 @@
+import { labRoot } from "./paths.ts";
 import { Cursor } from "../evening-row.tsx";
 import { ContactSheet } from "./contact-sheet.tsx";
 import { DepthField } from "./depth-field.tsx";
@@ -9,7 +10,6 @@ import {
   labPath,
   variantPath,
 } from "./lab.tsx";
-import { labRoot } from "./paths.ts";
 import { SlashBand } from "./slash-band.tsx";
 import { Wall } from "./wall.tsx";
 
