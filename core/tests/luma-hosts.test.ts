@@ -211,6 +211,17 @@ describe("the plan", () => {
         "manager",
       ]),
     ).toBe("--access manager goes right after the --add it is for.");
+    // Another flag between them ends the --add: the --access is refused.
+    expect(
+      hostAddsInOrder([
+        "--add",
+        "company@example.com",
+        "--remove",
+        "old@example.com",
+        "--access",
+        "manager",
+      ]),
+    ).toBe("--access manager goes right after the --add it is for.");
     expect(
       hostAddsInOrder(["--add", "a@example.com", "--access", "owner"]),
     ).toBe("--access is one of none, check-in, manager: owner");
