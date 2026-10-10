@@ -648,6 +648,9 @@ photos, and faces.
   rules, and each carries its evening's date and short link. When the lab
   can show none of them, it shows every photo of our evenings held, latest
   first.
+- **Every evening held** comes with the photo that stands for it, for the
+  lab's contact sheet: its first on the wall, else its first attached, or
+  none, latest evening first.
 - **The faces** are `core/backfill/faces.json`: people who have been on
   stage at our evenings, by profile id, whose profile photo is of them (a
   logo or a drawing is left out). The lab shows each while the profile has

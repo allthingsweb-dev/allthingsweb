@@ -1,37 +1,25 @@
-import { count } from "../about.tsx";
-import { HomeBand } from "../home.tsx";
+import { Hero, HomeBand, OpenSlot } from "../home.tsx";
 import { type ImageMode, Photo, showable } from "../picture.tsx";
-import { decorative, type LabData, NextEvening, screenShare } from "./lab.tsx";
+import { decorative, type LabData, screenShare, Tally } from "./lab.tsx";
 
 /**
- * depth-field: after localfirstconf.com's 2027 page. On Night, photos of
- * the evenings hang at different sizes and depths around one statement
- * made of real numbers, drifting slowly in a 3D field that sways, so the
- * near ones pass the far ones. The next evening sits under the statement.
+ * depth-field: after localfirstconf.com's 2026 hero, whose glowing blob is
+ * a fragment shader of metaballs chasing the pointer. Ours is a liquid of
+ * light over Night: blobs drift and run together, a trail of them follows
+ * the pointer or a finger, and inside they are lenses onto a wall of the
+ * evenings' photos, bent at their edges, their rims glowing from Glow into
+ * Lavender (src/client/engines/liquid.ts). The lockup and the tally sit on
+ * the grid over it.
+ *
+ * Without script, and for reduced motion, the same wall shows dimmed under
+ * Night, with three still lenses on it.
  */
 
-/** The field's photos: twelve places around the statement. */
-export const fieldCount = 12;
+/** The wall under the liquid: six across, three down. */
+export const fieldCount = 18;
 
-/**
- * The statement, from the tally: how many people said "I'm in", and over
- * how many evenings. Without guests counted, the evenings alone.
- */
-export function statement(tally: {
-  readonly guests: number;
-  readonly evenings: number;
-}): { readonly lead: string; readonly after: string } {
-  const evenings = `${count(tally.evenings)} ${tally.evenings === 1 ? "evening" : "evenings"}`;
-  return tally.guests > 0
-    ? {
-        lead: `${count(tally.guests)} people said “I’m in.”`,
-        after: `${evenings}, in the neighborhoods of San Francisco.`,
-      }
-    : {
-        lead: `${evenings} for people who build software.`,
-        after: "In the neighborhoods of San Francisco.",
-      };
-}
+/** Which of the wall's photos the still lenses show. */
+const lensPhotos = [3, 8, 13] as const;
 
 export function DepthField({
   data: { home, community },
@@ -43,38 +31,55 @@ export function DepthField({
   const photos = community.wall
     .filter(({ photo }) => showable([photo], images).length > 0)
     .slice(0, fieldCount);
-  const { lead, after } = statement(community.tally);
   return (
     <div class="lab-home">
       <section
-        class="depth bleed"
+        class="liquid bleed"
         data-theme="dark"
-        aria-labelledby="depth-statement"
+        aria-labelledby="next"
+        data-engine-stage=""
       >
-        <div class="depth-field" aria-hidden="true">
-          <div class="depth-sway">
-            {photos.map(({ photo }) => (
-              <div class="depth-photo">
-                <div class="depth-drift">
-                  <Photo
-                    photo={decorative(photo)}
-                    mode={images}
-                    sizes={screenShare(22, 26)}
-                    widest={720}
-                  />
-                </div>
-              </div>
+        <div class="liquid-field" aria-hidden="true" data-engine="liquid">
+          <ul class="liquid-wall" data-engine-tiles="">
+            {photos.map(({ photo }, index) => (
+              <li>
+                <Photo
+                  photo={decorative(photo)}
+                  mode={images}
+                  sizes={screenShare(17, 34)}
+                  widest={480}
+                  first={index < 6 ? true : undefined}
+                  eager={true}
+                />
+              </li>
             ))}
-          </div>
+          </ul>
+          {lensPhotos.map((index, lens) => {
+            const photo = photos[index]?.photo;
+            return photo === undefined ? (
+              ""
+            ) : (
+              <div class={`liquid-lens liquid-lens-${lens + 1}`}>
+                <Photo
+                  photo={decorative(photo)}
+                  mode={images}
+                  sizes={screenShare(26, 50)}
+                  widest={720}
+                  eager={true}
+                />
+              </div>
+            );
+          })}
         </div>
-        <div class="depth-text">
-          <h1 id="depth-statement" class="depth-statement">
-            <span safe>{lead}</span>
-            <span class="depth-after" safe>
-              {after}
-            </span>
-          </h1>
-          <NextEvening next={home.next} />
+        <div class="liquid-text">
+          <div class="hero-text">
+            {home.next === undefined ? <OpenSlot /> : <Hero next={home.next} />}
+          </div>
+          <Tally
+            tally={community.tally}
+            kind="columns"
+            which={["evenings", "guests", "speakers"]}
+          />
         </div>
       </section>
       <HomeBand home={home} />

@@ -4,7 +4,11 @@ import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, PrivateCacheControl } from "../src/cache.ts";
 import { mediaOrigin } from "../src/links.ts";
-import { contentSecurityPolicy } from "../src/pages/response.ts";
+import { saved, variants } from "../src/pages/lab/variants.tsx";
+import {
+  contentSecurityPolicy,
+  scriptedContentSecurityPolicy,
+} from "../src/pages/response.ts";
 import {
   catalogDatabase,
   erikPortrait,
@@ -459,13 +463,14 @@ describe("/ in a mode", () => {
 });
 
 describe("the home lab", () => {
-  const variantPaths = [
-    "/lab/home/wall",
-    "/lab/home/contact-sheet",
-    "/lab/home/slash-band",
-    "/lab/home/depth-field",
-    "/lab/home/faces",
-  ];
+  const variantPaths = [...variants, ...saved].map(
+    (variant) => `/lab/home/${variant.name}`,
+  );
+  const scriptedPaths = new Set(
+    variants
+      .filter((variant) => variant.scripted)
+      .map((variant) => `/lab/home/${variant.name}`),
+  );
 
   it("answers each variant as home, kept out of search, under the site's policy", async ({
     Announced,
@@ -473,18 +478,26 @@ describe("the home lab", () => {
     for (const path of variantPaths) {
       const response = await fetch(`${Announced}${path}`);
       const html = await response.text();
+      const scripted = scriptedPaths.has(path);
       expect(response.status).toBe(200);
       expect(response.headers.get("cache-control")).toBe(
         CacheControl.publicData,
       );
       expect(response.headers.get("content-security-policy")).toBe(
-        contentSecurityPolicy.originals,
+        (scripted ? scriptedContentSecurityPolicy : contentSecurityPolicy)
+          .originals,
       );
       expect(html).toContain(
         '<meta name="robots" content="noindex, nofollow"/>',
       );
       expect(html).toContain('<div class="band">');
-      expect(withoutStructuredData(html)).not.toMatch(/<script/);
+      const scripts = withoutStructuredData(html).match(
+        /<script type="module" src="(\/assets\/lab\.[a-z0-9]+\.js)">/g,
+      );
+      expect(withoutStructuredData(html).match(/<script/g)?.length ?? 0).toBe(
+        scripted ? 1 : 0,
+      );
+      expect(scripts?.length ?? 0).toBe(scripted ? 1 : 0);
       const css = await fetch(
         `${Announced}${/<link rel="stylesheet" href="(\/assets\/lab\.[^"]+)"/.exec(html)?.[1] ?? "/missing"}`,
       );
@@ -504,6 +517,26 @@ describe("the home lab", () => {
     for (const path of variantPaths) expect(html).toContain(`href="${path}"`);
     const front = await (await fetch(`${Announced}/`)).text();
     expect(front).not.toContain("/lab");
+  });
+
+  it("serves the lab's script and the engine each page loads, as modules", async ({
+    Announced,
+  }) => {
+    const html = await (
+      await fetch(`${Announced}/lab/home/faces-fluid`)
+    ).text();
+    const src = /<script type="module" src="([^"]+)">/.exec(html)?.[1] ?? "";
+    const script = await fetch(`${Announced}${src}`);
+    expect(script.status).toBe(200);
+    expect(script.headers.get("content-type")).toMatch(/javascript/);
+    const code = await script.text();
+    for (const engine of ["fluid", "springs", "ripples", "liquid"]) {
+      const chunk = new RegExp(`/assets/lab-${engine}\\.[a-z0-9]+\\.js`).exec(
+        code,
+      )?.[0];
+      expect(chunk).toBeDefined();
+      expect((await fetch(`${Announced}${chunk}`)).status).toBe(200);
+    }
   });
 
   it("shows the wall from the evenings' photos and the tally as numbers", async ({

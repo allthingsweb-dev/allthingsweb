@@ -132,6 +132,51 @@ describe("Community", () => {
     ]);
   });
 
+  test("reads every evening held, latest first, each with the photo that stands for it", async () => {
+    const view = await read();
+    expect(
+      view.evenings.map((evening) => [
+        evening.slug,
+        evening.topic,
+        evening.photo?.url.replace(`${photoOrigin}/`, "") ?? null,
+      ]),
+    ).toEqual([
+      // React at Acme's first attached photo; Café night's on this origin.
+      [acme, "react", "photos/stage.jpg"],
+      ["cafe", "café night", "photos/cafe.jpg"],
+    ]);
+    expect(view.evenings[0]?.startsAt).toEqual(
+      DateTime.makeUnsafe("2026-08-13T01:00:00Z"),
+    );
+    expect(view.evenings.length).toBe(view.tally.evenings);
+  });
+
+  test("lets an evening's first photo on the wall stand for it", async () => {
+    const view = await read([{ image: image("000000000003"), evening: acme }]);
+    expect(view.evenings[0]?.photo?.url).toBe(
+      `${photoOrigin}/photos/crowd.jpg`,
+    );
+  });
+
+  test("gives an evening without a photo here none", async () => {
+    await db.exec(`
+      INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, street_address, short_location, full_address, luma_event_id, is_hackathon, is_draft, preview_image, recording_url, updated_at) VALUES
+        ('e0000000-0000-4000-8000-000000000501', '2026-09-01-all-things-sync', 'All Things Sync', '', '2026-09-02T01:00:00Z', '2026-09-02T04:00:00Z', 50, NULL, NULL, NULL, NULL, false, false, NULL, NULL, now());
+    `);
+    try {
+      const view = await read();
+      expect(view.evenings[0]).toMatchObject({
+        slug: "2026-09-01-all-things-sync",
+        topic: "sync",
+        photo: null,
+      });
+    } finally {
+      await db.exec(
+        "DELETE FROM events WHERE id = 'e0000000-0000-4000-8000-000000000501'",
+      );
+    }
+  });
+
   test("without picks, shows everyone on stage at our evenings held with a photo here, latest first", async () => {
     const { faces } = await read();
     // Ada spoke at React at Acme, Linus there and at Café night. Not Grace

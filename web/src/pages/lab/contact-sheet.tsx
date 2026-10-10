@@ -1,52 +1,65 @@
-import type { WallPhoto } from "allthings-core/src/community.ts";
+import type { HeldEvening } from "allthings-core/src/community.ts";
 import { DateTime } from "effect";
-import { eventPath } from "../../links.ts";
+import { eventPath, everyEvening } from "../../links.ts";
 import { Hero, HomeBand, OpenSlot } from "../home.tsx";
-import { type ImageMode, Photo, showable } from "../picture.tsx";
-import { simpleDate, year } from "../time.ts";
+import { hasSource, type ImageMode, Photo } from "../picture.tsx";
+import { simpleDate } from "../time.ts";
 import { type LabData, screenShare, Tally } from "./lab.tsx";
 
 /**
- * contact-sheet: today's Swiss index, with the photos beside the hero as
- * a photographer's contact sheet: twenty-four small frames from many
- * evenings, each captioned with its evening's date and leading to it, read
- * like an archive. Under it, the tally as a bold band of numbers.
+ * contact-sheet: today's Swiss index, with every evening we have held
+ * beside the hero as a photographer's contact sheet: one frame each, in
+ * the order they happened, captioned with its date and leading to it. It
+ * holds the latest {@link frameLimit}, so a new evening always joins it and
+ * the oldest leaves, and its last frame leads on to every evening. An
+ * evening without a photo is its lockup, at/<topic>, in its frame. Under
+ * it, the tally as a bold band of numbers.
  */
 
-/** The sheet's frames: six rows of four, wide enough for their dates. */
-export const frameCount = 24;
+/** The sheet's frames: four across, seven down, less the one leading on. */
+export const frameLimit = 27;
 
-/** "From 18 evenings, 2024–2026": what the sheet holds, counted. */
-export function sheetCaption(frames: ReadonlyArray<WallPhoto>): string {
-  const evenings = new Set(frames.map((frame) => frame.slug)).size;
-  const years = frames.map((frame) => year(frame.startsAt));
-  const [first, last] = [Math.min(...years), Math.max(...years)];
-  const span = first === last ? `${first}` : `${first}–${last}`;
-  return `From ${evenings} ${evenings === 1 ? "evening" : "evenings"}, ${span}`;
-}
+/** The frames a narrower screen shows: the latest, three across, less the one leading on. */
+export const phoneFrames = 14;
 
 function Frame({
-  frame,
+  evening,
+  early,
   images,
 }: {
-  readonly frame: WallPhoto;
+  readonly evening: HeldEvening;
+  readonly early: boolean;
   readonly images: ImageMode;
 }) {
+  const { photo } = evening;
   return (
-    <li>
-      <a class="frame" href={eventPath(frame.slug)}>
-        <Photo
-          photo={frame.photo}
-          mode={images}
-          sizes={screenShare(9, 23)}
-          widest={360}
-        />
+    <li class={early ? "frame-early" : undefined}>
+      <a class="frame" href={eventPath(evening.slug)}>
+        {photo !== null && hasSource(photo, images) ? (
+          <Photo
+            photo={photo}
+            mode={images}
+            sizes={screenShare(9, 30)}
+            widest={360}
+          />
+        ) : (
+          <span class="frame-blank">
+            {evening.topic === undefined ? (
+              <span safe>{evening.name}</span>
+            ) : (
+              <>
+                at<span class="slash">/</span>
+                <span safe>{evening.topic}</span>
+              </>
+            )}
+          </span>
+        )}
         <time
           class="frame-date at-type-meta"
-          datetime={DateTime.formatIso(frame.startsAt)}
+          datetime={DateTime.formatIso(evening.startsAt)}
           safe
         >
-          {simpleDate(frame.startsAt)}
+          {simpleDate(evening.startsAt)}
         </time>
       </a>
     </li>
@@ -60,9 +73,9 @@ export function ContactSheet({
   readonly data: LabData;
   readonly images: ImageMode;
 }) {
-  const frames = community.wall
-    .filter(({ photo }) => showable([photo], images).length > 0)
-    .slice(0, frameCount);
+  // The latest evenings, in the order they happened.
+  const frames = community.evenings.slice(0, frameLimit).toReversed();
+  const total = community.tally.evenings;
   return (
     <div class="lab-home">
       <section
@@ -77,12 +90,28 @@ export function ContactSheet({
         ) : (
           <figure class="sheet">
             <ol>
-              {frames.map((frame) => (
-                <Frame frame={frame} images={images} />
+              {frames.map((evening, index) => (
+                <Frame
+                  evening={evening}
+                  early={index < frames.length - phoneFrames}
+                  images={images}
+                />
               ))}
+              <li>
+                <a class="frame frame-more" href={everyEvening}>
+                  <span class="frame-blank">
+                    every evening <span aria-hidden="true">→</span>
+                  </span>
+                  <span class="frame-date at-type-meta" safe>
+                    {`all ${total}`}
+                  </span>
+                </a>
+              </li>
             </ol>
             <figcaption class="at-type-meta" safe>
-              {sheetCaption(frames)}
+              {frames.length < total
+                ? `The latest ${frames.length} of our ${total} evenings, in order`
+                : `All ${total} of our evenings, in order`}
             </figcaption>
           </figure>
         )}

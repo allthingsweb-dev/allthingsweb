@@ -17,7 +17,9 @@ import { type Choice, choices, type Theme } from "./theme.ts";
  * The frame of every page: the document, the header with the wordmark, the
  * site's pages and the mode, and the footer that signs off with the hosts and the socials.
  * Pages are server-rendered HTML with no JavaScript; the cursor blinks in
- * CSS, and the mode is chosen with links (see theme.ts).
+ * CSS, and the mode is chosen with links (see theme.ts). The one exception
+ * is a lab page with an engine (`script`), which loads the site's own
+ * module and is whole without it.
  */
 
 /** The master wordmark, allthings/_, linking home. */
@@ -210,6 +212,11 @@ export interface DocumentProps {
    * site's, and a frame whose regions may run from edge to edge.
    */
   readonly lab?: true | undefined;
+  /**
+   * The lab's script (src/client/lab.ts), for a lab page with an engine:
+   * a module of this site's, which its policy lets run.
+   */
+  readonly script?: true | undefined;
 }
 
 /** A whole HTML document around `children`, the page's <main>. */
@@ -221,6 +228,7 @@ export function Document({
   images,
   section,
   lab,
+  script,
   children,
 }: PropsWithChildren<DocumentProps>): string {
   // Every page is in the visitor's mode, the system's until they choose.
@@ -246,6 +254,11 @@ export function Document({
           ""
         ) : (
           <link rel="stylesheet" href={built.labStylesheet} />
+        )}
+        {script === undefined ? (
+          ""
+        ) : (
+          <script type="module" src={built.labScript}></script>
         )}
         <link rel="icon" href={built.marks.favicon.src} type="image/svg+xml" />
         <link rel="apple-touch-icon" href={built.marks.appleTouchIcon.src} />

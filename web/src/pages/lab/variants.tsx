@@ -2,7 +2,7 @@ import { labRoot } from "./paths.ts";
 import { Cursor } from "../evening-row.tsx";
 import { ContactSheet } from "./contact-sheet.tsx";
 import { DepthField } from "./depth-field.tsx";
-import { Faces } from "./faces.tsx";
+import { Faces, facesHero } from "./faces.tsx";
 import {
   type LabData,
   LabDocument,
@@ -10,7 +10,8 @@ import {
   labPath,
   variantPath,
 } from "./lab.tsx";
-import { SlashBand } from "./slash-band.tsx";
+import { SlashGrid } from "./slash-grid.tsx";
+import { YearEndRetro } from "./year-end-retro.tsx";
 import { Wall } from "./wall.tsx";
 
 /** One of the lab's heroes, with the one line the lab's index says of it. */
@@ -22,6 +23,11 @@ export interface Variant {
     readonly data: LabData;
     readonly images: LabPage["images"];
   }) => JSX.Element;
+  /**
+   * Whether it runs the lab's script (src/client/lab.ts): its page loads
+   * it, and its policy lets this site's scripts run.
+   */
+  readonly scripted?: true;
 }
 
 /** The lab's heroes, in the index's order: the conservative ones first. */
@@ -29,38 +35,80 @@ export const variants: ReadonlyArray<Variant> = [
   {
     name: "wall",
     pitch:
-      "The old site’s idea done right: a full-bleed Night wall of crowds from many evenings, each tile slowly crossing to another, the tally below.",
+      "The old site’s idea done right: a full-bleed Night wall of crowds from many evenings, each tile slowly crossing to another and leading to its evening, the tally below.",
     render: Wall,
   },
   {
     name: "contact-sheet",
     pitch:
-      "Today’s Swiss index, with a contact sheet of twenty-four dated frames beside the hero, each leading to its evening, and a bold band of numbers.",
+      "Today’s Swiss index with a contact sheet of every evening we’ve held, in order: a frame each for the latest, dated and leading to it, and a last one on to all of them.",
     render: ContactSheet,
   },
   {
-    name: "slash-band",
+    name: "slash-grid",
     pitch:
-      "The slash drawn huge as a breathing neon tube behind the lockup, the tally in columns, and a drifting band of photos cut on the slash’s slant.",
-    render: SlashBand,
+      "A grid of the community’s photos cut on the slash’s slant, each leading to its evening, beside the lockup, with the tally as a band of numbers on the page’s grid.",
+    render: SlashGrid,
   },
   {
     name: "depth-field",
     pitch:
-      "Photos hanging at different depths in a slowly swaying 3D field around one statement made of the real numbers.",
+      "After localfirstconf’s liquid blob: light that runs together over Night and follows your pointer or finger, its blobs lenses onto the evenings’ photos. Interactive, in WebGL.",
     render: DepthField,
+    scripted: true,
   },
   {
     name: "faces",
     pitch:
-      "The wordmark across the page, its letters filled with a moving mosaic of the people who have been on stage and the crowds who came.",
+      "The wordmark across the page, its letters made of the faces of the people who have been on stage, drifting slowly.",
     render: Faces,
+  },
+  {
+    name: "faces-mix",
+    pitch:
+      "The faces and the evenings’ crowds together in the letters: every crowd a big tile among four faces.",
+    render: facesHero({ mix: true }),
+  },
+  {
+    name: "faces-fluid",
+    pitch:
+      "The mix inside the letters as a fluid: stir it with the pointer or a finger and the photos swirl, then heal. Interactive, in WebGL.",
+    render: facesHero({ mix: true, engine: "fluid" }),
+    scripted: true,
+  },
+  {
+    name: "faces-springs",
+    pitch:
+      "The mix as tiles on springs: the pointer scatters them out of the letters and they spring back to their places. Interactive, in WebGL.",
+    render: facesHero({ mix: true, engine: "springs" }),
+    scripted: true,
+  },
+  {
+    name: "faces-ripples",
+    pitch:
+      "The mix under water: the pointer drops ripples that bend the photos and catch the light along their crests. Interactive, in WebGL.",
+    render: facesHero({ mix: true, engine: "ripples" }),
+    scripted: true,
+  },
+];
+
+/**
+ * Designs taken out of the running for home but kept for another page,
+ * each still at its address, under the index's "Saved" heading.
+ */
+export const saved: ReadonlyArray<Variant & { readonly note: string }> = [
+  {
+    name: "year-end-retro",
+    note: "Saved for the year-end retro",
+    pitch:
+      "One statement of the year’s real numbers, how many people said “I’m in” over how many evenings, in a slowly swaying field of photos: for a December retro or holiday party page.",
+    render: YearEndRetro,
   },
 ];
 
 /** The variant named `name`, if there is one. */
 export const variantNamed = (name: string): Variant | undefined =>
-  variants.find((variant) => variant.name === name);
+  [...variants, ...saved].find((variant) => variant.name === name);
 
 /** A variant's whole page. */
 export function variantPage(
@@ -73,6 +121,7 @@ export function variantPage(
     description: variant.pitch,
     path: variantPath(variant.name),
     page,
+    script: variant.scripted,
     children: variant.render({ data, images: page.images }),
   });
 }
@@ -126,6 +175,31 @@ export function labIndexPage(page: LabPage): string {
             </a>
           </li>
         </ol>
+        {saved.length === 0 ? (
+          ""
+        ) : (
+          <section class="lab-saved" aria-labelledby="saved">
+            <h2 id="saved" class="at-type-meta">
+              Saved
+            </h2>
+            <ol class="lab-variants">
+              {saved.map((variant) => (
+                <li>
+                  <a href={variantPath(variant.name)}>
+                    <span class="lab-variant-name">
+                      at<span class="slash">/</span>
+                      <span safe>{variant.name}</span>
+                    </span>
+                    <span class="lab-variant-pitch">
+                      <strong safe>{variant.note}.</strong>{" "}
+                      <span safe>{variant.pitch}</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
       </div>
     ),
   });
