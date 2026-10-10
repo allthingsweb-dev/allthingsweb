@@ -63,6 +63,25 @@ The draft preview reads and writes draft collaboration as `draft_collab` (see co
 
 [`core/tests/draft-collab.test.ts`](../core/tests/draft-collab.test.ts) makes the role with the script's statements. It checks that what the preview does succeeds, that everything else is refused, and that the role's privileges in the catalog are exactly the script's. The connection string goes into the `NEON_COLLAB_URL` repository secret and the "allthings draft_collab" 1Password item.
 
+The event studio's commands (`bun run plan`, `readiness`, `luma`, `social`, `posts`, `photos` and the rest; core's README, "The studio's connection") connect as `studio`, a fourth login role made the same way by [`scripts/studio.ts`](scripts/studio.ts):
+
+- It holds exactly what those commands' statements use, each grant listed with the command that needs it: planning's tables but the collaboration's, and on `public` reads of only tables `site_reader` reads and writes of only the columns the studio writes.
+- It has no DDL, no ownership, no function, no TRUNCATE and no BYPASSRLS, so migrations, and the collaboration's tables, which have row security, stay the owner's.
+- Its statements, lock waits and idle transactions time out at 30 seconds or less.
+
+[`core/tests/studio-role.test.ts`](../core/tests/studio-role.test.ts) holds every column of `public` and `planning` to the script's grants, both ways, and the role's catalog privileges to its list exactly; core's `bun run test:studio` runs the studio's suites as the role. Its connection string goes only into the "allthings studio" 1Password item, never a repository secret: nothing in CI connects as it. Once the script's pull request is merged, the maintainer runs it from the repository root:
+
+```sh
+OWNER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
+  --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
+  OP_SERVICE_ACCOUNT_TOKEN=$(security find-generic-password -s allthings-op -w) \
+  bun infra/scripts/studio.ts
+```
+
+The database owner's connection is for migrations only. It is never stored in the vault or a repository secret: the maintainer fetches it with neonctl, as above, whenever it is needed.
+
+[`vault-items.json`](vault-items.json) lists the allthings vault's items and their fields (titles and labels, never values). `core/tests/vault.test.ts` fails on an `op://` reference to anything it doesn't list, and on a documented studio command that doesn't read "allthings studio". An item still to be made is marked `pending`. `bun infra/scripts/vault-items.ts` checks the list against the vault itself.
+
 `prod` (media, the upload Worker and the Vercel env) follows the allthings.dev zone. Where the zone is active, prod serves: the bucket answers on `media.allthings.dev`, and the Workers and the Vercel env follow it. That is the `default` profile's account until the domain moves. In the allthings account before then, `bun run deploy --stage prod --profile allthings` stages the bucket (without `media.allthings.dev`: R2 refuses a custom domain on a pending zone) and runs the Web Worker on its `workers.dev` URL against production's data (it needs `NEON_READER_URL`). It also runs the Sync Worker, which needs no domain (it needs `NEON_SYNC_URL`, `LUMA_API_KEY` and `X_BEARER_TOKEN`, and until the move `MEDIA_UPLOAD_URL` and `MEDIA_UPLOAD_TOKEN`). Once the zone is active there, the same deploy attaches `media.allthings.dev` to the bucket and `allthings.dev` and `www.allthings.dev` to the Web Worker. The `default` account never runs the Web Worker or the Sync Worker: until the move its zone answers allthings.dev with [esthor/domains](https://github.com/esthor/domains)' redirect. Any other account is refused, so a deploy from an account the domain has left can't drop the upload Worker or the Vercel env.
 
 ## Moving media

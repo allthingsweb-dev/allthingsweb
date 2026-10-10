@@ -34,7 +34,8 @@ import { shellWord } from "./shell.ts";
  * with the same values, makes exactly that change, or refuses it if
  * anything changed since.
  *
- * DATABASE_URL (the owner's connection string, to write) comes from the
+ * DATABASE_URL (the studio's connection string: core's README, "The
+ * studio's connection") comes from the
  * environment only; .env files are not read.
  */
 

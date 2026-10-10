@@ -4,6 +4,7 @@ import type { SqlError } from "effect/sql/SqlError";
 import { approvalToken, isApprovalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
 import { PlanningError } from "../planning/planning.ts";
+import { readsEveryRow } from "../planning/privacy.ts";
 import { maxSections } from "./brief.ts";
 import { answerKey, open } from "./seal.ts";
 import {
@@ -49,6 +50,40 @@ import {
  */
 
 type Failure = PlanningError | DataSourceError;
+
+/** Every table of the collaboration: each has row security. */
+export const collabTables = [
+  "rounds",
+  "collaborators",
+  "brief_sections",
+  "tasks",
+  "logistics_items",
+  "logistics_confirmations",
+  "round_submissions",
+  "reviews",
+  "comments",
+  "collab_audit",
+] as const;
+
+/**
+ * Refuses unless this role reads every row of the collaboration, as the
+ * owner does. Any other role is held back by row security: it would read
+ * invitations, rounds and the audit as empty and write none of them, and
+ * `collab access sync` would set Access's list to that emptiness. The
+ * studio role (infra/scripts/studio.ts) is such a role.
+ */
+export const ownerOnly = readsEveryRow(collabTables).pipe(
+  Effect.catchTag(["SqlError"], (cause) =>
+    Effect.fail(new DataSourceError({ cause })),
+  ),
+  Effect.flatMap((readable) =>
+    readable
+      ? Effect.void
+      : refuse(
+          "bun run collab runs as the database owner: the collaboration's tables have row security, which only the owner bypasses, and as this role they would read empty (core/README.md, \"The studio's connection\").",
+        ),
+  ),
+);
 
 const refuse = (reason: string) => Effect.fail(new PlanningError({ reason }));
 

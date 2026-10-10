@@ -15,6 +15,7 @@ import {
   type Approval,
   Collab,
   type OpenedText,
+  ownerOnly,
 } from "../src/collab/collab.ts";
 import { approvalToken } from "../src/approval.ts";
 import {
@@ -77,7 +78,11 @@ import { PlanningError } from "../src/planning/planning.ts";
  * repository. DATABASE_URL comes from the environment only.
  */
 
-const layer = Collab.layer.pipe(Layer.provideMerge(Database.layer));
+/** The service, as the owner only (`ownerOnly`): any other role reads the collaboration empty. */
+const layer = Collab.layer.pipe(
+  Layer.provideMerge(Layer.effectDiscard(ownerOnly)),
+  Layer.provideMerge(Database.layer),
+);
 
 /** The edge's list of collaborators, through Cloudflare's API (src/collab/access.ts). */
 const edge = AccessList.cloudflare.pipe(Layer.provide(FetchHttpClient.layer));

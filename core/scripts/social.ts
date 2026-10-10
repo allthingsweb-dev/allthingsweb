@@ -48,7 +48,8 @@ import { fromXurl, signInItem, XSignIn } from "../src/social/x-sign-in.ts";
  * BLUESKY_HANDLE, BLUESKY_APP_PASSWORD, DISCORD_WEBHOOK_URL,
  * X_BEARER_TOKEN, X_CLIENT_ID and X_CLIENT_SECRET come from the
  * environment only; .env files are not read. No dry run signs in; the
- * record (Discord's and X's) needs the database owner. X's sign-in is kept in
+ * record (Discord's and X's) is in planning, which the studio's connection
+ * may write (core's README, "The studio's connection"). X's sign-in is kept in
  * 1Password (through op, with OP_SERVICE_ACCOUNT_TOKEN), and each post
  * stores the new one.
  */

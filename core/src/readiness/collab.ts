@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { readsEveryRow } from "../planning/privacy.ts";
 import type { Check } from "./checks.ts";
 
 /**
@@ -11,8 +12,8 @@ import type { Check } from "./checks.ts";
  * stops publishing; an overdue one says so.
  *
  * The checks are a pure function of what planning holds and the day in
- * San Francisco; `collabFacts` reads it, as a role that may read planning
- * (the owner).
+ * San Francisco; `collabFacts` reads it, only as a role that reads every
+ * row of it (`collabReadable`): the owner.
  */
 
 export const collabCheckKinds = {
@@ -137,6 +138,31 @@ export function collabChecks(
   }
   return checks;
 }
+
+/**
+ * The tables `collabFacts` reads. Each has row security
+ * (migrations/0026_draft_collaboration.ts), whose policies show any role
+ * but the owner only what a signed-in collaborator may see, and
+ * `collaborators` nothing at all: read as such a role, the facts would come
+ * back empty rather than fail, and the advice would say all is well.
+ */
+export const collabTables = [
+  "rounds",
+  "collaborators",
+  "round_submissions",
+  "reviews",
+  "tasks",
+  "logistics_items",
+  "logistics_confirmations",
+] as const;
+
+/**
+ * Whether this role reads every row of `collabTables`: it may SELECT each,
+ * and row security doesn't apply to it there (the owner). The studio role
+ * (infra/scripts/studio.ts) may not, so as it readiness leaves the
+ * collaboration's advice out, and says so.
+ */
+export const collabReadable = readsEveryRow(collabTables);
 
 /** What planning holds for the draft `eventId`'s collaboration, read as the owner. */
 export const collabFacts = (eventId: string) =>

@@ -70,8 +70,8 @@ import {
  * transaction that is rolled back, so it prints exactly what it would be,
  * refuses what it would refuse, and keeps nothing.
  *
- * It reads and writes the planning schema, which only the database owner
- * may use. The rows are private: never put them in a file in this
+ * It reads and writes the planning schema, as the studio (core's README,
+ * "The studio's connection"); no site role may use it. The rows are private: never put them in a file in this
  * repository. DATABASE_URL comes from the environment only; .env files are
  * not read.
  */

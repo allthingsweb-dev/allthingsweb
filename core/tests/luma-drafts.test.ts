@@ -8,7 +8,12 @@ import {
   LumaDrafts,
   type StoredDraft,
 } from "../src/luma/drafts.ts";
-import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
+import {
+  clockLayer,
+  seededDatabase,
+  sqlLayer,
+  studioRun,
+} from "./support/database.ts";
 import {
   configFrom,
   fakeLumaBy,
@@ -84,7 +89,8 @@ const stored = async () =>
     )
   ).rows[0];
 
-describe("the draft refresh", () => {
+// The refresh is the hourly sync's, as site_sync; only --add is the studio's.
+describe.skipIf(studioRun)("the draft refresh", () => {
   test("asks Luma about each draft only, and plans its changes in a dry run", async () => {
     const before = await stored();
     const { result, requests } = await run([answer()], true);
@@ -242,7 +248,7 @@ describe("draftChanges", () => {
   });
 });
 
-describe("a venue the organizers set meanwhile", () => {
+describe.skipIf(studioRun)("a venue the organizers set meanwhile", () => {
   test("stays theirs, while the rest of the refresh is written", async () => {
     // Luma answers while an organizer sets the venue: after the refresh
     // read the draft, before it writes.
@@ -409,7 +415,7 @@ describe("adding a private event as a draft", () => {
   });
 });
 
-describe("a draft's description", () => {
+describe.skipIf(studioRun)("a draft's description", () => {
   const description = async () =>
     (
       await db.query<{ html: string | null; summary: string | null }>(

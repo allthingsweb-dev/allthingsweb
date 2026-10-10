@@ -33,7 +33,8 @@ import { shellWord } from "./shell.ts";
  * photo it replaces loses its images row only when nothing else uses it;
  * its object stays in the bucket.
  *
- * DATABASE_URL (the owner's connection string to write), MEDIA_UPLOAD_URL
+ * DATABASE_URL (the studio's connection string for `photo`, the owner's
+ * for applying the file: core's README, "The studio's connection"), MEDIA_UPLOAD_URL
  * and MEDIA_UPLOAD_TOKEN (the upload Worker, for --approve) come from the
  * environment only; .env files are not read.
  */

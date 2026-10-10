@@ -97,6 +97,65 @@ DATABASE_URL=$(op read "op://allthings/allthings site_sync/credential") bun run 
 ```
 
 Every `op://` reference in this repository reads the `allthings` 1Password vault. Your own `op` session (the 1Password desktop app integration) can read it, and agents read it with `OP_SERVICE_ACCOUNT_TOKEN`.
+`infra/vault-items.json` lists the vault's items and their fields, and
+`tests/vault.test.ts` fails on a reference to anything it doesn't list.
+An item still to be made is listed `pending`; `bun
+infra/scripts/vault-items.ts` checks the list against the vault itself.
+
+## The studio's connection
+
+The event studio's commands connect as `studio`, a login role made by
+[`infra/scripts/studio.ts`](../infra/scripts/studio.ts): `plan`,
+`readiness`, `luma create`, `update`, `publish` and `cover`,
+`luma:drafts --add`, `social bluesky`, `discord` and `x`, `posts`,
+`photos`, `people photo`, `hosts logo` and `talks`. Its connection string
+is the 1Password item "allthings studio" (`credential`), so every one of
+them runs as
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan search "trivia"
+```
+
+and every invocation in this README says so; `tests/vault.test.ts` fails
+on one that doesn't.
+
+- **Exactly what its commands use.** The script lists each grant with the
+  command whose statement needs it: planning's tables (all but the
+  collaboration's), read whole and written by column; on `public`, reads
+  of only tables site_reader already reads, and writes of only the columns
+  the studio writes (a draft's stored event, its program, its cover, the
+  lineup publish copies, photos and their images, a profile's photo, a
+  host's logos, a talk's title, description and speakers, posts).
+- **Nothing for migrations.** No DDL, no ownership, no function, no
+  sequence, no TRUNCATE, and no BYPASSRLS. Its statements, lock waits and
+  idle transactions time out at 30 seconds or less.
+- **Proved.** `tests/studio-role.test.ts` makes the role with the script's
+  statements and holds every column of `public` and `planning` to its
+  grants, both ways, and its catalog privileges to the script's list
+  exactly. `bun run test:studio` runs the studio's own suites as the role.
+
+The database owner's connection is for migrations only. It is never stored
+in the vault, nor in any repository secret: the maintainer fetches it with
+neonctl when it is needed, and passes it without printing it:
+
+```sh
+DATABASE_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
+  --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
+  bun run migrate --dry-run
+```
+
+Until they have roles of their own, two kinds of command still need it, so
+only the maintainer runs them (`OWNER_ONLY` in the script says why):
+
+- **`bun run collab`.** The collaboration's tables have row security, which
+  only the owner bypasses: as any other role they read empty, so the
+  command refuses to run as one. Readiness, as the studio, leaves the
+  collaboration's advice out and says so.
+- **The backfills** (`people`, `hosts`, `lineups`, `programs`,
+  `curation`, `event-extras`, `external-talks`, `luma:people`). They
+  rewrite the public record from reviewed files: they create profiles and
+  companies, and delete talks and people's parts, which no role in the
+  shared vault should be able to do.
 
 ## Image ingestion
 
@@ -165,10 +224,10 @@ with their ids and speakers.
   stops it.
 
 ```sh
-DATABASE_URL=… bun run talks list effect   # ids, titles, speakers
-DATABASE_URL=… bun run talks update <talk id> --title "…" --description-file talk.html \
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run talks list effect   # ids, titles, speakers
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run talks update <talk id> --title "…" --description-file talk.html \
   --speaker ada-lovelace --speaker grace-hopper:moderator --dry-run
-DATABASE_URL=… bun run talks update <talk id> --title "…" --description-file talk.html \
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run talks update <talk id> --title "…" --description-file talk.html \
   --speaker ada-lovelace --speaker grace-hopper:moderator --approve <token>
 ```
 
@@ -325,8 +384,12 @@ refuses an event that isn't private (the feed brings those in) and one
 already stored. From then on the refresh keeps it in line.
 
 ```sh
-DATABASE_URL=… LUMA_API_KEY=… bun run luma:drafts --add evt-… --dry-run   # what it would store
-DATABASE_URL=… LUMA_API_KEY=… bun run luma:drafts --add evt-…             # store it
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma:drafts --add evt-… --dry-run   # what it would store
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma:drafts --add evt-…   # store it
 ```
 
 ## Luma people import
@@ -511,9 +574,9 @@ stores the post, approved. Adding a post that is already there changes
 nothing.
 
 ```sh
-DATABASE_URL=… bun run posts add <event slug> <post url> [--dry-run]
-DATABASE_URL=… bun run posts add <slug> <linkedin url> --author-name "…" --text "…" [--author-url …]
-DATABASE_URL=… bun run posts apply [--dry-run]   # every post in backfill/posts.json
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts add <event slug> <post url> [--dry-run]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts add <slug> <linkedin url> --author-name "…" --text "…" [--author-url …]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts apply [--dry-run]   # every post in backfill/posts.json
 ```
 
 The admin MCP server's `add_event_post` runs the same script.
@@ -533,11 +596,11 @@ the night itself), and the ones that score at least 5 are added as
 `pending`. Nothing is approved here: an organizer approves or hides each.
 
 ```sh
-DATABASE_URL=… bun run posts find --dry-run          # the last week's evenings, scored, nothing written
-DATABASE_URL=… bun run posts find --past             # every evening so far
-DATABASE_URL=… bun run posts pending                 # what waits for review
-DATABASE_URL=… bun run posts approve <post url>      # show it on its evening's page
-DATABASE_URL=… bun run posts hide <post url>         # never show it
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts find --dry-run   # the last week's evenings, scored, nothing written
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts find --past   # every evening so far
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts pending   # what waits for review
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts approve <post url>   # show it on its evening's page
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts hide <post url>   # never show it
 ```
 
 X is searched only with `X_BEARER_TOKEN` (1Password: "allthings X app" in
@@ -567,12 +630,15 @@ Objects are stored first, then one transaction writes every row.
 Every photo needs its alt text, one `--alt` per file in the files' order,
 saying what the scene shows ("Effect 4.0 merged live on stage at
 CodeRabbit"), never naming people from their faces. HEIC is not read:
-export JPEGs first. Run it from `core/` with the owner's connection string
-and the upload Worker's URL and token (see `scripts/reencode-originals.ts`):
+export JPEGs first. Run it from `core/` with the studio's connection string
+(see "The studio's connection") and the upload Worker's URL and token (see `scripts/reencode-originals.ts`):
 
 ```sh
-DATABASE_URL=… bun run photos add effect a.jpg b.jpg --alt "…" --alt "…" --dry-run   # encode, check, roll back
-DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run photos add effect a.jpg b.jpg --alt "…" --alt "…"
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos add effect a.jpg b.jpg --alt "…" --alt "…" --dry-run   # encode, check, roll back
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  MEDIA_UPLOAD_URL=$(op read "op://allthings/allthings media upload/url") \
+  MEDIA_UPLOAD_TOKEN=$(op read "op://allthings/allthings media upload/token") \
+  bun run photos add effect a.jpg b.jpg --alt "…" --alt "…"
 ```
 
 To replace one of an evening's photos, say with a retouched copy, name it by
@@ -585,8 +651,11 @@ refusal stores nothing, and again under the transaction's lock. The old
 object stays in the bucket: nothing deletes one.
 
 ```sh
-DATABASE_URL=… bun run photos replace effect 5 retouched.jpg --alt "…" --dry-run   # encode, check, roll back
-DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run photos replace effect 5 retouched.jpg --alt "…"
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos replace effect 5 retouched.jpg --alt "…" --dry-run   # encode, check, roll back
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  MEDIA_UPLOAD_URL=$(op read "op://allthings/allthings media upload/url") \
+  MEDIA_UPLOAD_TOKEN=$(op read "op://allthings/allthings media upload/token") \
+  bun run photos replace effect 5 retouched.jpg --alt "…"
 ```
 
 To take a photo off an evening, list its photos, then remove one by its
@@ -601,9 +670,9 @@ bucket, and the output says so. Neither step needs the upload Worker, and
 `list` only reads.
 
 ```sh
-DATABASE_URL=… bun run photos list effect                          # positions, image ids, alt texts
-DATABASE_URL=… bun run photos remove effect 5 --dry-run            # what would change, and its token
-DATABASE_URL=… bun run photos remove effect 5 --approve <token>    # exactly that change
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos list effect   # positions, image ids, alt texts
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos remove effect 5 --dry-run   # what would change, and its token
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos remove effect 5 --approve <token>   # exactly that change
 ```
 
 The admin MCP server's `list_event_photos`, `add_event_photos`,
@@ -733,8 +802,11 @@ with the old admin's key and alt text: `profiles/<name>-<image id>.<jpg|webp>`
   it, such as a post's author avatar. Its object stays in the bucket.
 
 ```sh
-DATABASE_URL=… bun run people photo ada-lovelace ada.jpg --dry-run
-DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run people photo ada-lovelace ada.jpg --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run people photo ada-lovelace ada.jpg --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  MEDIA_UPLOAD_URL=$(op read "op://allthings/allthings media upload/url") \
+  MEDIA_UPLOAD_TOKEN=$(op read "op://allthings/allthings media upload/token") \
+  bun run people photo ada-lovelace ada.jpg --approve <token>
 ```
 
 ## Hosting companies' links
@@ -789,8 +861,11 @@ in `images`, with the old admin's key and alt text:
   object stays in the bucket.
 
 ```sh
-DATABASE_URL=… bun run hosts logo Acme --dark acme-dark.png --light acme-light.png --dry-run
-DATABASE_URL=… MEDIA_UPLOAD_URL=… MEDIA_UPLOAD_TOKEN=… bun run hosts logo Acme --dark acme-dark.png --light acme-light.png --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run hosts logo Acme --dark acme-dark.png --light acme-light.png --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  MEDIA_UPLOAD_URL=$(op read "op://allthings/allthings media upload/url") \
+  MEDIA_UPLOAD_TOKEN=$(op read "op://allthings/allthings media upload/token") \
+  bun run hosts logo Acme --dark acme-dark.png --light acme-light.png --approve <token>
 ```
 
 ## Promotion drafts
@@ -886,8 +961,9 @@ both roles, made with their scripts' own statements, are refused. The same
 test fails if any seed, fixture or backfill in this repository holds
 planning rows: they live only in the database, written through the CLI.
 
-`src/planning/` is the service, and `bun run plan` its CLI. It writes as the
-database owner, the only role that may use the schema. Each change runs in
+`src/planning/` is the service, and `bun run plan` its CLI. It connects as
+the studio (see "The studio's connection"); no site role may use the
+schema. Each change runs in
 one transaction and prints the row as it now is; every command takes
 `--json`, which the admin MCP server's planning tools (`add_idea`,
 `list_wanted_speakers`, `search_planning`, `audit_planning` and the rest)
@@ -898,21 +974,21 @@ transaction that is rolled back, so it prints exactly what it would be and
 keeps nothing. Run it from `core/`:
 
 ```sh
-DATABASE_URL=… bun run plan idea add --title "…" --pitch "…" --program social --inspired-by <slug> --dry-run   # what it would be; kept: nothing
-DATABASE_URL=… bun run plan idea add --title "…" --pitch "…" --program social --inspired-by <slug>
-DATABASE_URL=… bun run plan idea update <id> --status drafting --event <draft slug>
-DATABASE_URL=… bun run plan speaker add --profile "Ada Lovelace" --topic effect \
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan idea add --title "…" --pitch "…" --program social --inspired-by <slug> --dry-run   # what it would be; kept: nothing
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan idea add --title "…" --pitch "…" --program social --inspired-by <slug>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan idea update <id> --status drafting --event <draft slug>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan speaker add --profile "Ada Lovelace" --topic effect \
   --window '{"startsOn":"2027-01-01","note":"free after Dec"}'
-DATABASE_URL=… bun run plan speaker list --topic effect --available-on 2027-01-14
-DATABASE_URL=… bun run plan host add --sponsor CodeRabbit --contact-name "…" --note "…"
-DATABASE_URL=… bun run plan note add --profile "Ada Lovelace" --body "…" --author Erik
-DATABASE_URL=… bun run plan lineup set <draft slug> --mc "Erik Thorelli" --organizer "Erik Thorelli" --organizer "Andre Landgraf" --dry-run
-DATABASE_URL=… bun run plan lineup show <draft slug>
-DATABASE_URL=… bun run plan lineup talk add <draft slug> --kind panel --title "…" --moderator <wanted id> --panelist <wanted id> --dry-run
-DATABASE_URL=… bun run plan lineup talk list <draft slug>
-DATABASE_URL=… bun run plan lineup talk remove <draft slug> <talk id>
-DATABASE_URL=… bun run plan search "trivia"
-DATABASE_URL=… bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan speaker list --topic effect --available-on 2027-01-14
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan host add --sponsor CodeRabbit --contact-name "…" --note "…"
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan note add --profile "Ada Lovelace" --body "…" --author Erik
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan lineup set <draft slug> --mc "Erik Thorelli" --organizer "Erik Thorelli" --organizer "Andre Landgraf" --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan lineup show <draft slug>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan lineup talk add <draft slug> --kind panel --title "…" --moderator <wanted id> --panelist <wanted id> --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan lineup talk list <draft slug>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan lineup talk remove <draft slug> <talk id>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan search "trivia"
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan audit   # fails if site_reader, site_sync or PUBLIC may reach planning
 ```
 
 ## Readiness
@@ -960,12 +1036,15 @@ the same in the same order:
   nothing else that day and none of ours within three days
 - the guest count of the evening it builds on (no guest lists are stored)
 
-Planning's rows join only as a role that may read planning (the owner); as
-site_reader the report leaves them out and says so.
+Planning's rows join only as a role that may read planning (the studio, or
+the owner); as site_reader the report leaves them out and says so. The
+collaboration's advice (see "Collaborating on a draft") joins only as the
+owner, which row security doesn't hold back: as the studio the report leaves
+it out, and says so (`collaboration` in its JSON).
 
 ```sh
-DATABASE_URL=… bun run readiness --event <draft slug> [--topic git --topic ai] [--json]
-DATABASE_URL=… bun run readiness --idea <id>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run readiness --event <draft slug> [--topic git --topic ai] [--json]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run readiness --idea <id>
 ```
 
 It exits 1 when something blocks publishing, 2 on a draft that isn't there.
@@ -1098,7 +1177,10 @@ The site has no accept action, and no collaborator writes `public` or Luma.
 | Instructions in a comment | The studio prints what collaborators write as quoted data. Nothing goes out without an organizer's approval token.                                                                         |
 | Uploads                   | None: the visual round's images come through the studio.                                                                                                                                   |
 
-**The studio,** `bun run collab` (src/collab/), each command also an admin
+**The studio,** `bun run collab` (src/collab/), as the database owner: the
+collaboration's tables have row security, which only the owner bypasses,
+so it refuses any other role, the studio's included, rather than read them
+empty (see "The studio's connection"). Each command is also an admin
 MCP tool (`collab_invite`, `collab_brief_set`, `collab_review`, … in
 app/scripts/collab.ts, which runs the CLI with `--json`). `collab_show` and
 `collab_export` open a round only into a file and return its path, so a
@@ -1240,12 +1322,22 @@ could make a second event. Every write has `--dry-run`, which prints the
 body and sends nothing. Nothing in the tests reaches Luma.
 
 ```sh
-LUMA_API_KEY=… DATABASE_URL=… bun run luma create --name "…" \
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma create --name "…" \
   --start 2026-11-18T18:00:00-08:00 --end 2026-11-18T21:00:00-08:00 --venue "CodeRabbit, 201 Spear St" --idea <id> --dry-run
-LUMA_API_KEY=… DATABASE_URL=… bun run luma update --event <draft slug> --description-from-drafts --dry-run
-LUMA_API_KEY=… DATABASE_URL=… bun run luma update --luma evt-… --description-from-idea <id> --dry-run
-LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --dry-run          # what would go out, and its token
-LUMA_API_KEY=… DATABASE_URL=… bun run luma publish <draft slug> --approve <token>  # exactly that, public
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma update --event <draft slug> --description-from-drafts --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma update --luma evt-… --description-from-idea <id> --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma publish <draft slug> --dry-run   # what would go out, and its token
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma publish <draft slug> --approve <token>  # exactly that, public
 LUMA_API_KEY=… bun run luma show evt-…                                             # the event as Luma has it
 ```
 
@@ -1287,9 +1379,15 @@ evening's cover is still drawn to look at, and the dry run exits 1 saying
 why it wouldn't be set.
 
 ```sh
-LUMA_API_KEY=… DATABASE_URL=… bun run luma cover <draft slug> --dry-run      # draw it, read it, and its token
-LUMA_API_KEY=… DATABASE_URL=… bun run luma cover <draft slug> --approve <token>
-LUMA_API_KEY=… DATABASE_URL=… bun run luma cover evt-… --dry-run --out cover.png
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma cover <draft slug> --dry-run   # draw it, read it, and its token
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma cover <draft slug> --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma cover evt-… --dry-run --out cover.png
 ```
 
 Nothing in the tests reaches Luma or runs uv: `tests/luma-cover.test.ts`
@@ -1351,9 +1449,11 @@ The app password is the 1Password item "allthings Bluesky" (`handle`,
 `app password`). Nothing in the tests reaches Bluesky.
 
 ```sh
-DATABASE_URL=… bun run social bluesky <slug> --moment announce --dry-run   # the post, and its token
-DATABASE_URL=… BLUESKY_HANDLE=… BLUESKY_APP_PASSWORD=… \
-  bun run social bluesky <slug> --moment announce --approve <token>        # exactly that, once
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run social bluesky <slug> --moment announce --dry-run   # the post, and its token
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  BLUESKY_HANDLE=$(op read "op://allthings/allthings Bluesky/handle") \
+  BLUESKY_APP_PASSWORD=$(op read "op://allthings/allthings Bluesky/app password") \
+  bun run social bluesky <slug> --moment announce --approve <token>   # exactly that, once
 ```
 
 ## Sending to the Discord
@@ -1390,14 +1490,20 @@ what was sent: one row per channel, evening and moment.
 
 The webhook URL is the 1Password item "allthings Discord webhook" (`url`).
 It is a secret: nothing prints it. The record is in the planning schema,
-so `DATABASE_URL` is the database owner. Nothing in the tests reaches
+which the studio's connection may write. Nothing in the tests reaches
 Discord.
 
 ```sh
-DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --dry-run          # the message, where it goes, its token
-DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --approve <token>  # exactly that, once
-DATABASE_URL=… DISCORD_WEBHOOK_URL=… bun run social discord <slug> --moment dayOf --sent <message id>  # record the message an unanswered send left
-DATABASE_URL=… bun run social discord <slug> --moment dayOf --release                                # let go of an unanswered send that left none
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  DISCORD_WEBHOOK_URL=$(op read "op://allthings/allthings Discord webhook/url") \
+  bun run social discord <slug> --moment dayOf --dry-run   # the message, where it goes, its token
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  DISCORD_WEBHOOK_URL=$(op read "op://allthings/allthings Discord webhook/url") \
+  bun run social discord <slug> --moment dayOf --approve <token>  # exactly that, once
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  DISCORD_WEBHOOK_URL=$(op read "op://allthings/allthings Discord webhook/url") \
+  bun run social discord <slug> --moment dayOf --sent <message id>  # record the message an unanswered send left
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run social discord <slug> --moment dayOf --release   # let go of an unanswered send that left none
 ```
 
 ## Posting to X
@@ -1444,15 +1550,20 @@ allthings allthingswebdev` made. While xurl's access token is unexpired, it
 first checks that the token is our account. The first post spends xurl's
 copy; that same xurl command signs xurl in again. The client ID, client
 secret and bearer token are in the same item. `DATABASE_URL` is the
-database owner, since the record is in the planning schema. Nothing in the
+studio's, which may write the record in the planning schema. Nothing in the
 tests reaches X or 1Password.
 
 ```sh
-DATABASE_URL=… bun run social x <slug> --moment announce --dry-run                       # the post, and its token
-OP_SERVICE_ACCOUNT_TOKEN=… DATABASE_URL=… X_CLIENT_ID=… X_CLIENT_SECRET=… \
-  bun run social x <slug> --moment announce --approve <token>                           # exactly that, once
-DATABASE_URL=… X_BEARER_TOKEN=… bun run social x <slug> --moment announce --sent <post id>  # record the post an unanswered post left
-DATABASE_URL=… bun run social x <slug> --moment announce --release                       # let go of an unanswered post that left none
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run social x <slug> --moment announce --dry-run   # the post, and its token
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  OP_SERVICE_ACCOUNT_TOKEN=… \
+  X_CLIENT_ID=$(op read "op://allthings/allthings X app/Client ID") \
+  X_CLIENT_SECRET=$(op read "op://allthings/allthings X app/Client Secret") \
+  bun run social x <slug> --moment announce --approve <token>   # exactly that, once
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token") \
+  bun run social x <slug> --moment announce --sent <post id>  # record the post an unanswered post left
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run social x <slug> --moment announce --release   # let go of an unanswered post that left none
 OP_SERVICE_ACCOUNT_TOKEN=… bun run social x-sign-in --from-xurl                          # keep xurl's sign-in as ours
 ```
 
@@ -1516,6 +1627,9 @@ test drops the schema to show it.
 DATABASE_URL=postgres://… bun run migrate --dry-run   # what would run
 DATABASE_URL=postgres://… bun run migrate             # run it
 ```
+
+`DATABASE_URL` here is the database owner's, which only the maintainer
+holds: fetched with neonctl, never stored (see "The studio's connection").
 
 A migration reaches production before the code that needs it: the app on
 Vercel builds and serves against production's database (previews too), so

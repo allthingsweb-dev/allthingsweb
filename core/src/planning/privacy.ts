@@ -152,6 +152,26 @@ export const auditPlanning = Effect.gen(function* () {
   } satisfies PlanningAudit;
 }).pipe(orDataSourceError);
 
+/**
+ * Whether this role reads every row of each of planning's `tables`: it may
+ * SELECT each, and row security doesn't apply to it there, as for the
+ * owner. A role that row security holds back reads such a table empty
+ * rather than failing, so code that must see every row asks this first.
+ */
+export const readsEveryRow = (tables: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const [row] = yield* sql<{ readable: boolean }>`
+      SELECT count(*) = ${tables.length} AND COALESCE(bool_and(
+        CASE WHEN pg_catalog.has_table_privilege(c.oid, 'SELECT')
+          THEN NOT pg_catalog.row_security_active(c.oid) ELSE false END
+      ), false) AS readable
+      FROM pg_catalog.pg_class c
+      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'planning' AND c.relname IN ${sql.in([...tables])}`;
+    return row?.readable === true;
+  });
+
 /** Whether the audit proves planning private: it exists, and nothing exposes it. */
 export const isPrivate = (audit: PlanningAudit): boolean =>
   audit.schemaExists && audit.exposures.length === 0;

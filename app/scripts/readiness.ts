@@ -38,8 +38,9 @@ export function readinessArguments(input: unknown): string[] {
  * suggested speakers, hosts and dates. It runs core's own script, so the
  * tool and the CLI never disagree. The script exits 1 when something
  * blocks publishing, with the report still on stdout; a refusal (no such
- * draft) fails with core's reason. It only reads; as the database owner it
- * also suggests planning's wanted speakers and host prospects.
+ * draft) fails with core's reason. It only reads; as the studio (core's
+ * README, "The studio's connection") it also suggests planning's wanted
+ * speakers and host prospects.
  */
 export async function draftReadiness(input: unknown): Promise<unknown> {
   const args = readinessArguments(input);
@@ -78,7 +79,7 @@ export async function draftReadiness(input: unknown): Promise<unknown> {
 export const draftReadinessTool = {
   name: "get_draft_readiness",
   description:
-    "Whether a draft evening is ready to publish, and what to add. Name the draft by slug (an event the Luma sync stored as a draft) or by ideaId (planning; through its draft evening when it has one). Checks run the completeness rules ahead of time (lineup with bios and photos, people, hosts, venue, topic, tagline, cover once the Luma event exists) plus the date (ahead, sane, clear of other evenings that day), the venue's name and neighborhood, and a hackathon's schedule; each is a blocker or advice. Suggestions: network speakers ranked by how many of the evening's words their past talks share and how recently they spoke, wanted speakers free that day, host prospects, hosts not used in 90 days, open dates on our usual weekdays, and the guest count of the evening it builds on. topics adds words to match. Read-only; planning rows join only as the database owner and are private.",
+    "Whether a draft evening is ready to publish, and what to add. Name the draft by slug (an event the Luma sync stored as a draft) or by ideaId (planning; through its draft evening when it has one). Checks run the completeness rules ahead of time (lineup with bios and photos, people, hosts, venue, topic, tagline, cover once the Luma event exists) plus the date (ahead, sane, clear of other evenings that day), the venue's name and neighborhood, and a hackathon's schedule; each is a blocker or advice. Suggestions: network speakers ranked by how many of the evening's words their past talks share and how recently they spoke, wanted speakers free that day, host prospects, hosts not used in 90 days, open dates on our usual weekdays, and the guest count of the evening it builds on. topics adds words to match. Read-only; planning rows join only as the studio or the database owner and are private.",
   inputSchema: {
     type: "object",
     properties: {

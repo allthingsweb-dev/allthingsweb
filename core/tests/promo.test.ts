@@ -22,7 +22,12 @@ import {
   xLength,
 } from "../src/promo/limits.ts";
 import { Promo } from "../src/promo/promo.ts";
-import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
+import {
+  clockLayer,
+  seededDatabase,
+  sqlLayer,
+  studioRun,
+} from "./support/database.ts";
 
 /**
  * Promotion drafts (src/promo/) over tests/seed.sql, plus an organizer, a
@@ -436,7 +441,7 @@ describe("errors", () => {
     }
   });
 
-  test("a closed database is a DataSourceError", async () => {
+  test.skipIf(studioRun)("a closed database is a DataSourceError", async () => {
     const closed = await seededDatabase();
     await closed.close();
     const error = await Effect.runPromise(

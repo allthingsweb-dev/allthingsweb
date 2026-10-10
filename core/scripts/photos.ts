@@ -52,7 +52,8 @@ import { shellWord } from "./shell.ts";
  * rehearses the database writes, then rolls them back; it stores nothing and
  * needs no upload credentials.
  *
- * DATABASE_URL (the database owner's connection string), MEDIA_UPLOAD_URL
+ * DATABASE_URL (the studio's connection string: core's README, "The
+ * studio's connection"), MEDIA_UPLOAD_URL
  * and MEDIA_UPLOAD_TOKEN (the upload Worker the app stores media through)
  * come from the environment only; .env files are not read. Pass them
  * without printing them, as scripts/reencode-originals.ts shows.

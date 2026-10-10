@@ -1,7 +1,18 @@
 import type { PGlite } from "@electric-sql/pglite";
-import { DateTime, Layer } from "effect";
+import { DateTime, Effect, Layer } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { migratedDatabase } from "../../scripts/pglite.ts";
+import {
+  migratedDatabase,
+  sqlLayer as pgliteLayer,
+} from "../../scripts/pglite.ts";
+import {
+  provisionLoginRole,
+  type Statements,
+} from "../../../infra/scripts/login-role.ts";
+import {
+  grantStatements as studioGrants,
+  STUDIO,
+} from "../../../infra/scripts/studio.ts";
 
 /**
  * An in-process Postgres with the production schema: core's migrations,
@@ -14,8 +25,59 @@ export {
   expectedSchema,
   migratedDatabase,
   migratedTemplate,
-  sqlLayer,
 } from "../../scripts/pglite.ts";
+
+/**
+ * Which role a suite's statements run as: the owner, as PGlite's user is,
+ * or, with CORE_TEST_AS=studio (`bun run test:studio`), the studio role,
+ * made with infra/scripts/studio.ts's own statements. Then every
+ * {@link sqlLayer} switches to it while its scope is open and back after,
+ * so a test's own setup and checks (`db.exec`, `db.query`) stay the
+ * owner's and only what the code under test runs is the studio's.
+ */
+export const testRole: "owner" | "studio" =
+  process.env["CORE_TEST_AS"] === "studio" ? "studio" : "owner";
+
+/**
+ * Whether this run is the studio's (`bun run test:studio`): a test of what
+ * no studio command does (the sync's refresh, another role's view, a
+ * closed database) is skipped in it, with `test.skipIf(studioRun)`.
+ */
+export const studioRun = testRole === "studio";
+
+/** Makes the studio role on `db`, once, as the script makes it. */
+export async function provisionStudio(db: PGlite): Promise<void> {
+  const { rows } = await db.query(
+    `SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1`,
+    [STUDIO],
+  );
+  const owner: Statements = {
+    unsafe: async (query, values) =>
+      (await db.query(query, values === undefined ? [] : [...values])).rows,
+  };
+  if (rows.length === 0) await provisionLoginRole(owner, STUDIO, "test-only");
+  for (const statement of studioGrants()) await db.exec(statement);
+}
+
+/** `SqlClient` over `db` as the studio role, made first if need be; the owner again once its scope closes. */
+export const studioLayer = (db: PGlite) =>
+  pgliteLayer(db).pipe(
+    Layer.provideMerge(
+      Layer.effectDiscard(
+        Effect.acquireRelease(
+          Effect.promise(async () => {
+            await provisionStudio(db);
+            await db.exec(`SET ROLE ${STUDIO}`);
+          }),
+          () => Effect.promise(() => db.exec("RESET ROLE")),
+        ),
+      ),
+    ),
+  );
+
+/** `SqlClient` over `db`, as {@link testRole}. The caller keeps ownership of `db` and closes it. */
+export const sqlLayer = (db: PGlite) =>
+  testRole === "owner" ? pgliteLayer(db) : studioLayer(db);
 
 /** The instant every test reads the catalog at. */
 export const now = DateTime.makeUnsafe("2026-10-03T19:00:00Z");
