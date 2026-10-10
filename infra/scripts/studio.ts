@@ -539,11 +539,11 @@ async function plan(owner: string, vault: string): Promise<void> {
 }
 
 /**
- * `--apply`: makes the role or gives it a new password, grants exactly
- * STUDIO_GRANTS, stores its connection string in 1Password, and then checks
- * both: the catalog holds exactly the expected privileges, and the stored
- * connection string signs in as the studio. Nothing it reads or stores is
- * printed.
+ * `--apply`: makes the role or gives it a new password and grants exactly
+ * STUDIO_GRANTS, committing only once the catalog holds exactly the
+ * expected privileges; then stores its connection string in 1Password and
+ * checks that what 1Password holds signs in as the studio. Nothing it reads
+ * or stores is printed.
  */
 async function apply(owner: string, vault: string): Promise<void> {
   const password = newPassword();
@@ -555,14 +555,16 @@ async function apply(owner: string, vault: string): Promise<void> {
       for (const statement of grantStatements()) {
         await transaction.unsafe(statement);
       }
+      // Checked before the commit: a mismatch rolls the grants and the new
+      // password back, and leaves the role as it was.
+      const wrong = changes(await granted(transaction), expectedPrivileges());
+      if (wrong.length > 0) {
+        throw new Error(
+          `${STUDIO}'s privileges wouldn't be STUDIO_GRANTS, so nothing was changed:\n${wrong.join("\n")}`,
+        );
+      }
       return isNew;
     });
-    const wrong = changes(await granted(sql), expectedPrivileges());
-    if (wrong.length > 0) {
-      throw new Error(
-        `${STUDIO}'s privileges aren't STUDIO_GRANTS after the grants:\n${wrong.join("\n")}`,
-      );
-    }
   } finally {
     // A refused transaction changed nothing; the client closes either way.
     await sql.end();
