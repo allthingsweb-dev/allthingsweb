@@ -227,7 +227,7 @@ describe.each(everyName)("/lab/home/%s", (name) => {
         ? [`<script type="module" src="${built.labScript}">`]
         : [],
     );
-    expect(html).not.toMatch(/\son[a-z]+=|javascript:|\sstyle=/i);
+    expect(html).not.toMatch(/\son[a-z]+\s*=|javascript:|\sstyle\s*=/i);
     expect(html.includes("data-engine=")).toBe(scripted.has(name));
   });
 
