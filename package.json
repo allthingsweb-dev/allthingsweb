@@ -3,10 +3,13 @@
   "private": true,
   "workspaces": ["brand", "core", "tools/xss-scan", "web"],
   "scripts": {
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@coderabbitai/config": "1.1.1",
     "oxlint": "1.86.0",
-    "oxlint-tsgolint": "7.0.2003"
+    "oxlint-tsgolint": "7.0.2003",
+    "typescript": "7.0.2"
   }
 }
