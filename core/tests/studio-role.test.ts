@@ -309,6 +309,16 @@ describe("what the script grants", () => {
     }
   });
 
+  test("counts, as their owner, exactly the tables collab checks", async () => {
+    // The migration keeps its own list, frozen; this holds the code's to it.
+    const { rows } = await db.query<{ relname: string }>(
+      `SELECT relname FROM planning.collab_row_counts() ORDER BY 1`,
+    );
+    expect(rows.map((row) => row.relname)).toEqual(
+      [...collabTables].toSorted(),
+    );
+  });
+
   test("says why each thing it leaves to the owner is the owner's", () => {
     expect(OWNER_ONLY.map((entry) => entry.what)).toHaveLength(2);
     for (const entry of OWNER_ONLY)

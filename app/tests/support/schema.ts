@@ -40,7 +40,7 @@ async function databaseCode(): Promise<Array<string>> {
       const body = statement.replace(/^(?:\s*--[^\n]*\n)*/, "").trim();
       if (
         /^CREATE (?:OR REPLACE )?(?:FUNCTION|TRIGGER)\b/i.test(body) ||
-        /^DO \$role\$/.test(body)
+        body.startsWith("DO $role$")
       ) {
         code.push(body.replace(/;\s*$/, ""));
       }
