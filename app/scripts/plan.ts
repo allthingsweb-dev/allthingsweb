@@ -15,7 +15,8 @@ const core = fileURLToPath(new URL("../../core/", import.meta.url));
  * so the tools and the CLI can never disagree, and core checks every value
  * (topics, days, statuses) before anything is written. The script reads
  * DATABASE_URL from this process's environment; planning needs the
- * database owner, since no site role may use it.
+ * studio's connection (core's README, "The studio's connection"), since no
+ * site role may use it.
  *
  * The rows are private: tool results are for organizers, never for a
  * page, a post or a file in the repository.

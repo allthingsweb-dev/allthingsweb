@@ -151,7 +151,7 @@ const secretsCheck: CustomCheck = {
     `Pass only if every item holds for the code, scripts, workflows and documentation this pull request changes; otherwise fail and name each that doesn't.
 
 ${numbered([
-  "Credentials are read from the allthings 1Password vault with `op read` into a variable or straight into the command's environment, as in NEON_READER_URL=$(op read \"op://allthings/allthings site_reader/credential\") bun run deploy. No secret value is written into the repository, a command line's output, a log or a pull request.",
+  "Credentials are read from the allthings 1Password vault with `op read` into a variable or straight into the command's environment, as in NEON_READER_URL=$(op read \"op://allthings/allthings site_reader/credential\") bun run deploy. The one exception is the database owner's connection string, which is stored nowhere, the vault included (core/README.md, \"The studio's connection\"): it is for migrations and the role scripts alone, and the maintainer fetches it with neonctl straight into the command's environment, as in OWNER_URL=$(bunx neonctl@latest connection-string … --role-name neondb_owner …) bun infra/scripts/studio.ts --dry-run. No secret value is written into the repository, a command line's output, a log or a pull request.",
   "Every connection string or token passed to a command is captured, never echoed: nothing prints, logs or interpolates it into output (no echo, console.log, set -x or error message that includes it). A script that makes a credential sends it straight into a repository secret or 1Password, and a failing command shows its stderr alone.",
   "A Worker that is missing a secret names the binding, never a value.",
 ])}`,

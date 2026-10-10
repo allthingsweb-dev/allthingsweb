@@ -15,9 +15,11 @@ import { type DraftRef, Readiness } from "../src/readiness/readiness.ts";
  *   bun run readiness --event <slug> --topic javascript --topic git   match more words
  *   … --json                             the report, for tools
  *
- * It only reads. As the database owner it also suggests planning's wanted
+ * It only reads. As a role that may read planning (the studio, see core's
+ * README, "The studio's connection") it also suggests planning's wanted
  * speakers and host prospects; as any other role it leaves them out and
- * says so. It exits 1 when something blocks publishing. DATABASE_URL comes
+ * says so. The collaboration's advice joins only as the owner, which row
+ * security doesn't hold back; as the studio it is left out, and said so. It exits 1 when something blocks publishing. DATABASE_URL comes
  * from the environment only; .env files are not read.
  */
 

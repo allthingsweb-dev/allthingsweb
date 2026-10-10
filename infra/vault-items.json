@@ -1,0 +1,63 @@
+{
+  "vault": "allthings",
+  "items": [
+    {
+      "title": "allthings Bluesky",
+      "fields": ["handle", "app password"],
+      "pending": true
+    },
+    {
+      "title": "allthings collab answers key",
+      "fields": ["credential"]
+    },
+    {
+      "title": "allthings Discord webhook",
+      "fields": ["url"],
+      "pending": true
+    },
+    {
+      "title": "allthings draft_collab",
+      "fields": ["credential"]
+    },
+    {
+      "title": "allthings Luma API key",
+      "fields": ["credential"]
+    },
+    {
+      "title": "allthings media upload",
+      "fields": ["url", "token"]
+    },
+    {
+      "title": "allthings neon auth archive 2026-10-07",
+      "fields": []
+    },
+    {
+      "title": "allthings site_reader",
+      "fields": ["credential"]
+    },
+    {
+      "title": "allthings site_sync",
+      "fields": ["credential"]
+    },
+    {
+      "title": "allthings studio",
+      "fields": ["credential"]
+    },
+    {
+      "title": "allthings X app",
+      "fields": [
+        "username",
+        "Consumer Key",
+        "Secret Key",
+        "Bearer Token",
+        "Client ID",
+        "Client Secret",
+        "oauth2 refresh token"
+      ]
+    },
+    {
+      "title": "allthings zero trust",
+      "fields": ["credential"]
+    }
+  ]
+}

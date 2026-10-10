@@ -38,8 +38,9 @@ import {
  * Every list is ordered, so the same rows always read the same.
  *
  * The rows are private. Nothing here is read by the site, and it runs only
- * as a role that may use the planning schema: the database owner, never
- * site_reader or site_sync (tests/planning-privacy.test.ts).
+ * as a role that may use the planning schema: the studio
+ * (infra/scripts/studio.ts) or the database owner, never site_reader or
+ * site_sync (tests/planning-privacy.test.ts).
  */
 
 /** A change that can't be made as asked; nothing was written. */

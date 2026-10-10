@@ -8,7 +8,7 @@ import { coverFactsOf } from "../cover.ts";
 import { eventTopic } from "../lockup.ts";
 import type { HostProspect, Idea, WantedSpeaker } from "../planning/model.ts";
 import { Planning, PlanningError } from "../planning/planning.ts";
-import { collabChecks, collabFacts } from "./collab.ts";
+import { collabChecks, collabFacts, collabReadable } from "./collab.ts";
 import type { EventProgram } from "../rows.ts";
 import { ShortSlugs } from "../slugs.ts";
 import { sfDay } from "./calendar.ts";
@@ -39,8 +39,10 @@ import {
  * Luma event), named by slug, or an idea from planning, named by id: the
  * idea's draft evening when it has one, else the idea alone, which has
  * everything still to do. Planning's wanted speakers and host prospects
- * join the suggestions when the role may read planning (the owner); as
- * any other role, the report says it left them out.
+ * join the suggestions when the role may read planning (the studio, or the
+ * owner); as any other role, the report says it left them out. The
+ * collaboration's advice joins only as a role row security doesn't hold
+ * back (the owner); as the studio, the report says it left that out.
  */
 
 /** What the report is about. */
@@ -104,6 +106,11 @@ export interface ReadinessReport {
   };
   /** Whether planning's rows joined the suggestions. */
   readonly planning: "read" | "not readable as this role";
+  /**
+   * Whether the collaboration's advice is in `checks`: only as a role that
+   * reads every row of it, the owner (src/readiness/collab.ts).
+   */
+  readonly collaboration: "read" | "not readable as this role";
 }
 
 export interface ReadinessShape {
@@ -308,6 +315,9 @@ const make = Effect.gen(function* () {
       const now = yield* DateTime.now;
       const today = sfDay(now);
       const readable = yield* planningReadable;
+      const collaboration =
+        readable &&
+        (yield* collabReadable.pipe(Effect.provideService(SqlClient, sql)));
       const ideas = readable ? yield* planning.listIdeas() : [];
 
       let idea: Idea | null = null;
@@ -492,7 +502,7 @@ const make = Effect.gen(function* () {
         // What collaborating on it still needs: advice, never a blocker.
         checks: [
           ...checks,
-          ...(readable && fact !== undefined
+          ...(collaboration && fact !== undefined
             ? collabChecks(
                 yield* collabFacts(fact.id).pipe(
                   Effect.provideService(SqlClient, sql),
@@ -552,6 +562,9 @@ const make = Effect.gen(function* () {
           },
         },
         planning: readable
+          ? ("read" as const)
+          : ("not readable as this role" as const),
+        collaboration: collaboration
           ? ("read" as const)
           : ("not readable as this role" as const),
       } satisfies ReadinessReport;

@@ -36,7 +36,12 @@ import {
   wordsOf,
 } from "../src/readiness/suggestions.ts";
 import { ShortSlugs } from "../src/slugs.ts";
-import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
+import {
+  clockLayer,
+  seededDatabase,
+  sqlLayer,
+  studioRun,
+} from "./support/database.ts";
 
 /**
  * Readiness (src/readiness/): the checks and suggestions on hand-made
@@ -978,28 +983,31 @@ describe("the report", () => {
     ).toBe("No idea has the id 00000000-0000-4000-8000-000000000000.");
   });
 
-  test("as site_reader, it reports without planning, and says so", async () => {
-    const owner: Statements = {
-      unsafe: async (query, values) =>
-        (await db.query(query, values === undefined ? [] : [...values])).rows,
-    };
-    await provisionLoginRole(owner, SITE_READER, "test-only");
-    for (const statement of readerGrants()) await db.exec(statement);
-    await db.exec(`SET ROLE ${SITE_READER}`);
-    const result = await report({
-      _tag: "Event",
-      slug: "2026-09-01-draft-night",
-    });
-    expect(result.planning).toBe("not readable as this role");
-    expect(result.idea).toBeNull();
-    expect(result.suggestions.speakers.wanted).toEqual([]);
-    expect(
-      await refusal({
-        _tag: "Idea",
-        id: "00000000-0000-4000-8000-000000000000",
-      }),
-    ).toBe(
-      "Planning can't be read as this role, so no idea can be: run it as the database owner.",
-    );
-  });
+  test.skipIf(studioRun)(
+    "as site_reader, it reports without planning, and says so",
+    async () => {
+      const owner: Statements = {
+        unsafe: async (query, values) =>
+          (await db.query(query, values === undefined ? [] : [...values])).rows,
+      };
+      await provisionLoginRole(owner, SITE_READER, "test-only");
+      for (const statement of readerGrants()) await db.exec(statement);
+      await db.exec(`SET ROLE ${SITE_READER}`);
+      const result = await report({
+        _tag: "Event",
+        slug: "2026-09-01-draft-night",
+      });
+      expect(result.planning).toBe("not readable as this role");
+      expect(result.idea).toBeNull();
+      expect(result.suggestions.speakers.wanted).toEqual([]);
+      expect(
+        await refusal({
+          _tag: "Idea",
+          id: "00000000-0000-4000-8000-000000000000",
+        }),
+      ).toBe(
+        "Planning can't be read as this role, so no idea can be: run it as the database owner.",
+      );
+    },
+  );
 });

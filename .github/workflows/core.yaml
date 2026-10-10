@@ -10,6 +10,12 @@ on:
       - "docs/event-formats.md"
       - "infra/scripts/site-sync.ts"
       - "infra/scripts/login-role.ts"
+      # tests/studio-role.test.ts and test:studio make the studio role with
+      # its script; tests/vault.test.ts reads the vault's list.
+      - "infra/scripts/studio.ts"
+      - "infra/scripts/site-reader.ts"
+      - "infra/scripts/vault-items.ts"
+      - "infra/vault-items.json"
       - "package.json"
       - "bun.lock"
       - "app/src/lib/**"
@@ -29,6 +35,12 @@ on:
       - "docs/event-formats.md"
       - "infra/scripts/site-sync.ts"
       - "infra/scripts/login-role.ts"
+      # tests/studio-role.test.ts and test:studio make the studio role with
+      # its script; tests/vault.test.ts reads the vault's list.
+      - "infra/scripts/studio.ts"
+      - "infra/scripts/site-reader.ts"
+      - "infra/scripts/vault-items.ts"
+      - "infra/vault-items.json"
       - "package.json"
       - "bun.lock"
       - "app/src/lib/**"
@@ -112,3 +124,11 @@ jobs:
         env:
           CORE_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
         run: bun run test
+
+      # The studio's suites again, as the studio role (infra/scripts/studio.ts),
+      # so what each studio command does, the role may.
+      - name: 🎬 Run the studio's tests as the studio role
+        working-directory: core
+        env:
+          CORE_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
+        run: bun run test:studio

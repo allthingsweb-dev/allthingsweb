@@ -71,5 +71,10 @@ export function formatReadiness(report: ReadinessReport): string {
       "planning: not readable as this role, so no wanted speakers or prospects",
     );
   }
+  if (report.planning === "read" && report.collaboration !== "read") {
+    lines.push(
+      "collaboration: not readable as this role (row security), so no advice on rounds, logistics or tasks: run it as the database owner for that",
+    );
+  }
   return lines.join("\n");
 }

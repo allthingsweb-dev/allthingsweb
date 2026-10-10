@@ -3,7 +3,15 @@ import { SQL } from "bun";
 import { PgClient } from "@effect/sql-pg";
 import { Effect, Redacted } from "effect";
 import * as Migrations from "../src/migrator.ts";
-import { readSeed } from "./support/database.ts";
+import {
+  provisionLoginRole,
+  type Statements,
+} from "../../infra/scripts/login-role.ts";
+import {
+  grantStatements as studioGrants,
+  STUDIO,
+} from "../../infra/scripts/studio.ts";
+import { readSeed, testRole } from "./support/database.ts";
 
 /**
  * `bun run plan` (scripts/plan.ts) end to end, as the admin MCP server's
@@ -11,7 +19,9 @@ import { readSeed } from "./support/database.ts";
  * service itself is tested in planning.test.ts.
  *
  * Needs `CORE_TEST_POSTGRES_URL`, as tests/postgres.test.ts does; the test
- * makes its own database there and drops it afterwards.
+ * makes its own database there and drops it afterwards. In the studio's run
+ * (`bun run test:studio`) the CLI signs in as the studio role, made there
+ * with infra/scripts/studio.ts's own statements, as the docs run it.
  */
 
 const serverUrl = process.env["CORE_TEST_POSTGRES_URL"];
@@ -34,6 +44,21 @@ if (serverUrl === undefined) {
   );
   const seeded = new SQL(databaseUrl);
   await seeded.unsafe(await readSeed());
+  // The CLI's connection: the owner's, or the studio's with a password of
+  // this run's (roles belong to the server, so each run sets its own).
+  let cliUrl = databaseUrl;
+  if (testRole === "studio") {
+    const password = crypto.randomUUID();
+    const owner: Statements = {
+      unsafe: (query, values) => seeded.unsafe(query, [...(values ?? [])]),
+    };
+    await provisionLoginRole(owner, STUDIO, password);
+    for (const statement of studioGrants()) await seeded.unsafe(statement);
+    const studio = new URL(databaseUrl);
+    studio.username = STUDIO;
+    studio.password = password;
+    cliUrl = studio.href;
+  }
   await seeded.close();
   afterAll(async () => {
     await admin.unsafe(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);
@@ -44,7 +69,7 @@ if (serverUrl === undefined) {
   const plan = async (...args: ReadonlyArray<string>) => {
     const child = Bun.spawn(["bun", "run", "--silent", "plan", ...args], {
       cwd: core,
-      env: { ...process.env, DATABASE_URL: databaseUrl },
+      env: { ...process.env, DATABASE_URL: cliUrl },
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -69,6 +94,15 @@ if (serverUrl === undefined) {
   };
 
   describe("bun run plan", () => {
+    test("signs in as the role this run is for", async () => {
+      const cli = new SQL(cliUrl);
+      const [row] = (await cli`SELECT current_user AS who`) as Array<{
+        who: string;
+      }>;
+      await cli.close();
+      expect(row?.who).toBe(testRole === "studio" ? STUDIO : url.username);
+    });
+
     test("a dry run prints the write and keeps nothing", async () => {
       const dry = (await json(
         "idea",

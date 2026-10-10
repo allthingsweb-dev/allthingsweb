@@ -30,8 +30,8 @@ import type { Moment } from "../promo/drafts.ts";
  * there is none. A claim whose send is still going is neither, and a sent
  * post is never released.
  *
- * The rows are in the planning schema: this runs as the database owner,
- * never as a site role.
+ * The rows are in the planning schema: this runs as the studio
+ * (infra/scripts/studio.ts), never as a site role.
  */
 
 export type RecordedChannel = "discord" | "x";
