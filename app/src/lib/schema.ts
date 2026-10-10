@@ -1003,6 +1003,7 @@ export const planningDraftTalksTable = planningSchema.table(
       table.eventId,
       table.position,
     ),
+    unique("draft_talks_event_id_title_unique").on(table.eventId, table.title),
     check("draft_talks_position_check", sql`"position" > 0`),
     check(
       "draft_talks_kind_check",

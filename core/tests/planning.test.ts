@@ -636,6 +636,43 @@ describe("a draft's private talks", () => {
     expect(await count("draft_talk_people")).toBe(1);
   });
 
+  test("counts a title in code points, and refuses one its evening already has, public or private", async () => {
+    // 120 elephants: 240 UTF-16 units, 120 characters to Postgres.
+    const elephants = "🐘".repeat(120);
+    const added = await plan((p) =>
+      p.addDraftTalk(draftEvening, {
+        kind: "talk",
+        title: elephants,
+        people: [],
+      }),
+    );
+    expect(added.map(({ title }) => title)).toEqual([elephants]);
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(draftEvening, {
+          kind: "panel",
+          title: elephants,
+          people: [],
+        }),
+      ),
+    ).toBe(`${draftEvening} already has a talk called "${elephants}".`);
+    const [seeded] = (
+      await db.query<{ title: string }>(
+        "SELECT t.title FROM event_talks et JOIN talks t ON t.id = et.talk_id JOIN events e ON e.id = et.event_id WHERE e.slug = '2026-09-01-draft-night'",
+      )
+    ).rows;
+    expect(
+      await refusal((p) =>
+        p.addDraftTalk(draftEvening, {
+          kind: "talk",
+          title: seeded?.title ?? "",
+          people: [],
+        }),
+      ),
+    ).toBe(`${draftEvening} already has a talk called "${seeded?.title}".`);
+    expect(await count("draft_talks")).toBe(1);
+  });
+
   test("refuses a published evening, a part its kind has no room for, a person twice or declined, and an unknown id, writing nothing", async () => {
     const { lovelace, newcomer } = await wanted();
     const panel = (

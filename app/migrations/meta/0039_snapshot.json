@@ -1,5 +1,5 @@
 {
-  "id": "f28aed2c-5059-4135-a2fd-5c62d53aee44",
+  "id": "dd1d02cd-55da-4414-90bf-be4f129c470e",
   "prevId": "9d4170cb-ebeb-4643-8c06-1b845db03871",
   "version": "7",
   "dialect": "postgresql",
@@ -2394,6 +2394,11 @@
           "name": "draft_talks_event_id_position_unique",
           "nullsNotDistinct": false,
           "columns": ["event_id", "position"]
+        },
+        "draft_talks_event_id_title_unique": {
+          "name": "draft_talks_event_id_title_unique",
+          "nullsNotDistinct": false,
+          "columns": ["event_id", "title"]
         }
       },
       "policies": {},

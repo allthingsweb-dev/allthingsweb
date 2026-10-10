@@ -438,9 +438,24 @@ const make = Effect.gen(function* () {
             );
 
       const day = record === null ? null : sfDay(record.startDate);
-      const onIt = new Set(fact?.peopleIds ?? []);
+      // Who is on a planned talk is on it too, profile or not.
+      const onIt = new Set([
+        ...(fact?.peopleIds ?? []),
+        ...plannedTalks.flatMap((talk) =>
+          talk.people.flatMap((entry) =>
+            entry.person === null ? [] : [entry.person.id],
+          ),
+        ),
+      ]);
+      const plannedWanted = new Set(
+        plannedTalks.flatMap((talk) =>
+          talk.people.map((entry) => entry.wantedSpeakerId),
+        ),
+      );
       const hostsOnIt = new Set(fact?.hostIds ?? []);
-      const wantedRows = readable ? yield* planning.listWantedSpeakers() : [];
+      const wantedRows = (
+        readable ? yield* planning.listWantedSpeakers() : []
+      ).filter((speaker) => !plannedWanted.has(speaker.id));
       const wanted = rankWanted(terms, wantedRows.map(wantedOf), day, onIt);
       const prospects = readable ? yield* planning.listHostProspects() : [];
       const window = dateWindow(day, today);

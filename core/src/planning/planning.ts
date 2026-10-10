@@ -1032,13 +1032,14 @@ const make = Effect.gen(function* () {
     inTransaction(
       Effect.gen(function* () {
         const title = talk.title.trim();
-        if (title === "" || title.length > 120) {
+        // Counted as Postgres's char_length does: in code points.
+        if (title === "" || Array.from(title).length > 120) {
           return yield* refuse("A talk's title is 1 to 120 characters.");
         }
         const description = talk.description?.trim();
         if (
           description !== undefined &&
-          (description === "" || description.length > 4000)
+          (description === "" || Array.from(description).length > 4000)
         ) {
           return yield* refuse(
             "A talk's description, if given, is 1 to 4000 characters.",
@@ -1060,6 +1061,16 @@ const make = Effect.gen(function* () {
         // Lock the evening first, so changes to its talks go one at a time.
         yield* sql`SELECT id FROM events WHERE slug = ${slug} FOR UPDATE`;
         const draftId = yield* draftEvent(slug);
+        // A talk is known on its evening by its title (readiness reads
+        // them so), so no two share one, public or private.
+        const [taken] = yield* sql`
+          SELECT 1 AS taken FROM planning.draft_talks WHERE event_id = ${draftId} AND title = ${title}
+          UNION ALL
+          SELECT 1 FROM event_talks et JOIN talks t ON t.id = et.talk_id
+          WHERE et.event_id = ${draftId} AND t.title = ${title}`;
+        if (taken !== undefined) {
+          return yield* refuse(`${slug} already has a talk called "${title}".`);
+        }
         const people = yield* Effect.forEach(talk.people, (entry) =>
           Effect.map(wantedSpeaker(entry.wantedSpeaker), (wanted) => ({
             role: entry.role,

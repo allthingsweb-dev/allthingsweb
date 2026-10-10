@@ -8,7 +8,8 @@ import { statements } from "./statements.ts";
  * copies it.
  *
  * - `draft_talks`: one evening's talks, in running order from 1, each a
- *   talk, a panel or a fireside, with a title and maybe a description.
+ *   talk, a panel or a fireside, with a title, its own on the evening (as
+ *   readiness knows it), and maybe a description.
  * - `draft_talk_people`: who is on each, by the wanted speaker planning
  *   keeps for them (planning.wanted_speakers), so whether they've said yes
  *   is that record's status and never kept twice; as a speaker, panelist
@@ -29,6 +30,7 @@ export const draftTalks: ReadonlyArray<string> = [
     "description" text,
     "created_at" timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT "draft_talks_event_id_position_unique" UNIQUE ("event_id", "position"),
+    CONSTRAINT "draft_talks_event_id_title_unique" UNIQUE ("event_id", "title"),
     CONSTRAINT "draft_talks_position_check" CHECK ("position" > 0),
     CONSTRAINT "draft_talks_kind_check" CHECK ("kind" IN ('talk', 'panel', 'fireside')),
     CONSTRAINT "draft_talks_title_check" CHECK (btrim("title") <> '' AND char_length("title") <= 120),

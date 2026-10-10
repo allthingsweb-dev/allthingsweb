@@ -20,6 +20,7 @@ CREATE TABLE "planning"."draft_talks" (
 	"description" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "draft_talks_event_id_position_unique" UNIQUE("event_id","position"),
+	CONSTRAINT "draft_talks_event_id_title_unique" UNIQUE("event_id","title"),
 	CONSTRAINT "draft_talks_position_check" CHECK ("position" > 0),
 	CONSTRAINT "draft_talks_kind_check" CHECK ("kind" IN ('talk', 'panel', 'fireside')),
 	CONSTRAINT "draft_talks_title_check" CHECK (btrim("title") <> '' AND char_length("title") <= 120),

@@ -952,6 +952,13 @@ describe("the report", () => {
       "blocker talk-unconfirmed Made-up Panelist",
       "blocker talk-profile Made-up Panelist",
     ]);
+    // Who is on it isn't suggested for it.
+    const suggested = (await report({ _tag: "Event", slug }, ["postgres"]))
+      .suggestions;
+    expect(suggested.speakers.wanted.map((entry) => entry.name)).toEqual([]);
+    expect(suggested.speakers.network.map((entry) => entry.name)).not.toContain(
+      "Ada Lovelace",
+    );
     await plan((p) => p.updateWantedSpeaker(ada.id, { status: "confirmed" }));
     expect(await talkChecks()).toEqual([
       "blocker talk-unconfirmed Made-up Panelist",
