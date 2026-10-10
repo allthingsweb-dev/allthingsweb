@@ -6,9 +6,9 @@
  * STUDIO_GRANTS and nothing else, from those commands' own SQL:
  *
  * - planning: the tables the studio keeps (ideas, wanted speakers, host
- *   prospects, contacts, notes, a draft's lineup, publishes, sent posts),
- *   read whole, and written only in the columns and ways its commands
- *   write them. Nothing on the ten collaboration tables
+ *   prospects, contacts, notes, a draft's lineup and talks, publishes, sent
+ *   posts), read whole, and written only in the columns and ways its
+ *   commands write them. Nothing on the ten collaboration tables
  *   (migrations/0026_draft_collaboration.ts): they have row security, which
  *   this role doesn't bypass, so `bun run collab` stays the owner's (see
  *   OWNER_ONLY) and readiness leaves collaboration's advice out as it.
@@ -167,6 +167,17 @@ export const STUDIO_GRANTS: Readonly<Record<string, TableGrants>> = {
   "planning.draft_people": {
     select: true,
     insert: ["event_id", "profile_id", "role", "position"],
+    delete: true,
+  },
+  // plan lineup talk add / remove; read by readiness.
+  "planning.draft_talks": {
+    select: true,
+    insert: ["event_id", "position", "kind", "title", "description"],
+    delete: true,
+  },
+  "planning.draft_talk_people": {
+    select: true,
+    insert: ["draft_talk_id", "wanted_speaker_id", "role", "position"],
     delete: true,
   },
   // luma publish --approve: the claim, published, or let go when Luma
@@ -394,14 +405,19 @@ async function main(): Promise<void> {
 
   const password = newPassword();
   const sql = new Bun.SQL(owner);
-  const created = await sql.begin(async (transaction) => {
-    const isNew = await provisionLoginRole(transaction, STUDIO, password);
-    for (const statement of grantStatements()) {
-      await transaction.unsafe(statement);
-    }
-    return isNew;
-  });
-  await sql.end();
+  let created: boolean;
+  try {
+    created = await sql.begin(async (transaction) => {
+      const isNew = await provisionLoginRole(transaction, STUDIO, password);
+      for (const statement of grantStatements()) {
+        await transaction.unsafe(statement);
+      }
+      return isNew;
+    });
+  } finally {
+    // A refused transaction changed nothing; the client closes either way.
+    await sql.end();
+  }
 
   try {
     await storeItem({
