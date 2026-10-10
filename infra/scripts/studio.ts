@@ -341,6 +341,24 @@ export const OWNER_ONLY: ReadonlyArray<{
 ];
 
 /**
+ * The functions of ours the role may execute, all because PUBLIC may, as it
+ * may every function nobody revoked it on: none is granted to it. They
+ * change nothing and see nothing a caller couldn't: a pure function of a
+ * name, and two trigger functions, which Postgres runs only as triggers.
+ * Revoking PUBLIC's EXECUTE on them would be a migration, and would break
+ * the profiles_slug trigger, which calls person_slug as whoever inserts a
+ * profile. core/tests/studio-role.test.ts fails when the role may execute
+ * any other (a new function left to PUBLIC), or any that is SECURITY
+ * DEFINER: that is a decision for its migration, to revoke PUBLIC or list
+ * it here.
+ */
+export const STUDIO_PUBLIC_FUNCTIONS: ReadonlyArray<string> = [
+  "public.person_slug(text)",
+  "public.profiles_slug()",
+  "public.profiles_x_followers_reset()",
+];
+
+/**
  * Bounds on every session: a studio command runs a few short statements,
  * and keeps no transaction open while it calls Luma, X, Discord or the
  * upload Worker.

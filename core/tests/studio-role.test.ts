@@ -8,6 +8,7 @@ import {
   STUDIO,
   STUDIO_COMMANDS,
   STUDIO_GRANTS,
+  STUDIO_PUBLIC_FUNCTIONS,
   STUDIO_SETTINGS,
 } from "../../infra/scripts/studio.ts";
 import { sqlLayer as ownerLayer } from "../scripts/pglite.ts";
@@ -189,6 +190,24 @@ describe("its privileges in the catalog", () => {
       ]),
     ].toSorted();
     expect(granted.rows.map((row) => row.grant)).toEqual(expected);
+  });
+
+  test("execute only the harmless functions PUBLIC may, none SECURITY DEFINER", async () => {
+    const { rows } = await db.query<{ signature: string; definer: boolean }>(
+      `SELECT n.nspname || '.' || (p.oid::regprocedure::text) AS signature,
+         p.prosecdef AS definer
+       FROM pg_catalog.pg_proc p
+       JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+         AND has_function_privilege($1, p.oid, 'EXECUTE')
+       ORDER BY 1`,
+      [STUDIO],
+    );
+    expect(rows).toEqual(
+      [...STUDIO_PUBLIC_FUNCTIONS]
+        .toSorted()
+        .map((signature) => ({ signature, definer: false })),
+    );
   });
 
   test("execute no function PUBLIC may not, own nothing, and belong to no role", async () => {
