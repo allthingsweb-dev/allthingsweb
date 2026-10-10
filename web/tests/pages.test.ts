@@ -769,7 +769,7 @@ describe("/lab", () => {
     );
     expect(html).toContain('<meta name="robots" content="noindex, nofollow"/>');
     expect(html).toContain('<a href="/lab/home">');
-    expect(html).not.toMatch(/<script|\son[a-z]+\s*=|javascript:/i);
+    expect(html).not.toMatch(/<script|(?:\s|\/)on[a-z]+\s*=|javascript:/i);
   });
 
   it("is never stored without a database, which only its footer reads", async (_, noDatabase) => {
