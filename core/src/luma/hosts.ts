@@ -376,7 +376,8 @@ export class LumaHosts extends Context.Service<LumaHosts, HostsShape>()(
 
 /**
  * The hosts `args` (a command line) adds, each at its access level:
- * `--access <level>` sets the level of the `--add <email>` just before it,
+ * `--access <level>` sets the level of the `--add <email>` right before it,
+ * with no other flag between them,
  * and one left without is `none`, least privilege. Each also as
  * `--flag=<value>`; nothing after `--` is a flag. Why it can't be read, as
  * a string.
@@ -385,29 +386,34 @@ export function hostAddsInOrder(
   args: ReadonlyArray<string>,
 ): HostsRequest["add"] | string {
   const adds: Array<{ email: string; access: HostAccess }> = [];
-  let leveled = false;
+  // Whether the last flag was an --add, so an --access may follow it.
+  let open = false;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index] ?? "";
     if (arg === "--") break;
     const equals = arg.indexOf("=");
     const name = equals === -1 ? arg : arg.slice(0, equals);
-    if (name !== "--add" && name !== "--access") continue;
+    if (name !== "--add" && name !== "--access") {
+      // Any other flag between an --add and its --access ends it.
+      if (arg.startsWith("--")) open = false;
+      continue;
+    }
     const value = equals === -1 ? args[++index] : arg.slice(equals + 1);
     if (value === undefined) return `${name} needs a value.`;
     if (name === "--add") {
       adds.push({ email: value, access: "none" });
-      leveled = false;
+      open = true;
       continue;
     }
     const last = adds.at(-1);
-    if (last === undefined || leveled) {
+    if (last === undefined || !open) {
       return `--access ${value} goes right after the --add it is for.`;
     }
     if (!(hostAccessLevels as ReadonlyArray<string>).includes(value)) {
       return `--access is one of ${hostAccessLevels.join(", ")}: ${value}`;
     }
     adds[adds.length - 1] = { ...last, access: value as HostAccess };
-    leveled = true;
+    open = false;
   }
   return adds;
 }
