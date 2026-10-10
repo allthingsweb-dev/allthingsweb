@@ -3,6 +3,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { Cause, Effect, Exit, Layer } from "effect";
 import { approvalToken } from "../src/approval.ts";
 import {
+  hostAddsInOrder,
   type Hosts,
   hostsPlan,
   hostsRequestProblem,
@@ -47,6 +48,9 @@ const eventWith = (hosts: ReadonlyArray<typeof creator | typeof cohost>) => ({
 });
 
 const json = (value: unknown): Reply => ({ body: JSON.stringify(value) });
+
+/** A host to add with no rights to manage the event: the default. */
+const none = (email: string) => ({ email, access: "none" as const });
 
 const now: Hosts = {
   lumaEventId,
@@ -101,25 +105,27 @@ describe("the plan", () => {
   test("is a pure diff: who is added and removed, nothing for what is already so", () => {
     expect(
       hostsPlan(now, {
-        add: ["new@example.com", " NEW@example.com", "Creator@Example.com"],
+        add: ["new@example.com", " NEW@example.com", "Creator@Example.com"].map(
+          none,
+        ),
         remove: ["usr-cohost"],
       }),
     ).toEqual({
       changes: [
-        { action: "add", email: "new@example.com" },
+        { action: "add", email: "new@example.com", access: "none" },
         { action: "remove", email: "cohost@example.com", name: null },
       ],
       gaps: [],
     });
     expect(
-      hostsPlan(now, { add: ["creator@example.com"], remove: [] }),
+      hostsPlan(now, { add: ["creator@example.com"].map(none), remove: [] }),
     ).toEqual({ changes: [], gaps: [] });
   });
 
   test("names what Luma's API can't do, and plans nothing for it", () => {
     expect(
       hostsPlan(now, {
-        add: ["usr-someone", "Ada Lovelace"],
+        add: ["usr-someone", "Ada Lovelace"].map(none),
         remove: ["creator@example.com", "nobody@example.com"],
       }),
     ).toEqual({
@@ -154,7 +160,10 @@ describe("the plan", () => {
 
   test("someone added by email and removed by Luma user id is a gap, not a quiet removal", () => {
     expect(
-      hostsPlan(now, { add: ["Cohost@example.com"], remove: ["usr-cohost"] }),
+      hostsPlan(now, {
+        add: ["Cohost@example.com"].map(none),
+        remove: ["usr-cohost"],
+      }),
     ).toEqual({
       changes: [],
       gaps: [
@@ -167,13 +176,85 @@ describe("the plan", () => {
     });
   });
 
+  test("each host is added at its own access level, none unless asked", () => {
+    expect(
+      hostAddsInOrder([
+        "luma",
+        "hosts",
+        "--add",
+        "erik@example.com",
+        "--access",
+        "manager",
+        "--add=co@example.com",
+        "--add",
+        "door@example.com",
+        "--access=check-in",
+        "--",
+        "--add",
+        "not-a-flag@example.com",
+      ]),
+    ).toEqual([
+      { email: "erik@example.com", access: "manager" },
+      { email: "co@example.com", access: "none" },
+      { email: "door@example.com", access: "check-in" },
+    ]);
+    expect(
+      hostAddsInOrder(["--access", "manager", "--add", "a@example.com"]),
+    ).toBe("--access manager goes right after the --add it is for.");
+    expect(
+      hostAddsInOrder([
+        "--add",
+        "a@example.com",
+        "--access",
+        "none",
+        "--access",
+        "manager",
+      ]),
+    ).toBe("--access manager goes right after the --add it is for.");
+    // Another flag between them ends the --add: the --access is refused.
+    expect(
+      hostAddsInOrder([
+        "--add",
+        "company@example.com",
+        "--remove",
+        "old@example.com",
+        "--access",
+        "manager",
+      ]),
+    ).toBe("--access manager goes right after the --add it is for.");
+    expect(
+      hostAddsInOrder(["--add", "a@example.com", "--access", "owner"]),
+    ).toBe("--access is one of none, check-in, manager: owner");
+    expect(
+      hostsPlan(now, {
+        add: [
+          { email: "erik@example.com", access: "manager" },
+          { email: "co@example.com", access: "none" },
+        ],
+        remove: [],
+      }).changes,
+    ).toEqual([
+      { action: "add", email: "erik@example.com", access: "manager" },
+      { action: "add", email: "co@example.com", access: "none" },
+    ]);
+  });
+
   test("a request with nothing in it, or someone both added and removed, is refused", () => {
+    expect(
+      hostsRequestProblem({
+        add: [
+          none("a@example.com"),
+          { email: " A@example.com", access: "manager" },
+        ],
+        remove: [],
+      }),
+    ).toBe("A@example.com is added twice: give them once.");
     expect(hostsRequestProblem({ add: [], remove: [] })).toBe(
       "Nothing to change: give --add or --remove.",
     );
     expect(
       hostsRequestProblem({
-        add: ["a@example.com"],
+        add: ["a@example.com"].map(none),
         remove: ["A@example.com "],
       }),
     ).toBe("A@example.com is both added and removed: give one.");
@@ -189,7 +270,7 @@ describe("read and prepare", () => {
   });
 
   test("reads, sends nothing, and prints the token for exactly the plan", async () => {
-    const request = { add: ["new@example.com"], remove: [] };
+    const request = { add: ["new@example.com"].map(none), remove: [] };
     const { exit, requests } = await run((h) => h.prepare(draft, request), {
       "/v1/events/get": [json(eventWith([creator, cohost]))],
     });
@@ -240,7 +321,10 @@ describe("read and prepare", () => {
 });
 
 describe("approve", () => {
-  const request = { add: ["new@example.com"], remove: ["usr-cohost"] };
+  const request = {
+    add: ["new@example.com"].map(none),
+    remove: ["usr-cohost"],
+  };
   const added = { id: "usr-new", email: "new@example.com", name: "New Host" };
 
   const tokenFor = async (asked = request) =>
@@ -275,6 +359,8 @@ describe("approve", () => {
     expect(JSON.parse(requests[1]?.body ?? "")).toEqual({
       event_id: lumaEventId,
       email: "new@example.com",
+      // Least privilege: shown on the page, no rights to manage it.
+      access_level: "none",
     });
     expect(JSON.parse(requests[2]?.body ?? "")).toEqual({
       event_id: lumaEventId,
@@ -283,7 +369,10 @@ describe("approve", () => {
   });
 
   test("refuses a token for any other plan, and sends nothing", async () => {
-    const token = await tokenFor({ add: ["other@example.com"], remove: [] });
+    const token = await tokenFor({
+      add: ["other@example.com"].map(none),
+      remove: [],
+    });
     const { exit, requests } = await run(
       (h) => h.approve(draft, request, token),
       { "/v1/events/get": [json(eventWith([creator, cohost]))] },
@@ -295,7 +384,7 @@ describe("approve", () => {
   });
 
   test("refuses what Luma's API can't do, by name, and sends nothing", async () => {
-    const asked = { add: ["usr-someone"], remove: [] };
+    const asked = { add: ["usr-someone"].map(none), remove: [] };
     const token = await tokenFor(asked);
     const { exit, requests } = await run(
       (h) => h.approve(draft, asked, token),

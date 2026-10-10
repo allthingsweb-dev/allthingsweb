@@ -156,12 +156,18 @@ describe("Luma tools", () => {
     ).toEqual(["hosts", "--event=2026-10-27-made-up", "--json"]);
     const change = {
       event: "2026-10-27-made-up",
-      add: ["new@example.com"],
+      add: [
+        { email: "erik@example.com", access: "manager" },
+        { email: "new@example.com" },
+      ],
       remove: ["usr-someone"],
     };
     expect(lumaArguments("luma_hosts", change)).toEqual([
       "hosts",
       "--event=2026-10-27-made-up",
+      "--add=erik@example.com",
+      "--access=manager",
+      // Left out, the CLI's least privilege: none.
       "--add=new@example.com",
       "--remove=usr-someone",
       "--dry-run",

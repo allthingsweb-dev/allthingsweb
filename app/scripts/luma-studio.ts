@@ -71,7 +71,15 @@ export const lumaSchemas = {
   }),
   luma_hosts: z.object({
     event: z.string().min(1),
-    add: z.array(z.string().min(1)).optional(),
+    add: z
+      .array(
+        z.object({
+          email: z.string().min(1),
+          // Left out, none: least privilege. A manager only for an organizer.
+          access: z.enum(["none", "check-in", "manager"]).optional(),
+        }),
+      )
+      .optional(),
     remove: z.array(z.string().min(1)).optional(),
     // Left out, a dry run; true with approve is refused, never a write.
     dryRun: z.boolean().optional(),
@@ -182,7 +190,10 @@ const builders: { readonly [T in LumaTool]: (input: unknown) => string[] } = {
   luma_hosts: (input) => {
     const a = lumaSchemas.luma_hosts.parse(input);
     const changes = [
-      ...(a.add ?? []).map((who) => `--add=${who}`),
+      ...(a.add ?? []).flatMap((host) => [
+        `--add=${host.email}`,
+        ...(host.access === undefined ? [] : [`--access=${host.access}`]),
+      ]),
       ...(a.remove ?? []).map((who) => `--remove=${who}`),
     ];
     // Nothing to change is a read.
@@ -384,7 +395,7 @@ export const lumaToolDefinitions: ReadonlyArray<{
   {
     name: "luma_hosts",
     description:
-      "An evening's hosts on Luma. With nothing to add or remove it lists them. With changes it is a dry run: who would be added (by email, as a manager shown on the page) or removed, anything Luma's API can't do (refused by name: adding by Luma user id, removing the event's creator), and the approval token. With approve (that token), it makes exactly those changes and checks they took. Only on an organizer's explicit go.",
+      "An evening's hosts on Luma. With nothing to add or remove it lists them. With changes it is a dry run: who would be added (by email, at an access level: none, shown on the page with no rights to manage it, unless check-in or manager is asked for; manager only for an organizer) or removed, anything Luma's API can't do (refused by name: adding by Luma user id, removing the event's creator), and the approval token. With approve (that token), it makes exactly those changes and checks they took. Only on an organizer's explicit go.",
     inputSchema: {
       type: "object",
       properties: {
@@ -393,8 +404,20 @@ export const lumaToolDefinitions: ReadonlyArray<{
         ),
         add: {
           type: "array",
-          items: { type: "string" },
-          description: "Hosts to add, by email",
+          items: {
+            type: "object",
+            properties: {
+              email: string("Their email"),
+              access: {
+                type: "string",
+                enum: ["none", "check-in", "manager"],
+                description:
+                  "none (the default): shown, no rights to manage it; check-in: checks guests in, not shown; manager: changes the event, only for an organizer",
+              },
+            },
+            required: ["email"],
+          },
+          description: "Hosts to add, each at an access level",
         },
         remove: {
           type: "array",

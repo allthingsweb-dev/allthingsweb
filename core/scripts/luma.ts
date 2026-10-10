@@ -12,6 +12,9 @@ import { Calendar, type PreparedCalendar } from "../src/luma/calendar.ts";
 import { Covers, type PreparedCover } from "../src/luma/cover.ts";
 import {
   type HostChange,
+  hostAccessLevels,
+  hostAccessText,
+  hostAddsInOrder,
   type Hosts,
   LumaHosts,
   type PreparedHosts,
@@ -62,7 +65,8 @@ import { shellWord } from "./shell.ts";
  *     --question-optional "Anything we should know?" --dry-run    each change and its token; nothing sent
  *   bun run luma registration --event <slug> … --approve <token>   make exactly those changes
  *   bun run luma hosts --event <slug|evt-…>            the event's hosts on Luma
- *   bun run luma hosts --event <slug> --add ada@example.com --remove usr-… --dry-run   each change and its token
+ *   bun run luma hosts --event <slug> --add ada@example.com --access manager --add co@example.com \
+ *     --remove usr-… --dry-run                         each change and its token; an --add without --access is none
  *   bun run luma hosts --event <slug> … --approve <token>   make exactly those changes
  *   bun run luma cancel-test evt-…                     delete a test event (see testEventPrefix)
  *
@@ -795,7 +799,7 @@ const describeHosts = (hosts: Hosts) =>
 
 const describeHostChange = (change: HostChange) =>
   change.action === "add"
-    ? `add ${change.email} (a manager, shown on the page)`
+    ? `add ${change.email} (${change.access}: ${hostAccessText[change.access]})`
     : `remove ${change.name ?? "(no name)"} <${change.email}>`;
 
 const describeHostsPlan = (prepared: PreparedHosts) =>
@@ -823,7 +827,13 @@ const hosts = Command.make(
     ),
     add: Flag.String("add").pipe(
       Flag.withDescription(
-        "A host to add, by email (Luma's API takes no other way); repeat.",
+        "A host to add, by email (Luma's API takes no other way); repeat. Shown on the page with no rights to manage it, unless --access follows it.",
+      ),
+      Flag.atLeast(0),
+    ),
+    access: Flag.Literals("access", hostAccessLevels).pipe(
+      Flag.withDescription(
+        "The access of the --add right before it: none (shown, no rights; the default), check-in (checks guests in, not shown) or manager (changes the event; only for an organizer).",
       ),
       Flag.atLeast(0),
     ),
@@ -850,7 +860,18 @@ const hosts = Command.make(
       const ref: EventRef = options.event.startsWith("evt-")
         ? { _tag: "Luma", lumaEventId: options.event }
         : { _tag: "Slug", slug: options.event };
-      const request = { add: options.add, remove: options.remove };
+      const adds = hostAddsInOrder(process.argv);
+      if (typeof adds === "string") return yield* refuse(adds);
+      if (
+        adds.length !== options.add.length ||
+        adds.filter((add) => add.access !== "none").length >
+          options.access.length
+      ) {
+        return yield* refuse(
+          "The hosts couldn't be read in order: give each as --add <email>, with --access <level> right after it if it isn't none.",
+        );
+      }
+      const request = { add: adds, remove: options.remove };
       if (request.add.length === 0 && request.remove.length === 0) {
         if (options.dryRun || Option.isSome(options.approve)) {
           return yield* refuse("Nothing to change: give --add or --remove.");
@@ -868,7 +889,10 @@ const hosts = Command.make(
         const again = [
           "bun run luma hosts --event",
           shellWord(options.event),
-          ...request.add.map((who) => `--add ${shellWord(who)}`),
+          ...request.add.map(
+            (add) =>
+              `--add ${shellWord(add.email)}${add.access === "none" ? "" : ` --access ${add.access}`}`,
+          ),
           ...request.remove.map((who) => `--remove ${shellWord(who)}`),
         ].join(" ");
         const next =
