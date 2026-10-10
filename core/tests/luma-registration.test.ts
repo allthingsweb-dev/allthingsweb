@@ -229,7 +229,35 @@ describe("the plan", () => {
     });
   });
 
+  test("an event Luma reads as otherwise than its ticket types say is a gap", () => {
+    expect(
+      registrationPlan(
+        {
+          ...now,
+          approval: true,
+          tickets: now.tickets.map((ticket) => ({
+            ...ticket,
+            requireApproval: false,
+          })),
+        },
+        { approval: false },
+      ),
+    ).toEqual({
+      changes: [],
+      gaps: [
+        {
+          field: "approval",
+          reason:
+            "Every ticket type already has approval off, yet Luma reads the event as on: it counts only the ticket types on sale now, which its API can't change from here.",
+        },
+      ],
+    });
+  });
+
   test("a request with nothing in it, a capacity that isn't one, or a question twice is refused", () => {
+    expect(requestProblem({ capacity: Number.MAX_SAFE_INTEGER + 2 })).toBe(
+      `A capacity is a whole number above 0, or none: ${Number.MAX_SAFE_INTEGER + 2}`,
+    );
     expect(requestProblem({})).toBe(
       "Nothing to change: give --approval, --waitlist, --capacity or questions.",
     );
@@ -409,6 +437,27 @@ describe("approve", () => {
         },
       ],
     });
+  });
+
+  test("says what went through when a write fails part way", async () => {
+    const token = await tokenFor();
+    const { exit, requests } = await run(
+      (r) => r.approve(draft, request, token),
+      {
+        "/v1/events/get": [json(eventNow)],
+        "/v1/events/ticket-types/list": [json(tickets)],
+        "/v1/events/ticket-types/update": [json({})],
+        "/v1/events/update": [{ status: 400, body: "{}" }],
+      },
+    );
+    expect(message(exit)).toStartWith(
+      "Luma refused or didn't answer the event update (waitlist_status, max_capacity, registration_questions)",
+    );
+    expect(message(exit)).toEndWith(
+      "These went through before it: approval on on ticket type ttype-standard. Read it with bun run luma registration before setting it again.",
+    );
+    // Nothing is read back or tried again after a failed write.
+    expect(paths(requests).at(-1)).toBe("POST /v1/events/update");
   });
 
   test("refuses a token for any other plan, and sends nothing", async () => {

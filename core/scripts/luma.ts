@@ -615,10 +615,12 @@ const capacityOf = (option: Option.Option<string>) =>
     onSome: (value) =>
       value === "none"
         ? Effect.succeed(null)
-        : /^\d+$/.test(value)
+        : /^\d+$/.test(value) &&
+            Number.isSafeInteger(Number(value)) &&
+            Number(value) > 0
           ? Effect.succeed(Number(value))
           : refuse(
-              `--capacity is a whole number, or none for no limit: ${value}`,
+              `--capacity is a whole number above 0, or none for no limit: ${value}`,
             ),
   });
 

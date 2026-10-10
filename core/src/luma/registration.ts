@@ -170,7 +170,7 @@ export function requestProblem(request: RegistrationRequest): string | null {
   if (
     capacity !== undefined &&
     capacity !== null &&
-    !(Number.isInteger(capacity) && capacity > 0)
+    !(Number.isSafeInteger(capacity) && capacity > 0)
   ) {
     return `A capacity is a whole number above 0, or none: ${capacity}`;
   }
@@ -215,7 +215,12 @@ export function registrationPlan(
       const differ = current.tickets.filter(
         (ticket) => ticket.requireApproval !== to,
       );
-      if (differ.length > 0 || current.approval !== to) {
+      if (differ.length === 0 && current.approval !== to) {
+        gaps.push({
+          field: "approval",
+          reason: `Every ticket type already has approval ${to ? "on" : "off"}, yet Luma reads the event as ${current.approval ? "on" : "off"}: it counts only the ticket types on sale now, which its API can't change from here.`,
+        });
+      } else if (differ.length > 0) {
         changes.push({
           field: "approval",
           from: current.approval,
@@ -456,10 +461,28 @@ const make = Effect.gen(function* () {
       const fields: {
         -readonly [K in keyof LumaEventFields]: LumaEventFields[K];
       } = {};
+      // Each write that went through, so a failure part way says what did.
+      const done: Array<string> = [];
+      const step = (what: string, write: Effect.Effect<void, LumaWriteError>) =>
+        write.pipe(
+          Effect.tap(() => Effect.sync(() => done.push(what))),
+          Effect.catch((failure) =>
+            refuse(
+              `Luma refused or didn't answer ${what} (${failure.message}). ${
+                done.length === 0
+                  ? "Nothing before it was sent."
+                  : `These went through before it: ${done.join("; ")}.`
+              } Read it with bun run luma registration before setting it again.`,
+            ),
+          ),
+        );
       for (const change of prepared.changes) {
         if (change.field === "approval") {
           for (const ticketType of change.ticketTypes) {
-            yield* luma.setTicketApproval(ticketType, change.to);
+            yield* step(
+              `approval ${change.to ? "on" : "off"} on ticket type ${ticketType}`,
+              luma.setTicketApproval(ticketType, change.to),
+            );
           }
         } else if (change.field === "waitlist") {
           fields.waitlist_status = change.to ? "enabled" : "disabled";
@@ -473,7 +496,10 @@ const make = Effect.gen(function* () {
         }
       }
       if (Object.keys(fields).length > 0) {
-        yield* luma.update(lumaEventId, fields);
+        yield* step(
+          `the event update (${Object.keys(fields).join(", ")})`,
+          luma.update(lumaEventId, fields),
+        );
       }
       const { registration: after } = yield* readFrom(lumaEventId);
       const missed = prepared.changes.filter((change) => !took(change, after));
