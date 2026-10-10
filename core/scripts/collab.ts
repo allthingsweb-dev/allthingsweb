@@ -15,7 +15,7 @@ import {
   type Approval,
   Collab,
   type OpenedText,
-  ownerOnly,
+  everyRow,
 } from "../src/collab/collab.ts";
 import { approvalToken } from "../src/approval.ts";
 import {
@@ -78,9 +78,9 @@ import { PlanningError } from "../src/planning/planning.ts";
  * repository. DATABASE_URL comes from the environment only.
  */
 
-/** The service, as the owner only (`ownerOnly`): any other role reads the collaboration empty. */
+/** The service, only as a role that sees every row of the collaboration (`everyRow`): the studio, or the owner. */
 const layer = Collab.layer.pipe(
-  Layer.provideMerge(Layer.effectDiscard(ownerOnly)),
+  Layer.provideMerge(Layer.effectDiscard(everyRow)),
   Layer.provideMerge(Database.layer),
 );
 

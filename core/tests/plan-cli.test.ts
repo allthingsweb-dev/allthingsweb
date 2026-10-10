@@ -3,15 +3,8 @@ import { SQL } from "bun";
 import { PgClient } from "@effect/sql-pg";
 import { Effect, Redacted } from "effect";
 import * as Migrations from "../src/migrator.ts";
-import {
-  provisionLoginRole,
-  type Statements,
-} from "../../infra/scripts/login-role.ts";
-import {
-  grantStatements as studioGrants,
-  STUDIO,
-} from "../../infra/scripts/studio.ts";
-import { readSeed, testRole } from "./support/database.ts";
+import { STUDIO } from "../../infra/scripts/studio.ts";
+import { cliUrlFor, readSeed, testRole } from "./support/database.ts";
 
 /**
  * `bun run plan` (scripts/plan.ts) end to end, as the admin MCP server's
@@ -44,21 +37,11 @@ if (serverUrl === undefined) {
   );
   const seeded = new SQL(databaseUrl);
   await seeded.unsafe(await readSeed());
-  // The CLI's connection: the owner's, or the studio's with a password of
-  // this run's (roles belong to the server, so each run sets its own).
-  let cliUrl = databaseUrl;
-  if (testRole === "studio") {
-    const password = crypto.randomUUID();
-    const owner: Statements = {
-      unsafe: (query, values) => seeded.unsafe(query, [...(values ?? [])]),
-    };
-    await provisionLoginRole(owner, STUDIO, password);
-    for (const statement of studioGrants()) await seeded.unsafe(statement);
-    const studio = new URL(databaseUrl);
-    studio.username = STUDIO;
-    studio.password = password;
-    cliUrl = studio.href;
-  }
+  // The CLI's connection: the owner's, or in the studio's run the studio's.
+  const cliUrl = await cliUrlFor(
+    { unsafe: (query, values) => seeded.unsafe(query, [...(values ?? [])]) },
+    databaseUrl,
+  );
   await seeded.close();
   afterAll(async () => {
     await admin.unsafe(`DROP DATABASE IF EXISTS ${database} WITH (FORCE)`);

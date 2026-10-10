@@ -7,16 +7,20 @@
  *
  * - planning: the tables the studio keeps (ideas, wanted speakers, host
  *   prospects, contacts, notes, a draft's lineup and talks, its log and
- *   notes, publishes, sent posts), read whole, and written only in the columns and ways its
- *   commands write them. Nothing on the ten collaboration tables
- *   (migrations/0026_draft_collaboration.ts): they have row security, which
- *   this role doesn't bypass, so `bun run collab` stays the owner's (see
- *   OWNER_ONLY) and readiness leaves collaboration's advice out as it.
+ *   notes, publishes, sent posts), read whole, and written only in the
+ *   columns and ways its commands write them.
+ * - the collaboration (migrations/0026_draft_collaboration.ts), for
+ *   `bun run collab`: read whole, and written as collab writes it. Its
+ *   tables have row security, which this role doesn't bypass; its own
+ *   policies (migrations/0029_studio_collab.ts) show it every row, and
+ *   planning.collab_row_counts() (STUDIO_FUNCTIONS) lets collab check it
+ *   sees them all before it acts on them.
  * - public: reads only tables site_reader already reads
  *   (infra/scripts/site-reader.ts), so it sees nothing the site doesn't
  *   publish; writes only the columns its commands write.
- * - No function, no sequence, no DDL, no ownership, no TRUNCATE, and no
- *   BYPASSRLS (provisionLoginRole checks): migrations stay the owner's.
+ * - No function but STUDIO_FUNCTIONS, no sequence, no DDL, no ownership, no
+ *   TRUNCATE, and no BYPASSRLS (provisionLoginRole checks): migrations stay
+ *   the owner's.
  *
  * Every run revokes what the role holds before granting, so a narrower list
  * here narrows the role. core/tests/studio-role.test.ts makes the role with
@@ -65,7 +69,9 @@ export const STUDIO = "studio";
  * the studio's credential, and only those; core/tests/studio-role.test.ts
  * holds each to suites that `bun run test:studio` runs as the role. Their
  * subcommands that reach no database (`luma show`, `luma calendar`,
- * `social x-sign-in`) aren't listed.
+ * `social x-sign-in`) aren't listed; a word after "!" is one the
+ * invocation doesn't have (`collab access end-sessions` reaches only
+ * Cloudflare).
  */
 export const STUDIO_COMMANDS = [
   "plan",
@@ -85,6 +91,7 @@ export const STUDIO_COMMANDS = [
   "people photo",
   "hosts logo",
   "talks",
+  "collab !end-sessions",
 ] as const;
 
 /** Whether `bun run <script> <args…>` is one of STUDIO_COMMANDS. */
@@ -93,8 +100,15 @@ export const studioCommandOf = (
   args: ReadonlyArray<string>,
 ): (typeof STUDIO_COMMANDS)[number] | undefined =>
   STUDIO_COMMANDS.find((command) => {
-    const [name, ...needs] = command.split(" ");
-    return name === script && needs.every((need) => args.includes(need));
+    const [name, ...words] = command.split(" ");
+    return (
+      name === script &&
+      words.every((word) =>
+        word.startsWith("!")
+          ? !args.includes(word.slice(1))
+          : args.includes(word),
+      )
+    );
   });
 
 /**
@@ -339,6 +353,80 @@ export const STUDIO_GRANTS: Readonly<Record<string, TableGrants>> = {
   "public.event_schedule_items": { select: true },
   "public.event_notes": { select: true },
   "public.event_slugs": { select: true },
+
+  // ── planning's collaboration (src/collab/collab.ts, bun run collab), read
+  // whole: the studio is who invites, and who reads what was handed in.
+  // Row security applies; the studio's own policies show it every row.
+  // collab round add.
+  "planning.rounds": {
+    select: true,
+    insert: ["event_id", "position", "title", "questions", "backups"],
+  },
+  // collab invite --approve, revoke --approve.
+  "planning.collaborators": {
+    select: true,
+    insert: [
+      "event_id",
+      "email",
+      "name",
+      "role",
+      "round_id",
+      "invited_at",
+      "expires_at",
+    ],
+    update: ["revoked_at"],
+  },
+  // collab brief set --approve: sections kept, moved, added and dropped.
+  "planning.brief_sections": {
+    select: true,
+    insert: [
+      "event_id",
+      "position",
+      "heading",
+      "body",
+      "audiences",
+      "updated_at",
+    ],
+    update: ["position", "body", "audiences", "updated_at"],
+    delete: true,
+  },
+  // collab task add, task done.
+  "planning.tasks": {
+    select: true,
+    insert: [
+      "event_id",
+      "title",
+      "due_on",
+      "role",
+      "collaborator_id",
+      "created_at",
+    ],
+    update: ["done_at"],
+  },
+  // collab logistics add.
+  "planning.logistics_items": {
+    select: true,
+    insert: ["event_id", "position", "label", "detail", "created_at"],
+  },
+  // What collaborators hand in: only read.
+  "planning.logistics_confirmations": { select: true },
+  "planning.round_submissions": { select: true },
+  // collab review --approve.
+  "planning.reviews": {
+    select: true,
+    insert: [
+      "round_submission_id",
+      "logistics_confirmation_id",
+      "decision",
+      "note",
+      "reviewer",
+      "created_at",
+    ],
+  },
+  // collab comment hide.
+  "planning.comments": { select: true, update: ["hidden_at"] },
+  // collab audit: only read.
+  "planning.collab_audit": { select: true },
 };
 
 /**
@@ -355,17 +443,23 @@ export const OWNER_ONLY: ReadonlyArray<{
     why: "DDL and ownership of every table: no login role in the vault may change the schema.",
   },
   {
-    what: "`bun run collab` (every subcommand that reads the database)",
-    why: "The ten collaboration tables have row security (migrations/0026_draft_collaboration.ts). Only the owner bypasses it; any other role sees only what a signed-in collaborator may, collaborators nothing at all, and may write none of what the studio writes, so a grant would make collab read empty, not work. Giving the studio its own policies is a migration of its own.",
-  },
-  {
     what: "the backfills: `bun run people`, `hosts`, `lineups`, `programs`, `curation`, `event-extras`, `external-talks`, `luma:people`",
     why: "They rewrite the public record from files reviewed in pull requests: they create profiles and companies, delete talks and people's parts, and set venues and recordings. That is most of public's write surface, which a role every agent can read must not hold.",
   },
 ];
 
 /**
- * The functions of ours the role may execute, all because PUBLIC may, as it
+ * The functions granted to the role, by signature:
+ * planning.collab_row_counts() (migrations/0029_studio_collab.ts), which
+ * counts every row of the collaboration as its owner, so collab and
+ * readiness can tell they see them all. PUBLIC may not execute it.
+ */
+export const STUDIO_FUNCTIONS: ReadonlyArray<string> = [
+  "planning.collab_row_counts()",
+];
+
+/**
+ * The other functions of ours the role may execute, all because PUBLIC may, as it
  * may every function nobody revoked it on: none is granted to it. They
  * change nothing and see nothing a caller couldn't: a pure function of a
  * name, and two trigger functions, which Postgres runs only as triggers.
@@ -415,6 +509,11 @@ export function grantStatements(role = STUDIO): string[] {
       `GRANT USAGE ON SCHEMA ${schema} TO ${role}`,
     );
   }
+  statements.push(
+    ...STUDIO_FUNCTIONS.map(
+      (signature) => `GRANT EXECUTE ON FUNCTION ${signature} TO ${role}`,
+    ),
+  );
   for (const [table, grants] of Object.entries(STUDIO_GRANTS)) {
     const whole = [
       ...(grants.select === true ? ["SELECT"] : []),

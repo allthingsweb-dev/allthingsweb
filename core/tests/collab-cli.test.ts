@@ -9,7 +9,7 @@ import * as Migrations from "../src/migrator.ts";
 import { stat } from "node:fs/promises";
 import { newAnswersKey } from "../../infra/scripts/collab-answers-key.ts";
 import { seal } from "../src/collab/seal.ts";
-import { readSeed } from "./support/database.ts";
+import { cliUrlFor, readSeed } from "./support/database.ts";
 
 /**
  * `bun run collab` (scripts/collab.ts) end to end, as the admin MCP
@@ -20,7 +20,8 @@ import { readSeed } from "./support/database.ts";
  * makes its own database there and drops it afterwards. The seed's draft
  * evening is moved ahead of now, so it takes invitations. Cloudflare is a
  * fake on this machine (CLOUDFLARE_API_BASE), holding the collaborators
- * list and recording each session ended.
+ * list and recording each session ended. In the studio's run (`bun run
+ * test:studio`) the CLI signs in as the studio role, as the docs run it.
  */
 
 const serverUrl = process.env["CORE_TEST_POSTGRES_URL"];
@@ -44,6 +45,11 @@ if (serverUrl === undefined) {
   );
   const seeded = new SQL(databaseUrl);
   await seeded.unsafe(await readSeed());
+  // The CLI's connection: the owner's, or in the studio's run the studio's.
+  const cliUrl = await cliUrlFor(
+    { unsafe: (query, values) => seeded.unsafe(query, [...(values ?? [])]) },
+    databaseUrl,
+  );
   await seeded.unsafe(
     `UPDATE events SET start_date = now() + interval '30 days', end_date = now() + interval '30 days 3 hours' WHERE slug = '${draft}'`,
   );
@@ -125,7 +131,7 @@ if (serverUrl === undefined) {
       cwd: core,
       env: {
         ...process.env,
-        DATABASE_URL: databaseUrl,
+        DATABASE_URL: cliUrl,
         CLOUDFLARE_API_BASE: `http://127.0.0.1:${cloudflare.port}`,
         CLOUDFLARE_ZERO_TRUST_TOKEN: "test-only",
       },
@@ -290,7 +296,7 @@ if (serverUrl === undefined) {
           cwd: core,
           env: {
             ...process.env,
-            DATABASE_URL: databaseUrl,
+            DATABASE_URL: cliUrl,
             CLOUDFLARE_ZERO_TRUST_TOKEN: "",
           },
           stdout: "pipe",
@@ -450,7 +456,7 @@ if (serverUrl === undefined) {
       ) =>
         Bun.spawn(["bun", "run", "--silent", "collab", ...args], {
           cwd: core,
-          env: { ...process.env, DATABASE_URL: databaseUrl, ...env },
+          env: { ...process.env, DATABASE_URL: cliUrl, ...env },
           stdout: "pipe",
           stderr: "pipe",
         });

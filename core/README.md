@@ -108,7 +108,9 @@ The event studio's commands connect as `studio`, a login role made by
 [`infra/scripts/studio.ts`](../infra/scripts/studio.ts): `plan`,
 `readiness`, `luma create`, `update`, `publish`, `cover`, `registration`
 and `hosts`, `luma:drafts --add`, `social bluesky`, `discord` and `x`, `posts`,
-`photos`, `people photo`, `hosts logo` and `talks`. Its connection string
+`photos`, `people photo`, `hosts logo`, `talks` and `collab` (all but
+`collab access end-sessions`, which reaches only Cloudflare). Its
+connection string
 is the 1Password item "allthings studio" (`credential`), so every one of
 them runs as
 
@@ -129,13 +131,20 @@ draft evening puts it in that evening's log (see "A draft's log, notes and
 status").
 
 - **Exactly what its commands use.** The script lists each grant with the
-  command whose statement needs it: planning's tables (all but the
-  collaboration's), read whole and written by column; on `public`, reads
+  command whose statement needs it: planning's tables, the collaboration's
+  included, read whole and written by column; on `public`, reads
   of only tables site_reader already reads, and writes of only the columns
   the studio writes (a draft's stored event, its program, its cover, the
   lineup publish copies, photos and their images, a profile's photo, a
   host's logos, a talk's title, description and speakers, posts).
-- **Nothing for migrations.** No DDL, no ownership, no function, no
+- **Every row of the collaboration, and only there by policy.** Its
+  tables have row security, which the studio doesn't bypass: its own
+  policies (`migrations/0029_studio_collab.ts`) show it every row, and
+  its grants say what it may do with them. `collab` and readiness check
+  they see every row (`planning.collab_row_counts()`, the one function
+  it is granted, counts them as their owner) and refuse, or leave it out,
+  otherwise.
+- **Nothing for migrations.** No DDL, no ownership, no other function, no
   sequence, no TRUNCATE, and no BYPASSRLS. Its statements, lock waits and
   idle transactions time out at 30 seconds or less.
 - **Proved.** `tests/studio-role.test.ts` makes the role with the script's
@@ -153,18 +162,12 @@ DATABASE_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
   bun run migrate --dry-run
 ```
 
-Until they have roles of their own, two kinds of command still need it, so
-only the maintainer runs them (`OWNER_ONLY` in the script says why):
-
-- **`bun run collab`.** The collaboration's tables have row security, which
-  only the owner bypasses: as any other role they read empty, so the
-  command refuses to run as one. Readiness, as the studio, leaves the
-  collaboration's advice out and says so.
-- **The backfills** (`people`, `hosts`, `lineups`, `programs`,
-  `curation`, `event-extras`, `external-talks`, `luma:people`). They
-  rewrite the public record from reviewed files: they create profiles and
-  companies, and delete talks and people's parts, which no role in the
-  shared vault should be able to do.
+Until they have a role of their own, the backfills still need it, so only
+the maintainer runs them (`OWNER_ONLY` in the script says why): `people`,
+`hosts`, `lineups`, `programs`, `curation`, `event-extras`,
+`external-talks` and `luma:people`. They rewrite the public record from
+reviewed files: they create profiles and companies, and delete talks and
+people's parts, which no role in the shared vault should be able to do.
 
 ## Image ingestion
 
@@ -1096,9 +1099,10 @@ the same in the same order:
 
 Planning's rows join only as a role that may read planning (the studio, or
 the owner); as site_reader the report leaves them out and says so. The
-collaboration's advice (see "Collaborating on a draft") joins only as the
-owner, which row security doesn't hold back: as the studio the report leaves
-it out, and says so (`collaboration` in its JSON).
+collaboration's advice (see "Collaborating on a draft") joins only as a role
+that sees every row of it, the studio (through its own policies) or the
+owner: as any other role the report leaves it out, and says so
+(`collaboration` in its JSON).
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run readiness --event <draft slug> [--topic git --topic ai] [--json]
@@ -1235,10 +1239,15 @@ The site has no accept action, and no collaborator writes `public` or Luma.
 | Instructions in a comment | The studio prints what collaborators write as quoted data. Nothing goes out without an organizer's approval token.                                                                         |
 | Uploads                   | None: the visual round's images come through the studio.                                                                                                                                   |
 
-**The studio,** `bun run collab` (src/collab/), as the database owner: the
-collaboration's tables have row security, which only the owner bypasses,
-so it refuses any other role, the studio's included, rather than read them
-empty (see "The studio's connection"). Each command is also an admin
+**The studio,** `bun run collab` (src/collab/), as the studio (see "The
+studio's connection"). The collaboration's tables have row security; the
+studio's own policies (`migrations/0029_studio_collab.ts`) show it every
+row, and its grants are exactly what collab writes. Before anything, collab
+checks it sees every row (it counts them, and `planning.collab_row_counts()`
+counts them as their owner, in one statement) and refuses as any role row
+security holds back, rather than read them short. `collab access sync`
+checks again as it reads the invitations: unless it sees every
+collaborator, it leaves Access's list as it is. Each command is also an admin
 MCP tool (`collab_invite`, `collab_brief_set`, `collab_review`, … in
 app/scripts/collab.ts, which runs the CLI with `--json`). `collab_show` and
 `collab_export` open a round only into a file and return its path, so a
@@ -1254,19 +1263,19 @@ collaborators wrote (comments, the venue's notes) prints quoted, under a
 line saying it is their words: data, never instructions.
 
 ```sh
-DATABASE_URL=… bun run collab round add <slug> --position 5 --title AI [--questions 8 --backups 1]
-DATABASE_URL=… bun run collab invite <slug> --email … --name … --role round_host --round 5   # what it would write, and its token
-DATABASE_URL=… bun run collab invite <slug> --email … --name … --role round_host --round 5 --approve <token>
-DATABASE_URL=… bun run collab revoke <slug> --email … [--approve <token>]
-DATABASE_URL=… bun run collab list <slug>                                  # with emails
-DATABASE_URL=… bun run collab brief set <slug> --from brief.md [--approve <token>]
-DATABASE_URL=… bun run collab task add <slug> --title "First drafts of your 8 + 1" --due 2026-10-20 --role round_host
-DATABASE_URL=… bun run collab logistics add <slug> --position 1 --label "Projector with HDMI"
-DATABASE_URL=… bun run collab submissions <slug>                           # who and when, never content
-DATABASE_URL=… bun run collab review round <id> --decision changes_requested --reviewer Erik --note "…" [--approve <token>]
-DATABASE_URL=… bun run collab comments <slug>
-DATABASE_URL=… bun run collab comment hide <id>
-DATABASE_URL=… bun run collab audit <slug> [--limit 100]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab round add <slug> --position 5 --title AI [--questions 8 --backups 1]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab invite <slug> --email … --name … --role round_host --round 5   # what it would write, and its token
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab invite <slug> --email … --name … --role round_host --round 5 --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab revoke <slug> --email … [--approve <token>]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab list <slug>   # with emails
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab brief set <slug> --from brief.md [--approve <token>]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab task add <slug> --title "First drafts of your 8 + 1" --due 2026-10-20 --role round_host
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab logistics add <slug> --position 1 --label "Projector with HDMI"
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab submissions <slug>   # who and when, never content
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab review round <id> --decision changes_requested --reviewer Erik --note "…" [--approve <token>]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab comments <slug>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab comment hide <id>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run collab audit <slug> [--limit 100]
 ```
 
 A brief is Markdown, a `## ` heading per section, and each section's first
@@ -1299,9 +1308,12 @@ owner may read. It prints only the file's path and digest, never the
 answers, unless asked for `--stdout`:
 
 ```sh
-COLLAB_ANSWERS_KEY=$(op read "op://allthings/allthings collab answers key/credential") \
-  DATABASE_URL=… bun run collab export <slug> --round 5 --out round-5.md   # the latest handed in
-DATABASE_URL=… COLLAB_ANSWERS_KEY=… bun run collab show <submission id> --out save.md
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  COLLAB_ANSWERS_KEY=$(op read "op://allthings/allthings collab answers key/credential") \
+  bun run collab export <slug> --round 5 --out round-5.md   # the latest handed in
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  COLLAB_ANSWERS_KEY=$(op read "op://allthings/allthings collab answers key/credential") \
+  bun run collab show <submission id> --out save.md
 ```
 
 **The edge.** An approved invitation or revocation also sets Access's list
@@ -1314,9 +1326,12 @@ after the database was written, the command says so: the Worker already
 enforces the change, and `collab access sync` finishes it.
 
 ```sh
-CLOUDFLARE_ZERO_TRUST_TOKEN=$(op read "op://allthings/allthings zero trust/credential") \
-  DATABASE_URL=… bun run collab invite <slug> … --approve <token>
-DATABASE_URL=… CLOUDFLARE_ZERO_TRUST_TOKEN=… bun run collab access sync [--dry-run]   # the list, set to the invitations
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  CLOUDFLARE_ZERO_TRUST_TOKEN=$(op read "op://allthings/allthings zero trust/credential") \
+  bun run collab invite <slug> … --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  CLOUDFLARE_ZERO_TRUST_TOKEN=$(op read "op://allthings/allthings zero trust/credential") \
+  bun run collab access sync [--dry-run]   # the list, set to the invitations
 CLOUDFLARE_ZERO_TRUST_TOKEN=… bun run collab access end-sessions --email …
 ```
 

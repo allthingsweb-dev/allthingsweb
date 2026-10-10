@@ -288,6 +288,13 @@
       "when": 1791669234431,
       "tag": "0040_draft_log",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791672713788,
+      "tag": "0041_studio_collab",
+      "breakpoints": true
     }
   ]
 }

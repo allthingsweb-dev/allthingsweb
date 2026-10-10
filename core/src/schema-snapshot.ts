@@ -114,7 +114,13 @@ SELECT line FROM (
   WHERE NOT tg.tgisinternal
   UNION ALL
   SELECT format('policy %I.%I %I %s', r.nspname, r.relname, p.polname,
-    pg_catalog.md5(concat_ws(' ', p.polcmd, p.polpermissive, p.polroles::text,
+    -- Roles by name: a role's oid is its cluster's, so the studio's
+    -- policies read the same on production as in a test. A policy for
+    -- PUBLIC alone reads as its oids always have.
+    pg_catalog.md5(concat_ws(' ', p.polcmd, p.polpermissive,
+      CASE WHEN p.polroles = '{0}'::oid[] THEN p.polroles::text ELSE (
+        SELECT array_agg(CASE WHEN o = 0 THEN 'public' ELSE pg_catalog.pg_get_userbyid(o) END ORDER BY 1)
+        FROM unnest(p.polroles) AS o)::text END,
       pg_catalog.pg_get_expr(p.polqual, p.polrelid),
       pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid))))
   FROM pg_catalog.pg_policy p JOIN rel r ON p.polrelid = r.oid

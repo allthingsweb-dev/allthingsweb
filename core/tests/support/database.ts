@@ -79,6 +79,27 @@ export const studioLayer = (db: PGlite) =>
 export const sqlLayer = (db: PGlite) =>
   testRole === "owner" ? pgliteLayer(db) : studioLayer(db);
 
+/**
+ * The connection string a CLI test hands the command it starts, for the
+ * database at `databaseUrl` on a real Postgres: the owner's, or, in the
+ * studio's run, the studio role's, made there with its script's statements
+ * and a password of this run's (roles belong to the server, so each run
+ * sets its own). `owner` is a client of that database as its owner.
+ */
+export async function cliUrlFor(
+  owner: Statements,
+  databaseUrl: string,
+): Promise<string> {
+  if (testRole !== "studio") return databaseUrl;
+  const password = crypto.randomUUID();
+  await provisionLoginRole(owner, STUDIO, password);
+  for (const statement of studioGrants()) await owner.unsafe(statement);
+  const studio = new URL(databaseUrl);
+  studio.username = STUDIO;
+  studio.password = password;
+  return studio.href;
+}
+
 /** The instant every test reads the catalog at. */
 export const now = DateTime.makeUnsafe("2026-10-03T19:00:00Z");
 

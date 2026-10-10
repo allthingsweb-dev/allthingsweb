@@ -9,7 +9,7 @@ import {
   type DraftLogEntry,
   logDraft,
 } from "../planning/draft-log.ts";
-import { readsEveryRow } from "../planning/privacy.ts";
+import { collabTables, readsEveryRow } from "../planning/privacy.ts";
 import { maxSections } from "./brief.ts";
 import { answerKey, open } from "./seal.ts";
 import {
@@ -39,8 +39,11 @@ import {
  * reviews of what collaborators hand in. `bun run collab` (scripts/collab.ts)
  * and the admin MCP server's collab tools run through here.
  *
- * It runs as the database owner, which row security doesn't hold back: the
- * Worker, as draft_collab, is the one the policies are for.
+ * It runs as the studio (infra/scripts/studio.ts), whose own policies
+ * (migrations/0029_studio_collab.ts) show it every row, or as the owner,
+ * which row security doesn't hold back; `everyRow` refuses any other role.
+ * The Worker, as draft_collab, is the one the collaborators' policies are
+ * for.
  *
  * What changes who may see what (an invitation, a revocation, the brief, a
  * review) is approved before it is written: without a token, each returns
@@ -57,27 +60,16 @@ import {
 type Failure = PlanningError | DataSourceError;
 
 /** Every table of the collaboration: each has row security. */
-export const collabTables = [
-  "rounds",
-  "collaborators",
-  "brief_sections",
-  "tasks",
-  "logistics_items",
-  "logistics_confirmations",
-  "round_submissions",
-  "reviews",
-  "comments",
-  "collab_audit",
-] as const;
+export { collabTables };
 
 /**
- * Refuses unless this role reads every row of the collaboration, as the
- * owner does. Any other role is held back by row security: it would read
- * invitations, rounds and the audit as empty and write none of them, and
- * `collab access sync` would set Access's list to that emptiness. The
- * studio role (infra/scripts/studio.ts) is such a role.
+ * Refuses unless this role sees every row of the collaboration: the
+ * studio, through its own policies (migrations/0029_studio_collab.ts), or
+ * the owner. Any other role is held back by row security: it would read
+ * invitations, rounds and the audit short and write none of them, and
+ * `collab access sync` would set Access's list to what it saw.
  */
-export const ownerOnly = readsEveryRow(collabTables).pipe(
+export const everyRow = readsEveryRow(collabTables).pipe(
   Effect.catchTag(["SqlError"], (cause) =>
     Effect.fail(new DataSourceError({ cause })),
   ),
@@ -85,7 +77,7 @@ export const ownerOnly = readsEveryRow(collabTables).pipe(
     readable
       ? Effect.void
       : refuse(
-          "bun run collab runs as the database owner: the collaboration's tables have row security, which only the owner bypasses, and as this role they would read empty (core/README.md, \"The studio's connection\").",
+          "bun run collab sees every row of the collaboration, as the studio (or the owner): as this role, row security hides some, so it would read them short. Run it with the studio's connection (core/README.md, \"The studio's connection\").",
         ),
   ),
 );
@@ -433,15 +425,35 @@ const make = Effect.gen(function* () {
       }),
     );
 
+  /**
+   * Every active invitation's email, read in the same statement as every
+   * collaborator row's count as their owner sees it: unless this role sees
+   * them all, it refuses, so Access's list is never set to part of them.
+   */
   const activeEmails: CollabShape["activeEmails"] = run(
     Effect.gen(function* () {
-      const found = yield* sql`
-        SELECT DISTINCT email FROM planning.collaborators
-        WHERE revoked_at IS NULL AND expires_at > ${yield* now}::timestamptz
-        ORDER BY email`.pipe(
-        Effect.flatMap(rows(Schema.Struct({ email: Schema.String }))),
+      const [found] = yield* sql`
+        SELECT
+          (SELECT count(*) FROM planning.collaborators) = (
+            SELECT "rows" FROM planning.collab_row_counts() WHERE relname = 'collaborators'
+          ) AS complete,
+          COALESCE((SELECT array_agg(DISTINCT email ORDER BY email) FROM planning.collaborators
+            WHERE revoked_at IS NULL AND expires_at > ${yield* now}::timestamptz), '{}') AS emails`.pipe(
+        Effect.flatMap(
+          rows(
+            Schema.Struct({
+              complete: Schema.Boolean,
+              emails: Schema.Array(Schema.String),
+            }),
+          ),
+        ),
       );
-      return found.map((row) => row.email);
+      if (found?.complete !== true) {
+        return yield* refuse(
+          "This role doesn't see every collaborator, so Access's list was left as it is: run it with the studio's connection (core/README.md, \"The studio's connection\").",
+        );
+      }
+      return found.emails;
     }),
   );
 
