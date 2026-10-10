@@ -280,7 +280,7 @@ describe("/people", () => {
     expect(adaTalks[0]?.[2]).toContain(
       '<span class="talk-title">at<span class="slash">/</span><span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span><span class="talk-parts">talk: Effect in production</span>',
     );
-    expect(adaTalks[1]?.[2]).toContain(">03.07.26</time>");
+    expect(adaTalks[1]?.[2]).toContain(">2026.03.07</time>");
     expect(adaTalks[1]?.[2]).not.toContain("at-cursor");
   });
 
@@ -443,11 +443,11 @@ describe("/people/<slug>", () => {
       '<h2 id="elsewhere" class="at-type-meta">Talks elsewhere · 2 talks</h2>',
     );
     expect(html).toContain(
-      '<li><a class="talk" href="https://jsconf.example/engines"><time class="date at-type-meta" datetime="2025-05-01">05.01.25</time><span class="talk-title">Engines that think</span><span class="talk-evening"><span>JSConf</span><span class="talk-role at-type-meta"> · conference</span></span></a><a class="talk-video at-type-meta" href="https://video.example/engines"><span>recording</span><span class="visually-hidden"> of Engines that think</span></a></li>',
+      '<li><a class="talk" href="https://jsconf.example/engines"><time class="date at-type-meta" datetime="2025-05-01">2025.05.01</time><span class="talk-title">Engines that think</span><span class="talk-evening"><span>JSConf</span><span class="talk-role at-type-meta"> · conference</span></span></a><a class="talk-video at-type-meta" href="https://video.example/engines"><span>recording</span><span class="visually-hidden"> of Engines that think</span></a></li>',
     );
     // Without a page or a recording, the talk is listed, not linked.
     expect(html).toContain(
-      '<li><div class="talk"><time class="date at-type-meta" datetime="2024-02-03">02.03.24</time><span class="talk-title">Notes on the engine</span>',
+      '<li><div class="talk"><time class="date at-type-meta" datetime="2024-02-03">2024.02.03</time><span class="talk-title">Notes on the engine</span>',
     );
     expect(html.indexOf("Engines that think")).toBeLessThan(
       html.indexOf("Notes on the engine"),

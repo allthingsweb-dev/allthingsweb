@@ -1,7 +1,7 @@
 import type { Evening } from "allthings-core/src/home.ts";
 import { DateTime } from "effect";
 import { eventPath } from "../links.ts";
-import { listDate } from "./time.ts";
+import { simpleDate } from "./time.ts";
 
 /**
  * An evening as every list shows it (brand/foundations.md, "Layout"): a
@@ -69,7 +69,7 @@ export function EveningRow({ evening }: { readonly evening: Evening }) {
           datetime={DateTime.formatIso(evening.startsAt)}
           safe
         >
-          {listDate(evening.startsAt)}
+          {simpleDate(evening.startsAt)}
         </time>
         <span class="name at-type-list-name">
           <EveningName evening={evening} />

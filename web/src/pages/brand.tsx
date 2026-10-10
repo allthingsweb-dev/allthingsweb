@@ -235,7 +235,9 @@ function Specimen({ role }: { readonly role: TypeRole }) {
       );
     case "meta":
       return (
-        <p class={className}>09.30.26 · 5:30–8:30 PM · allthings.dev/effect</p>
+        <p class={className}>
+          2026.09.30 · 5:30–8:30 PM · allthings.dev/effect
+        </p>
       );
     default:
       return (

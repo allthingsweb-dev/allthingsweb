@@ -120,7 +120,7 @@ describe("the evenings index", () => {
     expect(y2024).toHaveLength(2);
     expect(y2024[0]).toContain(`href="/2024-12-31-new-years-eve"`);
     expect(y2024[0]).toContain(
-      'datetime="2025-01-01T05:00:00.000Z">12.31.24</time>',
+      'datetime="2025-01-01T05:00:00.000Z">2024.12.31</time>',
     );
     expect(y2024[0]).toContain(
       '<span class="place at-type-list-place"><span class="visually-hidden">, neighborhood: </span><span>Mission</span></span>',

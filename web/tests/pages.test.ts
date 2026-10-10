@@ -18,6 +18,8 @@ import {
 } from "../src/cache.ts";
 import { mediaOrigin, socials } from "../src/links.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
+import { labPath, variantPath } from "../src/pages/lab/paths.ts";
+import { variants } from "../src/pages/lab/variants.tsx";
 import { themeCookieMaxAge } from "../src/pages/theme.ts";
 import { erikPortrait } from "./support/catalog.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
@@ -30,6 +32,7 @@ import {
   stylesheetOf,
   stylesheetUrls,
   subresources,
+  twoDigitYears,
 } from "./support/pages.ts";
 import { serve } from "./support/socket.ts";
 import { axeProblems } from "./support/a11y.ts";
@@ -716,4 +719,41 @@ describe("every kind of page", () => {
       expect(html.match(/<h1\b/g)).toHaveLength(1);
     });
   }
+});
+
+describe("simple dates", () => {
+  /** Every page that dates something: the pages above and the home lab's. */
+  const dated = [
+    "/",
+    "/events",
+    `/${slugs.upcoming}`,
+    `/${slugs.live}`,
+    `/${slugs.past}`,
+    `/${slugs.hackathon}`,
+    `/${slugs.bare}`,
+    "/people",
+    "/people/ada-lovelace",
+    "/people/erik-thorelli",
+    "/about",
+    "/brand",
+    "/code-of-conduct",
+    labPath,
+    ...variants.map(({ name }) => variantPath(name)),
+  ];
+
+  for (const path of dated) {
+    it(`${path} writes every simple date year first, as 2026.09.30, and no year in two digits`, async (url) => {
+      const html = await (await fetch(url + path)).text();
+      expect(twoDigitYears(html)).toEqual([]);
+      // A date of digits alone, in a <time>, is a simple date.
+      const numeric = [...html.matchAll(/<time\b[^>]*>([\d./-]+)<\/time>/g)];
+      for (const [, date] of numeric)
+        expect(date).toMatch(/^\d{4}\.\d{2}\.\d{2}$/);
+    });
+  }
+
+  it("dates the index's evenings as simple dates", async (url) => {
+    const html = await (await fetch(`${url}/events`)).text();
+    expect(html).toMatch(/<time\b[^>]*>\d{4}\.\d{2}\.\d{2}<\/time>/);
+  });
 });

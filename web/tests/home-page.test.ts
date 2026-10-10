@@ -8,8 +8,8 @@ import {
   hostNames,
   lockupSize,
 } from "../src/pages/home.tsx";
-import { clockTime, day, listDate } from "../src/pages/time.ts";
-import { htmlProblems } from "./support/pages.ts";
+import { clockTime, day, simpleDate } from "../src/pages/time.ts";
+import { htmlProblems, twoDigitYears } from "./support/pages.ts";
 
 /** The home page and its times, as pure functions of fixed data. */
 
@@ -28,21 +28,21 @@ const oracle = (date: Date, options: Intl.DateTimeFormatOptions) =>
 describe("times in San Francisco", () => {
   test.each([
     // An evening: 5:30 PM on Wednesday, already Thursday in UTC.
-    ["2026-10-01T00:30:00Z", "09.30.26", "Wed Sep 30", "5:30 PM"],
+    ["2026-10-01T00:30:00Z", "2026.09.30", "Wed Sep 30", "5:30 PM"],
     // Spring forward: 1:59 AM PST, then 3:00 AM PDT a minute later.
-    ["2026-03-08T09:59:00Z", "03.08.26", "Sun Mar 8", "1:59 AM"],
-    ["2026-03-08T10:00:00Z", "03.08.26", "Sun Mar 8", "3:00 AM"],
+    ["2026-03-08T09:59:00Z", "2026.03.08", "Sun Mar 8", "1:59 AM"],
+    ["2026-03-08T10:00:00Z", "2026.03.08", "Sun Mar 8", "3:00 AM"],
     // Before the change, the evening of the 7th is the 8th in UTC.
-    ["2026-03-08T07:30:00Z", "03.07.26", "Sat Mar 7", "11:30 PM"],
+    ["2026-03-08T07:30:00Z", "2026.03.07", "Sat Mar 7", "11:30 PM"],
     // Fall back: 1:30 AM happens twice, an hour apart.
-    ["2025-11-02T08:30:00Z", "11.02.25", "Sun Nov 2", "1:30 AM"],
-    ["2025-11-02T09:30:00Z", "11.02.25", "Sun Nov 2", "1:30 AM"],
-    ["2025-11-03T02:00:00Z", "11.02.25", "Sun Nov 2", "6:00 PM"],
+    ["2025-11-02T08:30:00Z", "2025.11.02", "Sun Nov 2", "1:30 AM"],
+    ["2025-11-02T09:30:00Z", "2025.11.02", "Sun Nov 2", "1:30 AM"],
+    ["2025-11-03T02:00:00Z", "2025.11.02", "Sun Nov 2", "6:00 PM"],
     // Midnight and noon.
-    ["2026-01-01T08:00:00Z", "01.01.26", "Thu Jan 1", "12:00 AM"],
-    ["2026-07-04T19:05:00Z", "07.04.26", "Sat Jul 4", "12:05 PM"],
+    ["2026-01-01T08:00:00Z", "2026.01.01", "Thu Jan 1", "12:00 AM"],
+    ["2026-07-04T19:05:00Z", "2026.07.04", "Sat Jul 4", "12:05 PM"],
   ])("%s is %s, %s, %s", (iso, date, weekday, time) => {
-    expect(listDate(at(iso))).toBe(date);
+    expect(simpleDate(at(iso))).toBe(date);
     expect(day(at(iso))).toBe(weekday);
     expect(clockTime(at(iso))).toBe(time);
   });
@@ -59,13 +59,12 @@ describe("times in San Francisco", () => {
       ) {
         const date = new Date(ms);
         const instant = DateTime.makeUnsafe(ms);
-        expect(listDate(instant)).toBe(
-          oracle(date, {
-            month: "2-digit",
-            day: "2-digit",
-            year: "2-digit",
-          }).replaceAll("/", "."),
-        );
+        const [month, dayOfMonth, fullYear] = oracle(date, {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+        }).split("/");
+        expect(simpleDate(instant)).toBe(`${fullYear}.${month}.${dayOfMonth}`);
         expect(day(instant)).toBe(
           oracle(date, { weekday: "short", month: "short", day: "numeric" }),
         );
@@ -74,6 +73,60 @@ describe("times in San Francisco", () => {
         );
       }
     }
+  });
+});
+
+describe("simple dates", () => {
+  test.each([
+    // A calendar day has no zone: it is dated as it is, never shifted.
+    ["2024-07-30", "2024.07.30"],
+    ["2026-01-01", "2026.01.01"],
+    ["2025-12-31", "2025.12.31"],
+    ["0999-03-04", "0999.03.04"],
+  ])("the day %s is %s", (calendarDay, date) => {
+    expect(simpleDate(calendarDay)).toBe(date);
+  });
+
+  test("an instant and its day in San Francisco read the same", () => {
+    expect(simpleDate(at("2026-10-01T00:30:00Z"))).toBe(
+      simpleDate("2026-09-30"),
+    );
+  });
+
+  test("refuse what isn't a YYYY-MM-DD day", () => {
+    for (const notADay of ["09.30.26", "2026-9-30", "2026-09-30T00:00:00Z"]) {
+      expect(() => simpleDate(notADay)).toThrow(RangeError);
+    }
+  });
+
+  test("are the one format the drift check passes", () => {
+    expect(twoDigitYears(`<time>${simpleDate("2026-09-30")}</time>`)).toEqual(
+      [],
+    );
+  });
+});
+
+describe("the drift check", () => {
+  test("finds dates with two-digit years in what a page shows", () => {
+    expect(
+      twoDigitYears(
+        "<p>09.30.26</p><p>9/30/26 &amp; 30-09-26</p><p>Sep &#39;26, Fall ’25</p>",
+      ),
+    ).toEqual(["09.30.26", "9/30/26", "30-09-26", "'26", "’25"]);
+  });
+
+  test("passes simple dates, times, versions and what isn't shown", () => {
+    expect(
+      twoDigitYears(
+        [
+          "<time datetime='2026-09-30'>2026.09.30</time>",
+          "<p>5:30–8:30 PM · Wed Sep 30, 2026 · 2026–2027</p>",
+          "<p>v1.2.3 · 10.4.2026 · 1990s · it's 25 · '90s</p>",
+          '<svg><path d="M12.5.30"/></svg><style>a{b:1.2.30}</style>',
+          '<img alt="" src="/x.09.30.26.png"/>',
+        ].join(""),
+      ),
+    ).toEqual([]);
   });
 });
 

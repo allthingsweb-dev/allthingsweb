@@ -34,7 +34,7 @@ export const variants: ReadonlyArray<Variant> = [
   {
     name: "contact-sheet",
     pitch:
-      "Today’s Swiss index, with a contact sheet of thirty-six dated frames beside the hero, each leading to its evening, and a bold band of numbers.",
+      "Today’s Swiss index, with a contact sheet of twenty-four dated frames beside the hero, each leading to its evening, and a bold band of numbers.",
     render: ContactSheet,
   },
   {

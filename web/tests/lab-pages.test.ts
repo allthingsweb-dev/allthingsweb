@@ -19,7 +19,7 @@ import {
 } from "../src/pages/lab/variants.tsx";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
 import { sitemapXml, sitePages } from "../src/seo/sitemap.ts";
-import { headingLevels, htmlProblems } from "./support/pages.ts";
+import { headingLevels, htmlProblems, twoDigitYears } from "./support/pages.ts";
 
 /**
  * The home lab (src/pages/lab/), as pure functions of fixed data: every
@@ -224,13 +224,14 @@ describe("the variants' parts", () => {
     expect(html.match(/<img [^>]*alt=""/g)?.length).toBe(42);
   });
 
-  test("contact-sheet: thirty-six frames, each dated and leading to its evening", () => {
+  test("contact-sheet: twenty-four frames, each dated and leading to its evening", () => {
     const html = render("contact-sheet");
-    expect(html.match(/<a class="frame"/g)).toHaveLength(36);
+    expect(html.match(/<a class="frame"/g)).toHaveLength(24);
     expect(html).toContain('<a class="frame" href="/effect"><picture>');
-    expect(html).toContain(">09.30.26</time>");
-    expect(html).toContain(">04.29.25</time>");
-    expect(sheetCaption(wall.slice(0, 36))).toBe("From 2 evenings, 2025–2026");
+    expect(html).toContain(">2026.09.30</time>");
+    expect(html).toContain(">2025.04.29</time>");
+    expect(twoDigitYears(html)).toEqual([]);
+    expect(sheetCaption(wall.slice(0, 24))).toBe("From 2 evenings, 2025–2026");
     expect(sheetCaption(wall.slice(0, 1))).toBe("From 1 evening, 2026");
   });
 
