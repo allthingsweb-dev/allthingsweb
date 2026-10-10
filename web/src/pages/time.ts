@@ -43,13 +43,34 @@ interface DayParts {
   readonly day: number;
 }
 
-/** The year, month and day a "YYYY-MM-DD" day names. */
+/** How many days `month` (1–12) of `fullYear` has, leap years counted. */
+function daysIn(fullYear: number, month: number): number {
+  if (month === 2) {
+    const leap =
+      (fullYear % 4 === 0 && fullYear % 100 !== 0) || fullYear % 400 === 0;
+    return leap ? 29 : 28;
+  }
+  return [4, 6, 9, 11].includes(month) ? 30 : 31;
+}
+
+/** The year, month and day a "YYYY-MM-DD" day names: never a February 30th. */
 function dayParts(isoDay: string): DayParts {
-  const [, fullYear, month, date] = calendarDay.exec(isoDay) ?? [];
-  if (fullYear === undefined || month === undefined || date === undefined) {
+  const [, fullYear, month, date] = isoDay.match(calendarDay) ?? [];
+  const parts = {
+    year: Number(fullYear),
+    month: Number(month),
+    day: Number(date),
+  };
+  if (
+    fullYear === undefined ||
+    parts.month < 1 ||
+    parts.month > 12 ||
+    parts.day < 1 ||
+    parts.day > daysIn(parts.year, parts.month)
+  ) {
     throw new RangeError(`Expected a YYYY-MM-DD day, got "${isoDay}"`);
   }
-  return { year: Number(fullYear), month: Number(month), day: Number(date) };
+  return parts;
 }
 
 /**

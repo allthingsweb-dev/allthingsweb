@@ -83,6 +83,9 @@ describe("simple dates", () => {
     ["2026-01-01", "2026.01.01"],
     ["2025-12-31", "2025.12.31"],
     ["0999-03-04", "0999.03.04"],
+    // Leap days: every fourth year, but not a century unless a fourth one.
+    ["2024-02-29", "2024.02.29"],
+    ["2000-02-29", "2000.02.29"],
   ])("the day %s is %s", (calendarDay, date) => {
     expect(simpleDate(calendarDay)).toBe(date);
   });
@@ -93,8 +96,19 @@ describe("simple dates", () => {
     );
   });
 
-  test("refuse what isn't a YYYY-MM-DD day", () => {
-    for (const notADay of ["09.30.26", "2026-9-30", "2026-09-30T00:00:00Z"]) {
+  test("refuse what isn't a YYYY-MM-DD day on the calendar", () => {
+    for (const notADay of [
+      "09.30.26",
+      "2026-9-30",
+      "2026-09-30T00:00:00Z",
+      "2026-02-29",
+      "1900-02-29",
+      "2026-02-30",
+      "2026-04-31",
+      "2026-13-01",
+      "2026-00-10",
+      "2026-10-00",
+    ]) {
       expect(() => simpleDate(notADay)).toThrow(RangeError);
     }
   });
