@@ -457,6 +457,41 @@
     "knut-melvaer": {
       "profileId": "ad446264-d855-4697-8163-616172a4776e",
       "sources": ["https://www.meetup.com/remix-bay-area/events/302689196/"]
+    },
+    "evan-bacon": {
+      "profileId": "8bcce267-3c71-45c2-b366-0a22e4c61ed9",
+      "sources": [
+        {
+          "confirmedBy": "Erik",
+          "on": "2026-10-10",
+          "in": "chat"
+        },
+        "https://luma.com/82u355t6",
+        "https://x.com/Ari_S_123/status/2013817431194505353"
+      ]
+    },
+    "lydia-hallie": {
+      "create": {
+        "name": "Lydia Hallie",
+        "title": "Claude Code, Anthropic",
+        "bio": "",
+        "twitterHandle": "lydiahallie",
+        "blueskyHandle": "lydiahallie.com",
+        "linkedinHandle": null,
+        "photoSourceUrl": "https://pbs.twimg.com/profile_images/1994238936345137154/exEBW2UI_400x400.jpg"
+      },
+      "sources": [
+        {
+          "confirmedBy": "Erik",
+          "on": "2026-10-10",
+          "in": "chat"
+        },
+        "https://x.com/lydiahallie",
+        "https://x.com/lydiahallie/status/1995940320773898289",
+        "https://x.com/lydiahallie/status/2014136373645820165",
+        "https://github.com/lydiahallie",
+        "https://bsky.app/profile/lydiahallie.com"
+      ]
     }
   },
   "events": [
@@ -1548,7 +1583,36 @@
     {
       "lumaEventId": "evt-3nNZK4pu7n7TNbC",
       "name": "All Things Expo!",
-      "talks": [],
+      "talks": [
+        {
+          "title": "Panel: AI and the tools we build",
+          "format": "panel",
+          "description": "",
+          "speakers": [
+            {
+              "person": "evan-bacon",
+              "role": "speaker"
+            },
+            {
+              "person": "abhi-aiyer",
+              "role": "speaker"
+            },
+            {
+              "person": "lydia-hallie",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-10-10",
+              "in": "chat"
+            },
+            "https://x.com/Ari_S_123/status/2013817431194505353"
+          ],
+          "confidence": "high"
+        }
+      ],
       "people": [
         {
           "person": "erik-thorelli",
