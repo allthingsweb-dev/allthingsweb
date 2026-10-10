@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
-import { readsEveryRow } from "../planning/privacy.ts";
+import { type CollabTable, readsEveryRow } from "../planning/privacy.ts";
 import type { Check } from "./checks.ts";
 
 /**
@@ -146,7 +146,7 @@ export function collabChecks(
  * `collaborators` nothing at all: read as such a role, the facts would come
  * back empty rather than fail, and the advice would say all is well.
  */
-export const collabTables = [
+export const collabTables: ReadonlyArray<CollabTable> = [
   "rounds",
   "collaborators",
   "round_submissions",
@@ -154,13 +154,12 @@ export const collabTables = [
   "tasks",
   "logistics_items",
   "logistics_confirmations",
-] as const;
+];
 
 /**
- * Whether this role reads every row of `collabTables`: it may SELECT each,
- * and row security doesn't apply to it there (the owner). The studio role
- * (infra/scripts/studio.ts) may not, so as it readiness leaves the
- * collaboration's advice out, and says so.
+ * Whether this role sees every row of `collabTables` (src/planning/
+ * privacy.ts): the studio or the owner. As any other role readiness leaves
+ * the collaboration's advice out, and says so.
  */
 export const collabReadable = readsEveryRow(collabTables);
 

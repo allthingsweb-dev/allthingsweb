@@ -7,7 +7,8 @@ import * as schema from "../../src/lib/schema";
  * then the code the migrations add that drizzle can't describe, such as
  * the trigger that gives every profile its slug (0029_person_slugs), then
  * the row security policies, which ask functions of that code
- * (0038_draft_collaboration). Taken from the migration files themselves,
+ * (0038_draft_collaboration) and name the studio role, made where it is
+ * missing (0041_studio_collab). Taken from the migration files themselves,
  * so a test database never runs without what production runs.
  */
 export async function createSchema(client: PGlite): Promise<void> {
@@ -26,7 +27,7 @@ export async function createSchema(client: PGlite): Promise<void> {
   }
 }
 
-/** Every function and trigger the migrations create, in their order. */
+/** Every function and trigger the migrations create, and the roles they make, in their order. */
 async function databaseCode(): Promise<Array<string>> {
   const directory = new URL("../../migrations/", import.meta.url);
   const files = [
@@ -37,7 +38,10 @@ async function databaseCode(): Promise<Array<string>> {
     const sql = await Bun.file(new URL(file, directory)).text();
     for (const statement of sql.split("--> statement-breakpoint")) {
       const body = statement.replace(/^(?:\s*--[^\n]*\n)*/, "").trim();
-      if (/^CREATE (?:OR REPLACE )?(?:FUNCTION|TRIGGER)\b/i.test(body)) {
+      if (
+        /^CREATE (?:OR REPLACE )?(?:FUNCTION|TRIGGER)\b/i.test(body) ||
+        body.startsWith("DO $role$")
+      ) {
         code.push(body.replace(/;\s*$/, ""));
       }
     }

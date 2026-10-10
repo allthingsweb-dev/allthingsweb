@@ -13,11 +13,12 @@ import {
   STUDIO,
   STUDIO_COMMANDS,
   STUDIO_GRANTS,
+  STUDIO_FUNCTIONS,
   STUDIO_PUBLIC_FUNCTIONS,
   STUDIO_SETTINGS,
 } from "../../infra/scripts/studio.ts";
 import { sqlLayer as ownerLayer } from "../scripts/pglite.ts";
-import { collabTables, ownerOnly } from "../src/collab/collab.ts";
+import { Collab, collabTables, everyRow } from "../src/collab/collab.ts";
 import { Planning } from "../src/planning/planning.ts";
 import { Readiness } from "../src/readiness/readiness.ts";
 import {
@@ -203,9 +204,9 @@ describe("its privileges in the catalog", () => {
     expect(read.rows.map((row) => row.grant)).toEqual(expected);
   });
 
-  test("execute only the harmless functions PUBLIC may, none SECURITY DEFINER", async () => {
+  test("execute only the functions granted it, and the harmless ones PUBLIC may", async () => {
     const { rows } = await db.query<{ signature: string; definer: boolean }>(
-      `SELECT n.nspname || '.' || (p.oid::regprocedure::text) AS signature,
+      `SELECT n.nspname || '.' || p.proname || '(' || pg_catalog.oidvectortypes(p.proargtypes) || ')' AS signature,
          p.prosecdef AS definer
        FROM pg_catalog.pg_proc p
        JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
@@ -214,21 +215,22 @@ describe("its privileges in the catalog", () => {
        ORDER BY 1`,
       [STUDIO],
     );
+    // PUBLIC's are never SECURITY DEFINER; the one granted counts rows as
+    // their owner, and only that.
     expect(rows).toEqual(
-      [...STUDIO_PUBLIC_FUNCTIONS]
-        .toSorted()
-        .map((signature) => ({ signature, definer: false })),
+      [
+        ...STUDIO_PUBLIC_FUNCTIONS.map((signature) => ({
+          signature,
+          definer: false,
+        })),
+        ...STUDIO_FUNCTIONS.map((signature) => ({ signature, definer: true })),
+      ].toSorted((a, b) => (a.signature < b.signature ? -1 : 1)),
     );
   });
 
-  test("execute no function PUBLIC may not, own nothing, and belong to no role", async () => {
+  test("own nothing, and belong to no role", async () => {
     const { rows } = await db.query<{ what: string }>(
-      `SELECT 'executes ' || p.oid::regprocedure::text AS what
-       FROM pg_catalog.pg_proc p
-       WHERE has_function_privilege($1, p.oid, 'EXECUTE')
-         AND NOT has_function_privilege('public', p.oid, 'EXECUTE')
-       UNION ALL
-       SELECT 'owns ' || c.relname FROM pg_catalog.pg_class c WHERE c.relowner = $1::regrole
+      `SELECT 'owns ' || c.relname AS what FROM pg_catalog.pg_class c WHERE c.relowner = $1::regrole
        UNION ALL
        SELECT 'owns schema ' || n.nspname FROM pg_catalog.pg_namespace n WHERE n.nspowner = $1::regrole
        UNION ALL
@@ -283,25 +285,42 @@ describe("what the script grants", () => {
     expect(beyond).toEqual([]);
   });
 
-  test("names nothing of the collaboration, whose tables all have row security", async () => {
-    const { rows } = await db.query<{ name: string }>(
-      `SELECT c.relname AS name FROM pg_catalog.pg_class c
+  test("reads every collaboration table, each with row security and the studio's own policy", async () => {
+    const { rows } = await db.query<{ name: string; policies: Array<string> }>(
+      `SELECT c.relname AS name,
+         COALESCE((SELECT array_agg(p.polname || ' ' || p.polcmd::text || ' ' || p.polpermissive::text
+             || ' ' || pg_catalog.pg_get_expr(p.polqual, p.polrelid)
+             || ' ' || pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid) ORDER BY p.polname)
+           FROM pg_catalog.pg_policy p WHERE p.polrelid = c.oid AND $1::regrole = ANY (p.polroles)), '{}') AS policies
+       FROM pg_catalog.pg_class c
        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = 'planning' AND c.relrowsecurity ORDER BY 1`,
+      [STUDIO],
     );
     // A new table with row security is a decision for collab and this role.
-    expect(rows.map((row) => row.name)).toEqual([...collabTables].toSorted());
-    expect(
-      Object.keys(STUDIO_GRANTS).filter((table) =>
-        (collabTables as ReadonlyArray<string>).includes(
-          table.replace(/^planning\./, ""),
-        ),
-      ),
-    ).toEqual([]);
+    expect(rows).toEqual(
+      [...collabTables].toSorted().map((name) => ({
+        name,
+        policies: [`${name}_studio * true true true`],
+      })),
+    );
+    for (const table of collabTables) {
+      expect(STUDIO_GRANTS[`planning.${table}`]?.select).toBe(true);
+    }
+  });
+
+  test("counts, as their owner, exactly the tables collab checks", async () => {
+    // The migration keeps its own list, frozen; this holds the code's to it.
+    const { rows } = await db.query<{ relname: string }>(
+      `SELECT relname FROM planning.collab_row_counts() ORDER BY 1`,
+    );
+    expect(rows.map((row) => row.relname)).toEqual(
+      [...collabTables].toSorted(),
+    );
   });
 
   test("says why each thing it leaves to the owner is the owner's", () => {
-    expect(OWNER_ONLY.map((entry) => entry.what)).toHaveLength(3);
+    expect(OWNER_ONLY.map((entry) => entry.what)).toHaveLength(2);
     for (const entry of OWNER_ONLY)
       expect(entry.why.length).toBeGreaterThan(40);
   });
@@ -366,32 +385,95 @@ const run = <A, E>(
   );
 
 describe("what needs every collaboration row", () => {
-  test("readiness, as the studio, leaves the collaboration's advice out and says so", async () => {
+  /**
+   * A role that may read the collaboration's tables and count them as
+   * their owner, but that row security holds back: the rows a signed-in
+   * collaborator may see, here none.
+   */
+  const heldBack = async () => {
+    await db.exec(`
+      DO $made$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'held_back') THEN
+          CREATE ROLE held_back NOLOGIN;
+        END IF;
+      END $made$;
+      GRANT USAGE ON SCHEMA public, planning TO held_back;
+      GRANT SELECT ON ALL TABLES IN SCHEMA public, planning TO held_back;
+      GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA planning TO held_back;
+    `);
+    return Layer.effectDiscard(
+      Effect.acquireRelease(
+        Effect.promise(() => db.exec("SET ROLE held_back")),
+        () => Effect.promise(() => db.exec("RESET ROLE")),
+      ),
+    ).pipe(Layer.provideMerge(ownerLayer(db)));
+  };
+
+  test("readiness reads it as the studio, and leaves it out, saying so, as a role held back", async () => {
     const report = Readiness.use((r) =>
       r.report({ _tag: "Event", slug: draft }),
     );
-    const owner = await run(report, "owner");
     const studio = await run(report, "studio");
-    if (!Exit.isSuccess(owner) || !Exit.isSuccess(studio)) {
-      throw new Error("the report failed");
-    }
-    expect(owner.value.collaboration).toBe("read");
-    expect(owner.value.checks.map((check) => check.kind)).toContain(
+    if (!Exit.isSuccess(studio)) throw new Error("the report failed");
+    expect(studio.value.collaboration).toBe("read");
+    expect(studio.value.checks.map((check) => check.kind)).toContain(
       "round-host",
     );
-    expect(studio.value.planning).toBe("read");
-    expect(studio.value.collaboration).toBe("not readable as this role");
-    expect(studio.value.checks.map((check) => check.kind)).not.toContain(
-      "round-host",
+    const held = await Effect.runPromise(
+      report.pipe(
+        Effect.provide(
+          Readiness.layer.pipe(
+            Layer.provideMerge(Planning.layer),
+            Layer.provideMerge(await heldBack()),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    expect(held.collaboration).toBe("not readable as this role");
+    expect(held.checks.map((check) => check.kind)).not.toContain("round-host");
+  });
+
+  test("collab runs as the studio, and refuses a role held back, rather than read it short", async () => {
+    expect(Exit.isSuccess(await run(everyRow, "studio"))).toBe(true);
+    const held = await Effect.runPromiseExit(
+      everyRow.pipe(Effect.provide(await heldBack())),
+    );
+    if (Exit.isSuccess(held)) throw new Error("expected a refusal");
+    expect(String(Cause.squash(held.cause))).toContain(
+      "row security hides some",
     );
   });
 
-  test("collab refuses to run as the studio, rather than read it empty", async () => {
-    expect(Exit.isSuccess(await run(ownerOnly, "owner"))).toBe(true);
-    const studio = await run(ownerOnly, "studio");
-    if (Exit.isSuccess(studio)) throw new Error("expected a refusal");
-    expect(String(Cause.squash(studio.cause))).toContain(
-      "bun run collab runs as the database owner",
+  test("access sync's emails are refused unless every collaborator shows", async () => {
+    await db.exec(`
+      INSERT INTO planning.collaborators (event_id, email, name, role, expires_at)
+      VALUES ('${draftId}', 'made-up@example.com', 'Made Up', 'viewer', now() + interval '60 days')`);
+    const emails = Collab.use((collab) => collab.activeEmails);
+    const studio = await Effect.runPromise(
+      emails.pipe(
+        Effect.provide(
+          Collab.layer.pipe(
+            Layer.provideMerge(studioLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    expect(studio).toEqual(["made-up@example.com"]);
+    const held = await Effect.runPromiseExit(
+      emails.pipe(
+        Effect.provide(
+          Collab.layer.pipe(
+            Layer.provideMerge(await heldBack()),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    );
+    if (Exit.isSuccess(held)) throw new Error("expected a refusal");
+    expect(String(Cause.squash(held.cause))).toContain(
+      "Access's list was left as it is",
     );
   });
 });
@@ -421,6 +503,11 @@ const suites: Readonly<
   "people photo": ["profile-photo.test.ts"],
   "hosts logo": ["host-logos.test.ts"],
   talks: ["talk-edits.test.ts"],
+  "collab !end-sessions": [
+    "collab.test.ts",
+    "collab-cli.test.ts",
+    "readiness-collab.test.ts",
+  ],
 };
 
 describe("every studio command", () => {

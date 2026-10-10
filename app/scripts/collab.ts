@@ -26,7 +26,8 @@ const core = fileURLToPath(new URL("../../core/", import.meta.url));
  * `collab_export` open them into a new file only its owner reads, and
  * return its path and digest.
  *
- * The script reads DATABASE_URL (the owner: planning is no site role's),
+ * The script reads DATABASE_URL (the studio's: core's README, "The
+ * studio's connection"; planning is no site role's),
  * CLOUDFLARE_ZERO_TRUST_TOKEN for the edge, and COLLAB_ANSWERS_KEY to open
  * rounds, from this process's environment.
  */

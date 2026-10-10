@@ -457,15 +457,28 @@ describe("plan status", () => {
     ]);
   });
 
-  test("as the studio, says it can't read the collaboration", async () => {
+  test("as the studio, reads the collaboration, through its own policies", async () => {
+    await value(
+      Collab.use((collab) =>
+        collab.addRound(draft, { position: 1, title: "Made-up round" }),
+      ),
+      { as: "studio" },
+    );
     const status = await value(
       Drafts.use((drafts) => drafts.status(draft)),
       {
         as: "studio",
       },
     );
-    expect(status.collab).toEqual({ readable: false });
-    expect(status.readiness.collaboration).toBe("not readable as this role");
+    expect(status.collab).toEqual({
+      readable: true,
+      rounds: [
+        { position: 1, title: "Made-up round", hosts: 0, handedIn: false },
+      ],
+      invites: {},
+      submissions: 0,
+    });
+    expect(status.readiness.collaboration).toBe("read");
   });
 
   test("keeps only the last 20 lines, newest first", async () => {

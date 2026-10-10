@@ -153,23 +153,61 @@ export const auditPlanning = Effect.gen(function* () {
 }).pipe(orDataSourceError);
 
 /**
- * Whether this role reads every row of each of planning's `tables`: it may
- * SELECT each, and row security doesn't apply to it there, as for the
- * owner. A role that row security holds back reads such a table empty
- * rather than failing, so code that must see every row asks this first.
+ * The collaboration's tables (migrations/0026_draft_collaboration.ts): each
+ * has row security, and planning.collab_row_counts()
+ * (migrations/0029_studio_collab.ts) counts every row of each, as their
+ * owner.
  */
-export const readsEveryRow = (tables: ReadonlyArray<string>) =>
+export const collabTables = [
+  "rounds",
+  "collaborators",
+  "brief_sections",
+  "tasks",
+  "logistics_items",
+  "logistics_confirmations",
+  "round_submissions",
+  "reviews",
+  "comments",
+  "collab_audit",
+] as const;
+export type CollabTable = (typeof collabTables)[number];
+
+/**
+ * Whether this role sees every row of each of the collaboration's `tables`:
+ * it may SELECT each and count them as their owner does
+ * (`planning.collab_row_counts()`), and what it counts is every row, read
+ * in one statement, so one snapshot. The owner does, and so does the studio
+ * through its own policies; a role row security holds back reads short, and
+ * a table read short would say all is well (no rounds, nobody invited), so
+ * code that must see every row asks this first and refuses otherwise.
+ */
+export const readsEveryRow = (tables: ReadonlyArray<CollabTable>) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
-    const [row] = yield* sql<{ readable: boolean }>`
-      SELECT count(*) = ${tables.length} AND COALESCE(bool_and(
-        CASE WHEN pg_catalog.has_table_privilege(c.oid, 'SELECT')
-          THEN NOT pg_catalog.row_security_active(c.oid) ELSE false END
-      ), false) AS readable
+    const [may] = yield* sql<{ may: boolean }>`
+      SELECT count(*) = ${tables.length}
+        AND COALESCE(bool_and(pg_catalog.has_table_privilege(c.oid, 'SELECT')), false)
+        AND EXISTS (
+          SELECT 1 FROM pg_catalog.pg_proc p
+          JOIN pg_catalog.pg_namespace pn ON pn.oid = p.pronamespace
+          WHERE pn.nspname = 'planning' AND p.proname = 'collab_row_counts'
+            AND pg_catalog.has_function_privilege(p.oid, 'EXECUTE')
+        ) AS may
       FROM pg_catalog.pg_class c
       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
       WHERE n.nspname = 'planning' AND c.relname IN ${sql.in([...tables])}`;
-    return row?.readable === true;
+    if (may?.may !== true) return false;
+    // The names are collabTables', never input.
+    const [seen] = yield* sql.unsafe<{ sees: boolean }>(
+      `WITH owner AS (SELECT relname, "rows" FROM planning.collab_row_counts())
+       SELECT ${tables
+         .map(
+           (table) =>
+             `(SELECT count(*) FROM planning.${table}) = (SELECT "rows" FROM owner WHERE relname = '${table}')`,
+         )
+         .join(" AND ")} AS sees`,
+    );
+    return seen?.sees === true;
   });
 
 /** Whether the audit proves planning private: it exists, and nothing exposes it. */

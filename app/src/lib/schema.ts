@@ -16,6 +16,7 @@ import {
   pgSchema,
   uniqueIndex,
   pgPolicy,
+  pgRole,
   customType,
   jsonb,
 } from "drizzle-orm/pg-core";
@@ -1212,6 +1213,27 @@ const writerRoles = sql.raw(
 const organizerRoles = sql.raw(`ARRAY['organizer']::text[]`);
 const venueRoles = sql.raw(`ARRAY['venue']::text[]`);
 
+/**
+ * The studio role (infra/scripts/studio.ts), made by its script, not here.
+ * core/migrations/0029_studio_collab.ts (and the drizzle twin) makes it,
+ * with no login, only where it doesn't exist yet.
+ */
+export const studioRole = pgRole("studio").existing();
+
+/**
+ * The studio's policy on a collaboration table: every row shows, and any
+ * may be written; its grants (STUDIO_GRANTS) say what it may do at all.
+ * core/migrations/0029_studio_collab.ts is the same change.
+ */
+const studioPolicy = (table: string) =>
+  pgPolicy(`${table}_studio`, {
+    as: "permissive",
+    for: "all",
+    to: studioRole,
+    using: sql`true`,
+    withCheck: sql`true`,
+  });
+
 /** An evening's rounds, for the hosts who write them. */
 export const planningRoundsTable = planningSchema.table(
   "rounds",
@@ -1240,6 +1262,7 @@ export const planningRoundsTable = planningSchema.table(
       for: "select",
       using: sql`planning.collab_has_role("event_id", ${everyoneRoles})`,
     }),
+    studioPolicy("rounds"),
   ],
 );
 
@@ -1293,6 +1316,7 @@ export const planningCollaboratorsTable = planningSchema
       ),
       check("collaborators_expires_check", sql`"expires_at" > "invited_at"`),
       check("collaborators_revoked_check", sql`"revoked_at" >= "invited_at"`),
+      studioPolicy("collaborators"),
     ],
   )
   .enableRLS();
@@ -1337,6 +1361,7 @@ export const planningBriefSectionsTable = planningSchema.table(
         WHERE m.event_id = "brief_sections"."event_id" AND m.role = ANY ("brief_sections"."audiences")
       )`,
     }),
+    studioPolicy("brief_sections"),
   ],
 );
 
@@ -1385,6 +1410,7 @@ export const planningTasksTable = planningSchema.table(
         )
       )`,
     }),
+    studioPolicy("tasks"),
   ],
 );
 
@@ -1420,6 +1446,7 @@ export const planningLogisticsItemsTable = planningSchema.table(
       for: "select",
       using: sql`planning.collab_has_role("event_id", ${venueRoles})`,
     }),
+    studioPolicy("logistics_items"),
   ],
 );
 
@@ -1477,6 +1504,7 @@ export const planningLogisticsConfirmationsTable = planningSchema.table(
           AND m.role IN ('venue', 'organizer')
       )`,
     }),
+    studioPolicy("logistics_confirmations"),
   ],
 );
 
@@ -1536,6 +1564,7 @@ export const planningRoundSubmissionsTable = planningSchema.table(
           AND m.round_id = "round_submissions"."round_id"
       )`,
     }),
+    studioPolicy("round_submissions"),
   ],
 );
 
@@ -1583,6 +1612,7 @@ export const planningReviewsTable = planningSchema.table(
       using: sql`"round_submission_id" IN (SELECT s.id FROM planning.round_submissions s)
         OR "logistics_confirmation_id" IN (SELECT l.id FROM planning.logistics_confirmations l)`,
     }),
+    studioPolicy("reviews"),
   ],
 );
 
@@ -1670,6 +1700,7 @@ export const planningCommentsTable = planningSchema.table(
           )
         )`,
     }),
+    studioPolicy("comments"),
   ],
 );
 
@@ -1713,6 +1744,7 @@ export const planningCollabAuditTable = planningSchema.table(
       for: "insert",
       withCheck: sql`"actor_email" = planning.collab_email()`,
     }),
+    studioPolicy("collab_audit"),
   ],
 );
 
