@@ -75,3 +75,24 @@ export async function htmlProblems(html: string): Promise<Array<string>> {
 /** The heading levels in document order. */
 export const headingLevels = (html: string): Array<number> =>
   [...html.matchAll(/<h([1-6])[ >]/g)].map(([, level]) => Number(level));
+
+/**
+ * What a page shows as text: its markup, scripts, styles and drawings
+ * dropped and the apostrophes it escapes read back.
+ */
+const shownText = (html: string): string =>
+  html
+    .replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/g, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&#39;|&#x27;|&apos;/gi, "'")
+    .replace(/&rsquo;|&#8217;|&#x2019;/gi, "’");
+
+/**
+ * The dates in what `html` shows that give their year in two digits,
+ * "09.30.26", "9/30/26", "30-09-26" or "Sep '26": none, on a site that
+ * writes every simple date as 2026.09.30 (pages/time.ts, `simpleDate`).
+ */
+export const twoDigitYears = (html: string): Array<string> =>
+  shownText(html).match(
+    /(?<![\d./-])\d{1,2}([./-])\d{1,2}\1\d{2}(?![\d./-])|['’]\d{2}\b/g,
+  ) ?? [];

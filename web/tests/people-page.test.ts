@@ -415,7 +415,7 @@ describe("the people page", () => {
       '<h2 id="co-hosts" class="list-title at-type-meta">Co-hosts and MCs</h2>',
     );
     expect(html).toContain(
-      `<a class="talk" href="/c"><time class="date at-type-meta" datetime="2026-03-08T07:30:00.000Z">03.07.26</time>${effect}<span class="talk-parts">MC</span>`,
+      `<a class="talk" href="/c"><time class="date at-type-meta" datetime="2026-03-08T07:30:00.000Z">2026.03.07</time>${effect}<span class="talk-parts">MC</span>`,
     );
     expect(html).toContain('<span class="talk-parts">co-host</span>');
   });

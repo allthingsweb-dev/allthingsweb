@@ -164,7 +164,7 @@ describe("/events", () => {
       past.map((evening) => evening.slug),
     );
     [...rows(y2026), ...rows(y2025)].forEach((row, index) => {
-      expect(row).toContain(`>${past[index]?.listDate}</time>`);
+      expect(row).toContain(`>${past[index]?.simpleDate}</time>`);
       expect(row).not.toContain("at-cursor");
     });
     // Its name yields no topic; the site set one.

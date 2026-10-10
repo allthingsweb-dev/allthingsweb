@@ -327,7 +327,8 @@
   gap: var(--at-space-8);
 }
 
-/* contact-sheet: thirty-six dated frames beside the hero, like an archive. */
+/* contact-sheet: twenty-four dated frames beside the hero, like an archive,
+   each as wide as its date, 2026.09.30, at least. */
 
 .sheet {
   grid-column: span 5 / -1;
@@ -340,7 +341,7 @@
 
 .sheet ol {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--at-space-3) var(--at-space-2);
   margin: 0;
   padding: 0;
@@ -900,19 +901,20 @@ h1.faces-word .at-cursor {
   .lab-variants {
     grid-column: 1 / -1;
   }
-}
 
-@media (--at-below-l) {
-  .sheet {
-    grid-column: 1 / -1;
-  }
-
+  /* Narrower, the sheet keeps three frames a row, six rows deep. */
   .sheet ol {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .sheet li:nth-child(n + 19) {
     display: none;
+  }
+}
+
+@media (--at-below-l) {
+  .sheet {
+    grid-column: 1 / -1;
   }
 
   .lab-tally-columns dl {

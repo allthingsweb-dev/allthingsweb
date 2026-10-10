@@ -20,7 +20,7 @@ import { gatheringTitle } from "./metadata.tsx";
 import { hasSource, type ImageMode, SquarePhoto } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 import { ogCards } from "../og/cards.ts";
-import { listDate } from "./time.ts";
+import { simpleDate } from "./time.ts";
 
 /**
  * /people: the organizers first, as the foundations ask ("People and
@@ -168,7 +168,7 @@ export function Appearances({
               datetime={DateTime.formatIso(evening.startsAt)}
               safe
             >
-              {listDate(evening.startsAt)}
+              {simpleDate(evening.startsAt)}
             </time>
             <span class="talk-title">
               <EveningName evening={evening} />

@@ -87,7 +87,7 @@ export const past = [
     name: "All Things Effect",
     start: new Date("2026-03-08T07:30:00Z"),
     street: "CodeRabbit, 201 Spear St 12th floor, San Francisco, CA 94105, USA",
-    listDate: "03.07.26",
+    simpleDate: "2026.03.07",
   },
   {
     // 01:30 PST, after the clocks went back, on Sunday, November 2.
@@ -97,7 +97,7 @@ export const past = [
     topic: "ship ai",
     start: new Date("2025-11-02T09:30:00Z"),
     street: "Standard Deviant Brewing Pier 70, 1070 Maryland St",
-    listDate: "11.02.25",
+    simpleDate: "2025.11.02",
   },
   {
     // 17:00 PDT on Monday, June 1, already Tuesday in UTC.
@@ -106,7 +106,7 @@ export const past = [
     name: "React Bay Area at Mux",
     start: new Date("2025-06-02T00:00:00Z"),
     street: "Mux, 50 Beale St floor 9, San Francisco, CA 94105, USA",
-    listDate: "06.01.25",
+    simpleDate: "2025.06.01",
   },
   {
     id: "e0000000-0000-4000-8000-000000000204",
@@ -114,7 +114,7 @@ export const past = [
     name: "All Things Web at Sanity",
     start: new Date("2025-01-29T01:00:00Z"),
     street: "351 California St, San Francisco, CA 94104, USA",
-    listDate: "01.28.25",
+    simpleDate: "2025.01.28",
   },
 ] as const;
 

@@ -33,10 +33,58 @@ function local(instant: DateTime.DateTime): DateTime.DateTime.PartsWithWeekday {
   return DateTime.toParts(DateTime.setZone(instant, timeZone));
 }
 
-/** "09.30.26": dates in lists. */
-export function listDate(instant: DateTime.DateTime): string {
-  const { month, day: date, year: fullYear } = local(instant);
-  return `${twoDigits(month)}.${twoDigits(date)}.${twoDigits(fullYear % 100)}`;
+/** A day on the calendar, "YYYY-MM-DD": it has no zone. */
+const calendarDay = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** A day's parts, as `DateTime.toParts` names them. */
+interface DayParts {
+  readonly year: number;
+  readonly month: number;
+  readonly day: number;
+}
+
+/** How many days `month` (1–12) of `fullYear` has, leap years counted. */
+function daysIn(fullYear: number, month: number): number {
+  if (month === 2) {
+    const leap =
+      (fullYear % 4 === 0 && fullYear % 100 !== 0) || fullYear % 400 === 0;
+    return leap ? 29 : 28;
+  }
+  return [4, 6, 9, 11].includes(month) ? 30 : 31;
+}
+
+/** The year, month and day a "YYYY-MM-DD" day names: never a February 30th. */
+function dayParts(isoDay: string): DayParts {
+  const [, fullYear, month, date] = isoDay.match(calendarDay) ?? [];
+  const parts = {
+    year: Number(fullYear),
+    month: Number(month),
+    day: Number(date),
+  };
+  if (
+    fullYear === undefined ||
+    parts.month < 1 ||
+    parts.month > 12 ||
+    parts.day < 1 ||
+    parts.day > daysIn(parts.year, parts.month)
+  ) {
+    throw new RangeError(`Expected a YYYY-MM-DD day, got "${isoDay}"`);
+  }
+  return parts;
+}
+
+/**
+ * "2026.09.30": a simple date, the one way the site writes a day on its
+ * own: in lists of evenings, under talks and on contact sheets. Year first
+ * and whole, so it reads in the order it sorts. Where people decide whether
+ * they can make it, pages say the weekday and the time instead (`fullDate`,
+ * `day`, `timeRange`). `when` is an instant, dated in San Francisco, or a
+ * calendar day, "YYYY-MM-DD", which is dated as it is.
+ */
+export function simpleDate(when: DateTime.DateTime | string): string {
+  const parts: DayParts =
+    typeof when === "string" ? dayParts(when) : local(when);
+  return `${String(parts.year).padStart(4, "0")}.${twoDigits(parts.month)}.${twoDigits(parts.day)}`;
 }
 
 /** 2026: the year an evening happened in, in San Francisco. */

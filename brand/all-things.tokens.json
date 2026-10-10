@@ -620,10 +620,10 @@
     },
     "dateColumn": {
       "$value": {
-        "value": 88,
+        "value": 104,
         "unit": "px"
       },
-      "$description": "The date column of a list of evenings or talks."
+      "$description": "The date column of a list of evenings or talks: a simple date, 2026.09.30, in the meta role, with room to spare."
     },
     "tileS": {
       "$value": {

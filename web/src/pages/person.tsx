@@ -12,6 +12,7 @@ import { Appearances, Links, Portrait } from "./people.tsx";
 import type { ImageMode } from "./picture.tsx";
 import { personStructuredData } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
+import { simpleDate } from "./time.ts";
 import { ogCards } from "../og/cards.ts";
 
 /**
@@ -64,12 +65,6 @@ const kindNames: Readonly<Record<ExternalTalkKind, string>> = {
   workshop: "workshop",
 };
 
-/** "07.30.24" for "2024-07-30": the day as every list writes dates. */
-const listDay = (givenOn: string): string => {
-  const [year = "", month = "", day = ""] = givenOn.split("-");
-  return `${month}.${day}.${year.slice(2)}`;
-};
-
 /**
  * Talks they gave elsewhere, latest first: the day, the title (linking to
  * the talk, else its recording), and where, as what. A recording besides
@@ -83,7 +78,7 @@ function Elsewhere({ talks }: { readonly talks: ReadonlyArray<ExternalTalk> }) {
         const inner = (
           <>
             <time class="date at-type-meta" datetime={talk.givenOn} safe>
-              {listDay(talk.givenOn)}
+              {simpleDate(talk.givenOn)}
             </time>
             <span class="talk-title" safe>
               {talk.title}

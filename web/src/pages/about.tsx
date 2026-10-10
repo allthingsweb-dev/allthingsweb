@@ -17,7 +17,7 @@ import { Portrait } from "./people.tsx";
 import type { ImageMode } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 import { ogCards } from "../og/cards.ts";
-import { fullDate, listDate } from "./time.ts";
+import { fullDate, simpleDate } from "./time.ts";
 
 /**
  * /about: what allthings is, in the foundations' words ("Who we are"),
@@ -116,7 +116,7 @@ function HistoryRow({ evening }: { readonly evening: Evening }) {
           datetime={DateTime.formatIso(evening.startsAt)}
           safe
         >
-          {listDate(evening.startsAt)}
+          {simpleDate(evening.startsAt)}
         </time>
         <span class="name at-type-list-name" safe>
           {evening.name}

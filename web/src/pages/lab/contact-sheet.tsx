@@ -3,18 +3,18 @@ import { DateTime } from "effect";
 import { eventPath } from "../../links.ts";
 import { Hero, HomeBand, OpenSlot } from "../home.tsx";
 import { type ImageMode, Photo, showable } from "../picture.tsx";
-import { listDate, year } from "../time.ts";
+import { simpleDate, year } from "../time.ts";
 import { type LabData, screenShare, Tally } from "./lab.tsx";
 
 /**
  * contact-sheet: today's Swiss index, with the photos beside the hero as
- * a photographer's contact sheet: thirty-six small frames from many
+ * a photographer's contact sheet: twenty-four small frames from many
  * evenings, each captioned with its evening's date and leading to it, read
  * like an archive. Under it, the tally as a bold band of numbers.
  */
 
-/** The sheet's frames: six rows of six. */
-export const frameCount = 36;
+/** The sheet's frames: six rows of four, wide enough for their dates. */
+export const frameCount = 24;
 
 /** "From 18 evenings, 2024–2026": what the sheet holds, counted. */
 export function sheetCaption(frames: ReadonlyArray<WallPhoto>): string {
@@ -38,7 +38,7 @@ function Frame({
         <Photo
           photo={frame.photo}
           mode={images}
-          sizes={screenShare(6, 23)}
+          sizes={screenShare(9, 23)}
           widest={360}
         />
         <time
@@ -46,7 +46,7 @@ function Frame({
           datetime={DateTime.formatIso(frame.startsAt)}
           safe
         >
-          {listDate(frame.startsAt)}
+          {simpleDate(frame.startsAt)}
         </time>
       </a>
     </li>

@@ -218,7 +218,7 @@ describe("/ with evenings announced", () => {
     past.slice(0, 3).forEach((evening, index) => {
       const row = rows[index] ?? "";
       expect(row).toContain(`href="/${evening.slug}"`);
-      expect(text(row, /<time[^>]*>([^<]*)<\/time>/)).toBe(evening.listDate);
+      expect(text(row, /<time[^>]*>([^<]*)<\/time>/)).toBe(evening.simpleDate);
       expect(row).toContain(`datetime="${evening.start.toISOString()}"`);
       expect(row).not.toContain("at-cursor");
     });
