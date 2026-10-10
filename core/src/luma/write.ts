@@ -24,7 +24,7 @@ import { LumaRejected, LumaUnavailable, sendWithRetries } from "./luma.ts";
  *   /v1/events/ticket-types/update`: an event's ticket types, where Luma
  *   keeps whether registering needs approval (registration.ts).
  * - `POST /v1/events/hosts/add` and `POST /v1/events/hosts/remove`: an
- *   event's hosts, by email (hosts.ts).
+ *   event's hosts, by email, each at an access level (hosts.ts).
  *
  * Reads are retried as every Luma request is (luma.ts). Writes are sent
  * once: a create or an update that timed out may have happened, and a
@@ -216,10 +216,14 @@ export interface LumaWriteShape {
     ticketTypeId: string,
     requireApproval: boolean,
   ) => Effect.Effect<void, LumaWriteError>;
-  /** Adds a host by email, with Luma's defaults: a manager, shown on the page. */
+  /**
+   * Adds a host by email, at an access level; shown on the page unless
+   * only for check-in, which Luma never shows.
+   */
   readonly addHost: (
     lumaEventId: string,
     email: string,
+    accessLevel: "none" | "check-in" | "manager",
   ) => Effect.Effect<void, LumaWriteError>;
   /** Removes a host by email. */
   readonly removeHost: (
@@ -387,10 +391,12 @@ const make = Effect.gen(function* () {
         event_ticket_type_id: ticketTypeId,
         require_approval: requireApproval,
       }).pipe(Effect.asVoid),
-    addHost: (lumaEventId, email) =>
-      post("/v1/events/hosts/add", { event_id: lumaEventId, email }).pipe(
-        Effect.asVoid,
-      ),
+    addHost: (lumaEventId, email, accessLevel) =>
+      post("/v1/events/hosts/add", {
+        event_id: lumaEventId,
+        email,
+        access_level: accessLevel,
+      }).pipe(Effect.asVoid),
     removeHost: (lumaEventId, email) =>
       post("/v1/events/hosts/remove", { event_id: lumaEventId, email }).pipe(
         Effect.asVoid,

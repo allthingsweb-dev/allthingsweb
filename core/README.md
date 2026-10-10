@@ -1372,8 +1372,8 @@ LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug> … -
 and company accounts its page names, and who can manage it. What Luma's API
 can do, by its OpenAPI spec (public-api.luma.com/openapi.json):
 `events/get` lists them (id, email, name); `hosts/add` adds one by email
-only, as a manager shown on the page; `hosts/remove` removes one by email,
-never the event's creator. Adding by Luma user id (the API takes none, and
+only, at an access level; `hosts/remove` removes one by email, never the
+event's creator. Adding by Luma user id (the API takes none, and
 a user's email isn't ours to see) and removing the creator are refused by
 name, never skipped.
 
@@ -1384,6 +1384,12 @@ hosts now and the changes), saying so when the event is public;
 same, adds, then removes, and reads the hosts back to check each took. The
 admin MCP server's `luma_hosts` runs the same command.
 
+Each host is added at the least access it needs: `none` (shown on the page,
+no rights to manage it: a hosting company, anyone credited) unless
+`--access` right after its `--add` says `check-in` (checks guests in, never
+shown) or `manager` (changes the event and its guests; only for an
+organizer). Luma's own default, manager, is never taken by leaving it out.
+
 Luma keeps an unpublished evening's hosts itself, privately with its
 event, so nothing about them goes into a file here
 (`backfill/hosts.json` is the public record of hosting companies). Once
@@ -1392,7 +1398,8 @@ evening's.
 
 ```sh
 LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug>   # as Luma has them
-LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug> --add ada@example.com --remove usr-… --dry-run
+LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug> --add erik@example.com --access manager \
+  --add events@example.com --remove usr-… --dry-run
 LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug> … --approve <token>
 ```
 

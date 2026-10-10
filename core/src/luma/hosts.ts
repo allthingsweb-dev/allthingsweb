@@ -18,9 +18,15 @@ import {
  * What Luma's API can do (public-api.luma.com/openapi.json):
  *
  * - `events/get` lists the hosts: id, email and name.
- * - `hosts/add` adds one **by email**, with Luma's defaults: a manager,
- *   shown on the event's page. A Luma user id can't be added: the API takes
- *   no id, and the studio can't see a user's email.
+ * - `hosts/add` adds one **by email**, at an access level:
+ *   - `none`: shown on the event's page, with no rights to manage it: a
+ *     hosting company, a speaker, anyone credited. The studio's default:
+ *     least privilege, whatever Luma's own default (manager) is;
+ *   - `check-in`: may check guests in, and is never shown on the page;
+ *   - `manager`: may change the event and its guests, shown on the page.
+ *     Only ever asked for by name, for an organizer.
+ *   A Luma user id can't be added: the API takes no id, and the studio
+ *   can't see a user's email.
  * - `hosts/remove` removes one by email. The event's creator can't be
  *   removed.
  *
@@ -42,9 +48,23 @@ import {
  *   to check each change took.
  */
 
-/** Who to add (an email) and who to remove (an email or a Luma user id). */
+/** A host's rights on the event, as `hosts/add` names them. */
+export const hostAccessLevels = ["none", "check-in", "manager"] as const;
+export type HostAccess = (typeof hostAccessLevels)[number];
+
+/** What each access level means, as the plan prints it. */
+export const hostAccessText: Readonly<Record<HostAccess, string>> = {
+  none: "shown on the page, no rights to manage it",
+  "check-in": "may check guests in, not shown on the page",
+  manager: "a manager, shown on the page",
+};
+
+/** Who to add (an email, at an access level) and who to remove (an email or a Luma user id). */
 export interface HostsRequest {
-  readonly add: ReadonlyArray<string>;
+  readonly add: ReadonlyArray<{
+    readonly email: string;
+    readonly access: HostAccess;
+  }>;
   readonly remove: ReadonlyArray<string>;
 }
 
@@ -68,7 +88,11 @@ export interface Hosts {
 
 /** One change the plan makes. */
 export type HostChange =
-  | { readonly action: "add"; readonly email: string }
+  | {
+      readonly action: "add";
+      readonly email: string;
+      readonly access: HostAccess;
+    }
   | {
       readonly action: "remove";
       readonly email: string;
@@ -125,7 +149,7 @@ export function hostsPlan(current: Hosts, request: HostsRequest): HostsPlan {
   const gaps: Array<HostGap> = [];
   const seen = new Set<string>();
   for (const asked of request.add) {
-    const who = asked.trim();
+    const who = asked.email.trim();
     if (!isEmail(who)) {
       gaps.push({
         action: "add",
@@ -140,7 +164,7 @@ export function hostsPlan(current: Hosts, request: HostsRequest): HostsPlan {
     if (seen.has(key)) continue;
     seen.add(key);
     if (current.hosts.some((host) => sameEmail(host.email, who))) continue;
-    changes.push({ action: "add", email: who });
+    changes.push({ action: "add", email: who, access: asked.access });
   }
   for (const asked of request.remove) {
     const who = asked.trim();
@@ -166,7 +190,7 @@ export function hostsPlan(current: Hosts, request: HostsRequest): HostsPlan {
     }
     // Removing someone also asked to be added, however each was named,
     // can't be both: refused, so neither wins quietly.
-    if (request.add.some((added) => sameEmail(added, host.email))) {
+    if (request.add.some((added) => sameEmail(added.email, host.email))) {
       gaps.push({
         action: "remove",
         who,
@@ -185,7 +209,13 @@ export function hostsRequestProblem(request: HostsRequest): string | null {
   if (request.add.length === 0 && request.remove.length === 0) {
     return "Nothing to change: give --add or --remove.";
   }
-  const added = new Set(request.add.map((who) => who.trim().toLowerCase()));
+  const added = new Set<string>();
+  for (const { email } of request.add) {
+    const key = email.trim().toLowerCase();
+    if (added.has(key))
+      return `${email.trim()} is added twice: give them once.`;
+    added.add(key);
+  }
   const both = request.remove.find((who) =>
     added.has(who.trim().toLowerCase()),
   );
@@ -310,7 +340,7 @@ const make = Effect.gen(function* () {
       }
       for (const change of prepared.changes) {
         yield* change.action === "add"
-          ? luma.addHost(lumaEventId, change.email)
+          ? luma.addHost(lumaEventId, change.email, change.access)
           : luma.removeHost(lumaEventId, change.email);
       }
       const after = yield* readFrom(lumaEventId);
@@ -342,4 +372,42 @@ export class LumaHosts extends Context.Service<LumaHosts, HostsShape>()(
 ) {
   /** Needs `LumaWrite` and a `SqlClient`, to find an evening by its slug. */
   static readonly layer = Layer.effect(LumaHosts, make);
+}
+
+/**
+ * The hosts `args` (a command line) adds, each at its access level:
+ * `--access <level>` sets the level of the `--add <email>` just before it,
+ * and one left without is `none`, least privilege. Each also as
+ * `--flag=<value>`; nothing after `--` is a flag. Why it can't be read, as
+ * a string.
+ */
+export function hostAddsInOrder(
+  args: ReadonlyArray<string>,
+): HostsRequest["add"] | string {
+  const adds: Array<{ email: string; access: HostAccess }> = [];
+  let leveled = false;
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index] ?? "";
+    if (arg === "--") break;
+    const equals = arg.indexOf("=");
+    const name = equals === -1 ? arg : arg.slice(0, equals);
+    if (name !== "--add" && name !== "--access") continue;
+    const value = equals === -1 ? args[++index] : arg.slice(equals + 1);
+    if (value === undefined) return `${name} needs a value.`;
+    if (name === "--add") {
+      adds.push({ email: value, access: "none" });
+      leveled = false;
+      continue;
+    }
+    const last = adds.at(-1);
+    if (last === undefined || leveled) {
+      return `--access ${value} goes right after the --add it is for.`;
+    }
+    if (!(hostAccessLevels as ReadonlyArray<string>).includes(value)) {
+      return `--access is one of ${hostAccessLevels.join(", ")}: ${value}`;
+    }
+    adds[adds.length - 1] = { ...last, access: value as HostAccess };
+    leveled = true;
+  }
+  return adds;
 }
