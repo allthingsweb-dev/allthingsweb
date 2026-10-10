@@ -9,7 +9,8 @@ import type { Engine, MakeEngine, Pointer, Tile } from "./engine.ts";
  * while the surface is on screen and the tab is shown.
  *
  * Without script, WebGL2 or float targets, or for people who prefer
- * reduced motion, nothing starts: the surface keeps its still composition.
+ * reduced motion, nothing starts until they no longer do: the surface keeps
+ * its still composition.
  */
 
 /** An engine's module: how to make it, and how sharp it draws at most. */
@@ -57,7 +58,7 @@ async function tilesOf(surface: HTMLElement): Promise<ReadonlyArray<Tile>> {
 
 async function start(surface: HTMLElement): Promise<void> {
   const load = engines[surface.dataset["engine"] ?? ""];
-  if (load === undefined || reducedMotion.matches) return;
+  if (load === undefined) return;
   const stage = surface.closest<HTMLElement>("[data-engine-stage]") ?? surface;
   const canvas = document.createElement("canvas");
   canvas.className = "engine-canvas";
@@ -129,7 +130,8 @@ async function start(surface: HTMLElement): Promise<void> {
   };
   resize();
   if (failed) return;
-  show();
+  // Reduced motion may have been chosen while the engine loaded.
+  if (!reducedMotion.matches) show();
   resizes.observe(surface);
 
   let last: { x: number; y: number } | undefined;
@@ -190,16 +192,27 @@ async function start(surface: HTMLElement): Promise<void> {
 }
 
 /** Starts each surface's engine as it comes within a screen of view. */
+/** Surfaces that came near while reduced motion was chosen. */
+const deferred = new Set<HTMLElement>();
 const near = new IntersectionObserver(
   (entries) => {
     for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
+      if (!entry.isIntersecting || !(entry.target instanceof HTMLElement)) {
+        continue;
+      }
       near.unobserve(entry.target);
-      if (entry.target instanceof HTMLElement) void start(entry.target);
+      if (reducedMotion.matches) deferred.add(entry.target);
+      else void start(entry.target);
     }
   },
   { rootMargin: "100% 0px" },
 );
+// Once reduced motion is no longer chosen, the surfaces it held back start.
+reducedMotion.addEventListener("change", () => {
+  if (reducedMotion.matches) return;
+  for (const surface of deferred) void start(surface);
+  deferred.clear();
+});
 for (const surface of document.querySelectorAll<HTMLElement>("[data-engine]")) {
   near.observe(surface);
 }
