@@ -10,6 +10,7 @@ import {
   sha256,
 } from "../cover.ts";
 import { DataSourceError } from "../errors.ts";
+import { actorFor, logDraft } from "../planning/draft-log.ts";
 import { EventPages } from "../event-page.ts";
 import { ShortSlugs } from "../slugs.ts";
 import { type EventRef, StudioRefused } from "./publish.ts";
@@ -190,6 +191,7 @@ const make = Effect.gen(function* () {
 
   const approve = (ref: EventRef, token: string) =>
     Effect.gen(function* () {
+      yield* actorFor(refuse);
       const prepared = yield* prepare(ref);
       if (prepared.refused !== null) return yield* refuse(prepared.refused);
       if (prepared.token !== token) {
@@ -211,21 +213,39 @@ const make = Effect.gen(function* () {
       // Recorded only on the evening it was drawn for, while it is still
       // our private one; its stored copy of the old cover is let go, so the
       // ingestion stores this one.
-      const recorded = yield* sql`
-        UPDATE events SET
-          generated_cover_url = ${coverUrl},
-          generated_cover_sha256 = ${prepared.sha256},
-          generated_cover_facts = ${prepared.factsToken},
-          preview_image = NULL,
-          updated_at = now()
-        WHERE luma_event_id = ${prepared.lumaEventId}
-        RETURNING id`.pipe(
-        Effect.catch((cause) =>
-          refuse(
-            `Luma has the cover (${coverUrl}), but recording it here failed: ${cause instanceof Error ? cause.message : String(cause)}. Run luma cover --dry-run and approve again to record it.`,
+      // Recorded with its line in the draft's log, in one transaction.
+      const recorded = yield* sql
+        .withTransaction(
+          Effect.gen(function* () {
+            const rows = yield* sql`
+              UPDATE events SET
+                generated_cover_url = ${coverUrl},
+                generated_cover_sha256 = ${prepared.sha256},
+                generated_cover_facts = ${prepared.factsToken},
+                preview_image = NULL,
+                updated_at = now()
+              WHERE luma_event_id = ${prepared.lumaEventId}
+              RETURNING id`;
+            yield* logDraft({
+              event: { lumaEventId: prepared.lumaEventId },
+              command: "luma cover",
+              summary:
+                "Set its cover on Luma, drawn from its facts as they are.",
+              payload: {
+                coverUrl,
+                sha256: prepared.sha256,
+              },
+            }).pipe(Effect.provideService(SqlClient, sql));
+            return rows;
+          }),
+        )
+        .pipe(
+          Effect.catch((cause) =>
+            refuse(
+              `Luma has the cover (${coverUrl}), but recording it here failed: ${cause instanceof Error ? cause.message : String(cause)}. Run luma cover --dry-run and approve again to record it.`,
+            ),
           ),
-        ),
-      );
+        );
       if (recorded.length !== 1) {
         return yield* refuse(
           `Luma has the cover (${coverUrl}), but no evening here has ${prepared.lumaEventId} to record it on.`,

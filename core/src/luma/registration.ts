@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken } from "../approval.ts";
 import { DataSourceError } from "../errors.ts";
+import { actorFor, logAfterLuma } from "../planning/draft-log.ts";
 import { type EventRef, StudioRefused } from "./publish.ts";
 import {
   LumaWrite,
@@ -449,6 +450,7 @@ const make = Effect.gen(function* () {
     token: string,
   ) =>
     Effect.gen(function* () {
+      yield* actorFor(refuse);
       const lumaEventId = yield* lumaIdOf(ref);
       const { event, prepared } = yield* prepareFrom(lumaEventId, request);
       if (prepared.token !== token) {
@@ -520,6 +522,17 @@ const make = Effect.gen(function* () {
             )}. Read it with bun run luma registration and set it again.`,
         );
       }
+      yield* logAfterLuma(
+        {
+          event: { lumaEventId },
+          command: "luma registration",
+          summary: `Set its registration on Luma: ${prepared.changes.map((change) => change.field).join(", ")}.`,
+          payload: {
+            fields: prepared.changes.map((change) => change.field),
+          },
+        },
+        refuse,
+      ).pipe(Effect.provideService(SqlClient, sql));
       return { ...prepared, registration: after };
     });
 

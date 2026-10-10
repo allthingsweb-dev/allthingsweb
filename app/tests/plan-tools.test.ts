@@ -107,3 +107,46 @@ test("a value that starts with a dash stays the flag's value", () => {
     }),
   ).toEqual(["note", "add", "--sponsor=Acme", "--body=--not a flag"]);
 });
+
+describe("a draft's status and notes", () => {
+  test("the slug, id and text are values, never flags", () => {
+    expect(
+      planArguments("draft_status", { slug: "2026-09-01-draft-night" }),
+    ).toEqual(["status", "--", "2026-09-01-draft-night"]);
+    expect(
+      planArguments("add_draft_note", {
+        slug: "2026-09-01-draft-night",
+        kind: "question",
+        text: "--which venue?",
+        dryRun: true,
+      }),
+    ).toEqual([
+      "note",
+      "--kind=question",
+      "--text=--which venue?",
+      "--dry-run",
+      "--",
+      "2026-09-01-draft-night",
+    ]);
+    expect(
+      planArguments("resolve_draft_note", {
+        id: "f0000000-0000-4000-8000-000000000001",
+      }),
+    ).toEqual([
+      "note",
+      "resolve",
+      "--",
+      "f0000000-0000-4000-8000-000000000001",
+    ]);
+  });
+
+  test("a note's kind is one of three", () => {
+    expect(() =>
+      planArguments("add_draft_note", {
+        slug: "x",
+        kind: "rumor",
+        text: "x",
+      }),
+    ).toThrow();
+  });
+});

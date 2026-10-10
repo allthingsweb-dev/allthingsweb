@@ -7,7 +7,7 @@
     "check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "test:studio": "CORE_TEST_AS=studio bun test tests/planning.test.ts tests/planning-dry-run.test.ts tests/plan-cli.test.ts tests/readiness.test.ts tests/luma-studio.test.ts tests/promo.test.ts tests/luma-cover.test.ts tests/luma-drafts.test.ts tests/social-bluesky.test.ts tests/social-discord.test.ts tests/social-x.test.ts tests/posts.test.ts tests/post-candidates.test.ts tests/photos.test.ts tests/profile-photo.test.ts tests/host-logos.test.ts tests/talk-edits.test.ts",
+    "test:studio": "CORE_TEST_AS=studio bun test tests/planning.test.ts tests/planning-dry-run.test.ts tests/plan-cli.test.ts tests/readiness.test.ts tests/luma-studio.test.ts tests/promo.test.ts tests/luma-cover.test.ts tests/luma-registration.test.ts tests/luma-hosts.test.ts tests/luma-drafts.test.ts tests/social-bluesky.test.ts tests/social-discord.test.ts tests/social-x.test.ts tests/posts.test.ts tests/post-candidates.test.ts tests/photos.test.ts tests/profile-photo.test.ts tests/host-logos.test.ts tests/talk-edits.test.ts",
     "fixtures": "bun scripts/fixtures.ts",
     "migrate": "bun --no-env-file scripts/migrate.ts",
     "migration-guard": "bun --no-env-file scripts/migration-guard.ts",

@@ -91,6 +91,10 @@ const madeUp = `
     FROM made_up_event;
   INSERT INTO planning.draft_talk_people (draft_talk_id, wanted_speaker_id, role, position)
     VALUES ('f8000000-0000-4000-8000-000000000001', 'f2000000-0000-4000-8000-000000000001', 'panelist', 0);
+  INSERT INTO planning.draft_log (event_id, actor, command, summary)
+    SELECT id, 'made-up', 'plan lineup set', 'Made up.' FROM made_up_event;
+  INSERT INTO planning.draft_notes (event_id, actor, kind, text)
+    SELECT id, 'made-up', 'question', 'Made up?' FROM made_up_event;
 `;
 
 let db: PGlite;
@@ -143,6 +147,8 @@ describe("planning is private", () => {
       "collaborators",
       "comments",
       "contacts",
+      "draft_log",
+      "draft_notes",
       "draft_people",
       "draft_talk_people",
       "draft_talks",
@@ -291,7 +297,7 @@ const isDataFile = (path: string): boolean =>
 /** production-schema.txt is the catalog: planning appears there only as schema. */
 const catalog = "core/tests/fixtures/production-schema.txt";
 const catalogLine =
-  /^(relation|column|constraint|index|enum|type|sequence|view|trigger|policy|routine|comment) planning\./;
+  /^(relation|column|constraint|index|enum|type|sequence|view|trigger|policy|routine|comment) planning\.|^trigger CREATE TRIGGER [a-z_]+ [A-Z ]+ ON planning\.[a-z_]+ FOR EACH (ROW|STATEMENT) EXECUTE FUNCTION planning\.[a-z_]+\(\)$/;
 
 describe("no planning rows in the repository", () => {
   const files = repositoryFiles().filter(isDataFile);

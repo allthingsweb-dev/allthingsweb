@@ -1,7 +1,8 @@
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
-import type { DataSourceError } from "../errors.ts";
+import { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
+import { actorFor, logDraft } from "../planning/draft-log.ts";
 import { LumaApi, type LumaApiError, type LumaEventDetails } from "./api.ts";
 import { defaultTagline } from "../tagline.ts";
 import { descriptionHtml, descriptionSummary } from "./description.ts";
@@ -404,11 +405,15 @@ const make = Effect.gen(function* () {
         written: false,
       } satisfies DraftAdded;
       if (dryRun) return added;
+      yield* actorFor(refuse);
       const at = DateTime.formatIso(yield* DateTime.now);
       // The sync's own insert for a new event, as a draft. A row stored
       // meanwhile (by a sync, or another add), or another evening holding
       // its slug, is left as it is: no unique column is overwritten.
-      const inserted = yield* sql`
+      const inserted = yield* sql
+        .withTransaction(
+          Effect.tap(
+            sql`
         INSERT INTO events (
           luma_event_id, name, start_date, end_date, is_draft, slug, tagline,
           attendee_limit, street_address, short_location, full_address,
@@ -419,7 +424,30 @@ const make = Effect.gen(function* () {
           ${description.html}, ${description.summary},
           ${at}::timestamptz, ${at}::timestamptz)
         ON CONFLICT DO NOTHING
-        RETURNING slug`.pipe(orDataSourceError);
+        RETURNING slug`,
+            (rows) =>
+              rows.length === 0
+                ? Effect.void
+                : logDraft({
+                    event: { lumaEventId },
+                    command: "luma:drafts --add",
+                    summary: `Stored its private Luma event as a draft evening, ${slug}.`,
+                    payload: {
+                      lumaEventId,
+                      slug,
+                      startDate: added.startDate,
+                      endDate: added.endDate,
+                    },
+                  }),
+          ),
+        )
+        .pipe(
+          Effect.provideService(SqlClient, sql),
+          Effect.catchTag("ActorRequired", (missing) => refuse(missing.reason)),
+          Effect.catchTag("SqlError", (cause) =>
+            Effect.fail(new DataSourceError({ cause })),
+          ),
+        );
       if (inserted.length === 0) {
         return yield* refuse(
           `${event.name} was stored meanwhile, or another evening has the slug ${slug}: nothing was written.`,

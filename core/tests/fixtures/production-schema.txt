@@ -1,3 +1,31 @@
+column planning.draft_log #001 id uuid not null default gen_random_uuid()
+column planning.draft_log #002 event_id uuid not null
+column planning.draft_log #003 at timestamp with time zone not null default now()
+column planning.draft_log #004 actor text not null
+column planning.draft_log #005 command text not null
+column planning.draft_log #006 summary text not null
+column planning.draft_log #007 payload jsonb not null default '{}'::jsonb
+column planning.draft_notes #001 id uuid not null default gen_random_uuid()
+column planning.draft_notes #002 event_id uuid not null
+column planning.draft_notes #003 at timestamp with time zone not null default now()
+column planning.draft_notes #004 actor text not null
+column planning.draft_notes #005 kind text not null
+column planning.draft_notes #006 text text not null
+column planning.draft_notes #007 resolved_at timestamp with time zone
+constraint planning.draft_log draft_log_actor_check CHECK ((actor ~ '^[a-z0-9][a-z0-9._-]{0,31}(/[a-z0-9][a-z0-9._-]{0,31})?$'::text))
+constraint planning.draft_log draft_log_command_check CHECK (((char_length(command) <= 80) AND (command ~ '^[a-z][a-z0-9:-]*( [a-z0-9:-]+)*$'::text)))
+constraint planning.draft_log draft_log_payload_check CHECK (((jsonb_typeof(payload) = 'object'::text) AND (octet_length((payload)::text) <= 8000) AND ((payload)::text !~* '[a-z0-9._%+-]+@[a-z0-9-]+([.][a-z0-9-]+)+'::text)))
+constraint planning.draft_log draft_log_pkey PRIMARY KEY (id)
+constraint planning.draft_log draft_log_summary_check CHECK (((btrim(summary) <> ''::text) AND (char_length(summary) <= 500) AND (summary !~* '[a-z0-9._%+-]+@[a-z0-9-]+([.][a-z0-9-]+)+'::text)))
+constraint planning.draft_notes draft_notes_actor_check CHECK ((actor ~ '^[a-z0-9][a-z0-9._-]{0,31}(/[a-z0-9][a-z0-9._-]{0,31})?$'::text))
+constraint planning.draft_notes draft_notes_kind_check CHECK ((kind = ANY (ARRAY['note'::text, 'decision'::text, 'question'::text])))
+constraint planning.draft_notes draft_notes_pkey PRIMARY KEY (id)
+constraint planning.draft_notes draft_notes_resolved_check CHECK (((resolved_at IS NULL) OR ((kind = 'question'::text) AND (resolved_at >= at))))
+constraint planning.draft_notes draft_notes_text_check CHECK (((btrim(text) <> ''::text) AND (char_length(text) <= 2000)))
+index planning.draft_log CREATE INDEX draft_log_event_id_at_idx ON planning.draft_log USING btree (event_id, at)
+index planning.draft_log CREATE UNIQUE INDEX draft_log_pkey ON planning.draft_log USING btree (id)
+index planning.draft_notes CREATE INDEX draft_notes_event_id_at_idx ON planning.draft_notes USING btree (event_id, at)
+index planning.draft_notes CREATE UNIQUE INDEX draft_notes_pkey ON planning.draft_notes USING btree (id)
 policy planning.brief_sections brief_sections_select 8cb64b9eb0929989240e36fd2f11b184
 policy planning.collab_audit collab_audit_insert 2fe33ef597754e3dbfeab9ef61184aba
 policy planning.comments comments_insert 7b35f3e4d075f2dcec9e9b464d49f40e
@@ -10,6 +38,14 @@ policy planning.round_submissions round_submissions_insert dbf8c730b2f2d92d29fea
 policy planning.round_submissions round_submissions_select 0677675cf2e2ccf34a8a40fbd631d86b
 policy planning.rounds rounds_select c9f1311d9cf608f84017adf879ddd8ef
 policy planning.tasks tasks_select 7cc8688eec21a491e7d5dbddfeec3213
+relation planning.draft_log kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+relation planning.draft_notes kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+routine planning.draft_log_append_only() 5ef7e79c94ff90b4e6ad373685e1a985
+routine planning.draft_notes_written_once() 0d8f3248a1469eef2fc82ede9743204a
+trigger CREATE TRIGGER draft_log_append_only BEFORE DELETE OR UPDATE ON planning.draft_log FOR EACH ROW EXECUTE FUNCTION planning.draft_log_append_only()
+trigger CREATE TRIGGER draft_log_no_truncate BEFORE TRUNCATE ON planning.draft_log FOR EACH STATEMENT EXECUTE FUNCTION planning.draft_log_append_only()
+trigger CREATE TRIGGER draft_notes_no_truncate BEFORE TRUNCATE ON planning.draft_notes FOR EACH STATEMENT EXECUTE FUNCTION planning.draft_notes_written_once()
+trigger CREATE TRIGGER draft_notes_written_once BEFORE DELETE OR UPDATE ON planning.draft_notes FOR EACH ROW EXECUTE FUNCTION planning.draft_notes_written_once()
 column planning.availability #001 id uuid not null default gen_random_uuid()
 column planning.availability #002 wanted_speaker_id uuid not null
 column planning.availability #003 kind text not null default 'available'::text

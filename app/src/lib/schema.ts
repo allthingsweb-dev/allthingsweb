@@ -17,6 +17,7 @@ import {
   uniqueIndex,
   pgPolicy,
   customType,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -1052,6 +1053,86 @@ export const planningDraftTalkPeopleTable = planningSchema.table(
       sql`"role" IN ('speaker', 'panelist', 'moderator')`,
     ),
     check("draft_talk_people_position_check", sql`"position" >= 0`),
+  ],
+);
+
+/**
+ * What happened to a draft evening: one row per studio write that touched
+ * it, made in the write's own transaction, with who (ALLTHINGS_ACTOR, a
+ * declared label), the command, a summary and what changed. Append-only,
+ * and never a secret or an email. core/migrations/0028_draft_log.ts is the
+ * same change, and its triggers are appended to the generated SQL.
+ */
+export const planningDraftLogTable = planningSchema.table(
+  "draft_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Its evening; no foreign key: kept even when the evening goes. */
+    eventId: uuid("event_id").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    actor: text("actor").notNull(),
+    command: text("command").notNull(),
+    summary: text("summary").notNull(),
+    payload: jsonb("payload")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+  },
+  (table) => [
+    index("draft_log_event_id_at_idx").on(table.eventId, table.at),
+    check(
+      "draft_log_actor_check",
+      sql`"actor" ~ '^[a-z0-9][a-z0-9._-]{0,31}(/[a-z0-9][a-z0-9._-]{0,31})?$'`,
+    ),
+    check(
+      "draft_log_command_check",
+      sql`char_length("command") <= 80 AND "command" ~ '^[a-z][a-z0-9:-]*( [a-z0-9:-]+)*$'`,
+    ),
+    check(
+      "draft_log_summary_check",
+      sql`btrim("summary") <> '' AND char_length("summary") <= 500 AND "summary" !~* '[a-z0-9._%+-]+@[a-z0-9-]+([.][a-z0-9-]+)+'`,
+    ),
+    check(
+      "draft_log_payload_check",
+      sql`jsonb_typeof("payload") = 'object' AND octet_length("payload"::text) <= 8000 AND "payload"::text !~* '[a-z0-9._%+-]+@[a-z0-9-]+([.][a-z0-9-]+)+'`,
+    ),
+  ],
+);
+
+/**
+ * A note, a decision or a question about a draft evening, each written
+ * once; only an open question is ever changed, to resolve it.
+ * core/migrations/0028_draft_log.ts is the same change.
+ */
+export const planningDraftNotesTable = planningSchema.table(
+  "draft_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Its evening; no foreign key: kept even when the evening goes. */
+    eventId: uuid("event_id").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    actor: text("actor").notNull(),
+    kind: text("kind", { enum: ["note", "decision", "question"] }).notNull(),
+    text: text("text").notNull(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("draft_notes_event_id_at_idx").on(table.eventId, table.at),
+    check(
+      "draft_notes_actor_check",
+      sql`"actor" ~ '^[a-z0-9][a-z0-9._-]{0,31}(/[a-z0-9][a-z0-9._-]{0,31})?$'`,
+    ),
+    check(
+      "draft_notes_kind_check",
+      sql`"kind" IN ('note', 'decision', 'question')`,
+    ),
+    check(
+      "draft_notes_text_check",
+      sql`btrim("text") <> '' AND char_length("text") <= 2000`,
+    ),
+    check(
+      "draft_notes_resolved_check",
+      sql`"resolved_at" IS NULL OR ("kind" = 'question' AND "resolved_at" >= "at")`,
+    ),
   ],
 );
 

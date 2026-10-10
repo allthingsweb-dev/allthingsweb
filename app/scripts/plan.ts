@@ -106,6 +106,17 @@ export const planSchemas = {
   }),
   search_planning: z.object({ query: z.string() }),
   audit_planning: z.object({}),
+  draft_status: z.object({ slug: z.string() }),
+  add_draft_note: z.object({
+    slug: z.string(),
+    kind: z.enum(["note", "decision", "question"]),
+    text: z.string(),
+    dryRun: z.boolean().optional(),
+  }),
+  resolve_draft_note: z.object({
+    id: z.string(),
+    dryRun: z.boolean().optional(),
+  }),
 } as const;
 
 export type PlanTool = keyof typeof planSchemas;
@@ -266,6 +277,31 @@ const builders: { readonly [T in PlanTool]: (input: unknown) => string[] } = {
     planSchemas.audit_planning.parse(input);
     return ["audit"];
   },
+  draft_status: (input) => {
+    const a = planSchemas.draft_status.parse(input);
+    return ["status", "--", a.slug];
+  },
+  add_draft_note: (input) => {
+    const a = planSchemas.add_draft_note.parse(input);
+    return [
+      "note",
+      ...flag("kind", a.kind),
+      ...flag("text", a.text),
+      ...(a.dryRun === true ? ["--dry-run"] : []),
+      "--",
+      a.slug,
+    ];
+  },
+  resolve_draft_note: (input) => {
+    const a = planSchemas.resolve_draft_note.parse(input);
+    return [
+      "note",
+      "resolve",
+      ...(a.dryRun === true ? ["--dry-run"] : []),
+      "--",
+      a.id,
+    ];
+  },
 };
 
 /**
@@ -345,6 +381,9 @@ const windowList = (description: string) => ({
 
 const privateNote =
   " Planning is private: never put what this returns on a page, in a post or in a file in the repository.";
+
+const actorNote =
+  " It writes as ALLTHINGS_ACTOR from this server's environment (like erik/claude-work: a label, not proof) and refuses without it, and adds a line to the draft's log in the same transaction.";
 
 /** The tools as the MCP server lists them. */
 export const planToolDefinitions: ReadonlyArray<{
@@ -525,5 +564,46 @@ export const planToolDefinitions: ReadonlyArray<{
     description:
       "Check that the site's roles (site_reader, site_sync) and PUBLIC can't reach planning; fails if one can, or if the database has no planning schema. Read-only.",
     inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "draft_status",
+    description: `A draft evening in one read: its facts (Luma visibility and time, venue, program, whether its cover is current or stale), readiness's blockers and advice, its lineup and talks with whether each person has said yes, the companies we'd like to host, its collaboration (rounds, invitations and submissions, as a role that may read them), its open questions, decisions and notes, and the last 20 lines of its log. Read-only.${privateNote}`,
+    inputSchema: {
+      type: "object",
+      properties: { slug: string("The draft evening, by slug") },
+      required: ["slug"],
+    },
+  },
+  {
+    name: "add_draft_note",
+    description: `Add a note, a decision or a question to a draft evening. Each is written once; a question stays open until resolved.${actorNote}${privateNote}`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug: string("The draft evening, by slug"),
+        kind: oneOf(["note", "decision", "question"], "What it is"),
+        text: string("What it says (up to 2000 characters)"),
+        dryRun: {
+          type: "boolean",
+          description: "Write it in a transaction that is rolled back",
+        },
+      },
+      required: ["slug", "kind", "text"],
+    },
+  },
+  {
+    name: "resolve_draft_note",
+    description: `Resolve a draft evening's open question, by its id; a note or a decision is never changed.${actorNote}${privateNote}`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: string("The question's id"),
+        dryRun: {
+          type: "boolean",
+          description: "Resolve it in a transaction that is rolled back",
+        },
+      },
+      required: ["id"],
+    },
   },
 ];

@@ -6,8 +6,8 @@
  * STUDIO_GRANTS and nothing else, from those commands' own SQL:
  *
  * - planning: the tables the studio keeps (ideas, wanted speakers, host
- *   prospects, contacts, notes, a draft's lineup and talks, publishes, sent
- *   posts), read whole, and written only in the columns and ways its
+ *   prospects, contacts, notes, a draft's lineup and talks, its log and
+ *   notes, publishes, sent posts), read whole, and written only in the columns and ways its
  *   commands write them. Nothing on the ten collaboration tables
  *   (migrations/0026_draft_collaboration.ts): they have row security, which
  *   this role doesn't bypass, so `bun run collab` stays the owner's (see
@@ -74,6 +74,8 @@ export const STUDIO_COMMANDS = [
   "luma update",
   "luma publish",
   "luma cover",
+  "luma registration",
+  "luma hosts",
   "luma:drafts --add",
   "social bluesky",
   "social discord",
@@ -187,6 +189,20 @@ export const STUDIO_GRANTS: Readonly<Record<string, TableGrants>> = {
     select: true,
     insert: ["draft_talk_id", "wanted_speaker_id", "role", "position"],
     delete: true,
+  },
+  // Every studio write that touches a draft evening adds its line, as
+  // ALLTHINGS_ACTOR (src/planning/draft-log.ts); plan status reads them.
+  // Append-only: no UPDATE or DELETE, and the table's triggers refuse any.
+  "planning.draft_log": {
+    select: true,
+    insert: ["event_id", "actor", "command", "summary", "payload"],
+  },
+  // plan note adds one; plan note resolve resolves an open question, the
+  // one change its trigger lets through.
+  "planning.draft_notes": {
+    select: true,
+    insert: ["event_id", "actor", "kind", "text"],
+    update: ["resolved_at"],
   },
   // luma publish --approve: the claim, published, or let go when Luma
   // didn't take it.
