@@ -1366,6 +1366,36 @@ LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug> --app
 LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug> … --approve <token>
 ```
 
+### Hosts
+
+`src/luma/hosts.ts` lists and changes an evening's hosts on Luma: the people
+and company accounts its page names, and who can manage it. What Luma's API
+can do, by its OpenAPI spec (public-api.luma.com/openapi.json):
+`events/get` lists them (id, email, name); `hosts/add` adds one by email
+only, as a manager shown on the page; `hosts/remove` removes one by email,
+never the event's creator. Adding by Luma user id (the API takes none, and
+a user's email isn't ours to see) and removing the creator are refused by
+name, never skipped.
+
+It works the way publish does: `--dry-run` reads and prints who would be
+added and removed and the approval token for exactly that (the event, its
+hosts now and the changes), saying so when the event is public;
+`--approve <token>` works the plan out again, goes on only if it hashes the
+same, adds, then removes, and reads the hosts back to check each took. The
+admin MCP server's `luma_hosts` runs the same command.
+
+Luma keeps an unpublished evening's hosts itself, privately with its
+event, so nothing about them goes into a file here
+(`backfill/hosts.json` is the public record of hosting companies). Once
+the evening is public, the Luma people import reads its hosts like any
+evening's.
+
+```sh
+LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug>   # as Luma has them
+LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug> --add ada@example.com --remove usr-… --dry-run
+LUMA_API_KEY=… DATABASE_URL=… bun run luma hosts --event <slug> … --approve <token>
+```
+
 ## Posting to Bluesky
 
 `src/social/announce.ts` posts an evening's Bluesky draft (the promotion

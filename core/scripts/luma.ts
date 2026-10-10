@@ -11,6 +11,12 @@ import { EventPages } from "../src/event-page.ts";
 import { Calendar, type PreparedCalendar } from "../src/luma/calendar.ts";
 import { Covers, type PreparedCover } from "../src/luma/cover.ts";
 import {
+  type HostChange,
+  type Hosts,
+  LumaHosts,
+  type PreparedHosts,
+} from "../src/luma/hosts.ts";
+import {
   type PreparedRegistration,
   type Question,
   type Registration,
@@ -55,6 +61,9 @@ import { shellWord } from "./shell.ts";
  *   bun run luma registration --event <slug> --approval on --capacity 120 --question "Your team?" \
  *     --question-optional "Anything we should know?" --dry-run    each change and its token; nothing sent
  *   bun run luma registration --event <slug> … --approve <token>   make exactly those changes
+ *   bun run luma hosts --event <slug|evt-…>            the event's hosts on Luma
+ *   bun run luma hosts --event <slug> --add ada@example.com --remove usr-… --dry-run   each change and its token
+ *   bun run luma hosts --event <slug> … --approve <token>   make exactly those changes
  *   bun run luma cancel-test evt-…                     delete a test event (see testEventPrefix)
  *
  * Every event is made private; only publish, with the token of what was
@@ -766,6 +775,130 @@ const registration = Command.make(
   ),
 );
 
+const hostsLayer = LumaHosts.layer.pipe(
+  Layer.provide(LumaWrite.layer.pipe(Layer.provide(FetchHttpClient.layer))),
+  Layer.provideMerge(Database.layer),
+);
+
+const describeHosts = (hosts: Hosts) =>
+  [
+    `${hosts.name} · ${hosts.lumaEventId} · ${hosts.visibility}`,
+    hosts.hosts.length === 0
+      ? "hosts: none"
+      : `hosts:\n${hosts.hosts
+          .map(
+            (host) =>
+              `  ${host.name ?? "(no name)"} <${host.email}> ${host.id}${host.creator ? " (made the event)" : ""}`,
+          )
+          .join("\n")}`,
+  ].join("\n");
+
+const describeHostChange = (change: HostChange) =>
+  change.action === "add"
+    ? `add ${change.email} (a manager, shown on the page)`
+    : `remove ${change.name ?? "(no name)"} <${change.email}>`;
+
+const describeHostsPlan = (prepared: PreparedHosts) =>
+  [
+    describeHosts(prepared.hosts),
+    prepared.changes.length === 0
+      ? "nothing to change"
+      : `changes:\n${prepared.changes.map((change) => `  ${describeHostChange(change)}`).join("\n")}`,
+    ...prepared.gaps.map(
+      (gap) =>
+        `✗ ${gap.action} ${gap.who}, which Luma's API can't do as asked: ${gap.reason}`,
+    ),
+    ...(prepared.public && prepared.changes.length > 0
+      ? ["This event is public: its page shows these changes at once."]
+      : []),
+  ].join("\n");
+
+const hosts = Command.make(
+  "hosts",
+  {
+    event: Flag.String("event").pipe(
+      Flag.withDescription(
+        "The evening: its slug here or its short link, or its Luma id (evt-…).",
+      ),
+    ),
+    add: Flag.String("add").pipe(
+      Flag.withDescription(
+        "A host to add, by email (Luma's API takes no other way); repeat.",
+      ),
+      Flag.atLeast(0),
+    ),
+    remove: Flag.String("remove").pipe(
+      Flag.withDescription(
+        "A host to remove, by email or Luma user id (usr-…); repeat.",
+      ),
+      Flag.atLeast(0),
+    ),
+    approve: text(
+      "approve",
+      "The token --dry-run printed for the changes that were read: only those are made.",
+    ),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Print each change and its approval token; change nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    json,
+  },
+  (options) =>
+    Effect.gen(function* () {
+      const ref: EventRef = options.event.startsWith("evt-")
+        ? { _tag: "Luma", lumaEventId: options.event }
+        : { _tag: "Slug", slug: options.event };
+      const request = { add: options.add, remove: options.remove };
+      if (request.add.length === 0 && request.remove.length === 0) {
+        if (options.dryRun || Option.isSome(options.approve)) {
+          return yield* refuse("Nothing to change: give --add or --remove.");
+        }
+        const now = yield* LumaHosts.use((h) => h.read(ref));
+        return yield* print(options.json, now, describeHosts(now));
+      }
+      if (options.dryRun === Option.isSome(options.approve)) {
+        return yield* refuse(
+          "Give --dry-run to read the changes, or --approve <token> to make exactly those.",
+        );
+      }
+      if (Option.isNone(options.approve)) {
+        const prepared = yield* LumaHosts.use((h) => h.prepare(ref, request));
+        const again = [
+          "bun run luma hosts --event",
+          shellWord(options.event),
+          ...request.add.map((who) => `--add ${shellWord(who)}`),
+          ...request.remove.map((who) => `--remove ${shellWord(who)}`),
+        ].join(" ");
+        const next =
+          prepared.gaps.length > 0
+            ? "Nothing was sent, and approving it would be refused."
+            : prepared.changes.length === 0
+              ? "Nothing was sent: the hosts are already so."
+              : `approval token: ${prepared.token}\nNothing was sent. To make exactly these changes: ${again} --approve ${prepared.token}`;
+        // A gap is refused: the plan to read, and exit 1.
+        if (prepared.gaps.length > 0) process.exitCode = 1;
+        return yield* print(
+          options.json,
+          prepared,
+          `${describeHostsPlan(prepared)}\n${next}`,
+        );
+      }
+      const token = options.approve.value;
+      const made = yield* LumaHosts.use((h) => h.approve(ref, request, token));
+      return yield* print(
+        options.json,
+        made,
+        `Changed:\n${made.changes.map(describeHostChange).join("\n")}\nNow:\n${describeHosts(made.hosts)}`,
+      );
+    }).pipe(Effect.provide(hostsLayer)),
+).pipe(
+  Command.withDescription(
+    "An evening's hosts on Luma: list them, or add and remove exactly the approved ones.",
+  ),
+);
+
 const luma = Command.make("luma").pipe(
   Command.withDescription(
     "An evening's Luma event, from private draft to public.",
@@ -778,6 +911,7 @@ const luma = Command.make("luma").pipe(
     show,
     calendar,
     registration,
+    hosts,
     cancelTest,
   ]),
 );

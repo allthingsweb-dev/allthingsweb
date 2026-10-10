@@ -23,6 +23,8 @@ import { LumaRejected, LumaUnavailable, sendWithRetries } from "./luma.ts";
  * - `GET /v1/events/ticket-types/list` and `POST
  *   /v1/events/ticket-types/update`: an event's ticket types, where Luma
  *   keeps whether registering needs approval (registration.ts).
+ * - `POST /v1/events/hosts/add` and `POST /v1/events/hosts/remove`: an
+ *   event's hosts, by email (hosts.ts).
  *
  * Reads are retried as every Luma request is (luma.ts). Writes are sent
  * once: a create or an update that timed out may have happened, and a
@@ -123,6 +125,14 @@ export const ManagedCalendar = Schema.Struct({
 });
 export type ManagedCalendar = typeof ManagedCalendar.Type;
 
+/** One of an event's hosts, as `events/get` answers: with an email only to its manager. */
+export const LumaHost = Schema.Struct({
+  id: Schema.String,
+  email: Schema.optionalKey(Schema.String),
+  name: Schema.NullOr(Schema.String),
+});
+export type LumaHost = typeof LumaHost.Type;
+
 /** An event as its manager sees it: what publishing reads and checks. */
 export const ManagedEvent = Schema.Struct({
   id: LumaEventId,
@@ -150,6 +160,9 @@ export const ManagedEvent = Schema.Struct({
   waitlist_status: Schema.optionalKey(Schema.Literals(["enabled", "disabled"])),
   max_capacity: Schema.optionalKey(Schema.NullOr(Schema.Number)),
   registration_questions: Schema.optionalKey(Schema.Array(LumaQuestion)),
+  // Who made it, and its hosts, as the manager sees them (hosts.ts).
+  user_id: Schema.optionalKey(Schema.String),
+  hosts: Schema.optionalKey(Schema.Array(LumaHost)),
 });
 export type ManagedEvent = typeof ManagedEvent.Type;
 
@@ -202,6 +215,16 @@ export interface LumaWriteShape {
   readonly setTicketApproval: (
     ticketTypeId: string,
     requireApproval: boolean,
+  ) => Effect.Effect<void, LumaWriteError>;
+  /** Adds a host by email, with Luma's defaults: a manager, shown on the page. */
+  readonly addHost: (
+    lumaEventId: string,
+    email: string,
+  ) => Effect.Effect<void, LumaWriteError>;
+  /** Removes a host by email. */
+  readonly removeHost: (
+    lumaEventId: string,
+    email: string,
   ) => Effect.Effect<void, LumaWriteError>;
   /** Cancels the event, which deletes it: Luma's two steps. */
   readonly cancel: (lumaEventId: string) => Effect.Effect<void, LumaWriteError>;
@@ -364,6 +387,14 @@ const make = Effect.gen(function* () {
         event_ticket_type_id: ticketTypeId,
         require_approval: requireApproval,
       }).pipe(Effect.asVoid),
+    addHost: (lumaEventId, email) =>
+      post("/v1/events/hosts/add", { event_id: lumaEventId, email }).pipe(
+        Effect.asVoid,
+      ),
+    removeHost: (lumaEventId, email) =>
+      post("/v1/events/hosts/remove", { event_id: lumaEventId, email }).pipe(
+        Effect.asVoid,
+      ),
     cancel: (lumaEventId) =>
       Effect.gen(function* () {
         const { cancellation_token } = yield* post(

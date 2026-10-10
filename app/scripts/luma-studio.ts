@@ -11,8 +11,9 @@ const core = fileURLToPath(new URL("../../core/", import.meta.url));
 /**
  * The admin MCP server's Luma tools (core/src/luma/publish.ts): make an
  * evening's Luma event private, fill it in, set its registration
- * (core/src/luma/registration.ts), and publish exactly what was approved. Each runs core's `bun run luma` with --json, so the tools and
- * the CLI never disagree. Writes default to a dry run; publishing needs
+ * (core/src/luma/registration.ts) and hosts (core/src/luma/hosts.ts), and
+ * publish exactly what was approved. Each runs core's `bun run luma` with
+ * --json, so the tools and the CLI never disagree. Writes default to a dry run; publishing needs
  * the approval token that `luma_prepare_publish` printed for what an
  * organizer read and approved. The script reads LUMA_API_KEY and
  * DATABASE_URL from this process's environment.
@@ -61,6 +62,16 @@ export const lumaSchemas = {
     questions: z
       .array(z.object({ label: z.string().min(1), required: z.boolean() }))
       .optional(),
+    dryRun: z.boolean().default(true),
+    approve: z
+      .string()
+      .regex(/^[0-9a-f]{16}$/)
+      .optional(),
+  }),
+  luma_hosts: z.object({
+    event: z.string().min(1),
+    add: z.array(z.string().min(1)).optional(),
+    remove: z.array(z.string().min(1)).optional(),
     dryRun: z.boolean().default(true),
     approve: z
       .string()
@@ -155,6 +166,32 @@ const builders: { readonly [T in LumaTool]: (input: unknown) => string[] } = {
     }
     return [
       "registration",
+      `--event=${a.event}`,
+      ...changes,
+      ...(a.approve === undefined ? ["--dry-run"] : [`--approve=${a.approve}`]),
+      "--json",
+    ];
+  },
+  luma_hosts: (input) => {
+    const a = lumaSchemas.luma_hosts.parse(input);
+    const changes = [
+      ...(a.add ?? []).map((who) => `--add=${who}`),
+      ...(a.remove ?? []).map((who) => `--remove=${who}`),
+    ];
+    // Nothing to change is a read.
+    if (changes.length === 0) {
+      if (a.approve !== undefined) {
+        throw new Error("approve needs the changes it was printed for.");
+      }
+      return ["hosts", `--event=${a.event}`, "--json"];
+    }
+    if (!a.dryRun && a.approve === undefined) {
+      throw new Error(
+        "A change needs approve: the token its dry run printed for an organizer to read.",
+      );
+    }
+    return [
+      "hosts",
       `--event=${a.event}`,
       ...changes,
       ...(a.approve === undefined ? ["--dry-run"] : [`--approve=${a.approve}`]),
@@ -323,6 +360,34 @@ export const lumaToolDefinitions: ReadonlyArray<{
             },
             required: ["label", "required"],
           },
+        },
+        dryRun: dryRunProperty,
+        approve: string(
+          "The approval token the dry run printed for exactly these changes",
+        ),
+      },
+      required: ["event"],
+    },
+  },
+  {
+    name: "luma_hosts",
+    description:
+      "An evening's hosts on Luma. With nothing to add or remove it lists them. With changes it is a dry run: who would be added (by email, as a manager shown on the page) or removed, anything Luma's API can't do (refused by name: adding by Luma user id, removing the event's creator), and the approval token. With approve (that token), it makes exactly those changes and checks they took. Only on an organizer's explicit go.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        event: string(
+          "The evening: its draft's slug, its short link, or its Luma id",
+        ),
+        add: {
+          type: "array",
+          items: { type: "string" },
+          description: "Hosts to add, by email",
+        },
+        remove: {
+          type: "array",
+          items: { type: "string" },
+          description: "Hosts to remove, by email or Luma user id (usr-…)",
         },
         dryRun: dryRunProperty,
         approve: string(
