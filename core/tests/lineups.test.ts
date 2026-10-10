@@ -731,7 +731,6 @@ describe("core/backfill/lineups.json", () => {
         "All Things React Native",
         "After Party - All Things React Native",
         "TypeScript AI: The official conference after-party",
-        "All Things Expo!",
         "All Things Sync",
         "All Things Agent Setups",
       ],
@@ -810,6 +809,12 @@ describe("core/backfill/lineups.json", () => {
         ["co-host neha-varshneya"],
       ],
       ["NextDev.fm Live", ["NextDev.fm Live"], ["mc erik-thorelli"]],
+      // The AI panel (Erik, 2026-10-10); its title is a placeholder.
+      [
+        "All Things Expo!",
+        ["Panel: AI and the tools we build"],
+        ["mc erik-thorelli"],
+      ],
     ]);
     // What Erik said the record had wrong (2026-10-06): the panel was the
     // fireside chat, he MC'd the Effect evening, and not DevTool AX Demos.
@@ -874,6 +879,7 @@ describe("core/backfill/lineups.json", () => {
       "dan-goosewin",
       "david-cusatis",
       "erik-thorelli",
+      "evan-bacon",
       "greg-pstrucha",
       "ivan-burazin",
       "jeff-huber",
@@ -881,6 +887,7 @@ describe("core/backfill/lineups.json", () => {
       "kiet-ho",
       "kit-langton",
       "kyle-mistele",
+      "lydia-hallie",
       "mateo-torres",
       "michael-arnaldi",
       "michael-grinich",
