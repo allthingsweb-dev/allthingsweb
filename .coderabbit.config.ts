@@ -36,7 +36,7 @@ const areas = [
     rules: [
       "web is the Cloudflare Worker that serves allthings.dev: the pages, the v1 API, the MCP server, the draft preview (src/preview/) and the hourly Luma sync (src/sync/). It replaces the old app in app/.",
       "Reads build on core/src/catalog.ts, and the surfaces must agree: web/tests/parity.test.ts holds list_events, /api/v1, the feeds, the pages and the sitemap to the same evenings, people and order.",
-      "The pages run no JavaScript; forms post to the same page. Canonical URLs, the sitemap, feeds and link previews always name https://allthings.dev (ORIGIN), on every stage.",
+      "The pages run no JavaScript; forms post to the same page. The one exception is the lab (src/pages/lab/): its variants marked `scripted` load the site's own module (src/client/lab.ts) under `script-src 'self'`, and fall back to a still composition without it. Canonical URLs, the sitemap, feeds and link previews always name https://allthings.dev (ORIGIN), on every stage.",
       "The Web Worker never reads a draft: only the preview Worker does, as draft_collab, behind Cloudflare Access.",
       "Rendered HTML must pass the XSS scan (bun run xss-scan): flag any value written into markup without escaping.",
     ],

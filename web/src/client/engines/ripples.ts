@@ -1,6 +1,7 @@
 import { type Engine, type EngineContext, mosaic } from "../engine.ts";
 import {
   bindTexture,
+  disposePingPong,
   fullScreen,
   imageTexture,
   type PingPong,
@@ -65,7 +66,8 @@ export function make({ gl, tiles }: EngineContext): Engine {
   let height = 1;
   let canvasWidth = 1;
   let canvasHeight = 1;
-  let field: PingPong;
+  let field!: PingPong;
+  let sized = false;
   let photos = gl.createTexture();
   const drops: Array<{ x: number; y: number; strength: number }> = [];
   let idle = 0;
@@ -94,6 +96,9 @@ export function make({ gl, tiles }: EngineContext): Engine {
       height = cssHeight;
       canvasWidth = Math.round(cssWidth * scale);
       canvasHeight = Math.round(cssHeight * scale);
+      // A resize replaces the field: the old one is freed first.
+      if (sized) disposePingPong(gl, field);
+      sized = true;
       field = pingPong(
         gl,
         Math.max(64, Math.round(cssWidth / 3)),

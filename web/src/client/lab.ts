@@ -83,18 +83,54 @@ async function start(surface: HTMLElement): Promise<void> {
     );
     return;
   }
-  surface.append(canvas);
-  stage.dataset["engineLive"] = "";
+  // The canvas shows, and the still photos hide, only while it runs.
+  const show = () => {
+    surface.append(canvas);
+    stage.dataset["engineLive"] = "";
+  };
+  const hide = () => {
+    delete stage.dataset["engineLive"];
+    canvas.remove();
+  };
+
+  let failed = false;
+  let frame = 0;
+  const resizes = new ResizeObserver(() => resize());
+  const sight = new IntersectionObserver(([entry]) => {
+    onScreen = entry?.isIntersecting ?? false;
+    run();
+  });
+  /** An engine that throws stops for good, and the still composition stays. */
+  const fail = (error: unknown) => {
+    failed = true;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    resizes.disconnect();
+    sight.disconnect();
+    hide();
+    console.warn(
+      "The lab's engine stopped; the still composition stays.",
+      error,
+    );
+  };
 
   const resize = () => {
+    if (failed) return;
     const box = surface.getBoundingClientRect();
     const scale = Math.min(devicePixelRatio || 1, sharpest);
     canvas.width = Math.max(1, Math.round(box.width * scale));
     canvas.height = Math.max(1, Math.round(box.height * scale));
-    engine.resize(box.width, box.height, scale);
+    try {
+      engine.resize(box.width, box.height, scale);
+    } catch (error) {
+      // Such as photos another origin sent without CORS, which WebGL refuses.
+      fail(error);
+    }
   };
   resize();
-  new ResizeObserver(resize).observe(surface);
+  if (failed) return;
+  show();
+  resizes.observe(surface);
 
   let last: { x: number; y: number } | undefined;
   const move = (event: PointerEvent) => {
@@ -119,18 +155,23 @@ async function start(surface: HTMLElement): Promise<void> {
 
   // Frames only while the surface is on screen and the tab is shown.
   let onScreen = false;
-  let frame = 0;
   let previous = 0;
   const tick = (now: number) => {
     const step =
       previous === 0 ? 1 / 60 : Math.min((now - previous) / 1000, 1 / 20);
     previous = now;
-    engine.frame(now / 1000, step);
+    try {
+      engine.frame(now / 1000, step);
+    } catch (error) {
+      fail(error);
+      return;
+    }
     frame = requestAnimationFrame(tick);
   };
   const run = () => {
     const running = frame !== 0;
-    const wanted = onScreen && !document.hidden && !reducedMotion.matches;
+    const wanted =
+      !failed && onScreen && !document.hidden && !reducedMotion.matches;
     if (wanted && !running) {
       previous = 0;
       frame = requestAnimationFrame(tick);
@@ -139,16 +180,11 @@ async function start(surface: HTMLElement): Promise<void> {
       frame = 0;
     }
   };
-  new IntersectionObserver(([entry]) => {
-    onScreen = entry?.isIntersecting ?? false;
-    run();
-  }).observe(surface);
+  sight.observe(surface);
   document.addEventListener("visibilitychange", run);
   reducedMotion.addEventListener("change", () => {
-    if (reducedMotion.matches) {
-      delete stage.dataset["engineLive"];
-      canvas.remove();
-    }
+    if (reducedMotion.matches) hide();
+    else if (!failed && !canvas.isConnected) show();
     run();
   });
 }

@@ -17,7 +17,9 @@ import { type Choice, choices, type Theme } from "./theme.ts";
  * The frame of every page: the document, the header with the wordmark, the
  * site's pages and the mode, and the footer that signs off with the hosts and the socials.
  * Pages are server-rendered HTML with no JavaScript; the cursor blinks in
- * CSS, and the mode is chosen with links (see theme.ts).
+ * CSS, and the mode is chosen with links (see theme.ts). The one exception
+ * is a lab page with an engine (`script`), which loads the site's own
+ * module and is whole without it.
  */
 
 /** The master wordmark, allthings/_, linking home. */

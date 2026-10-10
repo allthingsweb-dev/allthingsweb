@@ -24,6 +24,8 @@ const policy = (imgSrc: string, scripts = false) =>
 /**
  * How pages are sent. They run no scripts and load nothing from other
  * origins, and the Content-Security-Policy makes browsers hold them to it.
+ * The one exception, a lab page with an engine, may run this site's own
+ * modules (scriptedContentSecurityPolicy) and nothing else.
  * Photos come from this site as variants; only a Worker that can't make
  * them (see picture.tsx) links the originals on the media origin, and only
  * its pages may load images from there.

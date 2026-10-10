@@ -172,6 +172,14 @@ export function pingPong(
   return pair;
 }
 
+/** Frees a pair's textures and framebuffers, as a resize replaces them. */
+export function disposePingPong(gl: GL, pair: PingPong): void {
+  for (const { texture, framebuffer } of [pair.read, pair.write]) {
+    gl.deleteFramebuffer(framebuffer);
+    gl.deleteTexture(texture);
+  }
+}
+
 /** Binds `texture` to unit `unit` as `name` in `program`. */
 export function bindTexture(
   gl: GL,

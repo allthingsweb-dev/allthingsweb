@@ -1,6 +1,7 @@
 import { type Engine, type EngineContext, mosaic } from "../engine.ts";
 import {
   bindTexture,
+  disposePingPong,
   fullScreen,
   imageTexture,
   type PingPong,
@@ -125,10 +126,11 @@ export function make({ gl, tiles }: EngineContext): Engine {
   let height = 1;
   let canvasWidth = 1;
   let canvasHeight = 1;
-  let velocity: PingPong;
-  let pressure: PingPong;
-  let map: PingPong;
-  let divergenceTarget: PingPong;
+  let velocity!: PingPong;
+  let pressure!: PingPong;
+  let map!: PingPong;
+  let divergenceTarget!: PingPong;
+  let sized = false;
   let photos = gl.createTexture();
   const splats: Array<{ x: number; y: number; fx: number; fy: number }> = [];
 
@@ -140,6 +142,13 @@ export function make({ gl, tiles }: EngineContext): Engine {
       canvasHeight = Math.round(cssHeight * scale);
       const simWidth = Math.max(32, Math.round(cssWidth / 6));
       const simHeight = Math.max(16, Math.round(cssHeight / 6));
+      // A resize replaces the targets: the old ones are freed first.
+      if (sized) {
+        for (const pair of [velocity, pressure, divergenceTarget, map]) {
+          disposePingPong(gl, pair);
+        }
+      }
+      sized = true;
       velocity = pingPong(gl, simWidth, simHeight, 2);
       pressure = pingPong(gl, simWidth, simHeight, 1);
       divergenceTarget = pingPong(gl, simWidth, simHeight, 1);

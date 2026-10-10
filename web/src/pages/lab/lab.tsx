@@ -23,9 +23,11 @@ import type { Theme } from "../theme.ts";
  * pages ask search engines to stay out, and nothing on the site links to
  * them, neither the header, the sitemap nor the feed.
  *
- * Every variant is server-rendered HTML with no JavaScript, animated in CSS
- * alone (src/styles/lab.css, which only the lab's pages load), and still
- * for people who prefer reduced motion.
+ * Every variant is server-rendered HTML, animated in CSS (src/styles/lab.css,
+ * which only the lab's pages load) and still for people who prefer reduced
+ * motion. The variants marked `scripted` are the site's one exception to
+ * running no JavaScript: they load the lab's module (src/client/lab.ts),
+ * which draws in WebGL with the pointer, and are whole without it.
  */
 
 export { labPath, variantPath } from "./paths.ts";
