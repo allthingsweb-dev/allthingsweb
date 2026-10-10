@@ -99,11 +99,20 @@ const pathInstructions: Reviews["path_instructions"] = areas.map(
 const numbered = (lines: readonly string[]): string =>
   lines.map((line, index) => `${index + 1}. ${line}`).join("\n");
 
+/**
+ * Says which pull requests a check is for, so it holds even when it is
+ * attached without knowing the changed files (see the default export).
+ */
+const scoped = (scope: string, rest: string): string =>
+  `This check is for pull requests that change ${scope}. One that changes none of them passes.\n\n${rest}`;
+
 /** One rule, documented in core/README.md, "Migrations". */
 const migrationsCheck: CustomCheck = {
   name: "Migrations reach production safely",
   mode: "error",
-  instructions: `This pull request changes core/migrations/ or app/migrations/. Production applies migrations by id and name (core/README.md, "Migrations"). Pass only if every item holds; otherwise fail and name each that doesn't.
+  instructions: scoped(
+    "core/migrations/ or app/migrations/",
+    `Production applies migrations by id and name (core/README.md, "Migrations"). Pass only if every item holds; otherwise fail and name each that doesn't.
 
 ${numbered([
   "Forward only, and never edited after merge: no migration that exists on the base branch is modified, renamed or deleted. To change something, the pull request adds a migration.",
@@ -113,13 +122,16 @@ ${numbered([
   "The code already on main keeps running on the migrated schema: a column or table is added before code uses it, and a drop or rename is a later migration, after the code stops using the old shape.",
   "A migration reaches production before the code that needs it, since the app on Vercel and its previews read production's database. The pull request description must say whether this pull request's migrations must be applied to production before it merges, and if so, that they will be run as core/README.md, \"Running them\", says: once approved and green, from the final head commit, `bun run migrate --dry-run` against production lists exactly this pull request's migrations as pending, then `bun run migrate`, then merge, with nothing pushed in between. Fail if the description doesn't say either way.",
 ])}`,
+  ),
 };
 
 /** Documented in infra/README.md and the headers of infra/scripts/. */
 const productionScriptsCheck: CustomCheck = {
   name: "Production writes take their planned path",
   mode: "error",
-  instructions: `This pull request changes infra/. Pass only if every item holds; otherwise fail and name each that doesn't.
+  instructions: scoped(
+    "infra/",
+    `Pass only if every item holds; otherwise fail and name each that doesn't.
 
 ${numbered([
   "A script or command that writes to production shows what it will do before it does it, and checks the result afterwards, as the existing ones do: `bun run plan --stage prod` before `bun run deploy --stage prod`, and every deploy proves uploads work by storing and deleting one object; copy-media.ts's plan, copy and verify, which never overwrites or deletes; dry runs that roll back or only read. A new production write without a dry run or plan before it, or a change that skips one, fails.",
@@ -127,26 +139,32 @@ ${numbered([
   "Production has one writer at a time: the app's cron or the Sync Worker, never both (infra/tests/sync.test.ts). A change to SYNC in src/sync.ts is a one-line pull request of its own, in the handover's order.",
   "When alchemy.run.ts declares more, ci-token.json widens in the same pull request.",
 ])}`,
+  ),
 };
 
 /** Documented in infra/README.md and the headers of infra/scripts/. */
 const secretsCheck: CustomCheck = {
   name: "Secrets are never printed",
   mode: "error",
-  instructions: `Pass only if every item holds for the code, scripts, workflows and documentation this pull request changes; otherwise fail and name each that doesn't.
+  instructions: scoped(
+    "core/migrations/, app/migrations/ or infra/",
+    `Pass only if every item holds for the code, scripts, workflows and documentation this pull request changes; otherwise fail and name each that doesn't.
 
 ${numbered([
   "Credentials are read from the allthings 1Password vault with `op read` into a variable or straight into the command's environment, as in NEON_READER_URL=$(op read \"op://allthings/allthings site_reader/credential\") bun run deploy. No secret value is written into the repository, a command line's output, a log or a pull request.",
   "Every connection string or token passed to a command is captured, never echoed: nothing prints, logs or interpolates it into output (no echo, console.log, set -x or error message that includes it). A script that makes a credential sends it straight into a repository secret or 1Password, and a failing command shows its stderr alone.",
   "A Worker that is missing a secret names the binding, never a value.",
 ])}`,
+  ),
 };
 
 /** Documented in infra/README.md, core/README.md and infra/scripts/. */
 const rolesCheck: CustomCheck = {
   name: "Database roles hold only listed grants",
   mode: "error",
-  instructions: `Pass only if every item holds; otherwise fail and name each that doesn't.
+  instructions: scoped(
+    "core/migrations/, app/migrations/ or infra/",
+    `Pass only if every item holds; otherwise fail and name each that doesn't.
 
 ${numbered([
   "site_reader and site_sync only ever get the grants their scripts list explicitly: site_reader may only SELECT the tables the public site reads (and the migrator's record) and starts every transaction read-only; site_sync holds exactly SITE_SYNC_GRANTS, the column privileges the sync's statements use, with no DELETE and no table the sync doesn't touch. No migration or script grants them anything else: no GRANT on ALL TABLES, on a whole schema, to PUBLIC, or as a default privilege that would reach them.",
@@ -154,13 +172,21 @@ ${numbered([
   "Roles are made with SQL by the database owner (infra/scripts/login-role.ts), never in Neon's console or API, whose roles join neon_superuser.",
   "site_reader and site_sync are never granted the planning schema, and the privacy tests cover it: a change to planning's tables or to a role's grants keeps core/tests/planning-privacy.test.ts proving both roles are refused, and keeps core/tests/site-sync.test.ts and core/tests/draft-collab.test.ts checking that each role can do what it needs and nothing else.",
 ])}`,
+  ),
 };
 
 export default defineConfig((ctx) => {
   const changed = ctx.pr?.changedFiles;
-  const paths = changed?.status === "resolved" ? changed.paths : [];
+  // Only a resolved list proves what a pull request leaves alone. Without
+  // one, every check is attached, and each passes a pull request outside
+  // its scope.
+  const known = changed?.status === "resolved";
   const touches = (...prefixes: string[]) =>
-    paths.some((path) => prefixes.some((prefix) => path.startsWith(prefix)));
+    ctx.pr != null &&
+    (!known ||
+      changed.paths.some((path) =>
+        prefixes.some((prefix) => path.startsWith(prefix)),
+      ));
 
   const migrations = touches("core/migrations/", "app/migrations/");
   const infra = touches("infra/");
