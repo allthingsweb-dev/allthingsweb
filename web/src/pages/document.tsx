@@ -210,6 +210,11 @@ export interface DocumentProps {
    * site's, and a frame whose regions may run from edge to edge.
    */
   readonly lab?: true | undefined;
+  /**
+   * The lab's script (src/client/lab.ts), for a lab page with an engine:
+   * a module of this site's, which its policy lets run.
+   */
+  readonly script?: true | undefined;
 }
 
 /** A whole HTML document around `children`, the page's <main>. */
@@ -221,6 +226,7 @@ export function Document({
   images,
   section,
   lab,
+  script,
   children,
 }: PropsWithChildren<DocumentProps>): string {
   // Every page is in the visitor's mode, the system's until they choose.
@@ -246,6 +252,11 @@ export function Document({
           ""
         ) : (
           <link rel="stylesheet" href={built.labStylesheet} />
+        )}
+        {script === undefined ? (
+          ""
+        ) : (
+          <script type="module" src={built.labScript}></script>
         )}
         <link rel="icon" href={built.marks.favicon.src} type="image/svg+xml" />
         <link rel="apple-touch-icon" href={built.marks.appleTouchIcon.src} />

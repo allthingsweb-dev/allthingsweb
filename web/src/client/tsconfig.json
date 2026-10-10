@@ -1,15 +1,13 @@
 {
+  // The browser modules (src/client/), which the build bundles for the lab's
+  // pages: the DOM's types, and none of the Worker's.
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
-    "types": ["bun"],
-    "resolveJsonModule": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "@kitajs/html",
-    "plugins": [{ "name": "@kitajs/ts-html-plugin" }],
+    "types": [],
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
@@ -28,6 +26,5 @@
     "noUncheckedSideEffectImports": true,
     "erasableSyntaxOnly": true
   },
-  // The browser modules have their own (src/client/tsconfig.json).
-  "exclude": ["src/client", "dist", "node_modules"]
+  "include": ["./**/*.ts"]
 }

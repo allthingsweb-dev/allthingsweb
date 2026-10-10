@@ -7,7 +7,7 @@
     "build": "bun scripts/build.ts",
     "fmt": "prettier --write .",
     "check": "prettier --check .",
-    "typecheck": "bun run build && tsc --noEmit",
+    "typecheck": "bun run build && tsc --noEmit && tsc --noEmit -p src/client",
     "xss-scan": "bun run build && ../tools/xss-scan/node_modules/.bin/xss-scan --project tsconfig.json",
     "test": "bun run build && bun test"
   },

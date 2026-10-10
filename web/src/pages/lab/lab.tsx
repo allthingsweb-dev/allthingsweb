@@ -53,12 +53,15 @@ export function LabDocument({
   description,
   path,
   page,
+  script,
   children,
 }: PropsWithChildren<{
   readonly title: string;
   readonly description: string;
   readonly path: `/${string}`;
   readonly page: LabPage;
+  /** It runs the lab's script, for an engine. */
+  readonly script?: true | undefined;
 }>): string {
   return Document({
     meta: {
@@ -73,6 +76,7 @@ export function LabDocument({
     portraits: page.portraits,
     images: page.images,
     lab: true,
+    script,
     children,
   });
 }

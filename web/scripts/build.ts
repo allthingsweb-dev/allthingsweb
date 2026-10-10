@@ -1,5 +1,5 @@
 import { mkdir, rm } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import {
   expandCustomMedia,
   type Textures,
@@ -177,6 +177,32 @@ async function buildLabStylesheet(): Promise<string> {
   }
   await rm(source);
   return writeAsset("lab", "css", await output.text());
+}
+
+/**
+ * The lab's script (src/client/lab.ts) and the engines it loads when a
+ * page needs one, as browser modules under hashed names. Only lab pages
+ * with an engine load it (pages/lab/variants.tsx).
+ */
+async function buildLabScript(): Promise<string> {
+  const result = await Bun.build({
+    entrypoints: [join(web, "src/client/lab.ts")],
+    target: "browser",
+    format: "esm",
+    splitting: true,
+    minify: true,
+    naming: {
+      entry: "[name].[hash].[ext]",
+      chunk: "lab-[name].[hash].[ext]",
+    },
+    publicPath: "/assets/",
+    outdir: join(publicDir, "assets"),
+  });
+  const entry = result.outputs.find((output) => output.kind === "entry-point");
+  if (!result.success || entry === undefined) {
+    throw new AggregateError(result.logs, "The lab's script didn't build");
+  }
+  return `/assets/${basename(entry.path)}`;
 }
 
 /** Night's grain (brand/texture/grain.svg), under its hashed name. */
@@ -483,6 +509,8 @@ export interface BuildManifest {
   readonly stylesheet: string;
   /** The home lab's own stylesheet, which only its pages load. */
   readonly labStylesheet: string;
+  /** The lab's script, which only its pages with an engine load. */
+  readonly labScript: string;
   readonly fonts: ReadonlyArray<Font>;
   readonly marks: Marks;
   readonly og: { readonly cards: OgCards; readonly fonts: OgFonts };
@@ -510,6 +538,7 @@ export async function build(): Promise<BuildManifest> {
   const assets = {
     stylesheet: await buildStylesheet(fontFaces),
     labStylesheet: await buildLabStylesheet(),
+    labScript: await buildLabScript(),
     fonts,
     marks: await buildMarks(),
     og: await buildOg(),

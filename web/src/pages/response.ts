@@ -9,9 +9,10 @@ import { mediaOrigin } from "../links.ts";
 import type { ImageMode } from "./picture.tsx";
 import type { Theme } from "./theme.ts";
 
-const policy = (imgSrc: string) =>
+const policy = (imgSrc: string, scripts = false) =>
   [
     "default-src 'none'",
+    ...(scripts ? ["script-src 'self'"] : []),
     "style-src 'self'",
     "font-src 'self'",
     `img-src ${imgSrc}`,
@@ -30,6 +31,18 @@ const policy = (imgSrc: string) =>
 export const contentSecurityPolicy: Readonly<Record<ImageMode, string>> = {
   variants: policy("'self'"),
   originals: policy(`'self' ${mediaOrigin}`),
+};
+
+/**
+ * The policy of a page that runs a script: the lab's pages with an engine
+ * (pages/lab/, src/client/lab.ts) load this site's own modules, and
+ * nothing else; no inline script, no other origin.
+ */
+export const scriptedContentSecurityPolicy: Readonly<
+  Record<ImageMode, string>
+> = {
+  variants: policy("'self'", true),
+  originals: policy(`'self' ${mediaOrigin}`, true),
 };
 
 /**
@@ -93,6 +106,8 @@ export interface HtmlOptions {
   readonly images: ImageMode;
   /** 200 unless said otherwise. */
   readonly status?: number;
+  /** It loads this site's scripts (see scriptedContentSecurityPolicy). */
+  readonly scripts?: boolean;
   /**
    * How long reading its data took, in milliseconds, for Server-Timing.
    * Rendering is CPU alone, which workerd's clock doesn't count (it moves
@@ -108,7 +123,14 @@ export interface HtmlOptions {
 export function htmlResponse(
   html: string,
   acceptEncoding: string | undefined,
-  { cacheControl, theme, images, status = 200, db }: HtmlOptions,
+  {
+    cacheControl,
+    theme,
+    images,
+    status = 200,
+    db,
+    scripts = false,
+  }: HtmlOptions,
 ): HttpServerResponse.HttpServerResponse {
   const encoding = contentEncoding(acceptEncoding);
   if (encoding === undefined) {
@@ -125,7 +147,9 @@ export function htmlResponse(
     contentType: "text/html; charset=utf-8",
     headers: {
       ...headers,
-      "content-security-policy": contentSecurityPolicy[images],
+      "content-security-policy": (scripts
+        ? scriptedContentSecurityPolicy
+        : contentSecurityPolicy)[images],
       "cache-control":
         theme === undefined
           ? CacheControl[cacheControl]

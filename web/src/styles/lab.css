@@ -218,7 +218,8 @@
 }
 
 /* wall: crowds from many evenings, dimmed under Night, each tile slowly
-   crossing to a second photo in place, the next evening on top. */
+   crossing to a second photo in place and leading to its evening, the
+   next evening on top. */
 
 .wall {
   grid-template-rows: minmax(calc(var(--at-size-mark-wide) * 0.9), auto);
@@ -227,7 +228,6 @@
 .wall-photos {
   grid-column: full;
   grid-row: 1;
-  position: relative;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   grid-template-rows: repeat(3, minmax(0, 1fr));
@@ -235,19 +235,15 @@
   overflow: hidden;
 }
 
-/* The scrim: Night over the whole wall, so the lockup reads on it. */
-.wall-photos::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--at-ground);
-  opacity: 0.66;
-}
-
 .wall-tile {
   position: relative;
   overflow: hidden;
   background: var(--at-surface);
+}
+
+.wall-tile a {
+  display: block;
+  height: 100%;
 }
 
 .wall-tile picture,
@@ -258,10 +254,31 @@
   object-fit: cover;
 }
 
+/* The scrim: Night over each photo, so the lockup reads on the wall; the
+   photo under the pointer, or in focus, lights up. */
+.wall-tile a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--at-ground);
+  opacity: 0.66;
+}
+
+.wall-tile a:hover::after,
+.wall-tile a:focus-visible::after {
+  opacity: 0.12;
+}
+
+.wall-tile a:focus-visible {
+  outline-offset: calc(-1 * var(--at-stroke-heavy));
+}
+
+/* The photo crossing in is hidden, and takes no clicks, while it is out. */
 .wall-tile > :nth-child(2) {
   position: absolute;
   inset: 0;
   opacity: 0;
+  visibility: hidden;
   animation: wall-cross 26s ease-in-out infinite;
 }
 
@@ -269,15 +286,18 @@
   0%,
   40% {
     opacity: 0;
+    visibility: hidden;
   }
 
   50%,
   90% {
     opacity: 1;
+    visibility: visible;
   }
 
   100% {
     opacity: 0;
+    visibility: hidden;
   }
 }
 
@@ -315,20 +335,28 @@
   animation-duration: 23s;
 }
 
+/* The text sits over the wall and lets the pointer through to it, but for
+   its own links. */
 .wall-text {
   grid-row: 1;
   z-index: 1;
   align-self: end;
   padding: var(--at-layout-block) 0;
   text-shadow: 0 0 var(--at-space-6) var(--at-ground);
+  pointer-events: none;
+}
+
+.wall-text a {
+  pointer-events: auto;
 }
 
 .wall-text .hero-text {
   gap: var(--at-space-8);
 }
 
-/* contact-sheet: twenty-four dated frames beside the hero, like an archive,
-   each as wide as its date, 2026.09.30, at least. */
+/* contact-sheet: every evening we have held, a frame each, in order, the
+   last frame leading on to all of them; each frame as wide as its date,
+   2026.09.30, at least. */
 
 .sheet {
   grid-column: span 5 / -1;
@@ -356,7 +384,8 @@
   text-decoration: none;
 }
 
-.frame img {
+.frame img,
+.frame-blank {
   width: 100%;
   aspect-ratio: 3 / 2;
   object-fit: cover;
@@ -364,7 +393,27 @@
   outline: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
-.frame:hover img {
+/* An evening without a photo is its lockup in its frame. */
+.frame-blank {
+  display: flex;
+  align-items: flex-end;
+  padding: var(--at-space-2);
+  color: var(--at-text);
+  font-size: var(--at-font-size-small);
+  font-weight: 700;
+  line-height: 1.1;
+  overflow: hidden;
+  /* Its frame keeps its proportions, however long the lockup. */
+  min-height: 0;
+}
+
+.frame-more .frame-blank {
+  background: var(--at-text);
+  color: var(--at-ground);
+}
+
+.frame:hover img,
+.frame:hover .frame-blank {
   outline: var(--at-stroke-rule) solid var(--at-link);
 }
 
@@ -382,161 +431,58 @@
   padding-top: var(--at-space-2);
 }
 
-/* slash-band: the slash drawn huge behind the lockup as a neon tube, Glow
-   running into Bridge, its light slowly breathing; then a band of photos
-   cut on the slash's slant, drifting. */
+/* slash-grid: the community's photos cut on the slash's slant beside the
+   lockup, each leading to its evening. */
 
-.slash-hero {
-  position: relative;
-  overflow: hidden;
-  grid-template-rows: minmax(calc(var(--at-size-mark-wide) * 0.95), auto);
-  background-image:
-    var(--at-texture),
-    radial-gradient(ellipse at 72% 38%, var(--at-surface), var(--at-ground) 62%);
+.slash-cut .hero-text {
+  grid-column: span 5;
 }
 
-.slash-light {
-  grid-column: full;
-  grid-row: 1;
-  position: relative;
-  overflow: hidden;
-}
-
-.neon {
-  position: absolute;
-  top: 0;
-  left: 52%;
-  height: 100%;
-  width: auto;
-  scale: 0.9;
-}
-
-.neon-glow-stop {
-  stop-color: var(--at-color-glow);
-}
-
-.neon-bridge-stop {
-  stop-color: var(--at-color-bridge);
-}
-
-/* A wide wash of the slash's light on the ground, breathing slowly. */
-.neon-wash {
-  filter: blur(var(--at-space-14));
-  opacity: 0.32;
-  animation: neon-wash 9s ease-in-out infinite alternate;
-}
-
-/* The glow around the tube, breathing with it. */
-.neon-glow path {
-  stroke-width: 30;
-}
-
-.neon-glow {
-  filter: blur(var(--at-space-4));
-  opacity: 0.8;
-  animation: neon-breathe 9s ease-in-out infinite alternate;
-}
-
-.neon-tube path {
-  stroke-width: 9;
-}
-
-.neon-tube {
-  filter: blur(var(--at-stroke-hairline));
-}
-
-/* The tube's hot core, nearly white. */
-.neon-core path {
-  stroke: var(--at-color-paper);
-  stroke-width: 2.5;
-}
-
-.neon-core {
-  opacity: 0.7;
-}
-
-@keyframes neon-wash {
-  from {
-    opacity: 0.18;
-  }
-
-  to {
-    opacity: 0.42;
-  }
-}
-
-@keyframes neon-breathe {
-  from {
-    opacity: 0.3;
-  }
-
-  to {
-    opacity: 0.9;
-  }
-}
-
-.slash-text {
-  grid-row: 1;
-  z-index: 1;
-  align-self: center;
-  display: flex;
-  flex-direction: column;
-  gap: var(--at-space-12);
-  padding: var(--at-layout-block) 0;
-}
-
-.slash-text .hero-text {
-  max-width: var(--at-size-mark-wide);
-}
-
-.slash-text .lab-tally {
-  max-width: var(--at-size-mark-wide);
-}
-
-.slash-band {
-  row-gap: var(--at-space-4);
-}
-
-.slash-band-view {
-  grid-column: full;
-  overflow: hidden;
-  padding: var(--at-space-2) 0;
-}
-
-.slash-track {
-  display: flex;
-  width: max-content;
-  animation: band-drift 140s linear infinite;
-}
-
-.slash-track ul {
-  display: flex;
-  gap: var(--at-space-6);
+.slash-grid {
+  grid-column: span 7 / -1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--at-space-2);
   margin: 0;
-  padding: 0 var(--at-space-6) 0 0;
+  padding: 0;
   list-style: none;
+  overflow: hidden;
 }
 
-/* Each photo cut on the slash's slant: the tile leans 14°, the photo in
-   it leans back and fills it. */
-.slash-track li {
-  width: var(--at-size-tile-m);
-  height: var(--at-size-tile-l);
+/* Each tile leans 14°, the slash's angle; the photo in it leans back and
+   fills it. The grid's edges stay straight. */
+.slash-grid li {
+  aspect-ratio: 4 / 5;
   overflow: hidden;
   transform: skewX(-14deg);
   background: var(--at-surface);
 }
 
-.slash-track picture,
-.slash-track img {
+.slash-grid a {
+  display: block;
+  height: 100%;
+}
+
+.slash-grid picture,
+.slash-grid img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.slash-track img {
-  transform: skewX(14deg) scale(1.3);
+.slash-grid img {
+  transform: skewX(14deg) scale(1.35);
+  transition: transform 0.4s ease;
+}
+
+.slash-grid a:hover img,
+.slash-grid a:focus-visible img {
+  transform: skewX(14deg) scale(1.5);
+}
+
+.slash-grid a:focus-visible {
+  outline-offset: calc(-1 * var(--at-stroke-heavy));
 }
 
 @keyframes band-drift {
@@ -545,7 +491,109 @@
   }
 }
 
-/* depth-field: photos hanging at different depths around the statement,
+/* depth-field: a liquid of light over a wall of the evenings' photos
+   (src/client/engines/liquid.ts). Still, the wall shows dimmed under
+   Night, with three lenses on it that show its photos whole. */
+
+.liquid {
+  position: relative;
+  overflow: hidden;
+  grid-template-rows: minmax(calc(var(--at-size-mark-wide) * 1.05), auto);
+  touch-action: pan-y;
+}
+
+.liquid-field {
+  grid-column: full;
+  grid-row: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-wall {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  opacity: 0.16;
+}
+
+.liquid-wall picture,
+.liquid-wall img,
+.liquid-lens picture,
+.liquid-lens img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.liquid-lens {
+  position: absolute;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 var(--at-stroke-rule) var(--at-color-glow),
+    0 0 var(--at-space-10) var(--at-color-bridge);
+}
+
+.liquid-lens-1 {
+  top: 12%;
+  left: 58%;
+  width: var(--at-size-tile-l);
+}
+
+.liquid-lens-2 {
+  top: 52%;
+  left: 74%;
+  width: var(--at-size-tile-m);
+  box-shadow:
+    0 0 0 var(--at-stroke-rule) var(--at-color-lavender),
+    0 0 var(--at-space-10) var(--at-color-violet);
+}
+
+.liquid-lens-3 {
+  top: 62%;
+  left: 47%;
+  width: var(--at-size-tile-s);
+}
+
+/* With the engine running, its canvas draws the wall and the lenses. */
+.liquid[data-engine-live] .liquid-wall,
+.liquid[data-engine-live] .liquid-lens {
+  visibility: hidden;
+}
+
+.liquid-text {
+  grid-row: 1;
+  z-index: 1;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-12);
+  max-width: var(--at-size-mark-wide);
+  padding: var(--at-layout-block) 0;
+  text-shadow: 0 0 var(--at-space-8) var(--at-ground);
+  pointer-events: none;
+}
+
+.liquid-text a {
+  pointer-events: auto;
+}
+
+/* An engine's canvas covers its surface. */
+.engine-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* year-end-retro: photos hanging at different depths around the statement,
    drifting, in a field that sways so the near ones pass the far ones. */
 
 .depth {
@@ -748,7 +796,8 @@
   color: var(--at-meta);
 }
 
-/* faces: the wordmark across the page, its letters filled with people. */
+/* faces: the wordmark across the page, its letters made of people
+   (pages/letters.tsx). */
 
 .faces {
   display: flex;
@@ -757,27 +806,40 @@
   container-type: inline-size;
 }
 
-/* The mosaic shows only through the heading, which blends over it. */
-.faces-stage {
+/* Letters made of people: the photos show only through the heading, which
+   blends over them. */
+.letters {
   position: relative;
   isolation: isolate;
 }
 
-.faces-mosaic {
+/* With an engine, the pointer stirs the photos; a finger still scrolls. */
+.letters[data-engine-stage] {
+  touch-action: pan-y;
+}
+
+.letters-photos {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
 
-.faces-track {
+.letters-track {
   display: flex;
   width: max-content;
   animation: band-drift 150s linear infinite;
 }
 
-.faces-track ul {
+/* Running, the engine draws the photos in its canvas; they hold still
+   under it, where it takes them from. */
+.letters[data-engine-live] .letters-track {
+  visibility: hidden;
+  animation: none;
+}
+
+.letters-track ul {
   display: grid;
-  grid-auto-flow: column;
+  grid-auto-flow: column dense;
   grid-template-rows: repeat(4, var(--at-size-portrait-m));
   grid-auto-columns: var(--at-size-portrait-m);
   margin: 0;
@@ -785,15 +847,21 @@
   list-style: none;
 }
 
-.faces-track picture,
-.faces-track img {
+/* A crowd takes four cells, so it reads as a room among the faces. */
+.letters-big {
+  grid-row: span 2;
+  grid-column: span 2;
+}
+
+.letters-track picture,
+.letters-track img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.faces-word {
+.letters-word {
   position: relative;
   margin: 0;
   font-size: var(--at-font-size-mural);
@@ -806,32 +874,32 @@
   padding: var(--at-space-2) 0 var(--at-space-4);
 }
 
-.faces-break {
+.letters-break {
   display: none;
 }
 
 /*
- * Two blends cut the mosaic to the letters, with the ground exactly the
+ * Two blends cut the photos to the letters, with the ground exactly the
  * ground around them. On Paper, the heading (Ink letters on white) screens
- * the mosaic: the photos in the letters, white around them; the copy over
+ * the photos: the photos in the letters, white around them; the copy over
  * it (white letters on Paper) darkens that: Paper around, the photos left
  * in the letters. On Night, white letters on Ink multiply, then Ink
  * letters on Night lighten. The copy draws the slash and the cursor solid,
  * and in the heading they are its ground, so nothing shows through them.
  * Before the photos load, the letters are white.
  */
-h1.faces-word {
+h1.letters-word {
   background: var(--at-color-white);
   color: var(--at-color-ink);
   mix-blend-mode: screen;
 }
 
-h1.faces-word .slash,
-h1.faces-word .at-cursor {
+h1.letters-word .slash,
+h1.letters-word .at-cursor {
   color: var(--at-color-white);
 }
 
-.faces-ink {
+.letters-ink {
   position: absolute;
   inset: 0;
   background-color: var(--at-ground);
@@ -842,40 +910,40 @@ h1.faces-word .at-cursor {
   -webkit-text-stroke: var(--at-stroke-rule) var(--at-text);
 }
 
-.faces-ink .slash,
-.faces-ink .at-cursor {
+.letters-ink .slash,
+.letters-ink .at-cursor {
   color: var(--at-slash);
 }
 
-[data-theme="dark"] h1.faces-word {
+[data-theme="dark"] h1.letters-word {
   background: var(--at-color-ink);
   color: var(--at-color-white);
   mix-blend-mode: multiply;
 }
 
-[data-theme="dark"] h1.faces-word .slash,
-[data-theme="dark"] h1.faces-word .at-cursor {
+[data-theme="dark"] h1.letters-word .slash,
+[data-theme="dark"] h1.letters-word .at-cursor {
   color: var(--at-color-ink);
 }
 
-[data-theme="dark"] .faces-ink {
+[data-theme="dark"] .letters-ink {
   color: var(--at-color-ink);
   mix-blend-mode: lighten;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) h1.faces-word {
+  :root:not([data-theme="light"]) h1.letters-word {
     background: var(--at-color-ink);
     color: var(--at-color-white);
     mix-blend-mode: multiply;
   }
 
-  :root:not([data-theme="light"]) h1.faces-word .slash,
-  :root:not([data-theme="light"]) h1.faces-word .at-cursor {
+  :root:not([data-theme="light"]) h1.letters-word .slash,
+  :root:not([data-theme="light"]) h1.letters-word .at-cursor {
     color: var(--at-color-ink);
   }
 
-  :root:not([data-theme="light"]) .faces-ink {
+  :root:not([data-theme="light"]) .letters-ink {
     color: var(--at-color-ink);
     mix-blend-mode: lighten;
   }
@@ -883,37 +951,66 @@ h1.faces-word .at-cursor {
 
 /* Where the system draws its own colors, the heading is plain text. */
 @media (forced-colors: active) {
-  .faces-mosaic,
-  .faces-ink {
+  .letters-photos,
+  .letters-ink {
     display: none;
   }
 
-  h1.faces-word,
-  [data-theme="dark"] h1.faces-word {
+  h1.letters-word,
+  [data-theme="dark"] h1.letters-word {
     mix-blend-mode: normal;
   }
+}
+
+/* The lab's index: what's saved for another page, under the variants. */
+.lab-saved {
+  grid-column: span 7 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-2);
+}
+
+.lab-saved strong {
+  color: var(--at-text);
+  font-weight: 600;
 }
 
 /* Narrower screens. */
 
 @media (--at-below-xl) {
   .lab-index-head,
-  .lab-variants {
+  .lab-variants,
+  .lab-saved {
     grid-column: 1 / -1;
   }
 
-  /* Narrower, the sheet keeps three frames a row, six rows deep. */
+  .slash-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .slash-grid li:nth-child(n + 17) {
+    display: none;
+  }
+
+  /* Narrower, the sheet keeps three frames a row: the latest, and the one
+     leading on. */
   .sheet ol {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .sheet li:nth-child(n + 19) {
+  .sheet .frame-early {
     display: none;
+  }
+
+  .frame-blank {
+    font-size: var(--at-type-meta-size);
   }
 }
 
 @media (--at-below-l) {
-  .sheet {
+  .sheet,
+  .slash-cut .hero-text,
+  .slash-grid {
     grid-column: 1 / -1;
   }
 
@@ -954,13 +1051,25 @@ h1.faces-word .at-cursor {
     display: none;
   }
 
-  .neon {
-    left: 44%;
+  .liquid-wall {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(0, 1fr));
   }
 
-  .slash-track li {
+  .liquid-lens-1 {
+    top: 6%;
+    left: 50%;
+    width: var(--at-size-tile-m);
+  }
+
+  .liquid-lens-2 {
+    top: 70%;
+    left: 60%;
     width: var(--at-size-tile-s);
-    height: var(--at-size-tile-m);
+  }
+
+  .liquid-lens-3 {
+    display: none;
   }
 
   .depth-photo,
@@ -988,26 +1097,27 @@ h1.faces-word .at-cursor {
   }
 
   /* allthings/_ on three lines, each as wide as the page allows. */
-  .faces-word {
+  .letters-word {
     font-size: calc(var(--at-font-size-mural) * 1.55);
   }
 
-  .faces-break {
+  .letters-break {
     display: inline;
   }
 }
 
 /* For people who prefer reduced motion, every hero holds still: the wall's
-   first photos, the slash's light at full, the band and the mosaic where
-   they start, the field without sway or drift. */
+   first photos, the field without sway or drift, the letters' photos where
+   they start. The engines don't start at all (src/client/lab.ts). */
 @media (prefers-reduced-motion: reduce) {
   .wall-tile > :nth-child(2),
-  .neon-wash,
-  .neon-glow,
-  .slash-track,
   .depth-sway,
   .depth-drift,
-  .faces-track {
+  .letters-track {
     animation: none;
+  }
+
+  .slash-grid img {
+    transition: none;
   }
 }

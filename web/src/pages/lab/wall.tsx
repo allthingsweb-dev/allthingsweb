@@ -1,13 +1,16 @@
 import type { WallPhoto } from "allthings-core/src/community.ts";
 import { Hero, HomeBand, OpenSlot } from "../home.tsx";
 import { type ImageMode, Photo, showable } from "../picture.tsx";
-import { decorative, type LabData, screenShare, Tally } from "./lab.tsx";
+import { eventPath } from "../../links.ts";
+import { simpleDate } from "../time.ts";
+import { type LabData, screenShare, Tally } from "./lab.tsx";
 
 /**
  * wall: the old site's idea, done right. A full-bleed wall of crowds from
  * many evenings, dimmed under Night, each tile slowly crossing to another
- * photo in place; on it the next evening and "I'm in". Under it, the tally
- * as big numbers.
+ * photo in place, every photo leading to its evening and lighting up under
+ * the pointer; on it the next evening and "I'm in". Under it, the tally as
+ * big numbers.
  */
 
 /** The wall's tiles at their most: seven across, three down. */
@@ -29,22 +32,36 @@ export function tilesOf<A>(
   });
 }
 
+/**
+ * A tile of the wall: each of its photos leads to its evening. The one
+ * crossing in takes the clicks only while it shows (lab.css).
+ */
 function Tile({
   photos,
+  index,
   images,
 }: {
   readonly photos: ReadonlyArray<WallPhoto>;
+  readonly index: number;
   readonly images: ImageMode;
 }) {
   return (
     <div class="wall-tile">
-      {photos.map(({ photo }) => (
-        <Photo
-          photo={decorative(photo)}
-          mode={images}
-          sizes={screenShare(15, 34)}
-          widest={480}
-        />
+      {photos.map(({ photo, slug, startsAt }, layer) => (
+        <a href={eventPath(slug)}>
+          <Photo
+            photo={photo}
+            mode={images}
+            sizes={screenShare(15, 34)}
+            widest={480}
+            first={layer === 0 && index < 7 ? true : undefined}
+            eager={layer === 0 ? true : undefined}
+            last={layer === 0 ? undefined : true}
+          />
+          <span class="visually-hidden" safe>
+            {`, ${simpleDate(startsAt)}`}
+          </span>
+        </a>
       ))}
     </div>
   );
@@ -63,15 +80,15 @@ export function Wall({
   return (
     <div class="lab-home">
       <section class="wall bleed" data-theme="dark" aria-labelledby="next">
-        <div class="wall-photos" aria-hidden="true">
-          {tilesOf(wall).map((photos) => (
-            <Tile photos={photos} images={images} />
-          ))}
-        </div>
         <div class="wall-text">
           <div class="hero-text">
             {home.next === undefined ? <OpenSlot /> : <Hero next={home.next} />}
           </div>
+        </div>
+        <div class="wall-photos">
+          {tilesOf(wall).map((photos, index) => (
+            <Tile photos={photos} index={index} images={images} />
+          ))}
         </div>
       </section>
       <Tally tally={community.tally} kind="band" />

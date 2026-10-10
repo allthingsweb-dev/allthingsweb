@@ -412,6 +412,7 @@ const labVariant = page(
               theme,
               db: Duration.toMillis(took),
               images,
+              scripts: variant.scripted === true,
             },
           ),
         ),

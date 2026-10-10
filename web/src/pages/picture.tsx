@@ -83,9 +83,11 @@ interface ImgProps {
   readonly eager?: true | undefined;
   /** Loaded after everything else, as the footer's portraits are. */
   readonly last?: true | undefined;
+  /** Loaded at once and before other images, as the first a page shows is. */
+  readonly first?: true | undefined;
 }
 
-/** An image that loads lazily, unless `eager`, and decodes off the main thread. */
+/** An image that loads lazily, unless `eager` or `first`, and decodes off the main thread. */
 function Img({
   src,
   srcset,
@@ -96,6 +98,7 @@ function Img({
   class: className,
   eager,
   last,
+  first,
 }: ImgProps) {
   return (
     <img
@@ -106,9 +109,11 @@ function Img({
       alt={alt}
       width={width}
       height={height}
-      loading={eager === undefined ? "lazy" : undefined}
+      loading={eager === undefined && first === undefined ? "lazy" : undefined}
       decoding="async"
-      fetchpriority={last === undefined ? undefined : "low"}
+      fetchpriority={
+        first !== undefined ? "high" : last === undefined ? undefined : "low"
+      }
     />
   );
 }
@@ -123,6 +128,10 @@ export interface PhotoProps {
    * tile of the home lab's wall: every width the photo has, otherwise.
    */
   readonly widest?: Width | undefined;
+  /** How it loads (see Img): at once, first of all, or after the rest. */
+  readonly eager?: true | undefined;
+  readonly first?: true | undefined;
+  readonly last?: true | undefined;
 }
 
 /**
@@ -131,11 +140,22 @@ export interface PhotoProps {
  * every width the photo has in AVIF and WebP, and in JPEG to the rest.
  * A photo without a source shows nothing; `showable` leaves it out first.
  */
-export function Photo({ photo, mode, sizes, widest }: PhotoProps) {
+export function Photo({
+  photo,
+  mode,
+  sizes,
+  widest,
+  eager,
+  first,
+  last,
+}: PhotoProps) {
   const img = {
     alt: photo.alt,
     width: String(photo.width),
     height: String(photo.height),
+    eager,
+    first,
+    last,
   };
   if (mode === "originals") return <Img src={photo.url} {...img} />;
   const source = sourceOf(photo);
@@ -191,6 +211,7 @@ export interface SquarePhotoProps {
   readonly alt: string;
   readonly class?: string | undefined;
   readonly eager?: true | undefined;
+  readonly first?: true | undefined;
   readonly last?: true | undefined;
 }
 

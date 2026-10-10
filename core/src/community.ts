@@ -8,6 +8,7 @@ import {
   talkAppearances,
 } from "./catalog.ts";
 import { asOf } from "./clock.ts";
+import { displayName, eventTopic } from "./lockup.ts";
 import { DataSourceError } from "./errors.ts";
 import { type FacePick, facePicks } from "./faces.ts";
 import { type HeroPick, wallPhotos } from "./hero-photos.ts";
@@ -20,7 +21,8 @@ import { siteSlug } from "./sql.ts";
  * evenings, and the faces of people who have been on stage. Read as of the
  * `Clock`, in one statement, from our published evenings that are over.
  *
- * The wall is the hand-picked photos (core/backfill/wall-photos.json) the
+ * Every evening held comes with the photo that stands for it, for the
+ * lab's contact sheet. The wall is the hand-picked photos (core/backfill/wall-photos.json) the
  * lab can show, in their order, each only as a photo of the evening it
  * names; when it can show none of them, every photo of those evenings,
  * latest evening first. The faces are the hand-picked people
@@ -32,6 +34,8 @@ import { siteSlug } from "./sql.ts";
 export const wallLimit = 48;
 /** The most faces the lab shows. */
 export const faceLimit = 48;
+/** The most evenings the lab reads, latest first: more than we have held. */
+export const eveningLimit = 120;
 
 /** A photo on the wall, with the evening it was taken at. */
 export interface WallPhoto {
@@ -49,8 +53,26 @@ export interface Face {
   readonly photo: Rows.Photo;
 }
 
+/**
+ * One of our evenings held, with the photo that stands for it: its first
+ * on the wall (core/backfill/wall-photos.json), else its first attached,
+ * or none when it has no photo here.
+ */
+export interface HeldEvening {
+  /** On this site: its short link, else its long slug. */
+  readonly slug: string;
+  /** The name as written, without emoji. */
+  readonly name: string;
+  /** allthings/<topic>, when it has one (see lockup.ts). */
+  readonly topic: string | undefined;
+  readonly startsAt: DateTime.Utc;
+  readonly photo: Rows.Photo | null;
+}
+
 export interface CommunityView {
   readonly tally: Tally;
+  /** Every evening held, latest first, up to {@link eveningLimit}. */
+  readonly evenings: ReadonlyArray<HeldEvening>;
   readonly wall: ReadonlyArray<WallPhoto>;
   readonly faces: ReadonlyArray<Face>;
 }
@@ -59,6 +81,14 @@ const WallRow = Schema.Struct({
   ...Rows.Photo.fields,
   slug: Schema.String,
   startDate: Schema.DateTimeUtcFromString,
+});
+
+const EveningRow = Schema.Struct({
+  slug: Schema.String,
+  name: Schema.String,
+  topic: Schema.NullOr(Schema.String),
+  startDate: Schema.DateTimeUtcFromString,
+  photo: Schema.NullOr(Rows.Photo),
 });
 
 const FaceRow = Schema.Struct({
@@ -70,6 +100,7 @@ const FaceRow = Schema.Struct({
 /** What the lab reads, in one statement. */
 export const CommunityRow = Schema.Struct({
   ...TallyFields,
+  heldEvenings: Schema.Array(EveningRow),
   wall: Schema.Array(WallRow),
   faces: Schema.Array(FaceRow),
 });
@@ -83,6 +114,13 @@ export function toCommunity(row: CommunityRow): CommunityView {
       hostingCompanies: row.hostingCompanies,
       guests: row.guests,
     },
+    evenings: row.heldEvenings.map((evening) => ({
+      slug: evening.slug,
+      name: displayName(evening.name),
+      topic: eventTopic({ ...evening, curation: { kind: "ours" } }),
+      startsAt: evening.startDate,
+      photo: evening.photo,
+    })),
     wall: row.wall.map(({ slug, startDate, ...photo }) => ({
       photo,
       slug,
@@ -167,6 +205,30 @@ const make = (
             LIMIT ${wallLimit}
           ) y
         ), '[]'::json) AS wall,
+        COALESCE((
+          SELECT json_agg(y.evening ORDER BY ${latestFirst(sql, "y")})
+          FROM (
+            SELECT e.id, e.start_date, json_build_object(
+              'slug', ${sql.literal(siteSlug("e"))}, 'name', e.name,
+              'topic', e.topic, 'startDate', e.start_date,
+              'photo', (
+                SELECT ${sql.literal(photoJson("img"))}
+                FROM event_images ei
+                JOIN images img ON img.id = ei.image_id
+                LEFT JOIN json_array_elements(${wallJson}::json)
+                  WITH ORDINALITY AS c(pick, ord)
+                  ON (c.pick->>'image')::uuid = img.id
+                  AND c.pick->>'evening' = e.slug
+                WHERE ei.event_id = e.id AND starts_with(img.url, ${photoPrefix})
+                ORDER BY c.ord NULLS LAST, ei.created_at, img.id
+                LIMIT 1
+              )
+            ) AS evening
+            FROM held e
+            ORDER BY ${latestFirst(sql, "e")}
+            LIMIT ${eveningLimit}
+          ) y
+        ), '[]'::json) AS "heldEvenings",
         COALESCE((
           SELECT json_agg(y.face ORDER BY y.ord)
           FROM (

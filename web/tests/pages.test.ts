@@ -183,7 +183,13 @@ describe("/brand", () => {
     const files = await readdir(new URL("../dist/public", import.meta.url), {
       recursive: true,
     });
-    expect(files.filter((file) => /\.m?js$/.test(file))).toEqual([]);
+    // The only scripts served are the lab's (src/client/), for its pages
+    // with an engine.
+    const scripts = files.filter((file) => /\.m?js$/.test(file));
+    expect(scripts.length).toBeGreaterThan(0);
+    for (const script of scripts) {
+      expect(script).toMatch(/^assets\/lab(?:-[a-z]+)?\.[a-z0-9]+\.js$/);
+    }
   });
 
   it(`gzips to at most ${htmlBudget} bytes of HTML and ${cssBudget} of CSS`, async (url) => {
