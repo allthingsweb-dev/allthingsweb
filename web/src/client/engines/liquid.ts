@@ -34,17 +34,19 @@ float smoothMin(float a, float b, float k) {
 }
 
 float field(vec2 p) {
+  // On a narrow screen the blobs shrink with it, so the text stays clear.
+  float size = clamp(aspect * 0.9 + 0.1, 0.5, 1.0);
   float d = 1e5;
   for (int i = 0; i < ${trail}; i++) {
-    float radius = 0.13 - float(i) * 0.005;
+    float radius = (0.13 - float(i) * 0.005) * size;
     d = smoothMin(d, blob(p, chase[i], radius), 9.0);
   }
   vec2 a = vec2(aspect * 0.42 + sin(time * 0.17) * 0.35, cos(time * 0.13) * 0.4);
   vec2 b = vec2(aspect * 0.15 + cos(time * 0.11) * 0.45, sin(time * 0.15) * 0.45);
   vec2 c = vec2(aspect * 0.7 + sin(time * 0.09 + 2.0) * 0.25, sin(time * 0.12 + 1.0) * 0.55);
-  d = smoothMin(d, blob(p, a, 0.34), 6.0);
-  d = smoothMin(d, blob(p, b, 0.24), 6.0);
-  d = smoothMin(d, blob(p, c, 0.2), 6.0);
+  d = smoothMin(d, blob(p, a, 0.34 * size), 6.0);
+  d = smoothMin(d, blob(p, b, 0.24 * size), 6.0);
+  d = smoothMin(d, blob(p, c, 0.2 * size), 6.0);
   return d;
 }
 
