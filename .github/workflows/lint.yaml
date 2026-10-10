@@ -65,6 +65,11 @@ jobs:
       - name: 🧹 Lint
         run: bun run lint
 
+      # CodeRabbit drops configuration keys it doesn't know without a word,
+      # so its config is type-checked against @coderabbitai/config here.
+      - name: 🐇 Type check the CodeRabbit config
+        run: bun run typecheck
+
       # Core CI runs only when core changes, and a reference into another
       # 1Password vault can land in any file, so every pull request checks.
       - name: 🔑 Check 1Password references
