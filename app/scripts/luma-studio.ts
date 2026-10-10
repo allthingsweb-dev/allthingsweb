@@ -10,8 +10,8 @@ const core = fileURLToPath(new URL("../../core/", import.meta.url));
 
 /**
  * The admin MCP server's Luma tools (core/src/luma/publish.ts): make an
- * evening's Luma event private, fill it in, and publish exactly what was
- * approved. Each runs core's `bun run luma` with --json, so the tools and
+ * evening's Luma event private, fill it in, set its registration
+ * (core/src/luma/registration.ts), and publish exactly what was approved. Each runs core's `bun run luma` with --json, so the tools and
  * the CLI never disagree. Writes default to a dry run; publishing needs
  * the approval token that `luma_prepare_publish` printed for what an
  * organizer read and approved. The script reads LUMA_API_KEY and
@@ -51,6 +51,22 @@ export const lumaSchemas = {
     approve: z.string().regex(/^[0-9a-f]{16}$/),
   }),
   luma_show_event: z.object({ lumaEventId: z.string().min(1) }),
+  luma_registration: z.object({
+    event: z.string().min(1),
+    approval: z.boolean().optional(),
+    waitlist: z.boolean().optional(),
+    capacity: z
+      .union([z.number().int().positive(), z.literal("none")])
+      .optional(),
+    questions: z
+      .array(z.object({ label: z.string().min(1), required: z.boolean() }))
+      .optional(),
+    dryRun: z.boolean().default(true),
+    approve: z
+      .string()
+      .regex(/^[0-9a-f]{16}$/)
+      .optional(),
+  }),
 } as const;
 
 export type LumaTool = keyof typeof lumaSchemas;
@@ -108,6 +124,42 @@ const builders: { readonly [T in LumaTool]: (input: unknown) => string[] } = {
   luma_show_event: (input) => {
     const a = lumaSchemas.luma_show_event.parse(input);
     return ["show", "--", a.lumaEventId];
+  },
+  luma_registration: (input) => {
+    const a = lumaSchemas.luma_registration.parse(input);
+    const onOff = (on: boolean | undefined) =>
+      on === undefined ? undefined : on ? "on" : "off";
+    const changes = [
+      ...flag("approval", onOff(a.approval)),
+      ...flag("waitlist", onOff(a.waitlist)),
+      ...flag("capacity", a.capacity),
+      ...(a.questions === undefined
+        ? []
+        : a.questions.length === 0
+          ? ["--clear-questions"]
+          : a.questions.map(
+              (q) => `--question${q.required ? "" : "-optional"}=${q.label}`,
+            )),
+    ];
+    // Nothing to change is a read.
+    if (changes.length === 0) {
+      if (a.approve !== undefined) {
+        throw new Error("approve needs the changes it was printed for.");
+      }
+      return ["registration", `--event=${a.event}`, "--json"];
+    }
+    if (!a.dryRun && a.approve === undefined) {
+      throw new Error(
+        "A change needs approve: the token its dry run printed for an organizer to read.",
+      );
+    }
+    return [
+      "registration",
+      `--event=${a.event}`,
+      ...changes,
+      ...(a.approve === undefined ? ["--dry-run"] : [`--approve=${a.approve}`]),
+      "--json",
+    ];
   },
 };
 
@@ -232,6 +284,52 @@ export const lumaToolDefinitions: ReadonlyArray<{
         approve: string("The approval token for what was read and approved"),
       },
       required: ["slug", "approve"],
+    },
+  },
+  {
+    name: "luma_registration",
+    description:
+      "An evening's registration on Luma: whether registering needs approval, the waitlist, capacity, and its questions in order, each required or optional. With no changes it reads. With changes it is a dry run: each change from what to what, anything Luma's API can't set (refused by name), and the approval token. With approve (that token), it makes exactly those changes and checks they took. A public event's change reaches guests at once: only on an organizer's explicit go.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        event: string(
+          "The evening: its draft's slug, its short link, or its Luma id",
+        ),
+        approval: {
+          type: "boolean",
+          description: "Whether registering needs an organizer's approval",
+        },
+        waitlist: {
+          type: "boolean",
+          description: "Whether a full event takes a waitlist",
+        },
+        capacity: {
+          description: 'Most guests Luma takes, or "none" for no limit',
+          oneOf: [{ type: "number" }, { type: "string", enum: ["none"] }],
+        },
+        questions: {
+          type: "array",
+          description:
+            "The whole list of questions, in order; an empty list asks none",
+          items: {
+            type: "object",
+            properties: {
+              label: string("The question"),
+              required: {
+                type: "boolean",
+                description: "Whether it must be answered",
+              },
+            },
+            required: ["label", "required"],
+          },
+        },
+        dryRun: dryRunProperty,
+        approve: string(
+          "The approval token the dry run printed for exactly these changes",
+        ),
+      },
+      required: ["event"],
     },
   },
   {

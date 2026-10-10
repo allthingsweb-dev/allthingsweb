@@ -20,6 +20,9 @@ import { LumaRejected, LumaUnavailable, sendWithRetries } from "./luma.ts";
  *   studio's own test events are ever cancelled (see publish.ts).
  * - `GET /v1/calendars/get` and `POST /v1/calendars/update`: the calendar
  *   the key belongs to, and changing what its page says (calendar.ts).
+ * - `GET /v1/events/ticket-types/list` and `POST
+ *   /v1/events/ticket-types/update`: an event's ticket types, where Luma
+ *   keeps whether registering needs approval (registration.ts).
  *
  * Reads are retried as every Luma request is (luma.ts). Writes are sent
  * once: a create or an update that timed out may have happened, and a
@@ -51,9 +54,35 @@ export interface LumaEventFields {
   readonly description_md?: string;
   readonly cover_url?: string;
   readonly slug?: string;
-  readonly max_capacity?: number;
+  readonly max_capacity?: number | null;
   readonly visibility?: "public" | "members-only" | "private";
+  readonly waitlist_status?: "enabled" | "disabled";
+  readonly registration_questions?: ReadonlyArray<LumaQuestion>;
 }
+
+/**
+ * A registration question as Luma keeps it. Its type decides what else it
+ * carries; the studio writes only `text` ones (registration.ts), so the
+ * rest are read for what they are and never written back.
+ */
+export const LumaQuestion = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  required: Schema.Boolean,
+  question_type: Schema.String,
+  multiline: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+});
+export type LumaQuestion = typeof LumaQuestion.Type;
+
+/** A ticket type as `ticket-types/list` answers: where approval is kept. */
+export const LumaTicketType = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  require_approval: Schema.Boolean,
+  is_hidden: Schema.Boolean,
+  type: Schema.String,
+});
+export type LumaTicketType = typeof LumaTicketType.Type;
 
 /**
  * What `calendars/update` may change on the calendar, as Luma names it.
@@ -116,8 +145,15 @@ export const ManagedEvent = Schema.Struct({
   guest_counts: Schema.optionalKey(
     Schema.Struct({ approved: Schema.Struct({ guests: Schema.Number }) }),
   ),
+  // Registration, as the manager sees it (registration.ts).
+  require_approval: Schema.optionalKey(Schema.Boolean),
+  waitlist_status: Schema.optionalKey(Schema.Literals(["enabled", "disabled"])),
+  max_capacity: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+  registration_questions: Schema.optionalKey(Schema.Array(LumaQuestion)),
 });
 export type ManagedEvent = typeof ManagedEvent.Type;
+
+const TicketTypes = Schema.Struct({ entries: Schema.Array(LumaTicketType) });
 
 const Created = Schema.Struct({ id: LumaEventId });
 const UploadUrl = Schema.Struct({
@@ -158,6 +194,15 @@ export interface LumaWriteShape {
     bytes: Uint8Array,
     contentType: "image/jpeg" | "image/png",
   ) => Effect.Effect<string, LumaWriteError>;
+  /** The event's ticket types, hidden ones too. */
+  readonly ticketTypes: (
+    lumaEventId: string,
+  ) => Effect.Effect<ReadonlyArray<LumaTicketType>, LumaWriteError>;
+  /** Turns approval on or off for one ticket type. */
+  readonly setTicketApproval: (
+    ticketTypeId: string,
+    requireApproval: boolean,
+  ) => Effect.Effect<void, LumaWriteError>;
   /** Cancels the event, which deletes it: Luma's two steps. */
   readonly cancel: (lumaEventId: string) => Effect.Effect<void, LumaWriteError>;
   /** The calendar the key belongs to. */
@@ -300,6 +345,25 @@ const make = Effect.gen(function* () {
         );
         return file_url;
       }),
+    ticketTypes: (lumaEventId) =>
+      authorized(
+        HttpClientRequest.get(`${apiOrigin}/v1/events/ticket-types/list`).pipe(
+          HttpClientRequest.setUrlParams({
+            event_id: lumaEventId,
+            include_hidden: "true",
+          }),
+        ),
+      ).pipe(
+        Effect.flatMap((request) => sendWithRetries(client, request, "event")),
+        Effect.flatMap(decode(TicketTypes, "events/ticket-types/list")),
+        Effect.map(({ entries }) => entries),
+        withRedaction,
+      ),
+    setTicketApproval: (ticketTypeId, requireApproval) =>
+      post("/v1/events/ticket-types/update", {
+        event_ticket_type_id: ticketTypeId,
+        require_approval: requireApproval,
+      }).pipe(Effect.asVoid),
     cancel: (lumaEventId) =>
       Effect.gen(function* () {
         const { cancellation_token } = yield* post(

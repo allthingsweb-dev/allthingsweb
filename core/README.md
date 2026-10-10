@@ -1327,6 +1327,42 @@ LUMA_API_KEY=… bun run luma calendar --dry-run --slug allthings   # and move i
 LUMA_API_KEY=… bun run luma calendar --approve <token> [--slug allthings]
 ```
 
+### Registration
+
+`src/luma/registration.ts` reads and sets an evening's registration on
+Luma: whether registering needs an organizer's approval, whether a full
+event takes a waitlist, its capacity, and its questions in order, each
+required or optional. What Luma's API can set, by its OpenAPI spec
+(public-api.luma.com/openapi.json):
+
+- capacity: `max_capacity` on `events/update`, or none for no limit;
+- waitlist: `waitlist_status` on `events/update`;
+- questions: `registration_questions` on `events/update`, all at once. The
+  studio writes text questions only, and an event that has a question of
+  another type (company, select, terms and the rest) is refused by name;
+- approval: the event's `require_approval` can only be read. Luma keeps it
+  on each ticket type (`ticket-types/update`), so it is set on every one
+  that differs, hidden ones too; an event with no ticket types is refused
+  by name.
+
+Whatever can't be set as asked is a gap, refused, never skipped. It works
+the way publish does: `--dry-run` reads and prints each change from what to
+what and the approval token for exactly that (the event, its registration
+now and the changes), saying so when the event is public and guests see
+the change at once; `--approve <token>` works the plan out again, goes on
+only if it hashes the same, sets approval on the ticket types, sends one
+event update with the rest, and reads registration back to check each took.
+Questions are the whole list, in the order given across `--question`
+(required) and `--question-optional`; `--clear-questions` asks none. The
+admin MCP server's `luma_registration` runs the same command.
+
+```sh
+LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug>   # as Luma has it
+LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug> --approval on --waitlist on \
+  --capacity 120 --question "Your team?" --question-optional "Anything we should know?" --dry-run
+LUMA_API_KEY=… DATABASE_URL=… bun run luma registration --event <slug> … --approve <token>
+```
+
 ## Posting to Bluesky
 
 `src/social/announce.ts` posts an evening's Bluesky draft (the promotion

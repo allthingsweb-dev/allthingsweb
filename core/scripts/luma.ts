@@ -11,6 +11,15 @@ import { EventPages } from "../src/event-page.ts";
 import { Calendar, type PreparedCalendar } from "../src/luma/calendar.ts";
 import { Covers, type PreparedCover } from "../src/luma/cover.ts";
 import {
+  type PreparedRegistration,
+  type Question,
+  type Registration,
+  type RegistrationChange,
+  type RegistrationRequest,
+  questionsInOrder,
+  Registrations,
+} from "../src/luma/registration.ts";
+import {
   type EventRef,
   instant,
   type Prepared,
@@ -42,6 +51,10 @@ import { shellWord } from "./shell.ts";
  *   bun run luma show evt-…                            the event as Luma has it
  *   bun run luma calendar --dry-run [--slug <slug>]    how the calendar's page differs from the brand, and the token
  *   bun run luma calendar --approve <token> [--slug <slug>]   make exactly those changes
+ *   bun run luma registration --event <slug|evt-…>     approval, waitlist, capacity and questions, as Luma has them
+ *   bun run luma registration --event <slug> --approval on --capacity 120 --question "Your team?" \
+ *     --question-optional "Anything we should know?" --dry-run    each change and its token; nothing sent
+ *   bun run luma registration --event <slug> … --approve <token>   make exactly those changes
  *   bun run luma cancel-test evt-…                     delete a test event (see testEventPrefix)
  *
  * Every event is made private; only publish, with the token of what was
@@ -533,6 +546,224 @@ const cover = Command.make(
   ),
 );
 
+const registrationLayer = Registrations.layer.pipe(
+  Layer.provide(LumaWrite.layer.pipe(Layer.provide(FetchHttpClient.layer))),
+  Layer.provideMerge(Database.layer),
+);
+
+const onOff = (on: boolean) => (on ? "on" : "off");
+const capacityText = (capacity: number | null) =>
+  capacity === null ? "no limit" : String(capacity);
+const questionLine = (question: Question, index: number) =>
+  `${index + 1}. ${JSON.stringify(question.label)} (${question.required ? "required" : "optional"}${question.type === "text" ? "" : `, ${question.type}`})`;
+
+const describeRegistration = (registration: Registration) =>
+  [
+    `${registration.name} · ${registration.lumaEventId} · ${registration.visibility}`,
+    `approval: ${onOff(registration.approval)} · waitlist: ${onOff(registration.waitlist)} · capacity: ${capacityText(registration.capacity)}`,
+    registration.questions.length === 0
+      ? "questions: none"
+      : `questions:\n${registration.questions.map((q, i) => `  ${questionLine(q, i)}`).join("\n")}`,
+    `ticket types: ${
+      registration.tickets.length === 0
+        ? "none"
+        : registration.tickets
+            .map(
+              (ticket) =>
+                `${ticket.name}${ticket.hidden ? " (hidden)" : ""}, approval ${onOff(ticket.requireApproval)}`,
+            )
+            .join("; ")
+    }`,
+  ].join("\n");
+
+const describeChange = (change: RegistrationChange) => {
+  if (change.field === "approval") {
+    return `approval: ${onOff(change.from)} → ${onOff(change.to)} (on ticket types ${change.ticketTypes.join(", ")})`;
+  }
+  if (change.field === "waitlist") {
+    return `waitlist: ${onOff(change.from)} → ${onOff(change.to)}`;
+  }
+  if (change.field === "capacity") {
+    return `capacity: ${capacityText(change.from)} → ${capacityText(change.to)}`;
+  }
+  const list = (questions: ReadonlyArray<Question>) =>
+    questions.length === 0
+      ? "    none"
+      : questions.map((q, i) => `    ${questionLine(q, i)}`).join("\n");
+  return `questions, from:\n${list(change.from)}\n  to:\n${list(change.to)}`;
+};
+
+const describePlan = (prepared: PreparedRegistration) =>
+  [
+    describeRegistration(prepared.registration),
+    prepared.changes.length === 0
+      ? "nothing to change"
+      : `changes:\n${prepared.changes.map((change) => `  ${describeChange(change)}`).join("\n")}`,
+    ...prepared.gaps.map(
+      (gap) =>
+        `✗ ${gap.field}, which Luma's API can't set as asked: ${gap.reason}`,
+    ),
+    ...(prepared.public && prepared.changes.length > 0
+      ? ["This event is public: guests see these changes at once."]
+      : []),
+  ].join("\n");
+
+/** --capacity: a whole number, or none for no limit. */
+const capacityOf = (option: Option.Option<string>) =>
+  Option.match(option, {
+    onNone: () => Effect.succeed(undefined),
+    onSome: (value) =>
+      value === "none"
+        ? Effect.succeed(null)
+        : /^\d+$/.test(value)
+          ? Effect.succeed(Number(value))
+          : refuse(
+              `--capacity is a whole number, or none for no limit: ${value}`,
+            ),
+  });
+
+const registration = Command.make(
+  "registration",
+  {
+    event: Flag.String("event").pipe(
+      Flag.withDescription(
+        "The evening: its slug here or its short link, or its Luma id (evt-…).",
+      ),
+    ),
+    approval: Flag.Literals("approval", ["on", "off"]).pipe(
+      Flag.withDescription(
+        "Whether registering needs an organizer's approval (set on every ticket type).",
+      ),
+      Flag.optional,
+    ),
+    waitlist: Flag.Literals("waitlist", ["on", "off"]).pipe(
+      Flag.withDescription("Whether a full event takes a waitlist."),
+      Flag.optional,
+    ),
+    capacity: text("capacity", "Most guests Luma takes, or none for no limit."),
+    question: Flag.String("question").pipe(
+      Flag.withDescription(
+        "A required question; repeat. With --question-optional, the questions are the whole list, in the order given.",
+      ),
+      Flag.atLeast(0),
+    ),
+    questionOptional: Flag.String("question-optional").pipe(
+      Flag.withDescription("An optional question; repeat."),
+      Flag.atLeast(0),
+    ),
+    clearQuestions: Flag.Boolean("clear-questions").pipe(
+      Flag.withDescription("Ask no questions."),
+      Flag.withDefault(false),
+    ),
+    approve: text(
+      "approve",
+      "The token --dry-run printed for the changes that were read: only those are made.",
+    ),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Print each change and its approval token; change nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    json,
+  },
+  (options) =>
+    Effect.gen(function* () {
+      const ref: EventRef = options.event.startsWith("evt-")
+        ? { _tag: "Luma", lumaEventId: options.event }
+        : { _tag: "Slug", slug: options.event };
+      const asked = options.question.length + options.questionOptional.length;
+      if (options.clearQuestions && asked > 0) {
+        return yield* refuse("Give questions or --clear-questions, not both.");
+      }
+      const questions = questionsInOrder(process.argv);
+      if (questions.length !== asked) {
+        return yield* refuse(
+          "The questions couldn't be read in order: give each as --question <label> or --question-optional <label>.",
+        );
+      }
+      const capacity = yield* capacityOf(options.capacity);
+      const request: RegistrationRequest = {
+        ...(Option.isSome(options.approval)
+          ? { approval: options.approval.value === "on" }
+          : {}),
+        ...(Option.isSome(options.waitlist)
+          ? { waitlist: options.waitlist.value === "on" }
+          : {}),
+        ...(capacity === undefined ? {} : { capacity }),
+        ...(options.clearQuestions
+          ? { questions: [] }
+          : asked > 0
+            ? { questions }
+            : {}),
+      };
+      const changing = Object.keys(request).length > 0;
+      if (!changing) {
+        if (options.dryRun || Option.isSome(options.approve)) {
+          return yield* refuse(
+            "Nothing to change: give --approval, --waitlist, --capacity, questions or --clear-questions.",
+          );
+        }
+        const now = yield* Registrations.use((r) => r.read(ref));
+        return yield* print(options.json, now, describeRegistration(now));
+      }
+      if (options.dryRun === Option.isSome(options.approve)) {
+        return yield* refuse(
+          "Give --dry-run to read the changes, or --approve <token> to make exactly those.",
+        );
+      }
+      if (Option.isNone(options.approve)) {
+        const prepared = yield* Registrations.use((r) =>
+          r.prepare(ref, request),
+        );
+        const again = [
+          "bun run luma registration --event",
+          shellWord(options.event),
+          ...(Option.isSome(options.approval)
+            ? [`--approval ${options.approval.value}`]
+            : []),
+          ...(Option.isSome(options.waitlist)
+            ? [`--waitlist ${options.waitlist.value}`]
+            : []),
+          ...(Option.isSome(options.capacity)
+            ? [`--capacity ${shellWord(options.capacity.value)}`]
+            : []),
+          ...(options.clearQuestions ? ["--clear-questions"] : []),
+          ...questions.map(
+            (question) =>
+              `--question${question.required ? "" : "-optional"} ${shellWord(question.label)}`,
+          ),
+        ].join(" ");
+        const next =
+          prepared.gaps.length > 0
+            ? "Nothing was sent, and approving it would be refused."
+            : prepared.changes.length === 0
+              ? "Nothing was sent: registration is already so."
+              : `approval token: ${prepared.token}\nNothing was sent. To make exactly these changes: ${again} --approve ${prepared.token}`;
+        // A gap is refused: the plan to read, and exit 1.
+        if (prepared.gaps.length > 0) process.exitCode = 1;
+        return yield* print(
+          options.json,
+          prepared,
+          `${describePlan(prepared)}\n${next}`,
+        );
+      }
+      const token = options.approve.value;
+      const made = yield* Registrations.use((r) =>
+        r.approve(ref, request, token),
+      );
+      return yield* print(
+        options.json,
+        made,
+        `Changed:\n${made.changes.map(describeChange).join("\n")}\nNow:\n${describeRegistration(made.registration)}`,
+      );
+    }).pipe(Effect.provide(registrationLayer)),
+).pipe(
+  Command.withDescription(
+    "An evening's registration on Luma (approval, waitlist, capacity, questions): read it, or make exactly the approved changes.",
+  ),
+);
+
 const luma = Command.make("luma").pipe(
   Command.withDescription(
     "An evening's Luma event, from private draft to public.",
@@ -544,6 +775,7 @@ const luma = Command.make("luma").pipe(
     cover,
     show,
     calendar,
+    registration,
     cancelTest,
   ]),
 );
