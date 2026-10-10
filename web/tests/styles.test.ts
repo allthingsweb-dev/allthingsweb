@@ -6,13 +6,21 @@ import { tokens } from "allthings-brand/src/tokens.ts";
  * The site's own rules color only through the theme's roles, whose
  * pairings the brand's tests hold to their APCA targets in both modes, and
  * size and space only through the layout tokens, so a one-off length, a
- * magic width or a breakpoint of a page's own fails the build.
+ * magic width or a breakpoint of a page's own fails the build. The home
+ * lab's stylesheet, which only its pages load, is held to the same.
  */
 
-const site = await Bun.file(
-  new URL("../src/styles/site.css", import.meta.url),
-).text();
+const stylesheet = (name: string) =>
+  Bun.file(new URL(`../src/styles/${name}`, import.meta.url)).text();
+const site = await stylesheet("site.css");
+const lab = await stylesheet("lab.css");
 const theme = themeCss(tokens);
+
+/** Every stylesheet of the site's own rules, by name. */
+const stylesheets = [
+  ["site.css", site],
+  ["lab.css", lab],
+] as const;
 
 /** CSS Color 4's named colors, plus the keywords that also pick a color. */
 const namedColors = new Set(
@@ -44,24 +52,30 @@ const namedColors = new Set(
 );
 
 /** Each declaration's value, without comments, strings or custom properties. */
-const values = [
-  ...site
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .matchAll(/(?:^|[{;])\s*(-?[a-z][a-z-]*)\s*:([^;{}]*)/gm),
-].map(([, property = "", value = ""]) => ({ property, value }));
+const declarationsOf = (css: string) =>
+  [
+    ...css
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+      .matchAll(/(?:^|[{;])\s*(-?[a-z][a-z-]*)\s*:([^;{}]*)/gm),
+  ].map(([, property = "", value = ""]) => ({ property, value }));
 
-describe("site.css", () => {
-  test("is read declaration by declaration", () => {
-    expect(values.length).toBeGreaterThan(100);
-    expect(values).toContainEqual({
-      property: "color",
-      value: " var(--at-link)",
-    });
+const siteDeclarations = declarationsOf(site);
+
+test("site.css and lab.css are read declaration by declaration", () => {
+  expect(siteDeclarations.length).toBeGreaterThan(100);
+  expect(siteDeclarations).toContainEqual({
+    property: "color",
+    value: " var(--at-link)",
   });
+  expect(declarationsOf(lab).length).toBeGreaterThan(100);
+});
+
+describe.each(stylesheets)("%s", (_, css) => {
+  const declarations = declarationsOf(css);
 
   test("names no color of its own", () => {
-    for (const { property, value } of values) {
+    for (const { property, value } of declarations) {
       const declaration = `${property}:${value}`;
       expect(declaration).not.toMatch(/#[0-9a-f]{3,8}\b/i);
       expect(declaration).not.toMatch(
@@ -79,7 +93,7 @@ describe("site.css", () => {
 
   test("uses only custom properties the theme defines", () => {
     const used = new Set(
-      [...site.matchAll(/var\((--at-[a-z0-9-]+)\)/g)].map(([, name]) => name),
+      [...css.matchAll(/var\((--at-[a-z0-9-]+)\)/g)].map(([, name]) => name),
     );
     expect(used.size).toBeGreaterThan(5);
     for (const name of used) expect(theme).toContain(`${name}:`);
@@ -128,9 +142,11 @@ const isTokenMargin = (value: string): boolean =>
     .split(/\s+/)
     .every((part) => /^(?:0|auto|var\(--at-space-[0-9]+\))$/.test(part));
 
-describe("site.css's lengths", () => {
+describe.each(stylesheets)("%s's lengths", (_, css) => {
+  const declarations = declarationsOf(css);
+
   test("come from the layout tokens, but for a hairline and type-relative em", () => {
-    expect(looseLengths(values)).toEqual([]);
+    expect(looseLengths(declarations)).toEqual([]);
   });
 
   test("are caught in rem, and in em outside the type", () => {
@@ -145,7 +161,7 @@ describe("site.css's lengths", () => {
   });
 
   test("size boxes with no width of their own", () => {
-    const magic = values.flatMap(({ property, value }) =>
+    const magic = declarations.flatMap(({ property, value }) =>
       sizing.test(property)
         ? [
             ...value
@@ -167,7 +183,7 @@ describe("site.css's lengths", () => {
 
   test("never pull a box over its neighbor: margins are 0, auto or a token", () => {
     // Portraits side by side, never stacked: every host is always seen.
-    const pulled = values.filter(
+    const pulled = declarations.filter(
       ({ property, value }) =>
         property.startsWith("margin") && !isTokenMargin(value),
     );
@@ -195,11 +211,11 @@ describe("site.css's lengths", () => {
   });
 
   test("define no custom properties of their own", () => {
-    expect(site.match(/(?:^|[{;])\s*--[a-z0-9-]+\s*:/gm)).toBeNull();
+    expect(css.match(/(?:^|[{;])\s*--[a-z0-9-]+\s*:/gm)).toBeNull();
   });
 
   test("break only at the tokens' breakpoints", () => {
-    const preludes = [...site.matchAll(/@media([^{]*)\{/g)].map(
+    const preludes = [...css.matchAll(/@media([^{]*)\{/g)].map(
       ([, prelude = ""]) => prelude.trim(),
     );
     expect(preludes.length).toBeGreaterThan(2);
@@ -229,16 +245,25 @@ describe("the pages", () => {
   });
 });
 
-/** site.css's rules, selector by selector. */
-const rules = [
-  ...site.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g),
-].map(([, selector = "", body = ""]) => ({ selector: selector.trim(), body }));
+/** A stylesheet's rules, selector by selector. */
+const rulesOf = (css: string) =>
+  [
+    ...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g),
+  ].map(([, selector = "", body = ""]) => ({
+    selector: selector.trim(),
+    body,
+  }));
 
-describe("display type", () => {
+/** site.css's rules, selector by selector. */
+const rules = rulesOf(site);
+
+describe.each(stylesheets)("display type in %s", (name, css) => {
+  const sheetRules = rulesOf(css);
+
   test("is pulled back to the box's edge by its face's inset", () => {
     // Archivo at 112% is the wordmark's and the lockups' face; at 75%, the
     // label's. Each rule that sets one sets its role's optical inset too.
-    const unpulled = rules
+    const unpulled = sheetRules
       .filter(({ body }) => /font-stretch: (?:112|75)%/.test(body))
       .filter(
         ({ body }) =>
@@ -247,7 +272,7 @@ describe("display type", () => {
           ),
       )
       .map(({ selector }) => selector);
-    expect(rules.length).toBeGreaterThan(100);
+    expect(sheetRules.length).toBeGreaterThan(name === "site.css" ? 100 : 50);
     expect(unpulled).toEqual([]);
   });
 });

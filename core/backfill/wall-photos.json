@@ -1,0 +1,214 @@
+{
+  "photos": [
+    {
+      "image": "bc451adf-c545-4199-af2b-fa936510e9e4",
+      "evening": "2025-02-25-all-things-web-at-sentry",
+      "why": "A full house at Sentry faces the speaker, downtown's towers lit through the windows behind."
+    },
+    {
+      "image": "8bdbe774-e836-4f25-b00f-f72e0eac7465",
+      "evening": "2026-02-25-devtool-ax-demos",
+      "why": "Wall-to-wall rows of builders watching the demos, packed to the brick at the back."
+    },
+    {
+      "image": "3ff438b8-0305-4de8-a111-5a66ec9610f0",
+      "evening": "2025-11-04-all-things-react-native",
+      "why": "A long hall filled with rows facing the talk, the welcome slide on both screens."
+    },
+    {
+      "image": "e6cefbd6-baa4-4c52-ad4a-00e4575da3a7",
+      "evening": "2025-04-26-hackathon-at-sentry",
+      "why": "Every table of the hackathon full, laptops open, the whole floor turned to the stage."
+    },
+    {
+      "image": "cb9b00c6-6583-4cd7-9437-b35ae01ec469",
+      "evening": "2025-05-28-all-things-web-at-vapi",
+      "why": "Standing room only at Vapi: rows to the screen and people lining the back."
+    },
+    {
+      "image": "4f99680b-b046-406a-b3f8-edffc67a7611",
+      "evening": "2024-11-12-all-things-web-at-vercel",
+      "why": "A crowd filling Vercel's floor, facing the speaker."
+    },
+    {
+      "image": "976a8737-ece8-41d0-a90c-89f6336f283f",
+      "evening": "2024-09-24-react-bay-area-at-cisco-meraki",
+      "why": "The whole room at Cisco Meraki throws its arms up for the camera."
+    },
+    {
+      "image": "11a0af02-7d1f-4563-9b8e-d77baf917308",
+      "evening": "2024-12-03-all-things-web-at-convex",
+      "why": "Rows of chairs full to the walls at Convex, every face on the speaker."
+    },
+    {
+      "image": "c3df965b-aff5-471e-9924-2df803d2e8ca",
+      "evening": "2025-02-25-all-things-web-at-sentry",
+      "why": "Rows of faces across the whole floor at Sentry, laughing at the talk."
+    },
+    {
+      "image": "e3948c7c-2bff-405e-94f3-2517bf5f67bd",
+      "evening": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+      "why": "A brewery hall packed shoulder to shoulder before Next.js Conf."
+    },
+    {
+      "image": "178cb068-4553-4aef-bfd4-f5f7f75d7594",
+      "evening": "2024-08-27-react-bay-area-at-mux",
+      "why": "Mux's whole floor seated around tables, facing the screens."
+    },
+    {
+      "image": "2b220343-569a-441f-acfc-a906b5fb97d0",
+      "evening": "2025-01-28-all-things-web-at-sanity",
+      "why": "A long table at the bar after Sanity's evening, everyone grinning into the selfie."
+    },
+    {
+      "image": "73a16b87-2d54-4de3-ae5d-d83819ef4a31",
+      "evening": "2025-05-28-all-things-web-at-vapi",
+      "why": "Rows of listeners at Vapi turned to the screen, the room full to the back wall."
+    },
+    {
+      "image": "5bebff7f-1484-48b8-8929-9e7990182fba",
+      "evening": "2026-02-25-devtool-ax-demos",
+      "why": "Faces lit by the stage lights, rows deep, at the DevTool AX demos."
+    },
+    {
+      "image": "2262b52e-34d1-4068-b94b-5963e5335b0c",
+      "evening": "2025-07-23-all-things-web-show-and-tell",
+      "why": "A brick loft full of chairs and people for the show-and-tell."
+    },
+    {
+      "image": "d8e47227-2ced-4380-bb92-f27859256331",
+      "evening": "2025-04-26-hackathon-at-sentry",
+      "why": "Long hackathon tables lined with builders, heads down, all the way back."
+    },
+    {
+      "image": "dec6832f-7cd4-4fd9-a95a-ccdc1ff58a7b",
+      "evening": "2024-11-12-all-things-web-at-vercel",
+      "why": "Vercel's room seen from the side: rows full, a camera on a tripod in the aisle."
+    },
+    {
+      "image": "9561b56c-8d0d-49bc-8ae4-c4732aba7180",
+      "evening": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+      "why": "Rows of tables full in front of the Next.js screens at Mux."
+    },
+    {
+      "image": "b591c9f4-1ee1-46f5-8dd4-30e7889aa43f",
+      "evening": "2025-02-25-all-things-web-at-sentry",
+      "why": "Sentry's floor from the front: rows of people turned to the talk."
+    },
+    {
+      "image": "3979691c-05de-4742-86a2-11258df9a431",
+      "evening": "2024-09-24-react-bay-area-at-cisco-meraki",
+      "why": "The Cisco Meraki crowd cheering behind two hosts holding up their badges."
+    },
+    {
+      "image": "21829725-e153-4507-b36c-7502cb4f8f84",
+      "evening": "2025-11-04-all-things-react-native",
+      "why": "A room of people mingling between talks at the React Native evening."
+    },
+    {
+      "image": "519b7fed-0d6d-42e8-9653-630578b6ef0b",
+      "evening": "2025-03-19-all-things-web-at-convex",
+      "why": "Convex's room full, every chair taken, someone at the front mid-talk."
+    },
+    {
+      "image": "635adbfb-198b-4b73-bb03-4d6a08e57877",
+      "evening": "2025-05-13-all-things-web-show-and-tell",
+      "why": "A brick-walled loft full of people on couches and chairs for the show-and-tell."
+    },
+    {
+      "image": "fefa5ff6-4dee-41ec-aa3c-7972aa84dbdb",
+      "evening": "2024-10-05-hackathon-at-sentry",
+      "why": "The first hackathon at Sentry: a whole floor of teams at round tables."
+    },
+    {
+      "image": "f1ca93fe-030f-460c-9e5e-917720ec6008",
+      "evening": "2025-05-28-all-things-web-at-vapi",
+      "why": "Vapi's crowd from the middle of the room, every seat taken."
+    },
+    {
+      "image": "30a780fe-755f-48d2-a322-3e68ce153f45",
+      "evening": "2026-02-25-devtool-ax-demos",
+      "why": "Standing room at the back of the DevTool AX demos, the room full to the doors."
+    },
+    {
+      "image": "ebb70222-a7d9-474e-af5b-f6b974c97848",
+      "evening": "2025-02-25-all-things-web-at-sentry",
+      "why": "Sentry's room full from the back, the screen lit at the far end."
+    },
+    {
+      "image": "07fc788e-b13d-498b-8914-9d195be4d6ae",
+      "evening": "2024-12-03-all-things-web-at-convex",
+      "why": "Local-first with React Native: rows of chairs full in front of the big blue slide."
+    },
+    {
+      "image": "a46c0a0f-0811-4207-aae7-d0552c6be452",
+      "evening": "2025-10-21-pre-nextjs-conf-ship-ai-meetup",
+      "why": "Long brewery tables full of people talking before Next.js Conf."
+    },
+    {
+      "image": "1c3cef4d-c14c-47e9-9681-955bb64a2a57",
+      "evening": "2025-04-26-hackathon-at-sentry",
+      "why": "A hackathon team at a round table, smiling up from their laptops."
+    },
+    {
+      "image": "449b5eca-41b5-4c60-84f5-e02bbcc57346",
+      "evening": "2025-07-23-all-things-web-show-and-tell",
+      "why": "The show-and-tell's brick room in summer, chairs full, a demo on the screen."
+    },
+    {
+      "image": "b235a0ad-d518-42a0-bd57-fd9b3e757d29",
+      "evening": "2025-02-25-all-things-web-at-sentry",
+      "why": "Sentry's crowd from the back rows: every seat taken to the podium."
+    },
+    {
+      "image": "6a905fc3-0cd3-4a82-9500-dc939bf61f64",
+      "evening": "2024-09-24-react-bay-area-at-cisco-meraki",
+      "why": "Cisco Meraki's room full of rows facing the twin screens."
+    },
+    {
+      "image": "598b1ee1-7ea9-4791-9ee7-accc47674e42",
+      "evening": "2025-03-19-all-things-web-at-convex",
+      "why": "Rows of folding chairs full at Convex for a talk on technical leadership."
+    },
+    {
+      "image": "efd69356-d56f-4b55-9a10-f3723d3b21a3",
+      "evening": "2025-04-26-hackathon-at-sentry",
+      "why": "The hackathon floor at Sentry: long tables full of builders from end to end."
+    },
+    {
+      "image": "082152f5-5526-4e41-be31-0f7ce18062fa",
+      "evening": "2025-05-28-all-things-web-at-vapi",
+      "why": "People packed in and standing at the back of Vapi's room."
+    },
+    {
+      "image": "998c16bd-d75e-49ba-8ed0-7fc08c36c1c6",
+      "evening": "2024-10-23-pre-nextjs-conf-meetup-at-mux",
+      "why": "A crowd on its feet between talks at Mux before Next.js Conf."
+    },
+    {
+      "image": "d8d60436-229a-485f-a695-cca3db93e400",
+      "evening": "2025-11-04-all-things-react-native",
+      "why": "A long room of rows at the React Native evening, everyone facing the stage."
+    },
+    {
+      "image": "f8114b58-6f32-4acd-aacd-5fdd616cc093",
+      "evening": "2024-08-13-remix-bay-area-at-little-skillet",
+      "why": "Dinner after Remix Bay Area at Little Skillet: a table of smiling faces."
+    },
+    {
+      "image": "062fbea5-b561-4d2b-896e-28eccbedf192",
+      "evening": "2025-09-23-lightning-hackathon-at-sentry",
+      "why": "A team at the lightning hackathon grinning around one small table."
+    },
+    {
+      "image": "36afe1a3-3c00-4882-8bf1-ab36870dc906",
+      "evening": "2025-09-30-agents-for-web-dev",
+      "why": "Rows of chairs full for the agents evening, the talk on the screen ahead."
+    },
+    {
+      "image": "1399f2e8-5726-4430-820c-de60337e4e62",
+      "evening": "2025-03-12-all-things-web-hack-evening",
+      "why": "The hack evening at a brewery: tables full, people gathered at the bar."
+    }
+  ]
+}

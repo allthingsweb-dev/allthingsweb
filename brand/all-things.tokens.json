@@ -758,6 +758,20 @@
         }
       }
     },
+    "mural": {
+      "$value": {
+        "value": 248,
+        "unit": "px"
+      },
+      "$description": "The home lab's wordmark made of faces, allthings/_ on one line across the page.",
+      "$extensions": {
+        "dev.allthings": {
+          "fluid": {
+            "container": 19
+          }
+        }
+      }
+    },
     "eventL": {
       "$value": {
         "value": 112,

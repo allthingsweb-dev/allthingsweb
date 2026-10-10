@@ -41,11 +41,16 @@ interface Candidate {
 
 /**
  * The widths a photo `width` pixels wide is offered at: those it has, since
- * a variant is never enlarged. A photo narrower than every width comes once,
- * at its own width.
+ * a variant is never enlarged, up to `widest`. A photo narrower than every
+ * width comes once, at its own width.
  */
-function candidates(width: number): ReadonlyArray<Candidate> {
-  const fitting = widths.filter((candidate) => candidate <= width);
+function candidates(
+  width: number,
+  widest: Width = widths[widths.length - 1] ?? widths[0],
+): ReadonlyArray<Candidate> {
+  const fitting = widths.filter(
+    (candidate) => candidate <= width && candidate <= widest,
+  );
   return fitting.length === 0
     ? [{ width: widths[0], actual: width }]
     : fitting.map((candidate) => ({ width: candidate, actual: candidate }));
@@ -113,6 +118,11 @@ export interface PhotoProps {
   readonly mode: ImageMode;
   /** The <img> `sizes`: how wide the layout shows the photo. */
   readonly sizes: string;
+  /**
+   * The widest variant offered, for a photo never shown large, such as a
+   * tile of the home lab's wall: every width the photo has, otherwise.
+   */
+  readonly widest?: Width | undefined;
 }
 
 /**
@@ -121,7 +131,7 @@ export interface PhotoProps {
  * every width the photo has in AVIF and WebP, and in JPEG to the rest.
  * A photo without a source shows nothing; `showable` leaves it out first.
  */
-export function Photo({ photo, mode, sizes }: PhotoProps) {
+export function Photo({ photo, mode, sizes, widest }: PhotoProps) {
   const img = {
     alt: photo.alt,
     width: String(photo.width),
@@ -130,7 +140,7 @@ export function Photo({ photo, mode, sizes }: PhotoProps) {
   if (mode === "originals") return <Img src={photo.url} {...img} />;
   const source = sourceOf(photo);
   if (source === undefined) return "";
-  const offered = candidates(photo.width);
+  const offered = candidates(photo.width, widest);
   // The <img>'s own src, for browsers without srcset: a middling width.
   const fallback = offered.find(({ width }) => width >= 480) ?? offered.at(-1);
   return (

@@ -1,13 +1,16 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { Effect, Layer, Schema } from "effect";
 import file from "../backfill/hero-photos.json" with { type: "json" };
+import wallFile from "../backfill/wall-photos.json" with { type: "json" };
 import {
   type HeroPhoto,
   HeroPhotosFile,
   heroPhotoProblems,
   heroPhotos,
   repeated,
+  wallPhotos,
 } from "../src/hero-photos.ts";
+import { wallLimit } from "../src/community.ts";
 import { photoLimit } from "../src/home.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
@@ -37,6 +40,22 @@ describe("core/backfill/hero-photos.json", () => {
       "Failure",
     );
     expect(decode({ photos: [{ ...photo, why: " " }] })._tag).toBe("Failure");
+  });
+});
+
+describe("core/backfill/wall-photos.json", () => {
+  test("decodes, and names each image once", () => {
+    expect(Schema.decodeUnknownSync(HeroPhotosFile)(wallFile).photos).toEqual(
+      wallPhotos,
+    );
+    expect(repeated(wallPhotos)).toEqual([]);
+  });
+
+  test("is a wall: about forty photos, from many evenings", () => {
+    expect(wallPhotos.length).toBeGreaterThanOrEqual(36);
+    expect(wallPhotos.length).toBeLessThanOrEqual(wallLimit);
+    const evenings = new Set(wallPhotos.map((photo) => photo.evening));
+    expect(evenings.size).toBeGreaterThanOrEqual(12);
   });
 });
 

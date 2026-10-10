@@ -205,6 +205,11 @@ export interface DocumentProps {
    * outside them, such as /brand.
    */
   readonly section?: Section | undefined;
+  /**
+   * A page of the home lab (pages/lab/): its own stylesheet after the
+   * site's, and a frame whose regions may run from edge to edge.
+   */
+  readonly lab?: true | undefined;
 }
 
 /** A whole HTML document around `children`, the page's <main>. */
@@ -215,6 +220,7 @@ export function Document({
   portraits,
   images,
   section,
+  lab,
   children,
 }: PropsWithChildren<DocumentProps>): string {
   // Every page is in the visitor's mode, the system's until they choose.
@@ -236,6 +242,11 @@ export function Document({
           />
         ))}
         <link rel="stylesheet" href={built.stylesheet} />
+        {lab === undefined ? (
+          ""
+        ) : (
+          <link rel="stylesheet" href={built.labStylesheet} />
+        )}
         <link rel="icon" href={built.marks.favicon.src} type="image/svg+xml" />
         <link rel="apple-touch-icon" href={built.marks.appleTouchIcon.src} />
         <link rel="manifest" href="/manifest.webmanifest" />
@@ -244,7 +255,7 @@ export function Document({
         <a class="skip-link" href="#main">
           skip to the page
         </a>
-        <div class="page">
+        <div class={lab === undefined ? "page" : "page lab"}>
           <header class="site-header">
             <Wordmark />
             <div class="site-tools">

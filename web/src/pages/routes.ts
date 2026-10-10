@@ -3,6 +3,7 @@ import { asOf } from "allthings-core/src/clock.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
+import { Community } from "allthings-core/src/community.ts";
 import { Home } from "allthings-core/src/home.ts";
 import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import {
@@ -37,6 +38,7 @@ import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
+import { variantPath } from "./lab/paths.ts";
 import { gatheringTitle } from "./metadata.tsx";
 import { peoplePage } from "./people.tsx";
 import { personPage } from "./person.tsx";
@@ -340,6 +342,96 @@ const about = dataPage(
     ),
   ),
   (view, props) => aboutPage({ about: view, ...props }),
+);
+
+/**
+ * The home lab (pages/lab/), loaded when one of its pages is first asked
+ * for, so no other page's cold start parses it, as /brand is.
+ */
+const labPages = Effect.promise(() => import("./lab/variants.tsx"));
+
+/**
+ * /lab/home: the lab's index. It reads only the hosts' portraits, and is
+ * cached as a page, as /brand is.
+ */
+const labIndex = page("/lab/home", ({ theme, acceptEncoding, images }) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const { labIndexPage } = yield* labPages;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      labIndexPage({ origin, theme, portraits, images }),
+      acceptEncoding,
+      { cacheControl: read ? "page" : "failure", theme, images },
+    );
+  }),
+);
+
+/**
+ * /lab/home/<variant>: a whole home page under one of the lab's heroes,
+ * reading home and the community (core's src/community.ts) at once with
+ * the hosts' portraits, and cached like home. A name that is no variant is
+ * not found; when the data can't be read, the page says so plainly (503).
+ */
+const labVariant = page(
+  "/lab/home/:variant",
+  (request) =>
+    Effect.gen(function* () {
+      const { theme, acceptEncoding, images, params } = request;
+      const { origin } = yield* Site;
+      const { variantNamed, variantPage } = yield* labPages;
+      const name = params["variant"] ?? "";
+      const variant = variantNamed(name);
+      const path = variantPath(name);
+      if (variant === undefined) return yield* nothingAt(path, 404, request);
+      return yield* Effect.all(
+        [
+          Effect.all(
+            {
+              home: Home.use((repository) => repository.read(mediaOrigin)),
+              community: Community.use((repository) =>
+                repository.read(mediaOrigin),
+              ),
+            },
+            { concurrency: "unbounded" },
+          ),
+          footer(hostPortraits),
+        ],
+        { concurrency: "unbounded" },
+      ).pipe(
+        Effect.provide(repositories),
+        Effect.timed,
+        Effect.map(([took, [data, { portraits, read }]]) =>
+          htmlResponse(
+            variantPage(variant, data, { origin, theme, portraits, images }),
+            acceptEncoding,
+            {
+              cacheControl: read ? "publicData" : "failure",
+              theme,
+              db: Duration.toMillis(took),
+              images,
+            },
+          ),
+        ),
+        Effect.catchCause((cause) =>
+          Effect.logError(
+            `Error rendering the home lab's ${name}:`,
+            cause,
+          ).pipe(
+            Effect.as(
+              htmlResponse(
+                unavailablePage({ origin, path, theme, images }),
+                acceptEncoding,
+                { cacheControl: "failure", theme, images, status: 503 },
+              ),
+            ),
+          ),
+        ),
+      );
+    }),
+  (params) => variantPath(params["variant"] ?? ""),
 );
 
 /**
@@ -744,6 +836,8 @@ export const pageRoutes = Layer.mergeAll(
   person,
   speakers,
   about,
+  labIndex,
+  labVariant,
   brand,
   codeOfConduct,
   eventAt(""),

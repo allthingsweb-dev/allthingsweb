@@ -634,6 +634,30 @@ a pull request changes the file, on main, and every Monday.
 DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run hero-photos
 ```
 
+### The home lab's wall, faces and tally
+
+The home lab (`web/src/pages/lab/`, at /lab/home) tries heroes that show
+how big allthings is. Beside home it reads `Community`
+(`src/community.ts`), in one statement: the about page's tally (`held`
+and `tally` in `src/about.ts`, which /about reads too), a wall of
+photos, and faces.
+
+- **The wall** is `core/backfill/wall-photos.json`: about forty photos of
+  crowds and energy across many evenings, picked by looking at every photo,
+  in the order the wall shows them. They are held to the hero photos'
+  rules, and each carries its evening's date and short link. When the lab
+  can show none of them, it shows every photo of our evenings held, latest
+  first.
+- **The faces** are `core/backfill/faces.json`: people who have been on
+  stage at our evenings, by profile id, whose profile photo is of them (a
+  logo or a drawing is left out). The lab shows each while the profile has
+  a photo on the media origin and has been on stage at one of our evenings
+  held. When it can show none, it shows everyone on stage with a photo,
+  latest first.
+
+`bun run hero-photos` checks the wall and the faces with home's photos,
+and the workflow runs it when any of the three files changes.
+
 ## Schedules and notes
 
 Some events' pages say more than the record: a hackathon's schedule, its

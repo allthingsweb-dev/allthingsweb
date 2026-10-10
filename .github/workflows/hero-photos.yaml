@@ -1,10 +1,12 @@
 name: Hero photos
 
-# Home's mosaic shows hand-picked photos (core/backfill/hero-photos.json).
+# Home's mosaic shows hand-picked photos (core/backfill/hero-photos.json),
+# and the home lab a wall of them and faces (wall-photos.json, faces.json).
 # Core's hero-photos check (core/scripts/hero-photos.ts) reads production as
 # the read-only site_reader role and fails if home can't show one of them:
 # an image that is gone, off media.allthings.dev, not the named evening's,
-# or of an evening that is a draft, someone else's, or still ahead. It runs
+# or of an evening that is a draft, someone else's, or still ahead; or a
+# face without a photo there, or who hasn't been on stage. It runs
 # when a pull request changes the photos or how they're read, on main, and
 # weekly, since production can change under the file.
 on:
@@ -14,7 +16,11 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - "core/backfill/hero-photos.json"
+      - "core/backfill/wall-photos.json"
+      - "core/backfill/faces.json"
       - "core/src/hero-photos.ts"
+      - "core/src/faces.ts"
+      - "core/src/community.ts"
       - "core/src/home.ts"
       - "core/src/catalog.ts"
       - "core/scripts/hero-photos.ts"
@@ -51,7 +57,7 @@ jobs:
         working-directory: core
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
-      - name: 🖼️ Check home can show every hero photo
+      - name: 🖼️ Check every hand-picked photo and face can be shown
         working-directory: core
         env:
           DATABASE_URL: ${{ secrets.NEON_READER_URL }}
