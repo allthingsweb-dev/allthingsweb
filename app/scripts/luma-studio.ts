@@ -62,7 +62,8 @@ export const lumaSchemas = {
     questions: z
       .array(z.object({ label: z.string().min(1), required: z.boolean() }))
       .optional(),
-    dryRun: z.boolean().default(true),
+    // Left out, a dry run; true with approve is refused, never a write.
+    dryRun: z.boolean().optional(),
     approve: z
       .string()
       .regex(/^[0-9a-f]{16}$/)
@@ -72,7 +73,8 @@ export const lumaSchemas = {
     event: z.string().min(1),
     add: z.array(z.string().min(1)).optional(),
     remove: z.array(z.string().min(1)).optional(),
-    dryRun: z.boolean().default(true),
+    // Left out, a dry run; true with approve is refused, never a write.
+    dryRun: z.boolean().optional(),
     approve: z
       .string()
       .regex(/^[0-9a-f]{16}$/)
@@ -159,7 +161,12 @@ const builders: { readonly [T in LumaTool]: (input: unknown) => string[] } = {
       }
       return ["registration", `--event=${a.event}`, "--json"];
     }
-    if (!a.dryRun && a.approve === undefined) {
+    if (a.dryRun === true && a.approve !== undefined) {
+      throw new Error(
+        "dryRun and approve can't both be given: a dry run writes nothing, approve writes.",
+      );
+    }
+    if (a.dryRun === false && a.approve === undefined) {
       throw new Error(
         "A change needs approve: the token its dry run printed for an organizer to read.",
       );
@@ -185,7 +192,12 @@ const builders: { readonly [T in LumaTool]: (input: unknown) => string[] } = {
       }
       return ["hosts", `--event=${a.event}`, "--json"];
     }
-    if (!a.dryRun && a.approve === undefined) {
+    if (a.dryRun === true && a.approve !== undefined) {
+      throw new Error(
+        "dryRun and approve can't both be given: a dry run writes nothing, approve writes.",
+      );
+    }
+    if (a.dryRun === false && a.approve === undefined) {
       throw new Error(
         "A change needs approve: the token its dry run printed for an organizer to read.",
       );

@@ -131,6 +131,14 @@ describe("Luma tools", () => {
     expect(() =>
       lumaArguments("luma_registration", { ...change, dryRun: false }),
     ).toThrow();
+    // An explicit dry run with a token is refused, never a write.
+    expect(() =>
+      lumaArguments("luma_registration", {
+        ...change,
+        dryRun: true,
+        approve: "0123456789abcdef",
+      }),
+    ).toThrow();
     expect(() =>
       lumaArguments("luma_registration", {
         event: "x",
@@ -165,6 +173,14 @@ describe("Luma tools", () => {
     // A change without its token is never sent.
     expect(() =>
       lumaArguments("luma_hosts", { ...change, dryRun: false }),
+    ).toThrow();
+    // An explicit dry run with a token is refused, never a write.
+    expect(() =>
+      lumaArguments("luma_hosts", {
+        ...change,
+        dryRun: true,
+        approve: "0123456789abcdef",
+      }),
     ).toThrow();
     expect(() =>
       lumaArguments("luma_hosts", { event: "x", approve: "0123456789abcdef" }),
