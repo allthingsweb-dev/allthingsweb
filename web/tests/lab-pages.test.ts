@@ -269,6 +269,26 @@ describe("the variants' parts", () => {
       photo("face-1").url,
       photo("crowd-0").url,
     ]);
+    // A photo the page can't show takes no tile: the mosaic is still full.
+    const elsewhere = {
+      ...photo("elsewhere"),
+      url: "https://elsewhere.example/a.jpg",
+    };
+    const crowded = render(
+      "faces",
+      data({
+        community: community({
+          faces: Array.from({ length: 90 }, (_, index) => ({
+            slug: `person-${index}`,
+            name: `Person ${index}`,
+            photo: index < 45 ? elsewhere : photo(`face-${index}`),
+          })),
+          wall: [...wall, ...wall],
+        }),
+      }),
+    );
+    expect(crowded).not.toContain("elsewhere.example");
+    expect(crowded.match(/<li><picture>/g)).toHaveLength(2 * mosaicCount);
     const html = render("faces");
     expect(html).toContain(
       '<h1 id="faces-word" class="faces-word">all<br class="faces-break"/>things<br class="faces-break"/><span class="slash">/</span>',

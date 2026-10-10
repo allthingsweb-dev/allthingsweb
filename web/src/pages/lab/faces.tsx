@@ -60,19 +60,22 @@ export function Faces({
   readonly data: LabData;
   readonly images: ImageMode;
 }) {
-  const tiles = mosaicOf(community)
-    .filter((photo) => hasSource(photo, images))
-    .map((photo) => (
-      <li>
-        <SquarePhoto
-          photo={photo}
-          mode={images}
-          side={72}
-          sides={[72, 144]}
-          alt=""
-        />
-      </li>
-    ));
+  // Only photos this page can show take a tile, so the cap counts them alone.
+  const shown = mosaicOf({
+    faces: community.faces.filter((face) => hasSource(face.photo, images)),
+    wall: community.wall.filter((photo) => hasSource(photo.photo, images)),
+  });
+  const tiles = shown.map((photo) => (
+    <li>
+      <SquarePhoto
+        photo={photo}
+        mode={images}
+        side={72}
+        sides={[72, 144]}
+        alt=""
+      />
+    </li>
+  ));
   return (
     <div class="lab-home">
       <section class="faces" aria-labelledby="faces-word">
