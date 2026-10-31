@@ -37,6 +37,14 @@ The facts are JSON (core/src/cover.ts writes them):
 `topic` is null for a name that yields none; the name is then set as
 written. `neighborhood`, `hosts` and `venue` are null when unknown, and their row
 says only what is known. The same facts make the same pixels.
+
+An evening a co-brand claims (core/src/cobrands.ts) has one more fact, and
+is drawn by that co-brand's template (COBRANDS) instead of this one:
+
+    "cobrand": {"id": "aie-code-summit", "day": "2026.11.11"}
+
+`day` is its day year first, as the site writes a day. Every other
+evening's facts have no `cobrand` at all.
 """
 
 from __future__ import annotations
@@ -51,6 +59,7 @@ from pathlib import Path
 import resvg_py
 from generate import MONO_CACHE, MONO_SHA256, MONO_URL, TOKENS, hex_color_of, load_font
 from og import GRAIN, Setter, Span, Style, palette
+from summit_cover import summit_cover
 
 SIZE = 1200
 PIXELS = 1600
@@ -81,6 +90,17 @@ def label_style(size: float) -> Style:
     return Style("archivo", 700, 75, size, -0.01, caps=True)
 
 
+# The templates a co-brand's evenings are drawn with instead of the Swiss
+# Index, by the id core/src/cobrands.ts gives the co-brand.
+COBRANDS = {"aie-code-summit": summit_cover}
+
+
+@dataclass(frozen=True)
+class Cobrand:
+    id: str
+    day: str
+
+
 @dataclass(frozen=True)
 class Facts:
     mode: str
@@ -94,12 +114,20 @@ class Facts:
     hosts: str | None
     venue: str | None
     link: str
+    cobrand: Cobrand | None = None
 
     @staticmethod
     def parse(data: dict) -> "Facts":
-        facts = Facts(**data)
+        data = dict(data)
+        cobrand = data.pop("cobrand", None)
+        facts = Facts(**data, cobrand=None if cobrand is None else Cobrand(**cobrand))
         if facts.mode not in ("night", "paper"):
             raise ValueError(f"mode is night or paper, not {facts.mode!r}")
+        if facts.cobrand is not None:
+            if facts.cobrand.id not in COBRANDS:
+                raise ValueError(f"no co-brand's template is {facts.cobrand.id!r}")
+            if facts.topic is None:
+                raise ValueError("a co-branded cover sets a topic, and this has none")
         return facts
 
 
@@ -132,7 +160,19 @@ def cut(setter: Setter, text: str, style: Style, width: float) -> str:
     return f"{text.rstrip()}…"
 
 
+def document(body: str, label: str) -> str:
+    """The cover's SVG: `body` on the 1200-unit square, drawn PIXELS wide."""
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        f'viewBox="0 0 {SIZE} {SIZE}" width="{PIXELS}" height="{PIXELS}" '
+        f'role="img" aria-label="{html.escape(label)}"><title>{html.escape(label)}</title>'
+        f"{body}</svg>\n"
+    )
+
+
 def cover_svg(setter: Setter, colors: dict[str, str], facts: Facts) -> str:
+    if facts.cobrand is not None:
+        return document(*COBRANDS[facts.cobrand.id](setter, colors, facts))
     night = facts.mode == "night"
     p = palette(colors, night)
     # Rules in the meta color: the Index's ledger has to read at a
@@ -245,12 +285,7 @@ def cover_svg(setter: Setter, colors: dict[str, str], facts: Facts) -> str:
         for part in (title, f"{facts.date} {facts.year}", facts.neighborhood, under)
         if part
     )
-    return (
-        '<svg xmlns="http://www.w3.org/2000/svg" '
-        f'viewBox="0 0 {SIZE} {SIZE}" width="{PIXELS}" height="{PIXELS}" '
-        f'role="img" aria-label="{html.escape(label)}"><title>{html.escape(label)}</title>'
-        f'{"".join(parts)}</svg>\n'
-    )
+    return document("".join(parts), label)
 
 
 def faces() -> dict[str, bytes]:
@@ -270,8 +305,9 @@ def render(facts: Facts, setter: Setter | None = None, pixels: int = PIXELS) -> 
     return bytes(resvg_py.svg_to_bytes(svg_string=svg, width=pixels, height=pixels))
 
 
-# Two past evenings' covers, one in each mode, written beside the template
-# by generate.py (and held to it by --check), at Luma's smallest size.
+# Two past evenings' covers, one in each mode, and allthings/aie's, the one
+# co-branded evening, written beside the template by generate.py (and held
+# to it by --check), at Luma's smallest size.
 SPECIMENS = {
     "specimen-night.png": Facts(
         mode="night",
@@ -298,6 +334,20 @@ SPECIMENS = {
         hosts="Sentry",
         venue="Sentry, SF",
         link="allthings.dev/open-source-hackathon",
+    ),
+    "specimen-aie-code-summit.png": Facts(
+        mode="night",
+        topic="aie",
+        name="allthings/aie",
+        ahead=True,
+        date="Wed Nov 11",
+        time="6:00 PM",
+        year="2026",
+        neighborhood=None,
+        hosts=None,
+        venue=None,
+        link="allthings.dev/aie",
+        cobrand=Cobrand(id="aie-code-summit", day="2026.11.11"),
     ),
 }
 SPECIMEN_PIXELS = 800

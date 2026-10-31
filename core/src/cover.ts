@@ -2,6 +2,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { approvalToken } from "./approval.ts";
+import { type Cobrand, cobrandOf } from "./cobrands.ts";
 import type { EventPage, EventPages } from "./event-page.ts";
 import { siteOrigin } from "./site.ts";
 import type { ShortSlugs } from "./slugs.ts";
@@ -17,7 +18,9 @@ import type { ShortSlugs } from "./slugs.ts";
  * topic), the day, hour and year in San Francisco, the neighborhood, the
  * hosting companies (or the venue's name, with none on record) and the
  * short link, in the evening's mode. The facts
- * are all that varies, so they are what makes two covers differ.
+ * are all that varies, so they are what makes two covers differ. An
+ * evening a co-brand claims (src/cobrands.ts) says which, and its day as
+ * that template writes it; no other evening's facts carry the key at all.
  *
  * `CoverRenderer` draws them with the brand's template,
  * brand/marks/cover.py, as a square PNG. Same facts, same pixels.
@@ -43,6 +46,16 @@ export interface CoverFacts {
   readonly venue: string | null;
   /** "allthings.dev/trivia": the lockup is the link. */
   readonly link: string;
+  /**
+   * Only on an evening a co-brand claims (src/cobrands.ts): which template
+   * draws its cover instead of the Swiss Index, and its day year first,
+   * "2026.11.11", as the site writes a day. Absent, never null, on every
+   * other evening, so their facts and approval tokens are as they were.
+   */
+  readonly cobrand?: {
+    readonly id: Cobrand["id"];
+    readonly day: string;
+  };
 }
 
 const sanFrancisco = DateTime.zoneMakeNamedUnsafe("America/Los_Angeles");
@@ -85,9 +98,11 @@ export function coverFacts(
     DateTime.setZone(page.startsAt, sanFrancisco),
   );
   const twelveHour = hour % 12 === 0 ? 12 : hour % 12;
+  const topic = page.topic ?? null;
+  const cobrand = cobrandOf({ topic, startsAt: page.startsAt });
   return {
     mode: page.mode,
-    topic: page.topic ?? null,
+    topic,
     name: page.name,
     ahead: page.status !== "past",
     date: `${weekdays[weekDay] ?? ""} ${months[month - 1] ?? ""} ${day}`,
@@ -97,6 +112,14 @@ export function coverFacts(
     hosts: hostNames(page.hosts),
     venue: page.venue?.name ?? null,
     link: `${siteHost}/${linkSlug}`,
+    ...(cobrand === undefined
+      ? {}
+      : {
+          cobrand: {
+            id: cobrand.id,
+            day: `${year}.${String(month).padStart(2, "0")}.${String(day).padStart(2, "0")}`,
+          },
+        }),
   };
 }
 

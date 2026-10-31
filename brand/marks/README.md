@@ -36,6 +36,13 @@ An evening's Luma cover (`cover.py`) is drawn from its facts: square, 1600 x 160
 | File                                                                         | What it is                                                                                         |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | [`specimen-night.png`, `specimen-paper.png`](../covers)                      | Two past evenings' covers, allthings/effect (Night) and allthings/open source hackathon (Paper), at 800 x 800, which `--check` holds the template to |
+| [`specimen-aie-code-summit.png`](../covers)                                  | allthings/aie's co-branded cover, ahead, at 800 x 800, which `--check` holds `summit_cover.py` to |
+
+An evening a co-brand claims (`core/src/cobrands.ts`) has one more fact, `cobrand`, and `cover.py` hands it to that co-brand's template (`COBRANDS`) instead. The one co-brand is AI Engineer's Code Summit, San Francisco, November 9 to 12, 2026, for allthings/aie, an official community event of the summit: AIE's organizers (G2i) allowed community events to use its branding and supplied its cover art. `summit_cover.py` sets the evening's facts on that art in AIE's layout: AIE's `[ OFFICIAL COMMUNITY EVENT ]` label, the lockup with AIE's orange cursor block while the evening is ahead, the weekday and the day year first, the neighborhood (or San Francisco, CA, until the venue is known), and the master wordmark under "hosts". It blacks out only what changes, redraws the art's lines its plates hid, and draws four San Francisco landmarks into the art in its own line work.
+
+| File                                                                         | What it is                                                                                         |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [`aie-code-summit/cover.png`](../cobrands/aie-code-summit/cover.png)         | AIE's cover for the summit's official afterparty on Luma, 1200 x 1200, kept exactly as supplied; `summit_cover.py` checks its SHA-256 before drawing, as the fonts are checked. It is AIE's artwork, used with their permission for this evening, and not ours to reuse |
 
 Everything is a plain SVG path or a PNG rendered from one, so no font is
 needed to display the marks. Colors and the wordmark's weight, width and
