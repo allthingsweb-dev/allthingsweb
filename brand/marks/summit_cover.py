@@ -138,6 +138,7 @@ def art() -> str:
 
 
 def golden_gate() -> str:
+    """The Golden Gate Bridge on the lockup box: towers, cable, side spans, hangers."""
     left, right = TOWERS
     (x0, deck), (x1, _) = DECK
     middle = (left + right) / 2 + 5
@@ -241,7 +242,7 @@ def wordmark(colors: dict[str, str]) -> str:
     )
 
 
-def _right(setter: Setter, topic: str, size: float, ahead: bool) -> float:
+def _right(setter: Setter, topic: str, size: float, *, ahead: bool) -> float:
     """Where the lockup, and its cursor while it is ahead, end."""
     style = lockup_style(size)
     end = LOCKUP_X + setter.width([Span(f"allthings/{topic}", "")], style)
@@ -254,13 +255,13 @@ def lockup_style(size: float) -> Style:
     return Style("archivo", 800, 112, size, -0.04)
 
 
-def fit_lockup(setter: Setter, topic: str, ahead: bool) -> tuple[float, str]:
+def fit_lockup(setter: Setter, topic: str, *, ahead: bool) -> tuple[float, str]:
     """The largest size the lockup fits at; at the smallest, the topic cut."""
     for size in LOCKUP_SIZES:
-        if _right(setter, topic, size, ahead) <= LOCKUP_RIGHT:
+        if _right(setter, topic, size, ahead=ahead) <= LOCKUP_RIGHT:
             return size, topic
     size = LOCKUP_SIZES[-1]
-    while topic and _right(setter, f"{topic}…", size, ahead) > LOCKUP_RIGHT:
+    while topic and _right(setter, f"{topic}…", size, ahead=ahead) > LOCKUP_RIGHT:
         topic = topic[:-1]
     return size, f"{topic.rstrip()}…"
 
@@ -278,7 +279,9 @@ def summit_cover(
     setter: Setter, colors: dict[str, str], facts: Facts
 ) -> tuple[str, str]:
     """The cover's body on the 1200-unit square, and what it says, for its label."""
-    assert facts.topic is not None and facts.cobrand is not None
+    # Facts.parse refuses a co-branded cover without either.
+    assert facts.topic is not None
+    assert facts.cobrand is not None
     weekday = facts.date.split(" ")[0]
     place = facts.neighborhood or "San Francisco, CA"
     parts = [
@@ -294,7 +297,7 @@ def summit_cover(
         setter.draw([Span("[ official community event ]", WHITE)], LABEL, 77, 415),
     ]
 
-    size, topic = fit_lockup(setter, facts.topic, facts.ahead)
+    size, topic = fit_lockup(setter, facts.topic, ahead=facts.ahead)
     style = lockup_style(size)
     lockup = [
         Span("allthings", colors["paper"]),

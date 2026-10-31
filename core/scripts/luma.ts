@@ -466,6 +466,7 @@ const coverJson = ({ png, ...rest }: PreparedCover) => ({
   bytes: png.length,
 });
 
+/** What a prepared cover says and replaces, as the dry run prints it. */
 const describeCover = (prepared: PreparedCover, file: string | null) => {
   const { facts, current } = prepared;
   const lockup =

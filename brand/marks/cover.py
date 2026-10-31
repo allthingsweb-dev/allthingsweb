@@ -118,6 +118,7 @@ class Facts:
 
     @staticmethod
     def parse(data: dict) -> "Facts":
+        """The facts core/src/cover.ts wrote, refused if they aren't a cover's."""
         data = dict(data)
         cobrand = data.pop("cobrand", None)
         facts = Facts(**data, cobrand=None if cobrand is None else Cobrand(**cobrand))
@@ -171,6 +172,7 @@ def document(body: str, label: str) -> str:
 
 
 def cover_svg(setter: Setter, colors: dict[str, str], facts: Facts) -> str:
+    """The cover `facts` say: their co-brand's template's, or the Swiss Index."""
     if facts.cobrand is not None:
         return document(*COBRANDS[facts.cobrand.id](setter, colors, facts))
     night = facts.mode == "night"
