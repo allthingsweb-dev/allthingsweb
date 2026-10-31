@@ -59,12 +59,15 @@ SIZE = 1200
 
 # AIE's colors, sampled from the art: its type and rules, the line work, its
 # orange (the cursor block and the square in the staircase) and the quieter
-# grays the landmarks and their caption are drawn in.
+# gray the landmarks' strokes are drawn in. Text is set only in white or the
+# line color: the bridge's coordinates are small text, so their caption is
+# in the line color, Lc 82.9 and 14.7:1 on the art's black (brand/src/
+# contrast.ts), past small text's Lc 75 and WCAG 2.2 AA.
 WHITE = "#FFFFFF"
 LINE = "#D8D8D8"
 ORANGE = "#FF570A"
 QUIET = "#B4B4B4"
-CAPTION = "#8C8C8C"
+CAPTION = LINE
 
 LABEL = Style("mono", 500, 100, 34, 4 / 34, caps=True)
 META = Style("mono", 500, 100, 28, 3 / 28, caps=True)
