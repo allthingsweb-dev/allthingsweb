@@ -134,6 +134,7 @@ Sizes are the largest. The wordmark, event lockup, label, lead and statement shr
 
 - Real photos of real people at our evenings. No AI illustrations and no stock photography.
 - Event covers are typographic: lockup, neighborhood, date, host, short link. They are generated from event data, never hand-assembled.
+- The one exception: an evening a conference made one of its official community events may wear that conference's cover art, when its organizers allow it, with our lockup, its date and its neighborhood set on it. It is generated the same way, and which evenings may wear it is decided in one place, `core/src/cobrands.ts`.
 
 ## People and channels
 

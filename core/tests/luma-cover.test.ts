@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { Cause, DateTime, Effect, Exit, Layer } from "effect";
-import { approvalToken } from "../src/approval.ts";
+import { approvalToken, canonicalJson } from "../src/approval.ts";
+import { aieCodeSummit, cobrandOf, cobrands } from "../src/cobrands.ts";
 import {
   type CoverFacts,
   coverFacts,
@@ -205,6 +206,70 @@ describe("what a cover says", () => {
     });
   });
 
+  test("an evening no co-brand claims says exactly what it said before: no cobrand key, the same token", async () => {
+    const facts = coverFacts(page, "effect", "allthings.dev");
+    expect(Object.keys(facts)).not.toContain("cobrand");
+    expect(canonicalJson(facts)).toBe(
+      '{"ahead":true,"date":"Wed Sep 30","hosts":"CodeRabbit","link":"allthings.dev/effect","mode":"night","name":"Effect San Francisco","neighborhood":"East Cut","time":"5:30 PM","topic":"effect","venue":"CodeRabbit","year":"2026"}',
+    );
+    // The token main's coverFacts gave these facts before co-brands.
+    expect(await Effect.runPromise(approvalToken(facts))).toBe(
+      "d017ea24178d7d58",
+    );
+  });
+
+  test("allthings/aie during the Code Summit is co-branded, its day year first, and its token covers it", async () => {
+    const aie = {
+      ...page,
+      topic: "aie",
+      name: "allthings/aie",
+      startsAt: DateTime.makeUnsafe("2026-11-12T02:00:00Z"),
+      venue: null,
+    };
+    const facts = coverFacts(aie, "aie", "allthings.dev");
+    expect(facts).toEqual({
+      mode: "night",
+      topic: "aie",
+      name: "allthings/aie",
+      ahead: true,
+      date: "Wed Nov 11",
+      time: "6:00 PM",
+      year: "2026",
+      neighborhood: null,
+      hosts: "CodeRabbit",
+      venue: null,
+      link: "allthings.dev/aie",
+      cobrand: { id: "aie-code-summit", day: "2026.11.11" },
+    });
+    const { cobrand: _, ...without } = facts;
+    expect(await Effect.runPromise(approvalToken(facts))).not.toBe(
+      await Effect.runPromise(approvalToken(without)),
+    );
+  });
+
+  test("a co-brand claims only its topic, on its days in San Francisco", () => {
+    const at = (topic: string | undefined, instant: string) =>
+      cobrandOf({ topic, startsAt: DateTime.makeUnsafe(instant) });
+    // The summit's first and last days, in San Francisco: 12:30 AM on Nov 9,
+    // and 11:30 PM on Nov 12, which is already Nov 13 in UTC.
+    expect(at("aie", "2026-11-09T08:30:00Z")).toBe(aieCodeSummit);
+    expect(at("aie", "2026-11-13T07:30:00Z")).toBe(aieCodeSummit);
+    // A day either side, another year, another topic or none: no co-brand.
+    expect(at("aie", "2026-11-09T07:30:00Z")).toBeUndefined();
+    expect(at("aie", "2026-11-13T08:30:00Z")).toBeUndefined();
+    expect(at("aie", "2027-11-11T02:00:00Z")).toBeUndefined();
+    expect(at("effect", "2026-11-11T02:00:00Z")).toBeUndefined();
+    expect(at(undefined, "2026-11-11T02:00:00Z")).toBeUndefined();
+  });
+
+  test("every co-brand has its template in brand/marks/cover.py", async () => {
+    const templates = await Bun.file(
+      new URL("../../brand/marks/cover.py", import.meta.url),
+    ).text();
+    const registry = /^COBRANDS = \{(.*)\}$/m.exec(templates)?.[1] ?? "";
+    for (const { id } of cobrands) expect(registry).toContain(`"${id}": `);
+  });
+
   test("hosts are named as every surface names them", () => {
     expect(hostNames([])).toBeNull();
     expect(hostNames(["Convex", "Discord"])).toBe("Convex & Discord");
@@ -273,6 +338,43 @@ describe("prepare", () => {
       requests.map((r) => `${r.method} ${new URL(r.url).pathname}`),
     ).toEqual(["GET /v1/events/get"]);
     expect(await recorded()).toMatchObject({ generated_cover_url: null });
+  });
+
+  test("draws allthings/aie during the Code Summit with its co-brand, and the token covers it", async () => {
+    const plain = value(
+      (
+        await run((c) => c.prepare({ _tag: "Slug", slug: draft }), {
+          "/v1/events/get": [json(lumaEvent())],
+        })
+      ).exit,
+    );
+    expect(Object.keys(plain.facts)).not.toContain("cobrand");
+    await db.exec(
+      `UPDATE events SET topic = 'aie', start_date = '2026-11-12T02:00:00Z', end_date = '2026-11-12T05:00:00Z' WHERE slug = '${draft}'`,
+    );
+    rendered = [];
+    const { exit, requests } = await run(
+      (c) => c.prepare({ _tag: "Slug", slug: draft }),
+      { "/v1/events/get": [json(lumaEvent())] },
+    );
+    const prepared = value(exit);
+    expect(prepared.facts).toMatchObject({
+      topic: "aie",
+      ahead: true,
+      date: "Wed Nov 11",
+      year: "2026",
+      neighborhood: "East Cut",
+      cobrand: { id: "aie-code-summit", day: "2026.11.11" },
+    });
+    // What the template is given is what the token covers.
+    expect(rendered).toEqual([prepared.facts]);
+    expect(prepared.factsToken).toBe(
+      await Effect.runPromise(approvalToken(prepared.facts)),
+    );
+    expect(prepared.token).not.toBe(plain.token);
+    expect(
+      requests.map((r) => `${r.method} ${new URL(r.url).pathname}`),
+    ).toEqual(["GET /v1/events/get"]);
   });
 
   test("finds the evening by its Luma id too", async () => {

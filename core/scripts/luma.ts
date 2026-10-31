@@ -466,12 +466,18 @@ const coverJson = ({ png, ...rest }: PreparedCover) => ({
   bytes: png.length,
 });
 
+/** What a prepared cover says and replaces, as the dry run prints it. */
 const describeCover = (prepared: PreparedCover, file: string | null) => {
   const { facts, current } = prepared;
   const lockup =
     facts.topic === null
       ? facts.name
       : `allthings/${facts.topic}${facts.ahead ? "_" : ""}`;
+  // The Swiss Index in the evening's mode, or the co-brand's template.
+  const drawnAs =
+    facts.cobrand === undefined
+      ? facts.mode
+      : `co-branded: ${facts.cobrand.id}`;
   return [
     `${prepared.name} · ${prepared.lumaEventId} · ${prepared.visibility}`,
     `says: ${[
@@ -482,7 +488,7 @@ const describeCover = (prepared: PreparedCover, file: string | null) => {
       facts.link,
     ]
       .filter((part) => part !== null)
-      .join(" · ")} (${facts.mode})`,
+      .join(" · ")} (${drawnAs})`,
     `drawn: ${file ?? "(in memory)"} (${(prepared.png.length / 1e6).toFixed(1)} MB, sha256 ${prepared.sha256})`,
     `replaces: ${current.url ?? "no cover"}${current.lumaDefault ? " (Luma's default)" : current.ours ? " (ours, as last set)" : current.url === null ? "" : " (not ours)"}`,
   ].join("\n");

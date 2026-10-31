@@ -1426,6 +1426,19 @@ on record; its short link, the one a draft gets when it is published; and
 its mode, Night or Paper. The brand's template draws those facts, square,
 with uv (`brand/marks/cover.py`). Same facts, same pixels.
 
+An evening a conference made one of its official community events may
+wear that conference's cover instead, when its organizers allow it:
+allthings/aie, during AI Engineer's Code Summit (November 9 to 12, 2026).
+`src/cobrands.ts` is the one place that decides which: a co-brand claims
+the evening with its topic on one of its San Francisco days. Only then do
+the facts carry `cobrand` (its id, and the day year first, `2026.11.11`),
+so the approval token covers which template draws it, and
+`brand/marks/summit_cover.py` sets the lockup, day and place on the art.
+Every other evening's facts have no `cobrand` key at all, so their tokens,
+and the covers already recorded against them, are unchanged. Nothing about
+it is stored: no column says it, and readiness compares the token as for
+any cover.
+
 `bun run luma cover` sets it, as publish does, in two steps:
 
 - `--dry-run` draws the cover, writes the PNG to look at (`--out`, or a
