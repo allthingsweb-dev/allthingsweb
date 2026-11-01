@@ -1,7 +1,7 @@
 import * as Cookies from "effect/http/Cookies";
 import { edgeCacheControlHeader } from "./cache.ts";
-import { contentEncoding } from "./pages/response.ts";
-import { themeOf } from "./pages/theme.ts";
+import { contentEncoding } from "./pages/encoding.ts";
+import { themeOf } from "./pages/theme-cookie.ts";
 
 /**
  * The Worker's own cache in front of every GET it answers, so a warm page

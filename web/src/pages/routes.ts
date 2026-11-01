@@ -44,7 +44,8 @@ import { peoplePage } from "./people.tsx";
 import { personPage } from "./person.tsx";
 import type { ImageMode } from "./picture.tsx";
 import { htmlResponse } from "./response.ts";
-import { chooseTheme, isChoice, type Theme, themeOf } from "./theme.ts";
+import { chooseTheme, isChoice, type Theme } from "./theme.ts";
+import { themeOf } from "./theme-cookie.ts";
 
 /**
  * The site's pages. A page is a function of its data, of the mode its

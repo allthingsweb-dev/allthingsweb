@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import source from "../all-things.tokens.json" with { type: "json" };
 import metricsSource from "../type-metrics.json" with { type: "json" };
+import { type Mode, modes } from "./modes.ts";
 
 /**
  * The allthings/_ design tokens: all-things.tokens.json, in the W3C Design
@@ -236,9 +237,8 @@ export type TokenFile = typeof TokenFile.Type;
 /** The brand's tokens, validated when first imported. */
 export const tokens: TokenFile = Schema.decodeUnknownSync(TokenFile)(source);
 
-/** The two modes: Paper is light, Night is dark. */
-export const modes = ["paper", "night"] as const;
-export type Mode = (typeof modes)[number];
+/** The two modes: Paper is light, Night is dark (modes.ts). */
+export { type Mode, modes };
 
 export interface Color {
   /** The token's name, such as `bridgeDeep`. */
