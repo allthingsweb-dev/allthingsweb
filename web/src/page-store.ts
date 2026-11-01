@@ -92,8 +92,14 @@ export const siteTtl = 30;
  */
 export const checkEvery = 5 * 60 * 1000;
 
-/** Seconds a data center keeps a page it has read: kept pages never change. */
-export const pageTtl = 24 * 60 * 60;
+/**
+ * Seconds a data center keeps the answer to a page read. A kept page never
+ * changes, but KV keeps a miss as long as a hit, so a data center that read
+ * a page before another kept it doesn't see it for this long. It builds the
+ * page itself then, and its own write is usually visible to it at once
+ * (KV's "how it works"); an hour bounds the case where it isn't.
+ */
+export const pageTtl = 60 * 60;
 
 /**
  * Seconds a page is kept at all: a version the data has moved on from goes
@@ -383,13 +389,27 @@ export function pageStored(
   /** Whether this isolate is asking the database already. */
   let checking = false;
 
-  const readPointer = async (): Promise<SitePointer | undefined> => {
+  /**
+   * The pointer, or undefined when the namespace has none (or none it can
+   * read), or "unreachable" when KV didn't answer: then nothing is asked or
+   * written, so one failed read never replaces the pointer every isolate
+   * shares.
+   */
+  const readPointer = async (): Promise<
+    SitePointer | undefined | "unreachable"
+  > => {
     if (known !== undefined && now() - known.at < siteTtl * 1000) {
       return known.pointer;
     }
-    const bytes = await pages
-      .get(siteKey, { type: "arrayBuffer", cacheTtl: siteTtl })
-      .catch(() => null);
+    let bytes: ArrayBuffer | null;
+    try {
+      bytes = await pages.get(siteKey, {
+        type: "arrayBuffer",
+        cacheTtl: siteTtl,
+      });
+    } catch {
+      return "unreachable";
+    }
     const pointer =
       bytes === null
         ? undefined
@@ -437,6 +457,7 @@ export function pageStored(
 
     const started = now();
     const pointer = await readPointer();
+    if (pointer === "unreachable") return bypass();
     if (pointer === undefined || now() - pointer.checkedAt >= checkEvery) {
       context.waitUntil(check(pointer));
     }

@@ -63,6 +63,9 @@ function memoryNamespace() {
     breaks: () => {
       unreachable = true;
     },
+    mends: () => {
+      unreachable = false;
+    },
   };
 }
 
@@ -377,6 +380,20 @@ describe("the page store", () => {
     const { response, body } = await fetch(get("/"));
     expect(response.status).toBe(200);
     expect(body).toContain("build");
+  });
+
+  test("never takes a failed read of the version for no version: it asks nothing and writes nothing", async () => {
+    const { fetch, kv, time, data } = setup();
+    await fetch(get("/"));
+    const pointer = kv.pointer();
+    const asked = data.asked();
+    // Past this isolate's own copy of the version, and past the check.
+    time.advance(checkEvery / 1000);
+    kv.breaks();
+    expect(served((await fetch(get("/"))).response)).toBe("bypass");
+    kv.mends();
+    expect(data.asked()).toBe(asked);
+    expect(kv.pointer()).toEqual(pointer);
   });
 
   test("leaves photo variants to their own cache", async () => {

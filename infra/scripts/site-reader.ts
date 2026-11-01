@@ -28,14 +28,14 @@ import {
   provisionLoginRole,
   storeConnectionString,
 } from "./login-role.ts";
-import { siteTables } from "../../core/src/site-version.ts";
+import { siteTables } from "../../core/src/site-tables.ts";
 
 export const SITE_READER = "site_reader";
 
 /**
- * The tables the public site reads (core's src/site-version.ts, whose
- * digest of them is the version pages are kept by); a new one is added
- * there and this script rerun.
+ * The tables the public site reads (core's src/site-tables.ts, whose rows'
+ * digest is the version pages are kept by); a new one is added there and
+ * this script rerun.
  */
 export const SITE_TABLES = siteTables;
 

@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { published } from "./catalog.ts";
 import type { DataSourceError } from "./errors.ts";
+import { siteTables } from "./site-tables.ts";
 import { orDataSourceError } from "./sql.ts";
 
 /**
@@ -22,30 +23,7 @@ import { orDataSourceError } from "./sql.ts";
  * About 20 ms in production (2026-11-01).
  */
 
-/**
- * The tables the public site reads: site_reader's grants
- * (infra/scripts/site-reader.ts), and the rows {@link SiteVersionShape.read}
- * digests. A new one is added here, and site-reader.ts rerun.
- */
-export const siteTables = [
-  "events",
-  "talks",
-  "event_talks",
-  "talk_speakers",
-  "profiles",
-  "sponsors",
-  "event_sponsors",
-  "images",
-  "event_images",
-  "event_people",
-  "event_posts",
-  "external_talks",
-  "event_schedule_items",
-  "event_notes",
-  "profile_slugs",
-  "redirects",
-  "event_slugs",
-] as const;
+export { siteTables };
 
 /** The public data's version, and when pages may change without it. */
 export interface SiteState {
