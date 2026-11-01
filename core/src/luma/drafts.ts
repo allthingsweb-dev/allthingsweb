@@ -524,12 +524,16 @@ const make = Effect.gen(function* () {
     Effect.fail(new DraftNotForgotten({ reason }));
 
   /** planning.forget_draft on `eventId`: what keeps it, what it deletes and keeps. */
-  const forgetDraft = (eventId: string, forget: boolean) =>
+  const callForgetDraft = (eventId: string, forget: boolean) =>
     sql`SELECT planning.forget_draft(${eventId}::uuid, ${forget}) AS answer`.pipe(
       Effect.flatMap(([row]) =>
         Schema.decodeUnknownEffect(ForgetAnswer)(row?.["answer"] ?? null),
       ),
     );
+  /** Locks the evening and counts what keeps it; never deletes. */
+  const planForget = (eventId: string) => callForgetDraft(eventId, false);
+  /** Deletes the evening and its private lineup, unless something keeps it. */
+  const executeForget = (eventId: string) => callForgetDraft(eventId, true);
 
   /** What keeps a draft, as its refusal says it: "public.event_talks (1), …". */
   const keptBy = (slug: string, blocks: Readonly<Record<string, number>>) =>
@@ -574,9 +578,7 @@ const make = Effect.gen(function* () {
         );
       }
       const removed = `${stored.slug} was removed meanwhile: nothing was written.`;
-      const planned = yield* forgetDraft(stored.id, false).pipe(
-        orDataSourceError,
-      );
+      const planned = yield* planForget(stored.id).pipe(orDataSourceError);
       if (planned === null) return yield* notForgotten(removed);
       if (Object.keys(planned.blocks).length > 0) {
         return yield* notForgotten(keptBy(stored.slug, planned.blocks));
@@ -601,7 +603,7 @@ const make = Effect.gen(function* () {
       const done = yield* sql
         .withTransaction(
           Effect.gen(function* () {
-            const locked = yield* forgetDraft(stored.id, false);
+            const locked = yield* planForget(stored.id);
             if (locked === null) return yield* notForgotten(removed);
             if (Object.keys(locked.blocks).length > 0) {
               return yield* notForgotten(keptBy(stored.slug, locked.blocks));
@@ -616,7 +618,7 @@ const make = Effect.gen(function* () {
                 deletes: locked.deletes,
               },
             });
-            const answer = yield* forgetDraft(stored.id, true);
+            const answer = yield* executeForget(stored.id);
             if (answer?.forgotten !== true) {
               return yield* notForgotten(
                 `${stored.slug} wasn't forgotten: nothing was written.`,
