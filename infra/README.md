@@ -66,7 +66,8 @@ The draft preview reads and writes draft collaboration as `draft_collab` (see co
 The event studio's commands (`bun run plan`, `readiness`, `luma`, `social`, `posts`, `photos`, `collab` and the rest; core's README, "The studio's connection") connect as `studio`, a fourth login role made the same way by [`scripts/studio.ts`](scripts/studio.ts):
 
 - It holds exactly what those commands' statements use, each grant listed with the command that needs it: planning's tables, the collaboration's included, and on `public` reads of only tables `site_reader` reads and writes of only the columns the studio writes.
-- The collaboration's tables have row security, which it doesn't bypass: its own policies (`core/migrations/0029_studio_collab.ts`) show it every row, and its one function, `planning.collab_row_counts()`, lets `collab` check it sees them all before it acts, `access sync` above all.
+- The collaboration's tables have row security, which it doesn't bypass: its own policies (`core/migrations/0029_studio_collab.ts`) show it every row, and its function `planning.collab_row_counts()` lets `collab` check it sees them all before it acts, `access sync` above all.
+- It has no DELETE on `events`: `luma:drafts --forget` removes a draft whose Luma event is gone through its other function, `planning.forget_draft()` (`core/migrations/0030_forget_draft.ts`), which deletes as its owner and only a draft nothing public, no idea and no collaboration points at.
 - It has no DDL, no ownership, no other function, no TRUNCATE and no BYPASSRLS, so migrations stay the owner's.
 - Its statements, lock waits and idle transactions time out at 30 seconds or less.
 

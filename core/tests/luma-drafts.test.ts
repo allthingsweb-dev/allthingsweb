@@ -5,9 +5,14 @@ import { LumaApi } from "../src/luma/api.ts";
 import {
   draftChanges,
   formatDrafts,
+  formatForgotten,
   LumaDrafts,
   type StoredDraft,
 } from "../src/luma/drafts.ts";
+import {
+  forgetBlocks,
+  forgetDeletes,
+} from "../migrations/0030_forget_draft.ts";
 import {
   clockLayer,
   seededDatabase,
@@ -439,5 +444,283 @@ describe.skipIf(studioRun)("a draft's description", () => {
     });
     await run([answer({ description_md: "" })], false);
     expect(await description()).toEqual({ html: "", summary: null });
+  });
+});
+
+describe("forgetting a draft whose Luma event is gone", () => {
+  const gone = "e0000000-0000-4000-8000-0000000000aa";
+  const slug = "2026-11-09-allthings-aie-evt-gone";
+
+  /** A draft Luma deleted, with a private lineup, a talk and a note. */
+  beforeEach(async () => {
+    await db.exec(`
+      INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, luma_event_id, is_draft, updated_at)
+        VALUES ('${gone}', '${slug}', 'allthings/aie', 'See Luma.', '2026-11-10T02:00:00Z', '2026-11-10T05:00:00Z', 0, 'evt-gone', true, now());
+      INSERT INTO planning.draft_people (event_id, profile_id, role, position) VALUES
+        ('${gone}', 'b0000000-0000-4000-8000-000000000001', 'organizer', 0),
+        ('${gone}', 'b0000000-0000-4000-8000-000000000002', 'mc', 0);
+      INSERT INTO planning.wanted_speakers (id, profile_id) VALUES
+        ('70000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003');
+      INSERT INTO planning.draft_talks (id, event_id, position, kind, title) VALUES
+        ('71000000-0000-4000-8000-000000000001', '${gone}', 1, 'talk', 'Made-up talk');
+      INSERT INTO planning.draft_talk_people (draft_talk_id, wanted_speaker_id, role, position) VALUES
+        ('71000000-0000-4000-8000-000000000001', '70000000-0000-4000-8000-000000000001', 'speaker', 0);
+      INSERT INTO planning.draft_notes (event_id, actor, kind, text) VALUES
+        ('${gone}', 'erik', 'decision', 'Moved to the 11th.');
+    `);
+  });
+
+  const forget = async (
+    replies: ReadonlyArray<Reply>,
+    dryRun: boolean,
+    draft = slug,
+    env: Record<string, string> = {
+      LUMA_API_KEY: "test-key",
+      ALLTHINGS_ACTOR: "test/core",
+    },
+  ) => {
+    const luma = fakeLumaBy(() => "", { "": replies });
+    const layer = LumaDrafts.layer.pipe(
+      Layer.provide(
+        LumaApi.layer.pipe(
+          Layer.provide(Layer.mergeAll(luma.layer, configFrom(env))),
+        ),
+      ),
+      Layer.provideMerge(sqlLayer(db)),
+      Layer.provideMerge(clockLayer),
+    );
+    const exit = await Effect.runPromiseExit(
+      settle(LumaDrafts.use((drafts) => drafts.forget(draft, { dryRun }))).pipe(
+        Effect.provide(layer),
+        Effect.provide(configFrom(env)),
+      ),
+    );
+    return { exit, requests: luma.requests };
+  };
+
+  const reason = (exit: Exit.Exit<unknown, unknown>) => {
+    if (Exit.isSuccess(exit)) throw new Error("expected a refusal");
+    return String(Cause.squash(exit.cause));
+  };
+
+  /** What forgetting touches: the evening, its lineup, talks, log and notes. */
+  const left = async () =>
+    (
+      await db.query<Record<string, number>>(
+        `SELECT (SELECT count(*) FROM events WHERE id = '${gone}')::int AS events,
+           (SELECT count(*) FROM planning.draft_people WHERE event_id = '${gone}')::int AS people,
+           (SELECT count(*) FROM planning.draft_talks WHERE event_id = '${gone}')::int AS talks,
+           (SELECT count(*) FROM planning.draft_talk_people)::int AS talk_people,
+           (SELECT count(*) FROM planning.wanted_speakers)::int AS wanted,
+           (SELECT count(*) FROM planning.draft_log WHERE event_id = '${gone}')::int AS log,
+           (SELECT count(*) FROM planning.draft_notes WHERE event_id = '${gone}')::int AS notes`,
+      )
+    ).rows[0];
+
+  const before = {
+    events: 1,
+    people: 2,
+    talks: 1,
+    talk_people: 1,
+    wanted: 1,
+    log: 0,
+    notes: 1,
+  };
+
+  test("a dry run asks Luma once, says what it would delete and keep, and writes nothing", async () => {
+    const { exit, requests } = await forget([{ status: 404 }], true);
+    if (Exit.isFailure(exit)) throw new Error(String(exit.cause));
+    expect(exit.value).toEqual({
+      slug,
+      lumaEventId: "evt-gone",
+      name: "allthings/aie",
+      deletes: {
+        "planning.draft_talk_people": 1,
+        "planning.draft_talks": 1,
+        "planning.draft_people": 2,
+        "public.events": 1,
+      },
+      keeps: {
+        "planning.collab_audit": 0,
+        "planning.draft_log": 0,
+        "planning.draft_notes": 1,
+      },
+      written: false,
+    });
+    expect(requests.map((r) => r.url)).toEqual([
+      "https://public-api.luma.com/v1/events/get?event_id=evt-gone",
+    ]);
+    expect(await left()).toEqual(before);
+    expect(formatForgotten(exit.value)).toBe(
+      [
+        `Would forget (dry run: nothing written) the draft ${slug} (allthings/aie): Luma no longer has evt-gone.`,
+        "  would delete: planning.draft_people 2, planning.draft_talk_people 1, planning.draft_talks 1, public.events 1",
+        "  would keep, with no foreign key to it: planning.draft_notes 1",
+      ].join("\n"),
+    );
+  });
+
+  test("forgets it with its lineup and talks, in its log, and keeps its notes", async () => {
+    // By its Luma id too, as the refresh names it; Luma's 403 is gone as well.
+    const { exit } = await forget([{ status: 403 }], false, "evt-gone");
+    if (Exit.isFailure(exit)) throw new Error(String(exit.cause));
+    expect(exit.value).toMatchObject({ slug, written: true });
+    expect(await left()).toEqual({
+      events: 0,
+      people: 0,
+      talks: 0,
+      talk_people: 0,
+      wanted: 1,
+      log: 1,
+      notes: 1,
+    });
+    const { rows } = await db.query<Record<string, unknown>>(
+      `SELECT actor, command, summary, payload FROM planning.draft_log WHERE event_id = '${gone}'`,
+    );
+    expect(rows).toEqual([
+      {
+        actor: "test/core",
+        command: "luma:drafts --forget",
+        summary: `Forgot the draft ${slug}: Luma no longer has evt-gone.`,
+        payload: {
+          lumaEventId: "evt-gone",
+          slug,
+          deletes: {
+            "planning.draft_talk_people": 1,
+            "planning.draft_talks": 1,
+            "planning.draft_people": 2,
+            "public.events": 1,
+          },
+        },
+      },
+    ]);
+    // Gone: there is nothing left to forget.
+    expect(reason((await forget([{ status: 404 }], false)).exit)).toContain(
+      `No evening is stored as ${slug}.`,
+    );
+  });
+
+  test("refuses while Luma has it, and without a key or an actor", async () => {
+    expect(
+      reason((await forget([answer({ id: "evt-gone" })], false)).exit),
+    ).toContain("Luma still has evt-gone");
+    const keyless = await forget([], false, slug, {
+      ALLTHINGS_ACTOR: "test/core",
+    });
+    expect(reason(keyless.exit)).toContain("LUMA_API_KEY is not set");
+    expect(keyless.requests).toEqual([]);
+    expect(
+      reason(
+        (
+          await forget([{ status: 404 }], false, slug, {
+            LUMA_API_KEY: "test-key",
+          })
+        ).exit,
+      ),
+    ).toContain("set ALLTHINGS_ACTOR");
+    expect(await left()).toEqual(before);
+  });
+
+  test("refuses a published evening, one without a Luma event, and one something public points at", async () => {
+    expect(
+      reason((await forget([], false, "2026-08-12-react-at-acme")).exit),
+    ).toContain(
+      "2026-08-12-react-at-acme is published: only a draft is forgotten.",
+    );
+    await db.exec(
+      `UPDATE events SET luma_event_id = NULL WHERE id = '${gone}'`,
+    );
+    expect(reason((await forget([], false)).exit)).toContain(
+      "has no Luma event, so Luma can't confirm it is gone",
+    );
+    // The seed's draft has a public talk, and an idea is its.
+    await db.exec(`
+      INSERT INTO planning.ideas (title, pitch, program, event_id) VALUES ('Made up', 'Made up.', 'talks', 'e0000000-0000-4000-8000-000000000002')`);
+    for (const dryRun of [true, false]) {
+      expect(
+        reason((await forget([{ status: 404 }], dryRun, "evt-draft")).exit),
+      ).toBe(
+        "DraftNotForgotten: 2026-09-01-draft-night is kept by planning.ideas (1), public.event_talks (1): nothing was written.",
+      );
+    }
+    expect(
+      (await db.query(`SELECT 1 FROM events WHERE luma_event_id = 'evt-draft'`))
+        .rows,
+    ).toHaveLength(1);
+  });
+
+  test("planning.forget_draft deletes nothing something keeps, even asked to", async () => {
+    const { rows } = await db.query<{ answer: unknown }>(
+      `SELECT planning.forget_draft('e0000000-0000-4000-8000-000000000002', true) AS answer`,
+    );
+    expect(rows[0]?.answer).toMatchObject({
+      blocks: { "public.event_talks": 1 },
+      forgotten: false,
+    });
+    const published = await db.query<{ answer: unknown }>(
+      `SELECT planning.forget_draft('e0000000-0000-4000-8000-000000000001', true) AS answer`,
+    );
+    expect(published.rows[0]?.answer).toMatchObject({
+      blocks: { "public.events.is_draft": 1 },
+      forgotten: false,
+    });
+    const missing = await db.query<{ answer: unknown }>(
+      `SELECT planning.forget_draft(gen_random_uuid(), true) AS answer`,
+    );
+    expect(missing.rows[0]?.answer).toBeNull();
+  });
+
+  test("planning.forget_draft names every foreign key to an evening or a draft talk", async () => {
+    const { rows } = await db.query<{ key: string }>(
+      `SELECT n.nspname || '.' || c.relname || '.' || a.attname AS key
+       FROM pg_catalog.pg_constraint k
+       JOIN pg_catalog.pg_class c ON c.oid = k.conrelid
+       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+       JOIN pg_catalog.pg_attribute a ON a.attrelid = k.conrelid AND a.attnum = k.conkey[1]
+       WHERE k.contype = 'f'
+         AND k.confrelid IN ('public.events'::regclass, 'planning.draft_talks'::regclass)
+       ORDER BY 1`,
+    );
+    const named = [
+      ...forgetBlocks.map(([table, column]) => `${table}.${column}`),
+      "planning.draft_people.event_id",
+      "planning.draft_talks.event_id",
+      "planning.draft_talk_people.draft_talk_id",
+    ];
+    const keys = [...new Set(rows.map((row) => row.key))];
+    expect(named).toEqual(expect.arrayContaining(keys));
+    // Held to the evening through a collaborator or a round, and counted
+    // by its own event_id too.
+    expect(named.filter((key) => !keys.includes(key)).toSorted()).toEqual([
+      "planning.logistics_confirmations.event_id",
+      "planning.round_submissions.event_id",
+    ]);
+    expect(forgetDeletes).toEqual([
+      "planning.draft_talk_people",
+      "planning.draft_talks",
+      "planning.draft_people",
+      "public.events",
+    ]);
+  });
+});
+
+describe("the refresh, for an event Luma no longer shows", () => {
+  test("names the command that forgets its draft", () => {
+    expect(
+      formatDrafts({
+        _tag: "Planned",
+        asked: 2,
+        refreshed: [],
+        public: [],
+        unavailable: ["evt-gone"],
+        written: 0,
+      }),
+    ).toBe(
+      [
+        "Asked Luma about 2 drafts; 1 not shown to us: evt-gone.",
+        "Refreshed 0 drafts.",
+        "  If Luma deleted evt-gone, forget its draft: bun run luma:drafts --forget evt-gone --dry-run",
+      ].join("\n"),
+    );
   });
 });

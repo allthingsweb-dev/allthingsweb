@@ -107,7 +107,7 @@ infra/scripts/vault-items.ts` checks the list against the vault itself.
 The event studio's commands connect as `studio`, a login role made by
 [`infra/scripts/studio.ts`](../infra/scripts/studio.ts): `plan`,
 `readiness`, `luma create`, `update`, `publish`, `cover`, `registration`
-and `hosts`, `luma:drafts --add`, `social bluesky`, `discord` and `x`, `posts`,
+and `hosts`, `luma:drafts --add` and `--forget`, `social bluesky`, `discord` and `x`, `posts`,
 `photos`, `people photo`, `hosts logo`, `talks` and `collab` (all but
 `collab access end-sessions`, which reaches only Cloudflare). Its
 connection string
@@ -141,9 +141,14 @@ status").
   tables have row security, which the studio doesn't bypass: its own
   policies (`migrations/0029_studio_collab.ts`) show it every row, and
   its grants say what it may do with them. `collab` and readiness check
-  they see every row (`planning.collab_row_counts()`, the one function
-  it is granted, counts them as their owner) and refuse, or leave it out,
-  otherwise.
+  they see every row (`planning.collab_row_counts()`, one of the two
+  functions it is granted, counts them as their owner) and refuse, or
+  leave it out, otherwise.
+- **No DELETE on an evening.** `luma:drafts --forget` removes a draft
+  through `planning.forget_draft()` (`migrations/0030_forget_draft.ts`),
+  the other function it is granted, which deletes as its owner and only a
+  draft nothing public, no idea and no collaboration points at: a grant
+  can't hold DELETE on `events` to drafts.
 - **Nothing for migrations.** No DDL, no ownership, no other function, no
   sequence, no TRUNCATE, and no BYPASSRLS. Its statements, lock waits and
   idle transactions time out at 30 seconds or less.
@@ -379,7 +384,8 @@ evenings converts them (so the draft preview shows its About text). It
 only reads from Luma. Whether an evening is a draft stays the
 feed's: one Luma now shows publicly comes back in the feed and the sync
 publishes it, so the refresh only reports it. An event Luma no longer
-shows us (403, or 404 once cancelled) is left as it is. The hourly sync
+shows us (403, or 404 once cancelled) is left as it is: the refresh names
+it, with the command that forgets its draft (below). The hourly sync
 does it after the venues (web/src/sync/run.ts); to run it now, from
 `core/`:
 
@@ -402,6 +408,38 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
   LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
   bun run luma:drafts --add evt-…   # store it
+```
+
+A draft whose private event was deleted on Luma (replaced by another, say)
+stays a draft until it is forgotten: the refresh lists its Luma id as not
+shown to us, every hour. `--forget <slug or evt-…>` removes it, only when
+both say so:
+
+- Luma's API answers 403 or 404 for its event, asked first; and
+- the database finds nothing that keeps it, asked by
+  `planning.forget_draft()` (`migrations/0030_forget_draft.ts`) as its
+  owner, with the evening locked: it is still a draft, with no short link
+  or stored cover image; nothing public points at it (people, talks,
+  hosts, photos, posts, schedule, notes, short links, review sessions);
+  it was never claimed for a publish (`planning.publishes`) or posted
+  about (`sent_posts`); no idea is its or was inspired by it (relink it
+  first, `plan idea update`); and it has no collaboration. A refusal
+  names each, with its rows, and writes nothing.
+
+Then, in one transaction, it adds its line to the draft's log, as
+`ALLTHINGS_ACTOR`, and deletes its private lineup and talks
+(`draft_people`, `draft_talks`, `draft_talk_people`) and the evening.
+Its log and notes, and the collaboration's audit, are kept: no foreign key
+holds them to it. `--dry-run` asks Luma and the database the same and says
+what it would delete and keep.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma:drafts --forget <slug or evt-…> --dry-run   # what it would delete and keep
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
+  LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
+  bun run luma:drafts --forget <slug or evt-…>   # forget it
 ```
 
 ## Luma people import
@@ -1021,7 +1059,8 @@ the owner's too.
 
 - `plan`: an idea that is or was the evening's (`idea add`, `idea
 update`), `lineup set`, `lineup talk add` and `remove`, and its notes.
-- `luma`: `luma:drafts --add` (the evening stored), `update`, `cover`,
+- `luma`: `luma:drafts --add` (the evening stored) and `--forget` (the
+  evening forgotten: its line outlives it), `update`, `cover`,
   `registration`, `hosts`, and `publish` (its claim, then published, or
   taken back). Luma has no transaction to share: a write that goes to Luma
   first asks for the actor before it sends anything, and adds its line
