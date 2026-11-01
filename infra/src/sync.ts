@@ -165,10 +165,7 @@ export const syncPlan = (
  * writes (web/src/sync/worker.ts's `tellSite`), through a service binding
  * and with the site's refresh token.
  */
-export const makeSync = (
-  images: SyncImages,
-  site?: Cloudflare.Worker,
-) =>
+export const makeSync = (images: SyncImages, site?: Cloudflare.Worker) =>
   Cloudflare.Worker("Sync", {
     main: "../web/src/sync/worker.ts",
     compatibility,

@@ -56,8 +56,9 @@ export const SITE_ORIGIN = `https://${SITE_HOST}`;
  * version of the data, and served from KV in every data center after.
  * `SITE_REFRESH_TOKEN`, on prod only (`siteRefreshToken`), lets the writers
  * tell the Worker the data changed (web/src/refresh.ts): the Sync Worker
- * after each run, through its service binding, and the studio after it
- * writes. Other stages are told nothing and check on their own.
+ * after each run that writes, through its service binding, and anything
+ * else that writes with the token. Other stages are told nothing and check
+ * on their own.
  *
  * `IMAGES` makes the photos' variants (web/src/images/route.ts) from the
  * originals on the media origin; it has no resource of its own, and

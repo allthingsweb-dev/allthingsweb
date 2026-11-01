@@ -3,7 +3,7 @@
  * changed with (web/src/refresh.ts): 32 random bytes, base64url, straight
  * into 1Password ("allthings site refresh" in the allthings vault, field
  * credential), never printed. A prod deploy gives it to the Web Worker and
- * the Sync Worker, and the studio's commands send it after they write.
+ * the Sync Worker, which sends it after each run that writes.
  *
  * The token lets its holder ask the site to read the data's version now,
  * nothing else, so rotating it costs nothing but a deploy: `--rotate`
@@ -23,7 +23,7 @@ export const ITEM = "allthings site refresh";
 const VAULT = "allthings";
 
 const notes =
-  "Lets the sync and the studio tell allthings.dev its data changed (web/src/refresh.ts in allthingsweb-dev/allthingsweb). Made by infra/scripts/site-refresh-token.ts; rotate with --rotate, then deploy prod.";
+  "Lets whatever writes allthings.dev's data (the Sync Worker) tell the site it changed (web/src/refresh.ts in allthingsweb-dev/allthingsweb). Made by infra/scripts/site-refresh-token.ts; rotate with --rotate, then deploy prod.";
 
 async function main(): Promise<void> {
   if (!process.env["OP_SERVICE_ACCOUNT_TOKEN"]) {

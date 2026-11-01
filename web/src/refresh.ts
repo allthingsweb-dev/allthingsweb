@@ -1,10 +1,11 @@
 import type { SitePointer } from "./page-store.ts";
 
 /**
- * Where the writers tell the site its data changed: the sync after each
- * run (through its service binding), and the studio after it writes. A
- * POST with `Authorization: Bearer <SITE_REFRESH_TOKEN>` has the Worker ask
- * the database for the data's version at once (page-store.ts's
+ * Where the writers tell the site its data changed: the Sync Worker after
+ * each run that writes (through its service binding), and anything else
+ * that writes and holds the token. A POST with `Authorization: Bearer
+ * <SITE_REFRESH_TOKEN>` has the Worker ask the database for the data's
+ * version at once (page-store.ts's
  * `refreshSite`), so a change is shown once Hyperdrive's cache has turned
  * over, not at the next check. It reads one row-digest and writes one KV
  * value; it never writes the database, and it answers with the version

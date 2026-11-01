@@ -381,8 +381,8 @@ export type SiteCheck = Pick<
 
 /**
  * Asks the database for the data's version now and records it, as a
- * request's check does: for the sync after each run and the studio after
- * it writes (refresh.ts), so a change is used once the turnover has passed
+ * request's check does: for whatever writes, the Sync Worker after each
+ * run (refresh.ts), so a change is used once the turnover has passed
  * rather than at the next check. A failed read of the pointer fails it, and
  * nothing is written.
  */
