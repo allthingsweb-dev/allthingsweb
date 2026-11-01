@@ -75,15 +75,27 @@ describe("the site's version", () => {
     expect(await read(db)).toEqual(before);
   });
 
-  test("names every published evening's start and end, and no draft's", async () => {
+  test("names the minute each published evening goes live and the minute it is over, and no draft's", async () => {
     const db = await database();
     const { boundaries } = await read(db);
-    const { rows } = await db.query<{ at: number }>(
-      `SELECT DISTINCT floor(extract(epoch FROM x.at) * 1000)::bigint::float8 AS at
-       FROM events e CROSS JOIN LATERAL (VALUES (e.start_date), (e.end_date)) AS x(at)
-       WHERE e.is_draft = false ORDER BY 1`,
+    const { rows } = await db.query<{ starts: number; ends: number }>(
+      `SELECT floor(extract(epoch FROM start_date) * 1000)::float8 AS starts,
+         floor(extract(epoch FROM end_date) * 1000)::float8 AS ends
+       FROM events WHERE is_draft = false`,
     );
-    expect(boundaries).toEqual(rows.map((row) => row.at));
+    const minute = 60_000;
+    const expected = [
+      ...new Set(
+        rows.flatMap(({ starts, ends }) => [
+          starts,
+          Math.floor(ends / minute) * minute + minute,
+        ]),
+      ),
+    ].toSorted((a, b) => a - b);
+    expect(boundaries).toEqual(expected);
+    // React at Acme ends at 04:00 sharp: live through 04:00, over from 04:01.
+    expect(boundaries).toContain(Date.UTC(2026, 7, 13, 4, 1));
+    expect(boundaries).not.toContain(Date.UTC(2026, 7, 13, 4, 0));
     const draft = await db.query<{ start: number }>(
       `SELECT floor(extract(epoch FROM start_date) * 1000)::float8 AS start FROM events WHERE is_draft = true`,
     );

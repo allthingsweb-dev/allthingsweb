@@ -14,9 +14,10 @@ import { orDataSourceError } from "./sql.ts";
  *   of them, by the sync, the studio, a migration or by hand, changes it,
  *   and nothing else does. Nothing has to remember to bump it.
  * - `boundaries` are the instants at which a page may change with no
- *   write: each published evening's start and end, when it goes from
- *   upcoming to live and from live to over (catalog.ts's `ahead`, `ended`
- *   and `eventStatus` are the only rules that read the clock).
+ *   write, as pages read the clock (the start of each minute, clock.ts):
+ *   each published evening's start, when it goes live, and the first minute
+ *   after the one it ends in, when it is over (catalog.ts's `ahead`,
+ *   `ended` and `eventStatus` are the only rules that read the clock).
  *
  * One statement, with `now()` in it so Hyperdrive never answers it from its
  * cache (Hyperdrive caches no statement that calls a volatile function).
@@ -60,7 +61,15 @@ const make = Effect.gen(function* () {
         FROM (
           SELECT DISTINCT floor(extract(epoch FROM x.at) * 1000)::bigint AS at
           FROM events e
-          CROSS JOIN LATERAL (VALUES (e.start_date), (e.end_date)) AS x(at)
+          -- Pages read the data as of the start of each minute (clock.ts):
+          -- an evening is live from the minute it starts, and over from the
+          -- first minute after the one it ends in, since it is live through
+          -- its end.
+          CROSS JOIN LATERAL (
+            VALUES
+              (e.start_date),
+              (date_trunc('minute', e.end_date) + interval '1 minute')
+          ) AS x(at)
           WHERE ${published(sql, "e")} AND x.at IS NOT NULL
         ) b
       ), '[]'::json) AS boundaries,
