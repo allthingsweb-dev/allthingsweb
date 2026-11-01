@@ -737,6 +737,18 @@ describe("forgetting a draft whose Luma event is gone", () => {
     await db.exec(
       `UPDATE profiles SET image = NULL WHERE id = 'b0000000-0000-4000-8000-000000000001'`,
     );
+    // Shared with another evening: forgetting that one keeps the row, which
+    // this evening still points at, and only its own link counts as its.
+    await db.exec(`
+      INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, luma_event_id, is_draft, preview_image, updated_at)
+        VALUES ('e0000000-0000-4000-8000-0000000000ab', '2026-11-08-allthings-aie-evt-gone2', 'allthings/aie', 'See Luma.', '2026-11-09T02:00:00Z', '2026-11-09T05:00:00Z', 0, 'evt-gone2', true, 'd0000000-0000-4000-8000-0000000000aa', now())`);
+    const other = await forget([{ status: 404 }], false, "evt-gone2");
+    if (Exit.isFailure(other.exit)) throw new Error(String(other.exit.cause));
+    expect(other.exit.value.deletes).toMatchObject({
+      "public.events": 1,
+      "public.images": 0,
+    });
+    expect(await image()).toBe(1);
     const { exit } = await forget([{ status: 404 }], false);
     if (Exit.isFailure(exit)) throw new Error(String(exit.cause));
     expect(exit.value.deletes).toMatchObject({
