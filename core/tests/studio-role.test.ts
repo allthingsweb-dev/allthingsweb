@@ -215,8 +215,8 @@ describe("its privileges in the catalog", () => {
        ORDER BY 1`,
       [STUDIO],
     );
-    // PUBLIC's are never SECURITY DEFINER; the one granted counts rows as
-    // their owner, and only that.
+    // PUBLIC's are never SECURITY DEFINER; those granted act as their
+    // owner, each on only what its migration says.
     expect(rows).toEqual(
       [
         ...STUDIO_PUBLIC_FUNCTIONS.map((signature) => ({
@@ -495,6 +495,7 @@ const suites: Readonly<
   "luma registration": ["luma-registration.test.ts"],
   "luma hosts": ["luma-hosts.test.ts"],
   "luma:drafts --add": ["luma-drafts.test.ts"],
+  "luma:drafts --forget": ["luma-drafts.test.ts"],
   "social bluesky": ["social-bluesky.test.ts"],
   "social discord": ["social-discord.test.ts"],
   "social x": ["social-x.test.ts"],

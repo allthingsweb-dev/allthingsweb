@@ -207,6 +207,7 @@ describe("planning is private", () => {
         `SELECT planning.collab_hosts(gen_random_uuid())`,
         `SELECT * FROM planning.collab_roster(gen_random_uuid())`,
         `SELECT planning.collab_recent_actions(now(), '{comment.add}')`,
+        `SELECT planning.forget_draft(gen_random_uuid(), false)`,
       ]) {
         expect(await refusalAs(role, call)).toBe(
           "permission denied for schema planning",

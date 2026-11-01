@@ -15,6 +15,11 @@
  *   policies (migrations/0029_studio_collab.ts) show it every row, and
  *   planning.collab_row_counts() (STUDIO_FUNCTIONS) lets collab check it
  *   sees them all before it acts on them.
+ * - forgetting a draft whose Luma event is gone (`luma:drafts --forget`):
+ *   planning.forget_draft() (STUDIO_FUNCTIONS,
+ *   migrations/0030_forget_draft.ts) deletes it as its owner, only while
+ *   it is a draft nothing public, no idea and no collaboration points at,
+ *   so the role holds no DELETE on events or what points at it.
  * - public: reads only tables site_reader already reads
  *   (infra/scripts/site-reader.ts), so it sees nothing the site doesn't
  *   publish; writes only the columns its commands write.
@@ -83,6 +88,7 @@ export const STUDIO_COMMANDS = [
   "luma registration",
   "luma hosts",
   "luma:drafts --add",
+  "luma:drafts --forget",
   "social bluesky",
   "social discord",
   "social x",
@@ -449,13 +455,20 @@ export const OWNER_ONLY: ReadonlyArray<{
 ];
 
 /**
- * The functions granted to the role, by signature:
- * planning.collab_row_counts() (migrations/0029_studio_collab.ts), which
- * counts every row of the collaboration as its owner, so collab and
- * readiness can tell they see them all. PUBLIC may not execute it.
+ * The functions granted to the role, by signature, each SECURITY DEFINER
+ * and PUBLIC may execute neither:
+ *
+ * - planning.collab_row_counts() (migrations/0029_studio_collab.ts), which
+ *   counts every row of the collaboration as its owner, so collab and
+ *   readiness can tell they see them all.
+ * - planning.forget_draft(uuid, boolean) (migrations/0030_forget_draft.ts),
+ *   which `luma:drafts --forget` asks what keeps a draft, and has delete
+ *   it, its private lineup and talks, as their owner, only while nothing
+ *   does: DELETE on events can't be held to drafts by a grant.
  */
 export const STUDIO_FUNCTIONS: ReadonlyArray<string> = [
   "planning.collab_row_counts()",
+  "planning.forget_draft(uuid, boolean)",
 ];
 
 /**

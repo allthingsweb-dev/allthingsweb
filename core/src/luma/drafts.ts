@@ -2,7 +2,7 @@ import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
-import { actorFor, logDraft } from "../planning/draft-log.ts";
+import { actorFor, currentActor, logDraft } from "../planning/draft-log.ts";
 import { LumaApi, type LumaApiError, type LumaEventDetails } from "./api.ts";
 import { defaultTagline } from "../tagline.ts";
 import { descriptionHtml, descriptionSummary } from "./description.ts";
@@ -21,7 +21,8 @@ import { eventSlug, venueColumns } from "./sync.ts";
  * they differ. Whether it is a draft stays the feed's: an event Luma now
  * shows publicly comes back in the feed, and the sync publishes it, so
  * here it is only reported. An event Luma no longer shows us (403, or 404
- * once cancelled) is left as it is.
+ * once cancelled) is left as it is: the refresh names it, and `forget`
+ * removes its draft once Luma confirms it is gone.
  *
  * Read-only on Luma. Every event written gets the Clock's now as its
  * updated_at, and the write checks again that the row is still a draft.
@@ -115,6 +116,42 @@ export class DraftNotAdded extends Schema.TaggedError<DraftNotAdded>()(
   }
 }
 
+/** Why a draft wasn't forgotten; nothing was written. */
+export class DraftNotForgotten extends Schema.TaggedError<DraftNotForgotten>()(
+  "DraftNotForgotten",
+  { reason: Schema.String },
+) {
+  override get message(): string {
+    return this.reason;
+  }
+}
+
+/** Rows, by table, as planning.forget_draft counts them. */
+const Rows = Schema.Record(Schema.String, Schema.Int);
+
+/** planning.forget_draft's answer (migrations/0030_forget_draft.ts); null for no such evening. */
+const ForgetAnswer = Schema.NullOr(
+  Schema.Struct({
+    blocks: Rows,
+    deletes: Rows,
+    keeps: Rows,
+    forgotten: Schema.Boolean,
+  }),
+);
+
+/** A draft whose Luma event is gone, forgotten, or to be forgotten. */
+export interface DraftForgotten {
+  readonly slug: string;
+  readonly lumaEventId: string;
+  readonly name: string;
+  /** Rows deleted, or to be, by table: its private lineup and talks, and the evening. */
+  readonly deletes: Readonly<Record<string, number>>;
+  /** Rows kept, by table, that no foreign key holds to it: its log and notes. */
+  readonly keeps: Readonly<Record<string, number>>;
+  /** False on a dry run: nothing was written. */
+  readonly written: boolean;
+}
+
 /** A private Luma event stored, or to be stored, as a draft evening. */
 export interface DraftAdded {
   readonly lumaEventId: string;
@@ -147,6 +184,24 @@ export interface LumaDraftsShape {
   ) => Effect.Effect<
     DraftAdded,
     DraftNotAdded | LumaApiError | DataSourceError
+  >;
+  /**
+   * Removes the stored draft `draft` (its slug, or its Luma id), once
+   * Luma's API confirms its event is gone (403, or 404) and the database
+   * that nothing keeps it (planning.forget_draft,
+   * migrations/0030_forget_draft.ts): it is still a draft, was never
+   * claimed for a publish, and nothing public, no idea and no
+   * collaboration points at it. Its private lineup and talks go with it;
+   * its log and notes stay. Luma is asked before the database is written,
+   * and the delete and its line in the log are one transaction. Unless
+   * `dryRun`.
+   */
+  readonly forget: (
+    draft: string,
+    options: { readonly dryRun: boolean },
+  ) => Effect.Effect<
+    DraftForgotten,
+    DraftNotForgotten | LumaApiError | DataSourceError
   >;
 }
 
@@ -189,6 +244,15 @@ export function draftChanges(
 }
 
 const Written = Schema.Struct({ written: Schema.Int });
+
+/** An evening, as forgetting its draft reads it. */
+const StoredEvening = Schema.Struct({
+  id: Schema.String,
+  slug: Schema.String,
+  name: Schema.String,
+  lumaEventId: Schema.NullOr(Schema.String),
+  isDraft: Schema.Boolean,
+});
 
 /** Luma's description of a draft, as the import of published ones stores it. */
 const describeDraft = (
@@ -456,7 +520,129 @@ const make = Effect.gen(function* () {
       return { ...added, written: true };
     }).pipe(Effect.withSpan("LumaDrafts.add", { attributes: { dryRun } }));
 
-  return LumaDrafts.of({ run, add });
+  const notForgotten = (reason: string) =>
+    Effect.fail(new DraftNotForgotten({ reason }));
+
+  /** planning.forget_draft on `eventId`: what keeps it, what it deletes and keeps. */
+  const forgetDraft = (eventId: string, forget: boolean) =>
+    sql`SELECT planning.forget_draft(${eventId}::uuid, ${forget}) AS answer`.pipe(
+      Effect.flatMap(([row]) =>
+        Schema.decodeUnknownEffect(ForgetAnswer)(row?.["answer"] ?? null),
+      ),
+    );
+
+  /** What keeps a draft, as its refusal says it: "public.event_talks (1), …". */
+  const keptBy = (slug: string, blocks: Readonly<Record<string, number>>) =>
+    `${slug} is kept by ${Object.entries(blocks)
+      .toSorted(([a], [b]) => (a < b ? -1 : 1))
+      .map(([what, n]) => `${what} (${n})`)
+      .join(", ")}: nothing was written.`;
+
+  const forget = (draft: string, { dryRun }: { readonly dryRun: boolean }) =>
+    Effect.gen(function* () {
+      if (Option.isNone(api.eventVenue)) {
+        return yield* notForgotten(
+          "LUMA_API_KEY is not set: Luma can't confirm the event is gone.",
+        );
+      }
+      const [stored] = yield* sql`
+        SELECT id, slug, name, luma_event_id AS "lumaEventId", is_draft AS "isDraft"
+        FROM events WHERE slug = ${draft} OR luma_event_id = ${draft}`.pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(StoredEvening))),
+        orDataSourceError,
+      );
+      if (stored === undefined) {
+        return yield* notForgotten(`No evening is stored as ${draft}.`);
+      }
+      if (!stored.isDraft) {
+        return yield* notForgotten(
+          `${stored.slug} is published: only a draft is forgotten.`,
+        );
+      }
+      const lumaEventId = stored.lumaEventId;
+      if (lumaEventId === null) {
+        return yield* notForgotten(
+          `${stored.slug} has no Luma event, so Luma can't confirm it is gone.`,
+        );
+      }
+      // Asked for its venue, not its details: those are None for an event
+      // without a name or start too, the venue only for a 403 or 404.
+      const shown = yield* api.eventVenue.value(lumaEventId);
+      if (Option.isSome(shown)) {
+        return yield* notForgotten(
+          `Luma still has ${lumaEventId}: only a draft whose Luma event is gone (403 or 404) is forgotten.`,
+        );
+      }
+      const removed = `${stored.slug} was removed meanwhile: nothing was written.`;
+      const planned = yield* forgetDraft(stored.id, false).pipe(
+        orDataSourceError,
+      );
+      if (planned === null) return yield* notForgotten(removed);
+      if (Object.keys(planned.blocks).length > 0) {
+        return yield* notForgotten(keptBy(stored.slug, planned.blocks));
+      }
+      const forgotten = {
+        slug: stored.slug,
+        lumaEventId,
+        name: stored.name,
+        deletes: planned.deletes,
+        keeps: planned.keeps,
+        written: false,
+      } satisfies DraftForgotten;
+      if (dryRun) return forgotten;
+      // Asked first, so a missing actor writes nothing at all.
+      yield* currentActor.pipe(
+        Effect.catchTag("ActorRequired", (missing) =>
+          notForgotten(missing.reason),
+        ),
+      );
+      // Locked and counted again in the transaction, then its line in the
+      // log while the evening is there for it to name, then the delete.
+      const done = yield* sql
+        .withTransaction(
+          Effect.gen(function* () {
+            const locked = yield* forgetDraft(stored.id, false);
+            if (locked === null) return yield* notForgotten(removed);
+            if (Object.keys(locked.blocks).length > 0) {
+              return yield* notForgotten(keptBy(stored.slug, locked.blocks));
+            }
+            yield* logDraft({
+              event: { id: stored.id },
+              command: "luma:drafts --forget",
+              summary: `Forgot the draft ${stored.slug}: Luma no longer has ${lumaEventId}.`,
+              payload: {
+                lumaEventId,
+                slug: stored.slug,
+                deletes: locked.deletes,
+              },
+            });
+            const answer = yield* forgetDraft(stored.id, true);
+            if (answer?.forgotten !== true) {
+              return yield* notForgotten(
+                `${stored.slug} wasn't forgotten: nothing was written.`,
+              );
+            }
+            return answer;
+          }),
+        )
+        .pipe(
+          Effect.provideService(SqlClient, sql),
+          Effect.catchTag("ActorRequired", (missing) =>
+            notForgotten(missing.reason),
+          ),
+          Effect.catchTag(["SqlError", "SchemaError"], (cause) =>
+            Effect.fail(new DataSourceError({ cause })),
+          ),
+        );
+      return {
+        ...forgotten,
+        deletes: done.deletes,
+        keeps: done.keeps,
+        written: true,
+      } satisfies DraftForgotten;
+    }).pipe(Effect.withSpan("LumaDrafts.forget", { attributes: { dryRun } }));
+
+  return LumaDrafts.of({ run, add, forget });
 });
 
 export class LumaDrafts extends Context.Service<LumaDrafts, LumaDraftsShape>()(
@@ -473,6 +659,24 @@ export function formatAdded(added: DraftAdded): string {
     `  ${added.name}`,
     `  ${added.startDate} → ${added.endDate}`,
     `  ${added.venue ?? "no venue yet"}`,
+  ].join("\n");
+}
+
+/** Rows by table, by name, as "planning.draft_people 3, public.events 1"; "nothing" for none. */
+const rows = (counts: Readonly<Record<string, number>>): string => {
+  const listed = Object.entries(counts)
+    .filter(([, n]) => n > 0)
+    .toSorted(([a], [b]) => (a < b ? -1 : 1))
+    .map(([table, n]) => `${table} ${n}`);
+  return listed.length === 0 ? "nothing" : listed.join(", ");
+};
+
+/** A forgotten, or would-be forgotten, draft as text for an organizer. */
+export function formatForgotten(forgotten: DraftForgotten): string {
+  return [
+    `${forgotten.written ? "Forgot" : "Would forget (dry run: nothing written)"} the draft ${forgotten.slug} (${forgotten.name}): Luma no longer has ${forgotten.lumaEventId}.`,
+    `  ${forgotten.written ? "deleted" : "would delete"}: ${rows(forgotten.deletes)}`,
+    `  ${forgotten.written ? "kept" : "would keep"}, with no foreign key to it: ${rows(forgotten.keeps)}`,
   ].join("\n");
 }
 
@@ -505,6 +709,11 @@ export function formatDrafts(result: DraftsRefresh): string {
       ),
     ]),
   ];
+  for (const lumaEventId of result.unavailable) {
+    lines.push(
+      `  If Luma deleted ${lumaEventId}, forget its draft: bun run luma:drafts --forget ${lumaEventId} --dry-run`,
+    );
+  }
   if (result.public.length > 0) {
     lines.push(
       `Public on Luma now, for the feed to publish: ${result.public.join(", ")}`,
