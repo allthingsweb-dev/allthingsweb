@@ -87,7 +87,7 @@ describe("the site's version", () => {
     const expected = [
       ...new Set(
         rows.flatMap(({ starts, ends }) => [
-          starts,
+          Math.ceil(starts / minute) * minute,
           Math.floor(ends / minute) * minute + minute,
         ]),
       ),

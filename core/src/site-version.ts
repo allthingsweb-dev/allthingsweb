@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
-import { published } from "./catalog.ts";
+import { published, statusChanges } from "./catalog.ts";
 import type { DataSourceError } from "./errors.ts";
 import { siteTables } from "./site-tables.ts";
 import { orDataSourceError } from "./sql.ts";
@@ -61,15 +61,7 @@ const make = Effect.gen(function* () {
         FROM (
           SELECT DISTINCT floor(extract(epoch FROM x.at) * 1000)::bigint AS at
           FROM events e
-          -- Pages read the data as of the start of each minute (clock.ts):
-          -- an evening is live from the minute it starts, and over from the
-          -- first minute after the one it ends in, since it is live through
-          -- its end.
-          CROSS JOIN LATERAL (
-            VALUES
-              (e.start_date),
-              (date_trunc('minute', e.end_date) + interval '1 minute')
-          ) AS x(at)
+          CROSS JOIN LATERAL ${statusChanges(sql, "e")} AS x(at)
           WHERE ${published(sql, "e")} AND x.at IS NOT NULL
         ) b
       ), '[]'::json) AS boundaries,

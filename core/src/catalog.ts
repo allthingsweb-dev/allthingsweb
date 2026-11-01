@@ -56,6 +56,25 @@ export const ended = (
   now: DateTime.Utc | Date,
 ): Statement.Fragment => sql`${column(sql, e, "end_date")} < ${instant(now)}`;
 
+/**
+ * The minutes the evening aliased `e` changes status in with no write, as
+ * a one-column VALUES list (`at`), as pages read the clock: at the start
+ * of each minute (clock.ts). It is live from the first minute at or after
+ * its start, and over from the first minute after the one it ends in,
+ * since it is live through its end: {@link ahead}, {@link ended} and {@link eventStatus}, read by the
+ * minute. The page store keeps pages by them (src/site-version.ts).
+ */
+export const statusChanges = (
+  sql: SqlClient,
+  e: EventAlias,
+): Statement.Fragment => sql`(VALUES
+    (date_trunc('minute', ${column(sql, e, "start_date")})
+      + CASE WHEN ${column(sql, e, "start_date")}
+          = date_trunc('minute', ${column(sql, e, "start_date")})
+        THEN interval '0' ELSE interval '1 minute' END),
+    (date_trunc('minute', ${column(sql, e, "end_date")}) + interval '1 minute')
+  )`;
+
 /** Our own evenings, not those we share. */
 export const ours = (sql: SqlClient, e: EventAlias): Statement.Fragment =>
   sql`${column(sql, e, "curation")} = 'ours'`;
