@@ -134,8 +134,9 @@ export interface DescriptionsOptions {
    */
   readonly maxEvents?: number;
   /**
-   * Ask about every event never asked about, not over, or over for less
-   * than `within` on every run, and of the older ones only `olderPerRun`,
+   * Ask about every event never asked about, or not over `within` ago
+   * (catalog.ts's `ahead` then: an event that ended exactly `within` ago
+   * is recent too) on every run, and of the older ones only `olderPerRun`,
    * in turn, hour by hour, so each is asked about again in time. Every
    * published event on every run otherwise. Luma's API says nothing about
    * when an event changed (no `updated_at`, no ETag; its feed's SEQUENCE is
@@ -171,8 +172,8 @@ const make = Effect.gen(function* () {
 
   /**
    * The events to ask about: every published one with a Luma id, or, with
-   * `recent`, the recent ones (never asked about, not over, or over for
-   * less than `recent.within`) and `recent.olderPerRun` of the rest, in
+   * `recent`, the recent ones (never asked about, or not over
+   * `recent.within` ago) and `recent.olderPerRun` of the rest, in
    * turn, further down their list (latest to end first) each hour. With
    * `maxEvents`, at most that many: those never asked about first, then
    * the recent ones, then the rest in turn, `maxEvents` further down the

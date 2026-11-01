@@ -123,9 +123,9 @@ export const syncLimits = {
     covers: {},
     venues: {},
     drafts: {},
-    // Luma can't say which changed: every evening not over or over for
-    // less than a week each hour, and two older ones in turn, so each older
-    // one is asked about again within a day (about 30 now: every 15 hours).
+    // Luma can't say which changed: every evening not over a week ago each
+    // hour, and two older ones in turn, so each older one is asked about
+    // again within a day (about 30 now: every 15 hours).
     descriptions: {
       window: "30 seconds",
       recent: { within: "7 days", olderPerRun: 2 },

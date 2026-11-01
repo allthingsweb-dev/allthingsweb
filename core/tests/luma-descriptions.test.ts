@@ -564,6 +564,22 @@ describe("the import", () => {
       ).toEqual(["evt-upcoming"]);
     });
 
+    test("counts an evening that ended exactly `within` ago as recent, as catalog.ts's `ahead` has it, and not a minute later", async () => {
+      const db = await four();
+      await askedAt(db, "2026-10-05T12:00:00Z");
+      // "Ends now" ended at 2026-10-03T19:00:00Z.
+      const options: Partial<DescriptionsOptions> = {
+        recent: { within: "7 days", olderPerRun: 0 },
+      };
+      expect(await askedAt(db, "2026-10-10T19:00:00Z", options)).toEqual([
+        "evt-endsNow",
+        "evt-upcoming",
+      ]);
+      expect(await askedAt(db, "2026-10-10T19:01:00Z", options)).toEqual([
+        "evt-upcoming",
+      ]);
+    });
+
     test("asks about an evening never asked about on every run, however long ago it was", async () => {
       const db = await four();
       await askedAt(db, "2026-10-05T12:00:00Z");

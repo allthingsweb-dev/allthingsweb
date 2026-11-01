@@ -313,7 +313,7 @@ The hourly sync imports descriptions after the events and images, in a
 window of their own (web/src/sync/run.ts). Luma's API says nothing about
 when an event changed (no `updated_at` or ETag, and the feed's SEQUENCE
 is the feed's own time), so each run asks about the evenings never asked
-about, not over, or over for less than a week, and two older ones in turn:
+about, or not over a week ago, and two older ones in turn:
 each older evening is asked about again within a day, and an hour's run
 asks about a handful, not every evening.
 To run it now, for every event, from `core/`:
