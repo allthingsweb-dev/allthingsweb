@@ -15,21 +15,21 @@ let handle: Handler | undefined;
  * bundle, so a cold isolate whose request the cache answers never parses
  * it: this module and the cache import only what keys and serves a kept
  * copy (web/tests/support/stack.ts holds the startup modules to a budget).
- * The first request the cache can't answer loads it, once per isolate.
+ * The first request the cache can't answer loads it, and the isolate keeps
+ * the handler once it is made. Only the made handler is kept, never the
+ * pending import: an import belongs to the request that started it, and a
+ * request cancelled mid-load would leave a promise no later request could
+ * settle. Each request that finds no handler imports it itself; the module
+ * is evaluated once, and they get the same one.
  */
 const lazyApp = (env: Readonly<Record<string, unknown>>): Handler => {
-  let app: Promise<Handler> | undefined;
+  let app: Handler | undefined;
   return async (request, context) => {
-    app ??= import("./app.ts").then(
-      ({ makeHandler }) => makeHandler(env),
-      (cause: unknown) => {
-        // A module that failed to load is loaded again by the next request.
-        app = undefined;
-        throw cause;
-      },
-    );
-    const handler = await app;
-    return handler(request, context);
+    if (app === undefined) {
+      const { makeHandler } = await import("./app.ts");
+      app ??= makeHandler(env);
+    }
+    return app(request, context);
   };
 };
 
