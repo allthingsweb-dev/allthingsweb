@@ -570,7 +570,9 @@ describe("the import", () => {
       await db.exec(
         `UPDATE events SET luma_description = NULL WHERE luma_event_id = 'evt-cafe'`,
       );
-      const options = { recent: { within: "7 days", olderPerRun: 0 } };
+      const options: Partial<DescriptionsOptions> = {
+        recent: { within: "7 days", olderPerRun: 0 },
+      };
       expect(await askedAt(db, "2026-10-12T13:00:00Z", options)).toEqual([
         "evt-cafe",
         "evt-upcoming",
