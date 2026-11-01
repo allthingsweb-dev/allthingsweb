@@ -16,7 +16,7 @@ import { PREVIEW, makePreview } from "./src/preview.ts";
 import { makeSync, syncPlan } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
-import { Web, makeWeb, siteDomain } from "./src/web.ts";
+import { Web, makeWeb, siteDomain, siteRefreshToken } from "./src/web.ts";
 
 export default Alchemy.Stack(
   "allthings",
@@ -49,6 +49,7 @@ export default Alchemy.Stack(
             serving === "allthings.dev" && zone !== undefined
               ? siteDomain(zone.id)
               : undefined,
+            siteRefreshToken,
           );
     const webUrl = site?.url.as<string>();
     // The draft preview, behind Access, beside the site (src/preview.ts).
@@ -64,7 +65,7 @@ export default Alchemy.Stack(
     // sync").
     const syncing = syncPlan(accountId, zone);
     const sync =
-      syncing === undefined ? undefined : yield* makeSync(syncing.images);
+      syncing === undefined ? undefined : yield* makeSync(syncing.images, site);
     const syncWorker = sync?.workerName.as<string>();
 
     if (role === "stage") {

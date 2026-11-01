@@ -38,6 +38,7 @@ import {
   type SyncMode,
   type SyncReport,
 } from "./run.ts";
+import { refreshPath } from "../refresh.ts";
 
 /**
  * The sync Worker: the app's hourly Luma sync (run.ts) on a Cron Trigger,
@@ -65,6 +66,8 @@ import {
  * - `LUMA_CALENDAR_API_ID`: the Luma calendar to sync; allthings' own
  *   (`allThingsWebCalendarId`, core/src/luma/feed.ts) by default.
  * - `X_MAX_RESULTS`: how many posts each X search may return.
+ * - `SITE` and `SITE_REFRESH_TOKEN` (secret): the Web Worker, and the token
+ *   it takes, to tell it after a run that writes (`tellSite`).
  *
  * It answers no requests: the Cron Trigger is its only way in, and whether
  * it has one is decided at deploy time (`SYNC.schedule`).
@@ -310,16 +313,79 @@ export const scheduledRun = (
     }),
   );
 
+/** The part of a service binding the run uses. */
+interface SiteBinding {
+  fetch(request: Request): Promise<Response>;
+}
+
+/**
+ * Tells the site (`SITE`, a service binding to the Web Worker) that the
+ * data may have changed, with `SITE_REFRESH_TOKEN`, so its page store
+ * reads the data's version now rather than at its next check
+ * (web/src/refresh.ts). After every run that writes, whether or not it
+ * wrote: the site compares versions itself. It logs one line
+ * (`step: "site"`) and never fails the run.
+ */
+export async function tellSite(
+  env: Readonly<Record<string, unknown>>,
+  log: (entry: Readonly<Record<string, unknown>>) => void = (entry) =>
+    console.log(JSON.stringify(entry)),
+): Promise<void> {
+  const site = env["SITE"];
+  const token = env["SITE_REFRESH_TOKEN"];
+  if (!isBinding(site, "fetch") || !isText(token)) {
+    log({
+      source: "luma-sync",
+      step: "site",
+      status: "skipped",
+      reason: "no SITE binding or SITE_REFRESH_TOKEN",
+    });
+    return;
+  }
+  const started = Date.now();
+  try {
+    const response = await (site as SiteBinding).fetch(
+      new Request(`https://site${refreshPath}`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+    const body: unknown = await response.json().catch(() => null);
+    log({
+      source: "luma-sync",
+      step: "site",
+      status: response.ok ? "done" : "failed",
+      http: response.status,
+      tookMs: Date.now() - started,
+      ...(typeof body === "object" && body !== null ? body : {}),
+    });
+  } catch (cause) {
+    log({
+      source: "luma-sync",
+      step: "site",
+      status: "failed",
+      tookMs: Date.now() - started,
+      reason: String(cause),
+    });
+  }
+}
+
 export default {
   /**
    * Returns the run, rather than handing it to `waitUntil`, so a run that
    * can't start fails its invocation and the Cron Trigger's event says so.
+   * A run that writes then tells the site, even when a step failed: what
+   * the steps before it wrote is in the database.
    */
   async scheduled(
     _controller: unknown,
     env: Readonly<Record<string, unknown>>,
   ): Promise<void> {
-    await scheduledRun(env);
+    try {
+      await scheduledRun(env);
+    } finally {
+      if (modeOf(env) === "write") await tellSite(env);
+    }
   },
   fetch(): Response {
     return new Response("Not found", { status: 404 });

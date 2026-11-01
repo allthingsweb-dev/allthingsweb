@@ -2,6 +2,7 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import { compatibility } from "../../web/src/compatibility.ts";
 import { readerCaching } from "../../web/src/reader-caching.ts";
 import { Reader } from "./reader.ts";
+import { requiredSecret } from "./sync.ts";
 
 /**
  * Hyperdrive in front of production's Neon database, as its read-only
@@ -53,11 +54,19 @@ export const SITE_ORIGIN = `https://${SITE_HOST}`;
  * `PAGES` is the Worker's page store (web/src/page-store.ts), a KV namespace
  * of its own on each stage: a page is built from the database once for each
  * version of the data, and served from KV in every data center after.
+ * `SITE_REFRESH_TOKEN`, on prod only (`siteRefreshToken`), lets the writers
+ * tell the Worker the data changed (web/src/refresh.ts): the Sync Worker
+ * after each run, through its service binding, and the studio after it
+ * writes. Other stages are told nothing and check on their own.
+ *
  * `IMAGES` makes the photos' variants (web/src/images/route.ts) from the
  * originals on the media origin; it has no resource of its own, and
  * transformations are billed to the account.
  */
-export const makeWeb = (domain?: Cloudflare.WorkerDomainConfig) =>
+export const makeWeb = (
+  domain?: Cloudflare.WorkerDomainConfig,
+  refreshToken?: ReturnType<typeof requiredSecret>,
+) =>
   Cloudflare.Worker("Web", {
     main: "../web/src/worker.ts",
     compatibility,
@@ -67,9 +76,19 @@ export const makeWeb = (domain?: Cloudflare.WorkerDomainConfig) =>
       PAGES: Pages,
       HYPERDRIVE: Database,
       IMAGES: Cloudflare.Images.Images("IMAGES"),
+      ...(refreshToken === undefined
+        ? {}
+        : { SITE_REFRESH_TOKEN: refreshToken }),
     },
     ...(domain === undefined ? {} : { domain }),
   });
+
+/**
+ * The token the writers tell prod's site with, from `SITE_REFRESH_TOKEN`
+ * (the 1Password item "allthings site refresh", made by
+ * scripts/site-refresh-token.ts). A Config, so only a prod deploy needs it.
+ */
+export const siteRefreshToken = requiredSecret("SITE_REFRESH_TOKEN");
 
 /** The site on its own (every stage but prod): no custom domain, on workers.dev. */
 export const Web = makeWeb();

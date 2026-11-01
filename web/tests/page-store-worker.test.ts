@@ -24,11 +24,14 @@ const stopLonely = (() => {
   return () => (stopping ??= lonely.stop());
 })();
 
+const refreshToken = crypto.randomUUID();
+
 const Stack = testStack("allthings-web-page-store-test", {
   Cached: {
     ORIGIN: origin,
     DATABASE_URL: database.url,
     PAGES: true,
+    SITE_REFRESH_TOKEN: refreshToken,
   },
   // Its database goes away mid-test, after its pages are warm.
   Orphaned: {
@@ -240,6 +243,31 @@ describe("the page store", () => {
       expect(response.status).toBe(503);
       expect(state(response)).toBe("miss");
     }
+  });
+
+  it("reads the data's version at once when a writer says it changed, with the token", async ({
+    Cached,
+    Uncached,
+  }) => {
+    await primed(Cached);
+    const refresh = (url: string, authorization?: string) =>
+      fetch(`${url}/_site/refresh`, {
+        method: "POST",
+        headers: authorization === undefined ? {} : { authorization },
+      });
+    const told = await refresh(Cached, `Bearer ${refreshToken}`);
+    expect(told.status).toBe(200);
+    expect(await told.json()).toMatchObject({
+      version: expect.stringMatching(/^[0-9a-f]{32}$/),
+      next: null,
+    });
+    const refused = await refresh(Cached, "Bearer not-the-token");
+    expect(refused.status).toBe(401);
+    await refused.arrayBuffer();
+    // A Worker with no token has no such path.
+    const none = await refresh(Uncached, `Bearer ${refreshToken}`);
+    expect(none.status).toBe(404);
+    await none.arrayBuffer();
   });
 
   it("is off without PAGES", async ({ Uncached }) => {

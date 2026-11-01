@@ -161,8 +161,14 @@ export const syncPlan = (
 /**
  * The Sync Worker. Its logical id stays "Sync" whatever `images` is, so
  * the move-day deploy updates the same Worker rather than replacing it.
+ * With `site`, the Web Worker it serves, it tells it after each run that
+ * writes (web/src/sync/worker.ts's `tellSite`), through a service binding
+ * and with the site's refresh token.
  */
-export const makeSync = (images: SyncImages) =>
+export const makeSync = (
+  images: SyncImages,
+  site?: Cloudflare.Worker,
+) =>
   Cloudflare.Worker("Sync", {
     main: "../web/src/sync/worker.ts",
     compatibility,
@@ -180,6 +186,12 @@ export const makeSync = (images: SyncImages) =>
       SYNC_MODE: SYNC.mode,
       SYNC_PLAN: SYNC.plan,
       SYNC_IMAGES: images,
+      ...(site === undefined
+        ? {}
+        : {
+            SITE: site,
+            SITE_REFRESH_TOKEN: requiredSecret("SITE_REFRESH_TOKEN"),
+          }),
       // Only while images go through the upload Worker: required then.
       ...(images === "upload"
         ? {
