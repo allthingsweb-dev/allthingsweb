@@ -87,8 +87,9 @@ describe("ahead and ended", () => {
 });
 
 describe("statusChanges", () => {
-  /** The start of `at`'s minute, as pages read the clock (clock.ts). */
-  const minuteOf = (at: DateTime.Utc) => DateTime.startOf(at, "minute");
+  /** The start of `instant`'s minute, as pages read the clock (clock.ts). */
+  const minuteOf = (instant: DateTime.Utc) =>
+    DateTime.startOf(instant, "minute");
 
   test.each([
     ["on the minute", "2026-08-13T01:00:00Z", "2026-08-13T04:00:00Z"],
