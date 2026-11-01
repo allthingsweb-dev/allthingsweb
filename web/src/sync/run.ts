@@ -12,7 +12,7 @@ import type { PostSources } from "allthings-core/src/posts/sources.ts";
 import type { EventPostWriter } from "allthings-core/src/posts/store.ts";
 import type { HttpClient } from "effect/http";
 import {
-  type DescriptionsOptions,
+  type DescriptionsSelection,
   LumaDescriptions,
 } from "allthings-core/src/luma/descriptions.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
@@ -82,14 +82,7 @@ export interface SyncLimits {
   readonly descriptions: {
     /** The import is cut off after this long, writing nothing. */
     readonly window: Duration.Input;
-    /** Events asked about; every published one by default. */
-    readonly maxEvents?: number;
-    /**
-     * Recent events asked about on every run, older ones a few at a time
-     * (core's src/luma/descriptions.ts); every one on every run by default.
-     */
-    readonly recent?: DescriptionsOptions["recent"];
-  };
+  } & DescriptionsSelection;
   /**
    * X follower counts read (core/src/followers.ts), the missing and oldest
    * first; a count newer than `staleAfter` is left alone.
@@ -124,8 +117,8 @@ export const syncLimits = {
     venues: {},
     drafts: {},
     // Luma can't say which changed: every evening not over a week ago each
-    // hour, and two older ones in turn, so each older one is asked about
-    // again within a day (about 30 now: every 15 hours).
+    // hour, and two older ones in turn. With about 30 older ones now, each
+    // is asked about again every 15 hourly runs; longer as they grow.
     descriptions: {
       window: "30 seconds",
       recent: { within: "7 days", olderPerRun: 2 },
@@ -300,14 +293,10 @@ const descriptions = (
   dryRun: boolean,
 ) =>
   Effect.gen(function* () {
-    const { maxEvents, recent } = limits.descriptions;
+    const { window, ...selection } = limits.descriptions;
     const result = yield* importer
-      .run({
-        dryRun,
-        ...(maxEvents === undefined ? {} : { maxEvents }),
-        ...(recent === undefined ? {} : { recent }),
-      })
-      .pipe(Effect.timeout(limits.descriptions.window));
+      .run({ dryRun, ...selection })
+      .pipe(Effect.timeout(window));
     if (result._tag === "Skipped") return { skipped: result.reason };
     return {
       asked: result.asked,

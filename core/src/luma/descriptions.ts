@@ -124,31 +124,45 @@ export type DescriptionsImport =
       readonly written: number | null;
     };
 
-export interface DescriptionsOptions {
+/**
+ * Which events a run asks about: every published one by default, at most
+ * `maxEvents` in turn, or the `recent` ones and a few older ones in turn.
+ * One or the other: each turns its own list hour by hour, and a run held to
+ * both would turn neither as it says.
+ */
+export type DescriptionsSelection =
+  | {
+      /**
+       * Ask about at most this many events: those never asked about first,
+       * then the others in turn, hour by hour, so each is asked about again
+       * in time. Every published event otherwise.
+       */
+      readonly maxEvents?: number;
+      readonly recent?: never;
+    }
+  | {
+      readonly maxEvents?: never;
+      /**
+       * Ask about every event never asked about, or not over `within` ago
+       * (catalog.ts's `ahead` then: an event that ended exactly `within`
+       * ago is recent too) on every run, and of the older ones only
+       * `olderPerRun`, in turn, hour by hour: N older events take N /
+       * `olderPerRun` hourly runs to be asked about again. Luma's API says
+       * nothing about when an event changed (no `updated_at`, no ETag; its
+       * feed's SEQUENCE is the feed's own time), so this is how a run skips
+       * the descriptions that stopped changing: organizers edit an
+       * evening's before it and in the days after it, rarely later.
+       */
+      readonly recent: {
+        readonly within: Duration.Input;
+        readonly olderPerRun: number;
+      };
+    };
+
+export type DescriptionsOptions = DescriptionsSelection & {
   /** Plan only: ask Luma, write nothing. */
   readonly dryRun: boolean;
-  /**
-   * Ask about at most this many events: those never asked about first,
-   * then the others in turn, hour by hour, so each is asked about again in
-   * time. Every published event otherwise.
-   */
-  readonly maxEvents?: number;
-  /**
-   * Ask about every event never asked about, or not over `within` ago
-   * (catalog.ts's `ahead` then: an event that ended exactly `within` ago
-   * is recent too) on every run, and of the older ones only `olderPerRun`,
-   * in turn, hour by hour, so each is asked about again in time. Every
-   * published event on every run otherwise. Luma's API says nothing about
-   * when an event changed (no `updated_at`, no ETag; its feed's SEQUENCE is
-   * the feed's own time), so this is how a run skips the descriptions that
-   * stopped changing: organizers edit an evening's before it and in the days
-   * after it, rarely later.
-   */
-  readonly recent?: {
-    readonly within: Duration.Input;
-    readonly olderPerRun: number;
-  };
-}
+};
 
 export interface LumaDescriptionsShape {
   /** Asks Luma and, unless `dryRun`, writes what changed, all or nothing. */
@@ -174,10 +188,10 @@ const make = Effect.gen(function* () {
    * The events to ask about: every published one with a Luma id, or, with
    * `recent`, the recent ones (never asked about, or not over
    * `recent.within` ago) and `recent.olderPerRun` of the rest, in
-   * turn, further down their list (latest to end first) each hour. With
+   * turn, further down their list (latest to end first) each hour. Or, with
    * `maxEvents`, at most that many: those never asked about first, then
-   * the recent ones, then the rest in turn, `maxEvents` further down the
-   * list each hour, so every event is asked about again in time.
+   * the rest in turn, `maxEvents` further down the list each hour, so
+   * every event is asked about again in time.
    */
   const read = (
     { maxEvents, recent }: DescriptionsOptions,
@@ -216,7 +230,7 @@ const make = Effect.gen(function* () {
       WHERE e.due
         OR mod(mod(e.place - ${olderTurn}, e.total) + e.total, e.total)
           < ${olderPerRun}
-      ORDER BY e."lumaDescription" IS NULL DESC, e.due DESC,
+      ORDER BY e."lumaDescription" IS NULL DESC,
         mod(mod(e.place - ${turn}, e.total) + e.total, e.total)
       LIMIT ${maxEvents ?? null}`.pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(StoredEvent))),

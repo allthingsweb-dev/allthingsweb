@@ -15,6 +15,7 @@ import { formatDescriptions } from "../src/luma/descriptions-report.ts";
 import {
   type DescriptionsImport,
   type DescriptionsOptions,
+  type DescriptionsSelection,
   LumaDescriptions,
 } from "../src/luma/descriptions.ts";
 import {
@@ -247,17 +248,18 @@ describe("the import", () => {
       "evt-react": [answer("evt-react", described)],
       "evt-upcoming": [answer("evt-upcoming", upcoming)],
     },
-    options: Partial<DescriptionsOptions> & {
+    options: DescriptionsSelection & {
+      dryRun?: boolean;
       env?: Record<string, string>;
       at?: DateTime.Utc;
     } = {},
   ) => {
-    const { env = withKey, at, ...rest } = options;
+    const { env = withKey, at, dryRun = false, ...rest } = options;
     const luma = fakeApi(replies);
     const exit = await Effect.runPromiseExit(
       settle(
         LumaDescriptions.use((descriptions) =>
-          descriptions.run({ dryRun: false, ...rest }),
+          descriptions.run({ dryRun, ...rest }),
         ),
       ).pipe(
         Effect.provide(
@@ -521,7 +523,7 @@ describe("the import", () => {
     const askedAt = async (
       db: PGlite,
       iso: string,
-      options: Partial<DescriptionsOptions> = { recent },
+      options: DescriptionsSelection = { recent },
     ) =>
       (
         await importInto(db, replies, {
@@ -568,7 +570,7 @@ describe("the import", () => {
       const db = await four();
       await askedAt(db, "2026-10-05T12:00:00Z");
       // "Ends now" ended at 2026-10-03T19:00:00Z.
-      const options: Partial<DescriptionsOptions> = {
+      const options: DescriptionsSelection = {
         recent: { within: "7 days", olderPerRun: 0 },
       };
       expect(await askedAt(db, "2026-10-10T19:00:00Z", options)).toEqual([
@@ -586,7 +588,7 @@ describe("the import", () => {
       await db.exec(
         `UPDATE events SET luma_description = NULL WHERE luma_event_id = 'evt-cafe'`,
       );
-      const options: Partial<DescriptionsOptions> = {
+      const options: DescriptionsSelection = {
         recent: { within: "7 days", olderPerRun: 0 },
       };
       expect(await askedAt(db, "2026-10-12T13:00:00Z", options)).toEqual([
@@ -595,19 +597,16 @@ describe("the import", () => {
       ]);
     });
 
-    test("is held to `maxEvents`: those never asked about first, then the recent ones", async () => {
-      const db = await four();
-      await askedAt(db, "2026-10-05T12:00:00Z");
-      await db.exec(
-        `UPDATE events SET luma_description = NULL WHERE luma_event_id = 'evt-react'`,
-      );
-      expect(
-        await askedAt(db, "2026-10-05T13:00:00Z", { recent, maxEvents: 1 }),
-      ).toEqual(["evt-react"]);
-      // Asked about now: the two recent ones come before the older ones.
-      expect(
-        await askedAt(db, "2026-10-05T13:00:00Z", { recent, maxEvents: 2 }),
-      ).toEqual(["evt-endsNow", "evt-upcoming"]);
+    test("is never held to `maxEvents` too: each turns its own list", () => {
+      const both = {
+        dryRun: false,
+        maxEvents: 2,
+        recent,
+      } as const;
+      // @ts-expect-error A run asks about the recent ones or at most
+      // `maxEvents`, never both.
+      const options: DescriptionsOptions = both;
+      expect(options.dryRun).toBe(false);
     });
   });
 });
