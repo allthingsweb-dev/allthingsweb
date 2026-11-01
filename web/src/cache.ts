@@ -1,19 +1,20 @@
 /**
  * Cache-Control for public GET responses. Data changes when organizers edit
  * it or the hourly Luma sync runs, so a cached copy may be minutes old:
- * browsers keep it for a minute, shared caches (the edge) for five, and a
- * stale copy may be served for an hour while it is refreshed. Once pages and
- * API responses are keyed by data version, versioned URLs become immutable
- * and these times only apply to the unversioned entry points.
+ * browsers keep it for a minute, shared caches for five, and a stale copy
+ * may be served for an hour while it is refreshed. The Worker's own store
+ * (page-store.ts) keeps a page by the version of the data it shows, not by
+ * these times: for it, a `public` lifetime with `s-maxage` only says the
+ * page may be kept.
  */
 export const CacheControl = {
   /** A successful read of public data. */
   publicData: "public, max-age=60, s-maxage=300, stale-while-revalidate=3600",
   /**
    * A page that changes only when the Worker is deployed, such as /brand.
-   * Browsers check back after five minutes. The edge may keep it a day:
-   * Workers Cache is scoped to one deployed version, so a deploy starts
-   * from an empty cache.
+   * Browsers check back after five minutes, and shared caches may keep it
+   * a day. The Worker's store keeps pages by the build, so a deploy that
+   * changes it starts afresh.
    */
   page: "public, max-age=300, s-maxage=86400",
   /** Not found: a draft may be published at any moment, so only briefly. */
@@ -41,8 +42,7 @@ export type CacheControlName = keyof typeof CacheControl;
  * modes, but some shared caches ignore Vary (Cloudflare's honors only
  * Accept-Encoding); `private` keeps every such copy out of them, so the
  * only page a shared cache can hold is the one that follows the system.
- * Should the Worker cache pages itself (the Cache API), its key must
- * include the mode.
+ * The Worker's own store keeps pages by the mode (page-store.ts).
  */
 export const PrivateCacheControl = {
   publicData: "private, max-age=60",
@@ -55,7 +55,7 @@ export const PrivateCacheControl = {
  * The header a response names the public lifetimes in that the Worker's
  * own cache keeps it by, when they differ from what visitors are told: a
  * page in a fixed mode is sent `private`, but the Worker's cache keys it by
- * that mode (see edge-cache.ts). It never leaves the Worker.
+ * that mode (see page-store.ts). It never leaves the Worker.
  */
 export const edgeCacheControlHeader = "x-edge-cache-control";
 

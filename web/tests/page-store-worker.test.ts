@@ -8,10 +8,11 @@ import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
 
 /**
- * The Worker's own cache in workerd, whose Cache API the local runtime
- * provides: a Worker with `EDGE_CACHE` serves a warm page from the cache,
- * by mode, without reaching its database at all. Each Worker caches under
- * its own name, so they share nothing.
+ * The Worker's page store in workerd, whose KV the local runtime provides:
+ * a Worker with `PAGES` serves a page it has built from KV, by mode, without
+ * reaching its database at all. Each Worker has a namespace of its own, so
+ * they share nothing. They read their databases at DATABASE_URL, not
+ * through Hyperdrive, so pages of a version are kept as soon as it is read.
  */
 
 const origin = "https://allthings.dev";
@@ -23,17 +24,17 @@ const stopLonely = (() => {
   return () => (stopping ??= lonely.stop());
 })();
 
-const Stack = testStack("allthings-web-edge-test", {
+const Stack = testStack("allthings-web-page-store-test", {
   Cached: {
     ORIGIN: origin,
     DATABASE_URL: database.url,
-    EDGE_CACHE: `edge-test-${crypto.randomUUID()}`,
+    PAGES: true,
   },
   // Its database goes away mid-test, after its pages are warm.
   Orphaned: {
     ORIGIN: origin,
     DATABASE_URL: lonely.url,
-    EDGE_CACHE: `edge-test-${crypto.randomUUID()}`,
+    PAGES: true,
   },
   Uncached: { ORIGIN: origin, DATABASE_URL: database.url },
 });
@@ -87,15 +88,16 @@ const get = async (url: string, path: string, init?: RequestInit) => {
   return { response, html: await response.text() };
 };
 
-/** The cache state a response's Server-Timing reports. */
+/** How the store served a response, from its Server-Timing. */
 const state = (response: Response) =>
-  /cache;desc="([a-z]+)"/.exec(
+  /store;desc="([a-z]+)"/.exec(
     response.headers.get("server-timing") ?? "",
   )?.[1];
 
 /**
- * `path` until the cache answers it: the copy is stored after the
- * response, so the very next request may still miss.
+ * `path` until the store answers it: a Worker's first request reads the
+ * data's version after its response, and a page is kept after the
+ * response that built it, so the very next request may still miss.
  */
 async function warm(url: string, path: string, init?: RequestInit) {
   for (let attempt = 0; attempt < 20; attempt++) {
@@ -103,7 +105,7 @@ async function warm(url: string, path: string, init?: RequestInit) {
     if (state(response) === "hit") return { response, html };
     await Bun.sleep(25);
   }
-  throw new Error(`${path} never came from the cache`);
+  throw new Error(`${path} never came from the store`);
 }
 
 const pages = [
@@ -116,11 +118,22 @@ const pages = [
   `/${slugs.past}`,
 ];
 
-describe("the edge cache", () => {
+/** Until `url`'s Worker knows the data's version, it keeps nothing. */
+async function primed(url: string) {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const { response } = await get(url, "/robots.txt?primed");
+    if (state(response) !== "bypass") return;
+    await Bun.sleep(25);
+  }
+  throw new Error(`${url} never read the data's version`);
+}
+
+describe("the page store", () => {
   for (const path of pages) {
-    it(`builds ${path} once, then serves it from the cache, the same page`, async ({
+    it(`builds ${path} once, then serves it from the store, the same page`, async ({
       Cached,
     }) => {
+      await primed(Cached);
       const first = await get(Cached, path);
       expect(first.response.status).toBe(200);
       expect(state(first.response)).toBe("miss");
@@ -138,13 +151,14 @@ describe("the edge cache", () => {
   it("reports how long the database took on a miss, and nothing of it on a hit", async ({
     Cached,
   }) => {
+    await primed(Cached);
     const miss = await get(Cached, "/events?timing");
     expect(miss.response.headers.get("server-timing")).toMatch(
-      /^cache;desc="miss";dur=\d+\.\d, db;dur=\d+\.\d$/,
+      /^store;desc="miss";dur=\d+\.\d, db;dur=\d+\.\d$/,
     );
     const hit = await warm(Cached, "/events?timing");
     expect(hit.response.headers.get("server-timing")).toMatch(
-      /^cache;desc="hit";dur=\d+\.\d$/,
+      /^store;desc="hit";dur=\d+\.\d$/,
     );
   });
 
@@ -199,12 +213,12 @@ describe("the edge cache", () => {
       });
       expect(response.status).toBe(303);
       expect(response.headers.get("set-cookie")).toStartWith("theme=dark;");
-      expect(state(response)).toBe("miss");
+      expect(state(response)).not.toBe("hit");
       await response.arrayBuffer();
     }
   });
 
-  it("keeps not found briefly, as not found", async ({ Cached }) => {
+  it("keeps not found, as not found", async ({ Cached }) => {
     const { response } = await warm(Cached, "/no-such-evening");
     expect(response.status).toBe(404);
     expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
@@ -228,7 +242,7 @@ describe("the edge cache", () => {
     }
   });
 
-  it("is off without EDGE_CACHE", async ({ Uncached }) => {
+  it("is off without PAGES", async ({ Uncached }) => {
     for (let attempt = 0; attempt < 2; attempt++) {
       const { response } = await get(Uncached, "/");
       expect(response.headers.get("server-timing")).toMatch(/^db;dur=/);

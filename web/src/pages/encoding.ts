@@ -1,6 +1,6 @@
 /**
  * How a response is compressed for its client, on its own: the Worker's
- * cache (edge-cache.ts) picks each visitor's coding before the app is
+ * store (page-store.ts) picks each visitor's coding before the app is
  * loaded, so this module imports nothing.
  */
 

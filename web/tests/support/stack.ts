@@ -9,10 +9,10 @@ export interface WorkerEnv {
   readonly ORIGIN: string;
   readonly DATABASE_URL?: string;
   /**
-   * Turns on the Worker's own cache under this name (see worker.ts); each
-   * test Worker that sets it needs its own.
+   * Turns on the Worker's page store (src/page-store.ts), in a KV namespace
+   * of the Worker's own.
    */
-  readonly EDGE_CACHE?: string;
+  readonly PAGES?: true;
   /** The origin of a `HYPERDRIVE` binding, as the Worker deploys. */
   readonly HYPERDRIVE?: Cloudflare.Hyperdrive.PublicOrigin;
   /**
@@ -68,11 +68,22 @@ export const testStack = <const Name extends string>(
     Effect.gen(function* () {
       const urls = [];
       for (const [worker, env] of Object.entries<WorkerEnv>(workers)) {
-        const { HYPERDRIVE: origin, IMAGES: images, entry, ...rest } = env;
-        const settings =
-          images === undefined
-            ? rest
-            : { ...rest, IMAGES: Cloudflare.Images.Images("IMAGES") };
+        const {
+          HYPERDRIVE: origin,
+          IMAGES: images,
+          PAGES: pages,
+          entry,
+          ...rest
+        } = env;
+        const settings = {
+          ...rest,
+          ...(images === undefined
+            ? {}
+            : { IMAGES: Cloudflare.Images.Images("IMAGES") }),
+          ...(pages === undefined
+            ? {}
+            : { PAGES: yield* Cloudflare.KV.Namespace(`${worker}Pages`) }),
+        };
         const { url } = yield* Cloudflare.Worker(worker, {
           main: new URL(
             entry === "preview"
@@ -103,9 +114,9 @@ export const testStack = <const Name extends string>(
  * What the Worker's modules may weigh gzipped (see support/bundle.ts).
  *
  * - `startup`: the entry and every module it imports statically, which
- *   every cold start parses, even one the cache answers. Only the cache
- *   (src/edge-cache.ts) is: about 15 KB, most of it Effect's cookie
- *   parser. The app (src/app.ts) loads on the first request the cache
+ *   every cold start parses, even one the store answers. Only the store
+ *   (src/page-store.ts) is: about 15 KB, most of it Effect's cookie
+ *   parser. The app (src/app.ts) loads on the first request the store
  *   can't answer (src/worker.ts).
  * - `lazy`: each module loaded on first use, with `import()`: the app's
  *   own, the largest about 85 KB, and /brand's and the foundations', a

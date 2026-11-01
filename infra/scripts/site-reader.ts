@@ -28,29 +28,16 @@ import {
   provisionLoginRole,
   storeConnectionString,
 } from "./login-role.ts";
+import { siteTables } from "../../core/src/site-tables.ts";
 
 export const SITE_READER = "site_reader";
 
-/** The tables the public site reads; a new one is added here and the script rerun. */
-export const SITE_TABLES = [
-  "events",
-  "talks",
-  "event_talks",
-  "talk_speakers",
-  "profiles",
-  "sponsors",
-  "event_sponsors",
-  "images",
-  "event_images",
-  "event_people",
-  "event_posts",
-  "external_talks",
-  "event_schedule_items",
-  "event_notes",
-  "profile_slugs",
-  "redirects",
-  "event_slugs",
-] as const;
+/**
+ * The tables the public site reads (core's src/site-tables.ts, whose rows'
+ * digest is the version pages are kept by); a new one is added there and
+ * this script rerun.
+ */
+export const SITE_TABLES = siteTables;
 
 /**
  * Core's record of applied migrations (core/src/migrator.ts), which the

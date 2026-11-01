@@ -10,6 +10,7 @@ import {
   published,
   roleAppearances,
   soonestFirst,
+  statusChanges,
   talkAppearances,
 } from "../src/catalog.ts";
 import { seededDatabase, sqlLayer } from "./support/database.ts";
@@ -83,6 +84,44 @@ describe("ahead and ended", () => {
     const past = eventStatus(acme, now) === "past";
     expect(rows).toEqual([{ ahead: !past, ended: past }]);
   });
+});
+
+describe("statusChanges", () => {
+  /** The start of `instant`'s minute, as pages read the clock (clock.ts). */
+  const minuteOf = (instant: DateTime.Utc) =>
+    DateTime.startOf(instant, "minute");
+
+  test.each([
+    ["on the minute", "2026-08-13T01:00:00Z", "2026-08-13T04:00:00Z"],
+    ["off the minute", "2026-08-13T01:00:30Z", "2026-08-13T04:00:30Z"],
+  ] as const)(
+    "are exactly the minutes eventStatus changes at, for an evening %s",
+    async (_, starts, ends) => {
+      const evening = { startDate: at(starts), endDate: at(ends) };
+      const rows = await withSql(
+        (sql) => sql<{ at: Date }>`
+          SELECT x.at FROM (SELECT to_timestamp(${DateTime.toEpochMillis(evening.startDate) / 1000}) AS start_date,
+                          to_timestamp(${DateTime.toEpochMillis(evening.endDate) / 1000}) AS end_date) e,
+          LATERAL ${statusChanges(sql, "e")} AS x(at)`,
+      );
+      const changes = rows
+        .map((row) => row.at.getTime())
+        .toSorted((a, b) => a - b);
+      // Every minute from an hour before to an hour after: the status as
+      // of a minute differs from the minute before's exactly at a change.
+      const from = DateTime.toEpochMillis(evening.startDate) - 3_600_000;
+      const to = DateTime.toEpochMillis(evening.endDate) + 3_600_000;
+      const seen: Array<number> = [];
+      for (let t = Math.ceil(from / 60_000) * 60_000; t <= to; t += 60_000) {
+        const now = minuteOf(DateTime.makeUnsafe(t));
+        const before = DateTime.subtract(now, { minutes: 1 });
+        if (eventStatus(evening, now) !== eventStatus(evening, before)) {
+          seen.push(t);
+        }
+      }
+      expect(changes).toEqual(seen);
+    },
+  );
 });
 
 describe("published, ours and their order", () => {

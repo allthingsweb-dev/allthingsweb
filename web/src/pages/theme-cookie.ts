@@ -2,7 +2,7 @@ import { dataTheme, type Mode } from "allthings-brand/src/modes.ts";
 
 /**
  * Which mode a visitor's `theme` cookie fixes, on its own: the Worker's
- * cache keys every page by it (edge-cache.ts) before the app is loaded, so
+ * store keeps every page by it (page-store.ts) before the app is loaded, so
  * this module reads nothing but the brand's mode names. Setting the cookie
  * is theme.ts's.
  */
