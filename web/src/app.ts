@@ -1,6 +1,10 @@
-import { ConfigProvider, Context, Layer } from "effect";
+import {
+  SiteVersion,
+  type SiteState,
+} from "allthings-core/src/site-version.ts";
+import { ConfigProvider, Context, Effect, Layer } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
-import { Hyperdrive } from "./database.ts";
+import { Hyperdrive, pool } from "./database.ts";
 import { imageRoutes, Images, WaitUntil } from "./images/route.ts";
 import { Mcp, mcpRoute } from "./mcp/endpoint.ts";
 import { Assets, ogRoutes } from "./og/route.ts";
@@ -64,5 +68,28 @@ export function makeHandler(
       context === undefined
         ? undefined
         : Context.make(WaitUntil, (promise) => context.waitUntil(promise)),
+    );
+}
+
+/**
+ * The public data's version (core's src/site-version.ts), read on the same
+ * pool as the pages (see database.ts): for the page store (page-store.ts),
+ * which keeps pages by it.
+ */
+export function makeSiteState(
+  env: Readonly<Record<string, unknown>>,
+): () => Promise<SiteState> {
+  const layer = SiteVersion.layer.pipe(
+    Layer.provide(pool),
+    Layer.provide(
+      Layer.mergeAll(
+        ConfigProvider.layer(ConfigProvider.fromUnknown(env)),
+        Hyperdrive.layer(env),
+      ),
+    ),
+  );
+  return () =>
+    Effect.runPromise(
+      SiteVersion.use((site) => site.read).pipe(Effect.provide(layer)),
     );
 }

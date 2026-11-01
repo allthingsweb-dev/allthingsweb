@@ -1,20 +1,28 @@
 import * as Cloudflare from "alchemy/Cloudflare";
 import { compatibility } from "../../web/src/compatibility.ts";
+import { readerCaching } from "../../web/src/reader-caching.ts";
 import { Reader } from "./reader.ts";
 
 /**
  * Hyperdrive in front of production's Neon database, as its read-only
  * `reader` role (see reader.ts). Each stage has its own, named after it and
  * destroyed with it. Previews only read, so query results are cached for 60
- * seconds and may be served up to 15 seconds stale while they refresh. Five
- * origin connections, Hyperdrive's minimum, keep every open stage together
- * well inside Neon's connection limit.
+ * seconds and may be served up to 15 seconds stale while they refresh
+ * (web/src/reader-caching.ts, which the page store waits out before it keeps
+ * pages of new data). Five origin connections, Hyperdrive's minimum, keep
+ * every open stage together well inside Neon's connection limit.
  */
 export const Database = Cloudflare.Hyperdrive.Connection("Database", {
   origin: Reader,
-  caching: { maxAge: 60, staleWhileRevalidate: 15 },
+  caching: readerCaching,
   originConnectionLimit: 5,
 });
+
+/**
+ * The page store's namespace: each stage has its own, named after it and
+ * destroyed with it. It holds only what the Worker can build again.
+ */
+export const Pages = Cloudflare.KV.Namespace("Pages");
 
 /** Where the new site lives: canonical URLs, the feeds and link previews name it on every stage. */
 export const SITE_HOST = "allthings.dev";
@@ -42,8 +50,9 @@ export const SITE_ORIGIN = `https://${SITE_HOST}`;
  * stay out of search results. allthingsweb.dev keeps serving the old app
  * until the full cutover (infra/docs/r2-migration.md).
  *
- * `EDGE_CACHE` turns on the Worker's own cache in each data center
- * (web/src/edge-cache.ts), so a warm page never waits on the database.
+ * `PAGES` is the Worker's page store (web/src/page-store.ts), a KV namespace
+ * of its own on each stage: a page is built from the database once for each
+ * version of the data, and served from KV in every data center after.
  * `IMAGES` makes the photos' variants (web/src/images/route.ts) from the
  * originals on the media origin; it has no resource of its own, and
  * transformations are billed to the account.
@@ -55,7 +64,7 @@ export const makeWeb = (domain?: Cloudflare.WorkerDomainConfig) =>
     assets: "../web/dist/public",
     env: {
       ORIGIN: SITE_ORIGIN,
-      EDGE_CACHE: "site",
+      PAGES: Pages,
       HYPERDRIVE: Database,
       IMAGES: Cloudflare.Images.Images("IMAGES"),
     },
