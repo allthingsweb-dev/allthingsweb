@@ -1,15 +1,16 @@
-import { dataTheme } from "allthings-brand/src/css.ts";
-import type { Mode } from "allthings-brand/src/tokens.ts";
+import { dataTheme } from "allthings-brand/src/modes.ts";
 import { Duration } from "effect";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { preferenceCacheControl } from "../cache.ts";
+import { isTheme, type Theme, themeCookie } from "./theme-cookie.ts";
 
 /**
  * The visitor's mode, without JavaScript. The header links to `?theme=`
  * on the page itself; the Worker remembers the choice in the `theme`
  * cookie and sends the visitor back (303) to the page without the query.
- * Every page then renders `data-theme` from the cookie. Without one, the
- * page follows the system through `prefers-color-scheme`.
+ * Every page then renders `data-theme` from the cookie (theme-cookie.ts
+ * reads it). Without one, the page follows the system through
+ * `prefers-color-scheme`.
  *
  * Because pages depend on the cookie, response.ts sends them with
  * `Vary: Cookie`, and a page in a fixed mode is cacheable by that
@@ -17,15 +18,7 @@ import { preferenceCacheControl } from "../cache.ts";
  * visitor's mode to another.
  */
 
-/** A page's mode, when the visitor fixed one; otherwise it follows the system. */
-export type Theme = (typeof dataTheme)[Mode];
-
-const themes: ReadonlyArray<Theme> = Object.values(dataTheme);
-
-/** Whether `value` is a mode a page can fix, as `data-theme` writes it. */
-export function isTheme(value: string): value is Theme {
-  return themes.some((theme) => theme === value);
-}
+export type { Theme };
 
 /** What `?theme=` accepts: a fixed mode, or the system's again. */
 export type Choice = Theme | "system";
@@ -48,8 +41,6 @@ export const choices: ReadonlyArray<{
   { choice: dataTheme.night, label: "night" },
 ];
 
-export const themeCookie = "theme";
-
 /** As long as browsers keep a cookie: Chrome caps lifetimes at 400 days. */
 export const themeCookieMaxAge = Duration.days(400);
 
@@ -59,14 +50,6 @@ const cookieOptions = {
   httpOnly: true,
   sameSite: "lax",
 } as const;
-
-/** The mode a request's cookies fix, if any; anything unknown is no choice. */
-export function themeOf(
-  cookies: Readonly<Record<string, string>>,
-): Theme | undefined {
-  const value = cookies[themeCookie];
-  return value !== undefined && isTheme(value) ? value : undefined;
-}
 
 /**
  * The answer to `?theme=<choice>` on the page at `path`, requested as

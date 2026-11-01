@@ -23,7 +23,7 @@ import { Assets } from "../og/route.ts";
 import { eventPage } from "../pages/event.tsx";
 import { footer, hostPortraits } from "../pages/routes.ts";
 import { htmlResponse } from "../pages/response.ts";
-import { themeOf } from "../pages/theme.ts";
+import { themeOf } from "../pages/theme-cookie.ts";
 import { Site } from "../site.ts";
 import {
   type AccessSettings,

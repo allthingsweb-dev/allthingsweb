@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { contentEncoding } from "../src/pages/response.ts";
+import { contentEncoding } from "../src/pages/encoding.ts";
 
 describe("content encoding", () => {
   test.each([

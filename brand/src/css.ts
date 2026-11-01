@@ -10,6 +10,7 @@ import {
   type TokenFile,
   typeRoles,
 } from "./tokens.ts";
+import { dataTheme } from "./modes.ts";
 
 /**
  * The tokens as CSS: the palette, fonts, type sizes and every length as
@@ -23,11 +24,8 @@ import {
  * chose Night, or on any element for a part of one.
  */
 
-/** The `data-theme` value of each mode. */
-export const dataTheme = {
-  paper: "light",
-  night: "dark",
-} as const satisfies Record<Mode, string>;
+/** The `data-theme` value of each mode (modes.ts). */
+export { dataTheme };
 
 export function kebab(name: string): string {
   return name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);

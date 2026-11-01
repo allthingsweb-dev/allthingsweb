@@ -103,14 +103,16 @@ export const testStack = <const Name extends string>(
  * What the Worker's modules may weigh gzipped (see support/bundle.ts).
  *
  * - `startup`: the entry and every module it imports statically, which
- *   every cold start parses. Today about 160 KB: Effect is most of it,
- *   then @effect/sql-pg; the pages are about 25 KB.
- * - `lazy`: each module loaded on first use, with `import()`. The MCP
- *   server (its SDK and zod) is about 86 KB and serves only `/mcp`;
- *   /brand and the foundations are a few KB.
+ *   every cold start parses, even one the cache answers. Only the cache
+ *   (src/edge-cache.ts) is: about 15 KB, most of it Effect's cookie
+ *   parser. The app (src/app.ts) loads on the first request the cache
+ *   can't answer (src/worker.ts).
+ * - `lazy`: each module loaded on first use, with `import()`: the app's
+ *   own, the largest about 85 KB, and /brand's and the foundations', a
+ *   few KB each.
  *
  * Workers may be 3 MB gzipped, but every byte of the startup modules is
  * parsed on a cold start: raise these only on purpose. When the test
  * fails, it lists what the cold start is made of.
  */
-export const bundleBudgets = { startup: 250_000, lazy: 120_000 } as const;
+export const bundleBudgets = { startup: 25_000, lazy: 120_000 } as const;
