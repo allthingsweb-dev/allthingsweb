@@ -29,6 +29,7 @@ import draftTalksMigration from "./0027_draft_talks.ts";
 import draftLogMigration from "./0028_draft_log.ts";
 import studioCollabMigration from "./0029_studio_collab.ts";
 import forgetDraftMigration from "./0030_forget_draft.ts";
+import forgetDraftCoverMigration from "./0031_forget_draft_cover.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -68,6 +69,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0028_draft_log": draftLogMigration,
   "0029_studio_collab": studioCollabMigration,
   "0030_forget_draft": forgetDraftMigration,
+  "0031_forget_draft_cover": forgetDraftCoverMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

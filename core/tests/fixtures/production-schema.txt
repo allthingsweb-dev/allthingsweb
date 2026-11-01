@@ -53,7 +53,7 @@ relation planning.draft_notes kind=r persistence=p rls=f force_rls=f replica_ide
 routine planning.collab_row_counts() 8478aded7d0bb788e8f3eca4d81eaec5
 routine planning.draft_log_append_only() 5ef7e79c94ff90b4e6ad373685e1a985
 routine planning.draft_notes_written_once() 0d8f3248a1469eef2fc82ede9743204a
-routine planning.forget_draft(p_event uuid, p_forget boolean) 626ef0fb6eaa1e87fa5a10adc6eb1622
+routine planning.forget_draft(p_event uuid, p_forget boolean) bcb5ee8ccd5a0682cec1d80d1fd5fb94
 trigger CREATE TRIGGER draft_log_append_only BEFORE DELETE OR UPDATE ON planning.draft_log FOR EACH ROW EXECUTE FUNCTION planning.draft_log_append_only()
 trigger CREATE TRIGGER draft_log_no_truncate BEFORE TRUNCATE ON planning.draft_log FOR EACH STATEMENT EXECUTE FUNCTION planning.draft_log_append_only()
 trigger CREATE TRIGGER draft_notes_no_truncate BEFORE TRUNCATE ON planning.draft_notes FOR EACH STATEMENT EXECUTE FUNCTION planning.draft_notes_written_once()

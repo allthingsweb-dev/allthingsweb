@@ -302,6 +302,13 @@
       "when": 1793567692630,
       "tag": "0042_forget_draft",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793569662126,
+      "tag": "0043_forget_draft_cover",
+      "breakpoints": true
     }
   ]
 }

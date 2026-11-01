@@ -418,8 +418,8 @@ both say so:
 - Luma's API answers 403 or 404 for its event, asked first; and
 - the database finds nothing that keeps it, asked by
   `planning.forget_draft()` (`migrations/0030_forget_draft.ts`) as its
-  owner, with the evening locked: it is still a draft, with no short link
-  or stored cover image; nothing public points at it (people, talks,
+  owner, with the evening locked: it is still a draft, with no short
+  link; nothing public points at it (people, talks,
   hosts, photos, posts, schedule, notes, short links, review sessions);
   it was never claimed for a publish (`planning.publishes`) or posted
   about (`sent_posts`); no idea is its or was inspired by it (relink it
@@ -428,7 +428,10 @@ both say so:
 
 Then, in one transaction, it adds its line to the draft's log, as
 `ALLTHINGS_ACTOR`, and deletes its private lineup and talks
-(`draft_people`, `draft_talks`, `draft_talk_people`) and the evening.
+(`draft_people`, `draft_talks`, `draft_talk_people`) and the evening,
+and its stored cover (the `images` row the ingestion keeps of its Luma
+cover, `migrations/0031_forget_draft_cover.ts`) unless anything else
+points at it; the object in the bucket stays, as a replaced photo's does.
 Its log and notes, and the collaboration's audit, are kept: no foreign key
 holds them to it. `--dry-run` asks Luma and the database the same and says
 what it would delete and keep.

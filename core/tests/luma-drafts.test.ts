@@ -10,9 +10,11 @@ import {
   type StoredDraft,
 } from "../src/luma/drafts.ts";
 import {
+  coverReferences,
   forgetBlocks,
   forgetDeletes,
-} from "../migrations/0030_forget_draft.ts";
+} from "../migrations/0031_forget_draft_cover.ts";
+import { imageReferences } from "../src/photos.ts";
 import {
   clockLayer,
   seededDatabase,
@@ -539,6 +541,7 @@ describe("forgetting a draft whose Luma event is gone", () => {
         "planning.draft_talks": 1,
         "planning.draft_people": 2,
         "public.events": 1,
+        "public.images": 0,
       },
       keeps: {
         "planning.collab_audit": 0,
@@ -590,6 +593,7 @@ describe("forgetting a draft whose Luma event is gone", () => {
             "planning.draft_talks": 1,
             "planning.draft_people": 2,
             "public.events": 1,
+            "public.images": 0,
           },
         },
       },
@@ -700,7 +704,47 @@ describe("forgetting a draft whose Luma event is gone", () => {
       "planning.draft_talks",
       "planning.draft_people",
       "public.events",
+      "public.images",
     ]);
+  });
+
+  test("planning.forget_draft checks every column that may point at the cover's image", () => {
+    expect(
+      coverReferences.map(([table, column]) => `${table}.${column}`),
+    ).toEqual(
+      imageReferences.map(({ table, column }) => `public.${table}.${column}`),
+    );
+  });
+
+  test("deletes its stored cover with it, and keeps a cover anything else points at", async () => {
+    await db.exec(`
+      INSERT INTO images (id, url, placeholder, alt, width, height, updated_at) VALUES
+        ('d0000000-0000-4000-8000-0000000000aa', 'https://storage.example/covers/aie.png', 'data:image/png;base64,AD', 'allthings/aie', 1200, 1200, now());
+      UPDATE events SET preview_image = 'd0000000-0000-4000-8000-0000000000aa' WHERE id = '${gone}'`);
+    const image = async () =>
+      (
+        await db.query(
+          `SELECT 1 FROM images WHERE id = 'd0000000-0000-4000-8000-0000000000aa'`,
+        )
+      ).rows.length;
+    // Shared with a profile, its row stays; the evening's link alone goes.
+    await db.exec(
+      `UPDATE profiles SET image = 'd0000000-0000-4000-8000-0000000000aa' WHERE id = 'b0000000-0000-4000-8000-000000000001'`,
+    );
+    const shared = await forget([{ status: 404 }], true);
+    if (Exit.isFailure(shared.exit)) throw new Error(String(shared.exit.cause));
+    expect(shared.exit.value.deletes).toMatchObject({ "public.images": 0 });
+    await db.exec(
+      `UPDATE profiles SET image = NULL WHERE id = 'b0000000-0000-4000-8000-000000000001'`,
+    );
+    const { exit } = await forget([{ status: 404 }], false);
+    if (Exit.isFailure(exit)) throw new Error(String(exit.cause));
+    expect(exit.value.deletes).toMatchObject({
+      "public.events": 1,
+      "public.images": 1,
+    });
+    expect(await image()).toBe(0);
+    expect(await left()).toMatchObject({ events: 0, people: 0, log: 1 });
   });
 });
 
