@@ -11,7 +11,10 @@ import {
 import type { PostSources } from "allthings-core/src/posts/sources.ts";
 import type { EventPostWriter } from "allthings-core/src/posts/store.ts";
 import type { HttpClient } from "effect/http";
-import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
+import {
+  type DescriptionsSelection,
+  LumaDescriptions,
+} from "allthings-core/src/luma/descriptions.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import {
   type PendingEvening,
@@ -79,9 +82,7 @@ export interface SyncLimits {
   readonly descriptions: {
     /** The import is cut off after this long, writing nothing. */
     readonly window: Duration.Input;
-    /** Events asked about; every published one by default. */
-    readonly maxEvents?: number;
-  };
+  } & DescriptionsSelection;
   /**
    * X follower counts read (core/src/followers.ts), the missing and oldest
    * first; a count newer than `staleAfter` is left alone.
@@ -115,7 +116,13 @@ export const syncLimits = {
     covers: {},
     venues: {},
     drafts: {},
-    descriptions: { window: "30 seconds" },
+    // Luma can't say which changed: every evening not over a week ago each
+    // hour, and two older ones in turn. With about 30 older ones now, each
+    // is asked about again every 15 hourly runs; longer as they grow.
+    descriptions: {
+      window: "30 seconds",
+      recent: { within: "7 days", olderPerRun: 2 },
+    },
     followers: { maxProfiles: 40, staleAfter: "7 days", window: "30 seconds" },
     postSearch: { within: "7 days", maxEvents: 10, window: "5 minutes" },
   },
@@ -286,10 +293,10 @@ const descriptions = (
   dryRun: boolean,
 ) =>
   Effect.gen(function* () {
-    const { maxEvents } = limits.descriptions;
+    const { window, ...selection } = limits.descriptions;
     const result = yield* importer
-      .run({ dryRun, ...(maxEvents === undefined ? {} : { maxEvents }) })
-      .pipe(Effect.timeout(limits.descriptions.window));
+      .run({ dryRun, ...selection })
+      .pipe(Effect.timeout(window));
     if (result._tag === "Skipped") return { skipped: result.reason };
     return {
       asked: result.asked,

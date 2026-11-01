@@ -310,7 +310,12 @@ Drafts' descriptions come with the draft refresh (see "Drafts the feed
 doesn't carry").
 
 The hourly sync imports descriptions after the events and images, in a
-window of their own (web/src/sync/run.ts).
+window of their own (web/src/sync/run.ts). Luma's API says nothing about
+when an event changed (no `updated_at` or ETag, and the feed's SEQUENCE
+is the feed's own time), so each run asks about the evenings never asked
+about, or not over a week ago, and two older ones in turn: with about 30
+older evenings now, each is asked about again every 15 hourly runs (longer
+as they grow), and an hour's run asks about a handful, not every evening.
 To run it now, for every event, from `core/`:
 
 ```sh
