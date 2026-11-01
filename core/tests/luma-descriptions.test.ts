@@ -500,4 +500,96 @@ describe("the import", () => {
       ),
     ).toEqual(["evt-react"]);
   });
+
+  describe("with `recent`", () => {
+    /** Two more published evenings with Luma ids: one over for two days, one for months. */
+    const four = async () => {
+      const db = await database();
+      await db.exec(
+        `UPDATE events SET luma_event_id = 'evt-endsNow' WHERE id = 'e0000000-0000-4000-8000-000000000005';
+         UPDATE events SET luma_event_id = 'evt-cafe' WHERE id = 'e0000000-0000-4000-8000-000000000006'`,
+      );
+      return db;
+    };
+    const replies = {
+      "evt-react": [answer("evt-react", described)],
+      "evt-upcoming": [answer("evt-upcoming", upcoming)],
+      "evt-endsNow": [answer("evt-endsNow", "Over a little while ago.")],
+      "evt-cafe": [answer("evt-cafe", "Over long ago.")],
+    };
+    const recent = { within: "7 days", olderPerRun: 1 } as const;
+    const askedAt = async (
+      db: PGlite,
+      iso: string,
+      options: Partial<DescriptionsOptions> = { recent },
+    ) =>
+      (
+        await importInto(db, replies, {
+          ...options,
+          at: DateTime.makeUnsafe(iso),
+        })
+      ).requests
+        .map(({ url }) => new URL(url).searchParams.get("event_id") ?? "")
+        .toSorted();
+
+    test("asks about every evening not over or over within it on each run, and the older ones in turn", async () => {
+      const db = await four();
+      // The first run asks about all four: none was asked about yet.
+      expect(await askedAt(db, "2026-10-05T12:00:00Z")).toEqual([
+        "evt-cafe",
+        "evt-endsNow",
+        "evt-react",
+        "evt-upcoming",
+      ]);
+      // Two days after "Ends now" ended: it and the upcoming evening each
+      // hour, and one of the two older ones, the other the hour after.
+      const first = await askedAt(db, "2026-10-05T13:00:00Z");
+      const next = await askedAt(db, "2026-10-05T14:00:00Z");
+      for (const asked of [first, next]) {
+        expect(asked).toHaveLength(3);
+        expect(asked).toContain("evt-endsNow");
+        expect(asked).toContain("evt-upcoming");
+      }
+      expect(
+        [...first, ...next].filter(
+          (id) => id === "evt-react" || id === "evt-cafe",
+        ),
+      ).toEqual(expect.arrayContaining(["evt-react", "evt-cafe"]));
+      expect(await askedAt(db, "2026-10-05T15:00:00Z")).toEqual(first);
+      // A week on, "Ends now" is older too.
+      expect(
+        await askedAt(db, "2026-10-12T13:00:00Z", {
+          recent: { within: "7 days", olderPerRun: 0 },
+        }),
+      ).toEqual(["evt-upcoming"]);
+    });
+
+    test("asks about an evening never asked about on every run, however long ago it was", async () => {
+      const db = await four();
+      await askedAt(db, "2026-10-05T12:00:00Z");
+      await db.exec(
+        `UPDATE events SET luma_description = NULL WHERE luma_event_id = 'evt-cafe'`,
+      );
+      const options = { recent: { within: "7 days", olderPerRun: 0 } };
+      expect(await askedAt(db, "2026-10-12T13:00:00Z", options)).toEqual([
+        "evt-cafe",
+        "evt-upcoming",
+      ]);
+    });
+
+    test("is held to `maxEvents`: those never asked about first, then the recent ones", async () => {
+      const db = await four();
+      await askedAt(db, "2026-10-05T12:00:00Z");
+      await db.exec(
+        `UPDATE events SET luma_description = NULL WHERE luma_event_id = 'evt-react'`,
+      );
+      expect(
+        await askedAt(db, "2026-10-05T13:00:00Z", { recent, maxEvents: 1 }),
+      ).toEqual(["evt-react"]);
+      // Asked about now: the two recent ones come before the older ones.
+      expect(
+        await askedAt(db, "2026-10-05T13:00:00Z", { recent, maxEvents: 2 }),
+      ).toEqual(["evt-endsNow", "evt-upcoming"]);
+    });
+  });
 });

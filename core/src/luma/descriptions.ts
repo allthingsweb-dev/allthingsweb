@@ -1,5 +1,14 @@
-import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
+import {
+  Context,
+  DateTime,
+  Duration,
+  Effect,
+  Layer,
+  Option,
+  Schema,
+} from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { ahead } from "../catalog.ts";
 import type { DataSourceError } from "../errors.ts";
 import type { SafeHtml } from "../rich-text.ts";
 import { orDataSourceError } from "../sql.ts";
@@ -124,6 +133,20 @@ export interface DescriptionsOptions {
    * time. Every published event otherwise.
    */
   readonly maxEvents?: number;
+  /**
+   * Ask about every event never asked about, not over, or over for less
+   * than `within` on every run, and of the older ones only `olderPerRun`,
+   * in turn, hour by hour, so each is asked about again in time. Every
+   * published event on every run otherwise. Luma's API says nothing about
+   * when an event changed (no `updated_at`, no ETag; its feed's SEQUENCE is
+   * the feed's own time), so this is how a run skips the descriptions that
+   * stopped changing: organizers edit an evening's before it and in the days
+   * after it, rarely later.
+   */
+  readonly recent?: {
+    readonly within: Duration.Input;
+    readonly olderPerRun: number;
+  };
 }
 
 export interface LumaDescriptionsShape {
@@ -148,15 +171,32 @@ const make = Effect.gen(function* () {
 
   /**
    * The events to ask about: every published one with a Luma id, or, with
-   * `maxEvents`, those never asked about first, then the rest in turn,
-   * `maxEvents` further down the list (latest to end first) each hour, so
-   * every event is asked about again in time.
+   * `recent`, the recent ones (never asked about, not over, or over for
+   * less than `recent.within`) and `recent.olderPerRun` of the rest, in
+   * turn, further down their list (latest to end first) each hour. With
+   * `maxEvents`, at most that many: those never asked about first, then
+   * the recent ones, then the rest in turn, `maxEvents` further down the
+   * list each hour, so every event is asked about again in time.
    */
-  const read = (maxEvents: number | null, now: DateTime.Utc) => {
-    const turn =
-      maxEvents === null
-        ? 0
-        : Math.floor(DateTime.toEpochMillis(now) / 3_600_000) * maxEvents;
+  const read = (
+    { maxEvents, recent }: DescriptionsOptions,
+    now: DateTime.Utc,
+  ) => {
+    const hour = Math.floor(DateTime.toEpochMillis(now) / 3_600_000);
+    const turn = maxEvents === undefined ? 0 : hour * maxEvents;
+    const olderPerRun = recent?.olderPerRun ?? 0;
+    const olderTurn = hour * olderPerRun;
+    const due =
+      recent === undefined
+        ? sql.literal("true")
+        : sql`(e.luma_description IS NULL OR ${ahead(
+            sql,
+            "e",
+            DateTime.subtractDuration(
+              now,
+              Duration.fromInputUnsafe(recent.within),
+            ),
+          )})`;
     return sql`
       SELECT e."eventId", e.slug, e."lumaEventId", e."lumaDescription",
         e."lumaSummary"
@@ -164,14 +204,20 @@ const make = Effect.gen(function* () {
         SELECT e.id AS "eventId", e.slug, e.luma_event_id AS "lumaEventId",
           e.luma_description AS "lumaDescription",
           e.luma_summary AS "lumaSummary",
-          row_number() OVER (ORDER BY e.end_date DESC, e.id) - 1 AS place,
-          count(*) OVER () AS total
+          ${due} AS due,
+          row_number() OVER (
+            PARTITION BY ${due} ORDER BY e.end_date DESC, e.id
+          ) - 1 AS place,
+          count(*) OVER (PARTITION BY ${due}) AS total
         FROM events e
         WHERE e.is_draft = false AND e.luma_event_id IS NOT NULL
       ) e
-      ORDER BY e."lumaDescription" IS NULL DESC,
+      WHERE e.due
+        OR mod(mod(e.place - ${olderTurn}, e.total) + e.total, e.total)
+          < ${olderPerRun}
+      ORDER BY e."lumaDescription" IS NULL DESC, e.due DESC,
         mod(mod(e.place - ${turn}, e.total) + e.total, e.total)
-      LIMIT ${maxEvents}`.pipe(
+      LIMIT ${maxEvents ?? null}`.pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(StoredEvent))),
       orDataSourceError,
     );
@@ -209,7 +255,7 @@ const make = Effect.gen(function* () {
     );
   };
 
-  const run = ({ dryRun, maxEvents }: DescriptionsOptions) =>
+  const run = (options: DescriptionsOptions) =>
     Option.match(api.eventDescription, {
       onNone: () =>
         Effect.succeed<DescriptionsImport>({
@@ -218,7 +264,7 @@ const make = Effect.gen(function* () {
         }),
       onSome: (eventDescription) =>
         Effect.gen(function* () {
-          const stored = yield* read(maxEvents ?? null, yield* DateTime.now);
+          const stored = yield* read(options, yield* DateTime.now);
           const fetched = yield* Effect.forEach(
             stored,
             (event) =>
@@ -235,7 +281,7 @@ const make = Effect.gen(function* () {
             { concurrency },
           );
           const changes = planDescriptions(fetched);
-          const written = dryRun
+          const written = options.dryRun
             ? null
             : changes.length === 0
               ? 0
@@ -251,7 +297,9 @@ const make = Effect.gen(function* () {
           } satisfies DescriptionsImport;
         }),
     }).pipe(
-      Effect.withSpan("LumaDescriptions.run", { attributes: { dryRun } }),
+      Effect.withSpan("LumaDescriptions.run", {
+        attributes: { dryRun: options.dryRun },
+      }),
     );
 
   return LumaDescriptions.of({ run });
