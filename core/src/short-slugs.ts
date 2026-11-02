@@ -72,6 +72,23 @@ const shortSlugShape = new RegExp(shortSlugPattern);
 /** Whether `slug` has a link's shape. */
 export const isShortSlug = (slug: string): boolean => shortSlugShape.test(slug);
 
+/**
+ * Every address an evening can answer at: a link (above, which the
+ * migrations' CHECK holds to its shape) or its long slug, which only
+ * luma/sync.ts's eventSlug writes now (the date, the name in lowercase
+ * ASCII and the Luma id, evt- and letters and digits, joined by hyphens).
+ * The app's long slugs from before kept a name's letters, accents and all
+ * (2025-12-02-café-night), so the shape is letters, marks, digits and
+ * hyphens. A path outside it, a dot or an underscore in it say, is no
+ * evening's: the site answers it without reading the database.
+ */
+export const eventAddressPattern = "^(shared/)?[\\p{L}\\p{M}\\p{N}-]+$";
+const eventAddressShape = new RegExp(eventAddressPattern, "u");
+
+/** Whether `slug` could be an evening's address (see eventAddressPattern). */
+export const isEventAddress = (slug: string): boolean =>
+  eventAddressShape.test(slug);
+
 /** The longest base, in characters; a long name is cut at a word. */
 export const maxBaseLength = 48;
 

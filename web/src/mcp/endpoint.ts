@@ -6,6 +6,7 @@ import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { CacheControl } from "../cache.ts";
 import { WaitUntil } from "../images/route.ts";
 import type { Site } from "../site.ts";
+import { ThroughStore } from "../through-store.ts";
 import type { CallTool, ToolName } from "./tools.ts";
 
 /**
@@ -49,16 +50,6 @@ export const canonicalInput = (input: Record<string, unknown>): string =>
  * call is answered from the database, never kept.
  */
 export const keptInputMax = 512;
-
-/** The page store in front of the app (worker.ts), when the Worker has one. */
-export class ThroughStore extends Context.Reference<
-  Option.Option<
-    (
-      request: Request,
-      context: { waitUntil(promise: Promise<unknown>): void },
-    ) => Promise<Response>
-  >
->("allthings/web/ThroughStore", { defaultValue: () => Option.none() }) {}
 
 const tools = () => import("./tools.ts");
 

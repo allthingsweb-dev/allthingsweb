@@ -6,11 +6,12 @@ import { ConfigProvider, Context, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import { Hyperdrive, pool } from "./database.ts";
 import { imageRoutes, Images, WaitUntil } from "./images/route.ts";
-import { Mcp, mcpRoute, ThroughStore, toolRoute } from "./mcp/endpoint.ts";
+import { Mcp, mcpRoute, toolRoute } from "./mcp/endpoint.ts";
 import { Assets, ogRoutes } from "./og/route.ts";
 import { pageRoutes } from "./pages/routes.ts";
 import { seoRoutes } from "./seo/routes.ts";
 import { Site } from "./site.ts";
+import { ThroughStore } from "./through-store.ts";
 import { v1Routes } from "./v1/routes.ts";
 
 /** Every route the Worker serves. */

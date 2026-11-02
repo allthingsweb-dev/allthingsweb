@@ -14,16 +14,21 @@ import {
   PeopleDirectory,
   type PersonLookup,
 } from "allthings-core/src/people-directory.ts";
+import { slugPattern as personSlugPattern } from "allthings-core/src/person-slug.ts";
 import { Portraits, type PortraitsById } from "allthings-core/src/portraits.ts";
 import { Redirects } from "allthings-core/src/redirects.ts";
-import { sharedPrefix } from "allthings-core/src/short-slugs.ts";
-import { Duration, Effect, Layer, Option } from "effect";
+import { Photo } from "allthings-core/src/rows.ts";
+import {
+  isEventAddress,
+  sharedPrefix,
+} from "allthings-core/src/short-slugs.ts";
+import { Duration, Effect, Layer, Option, Schema } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { CacheControl } from "../cache.ts";
 import { type Repositories, repositories } from "../database.ts";
-import { Images } from "../images/route.ts";
+import { Images, WaitUntil } from "../images/route.ts";
 import {
   aboutPath,
   eventPath,
@@ -32,6 +37,7 @@ import {
   personPath,
 } from "../links.ts";
 import { Site } from "../site.ts";
+import { ThroughStore } from "../through-store.ts";
 import { aboutPage } from "./about.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
 import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
@@ -126,6 +132,60 @@ export const hostPortraits = Portraits.use((repository) =>
     mediaOrigin,
   ),
 );
+
+/**
+ * Where the hosts' portraits are kept: one address, whose answer the page
+ * store keeps by the data's version like any page's. A page that reads
+ * nothing else (not found, gone) takes its footer from there through the
+ * store ({@link keptFooter}), so it never wakes the database once kept.
+ */
+export const portraitsPath = "/_site/portraits";
+
+/** The portraits as {@link portraitsPath} answers them: by profile id. */
+const PortraitsJson = Schema.Record(Schema.String, Photo);
+
+/**
+ * The footer of a page that reads nothing else: the portraits at
+ * {@link portraitsPath}, through the page store when the Worker has one, so
+ * the page reads no database; from the database when it has none (tests,
+ * previews) or the store doesn't answer.
+ */
+const keptFooter = Effect.gen(function* () {
+  const through = yield* ThroughStore;
+  if (Option.isSome(through)) {
+    const waitUntil = yield* WaitUntil;
+    const kept = yield* Effect.tryPromise(async () => {
+      const response = await through.value(
+        new Request(`https://allthings.dev${portraitsPath}`, {
+          headers: { "accept-encoding": "br, gzip" },
+        }),
+        { waitUntil },
+      );
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error(`the page store answered ${response.status}`);
+      }
+      return response.json();
+    }).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(PortraitsJson)),
+      Effect.map(
+        (byId): Footer => ({
+          portraits: new Map(Object.entries(byId)),
+          read: true,
+        }),
+      ),
+      Effect.tapCause((cause) =>
+        Effect.logWarning(
+          "The hosts' portraits didn't come through the page store; reading them:",
+          cause,
+        ),
+      ),
+      Effect.option,
+    );
+    if (Option.isSome(kept)) return kept.value;
+  }
+  return yield* footer(hostPortraits.pipe(Effect.provide(repositories)));
+});
 
 /**
  * A page of public data at `path`, read on every request it reaches over
@@ -232,6 +292,15 @@ const person = page(
       const { origin } = yield* Site;
       const slug = params["slug"] ?? "";
       const path = personPath(slug);
+      // No one's address has that shape (the migrations' CHECK): nothing to read.
+      if (!personSlugPattern.test(slug)) {
+        return yield* nothingAt(
+          path,
+          404,
+          { theme, acceptEncoding, images },
+          true,
+        );
+      }
       return yield* Effect.all(
         [
           // The person, and the talks they gave elsewhere.
@@ -557,6 +626,10 @@ const eventAt = (prefix: EventPrefix) =>
         const { origin } = yield* Site;
         const slug = slugAt(prefix, params);
         const path = eventPath(slug);
+        // No evening has an address of that shape: nothing to read.
+        if (!isEventAddress(slug)) {
+          return yield* nothingAt(path, 404, { theme, acceptEncoding, images });
+        }
         return yield* Effect.all([readEvent(slug), footer(hostPortraits)], {
           concurrency: "unbounded",
         }).pipe(
@@ -637,6 +710,10 @@ const calendarAt = (prefix: EventPrefix) =>
     `/${prefix}:slug/calendar.ics`,
     Effect.gen(function* () {
       const slug = slugAt(prefix, yield* HttpRouter.params);
+      // No evening has an address of that shape: nothing to read.
+      if (!isEventAddress(slug)) {
+        return plain("Event not found", 404, CacheControl.notFound);
+      }
       const { origin } = yield* Site;
       const found = yield* readEvent(slug).pipe(Effect.provide(repositories));
       return Option.match(found, {
@@ -726,20 +803,30 @@ const rootPath = (path: string): `/${string}` =>
 
 /**
  * The site's own page for a path with nothing at it: not found (404), cached
- * only briefly, or gone for good (410).
+ * only briefly, or gone for good (410). It reads nothing but its footer,
+ * which the page store keeps ({@link keptFooter}), so a path no one serves
+ * (a scanner's /.env, say) never wakes the database. At a person's
+ * address it says no one, as the person's page does.
  */
 const nothingAt = (
   path: `/${string}`,
   status: 404 | 410,
-  { theme, acceptEncoding, images }: PageRequest,
+  { theme, acceptEncoding, images }: Omit<PageRequest, "params">,
+  atPerson = false,
 ) =>
   Effect.gen(function* () {
     const { origin } = yield* Site;
-    const { portraits, read } = yield* footer(
-      hostPortraits.pipe(Effect.provide(repositories)),
-    );
+    const { portraits, read } = yield* keptFooter;
     return htmlResponse(
-      notFoundPage({ origin, path, theme, portraits, images, status }),
+      notFoundPage({
+        origin,
+        path,
+        theme,
+        portraits,
+        images,
+        status,
+        person: atPerson,
+      }),
       acceptEncoding,
       {
         cacheControl: !read ? "failure" : status === 410 ? "page" : "notFound",
@@ -830,6 +917,33 @@ const retiredSignIn = retiredSignInPaths.map((route) =>
 );
 
 /**
+ * {@link portraitsPath}: the hosts' portraits as JSON, for pages that read
+ * nothing else to take through the page store. It answers that one address
+ * only: a query would have the store keep the same answer again under it.
+ */
+const portraits = HttpRouter.add(
+  "GET",
+  portraitsPath,
+  Effect.gen(function* () {
+    const { url } = yield* HttpServerRequest.HttpServerRequest;
+    if (new URL(url, "http://localhost").search !== "") {
+      return plain("No such address", 400, CacheControl.failure);
+    }
+    const { portraits: byId, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    // Unread portraits are a failure, never an answer: a page taking them
+    // through the store then reads them itself, and is sent as a failure.
+    if (!read)
+      return plain("Temporarily unavailable", 503, CacheControl.failure);
+    return HttpServerResponse.text(JSON.stringify(Object.fromEntries(byId)), {
+      contentType: "application/json",
+      headers: { "cache-control": CacheControl.publicData },
+    });
+  }),
+);
+
+/**
  * Every other path. One with a trailing slash is the page without it, as
  * the current site redirects it (308); the rest are not found, with the
  * site's own page, cached only briefly.
@@ -870,6 +984,7 @@ export const pageRoutes = Layer.mergeAll(
   calendarAt(sharedPrefix),
   shortLink,
   nextImage,
+  portraits,
   ...retired,
   ...retiredSignIn,
   elsewhere,

@@ -2,10 +2,12 @@ import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { DateTime, Effect, Layer } from "effect";
 import { EventPages } from "../src/event-page.ts";
+import { eventSlug } from "../src/luma/sync.ts";
 import { eventPathOf, eventUrl } from "../src/mappers.ts";
 import {
   baseSlug,
   heldSlugs,
+  isEventAddress,
   isShortSlug,
   maxBaseLength,
   planShortSlugs,
@@ -260,6 +262,56 @@ describe("an evening's path", () => {
     expect(eventUrl("https://allthings.dev", "web-2024-11")).toBe(
       "https://allthings.dev/web-2024-11",
     );
+  });
+});
+
+describe("an evening's address", () => {
+  test("holds every slug the sync writes, whatever the name", () => {
+    for (const name of [
+      "All Things Web",
+      "Café & Croissants: Next.js + React!",
+      "🚀🚀🚀",
+      "  -- dashes --  ",
+      "x".repeat(140),
+      `${"word ".repeat(30)}.`,
+      "日本語の夜",
+      "a.b_c~d%e/f",
+    ]) {
+      const slug = eventSlug({
+        lumaEventId: "evt-AbC123xyz",
+        name,
+        startDate: at("2026-11-05T02:00:00Z"),
+      });
+      expect([slug, isEventAddress(slug)]).toEqual([slug, true]);
+    }
+  });
+
+  test("holds every link, and the app's long slugs from before", () => {
+    for (const slug of [
+      "effect",
+      "web-2024-11-12-2",
+      "shared/typescript-ai-demo-day",
+      "2025-12-02-café-night",
+      "2026-09-15-all-things-agent-setups-evt-yqRYriugnX9wi2u",
+    ]) {
+      expect([slug, isEventAddress(slug)]).toEqual([slug, true]);
+    }
+  });
+
+  test("leaves out what a scanner asks for", () => {
+    for (const slug of [
+      ".env",
+      "wp-login.php",
+      "xmlrpc.php",
+      "_profiler",
+      "index.html~",
+      "%2eenv",
+      "shared/",
+      "shared/.env",
+      "",
+    ]) {
+      expect([slug, isEventAddress(slug)]).toEqual([slug, false]);
+    }
   });
 });
 
