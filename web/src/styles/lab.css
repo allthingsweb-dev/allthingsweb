@@ -417,9 +417,11 @@
   background: var(--at-surface);
 }
 
+/* A date stays on one line: each cut is at least as wide as 2026.09.30. */
 .cut-date {
   letter-spacing: 0;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .slash-grid-dated a:hover .cut-date,
@@ -986,6 +988,16 @@ h1.letters-word .at-cursor {
 }
 
 @media (--at-below-l) {
+  /* Narrower, three cuts a row, so each is as wide as its date: the
+     latest fifteen. */
+  .slash-grid-dated {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .slash-grid-dated li:nth-child(n + 16) {
+    display: none;
+  }
+
   .sheet {
     grid-column: 1 / -1;
   }
