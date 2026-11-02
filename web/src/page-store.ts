@@ -674,7 +674,11 @@ export function pageStored(
     refreshing = true;
     try {
       const pointer = await fetchPointer(request, context);
-      if (pointer === "unreachable" || pointer === undefined) return;
+      if (pointer === "unreachable") return;
+      if (pointer === undefined || now() - pointer.checkedAt >= checkEvery) {
+        context.waitUntil(check(request, pointer));
+      }
+      if (pointer === undefined) return;
       const at = now();
       const state = effectiveState(pointer, at);
       if (state === undefined || state.version === served) return;
@@ -744,7 +748,12 @@ export function pageStored(
     const started = now();
     const { pointer, stale } = await readPointer(request, context);
     if (pointer === "unreachable") return bypass();
-    if (pointer === undefined || now() - pointer.checkedAt >= checkEvery) {
+    // A stale copy is no ground for a check: it may be older than KV's
+    // pointer, which revalidate reads, and checks from, instead.
+    if (
+      !stale &&
+      (pointer === undefined || now() - pointer.checkedAt >= checkEvery)
+    ) {
       context.waitUntil(check(request, pointer));
     }
     const at = now();

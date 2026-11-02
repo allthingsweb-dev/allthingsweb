@@ -620,6 +620,38 @@ describe("the data center's copies", () => {
     expect(app.calls()).toBe(3);
   });
 
+  test("never checks the database from a stale copy, so KV's newer pointer is never written over", async () => {
+    const { local } = memoryLocal();
+    const { fetch, kv, time, data } = setup({ local });
+    await fetch(get("/"));
+    await fetch(get("/"));
+    // Past the hourly check, and KV moved on to v2 meanwhile.
+    time.advance(checkEvery / 1000 + 60);
+    data.change(v2);
+    await kv.pages.put(
+      siteKey,
+      JSON.stringify({ checkedAt: time.now(), current: v2 }),
+    );
+    const asked = data.asked();
+    await fetch(get("/"));
+    // KV's pointer read after the response is fresh: nothing to check, and
+    // v1 was never written back.
+    expect(data.asked()).toBe(asked);
+    expect(kv.pointer()?.current?.version).toBe("v2");
+    expect(kv.pointer()?.next).toBeUndefined();
+  });
+
+  test("checks the database after a stale copy when KV's own pointer is old", async () => {
+    const { local } = memoryLocal();
+    const { fetch, time, data } = setup({ local });
+    await fetch(get("/"));
+    await fetch(get("/"));
+    time.advance(checkEvery / 1000 + 60);
+    const asked = data.asked();
+    await fetch(get("/"));
+    expect(data.asked()).toBe(asked + 1);
+  });
+
   test("read KV first when the data center has no copy", async () => {
     const { fetch, kv } = setup({ local: memoryLocal().local });
     const before = kv.gets();
