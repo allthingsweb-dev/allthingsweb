@@ -506,6 +506,11 @@ describe("the page store", () => {
     expect(wrongMethod.status).toBe(405);
     expect(wrongMethod.headers.get(workersCacheHeader)).toBe("no-store");
     await wrongMethod.arrayBuffer();
+    // The trailing-slash redirect answers before the store, with the edge rule too.
+    const slash = await fetch(`${Cached}/about/`, { redirect: "manual" });
+    expect(slash.status).toBe(308);
+    expect(slash.headers.get(workersCacheHeader)).toBe(workersCacheLifetime);
+    await slash.arrayBuffer();
   });
 
   it("prewarms every page the sitemap lists when a writer asks, with the token", async ({

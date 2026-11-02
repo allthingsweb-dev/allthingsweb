@@ -94,7 +94,10 @@ export default {
   ): Promise<Response> {
     // Before anything else: it keeps nothing and reads nothing.
     const redirect = withoutTrailingSlash(request.url);
-    if (redirect !== undefined) return Promise.resolve(redirect);
+    // It answers before the store and the app, so it takes the edge rule here.
+    if (redirect !== undefined) {
+      return Promise.resolve(forWorkersCache(request, redirect));
+    }
     if (handle === undefined) {
       let store: Handler | undefined;
       const { app, siteState } = lazyApp(env, () => store);
