@@ -353,9 +353,14 @@ describe("the variants' parts", () => {
     );
     const cuts = [
       ...html.matchAll(
-        /<li><a href="\/([^"]+)"><span class="cut"><picture>.*?<\/picture><\/span><time class="cut-date at-type-meta" datetime="([^"]+)">([^<]+)<\/time><\/a><\/li>/g,
+        /<li><a href="\/([^"]+)"><span class="cut"><picture>(.*?)<\/picture><\/span><time class="cut-date at-type-meta" datetime="([^"]+)">([^<]+)<\/time><\/a><\/li>/g,
       ),
-    ].map(([, slug, datetime, date]) => ({ slug, datetime, date }));
+    ].map(([, slug, picture = "", datetime, date]) => ({
+      slug,
+      lazy: picture.includes('loading="lazy"'),
+      datetime,
+      date,
+    }));
     // 23 of the 34 have a photo here: every one, under the 24 it holds.
     const shown = evenings.filter((held) => held.photo !== null);
     expect(shown).toHaveLength(23);
@@ -374,6 +379,10 @@ describe("the variants' parts", () => {
     expect(starts).toEqual(starts.toSorted((a, b) => b - a));
     expect(html).toContain("figures-band");
     expect(html.match(/fetchpriority="high"/g)).toHaveLength(6);
+    // The first twelve load at once; the rest load lazily.
+    expect(cuts.map(({ lazy }) => lazy)).toEqual(
+      cuts.map((_, index) => index >= 12),
+    );
     expect(await htmlProblems(html)).toEqual([]);
     // Without a photo to show, no grid.
     const bare = render(
