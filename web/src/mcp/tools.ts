@@ -14,6 +14,7 @@ import { z } from "zod";
 import { type Repositories, repositories } from "../database.ts";
 import { Site } from "../site.ts";
 import { community } from "./community.ts";
+import { transientMark } from "./endpoint.ts";
 
 /**
  * The public MCP tools, as app/src/lib/mcp/tools.ts declares them: the same
@@ -31,6 +32,40 @@ export type ToolProgram = Effect.Effect<CallToolResult, never, Site>;
 
 /** Runs a tool's program with the isolate's services. */
 export type RunTool = (program: ToolProgram) => Promise<CallToolResult>;
+
+/** The four public tools' inputs, as MCP clients send them. */
+export const toolInputs = {
+  list_events: z.object({
+    when: z
+      .enum(["upcoming", "past", "all"])
+      .default("upcoming")
+      .describe("Which events to list."),
+    limit: z.number().int().min(1).max(100).default(20),
+  }),
+  get_event: z.object({
+    slug: z.string().min(1).describe("Event slug from list_events."),
+  }),
+  list_speakers: z.object({
+    query: z.string().trim().min(1).optional(),
+    limit: z.number().int().min(1).max(200).default(50),
+  }),
+  get_community: z.object({}),
+} as const;
+
+export type ToolName = keyof typeof toolInputs;
+
+export const isToolName = (name: string): name is ToolName =>
+  Object.hasOwn(toolInputs, name);
+
+/**
+ * How a tool call is answered: by name, with its input as the tool's schema
+ * parsed it. The endpoint answers through the page store (endpoint.ts), so
+ * a call already answered for this version of the data never reads it.
+ */
+export type CallTool = (
+  name: ToolName,
+  input: Record<string, unknown>,
+) => Promise<CallToolResult>;
 
 const readOnly = {
   readOnlyHint: true,
@@ -98,11 +133,13 @@ const withDataSource =
       Effect.provide(repositories),
       Effect.catchCause((cause) =>
         Effect.logError(`MCP tool ${tool} failed`, cause).pipe(
-          Effect.as(
-            fail(
+          Effect.as({
+            ...fail(
               `allthings ${subject} are temporarily unavailable. Please retry in a minute.`,
             ),
-          ),
+            // Answered, but never kept by the store: the next call reads again.
+            _meta: { [transientMark]: true },
+          }),
         ),
       ),
     );
@@ -157,27 +194,55 @@ const getCommunity: ToolProgram = Site.useSync(({ origin }) =>
   succeed(community(origin)),
 );
 
-/** Registers the four public tools on `server`; `run` executes their programs. */
-export function registerTools(server: McpServer, run: RunTool): void {
+/**
+ * The program that answers `name` with `input` (untrusted: it is parsed
+ * with the tool's schema first), or undefined for input the tool refuses.
+ */
+export function toolProgram(
+  name: ToolName,
+  input: unknown,
+): ToolProgram | undefined {
+  switch (name) {
+    case "list_events": {
+      const parsed = toolInputs.list_events.safeParse(input);
+      return parsed.success
+        ? listEvents(parsed.data.when, parsed.data.limit)
+        : undefined;
+    }
+    case "get_event": {
+      const parsed = toolInputs.get_event.safeParse(input);
+      return parsed.success ? getEvent(parsed.data.slug) : undefined;
+    }
+    case "list_speakers": {
+      const parsed = toolInputs.list_speakers.safeParse(input);
+      return parsed.success
+        ? listSpeakers(parsed.data.query, parsed.data.limit)
+        : undefined;
+    }
+    case "get_community":
+      return toolInputs.get_community.safeParse(input).success
+        ? getCommunity
+        : undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** Registers the four public tools on `server`; `call` answers them. */
+export function registerTools(server: McpServer, call: CallTool): void {
   server.registerTool(
     "list_events",
     {
       title: "List events",
       description:
         "List allthings events in San Francisco. Upcoming (including live) events come soonest first; past events come most recent first. Registration always happens at each event's rsvpUrl.",
-      inputSchema: z.object({
-        when: z
-          .enum(["upcoming", "past", "all"])
-          .default("upcoming")
-          .describe("Which events to list."),
-        limit: z.number().int().min(1).max(100).default(20),
-      }),
+      inputSchema: toolInputs.list_events,
       outputSchema: outputSchema(
         Schema.Struct({ events: Schema.Array(Contract.EventSummary) }),
       ),
       annotations: readOnly,
     },
-    ({ when, limit }) => run(listEvents(when, limit)),
+    (input) => call("list_events", input),
   );
 
   server.registerTool(
@@ -186,13 +251,11 @@ export function registerTools(server: McpServer, run: RunTool): void {
       title: "Get event",
       description:
         "Get one allthings event by slug: schedule, venue, talks with speakers, hosting companies and where to register.",
-      inputSchema: z.object({
-        slug: z.string().min(1).describe("Event slug from list_events."),
-      }),
+      inputSchema: toolInputs.get_event,
       outputSchema: outputSchema(Schema.Struct(Contract.Event.fields)),
       annotations: readOnly,
     },
-    ({ slug }) => run(getEvent(slug)),
+    (input) => call("get_event", input),
   );
 
   server.registerTool(
@@ -201,16 +264,13 @@ export function registerTools(server: McpServer, run: RunTool): void {
       title: "List speakers",
       description:
         "List people who have spoken at past allthings events, with their talks. Optionally filter by a case-insensitive name, title or talk search.",
-      inputSchema: z.object({
-        query: z.string().trim().min(1).optional(),
-        limit: z.number().int().min(1).max(200).default(50),
-      }),
+      inputSchema: toolInputs.list_speakers,
       outputSchema: outputSchema(
         Schema.Struct({ speakers: Schema.Array(Contract.Speaker) }),
       ),
       annotations: readOnly,
     },
-    ({ query, limit }) => run(listSpeakers(query, limit)),
+    (input) => call("list_speakers", input),
   );
 
   server.registerTool(
@@ -219,10 +279,10 @@ export function registerTools(server: McpServer, run: RunTool): void {
       title: "About allthings",
       description:
         "What allthings is: mission, history, how hosting works, and links to events, Discord and the code of conduct.",
-      inputSchema: z.object({}),
+      inputSchema: toolInputs.get_community,
       outputSchema: outputSchema(Schema.Struct(Contract.Community.fields)),
       annotations: readOnly,
     },
-    () => run(getCommunity),
+    () => call("get_community", {}),
   );
 }

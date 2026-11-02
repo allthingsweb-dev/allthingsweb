@@ -37,14 +37,22 @@ let handle: Handler | undefined;
  * request that finds nothing made imports the app itself; the module is
  * evaluated once, and they get the same one.
  */
-const lazyApp = (env: Readonly<Record<string, unknown>>) => {
+const lazyApp = (
+  env: Readonly<Record<string, unknown>>,
+  /** The store in front of the app, once made, for `/mcp`'s tools. */
+  through: () => Handler | undefined,
+) => {
   let made:
     | { readonly app: Handler; readonly siteState: () => Promise<SiteState> }
     | undefined;
   const make = async () => {
     if (made === undefined) {
       const { makeHandler, makeSiteState } = await import("./app.ts");
-      made ??= { app: makeHandler(env), siteState: makeSiteState(env) };
+      const store = through();
+      made ??= {
+        app: makeHandler(env, store === undefined ? {} : { through: store }),
+        siteState: makeSiteState(env),
+      };
     }
     return made;
   };
@@ -83,7 +91,8 @@ export default {
     context: ExecutionContext,
   ): Promise<Response> {
     if (handle === undefined) {
-      const { app, siteState } = lazyApp(env);
+      let store: Handler | undefined;
+      const { app, siteState } = lazyApp(env, () => store);
       const pages = pagesOf(env);
       const turnover = env["HYPERDRIVE"] === undefined ? 0 : readerTurnover;
       const token = env["SITE_REFRESH_TOKEN"];
@@ -107,6 +116,8 @@ export default {
               turnover,
               ...(local === undefined ? {} : { local }),
             });
+      // `/mcp` answers its tools through the store (mcp/endpoint.ts).
+      if (pages !== undefined) store = site;
       // Only a Worker with a store and a token answers the writers.
       const writers =
         pages === undefined || typeof token !== "string" || token.trim() === ""

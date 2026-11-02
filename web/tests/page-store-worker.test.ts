@@ -3,7 +3,13 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, PrivateCacheControl } from "../src/cache.ts";
+import {
+  canonicalInput,
+  keptInputMax,
+  toolLocation,
+} from "../src/mcp/endpoint.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
+import { mcpRequest, rpcMessage } from "./support/http.ts";
 import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
 
@@ -227,11 +233,138 @@ describe("the page store", () => {
     expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
   });
 
+  it("answers MCP tools through the store, so a call already answered reads no database", async ({
+    Cached,
+  }) => {
+    await primed(Cached);
+    const listEvents = async (id: number) => {
+      const response = await fetch(
+        mcpRequest(`${Cached}/mcp`, {
+          jsonrpc: "2.0",
+          id,
+          method: "tools/call",
+          params: {
+            name: "list_events",
+            arguments: { when: "past", limit: 3 },
+          },
+        }),
+      );
+      return rpcMessage(await response.text()) as {
+        id: number;
+        result: { isError?: boolean; structuredContent: { events: unknown[] } };
+      };
+    };
+    const first = await listEvents(7);
+    expect(first.id).toBe(7);
+    expect(first.result.isError).toBeUndefined();
+    expect(first.result.structuredContent.events.length).toBeGreaterThan(0);
+    // The tool's answer is kept like a page, by its input.
+    const path = `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":3,"when":"past"}')}`;
+    const kept = await warm(Cached, path);
+    expect(JSON.parse(kept.html)).toEqual(first.result);
+    // The store keeps the tool's result, never the reply around it.
+    const replay = await listEvents(8);
+    expect(replay.id).toBe(8);
+    expect(replay.result).toEqual(first.result);
+  });
+
+  it("keeps a call whose input the URL parser escapes, like an apostrophe", async ({
+    Cached,
+  }) => {
+    const call = await fetch(
+      mcpRequest(`${Cached}/mcp`, {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "list_speakers", arguments: { query: "O'Brien" } },
+      }),
+    );
+    const reply = rpcMessage(await call.text()) as {
+      result: { isError?: boolean };
+    };
+    expect(reply.result.isError).toBeUndefined();
+    const kept = await warm(
+      Cached,
+      toolLocation(
+        "list_speakers",
+        canonicalInput({ limit: 50, query: "O'Brien" }),
+      ),
+    );
+    expect(JSON.parse(kept.html)).toEqual(reply.result);
+  });
+
+  it("refuses a tool it doesn't have, or input that isn't one call's canonical form, and keeps neither", async ({
+    Cached,
+  }) => {
+    for (const path of [
+      "/_mcp/tools/drop_tables",
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":-1}')}`,
+      "/_mcp/tools/get_event?input=not-json",
+      // The same call as the kept one above, spelled another way each time.
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"when":"past","limit":3}')}`,
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit": 3, "when": "past"}')}`,
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":3,"when":"past","extra":1}')}`,
+      `/_mcp/tools/list_speakers?input=${encodeURIComponent('{"limit":50,"query":" ada "}')}`,
+      `/_mcp/tools/get_event?input=${encodeURIComponent(JSON.stringify({ slug: "x".repeat(keptInputMax) }))}`,
+      // The kept call's own input, under another address.
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":3,"when":"past"}')}&nonce=1`,
+      `/_mcp/tools/list_events?nonce=1&input=${encodeURIComponent('{"limit":3,"when":"past"}')}`,
+      `/_mcp/tools/list%5Fevents?input=${encodeURIComponent('{"limit":3,"when":"past"}')}`,
+      '/_mcp/tools/list_events?input={"limit":3,"when":"past"}',
+      "/_mcp/tools/get_community",
+    ]) {
+      const { response } = await get(Cached, path);
+      expect(response.status).toBe(400);
+      expect(state(response)).not.toBe("hit");
+    }
+    // A call too long to keep is still answered, from the database.
+    const response = await fetch(
+      mcpRequest(`${Cached}/mcp`, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: {
+          name: "get_event",
+          arguments: { slug: "x".repeat(keptInputMax) },
+        },
+      }),
+    );
+    const long = rpcMessage(await response.text()) as {
+      result: { isError?: boolean; content: Array<{ text: string }> };
+    };
+    // The tool looked: no event has that slug.
+    expect(long.result.isError).toBe(true);
+    expect(long.result.content[0]?.text).not.toBe("Invalid input");
+  });
+
   it("serves warm pages without its database, and keeps no failure", async ({
     Orphaned,
   }) => {
     for (const path of pages) await warm(Orphaned, path);
+    // An MCP call answered once is answered again with the database gone.
+    const tool = () =>
+      fetch(
+        mcpRequest(`${Orphaned}/mcp`, {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "list_speakers", arguments: {} },
+        }),
+      ).then(
+        async (response) =>
+          rpcMessage(await response.text()) as {
+            result: { isError?: boolean };
+          },
+      );
+    const before = await tool();
     await stopLonely();
+    // Found in the store with the database gone: the call above kept it.
+    await warm(
+      Orphaned,
+      `/_mcp/tools/list_speakers?input=${encodeURIComponent('{"limit":50}')}`,
+    );
+    expect((await tool()).result).toEqual(before.result);
+    expect(before.result.isError).toBeUndefined();
     for (const path of pages) {
       const { response } = await get(Orphaned, path);
       expect(response.status).toBe(200);

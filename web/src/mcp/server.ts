@@ -1,19 +1,20 @@
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import packageJson from "../../package.json" with { type: "json" };
-import { registerTools, type RunTool } from "./tools.ts";
+import { type CallTool, registerTools } from "./tools.ts";
 
 /**
  * The MCP server: the official SDK's web-standard handler, as the app serves
  * it through mcp-handler. Every request gets a fresh server (stateless, no
  * sessions); requests from 2025-era clients, such as the CLI, are served by
- * the SDK's stateless fallback, exactly as today.
+ * the SDK's stateless fallback, exactly as today. `call` answers its tools
+ * (endpoint.ts), through the page store where the Worker has one.
  *
  * The SDK and zod are most of the Worker's code but serve only `/mcp`, so
  * this module is loaded the first time an isolate is asked for it (see
  * endpoint.ts), never on the pages' cold start.
  */
 export function mcpHandler(
-  run: RunTool,
+  call: CallTool,
 ): (request: Request) => Promise<Response> {
   const handler = createMcpHandler(
     () => {
@@ -21,7 +22,7 @@ export function mcpHandler(
         name: "allthings",
         version: packageJson.version,
       });
-      registerTools(server, run);
+      registerTools(server, call);
       return server;
     },
     { legacy: "stateless" },
