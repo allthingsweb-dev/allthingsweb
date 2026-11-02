@@ -15,8 +15,9 @@ import {
  * fluid: the photos as the surface of a fluid the pointer stirs. A small
  * stable-fluids solver on the GPU (advect, divergence, pressure, project)
  * carries a map of where each point's photo came from; the map relaxes
- * back home, so every swirl heals into the mosaic again. Left alone, a
- * slow current wanders through it, so it is never quite still.
+ * back home, so every swirl heals into the mosaic again. Left alone, it
+ * is stirred now and then along a slow, wandering path, as an unhurried
+ * pointer would, and heals in between, so it is never a still picture.
  */
 
 const header = `#version 300 es
@@ -110,10 +111,13 @@ void main() {
   color = vec4(photo, 1.0);
 }`;
 
-/** Seconds without the pointer before the slow current takes over. */
+/** Seconds without the pointer before it is stirred by itself. */
 const idleAfter = 1.5;
 
-/** Where the slow current is at `time`, across the surface from 0 to 1. */
+/** Seconds between stirs while the pointer is away. */
+const stirEvery = 2.5;
+
+/** Where the stirring is at `time`, across the surface from 0 to 1. */
 const current = (time: number) => ({
   x: 0.5 + 0.36 * Math.sin(time * 0.31),
   y: 0.5 + 0.3 * Math.sin(time * 0.23 + 1),
@@ -145,6 +149,8 @@ export function make({ gl, tiles }: EngineContext): Engine {
   const splats: Array<{ x: number; y: number; fx: number; fy: number }> = [];
   /** When the pointer last pushed, in seconds, as frames count time. */
   let pushed = -Infinity;
+  /** When it was last stirred by itself, in seconds. */
+  let stirred = -Infinity;
 
   return {
     resize(cssWidth, cssHeight, scale) {
@@ -185,16 +191,18 @@ export function make({ gl, tiles }: EngineContext): Engine {
     },
     frame(time, step) {
       const { read } = velocity;
-      // Left alone, the current pushes gently along its path: about a
-      // fifth of an unhurried pointer's push.
-      if (time - pushed > idleAfter && splats.length === 0) {
+      // Left alone, one push now and then along the path, about as hard
+      // as an unhurried pointer's, which heals before the next.
+      if (time - pushed > idleAfter && time - stirred > stirEvery) {
+        stirred = time;
         const here = current(time);
-        const before = current(time - step);
+        const ahead = current(time + 0.5);
+        const along = Math.hypot(ahead.x - here.x, ahead.y - here.y) || 1;
         splats.push({
           x: here.x,
           y: here.y,
-          fx: ((here.x - before.x) / step) * read.width * 0.6,
-          fy: ((here.y - before.y) / step) * read.height * 0.6,
+          fx: ((ahead.x - here.x) / along) * read.width * 0.5,
+          fy: ((ahead.y - here.y) / along) * read.height * 0.5,
         });
       }
       const texel = [1 / read.width, 1 / read.height] as const;
