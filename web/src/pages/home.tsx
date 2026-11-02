@@ -149,11 +149,19 @@ export function OpenSlot() {
  * after the next one and the latest ones. The home lab's variants
  * (pages/lab/) show it under theirs.
  */
-export function HomeBand({ home }: { readonly home: HomeView }) {
+export function HomeBand({
+  home,
+  lead,
+}: {
+  readonly home: HomeView;
+  /** What stands above the two sentences, at the top of their column. */
+  readonly lead?: JSX.Element | undefined;
+}) {
   const { next, afterThat, recently } = home;
   return (
     <div class="band">
       <div class="pitch at-type-statement">
+        {lead ?? ""}
         <p>Evenings for people who build software.</p>
         <p class="pitch-place">In the neighborhoods of San Francisco.</p>
       </div>

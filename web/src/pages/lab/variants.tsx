@@ -12,6 +12,7 @@ import {
 } from "./lab.tsx";
 import { SlashGrid } from "./slash-grid.tsx";
 import { SlashGridDated } from "./slash-grid-dated.tsx";
+import { HomeTight } from "./home-tight.tsx";
 import { YearEndRetro } from "./year-end-retro.tsx";
 import { Wall } from "./wall.tsx";
 
@@ -56,6 +57,12 @@ export const variants: ReadonlyArray<Variant> = [
     pitch:
       "Home now: the slash grid with one photo to each evening we’ve held, the latest first, each dated under its cut and leading to its evening.",
     render: SlashGridDated,
+  },
+  {
+    name: "home-tight",
+    pitch:
+      "Home that fits a MacBook’s screen, footer aside: the dated grid in three rows of six, cut wider, and the tally folded into the band below, above the two sentences.",
+    render: HomeTight,
   },
   {
     name: "depth-field",

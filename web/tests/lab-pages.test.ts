@@ -137,6 +137,7 @@ describe("the lab", () => {
       "contact-sheet",
       "slash-grid",
       "slash-grid-dated",
+      "home-tight",
       "depth-field",
       "faces",
       "faces-mix",
@@ -444,6 +445,32 @@ describe("the variants' parts", () => {
     );
     expect(bare).not.toContain('class="slash-grid');
     expect(bare).toContain('<section class="hero" aria-labelledby="next">');
+  });
+
+  test("home-tight: the latest 18 evenings beside the hero, and the tally folded into the band above the two sentences", async () => {
+    const everyPhoto = evenings.map((held, index) => ({
+      ...held,
+      photo: held.photo ?? photo(`evening-${index}`),
+    }));
+    const html = render(
+      "home-tight",
+      data({ community: community({ evenings: everyPhoto }) }),
+    );
+    expect(html).toContain('<div class="lab-home tight">');
+    expect(
+      [...html.matchAll(/<li><a href="\/([^"]+)"><span class="cut">/g)].map(
+        ([, slug]) => slug,
+      ),
+    ).toEqual(everyPhoto.slice(0, 18).map(({ slug }) => slug));
+    // No band of its own: the tally opens the two sentences' column.
+    expect(html).not.toContain("figures-band");
+    expect(html).toContain(
+      '<div class="pitch at-type-statement"><section class="figures figures-compact" aria-label="So far"><dl><div><dt class="at-type-meta">evenings</dt><dd>34</dd></div>',
+    );
+    expect(html).toMatch(
+      /<\/section><p>Evenings for people who build software\.<\/p>/,
+    );
+    expect(await htmlProblems(html)).toEqual([]);
   });
 
   test("depth-field: the liquid's surface over a wall of photos, still lenses on it", () => {
