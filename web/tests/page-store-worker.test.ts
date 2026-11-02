@@ -233,11 +233,11 @@ describe("the page store", () => {
     Cached,
   }) => {
     await primed(Cached);
-    const listEvents = async () => {
+    const listEvents = async (id: number) => {
       const response = await fetch(
         mcpRequest(`${Cached}/mcp`, {
           jsonrpc: "2.0",
-          id: 7,
+          id,
           method: "tools/call",
           params: {
             name: "list_events",
@@ -250,7 +250,7 @@ describe("the page store", () => {
         result: { isError?: boolean; structuredContent: { events: unknown[] } };
       };
     };
-    const first = await listEvents();
+    const first = await listEvents(7);
     expect(first.id).toBe(7);
     expect(first.result.isError).toBeUndefined();
     expect(first.result.structuredContent.events.length).toBeGreaterThan(0);
@@ -258,7 +258,10 @@ describe("the page store", () => {
     const path = `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":3,"when":"past"}')}`;
     const kept = await warm(Cached, path);
     expect(JSON.parse(kept.html)).toEqual(first.result);
-    expect((await listEvents()).result).toEqual(first.result);
+    // The store keeps the tool's result, never the reply around it.
+    const replay = await listEvents(8);
+    expect(replay.id).toBe(8);
+    expect(replay.result).toEqual(first.result);
   });
 
   it("refuses a tool it doesn't have, or input that isn't one call's canonical form, and keeps neither", async ({
