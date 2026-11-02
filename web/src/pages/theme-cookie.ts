@@ -26,3 +26,52 @@ export function themeOf(
   const value = cookies[themeCookie];
   return value !== undefined && isTheme(value) ? value : undefined;
 }
+
+/**
+ * The value of the cookie `name` in a `Cookie` header, read exactly as
+ * Effect's `Cookies.parseHeader` reads it (effect/http/Cookies), which the
+ * app parses the same header with: pairs split at ";", keys trimmed, the
+ * first of a name kept, a value starting with a quote losing its first and
+ * last characters, and one with "%" decoded when it can be.
+ * web/tests/theme-cookie.test.ts holds the two together on generated
+ * headers. It is here so a cold start, which keys a page by its mode
+ * (page-store.ts), needn't load that module and what it imports.
+ */
+export function cookieValue(header: string, name: string): string | undefined {
+  const length = header.length;
+  let position = 0;
+  let terminator = 0;
+  while (terminator !== length) {
+    terminator = header.indexOf(";", position);
+    if (terminator === -1) terminator = length;
+    let equals = header.indexOf("=", position);
+    // No pair is left.
+    if (equals === -1) return undefined;
+    // A pair without "=": skipped.
+    if (equals > terminator) {
+      position = terminator + 1;
+      continue;
+    }
+    const key = header.substring(position, equals++).trim();
+    if (key === name) {
+      const value =
+        header.charCodeAt(equals) === 0x22
+          ? header.substring(equals + 1, terminator - 1).trim()
+          : header.substring(equals, terminator).trim();
+      if (!value.includes("%")) return value;
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
+    }
+    position = terminator + 1;
+  }
+  return undefined;
+}
+
+/** The mode a request's `Cookie` header fixes, as {@link themeOf} reads it. */
+export function themeOfHeader(header: string): Theme | undefined {
+  const value = cookieValue(header, themeCookie);
+  return value !== undefined && isTheme(value) ? value : undefined;
+}
