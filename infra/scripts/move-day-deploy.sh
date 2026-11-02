@@ -26,11 +26,13 @@ MEDIA_UPLOAD_TOKEN=$(op read "op://allthings/allthings media upload/token")
 # The draft preview reads through draft_collab and seals rounds with this key.
 NEON_COLLAB_URL=$(op read "op://allthings/allthings draft_collab/credential")
 COLLAB_ANSWERS_KEY=$(op read "op://allthings/allthings collab answers key/credential")
+# The writers tell the site its data changed with this token (web/src/refresh.ts).
+SITE_REFRESH_TOKEN=$(op read "op://allthings/allthings site refresh/credential")
 : "${NEON_READER_URL:?empty}" "${NEON_SYNC_URL:?empty}" "${LUMA_API_KEY:?empty}" "${X_BEARER_TOKEN:?empty}"
 : "${MEDIA_UPLOAD_URL:?empty}" "${MEDIA_UPLOAD_TOKEN:?empty}"
-: "${NEON_COLLAB_URL:?empty}" "${COLLAB_ANSWERS_KEY:?empty}"
+: "${NEON_COLLAB_URL:?empty}" "${COLLAB_ANSWERS_KEY:?empty}" "${SITE_REFRESH_TOKEN:?empty}"
 export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN MEDIA_UPLOAD_URL MEDIA_UPLOAD_TOKEN
-export NEON_COLLAB_URL COLLAB_ANSWERS_KEY
+export NEON_COLLAB_URL COLLAB_ANSWERS_KEY SITE_REFRESH_TOKEN
 
 # Prove the allthings profile can still deploy before waiting on it.
 bun run plan --stage prod --profile allthings >/dev/null

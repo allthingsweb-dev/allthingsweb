@@ -3,9 +3,11 @@ import { built } from "./assets.ts";
 import {
   type PageNamespace,
   pageStored,
+  refreshSite,
   type SiteState,
 } from "./page-store.ts";
 import { readerTurnover } from "./reader-caching.ts";
+import { refreshPath, refreshRequest } from "./refresh.ts";
 
 type Handler = (
   request: Request,
@@ -62,7 +64,9 @@ const pagesOf = (
  * every GET goes through the page store first (see page-store.ts):
  * deployments give each stage its own namespace, and tests each Worker.
  * A Worker that reads through Hyperdrive keeps pages of a new version of
- * the data only once Hyperdrive can't answer from before the change.
+ * the data only once Hyperdrive can't answer from before the change. With
+ * `SITE_REFRESH_TOKEN` too, the writers tell it when the data changed
+ * (refresh.ts).
  */
 export default {
   fetch(
@@ -73,7 +77,9 @@ export default {
     if (handle === undefined) {
       const { app, siteState } = lazyApp(env);
       const pages = pagesOf(env);
-      handle =
+      const turnover = env["HYPERDRIVE"] === undefined ? 0 : readerTurnover;
+      const token = env["SITE_REFRESH_TOKEN"];
+      const site =
         pages === undefined
           ? app
           : pageStored(app, {
@@ -81,8 +87,25 @@ export default {
               build: built.build,
               now: Date.now,
               siteState,
-              turnover: env["HYPERDRIVE"] === undefined ? 0 : readerTurnover,
+              turnover,
             });
+      // Only a Worker with a store and a token answers the writers.
+      const refresh =
+        pages === undefined || typeof token !== "string" || token === ""
+          ? undefined
+          : {
+              token,
+              run: () =>
+                refreshSite({ pages, now: Date.now, siteState, turnover }),
+            };
+      handle = (incoming, incomingContext) =>
+        new URL(incoming.url).pathname === refreshPath
+          ? refreshRequest(incoming, refresh?.token, () =>
+              refresh === undefined
+                ? Promise.reject(new Error("no store"))
+                : refresh.run(),
+            )
+          : site(incoming, incomingContext);
     }
     return handle(request, context);
   },

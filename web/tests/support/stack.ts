@@ -13,6 +13,8 @@ export interface WorkerEnv {
    * of the Worker's own.
    */
   readonly PAGES?: true;
+  /** Lets the writers tell the Worker its data changed (src/refresh.ts). */
+  readonly SITE_REFRESH_TOKEN?: string;
   /** The origin of a `HYPERDRIVE` binding, as the Worker deploys. */
   readonly HYPERDRIVE?: Cloudflare.Hyperdrive.PublicOrigin;
   /**

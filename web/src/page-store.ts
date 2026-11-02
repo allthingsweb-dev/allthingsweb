@@ -373,6 +373,33 @@ export interface PageStoreOptions {
   readonly turnover: number;
 }
 
+/** What asking the database for the data's version needs. */
+export type SiteCheck = Pick<
+  PageStoreOptions,
+  "pages" | "now" | "siteState" | "turnover"
+>;
+
+/**
+ * Asks the database for the data's version now and records it, as a
+ * request's check does: for whatever writes, the Sync Worker after each
+ * run (refresh.ts), so a change is used once the turnover has passed
+ * rather than at the next check. A failed read of the pointer fails it, and
+ * nothing is written.
+ */
+export async function refreshSite({
+  pages,
+  now,
+  siteState,
+  turnover,
+}: SiteCheck): Promise<SitePointer> {
+  const bytes = await pages.get(siteKey, { type: "arrayBuffer" });
+  const known =
+    bytes === null ? undefined : parsePointer(new TextDecoder().decode(bytes));
+  const next = nextPointer(known, await siteState(), now(), turnover);
+  await pages.put(siteKey, JSON.stringify(next));
+  return next;
+}
+
 /**
  * `handle` behind the store. Only GET requests are looked up; the rest,
  * paths with their own cache, a client refusing every coding, and anything
