@@ -361,15 +361,35 @@ describe("the page store", () => {
     expect(app.calls()).toBe(3);
   });
 
-  test("keeps not found, as not found", async () => {
-    const { fetch } = setup({
+  test("keeps not found, as not found, in the data center alone", async () => {
+    const { fetch, kv, app } = setup({
       page: () => ({ status: 404, cacheControl: CacheControl.notFound }),
+      local: memoryLocal().local,
     });
     await fetch(get("/nowhere"));
     await fetch(get("/nowhere"));
     const hit = await fetch(get("/nowhere"));
-    expect(served(hit.response)).toBe("hit");
+    expect([served(hit.response), copyOf(hit.response)]).toEqual([
+      "hit",
+      "local",
+    ]);
     expect(hit.response.status).toBe(404);
+    expect(app.calls()).toBe(2);
+    // KV holds no page: any path can be asked for, and it would hold each.
+    expect(kv.pageKeys()).toEqual([]);
+  });
+
+  test("builds not found again where there is no data center's copy", async () => {
+    const { fetch, kv, app } = setup({
+      page: () => ({ status: 404, cacheControl: CacheControl.notFound }),
+    });
+    await fetch(get("/nowhere"));
+    await fetch(get("/nowhere"));
+    const again = await fetch(get("/nowhere"));
+    expect(served(again.response)).toBe("miss");
+    expect(again.response.status).toBe(404);
+    expect(app.calls()).toBe(3);
+    expect(kv.pageKeys()).toEqual([]);
   });
 
   test("keeps no page built past a boundary under the window before it", async () => {

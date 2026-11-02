@@ -37,7 +37,9 @@ import { themeOf } from "./pages/theme-cookie.ts";
  *   (robots.txt varies by host, which the key leaves out). A page in a mode the visitor fixed is sent `private` and
  *   names its public lifetimes in `x-edge-cache-control`; it is kept by
  *   that mode. Anything else (failures, `no-store`, redirects that set a
- *   cookie) is never kept.
+ *   cookie) is never kept. A 404 is kept only in the data center that
+ *   built it ({@link keptInKv}), never in KV: any path at all can be asked
+ *   for, and KV would keep every one a scanner tries.
  * - **Each data center keeps copies** in its Cache API: the pointer it last
  *   read and every page it served. A visitor is answered from them at once,
  *   with no KV read; a pointer copy older than {@link siteTtl} is read
@@ -280,6 +282,13 @@ export const keepable = (response: Response): boolean =>
     response.headers.get(edgeCacheControlHeader) ??
       response.headers.get("cache-control"),
   );
+
+/**
+ * Whether a response the store keeps goes to KV, for every data center, or
+ * stays in the data center's copies alone: a 404 stays.
+ */
+export const keptInKv = (response: Response): boolean =>
+  response.status !== 404;
 
 /** Headers a response carries for the store alone, never sent on. */
 const internalHeaders = [edgeCacheControlHeader] as const;
@@ -525,8 +534,7 @@ export function pageStored(
 ): (request: Request, context: WaitUntil) => Promise<Response> {
   /** The pointer as this isolate last read it, and when. */
   let known:
-    | { readonly pointer?: SitePointer; readonly at: number }
-    | undefined;
+    { readonly pointer?: SitePointer; readonly at: number } | undefined;
   /** Whether this isolate is asking the database already. */
   let checking = false;
 
@@ -708,9 +716,11 @@ export function pageStored(
         windowAt(state.boundaries, now()) === windowAt(state.boundaries, at)
       ) {
         const bytes = await keptBytes(response);
-        await pages
-          .put(key, bytes.slice(0), { expirationTtl: keepFor })
-          .catch(() => undefined);
+        if (keptInKv(response)) {
+          await pages
+            .put(key, bytes.slice(0), { expirationTtl: keepFor })
+            .catch(() => undefined);
+        }
         await keepLocally(request, key, bytes);
       } else {
         await response.body?.cancel();
@@ -800,7 +810,9 @@ export function pageStored(
       const keep = async (): Promise<Keeping> => {
         try {
           const value = await keptBytes(copy);
-          await pages.put(key, value.slice(0), { expirationTtl: keepFor });
+          if (keptInKv(copy)) {
+            await pages.put(key, value.slice(0), { expirationTtl: keepFor });
+          }
           await keepLocally(request, key, value);
           return { kept: true };
         } catch {

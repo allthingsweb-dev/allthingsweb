@@ -8,6 +8,7 @@ import {
   keptInputMax,
   toolLocation,
 } from "../src/mcp/endpoint.ts";
+import { portraitsPath } from "../src/pages/routes.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
 import { mcpRequest, rpcMessage } from "./support/http.ts";
 import { serve } from "./support/socket.ts";
@@ -96,6 +97,9 @@ const get = async (url: string, path: string, init?: RequestInit) => {
   const response = await fetch(`${url}${path}`, init);
   return { response, html: await response.text() };
 };
+
+/** A page's footer, where the hosts' portraits are. */
+const footerOf = (html: string) => /<footer[\s\S]*<\/footer>/.exec(html)?.[0];
 
 /** How the store served a response, from its Server-Timing. */
 const state = (response: Response) =>
@@ -337,6 +341,17 @@ describe("the page store", () => {
     expect(long.result.content[0]?.text).not.toBe("Invalid input");
   });
 
+  it("keeps the hosts' portraits at one address only", async ({ Cached }) => {
+    const kept = await warm(Cached, portraitsPath);
+    expect(kept.response.headers.get("content-type")).toStartWith(
+      "application/json",
+    );
+    expect(kept.html).toContain("profiles/erik.jpg");
+    const aliased = await get(Cached, `${portraitsPath}?nonce=1`);
+    expect(aliased.response.status).toBe(400);
+    expect(state(aliased.response)).not.toBe("hit");
+  });
+
   it("serves warm pages without its database, and keeps no failure", async ({
     Orphaned,
   }) => {
@@ -357,6 +372,11 @@ describe("the page store", () => {
           },
       );
     const before = await tool();
+    // A path no one serves takes its footer from the store, which keeps it.
+    const scanned = await get(Orphaned, "/.env");
+    expect(scanned.response.status).toBe(404);
+    expect(footerOf(scanned.html)).toContain("profiles/erik.jpg");
+    await warm(Orphaned, portraitsPath);
     await stopLonely();
     // Found in the store with the database gone: the call above kept it.
     await warm(
@@ -370,6 +390,28 @@ describe("the page store", () => {
       expect(response.status).toBe(200);
       expect(state(response)).toBe("hit");
     }
+    // A path no evening, person or page could have is not found with the
+    // database gone: it reads nothing, and its footer comes from the store.
+    for (const path of [
+      "/wp-login.php",
+      "/.git/config",
+      "/shared/.env",
+      "/people/No.One",
+    ]) {
+      const { response, html } = await get(Orphaned, path);
+      expect([path, response.status]).toEqual([path, 404]);
+      expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
+      expect(response.headers.get("server-timing")).not.toContain("db;");
+      // The hosts' portraits as the database had them.
+      expect(footerOf(html)).toBe(footerOf(scanned.html));
+    }
+    const calendar = await get(Orphaned, "/x.php/calendar.ics");
+    expect([calendar.response.status, calendar.html]).toEqual([
+      404,
+      "Event not found",
+    ]);
+    // One that could be a new evening's is looked up, so it can't be now.
+    expect((await get(Orphaned, "/no-such-evening")).response.status).toBe(503);
     // A page no one has asked for yet can't be built, and isn't kept.
     for (let attempt = 0; attempt < 2; attempt++) {
       const { response } = await get(Orphaned, "/events?cold");
