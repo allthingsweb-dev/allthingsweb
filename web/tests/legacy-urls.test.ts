@@ -226,8 +226,9 @@ describe("legacy URLs", () => {
   });
 
   it("names a retired folder by its own path, never its route's", async (url) => {
+    // "/logos/" is sent to "/logos" first, and found gone there.
     for (const path of ["/logos", "/logos/"]) {
-      const response = await fetch(`${url}${path}`, { redirect: "manual" });
+      const response = await fetch(`${url}${path}`);
       const html = await response.text();
       expect(response.status).toBe(410);
       expect(html).toContain(
@@ -242,23 +243,18 @@ describe("legacy URLs", () => {
   });
 
   it("never sends a trailing slash to another host", async (url) => {
-    const response = await fetch(`${url}//elsewhere.example/`, {
-      redirect: "manual",
-    });
-    await response.arrayBuffer();
-    expect(response.status).toBe(308);
-    expect(response.headers.get("location")).toBe("/elsewhere.example");
-  });
-
-  it("never sends a backslash path to another host", async (url) => {
-    for (const path of [
-      "/%5Celsewhere.example/",
-      "/%2F%5Celsewhere.example/",
-    ]) {
+    for (const [path, location] of [
+      ["//elsewhere.example/", "/elsewhere.example"],
+      ["///elsewhere.example//", "/elsewhere.example"],
+      // Escaped slashes and backslashes stay escaped: a path on this host.
+      ["/%5Celsewhere.example/", "/%5Celsewhere.example"],
+      ["/%2F%5Celsewhere.example/", "/%2F%5Celsewhere.example"],
+    ] as const) {
       const response = await fetch(`${url}${path}`, { redirect: "manual" });
       await response.arrayBuffer();
-      expect(response.status).toBe(308);
-      expect(response.headers.get("location")).toBe("/elsewhere.example");
+      expect([path, response.status]).toEqual([path, 308]);
+      expect(response.headers.get("location")).toBe(location);
+      expect(new URL(location, url).origin).toBe(new URL(url).origin);
     }
   });
 

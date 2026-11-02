@@ -1,28 +1,33 @@
-import { columns, sizes, space } from "allthings-brand/src/layout.ts";
+import type { CommunityView } from "allthings-core/src/community.ts";
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
-import type * as Rows from "allthings-core/src/rows.ts";
 import { DateTime } from "effect";
 import { eventPath, everyEvening, lumaCalendar } from "../links.ts";
 import { Document } from "./document.tsx";
 import { Cursor, EveningRow } from "./evening-row.tsx";
+import { Tally } from "./figures.tsx";
 import { homeTitle, siteDescription } from "./metadata.tsx";
 import { organization } from "./structured-data.ts";
-import { type ImageMode, Photo, showable } from "./picture.tsx";
+import type { ImageMode } from "./picture.tsx";
+import { gridPhotos, SlashGrid } from "./slash-grid.tsx";
 import type { Theme } from "./theme.ts";
 import { ogCards } from "../og/cards.ts";
 import { clockTime, day } from "./time.ts";
 
 /**
- * /: the round-5 home. Each thing is said once. The next evening is the
- * hero (when, the lockup, where and who hosts, "I'm in"), community photos
- * sit beside it, and the band below holds the two sentences, the evenings
- * after that and the latest ones. With nothing announced, the hero is the
- * open slot, allthings/_, and its button subscribes to the calendar.
+ * /: the round-5 home, under the slash grid. Each thing is said once. The
+ * next evening is the hero (when, the lockup, where and who hosts, "I'm
+ * in"), the community's photos sit beside it cut on the slash's slant
+ * (slash-grid.tsx), the tally runs under it as a band of numbers, and the
+ * band below holds the two sentences, the evenings after that and the
+ * latest ones. With nothing announced, the hero is the open slot,
+ * allthings/_, and its button subscribes to the calendar.
  */
 
 export interface HomeProps {
   readonly home: HomeView;
+  /** The wall of photos and the tally (core's src/community.ts). */
+  readonly community: CommunityView;
   /** The production origin, which the page's canonical URL is made from. */
   readonly origin: string;
   readonly theme: Theme | undefined;
@@ -140,48 +145,6 @@ export function OpenSlot() {
 }
 
 /**
- * How wide the mosaic's tiles are, as site.css lays them out: the mosaic
- * spans 4 of the hero's columns, and the whole page width where the hero
- * stacks. A wide tile is the mosaic's width; the others half of it, less
- * the gap between them.
- */
-const mosaicColumns = 4;
-const tileSizes = {
-  wide: sizes(
-    { span: mosaicColumns, parts: 1, gap: 0 },
-    { below: "l", span: columns, parts: 1, gap: 0 },
-  ),
-  half: sizes(
-    { span: mosaicColumns, parts: 2, gap: space(3) },
-    { below: "l", span: columns, parts: 2, gap: space(3) },
-  ),
-} as const;
-
-/** Whether the mosaic of `count` tiles shows the one at `index` wide. */
-const isWide = (index: number, count: number) =>
-  index === 0 || (count === 2 && index === 1);
-
-function Mosaic({
-  photos,
-  images,
-}: {
-  readonly photos: ReadonlyArray<Rows.Photo>;
-  readonly images: ImageMode;
-}) {
-  return (
-    <div class={`mosaic tiles-${photos.length}`}>
-      {photos.map((photo, index) => (
-        <Photo
-          photo={photo}
-          mode={images}
-          sizes={tileSizes[isWide(index, photos.length) ? "wide" : "half"]}
-        />
-      ))}
-    </div>
-  );
-}
-
-/**
  * What home shows below its hero: the two sentences beside the evenings
  * after the next one and the latest ones. The home lab's variants
  * (pages/lab/) show it under theirs.
@@ -245,16 +208,51 @@ export function HomeBand({ home }: { readonly home: HomeView }) {
   );
 }
 
+/**
+ * Home under its hero: the next evening or the open slot beside the slash
+ * grid, the tally as a band, then {@link HomeBand}. The home lab's
+ * slash-grid (pages/lab/) shows the same.
+ */
+export function HomeParts({
+  home,
+  community,
+  images,
+}: {
+  readonly home: HomeView;
+  readonly community: CommunityView;
+  readonly images: ImageMode;
+}) {
+  const photos = gridPhotos(community.wall, images);
+  return (
+    <>
+      <section
+        class={photos.length === 0 ? "hero" : "hero slash-cut"}
+        aria-labelledby="next"
+      >
+        <div class="hero-text">
+          {home.next === undefined ? <OpenSlot /> : <Hero next={home.next} />}
+        </div>
+        {photos.length === 0 ? (
+          ""
+        ) : (
+          <SlashGrid photos={photos} images={images} />
+        )}
+      </section>
+      <Tally tally={community.tally} kind="band" />
+      <HomeBand home={home} />
+    </>
+  );
+}
+
 /** The whole home page for `home`, in the visitor's mode, signed off by the hosts. */
 export function homePage({
   home,
+  community,
   origin,
   theme,
   portraits,
   images,
 }: HomeProps): string {
-  const { next } = home;
-  const photos = showable(home.photos, images);
   return Document({
     meta: {
       title: homeTitle,
@@ -270,20 +268,7 @@ export function homePage({
     section: "home",
     children: (
       <div class="home">
-        <section
-          class={photos.length === 0 ? "hero" : "hero with-photos"}
-          aria-labelledby="next"
-        >
-          <div class="hero-text">
-            {next === undefined ? <OpenSlot /> : <Hero next={next} />}
-          </div>
-          {photos.length === 0 ? (
-            ""
-          ) : (
-            <Mosaic photos={photos} images={images} />
-          )}
-        </section>
-        <HomeBand home={home} />
+        <HomeParts home={home} community={community} images={images} />
       </div>
     ),
   });

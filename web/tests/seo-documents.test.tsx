@@ -488,6 +488,12 @@ describe("structured data", () => {
 describe("page metadata", () => {
   const home = homePage({
     home: { next: undefined, afterThat: [], recently: [], photos: [] },
+    community: {
+      tally: { evenings: 0, guests: 0, speakers: 0, hostingCompanies: 0 },
+      evenings: [],
+      wall: [],
+      faces: [],
+    },
     origin,
     theme: undefined,
     portraits: new Map(),

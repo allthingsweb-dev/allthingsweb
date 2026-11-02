@@ -17,6 +17,7 @@ import {
   refreshPath,
   refreshRequest,
 } from "./refresh.ts";
+import { withoutTrailingSlash } from "./trailing-slash.ts";
 
 type Handler = (
   request: Request,
@@ -91,6 +92,9 @@ export default {
     env: Readonly<Record<string, unknown>>,
     context: ExecutionContext,
   ): Promise<Response> {
+    // Before anything else: it keeps nothing and reads nothing.
+    const redirect = withoutTrailingSlash(request.url);
+    if (redirect !== undefined) return Promise.resolve(redirect);
     if (handle === undefined) {
       let store: Handler | undefined;
       const { app, siteState } = lazyApp(env, () => store);

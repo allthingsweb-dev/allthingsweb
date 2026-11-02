@@ -2,7 +2,7 @@ import { personSlug } from "allthings-core/src/person-slug.ts";
 import { describe, expect, test } from "bun:test";
 import type {
   PeopleView,
-  Person,
+  PersonPage,
 } from "allthings-core/src/people-directory.ts";
 import { DateTime } from "effect";
 import { peoplePage, recentEvenings } from "../src/pages/people.tsx";
@@ -14,7 +14,10 @@ import { headingLevels, htmlProblems } from "./support/pages.ts";
 
 const origin = "https://allthingsweb.dev";
 
-const person = (name: string, overrides: Partial<Person> = {}): Person => ({
+const person = (
+  name: string,
+  overrides: Partial<PersonPage> = {},
+): PersonPage => ({
   id: name,
   slug: personSlug(overrides.name ?? name),
   name,
@@ -37,6 +40,8 @@ const person = (name: string, overrides: Partial<Person> = {}): Person => ({
       },
     },
   ],
+  organizes: false,
+  hosted: [],
   ...overrides,
 });
 
@@ -152,7 +157,7 @@ describe("a person's latest appearances", () => {
       expect(titles(html)).toEqual(
         Array.from({ length: count }, (_, index) => `Talk ${index + 1}`),
       );
-      expect(html).not.toContain("on their page");
+      expect(html).not.toContain("list-links");
       expect(await htmlProblems(html)).toEqual([]);
     }
   });
@@ -161,7 +166,7 @@ describe("a person's latest appearances", () => {
     const html = page(4);
     expect(titles(html)).toEqual(["Talk 1", "Talk 2", "Talk 3"]);
     expect(html).toContain(
-      '<p class="list-links"><a href="/people/ada-lovelace"><span>all 4</span><span class="visually-hidden"> of Ada Lovelace&#x27;s evenings</span> on their page <span aria-hidden="true">→</span></a></p>',
+      '<p class="list-links"><a href="/people/ada-lovelace"><span>all 4 evenings</span><span class="visually-hidden"> of Ada Lovelace</span> <span aria-hidden="true">→</span></a></p>',
     );
     expect(await htmlProblems(html)).toEqual([]);
     // Their page keeps every one.
@@ -266,7 +271,7 @@ describe("one row per evening", () => {
       coHosts: [],
     });
     expect(rows(three)).toHaveLength(3);
-    expect(three).not.toContain("on their page");
+    expect(three).not.toContain("list-links");
     // Eight at four: the newest three, and all four on their page.
     const four = render({
       organizers: [],
@@ -278,10 +283,20 @@ describe("one row per evening", () => {
       "talk: Talk 8 · MC",
       "talk: Talk 7 · MC",
     ]);
-    expect(four).toContain("<span>all 4</span>");
+    expect(four).toContain("<span>all 4 evenings</span>");
   });
 
-  test("an evening someone hosted is one row under Hosted, with their talk and MC part", () => {
+  test("an evening someone hosted is one row at allthings, naming the hosting first, with their talk and MC part", async () => {
+    const sync = {
+      ...effect,
+      slug: "sync",
+      startsAt: DateTime.makeUnsafe("2026-04-30T00:30:00Z"),
+    };
+    const later = {
+      ...effect,
+      slug: "later",
+      startsAt: DateTime.makeUnsafe("2026-11-01T00:30:00Z"),
+    };
     const html = personPage({
       person: {
         ...person("Erik Thorelli", {
@@ -292,10 +307,14 @@ describe("one row per evening", () => {
               role: "speaker",
               evening: effect,
             },
+            { kind: "role", role: "co-host", evening: sync },
           ],
         }),
         organizes: true,
-        hosted: [{ ...effect, roles: ["mc"] }],
+        hosted: [
+          { ...later, roles: [] },
+          { ...effect, roles: ["mc"] },
+        ],
       },
       elsewhere: [],
       origin,
@@ -303,10 +322,115 @@ describe("one row per evening", () => {
       portraits: new Map(),
       images: "originals",
     });
-    expect(rows(html)).toEqual(["talk: State of Effect 2026 · MC"]);
-    expect(html).not.toContain('aria-labelledby="at-allthings"');
+    // Newest first, hosted or not, one row each.
+    expect(rows(html)).toEqual([
+      "host",
+      "host · talk: State of Effect 2026 · MC",
+      "co-host",
+    ]);
     expect(html).toContain(
-      '<h2 id="hosted" class="at-type-meta">Hosted · 1 evening</h2>',
+      '<h2 id="at-allthings" class="at-type-meta">At allthings · 3 evenings</h2>',
+    );
+    expect(html).not.toContain("Hosted");
+    expect(html).toContain(
+      '<meta name="description" content="Erik Thorelli, Engineer. 3 evenings and 1 talk at allthings. ',
+    );
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+
+  test("lists an organizer's latest evenings newest first, the ones they hosted among them", () => {
+    const at = (slug: string, iso: string) => ({
+      ...effect,
+      slug,
+      startsAt: DateTime.makeUnsafe(iso),
+    });
+    const html = render({
+      organizers: [
+        person("Erik Thorelli", {
+          parts: [
+            {
+              kind: "talk",
+              title: "Old talk",
+              role: "speaker",
+              evening: at("old", "2024-05-01T01:00:00Z"),
+            },
+          ],
+          organizes: true,
+          hosted: [
+            { ...at("newest", "2026-10-01T00:30:00Z"), roles: [] },
+            { ...at("newer", "2026-09-01T00:30:00Z"), roles: ["mc"] },
+            { ...at("new", "2026-08-01T00:30:00Z"), roles: [] },
+          ],
+        }),
+      ],
+      speakers: [],
+      coHosts: [],
+    });
+    expect(rows(html)).toEqual(["host", "host · MC", "host"]);
+    expect(html).toContain('<a class="talk" href="/newest">');
+    expect(html).not.toContain("Old talk");
+    expect(html).toContain("<span>all 4 evenings</span>");
+  });
+
+  test("links each portrait on /people to the person's page, named as the name is", async () => {
+    const html = render({
+      organizers: [],
+      speakers: [person("Ada Lovelace")],
+      coHosts: [],
+    });
+    expect(html).toMatch(
+      /<a class="person-portrait" href="\/people\/ada-lovelace"><img class="portrait" [^>]*alt=""[^>]*\/><span class="visually-hidden">Ada Lovelace<\/span><\/a>/,
+    );
+    // No link inside another.
+    expect(html).not.toMatch(/<a [^>]*>(?:(?!<\/a>).)*<a /);
+    expect(await htmlProblems(html)).toEqual([]);
+  });
+
+  test("keeps the evenings we shared apart, after ours and before talks elsewhere", () => {
+    const shared = { ...effect, slug: "shared", curation: "shared" as const };
+    const html = personPage({
+      person: {
+        ...person("Ada Lovelace", {
+          parts: [
+            {
+              kind: "talk",
+              title: "Engines",
+              role: "speaker",
+              evening: shared,
+            },
+            {
+              kind: "talk",
+              title: "Notes",
+              role: "speaker",
+              evening: effect,
+            },
+          ],
+        }),
+        organizes: false,
+        hosted: [],
+      },
+      elsewhere: [
+        {
+          profileId: "ada",
+          title: "Elsewhere",
+          eventName: "JSConf",
+          kind: "conference",
+          givenOn: "2025-05-01",
+          url: null,
+          videoUrl: null,
+        },
+      ],
+      origin,
+      theme: undefined,
+      portraits: new Map(),
+      images: "originals",
+    });
+    const at = (id: string) => html.indexOf(`<h2 id="${id}"`);
+    expect(at("at-allthings")).toBeGreaterThan(-1);
+    expect(at("at-allthings")).toBeLessThan(at("shared"));
+    expect(at("shared")).toBeLessThan(at("elsewhere"));
+    expect(html).toContain(
+      '<h2 id="at-allthings" class="at-type-meta">At allthings · 1 evening</h2>',
     );
   });
 });

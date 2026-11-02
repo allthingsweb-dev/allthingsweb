@@ -228,6 +228,25 @@ describe.each(stylesheets)("%s's lengths", (_, css) => {
   });
 });
 
+describe.each(stylesheets)("%s for reduced motion", (_, css) => {
+  test("cuts every transition, which answers the pointer", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const start = bare.indexOf("@media (prefers-reduced-motion: reduce)");
+    const settled = [
+      ...bare.slice(start).matchAll(/([^{}]+)\{\s*transition: none;\s*\}/g),
+    ]
+      .flatMap(([, selectors = ""]) => selectors.split(","))
+      .map((selector) => selector.trim());
+    const transitioned = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, , body = ""]) =>
+        /(?:^|;)\s*transition:(?!\s*none)/.test(body),
+      )
+      .flatMap(([, selector = ""]) => selector.trim().split(/,\s*/));
+    if (transitioned.length > 0) expect(start).toBeGreaterThan(-1);
+    for (const selector of transitioned) expect(settled).toContain(selector);
+  });
+});
+
 describe("the pages", () => {
   test("set no inline style: every rule is in site.css", async () => {
     const styled: Array<string> = [];

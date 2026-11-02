@@ -1,10 +1,11 @@
 import {
   type Appearance,
-  appearances,
-  type EveningRole,
+  type RowRole,
   type Part,
   type PeopleView,
   type Person,
+  type PersonPage,
+  personRows,
   shortBio,
 } from "allthings-core/src/people-directory.ts";
 import type { StageRole } from "allthings-core/src/people.ts";
@@ -136,12 +137,13 @@ const stageLabel: Readonly<Record<StageRole, string | undefined>> = {
 };
 
 /** A part in an evening as a whole, as its line names it. */
-export const eveningRoleLabel: Readonly<Record<EveningRole, string>> = {
+export const eveningRoleLabel: Readonly<Record<RowRole, string>> = {
+  host: "host",
   "co-host": "co-host",
   mc: "MC",
 };
 
-/** A part as an evening's row names it: "talk: State of Effect 2026", "MC". */
+/** A part as an evening's row names it: "host", "talk: State of Effect 2026", "MC". */
 export function partLabel(part: Part): string {
   if (part.kind === "role") return eveningRoleLabel[part.role];
   return `${stageLabel[part.role] ?? "talk"}: ${part.title}`;
@@ -195,23 +197,22 @@ export function Appearances({
 export const recentEvenings = 3;
 
 /**
- * A person's latest evenings, then, when they have more, a link to their
- * page, which has all of them.
+ * A person's latest evenings, newest first, as their page lists them
+ * (core's personRows: hosting is a part like any other), then, when they
+ * have more, a quiet link to their page, which has all of them.
  */
-export function RecentEvenings({ person }: { readonly person: Person }) {
-  const rows = appearances(person.parts);
-  const more = rows.length > recentEvenings;
+export function RecentEvenings({ person }: { readonly person: PersonPage }) {
+  const rows = personRows(person).all;
   return (
     <>
       <Appearances rows={rows.slice(0, recentEvenings)} />
-      {more ? (
+      {rows.length > recentEvenings ? (
         <p class="list-links">
           <a href={personPath(person.slug)}>
-            <span safe>{`all ${rows.length}`}</span>
+            <span safe>{`all ${rows.length} evenings`}</span>
             <span class="visually-hidden" safe>
-              {` of ${person.name}'s evenings`}
-            </span>
-            {" on their page "}
+              {` of ${person.name}`}
+            </span>{" "}
             <span aria-hidden="true">→</span>
           </a>
         </p>
@@ -232,18 +233,24 @@ function PersonEntry({
   organizer,
   images,
 }: {
-  readonly person: Person;
+  readonly person: PersonPage;
   readonly organizer: boolean;
   readonly images: ImageMode;
 }) {
   return (
     <li class="person" id={personAnchor(person.id)}>
-      <Portrait
-        photo={person.photo}
-        organizer={organizer}
-        images={images}
-        eager={organizer ? true : undefined}
-      />
+      {/* The photo leads to their page too, named as the name is. */}
+      <a class="person-portrait" href={personPath(person.slug)}>
+        <Portrait
+          photo={person.photo}
+          organizer={organizer}
+          images={images}
+          eager={organizer ? true : undefined}
+        />
+        <span class="visually-hidden" safe>
+          {person.name}
+        </span>
+      </a>
       <div class="person-text">
         <h3 class="person-name">
           <a href={personPath(person.slug)} safe>
@@ -281,7 +288,7 @@ function Group({
 }: {
   readonly id: string;
   readonly title: string;
-  readonly people: ReadonlyArray<Person>;
+  readonly people: ReadonlyArray<PersonPage>;
   readonly organizers: boolean;
   readonly images: ImageMode;
 }) {

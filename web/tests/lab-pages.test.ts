@@ -341,7 +341,7 @@ describe("the variants' parts", () => {
       html.match(/<li><a href="\/(?:effect|sync)"><picture>/g),
     ).toHaveLength(24);
     expect(html).toContain('<span class="visually-hidden">, 2026.09.30</span>');
-    expect(html).toContain("lab-tally-band");
+    expect(html).toContain("figures-band");
     expect(html.match(/fetchpriority="high"/g)).toHaveLength(6);
   });
 
@@ -354,7 +354,7 @@ describe("the variants' parts", () => {
       '<div class="liquid-field" aria-hidden="true" data-engine="liquid"><ul class="liquid-wall" data-engine-tiles="">',
     );
     expect(html.match(/class="liquid-lens liquid-lens-\d"/g)).toHaveLength(3);
-    expect(html).toContain("lab-tally-columns");
+    expect(html).toContain("figures-columns");
     expect(html).not.toContain("people said");
   });
 
@@ -475,6 +475,11 @@ describe("the variants' parts", () => {
   });
 });
 
+/** The lab's script, as written. */
+const script = await Bun.file(
+  new URL("../src/client/lab.ts", import.meta.url),
+).text();
+
 /** lab.css, and its rules selector by selector. */
 const lab = await Bun.file(
   new URL("../src/styles/lab.css", import.meta.url),
@@ -501,15 +506,36 @@ describe("lab.css", () => {
     for (const selector of animated) {
       expect(stoppedSelectors).toContain(selector);
     }
-    // A transition answers the pointer; it too is cut for reduced motion.
-    const settled = [...still.matchAll(/([^{}]+)\{\s*transition: none;\s*\}/g)]
-      .flatMap(([, selectors = ""]) => selectors.split(","))
-      .map((selector) => selector.trim());
-    const transitioned = rules
-      .filter(({ body }) => /(?:^|;)\s*transition:(?!\s*none)/.test(body))
-      .flatMap(({ selector }) => selector.split(/,\s*/));
-    expect(transitioned.length).toBeGreaterThan(0);
-    for (const selector of transitioned) expect(settled).toContain(selector);
+    // Transitions are cut too, in each stylesheet (styles.test.ts).
+  });
+
+  test("holds an engine's surface back only while the script runs, and shows the stills if it never starts", () => {
+    const gate =
+      /@media \(scripting: enabled\) and \(prefers-reduced-motion: no-preference\) \{([\s\S]*?)\n\}/.exec(
+        lab,
+      )?.[1];
+    expect(gate).toBeDefined();
+    for (const surface of [".letters-photos", ".liquid-field"]) {
+      const stage = surface === ".liquid-field" ? ".liquid" : ".letters";
+      // Hidden, with the fallback that reveals it unless the script started.
+      expect(gate).toContain(`${stage}[data-engine-stage] ${surface}`);
+      expect(gate).toContain(`${stage}[data-engine-started] ${surface}`);
+      expect(gate).toContain(`${stage}[data-engine-ready] ${surface}`);
+    }
+    expect(gate).toMatch(
+      /opacity: 0;\s*transition: opacity [^;]+;\s*animation: engine-unstarted [^;]+ forwards;/,
+    );
+    expect(gate).toMatch(
+      /\[data-engine-started\] \.liquid-field \{\s*animation: none;/,
+    );
+    expect(lab).toMatch(/@keyframes engine-unstarted \{\s*to \{\s*opacity: 1;/);
+    // The script knows when that fallback begins, so a slow one keeps it.
+    const delay =
+      /animation: engine-unstarted [\d.]+s \w+ ([\d.]+)s forwards;/.exec(
+        gate ?? "",
+      )?.[1];
+    expect(delay).toBe("4");
+    expect(script).toContain("const unstartedAfter = 4000;");
   });
 
   test("animates only opacity and transforms, and hides what is out of a cross", () => {

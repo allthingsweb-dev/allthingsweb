@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { Effect, Exit } from "effect";
+import type { Now } from "../src/now.ts";
 import { profilePhotoHosts } from "../../app/src/lib/profile-photos/hosts.ts";
 import {
   applyPeople,
@@ -9,7 +10,7 @@ import {
   PeopleEnrichmentError,
   photoHosts,
 } from "../src/people-enrichment.ts";
-import { seededDatabase, sqlLayer } from "./support/database.ts";
+import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
  * Filling profiles from sourced facts: against tests/seed.sql, where Ada
@@ -67,7 +68,11 @@ const fresh = async () => {
 
 const apply = (db: PGlite, people: PeopleFile, dryRun = false) =>
   Effect.runPromiseExit(
-    applyPeople(people, dryRun).pipe(Effect.provide(sqlLayer(db))),
+    applyPeople(people, dryRun).pipe(
+      Effect.provide(sqlLayer(db)),
+      // Today, as the test clock has it: 2026-10-03.
+      Effect.provide(clockLayer),
+    ),
   );
 
 const profilesIn = async (db: PGlite) =>
@@ -302,6 +307,121 @@ describe("applyPeople", () => {
   });
 });
 
+describe("applyPeople: now", () => {
+  const now: Now = {
+    line: "Linus [maintains the kernel](https://kernel.example/maintainers).",
+    links: [
+      {
+        title: "Release notes",
+        date: "2026-10-01",
+        url: "https://kernel.example/notes",
+        kind: "post",
+      },
+    ],
+    checkedOn: "2026-10-01",
+  };
+  const later: Now = {
+    ...now,
+    line: "Linus [still maintains the kernel](https://kernel.example/maintainers).",
+    checkedOn: "2026-10-03",
+  };
+  const withNow = (value: Now | null | undefined) => [
+    {
+      profileId: linus,
+      name: "Linus",
+      ...(value === undefined ? {} : { now: value }),
+      held: [
+        {
+          field: "now" as const,
+          value: "Linus moved.",
+          sources: [source],
+          reason: "personal",
+        },
+      ],
+    },
+  ];
+  const stored = async (db: PGlite) =>
+    (
+      await db.query<{ now_record: unknown }>(
+        `SELECT now_record FROM profiles WHERE id = '${linus}'`,
+      )
+    ).rows[0]?.now_record;
+  const linesOf = (exit: Exit.Exit<ReadonlyArray<string>, unknown>) =>
+    Exit.isSuccess(exit) ? exit.value : exit;
+
+  test("writes a record, keeps a held claim beside it, and is safe to repeat", async () => {
+    const db = await fresh();
+    expect(linesOf(await apply(db, withNow(now)))).toEqual([
+      "held: Linus now: personal",
+      "Linus: now ← as of 2026-10-01",
+    ]);
+    expect(await stored(db)).toEqual(now);
+    expect(linesOf(await apply(db, withNow(now)))).toEqual([
+      "held: Linus now: personal",
+      "Linus: unchanged",
+    ]);
+  });
+
+  test("replaces a record with the file's whenever they differ", async () => {
+    const db = await fresh();
+    await apply(db, withNow(now));
+    expect(linesOf(await apply(db, withNow(later)))).toEqual([
+      "held: Linus now: personal",
+      "Linus: now 2026-10-01 → 2026-10-03",
+    ]);
+    expect(await stored(db)).toEqual(later);
+  });
+
+  test("null takes it down, and an entry without now leaves it", async () => {
+    const db = await fresh();
+    await apply(db, withNow(now));
+    expect(linesOf(await apply(db, withNow(undefined)))).toEqual([
+      "held: Linus now: personal",
+      "Linus: unchanged",
+    ]);
+    expect(await stored(db)).toEqual(now);
+    expect(linesOf(await apply(db, withNow(null)))).toEqual([
+      "held: Linus now: personal",
+      "Linus: now cleared",
+    ]);
+    expect(await stored(db)).toBeNull();
+    expect(linesOf(await apply(db, withNow(null)))).toEqual([
+      "held: Linus now: personal",
+      "Linus: unchanged",
+    ]);
+  });
+
+  test("a dry run writes no record", async () => {
+    const db = await fresh();
+    const exit = await apply(db, withNow(now), true);
+    expect(Exit.isSuccess(exit) ? exit.value.at(-1) : exit).toBe(
+      "Dry run: rolled back.",
+    );
+    expect(await stored(db)).toBeNull();
+  });
+
+  test("refuses a record checked after today, and writes nothing", async () => {
+    const db = await fresh();
+    const error = failureOf(
+      await apply(db, withNow({ ...later, checkedOn: "2026-10-04" })),
+    );
+    expect(error).toBeInstanceOf(PeopleEnrichmentError);
+    expect((error as PeopleEnrichmentError).reason).toBe(
+      "Now records checked after today, 2026-10-03: Linus (2026-10-04)",
+    );
+    expect(await stored(db)).toBeNull();
+  });
+
+  test("the column takes only an object", async () => {
+    const db = await fresh();
+    await expect(
+      db.exec(
+        `UPDATE profiles SET now_record = '"Linus"' WHERE id = '${linus}'`,
+      ),
+    ).rejects.toThrow(/profiles_now_record_check/);
+  });
+});
+
 describe("decodePeopleFile", () => {
   const decodes = async (entry: object) =>
     Exit.isSuccess(
@@ -342,6 +462,16 @@ describe("decodePeopleFile", () => {
       await decodes({
         ...base,
         twitterHandle: { value: "@linus", source, read },
+      }),
+    ).toBe(false);
+    expect(
+      await decodes({
+        ...base,
+        now: {
+          line: "Linus maintains the kernel.",
+          links: [],
+          checkedOn: read,
+        },
       }),
     ).toBe(false);
   });
