@@ -34,6 +34,14 @@ export const canonicalInput = (input: Record<string, unknown>): string =>
     ),
   );
 
+/**
+ * The longest input whose answer the store keeps: far past any real call
+ * (a slug, a speaker query), so it bounds what a caller can make it keep.
+ * The tools' own schemas stay as clients know them (tools.ts); a longer
+ * call is answered from the database, never kept.
+ */
+export const keptInputMax = 512;
+
 /** The page store in front of the app (worker.ts), when the Worker has one. */
 export class ThroughStore extends Context.Reference<
   Option.Option<
@@ -97,10 +105,12 @@ export class Mcp extends Context.Service<
       const via =
         (through: (request: Request) => Promise<Response>): CallTool =>
         async (name, input) => {
+          const canonical = canonicalInput(input);
+          if (canonical.length > keptInputMax) return direct(name, input);
           try {
             const response = await through(
               new Request(
-                `https://allthings.dev${toolPath}/${name}?input=${encodeURIComponent(canonicalInput(input))}`,
+                `https://allthings.dev${toolPath}/${name}?input=${encodeURIComponent(canonical)}`,
                 { headers: { "accept-encoding": "br, gzip" } },
               ),
             );
@@ -108,8 +118,13 @@ export class Mcp extends Context.Service<
               return unmarked((await response.json()) as CallToolResult);
             }
             await response.body?.cancel();
-          } catch {
-            // Answered here instead.
+            console.warn(
+              `MCP ${name}: the page store answered ${response.status}, so the database answers it`,
+            );
+          } catch (error) {
+            console.warn(
+              `MCP ${name}: the page store failed (${String(error)}), so the database answers it`,
+            );
           }
           return direct(name, input);
         };
@@ -122,16 +137,25 @@ export class Mcp extends Context.Service<
           );
         },
         answer: async (name, input) => {
-          const { isToolName, toolProgram } = await tools();
+          const { isToolName, toolInputs, toolProgram } = await tools();
+          const raw = input ?? "{}";
           let parsed: unknown;
           try {
-            parsed = JSON.parse(input ?? "{}");
+            parsed = JSON.parse(raw);
           } catch {
             parsed = undefined;
           }
-          const program = isToolName(name)
-            ? toolProgram(name satisfies ToolName, parsed)
-            : undefined;
+          const checked =
+            isToolName(name) && raw.length <= keptInputMax
+              ? toolInputs[name satisfies ToolName].safeParse(parsed)
+              : undefined;
+          // Only the input as `via` writes it: one call, one kept answer.
+          const program =
+            isToolName(name) &&
+            checked?.success === true &&
+            canonicalInput(checked.data) === raw
+              ? toolProgram(name, checked.data)
+              : undefined;
           if (program === undefined) {
             return Response.json(
               { error: "no such tool, or input it refuses" },

@@ -3,6 +3,7 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, PrivateCacheControl } from "../src/cache.ts";
+import { keptInputMax } from "../src/mcp/endpoint.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
 import { mcpRequest, rpcMessage } from "./support/http.ts";
 import { serve } from "./support/socket.ts";
@@ -260,18 +261,42 @@ describe("the page store", () => {
     expect((await listEvents()).result).toEqual(first.result);
   });
 
-  it("refuses a tool it doesn't have, or input the tool refuses, and keeps neither", async ({
+  it("refuses a tool it doesn't have, or input that isn't one call's canonical form, and keeps neither", async ({
     Cached,
   }) => {
     for (const path of [
       "/_mcp/tools/drop_tables",
       `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":-1}')}`,
       "/_mcp/tools/get_event?input=not-json",
+      // The same call as the kept one above, spelled another way each time.
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"when":"past","limit":3}')}`,
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit": 3, "when": "past"}')}`,
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":3,"when":"past","extra":1}')}`,
+      `/_mcp/tools/list_speakers?input=${encodeURIComponent('{"limit":50,"query":" ada "}')}`,
+      `/_mcp/tools/get_event?input=${encodeURIComponent(JSON.stringify({ slug: "x".repeat(keptInputMax) }))}`,
     ]) {
       const { response } = await get(Cached, path);
       expect(response.status).toBe(400);
       expect(state(response)).not.toBe("hit");
     }
+    // A call too long to keep is still answered, from the database.
+    const response = await fetch(
+      mcpRequest(`${Cached}/mcp`, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: {
+          name: "get_event",
+          arguments: { slug: "x".repeat(keptInputMax) },
+        },
+      }),
+    );
+    const long = rpcMessage(await response.text()) as {
+      result: { isError?: boolean; content: Array<{ text: string }> };
+    };
+    // The tool looked: no event has that slug.
+    expect(long.result.isError).toBe(true);
+    expect(long.result.content[0]?.text).not.toBe("Invalid input");
   });
 
   it("serves warm pages without its database, and keeps no failure", async ({
