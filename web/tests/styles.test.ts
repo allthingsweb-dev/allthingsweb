@@ -230,15 +230,14 @@ describe.each(stylesheets)("%s's lengths", (_, css) => {
 
 describe.each(stylesheets)("%s for reduced motion", (_, css) => {
   test("cuts every transition, which answers the pointer", () => {
-    const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const start = bare.indexOf("@media (prefers-reduced-motion: reduce)");
     const settled = [
-      ...css.slice(start).matchAll(/([^{}]+)\{\s*transition: none;\s*\}/g),
+      ...bare.slice(start).matchAll(/([^{}]+)\{\s*transition: none;\s*\}/g),
     ]
       .flatMap(([, selectors = ""]) => selectors.split(","))
       .map((selector) => selector.trim());
-    const transitioned = [
-      ...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g),
-    ]
+    const transitioned = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
       .filter(([, , body = ""]) =>
         /(?:^|;)\s*transition:(?!\s*none)/.test(body),
       )
