@@ -84,7 +84,13 @@ export const testStack = <const Name extends string>(
             : { IMAGES: Cloudflare.Images.Images("IMAGES") }),
           ...(pages === undefined
             ? {}
-            : { PAGES: yield* Cloudflare.KV.Namespace(`${worker}Pages`) }),
+            : yield* Effect.map(
+                Cloudflare.KV.Namespace(`${worker}Pages`),
+                (namespace) => ({
+                  PAGES: namespace,
+                  PAGES_ID: namespace.namespaceId,
+                }),
+              )),
         };
         const { url } = yield* Cloudflare.Worker(worker, {
           main: new URL(

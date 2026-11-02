@@ -38,13 +38,21 @@ import { themeOf } from "./pages/theme-cookie.ts";
  *   names its public lifetimes in `x-edge-cache-control`; it is kept by
  *   that mode. Anything else (failures, `no-store`, redirects that set a
  *   cookie) is never kept.
+ * - **Each data center keeps copies** in its Cache API: the pointer it last
+ *   read and every page it served. A visitor is answered from them at once,
+ *   with no KV read; a pointer copy older than {@link siteTtl} is read
+ *   again from KV after the response, and when the version moved on, this
+ *   request's page under the new one is readied in the data center (from
+ *   KV, or built), so a visitor sees data at most one request stale. Only a
+ *   data center with no copy reads KV first.
  * - The body is kept as the page built it, uncompressed, and compressed for
  *   each visitor as it is served (see response.ts).
  * - Photo variants keep their own cache under their own URLs and pass
  *   through untouched (see {@link ownCachePrefixes}).
  *
  * Every answer says how it was served in `Server-Timing`:
- * `store;desc="hit"|"miss"|"bypass"` with how long reading the store took.
+ * `store;desc="hit"|"miss"|"bypass"` with how long reading the store took,
+ * and for a hit where it came from: `copy;desc="local"|"kv"`.
  */
 
 /** The part of a KV namespace the store uses. */
@@ -307,6 +315,22 @@ function withTiming(
 }
 
 /**
+ * `response` with where its kept page came from in its Server-Timing:
+ * `copy;desc="local"` from the data center's cache, `"kv"` from KV.
+ */
+function withCopy(response: Response, from: "local" | "kv"): Response {
+  const headers = new Headers(response.headers);
+  const entry = `copy;desc="${from}"`;
+  const timing = headers.get("server-timing");
+  headers.set("server-timing", timing === null ? entry : `${timing}, ${entry}`);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
  * What the promise a miss hands `waitUntil` comes to: whether the page was
  * written. It never rejects, so a visitor's request never fails for it;
  * prewarm.ts reads it to count what it built.
@@ -402,7 +426,52 @@ export interface PageStoreOptions {
    * read (reader-caching.ts), none without one.
    */
   readonly turnover: number;
+  /**
+   * The data center's cache (the Cache API), where the runtime has one: the
+   * store keeps its last-known pointer and each page it served there, and
+   * answers from them at once (see {@link pageStored}).
+   */
+  readonly local?: {
+    readonly cache: DataCenterCache;
+    /** Names the namespace's copies (`PAGES_ID`), so no other Worker shares them. */
+    readonly id: string;
+  };
 }
+
+/** The part of the Cache API (`caches.default`) the store uses. */
+export interface DataCenterCache {
+  match(key: string): Promise<Response | undefined>;
+  put(key: string, response: Response): Promise<void>;
+}
+
+/** The data center's cache, where the runtime has one. */
+export function dataCenterCache(): DataCenterCache | undefined {
+  const cache: unknown = (globalThis as { caches?: { default?: unknown } })
+    .caches?.default;
+  return typeof cache === "object" &&
+    cache !== null &&
+    typeof Reflect.get(cache, "match") === "function" &&
+    typeof Reflect.get(cache, "put") === "function"
+    ? (cache as DataCenterCache)
+    : undefined;
+}
+
+/**
+ * Seconds a data center keeps its copies: a week, after which (or after
+ * the cache evicts them) its next visitor reads KV again.
+ */
+export const localTtl = 7 * 24 * 60 * 60;
+
+/** When a data center's copy of the pointer was read from KV (epoch ms). */
+const readAtHeader = "x-store-read-at";
+
+/**
+ * Where a data center keeps the copies of the namespace `id`: under the
+ * request's origin and the namespace, so Workers that share a data
+ * center's cache (stages, a test's Workers) never share copies.
+ */
+const localKey = (request: Request, id: string, name: string) =>
+  `${new URL(request.url).origin}/__store/${encodeURIComponent(id)}/${name}`;
 
 /**
  * The pointer as the namespace holds it, read without this isolate's copy:
@@ -449,7 +518,7 @@ export async function refreshSite({
  */
 export function pageStored(
   handle: (request: Request, context: WaitUntil) => Promise<Response>,
-  { pages, build, now, siteState, turnover }: PageStoreOptions,
+  { pages, build, now, siteState, turnover, local }: PageStoreOptions,
 ): (request: Request, context: WaitUntil) => Promise<Response> {
   /** The pointer as this isolate last read it, and when. */
   let known:
@@ -458,18 +527,40 @@ export function pageStored(
   /** Whether this isolate is asking the database already. */
   let checking = false;
 
+  /** Whether this isolate is refreshing its data center's copies already. */
+  let refreshing = false;
+
+  /** Keeps `pointer`, read from KV at `at`, in this isolate and the data center. */
+  const remember = (
+    request: Request,
+    pointer: SitePointer | undefined,
+    at: number,
+  ): Promise<void> => {
+    known = { ...(pointer === undefined ? {} : { pointer }), at };
+    if (local === undefined || pointer === undefined) return Promise.resolve();
+    return local.cache
+      .put(
+        localKey(request, local.id, siteKey),
+        new Response(JSON.stringify(pointer), {
+          headers: {
+            "cache-control": `public, max-age=${localTtl}`,
+            [readAtHeader]: String(at),
+          },
+        }),
+      )
+      .catch(() => undefined);
+  };
+
   /**
-   * The pointer, or undefined when the namespace has none (or none it can
-   * read), or "unreachable" when KV didn't answer: then nothing is asked or
-   * written, so one failed read never replaces the pointer every isolate
-   * shares.
+   * The pointer from KV, kept here and in the data center: undefined when
+   * the namespace has none (or none it can read), or "unreachable" when KV
+   * didn't answer, and then nothing is kept, asked or written, so one
+   * failed read never replaces the pointer every isolate shares.
    */
-  const readPointer = async (): Promise<
-    SitePointer | undefined | "unreachable"
-  > => {
-    if (known !== undefined && now() - known.at < siteTtl * 1000) {
-      return known.pointer;
-    }
+  const fetchPointer = async (
+    request: Request,
+    context: WaitUntil,
+  ): Promise<SitePointer | undefined | "unreachable"> => {
     let bytes: ArrayBuffer | null;
     try {
       bytes = await pages.get(siteKey, {
@@ -483,12 +574,138 @@ export function pageStored(
       bytes === null
         ? undefined
         : parsePointer(new TextDecoder().decode(bytes));
-    known = { ...(pointer === undefined ? {} : { pointer }), at: now() };
+    context.waitUntil(remember(request, pointer, now()));
     return pointer;
   };
 
+  /**
+   * The pointer to answer with now: this isolate's when it is under
+   * {@link siteTtl} old; else the data center's copy, however old, when
+   * there is one (with `stale` set, so it is read again after the
+   * response); else KV's.
+   */
+  const readPointer = async (
+    request: Request,
+    context: WaitUntil,
+  ): Promise<{
+    readonly pointer: SitePointer | undefined | "unreachable";
+    readonly stale: boolean;
+  }> => {
+    if (known !== undefined && now() - known.at < siteTtl * 1000) {
+      return { pointer: known.pointer, stale: false };
+    }
+    const copy =
+      local === undefined
+        ? undefined
+        : await local.cache
+            .match(localKey(request, local.id, siteKey))
+            .catch(() => undefined);
+    if (copy !== undefined) {
+      const pointer = parsePointer(await copy.text().catch(() => ""));
+      const readAt = Number(copy.headers.get(readAtHeader));
+      if (pointer !== undefined && Number.isFinite(readAt)) {
+        const fresh = now() - readAt < siteTtl * 1000;
+        if (fresh) known = { pointer, at: readAt };
+        return { pointer, stale: !fresh };
+      }
+    }
+    return { pointer: await fetchPointer(request, context), stale: false };
+  };
+
+  /** Keeps a page's bytes in the data center under `key`. */
+  const keepLocally = (
+    request: Request,
+    key: string,
+    bytes: ArrayBuffer,
+  ): Promise<void> =>
+    local === undefined
+      ? Promise.resolve()
+      : local.cache
+          .put(
+            localKey(request, local.id, key),
+            new Response(bytes, {
+              headers: { "cache-control": `public, max-age=${localTtl}` },
+            }),
+          )
+          .catch(() => undefined);
+
+  /**
+   * The page kept under `key`, and where it was found: the data center's
+   * copy first, then KV's, which is then copied to the data center.
+   */
+  const findPage = async (
+    request: Request,
+    key: string,
+    context: WaitUntil,
+  ): Promise<
+    { readonly bytes: ArrayBuffer; readonly from: "local" | "kv" } | undefined
+  > => {
+    const copy =
+      local === undefined
+        ? undefined
+        : await local.cache
+            .match(localKey(request, local.id, key))
+            .catch(() => undefined);
+    const copied =
+      copy === undefined
+        ? undefined
+        : await copy.arrayBuffer().catch(() => undefined);
+    if (copied !== undefined) return { bytes: copied, from: "local" };
+    const bytes = await pages
+      .get(key, { type: "arrayBuffer", cacheTtl: pageTtl })
+      .catch(() => null);
+    if (bytes === null) return undefined;
+    context.waitUntil(keepLocally(request, key, bytes.slice(0)));
+    return { bytes, from: "kv" };
+  };
+
+  /**
+   * After an answer from the data center's stale copy of the pointer: reads
+   * it from KV, and when the version in use moved on from `served`, readies
+   * this request's page under the new one in the data center (from KV, or
+   * built and kept), so the next visitor gets it at once. Never fails.
+   */
+  const revalidate = async (
+    request: Request,
+    served: string,
+    context: WaitUntil,
+  ): Promise<void> => {
+    if (refreshing) return;
+    refreshing = true;
+    try {
+      const pointer = await fetchPointer(request, context);
+      if (pointer === "unreachable" || pointer === undefined) return;
+      const at = now();
+      const state = effectiveState(pointer, at);
+      if (state === undefined || state.version === served) return;
+      const key = await pageKey(request, build, state, at);
+      if ((await findPage(request, key, context)) !== undefined) return;
+      const response = await handle(
+        new Request(request.url, { headers: request.headers }),
+        context,
+      );
+      if (
+        keepable(response) &&
+        effectiveState(pointer, now())?.version === state.version &&
+        windowAt(state.boundaries, now()) === windowAt(state.boundaries, at)
+      ) {
+        const bytes = await keptBytes(response);
+        await pages
+          .put(key, bytes.slice(0), { expirationTtl: keepFor })
+          .catch(() => undefined);
+        await keepLocally(request, key, bytes);
+      } else {
+        await response.body?.cancel();
+      }
+    } catch {
+      // The next visitor that finds the copy stale tries again.
+    } finally {
+      refreshing = false;
+    }
+  };
+
   /** Asks the database, and records what it said; never fails. */
-  const check = async (pointer: SitePointer | undefined) => {
+  const check = async (request: Request, pointer: SitePointer | undefined) => {
     if (checking) return;
     checking = true;
     try {
@@ -496,7 +713,7 @@ export function pageStored(
       const at = now();
       const next = nextPointer(pointer, state, at, turnover);
       await pages.put(siteKey, JSON.stringify(next));
-      known = { pointer: next, at };
+      await remember(request, next, at);
     } catch {
       // The next request that finds the pointer old asks again.
     } finally {
@@ -525,10 +742,10 @@ export function pageStored(
     }
 
     const started = now();
-    const pointer = await readPointer();
+    const { pointer, stale } = await readPointer(request, context);
     if (pointer === "unreachable") return bypass();
     if (pointer === undefined || now() - pointer.checkedAt >= checkEvery) {
-      context.waitUntil(check(pointer));
+      context.waitUntil(check(request, pointer));
     }
     const at = now();
     const state =
@@ -536,12 +753,14 @@ export function pageStored(
     if (state === undefined) return bypass();
 
     const key = await pageKey(request, build, state, at);
-    const bytes = await pages
-      .get(key, { type: "arrayBuffer", cacheTtl: pageTtl })
-      .catch(() => null);
+    if (stale) context.waitUntil(revalidate(request, state.version, context));
+    const found = await findPage(request, key, context);
     const lookup = now() - started;
-    const kept = bytes === null ? undefined : servedFrom(bytes, request);
-    if (kept !== undefined) return withTiming(kept, "hit", lookup);
+    const kept =
+      found === undefined ? undefined : servedFrom(found.bytes, request);
+    if (kept !== undefined && found !== undefined) {
+      return withCopy(withTiming(kept, "hit", lookup), found.from);
+    }
 
     const response = await handle(request, context);
     // Kept only if it was built in the window and version it is kept
@@ -555,14 +774,17 @@ export function pageStored(
     ) {
       // The copy is taken before the response's body goes to the visitor.
       const copy = new Response(response.clone().body, response);
-      context.waitUntil(
-        keptBytes(copy)
-          .then((value) => pages.put(key, value, { expirationTtl: keepFor }))
-          .then(
-            (): Keeping => ({ kept: true }),
-            (): Keeping => ({ kept: false }),
-          ),
-      );
+      const keep = async (): Promise<Keeping> => {
+        try {
+          const value = await keptBytes(copy);
+          await pages.put(key, value.slice(0), { expirationTtl: keepFor });
+          await keepLocally(request, key, value);
+          return { kept: true };
+        } catch {
+          return { kept: false };
+        }
+      };
+      context.waitUntil(keep());
     }
     return withTiming(withoutInternalHeaders(response), "miss", lookup);
   };

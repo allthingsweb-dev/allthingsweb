@@ -6,6 +6,7 @@ import {
 } from "../src/cache.ts";
 import {
   checkEvery,
+  type DataCenterCache,
   effectiveState,
   keepable,
   nextPointer,
@@ -30,8 +31,10 @@ function memoryNamespace() {
   const entries = new Map<string, ArrayBuffer>();
   const puts: Array<{ key: string; expirationTtl: number | undefined }> = [];
   let unreachable = false;
+  const gotten: Array<string> = [];
   const pages: PageNamespace = {
     get: async (key) => {
+      gotten.push(key);
       if (unreachable) throw new Error("KV is unreachable");
       const value = entries.get(key);
       return value === undefined ? null : value.slice(0);
@@ -60,6 +63,10 @@ function memoryNamespace() {
     puts,
     pointer,
     pageKeys,
+    /** How many reads KV has had. */
+    gets: () => gotten.length,
+    /** The key of the first read after the first `count`. */
+    firstGetAfter: (count: number) => gotten[count],
     breaks: () => {
       unreachable = true;
     },
@@ -68,6 +75,30 @@ function memoryNamespace() {
     },
   };
 }
+
+/** A data center's cache in memory, as the Cache API keeps responses by URL. */
+function memoryLocal() {
+  const entries = new Map<string, { body: ArrayBuffer; headers: Headers }>();
+  const local: DataCenterCache = {
+    match: async (key) => {
+      const kept = entries.get(key);
+      return kept === undefined
+        ? undefined
+        : new Response(kept.body.slice(0), { headers: kept.headers });
+    },
+    put: async (key, response) => {
+      entries.set(key, {
+        body: await response.arrayBuffer(),
+        headers: new Headers(response.headers),
+      });
+    },
+  };
+  return { local, entries };
+}
+
+/** Where a hit's page came from, from its Server-Timing. */
+const copyOf = (response: Response) =>
+  /copy;desc="([a-z]+)"/.exec(response.headers.get("server-timing") ?? "")?.[1];
 
 /** A clock that moves only when told, in seconds. */
 function clock(start = Date.UTC(2026, 10, 1, 20, 0, 0)) {
@@ -163,6 +194,7 @@ const setup = (
     readonly page?: (request: Request) => Page;
     readonly state?: SiteState;
     readonly turnover?: number;
+    readonly local?: DataCenterCache;
   } = {},
 ) => {
   const kv = memoryNamespace();
@@ -176,6 +208,9 @@ const setup = (
     now: time.now,
     siteState: data.siteState,
     turnover: options.turnover ?? 0,
+    ...(options.local === undefined
+      ? {}
+      : { local: { cache: options.local, id: "test" } }),
   });
   const fetch = async (request: Request) => {
     const response = await serve(request, ctx);
@@ -519,5 +554,76 @@ describe("keepable", () => {
     expect(
       keepable(response(200, { "cache-control": CacheControl.failure })),
     ).toBe(false);
+  });
+});
+
+describe("the data center's copies", () => {
+  test("answer a page from the data center, and KV's first read is copied there", async () => {
+    const { local } = memoryLocal();
+    const { fetch, kv } = setup({ local });
+    await fetch(get("/"));
+    const built = await fetch(get("/"));
+    expect(served(built.response)).toBe("miss");
+    const copied = await fetch(get("/"));
+    expect([served(copied.response), copyOf(copied.response)]).toEqual([
+      "hit",
+      "local",
+    ]);
+    expect(copied.body).toBe(built.body);
+    // A page in KV but not yet here is read from KV once, then from here.
+    const other = memoryLocal();
+    const elsewhere = pageStored(async () => new Response("never"), {
+      pages: kv.pages,
+      build: "0123456789abcdef",
+      now: () => Date.UTC(2026, 10, 1, 20, 0, 0),
+      siteState: async () => v1,
+      turnover: 0,
+      local: { cache: other.local, id: "test" },
+    });
+    const ctx = context();
+    const fromKv = await elsewhere(get("/"), ctx);
+    await ctx.settle();
+    expect(copyOf(fromKv)).toBe("kv");
+    const fromHere = await elsewhere(get("/"), ctx);
+    expect(copyOf(fromHere)).toBe("local");
+  });
+
+  test("answer at once from a stale copy of the version, then ready the new version's page here", async () => {
+    const { local } = memoryLocal();
+    const { fetch, kv, time, data, app } = setup({ local });
+    await fetch(get("/"));
+    const old = await fetch(get("/"));
+    // The data changes, and the site is told: KV holds v2 now.
+    data.change(v2);
+    await kv.pages.put(
+      siteKey,
+      JSON.stringify({ checkedAt: time.now(), current: v2 }),
+    );
+    const before = kv.gets();
+    time.advance(60);
+    // One request stale: the data center's copy answers, without KV.
+    const stale = await fetch(get("/"));
+    expect([served(stale.response), copyOf(stale.response)]).toEqual([
+      "hit",
+      "local",
+    ]);
+    expect(stale.body).toBe(old.body);
+    expect(kv.firstGetAfter(before)).toBe(siteKey);
+    // After it, v2's page was built and kept here and in KV.
+    expect(app.calls()).toBe(3);
+    const fresh = await fetch(get("/"));
+    expect([served(fresh.response), copyOf(fresh.response)]).toEqual([
+      "hit",
+      "local",
+    ]);
+    expect(fresh.body).not.toBe(old.body);
+    expect(app.calls()).toBe(3);
+  });
+
+  test("read KV first when the data center has no copy", async () => {
+    const { fetch, kv } = setup({ local: memoryLocal().local });
+    const before = kv.gets();
+    await fetch(get("/"));
+    expect(kv.firstGetAfter(before)).toBe(siteKey);
   });
 });

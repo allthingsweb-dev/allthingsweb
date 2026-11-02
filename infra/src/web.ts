@@ -1,4 +1,5 @@
 import * as Cloudflare from "alchemy/Cloudflare";
+import * as Effect from "effect/Effect";
 import { compatibility } from "../../web/src/compatibility.ts";
 import { readerCaching } from "../../web/src/reader-caching.ts";
 import { Reader } from "./reader.ts";
@@ -68,21 +69,26 @@ export const makeWeb = (
   domain?: Cloudflare.WorkerDomainConfig,
   refreshToken?: ReturnType<typeof requiredSecret>,
 ) =>
-  Cloudflare.Worker("Web", {
-    main: "../web/src/worker.ts",
-    compatibility,
-    assets: "../web/dist/public",
-    env: {
-      ORIGIN: SITE_ORIGIN,
-      PAGES: Pages,
-      HYPERDRIVE: Database,
-      IMAGES: Cloudflare.Images.Images("IMAGES"),
-      ...(refreshToken === undefined
-        ? {}
-        : { SITE_REFRESH_TOKEN: refreshToken }),
-    },
-    ...(domain === undefined ? {} : { domain }),
-  });
+  Effect.flatMap(Pages, (pages) =>
+    Cloudflare.Worker("Web", {
+      main: "../web/src/worker.ts",
+      compatibility,
+      assets: "../web/dist/public",
+      env: {
+        ORIGIN: SITE_ORIGIN,
+        PAGES: pages,
+        // Names the namespace's copies in each data center's cache, so no
+        // other Worker there shares them.
+        PAGES_ID: pages.namespaceId,
+        HYPERDRIVE: Database,
+        IMAGES: Cloudflare.Images.Images("IMAGES"),
+        ...(refreshToken === undefined
+          ? {}
+          : { SITE_REFRESH_TOKEN: refreshToken }),
+      },
+      ...(domain === undefined ? {} : { domain }),
+    }),
+  );
 
 /**
  * The token the writers tell prod's site with, from `SITE_REFRESH_TOKEN`

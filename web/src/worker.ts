@@ -1,6 +1,7 @@
 import type { ExecutionContext } from "./app.ts";
 import { built } from "./assets.ts";
 import {
+  dataCenterCache,
   type PageNamespace,
   pageStored,
   readSitePointer,
@@ -86,6 +87,15 @@ export default {
       const pages = pagesOf(env);
       const turnover = env["HYPERDRIVE"] === undefined ? 0 : readerTurnover;
       const token = env["SITE_REFRESH_TOKEN"];
+      // Each data center's copies are named by the namespace (PAGES_ID).
+      const pagesId = env["PAGES_ID"];
+      const local =
+        typeof pagesId === "string" && pagesId !== ""
+          ? (() => {
+              const cache = dataCenterCache();
+              return cache === undefined ? undefined : { cache, id: pagesId };
+            })()
+          : undefined;
       const site =
         pages === undefined
           ? app
@@ -95,6 +105,7 @@ export default {
               now: Date.now,
               siteState,
               turnover,
+              ...(local === undefined ? {} : { local }),
             });
       // Only a Worker with a store and a token answers the writers.
       const writers =
