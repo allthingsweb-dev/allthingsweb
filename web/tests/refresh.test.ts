@@ -212,11 +212,17 @@ describe("tellSite", () => {
     ]);
   });
 
-  test("gives up on a site that doesn't answer in time, and logs it", async () => {
+  test("gives up on a site that doesn't answer in time, cancels its request, and logs it", async () => {
     const { lines, log } = logged();
+    const sent: Array<Request> = [];
     await tellSite(
       {
-        SITE: { fetch: () => new Promise<Response>(() => undefined) },
+        SITE: {
+          fetch: (request: Request) => {
+            sent.push(request);
+            return new Promise<Response>(() => undefined);
+          },
+        },
         SITE_REFRESH_TOKEN: token,
       },
       log,
@@ -225,8 +231,10 @@ describe("tellSite", () => {
     await tellSite(
       {
         SITE: {
-          fetch: async () =>
-            new Response(new ReadableStream({ start: () => undefined })),
+          fetch: async (request: Request) => {
+            sent.push(request);
+            return new Response(new ReadableStream({ start: () => undefined }));
+          },
         },
         SITE_REFRESH_TOKEN: token,
       },
@@ -237,6 +245,7 @@ describe("tellSite", () => {
       ["failed", "Error: the site didn't answer within 20 ms"],
       ["failed", "Error: the site didn't answer within 20 ms"],
     ]);
+    expect(sent.map((request) => request.signal.aborted)).toEqual([true, true]);
   });
 
   test("skips without the binding or the token, and says so", async () => {
