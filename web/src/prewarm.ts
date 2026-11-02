@@ -90,18 +90,26 @@ export async function prewarm({
     from !== undefined && from > at && from - at <= longestWait ? from - at : 0;
   if (pending > 0) await sleep(pending);
 
-  const counts = { kept: 0, built: 0, passed: 0 };
-  const failed: Array<string> = [];
-  /** Asks for `path` as a visitor in the system's mode would, and waits for its keeping. */
-  const ask = async (path: string): Promise<Response | undefined> => {
+  /** How one path came out, its last time. */
+  type Outcome = "kept" | "built" | "passed" | "failed";
+  /**
+   * Asks for `path` as a visitor in the system's mode would, reads its
+   * body, and waits for its keeping: how it came out, and the body when it
+   * answered 2xx. Never throws.
+   */
+  const visit = async (
+    path: string,
+  ): Promise<{ readonly outcome: Outcome; readonly body?: string }> => {
     const pendingWork: Array<Promise<unknown>> = [];
+    let response: Response | undefined;
     try {
-      const response = await serve(
+      response = await serve(
         new Request(`https://allthings.dev${path}`, {
           headers: { "accept-encoding": "br, gzip" },
         }),
         { waitUntil: (promise) => pendingWork.push(promise) },
       );
+      const body = response.ok ? await response.text() : undefined;
       const keeping = (await Promise.allSettled(pendingWork)).flatMap(
         (settled) =>
           settled.status === "fulfilled" && isKeeping(settled.value)
@@ -109,36 +117,29 @@ export async function prewarm({
             : [],
       );
       const how = servedAs(response);
-      if (response.status >= 500) failed.push(path);
-      else if (how === "hit") counts.kept += 1;
-      else if (how !== "miss" || keeping.length === 0) counts.passed += 1;
-      // Built is kept: a page whose write failed failed.
-      else if (keeping.every(({ kept }) => kept)) counts.built += 1;
-      else failed.push(path);
-      return response;
+      const outcome: Outcome =
+        response.status >= 500
+          ? "failed"
+          : how === "hit"
+            ? "kept"
+            : how !== "miss" || keeping.length === 0
+              ? "passed"
+              : // Built is kept: a page whose write failed failed.
+                keeping.every(({ kept }) => kept)
+                ? "built"
+                : "failed";
+      return body === undefined ? { outcome } : { outcome, body };
     } catch {
-      failed.push(path);
-      return undefined;
-    }
-  };
-
-  /** `path`'s body read, or failed once (undefined), never thrown. */
-  const finish = async (
-    path: string,
-    response: Response | undefined,
-  ): Promise<string | undefined> => {
-    try {
-      return response?.ok === true ? await response.text() : undefined;
-    } catch {
-      if (!failed.includes(path)) failed.push(path);
-      return undefined;
+      return { outcome: "failed" };
     } finally {
       await response?.body?.cancel().catch(() => undefined);
     }
   };
 
-  const xml = await finish("/sitemap.xml", await ask("/sitemap.xml"));
-  const paths = sitemapPaths(xml ?? "").filter(
+  const outcomes = new Map<string, Outcome>();
+  const sitemap = await visit("/sitemap.xml");
+  outcomes.set("/sitemap.xml", sitemap.outcome);
+  const paths = sitemapPaths(sitemap.body ?? "").filter(
     (path) => path !== "/sitemap.xml",
   );
   let next = 0;
@@ -148,24 +149,27 @@ export async function prewarm({
         const path = paths[next];
         next += 1;
         if (path === undefined) continue;
-        await finish(path, await ask(path));
+        outcomes.set(path, (await visit(path)).outcome);
       }
     }),
   );
   // A page that failed in the crowd (a database connection refused, say)
-  // is asked for once more, alone; what fails again is reported.
-  const retried = failed.filter((path) => path !== "/sitemap.xml");
-  failed.splice(
-    0,
-    failed.length,
-    ...failed.filter((path) => path === "/sitemap.xml"),
-  );
-  for (const path of retried) await finish(path, await ask(path));
+  // is asked for once more, alone; its last outcome is the one counted.
+  for (const path of paths) {
+    if (outcomes.get(path) === "failed") {
+      outcomes.set(path, (await visit(path)).outcome);
+    }
+  }
+  const all = [...outcomes.entries()];
+  const count = (outcome: Outcome) =>
+    all.filter(([, came]) => came === outcome).length;
   return {
-    paths: paths.length + 1,
-    ...counts,
-    failed,
-    sitemapRead: xml !== undefined,
+    paths: outcomes.size,
+    kept: count("kept"),
+    built: count("built"),
+    passed: count("passed"),
+    failed: all.filter(([, came]) => came === "failed").map(([path]) => path),
+    sitemapRead: sitemap.body !== undefined,
     waitedMs: pending,
   };
 }

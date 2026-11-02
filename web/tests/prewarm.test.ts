@@ -161,6 +161,10 @@ describe("prewarm", () => {
     expect(report.failed).toEqual([]);
     expect(report.built).toBe(4);
     expect(tries).toBe(2);
+    // Each path is counted once, by its last outcome.
+    expect(
+      report.kept + report.built + report.passed + report.failed.length,
+    ).toBe(report.paths);
   });
 
   test("names the pages that failed", async () => {
