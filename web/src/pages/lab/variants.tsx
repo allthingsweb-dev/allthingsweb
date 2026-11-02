@@ -47,7 +47,7 @@ export const variants: ReadonlyArray<Variant> = [
   {
     name: "slash-grid",
     pitch:
-      "A grid of the community’s photos cut on the slash’s slant, each leading to its evening, beside the lockup, with the tally as a band of numbers on the page’s grid.",
+      "Home now: a grid of the community’s photos cut on the slash’s slant, each leading to its evening, beside the lockup, with the tally as a band of numbers on the page’s grid.",
     render: SlashGrid,
   },
   {
@@ -169,8 +169,7 @@ export function labIndexPage(page: LabPage): string {
                 at<span class="slash">/</span>home
               </span>
               <span class="lab-variant-pitch">
-                Today’s home, to compare: three hand-picked rooms beside the
-                lockup.
+                Today’s home, to compare: the slash grid.
               </span>
             </a>
           </li>
