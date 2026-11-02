@@ -849,6 +849,36 @@ DATABASE_URL=… bun run people --dry-run   # what would be filled, rolled back
 DATABASE_URL=… bun run people             # fill it, in one transaction
 ```
 
+`[file]` is `backfill/people.json` unless given, relative to core/ or
+absolute.
+
+### What they do now
+
+An entry's `now` is what the person does now (docs/now.md,
+`src/now.ts`): a line of one or two sentences whose every fact is a
+`[phrase](https://source)` link, up to four links to their own recent work
+(latest first, each with its title, its day or month, and its kind), and
+`checkedOn`, the day it was all read. It is stored whole in
+`profiles.now_record` (migration 0032).
+
+- Only this file writes it, so a record is written whenever it differs
+  from the stored one: no `was` is needed to refresh it.
+- `"now": null` takes it down and keeps it off: the person asked, or it was
+  wrong. An entry without `now` leaves the column as it is.
+- A claim that couldn't be confirmed goes under `held` as `"field": "now"`,
+  beside the record it was left out of.
+
+`bun run people stale` prints, as JSON, the records checked `--days` (90)
+or more days ago, oldest first, with their held claims, for an agent to look
+at again under docs/now.md's rules. `--speakers` adds everyone who has spoken
+at one of our evenings and never had a record; only that reads the
+database, and site_reader's connection is enough:
+
+```sh
+bun run people stale --days 90
+DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run people stale --speakers
+```
+
 ### A photo from a file
 
 `bun run people photo` sets a profile's photo from a local file, for a person
