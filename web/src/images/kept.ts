@@ -104,7 +104,8 @@ export async function keptVariant(
   const stored = await store.get(storeKeyOf(url)).catch(() => null);
   const contentType = stored?.httpMetadata?.contentType;
   if (stored === null || contentType === undefined) {
-    await stored?.body.cancel();
+    // A malformed object is a miss, even when its body won't cancel.
+    await stored?.body.cancel().catch(() => undefined);
     return undefined;
   }
   const headers = variantHeaders(contentType);
