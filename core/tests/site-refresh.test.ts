@@ -44,9 +44,9 @@ interface Sent {
 /** A site that answers `body` with `status`, and keeps what it was sent. */
 function fakeSite(status = 200, body: unknown = { next: null }) {
   const sent: Array<Sent> = [];
-  const fetch = (async (url: string, init: RequestInit) => {
+  const fetch = (async (url: string | URL, init: RequestInit) => {
     sent.push({
-      url,
+      url: String(url),
       method: init.method,
       authorization: new Headers(init.headers).get("authorization"),
     });
@@ -102,6 +102,30 @@ describe("tellSite", () => {
     ]);
     expect(down).toEqual([
       "The site couldn't be told: a change shows within the hour.",
+    ]);
+  });
+
+  test("sends the token only over https, or http to this machine, and to the path whatever the origin ends with", async () => {
+    const site = fakeSite();
+    const refused = await withEnv(
+      { SITE_REFRESH_TOKEN: token, SITE_ORIGIN: "http://site.test" },
+      tellSite(site.fetch),
+    );
+    expect(refused).toEqual([
+      "SITE_ORIGIN isn't an https origin, so the site wasn't told: a change shows within the hour.",
+    ]);
+    expect(site.sent).toEqual([]);
+    await withEnv(
+      { SITE_REFRESH_TOKEN: token, SITE_ORIGIN: "https://site.test/" },
+      tellSite(site.fetch),
+    );
+    await withEnv(
+      { SITE_REFRESH_TOKEN: token, SITE_ORIGIN: "http://127.0.0.1:8787" },
+      tellSite(site.fetch),
+    );
+    expect(site.sent.map((sent) => sent.url)).toEqual([
+      `https://site.test${refreshPath}`,
+      `http://127.0.0.1:8787${refreshPath}`,
     ]);
   });
 

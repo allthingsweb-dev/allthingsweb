@@ -24,6 +24,20 @@ export const siteOrigin = "https://allthings.dev";
 /** How long the site has to answer, in milliseconds. */
 export const tellDeadline = 15_000;
 
+/**
+ * Where to send the word: the refresh path on `origin`, if it is https,
+ * or http on this machine alone (a test's), so the token never crosses a
+ * network in the clear. Undefined for anything else.
+ */
+export const refreshUrl = (origin: string): URL | undefined => {
+  const url = URL.parse(refreshPath, origin);
+  if (url === null) return undefined;
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  return url.protocol === "https:" || (url.protocol === "http:" && local)
+    ? url
+    : undefined;
+};
+
 /** Whether `url` is a connection to Neon, where production lives. */
 const isNeon = (url: string): boolean => {
   const host = URL.parse(url)?.hostname ?? "";
@@ -48,9 +62,16 @@ export const tellSite = (
       }
       return;
     }
+    const url = refreshUrl(origin);
+    if (url === undefined) {
+      yield* Console.error(
+        `SITE_ORIGIN isn't an https origin, so the site wasn't told: a change shows within the hour.`,
+      );
+      return;
+    }
     const secret = Redacted.value(token.value);
     const answer = yield* Effect.tryPromise(async () => {
-      const response = await fetch(`${origin}${refreshPath}`, {
+      const response = await fetch(url, {
         method: "POST",
         headers: { authorization: `Bearer ${secret}` },
         signal: AbortSignal.timeout(tellDeadline),
@@ -62,10 +83,10 @@ export const tellSite = (
     });
     yield* Console.error(
       answer.status !== 200
-        ? `${origin} didn't take the word (${answer.status}): a change shows within the hour.`
+        ? `${url.origin} didn't take the word (${answer.status}): a change shows within the hour.`
         : typeof answer.body?.next?.from === "string"
-          ? `${origin} told: it shows the new data from ${answer.body.next.from}.`
-          : `${origin} told: its data is current.`,
+          ? `${url.origin} told: it shows the new data from ${answer.body.next.from}.`
+          : `${url.origin} told: its data is current.`,
     );
   }).pipe(
     Effect.catchCause(() =>
