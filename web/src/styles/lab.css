@@ -417,9 +417,10 @@
   background: var(--at-surface);
 }
 
-/* A date stays on one line: each cut is at least as wide as 2026.09.30. */
+/* A date stays on one line, within its cut: each cut is at least as wide
+   as 2026.09.30 set a hair tighter than the meta role. */
 .cut-date {
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   line-height: 1.2;
   white-space: nowrap;
 }
