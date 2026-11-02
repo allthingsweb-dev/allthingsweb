@@ -10,6 +10,11 @@ import { isKeeping, type SitePointer } from "./page-store.ts";
  * A new version of the data is used only from its `from` (page-store.ts),
  * so prewarming waits for it, up to {@link longestWait}, rather than warm
  * the version on its way out.
+ *
+ * Its report names the build that warmed (`build`): right after a deploy,
+ * the Worker version still answering may be the one on its way out, whose
+ * pages are kept under its own build, so a deploy asks again until the
+ * build it shipped answers.
  */
 
 /** The most prewarming waits for a new version to be in use, in milliseconds. */
@@ -20,6 +25,8 @@ export const concurrency = 4;
 
 /** What prewarming did. */
 export interface PrewarmReport {
+  /** The build whose pages were warmed (dist/build.json's `build`). */
+  readonly build: string;
   /** Paths asked for, the sitemap's own included. */
   readonly paths: number;
   /** Already kept. */
@@ -59,6 +66,8 @@ const servedAs = (response: Response) =>
   )?.[1];
 
 export interface PrewarmOptions {
+  /** The build this Worker serves, under which its pages are kept. */
+  readonly build: string;
   /** The site behind the store (worker.ts's handler). */
   readonly serve: (
     request: Request,
@@ -78,6 +87,7 @@ export const sitemapFailed = (report: PrewarmReport): boolean =>
 
 /** Prewarms the store; see the module's comment. */
 export async function prewarm({
+  build,
   serve,
   pointer,
   now,
@@ -164,6 +174,7 @@ export async function prewarm({
   const count = (outcome: Outcome) =>
     all.filter(([, came]) => came === outcome).length;
   return {
+    build,
     paths: outcomes.size,
     kept: count("kept"),
     built: count("built"),

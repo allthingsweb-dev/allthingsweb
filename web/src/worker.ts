@@ -128,6 +128,7 @@ export default {
                 refreshSite({ pages, now: Date.now, siteState, turnover }),
               prewarm: () =>
                 prewarm({
+                  build: built.build,
                   serve: site,
                   pointer: () => readSitePointer(pages),
                   now: Date.now,

@@ -59,6 +59,7 @@ const options = (
     slept,
     run: () =>
       prewarm({
+        build: "0123456789abcdef",
         serve: site.serve,
         pointer: async () => pointer,
         now: () => at,
@@ -87,6 +88,7 @@ describe("prewarm", () => {
     );
     const { run, slept } = options(site);
     expect(await run()).toEqual({
+      build: "0123456789abcdef",
       paths: 5,
       kept: 2,
       built: 3,
@@ -183,6 +185,7 @@ describe("prewarm", () => {
         },
       });
     const report = await prewarm({
+      build: "0123456789abcdef",
       serve: async () =>
         new Response(broken(), {
           headers: { "server-timing": 'store;desc="miss";dur=1.0' },
