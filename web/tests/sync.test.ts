@@ -1053,17 +1053,23 @@ describe("the Worker, from its bindings", () => {
       expect(internet.fetched[0]?.href).toStartWith(
         "https://api.luma.com/ics/get",
       );
-      expect(logs.lines.at(-2)).toMatchObject({
+      expect(logs.lines.at(-3)).toMatchObject({
         source: "luma-sync",
         step: "summary",
         ok: true,
       });
-      expect(logs.lines.at(-1)).toMatchObject({
+      expect(logs.lines.at(-2)).toMatchObject({
         source: "luma-sync",
         step: "site",
         status: "done",
       });
-      expect(told).toHaveLength(1);
+      expect(logs.lines.at(-1)).toMatchObject({
+        source: "luma-sync",
+        step: "prewarm",
+        status: "done",
+      });
+      // Told, then asked to prewarm.
+      expect(told).toHaveLength(2);
       expect(told[0]).toBeGreaterThan(0);
     } finally {
       logs.restore();
@@ -1324,11 +1330,17 @@ describe("the Worker, without what it needs", () => {
         ),
       ).rejects.toThrow("The sync Worker ran nothing: it has no LUMA_API_KEY.");
       expect(
-        told.map((request) => request.headers.get("authorization")),
-      ).toEqual(["Bearer a-test-token"]);
+        told.map((request) => [
+          new URL(request.url).pathname,
+          request.headers.get("authorization"),
+        ]),
+      ).toEqual([
+        ["/_site/refresh", "Bearer a-test-token"],
+        ["/_site/prewarm", "Bearer a-test-token"],
+      ]);
       expect(logs.lines.at(-1)).toMatchObject({
         source: "luma-sync",
-        step: "site",
+        step: "prewarm",
         status: "done",
       });
       await expect(
@@ -1343,7 +1355,7 @@ describe("the Worker, without what it needs", () => {
           },
         ),
       ).rejects.toThrow();
-      expect(told).toHaveLength(1);
+      expect(told).toHaveLength(2);
     } finally {
       logs.restore();
     }

@@ -270,6 +270,29 @@ describe("the page store", () => {
     await none.arrayBuffer();
   });
 
+  it("prewarms every page the sitemap lists when a writer asks, with the token", async ({
+    Cached,
+  }) => {
+    await primed(Cached);
+    const warmed = await fetch(`${Cached}/_site/prewarm`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${refreshToken}` },
+    });
+    expect(warmed.status).toBe(200);
+    const report = (await warmed.json()) as {
+      paths: number;
+      kept: number;
+      built: number;
+      failed: Array<string>;
+    };
+    expect(report.paths).toBeGreaterThan(5);
+    expect(report.failed).toEqual([]);
+    expect(report.kept + report.built).toBeGreaterThan(5);
+    // A page it built is kept: the next visitor gets it from the store.
+    const { response } = await get(Cached, "/events");
+    expect(state(response)).toBe("hit");
+  });
+
   it("is off without PAGES", async ({ Uncached }) => {
     for (let attempt = 0; attempt < 2; attempt++) {
       const { response } = await get(Uncached, "/");
