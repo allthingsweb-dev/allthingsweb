@@ -6,7 +6,7 @@ import {
 import { ConfigProvider, Context, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import { Hyperdrive, pool } from "./database.ts";
-import { imageRoutes, Images, WaitUntil } from "./images/route.ts";
+import { imageRoutes, Images, Variants, WaitUntil } from "./images/route.ts";
 import { Mcp, mcpRoute, toolRoute } from "./mcp/endpoint.ts";
 import { Assets, ogRoutes } from "./og/route.ts";
 import { pageRoutes } from "./pages/routes.ts";
@@ -64,6 +64,7 @@ export function makeHandler(
         ConfigProvider.layer(ConfigProvider.fromUnknown(env)),
         Hyperdrive.layer(env),
         Images.layer(env),
+        Variants.layer(env),
         Assets.layer(env),
         Layer.succeed(ThroughStore, Option.fromNullishOr(options.through)),
       ),

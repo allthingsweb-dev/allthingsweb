@@ -26,6 +26,17 @@ export const Database = Cloudflare.Hyperdrive.Connection("Database", {
  */
 export const Pages = Cloudflare.KV.Namespace("Pages");
 
+/**
+ * The photos' variants once made (web/src/images/route.ts): each stage has
+ * its own bucket, named after it and destroyed with it, emptied first. A
+ * variant is made once and kept here under its path, which names the
+ * photo's version, so every data center serves it from here rather than
+ * making it again. It holds only what the Worker can make again.
+ */
+export const Variants = Cloudflare.R2.Bucket("Variants", {
+  forceDestroy: true,
+});
+
 /** Where the new site lives: canonical URLs, the feeds and link previews name it on every stage. */
 export const SITE_HOST = "allthings.dev";
 export const SITE_ORIGIN = `https://${SITE_HOST}`;
@@ -64,13 +75,14 @@ export const SITE_ORIGIN = `https://${SITE_HOST}`;
  *
  * `IMAGES` makes the photos' variants (web/src/images/route.ts) from the
  * originals on the media origin; it has no resource of its own, and
- * transformations are billed to the account.
+ * transformations are billed to the account. `VARIANTS` keeps each one
+ * made ({@link Variants}), so it is made once, not once per data center.
  */
 export const makeWeb = (
   domain?: Cloudflare.WorkerDomainConfig,
   refreshToken?: ReturnType<typeof requiredSecret>,
 ) =>
-  Effect.flatMap(Pages, (pages) =>
+  Effect.flatMap(Effect.all([Pages, Variants]), ([pages, variants]) =>
     Cloudflare.Worker("Web", {
       main: "../web/src/worker.ts",
       compatibility,
@@ -88,6 +100,7 @@ export const makeWeb = (
         PAGES_ID: pages.namespaceId,
         HYPERDRIVE: Database,
         IMAGES: Cloudflare.Images.Images("IMAGES"),
+        VARIANTS: variants,
         ...(refreshToken === undefined
           ? {}
           : { SITE_REFRESH_TOKEN: refreshToken }),

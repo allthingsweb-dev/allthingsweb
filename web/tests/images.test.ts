@@ -47,6 +47,12 @@ const media = serveMedia({
   "events/home/effect.jpg": { body: png(1600, 1200), type: "image/png" },
   "events/home/pier-70.jpg": { body: png(1200, 900), type: "image/png" },
   "events/home/mux.jpg": { body: png(1024, 768), type: "image/png" },
+  // Fails once, as the media origin did for a moment while its zone moved.
+  "events/home/flaky.jpg": {
+    body: png(800, 600),
+    type: "image/png",
+    failFirst: 1,
+  },
   "profiles/erik.jpg": { body: png(2160, 2160), type: "image/png" },
   "events/home/broken.jpg": { body: "not an image", type: "image/jpeg" },
   // Over the 20 MB the Images binding reads.
@@ -92,6 +98,16 @@ const Stack = testStack("allthings-web-images-test", {
     DATABASE_URL: database.url,
     MEDIA_ORIGIN: media.origin,
     IMAGES: true,
+    VARIANTS: "SharedVariants",
+  },
+  // Another data center, as far as caches go: its own origin, so its own
+  // cache keys, and the same variants bucket.
+  Elsewhere: {
+    ORIGIN: origin,
+    DATABASE_URL: database.url,
+    MEDIA_ORIGIN: media.origin,
+    IMAGES: true,
+    VARIANTS: "SharedVariants",
   },
   Originals: {
     ORIGIN: origin,
@@ -116,7 +132,7 @@ afterAll(
   ),
 );
 
-type Worker = "Variants" | "Originals";
+type Worker = "Variants" | "Originals" | "Elsewhere";
 
 /** A test that gets the running Workers' URLs. */
 const it = (
@@ -140,7 +156,11 @@ const it = (
           }
           return value;
         };
-        return run({ Variants: url("Variants"), Originals: url("Originals") });
+        return run({
+          Variants: url("Variants"),
+          Originals: url("Originals"),
+          Elsewhere: url("Elsewhere"),
+        });
       }),
     ),
     options,
@@ -312,6 +332,69 @@ describe("/img/", () => {
     expect(second.body).toEqual(first.body);
     expect(dimensions(second.body)).toEqual({ width: 360, height: 270 });
     expect(media.fetches("events/home/mux.jpg")).toBe(before + 1);
+  });
+
+  it("keeps a variant it made in the stage's bucket, so another data center serves it without making it", async ({
+    Variants,
+    Elsewhere,
+  }) => {
+    const path = `/img/480/avif/${fresh}/events/home/mux.jpg`;
+    const before = media.fetches("events/home/mux.jpg");
+    const made = await get(Variants, path);
+    expect(made.response.headers.get("server-timing")).toMatch(
+      /^img;desc="miss";dur=\d+$/,
+    );
+    // The bucket takes it after the response: until then, it is made.
+    let kept = await get(Elsewhere, path);
+    for (
+      let attempt = 0;
+      attempt < 40 &&
+      !(kept.response.headers.get("server-timing") ?? "").startsWith(
+        'img;desc="stored"',
+      );
+      attempt++
+    ) {
+      await Bun.sleep(50);
+      kept = await get(Elsewhere, `${path}?again=${attempt}`);
+    }
+    expect(kept.response.headers.get("server-timing")).toMatch(
+      /^img;desc="stored";dur=\d+$/,
+    );
+    expect(kept.response.headers.get("cache-control")).toBe(immutable);
+    expect(kept.response.headers.get("content-type")).toBe("image/avif");
+    expect(kept.response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(kept.body).toEqual(made.body);
+    // Then from its own cache, and the original was fetched only by the
+    // data center that made it (and by Elsewhere while the bucket hadn't
+    // taken it yet, at most).
+    let cached = await get(Elsewhere, path);
+    for (
+      let attempt = 0;
+      attempt < 40 &&
+      cached.response.headers.get("server-timing") !== 'img;desc="hit"';
+      attempt++
+    ) {
+      await Bun.sleep(50);
+      cached = await get(Elsewhere, path);
+    }
+    expect(cached.response.headers.get("server-timing")).toBe('img;desc="hit"');
+    expect(cached.body).toEqual(made.body);
+    const fetched = media.fetches("events/home/mux.jpg") - before;
+    expect(fetched).toBeGreaterThanOrEqual(1);
+    const afterKept = media.fetches("events/home/mux.jpg");
+    await get(Elsewhere, path);
+    await get(Variants, path);
+    expect(media.fetches("events/home/mux.jpg")).toBe(afterKept);
+  });
+
+  it("fetches an original once more when the media origin fails for a moment", async ({
+    Variants,
+  }) => {
+    const path = `/img/240/webp/${fresh}/events/home/flaky.jpg`;
+    const made = await get(Variants, path);
+    expect(made.response.status).toBe(200);
+    expect(made.response.headers.get("content-type")).toBe("image/webp");
+    expect(media.fetches("events/home/flaky.jpg")).toBe(2);
   });
 
   it("is one entry in the cache whatever the query", async ({ Variants }) => {

@@ -159,6 +159,8 @@ export interface MediaFile {
   readonly location?: string;
   /** Sent in chunks, without a Content-Length. */
   readonly chunked?: true;
+  /** Its first this many requests answer 503, as a moment's outage. */
+  readonly failFirst?: number;
 }
 
 /**
@@ -181,6 +183,10 @@ export function serveMedia(files: Readonly<Record<string, MediaFile>>) {
         .join("/");
       const file = files[key];
       if (file === undefined) return new Response("Not Found", { status: 404 });
+      const asked = requests.filter((path) => path === pathname).length;
+      if (asked <= (file.failFirst ?? 0)) {
+        return new Response("Service Unavailable", { status: 503 });
+      }
       const body = file.chunked === true ? inChunks(file.body) : file.body;
       return new Response(body, {
         status: file.status ?? 200,
