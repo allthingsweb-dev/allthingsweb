@@ -426,13 +426,68 @@ describe("the page store", () => {
     expect(kv.pageKeys()).toEqual([]);
   });
 
-  test("passes anything but a GET straight through, and a client refusing every coding", async () => {
+  test("passes anything but a GET or a HEAD straight through, and a client refusing every coding", async () => {
     const { fetch, kv, app } = setup();
     await fetch(get("/"));
-    await fetch(new Request(`${site}/`, { method: "HEAD" }));
+    await fetch(new Request(`${site}/`, { method: "POST" }));
     await fetch(get("/", { "accept-encoding": "identity;q=0, *;q=0" }));
     expect(kv.pageKeys()).toEqual([]);
     expect(app.calls()).toBe(3);
+  });
+
+  test("answers a HEAD as the GET, without its body", async () => {
+    const methods: Array<string> = [];
+    const { fetch, app } = setup({
+      page: (request) => {
+        methods.push(request.method);
+        return {};
+      },
+    });
+    await fetch(get("/"));
+    await fetch(get("/"));
+    const hit = await fetch(get("/"));
+    const head = await fetch(new Request(get("/"), { method: "HEAD" }));
+    expect(served(head.response)).toBe("hit");
+    expect(head.response.status).toBe(hit.response.status);
+    expect(head.body).toBe("");
+    const headers = (response: Response) =>
+      [...response.headers].filter(([name]) => name !== "server-timing");
+    expect(headers(head.response)).toEqual(headers(hit.response));
+    expect(app.calls()).toBe(2);
+    expect(methods).toEqual(["GET", "GET"]);
+  });
+
+  test("builds and keeps a page for a HEAD's miss, as for a GET's", async () => {
+    const methods: Array<string> = [];
+    const { fetch, kv, app } = setup({
+      page: (request) => {
+        methods.push(request.method);
+        return {};
+      },
+    });
+    await fetch(get("/"));
+    const head = await fetch(new Request(get("/"), { method: "HEAD" }));
+    expect(served(head.response)).toBe("miss");
+    expect(head.body).toBe("");
+    expect(methods).toEqual(["GET", "GET"]);
+    expect(kv.pageKeys()).toHaveLength(1);
+    expect(served((await fetch(get("/"))).response)).toBe("hit");
+    expect(app.calls()).toBe(2);
+  });
+
+  test("answers a HEAD for nothing with the GET's not found, without its body", async () => {
+    const { fetch } = setup({
+      page: () => ({ status: 404, cacheControl: CacheControl.notFound }),
+      local: memoryLocal().local,
+    });
+    await fetch(get("/nowhere"));
+    await fetch(get("/nowhere"));
+    const head = await fetch(new Request(get("/nowhere"), { method: "HEAD" }));
+    expect([served(head.response), head.response.status, head.body]).toEqual([
+      "hit",
+      404,
+      "",
+    ]);
   });
 
   test("answers from the app when KV can't be reached", async () => {
