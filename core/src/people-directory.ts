@@ -360,19 +360,22 @@ export function toPerson(row: PersonRow, now: DateTime.Utc): Person {
   };
 }
 
-/** When a person last took part, or next will: their latest evening's start. */
-const latestPart = (person: Person): number =>
-  person.parts.reduce(
-    (latest, part) =>
-      Math.max(latest, DateTime.toEpochMillis(part.evening.startsAt)),
+/**
+ * When a person last took part, or next will: the start of their latest
+ * evening, hosting one among their parts, as their rows have it.
+ */
+const latestPart = (person: PersonPage): number =>
+  [...person.parts.map((part) => part.evening), ...person.hosted].reduce(
+    (latest, evening) =>
+      Math.max(latest, DateTime.toEpochMillis(evening.startsAt)),
     Number.NEGATIVE_INFINITY,
   );
 
 /** Whoever took part most recently first, then by name, then by id. */
-const personOrder: Order.Order<Person> = Order.combineAll([
+const personOrder: Order.Order<PersonPage> = Order.combineAll([
   Order.flip(Order.mapInput(Order.Number, latestPart)),
-  Order.mapInput(Order.String, (person: Person) => person.name),
-  Order.mapInput(Order.String, (person: Person) => person.id),
+  Order.mapInput(Order.String, (person: PersonPage) => person.name),
+  Order.mapInput(Order.String, (person: PersonPage) => person.id),
 ]);
 
 /**

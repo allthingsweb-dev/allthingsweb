@@ -384,6 +384,34 @@ describe("toPeople", () => {
     ]);
   });
 
+  test("ranks organizers no one asked for by their latest evening, hosting one among their parts", () => {
+    const hosted = (start: string) => ({
+      slug: `hosted-${start}`,
+      curation: "ours" as const,
+      name: "All Things Web",
+      topic: null,
+      startDate: DateTime.makeUnsafe(start),
+      endDate: DateTime.makeUnsafe(start),
+    });
+    const view = toPeople(
+      [
+        // An older talk, and nothing since.
+        row("1", "Ann", ["2025-01-01T00:00:00Z"], { organizes: true }),
+        // No talk at all, but they hosted the latest evening.
+        row("2", "Bea", [], {
+          organizes: true,
+          hosted: [hosted("2026-06-01T00:00:00Z")],
+        }),
+      ],
+      [],
+      now,
+    );
+    expect(view.organizers.map((person) => person.id)).toEqual(["2", "1"]);
+    expect(view.organizers[0]?.hosted.map(({ slug }) => slug)).toEqual([
+      "hosted-2026-06-01T00:00:00Z",
+    ]);
+  });
+
   test("leaves organizers and co-hosts in their own order, whatever their followers", () => {
     const view = toPeople(
       [
