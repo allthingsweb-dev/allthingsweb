@@ -11,6 +11,7 @@ import {
   variantPath,
 } from "./lab.tsx";
 import { SlashGrid } from "./slash-grid.tsx";
+import { SlashGridDated } from "./slash-grid-dated.tsx";
 import { YearEndRetro } from "./year-end-retro.tsx";
 import { Wall } from "./wall.tsx";
 
@@ -49,6 +50,12 @@ export const variants: ReadonlyArray<Variant> = [
     pitch:
       "Home now: a grid of the community’s photos cut on the slash’s slant, each leading to its evening, beside the lockup, with the tally as a band of numbers on the page’s grid.",
     render: SlashGrid,
+  },
+  {
+    name: "slash-grid-dated",
+    pitch:
+      "Home’s slash grid with one photo to each evening we’ve held, the latest first, each dated under its cut and leading to its evening.",
+    render: SlashGridDated,
   },
   {
     name: "depth-field",
