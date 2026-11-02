@@ -154,12 +154,13 @@ export default {
             writers?.prewarm ?? noStore,
           );
         }
-        // What Workers Cache may keep, and for how long (cache.ts).
-        return site(incoming, incomingContext).then((response) =>
-          forWorkersCache(incoming, response),
-        );
+        return site(incoming, incomingContext);
       };
     }
-    return handle(request, context);
+    // What Workers Cache may keep, and for how long (cache.ts), for every
+    // answer: the writers' paths too, whose refusals carry no lifetime.
+    return handle(request, context).then((response) =>
+      forWorkersCache(request, response),
+    );
   },
 };

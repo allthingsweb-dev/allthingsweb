@@ -485,6 +485,15 @@ describe("the page store", () => {
     const none = await refresh(Uncached, `Bearer ${refreshToken}`);
     expect(none.status).toBe(404);
     await none.arrayBuffer();
+    // Neither path's refusal is kept by Workers Cache, for any method.
+    const asGet = await fetch(`${Uncached}/_site/refresh`);
+    expect(asGet.status).toBe(404);
+    expect(asGet.headers.get(workersCacheHeader)).toBe("no-store");
+    await asGet.arrayBuffer();
+    const wrongMethod = await fetch(`${Cached}/_site/prewarm`);
+    expect(wrongMethod.status).toBe(405);
+    expect(wrongMethod.headers.get(workersCacheHeader)).toBe("no-store");
+    await wrongMethod.arrayBuffer();
   });
 
   it("prewarms every page the sitemap lists when a writer asks, with the token", async ({
