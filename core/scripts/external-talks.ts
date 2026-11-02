@@ -40,7 +40,7 @@ const command = Command.make(
       const talks = yield* decodeExternalTalksFile(text);
       const lines = yield* applyExternalTalks(talks, dryRun);
       yield* Console.log(lines.join("\n"));
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(Command.withDescription("Apply talks people gave elsewhere."));
 
 Command.run(command, { version: "1.0.0" }).pipe(

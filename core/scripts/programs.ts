@@ -29,7 +29,7 @@ const command = Command.make("programs", { dryRun: dryRunFlag }, ({ dryRun }) =>
     )(text);
     const applied = yield* applyPrograms(file, dryRun);
     yield* Console.log(applied.lines.join("\n"));
-  }).pipe(Effect.provide(Database.layer)),
+  }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(Command.withDescription("Apply core/backfill/programs.json."));
 
 Command.run(command, { version: "1.0.0" }).pipe(

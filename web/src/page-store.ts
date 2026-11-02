@@ -21,8 +21,10 @@ import { themeOf } from "./pages/theme-cookie.ts";
  *   long as it can be found: nothing expires by time, and nothing is purged.
  * - **The site's version** is kept in the same namespace, under
  *   {@link siteKey}, and read at most every {@link siteTtl} seconds. It is
- *   checked against the database at most every {@link checkEvery}
- *   milliseconds, after a response, by whichever request finds it old. A
+ *   checked against the database when a writer says the data changed
+ *   (refresh.ts: the sync after each run, the studio after each command),
+ *   and otherwise at most every {@link checkEvery} milliseconds, after a
+ *   response, by whichever request finds it old. A
  *   new version is used from {@link SitePointer.next}'s `from`: once
  *   Hyperdrive can no longer answer with a read older than the change
  *   (reader-caching.ts), so no page of the new version is built from the
@@ -87,10 +89,12 @@ export const siteTtl = 30;
 
 /**
  * How often the database is asked whether the data changed, at most, while
- * the site is visited: within the five minutes pages were kept for before
- * the store.
+ * the site is visited, when no writer has said so: the writers say so
+ * themselves (refresh.ts), so this only bounds a word that was lost, or a
+ * write by anything else, to the hour the sync runs on. Neon can sleep in
+ * between.
  */
-export const checkEvery = 5 * 60 * 1000;
+export const checkEvery = 60 * 60 * 1000;
 
 /**
  * Seconds a data center keeps the answer to a page read. A kept page never

@@ -32,7 +32,7 @@ const format = ({ given, written }: SlugsResult): string =>
 const command = Command.make("slugs", { dryRun: dryRunFlag }, ({ dryRun }) =>
   ShortSlugs.use((slugs) => slugs.assign({ dryRun })).pipe(
     Effect.flatMap((result) => Console.log(format(result))),
-    Effect.provide(ShortSlugs.layer.pipe(Layer.provide(Database.layer))),
+    Effect.provide(ShortSlugs.layer.pipe(Layer.provide(Database.scriptLayer))),
   ),
 ).pipe(Command.withDescription("Give each published evening its short link."));
 

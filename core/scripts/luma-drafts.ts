@@ -93,7 +93,7 @@ const command = Command.make(
         LumaDrafts.layer.pipe(
           Layer.provide(LumaApi.layer),
           Layer.provide(FetchHttpClient.layer),
-          Layer.provide(Database.layer),
+          Layer.provide(Database.scriptLayer),
         ),
       ),
     ),

@@ -85,7 +85,7 @@ const layer = Studio.layer.pipe(
       Readiness.layer,
     ),
   ),
-  Layer.provideMerge(Database.layer),
+  Layer.provideMerge(Database.scriptLayer),
 );
 
 const refuse = (reason: string) => Effect.fail(new StudioRefused({ reason }));
@@ -457,7 +457,7 @@ const coverLayer = Covers.layer.pipe(
       CoverRenderer.layer,
     ),
   ),
-  Layer.provideMerge(Database.layer),
+  Layer.provideMerge(Database.scriptLayer),
 );
 
 /** A cover as it prints: the PNG itself stays out of JSON. */
@@ -567,7 +567,7 @@ const cover = Command.make(
 
 const registrationLayer = Registrations.layer.pipe(
   Layer.provide(LumaWrite.layer.pipe(Layer.provide(FetchHttpClient.layer))),
-  Layer.provideMerge(Database.layer),
+  Layer.provideMerge(Database.scriptLayer),
 );
 
 const onOff = (on: boolean) => (on ? "on" : "off");
@@ -787,7 +787,7 @@ const registration = Command.make(
 
 const hostsLayer = LumaHosts.layer.pipe(
   Layer.provide(LumaWrite.layer.pipe(Layer.provide(FetchHttpClient.layer))),
-  Layer.provideMerge(Database.layer),
+  Layer.provideMerge(Database.scriptLayer),
 );
 
 const describeHosts = (hosts: Hosts) =>

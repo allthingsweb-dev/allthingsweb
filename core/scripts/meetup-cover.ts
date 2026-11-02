@@ -116,7 +116,7 @@ const command = Command.make(
       yield* Console.log(
         `wrote ${file}: ${padded.width} × ${padded.height}, from ${url}`,
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription("Write an evening's cover padded to 16:9 on black."),
 );

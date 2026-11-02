@@ -39,7 +39,7 @@ const command = Command.make(
         LumaVenues.layer.pipe(
           Layer.provide(LumaApi.layer),
           Layer.provide(FetchHttpClient.layer),
-          Layer.provide(Database.layer),
+          Layer.provide(Database.scriptLayer),
         ),
       ),
     ),

@@ -69,7 +69,7 @@ const list = Command.make(
               ]),
             ].join("\n"),
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "List an evening's talks with their ids and speakers. Reads only.",
@@ -211,7 +211,7 @@ const update = Command.make(
               ...changeLines(change).slice(1),
             ].join("\n"),
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Edit a talk's title, description and speakers, exactly as a dry run showed it.",

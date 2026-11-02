@@ -59,7 +59,7 @@ const applyFacts = Command.make(
       const links = yield* decodePeopleFile(text);
       const lines = yield* applyPeople(links, dryRun);
       yield* Console.log(lines.join("\n"));
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Fill people's profiles from sourced facts; a filled value is replaced only where the file names it as stale.",
@@ -141,7 +141,7 @@ const photo = Command.make(
               ...changeLines(change, true),
             ].join("\n"),
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Set a profile's photo from a file, exactly as a dry run showed it.",

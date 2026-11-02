@@ -65,7 +65,7 @@ const stamp = Command.make("stamp", { dryRun: dryRunFlag }, ({ dryRun }) =>
       const expected = yield* expectedSchema();
       yield* list("Recorded as applied", yield* Migrations.stamp(expected));
     }
-  }).pipe(surfaceFailure, Effect.provide(Database.layer)),
+  }).pipe(surfaceFailure, Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Record pending migrations as applied, without running them, on a database whose schema already is what they create.",
@@ -81,7 +81,7 @@ const migrate = Command.make("migrate", { dryRun: dryRunFlag }, ({ dryRun }) =>
     } else {
       yield* list("Applied now", yield* Migrations.run());
     }
-  }).pipe(surfaceFailure, Effect.provide(Database.layer)),
+  }).pipe(surfaceFailure, Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription("Apply pending migrations to DATABASE_URL."),
   Command.withSubcommands([stamp]),
