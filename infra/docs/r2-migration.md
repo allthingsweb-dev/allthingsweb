@@ -129,7 +129,7 @@ From activation until step 1's deploy, media.allthings.dev, allthings.dev and ww
    - It reads the deploy's secrets from the `allthings` 1Password vault and stops if any read fails or is empty. Your own `op` session (the desktop app integration) can read that vault, and agents read it with `OP_SERVICE_ACCOUNT_TOKEN`.
    - It plans prod with the `allthings` profile, so a sign-in problem shows up while everything still serves.
    - It checks the zone every 10 seconds. Each failed check is reported, and five in a row stop it, as does any status other than pending or active.
-   - Once the zone is active, it runs the prod deploy (now "serve"), first catching up with main if main moved while it waited, then prewarms the page store on allthings.dev. It never waits on a prompt (`--yes`, no stdin), and keeps secret-looking lines out of its output.
+   - Once the zone is active, it runs the prod deploy (now "serve"), first catching up with main if main moved while it waited (and planning that again, stopping if the plan fails), then prewarms the page store on allthings.dev. It never waits on a prompt (`--yes`, no stdin), and keeps secret-looking lines out of its output.
 
    The deploy brings up:
    - **media.allthings.dev** on the new bucket.
