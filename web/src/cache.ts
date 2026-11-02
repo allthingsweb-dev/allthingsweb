@@ -83,8 +83,16 @@ export const workersCacheHeader = "cloudflare-cdn-cache-control";
  * edge: an organizer's edit or a sync run reaches visitors at most a minute
  * after the page store has it. `s-maxage` would turn stale serving off, so
  * it isn't used here.
+ *
+ * When the Worker fails while refreshing an expired copy (it throws, times
+ * out or answers 5xx), Cloudflare serves the copy it has, without
+ * `stale-if-error` for as long as it is kept. An hour bounds that: a page
+ * an hour old beats an error while the Worker is down, as browsers are told
+ * for public data too (`stale-while-revalidate=3600`), and after it the
+ * failure reaches visitors and is seen.
  */
-export const workersCacheLifetime = "max-age=30, stale-while-revalidate=30";
+export const workersCacheLifetime =
+  "max-age=30, stale-while-revalidate=30, stale-if-error=3600";
 
 /**
  * `response` as Workers Cache may keep it, for `request`. A GET or HEAD
