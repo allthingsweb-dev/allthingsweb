@@ -2,7 +2,7 @@
 
 Where the people who spoke at allthings are now: a short, dated, sourced note on their page, after their bio. Lydia Hallie is on Claude Code at Anthropic; Matt Palmer joined Cursor eleven days before SpaceX bought it. The talk they gave us is a year old; what they make now is worth a link.
 
-This is the design. The storage, the commands and the pilot's records landed in #301; the page is next, and this page says where each part stands.
+This is the design, and all of it is built: the storage, the commands and the pilot's records (#301), then the page section and `/lab/now`.
 
 ## What a person's "now" is
 
@@ -32,7 +32,7 @@ The record is a fact like a title or a bio, so it goes through the people pipeli
 
 To take someone's down: set their entry's `now` to `null`, then `bun run people`. The page drops it within about two minutes (the page store's refresh).
 
-## On the page (the one after)
+## On the page
 
 A "Now · as of 2026.11" section after the bio: the line, with its facts linked, then the links as the talks elsewhere are listed (date, title, kind). Nothing shows for a person without one.
 
@@ -51,4 +51,4 @@ There is no scheduled job yet. One would run weekly:
 
 ## The pilot
 
-Six speakers, checked 2026-11-02: Lydia Hallie, Matt Palmer, Lee Robinson, Evan Bacon, Michael Arnaldi and Rhys Sullivan. Their records are in `people.json` and on production since #301; they show on `/lab/now` once the page lands, and wait for Erik's yes before people's pages show them.
+Six speakers, checked 2026-11-02: Lydia Hallie, Matt Palmer, Lee Robinson, Evan Bacon, Michael Arnaldi and Rhys Sullivan. Their records are in `people.json` and on production since #301; they show on `/lab/now`, and wait for Erik's yes before people's pages show them.
