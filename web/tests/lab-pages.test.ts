@@ -475,6 +475,11 @@ describe("the variants' parts", () => {
   });
 });
 
+/** The lab's script, as written. */
+const script = await Bun.file(
+  new URL("../src/client/lab.ts", import.meta.url),
+).text();
+
 /** lab.css, and its rules selector by selector. */
 const lab = await Bun.file(
   new URL("../src/styles/lab.css", import.meta.url),
@@ -524,6 +529,13 @@ describe("lab.css", () => {
       /\[data-engine-started\] \.liquid-field \{\s*animation: none;/,
     );
     expect(lab).toMatch(/@keyframes engine-unstarted \{\s*to \{\s*opacity: 1;/);
+    // The script knows when that fallback begins, so a slow one keeps it.
+    const delay =
+      /animation: engine-unstarted [\d.]+s \w+ ([\d.]+)s forwards;/.exec(
+        gate ?? "",
+      )?.[1];
+    expect(delay).toBe("4");
+    expect(script).toContain("const unstartedAfter = 4000;");
   });
 
   test("animates only opacity and transforms, and hides what is out of a cross", () => {

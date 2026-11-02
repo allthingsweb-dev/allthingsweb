@@ -309,11 +309,22 @@ reducedMotion.addEventListener("change", () => {
   deferred.clear();
 });
 /**
+ * Milliseconds after which the stylesheet shows a stage's stills by itself
+ * when the script hasn't started (lab.css, `engine-unstarted`'s delay).
+ */
+const unstartedAfter = 4000;
+
+/**
  * Starts each surface's engine as it comes within a screen of view. Each
  * stage is marked at once: the script runs, so the stylesheet waits for
  * it to say the stage is ready rather than showing the stills by itself.
+ * A script that runs only after the stylesheet began showing them (its
+ * module was that slow) keeps them shown: hiding them again to fade in
+ * once more would be a second arrival.
  */
 for (const surface of document.querySelectorAll<HTMLElement>("[data-engine]")) {
-  stageOf(surface).dataset["engineStarted"] = "";
+  const stage = stageOf(surface);
+  if (performance.now() < unstartedAfter) stage.dataset["engineStarted"] = "";
+  else ready(stage);
   near.observe(surface);
 }
