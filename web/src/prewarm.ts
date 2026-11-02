@@ -67,6 +67,10 @@ export interface PrewarmOptions {
   readonly sleep: (ms: number) => Promise<void>;
 }
 
+/** Whether prewarming read no sitemap, and so warmed nothing. */
+export const sitemapFailed = (report: PrewarmReport): boolean =>
+  report.failed.includes("/sitemap.xml");
+
 /** Prewarms the store; see the module's comment. */
 export async function prewarm({
   serve,
@@ -106,9 +110,19 @@ export async function prewarm({
     }
   };
 
-  const sitemap = await ask("/sitemap.xml");
-  const xml = sitemap?.ok === true ? await sitemap.text() : "";
-  if (sitemap !== undefined && !sitemap.ok) await sitemap.body?.cancel();
+  /** `path`'s body read, or failed once, never thrown. */
+  const finish = async (path: string, response: Response | undefined) => {
+    try {
+      return response?.ok === true ? await response.text() : "";
+    } catch {
+      if (!failed.includes(path)) failed.push(path);
+      return "";
+    } finally {
+      await response?.body?.cancel().catch(() => undefined);
+    }
+  };
+
+  const xml = await finish("/sitemap.xml", await ask("/sitemap.xml"));
   const paths = sitemapPaths(xml).filter((path) => path !== "/sitemap.xml");
   let next = 0;
   await Promise.all(
@@ -117,8 +131,7 @@ export async function prewarm({
         const path = paths[next];
         next += 1;
         if (path === undefined) continue;
-        const response = await ask(path);
-        await response?.body?.cancel();
+        await finish(path, await ask(path));
       }
     }),
   );

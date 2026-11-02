@@ -1,5 +1,5 @@
 import { prewarmPath, refreshPath } from "allthings-core/src/refresh-path.ts";
-import type { PrewarmReport } from "./prewarm.ts";
+import { type PrewarmReport, sitemapFailed } from "./prewarm.ts";
 import type { SitePointer } from "./page-store.ts";
 
 /**
@@ -96,7 +96,8 @@ export async function refreshRequest(
 
 /**
  * The answer to a request at {@link prewarmPath}: the store's pages built
- * (prewarm.ts), with what it did, for the same writers and the same token.
+ * (prewarm.ts), with what it did, for the same writers and the same token;
+ * 503, with the report, when the sitemap couldn't be read.
  */
 export async function prewarmRequest(
   request: Request,
@@ -106,7 +107,9 @@ export async function prewarmRequest(
   const refusal = await refused(request, token);
   if (refusal !== undefined) return refusal;
   try {
-    return answer(200, await warm());
+    const report = await warm();
+    // Without the sitemap nothing was warmed, so it isn't a success.
+    return answer(sitemapFailed(report) ? 503 : 200, report);
   } catch {
     return answer(503, { error: "the store couldn't be prewarmed" });
   }

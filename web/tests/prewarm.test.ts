@@ -114,6 +114,26 @@ describe("prewarm", () => {
     );
   });
 
+  test("counts a sitemap or page whose body breaks as failed, once, and never throws", async () => {
+    const broken = () =>
+      new ReadableStream({
+        start(controller) {
+          controller.error(new Error("the body broke"));
+        },
+      });
+    const report = await prewarm({
+      serve: async () =>
+        new Response(broken(), {
+          headers: { "server-timing": 'store;desc="miss";dur=1.0' },
+        }),
+      pointer: async () => undefined,
+      now: () => 0,
+      sleep: async () => undefined,
+    });
+    expect(report.failed).toEqual(["/sitemap.xml"]);
+    expect(report.paths).toBe(1);
+  });
+
   test("waits for a new version to be in use first, but never past the longest wait", async () => {
     const v = { version: "v1", boundaries: [] };
     const soon = options(
