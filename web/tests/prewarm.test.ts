@@ -141,6 +141,28 @@ describe("prewarm", () => {
     expect(report.kept).toBe(4);
   });
 
+  test("asks once more, alone, for a page that failed in the crowd", async () => {
+    let tries = 0;
+    const site = fakeSite((path) => (path === "/sitemap.xml" ? "hit" : "miss"));
+    const flaky = {
+      ...site,
+      serve: async (
+        request: Request,
+        context: { waitUntil(promise: Promise<unknown>): void },
+      ) => {
+        const { pathname, search } = new URL(request.url);
+        if (`${pathname}${search}` === "/events" && tries++ === 0) {
+          return new Response("busy", { status: 503 });
+        }
+        return site.serve(request, context);
+      },
+    };
+    const report = await options(flaky).run();
+    expect(report.failed).toEqual([]);
+    expect(report.built).toBe(4);
+    expect(tries).toBe(2);
+  });
+
   test("names the pages that failed", async () => {
     const site = fakeSite(() => "miss", 503);
     const report = await options(site).run();

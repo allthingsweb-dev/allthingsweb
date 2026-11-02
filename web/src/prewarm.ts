@@ -15,7 +15,7 @@ import { isKeeping, type SitePointer } from "./page-store.ts";
 /** The most prewarming waits for a new version to be in use, in milliseconds. */
 export const longestWait = 2 * 60 * 1000;
 
-/** Pages built at once. */
+/** Pages built at once; one that fails is asked for once more, alone. */
 export const concurrency = 4;
 
 /** What prewarming did. */
@@ -152,6 +152,15 @@ export async function prewarm({
       }
     }),
   );
+  // A page that failed in the crowd (a database connection refused, say)
+  // is asked for once more, alone; what fails again is reported.
+  const retried = failed.filter((path) => path !== "/sitemap.xml");
+  failed.splice(
+    0,
+    failed.length,
+    ...failed.filter((path) => path === "/sitemap.xml"),
+  );
+  for (const path of retried) await finish(path, await ask(path));
   return {
     paths: paths.length + 1,
     ...counts,
