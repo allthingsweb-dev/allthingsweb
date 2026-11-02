@@ -43,8 +43,9 @@ import { themeOf } from "./pages/theme-cookie.ts";
  *   with no KV read; a pointer copy older than {@link siteTtl} is read
  *   again from KV after the response, and when the version moved on, this
  *   request's page under the new one is readied in the data center (from
- *   KV, or built), so a visitor sees data at most one request stale. Only a
- *   data center with no copy reads KV first.
+ *   KV, or built). Requests that arrive while that runs are still answered
+ *   from the copies they find; the first one after it gets the new data.
+ *   Only a data center with no copy reads KV first.
  * - The body is kept as the page built it, uncompressed, and compressed for
  *   each visitor as it is served (see response.ts).
  * - Photo variants keep their own cache under their own URLs and pass
