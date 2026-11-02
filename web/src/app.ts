@@ -1,3 +1,4 @@
+import type { WorkersCachePurge } from "./cache.ts";
 import {
   SiteVersion,
   type SiteState,
@@ -28,6 +29,8 @@ export const routes = Layer.mergeAll(
 /** What the Worker uses of a request's `ExecutionContext`. */
 export interface ExecutionContext {
   readonly waitUntil: (promise: Promise<unknown>) => void;
+  /** Workers Cache's runtime API, where the Worker has it (cache.ts). */
+  readonly cache?: WorkersCachePurge;
 }
 
 /**

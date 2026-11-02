@@ -527,9 +527,13 @@ describe("the page store", () => {
       kept: number;
       built: number;
       failed: Array<string>;
+      edgePurge: string;
     };
     expect(report.paths).toBeGreaterThan(5);
     expect(report.failed).toEqual([]);
+    // Then it drops the data's answers from Workers Cache, which workerd
+    // runs without here: the report says so rather than failing.
+    expect(["purged", "unavailable"]).toContain(report.edgePurge);
     expect(report.kept + report.built).toBeGreaterThan(5);
     // A page it built is kept: the next visitor gets it from the store.
     const { response } = await get(Cached, "/events");

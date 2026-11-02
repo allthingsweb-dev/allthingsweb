@@ -5,6 +5,9 @@ import {
   forWorkersCache,
   immutable,
   preferenceCacheControl,
+  purgeSiteData,
+  siteDataTag,
+  type WorkersCachePurge,
   workersCacheHeader,
   workersCacheLifetime,
 } from "../src/cache.ts";
@@ -80,5 +83,37 @@ describe("forWorkersCache", () => {
     expect(await response.text()).toBe("body");
     expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
     expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+  });
+});
+
+describe("the site's data in Workers Cache", () => {
+  it("tags what can change with the data, and nothing immutable or private", () => {
+    const tagOf = (headers: Record<string, string>) =>
+      forWorkersCache(get, answer(headers)).headers.get("cache-tag");
+    expect(tagOf({ "cache-control": CacheControl.publicData })).toBe(
+      siteDataTag,
+    );
+    expect(tagOf({ "cache-control": CacheControl.page })).toBe(siteDataTag);
+    expect(tagOf({ "cache-control": immutable })).toBeNull();
+    expect(tagOf({ "cache-control": PrivateCacheControl.page })).toBeNull();
+    expect(tagOf({ "cache-control": CacheControl.failure })).toBeNull();
+  });
+
+  it("purges that tag, and says how it went without throwing", async () => {
+    const asked: Array<ReadonlyArray<string>> = [];
+    const cache = (
+      outcome: "ok" | "refused" | "throws",
+    ): WorkersCachePurge => ({
+      purge: async ({ tags }) => {
+        asked.push(tags);
+        if (outcome === "throws") throw new Error("rate limited");
+        return { success: outcome === "ok" };
+      },
+    });
+    expect(await purgeSiteData(cache("ok"))).toBe("purged");
+    expect(await purgeSiteData(cache("refused"))).toBe("failed");
+    expect(await purgeSiteData(cache("throws"))).toBe("failed");
+    expect(await purgeSiteData(undefined)).toBe("unavailable");
+    expect(asked).toEqual([[siteDataTag], [siteDataTag], [siteDataTag]]);
   });
 });

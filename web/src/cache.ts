@@ -120,9 +120,46 @@ export function forWorkersCache(
     directives.includes("s-maxage") &&
     !response.headers.has("set-cookie");
   const kept = new Response(response.body, response);
+  if (shared) kept.headers.set("cache-tag", siteDataTag);
   kept.headers.set(
     workersCacheHeader,
     shared ? workersCacheLifetime : "no-store",
   );
   return kept;
+}
+
+/**
+ * The `Cache-Tag` every answer Workers Cache keeps for the short edge
+ * lifetime carries: the answers that can change with the data. Immutable
+ * ones (assets, photo variants) don't, so a purge of it leaves them kept.
+ */
+export const siteDataTag = "site-data";
+
+/** What the Worker uses of Workers Cache's runtime API (`ctx.cache`). */
+export interface WorkersCachePurge {
+  purge(options: { readonly tags: ReadonlyArray<string> }): Promise<{
+    readonly success: boolean;
+    readonly errors?: ReadonlyArray<{ readonly message?: string }>;
+  }>;
+}
+
+/** How a purge of {@link siteDataTag} went, for the writer's report. */
+export type EdgePurge = "purged" | "unavailable" | "failed";
+
+/**
+ * Drops every answer tagged {@link siteDataTag} from Workers Cache, so the
+ * next visitor gets the page store's current page at once rather than within
+ * {@link workersCacheLifetime}. "unavailable" where the runtime has no
+ * Workers Cache (tests, a Worker without it); never throws.
+ */
+export async function purgeSiteData(
+  cache: WorkersCachePurge | undefined,
+): Promise<EdgePurge> {
+  if (cache === undefined) return "unavailable";
+  try {
+    const result = await cache.purge({ tags: [siteDataTag] });
+    return result.success ? "purged" : "failed";
+  } catch {
+    return "failed";
+  }
 }
