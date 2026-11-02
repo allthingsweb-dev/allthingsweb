@@ -522,9 +522,11 @@ export async function refreshSite({
 }
 
 /**
- * `handle` behind the store. Only GET requests are looked up; the rest,
- * paths with their own cache, a client refusing every coding, and anything
- * the store can't reach go straight to `handle`.
+ * `handle` behind the store. Only GET requests are looked up, and HEAD
+ * ones, as the GET of the same address without its body (uptime checks,
+ * link previews and crawlers send them); the rest, paths with their own
+ * cache, a client refusing every coding, and anything the store can't
+ * reach go straight to `handle`.
  */
 export function pageStored(
   handle: (request: Request, context: WaitUntil) => Promise<Response>,
@@ -757,7 +759,11 @@ export function pageStored(
     }
   };
 
-  return async (request, context) => {
+  /** A request as the store answers it, a HEAD aside. */
+  const lookUp = async (
+    request: Request,
+    context: WaitUntil,
+  ): Promise<Response> => {
     const { pathname } = new URL(request.url);
     if (ownCachePrefixes.some((prefix) => pathname.startsWith(prefix))) {
       return handle(request, context);
@@ -842,5 +848,27 @@ export function pageStored(
       pointerTiming,
       ...isolate,
     ]);
+  };
+
+  return async (request, context) => {
+    const { pathname } = new URL(request.url);
+    if (
+      request.method !== "HEAD" ||
+      ownCachePrefixes.some((prefix) => pathname.startsWith(prefix))
+    ) {
+      return lookUp(request, context);
+    }
+    // A HEAD is the GET's answer without its body: found, built and kept as
+    // the GET is, so it never reads the database for a page that is kept.
+    const answer = await lookUp(
+      new Request(request, { method: "GET" }),
+      context,
+    );
+    await answer.body?.cancel();
+    return new Response(null, {
+      status: answer.status,
+      statusText: answer.statusText,
+      headers: answer.headers,
+    });
   };
 }

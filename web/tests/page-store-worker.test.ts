@@ -175,6 +175,25 @@ describe("the page store", () => {
     );
   });
 
+  it("answers a HEAD from the store as its GET, without a body or the database", async ({
+    Cached,
+  }) => {
+    await primed(Cached);
+    const kept = await warm(Cached, "/events?head");
+    const head = await fetch(`${Cached}/events?head`, { method: "HEAD" });
+    const timing = head.headers.get("server-timing") ?? "";
+    expect(timing).toStartWith('store;desc="hit"');
+    expect(timing).not.toContain("db;");
+    expect(head.status).toBe(kept.response.status);
+    for (const name of ["content-type", "cache-control", "vary"]) {
+      expect([name, head.headers.get(name)]).toEqual([
+        name,
+        kept.response.headers.get(name),
+      ]);
+    }
+    expect(await head.text()).toBe("");
+  });
+
   it("keeps each mode apart, and a fixed mode private to its visitor", async ({
     Cached,
   }) => {
