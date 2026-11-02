@@ -40,7 +40,7 @@ Until Erik has reviewed the pilot, people's pages don't show it. `/lab/now` does
 
 ## Refreshing
 
-`bun run people stale --days 90` lists the people whose record was checked more than 90 days ago, with their current record, as JSON for an agent. `--speakers` adds everyone who has spoken at one of our evenings and has no record yet. It reads the file, and the database only for `--speakers`.
+`bun run people stale --days 90` lists the people whose record was checked 90 or more days ago, with their current record, as JSON for an agent. `--speakers` adds everyone who has spoken at one of our evenings and has no record yet. It reads the file, and the database only for `--speakers`.
 
 There is no scheduled job yet. One would run weekly:
 
