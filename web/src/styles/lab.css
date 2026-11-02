@@ -731,11 +731,30 @@
   animation: band-drift 150s linear infinite;
 }
 
-/* Running, the engine draws the photos in its canvas; they hold still
-   under it, where it takes them from. */
+/* With an engine, the photos hold still from the first paint: the engine
+   draws them where they stand, and moves them itself. Running, it draws
+   them in its canvas, over the still ones. */
+.letters[data-engine-stage] .letters-track {
+  animation: none;
+}
+
 .letters[data-engine-live] .letters-track {
   visibility: hidden;
-  animation: none;
+}
+
+/* And they show once, finished: the letters are the plain wordmark until
+   the engine has drawn its first frame with every photo, or, where it
+   can't run, the still photos are all in (src/client/lab.ts). Then the
+   photos fade in, all together. Without script they show as they come. */
+@media (scripting: enabled) {
+  .letters[data-engine-stage] .letters-photos {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .letters[data-engine-ready] .letters-photos {
+    opacity: 1;
+  }
 }
 
 .letters-track ul {
@@ -996,5 +1015,9 @@ h1.letters-word .at-cursor {
   .depth-drift,
   .letters-track {
     animation: none;
+  }
+
+  .letters[data-engine-stage] .letters-photos {
+    transition: none;
   }
 }

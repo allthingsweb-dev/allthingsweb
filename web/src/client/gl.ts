@@ -20,9 +20,6 @@ function compile(gl: GL, type: number, source: string): WebGLShader {
   if (shader === null) throw new Error("No shader");
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw new Error(gl.getShaderInfoLog(shader) ?? "The shader didn't compile");
-  }
   return shader;
 }
 
@@ -32,29 +29,90 @@ export interface Program {
   readonly uniform: (name: string) => WebGLUniformLocation | null;
 }
 
+/** A program handed to the driver, and the shaders it is linked from. */
+interface Linking {
+  readonly program: WebGLProgram;
+  readonly shaders: ReadonlyArray<WebGLShader>;
+}
+
+/**
+ * Programs each context is still compiling and linking. Asking whether a
+ * program linked waits for the driver to finish it, on the page's main
+ * thread; {@link linked} asks only once the driver says it is done
+ * (KHR_parallel_shader_compile), so the page never stops for it.
+ */
+const linking = new WeakMap<GL, Array<Linking>>();
+
+/** Throws with the driver's log if `program` didn't compile or link. */
+function check(gl: GL, { program: made, shaders }: Linking): void {
+  if (gl.getProgramParameter(made, gl.LINK_STATUS)) return;
+  const log = shaders
+    .filter((shader) => !gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+    .map((shader) => gl.getShaderInfoLog(shader) ?? "")
+    .concat(gl.getProgramInfoLog(made) ?? "")
+    .filter((line) => line !== "")
+    .join("\n");
+  throw new Error(log === "" ? "The program didn't link" : log);
+}
+
+/**
+ * A program of `fragment` over `vertex`, with its uniforms' locations by
+ * name. It is compiled and linked in the background: draw with it only
+ * after {@link linked}, which says whether it did.
+ */
 export function program(
   gl: GL,
   fragment: string,
   vertex: string = fullScreenVertex,
 ): Program {
-  const linked = gl.createProgram();
-  gl.attachShader(linked, compile(gl, gl.VERTEX_SHADER, vertex));
-  gl.attachShader(linked, compile(gl, gl.FRAGMENT_SHADER, fragment));
-  gl.bindAttribLocation(linked, 0, "position");
-  gl.linkProgram(linked);
-  if (!gl.getProgramParameter(linked, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(linked) ?? "The program didn't link");
-  }
+  // Enabled before anything compiles, so the driver may compile it all in
+  // the background.
+  gl.getExtension("KHR_parallel_shader_compile");
+  const linkedProgram = gl.createProgram();
+  const shaders = [
+    compile(gl, gl.VERTEX_SHADER, vertex),
+    compile(gl, gl.FRAGMENT_SHADER, fragment),
+  ];
+  for (const shader of shaders) gl.attachShader(linkedProgram, shader);
+  gl.bindAttribLocation(linkedProgram, 0, "position");
+  gl.linkProgram(linkedProgram);
+  const pending = linking.get(gl) ?? [];
+  pending.push({ program: linkedProgram, shaders });
+  linking.set(gl, pending);
   const locations = new Map<string, WebGLUniformLocation | null>();
   return {
-    program: linked,
+    program: linkedProgram,
     uniform: (name) => {
       if (!locations.has(name)) {
-        locations.set(name, gl.getUniformLocation(linked, name));
+        locations.set(name, gl.getUniformLocation(linkedProgram, name));
       }
       return locations.get(name) ?? null;
     },
   };
+}
+
+/**
+ * Settles once every program made on `gl` so far has compiled and linked,
+ * and throws if one didn't. With KHR_parallel_shader_compile it waits for
+ * the driver between frames; without it, asking waits on the spot, as it
+ * always did.
+ */
+export async function linked(gl: GL): Promise<void> {
+  const pending = linking.get(gl) ?? [];
+  linking.delete(gl);
+  const parallel = gl.getExtension("KHR_parallel_shader_compile");
+  if (parallel !== null) {
+    // A lost context never completes: `check` then finds it unlinked.
+    while (
+      !gl.isContextLost() &&
+      !pending.every((each) =>
+        gl.getProgramParameter(each.program, parallel.COMPLETION_STATUS_KHR),
+      )
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 16));
+    }
+  }
+  for (const each of pending) check(gl, each);
 }
 
 /** One triangle that covers the screen, at attribute 0. */
