@@ -39,6 +39,15 @@ describe("the refresh endpoint", () => {
     expect(response.status).toBe(404);
   });
 
+  test("isn't there with a blank token either, so no known value opens it", async () => {
+    const response = await refreshRequest(
+      post({ authorization: "Bearer    " }),
+      "   ",
+      async () => pointer,
+    );
+    expect(response.status).toBe(404);
+  });
+
   test("takes only a POST", async () => {
     const response = await refreshRequest(
       post({ authorization: `Bearer ${token}` }, "GET"),

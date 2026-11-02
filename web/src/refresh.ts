@@ -50,7 +50,7 @@ async function refused(
   request: Request,
   token: string | undefined,
 ): Promise<Response | undefined> {
-  if (token === undefined || token === "") {
+  if (token === undefined || token.trim() === "") {
     return new Response("Not found", { status: 404 });
   }
   if (request.method !== "POST") {

@@ -98,7 +98,7 @@ export default {
             });
       // Only a Worker with a store and a token answers the writers.
       const writers =
-        pages === undefined || typeof token !== "string" || token === ""
+        pages === undefined || typeof token !== "string" || token.trim() === ""
           ? undefined
           : {
               token,
