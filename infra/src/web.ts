@@ -49,8 +49,9 @@ export const SITE_ORIGIN = `https://${SITE_HOST}`;
  * feeds, calendar files, structured data and link previews name it, while
  * pages link within the stage that serves them. It is also the production
  * host: robots.txt lets crawlers in only there, so previews and staging
- * stay out of search results. allthingsweb.dev keeps serving the old app
- * until the full cutover (infra/docs/r2-migration.md).
+ * stay out of search results. allthingsweb.dev redirects here, path and
+ * query kept, from the old app on Vercel (infra/docs/r2-migration.md, "Later:
+ * the full cutover").
  *
  * `PAGES` is the Worker's page store (web/src/page-store.ts), a KV namespace
  * of its own on each stage: a page is built from the database once for each
