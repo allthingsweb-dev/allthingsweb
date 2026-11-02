@@ -860,8 +860,14 @@ export function pageStored(
     }
     // A HEAD is the GET's answer without its body: found, built and kept as
     // the GET is, so it never reads the database for a page that is kept.
+    // Made afresh from its address and headers: workerd gives a HEAD that
+    // says `Content-Length: 0` a body, which a GET may not carry.
     const answer = await lookUp(
-      new Request(request, { method: "GET" }),
+      new Request(request.url, {
+        method: "GET",
+        headers: request.headers,
+        signal: request.signal,
+      }),
       context,
     );
     await answer.body?.cancel();

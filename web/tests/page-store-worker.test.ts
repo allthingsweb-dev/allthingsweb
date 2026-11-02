@@ -192,6 +192,17 @@ describe("the page store", () => {
       ]);
     }
     expect(await head.text()).toBe("");
+    // workerd gives a HEAD that says `Content-Length: 0` a body, which a
+    // GET can't have: it is answered all the same.
+    const counted = await fetch(`${Cached}/events?head`, {
+      method: "HEAD",
+      headers: { "content-length": "0" },
+    });
+    expect(counted.status).toBe(kept.response.status);
+    expect(counted.headers.get("server-timing") ?? "").toStartWith(
+      'store;desc="hit"',
+    );
+    expect(await counted.text()).toBe("");
   });
 
   it("keeps each mode apart, and a fixed mode private to its visitor", async ({
