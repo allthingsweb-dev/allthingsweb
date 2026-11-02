@@ -944,25 +944,13 @@ const portraits = HttpRouter.add(
 );
 
 /**
- * Every other path. One with a trailing slash is the page without it, as
- * the current site redirects it (308); the rest are not found, with the
- * site's own page, cached only briefly.
+ * Every other path: not found, with the site's own page, cached only
+ * briefly. A trailing slash never reaches here: the Worker sends it to the
+ * path without it first (trailing-slash.ts).
  */
 const elsewhere = page(
   "/*",
-  (request) =>
-    Effect.gen(function* () {
-      const path = `/${request.params["*"] ?? ""}`;
-      if (path.length > 1 && path.endsWith("/")) {
-        const { url } = yield* HttpServerRequest.HttpServerRequest;
-        const { search } = new URL(url, "http://localhost");
-        return HttpServerResponse.redirect(
-          `${rootPath(path.replace(/\/+$/, ""))}${search}`,
-          { status: 308, headers: { "cache-control": CacheControl.page } },
-        );
-      }
-      return yield* nothingAt(rootPath(path), 404, request);
-    }),
+  (request) => nothingAt(rootPath(request.params["*"] ?? ""), 404, request),
   ({ "*": rest = "" }) => rootPath(rest),
 );
 
