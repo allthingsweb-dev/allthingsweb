@@ -504,6 +504,28 @@ describe("lab.css", () => {
     // Transitions are cut too, in each stylesheet (styles.test.ts).
   });
 
+  test("holds an engine's surface back only while the script runs, and shows the stills if it never starts", () => {
+    const gate =
+      /@media \(scripting: enabled\) and \(prefers-reduced-motion: no-preference\) \{([\s\S]*?)\n\}/.exec(
+        lab,
+      )?.[1];
+    expect(gate).toBeDefined();
+    for (const surface of [".letters-photos", ".liquid-field"]) {
+      const stage = surface === ".liquid-field" ? ".liquid" : ".letters";
+      // Hidden, with the fallback that reveals it unless the script started.
+      expect(gate).toContain(`${stage}[data-engine-stage] ${surface}`);
+      expect(gate).toContain(`${stage}[data-engine-started] ${surface}`);
+      expect(gate).toContain(`${stage}[data-engine-ready] ${surface}`);
+    }
+    expect(gate).toMatch(
+      /opacity: 0;\s*transition: opacity [^;]+;\s*animation: engine-unstarted [^;]+ forwards;/,
+    );
+    expect(gate).toMatch(
+      /\[data-engine-started\] \.liquid-field \{\s*animation: none;/,
+    );
+    expect(lab).toMatch(/@keyframes engine-unstarted \{\s*to \{\s*opacity: 1;/);
+  });
+
   test("animates only opacity and transforms, and hides what is out of a cross", () => {
     const keyframes = [
       ...lab.matchAll(/@keyframes [a-z-]+ \{([\s\S]*?)\n\}/g),

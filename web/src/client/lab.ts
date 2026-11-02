@@ -308,7 +308,12 @@ reducedMotion.addEventListener("change", () => {
   for (const surface of deferred) void start(surface);
   deferred.clear();
 });
-/** Starts each surface's engine as it comes within a screen of view. */
+/**
+ * Starts each surface's engine as it comes within a screen of view. Each
+ * stage is marked at once: the script runs, so the stylesheet waits for
+ * it to say the stage is ready rather than showing the stills by itself.
+ */
 for (const surface of document.querySelectorAll<HTMLElement>("[data-engine]")) {
+  stageOf(surface).dataset["engineStarted"] = "";
   near.observe(surface);
 }
