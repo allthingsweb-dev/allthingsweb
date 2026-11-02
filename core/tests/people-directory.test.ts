@@ -90,6 +90,7 @@ describe("PeopleDirectory", () => {
       parts: [],
       organizes: false,
       hosted: [],
+      now: null,
     });
     // Organizing is said by the group, never as a part; the evenings they
     // hosted come with them, as on their own page.
@@ -220,6 +221,7 @@ describe("PeopleDirectory", () => {
       ],
       organizes: false,
       hosted: [],
+      now: null,
     });
     const zed = speakers.find((person) => person.name === "Zed Nobody");
     expect(zed?.parts[0]).toMatchObject({ kind: "talk", role: "panelist" });
@@ -334,6 +336,7 @@ describe("toPeople", () => {
     })),
     roles: [],
     hosted: [],
+    now: null,
     ...overrides,
   });
 
@@ -490,6 +493,7 @@ describe("toPerson", () => {
         talks: [],
         roles: [],
         hosted: [],
+        now: null,
       },
       now,
     );
@@ -521,6 +525,40 @@ describe("one person's page", () => {
     // The directory carries each person as their own page has them.
     expect(found.person).toEqual(ada);
     expect([found.person.organizes, found.person.hosted]).toEqual([false, []]);
+  });
+
+  test("carries what they do now, or none where it doesn't read as a record", async () => {
+    const record = {
+      line: "Linus [maintains the kernel](https://kernel.example/maintainers).",
+      links: [
+        {
+          title: "Release notes",
+          date: "2026-09",
+          url: "https://kernel.example/notes",
+          kind: "post",
+        },
+      ],
+      checkedOn: "2026-10-01",
+    };
+    await db.exec(`
+      UPDATE profiles SET now_record = '${JSON.stringify(record)}'
+        WHERE id = 'b0000000-0000-4000-8000-000000000003';
+      UPDATE profiles SET now_record = '{"line": "No source."}'
+        WHERE id = '${grace}';`);
+    try {
+      const linus = await lookup("linus");
+      const hopper = await lookup("grace-hopper");
+      if (linus.kind !== "found" || hopper.kind !== "found") {
+        throw new Error("Linus and Grace have pages");
+      }
+      expect(linus.person.now).toEqual(record);
+      expect(hopper.person.now).toBeNull();
+      // Everyone else has none.
+      const ada = await lookup("ada-lovelace");
+      expect(ada.kind === "found" ? ada.person.now : ada).toBeNull();
+    } finally {
+      await db.exec("UPDATE profiles SET now_record = NULL");
+    }
   });
 
   test("lists the evenings an organizer hosted, latest first", async () => {
@@ -710,12 +748,14 @@ describe("appearances", () => {
           talks: [],
           roles: [],
           hosted: [],
+          now: null,
         },
         now,
       ),
       parts: [talk("State of Effect 2026"), talk("Sync engines", sync)],
       organizes: true,
       hosted: [{ ...effect, roles: ["mc"] }],
+      now: null,
     });
     expect(rows.ours).toEqual([
       {

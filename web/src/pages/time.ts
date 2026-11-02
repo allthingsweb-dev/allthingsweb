@@ -87,6 +87,24 @@ export function simpleDate(when: DateTime.DateTime | string): string {
   return `${String(parts.year).padStart(4, "0")}.${twoDigits(parts.month)}.${twoDigits(parts.day)}`;
 }
 
+/**
+ * "2026.11": a month, as the site writes one where the day isn't the
+ * point (when a "now" record was checked) or isn't known (a link the page
+ * dates only by its month). `when` is "YYYY-MM-DD" or "YYYY-MM".
+ */
+export function simpleMonth(when: string): string {
+  if (!/^\d{4}-\d{2}(?:-\d{2})?$/.test(when)) {
+    throw new RangeError(
+      `Expected a YYYY-MM or YYYY-MM-DD date, got "${when}"`,
+    );
+  }
+  return `${when.slice(0, 4)}.${when.slice(5, 7)}`;
+}
+
+/** "2026.10.11", or "2026.10" for a date known only by its month. */
+export const simpleDayOrMonth = (when: string): string =>
+  when.length === 7 ? simpleMonth(when) : simpleDate(when);
+
 /** 2026: the year an evening happened in, in San Francisco. */
 export function year(instant: DateTime.DateTime): number {
   return local(instant).year;

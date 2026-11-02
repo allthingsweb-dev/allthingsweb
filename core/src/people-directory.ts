@@ -21,6 +21,7 @@ import {
   talkAppearances,
 } from "./catalog.ts";
 import { personLinks } from "./mappers.ts";
+import { Now } from "./now.ts";
 import { type StageRole, stageRole } from "./people.ts";
 import * as Rows from "./rows.ts";
 import { byFollowers } from "./followers.ts";
@@ -114,6 +115,11 @@ export interface HostedEvening extends PartEvening {
 export interface PersonPage extends Person {
   readonly organizes: boolean;
   readonly hosted: ReadonlyArray<HostedEvening>;
+  /**
+   * What they do now, sourced and dated (src/now.ts, docs/now.md), or null
+   * where they have none, or theirs no longer reads as one.
+   */
+  readonly now: Now | null;
 }
 
 /**
@@ -263,6 +269,8 @@ export const PersonRow = Schema.Struct({
   roles: Schema.Array(RoleRow),
   /** The evenings they organized, latest first. */
   hosted: Schema.Array(HostedRow),
+  /** `profiles.now_record` as stored, decoded by {@link toPersonPage}. */
+  now: Schema.Unknown,
 });
 
 export type TalkRow = typeof TalkRow.Type;
@@ -429,6 +437,11 @@ export function toPeople(
   };
 }
 
+/** A stored "now" record, or none where there is none or it doesn't decode. */
+const decodeNow = Schema.decodeUnknownOption(Now, {
+  onExcessProperty: "error",
+});
+
 /** A person's own page from their row (see {@link PersonPage}). */
 export const toPersonPage = (
   row: PersonRow,
@@ -436,6 +449,7 @@ export const toPersonPage = (
 ): PersonPage => ({
   ...toPerson(row, now),
   organizes: row.organizes,
+  now: Option.getOrNull(decodeNow(row.now)),
   hosted: row.hosted.map(
     (evening): HostedEvening => ({
       ...partEvening(evening, now),
@@ -518,6 +532,7 @@ const make = Effect.gen(function* () {
         p.bluesky_handle AS "blueskyHandle",
         p.linkedin_handle AS "linkedinHandle",
         p.x_followers AS "xFollowers",
+        p.now_record AS now,
         (
           SELECT json_build_object(
             'url', i.url, 'alt', i.alt, 'width', i.width, 'height', i.height,

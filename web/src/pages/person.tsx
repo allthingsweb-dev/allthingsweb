@@ -2,6 +2,8 @@ import type {
   ExternalTalk,
   ExternalTalkKind,
 } from "allthings-core/src/external-talks.ts";
+import type { Now, NowLinkKind } from "allthings-core/src/now.ts";
+import { lineParts } from "allthings-core/src/now.ts";
 import type { PersonPage } from "allthings-core/src/people-directory.ts";
 import { personRows, shortBio } from "allthings-core/src/people-directory.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
@@ -12,7 +14,7 @@ import { Appearances, Links, Portrait } from "./people.tsx";
 import type { ImageMode } from "./picture.tsx";
 import { personStructuredData } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
-import { simpleDate } from "./time.ts";
+import { simpleDate, simpleDayOrMonth, simpleMonth } from "./time.ts";
 import { ogCards } from "../og/cards.ts";
 
 /**
@@ -34,6 +36,13 @@ export interface PersonProps {
   readonly portraits: PortraitsById;
   /** How photos are shown (see picture.tsx). */
   readonly images: ImageMode;
+  /**
+   * Show what they do now (docs/now.md). Off on people's pages until Erik
+   * has reviewed the pilot; /lab/now shows it.
+   */
+  readonly showNow?: boolean;
+  /** Ask search engines to stay out, as the lab's pages do. */
+  readonly noindex?: true;
 }
 
 /** One section of the person's parts under its rule and label. */
@@ -119,6 +128,68 @@ function Elsewhere({ talks }: { readonly talks: ReadonlyArray<ExternalTalk> }) {
   );
 }
 
+/** How a piece of their recent work was made, as its line names it. */
+const nowKindNames: Readonly<Record<NowLinkKind, string>> = {
+  post: "post",
+  article: "article",
+  video: "video",
+  talk: "talk",
+  podcast: "podcast",
+};
+
+/** Where a link is, as people say it: x.com, youtube.com, leerob.com. */
+const siteOf = (url: string): string =>
+  new URL(url).hostname.replace(/^www\./, "");
+
+/**
+ * What they do now: the line, every fact in it linking to where it was
+ * read, then their recent work as talks elsewhere are listed (date, title,
+ * where and what), under "Now · as of" the month it was checked.
+ */
+function NowSection({ now }: { readonly now: Now }) {
+  return (
+    <Section id="now" title={`Now · as of ${simpleMonth(now.checkedOn)}`}>
+      <>
+        <p class="person-page-bio person-now">
+          {lineParts(now.line).map((part) =>
+            part.source === undefined ? (
+              <span safe>{part.text}</span>
+            ) : (
+              <a href={part.source} safe>
+                {part.text}
+              </a>
+            ),
+          )}
+        </p>
+        {now.links.length === 0 ? (
+          ""
+        ) : (
+          <ul class="talks">
+            {now.links.map((link) => (
+              <li>
+                <a class="talk" href={link.url}>
+                  <time class="date at-type-meta" datetime={link.date} safe>
+                    {simpleDayOrMonth(link.date)}
+                  </time>
+                  <span class="talk-title" safe>
+                    {link.title}
+                  </span>
+                  <span class="talk-evening">
+                    <span safe>{siteOf(link.url)}</span>
+                    <span class="talk-role at-type-meta" safe>
+                      {` · ${nowKindNames[link.kind]}`}
+                    </span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    </Section>
+  );
+}
+
 /** "3 talks" and "1 talk", for the page's description. */
 const count = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`;
@@ -158,6 +229,8 @@ export function personPage({
   theme,
   portraits,
   images,
+  showNow = false,
+  noindex,
 }: PersonProps): string {
   const path = personPath(person.slug);
   // One row per evening, hosted or not: ours, then the ones we only shared.
@@ -170,6 +243,7 @@ export function personPage({
       path,
       image: ogCards.people,
       structuredData: [personStructuredData(person, `${origin}${path}`)],
+      ...(noindex === true ? { noindex } : {}),
     },
     origin,
     theme,
@@ -200,6 +274,11 @@ export function personPage({
                 {person.bio}
               </p>
             </Section>
+          )}
+          {showNow && person.now !== null ? (
+            <NowSection now={person.now} />
+          ) : (
+            ""
           )}
           {ours.length === 0 ? (
             ""

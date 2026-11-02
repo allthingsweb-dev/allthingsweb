@@ -42,6 +42,7 @@ const person = (
   ],
   organizes: false,
   hosted: [],
+  now: null,
   ...overrides,
 });
 

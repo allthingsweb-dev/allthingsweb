@@ -85,7 +85,11 @@ await db.exec(`
   UPDATE profiles SET name = 'Ruth New' WHERE id = 'b0000000-0000-4000-8000-000000000507';
   INSERT INTO external_talks (profile_id, title, event_name, kind, given_on, url, video_url, source_url, read_on, updated_at) VALUES
     ('b0000000-0000-4000-8000-000000000501', 'Engines that think', 'JSConf', 'conference', '2025-05-01', 'https://jsconf.example/engines', 'https://video.example/engines', 'https://jsconf.example/engines', '2026-10-01', now()),
-    ('b0000000-0000-4000-8000-000000000501', 'Notes on the engine', 'The Changelog', 'podcast', '2024-02-03', NULL, NULL, 'https://changelog.example/notes', '2026-10-01', now());`);
+    ('b0000000-0000-4000-8000-000000000501', 'Notes on the engine', 'The Changelog', 'podcast', '2024-02-03', NULL, NULL, 'https://changelog.example/notes', '2026-10-01', now());
+  UPDATE profiles SET now_record = '{"line": "Ada [writes compilers at Acme](https://acme.example/team).", "links": [{"title": "Compilers, gently", "date": "2026-09", "url": "https://ada.example/compilers", "kind": "article"}], "checkedOn": "2026-10-01"}'
+    WHERE id = 'b0000000-0000-4000-8000-000000000501';
+  UPDATE profiles SET now_record = '{"line": "No source."}'
+    WHERE id = 'b0000000-0000-4000-8000-000000000503';`);
 const database = await serve(db);
 
 const Stack = testStack("allthings-web-people-test", {
@@ -369,6 +373,51 @@ describe("/people", () => {
   });
 });
 
+describe("/lab/now", () => {
+  it("lists who has a record, linking to their page in the lab, kept out of search", async ({
+    People,
+  }) => {
+    const response = await fetch(`${People}/lab/now`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    const html = await response.text();
+    expect(await htmlProblems(html)).toEqual([]);
+    expect(html).toContain('<a href="/lab/now/ada-lovelace">');
+    expect(html).toContain("Ada writes compilers at Acme. As of 2026.10.");
+    // Zed's record doesn't read as one: he isn't listed.
+    expect(html).not.toContain("/lab/now/zed-nobody");
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow"/>');
+  });
+
+  it("shows a person's page with what they do now after the bio, kept out of search", async ({
+    People,
+  }) => {
+    const response = await fetch(`${People}/lab/now/ada-lovelace`);
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(await htmlProblems(html)).toEqual([]);
+    expect(html).toContain(
+      '<h2 id="now" class="at-type-meta">Now · as of 2026.10</h2><p class="person-page-bio person-now"><span>Ada </span><a href="https://acme.example/team">writes compilers at Acme</a><span>.</span></p>',
+    );
+    expect(html.indexOf('id="bio"')).toBeLessThan(html.indexOf('id="now"'));
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow"/>');
+    // A record that doesn't read as one is left out, and the page still answers.
+    const zed = await fetch(`${People}/lab/now/zed-nobody`);
+    expect(zed.status).toBe(200);
+    expect(await zed.text()).not.toContain('id="now"');
+  });
+
+  it("sends an old slug to the person's current page in the lab", async ({
+    People,
+  }) => {
+    const response = await fetch(`${People}/lab/now/ruth-old`, {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe("/lab/now/ruth-new");
+  });
+});
+
 describe("/speakers", () => {
   it("has moved to /people for good", async ({ People }) => {
     const response = await fetch(`${People}/speakers`, { redirect: "manual" });
@@ -455,6 +504,14 @@ describe("/people/<slug>", () => {
     // Someone with none has no such section.
     const grace = await (await fetch(`${People}/people/grace-hopper`)).text();
     expect(grace).not.toContain("Talks elsewhere");
+  });
+
+  it("leaves out what they do now, until it's turned on for everyone", async ({
+    People,
+  }) => {
+    const html = await (await fetch(`${People}/people/ada-lovelace`)).text();
+    expect(html).not.toContain('id="now"');
+    expect(html).not.toContain("writes compilers at Acme");
   });
 
   it("lists the evenings an organizer hosted at allthings, the MC part on the same row", async ({
