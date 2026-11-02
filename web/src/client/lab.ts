@@ -46,11 +46,26 @@ const maxScale = 2;
  */
 const photoWait = 8000;
 
-/** The images of the surface's first list of tiles, the ones it draws. */
-const tileImages = (surface: HTMLElement): ReadonlyArray<HTMLImageElement> => [
-  ...(surface.querySelector("[data-engine-tiles]")?.querySelectorAll("img") ??
-    []),
-];
+/**
+ * The images of the surface's first list of tiles that lie within the
+ * surface: the ones it shows, and draws. A tile past its edge (the letters'
+ * photos run on beyond the page) is never seen, and a lazy one never loads.
+ */
+const tileImages = (surface: HTMLElement): ReadonlyArray<HTMLImageElement> => {
+  const box = surface.getBoundingClientRect();
+  return [
+    ...(surface.querySelector("[data-engine-tiles]")?.querySelectorAll("img") ??
+      []),
+  ].filter((image) => {
+    const at = image.getBoundingClientRect();
+    return (
+      at.right > box.left &&
+      at.left < box.right &&
+      at.bottom > box.top &&
+      at.top < box.bottom
+    );
+  });
+};
 
 /** Every one of `images` decoded, or failed, or {@link photoWait} passed. */
 const settled = (images: ReadonlyArray<HTMLImageElement>): Promise<unknown> =>
