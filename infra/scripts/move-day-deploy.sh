@@ -88,9 +88,19 @@ while true; do
 done
 
 # Deploy what main is now. If main moved while this waited, catch up first,
-# so the deploy never rolls prod back to an older build.
-git fetch -q origin main
-if [[ $(git rev-parse origin/main) != "$built" ]]; then
+# so the deploy never rolls prod back to an older build. A fetch that keeps
+# failing (five tries, 10 s apart) can't hold the move back: allthings.dev
+# serves nothing until this deploy. Then it deploys the build it planned, and
+# says so; the next prod deploy from main catches up.
+fetched=false
+for try in 1 2 3 4 5; do
+  if git fetch -q origin main; then fetched=true; break; fi
+  log "fetching main failed (try $try of 5)"
+  sleep 10
+done
+if ! $fetched; then
+  log "couldn't read main: deploying the planned build; deploy prod from main afterwards"
+elif [[ $(git rev-parse origin/main) != "$built" ]]; then
   log "main moved to $(git log --oneline -1 origin/main): rebuilding"
   git checkout -q --detach origin/main
   for d in core web infra; do (cd "../$d" && bash ../.github/scripts/bun-install.sh >/dev/null 2>&1); done
@@ -103,14 +113,20 @@ log "deploy exited $rc"
 ((rc == 0)) || exit "$rc"
 
 # Build the new host's pages into the page store (web/src/prewarm.ts), as
-# every prod deploy does. allthings.dev may not answer until its certificate
-# is issued, so this asks every 15 s for up to 10 minutes. Best effort: it
-# never fails the move, but says how it went. The token goes on stdin.
+# every prod deploy does. Its answer names the build that warmed: for a few
+# seconds after the upload the version on its way out may still answer, and
+# allthings.dev may not answer at all until its certificate is issued. So
+# this asks every 15 s, for up to 10 minutes, until the build this deploy
+# shipped (web/dist/build.json) answers. Best effort: it never fails the
+# move, but says how it went. The token goes on stdin.
+shipped=$(jq -r '.build // empty' ../web/dist/build.json)
 for _ in $(seq 40); do
-  code=$(printf 'Authorization: Bearer %s\n' "$SITE_REFRESH_TOKEN" |
-    curl -sS -o /dev/null -w '%{http_code}' -X POST -H @- --max-time 300 https://allthings.dev/_site/prewarm 2>/dev/null) || code=000
-  log "prewarm: HTTP $code"
-  [[ $code == 200 ]] && exit 0
+  answer=$(printf 'Authorization: Bearer %s\n' "$SITE_REFRESH_TOKEN" |
+    curl -sS -X POST -H @- --max-time 300 -w '\n%{http_code}' https://allthings.dev/_site/prewarm 2>/dev/null) || answer=$'\n000'
+  code=${answer##*$'\n'}
+  warmed=$(jq -r '.build // empty' <<<"${answer%$'\n'*}" 2>/dev/null) || warmed=
+  log "prewarm: HTTP $code, build ${warmed:-none} (shipped $shipped)"
+  [[ $code == 200 && -n $shipped && $warmed == "$shipped" ]] && exit 0
   sleep 15
 done
-log "prewarm never answered 200: run it again by hand"
+log "prewarm never warmed build $shipped: run it again by hand"
