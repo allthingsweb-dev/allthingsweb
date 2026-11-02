@@ -43,7 +43,7 @@ statement from it.
 Each surface still reads in one statement, since from a Worker every round
 trip costs more than the query, and builds it from these fragments. What a
 surface adds is how it shows what the catalog selects: home's limits, its
-hero (always ours) and its photos; /events by year; an event page's posts,
+hero (always ours); /events by year; an event page's posts,
 schedule, notes, venue and guest count; the people page's groups and its
 X-follower order; the API's and the tools' published fields, long slugs,
 limits, search and error texts. None of that decides which evenings or
@@ -568,7 +568,7 @@ What follows from it:
 - A shared evening is named as written, never allthings/<topic>
   (`eventTopic`), on its page, in lists, in feeds and on its card.
 - /events and home list it in the same rows, marked "shared · by Mastra".
-  Home's hero is always our next evening, and its photos are of ours.
+  Home's hero is always our next evening, and its photos (the wall) are of ours.
 - Its page says who organizes it, linked to their site, and has no "your
   hosts". Its structured data names the organizer, not us.
 - /about's numbers count our evenings alone, and the people page and the
@@ -749,28 +749,6 @@ The admin MCP server's `list_event_photos`, `add_event_photos`,
 runs it against `tests/seed.sql` with a media origin that only keeps what it
 is given.
 
-### Home's photos
-
-Home's mosaic shows photos picked by hand, in
-`core/backfill/hero-photos.json`: real photos of our evenings that show how
-big they are, full rooms and packed crowds facing a speaker. Each names its
-image id, the evening it was taken at, and why it earns the spot. Home shows
-the first three it can, in the file's order, and the first is the wide
-tile. It shows each only as a photo of the evening it names, and skips one
-it can't show: gone, off the media origin, not that evening's, or of an
-evening that is a draft, someone else's or still ahead. When it can show
-none, or the file lists none, it falls back to the first photo of each of
-our latest evenings.
-
-Replacing or removing a photo deletes its `images` row, so a picked one can
-go. `bun run hero-photos` fails, naming each, when home can't show one of
-them; `.github/workflows/hero-photos.yaml` runs it against production when
-a pull request changes the file, on main, and every Monday.
-
-```sh
-DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run hero-photos
-```
-
 ### The home lab's wall, faces and tally
 
 The home lab (`web/src/pages/lab/`, at /lab/home) tries heroes that show
@@ -781,8 +759,10 @@ photos, and faces.
 
 - **The wall** is `core/backfill/wall-photos.json`: about forty photos of
   crowds and energy across many evenings, picked by looking at every photo,
-  in the order the wall shows them. They are held to the hero photos'
-  rules, and each carries its evening's date and short link. When the lab
+  in the order the wall shows them. Each is shown only as a photo of the
+  evening it names, which must be one of ours, published and over, with
+  the image on the media origin; each carries its evening's date and
+  short link. Home's slash grid shows the wall too. When the lab
   can show none of them, it shows every photo of our evenings held, latest
   first.
 - **Every evening held** comes with the photo that stands for it, for the
@@ -795,8 +775,14 @@ photos, and faces.
   held. When it can show none, it shows everyone on stage with a photo,
   latest first.
 
-`bun run hero-photos` checks the wall and the faces with home's photos,
-and the workflow runs it when any of the three files changes.
+`bun run hero-photos` fails, naming each, when a page can't show one of the
+wall's photos or faces (a photo's `images` row is deleted when it is
+replaced or removed), and `.github/workflows/hero-photos.yaml` runs it
+against production when either file changes, on main, and every Monday.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run hero-photos
+```
 
 ## Schedules and notes
 

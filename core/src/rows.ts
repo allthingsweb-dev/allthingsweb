@@ -206,7 +206,6 @@ export const HomeRow = Schema.Struct({
   ahead: Schema.Array(Listing),
   /** The latest events that have ended, latest first, up to the limit. */
   recent: Schema.Array(Listing),
-  photos: Schema.Array(Photo),
 });
 
 /** A `redirects` row: `/r/<slug>` sends visitors to `destinationUrl`. */

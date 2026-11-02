@@ -1,22 +1,16 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
-import file from "../backfill/hero-photos.json" with { type: "json" };
 import wallFile from "../backfill/wall-photos.json" with { type: "json" };
 import { asOf } from "./clock.ts";
 import { ended, ours, published } from "./catalog.ts";
 
 /**
- * The photos home's mosaic shows beside the hero, chosen by hand
- * (core/backfill/hero-photos.json): real photos of our evenings that show
- * how big they are, full rooms and packed crowds facing a speaker. Home
- * shows the first of them it can (src/home.ts), in the file's order; the
- * first is the wide tile. Each names the evening it was taken at, and home
- * shows it only as that evening's photo; `bun run hero-photos` checks the
- * same against production (scripts/hero-photos.ts).
- *
- * The home lab's wall (core/backfill/wall-photos.json, src/community.ts) is
- * a longer list of the same kind, about forty photos of crowds and energy
- * across many evenings, held to the same rules and the same check.
+ * Photos chosen by hand, of the evenings they name: the wall
+ * (core/backfill/wall-photos.json, src/community.ts), about forty photos
+ * of crowds and energy across many evenings, which home's slash grid and
+ * the home lab show. Each is shown only as a photo of the evening it names;
+ * `bun run hero-photos` checks that against production
+ * (scripts/hero-photos.ts).
  */
 
 const Text = Schema.String.check(
@@ -51,11 +45,7 @@ export function repeated(
   return [...new Set(images.filter((image, i) => images.indexOf(image) !== i))];
 }
 
-/** The hand-picked photos, in the order home prefers them. */
-export const heroPhotos: ReadonlyArray<HeroPhoto> =
-  Schema.decodeUnknownSync(HeroPhotosFile)(file).photos;
-
-/** The home lab's wall of hand-picked photos, in the order it shows them. */
+/** The wall of hand-picked photos, in the order it shows them. */
 export const wallPhotos: ReadonlyArray<HeroPhoto> =
   Schema.decodeUnknownSync(HeroPhotosFile)(wallFile).photos;
 

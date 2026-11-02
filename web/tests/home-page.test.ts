@@ -180,7 +180,6 @@ const view = (overrides: Partial<HomeView> = {}): HomeView => ({
       hosts: [],
     }),
   ],
-  photos: [photo("a"), photo("b"), photo("c")],
   ...overrides,
 });
 

@@ -287,7 +287,7 @@ const evenings = (): Promise<EveningsView> =>
   surfaces.read(Evenings.use((repository) => repository.read));
 
 const home = (s = surfaces): Promise<HomeView> =>
-  s.read(Home.use((repository) => repository.read(photoOrigin)));
+  s.read(Home.use((repository) => repository.read));
 
 const eventPage = (slug: string, s = surfaces) =>
   s.read(
