@@ -412,6 +412,19 @@ describe("the variants' parts", () => {
     expect(slugsOf(unshowable)).toEqual(
       shown.slice(1, 25).map(({ slug }) => slug),
     );
+    // With more evenings than it holds, the latest 24.
+    const everyPhoto = evenings.map((held, index) => ({
+      ...held,
+      photo: held.photo ?? photo(`evening-${index}`),
+    }));
+    expect(
+      slugsOf(
+        render(
+          "slash-grid-dated",
+          data({ community: community({ evenings: everyPhoto }) }),
+        ),
+      ),
+    ).toEqual(everyPhoto.slice(0, 24).map(({ slug }) => slug));
     // Narrower than `l`, three a row and the latest fifteen (lab.css).
     const narrow =
       /@media \(--at-below-l\) \{([\s\S]*?)\n\}/.exec(lab)?.[1] ?? "";
