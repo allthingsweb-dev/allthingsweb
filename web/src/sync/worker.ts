@@ -38,7 +38,7 @@ import {
   type SyncMode,
   type SyncReport,
 } from "./run.ts";
-import { refreshPath } from "../refresh.ts";
+import { prewarmPath, refreshPath } from "../refresh.ts";
 
 /**
  * The sync Worker: the app's hourly Luma sync (run.ts) on a Cron Trigger,
@@ -319,37 +319,30 @@ export const scheduledRun = (
  */
 export const siteDeadline = 30_000;
 
+/**
+ * How long the site has to prewarm its store: it may first wait for a new
+ * version to be in use (up to two minutes, web/src/prewarm.ts), then build
+ * what isn't kept, about 120 pages.
+ */
+export const prewarmDeadline = 5 * 60_000;
+
 /** The part of a service binding the run uses. */
 interface SiteBinding {
   fetch(request: Request): Promise<Response>;
 }
 
 /**
- * Tells the site (`SITE`, a service binding to the Web Worker) that the
- * data may have changed, with `SITE_REFRESH_TOKEN`, so its page store
- * reads the data's version now rather than at its next check
- * (web/src/refresh.ts). After every run that writes, whether or not it
- * wrote: the site compares versions itself. It logs one line
- * (`step: "site"`) and never fails the run.
+ * POSTs `path` on the site with the token, within `deadline`, body and
+ * all, and logs one line as `step`. Whether the site took it.
  */
-export async function tellSite(
-  env: Readonly<Record<string, unknown>>,
-  log: (entry: Readonly<Record<string, unknown>>) => void = (entry) =>
-    console.log(JSON.stringify(entry)),
-  /** How long the site has to answer, body and all, in milliseconds. */
-  deadline = siteDeadline,
-): Promise<void> {
-  const site = env["SITE"];
-  const token = env["SITE_REFRESH_TOKEN"];
-  if (!isBinding(site, "fetch") || !isText(token)) {
-    log({
-      source: "luma-sync",
-      step: "site",
-      status: "skipped",
-      reason: "no SITE binding or SITE_REFRESH_TOKEN",
-    });
-    return;
-  }
+async function askSite(
+  site: SiteBinding,
+  token: string,
+  path: string,
+  step: string,
+  deadline: number,
+  log: (entry: Readonly<Record<string, unknown>>) => void,
+): Promise<boolean> {
   const started = Date.now();
   const abort = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -362,8 +355,8 @@ export async function tellSite(
   try {
     const { response, body } = await Promise.race([
       (async () => {
-        const answer = await (site as SiteBinding).fetch(
-          new Request(`https://site${refreshPath}`, {
+        const answer = await site.fetch(
+          new Request(`https://site${path}`, {
             method: "POST",
             headers: { authorization: `Bearer ${token}` },
             signal: abort.signal,
@@ -376,22 +369,68 @@ export async function tellSite(
     ]);
     log({
       source: "luma-sync",
-      step: "site",
+      step,
       status: response.ok ? "done" : "failed",
       http: response.status,
       tookMs: Date.now() - started,
       ...(typeof body === "object" && body !== null ? body : {}),
     });
+    return response.ok;
   } catch (cause) {
     log({
       source: "luma-sync",
-      step: "site",
+      step,
       status: "failed",
       tookMs: Date.now() - started,
       reason: String(cause),
     });
+    return false;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/**
+ * Tells the site (`SITE`, a service binding to the Web Worker) that the
+ * data may have changed, with `SITE_REFRESH_TOKEN`, so its page store
+ * reads the data's version now rather than at its next check
+ * (web/src/refresh.ts), then has it prewarm its store (web/src/prewarm.ts),
+ * so visitors find the pages built. After every run that writes, whether
+ * or not it wrote: the site compares versions itself, and a prewarm of
+ * pages already kept only reads them. It logs a line for each
+ * (`step: "site"`, `step: "prewarm"`) and never fails the run.
+ */
+export async function tellSite(
+  env: Readonly<Record<string, unknown>>,
+  log: (entry: Readonly<Record<string, unknown>>) => void = (entry) =>
+    console.log(JSON.stringify(entry)),
+  /** How long the site has to answer each, body and all, in milliseconds. */
+  deadlines: { readonly site: number; readonly prewarm: number } = {
+    site: siteDeadline,
+    prewarm: prewarmDeadline,
+  },
+): Promise<void> {
+  const site = env["SITE"];
+  const token = env["SITE_REFRESH_TOKEN"];
+  if (!isBinding(site, "fetch") || !isText(token)) {
+    log({
+      source: "luma-sync",
+      step: "site",
+      status: "skipped",
+      reason: "no SITE binding or SITE_REFRESH_TOKEN",
+    });
+    return;
+  }
+  const binding = site as SiteBinding;
+  if (await askSite(binding, token, refreshPath, "site", deadlines.site, log)) {
+    await askSite(
+      binding,
+      token,
+      prewarmPath,
+      "prewarm",
+      deadlines.prewarm,
+      log,
+    );
   }
 }
 

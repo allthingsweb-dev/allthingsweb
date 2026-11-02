@@ -309,6 +309,7 @@ describe("the page store", () => {
     ["a failure", { status: 503 }],
     ["a redirect", { status: 301 }],
     ["a cookie set", { headers: { "set-cookie": "theme=dark" } }],
+    ["what varies by host", { headers: { vary: "host" } }],
   ] as const)("never keeps %s", async (_, page) => {
     const { fetch, kv, app } = setup({ page: () => page });
     await fetch(get("/"));
@@ -486,6 +487,15 @@ describe("pageKey", () => {
     expect(
       await pageKey(get("/events?x=1", { cookie: "theme=dark" }), "b", v1, 0),
     ).toContain("/dark/");
+    // The same page on any host.
+    expect(
+      await pageKey(
+        new Request("https://allthings-web.example.workers.dev/events?x=1"),
+        "b",
+        v1,
+        0,
+      ),
+    ).toBe(key);
     // A mode it doesn't know is the system's, as pages read it.
     expect(
       await pageKey(get("/events?x=1", { cookie: "theme=sepia" }), "b", v1, 0),

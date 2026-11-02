@@ -5,3 +5,9 @@
  * without core's dependencies.
  */
 export const refreshPath = "/_site/refresh";
+
+/**
+ * Where the writers have the site build its pages into its store
+ * (web/src/prewarm.ts): the Sync Worker after each run, and a prod deploy.
+ */
+export const prewarmPath = "/_site/prewarm";
