@@ -88,8 +88,11 @@ describe("PeopleDirectory", () => {
       links: { x: null, bluesky: null, linkedin: null },
       photo: null,
       parts: [],
+      organizes: false,
+      hosted: [],
     });
-    // Organizing is said by the group, never as a part.
+    // Organizing is said by the group, never as a part; the evenings they
+    // hosted come with them, as on their own page.
     expect(organizers[2]?.parts).toEqual([]);
     expect(names((await read([unattached, grace])).organizers)).toEqual([
       "Unattached",
@@ -215,6 +218,8 @@ describe("PeopleDirectory", () => {
           },
         },
       ],
+      organizes: false,
+      hosted: [],
     });
     const zed = speakers.find((person) => person.name === "Zed Nobody");
     expect(zed?.parts[0]).toMatchObject({ kind: "talk", role: "panelist" });
@@ -379,6 +384,34 @@ describe("toPeople", () => {
     ]);
   });
 
+  test("ranks organizers no one asked for by their latest evening, hosting one among their parts", () => {
+    const hosted = (start: string) => ({
+      slug: `hosted-${start}`,
+      curation: "ours" as const,
+      name: "All Things Web",
+      topic: null,
+      startDate: DateTime.makeUnsafe(start),
+      endDate: DateTime.makeUnsafe(start),
+    });
+    const view = toPeople(
+      [
+        // An older talk, and nothing since.
+        row("1", "Ann", ["2025-01-01T00:00:00Z"], { organizes: true }),
+        // No talk at all, but they hosted the latest evening.
+        row("2", "Bea", [], {
+          organizes: true,
+          hosted: [hosted("2026-06-01T00:00:00Z")],
+        }),
+      ],
+      [],
+      now,
+    );
+    expect(view.organizers.map((person) => person.id)).toEqual(["2", "1"]);
+    expect(view.organizers[0]?.hosted.map(({ slug }) => slug)).toEqual([
+      "hosted-2026-06-01T00:00:00Z",
+    ]);
+  });
+
   test("leaves organizers and co-hosts in their own order, whatever their followers", () => {
     const view = toPeople(
       [
@@ -485,9 +518,9 @@ describe("one person's page", () => {
     const { speakers } = await read();
     const ada = speakers.find((person) => person.slug === "ada-lovelace");
     if (ada === undefined) throw new Error("Ada is not in the directory");
-    const { organizes, hosted, ...person } = found.person;
-    expect(person).toEqual(ada);
-    expect([organizes, hosted]).toEqual([false, []]);
+    // The directory carries each person as their own page has them.
+    expect(found.person).toEqual(ada);
+    expect([found.person.organizes, found.person.hosted]).toEqual([false, []]);
   });
 
   test("lists the evenings an organizer hosted, latest first", async () => {
@@ -642,8 +675,8 @@ describe("appearances", () => {
     evening: on,
   });
 
-  test("gives each evening one row, its parts in the one order: talks, co-host, MC", () => {
-    expect(eveningPartOrder).toEqual(["talk", "co-host", "mc"]);
+  test("gives each evening one row, its parts in the one order: host, talks, co-host, MC", () => {
+    expect(eveningPartOrder).toEqual(["host", "talk", "co-host", "mc"]);
     const rows = appearances([
       role("mc"),
       talk("Alchemy 2.0"),
@@ -659,7 +692,7 @@ describe("appearances", () => {
     ).toEqual(["Alchemy 2.0", "Fireside chat", "co-host", "mc"]);
   });
 
-  test("puts an evening someone hosted under Hosted alone, with their talks and parts", () => {
+  test("gives an evening someone hosted one row among the others, hosting named first", () => {
     const rows = personRows({
       ...toPerson(
         {
@@ -684,10 +717,17 @@ describe("appearances", () => {
       organizes: true,
       hosted: [{ ...effect, roles: ["mc"] }],
     });
-    expect(rows.hosted).toEqual([
-      { evening: effect, parts: [talk("State of Effect 2026"), role("mc")] },
+    expect(rows.ours).toEqual([
+      {
+        evening: effect,
+        parts: [
+          { kind: "role", role: "host", evening: effect },
+          talk("State of Effect 2026"),
+          role("mc"),
+        ],
+      },
+      { evening: sync, parts: [talk("Sync engines", sync)] },
     ]);
-    expect(rows.ours.map((row) => row.evening.slug)).toEqual(["sync"]);
     expect(rows.shared).toEqual([]);
   });
 });

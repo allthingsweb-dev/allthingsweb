@@ -601,7 +601,39 @@
       "source": "https://rhys.dev",
       "read": "2026-10-05",
       "was": "Product Engineer at Vercel"
-    }
+    },
+    "now": {
+      "line": "Rhys is building [Executor](https://executor.sh), [the cloud for personal software](https://x.com/RhysSullivan), in [YC's Summer 2026 batch](https://www.ycombinator.com/companies/executor).",
+      "links": [
+        {
+          "title": "We're not using enough inference",
+          "date": "2026-08-09",
+          "url": "https://executor.sh/blog/we-are-not-using-enough-inference",
+          "kind": "article"
+        },
+        {
+          "title": "I don't want to use your agent",
+          "date": "2026-06-27",
+          "url": "https://executor.sh/blog/i-dont-want-to-use-your-agent",
+          "kind": "article"
+        },
+        {
+          "title": "MCPs, APIs, and CLIs are not three separate concepts",
+          "date": "2026-06-26",
+          "url": "https://executor.sh/blog/mcps-apis-clis-are-not-three-separate-concepts",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-02"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "When Rhys left Vercel.",
+        "sources": ["https://x.com/RhysSullivan"],
+        "reason": "No source found."
+      }
+    ]
   },
   {
     "profileId": "2fb6b3b8-2bf7-437f-83e2-bc60ad00890a",
@@ -621,7 +653,57 @@
       "source": "https://mattpalmer.io",
       "read": "2026-10-05",
       "was": "mattppal"
-    }
+    },
+    "now": {
+      "line": "Matt [joined Cursor in August to work on developer experience and education](https://x.com/mattyp/status/2084398105802448903), eleven days before [Cursor became part of SpaceX](https://cursor.com/blog/joining-spacex). He [works on Cursor and Grok Bot at SpaceXSI](https://x.com/mattyp).",
+      "links": [
+        {
+          "title": "The future of Cursor",
+          "date": "2026-10",
+          "url": "https://mattpalmer.io/decks/2026-10-vercel-ship/",
+          "kind": "talk"
+        },
+        {
+          "title": "Chat is all you need",
+          "date": "2026-08-18",
+          "url": "https://x.com/mattyp/status/2089758434921160877",
+          "kind": "article"
+        },
+        {
+          "title": "Intro to Grok Bot",
+          "date": "2026-08-11",
+          "url": "https://x.com/mattyp/status/2087252657589412119",
+          "kind": "article"
+        },
+        {
+          "title": "Content Is Code",
+          "date": "2026-07-18",
+          "url": "https://www.youtube.com/watch?v=yv6xovSsB1U",
+          "kind": "talk"
+        }
+      ],
+      "checkedOn": "2026-11-02"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Matt joined Cursor a day before it became part of SpaceX AI.",
+        "sources": [
+          "https://x.com/mattyp/status/2084398105802448903",
+          "https://cursor.com/blog/joining-spacex"
+        ],
+        "reason": "His first day was 2026-08-03; the acquisition closed 2026-08-14, eleven days later. SpaceX's AI unit was SpaceXAI then and is SpaceXSI (SpaceX Super Intelligence) since October. The line says what the sources say."
+      },
+      {
+        "field": "now",
+        "value": "Matt leads developer experience at Cursor.",
+        "sources": [
+          "https://x.com/mattyp",
+          "https://mattpalmer.io/decks/2026-10-vercel-ship/"
+        ],
+        "reason": "No exact title on his own channels: his deck says \"Developer experience and community\", his X bio \"cursor & @bot at @spacexsi\". A Bessemer page with \"leads\" may be another Matt Palmer."
+      }
+    ]
   },
   {
     "profileId": "8b86e373-0709-4086-97e7-4e83102a6564",
@@ -1051,5 +1133,177 @@
       "source": "https://github.com/LewisJEllis",
       "read": "2026-10-06"
     }
+  },
+  {
+    "profileId": "a3660879-1d79-4752-9d6f-1dc7777eceba",
+    "name": "Lydia Hallie",
+    "now": {
+      "line": "Lydia works on [Claude Code at Anthropic](https://x.com/lydiahallie) and [teaches it in a free course](https://master.dev/courses/claude-code/). She [announced Claude Tag in June](https://x.com/lydiahallie/status/2069487432383467617): [Claude in Slack, as a teammate](https://www.anthropic.com/news/introducing-claude-tag).",
+      "links": [
+        {
+          "title": "Projects in Claude Code",
+          "date": "2026-09-17",
+          "url": "https://x.com/lydiahallie/status/2100636318590267474",
+          "kind": "post"
+        },
+        {
+          "title": "Which Claude Code feature do you wish you'd found sooner?",
+          "date": "2026-09-07",
+          "url": "https://x.com/lydiahallie/status/2097061523550322858",
+          "kind": "post"
+        },
+        {
+          "title": "Claude Tag is live",
+          "date": "2026-06-23",
+          "url": "https://x.com/lydiahallie/status/2069487432383467617",
+          "kind": "post"
+        },
+        {
+          "title": "Claude Code Deep Dive",
+          "date": "2026-04-21",
+          "url": "https://blog.master.dev/free-claude-workshop",
+          "kind": "talk"
+        }
+      ],
+      "checkedOn": "2026-11-02"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Lydia built or led Claude Tag.",
+        "sources": [
+          "https://x.com/lydiahallie/status/2069487432383467617",
+          "https://www.anthropic.com/news/introducing-claude-tag"
+        ],
+        "reason": "Her launch-day post announces it; Anthropic's post names no one. Nothing public says she built it."
+      },
+      {
+        "field": "now",
+        "value": "Maximizing Value from Claude Code (webinar), 2026-09-10",
+        "sources": [
+          "https://claude.com/resources/webinars/claude-code-maximizing-value"
+        ],
+        "reason": "Anthropic's page gives no date; 2026-09-10 is only on a third-party listing. Kept out of the links until a dated page says so."
+      }
+    ]
+  },
+  {
+    "profileId": "8830e0cb-0989-4814-b9f5-0fbcb212fdf4",
+    "name": "Lee Robinson",
+    "now": {
+      "line": "Lee [works on ML at SpaceX, helping train useful AI models, after Cursor and Vercel](https://leerob.com). He [lectured Stanford's CS146S in October on how always-on agents work](https://x.com/leerob/status/2108650243365736855).",
+      "links": [
+        {
+          "title": "Stanford CS146S: How always-on agents work",
+          "date": "2026-10-11",
+          "url": "https://www.youtube.com/watch?v=L1OBRtfPS34",
+          "kind": "talk"
+        },
+        {
+          "title": "CursorBench 4.0",
+          "date": "2026-09-10",
+          "url": "https://x.com/leerob/status/2098144600594465148",
+          "kind": "post"
+        },
+        {
+          "title": "How we teach AI models",
+          "date": "2026-07",
+          "url": "https://leerob.com/model-behavior",
+          "kind": "article"
+        },
+        {
+          "title": "Cursor: coding agents tutorial (2026)",
+          "date": "2026-04-15",
+          "url": "https://www.youtube.com/watch?v=kF2WQgk1LtY",
+          "kind": "video"
+        }
+      ],
+      "checkedOn": "2026-11-02"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "When Lee moved from Cursor to SpaceX's ML work, and whether through the acquisition.",
+        "sources": [
+          "https://leerob.com",
+          "https://cursor.com/blog/joining-spacex"
+        ],
+        "reason": "No source dates the move."
+      }
+    ]
+  },
+  {
+    "profileId": "8bcce267-3c71-45c2-b366-0a22e4c61ed9",
+    "name": "Evan Bacon",
+    "now": {
+      "line": "Evan [leads frontend for Grok at SpaceXSI, after Expo](https://x.com/Baconbrix). His latest: [Grok Bot on your phone's calendar, reminders and contacts](https://x.com/Baconbrix/status/2113398485961855364).",
+      "links": [
+        {
+          "title": "My dream Lego app",
+          "date": "2026-10-24",
+          "url": "https://x.com/Baconbrix/status/2114125784688271524",
+          "kind": "post"
+        },
+        {
+          "title": "Grok Bot's local tools on iPhone and Android",
+          "date": "2026-10-22",
+          "url": "https://x.com/Baconbrix/status/2113398485961855364",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-02"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Evan left Expo on 2026-06-01.",
+        "sources": ["https://x.com/Baconbrix"],
+        "reason": "Only on an aggregator (everydev.ai); his X bio says only \"Prev @expo\"."
+      },
+      {
+        "field": "now",
+        "value": "Joined SpaceXAI (LinkedIn post), 2026-07-22",
+        "sources": [
+          "https://www.linkedin.com/posts/evanbacon_honored-to-announce-that-ive-officially-activity-7485557125797031936-CrWg"
+        ],
+        "reason": "The page shows only \"3mo\"; the day is decoded from the post's id, not given by the page."
+      }
+    ]
+  },
+  {
+    "profileId": "e0a891dd-df9f-4ca2-8cef-db8bb3e1f605",
+    "name": "Michael Arnaldi",
+    "now": {
+      "line": "Michael [leads Effect and runs Effectful](https://x.com/MichaelArnaldi). [He and Sebastian Lorenz merged Effect 4.0 stable live at at/effect](https://effect.website/blog/this-week-in-effect/138).",
+      "links": [
+        {
+          "title": "Effect 4.0",
+          "date": "2026-09-30",
+          "url": "https://effect.website/blog/releases/effect/40",
+          "kind": "article"
+        },
+        {
+          "title": "Software Engineering in the Age of AI, with John De Goes (Cause & Effect 10)",
+          "date": "2026-08-07",
+          "url": "https://www.youtube.com/watch?v=irmz5X3c7Do",
+          "kind": "podcast"
+        },
+        {
+          "title": "The Death of Software Development",
+          "date": "2026-01-11",
+          "url": "https://mike.tech/blog/death-of-software-development/",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-02"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "State of Effect 2026 (his talk at at/effect)",
+        "sources": ["https://effect.website/blog/this-week-in-effect/138"],
+        "reason": "No public recording found."
+      }
+    ]
   }
 ]

@@ -160,6 +160,12 @@ export const profilesTable = pgTable(
     /** A handle cleared because X now gives it to another account, and when. */
     xHandleLost: text("x_handle_lost"),
     xHandleLostAt: timestamp("x_handle_lost_at", { withTimezone: true }),
+    /**
+     * What they do now: one dated record whose every fact has its source,
+     * written only by core's people backfill (core/src/now.ts). Null takes
+     * it down.
+     */
+    nowRecord: jsonb("now_record"),
   },
   () => [
     check(
@@ -176,6 +182,10 @@ export const profilesTable = pgTable(
     check(
       "profiles_x_handle_lost_check",
       sql`("x_handle_lost" IS NULL) = ("x_handle_lost_at" IS NULL)`,
+    ),
+    check(
+      "profiles_now_record_check",
+      sql`jsonb_typeof("now_record") = 'object'`,
     ),
   ],
 );

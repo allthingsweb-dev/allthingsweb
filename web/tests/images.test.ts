@@ -180,15 +180,15 @@ describe("/ with variants", () => {
     expect(html).not.toContain("media.allthings.dev");
   });
 
-  it("offers the mosaic's photos as variants of the widths each has, at its own size", async ({
+  it("offers the slash grid's photos as variants up to 480 wide, at their own size", async ({
     Variants,
   }) => {
     const html = await (await fetch(`${Variants}/`)).text();
     const tiles =
-      /<div class="mosaic tiles-3">(.*?)<\/div>/
+      /<ul class="slash-grid">(.*?)<\/ul>/
         .exec(html)?.[1]
         ?.match(/<picture>.*?<\/picture>/g) ?? [];
-    expect(tiles).toHaveLength(3);
+    expect(tiles).toHaveLength(4);
     const widthsOf = (tile: string, format: string) =>
       [
         ...(
@@ -198,9 +198,10 @@ describe("/ with variants", () => {
         ).matchAll(/ (\d+)w/g),
       ].map(([, width]) => Number(width));
     const [effect = "", pier70 = "", mux = ""] = tiles;
-    expect(widthsOf(effect, "avif")).toEqual([240, 360, 480, 720, 960, 1200]);
-    expect(widthsOf(pier70, "webp")).toEqual([240, 360, 480, 720, 960, 1200]);
-    expect(widthsOf(mux, "avif")).toEqual([240, 360, 480, 720, 960]);
+    // A tile is never wider than 480: no photo is offered wider.
+    expect(widthsOf(effect, "avif")).toEqual([240, 360, 480]);
+    expect(widthsOf(pier70, "webp")).toEqual([240, 360, 480]);
+    expect(widthsOf(mux, "avif")).toEqual([240, 360, 480]);
     expect(effect).toContain(
       `<img src="/img/480/jpeg/${version}/events/home/effect.jpg" srcset="/img/240/jpeg/${version}/events/home/effect.jpg 240w,`,
     );
@@ -234,12 +235,13 @@ describe("/ with variants", () => {
       const urls = [...new Set(imageUrls(html))].filter((url) =>
         url.startsWith("/img/"),
       );
-      // 3 photos: 6, 6 and 5 widths; Erik: 2 squares; 3 formats each.
-      expect(urls).toHaveLength((6 + 6 + 5 + 2) * 3);
+      // 4 photos: 3 widths each; Erik: 2 squares; 3 formats each.
+      expect(urls).toHaveLength((4 * 3 + 2) * 3);
       const originals: Record<string, number> = {
         "events/home/effect.jpg": 1600,
         "events/home/pier-70.jpg": 1200,
         "events/home/mux.jpg": 1024,
+        "events/home/sanity.jpg": 1024,
         "profiles/erik.jpg": 2160,
       };
       const variants = urls.map((url) => ({ url, variant: parseVariant(url) }));
@@ -254,7 +256,7 @@ describe("/ with variants", () => {
         const [, , size = ""] = entry.url.split("/");
         if (!sizes.has(size)) sizes.set(size, entry);
       }
-      expect(sizes.size).toBe(6 + 2);
+      expect(sizes.size).toBe(3 + 2);
       const formatsMade = new Set<string>();
       await Promise.all(
         [...sizes.values()].map(async ({ url, variant }, index) => {

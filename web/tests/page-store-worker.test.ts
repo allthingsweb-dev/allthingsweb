@@ -442,6 +442,18 @@ describe("the page store", () => {
     ]);
     // One that could be a new evening's is looked up, so it can't be now.
     expect((await get(Orphaned, "/no-such-evening")).response.status).toBe(503);
+    // A trailing slash is sent to the path without it before the store
+    // or the database is asked, whatever the method: no store timing.
+    for (const method of ["GET", "HEAD", "POST"]) {
+      const response = await fetch(`${Orphaned}/lab/home/?from=${method}`, {
+        method,
+        redirect: "manual",
+      });
+      await response.arrayBuffer();
+      expect([method, response.status]).toEqual([method, 308]);
+      expect(response.headers.get("location")).toBe(`/lab/home?from=${method}`);
+      expect(response.headers.get("server-timing")).toBeNull();
+    }
     // A page no one has asked for yet can't be built, and isn't kept.
     for (let attempt = 0; attempt < 2; attempt++) {
       const { response } = await get(Orphaned, "/events?cold");

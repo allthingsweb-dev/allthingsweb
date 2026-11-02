@@ -1,12 +1,9 @@
 import type { PropsWithChildren } from "@kitajs/html";
-import { below } from "allthings-brand/src/layout.ts";
-import type { Tally as TallyView } from "allthings-core/src/about.ts";
 import type { CommunityView } from "allthings-core/src/community.ts";
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { lumaCalendar } from "../../links.ts";
 import { ogCards } from "../../og/cards.ts";
-import { count } from "../about.tsx";
 import { Document } from "../document.tsx";
 import { Cursor } from "../evening-row.tsx";
 import { ImIn, NextWhen, nextLabel } from "../home.tsx";
@@ -31,6 +28,8 @@ import type { Theme } from "../theme.ts";
  */
 
 export { labPath, variantPath } from "./paths.ts";
+export { Tally, tallyFacts } from "../figures.tsx";
+export { screenShare } from "../picture.tsx";
 
 /** What a variant is rendered from. */
 export interface LabData {
@@ -83,10 +82,6 @@ export function LabDocument({
   });
 }
 
-/** The `sizes` of a photo shown at `wide` of the screen, and `narrow` below `l`. */
-export const screenShare = (wide: number, narrow: number): string =>
-  `${below("l")} ${narrow}vw, ${wide}vw`;
-
 /** A photo of the wall without alt text: shown as texture, beside real text. */
 export const decorative = <A extends { readonly alt: string }>(
   photo: A,
@@ -94,58 +89,6 @@ export const decorative = <A extends { readonly alt: string }>(
   ...photo,
   alt: "",
 });
-
-/** The tally's numbers, each with what it counts; none that is zero. */
-export function tallyFacts(
-  tally: TallyView,
-  which: ReadonlyArray<keyof TallyView> = [
-    "evenings",
-    "guests",
-    "speakers",
-    "hostingCompanies",
-  ],
-): ReadonlyArray<{ readonly value: string; readonly label: string }> {
-  const labels: Record<keyof TallyView, string> = {
-    evenings: "evenings",
-    guests: "said “I’m in”",
-    speakers: "people on stage",
-    hostingCompanies: "hosting companies",
-  };
-  return which
-    .filter((key) => tally[key] > 0)
-    .map((key) => ({ value: count(tally[key]), label: labels[key] }));
-}
-
-/**
- * The tally as a row of big numbers over mono labels, as `kind` sets it:
- * a band under a hero, or columns within one.
- */
-export function Tally({
-  tally,
-  kind,
-  which,
-}: {
-  readonly tally: TallyView;
-  readonly kind: "band" | "columns";
-  readonly which?: ReadonlyArray<keyof TallyView>;
-}) {
-  const facts = tallyFacts(tally, which);
-  if (facts.length === 0) return "";
-  return (
-    <section class={`lab-tally lab-tally-${kind}`} aria-label="So far">
-      <dl>
-        {facts.map(({ value, label }) => (
-          <div>
-            <dt class="at-type-meta" safe>
-              {label}
-            </dt>
-            <dd safe>{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
 
 /**
  * The next evening, or the open slot, as a line under a hero that leads

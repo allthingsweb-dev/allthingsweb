@@ -1,4 +1,4 @@
-import { portrait } from "allthings-brand/src/layout.ts";
+import { below, portrait } from "allthings-brand/src/layout.ts";
 import type * as Rows from "allthings-core/src/rows.ts";
 import {
   type Format,
@@ -20,6 +20,10 @@ import {
  * the media origin, as large as they were uploaded.
  */
 export type ImageMode = "variants" | "originals";
+
+/** The `sizes` of a photo shown at `wide` of the screen, and `narrow` below `l`. */
+export const screenShare = (wide: number, narrow: number): string =>
+  `${below("l")} ${narrow}vw, ${wide}vw`;
 
 /** The formats offered as <source>s, best first; JPEG is the <img>'s own. */
 const sourceFormats: ReadonlyArray<Format> = ["avif", "webp"];

@@ -133,61 +133,16 @@
   color: var(--at-meta);
 }
 
-/* The tally: big numbers over mono labels. As a band, under a hero, the
-   numbers fill their cells; as columns, within a hero, they sit side by
-   side under the lockup. */
-
-.lab-tally dl {
-  display: grid;
-  margin: 0;
-}
-
-.lab-tally dl > div {
-  display: flex;
-  flex-direction: column;
-  gap: var(--at-space-2);
-  container-type: inline-size;
-}
-
-.lab-tally dd {
-  order: -1;
-  font-weight: 800;
-  font-stretch: 112%;
-  text-indent: var(--at-type-event-lockup-inset);
-  line-height: 0.9;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.lab-tally-band dl {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: var(--at-stroke-heavy) solid var(--at-text);
-}
-
-.lab-tally-band dl > div {
-  padding: var(--at-space-3) var(--at-space-4) 0 0;
-}
-
-.lab-tally-band dl > div + div {
-  border-left: var(--at-stroke-hairline) solid var(--at-rule);
-  padding-left: var(--at-space-4);
-}
-
-.lab-tally-band dd {
-  font-size: calc(var(--at-font-size-hero-l) * 1.45);
-}
-
-.lab-tally-columns dl {
+.figures-columns dl {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.lab-tally-columns dl > div {
+.figures-columns dl > div {
   padding: var(--at-space-2) var(--at-space-5) 0 0;
   border-top: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
-.lab-tally-columns dd {
+.figures-columns dd {
   font-size: min(
     var(--at-font-size-figure),
     calc(var(--at-font-size-hero-l) * 1.45)
@@ -431,60 +386,6 @@
   padding-top: var(--at-space-2);
 }
 
-/* slash-grid: the community's photos cut on the slash's slant beside the
-   lockup, each leading to its evening. */
-
-.slash-cut .hero-text {
-  grid-column: span 5;
-}
-
-.slash-grid {
-  grid-column: span 7 / -1;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: var(--at-space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow: hidden;
-}
-
-/* Each tile leans 14°, the slash's angle; the photo in it leans back and
-   fills it. The grid's edges stay straight. */
-.slash-grid li {
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
-  transform: skewX(-14deg);
-  background: var(--at-surface);
-}
-
-.slash-grid a {
-  display: block;
-  height: 100%;
-}
-
-.slash-grid picture,
-.slash-grid img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.slash-grid img {
-  transform: skewX(14deg) scale(1.35);
-  transition: transform 0.4s ease;
-}
-
-.slash-grid a:hover img,
-.slash-grid a:focus-visible img {
-  transform: skewX(14deg) scale(1.5);
-}
-
-.slash-grid a:focus-visible {
-  outline-offset: calc(-1 * var(--at-stroke-heavy));
-}
-
 @keyframes band-drift {
   to {
     transform: translateX(-50%);
@@ -566,6 +467,44 @@
 .liquid[data-engine-live] .liquid-wall,
 .liquid[data-engine-live] .liquid-lens {
   visibility: hidden;
+}
+
+/*
+ * An engine's surface shows once, finished: depth-field's field (the
+ * hero's text stands on Night meanwhile) and the letters' photos (the
+ * letters are the plain wordmark meanwhile). It waits until the engine has
+ * drawn its first frame with every photo in it, or, where it can't run,
+ * the still composition has all of its photos (src/client/lab.ts marks the
+ * stage ready), then fades in, in one step.
+ *
+ * The lab's script marks the stage as soon as it runs. If it never does
+ * (its module didn't load), the still composition fades in after a
+ * moment all the same. Without script, or for people who prefer reduced
+ * motion, nothing is held back: the stills show as their photos come.
+ */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .letters[data-engine-stage] .letters-photos,
+  .liquid[data-engine-stage] .liquid-field {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    animation: engine-unstarted 0.6s ease 4s forwards;
+  }
+
+  .letters[data-engine-started] .letters-photos,
+  .liquid[data-engine-started] .liquid-field {
+    animation: none;
+  }
+
+  .letters[data-engine-ready] .letters-photos,
+  .liquid[data-engine-ready] .liquid-field {
+    opacity: 1;
+  }
+}
+
+@keyframes engine-unstarted {
+  to {
+    opacity: 1;
+  }
 }
 
 .liquid-text {
@@ -830,12 +769,18 @@
   animation: band-drift 150s linear infinite;
 }
 
-/* Running, the engine draws the photos in its canvas; they hold still
-   under it, where it takes them from. */
-.letters[data-engine-live] .letters-track {
-  visibility: hidden;
+/* With an engine, the photos hold still from the first paint: the engine
+   draws them where they stand, and moves them itself. Running, it draws
+   them in its canvas, over the still ones. */
+.letters[data-engine-stage] .letters-track {
   animation: none;
 }
+
+.letters[data-engine-live] .letters-track {
+  visibility: hidden;
+}
+
+/* And they show once, finished, as depth-field's field does (above). */
 
 .letters-track ul {
   display: grid;
@@ -984,14 +929,6 @@ h1.letters-word .at-cursor {
     grid-column: 1 / -1;
   }
 
-  .slash-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .slash-grid li:nth-child(n + 17) {
-    display: none;
-  }
-
   /* Narrower, the sheet keeps three frames a row: the latest, and the one
      leading on. */
   .sheet ol {
@@ -1008,13 +945,11 @@ h1.letters-word .at-cursor {
 }
 
 @media (--at-below-l) {
-  .sheet,
-  .slash-cut .hero-text,
-  .slash-grid {
+  .sheet {
     grid-column: 1 / -1;
   }
 
-  .lab-tally-columns dl {
+  .figures-columns dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: var(--at-space-5);
   }
@@ -1022,16 +957,6 @@ h1.letters-word .at-cursor {
   .lab-next {
     grid-template-columns: minmax(0, 1fr);
     justify-items: start;
-  }
-
-  .lab-tally-band dl {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: var(--at-space-6);
-  }
-
-  .lab-tally-band dl > div:nth-child(odd) {
-    border-left: 0;
-    padding-left: 0;
   }
 
   .lab-variants a {
@@ -1113,11 +1038,14 @@ h1.letters-word .at-cursor {
   .wall-tile > :nth-child(2),
   .depth-sway,
   .depth-drift,
-  .letters-track {
+  .letters-track,
+  .letters[data-engine-stage] .letters-photos,
+  .liquid[data-engine-stage] .liquid-field {
     animation: none;
   }
 
-  .slash-grid img {
+  .letters[data-engine-stage] .letters-photos,
+  .liquid[data-engine-stage] .liquid-field {
     transition: none;
   }
 }

@@ -123,10 +123,10 @@ function section(html: string, id: string): string {
     : html.slice(start, html.indexOf("</section>", start));
 }
 
-/** The photo mosaic beside the hero, or "" when the page has none. */
-function mosaic(html: string): string {
-  const start = html.indexOf('<div class="mosaic');
-  return start === -1 ? "" : html.slice(start, html.indexOf("</div>", start));
+/** The slash grid beside the hero, or "" when the page has none. */
+function grid(html: string): string {
+  const start = html.indexOf('<ul class="slash-grid">');
+  return start === -1 ? "" : html.slice(start, html.indexOf("</ul>", start));
 }
 
 /** The footer's portraits. */
@@ -251,17 +251,40 @@ describe("/ with evenings announced", () => {
     expect(html).not.toContain("Draft");
   });
 
-  it("sets three community photos beside the hero, from the media origin, sized", async ({
+  it("cuts the community's photos beside the hero, from the media origin, sized, each leading to its evening", async ({
     Announced,
   }) => {
     const { html } = await home(Announced);
-    const images = mosaic(html).match(/<img [^>]*>/g) ?? [];
-    expect(images).toEqual([
-      `<img src="${mediaPhoto("effect")}" alt="Michael Arnaldi on stage at CodeRabbit" width="1600" height="1200" loading="lazy" decoding="async"/>`,
-      `<img src="${mediaPhoto("pier-70")}" alt="The crowd at Pier 70" width="1200" height="900" loading="lazy" decoding="async"/>`,
-      `<img src="${mediaPhoto("mux")}" alt="Pizza at Mux" width="1024" height="768" loading="lazy" decoding="async"/>`,
+    const tiles = [
+      ...grid(html).matchAll(/<li><a href="([^"]+)">(<img [^>]*>)/g),
+    ].map(([, href, img]) => [href, img]);
+    const img = (name: string, alt: string, width: number, height: number) =>
+      `<img src="${mediaPhoto(name)}" alt="${alt}" width="${width}" height="${height}" decoding="async" fetchpriority="high"/>`;
+    // Every photo of the evenings held, latest first, as the wall falls back.
+    expect(tiles).toEqual([
+      [
+        "/2026-03-07-all-things-effect",
+        img("effect", "Michael Arnaldi on stage at CodeRabbit", 1600, 1200),
+      ],
+      [
+        "/2025-11-02-pre-next-js-conf-ship-ai-meetup",
+        img("pier-70", "The crowd at Pier 70", 1200, 900),
+      ],
+      [
+        "/2025-06-01-react-bay-area-at-mux",
+        img("mux", "Pizza at Mux", 1024, 768),
+      ],
+      [
+        "/2025-01-28-all-things-web-at-sanity",
+        img("sanity", "Sanity, too old to show", 1024, 768),
+      ],
     ]);
-    expect(html).toContain('<div class="mosaic tiles-3">');
+    expect(html).toContain(
+      '<section class="hero slash-cut" aria-labelledby="next">',
+    );
+    expect(html).toContain(
+      '<section class="figures figures-band" aria-label="So far">',
+    );
   });
 });
 
@@ -298,7 +321,7 @@ describe("/ with nothing announced", () => {
     const { html } = await home(Quiet);
     const rows = section(html, "recently").match(/<li>/g) ?? [];
     expect(rows).toHaveLength(3);
-    expect(mosaic(html).match(/<img /g)).toHaveLength(3);
+    expect(grid(html).match(/<img /g)).toHaveLength(4);
   });
 });
 
@@ -408,6 +431,8 @@ describe("/'s footer", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
     expect(html).toContain('<h1 id="next" class="hero-name lockup-l">');
+    // The community reads profiles too: home goes on without its grid.
+    expect(html).not.toContain("slash-grid");
     const images = portraits(html);
     expect(images).toHaveLength(2);
     for (const image of images) expect(image).toMatch(blankAvatar);

@@ -17,8 +17,8 @@ import { ogCards } from "../og/cards.ts";
 
 /**
  * /people/<slug>: one person, as their profile has them, beside what they
- * did at our evenings and the ones we shared: their talks and their parts,
- * latest first, and, for an organizer, every evening they hosted. Laid out
+ * did at our evenings and the ones we shared, one row per evening, latest
+ * first: hosting it, their talks and their other parts. Laid out
  * as /about is: the person holds still beside their parts. What a profile
  * leaves empty is left out, never filled in.
  */
@@ -123,8 +123,11 @@ function Elsewhere({ talks }: { readonly talks: ReadonlyArray<ExternalTalk> }) {
 const count = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`;
 
-/** What the page says it is: their title, then their part at allthings. */
-function description(person: PersonPage): string {
+/**
+ * What the page says it is: their title, then their part at allthings, as
+ * the page counts it: the evenings they had a part in, and their talks.
+ */
+function description(person: PersonPage, evenings: number): string {
   const talks = (curation: "ours" | "shared") =>
     person.parts.filter(
       (part) => part.kind === "talk" && part.evening.curation === curation,
@@ -132,9 +135,7 @@ function description(person: PersonPage): string {
   const ours = talks("ours");
   const shared = talks("shared");
   const done = [
-    ...(person.hosted.length === 0
-      ? []
-      : [count(person.hosted.length, "evening hosted", "evenings hosted")]),
+    ...(evenings === 0 ? [] : [count(evenings, "evening", "evenings")]),
     ...(ours === 0 ? [] : [count(ours, "talk", "talks")]),
   ];
   const lead =
@@ -159,14 +160,13 @@ export function personPage({
   images,
 }: PersonProps): string {
   const path = personPath(person.slug);
-  // One row per evening: the hosted ones under Hosted, then our others,
-  // then the ones we only shared, never one as another.
-  const { ours, shared, hosted } = personRows(person);
+  // One row per evening, hosted or not: ours, then the ones we only shared.
+  const { ours, shared } = personRows(person);
   return Document({
     section: "people",
     meta: {
       title: gatheringTitle(person.name),
-      description: description(person),
+      description: description(person, ours.length),
       path,
       image: ogCards.people,
       structuredData: [personStructuredData(person, `${origin}${path}`)],
@@ -204,7 +204,10 @@ export function personPage({
           {ours.length === 0 ? (
             ""
           ) : (
-            <Section id="at-allthings" title="At allthings">
+            <Section
+              id="at-allthings"
+              title={`At allthings · ${count(ours.length, "evening", "evenings")}`}
+            >
               <Appearances rows={ours} />
             </Section>
           )}
@@ -223,16 +226,6 @@ export function personPage({
               title={`Talks elsewhere · ${count(elsewhere.length, "talk", "talks")}`}
             >
               <Elsewhere talks={elsewhere} />
-            </Section>
-          )}
-          {person.hosted.length === 0 ? (
-            ""
-          ) : (
-            <Section
-              id="hosted"
-              title={`Hosted · ${count(person.hosted.length, "evening", "evenings")}`}
-            >
-              <Appearances rows={hosted} />
             </Section>
           )}
         </div>

@@ -457,18 +457,21 @@ describe("/people/<slug>", () => {
     expect(grace).not.toContain("Talks elsewhere");
   });
 
-  it("lists the evenings an organizer hosted, with an MC part on the evening, not apart", async ({
+  it("lists the evenings an organizer hosted at allthings, the MC part on the same row", async ({
     People,
   }) => {
     const html = await (await fetch(`${People}/people/erik-thorelli`)).text();
-    expect(html).toContain(
-      '<h2 id="hosted" class="at-type-meta">Hosted · 1 evening</h2>',
+    expect(html).toMatch(
+      /<h2 id="at-allthings" class="at-type-meta">At allthings · \d+ evenings?<\/h2>/,
     );
+    expect(html).not.toContain('id="hosted"');
     expect(html).toContain(
-      '<span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span><span class="talk-parts">MC</span>',
+      '<span>effect</span><span class="at-cursor" aria-hidden="true">_</span></span><span class="talk-parts">host · MC</span>',
     );
-    // Hosting it says he was there: the MC part is no row of its own.
-    expect(html.match(/<span class="talk-parts">MC<\/span>/g)).toHaveLength(1);
+    // One row for the evening: the MC part is no row of its own.
+    expect(
+      html.match(/<span class="talk-parts">[^<]*MC<\/span>/g),
+    ).toHaveLength(1);
     const directory = await (await fetch(`${People}/people`)).text();
     expect(section(directory, "organizers")).not.toContain(
       '<span class="talk-parts">MC</span>',

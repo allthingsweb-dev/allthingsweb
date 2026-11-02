@@ -100,6 +100,8 @@ export function make({ gl, tiles }: EngineContext): Engine {
   let target = { x: 0, y: 0 };
   let current = { x: 0, y: 0 };
   let moved = false;
+  /** Whether a frame has been drawn: the first starts the trail in place. */
+  let drawn = false;
 
   /** The pointer in the field's coordinates: x across by aspect, y up. */
   const toField = (x: number, y: number) => ({
@@ -136,6 +138,16 @@ export function make({ gl, tiles }: EngineContext): Engine {
           x: aspect * 0.6 + Math.sin(time * 0.23) * aspect * 0.25,
           y: Math.cos(time * 0.19) * 0.45,
         };
+      }
+      // The first frame shows the trail where it wanders, not on its way
+      // there across the text: every blob starts at the target.
+      if (!drawn) {
+        drawn = true;
+        current = target;
+        for (let i = 0; i < trail; i++) {
+          chase[i * 2] = target.x;
+          chase[i * 2 + 1] = target.y;
+        }
       }
       // Each blob follows the one before it; the first follows the pointer.
       const ease = 1 - Math.pow(0.0001, step);

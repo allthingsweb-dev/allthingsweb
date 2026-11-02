@@ -12,11 +12,13 @@ const decorative = (photo: Rows.Photo): Rows.Photo => ({ ...photo, alt: "" });
  * (the stylesheet's `.letters-*` rules), so where blending isn't drawn,
  * or before the photos load, the letters are plain text.
  *
- * Without script the photos drift slowly across, and hold still for
+ * Without an engine the photos drift slowly across, and hold still for
  * reduced motion. With an `engine`, the client (src/client/lab.ts) draws
  * them in WebGL instead, as a fluid, as tiles on springs or under water,
- * stirred by the pointer anywhere over the word; the drifting photos are
- * where it takes them from, and what stays when it can't run.
+ * stirred by the pointer anywhere over the word; the photos hold still,
+ * where it takes them from, and are what stays when it can't run. They
+ * show once the engine's first frame is drawn, so the word never changes
+ * its look while the page loads.
  *
  * Any page can set any word this way: the word is the children, written
  * once and shown twice (the heading, and the solid copy that draws its
