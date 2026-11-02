@@ -1,6 +1,15 @@
 # Moving allthings.dev, its media and the new site to the allthings account
 
-Status (Oct 6): Phase 1 is done. R2 and Workers Paid are on in the allthings account (`af627f300cd00c4dca56aacf05bea050`).
+**Status (Nov 2): done.** allthings.dev moved on November 2, 2026, and Phases 2 to 4 ran as written below, with the changes noted in each. What happened, in UTC:
+
+- **Phase 2, from 17:10.** `scripts/prod-deploy.sh` in esthor/allthings-ops deployed prod with the `allthings` profile: plan "no changes", prewarm 120 of 120 pages kept. The delta since Phase 1 was 2 objects (1.2 MB): `copy` copied 2, and `verify` found all 564 objects identical. The `workers.dev` URL answered byte for byte what allthings.dev (then the bridge) answered for `/`, `/events`, `/people`, `/rss`, `/api/v1/events`, `/sitemap.xml`, `/robots.txt` and MCP `list_events`. No evening was on the calendar within 24 hours. No token an agent holds can read the Registrar API (`registrant_email_verified`), so it was checked on the Configuration tab, as Erik's steps say; the move would have been refused without it.
+- **The watcher** (`scripts/move-day-deploy.sh`) planned at 17:18:34 and polled from 17:18:36. Erik submitted the move and accepted it at about 17:34. The zone turned active at 17:38:13, before the .dev registry delegated to max/rosalie: Cloudflare served the zone from the allthings account at once.
+- **Phase 4.** The deploy started at 17:38:14. It attached media.allthings.dev, allthings.dev and www, created the upload Worker in this account (its put/delete check ran) and moved the Sync Worker to `SYNC_IMAGES: "bucket"`. Two of the Vercel env writes failed: parallel `bunx vercel@62.2.0` runs raced to link the package (`EEXIST`). The rerun at 17:39 created them, and its prewarm answered 200. allthings.dev answered 200 at every check, the first at 17:39:38, after the deploy; the 16 s between activation and the deploy attaching it were not probed. media.allthings.dev's certificate was issued at 17:39:40.
+- **Checks after it.** media.allthings.dev returned originals with a valid certificate. allthings.dev returned 200. `www.allthings.dev/events?x=1` returned 301 to `https://allthings.dev/events?x=1`. robots.txt returned `Allow: /`. The events API and MCP `list_events` (a POST to `/mcp`) answered as on `workers.dev`. A rerun of `copy` found nothing new, and `verify --public https://media.allthings.dev` found all 564 objects identical in both buckets and on the public domain (18:17; a local resolver had cached "no such host" from before the deploy, so it waited for that to expire).
+- **esthor/domains.** The bridge Worker `domains-allthings-redirect` was deleted from the personal account at about 17:50. That was too early. The registry had only just delegated to max/rosalie, and the old nameservers, which some resolvers kept asking (they advertise an NS TTL of 86400), answered from the moved-away zone. Deleting the Worker had taken its custom-domain records out of that zone, so those resolvers got no address for allthings.dev or www, and about 40% of Globalping probes failed with ENODATA. At 18:38, two proxied `AAAA 100::` records for the apex and www in the moved-away zone fixed it: the old nameservers answer with the same Cloudflare addresses, and the edge serves both from the active zone. They are deleted after 2026-11-04 (esthor/domains, `sites/allthings.dev/README.md`, step 3). zones.json now manages the zone from the allthings account (esthor/domains#268), and `move.ts` passes.
+- **The studio's upload credentials.** The 1Password item "allthings media upload" named the old account's upload Worker, which stores into the old bucket, which no longer serves media.allthings.dev. From 17:55 it names the new upload Worker (`allthings-mediaupload-prod-dn56zsam6rwzsevd.allthings.workers.dev`) and its token. Core's scripts (`bun run photos` and the rest) read that item, so they store into the bucket that serves.
+
+Phase 1 was done on Oct 6. R2 and Workers Paid are on in the allthings account (`af627f300cd00c4dca56aacf05bea050`).
 
 - The staged bucket holds all 317 objects (1,372,325,671 bytes), copied in 97 s, and `verify` found every object identical.
 - allthings.dev is a pending zone there: `f65e1c6d54e9d2e850cf025190ef8915`, nameservers max/rosalie.ns.cloudflare.com, no records.
@@ -101,24 +110,26 @@ Check first that #162 is on main: `infra/src/web.ts` exports `siteDomain`, and `
 
 **Phase 3: the move**
 
-Before submitting, start `bash scripts/move-day-deploy.sh` (Phase 4, step 1) in a terminal, so the deploy follows activation within seconds. Then Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account. `dig +short NS allthings.dev` then answers max/rosalie.
+Before submitting, start `bash scripts/move-day-deploy.sh` (Phase 4, step 1) in a terminal, so the deploy follows activation within seconds. Then Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account. `dig +short NS allthings.dev` answers max/rosalie once the registry is updated, which may come after activation: on Nov 2 the zone served from the allthings account before the registry changed.
 
-From activation, media.allthings.dev, allthings.dev and www are unserved until Phase 4's deploy attaches them. The old zone is marked Moved Away, and its custom domains go with it.
+From activation, media.allthings.dev, allthings.dev and www are unserved from the allthings account until Phase 4's deploy attaches them. The old zone is marked Moved Away. Its records keep its nameservers answering for allthings.dev and www, for resolvers that still ask them, until the bridge Worker is deleted (Phase 4 step 4). On Nov 2 the deploy attached allthings.dev 16 s after activation.
 
 **Phase 4: right after activation**
 
-From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself.
+From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer from the allthings account. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself. The moved-away zone's own records keep answering for allthings.dev and www until step 4 deletes the bridge, and only then.
 
 1. **Wait for activation, then deploy at once.** Start [`scripts/move-day-deploy.sh`](../scripts/move-day-deploy.sh) before the move is submitted:
 
    ```sh
-   bash scripts/move-day-deploy.sh
+   (cd ../web && bun run build)   # the deploy uploads web/dist
+   bash scripts/move-day-deploy.sh 2>&1 | tee move-day.log
    ```
 
-   - It reads the deploy's secrets from the `allthings` 1Password vault and stops if any read fails or is empty. Your own `op` session (the desktop app integration) can read that vault, and agents read it with `OP_SERVICE_ACCOUNT_TOKEN`.
+   - Each line starts with a UTC timestamp, one per zone check, so the log shows the wait is alive.
+   - It reads the deploy's secrets from the `allthings` 1Password vault with `op read` and stops if any read fails or is empty. Your own `op` session (the desktop app integration) can read that vault, and agents read it with `OP_SERVICE_ACCOUNT_TOKEN` set in their environment.
    - It plans prod with the `allthings` profile, so a sign-in problem shows up while everything still serves.
    - It checks the zone every 10 seconds. Each failed check is reported, and five in a row stop it, as does any status other than pending or active.
-   - Once the zone is active, it runs the prod deploy (now "serve").
+   - Once the zone is active, it runs the prod deploy (now "serve"), first catching up with main if main moved while it waited (and planning that again, stopping if the plan fails), then prewarms the page store on allthings.dev. It never waits on a prompt (`--yes`, no stdin), and keeps secret-looking lines out of its output.
 
    The deploy brings up:
    - **media.allthings.dev** on the new bucket.
@@ -135,22 +146,19 @@ From activation until step 1's deploy, media.allthings.dev, allthings.dev and ww
    - `curl -sI 'https://www.allthings.dev/events?x=1'` must return 301 to `https://allthings.dev/events?x=1`.
    - robots.txt must now allow crawlers.
    - Event pages, the events API and an MCP `list_events` call (a POST to `/mcp`) must answer as they did on `workers.dev`.
-4. **esthor/domains** ([#232](https://github.com/esthor/domains/pull/232)), Terraform only:
-   - Move Terraform's state to the new zone (`state rm`, then the `--expect-import` plan, then apply).
-   - Delete the personal-account Worker `domains-allthings-redirect`. Its custom domains went with the old zone, so it no longer serves anything.
-5. **Redeploy production on Vercel.** Changed env only reaches new deployments. Until then, uploads still go to the old bucket.
-6. Run `copy` again for anything uploaded to the old bucket before the redeploy, then `verify --public`.
-7. Run an end-to-end check: one upload through the admin, visible on media.allthings.dev and as an `/img` variant.
-8. **Point clients at the new host.** These are small PRs once step 3 passes, not before. Before activation, allthings.dev still redirects to allthingsweb.dev, and a redirect drops an MCP POST. After it, the new site answers on allthings.dev and allthingsweb.dev keeps serving the old app, so clients can switch to `https://allthings.dev/mcp`.
-   - The CLI's default endpoint becomes `https://allthings.dev/mcp` (`siteOrigin` in `cli/src/config.ts`, and `core/scripts/fixtures.ts`).
-   - `infra/README.md`'s "default profile until the domain moves" sentence becomes past tense.
-   - The agent plugin's MCP server becomes `https://allthings.dev/mcp` (`plugins/allthings/mcp.json`, and the URL its test in `app/tests/agent-plugin.test.ts` expects).
+4. **esthor/domains** (Alchemy; Terraform is gone from it). Done Nov 2:
+   - Delete the personal-account Worker `domains-allthings-redirect` (`bunx wrangler delete --config sites/allthings.dev/wrangler.jsonc`), **but only a full day after the .dev registry delegates to max/rosalie** (`dig +norec NS allthings.dev @ns-tld1.charlestonroadregistry.com`). Once the zone is active it no longer serves anything itself. But its custom-domain records keep the moved-away zone answering for allthings.dev and www, and some resolvers keep asking that zone's nameservers until their cached NS records (TTL 86400 s) expire. Deleting it before then leaves those resolvers with no address for allthings.dev.
+   - Change allthings.dev's `"account"` from `"personal"` to `"allthings"` in `infra/alchemy/zones.json` (esthor/domains#268). The plan receipts must pass: the allthings stage adopts the zone under the id in `zone-ids.json`, and the personal stage orphans the old one. Apply both from main, then check with `bash scripts/with-token.sh allthings -- bun move.ts allthings.dev`.
+5. **Point the uploaders at the new upload Worker.** The deploy writes its URL and token to the Vercel env, but core's scripts read them from the 1Password item "allthings media upload". Set its `url` and `token` to the new Worker's. The token is a secret: it authorizes PUT and DELETE in the bucket. Vercel can't mark a development variable sensitive, so `vercel env pull --environment development` into a file only you can read (umask 077) gives it. Read it from there into a variable, write the item with `op item edit --template`, delete the file, and never print it. Then check that a GET of a valid object path with the vault's token, such as `<url>/move-day-auth-check.txt`, answers 405 (authorized, wrong method), not 401. The Worker's root answers 400 before it looks at the method. Until then, the studio's uploads go to the old bucket, which no longer serves. The app on Vercel has no admin or schedule left, but its `/api/cron/luma-sync` route still stores images through `appMediaStore()` with the Vercel env's values when called with `CRON_SECRET`. So production must be redeployed to read the new ones. On Nov 2 the 18:33 redeploy that turned on the allthingsweb.dev redirect (`ALLTHINGS_DEV_REDIRECT=on`) did that, and since then its middleware redirects every path, that route included.
+6. Run `copy` again for anything uploaded to the old bucket before step 5, then `verify --public`.
+7. The deploy's put/delete check (`MediaUploadCheck`) is the end-to-end upload check: the admin it was written for is retired.
+8. **Clients.** Nothing to do: the CLI, the agent plugin and the fixtures script were pointed at `https://allthings.dev/mcp` in #202, while the bridge served it.
 
 **Phase 5: after**
 
 - **The old bucket.** Keep the old bucket and every original untouched. The stack declares it `RemovalPolicy.retain()`, and the script never deletes. Decide later whether it is ever deleted. My suggestion is not before the 30-day transfer lock ends.
 - **The old prod stack.** Never run `alchemy destroy --stage prod` with the default profile. Destroy plans nothing, so the account guard can't stop it, and it would remove the old upload Worker (harmless after Phase 4, but noisy).
-- **Old upload Worker.** Leave it, or delete it by hand after the Vercel redeploy.
+- **Old upload Worker.** Leave it, or delete it by hand: since Phase 4 step 5 nothing names it.
 - **Tokens.** None to clean up: each copy run deleted its own. `cf accounts tokens list --profile allthings` shows any left by a run that crashed outright, named "allthings media copy <time>".
 
 ## Downtime: what can still go wrong
