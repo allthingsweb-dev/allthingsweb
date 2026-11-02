@@ -5,6 +5,7 @@ import * as Effect from "effect/Effect";
 import { CacheControl, PrivateCacheControl } from "../src/cache.ts";
 import { mediaOrigin } from "../src/links.ts";
 import { saved, variants } from "../src/pages/lab/variants.tsx";
+import { portraitsPath } from "../src/pages/routes.ts";
 import {
   contentSecurityPolicy,
   scriptedContentSecurityPolicy,
@@ -410,6 +411,20 @@ describe("/'s footer", () => {
     const images = portraits(html);
     expect(images).toHaveLength(2);
     for (const image of images) expect(image).toMatch(blankAvatar);
+  });
+
+  it("answers the portraits' address with a failure, never stored, when they can't be read", async ({
+    Announced,
+    NoProfiles,
+  }) => {
+    const read = await fetch(`${Announced}${portraitsPath}`);
+    expect(read.status).toBe(200);
+    expect(read.headers.get("cache-control")).toBe(CacheControl.publicData);
+    expect(await read.text()).toContain(erikPortrait);
+    const unread = await fetch(`${NoProfiles}${portraitsPath}`);
+    expect(unread.status).toBe(503);
+    expect(unread.headers.get("cache-control")).toBe(CacheControl.failure);
+    await unread.arrayBuffer();
   });
 
   it("shows the blank avatars when nothing can be read", async ({

@@ -168,10 +168,12 @@ const keptFooter = Effect.gen(function* () {
       return response.json();
     }).pipe(
       Effect.flatMap(Schema.decodeUnknownEffect(PortraitsJson)),
-      Effect.map((byId): Footer => ({
-        portraits: new Map(Object.entries(byId)),
-        read: true,
-      })),
+      Effect.map(
+        (byId): Footer => ({
+          portraits: new Map(Object.entries(byId)),
+          read: true,
+        }),
+      ),
       Effect.tapCause((cause) =>
         Effect.logWarning(
           "The hosts' portraits didn't come through the page store; reading them:",
@@ -930,11 +932,13 @@ const portraits = HttpRouter.add(
     const { portraits: byId, read } = yield* footer(
       hostPortraits.pipe(Effect.provide(repositories)),
     );
+    // Unread portraits are a failure, never an answer: a page taking them
+    // through the store then reads them itself, and is sent as a failure.
+    if (!read)
+      return plain("Temporarily unavailable", 503, CacheControl.failure);
     return HttpServerResponse.text(JSON.stringify(Object.fromEntries(byId)), {
       contentType: "application/json",
-      headers: {
-        "cache-control": read ? CacheControl.publicData : CacheControl.failure,
-      },
+      headers: { "cache-control": CacheControl.publicData },
     });
   }),
 );

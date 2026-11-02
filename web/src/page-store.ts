@@ -534,7 +534,8 @@ export function pageStored(
 ): (request: Request, context: WaitUntil) => Promise<Response> {
   /** The pointer as this isolate last read it, and when. */
   let known:
-    { readonly pointer?: SitePointer; readonly at: number } | undefined;
+    | { readonly pointer?: SitePointer; readonly at: number }
+    | undefined;
   /** Whether this isolate is asking the database already. */
   let checking = false;
 
