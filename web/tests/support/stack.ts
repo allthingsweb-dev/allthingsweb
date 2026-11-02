@@ -123,9 +123,10 @@ export const testStack = <const Name extends string>(
  *
  * - `startup`: the entry and every module it imports statically, which
  *   every cold start parses, even one the store answers. Only the store
- *   (src/page-store.ts) is: about 15 KB, most of it Effect's cookie
- *   parser. The app (src/app.ts) loads on the first request the store
- *   can't answer (src/worker.ts).
+ *   (src/page-store.ts) is: about 7.5 KB. It reads the mode cookie itself
+ *   (src/pages/theme-cookie.ts) rather than load Effect's cookie module,
+ *   which was twice that. The app (src/app.ts) loads on the first request
+ *   the store can't answer (src/worker.ts).
  * - `lazy`: each module loaded on first use, with `import()`: the app's
  *   own, the largest about 85 KB, and /brand's and the foundations', a
  *   few KB each.
@@ -134,4 +135,4 @@ export const testStack = <const Name extends string>(
  * parsed on a cold start: raise these only on purpose. When the test
  * fails, it lists what the cold start is made of.
  */
-export const bundleBudgets = { startup: 25_000, lazy: 120_000 } as const;
+export const bundleBudgets = { startup: 10_000, lazy: 120_000 } as const;

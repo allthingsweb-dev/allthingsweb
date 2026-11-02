@@ -1,7 +1,6 @@
-import * as Cookies from "effect/http/Cookies";
 import { edgeCacheControlHeader } from "./cache.ts";
 import { contentEncoding } from "./pages/encoding.ts";
-import { themeOf } from "./pages/theme-cookie.ts";
+import { themeOfHeader } from "./pages/theme-cookie.ts";
 
 /**
  * The Worker's store of the pages it has built, in Workers KV, in front of
@@ -246,9 +245,7 @@ export async function pageKey(
   at: number,
 ): Promise<string> {
   const url = new URL(request.url);
-  const mode =
-    themeOf(Cookies.parseHeader(request.headers.get("cookie") ?? "")) ??
-    "system";
+  const mode = themeOfHeader(request.headers.get("cookie") ?? "") ?? "system";
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(`${url.pathname}${url.search}`),
