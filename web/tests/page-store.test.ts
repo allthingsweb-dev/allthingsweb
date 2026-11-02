@@ -584,6 +584,54 @@ describe("keepable", () => {
   });
 });
 
+describe("Server-Timing", () => {
+  const timing = (response: Response) =>
+    response.headers.get("server-timing") ?? "";
+
+  test("says where the store's time went, and which request was an isolate's first", async () => {
+    const { local } = memoryLocal();
+    const { fetch, time } = setup({ local });
+    const first = await fetch(get("/"));
+    expect(timing(first.response)).toBe(
+      `store;desc="bypass";dur=0.0, isolate;desc="new", db;dur=40.0`,
+    );
+    const built = await fetch(get("/"));
+    expect(timing(built.response)).toMatch(
+      /^store;desc="miss";dur=\d+\.\d, pointer;desc="memory";dur=\d+\.\d, db;dur=40\.0$/,
+    );
+    const hit = await fetch(get("/"));
+    expect(timing(hit.response)).toMatch(
+      /^store;desc="hit";dur=\d+\.\d, pointer;desc="memory";dur=\d+\.\d, copy;desc="local";dur=\d+\.\d$/,
+    );
+    // Past this isolate's 30 s, the version is the data center's copy.
+    time.advance(31);
+    expect(timing((await fetch(get("/"))).response)).toContain(
+      `pointer;desc="local"`,
+    );
+  });
+
+  test("names KV in a new isolate where the data center has no copy", async () => {
+    const { fetch, kv } = setup({ local: memoryLocal().local });
+    await fetch(get("/"));
+    await fetch(get("/"));
+    // Another data center: its isolate is new, and it has no copies.
+    const elsewhere = pageStored(async () => new Response("never"), {
+      pages: kv.pages,
+      build: "0123456789abcdef",
+      now: () => Date.UTC(2026, 10, 1, 20, 0, 0),
+      siteState: async () => v1,
+      turnover: 0,
+      local: { cache: memoryLocal().local, id: "test" },
+    });
+    const ctx = context();
+    const response = await elsewhere(get("/"), ctx);
+    await ctx.settle();
+    expect(timing(response)).toMatch(
+      /^store;desc="hit";dur=\d+\.\d, pointer;desc="kv";dur=\d+\.\d, copy;desc="kv";dur=\d+\.\d, isolate;desc="new"$/,
+    );
+  });
+});
+
 describe("the data center's copies", () => {
   test("answer a page from the data center, and KV's first read is copied there", async () => {
     const { local } = memoryLocal();

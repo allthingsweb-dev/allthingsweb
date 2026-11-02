@@ -53,9 +53,14 @@ import { themeOf } from "./pages/theme-cookie.ts";
  * - Photo variants keep their own cache under their own URLs and pass
  *   through untouched (see {@link ownCachePrefixes}).
  *
- * Every answer says how it was served in `Server-Timing`:
- * `store;desc="hit"|"miss"|"bypass"` with how long reading the store took,
- * and for a hit where it came from: `copy;desc="local"|"kv"`.
+ * Every answer says how it was served in `Server-Timing`, first
+ * `store;desc="hit"|"miss"|"bypass"` with how long reading the store took.
+ * A hit or a miss then says where that time went: `pointer;desc=` where
+ * the version came from (`"memory"`, this isolate's; `"local"`, the data
+ * center's copy; `"kv"`) and how long it took, and for a hit
+ * `copy;desc="local"|"kv"` where the page came from and how long that
+ * took. An isolate's first request (bypassed too) adds `isolate;desc="new"`, so a
+ * visitor's time can be told apart from an isolate's start.
  */
 
 /** The part of a KV namespace the store uses. */
@@ -307,32 +312,28 @@ function withoutInternalHeaders(response: Response): Response {
   });
 }
 
-/** `response` with `name;desc=...;dur=...` added to its Server-Timing. */
+/** A Server-Timing entry: `name;desc="..."`, with `;dur=` when timed. */
+const timingEntry = (name: string, description: string, duration?: number) =>
+  duration === undefined
+    ? `${name};desc="${description}"`
+    : `${name};desc="${description}";dur=${Math.max(0, duration).toFixed(1)}`;
+
+/**
+ * `response` with `store;desc=...;dur=...` first in its Server-Timing, and
+ * `details` (where the store's time went) after it.
+ */
 function withTiming(
   response: Response,
   description: "hit" | "miss" | "bypass",
   duration: number,
+  details: ReadonlyArray<string> = [],
 ): Response {
   const headers = new Headers(response.headers);
-  const entry = `store;desc="${description}";dur=${Math.max(0, duration).toFixed(1)}`;
+  const entry = [timingEntry("store", description, duration), ...details].join(
+    ", ",
+  );
   const timing = headers.get("server-timing");
   headers.set("server-timing", timing === null ? entry : `${entry}, ${timing}`);
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
-
-/**
- * `response` with where its kept page came from in its Server-Timing:
- * `copy;desc="local"` from the data center's cache, `"kv"` from KV.
- */
-function withCopy(response: Response, from: "local" | "kv"): Response {
-  const headers = new Headers(response.headers);
-  const entry = `copy;desc="${from}"`;
-  const timing = headers.get("server-timing");
-  headers.set("server-timing", timing === null ? entry : `${timing}, ${entry}`);
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -539,6 +540,9 @@ export function pageStored(
   /** Whether this isolate is asking the database already. */
   let checking = false;
 
+  /** Whether this isolate has served a request through the store yet. */
+  let started = false;
+
   /** Whether this isolate is refreshing its data center's copies already. */
   let refreshing = false;
 
@@ -613,9 +617,11 @@ export function pageStored(
   ): Promise<{
     readonly pointer: SitePointer | undefined | "unreachable";
     readonly stale: boolean;
+    /** Where it was read: this isolate, the data center's copy, or KV. */
+    readonly from: "memory" | "local" | "kv";
   }> => {
     if (known !== undefined && now() - known.at < siteTtl * 1000) {
-      return { pointer: known.pointer, stale: false };
+      return { pointer: known.pointer, stale: false, from: "memory" };
     }
     const copy =
       local === undefined
@@ -629,10 +635,14 @@ export function pageStored(
       if (pointer !== undefined && Number.isFinite(readAt)) {
         const fresh = now() - readAt < siteTtl * 1000;
         if (fresh) known = { pointer, at: readAt };
-        return { pointer, stale: !fresh };
+        return { pointer, stale: !fresh, from: "local" };
       }
     }
-    return { pointer: await fetchPointer(request, context), stale: false };
+    return {
+      pointer: await fetchPointer(request, context),
+      stale: false,
+      from: "kv",
+    };
   };
 
   /** Keeps a page's bytes in the data center under `key`. */
@@ -755,12 +765,15 @@ export function pageStored(
     if (ownCachePrefixes.some((prefix) => pathname.startsWith(prefix))) {
       return handle(request, context);
     }
+    const isolate = started ? [] : [timingEntry("isolate", "new")];
+    started = true;
     const acceptEncoding = request.headers.get("accept-encoding") ?? undefined;
     const bypass = async () =>
       withTiming(
         withoutInternalHeaders(await handle(request, context)),
         "bypass",
         0,
+        isolate,
       );
     // A client refusing every coding gets the page's own answer (406).
     if (
@@ -770,8 +783,9 @@ export function pageStored(
       return bypass();
     }
 
-    const started = now();
-    const { pointer, stale } = await readPointer(request, context);
+    const began = now();
+    const { pointer, stale, from } = await readPointer(request, context);
+    const pointerTiming = timingEntry("pointer", from, now() - began);
     if (pointer === "unreachable") return bypass();
     // A stale copy is no ground for a check: it may be older than KV's
     // pointer, which revalidate reads, and checks from, instead.
@@ -788,12 +802,17 @@ export function pageStored(
 
     const key = await pageKey(request, build, state, at);
     if (stale) context.waitUntil(revalidate(request, state.version, context));
+    const finding = now();
     const found = await findPage(request, key, context);
-    const lookup = now() - started;
+    const lookup = now() - began;
     const kept =
       found === undefined ? undefined : servedFrom(found.bytes, request);
     if (kept !== undefined && found !== undefined) {
-      return withCopy(withTiming(kept, "hit", lookup), found.from);
+      return withTiming(kept, "hit", lookup, [
+        pointerTiming,
+        timingEntry("copy", found.from, now() - finding),
+        ...isolate,
+      ]);
     }
 
     const response = await handle(request, context);
@@ -822,6 +841,9 @@ export function pageStored(
       };
       context.waitUntil(keep());
     }
-    return withTiming(withoutInternalHeaders(response), "miss", lookup);
+    return withTiming(withoutInternalHeaders(response), "miss", lookup, [
+      pointerTiming,
+      ...isolate,
+    ]);
   };
 }
