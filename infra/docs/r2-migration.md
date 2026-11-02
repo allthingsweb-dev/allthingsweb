@@ -112,11 +112,11 @@ Check first that #162 is on main: `infra/src/web.ts` exports `siteDomain`, and `
 
 Before submitting, start `bash scripts/move-day-deploy.sh` (Phase 4, step 1) in a terminal, so the deploy follows activation within seconds. Then Erik submits the move in the personal account and accepts it in the allthings account. allthings.dev turns active in the allthings account. `dig +short NS allthings.dev` answers max/rosalie once the registry is updated, which may come after activation: on Nov 2 the zone served from the allthings account before the registry changed.
 
-From activation, media.allthings.dev, allthings.dev and www are unserved until Phase 4's deploy attaches them. The old zone is marked Moved Away, and its custom domains go with it.
+From activation, media.allthings.dev, allthings.dev and www are unserved from the allthings account until Phase 4's deploy attaches them. The old zone is marked Moved Away. Its records keep its nameservers answering for allthings.dev and www, for resolvers that still ask them, until the bridge Worker is deleted (Phase 4 step 4). On Nov 2 allthings.dev answered 200 throughout, because the deploy attached it 16 s after activation.
 
 **Phase 4: right after activation**
 
-From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself.
+From activation until step 1's deploy, media.allthings.dev, allthings.dev and www don't answer from the allthings account. Their old custom domains lived in the zone that moved away, and R2 and Worker custom domains need an active zone. Keep the window to the deploy itself. The moved-away zone's own records keep answering for allthings.dev and www until step 4 deletes the bridge, and only then.
 
 1. **Wait for activation, then deploy at once.** Start [`scripts/move-day-deploy.sh`](../scripts/move-day-deploy.sh) before the move is submitted:
 
@@ -126,7 +126,7 @@ From activation until step 1's deploy, media.allthings.dev, allthings.dev and ww
    ```
 
    - Each line starts with a UTC timestamp, one per zone check, so the log shows the wait is alive.
-   - It reads the deploy's secrets from the `allthings` 1Password vault and stops if any read fails or is empty. Your own `op` session (the desktop app integration) can read that vault, and agents read it with `OP_SERVICE_ACCOUNT_TOKEN`.
+   - It reads the deploy's secrets from the `allthings` 1Password vault with `op read` and stops if any read fails or is empty. Your own `op` session (the desktop app integration) can read that vault, and agents read it with `OP_SERVICE_ACCOUNT_TOKEN` set in their environment.
    - It plans prod with the `allthings` profile, so a sign-in problem shows up while everything still serves.
    - It checks the zone every 10 seconds. Each failed check is reported, and five in a row stop it, as does any status other than pending or active.
    - Once the zone is active, it runs the prod deploy (now "serve"), first catching up with main if main moved while it waited (and planning that again, stopping if the plan fails), then prewarms the page store on allthings.dev. It never waits on a prompt (`--yes`, no stdin), and keeps secret-looking lines out of its output.

@@ -12,7 +12,7 @@
 #
 # Secrets come from the allthings 1Password vault and are never printed:
 # your own op session (the desktop app integration) can read it, and agents
-# read it with OP_SERVICE_ACCOUNT_TOKEN (or the Keychain item allthings-op).
+# read it with OP_SERVICE_ACCOUNT_TOKEN, set in the environment that runs this.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -22,11 +22,6 @@ ZONE=f65e1c6d54e9d2e850cf025190ef8915
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 # Deploy output can name a secret's value; keep it out of the log.
 scrub() { sed -E 's/postgres(ql)?:[^ "]*/<url>/g' | grep -v -i -E "secret|token|password" || true; }
-
-if [[ -z ${OP_SERVICE_ACCOUNT_TOKEN:-} ]] && security find-generic-password -s allthings-op >/dev/null 2>&1; then
-  OP_SERVICE_ACCOUNT_TOKEN=$(security find-generic-password -s allthings-op -w)
-  export OP_SERVICE_ACCOUNT_TOKEN
-fi
 
 # Read the secrets first, so nothing waits on 1Password at activation.
 # A failed read stops here, and so does an empty value.
