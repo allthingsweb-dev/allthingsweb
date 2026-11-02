@@ -92,6 +92,7 @@ describe("prewarm", () => {
       built: 3,
       passed: 0,
       failed: [],
+      sitemapRead: true,
       waitedMs: 0,
     });
     expect(site.asked[0]).toBe("/sitemap.xml");
@@ -130,6 +131,16 @@ describe("prewarm", () => {
     });
   });
 
+  test("tells a sitemap that was read but not written from one that wasn't read", async () => {
+    const site = fakeSite((path) =>
+      path === "/sitemap.xml" ? "unwritten" : "hit",
+    );
+    const report = await options(site).run();
+    expect(report.failed).toEqual(["/sitemap.xml"]);
+    expect(report.sitemapRead).toBe(true);
+    expect(report.kept).toBe(4);
+  });
+
   test("names the pages that failed", async () => {
     const site = fakeSite(() => "miss", 503);
     const report = await options(site).run();
@@ -155,6 +166,7 @@ describe("prewarm", () => {
       sleep: async () => undefined,
     });
     expect(report.failed).toEqual(["/sitemap.xml"]);
+    expect(report.sitemapRead).toBe(false);
     expect(report.paths).toBe(1);
   });
 

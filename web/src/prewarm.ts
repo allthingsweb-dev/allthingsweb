@@ -30,6 +30,11 @@ export interface PrewarmReport {
   readonly passed: number;
   /** Paths that answered 5xx, failed, or whose page couldn't be written. */
   readonly failed: ReadonlyArray<string>;
+  /**
+   * Whether the sitemap was read, and so the pages it lists were asked
+   * for: its own write failing is in `failed`, and isn't this.
+   */
+  readonly sitemapRead: boolean;
   /** Milliseconds it waited for a new version first. */
   readonly waitedMs: number;
 }
@@ -69,7 +74,7 @@ export interface PrewarmOptions {
 
 /** Whether prewarming read no sitemap, and so warmed nothing. */
 export const sitemapFailed = (report: PrewarmReport): boolean =>
-  report.failed.includes("/sitemap.xml");
+  !report.sitemapRead;
 
 /** Prewarms the store; see the module's comment. */
 export async function prewarm({
@@ -117,20 +122,25 @@ export async function prewarm({
     }
   };
 
-  /** `path`'s body read, or failed once, never thrown. */
-  const finish = async (path: string, response: Response | undefined) => {
+  /** `path`'s body read, or failed once (undefined), never thrown. */
+  const finish = async (
+    path: string,
+    response: Response | undefined,
+  ): Promise<string | undefined> => {
     try {
-      return response?.ok === true ? await response.text() : "";
+      return response?.ok === true ? await response.text() : undefined;
     } catch {
       if (!failed.includes(path)) failed.push(path);
-      return "";
+      return undefined;
     } finally {
       await response?.body?.cancel().catch(() => undefined);
     }
   };
 
   const xml = await finish("/sitemap.xml", await ask("/sitemap.xml"));
-  const paths = sitemapPaths(xml).filter((path) => path !== "/sitemap.xml");
+  const paths = sitemapPaths(xml ?? "").filter(
+    (path) => path !== "/sitemap.xml",
+  );
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(concurrency, paths.length) }, async () => {
@@ -142,5 +152,11 @@ export async function prewarm({
       }
     }),
   );
-  return { paths: paths.length + 1, ...counts, failed, waitedMs: pending };
+  return {
+    paths: paths.length + 1,
+    ...counts,
+    failed,
+    sitemapRead: xml !== undefined,
+    waitedMs: pending,
+  };
 }

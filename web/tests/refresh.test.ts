@@ -95,6 +95,7 @@ describe("the prewarm endpoint", () => {
     built: 2,
     passed: 0,
     failed: [],
+    sitemapRead: true,
     waitedMs: 0,
   };
 
@@ -128,7 +129,12 @@ describe("the prewarm endpoint", () => {
     const noSitemap = await prewarmRequest(
       at({ authorization: `Bearer ${token}` }),
       token,
-      async () => ({ ...report, paths: 1, failed: ["/sitemap.xml"] }),
+      async () => ({
+        ...report,
+        paths: 1,
+        failed: ["/sitemap.xml"],
+        sitemapRead: false,
+      }),
     );
     expect(noSitemap.status).toBe(503);
     expect(await noSitemap.json()).toMatchObject({ failed: ["/sitemap.xml"] });
