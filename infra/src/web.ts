@@ -74,6 +74,11 @@ export const makeWeb = (
       main: "../web/src/worker.ts",
       compatibility,
       assets: "../web/dist/public",
+      // Workers Cache: Cloudflare answers a GET from its cache before the
+      // Worker starts, for as long as the response says (web/src/cache.ts,
+      // `forWorkersCache`). A deploy starts it cold: it is keyed by the
+      // Worker's version.
+      cache: { enabled: true },
       env: {
         ORIGIN: SITE_ORIGIN,
         PAGES: pages,

@@ -2,7 +2,12 @@ import { describe, expect } from "bun:test";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
-import { CacheControl, PrivateCacheControl } from "../src/cache.ts";
+import {
+  CacheControl,
+  PrivateCacheControl,
+  workersCacheHeader,
+  workersCacheLifetime,
+} from "../src/cache.ts";
 import {
   canonicalInput,
   keptInputMax,
@@ -222,6 +227,10 @@ describe("the page store", () => {
     expect(nightAgain.response.headers.get("cache-control")).toBe(
       PrivateCacheControl.publicData,
     );
+    // Workers Cache keeps no page in a mode a cookie fixed.
+    expect(nightAgain.response.headers.get(workersCacheHeader)).toBe(
+      "no-store",
+    );
     const paper = await warm(Cached, "/about", {
       headers: { cookie: "theme=light" },
     });
@@ -232,6 +241,9 @@ describe("the page store", () => {
     expect(systemAgain.html).toBe(system.html);
     expect(systemAgain.response.headers.get("cache-control")).toBe(
       CacheControl.publicData,
+    );
+    expect(systemAgain.response.headers.get(workersCacheHeader)).toBe(
+      workersCacheLifetime,
     );
   });
 
@@ -485,6 +497,20 @@ describe("the page store", () => {
     const none = await refresh(Uncached, `Bearer ${refreshToken}`);
     expect(none.status).toBe(404);
     await none.arrayBuffer();
+    // Neither path's refusal is kept by Workers Cache, for any method.
+    const asGet = await fetch(`${Uncached}/_site/refresh`);
+    expect(asGet.status).toBe(404);
+    expect(asGet.headers.get(workersCacheHeader)).toBe("no-store");
+    await asGet.arrayBuffer();
+    const wrongMethod = await fetch(`${Cached}/_site/prewarm`);
+    expect(wrongMethod.status).toBe(405);
+    expect(wrongMethod.headers.get(workersCacheHeader)).toBe("no-store");
+    await wrongMethod.arrayBuffer();
+    // The trailing-slash redirect answers before the store, with the edge rule too.
+    const slash = await fetch(`${Cached}/about/`, { redirect: "manual" });
+    expect(slash.status).toBe(308);
+    expect(slash.headers.get(workersCacheHeader)).toBe(workersCacheLifetime);
+    await slash.arrayBuffer();
   });
 
   it("prewarms every page the sitemap lists when a writer asks, with the token", async ({

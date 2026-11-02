@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { CacheControl } from "../src/cache.ts";
+import {
+  CacheControl,
+  forWorkersCache,
+  workersCacheHeader,
+  workersCacheLifetime,
+} from "../src/cache.ts";
 import { withoutTrailingSlash } from "../src/trailing-slash.ts";
 
 const at = (path: string) =>
@@ -18,6 +23,13 @@ describe("withoutTrailingSlash", () => {
       expect([path, response?.status]).toEqual([path, 308]);
       expect(response?.headers.get("location")).toBe(location);
       expect(response?.headers.get("cache-control")).toBe(CacheControl.page);
+      // worker.ts gives it the edge lifetime, as every other answer.
+      const request = new Request(`https://allthings.dev${path}`);
+      expect(
+        response === undefined
+          ? undefined
+          : forWorkersCache(request, response).headers.get(workersCacheHeader),
+      ).toBe(workersCacheLifetime);
     }
   });
 

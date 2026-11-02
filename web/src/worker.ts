@@ -1,4 +1,5 @@
 import type { ExecutionContext } from "./app.ts";
+import { forWorkersCache } from "./cache.ts";
 import { built } from "./assets.ts";
 import {
   dataCenterCache,
@@ -93,7 +94,10 @@ export default {
   ): Promise<Response> {
     // Before anything else: it keeps nothing and reads nothing.
     const redirect = withoutTrailingSlash(request.url);
-    if (redirect !== undefined) return Promise.resolve(redirect);
+    // It answers before the store and the app, so it takes the edge rule here.
+    if (redirect !== undefined) {
+      return Promise.resolve(forWorkersCache(request, redirect));
+    }
     if (handle === undefined) {
       let store: Handler | undefined;
       const { app, siteState } = lazyApp(env, () => store);
@@ -160,6 +164,10 @@ export default {
         return site(incoming, incomingContext);
       };
     }
-    return handle(request, context);
+    // What Workers Cache may keep, and for how long (cache.ts), for every
+    // answer: the writers' paths too, whose refusals carry no lifetime.
+    return handle(request, context).then((response) =>
+      forWorkersCache(request, response),
+    );
   },
 };

@@ -64,3 +64,65 @@ export const edgeCacheControlHeader = "x-edge-cache-control";
  * stored, so every choice reaches the Worker.
  */
 export const preferenceCacheControl = "no-store";
+
+/**
+ * The header Workers Cache reads first (infra/src/web.ts turns the cache
+ * on). Cloudflare consumes it and strips it from what visitors get, so it
+ * sets the edge's lifetime alone, apart from `Cache-Control`'s.
+ */
+export const workersCacheHeader = "cloudflare-cdn-cache-control";
+
+/**
+ * How long Cloudflare answers a public page or read from Workers Cache
+ * before the Worker starts: 30 seconds fresh, then 30 more served while one
+ * request refreshes it in the background.
+ *
+ * Workers Cache keys a response by its path and query and the Worker's
+ * version, not by the version of the data it shows, as the page store
+ * does. So nothing that can change with the data may outlive this at the
+ * edge: an organizer's edit or a sync run reaches visitors at most a minute
+ * after the page store has it. `s-maxage` would turn stale serving off, so
+ * it isn't used here.
+ *
+ * When the Worker fails while refreshing an expired copy (it throws, times
+ * out or answers 5xx), Cloudflare serves the copy it has, without
+ * `stale-if-error` for as long as it is kept. An hour bounds that: a page
+ * an hour old beats an error while the Worker is down, as browsers are told
+ * for public data too (`stale-while-revalidate=3600`), and after it the
+ * failure reaches visitors and is seen.
+ */
+export const workersCacheLifetime =
+  "max-age=30, stale-while-revalidate=30, stale-if-error=3600";
+
+/**
+ * `response` as Workers Cache may keep it, for `request`. A GET or HEAD
+ * response that a shared cache may keep (`public` with `s-maxage`) gets
+ * {@link workersCacheLifetime}, unless it is {@link immutable} (its URL
+ * names its version, so a year is right). Everything else is `no-store` at
+ * the edge, so nothing is kept by a rule no one wrote, such as heuristic
+ * freshness: a page in the mode a visitor's cookie fixes (`private`),
+ * failures, and answers that set a cookie. Requests with any other method
+ * never reach Workers Cache, and pass untouched.
+ */
+export function forWorkersCache(
+  request: Request,
+  response: Response,
+): Response {
+  if (request.method !== "GET" && request.method !== "HEAD") return response;
+  const cacheControl = response.headers.get("cache-control") ?? "";
+  if (cacheControl === immutable) return response;
+  const directives = cacheControl
+    .toLowerCase()
+    .split(",")
+    .map((directive) => directive.trim().split("=")[0]);
+  const shared =
+    directives.includes("public") &&
+    directives.includes("s-maxage") &&
+    !response.headers.has("set-cookie");
+  const kept = new Response(response.body, response);
+  kept.headers.set(
+    workersCacheHeader,
+    shared ? workersCacheLifetime : "no-store",
+  );
+  return kept;
+}
