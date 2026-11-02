@@ -2,7 +2,7 @@
 
 Where the people who spoke at allthings are now: a short, dated, sourced note on their page, after their bio. Lydia Hallie is on Claude Code at Anthropic; Matt Palmer joined Cursor eleven days before SpaceX bought it. The talk they gave us is a year old; what they make now is worth a link.
 
-This is the design. The storage, the commands, the page and the pilot land in the pull requests that follow it, and this page says where each one stands.
+This is the design. The storage, the commands and the pilot's records landed in #301; the page is next, and this page says where each part stands.
 
 ## What a person's "now" is
 
@@ -19,7 +19,7 @@ One record per person, read on one day:
 - The copy carries no caveats about sources; the links do that job. Plain, specific, short, community diction: at/effect, not "the Effect San Francisco meetup".
 - Anyone can ask for theirs to be changed or taken down, and it is, at once.
 
-## Where it lives (next pull request)
+## Where it lives
 
 The record is a fact like a title or a bio, so it goes through the people pipeline that already carries those, with their sources: `core/backfill/people.json`, applied by `bun run people` (`core/src/people-enrichment.ts`) in one transaction.
 
@@ -40,7 +40,7 @@ Until Erik has reviewed the pilot, people's pages don't show it. `/lab/now` does
 
 ## Refreshing
 
-`bun run people stale --days 90` will list the people whose record was checked more than 90 days ago, with their current record, as JSON for an agent. `--speakers` will add everyone who has spoken at one of our evenings and has no record yet. It reads the file, and the database only for `--speakers`.
+`bun run people stale --days 90` lists the people whose record was checked more than 90 days ago, with their current record, as JSON for an agent. `--speakers` adds everyone who has spoken at one of our evenings and has no record yet. It reads the file, and the database only for `--speakers`.
 
 There is no scheduled job yet. One would run weekly:
 
@@ -51,4 +51,4 @@ There is no scheduled job yet. One would run weekly:
 
 ## The pilot
 
-Six speakers, checked 2026-11-02: Lydia Hallie, Matt Palmer, Lee Robinson, Evan Bacon, Michael Arnaldi and Rhys Sullivan. Their records go into `people.json` with the pipeline and onto `/lab/now` with the page, and wait for Erik's yes before people's pages show them.
+Six speakers, checked 2026-11-02: Lydia Hallie, Matt Palmer, Lee Robinson, Evan Bacon, Michael Arnaldi and Rhys Sullivan. Their records are in `people.json` and on production since #301; they show on `/lab/now` once the page lands, and wait for Erik's yes before people's pages show them.
