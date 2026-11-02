@@ -1,5 +1,5 @@
 import type { ExecutionContext } from "./app.ts";
-import { forWorkersCache, purgeSiteData } from "./cache.ts";
+import { forWorkersCache, purgeAfterPrewarm } from "./cache.ts";
 import { built } from "./assets.ts";
 import {
   dataCenterCache,
@@ -137,7 +137,7 @@ export default {
               // Once the store holds the current pages, Workers Cache drops the
               // answers that show the data (cache.ts), so visitors get them now
               // rather than within the edge lifetime. The report says how it went.
-              prewarm: (context: ExecutionContext) =>
+              prewarm: (writerContext: ExecutionContext) =>
                 prewarm({
                   build: built.build,
                   serve: site,
@@ -147,7 +147,10 @@ export default {
                     new Promise((resolve) => setTimeout(resolve, ms)),
                 }).then(async (report) => ({
                   ...report,
-                  edgePurge: await purgeSiteData(context.cache),
+                  edgePurge: await purgeAfterPrewarm(
+                    report,
+                    writerContext.cache,
+                  ),
                 })),
             };
       const noStore = () => Promise.reject(new Error("no store"));

@@ -143,8 +143,8 @@ export interface WorkersCachePurge {
   }>;
 }
 
-/** How a purge of {@link siteDataTag} went, for the writer's report. */
-export type EdgePurge = "purged" | "unavailable" | "failed";
+/** How a purge of {@link siteDataTag} went, for the writer's report: "skipped" when the prewarm wasn't complete, so nothing was purged. */
+export type EdgePurge = "purged" | "unavailable" | "failed" | "skipped";
 
 /**
  * Drops every answer tagged {@link siteDataTag} from Workers Cache, so the
@@ -163,3 +163,19 @@ export async function purgeSiteData(
     return "failed";
   }
 }
+
+/**
+ * The purge after a prewarm: only when it read the sitemap and every page
+ * came out, so the store holds the current pages. Otherwise "skipped": the
+ * kept copies are what visitors can still be served (`stale-if-error`).
+ */
+export const purgeAfterPrewarm = (
+  report: {
+    readonly sitemapRead: boolean;
+    readonly failed: ReadonlyArray<string>;
+  },
+  cache: WorkersCachePurge | undefined,
+): Promise<EdgePurge> =>
+  report.sitemapRead && report.failed.length === 0
+    ? purgeSiteData(cache)
+    : Promise.resolve("skipped");

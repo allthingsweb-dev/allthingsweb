@@ -5,6 +5,7 @@ import {
   forWorkersCache,
   immutable,
   preferenceCacheControl,
+  purgeAfterPrewarm,
   purgeSiteData,
   siteDataTag,
   type WorkersCachePurge,
@@ -115,5 +116,23 @@ describe("the site's data in Workers Cache", () => {
     expect(await purgeSiteData(cache("throws"))).toBe("failed");
     expect(await purgeSiteData(undefined)).toBe("unavailable");
     expect(asked).toEqual([[siteDataTag], [siteDataTag], [siteDataTag]]);
+  });
+});
+
+describe("the purge after a prewarm", () => {
+  const cache: WorkersCachePurge = { purge: async () => ({ success: true }) };
+  it("purges only after a full prewarm", async () => {
+    expect(
+      await purgeAfterPrewarm({ sitemapRead: true, failed: [] }, cache),
+    ).toBe("purged");
+    expect(
+      await purgeAfterPrewarm({ sitemapRead: false, failed: [] }, cache),
+    ).toBe("skipped");
+    expect(
+      await purgeAfterPrewarm(
+        { sitemapRead: true, failed: ["/events"] },
+        cache,
+      ),
+    ).toBe("skipped");
   });
 });
