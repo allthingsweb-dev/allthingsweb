@@ -137,6 +137,7 @@ describe("the lab", () => {
       "wall",
       "contact-sheet",
       "slash-grid",
+      "slash-grid-dated",
       "depth-field",
       "faces",
       "faces-mix",
@@ -343,6 +344,106 @@ describe("the variants' parts", () => {
     expect(html).toContain('<span class="visually-hidden">, 2026.09.30</span>');
     expect(html).toContain("figures-band");
     expect(html.match(/fetchpriority="high"/g)).toHaveLength(6);
+  });
+
+  test("slash-grid-dated: one cut to each evening with a photo, the latest first, dated and leading to it", async () => {
+    const html = render("slash-grid-dated");
+    expect(html).toContain(
+      '<section class="hero slash-cut" aria-labelledby="next">',
+    );
+    const cuts = [
+      ...html.matchAll(
+        /<li><a href="\/([^"]+)"><span class="cut"><picture>(.*?)<\/picture><\/span><time class="cut-date at-type-meta" datetime="([^"]+)">([^<]+)<\/time><\/a><\/li>/g,
+      ),
+    ].map(([, slug, picture = "", datetime, date]) => ({
+      slug,
+      lazy: picture.includes('loading="lazy"'),
+      datetime,
+      date,
+    }));
+    // 23 of the 34 have a photo here: every one, under the 24 it holds.
+    const shown = evenings.filter((held) => held.photo !== null);
+    expect(shown).toHaveLength(23);
+    expect(cuts).toHaveLength(23);
+    expect(cuts.map(({ slug }) => slug)).toEqual(
+      shown.slice(0, 24).map(({ slug }) => slug),
+    );
+    for (const [index, cut] of cuts.entries()) {
+      const held = shown[index];
+      if (held === undefined) throw new Error("no evening");
+      expect(cut.date).toBe(simpleDate(held.startsAt));
+      expect(cut.date).toMatch(/^\d{4}\.\d{2}\.\d{2}$/);
+    }
+    // Latest first.
+    const starts = cuts.map(({ datetime = "" }) => Date.parse(datetime));
+    expect(starts).toEqual(starts.toSorted((a, b) => b - a));
+    expect(html).toContain("figures-band");
+    expect(html.match(/fetchpriority="high"/g)).toHaveLength(6);
+    // The first twelve load at once; the rest load lazily.
+    expect(cuts.map(({ lazy }) => lazy)).toEqual(
+      cuts.map((_, index) => index >= 12),
+    );
+    expect(await htmlProblems(html)).toEqual([]);
+    // Without a photo to show, no grid.
+    // A photo it has no variants of (not an image key) is left out too.
+    const [first] = shown;
+    const unshowable = render(
+      "slash-grid-dated",
+      data({
+        community: community({
+          evenings: evenings.map((held) =>
+            held === first && held.photo !== null
+              ? {
+                  ...held,
+                  photo: {
+                    ...held.photo,
+                    url: "https://media.allthings.dev/events/notes.txt",
+                  },
+                }
+              : held,
+          ),
+        }),
+      }),
+    );
+    const slugsOf = (markup: string) =>
+      [...markup.matchAll(/<li><a href="\/([^"]+)"><span class="cut">/g)].map(
+        ([, slug]) => slug,
+      );
+    expect(slugsOf(unshowable)).toEqual(
+      shown.slice(1, 25).map(({ slug }) => slug),
+    );
+    // With more evenings than it holds, the latest 24.
+    const everyPhoto = evenings.map((held, index) => ({
+      ...held,
+      photo: held.photo ?? photo(`evening-${index}`),
+    }));
+    expect(
+      slugsOf(
+        render(
+          "slash-grid-dated",
+          data({ community: community({ evenings: everyPhoto }) }),
+        ),
+      ),
+    ).toEqual(everyPhoto.slice(0, 24).map(({ slug }) => slug));
+    // Narrower than `l`, three a row and the latest fifteen (lab.css).
+    const narrow =
+      /@media \(--at-below-l\) \{([\s\S]*?)\n\}/.exec(lab)?.[1] ?? "";
+    expect(narrow).toMatch(
+      /\.slash-grid-dated \{\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);\s*\}/,
+    );
+    expect(narrow).toMatch(
+      /\.slash-grid-dated li:nth-child\(n \+ 16\) \{\s*display: none;\s*\}/,
+    );
+    const bare = render(
+      "slash-grid-dated",
+      data({
+        community: community({
+          evenings: evenings.map((held) => ({ ...held, photo: null })),
+        }),
+      }),
+    );
+    expect(bare).not.toContain('class="slash-grid');
+    expect(bare).toContain('<section class="hero" aria-labelledby="next">');
   });
 
   test("depth-field: the liquid's surface over a wall of photos, still lenses on it", () => {

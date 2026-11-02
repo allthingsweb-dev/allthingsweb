@@ -386,6 +386,50 @@
   padding-top: var(--at-space-2);
 }
 
+/* slash-grid-dated: home's slash grid (site.css), one evening to each
+   cut, the latest first, its date under it. The cut leans; the date stands
+   straight, in the meta role on the ground, as the contact sheet's do. */
+
+.slash-grid-dated {
+  row-gap: var(--at-space-3);
+}
+
+.slash-grid-dated li {
+  aspect-ratio: auto;
+  overflow: visible;
+  transform: none;
+  background: none;
+}
+
+.slash-grid-dated a {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-1);
+  color: var(--at-meta);
+  text-decoration: none;
+}
+
+.cut {
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  transform: skewX(-14deg);
+  background: var(--at-surface);
+}
+
+/* A date stays on one line, within its cut: each cut is at least as wide
+   as 2026.09.30 set a hair tighter than the meta role. */
+.cut-date {
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.slash-grid-dated a:hover .cut-date,
+.slash-grid-dated a:focus-visible .cut-date {
+  color: var(--at-link);
+}
+
 @keyframes band-drift {
   to {
     transform: translateX(-50%);
@@ -945,6 +989,16 @@ h1.letters-word .at-cursor {
 }
 
 @media (--at-below-l) {
+  /* Narrower, three cuts a row, so each is as wide as its date: the
+     latest fifteen. */
+  .slash-grid-dated {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .slash-grid-dated li:nth-child(n + 16) {
+    display: none;
+  }
+
   .sheet {
     grid-column: 1 / -1;
   }
