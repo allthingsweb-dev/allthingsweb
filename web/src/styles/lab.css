@@ -469,6 +469,44 @@
   visibility: hidden;
 }
 
+/*
+ * An engine's surface shows once, finished: depth-field's field (the
+ * hero's text stands on Night meanwhile) and the letters' photos (the
+ * letters are the plain wordmark meanwhile). It waits until the engine has
+ * drawn its first frame with every photo in it, or, where it can't run,
+ * the still composition has all of its photos (src/client/lab.ts marks the
+ * stage ready), then fades in, in one step.
+ *
+ * The lab's script marks the stage as soon as it runs. If it never does
+ * (its module didn't load), the still composition fades in after a
+ * moment all the same. Without script, or for people who prefer reduced
+ * motion, nothing is held back: the stills show as their photos come.
+ */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .letters[data-engine-stage] .letters-photos,
+  .liquid[data-engine-stage] .liquid-field {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    animation: engine-unstarted 0.6s ease 4s forwards;
+  }
+
+  .letters[data-engine-started] .letters-photos,
+  .liquid[data-engine-started] .liquid-field {
+    animation: none;
+  }
+
+  .letters[data-engine-ready] .letters-photos,
+  .liquid[data-engine-ready] .liquid-field {
+    opacity: 1;
+  }
+}
+
+@keyframes engine-unstarted {
+  to {
+    opacity: 1;
+  }
+}
+
 .liquid-text {
   grid-row: 1;
   z-index: 1;
@@ -742,20 +780,7 @@
   visibility: hidden;
 }
 
-/* And they show once, finished: the letters are the plain wordmark until
-   the engine has drawn its first frame with every photo, or, where it
-   can't run, the still photos are all in (src/client/lab.ts). Then the
-   photos fade in, all together. Without script they show as they come. */
-@media (scripting: enabled) {
-  .letters[data-engine-stage] .letters-photos {
-    opacity: 0;
-    transition: opacity 0.6s ease;
-  }
-
-  .letters[data-engine-ready] .letters-photos {
-    opacity: 1;
-  }
-}
+/* And they show once, finished, as depth-field's field does (above). */
 
 .letters-track ul {
   display: grid;
@@ -1013,11 +1038,14 @@ h1.letters-word .at-cursor {
   .wall-tile > :nth-child(2),
   .depth-sway,
   .depth-drift,
-  .letters-track {
+  .letters-track,
+  .letters[data-engine-stage] .letters-photos,
+  .liquid[data-engine-stage] .liquid-field {
     animation: none;
   }
 
-  .letters[data-engine-stage] .letters-photos {
+  .letters[data-engine-stage] .letters-photos,
+  .liquid[data-engine-stage] .liquid-field {
     transition: none;
   }
 }

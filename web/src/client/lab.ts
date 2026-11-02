@@ -47,16 +47,16 @@ const maxScale = 2;
 const photoWait = 8000;
 
 /**
- * The images of the surface's first list of tiles that lie within the
- * surface: the ones it shows, and draws. A tile past its edge (the letters'
- * photos run on beyond the page) is never seen, and a lazy one never loads.
+ * Those of `images` that lie within the surface: the ones it shows. A
+ * photo past its edge (the letters' photos run on beyond the page) is
+ * never seen, and a lazy one never loads.
  */
-const tileImages = (surface: HTMLElement): ReadonlyArray<HTMLImageElement> => {
+const within = (
+  surface: HTMLElement,
+  images: Iterable<HTMLImageElement>,
+): ReadonlyArray<HTMLImageElement> => {
   const box = surface.getBoundingClientRect();
-  return [
-    ...(surface.querySelector("[data-engine-tiles]")?.querySelectorAll("img") ??
-      []),
-  ].filter((image) => {
+  return [...images].filter((image) => {
     const at = image.getBoundingClientRect();
     return (
       at.right > box.left &&
@@ -66,6 +66,13 @@ const tileImages = (surface: HTMLElement): ReadonlyArray<HTMLImageElement> => {
     );
   });
 };
+
+/** The images of the surface's first list of tiles it shows: the ones an engine draws. */
+const tileImages = (surface: HTMLElement): ReadonlyArray<HTMLImageElement> =>
+  within(
+    surface,
+    surface.querySelector("[data-engine-tiles]")?.querySelectorAll("img") ?? [],
+  );
 
 /** Every one of `images` decoded, or failed, or {@link photoWait} passed. */
 const settled = (images: ReadonlyArray<HTMLImageElement>): Promise<unknown> =>
@@ -105,9 +112,13 @@ async function tilesOf(surface: HTMLElement): Promise<ReadonlyArray<Tile>> {
 const stageOf = (surface: HTMLElement): HTMLElement =>
   surface.closest<HTMLElement>("[data-engine-stage]") ?? surface;
 
-/** The still composition, with its photos, for a surface whose engine can't run. */
+/**
+ * The still composition, for a surface whose engine can't run: shown once
+ * every photo it shows is in, its tiles and anything else (depth-field's
+ * lenses), so it too appears finished.
+ */
 async function still(surface: HTMLElement): Promise<void> {
-  await settled(tileImages(surface));
+  await settled(within(surface, surface.querySelectorAll("img")));
   ready(stageOf(surface));
 }
 
@@ -297,7 +308,23 @@ reducedMotion.addEventListener("change", () => {
   for (const surface of deferred) void start(surface);
   deferred.clear();
 });
-/** Starts each surface's engine as it comes within a screen of view. */
+/**
+ * Milliseconds after which the stylesheet shows a stage's stills by itself
+ * when the script hasn't started (lab.css, `engine-unstarted`'s delay).
+ */
+const unstartedAfter = 4000;
+
+/**
+ * Starts each surface's engine as it comes within a screen of view. Each
+ * stage is marked at once: the script runs, so the stylesheet waits for
+ * it to say the stage is ready rather than showing the stills by itself.
+ * A script that runs only after the stylesheet began showing them (its
+ * module was that slow) keeps them shown: hiding them again to fade in
+ * once more would be a second arrival.
+ */
 for (const surface of document.querySelectorAll<HTMLElement>("[data-engine]")) {
+  const stage = stageOf(surface);
+  if (performance.now() < unstartedAfter) stage.dataset["engineStarted"] = "";
+  else ready(stage);
   near.observe(surface);
 }

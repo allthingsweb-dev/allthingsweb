@@ -475,6 +475,11 @@ describe("the variants' parts", () => {
   });
 });
 
+/** The lab's script, as written. */
+const script = await Bun.file(
+  new URL("../src/client/lab.ts", import.meta.url),
+).text();
+
 /** lab.css, and its rules selector by selector. */
 const lab = await Bun.file(
   new URL("../src/styles/lab.css", import.meta.url),
@@ -502,6 +507,35 @@ describe("lab.css", () => {
       expect(stoppedSelectors).toContain(selector);
     }
     // Transitions are cut too, in each stylesheet (styles.test.ts).
+  });
+
+  test("holds an engine's surface back only while the script runs, and shows the stills if it never starts", () => {
+    const gate =
+      /@media \(scripting: enabled\) and \(prefers-reduced-motion: no-preference\) \{([\s\S]*?)\n\}/.exec(
+        lab,
+      )?.[1];
+    expect(gate).toBeDefined();
+    for (const surface of [".letters-photos", ".liquid-field"]) {
+      const stage = surface === ".liquid-field" ? ".liquid" : ".letters";
+      // Hidden, with the fallback that reveals it unless the script started.
+      expect(gate).toContain(`${stage}[data-engine-stage] ${surface}`);
+      expect(gate).toContain(`${stage}[data-engine-started] ${surface}`);
+      expect(gate).toContain(`${stage}[data-engine-ready] ${surface}`);
+    }
+    expect(gate).toMatch(
+      /opacity: 0;\s*transition: opacity [^;]+;\s*animation: engine-unstarted [^;]+ forwards;/,
+    );
+    expect(gate).toMatch(
+      /\[data-engine-started\] \.liquid-field \{\s*animation: none;/,
+    );
+    expect(lab).toMatch(/@keyframes engine-unstarted \{\s*to \{\s*opacity: 1;/);
+    // The script knows when that fallback begins, so a slow one keeps it.
+    const delay =
+      /animation: engine-unstarted [\d.]+s \w+ ([\d.]+)s forwards;/.exec(
+        gate ?? "",
+      )?.[1];
+    expect(delay).toBe("4");
+    expect(script).toContain("const unstartedAfter = 4000;");
   });
 
   test("animates only opacity and transforms, and hides what is out of a cross", () => {
