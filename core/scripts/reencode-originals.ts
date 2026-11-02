@@ -138,7 +138,7 @@ const command = Command.make(
           new Error(`${failed.length} images failed: ${failed.join(", ")}`),
         );
       }
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Re-encode oversized originals on the media origin under new keys.",

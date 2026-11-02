@@ -61,7 +61,7 @@ const bluesky = Announce.layer.pipe(
       Bluesky.layer.pipe(Layer.provide(FetchHttpClient.layer)),
     ),
   ),
-  Layer.provide(Database.layer),
+  Layer.provide(Database.scriptLayer),
 );
 
 const discord = DiscordAnnounce.layer.pipe(
@@ -72,7 +72,7 @@ const discord = DiscordAnnounce.layer.pipe(
       SentPosts.layer,
     ),
   ),
-  Layer.provide(Database.layer),
+  Layer.provide(Database.scriptLayer),
 );
 
 const xLayer = XAnnounce.layer.pipe(
@@ -84,7 +84,7 @@ const xLayer = XAnnounce.layer.pipe(
       SentPosts.layer,
     ),
   ),
-  Layer.provide(Database.layer),
+  Layer.provide(Database.scriptLayer),
 );
 
 const describeX = (prepared: PreparedXPost) =>

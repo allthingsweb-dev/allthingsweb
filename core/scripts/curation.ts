@@ -29,7 +29,7 @@ const command = Command.make("curation", { dryRun: dryRunFlag }, ({ dryRun }) =>
     )(text);
     const applied = yield* applyCuration(file, dryRun);
     yield* Console.log(applied.join("\n"));
-  }).pipe(Effect.provide(Database.layer)),
+  }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(Command.withDescription("Apply core/backfill/curation.json."));
 
 Command.run(command, { version: "1.0.0" }).pipe(

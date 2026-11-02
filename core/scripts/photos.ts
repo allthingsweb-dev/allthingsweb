@@ -130,7 +130,7 @@ const add = Command.make(
               .filter((text) => text !== "")
               .join("\n"),
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Add photos to an evening, in order: re-encoded, stored and recorded once each.",
@@ -201,7 +201,7 @@ const replace = Command.make(
               .filter((text) => text !== "")
               .join("\n"),
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Replace one of an evening's photos in its place; the old object stays in the bucket.",
@@ -233,7 +233,7 @@ const list = Command.make(
               ...photos.map(listed),
             ].join("\n"),
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "List an evening's photos in the order its page shows them. Reads only.",
@@ -316,7 +316,7 @@ const remove = Command.make(
               ...removalLines(removal, true).slice(1),
             ].join("\n"),
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Remove one of an evening's photos, exactly as a dry run showed it; its object stays in the bucket.",

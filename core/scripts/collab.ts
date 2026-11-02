@@ -81,7 +81,7 @@ import { PlanningError } from "../src/planning/planning.ts";
 /** The service, only as a role that sees every row of the collaboration (`everyRow`): the studio, or the owner. */
 const layer = Collab.layer.pipe(
   Layer.provideMerge(Layer.effectDiscard(everyRow)),
-  Layer.provideMerge(Database.layer),
+  Layer.provideMerge(Database.scriptLayer),
 );
 
 /** The edge's list of collaborators, through Cloudflare's API (src/collab/access.ts). */

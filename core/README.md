@@ -130,6 +130,19 @@ roles would make it proof, if that's ever needed. A write that touches a
 draft evening puts it in that evening's log (see "A draft's log, notes and
 status").
 
+Every command also tells allthings.dev when it ends that its data may have
+changed (`src/site-refresh.ts`, through `Database.scriptLayer`), so a
+change shows on the site within about two minutes rather than the hour it
+checks on its own (web/src/page-store.ts). That takes the site's token, set
+once in the environment like `ALLTHINGS_ACTOR`:
+
+```sh
+export SITE_REFRESH_TOKEN=$(op read "op://allthings/allthings site refresh/credential")
+```
+
+Without it, a command connected to Neon says so on stderr; nothing else
+changes. `tests/site-refresh.test.ts` holds every script to the layer.
+
 - **Exactly what its commands use.** The script lists each grant with the
   command whose statement needs it: planning's tables, the collaboration's
   included, read whole and written by column; on `public`, reads

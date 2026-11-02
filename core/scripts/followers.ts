@@ -64,7 +64,7 @@ const command = Command.make(
       Effect.provide(
         Layer.mergeAll(
           FollowerSource.fromConfig.pipe(Layer.provide(FetchHttpClient.layer)),
-          Database.layer,
+          Database.scriptLayer,
         ),
       ),
     ),

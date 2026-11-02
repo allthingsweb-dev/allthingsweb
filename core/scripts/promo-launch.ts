@@ -50,7 +50,10 @@ const readNext = (slug: string, origin: string, photoOrigin: string) =>
       );
     }
     return next;
-  }).pipe(Effect.provide(EventPages.layer), Effect.provide(Database.layer));
+  }).pipe(
+    Effect.provide(EventPages.layer),
+    Effect.provide(Database.scriptLayer),
+  );
 
 const command = Command.make(
   "promo:launch",

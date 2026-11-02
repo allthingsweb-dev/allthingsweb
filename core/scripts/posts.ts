@@ -64,7 +64,7 @@ const asJson = (result: AddPostResult) =>
 
 const layer = Layer.mergeAll(PostSources.layer, EventPostWriter.layer).pipe(
   Layer.provide(FetchHttpClient.layer),
-  Layer.provide(Database.layer),
+  Layer.provide(Database.scriptLayer),
 );
 
 /** What a search needs: the post tools, the searches, and the database itself. */
@@ -74,7 +74,7 @@ const candidatesLayer = Layer.mergeAll(
   CandidateSearches.layer,
 ).pipe(
   Layer.provideMerge(FetchHttpClient.layer),
-  Layer.provideMerge(Database.layer),
+  Layer.provideMerge(Database.scriptLayer),
 );
 
 const optionalText = (name: string, description: string) =>
@@ -257,7 +257,7 @@ const pending = Command.make(
               )
               .join("\n") || "No pending posts.",
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(Command.withDescription("List the posts waiting for review."));
 
 const statusCommand = (name: "approve" | "hide") =>
@@ -294,7 +294,7 @@ const statusCommand = (name: "approve" | "hide") =>
         if (change._tag === "Ambiguous" && !json) {
           yield* Effect.fail(new Error(`Several stored posts match ${url}`));
         }
-      }).pipe(Effect.provide(Database.layer)),
+      }).pipe(Effect.provide(Database.scriptLayer)),
   ).pipe(
     Command.withDescription(
       name === "approve"
@@ -340,7 +340,7 @@ const move = Command.make(
       ) {
         yield* Effect.fail(new Error(`Did not move ${url}: ${moved._tag}`));
       }
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Move a post to the evening it is about, keeping its status.",

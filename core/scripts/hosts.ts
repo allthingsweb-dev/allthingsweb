@@ -59,7 +59,7 @@ const applyLinks = Command.make(
       const links = yield* decodeHostLinksFile(text);
       const lines = yield* applyHostLinks(links, dryRun);
       yield* Console.log(lines.join("\n"));
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(Command.withDescription("Apply hosting companies' sourced links."));
 
 const read = (path: string) =>
@@ -144,7 +144,7 @@ const logo = Command.make(
               ...changeLines(change, true),
             ].join("\n"),
       );
-    }).pipe(Effect.provide(Database.layer)),
+    }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Set a hosting company's dark and light logos from files, exactly as a dry run showed it.",

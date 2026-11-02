@@ -1,20 +1,21 @@
+import { refreshPath } from "allthings-core/src/refresh-path.ts";
 import type { SitePointer } from "./page-store.ts";
 
 /**
  * Where the writers tell the site its data changed: the Sync Worker after
- * each run that writes (through its service binding), and anything else
- * that writes and holds the token. A POST with `Authorization: Bearer
- * <SITE_REFRESH_TOKEN>` has the Worker ask the database for the data's
- * version at once (page-store.ts's
- * `refreshSite`), so a change is shown once Hyperdrive's cache has turned
- * over, not at the next check. It reads one row-digest and writes one KV
- * value; it never writes the database, and it answers with the version
- * only, which any page's data already shows.
+ * each run that writes (through its service binding), and the studio's
+ * commands after they run (core's src/site-refresh.ts). A POST with
+ * `Authorization: Bearer <SITE_REFRESH_TOKEN>` has the Worker ask the
+ * database for the data's version at once (page-store.ts's `refreshSite`),
+ * so a change is shown once Hyperdrive's cache has turned over, not at the
+ * next check. It reads one row-digest and writes one KV value; it never
+ * writes the database, and it answers with the version only, which any
+ * page's data already shows.
  *
  * Without a token the Worker has no such path (404), so stages that aren't
  * told of writes don't answer it.
  */
-export const refreshPath = "/_site/refresh";
+export { refreshPath };
 
 const answer = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), {

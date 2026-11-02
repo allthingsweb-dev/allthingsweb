@@ -64,7 +64,7 @@ const command = Command.make(
       if (!report.ready) process.exitCode = 1;
       return report.ready;
     }).pipe(
-      Effect.provide(Readiness.layer.pipe(Layer.provide(Database.layer))),
+      Effect.provide(Readiness.layer.pipe(Layer.provide(Database.scriptLayer))),
     ),
 ).pipe(
   Command.withDescription(

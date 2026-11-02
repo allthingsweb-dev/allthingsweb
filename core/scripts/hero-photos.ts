@@ -64,7 +64,7 @@ const command = Command.make("hero-photos", {}, () =>
     for (const list of lists) {
       yield* Console.log(`All ${list.count} of ${list.file} can be shown.`);
     }
-  }).pipe(Effect.provide(Database.layer)),
+  }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Check the hand-picked photos and faces against the database.",

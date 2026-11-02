@@ -84,7 +84,9 @@ const command = Command.make(
         yield* Effect.fail(new Error(failures.join("\n")));
       }
     }).pipe(
-      Effect.provide(Completeness.layer.pipe(Layer.provide(Database.layer))),
+      Effect.provide(
+        Completeness.layer.pipe(Layer.provide(Database.scriptLayer)),
+      ),
     ),
 ).pipe(
   Command.withDescription("Report what each published event's record lacks."),

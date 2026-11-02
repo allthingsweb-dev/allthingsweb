@@ -65,7 +65,9 @@ const command = Command.make(
           ? JSON.stringify(draftsJson(drafts, selected), null, 2)
           : formatDrafts(drafts, selected),
       );
-    }).pipe(Effect.provide(Promo.layer.pipe(Layer.provide(Database.layer)))),
+    }).pipe(
+      Effect.provide(Promo.layer.pipe(Layer.provide(Database.scriptLayer))),
+    ),
 ).pipe(
   Command.withDescription(
     "Print promotion drafts for an evening. Nothing is posted.",

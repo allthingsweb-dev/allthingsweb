@@ -86,7 +86,7 @@ import {
  * not read.
  */
 
-const layer = Planning.layer.pipe(Layer.provideMerge(Database.layer));
+const layer = Planning.layer.pipe(Layer.provideMerge(Database.scriptLayer));
 
 const dryRun = Flag.Boolean("dry-run").pipe(
   Flag.withDescription(
@@ -639,7 +639,7 @@ const noteAdd = Command.make(
 const draftsLayer = Drafts.layer.pipe(
   Layer.provideMerge(Readiness.layer),
   Layer.provideMerge(Planning.layer),
-  Layer.provideMerge(Database.layer),
+  Layer.provideMerge(Database.scriptLayer),
 );
 
 const noteResolve = Command.make(
@@ -942,7 +942,7 @@ const audit = Command.make("audit", { json }, (options) =>
         ? "A site role or PUBLIC may reach planning."
         : "There is no planning schema to audit.",
     );
-  }).pipe(Effect.provide(Database.layer)),
+  }).pipe(Effect.provide(Database.scriptLayer)),
 ).pipe(
   Command.withDescription(
     "Check that site_reader, site_sync and PUBLIC can't reach planning; fails if one can, or if there is no planning schema.",
