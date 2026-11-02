@@ -1,6 +1,6 @@
 import { Cursor } from "../evening-row.tsx";
 import { LabDocument, type LabPage } from "./lab.tsx";
-import { labPath, labRoot } from "./paths.ts";
+import { labPath, labRoot, nowLabPath } from "./paths.ts";
 
 /**
  * The lab's root, /lab: every exploration, each a line and a link to its
@@ -25,6 +25,11 @@ export const labs: ReadonlyArray<Lab> = [
     name: "home",
     path: labPath,
     line: "Heroes for the home page that show at a glance how big allthings is, each a whole home page with real photos, real numbers and the real next evening.",
+  },
+  {
+    name: "now",
+    path: nowLabPath,
+    line: "What people who spoke at allthings do now, on their pages: a line whose every fact links to its source, their latest work, and the month it was checked.",
   },
 ];
 

@@ -44,7 +44,7 @@ import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
-import { variantPath } from "./lab/paths.ts";
+import { nowLabPath, nowLabPersonPath, variantPath } from "./lab/paths.ts";
 import { gatheringTitle } from "./metadata.tsx";
 import { peoplePage } from "./people.tsx";
 import { personPage } from "./person.tsx";
@@ -315,122 +315,165 @@ type PersonView =
     });
 
 /**
- * /people/<slug>: one person's page, cached like the people page. A slug
+ * A person's page at `pathOf(slug)`, cached like the people page. A slug
  * they had before (their name changed) redirects to the current one for
  * good; one no one has is not found, cached briefly. The person and the
- * hosts' portraits are read at once, over the request's pool.
+ * hosts' portraits are read at once, over the request's pool. `look` says
+ * whether it shows what they do now, and whether it keeps out of search.
  */
-const person = page(
-  "/people/:slug",
-  ({ theme, acceptEncoding, params, images }) =>
-    Effect.gen(function* () {
-      const { origin } = yield* Site;
-      const slug = params["slug"] ?? "";
-      const path = personPath(slug);
-      // No one's address has that shape (the migrations' CHECK): nothing to read.
-      if (!personSlugPattern.test(slug)) {
-        return yield* nothingAt(
-          path,
-          404,
-          { theme, acceptEncoding, images },
-          true,
-        );
-      }
-      return yield* Effect.all(
-        [
-          // The person, and the talks they gave elsewhere.
-          PeopleDirectory.use((repository) =>
-            repository.person(slug, mediaOrigin),
-          ).pipe(
-            Effect.flatMap(
-              (
-                found,
-              ): Effect.Effect<PersonView, DataSourceError, ExternalTalks> =>
-                found.kind === "found"
-                  ? ExternalTalks.use((talks) =>
-                      talks.forProfiles([found.person.id]),
-                    ).pipe(
-                      Effect.map((byProfile) => ({
-                        ...found,
-                        elsewhere: byProfile.get(found.person.id) ?? [],
-                      })),
-                    )
-                  : Effect.succeed(found),
-            ),
-          ),
-          footer(hostPortraits),
-        ],
-        { concurrency: "unbounded" },
-      ).pipe(
-        Effect.provide(repositories),
-        Effect.timed,
-        Effect.map(([took, [found, { portraits, read }]]) => {
-          const db = Duration.toMillis(took);
-          if (found.kind === "moved") {
-            return HttpServerResponse.redirect(personPath(found.slug), {
-              status: 301,
-              headers: { "cache-control": CacheControl.page },
-            });
-          }
-          if (found.kind === "none") {
-            return htmlResponse(
-              notFoundPage({
-                origin,
-                path,
-                theme,
-                portraits,
-                images,
-                person: true,
-              }),
-              acceptEncoding,
-              {
-                cacheControl: read ? "notFound" : "failure",
-                theme,
-                images,
-                status: 404,
-                db,
-              },
-            );
-          }
-          return htmlResponse(
-            personPage({
-              person: found.person,
-              elsewhere: found.elsewhere,
-              origin,
-              theme,
-              portraits,
-              images,
-            }),
-            acceptEncoding,
-            {
-              cacheControl: read ? "publicData" : "failure",
-              theme,
-              images,
-              db,
-            },
+const personPageAt = (
+  route: `/${string}`,
+  pathOf: (slug: string) => `/${string}`,
+  look: { readonly showNow: boolean; readonly noindex?: true },
+) =>
+  page(
+    route,
+    ({ theme, acceptEncoding, params, images }) =>
+      Effect.gen(function* () {
+        const { origin } = yield* Site;
+        const slug = params["slug"] ?? "";
+        const path = pathOf(slug);
+        // No one's address has that shape (the migrations' CHECK): nothing to read.
+        if (!personSlugPattern.test(slug)) {
+          return yield* nothingAt(
+            path,
+            404,
+            { theme, acceptEncoding, images },
+            true,
           );
-        }),
-        Effect.catchCause((cause) =>
-          Effect.logError("Error rendering a person's page:", cause).pipe(
-            Effect.as(
-              htmlResponse(
-                unavailablePage({
+        }
+        return yield* Effect.all(
+          [
+            // The person, and the talks they gave elsewhere.
+            PeopleDirectory.use((repository) =>
+              repository.person(slug, mediaOrigin),
+            ).pipe(
+              Effect.flatMap(
+                (
+                  found,
+                ): Effect.Effect<PersonView, DataSourceError, ExternalTalks> =>
+                  found.kind === "found"
+                    ? ExternalTalks.use((talks) =>
+                        talks.forProfiles([found.person.id]),
+                      ).pipe(
+                        Effect.map((byProfile) => ({
+                          ...found,
+                          elsewhere: byProfile.get(found.person.id) ?? [],
+                        })),
+                      )
+                    : Effect.succeed(found),
+              ),
+            ),
+            footer(hostPortraits),
+          ],
+          { concurrency: "unbounded" },
+        ).pipe(
+          Effect.provide(repositories),
+          Effect.timed,
+          Effect.map(([took, [found, { portraits, read }]]) => {
+            const db = Duration.toMillis(took);
+            if (found.kind === "moved") {
+              return HttpServerResponse.redirect(pathOf(found.slug), {
+                status: 301,
+                headers: { "cache-control": CacheControl.page },
+              });
+            }
+            if (found.kind === "none") {
+              return htmlResponse(
+                notFoundPage({
                   origin,
                   path,
                   theme,
+                  portraits,
                   images,
-                  said: "This person’s page didn’t load. Try again in a minute.",
+                  person: true,
                 }),
                 acceptEncoding,
-                { cacheControl: "failure", theme, images, status: 503 },
+                {
+                  cacheControl: read ? "notFound" : "failure",
+                  theme,
+                  images,
+                  status: 404,
+                  db,
+                },
+              );
+            }
+            return htmlResponse(
+              personPage({
+                person: found.person,
+                elsewhere: found.elsewhere,
+                origin,
+                theme,
+                portraits,
+                images,
+                ...look,
+              }),
+              acceptEncoding,
+              {
+                cacheControl: read ? "publicData" : "failure",
+                theme,
+                images,
+                db,
+              },
+            );
+          }),
+          Effect.catchCause((cause) =>
+            Effect.logError("Error rendering a person's page:", cause).pipe(
+              Effect.as(
+                htmlResponse(
+                  unavailablePage({
+                    origin,
+                    path,
+                    theme,
+                    images,
+                    said: "This person’s page didn’t load. Try again in a minute.",
+                  }),
+                  acceptEncoding,
+                  { cacheControl: "failure", theme, images, status: 503 },
+                ),
               ),
             ),
           ),
-        ),
-      );
-    }),
-  (params) => personPath(params["slug"] ?? ""),
+        );
+      }),
+    (params) => pathOf(params["slug"] ?? ""),
+  );
+
+/**
+ * /people/<slug>: one person's page. What they do now stays off it until
+ * Erik has reviewed the pilot on /lab/now (docs/now.md); turning it on for
+ * everyone is `showNow: true` here.
+ */
+const person = personPageAt("/people/:slug", personPath, { showNow: false });
+
+/**
+ * /lab/now: everyone with a "now" record, each linking to their page with
+ * the Now section on it, read from the people page's directory and cached
+ * like it. The lab's module is loaded only when it is asked for.
+ */
+const nowLabIndex = dataPage(
+  nowLabPath,
+  "the Now lab",
+  Effect.all({
+    directory: PeopleDirectory.use((repository) =>
+      repository.read(
+        hosts.map((host) => host.profileId),
+        mediaOrigin,
+      ),
+    ),
+    lab: Effect.promise(() => import("./lab/now.tsx")),
+  }),
+  ({ directory, lab }, props) => lab.nowLabPage(directory, props),
 );
+
+/**
+ * /lab/now/<slug>: a person's page as it would be with what they do now,
+ * kept out of search like every lab page.
+ */
+const nowLabPerson = personPageAt("/lab/now/:slug", nowLabPersonPath, {
+  showNow: true,
+  noindex: true,
+});
 
 /**
  * The about page: what allthings is, what it has done so far and where it
@@ -999,6 +1042,8 @@ export const pageRoutes = Layer.mergeAll(
   labRootIndex,
   labIndex,
   labVariant,
+  nowLabIndex,
+  nowLabPerson,
   brand,
   codeOfConduct,
   eventAt(""),
