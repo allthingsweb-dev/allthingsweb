@@ -313,6 +313,12 @@ export const scheduledRun = (
     }),
   );
 
+/**
+ * How long the site has to answer the run's word, body and all: its read
+ * of the data's version takes about 20 ms, so this only bounds a stall.
+ */
+export const siteDeadline = 30_000;
+
 /** The part of a service binding the run uses. */
 interface SiteBinding {
   fetch(request: Request): Promise<Response>;
@@ -330,6 +336,8 @@ export async function tellSite(
   env: Readonly<Record<string, unknown>>,
   log: (entry: Readonly<Record<string, unknown>>) => void = (entry) =>
     console.log(JSON.stringify(entry)),
+  /** How long the site has to answer, body and all, in milliseconds. */
+  deadline = siteDeadline,
 ): Promise<void> {
   const site = env["SITE"];
   const token = env["SITE_REFRESH_TOKEN"];
@@ -343,14 +351,29 @@ export async function tellSite(
     return;
   }
   const started = Date.now();
+  const abort = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      abort.abort();
+      reject(new Error(`the site didn't answer within ${deadline} ms`));
+    }, deadline);
+  });
   try {
-    const response = await (site as SiteBinding).fetch(
-      new Request(`https://site${refreshPath}`, {
-        method: "POST",
-        headers: { authorization: `Bearer ${token}` },
-      }),
-    );
-    const body: unknown = await response.json().catch(() => null);
+    const { response, body } = await Promise.race([
+      (async () => {
+        const answer = await (site as SiteBinding).fetch(
+          new Request(`https://site${refreshPath}`, {
+            method: "POST",
+            headers: { authorization: `Bearer ${token}` },
+            signal: abort.signal,
+          }),
+        );
+        const read: unknown = await answer.json().catch(() => null);
+        return { response: answer, body: read };
+      })(),
+      late,
+    ]);
     log({
       source: "luma-sync",
       step: "site",
@@ -367,6 +390,8 @@ export async function tellSite(
       tookMs: Date.now() - started,
       reason: String(cause),
     });
+  } finally {
+    clearTimeout(timer);
   }
 }
 
