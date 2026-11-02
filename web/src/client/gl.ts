@@ -102,7 +102,9 @@ export async function linked(gl: GL): Promise<void> {
   linking.delete(gl);
   const parallel = gl.getExtension("KHR_parallel_shader_compile");
   if (parallel !== null) {
+    // A lost context never completes: `check` then finds it unlinked.
     while (
+      !gl.isContextLost() &&
       !pending.every((each) =>
         gl.getProgramParameter(each.program, parallel.COMPLETION_STATUS_KHR),
       )
