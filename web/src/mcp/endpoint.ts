@@ -163,11 +163,21 @@ export class Mcp extends Context.Service<
               : undefined;
           // Only the call as `via` writes it, nothing added and nothing
           // spelled another way: one call, one kept answer.
+          // Compared as the URL parser writes it, as `via`'s request is
+          // (it escapes what encodeURIComponent doesn't, an apostrophe).
+          const location =
+            checked?.success === true
+              ? new URL(
+                  toolLocation(name, canonicalInput(checked.data)),
+                  url.origin,
+                )
+              : undefined;
           const program =
             isToolName(name) &&
             checked?.success === true &&
+            location !== undefined &&
             `${url.pathname}${url.search}` ===
-              toolLocation(name, canonicalInput(checked.data))
+              `${location.pathname}${location.search}`
               ? toolProgram(name, checked.data)
               : undefined;
           if (program === undefined) {

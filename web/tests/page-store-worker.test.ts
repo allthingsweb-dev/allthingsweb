@@ -3,7 +3,11 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, PrivateCacheControl } from "../src/cache.ts";
-import { keptInputMax } from "../src/mcp/endpoint.ts";
+import {
+  canonicalInput,
+  keptInputMax,
+  toolLocation,
+} from "../src/mcp/endpoint.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
 import { mcpRequest, rpcMessage } from "./support/http.ts";
 import { serve } from "./support/socket.ts";
@@ -262,6 +266,31 @@ describe("the page store", () => {
     const replay = await listEvents(8);
     expect(replay.id).toBe(8);
     expect(replay.result).toEqual(first.result);
+  });
+
+  it("keeps a call whose input the URL parser escapes, like an apostrophe", async ({
+    Cached,
+  }) => {
+    const call = await fetch(
+      mcpRequest(`${Cached}/mcp`, {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "list_speakers", arguments: { query: "O'Brien" } },
+      }),
+    );
+    const reply = rpcMessage(await call.text()) as {
+      result: { isError?: boolean };
+    };
+    expect(reply.result.isError).toBeUndefined();
+    const kept = await warm(
+      Cached,
+      toolLocation(
+        "list_speakers",
+        canonicalInput({ limit: 50, query: "O'Brien" }),
+      ),
+    );
+    expect(JSON.parse(kept.html)).toEqual(reply.result);
   });
 
   it("refuses a tool it doesn't have, or input that isn't one call's canonical form, and keeps neither", async ({
