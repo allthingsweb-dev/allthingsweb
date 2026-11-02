@@ -133,15 +133,12 @@ status").
 Every command also tells allthings.dev when it ends that its data may have
 changed (`src/site-refresh.ts`, through `Database.scriptLayer`), so a
 change shows on the site within about two minutes rather than the hour it
-checks on its own (web/src/page-store.ts). That takes the site's token, set
-once in the environment like `ALLTHINGS_ACTOR`:
-
-```sh
-export SITE_REFRESH_TOKEN=$(op read "op://allthings/allthings site refresh/credential")
-```
-
-Without it, a command connected to Neon says so on stderr; nothing else
-changes. `tests/site-refresh.test.ts` holds every script to the layer.
+checks on its own (web/src/page-store.ts). A command connected to Neon
+reads the site's token from 1Password itself (`op read` of "allthings site
+refresh", signed in as you are), so nothing has to be exported;
+`SITE_REFRESH_TOKEN` in the environment wins when it is set. When neither
+has it, the command says so on stderr; nothing else changes.
+`tests/site-refresh.test.ts` holds every script to the layer.
 
 - **Exactly what its commands use.** The script lists each grant with the
   command whose statement needs it: planning's tables, the collaboration's
