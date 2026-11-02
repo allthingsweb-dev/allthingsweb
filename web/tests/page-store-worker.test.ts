@@ -161,7 +161,7 @@ describe("the page store", () => {
     );
     const hit = await warm(Cached, "/events?timing");
     expect(hit.response.headers.get("server-timing")).toMatch(
-      /^store;desc="hit";dur=\d+\.\d$/,
+      /^store;desc="hit";dur=\d+\.\d, copy;desc="(local|kv)"$/,
     );
   });
 
