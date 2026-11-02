@@ -325,11 +325,12 @@ describe("the page store", () => {
           },
       );
     const before = await tool();
+    await stopLonely();
+    // Found in the store with the database gone: the call above kept it.
     await warm(
       Orphaned,
       `/_mcp/tools/list_speakers?input=${encodeURIComponent('{"limit":50}')}`,
     );
-    await stopLonely();
     expect((await tool()).result).toEqual(before.result);
     expect(before.result.isError).toBeUndefined();
     for (const path of pages) {
