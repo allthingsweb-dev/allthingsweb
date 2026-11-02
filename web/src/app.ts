@@ -70,8 +70,9 @@ export function makeHandler(
     routes.pipe(Layer.provideMerge(services)),
     {
       disableLogger: true,
-      // "/about/" is not "/about": the catch-all in pages/routes.ts redirects
-      // it, as the current site does, so a page has one address.
+      // "/about/" is not "/about": the Worker redirects it before the app
+      // (trailing-slash.ts), as the current site does, so a page has one
+      // address.
       routerConfig: { ignoreTrailingSlash: false },
     },
   );
