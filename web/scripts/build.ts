@@ -64,7 +64,7 @@ interface Typeface {
   readonly package: string;
   readonly stylesheet: string;
   readonly file: (subset: Subset) => string;
-  readonly display: "swap" | "fallback";
+  readonly display: "swap";
   readonly preload: ReadonlyArray<Subset>;
 }
 
@@ -78,9 +78,14 @@ interface Typeface {
  *   variable font. It is preloaded, and `font-display: swap` because the
  *   brand is typographic: text must end up in Archivo, and the preload
  *   usually lands before first paint, so the swap is rarely seen.
- * - Geist Mono sets only small meta. It isn't preloaded, and
- *   `font-display: fallback` keeps the system mono if it is slow to arrive,
- *   rather than reflowing meta late.
+ * - Geist Mono sets the meta: the dates, labels and navigation every page
+ *   paints first. It is treated as Archivo is: its latin subset (23 KB) is
+ *   preloaded, so it is fetched beside Archivo rather than after the
+ *   stylesheet is read and is usually in before first paint, and
+ *   `font-display: swap`, so the meta is never blank while it is on its
+ *   way (`fallback` hid it for a moment, which showed at first paint). The
+ *   system mono that stands in until then has the same advance and the
+ *   meta's line height is its own, so the swap moves nothing.
  */
 const typefaces: ReadonlyArray<Typeface> = [
   {
@@ -96,8 +101,8 @@ const typefaces: ReadonlyArray<Typeface> = [
     package: "@fontsource-variable/geist-mono",
     stylesheet: "wght.css",
     file: (subset) => `geist-mono-${subset}-wght-normal`,
-    display: "fallback",
-    preload: [],
+    display: "swap",
+    preload: ["latin"],
   },
 ];
 
