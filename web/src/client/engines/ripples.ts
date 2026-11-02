@@ -58,6 +58,9 @@ void main() {
   color = vec4(photo + vec3(light * 0.6), 1.0);
 }`;
 
+/** Frames of still water before a drop falls by itself. */
+const idleDrop = 90;
+
 export function make({ gl, tiles }: EngineContext): Engine {
   if (!rendersFloat(gl)) throw new Error("No float render targets");
   const draw = fullScreen(gl);
@@ -70,7 +73,9 @@ export function make({ gl, tiles }: EngineContext): Engine {
   let sized = false;
   let photos = gl.createTexture();
   const drops: Array<{ x: number; y: number; strength: number }> = [];
-  let idle = 0;
+  // Frames since the last drop. The first frame drops one, so the water
+  // moves from the moment it shows.
+  let idle = idleDrop;
 
   const step = (x: number, y: number, strength: number) => {
     pass(gl, field.write, 0, 0, () => {
@@ -123,7 +128,7 @@ export function make({ gl, tiles }: EngineContext): Engine {
     frame(time) {
       // Now and then a drop falls by itself, so the water is never still.
       idle += 1;
-      if (drops.length === 0 && idle > 90) {
+      if (drops.length === 0 && idle > idleDrop) {
         idle = 0;
         drops.push({
           x: 0.5 + 0.4 * Math.sin(time * 0.7),

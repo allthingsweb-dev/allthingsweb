@@ -1,4 +1,5 @@
 import type { Engine, MakeEngine, Pointer, Tile } from "./engine.ts";
+import { linked } from "./gl.ts";
 
 /**
  * The lab's one script (pages/lab/), which only pages with an engine load.
@@ -7,6 +8,14 @@ import type { Engine, MakeEngine, Pointer, Tile } from "./engine.ts";
  * photos in WebGL2, and stirs it with the pointer, a mouse or a finger,
  * anywhere over the surface's stage (`data-engine-stage`). It runs only
  * while the surface is on screen and the tab is shown.
+ *
+ * The stage shows once, finished: it is marked `data-engine-ready` when
+ * the engine has drawn its first frame, with every photo in it, or when it
+ * can't run and the still composition has its photos. Until then the
+ * stylesheet may keep the surface out of sight, so nothing is seen
+ * arriving, and a stage marked ready fades in. Everything slow happens
+ * before that, off the page's way: the photos decode, the GPU compiles the
+ * shaders in the background (gl.ts), and the canvas is sized once.
  *
  * Without script, WebGL2 or float targets, or for people who prefer
  * reduced motion, nothing starts until they no longer do: the surface keeps
@@ -31,17 +40,38 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 /** Canvases are drawn at most at twice their CSS size. */
 const maxScale = 2;
 
+/**
+ * How long a stage waits for its photos before it shows what came: on a
+ * very slow connection, the page doesn't wait for the last of them.
+ */
+const photoWait = 8000;
+
+/** The images of the surface's first list of tiles, the ones it draws. */
+const tileImages = (surface: HTMLElement): ReadonlyArray<HTMLImageElement> => [
+  ...(surface.querySelector("[data-engine-tiles]")?.querySelectorAll("img") ??
+    []),
+];
+
+/** Every one of `images` decoded, or failed, or {@link photoWait} passed. */
+const settled = (images: ReadonlyArray<HTMLImageElement>): Promise<unknown> =>
+  Promise.race([
+    Promise.allSettled(images.map((image) => image.decode())),
+    new Promise((resolve) => setTimeout(resolve, photoWait)),
+  ]);
+
+/** The stage shows: as it is, with the engine's first frame or without. */
+const ready = (stage: HTMLElement) => {
+  stage.dataset["engineReady"] = "";
+};
+
 /** The surface's photos where its first list of tiles lays them out. */
 async function tilesOf(surface: HTMLElement): Promise<ReadonlyArray<Tile>> {
   const list = surface.querySelector<HTMLElement>("[data-engine-tiles]");
   if (list === null) return [];
+  const images = tileImages(surface);
+  await settled(images);
+  // Measured once they are all in, where the layout has put them.
   const origin = list.getBoundingClientRect();
-  const images = [...list.querySelectorAll("img")];
-  // Wait a moment for photos still on their way; draw what has come.
-  await Promise.race([
-    Promise.allSettled(images.map((image) => image.decode())),
-    new Promise((resolve) => setTimeout(resolve, 2500)),
-  ]);
   return images
     .filter((image) => image.complete && image.naturalWidth > 0)
     .map((image) => {
@@ -56,10 +86,20 @@ async function tilesOf(surface: HTMLElement): Promise<ReadonlyArray<Tile>> {
     });
 }
 
+/** The stage of `surface`: where the pointer stirs it, and what is marked. */
+const stageOf = (surface: HTMLElement): HTMLElement =>
+  surface.closest<HTMLElement>("[data-engine-stage]") ?? surface;
+
+/** The still composition, with its photos, for a surface whose engine can't run. */
+async function still(surface: HTMLElement): Promise<void> {
+  await settled(tileImages(surface));
+  ready(stageOf(surface));
+}
+
 async function start(surface: HTMLElement): Promise<void> {
+  const stage = stageOf(surface);
   const load = engines[surface.dataset["engine"] ?? ""];
-  if (load === undefined) return;
-  const stage = surface.closest<HTMLElement>("[data-engine-stage]") ?? surface;
+  if (load === undefined) return still(surface);
   const canvas = document.createElement("canvas");
   canvas.className = "engine-canvas";
   canvas.setAttribute("aria-hidden", "true");
@@ -69,20 +109,22 @@ async function start(surface: HTMLElement): Promise<void> {
     premultipliedAlpha: true,
     powerPreference: "high-performance",
   });
-  if (gl === null) return;
+  if (gl === null) return still(surface);
   let engine: Engine;
   let sharpest = maxScale;
   try {
     const [module, tiles] = await Promise.all([load(), tilesOf(surface)]);
-    if (tiles.length === 0) return;
+    if (tiles.length === 0) return still(surface);
     engine = module.make({ gl, canvas, tiles });
     sharpest = Math.min(maxScale, module.maxScale ?? maxScale);
+    // The shaders compile while the page goes on; nothing draws before.
+    await linked(gl);
   } catch (error) {
     console.warn(
       "The lab's engine didn't start; the still composition stays.",
       error,
     );
-    return;
+    return still(surface);
   }
   // The canvas shows, and the still photos hide, only while it runs.
   const show = () => {
@@ -109,16 +151,24 @@ async function start(surface: HTMLElement): Promise<void> {
     resizes.disconnect();
     sight.disconnect();
     hide();
+    ready(stage);
     console.warn(
       "The lab's engine stopped; the still composition stays.",
       error,
     );
   };
 
+  /** The size the engine was last given, so the same size isn't given twice. */
+  let sized = "";
   const resize = () => {
     if (failed) return;
     const box = surface.getBoundingClientRect();
     const scale = Math.min(devicePixelRatio || 1, sharpest);
+    const size = `${box.width}x${box.height}@${scale}`;
+    // Remaking the photos' texture is the slowest thing an engine does:
+    // only for a size it hasn't drawn at (the first observation is not one).
+    if (size === sized) return;
+    sized = size;
     canvas.width = Math.max(1, Math.round(box.width * scale));
     canvas.height = Math.max(1, Math.round(box.height * scale));
     try {
@@ -130,8 +180,19 @@ async function start(surface: HTMLElement): Promise<void> {
   };
   resize();
   if (failed) return;
-  // Reduced motion may have been chosen while the engine loaded.
-  if (!reducedMotion.matches) show();
+  // The first frame is drawn before anything shows, so the stage shows
+  // finished, the engine already running. Reduced motion may have been
+  // chosen while the engine loaded: then the still composition shows.
+  if (!reducedMotion.matches) {
+    try {
+      engine.frame(performance.now() / 1000, 1 / 60);
+    } catch (error) {
+      fail(error);
+      return;
+    }
+    show();
+  }
+  ready(stage);
   resizes.observe(surface);
 
   let last: { x: number; y: number } | undefined;
@@ -191,18 +252,26 @@ async function start(surface: HTMLElement): Promise<void> {
   });
 }
 
-/** Starts each surface's engine as it comes within a screen of view. */
+/**
+ * After the page's first paint: making a WebGL context can hold the main
+ * thread, and the page's text shouldn't wait for it.
+ */
+const afterFirstPaint = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => setTimeout(resolve, 0)),
+  );
+
 /** Surfaces that came near while reduced motion was chosen. */
 const deferred = new Set<HTMLElement>();
 const near = new IntersectionObserver(
   (entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting || !(entry.target instanceof HTMLElement)) {
-        continue;
-      }
-      near.unobserve(entry.target);
-      if (reducedMotion.matches) deferred.add(entry.target);
-      else void start(entry.target);
+    for (const { isIntersecting, target: surface } of entries) {
+      if (!isIntersecting || !(surface instanceof HTMLElement)) continue;
+      near.unobserve(surface);
+      if (reducedMotion.matches) {
+        deferred.add(surface);
+        void still(surface);
+      } else void afterFirstPaint().then(() => start(surface));
     }
   },
   { rootMargin: "100% 0px" },
@@ -213,6 +282,7 @@ reducedMotion.addEventListener("change", () => {
   for (const surface of deferred) void start(surface);
   deferred.clear();
 });
+/** Starts each surface's engine as it comes within a screen of view. */
 for (const surface of document.querySelectorAll<HTMLElement>("[data-engine]")) {
   near.observe(surface);
 }
