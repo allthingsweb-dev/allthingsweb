@@ -78,9 +78,13 @@ interface Typeface {
  *   variable font. It is preloaded, and `font-display: swap` because the
  *   brand is typographic: text must end up in Archivo, and the preload
  *   usually lands before first paint, so the swap is rarely seen.
- * - Geist Mono sets only small meta. It isn't preloaded, and
- *   `font-display: fallback` keeps the system mono if it is slow to arrive,
- *   rather than reflowing meta late.
+ * - Geist Mono sets the meta: the dates, labels and navigation every page
+ *   paints first. Its latin subset (23 KB) is preloaded too, so it is
+ *   fetched beside Archivo rather than after the stylesheet is read, and
+ *   is in before first paint: `font-display: fallback` hides text for a
+ *   moment while it is still on its way, which left the meta blank at
+ *   first paint. `fallback` stays: on a slow connection the system mono
+ *   stands in for good rather than reflowing meta seconds later.
  */
 const typefaces: ReadonlyArray<Typeface> = [
   {
@@ -97,7 +101,7 @@ const typefaces: ReadonlyArray<Typeface> = [
     stylesheet: "wght.css",
     file: (subset) => `geist-mono-${subset}-wght-normal`,
     display: "fallback",
-    preload: [],
+    preload: ["latin"],
   },
 ];
 

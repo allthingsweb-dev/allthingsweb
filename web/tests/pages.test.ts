@@ -677,12 +677,15 @@ describe("static assets", () => {
     }
   });
 
-  it("preload only Archivo's latin subset", async (url) => {
+  it("preload only the latin subsets, of Archivo and Geist Mono", async (url) => {
     const { html } = await brand(url);
     const preloads = html.match(/<link rel="preload"[^>]*>/g) ?? [];
-    expect(preloads).toHaveLength(1);
+    expect(preloads).toHaveLength(2);
     expect(preloads[0]).toMatch(
       /href="\/assets\/archivo-latin-wdth-normal\.[0-9a-f]{16}\.woff2" as="font" type="font\/woff2" crossorigin=""/,
+    );
+    expect(preloads[1]).toMatch(
+      /href="\/assets\/geist-mono-latin-wght-normal\.[0-9a-f]{16}\.woff2" as="font" type="font\/woff2" crossorigin=""/,
     );
   });
 
