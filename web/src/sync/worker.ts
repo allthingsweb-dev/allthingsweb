@@ -370,22 +370,33 @@ export async function tellSite(
   }
 }
 
+/**
+ * A scheduled run, then, when it writes, word to the site (`tellSite`),
+ * even when a step failed or the run couldn't start: what the steps before
+ * it wrote is in the database, and the site compares versions itself.
+ */
+export async function runAndTell(
+  env: Readonly<Record<string, unknown>>,
+  /** How it reaches Luma, X and the image hosts: the runtime's fetch, or a test's. */
+  fetch: typeof globalThis.fetch = globalThis.fetch,
+): Promise<SyncReport> {
+  try {
+    return await scheduledRun(env, fetch);
+  } finally {
+    if (modeOf(env) === "write") await tellSite(env);
+  }
+}
+
 export default {
   /**
    * Returns the run, rather than handing it to `waitUntil`, so a run that
    * can't start fails its invocation and the Cron Trigger's event says so.
-   * A run that writes then tells the site, even when a step failed: what
-   * the steps before it wrote is in the database.
    */
   async scheduled(
     _controller: unknown,
     env: Readonly<Record<string, unknown>>,
   ): Promise<void> {
-    try {
-      await scheduledRun(env);
-    } finally {
-      if (modeOf(env) === "write") await tellSite(env);
-    }
+    await runAndTell(env);
   },
   fetch(): Response {
     return new Response("Not found", { status: 404 });

@@ -57,6 +57,7 @@ import worker, {
   imagesOf,
   limitsOf,
   modeOf,
+  runAndTell,
   scheduledRun,
   SyncBindingsMissing,
   syncBindings,
@@ -978,9 +979,27 @@ describe("the Worker, from its bindings", () => {
     const server = await serve(db);
     const internet = fakeInternet();
     const { env, put } = bindings(server.url);
+    // The site is told after the run, and what it would read then is what
+    // the run wrote.
+    const told: Array<number> = [];
+    const site = {
+      fetch: async () => {
+        told.push(
+          (
+            await db.query<{ n: number }>(
+              "SELECT count(*)::int AS n FROM events WHERE luma_description IS NOT NULL",
+            )
+          ).rows[0]?.n ?? 0,
+        );
+        return Response.json({ version: "v1", next: null });
+      },
+    };
     const logs = captureLogs();
     try {
-      const report = await scheduledRun(env, internet.fetch);
+      const report = await runAndTell(
+        { ...env, SITE: site, SITE_REFRESH_TOKEN: "a-test-token" },
+        internet.fetch,
+      );
       expect(
         (await db.query<{ role: string }>("SELECT current_user AS role"))
           .rows[0]?.role,
@@ -1034,11 +1053,18 @@ describe("the Worker, from its bindings", () => {
       expect(internet.fetched[0]?.href).toStartWith(
         "https://api.luma.com/ics/get",
       );
-      expect(logs.lines.at(-1)).toMatchObject({
+      expect(logs.lines.at(-2)).toMatchObject({
         source: "luma-sync",
         step: "summary",
         ok: true,
       });
+      expect(logs.lines.at(-1)).toMatchObject({
+        source: "luma-sync",
+        step: "site",
+        status: "done",
+      });
+      expect(told).toHaveLength(1);
+      expect(told[0]).toBeGreaterThan(0);
     } finally {
       logs.restore();
       await server.stop();
