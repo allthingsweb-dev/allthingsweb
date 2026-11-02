@@ -2,11 +2,11 @@ import {
   SiteVersion,
   type SiteState,
 } from "allthings-core/src/site-version.ts";
-import { ConfigProvider, Context, Effect, Layer } from "effect";
+import { ConfigProvider, Context, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import { Hyperdrive, pool } from "./database.ts";
 import { imageRoutes, Images, WaitUntil } from "./images/route.ts";
-import { Mcp, mcpRoute } from "./mcp/endpoint.ts";
+import { Mcp, mcpRoute, ThroughStore, toolRoute } from "./mcp/endpoint.ts";
 import { Assets, ogRoutes } from "./og/route.ts";
 import { pageRoutes } from "./pages/routes.ts";
 import { seoRoutes } from "./seo/routes.ts";
@@ -17,6 +17,7 @@ import { v1Routes } from "./v1/routes.ts";
 export const routes = Layer.mergeAll(
   v1Routes,
   mcpRoute,
+  toolRoute,
   pageRoutes,
   seoRoutes,
   imageRoutes,
@@ -39,6 +40,16 @@ export interface ExecutionContext {
  */
 export function makeHandler(
   env: Readonly<Record<string, unknown>>,
+  options: {
+    /**
+     * The page store in front of this app (worker.ts), which `/mcp` answers
+     * its tools through (mcp/endpoint.ts).
+     */
+    readonly through?: (
+      request: Request,
+      context: ExecutionContext,
+    ) => Promise<Response>;
+  } = {},
 ): (request: Request, context?: ExecutionContext) => Promise<Response> {
   const services = Layer.mergeAll(
     Site.layer,
@@ -50,6 +61,7 @@ export function makeHandler(
         Hyperdrive.layer(env),
         Images.layer(env),
         Assets.layer(env),
+        Layer.succeed(ThroughStore, Option.fromNullishOr(options.through)),
       ),
     ),
   );

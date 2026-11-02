@@ -4,6 +4,7 @@ import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, PrivateCacheControl } from "../src/cache.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
+import { mcpRequest, rpcMessage } from "./support/http.ts";
 import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
 
@@ -227,11 +228,79 @@ describe("the page store", () => {
     expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
   });
 
+  it("answers MCP tools through the store, so a call already answered reads no database", async ({
+    Cached,
+  }) => {
+    await primed(Cached);
+    const listEvents = async () => {
+      const response = await fetch(
+        mcpRequest(`${Cached}/mcp`, {
+          jsonrpc: "2.0",
+          id: 7,
+          method: "tools/call",
+          params: {
+            name: "list_events",
+            arguments: { when: "past", limit: 3 },
+          },
+        }),
+      );
+      return rpcMessage(await response.text()) as {
+        id: number;
+        result: { isError?: boolean; structuredContent: { events: unknown[] } };
+      };
+    };
+    const first = await listEvents();
+    expect(first.id).toBe(7);
+    expect(first.result.isError).toBeUndefined();
+    expect(first.result.structuredContent.events.length).toBeGreaterThan(0);
+    // The tool's answer is kept like a page, by its input.
+    const path = `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":3,"when":"past"}')}`;
+    const kept = await warm(Cached, path);
+    expect(JSON.parse(kept.html)).toEqual(first.result);
+    expect((await listEvents()).result).toEqual(first.result);
+  });
+
+  it("refuses a tool it doesn't have, or input the tool refuses, and keeps neither", async ({
+    Cached,
+  }) => {
+    for (const path of [
+      "/_mcp/tools/drop_tables",
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":-1}')}`,
+      "/_mcp/tools/get_event?input=not-json",
+    ]) {
+      const { response } = await get(Cached, path);
+      expect(response.status).toBe(400);
+      expect(state(response)).not.toBe("hit");
+    }
+  });
+
   it("serves warm pages without its database, and keeps no failure", async ({
     Orphaned,
   }) => {
     for (const path of pages) await warm(Orphaned, path);
+    // An MCP call answered once is answered again with the database gone.
+    const tool = () =>
+      fetch(
+        mcpRequest(`${Orphaned}/mcp`, {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "list_speakers", arguments: {} },
+        }),
+      ).then(
+        async (response) =>
+          rpcMessage(await response.text()) as {
+            result: { isError?: boolean };
+          },
+      );
+    const before = await tool();
+    await warm(
+      Orphaned,
+      `/_mcp/tools/list_speakers?input=${encodeURIComponent('{"limit":50}')}`,
+    );
     await stopLonely();
+    expect((await tool()).result).toEqual(before.result);
+    expect(before.result.isError).toBeUndefined();
     for (const path of pages) {
       const { response } = await get(Orphaned, path);
       expect(response.status).toBe(200);
