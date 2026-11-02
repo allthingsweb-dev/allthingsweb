@@ -341,7 +341,7 @@ describe("the variants' parts", () => {
       html.match(/<li><a href="\/(?:effect|sync)"><picture>/g),
     ).toHaveLength(24);
     expect(html).toContain('<span class="visually-hidden">, 2026.09.30</span>');
-    expect(html).toContain("lab-tally-band");
+    expect(html).toContain("figures-band");
     expect(html.match(/fetchpriority="high"/g)).toHaveLength(6);
   });
 
@@ -354,7 +354,7 @@ describe("the variants' parts", () => {
       '<div class="liquid-field" aria-hidden="true" data-engine="liquid"><ul class="liquid-wall" data-engine-tiles="">',
     );
     expect(html.match(/class="liquid-lens liquid-lens-\d"/g)).toHaveLength(3);
-    expect(html).toContain("lab-tally-columns");
+    expect(html).toContain("figures-columns");
     expect(html).not.toContain("people said");
   });
 
@@ -501,15 +501,7 @@ describe("lab.css", () => {
     for (const selector of animated) {
       expect(stoppedSelectors).toContain(selector);
     }
-    // A transition answers the pointer; it too is cut for reduced motion.
-    const settled = [...still.matchAll(/([^{}]+)\{\s*transition: none;\s*\}/g)]
-      .flatMap(([, selectors = ""]) => selectors.split(","))
-      .map((selector) => selector.trim());
-    const transitioned = rules
-      .filter(({ body }) => /(?:^|;)\s*transition:(?!\s*none)/.test(body))
-      .flatMap(({ selector }) => selector.split(/,\s*/));
-    expect(transitioned.length).toBeGreaterThan(0);
-    for (const selector of transitioned) expect(settled).toContain(selector);
+    // Transitions are cut too, in each stylesheet (styles.test.ts).
   });
 
   test("animates only opacity and transforms, and hides what is out of a cross", () => {

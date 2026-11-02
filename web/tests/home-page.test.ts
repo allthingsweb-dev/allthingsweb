@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { CommunityView, WallPhoto } from "allthings-core/src/community.ts";
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import { DateTime } from "effect";
 import { hosts } from "../src/links.ts";
@@ -183,16 +184,42 @@ const view = (overrides: Partial<HomeView> = {}): HomeView => ({
   ...overrides,
 });
 
+/** A photo on the wall, of the evening at `slug`. */
+const walled = (
+  name: string,
+  slug = "2026-09-15-agent-setups",
+  width?: number,
+  height?: number,
+): WallPhoto => ({
+  photo: photo(name, width, height),
+  slug,
+  startsAt: at("2026-09-16T00:30:00Z"),
+});
+
+const community = (overrides: Partial<CommunityView> = {}): CommunityView => ({
+  tally: { evenings: 34, guests: 6827, speakers: 49, hostingCompanies: 18 },
+  evenings: [],
+  wall: [walled("a"), walled("b"), walled("c")],
+  faces: [],
+  ...overrides,
+});
+
+/** The community with `wall` alone on its wall. */
+const wallOf = (...wall: ReadonlyArray<WallPhoto>) => community({ wall });
+
 /**
  * The home page for `home`, in the system's mode, linking original photos
  * and without portraits unless `options` say otherwise.
  */
 const render = (
   home: HomeView,
-  options: Partial<Pick<HomeProps, "theme" | "portraits" | "images">> = {},
+  options: Partial<
+    Pick<HomeProps, "community" | "theme" | "portraits" | "images">
+  > = {},
 ) =>
   homePage({
     home,
+    community: community(),
     origin: "https://allthingsweb.dev",
     theme: undefined,
     portraits: new Map(),
@@ -263,15 +290,53 @@ describe("the home page", () => {
     );
   });
 
-  test("lays out as many photos as there are, and none without them", () => {
-    expect(render(view({ photos: [] }))).not.toContain("mosaic");
-    expect(render(view({ photos: [] }))).toContain('<section class="hero" ');
-    expect(render(view({ photos: [photo("a")] }))).toContain(
-      '<div class="mosaic tiles-1">',
+  test("cuts the wall's photos on the slash beside the hero, each leading to its evening", () => {
+    const html = render(view());
+    expect(html).toContain(
+      '<section class="hero slash-cut" aria-labelledby="next"><div class="hero-text">',
     );
-    expect(render(view({ photos: [photo("a"), photo("b")] }))).toContain(
-      '<div class="mosaic tiles-2">',
+    expect(html).toContain(
+      '<li><a href="/2026-09-15-agent-setups"><img src="https://media.allthings.dev/events/a.jpg" alt="a"',
     );
+    expect(
+      html.match(/<li><a href="\/2026-09-15-agent-setups">/g),
+    ).toHaveLength(3);
+    expect(html).toContain('<span class="visually-hidden">, 2026.09.15</span>');
+  });
+
+  test("shows at most 24 photos, and no grid without them", () => {
+    const many = wallOf(
+      ...Array.from({ length: 30 }, (_, index) => walled(`p${index}`)),
+    );
+    expect(
+      /<ul class="slash-grid">(.*?)<\/ul>/
+        .exec(render(view(), { community: many }))?.[1]
+        ?.match(/<li>/g),
+    ).toHaveLength(24);
+    const none = render(view(), { community: wallOf() });
+    expect(none).not.toContain("slash-grid");
+    expect(none).toContain('<section class="hero" aria-labelledby="next">');
+  });
+
+  test("sets the tally under the hero as a band, leaving out a zero", () => {
+    const html = render(view());
+    expect(html).toContain(
+      '</section><section class="figures figures-band" aria-label="So far"><dl><div><dt class="at-type-meta">evenings</dt><dd>34</dd></div>',
+    );
+    expect(html).toContain("<dd>6,827</dd>");
+    const fresh = render(view(), {
+      community: community({
+        tally: { evenings: 3, guests: 0, speakers: 2, hostingCompanies: 1 },
+      }),
+    });
+    expect(fresh).not.toContain("said “I’m in”");
+    expect(
+      render(view(), {
+        community: community({
+          tally: { evenings: 0, guests: 0, speakers: 0, hostingCompanies: 0 },
+        }),
+      }),
+    ).not.toContain("figures");
   });
 
   test("leaves out Recently when nothing has happened yet", async () => {
@@ -337,57 +402,69 @@ describe("the home page", () => {
   });
 
   test.each([
-    ["one upcoming", view()],
-    ["nothing ahead", view({ next: undefined })],
-    ["no photos", view({ photos: [] })],
-    ["after that", view({ afterThat: [evening({ slug: "later" })] })],
-  ])("is valid HTML: %s", async (_, home) => {
-    expect(await htmlProblems(render(home))).toEqual([]);
+    ["one upcoming", view(), community()],
+    ["nothing ahead", view({ next: undefined }), community()],
+    ["no photos", view(), wallOf()],
+    ["nothing ahead, no photos", view({ next: undefined }), wallOf()],
+    [
+      "after that",
+      view({ afterThat: [evening({ slug: "later" })] }),
+      community(),
+    ],
+  ])("is valid HTML: %s", async (_, home, walls) => {
+    expect(await htmlProblems(render(home, { community: walls }))).toEqual([]);
   });
 });
 
 describe("the home page's photos as variants", () => {
-  const variants = (home: HomeView, portraits = new Map()) =>
-    render(home, { images: "variants", portraits });
+  const variants = (
+    home: HomeView,
+    portraits = new Map(),
+    walls: CommunityView = community(),
+  ) => render(home, { images: "variants", portraits, community: walls });
   const tiles = (html: string) =>
-    /<div class="mosaic[^"]*">(.*?)<\/div>/
+    /<ul class="slash-grid">(.*?)<\/ul>/
       .exec(html)?.[1]
       ?.match(/<picture>.*?<\/picture>/g) ?? [];
   const srcset = (path: string, upTo: number) =>
-    [240, 360, 480, 720, 960, 1200]
+    [240, 360, 480]
       .filter((width) => width <= upTo)
       .map((width) => `/img/${width}/${path} ${width}w`)
       .join(", ");
-  const wide =
-    "(max-width: 767.98px) 91vw, (max-width: 1439.98px) calc(30.33vw - 16px), 421px";
-  const half =
-    "(max-width: 767.98px) calc(45.5vw - 6px), (max-width: 1439.98px) calc(15.17vw - 14px), 205px";
+  const sizes = "(max-width: 767.98px) 26vw, 10vw";
 
-  test("offers each photo in AVIF, WebP and JPEG at every width it has, at its own size and with its alt", () => {
-    const [first] = tiles(variants(view({ photos: [photo("a", 1024, 768)] })));
+  test("offers each photo in AVIF, WebP and JPEG up to 480 wide, at its own size and with its alt", () => {
+    const [first] = tiles(
+      variants(view(), new Map(), wallOf(walled("a", undefined, 1024, 768))),
+    );
     const of = (format: string) => `${format}/1767323045/events/a.jpg`;
     expect(first).toBe(
       [
         "<picture>",
-        `<source type="image/avif" srcset="${srcset(of("avif"), 1024)}" sizes="${wide}"/>`,
-        `<source type="image/webp" srcset="${srcset(of("webp"), 1024)}" sizes="${wide}"/>`,
-        `<img src="/img/480/${of("jpeg")}" srcset="${srcset(of("jpeg"), 1024)}" sizes="${wide}" alt="a" width="1024" height="768" loading="lazy" decoding="async"/>`,
+        `<source type="image/avif" srcset="${srcset(of("avif"), 1024)}" sizes="${sizes}"/>`,
+        `<source type="image/webp" srcset="${srcset(of("webp"), 1024)}" sizes="${sizes}"/>`,
+        `<img src="/img/480/${of("jpeg")}" srcset="${srcset(of("jpeg"), 1024)}" sizes="${sizes}" alt="a" width="1024" height="768" decoding="async" fetchpriority="high"/>`,
         "</picture>",
       ].join(""),
     );
   });
 
-  test("sizes the first tile wide and the others half, but for two, which are both wide", () => {
-    const sizes = (html: string) =>
-      tiles(html).map((tile) => /<img [^>]*sizes="([^"]+)"/.exec(tile)?.[1]);
-    expect(sizes(variants(view()))).toEqual([wide, half, half]);
-    expect(sizes(variants(view({ photos: [photo("a"), photo("b")] })))).toEqual(
-      [wide, wide],
+  test("loads the first row first and the rest of the first two at once", () => {
+    const html = variants(
+      view(),
+      new Map(),
+      wallOf(...Array.from({ length: 24 }, (_, index) => walled(`p${index}`))),
     );
+    expect(html.match(/fetchpriority="high"/g)).toHaveLength(6);
+    expect(
+      tiles(html).filter((tile) => tile.includes('loading="lazy"')),
+    ).toHaveLength(12);
   });
 
   test("offers a photo narrower than every width once, at its own width", () => {
-    const [tile] = tiles(variants(view({ photos: [photo("a", 200, 150)] })));
+    const [tile] = tiles(
+      variants(view(), new Map(), wallOf(walled("a", undefined, 200, 150))),
+    );
     expect(tile).toContain(
       'srcset="/img/240/avif/1767323045/events/a.jpg 200w"',
     );
@@ -396,32 +473,46 @@ describe("the home page's photos as variants", () => {
 
   test("leaves out a photo it can't make variants of, and lays out the rest", () => {
     const html = variants(
-      view({
-        photos: [
-          photo("a"),
-          { ...photo("b"), url: "https://elsewhere.example/b.jpg" },
-          { ...photo("c"), url: "https://media.allthings.dev/events/c.svg" },
-        ],
-      }),
+      view(),
+      new Map(),
+      wallOf(
+        walled("a"),
+        {
+          ...walled("b"),
+          photo: { ...photo("b"), url: "https://elsewhere.example/b.jpg" },
+        },
+        {
+          ...walled("c"),
+          photo: {
+            ...photo("c"),
+            url: "https://media.allthings.dev/events/c.svg",
+          },
+        },
+      ),
     );
-    expect(html).toContain('<div class="mosaic tiles-1">');
+    expect(tiles(html)).toHaveLength(1);
     expect(html).not.toContain("elsewhere.example");
     expect(html).not.toContain("c.svg");
     expect(
-      variants(view({ photos: [{ ...photo("a"), url: "x" }] })),
-    ).not.toContain("mosaic");
+      variants(
+        view(),
+        new Map(),
+        wallOf({ ...walled("a"), photo: { ...photo("a"), url: "x" } }),
+      ),
+    ).not.toContain("slash-grid");
   });
 
   test("encodes each segment of a key, as the media origin's URLs do", () => {
     const [tile] = tiles(
       variants(
-        view({
-          photos: [
-            {
-              ...photo("a"),
-              url: "https://media.allthings.dev/profiles/erik-pe%C3%B1a.png",
-            },
-          ],
+        view(),
+        new Map(),
+        wallOf({
+          ...walled("a"),
+          photo: {
+            ...photo("a"),
+            url: "https://media.allthings.dev/profiles/erik-pe%C3%B1a.png",
+          },
         }),
       ),
     );
@@ -459,13 +550,17 @@ describe("the home page's photos as variants", () => {
   });
 
   test.each([
-    ["three photos", view()],
-    ["two photos", view({ photos: [photo("a"), photo("b")] })],
-    ["a narrow photo", view({ photos: [photo("a", 100, 100)] })],
-  ])("is valid HTML: %s", async (_, home) => {
+    ["three photos", community()],
+    ["two photos", wallOf(walled("a"), walled("b"))],
+    ["a narrow photo", wallOf(walled("a", undefined, 100, 100))],
+  ])("is valid HTML: %s", async (_, walls) => {
     expect(
       await htmlProblems(
-        variants(home, new Map([[hosts[1].profileId, photo("andre")]])),
+        variants(
+          view(),
+          new Map([[hosts[1].profileId, photo("andre")]]),
+          walls,
+        ),
       ),
     ).toEqual([]);
   });

@@ -446,32 +446,104 @@ main > section,
   text-decoration: underline var(--at-stroke-rule);
 }
 
-.mosaic {
-  grid-column: span 4 / -1;
-  align-self: end;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--at-space-3);
+/* The slash grid (pages/slash-grid.tsx): the community's photos cut on
+   the slash's slant beside home's lockup, each leading to its evening. */
+
+.slash-cut .hero-text {
+  grid-column: span 5;
 }
 
-/* A tile is an <img>, or a <picture> holding one. */
-.mosaic img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+.slash-grid {
+  grid-column: span 7 / -1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--at-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+}
+
+/* Each tile leans 14°, the slash's angle; the photo in it leans back and
+   fills it. The grid's edges stay straight. */
+.slash-grid li {
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  transform: skewX(-14deg);
   background: var(--at-surface);
 }
 
-.mosaic > :first-child,
-.tiles-2 > :last-child {
-  grid-column: span 2;
+.slash-grid a {
+  display: block;
+  height: 100%;
 }
 
-.tiles-2 > img:last-child,
-.tiles-2 > :last-child > img {
-  aspect-ratio: 2 / 1;
+.slash-grid picture,
+.slash-grid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slash-grid img {
+  transform: skewX(14deg) scale(1.35);
+  transition: transform 0.4s ease;
+}
+
+.slash-grid a:hover img,
+.slash-grid a:focus-visible img {
+  transform: skewX(14deg) scale(1.5);
+}
+
+.slash-grid a:focus-visible {
+  outline-offset: calc(-1 * var(--at-stroke-heavy));
+}
+
+/* The tally as big numbers over mono labels (pages/figures.tsx). As a
+   band, under home's hero, the numbers fill their cells; as columns,
+   within a hero of the lab's (lab.css), they sit side by side under the
+   lockup. */
+
+.figures dl {
+  display: grid;
+  margin: 0;
+}
+
+.figures dl > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-2);
+  container-type: inline-size;
+}
+
+.figures dd {
+  order: -1;
+  font-weight: 800;
+  font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.figures-band dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: var(--at-stroke-heavy) solid var(--at-text);
+}
+
+.figures-band dl > div {
+  padding: var(--at-space-3) var(--at-space-4) 0 0;
+}
+
+.figures-band dl > div + div {
+  border-left: var(--at-stroke-hairline) solid var(--at-rule);
+  padding-left: var(--at-space-4);
+}
+
+.figures-band dd {
+  font-size: calc(var(--at-font-size-hero-l) * 1.45);
 }
 
 /* The two sentences, in the statement role, one line each at desktop
@@ -1671,6 +1743,14 @@ th {
 }
 
 @media (--at-below-xl) {
+  .slash-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .slash-grid li:nth-child(n + 17) {
+    display: none;
+  }
+
   /* Two organizers side by side keep room for their names. */
   .organizers .person {
     grid-template-columns: var(--at-size-portrait-l) minmax(0, 1fr);
@@ -1755,8 +1835,19 @@ th {
   .type-row .spec,
   .type-row .specimen,
   .with-photos .hero-text,
-  .mosaic {
+  .slash-cut .hero-text,
+  .slash-grid {
     grid-column: 1 / -1;
+  }
+
+  .figures-band dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--at-space-6);
+  }
+
+  .figures-band dl > div:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
   }
 
   .lists.two,
@@ -1976,4 +2067,12 @@ th {
 .collab-item + .collab-item {
   padding-top: var(--at-space-3);
   border-top: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+/* For people who prefer reduced motion, the slash grid's photos don't
+   ease when hovered. */
+@media (prefers-reduced-motion: reduce) {
+  .slash-grid img {
+    transition: none;
+  }
 }

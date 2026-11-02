@@ -3,7 +3,7 @@ import { asOf } from "allthings-core/src/clock.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
-import { Community } from "allthings-core/src/community.ts";
+import { Community, type CommunityView } from "allthings-core/src/community.ts";
 import { Home } from "allthings-core/src/home.ts";
 import { httpUrlOrNull } from "allthings-core/src/mappers.ts";
 import {
@@ -192,7 +192,8 @@ const keptFooter = Effect.gen(function* () {
  * the request's pool, at once with the hosts' portraits, and cached like
  * the API's public data. Once pages are keyed by data version, they can be
  * cached until the data changes instead. When the data can't be read, the
- * page says so plainly (503) and is never stored.
+ * page says so plainly (503) and is never stored; when it was read but
+ * isn't `complete`, the page is sent and never stored either.
  */
 const dataPage = <A>(
   path: `/${string}`,
@@ -207,6 +208,7 @@ const dataPage = <A>(
       readonly images: ImageMode;
     },
   ) => string,
+  complete: (data: A) => boolean = () => true,
 ) =>
   page(path, ({ theme, acceptEncoding, images }) =>
     Effect.gen(function* () {
@@ -216,12 +218,13 @@ const dataPage = <A>(
       }).pipe(
         Effect.provide(repositories),
         Effect.timed,
-        Effect.map(([took, [data, { portraits, read: complete }]]) =>
+        Effect.map(([took, [data, { portraits, read: footerRead }]]) =>
           htmlResponse(
             render(data, { origin, theme, portraits, images }),
             acceptEncoding,
             {
-              cacheControl: complete ? "publicData" : "failure",
+              cacheControl:
+                footerRead && complete(data) ? "publicData" : "failure",
               theme,
               db: Duration.toMillis(took),
               images,
@@ -248,12 +251,44 @@ const dataPage = <A>(
     }),
   );
 
-/** The home page: the next evening, the ones after it and the latest. */
+/** The community as nothing read: no photos, and no tally to show. */
+const noCommunity: CommunityView = {
+  tally: { evenings: 0, guests: 0, speakers: 0, hostingCompanies: 0 },
+  evenings: [],
+  wall: [],
+  faces: [],
+};
+
+/**
+ * The home page: the next evening, the ones after it and the latest, and
+ * the community's photos and tally (core's src/community.ts), read at once.
+ * Without the community, home is still home, without the slash grid and
+ * the tally, and never stored, so the next visitor reads it again.
+ */
 const home = dataPage(
   "/",
   "the home page",
-  Home.use((repository) => repository.read(mediaOrigin)),
-  (view, props) => homePage({ home: view, ...props }),
+  Effect.all(
+    {
+      home: Home.use((repository) => repository.read(mediaOrigin)),
+      community: Community.use((repository) =>
+        repository.read(mediaOrigin),
+      ).pipe(
+        Effect.tapCause((cause) =>
+          Effect.logWarning("The home page's community didn't read:", cause),
+        ),
+        Effect.option,
+      ),
+    },
+    { concurrency: "unbounded" },
+  ),
+  ({ home: view, community }, props) =>
+    homePage({
+      home: view,
+      community: Option.getOrElse(community, () => noCommunity),
+      ...props,
+    }),
+  ({ community }) => Option.isSome(community),
 );
 
 /**
