@@ -1,4 +1,5 @@
 import type { ExecutionContext } from "./app.ts";
+import { forWorkersCache } from "./cache.ts";
 import { built } from "./assets.ts";
 import {
   dataCenterCache,
@@ -153,7 +154,10 @@ export default {
             writers?.prewarm ?? noStore,
           );
         }
-        return site(incoming, incomingContext);
+        // What Workers Cache may keep, and for how long (cache.ts).
+        return site(incoming, incomingContext).then((response) =>
+          forWorkersCache(incoming, response),
+        );
       };
     }
     return handle(request, context);
