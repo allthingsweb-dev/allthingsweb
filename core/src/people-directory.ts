@@ -50,8 +50,14 @@ export interface PartEvening {
   readonly startsAt: DateTime.Utc;
 }
 
-/** A person's event roles the page names; organizing is its own group. */
+/** A person's event roles a page names on a row: co-hosting and MCing. */
 export type EveningRole = "co-host" | "mc";
+
+/**
+ * Every part a row names in an evening as a whole: hosting it (a Luma host
+ * of one of ours, on its own page only), co-hosting and MCing.
+ */
+export type RowRole = "host" | EveningRole;
 
 /**
  * One way a person took part in one evening: a talk, in their capacity on
@@ -66,7 +72,7 @@ export type Part =
     }
   | {
       readonly kind: "role";
-      readonly role: EveningRole;
+      readonly role: RowRole;
       readonly evening: PartEvening;
     };
 
@@ -121,10 +127,9 @@ export interface Appearance {
 
 /**
  * The order a person's parts in one evening are named in, the one place
- * it is set: their talks, then co-hosting, then MCing. Hosting is the
- * Hosted list's own, never a part named on a row.
+ * it is set: hosting it, their talks, then co-hosting, then MCing.
  */
-export const eveningPartOrder = ["talk", "co-host", "mc"] as const;
+export const eveningPartOrder = ["host", "talk", "co-host", "mc"] as const;
 
 const partRank = (part: Part): number =>
   eveningPartOrder.indexOf(part.kind === "talk" ? "talk" : part.role);
@@ -156,36 +161,42 @@ export function appearances(
   });
 }
 
+/** Latest evening first; on one start, by slug, so the order is fixed. */
+const latestEveningFirst: Order.Order<Appearance> = Order.combineAll([
+  Order.flip(
+    Order.mapInput(Order.Number, ({ evening }: Appearance) =>
+      DateTime.toEpochMillis(evening.startsAt),
+    ),
+  ),
+  Order.mapInput(Order.String, ({ evening }: Appearance) => evening.slug),
+]);
+
 /**
- * A person's page as rows, one per evening: those they hosted, each with
- * every other part they had in it, and those they took part in without
- * hosting, ours and shared apart.
+ * A person's rows, one per evening, latest first: every part they had in
+ * it, hosting it among them, ours and shared apart, and `all` of them
+ * together, as /people lists their latest. An evening is one row however
+ * they took part in it.
  */
 export function personRows(person: PersonPage): {
+  readonly all: ReadonlyArray<Appearance>;
   readonly ours: ReadonlyArray<Appearance>;
   readonly shared: ReadonlyArray<Appearance>;
-  readonly hosted: ReadonlyArray<Appearance>;
 } {
-  const hostedSlugs = new Set(person.hosted.map((evening) => evening.slug));
-  const notHosted = person.parts.filter(
-    (part) => !hostedSlugs.has(part.evening.slug),
+  // Their talks at the evenings they hosted are in `parts` already; their
+  // other roles there come with the evening.
+  const hosting = person.hosted.flatMap(
+    ({ roles, ...evening }): Array<Part> => [
+      { kind: "role", role: "host", evening },
+      ...roles.map((role): Part => ({ kind: "role", role, evening })),
+    ],
+  );
+  const rows = appearances([...person.parts, ...hosting]).toSorted(
+    latestEveningFirst,
   );
   return {
-    ours: appearances(
-      notHosted.filter((part) => part.evening.curation === "ours"),
-    ),
-    shared: appearances(
-      notHosted.filter((part) => part.evening.curation === "shared"),
-    ),
-    hosted: person.hosted.map(({ roles, ...evening }) => ({
-      evening,
-      parts: [
-        ...person.parts.filter(
-          (part) => part.kind === "talk" && part.evening.slug === evening.slug,
-        ),
-        ...roles.map((role): Part => ({ kind: "role", role, evening })),
-      ].toSorted((a, b) => partRank(a) - partRank(b)),
-    })),
+    all: rows,
+    ours: rows.filter(({ evening }) => evening.curation === "ours"),
+    shared: rows.filter(({ evening }) => evening.curation === "shared"),
   };
 }
 
@@ -200,11 +211,11 @@ export interface PeopleView {
    * The organizers asked for whose profiles exist, in that order, then
    * anyone else an evening names as its organizer.
    */
-  readonly organizers: ReadonlyArray<Person>;
+  readonly organizers: ReadonlyArray<PersonPage>;
   /** Everyone else with a talk. */
-  readonly speakers: ReadonlyArray<Person>;
+  readonly speakers: ReadonlyArray<PersonPage>;
   /** Everyone else who co-hosted or MC'd an evening, without a talk. */
-  readonly coHosts: ReadonlyArray<Person>;
+  readonly coHosts: ReadonlyArray<PersonPage>;
 }
 
 const EveningColumns = {
@@ -380,7 +391,7 @@ export function toPeople(
   const asked = new Set(organizerIds);
   const followers = new Map(rows.map((row) => [row.id, row.xFollowers]));
   const people = rows.map((row) => ({
-    person: toPerson(row, now),
+    person: toPersonPage(row, now),
     organizes: row.organizes,
   }));
   const byId = new Map(
