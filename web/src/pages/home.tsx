@@ -9,7 +9,7 @@ import { Tally } from "./figures.tsx";
 import { homeTitle, siteDescription } from "./metadata.tsx";
 import { organization } from "./structured-data.ts";
 import type { ImageMode } from "./picture.tsx";
-import { gridPhotos, SlashGrid } from "./slash-grid.tsx";
+import { DatedGrid, datedEvenings } from "./slash-grid.tsx";
 import type { Theme } from "./theme.ts";
 import { ogCards } from "../og/cards.ts";
 import { clockTime, day } from "./time.ts";
@@ -17,8 +17,8 @@ import { clockTime, day } from "./time.ts";
 /**
  * /: the round-5 home, under the slash grid. Each thing is said once. The
  * next evening is the hero (when, the lockup, where and who hosts, "I'm
- * in"), the community's photos sit beside it cut on the slash's slant
- * (slash-grid.tsx), the tally runs under it as a band of numbers, and the
+ * in"), a photo of each of our latest evenings sits beside it, cut on the
+ * slash's slant and dated (slash-grid.tsx), the tally runs under it as a band of numbers, and the
  * band below holds the two sentences, the evenings after that and the
  * latest ones. With nothing announced, the hero is the open slot,
  * allthings/_, and its button subscribes to the calendar.
@@ -210,8 +210,8 @@ export function HomeBand({ home }: { readonly home: HomeView }) {
 
 /**
  * Home under its hero: the next evening or the open slot beside the slash
- * grid, the tally as a band, then {@link HomeBand}. The home lab's
- * slash-grid (pages/lab/) shows the same.
+ * grid, dated, the tally as a band, then {@link HomeBand}. The home lab's
+ * slash-grid-dated (pages/lab/) shows the same.
  */
 export function HomeParts({
   home,
@@ -222,20 +222,20 @@ export function HomeParts({
   readonly community: CommunityView;
   readonly images: ImageMode;
 }) {
-  const photos = gridPhotos(community.wall, images);
+  const evenings = datedEvenings(community.evenings, images);
   return (
     <>
       <section
-        class={photos.length === 0 ? "hero" : "hero slash-cut"}
+        class={evenings.length === 0 ? "hero" : "hero slash-cut"}
         aria-labelledby="next"
       >
         <div class="hero-text">
           {home.next === undefined ? <OpenSlot /> : <Hero next={home.next} />}
         </div>
-        {photos.length === 0 ? (
+        {evenings.length === 0 ? (
           ""
         ) : (
-          <SlashGrid photos={photos} images={images} />
+          <DatedGrid evenings={evenings} images={images} />
         )}
       </section>
       <Tally tally={community.tally} kind="band" />

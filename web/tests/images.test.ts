@@ -180,12 +180,12 @@ describe("/ with variants", () => {
     expect(html).not.toContain("media.allthings.dev");
   });
 
-  it("offers the slash grid's photos as variants up to 480 wide, at their own size", async ({
+  it("offers the dated grid's photos as variants up to 480 wide, at their own size", async ({
     Variants,
   }) => {
     const html = await (await fetch(`${Variants}/`)).text();
     const tiles =
-      /<ul class="slash-grid">(.*?)<\/ul>/
+      /<ul class="slash-grid slash-grid-dated">(.*?)<\/ul>/
         .exec(html)?.[1]
         ?.match(/<picture>.*?<\/picture>/g) ?? [];
     expect(tiles).toHaveLength(4);

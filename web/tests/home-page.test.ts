@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { CommunityView, WallPhoto } from "allthings-core/src/community.ts";
+import type {
+  CommunityView,
+  HeldEvening,
+} from "allthings-core/src/community.ts";
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import { DateTime } from "effect";
 import { hosts } from "../src/links.ts";
@@ -184,27 +187,31 @@ const view = (overrides: Partial<HomeView> = {}): HomeView => ({
 });
 
 /** A photo on the wall, of the evening at `slug`. */
+/** An evening held, with its photo `name`. */
 const walled = (
   name: string,
   slug = "2026-09-15-agent-setups",
   width?: number,
   height?: number,
-): WallPhoto => ({
-  photo: photo(name, width, height),
+): HeldEvening => ({
   slug,
+  name: "All Things Agent Setups",
+  topic: "agent setups",
   startsAt: at("2026-09-16T00:30:00Z"),
+  photo: photo(name, width, height),
 });
 
 const community = (overrides: Partial<CommunityView> = {}): CommunityView => ({
   tally: { evenings: 34, guests: 6827, speakers: 49, hostingCompanies: 18 },
-  evenings: [],
-  wall: [walled("a"), walled("b"), walled("c")],
+  evenings: [walled("a"), walled("b"), walled("c")],
+  wall: [],
   faces: [],
   ...overrides,
 });
 
-/** The community with `wall` alone on its wall. */
-const wallOf = (...wall: ReadonlyArray<WallPhoto>) => community({ wall });
+/** The community with `evenings` alone held. */
+const wallOf = (...evenings: ReadonlyArray<HeldEvening>) =>
+  community({ evenings });
 
 /**
  * The home page for `home`, in the system's mode, linking original photos
@@ -289,18 +296,20 @@ describe("the home page", () => {
     );
   });
 
-  test("cuts the wall's photos on the slash beside the hero, each leading to its evening", () => {
+  test("cuts a photo of each evening on the slash beside the hero, dated and leading to it", () => {
     const html = render(view());
     expect(html).toContain(
       '<section class="hero slash-cut" aria-labelledby="next"><div class="hero-text">',
     );
     expect(html).toContain(
-      '<li><a href="/2026-09-15-agent-setups"><img src="https://media.allthings.dev/events/a.jpg" alt="a"',
+      '<li><a href="/2026-09-15-agent-setups"><span class="cut"><img src="https://media.allthings.dev/events/a.jpg" alt="a"',
     );
     expect(
       html.match(/<li><a href="\/2026-09-15-agent-setups">/g),
     ).toHaveLength(3);
-    expect(html).toContain('<span class="visually-hidden">, 2026.09.15</span>');
+    expect(html).toContain(
+      '<time class="cut-date at-type-meta" datetime="2026-09-16T00:30:00.000Z">2026.09.15</time>',
+    );
   });
 
   test("shows at most 24 photos, and no grid without them", () => {
@@ -308,7 +317,7 @@ describe("the home page", () => {
       ...Array.from({ length: 30 }, (_, index) => walled(`p${index}`)),
     );
     expect(
-      /<ul class="slash-grid">(.*?)<\/ul>/
+      /<ul class="slash-grid slash-grid-dated">(.*?)<\/ul>/
         .exec(render(view(), { community: many }))?.[1]
         ?.match(/<li>/g),
     ).toHaveLength(24);
@@ -422,7 +431,7 @@ describe("the home page's photos as variants", () => {
     walls: CommunityView = community(),
   ) => render(home, { images: "variants", portraits, community: walls });
   const tiles = (html: string) =>
-    /<ul class="slash-grid">(.*?)<\/ul>/
+    /<ul class="slash-grid slash-grid-dated">(.*?)<\/ul>/
       .exec(html)?.[1]
       ?.match(/<picture>.*?<\/picture>/g) ?? [];
   const srcset = (path: string, upTo: number) =>

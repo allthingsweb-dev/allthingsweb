@@ -125,7 +125,7 @@ function section(html: string, id: string): string {
 
 /** The slash grid beside the hero, or "" when the page has none. */
 function grid(html: string): string {
-  const start = html.indexOf('<ul class="slash-grid">');
+  const start = html.indexOf('<ul class="slash-grid slash-grid-dated">');
   return start === -1 ? "" : html.slice(start, html.indexOf("</ul>", start));
 }
 
@@ -251,16 +251,18 @@ describe("/ with evenings announced", () => {
     expect(html).not.toContain("Draft");
   });
 
-  it("cuts the community's photos beside the hero, from the media origin, sized, each leading to its evening", async ({
+  it("cuts a photo of each evening held beside the hero, from the media origin, sized, each leading to it", async ({
     Announced,
   }) => {
     const { html } = await home(Announced);
     const tiles = [
-      ...grid(html).matchAll(/<li><a href="([^"]+)">(<img [^>]*>)/g),
+      ...grid(html).matchAll(
+        /<li><a href="([^"]+)"><span class="cut">(<img [^>]*>)/g,
+      ),
     ].map(([, href, img]) => [href, img]);
     const img = (name: string, alt: string, width: number, height: number) =>
       `<img src="${mediaPhoto(name)}" alt="${alt}" width="${width}" height="${height}" decoding="async" fetchpriority="high"/>`;
-    // Every photo of the evenings held, latest first, as the wall falls back.
+    // One photo of each evening held, latest first, dated.
     expect(tiles).toEqual([
       [
         "/2026-03-07-all-things-effect",

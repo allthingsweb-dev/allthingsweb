@@ -48,13 +48,13 @@ export const variants: ReadonlyArray<Variant> = [
   {
     name: "slash-grid",
     pitch:
-      "Home now: a grid of the community’s photos cut on the slash’s slant, each leading to its evening, beside the lockup, with the tally as a band of numbers on the page’s grid.",
+      "The first slash grid, home’s until it was dated: the community’s hand-picked photos cut on the slash’s slant, each leading to its evening, beside the lockup, with the tally as a band of numbers on the page’s grid.",
     render: SlashGrid,
   },
   {
     name: "slash-grid-dated",
     pitch:
-      "Home’s slash grid with one photo to each evening we’ve held, the latest first, each dated under its cut and leading to its evening.",
+      "Home now: the slash grid with one photo to each evening we’ve held, the latest first, each dated under its cut and leading to its evening.",
     render: SlashGridDated,
   },
   {
@@ -176,7 +176,7 @@ export function labIndexPage(page: LabPage): string {
                 at<span class="slash">/</span>home
               </span>
               <span class="lab-variant-pitch">
-                Today’s home, to compare: the slash grid.
+                Today’s home, to compare: the slash grid of our evenings, dated.
               </span>
             </a>
           </li>
