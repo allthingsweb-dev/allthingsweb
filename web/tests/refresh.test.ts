@@ -99,6 +99,7 @@ describe("the refresh endpoint", () => {
 
 describe("the prewarm endpoint", () => {
   const report = {
+    build: "0123456789abcdef",
     paths: 3,
     kept: 1,
     built: 2,
