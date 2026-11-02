@@ -385,6 +385,42 @@ describe("the variants' parts", () => {
     );
     expect(await htmlProblems(html)).toEqual([]);
     // Without a photo to show, no grid.
+    // A photo it has no variants of (not an image key) is left out too.
+    const [first] = shown;
+    const unshowable = render(
+      "slash-grid-dated",
+      data({
+        community: community({
+          evenings: evenings.map((held) =>
+            held === first && held.photo !== null
+              ? {
+                  ...held,
+                  photo: {
+                    ...held.photo,
+                    url: "https://media.allthings.dev/events/notes.txt",
+                  },
+                }
+              : held,
+          ),
+        }),
+      }),
+    );
+    const slugsOf = (markup: string) =>
+      [...markup.matchAll(/<li><a href="\/([^"]+)"><span class="cut">/g)].map(
+        ([, slug]) => slug,
+      );
+    expect(slugsOf(unshowable)).toEqual(
+      shown.slice(1, 25).map(({ slug }) => slug),
+    );
+    // Narrower than `l`, three a row and the latest fifteen (lab.css).
+    const narrow =
+      /@media \(--at-below-l\) \{([\s\S]*?)\n\}/.exec(lab)?.[1] ?? "";
+    expect(narrow).toMatch(
+      /\.slash-grid-dated \{\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);\s*\}/,
+    );
+    expect(narrow).toMatch(
+      /\.slash-grid-dated li:nth-child\(n \+ 16\) \{\s*display: none;\s*\}/,
+    );
     const bare = render(
       "slash-grid-dated",
       data({
