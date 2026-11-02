@@ -126,7 +126,7 @@ Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so
 | `mode`     | `"write"`: the sync's one writer, since the app's cron stopped | `"dry-run"` only to hand back (below) |
 | `plan`     | `"paid"`: the app's own limits, on Workers Paid                | unchanged                             |
 
-Each run logs one JSON line per step and one summary line (`source: "luma-sync"`).
+Each run logs one JSON line per step and one summary line (`source: "luma-sync"`). A run in `write` mode then logs one `step: "site"` line: telling the Web Worker its data may have changed (`tellSite`), `done` or `failed` with the site's answer, or `skipped` without the `SITE` binding or `SITE_REFRESH_TOKEN`.
 
 **It writes every hour.** The handover is done (below):
 
@@ -172,6 +172,7 @@ A deploy refuses sooner:
 
 - `NEON_SYNC_URL` must be a `site_sync` connection string.
 - `LUMA_API_KEY` and `X_BEARER_TOKEN` must be set and not blank.
+- In the allthings account, where the Web Worker runs, `SITE_REFRESH_TOKEN` must be set and not blank.
 
 The secrets reach the Worker with its first prod deploy from the allthings account, whether allthings.dev is pending or active there (below, "Deploying prod").
 
