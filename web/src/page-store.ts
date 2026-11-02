@@ -443,6 +443,7 @@ export interface PageStoreOptions {
 export interface DataCenterCache {
   match(key: string): Promise<Response | undefined>;
   put(key: string, response: Response): Promise<void>;
+  delete(key: string): Promise<boolean>;
 }
 
 /** The data center's cache, where the runtime has one. */
@@ -452,7 +453,8 @@ export function dataCenterCache(): DataCenterCache | undefined {
   return typeof cache === "object" &&
     cache !== null &&
     typeof Reflect.get(cache, "match") === "function" &&
-    typeof Reflect.get(cache, "put") === "function"
+    typeof Reflect.get(cache, "put") === "function" &&
+    typeof Reflect.get(cache, "delete") === "function"
     ? (cache as DataCenterCache)
     : undefined;
 }
@@ -531,17 +533,28 @@ export function pageStored(
   /** Whether this isolate is refreshing its data center's copies already. */
   let refreshing = false;
 
-  /** Keeps `pointer`, read from KV at `at`, in this isolate and the data center. */
+  /**
+   * Keeps `pointer`, read from KV at `at`, in this isolate and the data
+   * center. When KV has none, the data center's copy goes too, so it never
+   * outlives the pointer it copied.
+   */
   const remember = (
     request: Request,
     pointer: SitePointer | undefined,
     at: number,
   ): Promise<void> => {
     known = { ...(pointer === undefined ? {} : { pointer }), at };
-    if (local === undefined || pointer === undefined) return Promise.resolve();
+    if (local === undefined) return Promise.resolve();
+    const key = localKey(request, local.id, siteKey);
+    if (pointer === undefined) {
+      return local.cache.delete(key).then(
+        () => undefined,
+        () => undefined,
+      );
+    }
     return local.cache
       .put(
-        localKey(request, local.id, siteKey),
+        key,
         new Response(JSON.stringify(pointer), {
           headers: {
             "cache-control": `public, max-age=${localTtl}`,

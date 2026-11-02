@@ -92,6 +92,7 @@ function memoryLocal() {
         headers: new Headers(response.headers),
       });
     },
+    delete: async (key) => entries.delete(key),
   };
   return { local, entries };
 }
@@ -115,15 +116,21 @@ function clock(start = Date.UTC(2026, 10, 1, 20, 0, 0)) {
 function database(initial: SiteState) {
   let state = initial;
   let asked = 0;
+  let down = false;
   return {
     siteState: async () => {
       asked += 1;
+      if (down) throw new Error("the database is down");
       return state;
     },
     change: (next: SiteState) => {
       state = next;
     },
     asked: () => asked,
+    /** Every ask fails from now on. */
+    fails: () => {
+      down = true;
+    },
   };
 }
 
@@ -650,6 +657,28 @@ describe("the data center's copies", () => {
     const asked = data.asked();
     await fetch(get("/"));
     expect(data.asked()).toBe(asked + 1);
+  });
+
+  test("drop the copy of the version once KV has none, even while the database can't say", async () => {
+    const { local, entries } = memoryLocal();
+    const { fetch, kv, time, data } = setup({ local });
+    await fetch(get("/"));
+    await fetch(get("/"));
+    const pointerCopies = () =>
+      [...entries.keys()].filter((key) => key.endsWith(`/${siteKey}`));
+    expect(pointerCopies()).toHaveLength(1);
+    // The pointer is gone from KV, and no check can write a new one.
+    kv.entries.delete(siteKey);
+    data.fails();
+    time.advance(60);
+    await fetch(get("/"));
+    expect(pointerCopies()).toHaveLength(0);
+    // So the next visitor here reads KV, and is never served the old copy.
+    time.advance(60);
+    const before = kv.gets();
+    const after = await fetch(get("/"));
+    expect(kv.firstGetAfter(before)).toBe(siteKey);
+    expect(served(after.response)).toBe("bypass");
   });
 
   test("read KV first when the data center has no copy", async () => {
