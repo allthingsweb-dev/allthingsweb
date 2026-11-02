@@ -28,7 +28,7 @@ The record is a fact like a title or a bio, so it goes through the people pipeli
   - a record, as above: written whenever it differs from what is stored, since nothing else writes this column;
   - `null`: cleared, and kept off. The person asked, or a record went wrong. Refreshes skip them;
   - absent: never researched; nothing is written.
-- **Checked** by the schema the file is decoded with: one or two sentences, at most 280 characters as it reads, at least one source in the line, https only, at most four links, latest first and none dated after `checkedOn`, real calendar days.
+- **Checked** by the schema the file is decoded with: one or two sentences, at most 280 characters as it reads, at least one source in the line, https only, at most four links, latest first and none dated after `checkedOn`, real calendar days. `bun run people` also refuses a record whose `checkedOn` is after the day it runs, so a record can't stay fresh by being dated ahead.
 
 To take someone's down: set their entry's `now` to `null`, then `bun run people`. The page drops it within about two minutes (the page store's refresh).
 
