@@ -28,17 +28,22 @@ function fakeSite(served: (path: string) => string, status = 200) {
     const path = `${pathname}${search}`;
     asked.push(path);
     const how = served(path);
-    if (how === "miss") {
+    // "miss" is built and written; "unwritten" is built, its write failed;
+    // "unkeepable" is built and never kept.
+    if (how === "miss" || how === "unwritten") {
       context.waitUntil(
         (async () => {
           await Bun.sleep(1);
-          kept.push(path);
+          if (how === "miss") kept.push(path);
+          return { kept: how === "miss" };
         })(),
       );
     }
     return new Response(path === "/sitemap.xml" ? sitemap : "<p>page</p>", {
       status: path === "/sitemap.xml" ? 200 : status,
-      headers: { "server-timing": `store;desc="${how}";dur=1.0` },
+      headers: {
+        "server-timing": `store;desc="${how === "hit" ? "hit" : "miss"}";dur=1.0`,
+      },
     });
   };
   return { serve, asked, kept };
@@ -104,6 +109,25 @@ describe("prewarm", () => {
       ["/", "/people/ada-lovelace", "/events?a=1&b=2"].toSorted(),
     );
     expect(slept).toEqual([]);
+  });
+
+  test("counts a page whose write failed as failed, and one never kept as passed", async () => {
+    const site = fakeSite((path) =>
+      path === "/sitemap.xml"
+        ? "hit"
+        : path === "/events"
+          ? "unwritten"
+          : path === "/"
+            ? "unkeepable"
+            : "miss",
+    );
+    const report = await options(site).run();
+    expect(report).toMatchObject({
+      kept: 1,
+      built: 2,
+      passed: 1,
+      failed: ["/events"],
+    });
   });
 
   test("names the pages that failed", async () => {

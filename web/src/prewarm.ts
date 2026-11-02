@@ -1,4 +1,4 @@
-import type { SitePointer } from "./page-store.ts";
+import { isKeeping, type SitePointer } from "./page-store.ts";
 
 /**
  * Building the site's pages into the page store before a visitor asks for
@@ -24,11 +24,11 @@ export interface PrewarmReport {
   readonly paths: number;
   /** Already kept. */
   readonly kept: number;
-  /** Built now, and kept. */
+  /** Built now, and written to the store. */
   readonly built: number;
-  /** Answered without the store: not keepable, or the store unreachable. */
+  /** Answered without being kept: not keepable, or the store unreachable. */
   readonly passed: number;
-  /** Paths that answered 5xx, or failed. */
+  /** Paths that answered 5xx, failed, or whose page couldn't be written. */
   readonly failed: ReadonlyArray<string>;
   /** Milliseconds it waited for a new version first. */
   readonly waitedMs: number;
@@ -97,12 +97,19 @@ export async function prewarm({
         }),
         { waitUntil: (promise) => pendingWork.push(promise) },
       );
-      await Promise.allSettled(pendingWork);
+      const keeping = (await Promise.allSettled(pendingWork)).flatMap(
+        (settled) =>
+          settled.status === "fulfilled" && isKeeping(settled.value)
+            ? [settled.value]
+            : [],
+      );
       const how = servedAs(response);
       if (response.status >= 500) failed.push(path);
       else if (how === "hit") counts.kept += 1;
-      else if (how === "miss") counts.built += 1;
-      else counts.passed += 1;
+      else if (how !== "miss" || keeping.length === 0) counts.passed += 1;
+      // Built is kept: a page whose write failed failed.
+      else if (keeping.every(({ kept }) => kept)) counts.built += 1;
+      else failed.push(path);
       return response;
     } catch {
       failed.push(path);

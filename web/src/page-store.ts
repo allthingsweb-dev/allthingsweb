@@ -306,6 +306,21 @@ function withTiming(
   });
 }
 
+/**
+ * What the promise a miss hands `waitUntil` comes to: whether the page was
+ * written. It never rejects, so a visitor's request never fails for it;
+ * prewarm.ts reads it to count what it built.
+ */
+export interface Keeping {
+  readonly kept: boolean;
+}
+
+/** Whether `value` is what a miss's keeping came to. */
+export const isKeeping = (value: unknown): value is Keeping =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof Reflect.get(value, "kept") === "boolean";
+
 /** What a kept page holds beside its body. */
 interface Kept {
   readonly status: number;
@@ -543,7 +558,10 @@ export function pageStored(
       context.waitUntil(
         keptBytes(copy)
           .then((value) => pages.put(key, value, { expirationTtl: keepFor }))
-          .catch(() => undefined),
+          .then(
+            (): Keeping => ({ kept: true }),
+            (): Keeping => ({ kept: false }),
+          ),
       );
     }
     return withTiming(withoutInternalHeaders(response), "miss", lookup);
