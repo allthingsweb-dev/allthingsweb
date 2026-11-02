@@ -3,11 +3,18 @@ import { built } from "./assets.ts";
 import {
   type PageNamespace,
   pageStored,
+  readSitePointer,
   refreshSite,
   type SiteState,
 } from "./page-store.ts";
+import { prewarm } from "./prewarm.ts";
 import { readerTurnover } from "./reader-caching.ts";
-import { refreshPath, refreshRequest } from "./refresh.ts";
+import {
+  prewarmPath,
+  prewarmRequest,
+  refreshPath,
+  refreshRequest,
+} from "./refresh.ts";
 
 type Handler = (
   request: Request,
@@ -90,22 +97,41 @@ export default {
               turnover,
             });
       // Only a Worker with a store and a token answers the writers.
-      const refresh =
+      const writers =
         pages === undefined || typeof token !== "string" || token === ""
           ? undefined
           : {
               token,
-              run: () =>
+              refresh: () =>
                 refreshSite({ pages, now: Date.now, siteState, turnover }),
+              prewarm: () =>
+                prewarm({
+                  serve: site,
+                  pointer: () => readSitePointer(pages),
+                  now: Date.now,
+                  sleep: (ms) =>
+                    new Promise((resolve) => setTimeout(resolve, ms)),
+                }),
             };
-      handle = (incoming, incomingContext) =>
-        new URL(incoming.url).pathname === refreshPath
-          ? refreshRequest(incoming, refresh?.token, () =>
-              refresh === undefined
-                ? Promise.reject(new Error("no store"))
-                : refresh.run(),
-            )
-          : site(incoming, incomingContext);
+      const noStore = () => Promise.reject(new Error("no store"));
+      handle = (incoming, incomingContext) => {
+        const { pathname } = new URL(incoming.url);
+        if (pathname === refreshPath) {
+          return refreshRequest(
+            incoming,
+            writers?.token,
+            writers?.refresh ?? noStore,
+          );
+        }
+        if (pathname === prewarmPath) {
+          return prewarmRequest(
+            incoming,
+            writers?.token,
+            writers?.prewarm ?? noStore,
+          );
+        }
+        return site(incoming, incomingContext);
+      };
     }
     return handle(request, context);
   },

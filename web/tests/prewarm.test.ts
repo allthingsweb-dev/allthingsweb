@@ -1,0 +1,153 @@
+import { describe, expect, test } from "bun:test";
+import type { SitePointer } from "../src/page-store.ts";
+import { longestWait, prewarm, sitemapPaths } from "../src/prewarm.ts";
+
+/**
+ * Prewarming the page store, as a function of a fake site behind it: what
+ * it asks for, how it counts, and when it waits for a new version.
+ */
+
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://allthings.dev/</loc></url>
+  <url><loc>https://allthings.dev/events</loc></url>
+  <url><loc> https://allthings.dev/people/ada-lovelace </loc></url>
+  <url><loc>https://allthings.dev/events?a=1&amp;b=2</loc></url>
+  <url><loc>https://allthings.dev/events</loc></url>
+</urlset>`;
+
+/** A site that answers the sitemap and every page as `served` says, keeping what it was asked. */
+function fakeSite(served: (path: string) => string, status = 200) {
+  const asked: Array<string> = [];
+  const kept: Array<string> = [];
+  const serve = async (
+    request: Request,
+    context: { waitUntil(promise: Promise<unknown>): void },
+  ) => {
+    const { pathname, search } = new URL(request.url);
+    const path = `${pathname}${search}`;
+    asked.push(path);
+    const how = served(path);
+    if (how === "miss") {
+      context.waitUntil(
+        (async () => {
+          await Bun.sleep(1);
+          kept.push(path);
+        })(),
+      );
+    }
+    return new Response(path === "/sitemap.xml" ? sitemap : "<p>page</p>", {
+      status: path === "/sitemap.xml" ? 200 : status,
+      headers: { "server-timing": `store;desc="${how}";dur=1.0` },
+    });
+  };
+  return { serve, asked, kept };
+}
+
+const options = (
+  site: ReturnType<typeof fakeSite>,
+  pointer?: SitePointer,
+  at = 1_000_000,
+) => {
+  const slept: Array<number> = [];
+  return {
+    slept,
+    run: () =>
+      prewarm({
+        serve: site.serve,
+        pointer: async () => pointer,
+        now: () => at,
+        sleep: async (ms) => {
+          slept.push(ms);
+        },
+      }),
+  };
+};
+
+describe("sitemapPaths", () => {
+  test("is each <loc>'s path and query, once, on any host", () => {
+    expect(sitemapPaths(sitemap)).toEqual([
+      "/",
+      "/events",
+      "/people/ada-lovelace",
+      "/events?a=1&b=2",
+    ]);
+  });
+});
+
+describe("prewarm", () => {
+  test("asks for every page the sitemap lists, counts how each was served, and waits for each to be kept", async () => {
+    const site = fakeSite((path) =>
+      path === "/sitemap.xml" || path === "/events" ? "hit" : "miss",
+    );
+    const { run, slept } = options(site);
+    expect(await run()).toEqual({
+      paths: 5,
+      kept: 2,
+      built: 3,
+      passed: 0,
+      failed: [],
+      waitedMs: 0,
+    });
+    expect(site.asked[0]).toBe("/sitemap.xml");
+    expect(site.asked.toSorted()).toEqual(
+      [
+        "/sitemap.xml",
+        "/",
+        "/events",
+        "/people/ada-lovelace",
+        "/events?a=1&b=2",
+      ].toSorted(),
+    );
+    // Every page built was kept before it answered.
+    expect(site.kept.toSorted()).toEqual(
+      ["/", "/people/ada-lovelace", "/events?a=1&b=2"].toSorted(),
+    );
+    expect(slept).toEqual([]);
+  });
+
+  test("names the pages that failed", async () => {
+    const site = fakeSite(() => "miss", 503);
+    const report = await options(site).run();
+    expect(report.failed.toSorted()).toEqual(
+      ["/", "/events", "/people/ada-lovelace", "/events?a=1&b=2"].toSorted(),
+    );
+  });
+
+  test("waits for a new version to be in use first, but never past the longest wait", async () => {
+    const v = { version: "v1", boundaries: [] };
+    const soon = options(
+      fakeSite(() => "hit"),
+      {
+        checkedAt: 0,
+        current: v,
+        next: { version: "v2", boundaries: [], from: 1_000_000 + 75_000 },
+      },
+    );
+    expect((await soon.run()).waitedMs).toBe(75_000);
+    expect(soon.slept).toEqual([75_000]);
+    const far = options(
+      fakeSite(() => "hit"),
+      {
+        checkedAt: 0,
+        current: v,
+        next: {
+          version: "v2",
+          boundaries: [],
+          from: 1_000_000 + longestWait + 1,
+        },
+      },
+    );
+    expect((await far.run()).waitedMs).toBe(0);
+    const settled = options(
+      fakeSite(() => "hit"),
+      {
+        checkedAt: 0,
+        current: v,
+        next: { version: "v2", boundaries: [], from: 1 },
+      },
+    );
+    expect(settled.slept).toEqual([]);
+    expect((await settled.run()).waitedMs).toBe(0);
+  });
+});

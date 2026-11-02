@@ -17,7 +17,9 @@ import { themeOf } from "./pages/theme-cookie.ts";
  *   window it falls in (between two of the data's boundaries, each
  *   published evening's start and end, and the year in San Francisco, which
  *   an event's card prints), the mode the visitor's cookie fixes, and its
- *   URL. A page is kept under exactly those, so a kept page is right for as
+ *   path and query, whichever host it is asked on (allthings.dev, the
+ *   bridge's workers.dev, a service binding's). A page is kept under exactly
+ *   those, so a kept page is right for as
  *   long as it can be found: nothing expires by time, and nothing is purged.
  * - **The site's version** is kept in the same namespace, under
  *   {@link siteKey}, and read at most every {@link siteTtl} seconds. It is
@@ -31,7 +33,8 @@ import { themeOf } from "./pages/theme-cookie.ts";
  *   old data. Until then, the version before it is served.
  * - What may be kept is what the Cache-Control of the response says may be
  *   kept by a shared cache (`public`, with `s-maxage`): 200 and 404, without
- *   a cookie set. A page in a mode the visitor fixed is sent `private` and
+ *   a cookie set, varying by nothing but the coding and the cookie
+ *   (robots.txt varies by host, which the key leaves out). A page in a mode the visitor fixed is sent `private` and
  *   names its public lifetimes in `x-edge-cache-control`; it is kept by
  *   that mode. Anything else (failures, `no-store`, redirects that set a
  *   cookie) is never kept.
@@ -215,8 +218,10 @@ const hex = (bytes: ArrayBuffer) =>
 /**
  * The key a request's page is kept under: the build, the data's version and
  * time window, the visitor's mode (the `theme` cookie, read as the page
- * reads it, or "system") and a digest of its URL, so any URL fits KV's
- * 512-byte keys.
+ * reads it, or "system") and a digest of its path and query, so any URL
+ * fits KV's 512-byte keys. The host is left out: pages name allthings.dev
+ * and link within the host that serves them, so they are the same on
+ * every host, and what isn't says so (`keepable`).
  */
 export async function pageKey(
   request: Request,
@@ -230,7 +235,7 @@ export async function pageKey(
     "system";
   const digest = await crypto.subtle.digest(
     "SHA-256",
-    new TextEncoder().encode(`${url.origin}${url.pathname}${url.search}`),
+    new TextEncoder().encode(`${url.pathname}${url.search}`),
   );
   return `page/${build}/${state.version}/${windowAt(state.boundaries, at)}/${mode}/${hex(digest)}`;
 }
@@ -251,10 +256,17 @@ export function shareable(cacheControl: string | null): boolean {
   return fresh !== undefined && Number(fresh) > 0;
 }
 
+/** What a kept page may vary by: what its key and its serving account for. */
+const keyedVary = new Set(["accept-encoding", "cookie"]);
+
 /** Whether `response` may be kept (see the module's comment). */
 export const keepable = (response: Response): boolean =>
   (response.status === 200 || response.status === 404) &&
   !response.headers.has("set-cookie") &&
+  (response.headers.get("vary") ?? "")
+    .split(",")
+    .map((name) => name.trim().toLowerCase())
+    .every((name) => name === "" || keyedVary.has(name)) &&
   shareable(
     response.headers.get(edgeCacheControlHeader) ??
       response.headers.get("cache-control"),
@@ -377,6 +389,19 @@ export interface PageStoreOptions {
   readonly turnover: number;
 }
 
+/**
+ * The pointer as the namespace holds it, read without this isolate's copy:
+ * undefined when there is none, or none it can read. A failed read fails.
+ */
+export async function readSitePointer(
+  pages: PageNamespace,
+): Promise<SitePointer | undefined> {
+  const bytes = await pages.get(siteKey, { type: "arrayBuffer" });
+  return bytes === null
+    ? undefined
+    : parsePointer(new TextDecoder().decode(bytes));
+}
+
 /** What asking the database for the data's version needs. */
 export type SiteCheck = Pick<
   PageStoreOptions,
@@ -396,9 +421,7 @@ export async function refreshSite({
   siteState,
   turnover,
 }: SiteCheck): Promise<SitePointer> {
-  const bytes = await pages.get(siteKey, { type: "arrayBuffer" });
-  const known =
-    bytes === null ? undefined : parsePointer(new TextDecoder().decode(bytes));
+  const known = await readSitePointer(pages);
   const next = nextPointer(known, await siteState(), now(), turnover);
   await pages.put(siteKey, JSON.stringify(next));
   return next;

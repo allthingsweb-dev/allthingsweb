@@ -1,4 +1,5 @@
-import { refreshPath } from "allthings-core/src/refresh-path.ts";
+import { prewarmPath, refreshPath } from "allthings-core/src/refresh-path.ts";
+import type { PrewarmReport } from "./prewarm.ts";
 import type { SitePointer } from "./page-store.ts";
 
 /**
@@ -12,10 +13,11 @@ import type { SitePointer } from "./page-store.ts";
  * writes the database, and it answers with the version only, which any
  * page's data already shows.
  *
- * Without a token the Worker has no such path (404), so stages that aren't
- * told of writes don't answer it.
+ * {@link prewarmPath} builds the store's pages with the same token
+ * (prewarm.ts). Without a token the Worker has neither path (404), so
+ * stages that aren't told of writes don't answer them.
  */
-export { refreshPath };
+export { prewarmPath, refreshPath };
 
 const answer = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -40,12 +42,14 @@ async function sameSecret(given: string, expected: string): Promise<boolean> {
   return difference === 0;
 }
 
-/** The answer to a request at {@link refreshPath}. */
-export async function refreshRequest(
+/**
+ * A writer's request: a POST with the token, or the answer that refuses it
+ * (404 without a token, 405, 401). Undefined when it may go on.
+ */
+async function refused(
   request: Request,
   token: string | undefined,
-  refresh: () => Promise<SitePointer>,
-): Promise<Response> {
+): Promise<Response | undefined> {
   if (token === undefined || token === "") {
     return new Response("Not found", { status: 404 });
   }
@@ -61,6 +65,17 @@ export async function refreshRequest(
   if (given === undefined || !(await sameSecret(given, token))) {
     return answer(401, { error: "unauthorized" });
   }
+  return undefined;
+}
+
+/** The answer to a request at {@link refreshPath}. */
+export async function refreshRequest(
+  request: Request,
+  token: string | undefined,
+  refresh: () => Promise<SitePointer>,
+): Promise<Response> {
+  const refusal = await refused(request, token);
+  if (refusal !== undefined) return refusal;
   try {
     const pointer = await refresh();
     return answer(200, {
@@ -76,5 +91,23 @@ export async function refreshRequest(
     });
   } catch {
     return answer(503, { error: "the data's version couldn't be read" });
+  }
+}
+
+/**
+ * The answer to a request at {@link prewarmPath}: the store's pages built
+ * (prewarm.ts), with what it did, for the same writers and the same token.
+ */
+export async function prewarmRequest(
+  request: Request,
+  token: string | undefined,
+  warm: () => Promise<PrewarmReport>,
+): Promise<Response> {
+  const refusal = await refused(request, token);
+  if (refusal !== undefined) return refusal;
+  try {
+    return answer(200, await warm());
+  } catch {
+    return answer(503, { error: "the store couldn't be prewarmed" });
   }
 }

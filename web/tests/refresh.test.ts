@@ -6,7 +6,12 @@ import {
   type SitePointer,
   siteKey,
 } from "../src/page-store.ts";
-import { refreshPath, refreshRequest } from "../src/refresh.ts";
+import {
+  prewarmPath,
+  prewarmRequest,
+  refreshPath,
+  refreshRequest,
+} from "../src/refresh.ts";
 import { tellSite } from "../src/sync/worker.ts";
 
 /**
@@ -83,6 +88,52 @@ describe("the refresh endpoint", () => {
   });
 });
 
+describe("the prewarm endpoint", () => {
+  const report = {
+    paths: 3,
+    kept: 1,
+    built: 2,
+    passed: 0,
+    failed: [],
+    waitedMs: 0,
+  };
+
+  test("takes the same token, and answers with what it did", async () => {
+    const at = (headers: Record<string, string>) =>
+      new Request(`https://allthings.dev${prewarmPath}`, {
+        method: "POST",
+        headers,
+      });
+    expect(
+      (await prewarmRequest(at({}), undefined, async () => report)).status,
+    ).toBe(404);
+    let warmed = 0;
+    const refused = await prewarmRequest(
+      at({ authorization: "Bearer another" }),
+      token,
+      async () => {
+        warmed += 1;
+        return report;
+      },
+    );
+    expect(refused.status).toBe(401);
+    expect(warmed).toBe(0);
+    const done = await prewarmRequest(
+      at({ authorization: `Bearer ${token}` }),
+      token,
+      async () => report,
+    );
+    expect(done.status).toBe(200);
+    expect(await done.json()).toEqual(report);
+    const failed = await prewarmRequest(
+      at({ authorization: `Bearer ${token}` }),
+      token,
+      () => Promise.reject(new Error("KV is unreachable")),
+    );
+    expect(failed.status).toBe(503);
+  });
+});
+
 describe("refreshSite", () => {
   const namespace = (initial?: SitePointer) => {
     const entries = new Map<string, string>();
@@ -154,7 +205,7 @@ describe("tellSite", () => {
     };
   };
 
-  test("posts to the site's refresh path with the token, and logs what it said", async () => {
+  test("posts to the site's refresh path with the token, then has it prewarm, and logs what each said", async () => {
     const requests: Array<Request> = [];
     const { lines, log } = logged();
     await tellSite(
@@ -174,8 +225,13 @@ describe("tellSite", () => {
         request.method,
         new URL(request.url).pathname,
       ]),
-    ).toEqual([["POST", refreshPath]]);
-    expect(requests[0]?.headers.get("authorization")).toBe(`Bearer ${token}`);
+    ).toEqual([
+      ["POST", refreshPath],
+      ["POST", prewarmPath],
+    ]);
+    for (const request of requests) {
+      expect(request.headers.get("authorization")).toBe(`Bearer ${token}`);
+    }
     expect(lines).toEqual([
       expect.objectContaining({
         source: "luma-sync",
@@ -183,6 +239,12 @@ describe("tellSite", () => {
         status: "done",
         http: 200,
         version: "v1",
+      }),
+      expect.objectContaining({
+        source: "luma-sync",
+        step: "prewarm",
+        status: "done",
+        http: 200,
       }),
     ]);
   });
@@ -226,7 +288,7 @@ describe("tellSite", () => {
         SITE_REFRESH_TOKEN: token,
       },
       log,
-      20,
+      { site: 20, prewarm: 20 },
     );
     await tellSite(
       {
@@ -239,7 +301,7 @@ describe("tellSite", () => {
         SITE_REFRESH_TOKEN: token,
       },
       log,
-      20,
+      { site: 20, prewarm: 20 },
     );
     expect(lines.map((line) => [line["status"], line["reason"]])).toEqual([
       ["failed", "Error: the site didn't answer within 20 ms"],
