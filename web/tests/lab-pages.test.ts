@@ -68,7 +68,6 @@ const home = (overrides: Partial<HomeView> = {}): HomeView => ({
       startsAt: at("2026-10-01T00:30:00Z"),
     }),
   ],
-  photos: [],
   ...overrides,
 });
 

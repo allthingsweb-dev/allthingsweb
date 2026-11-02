@@ -3,15 +3,10 @@ import { Console, Effect } from "effect";
 import { Command } from "effect/cli";
 import * as Database from "../src/database.ts";
 import { facePicks, faceProblems } from "../src/faces.ts";
-import {
-  heroPhotoProblems,
-  heroPhotos,
-  wallPhotos,
-} from "../src/hero-photos.ts";
+import { heroPhotoProblems, wallPhotos } from "../src/hero-photos.ts";
 
 /**
- * Fails when a page can't show one of its hand-picked pictures: home's hero
- * photos (core/backfill/hero-photos.json) and the home lab's wall
+ * Fails when a page can't show one of its hand-picked pictures: the wall
  * (core/backfill/wall-photos.json), held to the rules in
  * src/hero-photos.ts, and the lab's faces (core/backfill/faces.json), held
  * to those in src/faces.ts. A photo must be an image on media.allthings.dev
@@ -32,11 +27,6 @@ const photoOrigin = "https://media.allthings.dev";
 const command = Command.make("hero-photos", {}, () =>
   Effect.gen(function* () {
     const lists = [
-      {
-        file: "core/backfill/hero-photos.json",
-        count: heroPhotos.length,
-        problems: yield* heroPhotoProblems(heroPhotos, photoOrigin),
-      },
       {
         file: "core/backfill/wall-photos.json",
         count: wallPhotos.length,

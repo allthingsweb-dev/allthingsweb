@@ -1,40 +1,26 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { Effect, Layer, Schema } from "effect";
-import file from "../backfill/hero-photos.json" with { type: "json" };
 import wallFile from "../backfill/wall-photos.json" with { type: "json" };
 import {
   type HeroPhoto,
   HeroPhotosFile,
   heroPhotoProblems,
-  heroPhotos,
   repeated,
   wallPhotos,
 } from "../src/hero-photos.ts";
 import { wallLimit } from "../src/community.ts";
-import { photoLimit } from "../src/home.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
- * The hand-picked hero photos (core/backfill/hero-photos.json): the file
+ * The hand-picked photos (core/backfill/wall-photos.json): the file
  * itself, and the check `bun run hero-photos` runs against production,
  * here against tests/seed.sql.
  */
 
-describe("core/backfill/hero-photos.json", () => {
-  test("decodes, and names each image once", () => {
-    expect(Schema.decodeUnknownSync(HeroPhotosFile)(file).photos).toEqual(
-      heroPhotos,
-    );
-    expect(repeated(heroPhotos)).toEqual([]);
-  });
-
-  test(`fills the mosaic's ${photoLimit} tiles`, () => {
-    expect(heroPhotos.length).toBeGreaterThanOrEqual(photoLimit);
-  });
-
+describe("a file of hand-picked photos", () => {
   test("refuses an id that isn't a UUID, and an empty reason", () => {
     const decode = Schema.decodeUnknownExit(HeroPhotosFile);
-    const photo = { image: heroPhotos[0]?.image, evening: "x", why: "y" };
+    const photo = { image: wallPhotos[0]?.image, evening: "x", why: "y" };
     expect(decode({ photos: [photo] })._tag).toBe("Success");
     expect(decode({ photos: [{ ...photo, image: "42" }] })._tag).toBe(
       "Failure",

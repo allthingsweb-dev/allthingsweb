@@ -270,7 +270,7 @@ const home = dataPage(
   "the home page",
   Effect.all(
     {
-      home: Home.use((repository) => repository.read(mediaOrigin)),
+      home: Home.use((repository) => repository.read),
       community: Community.use((repository) =>
         repository.read(mediaOrigin),
       ).pipe(
@@ -516,7 +516,7 @@ const labVariant = page(
         [
           Effect.all(
             {
-              home: Home.use((repository) => repository.read(mediaOrigin)),
+              home: Home.use((repository) => repository.read),
               community: Community.use((repository) =>
                 repository.read(mediaOrigin),
               ),
