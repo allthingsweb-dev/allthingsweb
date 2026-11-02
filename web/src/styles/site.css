@@ -806,6 +806,11 @@ main > section,
   border-bottom: 0;
 }
 
+/* On /people, the portrait is a link to the person's page. */
+.person-portrait {
+  display: block;
+}
+
 .portrait {
   width: 100%;
   aspect-ratio: 1;
@@ -1873,7 +1878,8 @@ th {
     row-gap: var(--at-space-2);
   }
 
-  .person .portrait {
+  .person .portrait,
+  .person-portrait {
     grid-row: span 2;
   }
 
