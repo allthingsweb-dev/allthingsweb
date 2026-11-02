@@ -10,7 +10,7 @@ import {
   PeopleEnrichmentError,
   photoHosts,
 } from "../src/people-enrichment.ts";
-import { seededDatabase, sqlLayer } from "./support/database.ts";
+import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
 /**
  * Filling profiles from sourced facts: against tests/seed.sql, where Ada
@@ -68,7 +68,11 @@ const fresh = async () => {
 
 const apply = (db: PGlite, people: PeopleFile, dryRun = false) =>
   Effect.runPromiseExit(
-    applyPeople(people, dryRun).pipe(Effect.provide(sqlLayer(db))),
+    applyPeople(people, dryRun).pipe(
+      Effect.provide(sqlLayer(db)),
+      // Today, as the test clock has it: 2026-10-03.
+      Effect.provide(clockLayer),
+    ),
   );
 
 const profilesIn = async (db: PGlite) =>
@@ -314,12 +318,12 @@ describe("applyPeople: now", () => {
         kind: "post",
       },
     ],
-    checkedOn: "2026-10-05",
+    checkedOn: "2026-10-01",
   };
   const later: Now = {
     ...now,
     line: "Linus [still maintains the kernel](https://kernel.example/maintainers).",
-    checkedOn: "2026-11-02",
+    checkedOn: "2026-10-03",
   };
   const withNow = (value: Now | null | undefined) => [
     {
@@ -349,7 +353,7 @@ describe("applyPeople: now", () => {
     const db = await fresh();
     expect(linesOf(await apply(db, withNow(now)))).toEqual([
       "held: Linus now: personal",
-      "Linus: now ← as of 2026-10-05",
+      "Linus: now ← as of 2026-10-01",
     ]);
     expect(await stored(db)).toEqual(now);
     expect(linesOf(await apply(db, withNow(now)))).toEqual([
@@ -363,7 +367,7 @@ describe("applyPeople: now", () => {
     await apply(db, withNow(now));
     expect(linesOf(await apply(db, withNow(later)))).toEqual([
       "held: Linus now: personal",
-      "Linus: now 2026-10-05 → 2026-11-02",
+      "Linus: now 2026-10-01 → 2026-10-03",
     ]);
     expect(await stored(db)).toEqual(later);
   });
@@ -392,6 +396,18 @@ describe("applyPeople: now", () => {
     const exit = await apply(db, withNow(now), true);
     expect(Exit.isSuccess(exit) ? exit.value.at(-1) : exit).toBe(
       "Dry run: rolled back.",
+    );
+    expect(await stored(db)).toBeNull();
+  });
+
+  test("refuses a record checked after today, and writes nothing", async () => {
+    const db = await fresh();
+    const error = failureOf(
+      await apply(db, withNow({ ...later, checkedOn: "2026-10-04" })),
+    );
+    expect(error).toBeInstanceOf(PeopleEnrichmentError);
+    expect((error as PeopleEnrichmentError).reason).toBe(
+      "Now records checked after today, 2026-10-03: Linus (2026-10-04)",
     );
     expect(await stored(db)).toBeNull();
   });

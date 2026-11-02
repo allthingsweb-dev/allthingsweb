@@ -1,5 +1,6 @@
-import { Effect, Schema } from "effect";
+import { DateTime, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { asOf } from "./clock.ts";
 import { HttpUrl } from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
 import { canonicalNow, decodeStoredNow, Now } from "./now.ts";
@@ -232,7 +233,8 @@ const writeNow = (profileId: string, held: unknown, now: Now | null) =>
  * Writes `file` in one transaction, filling only blank columns; with
  * `dryRun`, rolls it back after doing everything. Fails, writing nothing,
  * on a profile that isn't stored, whose name no longer matches, or that is
- * listed twice, and on a fact that is both held and set.
+ * listed twice, on a fact that is both held and set, and on a "now"
+ * record checked after today (UTC).
  */
 export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
   Effect.gen(function* () {
@@ -257,6 +259,18 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
     if (heldAndSet.length > 0) {
       return yield* fail(
         `Facts both held and set (drop one): ${heldAndSet.join(", ")}`,
+      );
+    }
+    // A record dated ahead would stay fresh until then (src/now-refresh.ts).
+    const today = DateTime.formatIsoDateUtc(yield* asOf);
+    const ahead = file.flatMap((entry) =>
+      entry.now != null && entry.now.checkedOn > today
+        ? [`${entry.name} (${entry.now.checkedOn})`]
+        : [],
+    );
+    if (ahead.length > 0) {
+      return yield* fail(
+        `Now records checked after today, ${today}: ${ahead.join(", ")}`,
       );
     }
 
