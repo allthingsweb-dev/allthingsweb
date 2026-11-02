@@ -105,6 +105,13 @@ elif [[ $(git rev-parse origin/main) != "$built" ]]; then
   git checkout -q --detach origin/main
   for d in core web infra; do (cd "../$d" && bash ../.github/scripts/bun-install.sh >/dev/null 2>&1); done
   (cd ../web && bun run build >/dev/null 2>&1)
+  # What deploys is what was planned: plan the new main too, and stop on a failure.
+  if ! plan=$(bun run plan --stage prod --profile allthings </dev/null 2>&1); then
+    scrub <<<"$plan" | tail -20
+    log "plan of main failed: not deploying; fix it and deploy prod from main"
+    exit 1
+  fi
+  scrub <<<"$plan" | grep -E "Plan:" || true
 fi
 log "deploying $(git log --oneline -1)"
 rc=0
