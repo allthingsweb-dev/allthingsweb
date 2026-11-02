@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { DateTime, Effect, Layer } from "effect";
 import { DataSourceError } from "../src/errors.ts";
+import type { Now } from "../src/now.ts";
 import {
   appearances,
   eveningPartOrder,
@@ -528,7 +529,7 @@ describe("one person's page", () => {
   });
 
   test("carries what they do now, or none where it doesn't read as a record", async () => {
-    const record = {
+    const record: Now = {
       line: "Linus [maintains the kernel](https://kernel.example/maintainers).",
       links: [
         {
