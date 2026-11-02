@@ -167,11 +167,11 @@ describe("the page store", () => {
     await primed(Cached);
     const miss = await get(Cached, "/events?timing");
     expect(miss.response.headers.get("server-timing")).toMatch(
-      /^store;desc="miss";dur=\d+\.\d, db;dur=\d+\.\d$/,
+      /^store;desc="miss";dur=\d+\.\d, pointer;desc="(memory|local|kv)";dur=\d+\.\d(, isolate;desc="new")?, db;dur=\d+\.\d$/,
     );
     const hit = await warm(Cached, "/events?timing");
     expect(hit.response.headers.get("server-timing")).toMatch(
-      /^store;desc="hit";dur=\d+\.\d, copy;desc="(local|kv)"$/,
+      /^store;desc="hit";dur=\d+\.\d, pointer;desc="(memory|local|kv)";dur=\d+\.\d, copy;desc="(local|kv)";dur=\d+\.\d(, isolate;desc="new")?$/,
     );
   });
 
