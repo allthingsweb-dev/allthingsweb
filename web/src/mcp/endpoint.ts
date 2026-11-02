@@ -24,6 +24,14 @@ import type { CallTool, ToolName } from "./tools.ts";
 /** Where a tool's answer is kept: `/_mcp/tools/<name>?input=<its input as JSON>`. */
 export const toolPath = "/_mcp/tools";
 
+/**
+ * Where the call of `name` with `input` (canonical, below) is kept: the
+ * only spelling of it the store keeps, since the store keys on the whole
+ * path and query.
+ */
+export const toolLocation = (name: string, input: string): string =>
+  `${toolPath}/${name}?input=${encodeURIComponent(input)}`;
+
 /** `input` as JSON with its keys in order, so one input is one path. */
 export const canonicalInput = (input: Record<string, unknown>): string =>
   JSON.stringify(
@@ -78,8 +86,11 @@ export class Mcp extends Context.Service<
       request: Request,
       through?: (request: Request) => Promise<Response>,
     ) => Promise<Response>;
-    /** Runs `name` on the input at {@link toolPath}, as JSON. */
-    readonly answer: (name: string, input: string | null) => Promise<Response>;
+    /**
+     * Answers a GET under {@link toolPath}, as JSON: only one written as
+     * {@link toolLocation} writes it, so one call has one kept answer.
+     */
+    readonly answer: (url: URL) => Promise<Response>;
   }
 >()("allthings/web/Mcp") {
   static readonly layer = Layer.effect(
@@ -110,7 +121,7 @@ export class Mcp extends Context.Service<
           try {
             const response = await through(
               new Request(
-                `https://allthings.dev${toolPath}/${name}?input=${encodeURIComponent(canonical)}`,
+                `https://allthings.dev${toolLocation(name, canonical)}`,
                 { headers: { "accept-encoding": "br, gzip" } },
               ),
             );
@@ -136,9 +147,10 @@ export class Mcp extends Context.Service<
             request,
           );
         },
-        answer: async (name, input) => {
+        answer: async (url) => {
           const { isToolName, toolInputs, toolProgram } = await tools();
-          const raw = input ?? "{}";
+          const name = url.pathname.slice(toolPath.length + 1);
+          const raw = url.searchParams.get("input") ?? "";
           let parsed: unknown;
           try {
             parsed = JSON.parse(raw);
@@ -149,11 +161,13 @@ export class Mcp extends Context.Service<
             isToolName(name) && raw.length <= keptInputMax
               ? toolInputs[name satisfies ToolName].safeParse(parsed)
               : undefined;
-          // Only the input as `via` writes it: one call, one kept answer.
+          // Only the call as `via` writes it, nothing added and nothing
+          // spelled another way: one call, one kept answer.
           const program =
             isToolName(name) &&
             checked?.success === true &&
-            canonicalInput(checked.data) === raw
+            `${url.pathname}${url.search}` ===
+              toolLocation(name, canonicalInput(checked.data))
               ? toolProgram(name, checked.data)
               : undefined;
           if (program === undefined) {
@@ -212,12 +226,11 @@ export const toolRoute = HttpRouter.add(
   `${toolPath}/:name`,
   Effect.gen(function* () {
     const mcp = yield* Mcp;
-    const { name = "" } = yield* HttpRouter.params;
-    const { input } = yield* HttpServerRequest.ParsedSearchParams;
+    const request = yield* HttpServerRequest.toWeb(
+      yield* HttpServerRequest.HttpServerRequest,
+    );
     return HttpServerResponse.raw(
-      yield* Effect.promise(() =>
-        mcp.answer(name, typeof input === "string" ? input : null),
-      ),
+      yield* Effect.promise(() => mcp.answer(new URL(request.url))),
     );
   }),
 );

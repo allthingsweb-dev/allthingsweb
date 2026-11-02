@@ -274,6 +274,12 @@ describe("the page store", () => {
       `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":3,"when":"past","extra":1}')}`,
       `/_mcp/tools/list_speakers?input=${encodeURIComponent('{"limit":50,"query":" ada "}')}`,
       `/_mcp/tools/get_event?input=${encodeURIComponent(JSON.stringify({ slug: "x".repeat(keptInputMax) }))}`,
+      // The kept call's own input, under another address.
+      `/_mcp/tools/list_events?input=${encodeURIComponent('{"limit":3,"when":"past"}')}&nonce=1`,
+      `/_mcp/tools/list_events?nonce=1&input=${encodeURIComponent('{"limit":3,"when":"past"}')}`,
+      `/_mcp/tools/list%5Fevents?input=${encodeURIComponent('{"limit":3,"when":"past"}')}`,
+      '/_mcp/tools/list_events?input={"limit":3,"when":"past"}',
+      "/_mcp/tools/get_community",
     ]) {
       const { response } = await get(Cached, path);
       expect(response.status).toBe(400);
