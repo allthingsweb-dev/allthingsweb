@@ -1,7 +1,11 @@
 import { describe, expect, spyOn, test } from "bun:test";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { refreshPath } from "../src/refresh-path.ts";
-import { afterwards, tellSite } from "../src/site-refresh.ts";
+import {
+  afterwards,
+  refreshTokenReference,
+  tellSite,
+} from "../src/site-refresh.ts";
 
 /**
  * Telling the site after a command: what is sent, what is said on stderr,
@@ -129,26 +133,59 @@ describe("tellSite", () => {
     ]);
   });
 
-  test("without a token sends nothing, and says so only for a command on Neon", async () => {
+  test("reads the token from 1Password itself for a command on Neon that wasn't given one", async () => {
     const site = fakeSite();
-    expect(await withEnv({ DATABASE_URL: neon }, tellSite(site.fetch))).toEqual(
-      [
-        "https://allthings.dev wasn't told (no SITE_REFRESH_TOKEN): a change shows within the hour.",
-      ],
+    const asked: Array<string> = [];
+    const vault = async (reference: string) => {
+      asked.push(reference);
+      return token;
+    };
+    const said = await withEnv(
+      { DATABASE_URL: neon },
+      tellSite(site.fetch, vault),
     );
+    expect(asked).toEqual([refreshTokenReference]);
+    expect(site.sent.map((sent) => sent.authorization)).toEqual([
+      `Bearer ${token}`,
+    ]);
+    expect(said).toEqual(["https://allthings.dev told: its data is current."]);
+    // A token in the environment wins, and the vault isn't asked.
+    await withEnv(
+      { DATABASE_URL: neon, SITE_REFRESH_TOKEN: "from-the-environment" },
+      tellSite(site.fetch, vault),
+    );
+    expect(asked).toHaveLength(1);
+    expect(site.sent.at(-1)?.authorization).toBe("Bearer from-the-environment");
+  });
+
+  test("sends nothing when neither the environment nor the vault has the token, and says so only on Neon", async () => {
+    const site = fakeSite();
+    const asked: Array<string> = [];
+    const empty = async (reference: string) => {
+      asked.push(reference);
+      return undefined;
+    };
+    expect(
+      await withEnv({ DATABASE_URL: neon }, tellSite(site.fetch, empty)),
+    ).toEqual([
+      "https://allthings.dev wasn't told (no SITE_REFRESH_TOKEN, and 1Password didn't give it): a change shows within the hour.",
+    ]);
     expect(
       await withEnv(
         { DATABASE_URL: "postgres://postgres@127.0.0.1:5432/postgres" },
-        tellSite(site.fetch),
+        tellSite(site.fetch, empty),
       ),
     ).toEqual([]);
-    expect(await withEnv({}, tellSite(site.fetch))).toEqual([]);
+    expect(await withEnv({}, tellSite(site.fetch, empty))).toEqual([]);
+    // Off Neon the vault isn't even asked.
+    expect(asked).toEqual([refreshTokenReference]);
     expect(site.sent).toEqual([]);
   });
 
   test("runs when the layer's scope closes: a command's end", async () => {
+    // Nothing listens on the discard port, so it says it couldn't tell.
     const said = await withEnv(
-      { DATABASE_URL: neon },
+      { SITE_REFRESH_TOKEN: token, SITE_ORIGIN: "http://127.0.0.1:9" },
       Effect.void.pipe(Effect.provide(Layer.fresh(afterwards))),
     );
     expect(said).toHaveLength(1);
