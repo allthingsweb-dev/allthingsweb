@@ -1275,6 +1275,54 @@ describe("the Worker, without what it needs", () => {
     }
   });
 
+  test("tells the site after a run that writes, even one that can't start, and never after a dry run", async () => {
+    const logs = captureLogs();
+    const told: Array<Request> = [];
+    const site = {
+      fetch: async (request: Request) => {
+        told.push(request);
+        return Response.json({ version: "v1", next: null });
+      },
+    };
+    try {
+      await expect(
+        worker.scheduled(
+          {},
+          {
+            ...complete(),
+            SYNC_MODE: "write",
+            LUMA_API_KEY: undefined,
+            SITE: site,
+            SITE_REFRESH_TOKEN: "a-test-token",
+          },
+        ),
+      ).rejects.toThrow("The sync Worker ran nothing: it has no LUMA_API_KEY.");
+      expect(
+        told.map((request) => request.headers.get("authorization")),
+      ).toEqual(["Bearer a-test-token"]);
+      expect(logs.lines.at(-1)).toMatchObject({
+        source: "luma-sync",
+        step: "site",
+        status: "done",
+      });
+      await expect(
+        worker.scheduled(
+          {},
+          {
+            ...complete(),
+            SYNC_MODE: "dry-run",
+            LUMA_API_KEY: undefined,
+            SITE: site,
+            SITE_REFRESH_TOKEN: "a-test-token",
+          },
+        ),
+      ).rejects.toThrow();
+      expect(told).toHaveLength(1);
+    } finally {
+      logs.restore();
+    }
+  });
+
   test("starts with every binding", () => {
     expect(Result.isSuccess(syncBindings(complete()))).toBe(true);
   });
