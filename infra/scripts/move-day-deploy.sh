@@ -113,20 +113,26 @@ log "deploy exited $rc"
 ((rc == 0)) || exit "$rc"
 
 # Build the new host's pages into the page store (web/src/prewarm.ts), as
-# every prod deploy does. Its answer names the build that warmed: for a few
-# seconds after the upload the version on its way out may still answer, and
-# allthings.dev may not answer at all until its certificate is issued. So
-# this asks every 15 s, for up to 10 minutes, until the build this deploy
-# shipped (web/dist/build.json) answers. Best effort: it never fails the
-# move, but says how it went. The token goes on stdin.
+# every prod deploy does. Its answer names the build that warmed and the
+# paths that failed: for a few seconds after the upload the version on its
+# way out may still answer, and allthings.dev may not answer at all until its
+# certificate is issued. So this asks every 15 s until the build this deploy
+# shipped (web/dist/build.json) answers with no failed path, all within one
+# 10-minute deadline that also caps each request. Best effort: it never
+# fails the move, but says how it went. The token goes on stdin.
 shipped=$(jq -r '.build // empty' ../web/dist/build.json)
-for _ in $(seq 40); do
+deadline=$((SECONDS + 600))
+while true; do
+  left=$((deadline - SECONDS))
+  # curl takes --max-time 0 as no limit, so no time left is the end.
+  if ((left <= 0)); then log "prewarm never warmed build $shipped fully by the deadline: run it again by hand"; break; fi
   answer=$(printf 'Authorization: Bearer %s\n' "$SITE_REFRESH_TOKEN" |
-    curl -sS -X POST -H @- --max-time 300 -w '\n%{http_code}' https://allthings.dev/_site/prewarm 2>/dev/null) || answer=$'\n000'
-  code=${answer##*$'\n'}
-  warmed=$(jq -r '.build // empty' <<<"${answer%$'\n'*}" 2>/dev/null) || warmed=
-  log "prewarm: HTTP $code, build ${warmed:-none} (shipped $shipped)"
-  [[ $code == 200 && -n $shipped && $warmed == "$shipped" ]] && exit 0
+    curl -sS -X POST -H @- --max-time "$left" -w '\n%{http_code}' https://allthings.dev/_site/prewarm 2>/dev/null) || answer=$'\n000'
+  code=${answer##*$'\n'} report=${answer%$'\n'*}
+  warmed=$(jq -r '.build // empty' <<<"$report" 2>/dev/null) || warmed=
+  failed=$(jq -r '(.failed // []) | length' <<<"$report" 2>/dev/null) || failed=unread
+  log "prewarm: HTTP $code, build ${warmed:-none} (shipped $shipped), failed paths ${failed:-unread}"
+  [[ $code == 200 && -n $shipped && $warmed == "$shipped" && $failed == 0 ]] && break
+  ((deadline - SECONDS > 15)) || { log "prewarm never warmed build $shipped fully by the deadline: run it again by hand"; break; }
   sleep 15
 done
-log "prewarm never warmed build $shipped: run it again by hand"
