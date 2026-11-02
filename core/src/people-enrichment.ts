@@ -1,7 +1,9 @@
-import { Effect, Schema } from "effect";
+import { DateTime, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { asOf } from "./clock.ts";
 import { HttpUrl } from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
+import { canonicalNow, decodeStoredNow, Now } from "./now.ts";
 
 /**
  * What profiles lack, filled from public sources (core/backfill/people.json):
@@ -14,6 +16,11 @@ import { DataSourceError } from "./errors.ts";
  * fact that could not be
  * confirmed (a same-name collision, a bio that isn't the person's own
  * words) is kept under `held` with its reason and never written.
+ *
+ * `now` is what they do now (src/now.ts, docs/now.md): a whole record,
+ * which only this file writes, so it is written whenever it differs from
+ * what is stored. `null` clears it and keeps it off; an entry without
+ * `now` leaves it as it is.
  *
  * A title is the person's job title at the time of their evening (the
  * role they had when they spoke or hosted), or their latest known title
@@ -118,11 +125,19 @@ export const PeopleEntry = Schema.Struct({
     fact(Schema.String.check(Schema.isPattern(/^[A-Za-z0-9-]{3,100}$/))),
   ),
   photoSourceUrl: Schema.optionalKey(fact(PhotoUrl)),
-  /** Facts found but not confirmed well enough to write, each with why. */
+  /**
+   * What they do now, with every fact's source (src/now.ts). `null`: taken
+   * down, and kept off (they asked, or it was wrong).
+   */
+  now: Schema.optionalKey(Schema.NullOr(Now)),
+  /**
+   * Facts found but not confirmed well enough to write, each with why. A
+   * claim held from `now` sits beside the record it was left out of.
+   */
   held: Schema.optionalKey(
     Schema.Array(
       Schema.Struct({
-        field: Schema.Literals(fields),
+        field: Schema.Literals([...fields, "now"]),
         value: Schema.NullOr(Schema.String),
         sources: Schema.Array(Url),
         reason: Schema.String.check(Schema.isNonEmpty()),
@@ -167,6 +182,7 @@ const ProfileRow = Schema.Struct({
   linkedin_handle: Schema.NullOr(Schema.String),
   photo_source_url: Schema.NullOr(Schema.String),
   has_image: Schema.Boolean,
+  now_record: Schema.Unknown,
 });
 type ProfileRow = typeof ProfileRow.Type;
 
@@ -186,10 +202,39 @@ const stored = (row: ProfileRow, field: Field): string | null =>
     : (row[columns[field] as keyof ProfileRow] as string | null);
 
 /**
+ * Writes a profile's `now_record` where the file's differs from what is
+ * stored (`null` clears it), and says what changed, or nothing when
+ * nothing did. A stored record that no longer decodes is replaced.
+ */
+const writeNow = (profileId: string, held: unknown, now: Now | null) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const current = yield* decodeStoredNow(held).pipe(
+      Effect.orElseSucceed(() => undefined),
+    );
+    const same =
+      current !== undefined &&
+      (current === null || now === null
+        ? current === now
+        : canonicalNow(current) === canonicalNow(now));
+    if (same) return undefined;
+    yield* sql`
+      UPDATE profiles SET
+        now_record = ${now === null ? null : canonicalNow(now)}::jsonb,
+        updated_at = now()
+      WHERE id = ${profileId}::uuid`;
+    if (now === null) return "now cleared";
+    return current === null || current === undefined
+      ? `now ← as of ${now.checkedOn}`
+      : `now ${current.checkedOn} → ${now.checkedOn}`;
+  });
+
+/**
  * Writes `file` in one transaction, filling only blank columns; with
  * `dryRun`, rolls it back after doing everything. Fails, writing nothing,
  * on a profile that isn't stored, whose name no longer matches, or that is
- * listed twice, and on a fact that is both held and set.
+ * listed twice, on a fact that is both held and set, and on a "now"
+ * record checked after today (UTC).
  */
 export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
   Effect.gen(function* () {
@@ -206,12 +251,26 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
     }
     const heldAndSet = file.flatMap((entry) =>
       (entry.held ?? [])
-        .filter((held) => entry[held.field] !== undefined)
+        .filter(
+          (held) => held.field !== "now" && entry[held.field] !== undefined,
+        )
         .map((held) => `${entry.name} ${held.field}`),
     );
     if (heldAndSet.length > 0) {
       return yield* fail(
         `Facts both held and set (drop one): ${heldAndSet.join(", ")}`,
+      );
+    }
+    // A record dated ahead would stay fresh until then (src/now-refresh.ts).
+    const today = DateTime.formatIsoDateUtc(yield* asOf);
+    const ahead = file.flatMap((entry) =>
+      entry.now != null && entry.now.checkedOn > today
+        ? [`${entry.name} (${entry.now.checkedOn})`]
+        : [],
+    );
+    if (ahead.length > 0) {
+      return yield* fail(
+        `Now records checked after today, ${today}: ${ahead.join(", ")}`,
       );
     }
 
@@ -220,7 +279,8 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
       for (const entry of file) {
         const rows = yield* sql`
           SELECT name, title, bio, twitter_handle, bluesky_handle,
-            linkedin_handle, photo_source_url, image IS NOT NULL AS has_image
+            linkedin_handle, photo_source_url, image IS NOT NULL AS has_image,
+            now_record
           FROM profiles WHERE id = ${entry.profileId}::uuid
           FOR UPDATE`.pipe(
           Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(ProfileRow))),
@@ -277,6 +337,14 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
               photo_source_url = COALESCE(${fill.photoSourceUrl ?? null}, photo_source_url),
               updated_at = now()
             WHERE id = ${entry.profileId}::uuid`;
+        }
+        if (entry.now !== undefined) {
+          const note = yield* writeNow(
+            entry.profileId,
+            row.now_record,
+            entry.now,
+          );
+          if (note !== undefined) notes.push(note);
         }
         lines.push(
           `${entry.name}: ${notes.length === 0 ? "unchanged" : notes.join(", ")}`,

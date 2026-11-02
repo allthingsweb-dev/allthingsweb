@@ -356,6 +356,7 @@ column public.profiles #017 slug text not null default ''::text
 column public.profiles #018 x_user_id text
 column public.profiles #019 x_handle_lost text
 column public.profiles #020 x_handle_lost_at timestamp with time zone
+column public.profiles #021 now_record jsonb
 column public.redirects #001 slug text not null
 column public.redirects #002 destination_url text not null
 column public.redirects #003 comment text
@@ -602,6 +603,7 @@ constraint public.profile_slugs profile_slugs_slug_check CHECK ((slug ~ '^[a-z0-
 constraint public.profiles profiles_image_images_id_fk FOREIGN KEY (image) REFERENCES images(id) ON DELETE SET NULL
 constraint public.profiles profiles_luma_user_id_check CHECK ((luma_user_id ~ '^usr-[A-Za-z0-9]+$'::text))
 constraint public.profiles profiles_luma_user_id_unique UNIQUE (luma_user_id)
+constraint public.profiles profiles_now_record_check CHECK ((jsonb_typeof(now_record) = 'object'::text))
 constraint public.profiles profiles_pkey PRIMARY KEY (id)
 constraint public.profiles profiles_slug_check CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
 constraint public.profiles profiles_slug_unique UNIQUE (slug)
