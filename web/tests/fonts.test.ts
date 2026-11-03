@@ -44,10 +44,11 @@ const fraction = (value: string | undefined): number => {
 /** Every width a rule sets text at, outside `@font-face`, and the default. */
 const widthsSet = (css: string) => [
   "100%",
-  ...css
-    .replace(/@font-face\{[^}]*\}/g, "")
-    .matchAll(/font-stretch:\s*([^;}]+)/g)
-    .map(([, width = ""]) => width.trim()),
+  ...[
+    ...css
+      .replace(/@font-face\{[^}]*\}/g, "")
+      .matchAll(/font-stretch:\s*([^;}]+)/g),
+  ].map(([, width = ""]) => width.trim()),
 ];
 
 describe("Archivo Fallback", () => {
