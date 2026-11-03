@@ -144,6 +144,12 @@ type ToolMessage = {
 /** The fields the contract has and the legacy app never had. */
 const sinceTheApp = ["curation", "organizer"];
 
+/** Where an event's page is: the contract names allthings.dev, the legacy app its own host. */
+const eventPage = {
+  contract: "Event page on allthings.dev.",
+  app: "Event page on allthingsweb.dev.",
+};
+
 /** JSON Schema `schema` without {@link sinceTheApp}'s properties. */
 function schemaAsTheAppHasIt(schema: Json): Json {
   if (Array.isArray(schema)) return schema.map(schemaAsTheAppHasIt);
@@ -162,6 +168,8 @@ function schemaAsTheAppHasIt(schema: Json): Json {
           ),
         ];
       }
+      if (key === "description" && value === eventPage.contract)
+        return [key, eventPage.app];
       if (key === "required" && Array.isArray(value)) {
         return [
           key,
@@ -401,13 +409,20 @@ describe("MCP", () => {
     );
     // Output schemas come from core's Effect contract: the same JSON Schema
     // as the app's, as core's contract test defines sameness, but for the
-    // fields the app never had.
+    // fields the app never had. An event's page is described on allthings.dev,
+    // where the app names its own host.
     expect(
       served.map((tool) =>
         schemaAsTheAppHasIt(normalizeJsonSchema(tool.outputSchema)),
       ),
     ).toEqual(today.map((tool) => normalizeJsonSchema(tool.outputSchema)));
     expect(JSON.stringify(served[0]?.outputSchema)).toContain('"curation"');
+    expect(JSON.stringify(served.map((tool) => tool.outputSchema))).toContain(
+      eventPage.contract,
+    );
+    expect(
+      JSON.stringify(served.map((tool) => tool.outputSchema)),
+    ).not.toContain("allthingsweb.dev");
   });
 
   const calls: ReadonlyArray<readonly [string, Record<string, unknown>]> = [

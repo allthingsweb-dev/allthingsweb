@@ -187,7 +187,7 @@ The source bucket stays intact, so any object can be re-copied at any time.
 
 ## Later: the full cutover
 
-This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. Its DNS stays at name.com, and the old app on Vercel keeps serving the site, sign-in, the admin and the hourly sync. Each step is its own PR, in this order:
+Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to allthings.dev. Step 4 is not scheduled; Erik calls it. allthingsweb.dev's DNS stays at name.com, pointing at Vercel, until then. Each step is its own PR, in this order:
 
 1. **The sync moves to the sync Worker.** The handover in [`infra/README.md`](../README.md#the-luma-sync) ("The handover"), one PR per step, so the two never write in the same hour: It needs no zone: the Sync Worker runs in the allthings account while allthings.dev is still pending, so the handover can finish before the domain moves.
    1. `schedule: "hourly"` with `mode: "dry-run"` in `infra/src/sync.ts` (done), and deploy prod. Compare a few hours of the Worker's logged work with the Vercel cron's writes.
@@ -208,29 +208,32 @@ This isn't scheduled; Erik calls it. Until then allthingsweb.dev is untouched. I
    - The admin MCP server on stdio (`app/scripts/mcp-server.ts`). `add_event_photos` and `replace_event_photo` run `bun run photos`. `create_profile`, `set_profile_image`, `create_host`, `delete_event_images` and `delete_orphaned_image` use the app's media store (`app/scripts/functions.ts`), whose `appMediaStore().put` and `removeStoredObject` write to and delete from the bucket through the upload Worker at `MEDIA_UPLOAD_URL`, with `MEDIA_UPLOAD_TOKEN`.
    - The Vercel cron's image ingestion (`app/src/lib/remote-images/bucket.ts`), which stores Luma covers, profile photos and post images. It stops when step 1.2 removes the cron. From step 1.3 the sync Worker stores Luma covers, profile photos and post images in the bucket itself. Each run in `write` mode stores the images it finds still missing, as many as its time and item limits allow, and later runs store the rest. So nothing the handover skipped is lost.
 
-3. **allthingsweb.dev redirects to allthings.dev.** The old Next app does it, behind one flag that ships off. No DNS change is needed.
-   - **The code.** `app/src/middleware.ts` runs on every path. With `ALLTHINGS_DEV_REDIRECT=on`, it answers each request with a redirect from `app/src/lib/cutover/redirect.ts`; with the variable unset or `off`, it redirects nothing.
+3. **allthingsweb.dev redirects to allthings.dev.** The old Next app does it, behind one flag that ships off. No DNS change is needed. Done Nov 2 at 18:33 UTC (below, "The flip").
+   - **The code.** `app/src/middleware.ts` runs on every path but Next's static files (`/_next/static/*`, which its matcher leaves out, so the old app still serves them, and nothing on allthings.dev links to them). With `ALLTHINGS_DEV_REDIRECT=on`, it answers each request with a redirect from `app/src/lib/cutover/redirect.ts`; with the variable unset or `off`, it redirects nothing.
    - **One hop.** Where the Worker would only redirect again, the redirect goes straight to its target:
      - an event's long slug goes to its short link, looked up in the database;
      - `/speakers` goes to `/people`, and `/rss.xml` to `/rss`;
      - a trailing slash is dropped;
      - the old link-preview images go to `/og/…` cards;
-     - `/_next/image` for a photo on the media origin goes to the photo.
-   - **Everything else** goes to the same path and query on allthings.dev. That includes the API, `/mcp`, `/r/*` and the retired paths, and the Worker answers each as the legacy-URL manifest says.
+     - `/_next/image` for a photo on the media origin is not redirected: the middleware would send it to the photo, but Vercel's image optimizer answers it first (see "What it leaves").
+   - **Everything else** the middleware sees (every path but `/_next/static/*` and, on Vercel, `/_next/image`) goes to the same path and query on allthings.dev. That includes the API, `/mcp`, `/r/*` and the retired paths, and the Worker answers each as the legacy-URL manifest says.
    - **Status codes.** GET and HEAD get 301. Any other method gets 308, which keeps a POST's method and body. Each redirect is cached for an hour, so turning the flag back off takes hold within one.
    - **Person anchors.** A fragment never reaches a server. The browser keeps `#p-<id>` across the redirect, and allthings.dev/people still has those anchors.
    - **No drift.** `web/tests/cutover.test.ts` holds every pattern in the manifest to its exact target, so the two can't drift apart.
    - **Ordering.** Steps 1 and 2 come first, so nothing the app still serves is redirected away.
-   - **The flip:**
+   - **Why not Vercel's domain redirect.** A project domain can redirect only to another domain of the same project, and allthings.dev isn't one (Vercel answers 400). The flag also gives one hop where the Worker would redirect again, and 308 for a POST.
+   - **The flip** (done Nov 2):
      1. Set it: `vercel env add ALLTHINGS_DEV_REDIRECT production`, with the value `on`.
-     2. Redeploy production: Vercel applies an env change only to new deployments. Use `vercel redeploy` on the latest production deployment, or the Vercel MCP's `create_deployment` with its deployment id.
-     3. Check `curl -sI https://allthingsweb.dev/speakers`: it should answer `301` with `location: https://allthings.dev/people`. Check an event's long slug too, which should go to its short link.
-   - **Undo.** Set the variable to `off` and redeploy. Browsers that cached a redirect follow it for at most an hour.
+     2. Redeploy production: Vercel applies an env change only to new deployments. Use `vercel redeploy` on the latest production deployment, or the Vercel MCP's `create_deployment` with its deployment id. Check that the new deployment has the same commit as the one it replaces.
+     3. Clear www.allthingsweb.dev's project-domain redirect (it was a 307 to the apex), so the middleware answers www too, in one hop. First read it, which changes nothing: `vercel api /v9/projects/allthingsweb/domains/www.allthingsweb.dev --scope andrelandgraf | jq '{redirect, redirectStatusCode}'` must show `{"redirect":"allthingsweb.dev","redirectStatusCode":307}`; stop on anything else. Then `vercel api /v9/projects/allthingsweb/domains/www.allthingsweb.dev -X PATCH --input <file> --scope andrelandgraf` with `{"redirect":null,"redirectStatusCode":null}`. Check that the answer and a second read both show `null`, and that `curl -sI https://www.allthingsweb.dev/about?x=1` answers 301 to `https://allthings.dev/about?x=1`.
+     4. Check `curl -sI https://allthingsweb.dev/speakers`: it should answer `301` with `location: https://allthings.dev/people`. Check an event's long slug too, which should go to its short link, www with a path and query, and a POST to `/mcp`, which gets a 308. A `/_next/image` URL for a media-origin photo still answers 200 from Vercel's optimizer (above), not a redirect.
+   - **What it leaves.** `/_next/image` doesn't redirect, though the middleware matches it and `cutoverRedirect` would send a media-origin photo to its URL: on Vercel the image optimizer answers it before the middleware runs. Checked Nov 2 and 3: a media-origin photo there answers `200 image/png` from `server: Vercel` (`x-vercel-cache: MISS`, then `STALE`), with no `location`. It reads the photo from media.allthings.dev and touches no database. Step 4 ends it, along with Vercel. The app has no cron, deploy hook or webhook left, and its only database writer, `/api/cron/luma-sync`, now redirects too.
+   - **Undo.** Set the variable to `off` (or remove it) and redeploy, then give www.allthingsweb.dev back its redirect the same way: read it first (it must show `null`), PATCH `{"redirect":"allthingsweb.dev","redirectStatusCode":307}`, then read it again and check that www answers 307 to the apex. Browsers that cached a redirect follow it for at most an hour.
 4. **Vercel retires.** allthingsweb.dev's redirects then need a home off Vercel:
    - Add allthingsweb.dev as a zone in the allthings account and point name.com's nameservers at it. This is the only DNS change, and it waits until this step.
    - Add allthingsweb.dev and www.allthingsweb.dev to the site's `redirects` in `siteDomain` (`infra/src/web.ts`). They become 301s to allthings.dev, with path and query kept, and the Worker's legacy handling does the rest.
    - Delete the Vercel project and its env, then Stack Auth's project and the app's Sentry project.
-   - Delete `app/` and its workflow. The parity tests that hold core to the app's schemas go with it, and the contract's "Event page on allthingsweb.dev." description changes to allthings.dev.
+   - Delete `app/` and its workflow. The parity tests that hold core to the app's schemas go with it, and so does the one exception they allow: the contract's event-page description already names allthings.dev, where the app names allthingsweb.dev.
 
 ## Open questions and assumptions
 
