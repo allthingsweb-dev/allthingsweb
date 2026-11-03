@@ -9,6 +9,7 @@ import {
   purgeSiteData,
   siteDataTag,
   type WorkersCachePurge,
+  withEdgePurge,
   workersCacheHeader,
   workersCacheLifetime,
 } from "../src/cache.ts";
@@ -133,6 +134,38 @@ describe("the purge after a prewarm", () => {
         { sitemapRead: true, failed: ["/events"] },
         cache,
       ),
+    ).toBe("skipped");
+  });
+});
+
+describe("a writer's prewarm, then the purge", () => {
+  const report = { sitemapRead: true, failed: [], build: "b" };
+  it("purges through the request's own Workers Cache, and reports it", async () => {
+    const asked: Array<ReadonlyArray<string>> = [];
+    const cache: WorkersCachePurge = {
+      purge: async ({ tags }) => {
+        asked.push(tags);
+        return { success: true };
+      },
+    };
+    expect(await withEdgePurge(async () => report)({ cache })).toEqual({
+      ...report,
+      edgePurge: "purged",
+    });
+    expect(asked).toEqual([[siteDataTag]]);
+  });
+  it("says unavailable without one, and skips after an incomplete prewarm", async () => {
+    expect((await withEdgePurge(async () => report)({})).edgePurge).toBe(
+      "unavailable",
+    );
+    const never: WorkersCachePurge = {
+      purge: async () => {
+        throw new Error("must not purge");
+      },
+    };
+    const incomplete = { ...report, failed: ["/events"] };
+    expect(
+      (await withEdgePurge(async () => incomplete)({ cache: never })).edgePurge,
     ).toBe("skipped");
   });
 });

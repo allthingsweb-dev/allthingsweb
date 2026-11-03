@@ -179,3 +179,27 @@ export const purgeAfterPrewarm = (
   report.sitemapRead && report.failed.length === 0
     ? purgeSiteData(cache)
     : Promise.resolve("skipped");
+
+/**
+ * A writer's prewarm, followed by the purge that the request's own Workers
+ * Cache (`context.cache`) makes: the report, with how the purge went as
+ * `edgePurge`. worker.ts answers `/_site/prewarm` with it.
+ */
+export const withEdgePurge =
+  <
+    Report extends {
+      readonly sitemapRead: boolean;
+      readonly failed: ReadonlyArray<string>;
+    },
+  >(
+    warm: () => Promise<Report>,
+  ) =>
+  async (context: {
+    readonly cache?: WorkersCachePurge;
+  }): Promise<Report & { readonly edgePurge: EdgePurge }> => {
+    const report = await warm();
+    return {
+      ...report,
+      edgePurge: await purgeAfterPrewarm(report, context.cache),
+    };
+  };
