@@ -164,7 +164,12 @@ export default {
             writers?.token,
             writers === undefined
               ? noStore
-              : () => writers.prewarm(incomingContext),
+              : () =>
+                  // `?dry-run` shows the purge it would make, and makes none.
+                  writers.prewarm(
+                    incomingContext,
+                    new URL(incoming.url).searchParams.has("dry-run"),
+                  ),
           );
         }
         return site(incoming, incomingContext);

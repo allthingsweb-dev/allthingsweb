@@ -169,3 +169,26 @@ describe("a writer's prewarm, then the purge", () => {
     ).toBe("skipped");
   });
 });
+
+describe("a dry run of the purge", () => {
+  const never: WorkersCachePurge = {
+    purge: async () => {
+      throw new Error("a dry run must not purge");
+    },
+  };
+  it("says what a complete prewarm would purge, and purges nothing", async () => {
+    const report = { sitemapRead: true, failed: [] };
+    expect(
+      (await withEdgePurge(async () => report)({ cache: never }, true))
+        .edgePurge,
+    ).toBe("would purge");
+    expect(
+      (
+        await withEdgePurge(async () => ({ ...report, sitemapRead: false }))(
+          { cache: never },
+          true,
+        )
+      ).edgePurge,
+    ).toBe("skipped");
+  });
+});

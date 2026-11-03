@@ -144,7 +144,12 @@ export interface WorkersCachePurge {
 }
 
 /** How a purge of {@link siteDataTag} went, for the writer's report: "skipped" when the prewarm wasn't complete, so nothing was purged. */
-export type EdgePurge = "purged" | "unavailable" | "failed" | "skipped";
+export type EdgePurge =
+  | "purged"
+  | "unavailable"
+  | "failed"
+  | "skipped"
+  | "would purge";
 
 /**
  * Drops every answer tagged {@link siteDataTag} from Workers Cache, so the
@@ -194,12 +199,20 @@ export const withEdgePurge =
   >(
     warm: () => Promise<Report>,
   ) =>
-  async (context: {
-    readonly cache?: WorkersCachePurge;
-  }): Promise<Report & { readonly edgePurge: EdgePurge }> => {
+  async (
+    context: { readonly cache?: WorkersCachePurge },
+    /** Report the purge a complete prewarm would make ("would purge"), and make none. */
+    dryRun = false,
+  ): Promise<Report & { readonly edgePurge: EdgePurge }> => {
     const report = await warm();
+    const complete = report.sitemapRead && report.failed.length === 0;
     return {
       ...report,
-      edgePurge: await purgeAfterPrewarm(report, context.cache),
+      edgePurge:
+        dryRun && complete
+          ? "would purge"
+          : dryRun
+            ? "skipped"
+            : await purgeAfterPrewarm(report, context.cache),
     };
   };
