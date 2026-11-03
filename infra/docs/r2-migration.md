@@ -215,7 +215,7 @@ Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to all
      - `/speakers` goes to `/people`, and `/rss.xml` to `/rss`;
      - a trailing slash is dropped;
      - the old link-preview images go to `/og/…` cards;
-     - `/_next/image` for a photo on the media origin goes to the photo.
+     - `/_next/image` for a photo on the media origin is not redirected: the middleware would send it to the photo, but Vercel's image optimizer answers it first (see "What it leaves").
    - **Everything else** goes to the same path and query on allthings.dev. That includes the API, `/mcp`, `/r/*` and the retired paths, and the Worker answers each as the legacy-URL manifest says.
    - **Status codes.** GET and HEAD get 301. Any other method gets 308, which keeps a POST's method and body. Each redirect is cached for an hour, so turning the flag back off takes hold within one.
    - **Person anchors.** A fragment never reaches a server. The browser keeps `#p-<id>` across the redirect, and allthings.dev/people still has those anchors.
