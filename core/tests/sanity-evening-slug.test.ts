@@ -80,6 +80,9 @@ describe("0033_sanity_evening_slug", () => {
   });
 
   test("every address the evening had still finds it, under its 2024 slug", async () => {
+    // Each test migrates first, so any one runs alone: a run after the
+    // first changes nothing, as "changes nothing on a second run" holds.
+    await migrate();
     for (const slug of [wrongSlug, rightSlug, "react-bay-area"]) {
       const event = await found(slug);
       expect([slug, event.id, event.slug]).toEqual([slug, id, rightSlug]);
@@ -87,6 +90,7 @@ describe("0033_sanity_evening_slug", () => {
   });
 
   test("changes nothing on a second run", async () => {
+    await migrate();
     const afterFirstRun = await updatedAt();
     await migrate();
     expect(await updatedAt()).toEqual(afterFirstRun);
