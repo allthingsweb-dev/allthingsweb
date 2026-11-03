@@ -222,6 +222,11 @@ function fontFaceProperty(css: string, file: string, property: string): string {
   return value;
 }
 
+/**
+ * Writes each typeface's subsets under hashed names, and returns their
+ * `@font-face` rules, each typeface's fallback faces after its own, with
+ * which files pages preload.
+ */
 async function buildFonts(): Promise<{
   css: string;
   fonts: ReadonlyArray<Font>;
@@ -270,6 +275,7 @@ async function buildFonts(): Promise<{
  * family, so it stands in while the typeface loads.
  */
 export function siteTokens(file: TokenFile): TokenFile {
+  // A stack whose first family has a fallback, with it named second.
   const withFallback = (token: TokenFile["font"]["display"]) => {
     const [first, ...rest] = token.$value;
     const fallback = typefaces.find(
