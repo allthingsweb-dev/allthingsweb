@@ -1,5 +1,5 @@
 import type { ExecutionContext } from "./app.ts";
-import { forWorkersCache, withEdgePurge } from "./cache.ts";
+import { forWorkersCache, prewarmPlan, withEdgePurge } from "./cache.ts";
 import { built } from "./assets.ts";
 import {
   dataCenterCache,
@@ -164,12 +164,9 @@ export default {
             writers?.token,
             writers === undefined
               ? noStore
-              : () =>
-                  // `?dry-run` shows the purge it would make, and makes none.
-                  writers.prewarm(
-                    incomingContext,
-                    new URL(incoming.url).searchParams.has("dry-run"),
-                  ),
+              : () => writers.prewarm(incomingContext),
+            // `?dry-run` answers the plan, and does nothing (cache.ts).
+            () => prewarmPlan,
           );
         }
         return site(incoming, incomingContext);

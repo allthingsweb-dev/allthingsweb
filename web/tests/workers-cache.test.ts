@@ -5,6 +5,7 @@ import {
   forWorkersCache,
   immutable,
   preferenceCacheControl,
+  prewarmPlan,
   purgeAfterPrewarm,
   purgeSiteData,
   siteDataTag,
@@ -13,6 +14,7 @@ import {
   workersCacheHeader,
   workersCacheLifetime,
 } from "../src/cache.ts";
+import { prewarmRequest } from "../src/refresh.ts";
 
 const get = new Request("https://allthings.dev/events");
 
@@ -170,28 +172,40 @@ describe("a writer's prewarm, then the purge", () => {
   });
 });
 
-describe("a dry run of the purge", () => {
-  let calls = 0;
-  const never: WorkersCachePurge = {
-    purge: async () => {
-      calls += 1;
-      return { success: true };
-    },
-  };
-  it("says what a complete prewarm would purge, and purges nothing", async () => {
-    const report = { sitemapRead: true, failed: [] };
-    expect(
-      (await withEdgePurge(async () => report)({ cache: never }, true))
-        .edgePurge,
-    ).toBe("would purge");
-    expect(
-      (
-        await withEdgePurge(async () => ({ ...report, sitemapRead: false }))(
-          { cache: never },
-          true,
-        )
-      ).edgePurge,
-    ).toBe("skipped");
-    expect(calls).toBe(0);
+describe("a dry run of the prewarm and its purge", () => {
+  const at = (query: string, authorization?: string) =>
+    new Request(`https://allthings.dev/_site/prewarm${query}`, {
+      method: "POST",
+      headers: authorization === undefined ? {} : { authorization },
+    });
+  it("answers the plan with the token, and neither prewarms nor purges", async () => {
+    let warmed = 0;
+    const warm = async () => {
+      warmed += 1;
+      throw new Error("a dry run must not prewarm");
+    };
+    const response = await prewarmRequest(
+      at("?dry-run", "Bearer t"),
+      "t",
+      warm,
+      () => prewarmPlan,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(
+      JSON.parse(JSON.stringify(prewarmPlan)),
+    );
+    expect(warmed).toBe(0);
+    expect(prewarmPlan.thenPurge.tags).toEqual([siteDataTag]);
+  });
+  it("still refuses without the token", async () => {
+    const response = await prewarmRequest(
+      at("?dry-run", "Bearer wrong"),
+      "t",
+      async () => {
+        throw new Error("unreached");
+      },
+      () => prewarmPlan,
+    );
+    expect(response.status).toBe(401);
   });
 });

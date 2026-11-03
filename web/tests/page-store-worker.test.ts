@@ -534,15 +534,16 @@ describe("the page store", () => {
     // Then it drops the data's answers from Workers Cache, which workerd
     // runs without here: the report says so rather than failing.
     expect(["purged", "unavailable"]).toContain(report.edgePurge);
-    // A dry run reaches the same decision through the handler, and purges nothing.
+    // A dry run answers the plan through the handler: no prewarm ran (no
+    // report), and nothing was purged.
     const dry = await fetch(`${Cached}/_site/prewarm?dry-run`, {
       method: "POST",
       headers: { authorization: `Bearer ${refreshToken}` },
     });
     expect(dry.status).toBe(200);
-    expect(((await dry.json()) as { edgePurge: string }).edgePurge).toBe(
-      "would purge",
-    );
+    const plan = (await dry.json()) as { edgePurge: string; paths?: number };
+    expect(plan.edgePurge).toBe("would purge");
+    expect(plan.paths).toBeUndefined();
     expect(report.kept + report.built).toBeGreaterThan(5);
     // A page it built is kept: the next visitor gets it from the store.
     const { response } = await get(Cached, "/events");
