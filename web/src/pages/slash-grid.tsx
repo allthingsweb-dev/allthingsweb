@@ -80,13 +80,14 @@ type Dated = HeldEvening & { readonly photo: Rows.Photo };
 export const datedEvenings = (
   evenings: ReadonlyArray<HeldEvening>,
   images: ImageMode,
+  limit: number = gridCount,
 ): ReadonlyArray<Dated> =>
   evenings
     .filter(
       (evening): evening is Dated =>
         evening.photo !== null && showable([evening.photo], images).length > 0,
     )
-    .slice(0, gridCount);
+    .slice(0, limit);
 
 function DatedCut({
   evening,

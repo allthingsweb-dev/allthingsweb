@@ -1,3 +1,4 @@
+import type { PropsWithChildren } from "@kitajs/html";
 import type { CommunityView } from "allthings-core/src/community.ts";
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
@@ -149,11 +150,16 @@ export function OpenSlot() {
  * after the next one and the latest ones. The home lab's variants
  * (pages/lab/) show it under theirs.
  */
-export function HomeBand({ home }: { readonly home: HomeView }) {
+export function HomeBand({
+  home,
+  children,
+}: PropsWithChildren<{ readonly home: HomeView }>) {
   const { next, afterThat, recently } = home;
   return (
     <div class="band">
       <div class="pitch at-type-statement">
+        {/* What stands above the two sentences, at the top of their column. */}
+        {children}
         <p>Evenings for people who build software.</p>
         <p class="pitch-place">In the neighborhoods of San Francisco.</p>
       </div>

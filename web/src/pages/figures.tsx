@@ -30,7 +30,8 @@ export function tallyFacts(
 
 /**
  * The tally as a row of big numbers over mono labels, as `kind` sets it:
- * a band under a hero, or columns within one.
+ * a band under a hero, columns within one, or a compact row within
+ * another band (the home lab's home-tight).
  */
 export function Tally({
   tally,
@@ -38,7 +39,7 @@ export function Tally({
   which,
 }: {
   readonly tally: TallyView;
-  readonly kind: "band" | "columns";
+  readonly kind: "band" | "columns" | "compact";
   readonly which?: ReadonlyArray<keyof TallyView>;
 }) {
   const facts = tallyFacts(tally, which);

@@ -386,6 +386,40 @@
   padding-top: var(--at-space-2);
 }
 
+/* home-tight: home that fits a MacBook's screen, footer aside
+   (pages/lab/home-tight.tsx). The grid stands at the top of the hero, its
+   cuts 4:3, and the tally opens the band's first column, compact, in the
+   space the statement leaves above itself. */
+
+.tight .slash-grid-dated {
+  align-self: start;
+}
+
+.tight .cut {
+  aspect-ratio: 4 / 3;
+}
+
+.figures-compact {
+  margin-bottom: auto;
+}
+
+.figures-compact dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--at-space-4);
+}
+
+.figures-compact dd {
+  font-size: var(--at-font-size-display);
+}
+
+/* On a phone, two figures a row, so each number keeps its width. */
+@media (--at-below-m) {
+  .figures-compact dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--at-space-4);
+  }
+}
+
 @keyframes band-drift {
   to {
     transform: translateX(-50%);
