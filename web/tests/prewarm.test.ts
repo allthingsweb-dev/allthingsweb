@@ -29,7 +29,8 @@ function fakeSite(served: (path: string) => string, status = 200) {
     asked.push(path);
     const how = served(path);
     // "miss" is built and written; "unwritten" is built, its write failed;
-    // "unkeepable" is built and never kept.
+    // "unkeepable" is built and never kept; "unreachable" is answered while
+    // the store couldn't be read.
     if (how === "miss" || how === "unwritten") {
       context.waitUntil(
         (async () => {
@@ -42,7 +43,10 @@ function fakeSite(served: (path: string) => string, status = 200) {
     return new Response(path === "/sitemap.xml" ? sitemap : "<p>page</p>", {
       status: path === "/sitemap.xml" ? 200 : status,
       headers: {
-        "server-timing": `store;desc="${how === "hit" ? "hit" : "miss"}";dur=1.0`,
+        "server-timing":
+          how === "unreachable"
+            ? `store;desc="bypass";dur=0.0, reason;desc="unreachable"`
+            : `store;desc="${how === "hit" ? "hit" : "miss"}";dur=1.0`,
       },
     });
   };
@@ -93,6 +97,7 @@ describe("prewarm", () => {
       kept: 2,
       built: 3,
       passed: 0,
+      unreachable: 0,
       failed: [],
       sitemapRead: true,
       waitedMs: 0,
@@ -133,6 +138,26 @@ describe("prewarm", () => {
     });
   });
 
+  test("counts a page answered while the store was unreachable apart from one that can't be kept", async () => {
+    const site = fakeSite((path) =>
+      path === "/sitemap.xml"
+        ? "hit"
+        : path === "/"
+          ? "unkeepable"
+          : path === "/events"
+            ? "unreachable"
+            : "miss",
+    );
+    const report = await options(site).run();
+    expect(report).toMatchObject({
+      kept: 1,
+      built: 2,
+      passed: 1,
+      unreachable: 1,
+      failed: [],
+    });
+  });
+
   test("tells a sitemap that was read but not written from one that wasn't read", async () => {
     const site = fakeSite((path) =>
       path === "/sitemap.xml" ? "unwritten" : "hit",
@@ -165,7 +190,11 @@ describe("prewarm", () => {
     expect(tries).toBe(2);
     // Each path is counted once, by its last outcome.
     expect(
-      report.kept + report.built + report.passed + report.failed.length,
+      report.kept +
+        report.built +
+        report.passed +
+        report.unreachable +
+        report.failed.length,
     ).toBe(report.paths);
   });
 

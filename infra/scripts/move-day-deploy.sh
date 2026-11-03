@@ -133,11 +133,13 @@ while true; do
   code=${answer##*$'\n'} report=${answer%$'\n'*}
   warmed=$(jq -r '.build // empty' <<<"$report" 2>/dev/null) || warmed=
   failed=$(jq -r '(.failed // []) | length' <<<"$report" 2>/dev/null) || failed=unread
-  # Passed: answered but not kept (not keepable, or the store unreachable).
-  # Reported, not retried: a page that can't be kept won't be on a retry either.
+  # Passed: answered but not keepable; reported, not retried, since a retry
+  # wouldn't keep it either. Unreachable: answered while the store couldn't
+  # be read; retried, since those pages aren't warm until it can.
   passed=$(jq -r '.passed // "unread"' <<<"$report" 2>/dev/null) || passed=unread
-  log "prewarm: HTTP $code, build ${warmed:-none} (shipped $shipped), failed paths ${failed:-unread}, passed unkept ${passed:-unread}"
-  [[ $code == 200 && -n $shipped && $warmed == "$shipped" && $failed == 0 ]] && break
+  unreachable=$(jq -r '.unreachable // "unread"' <<<"$report" 2>/dev/null) || unreachable=unread
+  log "prewarm: HTTP $code, build ${warmed:-none} (shipped $shipped), failed paths ${failed:-unread}, unreachable ${unreachable:-unread}, passed unkept ${passed:-unread}"
+  [[ $code == 200 && -n $shipped && $warmed == "$shipped" && $failed == 0 && $unreachable == 0 ]] && break
   ((deadline - SECONDS > 15)) || { log "prewarm never warmed build $shipped fully by the deadline: run it again by hand"; break; }
   sleep 15
 done
