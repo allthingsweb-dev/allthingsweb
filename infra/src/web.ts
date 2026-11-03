@@ -1,5 +1,9 @@
+import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Effect from "effect/Effect";
+import * as Redacted from "effect/Redacted";
+import * as Schedule from "effect/Schedule";
+import { variantsCheckPath } from "../../core/src/refresh-path.ts";
 import { compatibility } from "../../web/src/compatibility.ts";
 import { readerCaching } from "../../web/src/reader-caching.ts";
 import { Reader } from "./reader.ts";
@@ -129,3 +133,38 @@ export const siteDomain = (zoneId: string): Cloudflare.WorkerDomainConfig => ({
   redirects: [`www.${SITE_HOST}`],
   zoneId,
 });
+
+/**
+ * Prod's deploy-time proof that the site's variants bucket takes writes,
+ * as MediaUploadCheck proves uploads: the Worker, asked with the writers'
+ * token, stores one object of its own under `deploy-checks/`, reads it
+ * back, deletes it and finds it gone (web/src/images/kept.ts,
+ * `checkVariantStore`). Any step that fails fails the deploy. It runs again
+ * whenever the Worker changes.
+ */
+export const VariantsCheck = Alchemy.Action(
+  "VariantsCheck",
+  (input: { url: string; token: Redacted.Redacted; workerHash: string }) =>
+    Effect.tryPromise(() =>
+      fetch(`${input.url}${variantsCheckPath}`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${Redacted.value(input.token)}` },
+      }),
+    ).pipe(
+      Effect.flatMap((response) =>
+        Effect.tryPromise(() => response.text()).pipe(
+          Effect.filterOrFail(
+            () => response.status === 200,
+            (body) =>
+              new Error(
+                `the variants check answered ${response.status}: ${body.slice(0, 200)}`,
+              ),
+          ),
+        ),
+      ),
+      // A new deployment takes a few seconds to answer everywhere.
+      Effect.retry({ schedule: Schedule.spaced("2 seconds"), times: 15 }),
+      Effect.as({ checked: input.workerHash }),
+      Effect.orDie,
+    ),
+);

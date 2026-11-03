@@ -16,9 +16,15 @@ import {
   prewarmRequest,
   refreshPath,
   refreshRequest,
+  variantsCheckPath,
+  variantsCheckRequest,
 } from "./refresh.ts";
 import { withoutTrailingSlash } from "./trailing-slash.ts";
-import { keptVariant, variantStoreOf } from "./images/kept.ts";
+import {
+  checkVariantStore,
+  keptVariant,
+  variantStoreOf,
+} from "./images/kept.ts";
 
 type Handler = (
   request: Request,
@@ -168,6 +174,16 @@ export default {
               : () => writers.prewarm(incomingContext),
             // `?dry-run` answers the plan, and does nothing (cache.ts).
             () => prewarmPlan,
+          );
+        }
+        if (pathname === variantsCheckPath) {
+          const variants = variantStoreOf(env);
+          return variantsCheckRequest(
+            incoming,
+            writers?.token,
+            variants === undefined
+              ? noStore
+              : () => checkVariantStore(variants),
           );
         }
         return site(incoming, incomingContext);

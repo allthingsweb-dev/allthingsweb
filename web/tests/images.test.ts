@@ -109,6 +109,14 @@ const Stack = testStack("allthings-web-images-test", {
     IMAGES: true,
     VARIANTS: "SharedVariants",
   },
+  // The same bucket, and no IMAGES: it serves only what the bucket keeps,
+  // and keeps nothing itself, so it shows when the bucket has a variant.
+  Probe: {
+    ORIGIN: origin,
+    DATABASE_URL: database.url,
+    MEDIA_ORIGIN: media.origin,
+    VARIANTS: "SharedVariants",
+  },
   Originals: {
     ORIGIN: origin,
     DATABASE_URL: database.url,
@@ -132,7 +140,7 @@ afterAll(
   ),
 );
 
-type Worker = "Variants" | "Originals" | "Elsewhere";
+type Worker = "Variants" | "Originals" | "Elsewhere" | "Probe";
 
 /** A test that gets the running Workers' URLs. */
 const it = (
@@ -160,6 +168,7 @@ const it = (
           Variants: url("Variants"),
           Originals: url("Originals"),
           Elsewhere: url("Elsewhere"),
+          Probe: url("Probe"),
         });
       }),
     ),
@@ -337,6 +346,7 @@ describe("/img/", () => {
   it("keeps a variant it made in the stage's bucket, so another data center serves it without making it", async ({
     Variants,
     Elsewhere,
+    Probe,
   }) => {
     const path = `/img/480/avif/${fresh}/events/home/mux.jpg`;
     const before = media.fetches("events/home/mux.jpg");
@@ -344,19 +354,27 @@ describe("/img/", () => {
     expect(made.response.headers.get("server-timing")).toMatch(
       /^img;desc="miss";dur=\d+$/,
     );
-    // The bucket takes it after the response: until then, it is made.
-    let kept = await get(Elsewhere, path);
+    // The bucket takes it after the response. Probe can't make a variant
+    // (no IMAGES) and keeps nothing it sends otherwise, so it answers
+    // `stored` exactly once the bucket has it, and nothing is cached
+    // anywhere before then.
+    let probed = await get(Probe, path);
     for (
       let attempt = 0;
       attempt < 40 &&
-      !(kept.response.headers.get("server-timing") ?? "").startsWith(
+      !(probed.response.headers.get("server-timing") ?? "").startsWith(
         'img;desc="stored"',
       );
       attempt++
     ) {
       await Bun.sleep(50);
-      kept = await get(Elsewhere, `${path}?again=${attempt}`);
+      probed = await get(Probe, path);
     }
+    expect(probed.response.headers.get("server-timing")).toMatch(
+      /^img;desc="stored";dur=\d+$/,
+    );
+    // Elsewhere, its own cache empty for this path, reads it from the bucket.
+    const kept = await get(Elsewhere, path);
     expect(kept.response.headers.get("server-timing")).toMatch(
       /^img;desc="stored";dur=\d+$/,
     );
@@ -364,9 +382,7 @@ describe("/img/", () => {
     expect(kept.response.headers.get("content-type")).toBe("image/avif");
     expect(kept.response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(kept.body).toEqual(made.body);
-    // Then from its own cache, and the original was fetched only by the
-    // data center that made it (and by Elsewhere while the bucket hadn't
-    // taken it yet, at most).
+    // Then from its own cache, which it fills after the response.
     let cached = await get(Elsewhere, path);
     for (
       let attempt = 0;
@@ -379,12 +395,8 @@ describe("/img/", () => {
     }
     expect(cached.response.headers.get("server-timing")).toBe('img;desc="hit"');
     expect(cached.body).toEqual(made.body);
-    const fetched = media.fetches("events/home/mux.jpg") - before;
-    expect(fetched).toBeGreaterThanOrEqual(1);
-    const afterKept = media.fetches("events/home/mux.jpg");
-    await get(Elsewhere, path);
-    await get(Variants, path);
-    expect(media.fetches("events/home/mux.jpg")).toBe(afterKept);
+    // Only the data center that made it fetched the original.
+    expect(media.fetches("events/home/mux.jpg")).toBe(before + 1);
   });
 
   it("fetches an original once more when the media origin fails for a moment", async ({

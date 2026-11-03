@@ -30,6 +30,7 @@ export interface VariantStore {
     value: ReadableStream<Uint8Array> | ArrayBuffer,
     options: { readonly httpMetadata: { readonly contentType: string } },
   ): Promise<unknown>;
+  delete(key: string): Promise<void>;
 }
 
 /** What the Worker uses of `caches.default`. */
@@ -50,7 +51,9 @@ export const variantStoreOf = (
   env: Readonly<Record<string, unknown>>,
 ): VariantStore | undefined => {
   const store = env["VARIANTS"];
-  return hasMethods(store, "get", "put") ? (store as VariantStore) : undefined;
+  return hasMethods(store, "get", "put", "delete")
+    ? (store as VariantStore)
+    : undefined;
 };
 
 /** The data center's cache, where the runtime has one. */
@@ -126,4 +129,37 @@ export async function keptVariant(
       "server-timing": `img;desc="stored";dur=${Date.now() - started}`,
     },
   });
+}
+
+/** Where the deploy check's objects go: never under a variant's path. */
+export const checkPrefix = "deploy-checks/";
+
+/**
+ * The deploy's proof that the bucket takes writes (infra/src/web.ts's
+ * VariantsCheck, through refresh.ts's `variantsCheckRequest`): one object
+ * of its own, stored, read back, deleted and looked for again. It throws,
+ * naming the step, when one doesn't hold; the object is deleted either way.
+ */
+export async function checkVariantStore(
+  store: VariantStore,
+): Promise<{ readonly checked: string }> {
+  const key = `${checkPrefix}${crypto.randomUUID()}.txt`;
+  const body = new TextEncoder().encode("ok");
+  try {
+    await store.put(key, body.buffer, {
+      httpMetadata: { contentType: "text/plain" },
+    });
+    const stored = await store.get(key);
+    const text =
+      stored === null ? undefined : await new Response(stored.body).text();
+    if (text !== "ok") throw new Error("the object didn't read back");
+  } finally {
+    await store.delete(key);
+  }
+  const gone = await store.get(key);
+  if (gone !== null) {
+    await gone.body.cancel().catch(() => undefined);
+    throw new Error("the object is still there after its delete");
+  }
+  return { checked: key };
 }

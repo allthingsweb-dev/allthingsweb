@@ -16,7 +16,13 @@ import { PREVIEW, makePreview } from "./src/preview.ts";
 import { makeSync, syncPlan } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
-import { Web, makeWeb, siteDomain, siteRefreshToken } from "./src/web.ts";
+import {
+  VariantsCheck,
+  Web,
+  makeWeb,
+  siteDomain,
+  siteRefreshToken,
+} from "./src/web.ts";
 
 export default Alchemy.Stack(
   "allthings",
@@ -52,6 +58,16 @@ export default Alchemy.Stack(
             siteRefreshToken,
           );
     const webUrl = site?.url.as<string>();
+    // Every deploy proves the variants bucket takes writes (src/web.ts).
+    if (site !== undefined) {
+      yield* VariantsCheck({
+        url: site.url.as<string>(),
+        token: yield* siteRefreshToken,
+        workerHash: site.hash.pipe(
+          Output.map((hash) => hash?.bundle ?? "unbuilt"),
+        ),
+      });
+    }
     // The draft preview, behind Access, beside the site (src/preview.ts).
     const preview =
       site === undefined || !PREVIEW.deploy

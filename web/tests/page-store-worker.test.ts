@@ -44,6 +44,7 @@ const Stack = testStack("allthings-web-page-store-test", {
     DATABASE_URL: database.url,
     PAGES: true,
     SITE_REFRESH_TOKEN: refreshToken,
+    VARIANTS: "CachedVariants",
   },
   // Its database goes away mid-test, after its pages are warm.
   Orphaned: {
@@ -548,6 +549,33 @@ describe("the page store", () => {
     // A page it built is kept: the next visitor gets it from the store.
     const { response } = await get(Cached, "/events");
     expect(state(response)).toBe("hit");
+  });
+
+  it("proves its variants bucket takes writes when the deploy asks, with the token", async ({
+    Cached,
+    Uncached,
+  }) => {
+    const check = (url: string, init: RequestInit = {}) =>
+      fetch(`${url}/_site/variants-check`, { method: "POST", ...init });
+    const refused = await check(Cached);
+    expect(refused.status).toBe(401);
+    await refused.arrayBuffer();
+    const read = await fetch(`${Cached}/_site/variants-check`);
+    expect(read.status).toBe(405);
+    await read.arrayBuffer();
+    const done = await check(Cached, {
+      headers: { authorization: `Bearer ${refreshToken}` },
+    });
+    expect(done.status).toBe(200);
+    expect(done.headers.get("cache-control")).toBe("no-store");
+    const { checked } = (await done.json()) as { checked: string };
+    expect(checked).toMatch(/^deploy-checks\/[0-9a-f-]{36}\.txt$/);
+    // A Worker without the token has no such path.
+    const none = await check(Uncached, {
+      headers: { authorization: `Bearer ${refreshToken}` },
+    });
+    expect(none.status).toBe(404);
+    await none.arrayBuffer();
   });
 
   it("is off without PAGES", async ({ Uncached }) => {

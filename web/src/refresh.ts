@@ -1,4 +1,8 @@
-import { prewarmPath, refreshPath } from "allthings-core/src/refresh-path.ts";
+import {
+  prewarmPath,
+  refreshPath,
+  variantsCheckPath,
+} from "allthings-core/src/refresh-path.ts";
 import { type PrewarmReport, sitemapFailed } from "./prewarm.ts";
 import type { SitePointer } from "./page-store.ts";
 
@@ -17,7 +21,7 @@ import type { SitePointer } from "./page-store.ts";
  * (prewarm.ts). Without a token the Worker has neither path (404), so
  * stages that aren't told of writes don't answer them.
  */
-export { prewarmPath, refreshPath };
+export { prewarmPath, refreshPath, variantsCheckPath };
 
 const answer = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -117,5 +121,26 @@ export async function prewarmRequest(
     return answer(sitemapFailed(report) ? 503 : 200, report);
   } catch {
     return answer(503, { error: "the store couldn't be prewarmed" });
+  }
+}
+
+/**
+ * The answer to a request at {@link variantsCheckPath}: the variants
+ * bucket's deploy check (images/kept.ts's `checkVariantStore`), for the
+ * same token. 503, naming the step that failed, when it doesn't hold.
+ */
+export async function variantsCheckRequest(
+  request: Request,
+  token: string | undefined,
+  check: () => Promise<{ readonly checked: string }>,
+): Promise<Response> {
+  const refusal = await refused(request, token);
+  if (refusal !== undefined) return refusal;
+  try {
+    return answer(200, await check());
+  } catch (error) {
+    return answer(503, {
+      error: error instanceof Error ? error.message : "the check failed",
+    });
   }
 }

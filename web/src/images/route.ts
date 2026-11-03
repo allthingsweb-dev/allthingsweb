@@ -417,7 +417,7 @@ const refetchAfter = 250;
  * way (as while its zone moved) shouldn't cost a page its photo. The
  * second answer is what the request gets.
  */
-async function fetchOnceMore(url: string): Promise<Response> {
+export async function fetchOnceMore(url: string): Promise<Response> {
   const first = await fetch(url, { redirect: "manual" }).catch(() => undefined);
   if (first !== undefined && first.status < 500) return first;
   // A body that won't cancel mustn't stop the second try.
