@@ -66,6 +66,8 @@ export default Alchemy.Stack(
         workerHash: site.hash.pipe(
           Output.map((hash) => hash?.bundle ?? "unbuilt"),
         ),
+        // New on every deploy, so the check runs on every one.
+        run: crypto.randomUUID(),
       });
     }
     // The draft preview, behind Access, beside the site (src/preview.ts).

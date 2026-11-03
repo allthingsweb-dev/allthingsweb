@@ -92,6 +92,9 @@ const media = serveMedia({
   },
 });
 
+/** A media origin with nothing on it, for Probe below. */
+const empty = serveMedia({});
+
 const Stack = testStack("allthings-web-images-test", {
   Variants: {
     ORIGIN: origin,
@@ -109,12 +112,14 @@ const Stack = testStack("allthings-web-images-test", {
     IMAGES: true,
     VARIANTS: "SharedVariants",
   },
-  // The same bucket, and no IMAGES: it serves only what the bucket keeps,
-  // and keeps nothing itself, so it shows when the bucket has a variant.
+  // The same bucket, no IMAGES and a media origin with nothing on it: it
+  // serves only what the bucket keeps (else 404), keeps nothing itself and
+  // never asks the media origin the others use, so it shows when the
+  // bucket has a variant and changes nothing else.
   Probe: {
     ORIGIN: origin,
     DATABASE_URL: database.url,
-    MEDIA_ORIGIN: media.origin,
+    MEDIA_ORIGIN: empty.origin,
     VARIANTS: "SharedVariants",
   },
   Originals: {
@@ -134,6 +139,7 @@ afterAll(
     Effect.ensuring(
       Effect.promise(async () => {
         await media.stop();
+        await empty.stop();
         await database.stop();
       }),
     ),
@@ -354,10 +360,9 @@ describe("/img/", () => {
     expect(made.response.headers.get("server-timing")).toMatch(
       /^img;desc="miss";dur=\d+$/,
     );
-    // The bucket takes it after the response. Probe can't make a variant
-    // (no IMAGES) and keeps nothing it sends otherwise, so it answers
-    // `stored` exactly once the bucket has it, and nothing is cached
-    // anywhere before then.
+    // The bucket takes it after the response. Probe answers `stored` exactly
+    // once the bucket has it, and 404 until then, from an origin of its own:
+    // nothing is cached and no original fetched before then.
     let probed = await get(Probe, path);
     for (
       let attempt = 0;

@@ -139,12 +139,18 @@ export const siteDomain = (zoneId: string): Cloudflare.WorkerDomainConfig => ({
  * as MediaUploadCheck proves uploads: the Worker, asked with the writers'
  * token, stores one object of its own under `deploy-checks/`, reads it
  * back, deletes it and finds it gone (web/src/images/kept.ts,
- * `checkVariantStore`). Any step that fails fails the deploy. It runs again
- * whenever the Worker changes.
+ * `checkVariantStore`). Any step that fails fails the deploy. `run` is new
+ * on every deploy, so Alchemy runs it every time, not only when the Worker
+ * changes.
  */
 export const VariantsCheck = Alchemy.Action(
   "VariantsCheck",
-  (input: { url: string; token: Redacted.Redacted; workerHash: string }) =>
+  (input: {
+    url: string;
+    token: Redacted.Redacted;
+    workerHash: string;
+    run: string;
+  }) =>
     Effect.tryPromise(() =>
       fetch(`${input.url}${variantsCheckPath}`, {
         method: "POST",
