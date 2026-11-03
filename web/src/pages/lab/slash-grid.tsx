@@ -1,13 +1,14 @@
-import { HomeParts } from "../home.tsx";
+import { Tally } from "../figures.tsx";
+import { Hero, HomeBand, OpenSlot } from "../home.tsx";
 import type { ImageMode } from "../picture.tsx";
+import { gridPhotos, SlashGrid as Grid } from "../slash-grid.tsx";
 import type { LabData } from "./lab.tsx";
 
 /**
- * slash-grid: a grid of the community's photos, each cut on the slash's
- * own slant and leading to its evening, beside the lockup on the page's
- * grid; under them, the tally as a band of numbers, a column of the grid
- * to each. Home took it (home.tsx, slash-grid.tsx): this is home, in the
- * lab's frame, to compare the others with.
+ * slash-grid: the first slash grid, home's from #293 until it was dated:
+ * the community's hand-picked wall (core's src/community.ts), each photo
+ * cut on the slash's slant and leading to its evening, undated, beside the
+ * lockup; under them, the tally as a band of numbers.
  */
 export function SlashGrid({
   data: { home, community },
@@ -16,9 +17,20 @@ export function SlashGrid({
   readonly data: LabData;
   readonly images: ImageMode;
 }) {
+  const photos = gridPhotos(community.wall, images);
   return (
     <div class="lab-home">
-      <HomeParts home={home} community={community} images={images} />
+      <section
+        class={photos.length === 0 ? "hero" : "hero slash-cut"}
+        aria-labelledby="next"
+      >
+        <div class="hero-text">
+          {home.next === undefined ? <OpenSlot /> : <Hero next={home.next} />}
+        </div>
+        {photos.length === 0 ? "" : <Grid photos={photos} images={images} />}
+      </section>
+      <Tally tally={community.tally} kind="band" />
+      <HomeBand home={home} />
     </div>
   );
 }

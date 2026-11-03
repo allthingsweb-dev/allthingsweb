@@ -424,9 +424,10 @@ describe("the variants' parts", () => {
         ),
       ),
     ).toEqual(everyPhoto.slice(0, 24).map(({ slug }) => slug));
-    // Narrower than `l`, three a row and the latest fifteen (lab.css).
+    // Narrower than `l`, three a row and the latest fifteen (site.css,
+    // since home shows it too).
     const narrow =
-      /@media \(--at-below-l\) \{([\s\S]*?)\n\}/.exec(lab)?.[1] ?? "";
+      /@media \(--at-below-l\) \{([\s\S]*?)\n\}/.exec(site)?.[1] ?? "";
     expect(narrow).toMatch(
       /\.slash-grid-dated \{\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);\s*\}/,
     );
@@ -578,6 +579,11 @@ describe("the variants' parts", () => {
 /** The lab's script, as written. */
 const script = await Bun.file(
   new URL("../src/client/lab.ts", import.meta.url),
+).text();
+
+/** site.css, which home's dated grid is styled in. */
+const site = await Bun.file(
+  new URL("../src/styles/site.css", import.meta.url),
 ).text();
 
 /** lab.css, and its rules selector by selector. */
