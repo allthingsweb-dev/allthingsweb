@@ -5,7 +5,11 @@ import {
   type Textures,
   themeCss,
 } from "allthings-brand/src/css.ts";
-import { roleColor, tokens } from "allthings-brand/src/tokens.ts";
+import {
+  roleColor,
+  type TokenFile,
+  tokens,
+} from "allthings-brand/src/tokens.ts";
 import { Marked, Renderer, type Tokens } from "marked";
 import { immutable } from "../src/cache.ts";
 
@@ -66,7 +70,78 @@ interface Typeface {
   readonly file: (subset: Subset) => string;
   readonly display: "swap";
   readonly preload: ReadonlyArray<Subset>;
+  /** The local faces that stand in for it, matched to its size, while it loads. */
+  readonly fallback?: Fallback;
 }
+
+/**
+ * A family of local faces, each scaled to a typeface's size at the widths
+ * and weights it stands in for, named right after the typeface in its stack
+ * (`siteTokens`). Until the typeface arrives, text is set in it, line for
+ * line as the typeface will set it, so the swap moves nothing.
+ */
+interface Fallback {
+  readonly family: string;
+  /**
+   * The typeface's ascent, descent and line gap, in ems: the fallback's are
+   * overridden to these, so a line's height and baseline are the typeface's.
+   */
+  readonly ascent: number;
+  readonly descent: number;
+  readonly lineGap: number;
+  readonly faces: ReadonlyArray<FallbackFace>;
+}
+
+interface FallbackFace {
+  /** The width it stands in at, as the typeface's `font-stretch`. */
+  readonly stretch: "75%" | "100%" | "112%";
+  /** The weights it stands in at: Arial below 600, Arial Bold from 600. */
+  readonly weight: "100 599" | "600 900";
+  /**
+   * How much larger than Arial it sets text (`size-adjust`): Archivo's
+   * width over Arial's for the site's own text at this width and weight.
+   */
+  readonly sizeAdjust: number;
+}
+
+/**
+ * Arial, or a face with its metrics where Arial isn't installed (Liberation
+ * Sans on Linux, Arimo on ChromeOS), by full name and PostScript name. A
+ * device with none of them (Android) falls back to its sans-serif, as
+ * without a fallback family.
+ */
+const localSans: Record<FallbackFace["weight"], ReadonlyArray<string>> = {
+  "100 599": ["Arial", "ArialMT", "Liberation Sans", "Arimo"],
+  "600 900": [
+    "Arial Bold",
+    "Arial-BoldMT",
+    "Liberation Sans Bold",
+    "Arimo Bold",
+  ],
+};
+
+/** A fraction as a CSS percentage, to a hundredth of a percent. */
+const percent = (fraction: number): string =>
+  `${Math.round(fraction * 10_000) / 100}%`;
+
+/** The `@font-face` rules of `fallback`, one per face. */
+const fallbackFaces = (fallback: Fallback): ReadonlyArray<string> =>
+  fallback.faces.map((face) =>
+    [
+      "@font-face {",
+      `font-family: "${fallback.family}";`,
+      "font-style: normal;",
+      `font-weight: ${face.weight};`,
+      `font-stretch: ${face.stretch};`,
+      `src: ${localSans[face.weight].map((name) => `local("${name}")`).join(", ")};`,
+      `size-adjust: ${percent(face.sizeAdjust)};`,
+      // Overrides are scaled by size-adjust, so each is divided by it.
+      `ascent-override: ${percent(fallback.ascent / face.sizeAdjust)};`,
+      `descent-override: ${percent(fallback.descent / face.sizeAdjust)};`,
+      `line-gap-override: ${percent(fallback.lineGap / face.sizeAdjust)};`,
+      "}",
+    ].join("\n"),
+  );
 
 /**
  * The self-hosted typefaces (both SIL Open Font License 1.1). Fontsource
@@ -76,8 +151,12 @@ interface Typeface {
  *
  * - Archivo carries every width the brand uses (75%, 100%, 112%) on one
  *   variable font. It is preloaded, and `font-display: swap` because the
- *   brand is typographic: text must end up in Archivo, and the preload
- *   usually lands before first paint, so the swap is rarely seen.
+ *   brand is typographic: text must end up in Archivo. On a slow connection
+ *   the preload lands after first paint (about 3 s in at 1.6 Mbps), and
+ *   until then text is set in "Archivo Fallback": Arial, sized to Archivo's
+ *   width at each width and weight the site uses, with Archivo's ascent and
+ *   descent. Set in plain Arial, the lockup broke its lines elsewhere and
+ *   the swap moved the page (a layout shift of about 0.025 on home).
  * - Geist Mono sets the meta: the dates, labels and navigation every page
  *   paints first. It is treated as Archivo is: its latin subset (23 KB) is
  *   preloaded, so it is fetched beside Archivo rather than after the
@@ -95,6 +174,25 @@ const typefaces: ReadonlyArray<Typeface> = [
     file: (subset) => `archivo-${subset}-wdth-normal`,
     display: "swap",
     preload: ["latin"],
+    fallback: {
+      family: "Archivo Fallback",
+      // Archivo's hhea and OS/2 metrics (USE_TYPO_METRICS), per 1000 units.
+      ascent: 0.878,
+      descent: 0.21,
+      lineGap: 0,
+      // Measured in Chrome on the site's own text (home, /events, /about,
+      // /people and evenings), with no letter-spacing: Archivo's width over
+      // Arial's. At 112% and 800, the lockups and the wordmark are 1.156,
+      // the event lockup 1.17 and figures 1.25; 1.16 favors the lockups.
+      faces: [
+        { stretch: "75%", weight: "100 599", sizeAdjust: 0.775 },
+        { stretch: "75%", weight: "600 900", sizeAdjust: 0.785 },
+        { stretch: "100%", weight: "100 599", sizeAdjust: 0.985 },
+        { stretch: "100%", weight: "600 900", sizeAdjust: 0.98 },
+        { stretch: "112%", weight: "100 599", sizeAdjust: 1.11 },
+        { stretch: "112%", weight: "600 900", sizeAdjust: 1.16 },
+      ],
+    },
   },
   {
     family: "Geist Mono",
@@ -124,6 +222,11 @@ function fontFaceProperty(css: string, file: string, property: string): string {
   return value;
 }
 
+/**
+ * Writes each typeface's subsets under hashed names, and returns their
+ * `@font-face` rules, each typeface's fallback faces after its own, with
+ * which files pages preload.
+ */
 async function buildFonts(): Promise<{
   css: string;
   fonts: ReadonlyArray<Font>;
@@ -159,8 +262,41 @@ async function buildFonts(): Promise<{
         ].join("\n"),
       );
     }
+    if (typeface.fallback !== undefined) {
+      faces.push(...fallbackFaces(typeface.fallback));
+    }
   }
   return { css: faces.join("\n"), fonts };
+}
+
+/**
+ * The brand's tokens as the site sets them: each typeface with a fallback
+ * family has it named right after it in its stack, ahead of the generic
+ * family, so it stands in while the typeface loads.
+ */
+export function siteTokens(file: TokenFile): TokenFile {
+  // A stack whose first family has a fallback, with it named second.
+  const withFallback = (token: TokenFile["font"]["display"]) => {
+    const [first, ...rest] = token.$value;
+    const fallback = typefaces.find(
+      (typeface) => typeface.family === first,
+    )?.fallback;
+    if (fallback === undefined) return token;
+    const $value: TokenFile["font"]["display"]["$value"] = [
+      first,
+      fallback.family,
+      ...rest,
+    ];
+    return { ...token, $value };
+  };
+  return {
+    ...file,
+    font: {
+      ...file.font,
+      display: withFallback(file.font.display),
+      mono: withFallback(file.font.mono),
+    },
+  };
 }
 
 /**
@@ -220,7 +356,7 @@ async function buildTextures(): Promise<Textures> {
 async function buildStylesheet(fontFaces: string): Promise<string> {
   const site = await Bun.file(join(web, "src/styles/site.css")).text();
   const source = join(dist, "site.css");
-  const theme = themeCss(tokens, await buildTextures());
+  const theme = themeCss(siteTokens(tokens), await buildTextures());
   // The breakpoints are custom media queries, which browsers don't read yet.
   await Bun.write(
     source,
