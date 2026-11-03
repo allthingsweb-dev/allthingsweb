@@ -420,7 +420,8 @@ const refetchAfter = 250;
 async function fetchOnceMore(url: string): Promise<Response> {
   const first = await fetch(url, { redirect: "manual" }).catch(() => undefined);
   if (first !== undefined && first.status < 500) return first;
-  await first?.body?.cancel();
+  // A body that won't cancel mustn't stop the second try.
+  await first?.body?.cancel().catch(() => undefined);
   await new Promise((resolve) => setTimeout(resolve, refetchAfter));
   return fetch(url, { redirect: "manual" });
 }
