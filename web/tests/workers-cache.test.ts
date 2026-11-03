@@ -171,9 +171,11 @@ describe("a writer's prewarm, then the purge", () => {
 });
 
 describe("a dry run of the purge", () => {
+  let calls = 0;
   const never: WorkersCachePurge = {
     purge: async () => {
-      throw new Error("a dry run must not purge");
+      calls += 1;
+      return { success: true };
     },
   };
   it("says what a complete prewarm would purge, and purges nothing", async () => {
@@ -190,5 +192,6 @@ describe("a dry run of the purge", () => {
         )
       ).edgePurge,
     ).toBe("skipped");
+    expect(calls).toBe(0);
   });
 });
