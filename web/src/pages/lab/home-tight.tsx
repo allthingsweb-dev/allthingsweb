@@ -22,6 +22,11 @@ import type { LabData } from "./lab.tsx";
 /** The evenings the grid shows: three rows of six. */
 export const tightCount = 18;
 
+/**
+ * The variant's page: the hero beside the latest {@link tightCount}
+ * evenings' cuts, or the hero alone when none has a photo, then home's
+ * band with the compact tally at the top of its first column.
+ */
 export function HomeTight({
   data: { home, community },
   images,
@@ -45,10 +50,9 @@ export function HomeTight({
           <DatedGrid evenings={evenings} images={images} />
         )}
       </section>
-      <HomeBand
-        home={home}
-        lead={<Tally tally={community.tally} kind="compact" />}
-      />
+      <HomeBand home={home}>
+        <Tally tally={community.tally} kind="compact" />
+      </HomeBand>
     </div>
   );
 }
