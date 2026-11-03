@@ -7,6 +7,7 @@
     "Account Settings Read",
     "Secrets Store Write",
     "Hyperdrive Write",
-    "Workers KV Storage Write"
+    "Workers KV Storage Write",
+    "Workers R2 Storage Write"
   ]
 }

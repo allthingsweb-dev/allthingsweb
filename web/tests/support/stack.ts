@@ -23,6 +23,11 @@ export interface WorkerEnv {
    * square comes out fitted inside the square rather than cropped to it.
    */
   readonly IMAGES?: true;
+  /**
+   * A `VARIANTS` R2 bucket, as the Worker deploys, named by this: Workers
+   * naming the same one share it, as every data center shares a stage's.
+   */
+  readonly VARIANTS?: string;
   /** Where the Worker fetches the originals of image variants. */
   readonly MEDIA_ORIGIN?: string;
   /** Which Worker: the site (src/worker.ts, the default) or the draft preview (src/preview/worker.ts). */
@@ -69,11 +74,25 @@ export const testStack = <const Name extends string>(
     { providers: Cloudflare.providers(), state: Alchemy.inMemoryState() },
     Effect.gen(function* () {
       const urls = [];
+      // Each bucket once, however many Workers share it.
+      const buckets = new Map<
+        string,
+        Effect.Success<ReturnType<typeof Cloudflare.R2.Bucket>>
+      >();
+      for (const { VARIANTS: bucket } of Object.values<WorkerEnv>(workers)) {
+        if (bucket !== undefined && !buckets.has(bucket)) {
+          buckets.set(
+            bucket,
+            yield* Cloudflare.R2.Bucket(bucket, { forceDestroy: true }),
+          );
+        }
+      }
       for (const [worker, env] of Object.entries<WorkerEnv>(workers)) {
         const {
           HYPERDRIVE: origin,
           IMAGES: images,
           PAGES: pages,
+          VARIANTS: variants,
           entry,
           ...rest
         } = env;
@@ -82,6 +101,9 @@ export const testStack = <const Name extends string>(
           ...(images === undefined
             ? {}
             : { IMAGES: Cloudflare.Images.Images("IMAGES") }),
+          ...((bucket) => (bucket === undefined ? {} : { VARIANTS: bucket }))(
+            variants === undefined ? undefined : buckets.get(variants),
+          ),
           ...(pages === undefined
             ? {}
             : yield* Effect.map(

@@ -2,7 +2,14 @@ import { Context, Data, Effect, Layer, Option, Semaphore } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
-import { CacheControl, immutable } from "../cache.ts";
+import { CacheControl } from "../cache.ts";
+import {
+  cacheKeyOf,
+  storeKeyOf,
+  type VariantStore,
+  variantHeaders,
+  variantStoreOf,
+} from "./kept.ts";
 import { Site } from "../site.ts";
 import {
   encodeKey,
@@ -16,9 +23,11 @@ import {
 /**
  * GET /img/<size>/<format>/<version>/<key> (see variants.ts): the photo at
  * `<media origin>/<key>`, resized and re-encoded by Cloudflare's Images
- * binding, then kept in the edge cache under its URL, so each variant is
- * made once per data center and served from the cache after that. Its URL
- * names the photo's version, so browsers and caches keep it for a year.
+ * binding, then kept under its URL in the data center's cache and in the
+ * stage's variants bucket (`VARIANTS`), so each variant is made once and
+ * every data center serves it from there after that, before the app loads
+ * (kept.ts). Its URL names the photo's version, so browsers and caches
+ * keep it for a year.
  *
  * When the variant can't be made (no `IMAGES` binding, as in tests that
  * don't bind one; an original over {@link maxResizeBytes}; a photo the
@@ -118,6 +127,18 @@ export class Images extends Context.Reference<Option.Option<ImagesBinding>>(
 ) {
   static readonly layer = (env: Readonly<Record<string, unknown>>) =>
     Layer.succeed(Images, Option.liftPredicate(env["IMAGES"], isImagesBinding));
+}
+
+/**
+ * The stage's variants bucket (`VARIANTS`, kept.ts), if the Worker has
+ * one: tests that bind none make every variant afresh.
+ */
+export class Variants extends Context.Reference<Option.Option<VariantStore>>(
+  "allthings/web/Variants",
+  { defaultValue: () => Option.none() },
+) {
+  static readonly layer = (env: Readonly<Record<string, unknown>>) =>
+    Layer.succeed(Variants, Option.fromNullishOr(variantStoreOf(env)));
 }
 
 /**
@@ -387,6 +408,24 @@ const asOriginal = (
     }),
   );
 
+/** How long a failed fetch of an original waits before it is tried once more. */
+const refetchAfter = 250;
+
+/**
+ * `url`, fetched without following a redirect, and fetched once more when
+ * that fails or the media origin answers 5xx: a moment's failure on its
+ * way (as while its zone moved) shouldn't cost a page its photo. The
+ * second answer is what the request gets.
+ */
+export async function fetchOnceMore(url: string): Promise<Response> {
+  const first = await fetch(url, { redirect: "manual" }).catch(() => undefined);
+  if (first !== undefined && first.status < 500) return first;
+  // A body that won't cancel mustn't stop the second try.
+  await first?.body?.cancel().catch(() => undefined);
+  await new Promise((resolve) => setTimeout(resolve, refetchAfter));
+  return fetch(url, { redirect: "manual" });
+}
+
 /**
  * The original of `variant` from `media`, when it is there as a raster
  * image: `undefined` when the media origin has no such photo. Only the
@@ -398,8 +437,7 @@ const asOriginal = (
 const fetchOriginal = (variant: Variant, media: string) =>
   Effect.gen(function* () {
     const original = yield* Effect.tryPromise({
-      try: () =>
-        fetch(`${media}/${encodeKey(variant.key)}`, { redirect: "manual" }),
+      try: () => fetchOnceMore(`${media}/${encodeKey(variant.key)}`),
       catch: (cause) => new FetchFailed({ cause }),
     });
     const contentType =
@@ -436,8 +474,16 @@ const fetchOriginal = (variant: Variant, media: string) =>
     );
   });
 
-/** The variant, made from the original at `media` and stored at `cacheKey`. */
-const serve = (variant: Variant, media: string, cacheKey: string) =>
+/**
+ * The variant, made from the original at `media` and kept at `cacheKey` in
+ * the data center's cache and at `storeKey` in the variants bucket.
+ */
+const serve = (
+  variant: Variant,
+  media: string,
+  cacheKey: string,
+  storeKey: string,
+) =>
   Effect.gen(function* () {
     const cache = yield* Cache;
     if (Option.isSome(cache)) {
@@ -501,20 +547,41 @@ const serve = (variant: Variant, media: string, cacheKey: string) =>
     // the format the URL names.
     const madeType = made.value.contentType();
     const asNamed = madeType === formats[variant.format];
-    const headers = {
-      "content-type": madeType,
-      "cache-control": asNamed ? immutable : originalCacheControl,
-      "x-content-type-options": "nosniff",
-    };
+    const headers = asNamed
+      ? variantHeaders(madeType)
+      : {
+          "content-type": madeType,
+          "cache-control": originalCacheControl,
+          "x-content-type-options": "nosniff",
+        };
     let body = made.value.response().body;
-    if (Option.isSome(cache) && asNamed && body !== null) {
-      const [sent, stored] = body.tee();
+    const store = yield* Variants;
+    if (
+      asNamed &&
+      body !== null &&
+      (Option.isSome(cache) || Option.isSome(store))
+    ) {
+      const [sent, kept] = body.tee();
       body = sent;
       const waitUntil = yield* WaitUntil;
-      // A variant that can't be stored is made again next time.
+      // A variant is a few kilobytes: read whole, it is kept in the data
+      // center's cache and in the bucket, which takes a body of known
+      // length. One that can't be kept is made again next time.
       waitUntil(
-        cache.value
-          .put(cacheKey, new Response(stored, { headers }))
+        new Response(kept)
+          .arrayBuffer()
+          .then((bytes) =>
+            Promise.all([
+              Option.isSome(cache)
+                ? cache.value.put(cacheKey, new Response(bytes, { headers }))
+                : undefined,
+              Option.isSome(store)
+                ? store.value.put(storeKey, bytes, {
+                    httpMetadata: { contentType: madeType },
+                  })
+                : undefined,
+            ]),
+          )
           .catch(() => undefined),
       );
     }
@@ -538,7 +605,7 @@ export const imageRoutes = HttpRouter.add(
     if (variant === undefined) return notFound;
     const { media } = yield* Site;
     // One entry per variant, whatever the query.
-    return yield* serve(variant, media, `${url.origin}${url.pathname}`);
+    return yield* serve(variant, media, cacheKeyOf(url), storeKeyOf(url));
   }).pipe(
     Effect.catchCause((cause) =>
       Effect.logError("Error serving an image variant:", cause).pipe(

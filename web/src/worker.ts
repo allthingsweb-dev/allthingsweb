@@ -16,8 +16,15 @@ import {
   prewarmRequest,
   refreshPath,
   refreshRequest,
+  variantsCheckPath,
+  variantsCheckRequest,
 } from "./refresh.ts";
 import { withoutTrailingSlash } from "./trailing-slash.ts";
+import {
+  checkVariantStore,
+  keptVariant,
+  variantStoreOf,
+} from "./images/kept.ts";
 
 type Handler = (
   request: Request,
@@ -169,13 +176,28 @@ export default {
             () => prewarmPlan,
           );
         }
+        if (pathname === variantsCheckPath) {
+          const variants = variantStoreOf(env);
+          return variantsCheckRequest(
+            incoming,
+            writers?.token,
+            variants === undefined
+              ? noStore
+              : () => checkVariantStore(variants),
+          );
+        }
         return site(incoming, incomingContext);
       };
     }
-    // What Workers Cache may keep, and for how long (cache.ts), for every
-    // answer: the writers' paths too, whose refusals carry no lifetime.
-    return handle(request, context).then((response) =>
-      forWorkersCache(request, response),
-    );
+    const app = handle;
+    // A photo variant already made is answered before the app loads
+    // (images/kept.ts); one not made yet goes on to it. Then what Workers
+    // Cache may keep, and for how long (cache.ts), for every answer: the
+    // writers' paths too, whose refusals carry no lifetime.
+    return keptVariant(request, variantStoreOf(env), (promise) =>
+      context.waitUntil(promise),
+    )
+      .then((kept) => kept ?? app(request, context))
+      .then((response) => forWorkersCache(request, response));
   },
 };

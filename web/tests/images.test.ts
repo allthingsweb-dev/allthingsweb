@@ -47,6 +47,12 @@ const media = serveMedia({
   "events/home/effect.jpg": { body: png(1600, 1200), type: "image/png" },
   "events/home/pier-70.jpg": { body: png(1200, 900), type: "image/png" },
   "events/home/mux.jpg": { body: png(1024, 768), type: "image/png" },
+  // Fails once, as the media origin did for a moment while its zone moved.
+  "events/home/flaky.jpg": {
+    body: png(800, 600),
+    type: "image/png",
+    failFirst: 1,
+  },
   "profiles/erik.jpg": { body: png(2160, 2160), type: "image/png" },
   "events/home/broken.jpg": { body: "not an image", type: "image/jpeg" },
   // Over the 20 MB the Images binding reads.
@@ -86,12 +92,35 @@ const media = serveMedia({
   },
 });
 
+/** A media origin with nothing on it, for Probe below. */
+const empty = serveMedia({});
+
 const Stack = testStack("allthings-web-images-test", {
   Variants: {
     ORIGIN: origin,
     DATABASE_URL: database.url,
     MEDIA_ORIGIN: media.origin,
     IMAGES: true,
+    VARIANTS: "SharedVariants",
+  },
+  // Another data center, as far as caches go: its own origin, so its own
+  // cache keys, and the same variants bucket.
+  Elsewhere: {
+    ORIGIN: origin,
+    DATABASE_URL: database.url,
+    MEDIA_ORIGIN: media.origin,
+    IMAGES: true,
+    VARIANTS: "SharedVariants",
+  },
+  // The same bucket, no IMAGES and a media origin with nothing on it: it
+  // serves only what the bucket keeps (else 404), keeps nothing itself and
+  // never asks the media origin the others use, so it shows when the
+  // bucket has a variant and changes nothing else.
+  Probe: {
+    ORIGIN: origin,
+    DATABASE_URL: database.url,
+    MEDIA_ORIGIN: empty.origin,
+    VARIANTS: "SharedVariants",
   },
   Originals: {
     ORIGIN: origin,
@@ -110,13 +139,14 @@ afterAll(
     Effect.ensuring(
       Effect.promise(async () => {
         await media.stop();
+        await empty.stop();
         await database.stop();
       }),
     ),
   ),
 );
 
-type Worker = "Variants" | "Originals";
+type Worker = "Variants" | "Originals" | "Elsewhere" | "Probe";
 
 /** A test that gets the running Workers' URLs. */
 const it = (
@@ -140,7 +170,12 @@ const it = (
           }
           return value;
         };
-        return run({ Variants: url("Variants"), Originals: url("Originals") });
+        return run({
+          Variants: url("Variants"),
+          Originals: url("Originals"),
+          Elsewhere: url("Elsewhere"),
+          Probe: url("Probe"),
+        });
       }),
     ),
     options,
@@ -312,6 +347,71 @@ describe("/img/", () => {
     expect(second.body).toEqual(first.body);
     expect(dimensions(second.body)).toEqual({ width: 360, height: 270 });
     expect(media.fetches("events/home/mux.jpg")).toBe(before + 1);
+  });
+
+  it("keeps a variant it made in the stage's bucket, so another data center serves it without making it", async ({
+    Variants,
+    Elsewhere,
+    Probe,
+  }) => {
+    const path = `/img/480/avif/${fresh}/events/home/mux.jpg`;
+    const before = media.fetches("events/home/mux.jpg");
+    const made = await get(Variants, path);
+    expect(made.response.headers.get("server-timing")).toMatch(
+      /^img;desc="miss";dur=\d+$/,
+    );
+    // The bucket takes it after the response. Probe answers `stored` exactly
+    // once the bucket has it, and 404 until then, from an origin of its own:
+    // nothing is cached and no original fetched before then.
+    let probed = await get(Probe, path);
+    for (
+      let attempt = 0;
+      attempt < 40 &&
+      !(probed.response.headers.get("server-timing") ?? "").startsWith(
+        'img;desc="stored"',
+      );
+      attempt++
+    ) {
+      await Bun.sleep(50);
+      probed = await get(Probe, path);
+    }
+    expect(probed.response.headers.get("server-timing")).toMatch(
+      /^img;desc="stored";dur=\d+$/,
+    );
+    // Elsewhere, its own cache empty for this path, reads it from the bucket.
+    const kept = await get(Elsewhere, path);
+    expect(kept.response.headers.get("server-timing")).toMatch(
+      /^img;desc="stored";dur=\d+$/,
+    );
+    expect(kept.response.headers.get("cache-control")).toBe(immutable);
+    expect(kept.response.headers.get("content-type")).toBe("image/avif");
+    expect(kept.response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(kept.body).toEqual(made.body);
+    // Then from its own cache, which it fills after the response.
+    let cached = await get(Elsewhere, path);
+    for (
+      let attempt = 0;
+      attempt < 40 &&
+      cached.response.headers.get("server-timing") !== 'img;desc="hit"';
+      attempt++
+    ) {
+      await Bun.sleep(50);
+      cached = await get(Elsewhere, path);
+    }
+    expect(cached.response.headers.get("server-timing")).toBe('img;desc="hit"');
+    expect(cached.body).toEqual(made.body);
+    // Only the data center that made it fetched the original.
+    expect(media.fetches("events/home/mux.jpg")).toBe(before + 1);
+  });
+
+  it("fetches an original once more when the media origin fails for a moment", async ({
+    Variants,
+  }) => {
+    const path = `/img/240/webp/${fresh}/events/home/flaky.jpg`;
+    const made = await get(Variants, path);
+    expect(made.response.status).toBe(200);
+    expect(made.response.headers.get("content-type")).toBe("image/webp");
+    expect(media.fetches("events/home/flaky.jpg")).toBe(2);
   });
 
   it("is one entry in the cache whatever the query", async ({ Variants }) => {

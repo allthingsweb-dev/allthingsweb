@@ -11,3 +11,10 @@ export const refreshPath = "/_site/refresh";
  * (web/src/prewarm.ts): the Sync Worker after each run, and a prod deploy.
  */
 export const prewarmPath = "/_site/prewarm";
+
+/**
+ * Where a prod deploy proves the site's variants bucket takes writes
+ * (web/src/images/kept.ts, infra/src/web.ts's VariantsCheck): it stores,
+ * reads back and deletes one object of its own.
+ */
+export const variantsCheckPath = "/_site/variants-check";
