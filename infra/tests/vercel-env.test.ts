@@ -24,7 +24,9 @@ describe("the Vercel CLI the env writes run", () => {
     expect(source).toMatch(/\| "\$\{VERCEL\}" env add/);
     // Relative to infra/, so Alchemy's stored command never names a checkout.
     expect(VERCEL).toBe("./node_modules/.bin/vercel");
-    expect(existsSync(new URL(VERCEL, `file://${infra}`))).toBe(true);
+    expect(existsSync(new URL(VERCEL, new URL("../", import.meta.url)))).toBe(
+      true,
+    );
   });
 
   test("answers as the pinned version, run from infra/", () => {
