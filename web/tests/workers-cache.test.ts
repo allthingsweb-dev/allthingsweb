@@ -5,9 +5,16 @@ import {
   forWorkersCache,
   immutable,
   preferenceCacheControl,
+  prewarmPlan,
+  purgeAfterPrewarm,
+  purgeSiteData,
+  siteDataTag,
+  type WorkersCachePurge,
+  withEdgePurge,
   workersCacheHeader,
   workersCacheLifetime,
 } from "../src/cache.ts";
+import { prewarmRequest } from "../src/refresh.ts";
 
 const get = new Request("https://allthings.dev/events");
 
@@ -80,5 +87,125 @@ describe("forWorkersCache", () => {
     expect(await response.text()).toBe("body");
     expect(response.headers.get("vary")).toBe("accept-encoding, cookie");
     expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+  });
+});
+
+describe("the site's data in Workers Cache", () => {
+  it("tags what can change with the data, and nothing immutable or private", () => {
+    const tagOf = (headers: Record<string, string>) =>
+      forWorkersCache(get, answer(headers)).headers.get("cache-tag");
+    expect(tagOf({ "cache-control": CacheControl.publicData })).toBe(
+      siteDataTag,
+    );
+    expect(tagOf({ "cache-control": CacheControl.page })).toBe(siteDataTag);
+    expect(tagOf({ "cache-control": immutable })).toBeNull();
+    expect(tagOf({ "cache-control": PrivateCacheControl.page })).toBeNull();
+    expect(tagOf({ "cache-control": CacheControl.failure })).toBeNull();
+  });
+
+  it("purges that tag, and says how it went without throwing", async () => {
+    const asked: Array<ReadonlyArray<string>> = [];
+    const cache = (
+      outcome: "ok" | "refused" | "throws",
+    ): WorkersCachePurge => ({
+      purge: async ({ tags }) => {
+        asked.push(tags);
+        if (outcome === "throws") throw new Error("rate limited");
+        return { success: outcome === "ok" };
+      },
+    });
+    expect(await purgeSiteData(cache("ok"))).toBe("purged");
+    expect(await purgeSiteData(cache("refused"))).toBe("failed");
+    expect(await purgeSiteData(cache("throws"))).toBe("failed");
+    expect(await purgeSiteData(undefined)).toBe("unavailable");
+    expect(asked).toEqual([[siteDataTag], [siteDataTag], [siteDataTag]]);
+  });
+});
+
+describe("the purge after a prewarm", () => {
+  const cache: WorkersCachePurge = { purge: async () => ({ success: true }) };
+  it("purges only after a full prewarm", async () => {
+    expect(
+      await purgeAfterPrewarm({ sitemapRead: true, failed: [] }, cache),
+    ).toBe("purged");
+    expect(
+      await purgeAfterPrewarm({ sitemapRead: false, failed: [] }, cache),
+    ).toBe("skipped");
+    expect(
+      await purgeAfterPrewarm(
+        { sitemapRead: true, failed: ["/events"] },
+        cache,
+      ),
+    ).toBe("skipped");
+  });
+});
+
+describe("a writer's prewarm, then the purge", () => {
+  const report = { sitemapRead: true, failed: [], build: "b" };
+  it("purges through the request's own Workers Cache, and reports it", async () => {
+    const asked: Array<ReadonlyArray<string>> = [];
+    const cache: WorkersCachePurge = {
+      purge: async ({ tags }) => {
+        asked.push(tags);
+        return { success: true };
+      },
+    };
+    expect(await withEdgePurge(async () => report)({ cache })).toEqual({
+      ...report,
+      edgePurge: "purged",
+    });
+    expect(asked).toEqual([[siteDataTag]]);
+  });
+  it("says unavailable without one, and skips after an incomplete prewarm", async () => {
+    expect((await withEdgePurge(async () => report)({})).edgePurge).toBe(
+      "unavailable",
+    );
+    const never: WorkersCachePurge = {
+      purge: async () => {
+        throw new Error("must not purge");
+      },
+    };
+    const incomplete = { ...report, failed: ["/events"] };
+    expect(
+      (await withEdgePurge(async () => incomplete)({ cache: never })).edgePurge,
+    ).toBe("skipped");
+  });
+});
+
+describe("a dry run of the prewarm and its purge", () => {
+  const at = (query: string, authorization?: string) =>
+    new Request(`https://allthings.dev/_site/prewarm${query}`, {
+      method: "POST",
+      headers: authorization === undefined ? {} : { authorization },
+    });
+  it("answers the plan with the token, and neither prewarms nor purges", async () => {
+    let warmed = 0;
+    const warm = async () => {
+      warmed += 1;
+      throw new Error("a dry run must not prewarm");
+    };
+    const response = await prewarmRequest(
+      at("?dry-run", "Bearer t"),
+      "t",
+      warm,
+      () => prewarmPlan,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(
+      JSON.parse(JSON.stringify(prewarmPlan)),
+    );
+    expect(warmed).toBe(0);
+    expect(prewarmPlan.thenPurge.tags).toEqual([siteDataTag]);
+  });
+  it("still refuses without the token", async () => {
+    const response = await prewarmRequest(
+      at("?dry-run", "Bearer wrong"),
+      "t",
+      async () => {
+        throw new Error("unreached");
+      },
+      () => prewarmPlan,
+    );
+    expect(response.status).toBe(401);
   });
 });
