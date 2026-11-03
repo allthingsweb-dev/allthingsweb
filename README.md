@@ -1,6 +1,6 @@
 # allthings
 
-The site is [allthings.dev](https://allthings.dev). allthingsweb.dev, the old address, redirects there, path and query kept.
+The site is [allthings.dev](https://allthings.dev). allthingsweb.dev, the old address, redirects there, path and query kept, except for the old app's own `/_next/` files (see `infra/docs/r2-migration.md`, "Later: the full cutover").
 
 ---
 

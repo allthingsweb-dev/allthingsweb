@@ -209,14 +209,14 @@ Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to all
    - The Vercel cron's image ingestion (`app/src/lib/remote-images/bucket.ts`), which stores Luma covers, profile photos and post images. It stops when step 1.2 removes the cron. From step 1.3 the sync Worker stores Luma covers, profile photos and post images in the bucket itself. Each run in `write` mode stores the images it finds still missing, as many as its time and item limits allow, and later runs store the rest. So nothing the handover skipped is lost.
 
 3. **allthingsweb.dev redirects to allthings.dev.** The old Next app does it, behind one flag that ships off. No DNS change is needed. Done Nov 2 at 18:33 UTC (below, "The flip").
-   - **The code.** `app/src/middleware.ts` runs on every path. With `ALLTHINGS_DEV_REDIRECT=on`, it answers each request with a redirect from `app/src/lib/cutover/redirect.ts`; with the variable unset or `off`, it redirects nothing.
+   - **The code.** `app/src/middleware.ts` runs on every path but Next's static files (`/_next/static/*`, which its matcher leaves out, so the old app still serves them, and nothing on allthings.dev links to them). With `ALLTHINGS_DEV_REDIRECT=on`, it answers each request with a redirect from `app/src/lib/cutover/redirect.ts`; with the variable unset or `off`, it redirects nothing.
    - **One hop.** Where the Worker would only redirect again, the redirect goes straight to its target:
      - an event's long slug goes to its short link, looked up in the database;
      - `/speakers` goes to `/people`, and `/rss.xml` to `/rss`;
      - a trailing slash is dropped;
      - the old link-preview images go to `/og/…` cards;
      - `/_next/image` for a photo on the media origin is not redirected: the middleware would send it to the photo, but Vercel's image optimizer answers it first (see "What it leaves").
-   - **Everything else** goes to the same path and query on allthings.dev. That includes the API, `/mcp`, `/r/*` and the retired paths, and the Worker answers each as the legacy-URL manifest says.
+   - **Everything else** the middleware sees (every path but `/_next/static/*` and, on Vercel, `/_next/image`) goes to the same path and query on allthings.dev. That includes the API, `/mcp`, `/r/*` and the retired paths, and the Worker answers each as the legacy-URL manifest says.
    - **Status codes.** GET and HEAD get 301. Any other method gets 308, which keeps a POST's method and body. Each redirect is cached for an hour, so turning the flag back off takes hold within one.
    - **Person anchors.** A fragment never reaches a server. The browser keeps `#p-<id>` across the redirect, and allthings.dev/people still has those anchors.
    - **No drift.** `web/tests/cutover.test.ts` holds every pattern in the manifest to its exact target, so the two can't drift apart.
