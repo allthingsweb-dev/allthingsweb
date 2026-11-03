@@ -2,7 +2,17 @@ import * as Command from "alchemy/Command";
 import type { Input } from "alchemy";
 import type * as Redacted from "effect/Redacted";
 
-const VERCEL = "bunx vercel@62.2.0";
+/**
+ * The Vercel CLI infra/package.json pins, installed with infra's
+ * dependencies. One install, not `bunx` at each write: a prod deploy runs
+ * the writes in parallel, and parallel `bunx` runs raced to link the package
+ * (`EEXIST`) on Nov 2 (docs/r2-migration.md).
+ *
+ * Relative to infra/, where every deploy runs (`bun run deploy`, and the
+ * commands run from the directory the deploy started in), so the command,
+ * which Alchemy keeps in state, is the same on every machine and checkout.
+ */
+export const VERCEL = "./node_modules/.bin/vercel";
 const PROJECT = "--scope andrelandgraf --project allthingsweb";
 
 /**
@@ -21,7 +31,7 @@ export const VercelEnv = (
       .map(
         (target) =>
           // Vercel can't store sensitive values for development.
-          `printf %s "$VALUE" | ${VERCEL} env add ${name} ${target} ${PROJECT} --force --yes ${sensitive && target !== "development" ? "--sensitive" : "--no-sensitive"}`,
+          `printf %s "$VALUE" | "${VERCEL}" env add ${name} ${target} ${PROJECT} --force --yes ${sensitive && target !== "development" ? "--sensitive" : "--no-sensitive"}`,
       )
       .join(" && "),
     shell: true,
