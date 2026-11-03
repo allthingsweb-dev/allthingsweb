@@ -1,17 +1,18 @@
 import * as Command from "alchemy/Command";
 import type { Input } from "alchemy";
 import type * as Redacted from "effect/Redacted";
-import { fileURLToPath } from "node:url";
 
 /**
  * The Vercel CLI infra/package.json pins, installed with infra's
  * dependencies. One install, not `bunx` at each write: a prod deploy runs
  * the writes in parallel, and parallel `bunx` runs raced to link the package
  * (`EEXIST`) on Nov 2 (docs/r2-migration.md).
+ *
+ * Relative to infra/, where every deploy runs (`bun run deploy`, and the
+ * commands run from the directory the deploy started in), so the command,
+ * which Alchemy keeps in state, is the same on every machine and checkout.
  */
-export const VERCEL = fileURLToPath(
-  new URL("../node_modules/.bin/vercel", import.meta.url),
-);
+export const VERCEL = "./node_modules/.bin/vercel";
 const PROJECT = "--scope andrelandgraf --project allthingsweb";
 
 /**
