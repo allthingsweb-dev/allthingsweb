@@ -104,6 +104,7 @@ describe("the prewarm endpoint", () => {
     kept: 1,
     built: 2,
     passed: 0,
+    unreachable: 0,
     failed: [],
     sitemapRead: true,
     waitedMs: 0,

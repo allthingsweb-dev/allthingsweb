@@ -771,12 +771,16 @@ export function pageStored(
     const isolate = started ? [] : [timingEntry("isolate", "new")];
     started = true;
     const acceptEncoding = request.headers.get("accept-encoding") ?? undefined;
-    const bypass = async () =>
+    // `reason` names why, where prewarm.ts must tell it apart: `unreachable`
+    // when the store couldn't be read, so nothing could be kept.
+    const bypass = async (reason?: "unreachable") =>
       withTiming(
         withoutInternalHeaders(await handle(request, context)),
         "bypass",
         0,
-        isolate,
+        reason === undefined
+          ? isolate
+          : [timingEntry("reason", reason), ...isolate],
       );
     // A client refusing every coding gets the page's own answer (406).
     if (
@@ -789,7 +793,7 @@ export function pageStored(
     const began = now();
     const { pointer, stale, from } = await readPointer(request, context);
     const pointerTiming = timingEntry("pointer", from, now() - began);
-    if (pointer === "unreachable") return bypass();
+    if (pointer === "unreachable") return bypass("unreachable");
     // A stale copy is no ground for a check: it may be older than KV's
     // pointer, which revalidate reads, and checks from, instead.
     if (

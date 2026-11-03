@@ -33,8 +33,13 @@ export interface PrewarmReport {
   readonly kept: number;
   /** Built now, and written to the store. */
   readonly built: number;
-  /** Answered without being kept: not keepable, or the store unreachable. */
+  /** Answered without being kept, because the page isn't keepable. */
   readonly passed: number;
+  /**
+   * Answered without being kept, because the store couldn't be read: a
+   * retry may keep them, and the pages aren't warm until it does.
+   */
+  readonly unreachable: number;
   /** Paths that answered 5xx, failed, or whose page couldn't be written. */
   readonly failed: ReadonlyArray<string>;
   /**
@@ -64,6 +69,12 @@ const servedAs = (response: Response) =>
   /store;desc="([a-z]+)"/.exec(
     response.headers.get("server-timing") ?? "",
   )?.[1];
+
+/** Whether the store said it bypassed because it couldn't be read. */
+const storeUnreachable = (response: Response) =>
+  /(^|, )reason;desc="unreachable"/.test(
+    response.headers.get("server-timing") ?? "",
+  );
 
 export interface PrewarmOptions {
   /** The build this Worker serves, under which its pages are kept. */
@@ -101,7 +112,7 @@ export async function prewarm({
   if (pending > 0) await sleep(pending);
 
   /** How one path came out, its last time. */
-  type Outcome = "kept" | "built" | "passed" | "failed";
+  type Outcome = "kept" | "built" | "passed" | "unreachable" | "failed";
   /**
    * Asks for `path` as a visitor in the system's mode would, reads its
    * body, and waits for its keeping: how it came out, and the body when it
@@ -132,12 +143,14 @@ export async function prewarm({
           ? "failed"
           : how === "hit"
             ? "kept"
-            : how !== "miss" || keeping.length === 0
-              ? "passed"
-              : // Built is kept: a page whose write failed failed.
-                keeping.every(({ kept }) => kept)
-                ? "built"
-                : "failed";
+            : how === "bypass" && storeUnreachable(response)
+              ? "unreachable"
+              : how !== "miss" || keeping.length === 0
+                ? "passed"
+                : // Built is kept: a page whose write failed failed.
+                  keeping.every(({ kept }) => kept)
+                  ? "built"
+                  : "failed";
       return body === undefined ? { outcome } : { outcome, body };
     } catch {
       return { outcome: "failed" };
@@ -179,6 +192,7 @@ export async function prewarm({
     kept: count("kept"),
     built: count("built"),
     passed: count("passed"),
+    unreachable: count("unreachable"),
     failed: all.filter(([, came]) => came === "failed").map(([path]) => path),
     sitemapRead: sitemap.body !== undefined,
     waitedMs: pending,

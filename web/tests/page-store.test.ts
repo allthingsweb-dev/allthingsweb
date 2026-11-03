@@ -508,7 +508,12 @@ describe("the page store", () => {
     // Past this isolate's own copy of the version, and past the check.
     time.advance(checkEvery / 1000);
     kv.breaks();
-    expect(served((await fetch(get("/"))).response)).toBe("bypass");
+    const unread = (await fetch(get("/"))).response;
+    expect(served(unread)).toBe("bypass");
+    // It says why, so a prewarm counts it apart from a page never kept.
+    expect(unread.headers.get("server-timing")).toContain(
+      'reason;desc="unreachable"',
+    );
     kv.mends();
     expect(data.asked()).toBe(asked);
     expect(kv.pointer()).toEqual(pointer);
