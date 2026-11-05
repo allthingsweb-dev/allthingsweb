@@ -112,13 +112,13 @@ Nothing changes here: you keep following this calendar, and every evening's seat
 
 Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**. On X: **[@\[x-handle\]](https://x.com/[x-handle])**.
 
-## meetup: React San Francisco Bay Area (765 / 5000)
+## meetup: allthings · React & Web · San Francisco (747 / 5000)
 
 group: https://www.meetup.com/reactjs-san-francisco/
 
-subject: React San Francisco Bay Area's evenings are now allthings
+subject: allthings/_: these evenings are now allthings
 
-The evenings React San Francisco Bay Area lists went by All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.
+The evenings this group lists went by All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.
 
 Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthings); the list on Meetup is a waitlist.
 
@@ -128,13 +128,13 @@ Next: [next evening], [day, time], [hosted at …]. https://allthings.dev/[next]
 
 Talk between evenings → discord.gg/B3Sm4b5mfD
 
-## meetup: Remix Bay Area (751 / 5000)
+## meetup: Remix Bay Area (747 / 5000)
 
 group: https://www.meetup.com/remix-bay-area/
 
-subject: Remix Bay Area's evenings are now allthings
+subject: allthings/_: these evenings are now allthings
 
-The evenings Remix Bay Area lists went by All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.
+The evenings this group lists went by All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.
 
 Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthings); the list on Meetup is a waitlist.
 
