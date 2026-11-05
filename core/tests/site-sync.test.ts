@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { DateTime, Effect, Exit, Layer, Option } from "effect";
 import {
+  expectedPrivileges,
   grantStatements,
+  regrant,
   SITE_SYNC,
   SITE_SYNC_GRANTS,
   SITE_SYNC_SETTINGS,
@@ -701,6 +703,31 @@ describe("site_sync", () => {
         ([name, value]) => `${name}=${value}`,
       ),
     });
+  });
+
+  test("plans its grants: how the role would change, and that it would hold exactly the list", async () => {
+    await db.exec("RESET ROLE");
+    await db.exec(`GRANT SELECT, DELETE ON talks TO ${SITE_SYNC}`);
+    await db.exec("BEGIN");
+    try {
+      const plan = await regrant(owner(db), "test-only");
+      expect(plan.created).toBe(false);
+      expect(plan.wrong).toEqual([]);
+      expect(plan.delta).toContain("- public.talks delete");
+      expect(plan.delta).toContain("- public.talks select");
+    } finally {
+      // The dry run's way: nothing is kept.
+      await db.exec("ROLLBACK");
+    }
+    const kept = await db.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM information_schema.table_privileges
+       WHERE grantee = $1 AND table_name = 'talks'`,
+      [SITE_SYNC],
+    );
+    expect(kept.rows[0]?.n).toBeGreaterThan(0);
+    expect(expectedPrivileges()).toContain(
+      "public.community_metrics insert value",
+    );
   });
 
   test("grants only what the list says, and a rerun narrows to it", async () => {

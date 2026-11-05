@@ -49,7 +49,7 @@ Every `op://` reference in this repository reads the `allthings` 1Password vault
 
 `alchemy destroy` needs no `NEON_READER_URL`.
 
-The hourly Luma sync writes production as `site_sync`, a second login role made the same way by [`scripts/site-sync.ts`](scripts/site-sync.ts):
+The hourly Luma sync writes production as `site_sync`, a second login role made the same way by [`scripts/site-sync.ts`](scripts/site-sync.ts): run it with `--dry-run` first, which shows how the role's privileges would change and keeps nothing; without it, it checks the catalog holds exactly `SITE_SYNC_GRANTS` before it commits, then stores the new password.
 
 - It holds only the column privileges the sync's statements use: upserting events from Luma's feed, and storing missing covers, profile photos and post images.
 - It has no `DELETE`, and no access to any table the sync doesn't touch.
