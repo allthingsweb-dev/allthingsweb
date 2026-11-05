@@ -8,7 +8,7 @@ import {
   type XPost,
   type XPosts,
 } from "./x-posts.ts";
-import { type ReadPost, XPostsSource } from "./x-posts-source.ts";
+import { type ReadPost, XPostsSource, XReadError } from "./x-posts-source.ts";
 
 /**
  * Finding and refreshing people's standout posts on X (src/x-posts.ts),
@@ -82,7 +82,20 @@ export const findCandidates = (
       const read = yield* Effect.gen(function* () {
         const userId =
           poster.userId ?? (yield* source.account(poster.handle)).id;
-        return yield* source.ownPosts(userId, since, options.read);
+        const posts = yield* source.ownPosts(userId, since, options.read);
+        // The stored id is someone else's now if X names another author:
+        // never take their posts for this person.
+        const others = posts.filter(
+          (post) => post.handle?.toLowerCase() !== poster.handle.toLowerCase(),
+        );
+        if (others.length > 0) {
+          return yield* new XReadError({
+            what: poster.handle,
+            reason: `X user ${userId} posts as @${others[0]!.handle ?? "unknown"}, not @${poster.handle}: run bun run followers, then find again`,
+            retryable: false,
+          });
+        }
+        return posts;
       }).pipe(Effect.result);
       if (read._tag === "Failure") {
         found.push({
@@ -161,6 +174,19 @@ export const refreshPosts = (file: PeopleFile, today: string, days: number) =>
           );
           kept.push(post);
           unread = true;
+          continue;
+        }
+        // Kept only while its author is still the account it was picked
+        // from (the handle in its address, which `bun run people` held to
+        // the profile's): a renamed or changed account is picked again.
+        const by = statusOf(post.url)!.handle;
+        if (
+          now.handle === undefined ||
+          now.handle.toLowerCase() !== by.toLowerCase()
+        ) {
+          lines.push(
+            `${entry.name}: dropped ${post.url}, which X now gives as @${now.handle ?? "unknown"}'s, not @${by}'s`,
+          );
           continue;
         }
         if (

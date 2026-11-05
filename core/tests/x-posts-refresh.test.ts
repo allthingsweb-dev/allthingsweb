@@ -102,6 +102,23 @@ describe("findCandidates", () => {
       failed: "X answered 404",
     });
   });
+
+  test("never takes the posts of an account the stored id now belongs to under another handle", async () => {
+    const [someone] = await Effect.runPromise(
+      findCandidates(
+        [{ profileId: "s", name: "Someone", handle: "someone", userId: "42" }],
+        { today: "2026-10-03", days: 90, top: 2, read: 100 },
+      ).pipe(Effect.provide(source(new Map()))),
+    );
+    expect(someone).toEqual({
+      profileId: "s",
+      name: "Someone",
+      handle: "someone",
+      candidates: [],
+      failed:
+        "X user 42 posts as @Ada_L, not @someone: run bun run followers, then find again",
+    });
+  });
 });
 
 describe("refreshPosts", () => {
@@ -195,6 +212,59 @@ describe("unescapeText", () => {
   test("gives back the words X's API escaped", () => {
     expect(unescapeText("human &lt;&gt; agent &amp;amp; more")).toBe(
       "human <> agent &amp; more",
+    );
+  });
+});
+
+describe("refreshPosts: authors", () => {
+  test("drops a post X now gives as another account's", async () => {
+    const file: PeopleFile = [
+      {
+        profileId: "a",
+        name: "Ada",
+        xPosts: {
+          posts: [
+            {
+              url: "https://x.com/ada_l/status/7",
+              postedOn: "2026-09-20",
+              excerpt: "The engine weaves algebraic patterns.",
+              likes: 1,
+              reposts: 1,
+              replies: 1,
+            },
+            {
+              url: "https://x.com/Ada_L/status/8",
+              postedOn: "2026-09-19",
+              excerpt: "The engine weaves algebraic patterns.",
+              likes: 1,
+              reposts: 1,
+              replies: 1,
+            },
+          ],
+          readOn: "2026-09-21",
+        },
+      },
+    ];
+    const { file: after, lines } = await Effect.runPromise(
+      refreshPosts(file, "2026-10-03", 0).pipe(
+        Effect.provide(
+          source(
+            new Map([
+              ["7", read("7", "2026-09-20T10:00:00.000Z")],
+              [
+                "8",
+                read("8", "2026-09-19T10:00:00.000Z", { handle: "lovelace" }),
+              ],
+            ]),
+          ),
+        ),
+      ),
+    );
+    expect(after[0]!.xPosts?.posts.map((post) => post.url)).toEqual([
+      "https://x.com/ada_l/status/7",
+    ]);
+    expect(lines).toContain(
+      "Ada: dropped https://x.com/Ada_L/status/8, which X now gives as @lovelace's, not @Ada_L's",
     );
   });
 });

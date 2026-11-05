@@ -346,13 +346,20 @@ const posts = Command.make(
       const source = XPostsSource.xApi(
         Option.match(cache, {
           onNone: () => undefined,
-          onSome: (directory) => ({ directory, day: today }),
+          onSome: (directory) => ({
+            directory,
+            day: today,
+            // A dry run keeps nothing, not even in the cache.
+            readOnly: refresh && dryRun,
+          }),
         }),
       ).pipe(Layer.provide(FetchHttpClient.layer));
       if (find) {
-        if (top < 1 || read < 1) {
+        if (top < 1 || read < 5) {
           return yield* Effect.fail(
-            new Error("--top and --read must be at least 1."),
+            new Error(
+              "--top must be at least 1, and --read at least 5 (X answers 5 to 100 posts a page).",
+            ),
           );
         }
         if (Option.getOrElse(days, () => 90) < 0) {

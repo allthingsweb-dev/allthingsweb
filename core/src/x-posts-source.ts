@@ -114,7 +114,8 @@ export interface XPostsSourceShape {
   >;
   /**
    * The account's own posts since `since` (no reposts, no replies), latest
-   * first, at most `max`.
+   * first, at most `max` (5 or more: X answers 5 to 100 a page, and bills
+   * each, so no page asks past `max`).
    */
   readonly ownPosts: (
     userId: string,
@@ -141,6 +142,8 @@ export class XPostsSource extends Context.Service<
   static readonly xApi = (cache?: {
     readonly directory: string;
     readonly day: string;
+    /** Read what the cache holds, and keep nothing new (a dry run). */
+    readonly readOnly?: boolean;
   }) =>
     Layer.effect(
       XPostsSource,
@@ -208,19 +211,40 @@ export class XPostsSource extends Context.Service<
               cache === undefined
                 ? undefined
                 : `${cache.directory}/${cache.day}-${key}.json`;
+            const decode = Schema.decodeUnknownEffect(schema);
+            // A missing, unreadable or malformed entry is a miss: X is read again.
             const cached =
               path === undefined
                 ? undefined
-                : // A missing or unreadable entry is a miss: X is read again.
-                  yield* Effect.promise(async (): Promise<unknown> => {
+                : yield* Effect.promise(async (): Promise<unknown> => {
                     try {
                       return await Bun.file(path).json();
                     } catch {
                       return undefined;
                     }
-                  });
-            const body = cached ?? (yield* fetchJson(what, url));
-            if (path !== undefined && cached === undefined) {
+                  }).pipe(
+                    Effect.flatMap((body) =>
+                      body === undefined
+                        ? Effect.succeed(undefined)
+                        : decode(body).pipe(
+                            Effect.orElseSucceed(() => undefined),
+                          ),
+                    ),
+                  );
+            if (cached !== undefined) return cached;
+            const body = yield* fetchJson(what, url);
+            const decoded = yield* decode(body).pipe(
+              Effect.mapError(
+                () =>
+                  new XReadError({
+                    what,
+                    reason: "X's answer isn't what was asked for",
+                    retryable: false,
+                  }),
+              ),
+            );
+            // Only an answer that decodes is kept, and never by a dry run.
+            if (path !== undefined && cache?.readOnly !== true) {
               // Written whole, then renamed: a reader never sees half of it.
               // The cache only saves a read: one it can't keep (a full disk,
               // a directory it may not write) costs nothing but that, so the
@@ -238,16 +262,7 @@ export class XPostsSource extends Context.Service<
                 ),
               );
             }
-            return yield* Schema.decodeUnknownEffect(schema)(body).pipe(
-              Effect.mapError(
-                () =>
-                  new XReadError({
-                    what,
-                    reason: "X's answer isn't what was asked for",
-                    retryable: false,
-                  }),
-              ),
-            );
+            return decoded;
           });
         const api = (path: string, params: Record<string, string> = {}) => {
           const url = new URL(`https://api.x.com/2/${path}`);
@@ -276,9 +291,7 @@ export class XPostsSource extends Context.Service<
                 api(`users/${encodeURIComponent(userId)}/tweets`, {
                   exclude: "retweets,replies",
                   start_time: since,
-                  max_results: String(
-                    Math.min(100, Math.max(5, max - found.length)),
-                  ),
+                  max_results: String(Math.min(100, max - found.length)),
                   "tweet.fields": tweetFields,
                   expansions: "author_id",
                   "user.fields": "username",
@@ -296,7 +309,8 @@ export class XPostsSource extends Context.Service<
                 ...(page.data ?? []).map((tweet) => postOf(tweet, handles)),
               );
               next = page.meta?.next_token;
-            } while (next !== undefined && found.length < max);
+              // X answers 5 to 100 a page and bills each: never past `max`.
+            } while (next !== undefined && max - found.length >= 5);
             return found.slice(0, max);
           });
 

@@ -33,14 +33,20 @@ const answer = {
   includes: { users: [{ id: "42", username: "Ada_L" }] },
 };
 
-const withX = (directory: string, asked: Array<string>) =>
-  XPostsSource.xApi({ directory, day: "2026-10-03" }).pipe(
+const withX = (
+  directory: string,
+  asked: Array<string>,
+  readOnly = false,
+  pages: Array<URL> = [],
+) =>
+  XPostsSource.xApi({ directory, day: "2026-10-03", readOnly }).pipe(
     Layer.provide(
       Layer.succeed(
         HttpClient.HttpClient,
         HttpClient.make((request, url) =>
           Effect.sync(() => {
             asked.push(url.pathname);
+            pages.push(url);
             return HttpClientResponse.fromWeb(
               request,
               new Response(JSON.stringify(answer), {
@@ -58,12 +64,12 @@ const withX = (directory: string, asked: Array<string>) =>
     ),
   );
 
-const read = (directory: string, asked: Array<string>) =>
+const read = (directory: string, asked: Array<string>, readOnly = false) =>
   Effect.runPromise(
     Effect.gen(function* () {
       const source = yield* XPostsSource;
       return yield* source.posts(["1"]);
-    }).pipe(Effect.provide(withX(directory, asked))),
+    }).pipe(Effect.provide(withX(directory, asked, readOnly))),
   );
 
 describe("XPostsSource.xApi", () => {
@@ -103,5 +109,36 @@ describe("XPostsSource.xApi", () => {
     const posts = await read(blocked, asked);
     expect(posts.get("1")?.text).toBe("human <> agent");
     expect(await readdir(directory)).toEqual(["not-a-directory"]);
+  });
+
+  test("reads X again for a kept entry that isn't an answer, and a dry run keeps nothing", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "x-cache-"));
+    directories.push(directory);
+    const asked: Array<string> = [];
+    await read(directory, asked, true);
+    expect(await readdir(directory)).toEqual([]);
+    await read(directory, asked);
+    const [entry] = await readdir(directory);
+    await Bun.write(
+      join(directory, entry!),
+      JSON.stringify({ data: "not posts" }),
+    );
+    await read(directory, asked);
+    expect(asked).toEqual(["/2/tweets", "/2/tweets", "/2/tweets"]);
+  });
+
+  test("never asks X for more of someone's posts than it may read", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "x-cache-"));
+    directories.push(directory);
+    const pages: Array<URL> = [];
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const source = yield* XPostsSource;
+        return yield* source.ownPosts("42", "2026-07-05T00:00:00.000Z", 7);
+      }).pipe(Effect.provide(withX(directory, [], true, pages))),
+    );
+    expect(pages.map((url) => url.searchParams.get("max_results"))).toEqual([
+      "7",
+    ]);
   });
 });

@@ -955,14 +955,17 @@ holds it.
   off, and an entry without `xPosts` leaves the column as it is.
 - Every post must be by the profile's X handle, as stored or as the same
   entry sets it, and `readOn` can't be after the day it runs.
-- **Picking them:** `bun run people posts --find` prints, as JSON, each
-  person's own posts of the last `--days` (90) days, no reposts or replies,
-  ranked by likes plus twice their reposts and quotes, with each one's
-  whole text. Replies don't count: a giveaway draws them. The ranking only
-  orders the list; an agent picks up to three that stand out for building
-  software (their work, a launch, an idea, a talk), not the most liked
-  giveaway, and writes them in as the command printed them. It writes
-  nothing.
+- **Picking them:** `bun run people posts --find` prints, as JSON, up to
+  `--top` (8) of each person's own posts of the last `--days` (90) days,
+  no reposts or replies and none without words of their own, ranked by
+  likes plus twice their reposts and quotes, with each one's whole text.
+  Replies don't count: a giveaway draws them. A person whose stored X id
+  now posts under another handle gets none, and is told to run `bun run
+followers` first. The ranking only orders the list; an agent picks up to
+  three that stand out for building software (their work, a launch, an
+  idea, a talk), not the most liked giveaway, and writes each in as the
+  command printed it, the picks latest first by `postedOn` (the record
+  refuses any other order). It writes nothing.
 - **Refreshing them:** `bun run people posts --refresh` reads the counts of
   every post the file holds again (`--days` limits it to records read that
   many days ago or more), drops each one X no longer serves (deleted, or
@@ -972,10 +975,14 @@ holds it.
   as `posts`, the records read `--posts-days` (30) or more days ago.
 
 Both read X's own API with the app's bearer token, read only, which bills
-each post it returns ($0.005, once a UTC day per post): `--find` reads at
-most `--read` (100) posts a person, `--refresh` one per post the file holds,
-up to 100 a request. `--cache <dir>` keeps every answer for the rest of its
-UTC day, so a rerun is free. `--find` reads the profiles' handles from the
+each post it returns ($0.005, once a UTC day per post) and each account
+it looks up ($0.010): `--find` reads at most `--read` (100, and at least 5,
+the fewest X answers a page) posts a person, after looking the account up
+once where the profile has no X user id yet; `--refresh` reads one per post
+the file holds, up to 100 a request, and drops a post X now gives as
+another account's. `--cache <dir>` keeps every answer that reads as one
+for the rest of its UTC day, so a rerun is free; a dry run reads it but
+keeps nothing new. `--find` reads the profiles' handles from the
 database, where site_reader's connection is enough:
 
 ```sh
