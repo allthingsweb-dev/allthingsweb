@@ -19,12 +19,15 @@ import {
  */
 
 const id = "e0000000-0000-4000-8000-000000000703";
+/** Another evening with the same wrong times but another Luma event. */
+const decoy = "e0000000-0000-4000-8000-000000000704";
 
 /** The evening as production holds it. */
 const seedEvening = `
-  DELETE FROM events WHERE id = '${id}';
+  DELETE FROM events WHERE id IN ('${id}', '${decoy}');
   INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, is_draft, luma_event_id, updated_at) VALUES
-    ('${id}', '2025-03-12-all-things-web-hack-evening', 'All Things Web Hack Evening', '', '2025-03-12T17:30:00Z', '2025-03-12T20:30:00Z', 100, false, false, 'evt-4tdtev7Ap2qLcPW', '2025-03-01T00:00:00Z');
+    ('${id}', '2025-03-12-all-things-web-hack-evening', 'All Things Web Hack Evening', '', '2025-03-12T17:30:00Z', '2025-03-12T20:30:00Z', 100, false, false, 'evt-4tdtev7Ap2qLcPW', '2025-03-01T00:00:00Z'),
+    ('${decoy}', '2025-03-12-decoy', 'Decoy', '', '2025-03-12T17:30:00Z', '2025-03-12T20:30:00Z', 100, false, false, 'evt-decoy', '2025-03-01T00:00:00Z');
 `;
 
 /** Luma's times: 5:30 to 8:30 PM in San Francisco on 2025-03-12. */
@@ -69,6 +72,24 @@ describe("the migration", () => {
     expect(await stored(db)).toEqual({ ...lumaTimes, changed: true });
     expect(await others()).toEqual(before);
   });
+
+  test.each([
+    ["only its start", "start_date = '2025-03-13T00:30:00Z'"],
+    ["only its end", "end_date = '2025-03-13T03:30:00Z'"],
+  ])(
+    "leaves the evening alone when %s is already corrected",
+    async (_which, set) => {
+      await db.exec(`UPDATE events SET ${set} WHERE id = '${id}'`);
+      const row = () =>
+        db.query(
+          `SELECT start_date, end_date, updated_at FROM events WHERE id = $1`,
+          [id],
+        );
+      const before = (await row()).rows;
+      await migrate();
+      expect((await row()).rows).toEqual(before);
+    },
+  );
 
   test("a second run changes nothing", async () => {
     await migrate();
