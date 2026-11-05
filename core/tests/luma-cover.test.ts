@@ -891,6 +891,35 @@ describe("approve", () => {
     expect(await recorded()).toMatchObject({ generated_cover_url: null });
   });
 
+  test("tells a past public evening to put its stock photo back first when the update's answer is lost", async () => {
+    const react = { _tag: "Slug", slug: "2026-08-12-react-at-acme" } as const;
+    const past = json(lumaEvent({ ...reactOnLuma, cover_url: gallery }));
+    const token = value(
+      (await run((c) => c.prepare(react), { "/v1/events/get": [past] })).exit,
+    ).token;
+    const { exit } = await run((c) => c.approve(react, token), {
+      "/v1/events/get": [past],
+      "/v1/images/create-upload-url": [
+        json({
+          upload_url: "https://upload.example/put/abc",
+          file_url: uploaded,
+        }),
+      ],
+      "/put/abc": [{ status: 200 }],
+      "/v1/events/update": [{ status: 500, body: "{}" }],
+    });
+    expect(message(exit)).toStartWith(
+      "Sending the cover update to Luma failed:",
+    );
+    expect(message(exit)).toContain(
+      `The uploaded cover is ${uploaded}; the one before was ${gallery}.`,
+    );
+    expect(message(exit)).toContain(
+      `If it shows the uploaded one, set it back to ${gallery} in Luma first`,
+    );
+    expect(message(exit)).toContain("If it shows another cover, leave it.");
+  });
+
   test("refuses a public event, whatever the token", async () => {
     const token = await tokenFor();
     const { exit, requests } = await run(

@@ -226,14 +226,26 @@ const make = Effect.gen(function* () {
         );
       }
       const fileUrl = yield* luma.uploadImage(prepared.png, "image/png");
-      yield* luma.update(prepared.lumaEventId, { cover_url: fileUrl });
-      // A failed read leaves which cover Luma shows unknown: say both.
+      // When the update's answer or the read after it is lost, which cover
+      // Luma shows is unknown: say both, and how to recover from each.
+      const before = prepared.current.url;
+      const unsure = (what: string) => (cause: { readonly message: string }) =>
+        refuse(
+          `${what}: ${cause.message}. Nothing was recorded. The uploaded cover is ${fileUrl}; the one before was ${before ?? "none"}. Check which ${prepared.name} shows on Luma. If it shows the uploaded one, ${
+            prepared.visibility === "public" && before !== null
+              ? `set it back to ${before} in Luma first (a public evening showing an upload is out of reach), then `
+              : ""
+          }run luma cover --dry-run and approve again. If it shows another cover, leave it.`,
+        );
+      yield* luma
+        .update(prepared.lumaEventId, { cover_url: fileUrl })
+        .pipe(Effect.catch(unsure("Sending the cover update to Luma failed")));
       const after = yield* luma
         .get(prepared.lumaEventId)
         .pipe(
-          Effect.catch((cause) =>
-            refuse(
-              `Luma took the cover update, but reading the event back failed: ${cause.message}. Nothing was recorded. The uploaded cover is ${fileUrl}; the one before was ${prepared.current.url ?? "none"}. Check which ${prepared.name} shows on Luma before approving again.`,
+          Effect.catch(
+            unsure(
+              "Luma took the cover update, but reading the event back failed",
             ),
           ),
         );
