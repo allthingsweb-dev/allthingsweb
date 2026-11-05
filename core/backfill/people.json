@@ -270,6 +270,29 @@
   {
     "profileId": "22aa148d-27a9-4956-8ed4-89487191141c",
     "name": "Kevin Whinnery",
+    "title": {
+      "value": "Developer Experience, OpenAI",
+      "source": "https://x.com/kevinwhinnery",
+      "read": "2026-11-05",
+      "was": "Head of Marketing & DevRel, Stainless",
+      "also": ["https://bsky.app/profile/kevin.mn"]
+    },
+    "bio": {
+      "value": "Kevin Whinnery works on developer experience at OpenAI and writes about APIs. He previously worked at Stainless, which Anthropic acquired, and in developer relations at Deno, Retool and Twilio. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on three generations of MCP server design.",
+      "source": "https://x.com/kevinwhinnery",
+      "read": "2026-11-05",
+      "was": "Kevin Whinnery is an expert in developer tools, API design, and agent experience. Usually found in Minneapolis, SF, or NYC.",
+      "also": [
+        "https://bsky.app/profile/kevin.mn",
+        "https://github.com/kwhinnery",
+        "https://allthings.dev/people/kevin-whinnery"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "kevinwhinnery",
       "source": "https://www.kevin.mn/",
@@ -289,19 +312,190 @@
       "value": "https://pbs.twimg.com/profile_images/2056622551426908160/tHqB5TID_400x400.jpg",
       "source": "https://api.fxtwitter.com/kevinwhinnery",
       "read": "2026-10-05"
+    }
+  },
+  {
+    "profileId": "68acf7c4-d619-4951-b005-1f647f9af192",
+    "name": "Joshua Alphonse",
+    "title": {
+      "value": "Community Engineer, Mux",
+      "source": "https://data.mux.com/team",
+      "read": "2026-11-05",
+      "was": "Developer Advocate",
+      "also": ["https://sessionize.com/joshua-alphonse/"]
     },
     "bio": {
-      "value": "Kevin Whinnery is an expert in developer tools, API design, and agent experience. Usually found in Minneapolis, SF, or NYC.",
-      "source": "https://www.kevin.mn/",
-      "read": "2026-10-05"
+      "value": "Joshua Alphonse is a Community Engineer at Mux, the API for video development, and describes himself as a software engineer drawn to creative coding. He earlier worked as a developer advocate at Wix on Corvid and is a Flatiron School alumnus. At at/ship ai he spoke about using the Mux MCP to analyze video content for AI-driven tagging and content moderation.",
+      "source": "https://data.mux.com/team",
+      "read": "2026-11-05",
+      "was": "Joshua Alphonse is a developer advocate passionate about video technology and AI-driven content solutions. He specializes in building innovative tools for video analysis and content moderation.",
+      "also": [
+        "https://fitc.ca/speaker/joshua-alphonse",
+        "https://sessionize.com/joshua-alphonse/",
+        "https://allthings.dev/people/joshua-alphonse"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "held": [
+      {
+        "field": "twitterHandle",
+        "value": "joshalphonse",
+        "sources": [
+          "https://sessionize.com/joshua-alphonse/",
+          "https://x.com/joshalphonse"
+        ],
+        "reason": "His Sessionize profile links it, but the X account has an empty bio and the display name only says Josh, so it can't be confirmed as his."
+      },
+      {
+        "field": "linkedinHandle",
+        "value": "joshua-alphonse",
+        "sources": ["https://sessionize.com/joshua-alphonse/"],
+        "reason": "Sessionize links in/joshua-alphonse while the profile stores joshua-alphons; LinkedIn isn't readable, so neither slug could be confirmed. Stored one left unchanged."
+      }
+    ]
+  },
+  {
+    "profileId": "9ee6621e-03c1-477c-8a69-2b6e27809ec9",
+    "name": "Kit Langton",
+    "title": {
+      "value": "OpenCode, Anomaly",
+      "source": "https://github.com/kitlangton",
+      "read": "2026-11-05",
+      "was": "OpenCode",
+      "also": ["https://kitlangton.com", "https://x.com/kitlangton"]
+    },
+    "bio": {
+      "value": "Kit Langton works on OpenCode, the open-source AI coding agent from Anomaly, where he has been moving its codebase to Effect. He makes interactive teaching projects such as Effect Institute, Visual Effect and Visual Types, and open-source apps like Hex, a voice-to-text tool for macOS, after years of Scala work including ZIO Magic. At at/effect he took part in a fireside chat with Michael Arnaldi, creator of Effect.",
+      "source": "https://kitlangton.com",
+      "read": "2026-11-05",
+      "also": [
+        "https://share.transistor.fm/s/e50224d9",
+        "https://github.com/kitlangton",
+        "https://allthings.dev/people/kit-langton"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "ad446264-d855-4697-8163-616172a4776e",
+    "name": "Knut Melvær",
+    "title": {
+      "value": "Head of Developer Community and Education, Sanity",
+      "source": "https://world.productmarketingalliance.com/location/siliconvalley/speaker/knutmelvr",
+      "read": "2026-11-05",
+      "was": "Head of Developer Community and Education",
+      "also": ["https://x.com/kmelve", "https://github.com/kmelve"]
+    },
+    "bio": {
+      "value": "Knut Melvær leads developer community and education at Sanity, the content operating system, and advises Heavybit. He writes about developer relations and developer experience at knut.fyi, from the laws of developer experience for content management systems to agentic developer experience. At React Bay Area at Sanity, an early allthings evening, he spoke about live content that scales with React Server Components.",
+      "source": "https://world.productmarketingalliance.com/location/siliconvalley/speaker/knutmelvr",
+      "read": "2026-11-05",
+      "was": "Managing sanity.io’s developer community. Building developer relations and support teams. I also work with product marketing, communication, and contributing to the Sanity ecosystem.",
+      "also": [
+        "https://x.com/kmelve",
+        "https://knut.fyi",
+        "https://allthings.dev/people/knut-melvaer"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "38129d23-ad1f-439d-9dc3-33ce13636928",
+    "name": "Kyle Mistele",
+    "title": {
+      "value": "Member of Technical Staff, Factory",
+      "source": "https://x.com/0xblacklight",
+      "read": "2026-11-05",
+      "was": "CTO, HumanLayer"
+    },
+    "bio": {
+      "value": "Kyle Mistele is a member of technical staff at Factory. He previously co-founded HumanLayer, where he was CTO and worked on its open-source tooling for getting coding agents to solve hard problems in complex codebases. He writes about engineering, cybersecurity and AI, from context engineering to MCP, at blacklight.sh. At at/effect he took part in a fireside chat with Michael Arnaldi, creator of Effect.",
+      "source": "https://github.com/K-Mistele",
+      "read": "2026-11-05",
+      "also": [
+        "https://x.com/0xblacklight",
+        "https://blacklight.sh/",
+        "https://allthings.dev/people/kyle-mistele"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "fb960d96-c9e7-433b-8896-7a91f81cac3e",
+    "name": "Marc Rousavy",
+    "title": {
+      "value": "Founder & CEO, Margelo",
+      "source": "https://x.com/mrousavy",
+      "read": "2026-11-05",
+      "was": "CEO @ Margelo",
+      "also": ["https://mrousavy.com/"]
+    },
+    "bio": {
+      "value": "Marc Rousavy is the founder and CEO of Margelo, the app development company behind the open-source React Native libraries VisionCamera, Nitro Modules and react-native-mmkv, which he built. Callstack acquired Margelo in September 2026, and he continues to lead its development. At at/react native he spoke about Nitro Modules.",
+      "source": "https://x.com/mrousavy",
+      "read": "2026-11-05",
+      "was": "Founder and CEO of Margelo, a high-end app development company working with clients like Facebook, Red Bull, Coinbase and Shopify. Software developer and designer from Austria with experience at startups in Paris, San Francisco, and Vienna.",
+      "also": [
+        "https://inforcapital.com/news/viennas-margelo-joins-polands-callstack-in-a-deal-valuing-it-above-20-million-euros/",
+        "https://margelo.com/",
+        "https://allthings.dev/people/marc-rousavy"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     }
   },
   {
     "profileId": "b2adfa27-deda-49a3-ab67-647d805a79f1",
     "name": "Kiet Ho",
+    "title": {
+      "value": "Co-founder & CEO, Paradev",
+      "source": "https://paradev.com/team",
+      "read": "2026-11-05",
+      "was": "Co-Founder, Superset",
+      "also": ["https://x.com/FlyaKiet"]
+    },
+    "bio": {
+      "value": "Kiet Ho is co-founder and CEO of Paradev, formerly Superset, an open-source workspace for running many coding agents such as Claude Code and Codex at once, each in its own Git worktree. He previously co-founded Onlook (YC W25) and worked as a software engineer at Amazon and ServiceNow. At Mastra’s TypeScript AI Demo Day, which allthings shared, he presented a five-step framework for scaling up coding agents.",
+      "source": "https://paradev.com/",
+      "read": "2026-11-05",
+      "also": [
+        "https://paradev.com/team",
+        "https://github.com/Kitenite",
+        "https://allthings.dev/people/kiet-ho"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "FlyaKiet",
       "source": "https://www.ycombinator.com/companies/superset",
+      "read": "2026-10-05"
+    },
+    "blueskyHandle": {
+      "value": "kietho.bsky.social",
+      "source": "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=kietho.bsky.social",
       "read": "2026-10-05"
     },
     "linkedinHandle": {
@@ -313,23 +507,7 @@
       "value": "https://pbs.twimg.com/profile_images/1723401610527735808/j6y7q1ZA_400x400.jpg",
       "source": "https://api.fxtwitter.com/FlyaKiet",
       "read": "2026-10-05"
-    },
-    "blueskyHandle": {
-      "value": "kietho.bsky.social",
-      "source": "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=kietho.bsky.social",
-      "read": "2026-10-05"
-    },
-    "held": [
-      {
-        "field": "bio",
-        "value": null,
-        "sources": [
-          "https://api.fxtwitter.com/FlyaKiet",
-          "https://api.github.com/users/Kitenite"
-        ],
-        "reason": "only a terse profile bio. The YC founder_bio field could not be attributed to Kiet with certainty, and it does not match his known background."
-      }
-    ]
+    }
   },
   {
     "profileId": "332815b6-cee6-4819-b233-fc61244b5399",
@@ -948,14 +1126,30 @@
     "profileId": "eb6a6870-446b-4e92-afd3-9c1e3fa08ec1",
     "name": "Luke LaValva",
     "title": {
-      "value": "Marko Team at eBay",
-      "source": "https://www.linkedin.com/in/luke-lavalva/",
-      "read": "2026-10-06"
+      "value": "Marko Core Team, eBay",
+      "source": "https://github.com/LuLaValva",
+      "read": "2026-11-05",
+      "was": "Marko Team at eBay",
+      "also": [
+        "https://bsky.app/profile/lavalva.dev",
+        "https://x.com/LukeLaValva"
+      ]
     },
     "bio": {
-      "value": "Marko core team, all in on the web. Moving at a reasonable pace and trying not to break anything.",
+      "value": "Luke LaValva is on the Marko core team at eBay, where he is helping with Marko 6. He describes himself as all in on the web, moving at a reasonable pace and trying not to break anything. He co-hosted an allthings evening at Vapi.",
       "source": "https://bsky.app/profile/lavalva.dev",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Marko core team, all in on the web. Moving at a reasonable pace and trying not to break anything.",
+      "also": [
+        "https://github.com/LuLaValva",
+        "https://lavalva.dev",
+        "https://allthings.dev/people/luke-lavalva"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "LukeLaValva",
@@ -977,14 +1171,22 @@
     "profileId": "687edd8f-d7a3-4090-9e40-bca3f6c50345",
     "name": "Lauren Frailey",
     "title": {
-      "value": "Founding Talent at Mintlify",
+      "value": "Founding Talent, Mintlify",
       "source": "https://x.com/laurenfrailey1",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Founding Talent at Mintlify"
     },
     "bio": {
-      "value": "Founding talent, growing Mintlify. 53/196 countries. Previously Blackstone portfolio operations and UC Berkeley.",
+      "value": "Lauren Frailey is founding talent at Mintlify, where she is growing the team and hiring. Before Mintlify she worked in portfolio operations at Blackstone, and she studied at UC Berkeley. She co-hosted at/agents for web dev.",
       "source": "https://x.com/laurenfrailey1",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Founding talent, growing Mintlify. 53/196 countries. Previously Blackstone portfolio operations and UC Berkeley.",
+      "also": ["https://allthings.dev/people/lauren-frailey"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "laurenfrailey1",
@@ -1044,14 +1246,25 @@
     "profileId": "78482ff5-509a-421d-900d-04d81914c538",
     "name": "Lois Zhao",
     "title": {
-      "value": "Founding Engineer at Toma",
-      "source": "https://normal-people.com/intro",
-      "read": "2026-10-06"
+      "value": "Bundler Engineer",
+      "source": "https://normal-people.com/",
+      "read": "2026-11-05",
+      "was": "Founding Engineer at Toma"
     },
     "bio": {
-      "value": "Lois is a bundler engineer who primarily works on infrastructure projects, orchestration and deployment.",
-      "source": "https://normal-people.com",
-      "read": "2026-10-06"
+      "value": "Lois Zhao is a bundler engineer who works on infrastructure, orchestration and deployment. She was a founding engineer at Toma, on voice AI orchestration, and at Zephyr Cloud, on micro-frontend and cloud deployment tooling, and speaks on bundlers and runtimes at Monorepo World, CityJS, RenderATL and NodeConf EU. She co-hosted the at/react native after-party.",
+      "source": "https://normal-people.com/",
+      "read": "2026-11-05",
+      "was": "Lois is a bundler engineer who primarily works on infrastructure projects, orchestration and deployment.",
+      "also": [
+        "https://normal-people.com/intro",
+        "https://allthings.dev/people/lois-zhao"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "zmzlois",
@@ -1133,14 +1346,27 @@
     "profileId": "d346e7d4-eebf-4753-a303-77194ac745f3",
     "name": "Lewis Ellis",
     "title": {
-      "value": "Software at Conductor",
-      "source": "https://www.linkedin.com/in/lewisjellis/",
-      "read": "2026-10-06"
+      "value": "Software Engineer, Conductor",
+      "source": "https://x.com/LewisJEllis",
+      "read": "2026-11-05",
+      "was": "Software at Conductor",
+      "also": ["https://www.linkedin.com/in/lewisjellis/"]
     },
     "bio": {
-      "value": "Software nerd helping make Conductor. Likes penguins, bikes, JavaScript, Lua, Redis, SQL, devtools, numbers, making stuff go faster.",
+      "value": "Lewis Ellis is a software engineer helping make Conductor, a Mac app for running coding agents like Claude Code and Codex in parallel. His interests run from JavaScript, Lua, Redis and SQL to devtools and making things faster, and his open source includes bee-queue, a Redis-backed job queue for Node.js, and the awesome-lua list. He co-hosted JS Trivia Night, an allthings evening.",
       "source": "https://x.com/LewisJEllis",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Software nerd helping make Conductor. Likes penguins, bikes, JavaScript, Lua, Redis, SQL, devtools, numbers, making stuff go faster.",
+      "also": [
+        "https://www.conductor.build/",
+        "https://github.com/LewisJEllis",
+        "https://allthings.dev/people/lewis-ellis"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "LewisJEllis",
@@ -1161,6 +1387,34 @@
   {
     "profileId": "a3660879-1d79-4752-9d6f-1dc7777eceba",
     "name": "Lydia Hallie",
+    "title": {
+      "value": "Claude Code, Anthropic",
+      "source": "https://x.com/lydiahallie",
+      "read": "2026-11-05",
+      "also": [
+        "https://bsky.app/profile/lydiahallie.com",
+        "https://master.dev/courses/claude-code/"
+      ]
+    },
+    "bio": {
+      "value": "Lydia Hallie is on the Claude Code team at Anthropic, where she focuses on developer experience and technical education, and teaches a free Claude Code course. She was previously Head of Developer Experience at Bun and a DX engineer at Vercel, and wrote JavaScript Questions, a long list of advanced JavaScript questions with over 65,000 GitHub stars. At at/expo she joined the panel on AI and the tools we build.",
+      "source": "https://master.dev/courses/claude-code/",
+      "read": "2026-11-05",
+      "also": [
+        "https://github.com/lydiahallie",
+        "https://allthings.dev/people/lydia-hallie"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "linkedinHandle": {
+      "value": "lydia-hallie",
+      "source": "https://github.com/lydiahallie",
+      "read": "2026-11-05"
+    },
     "now": {
       "line": "Lydia works on [Claude Code at Anthropic](https://x.com/lydiahallie) and [teaches it in a free course](https://master.dev/courses/claude-code/). She [announced Claude Tag in June](https://x.com/lydiahallie/status/2069487432383467617): [Claude in Slack, as a teammate](https://www.anthropic.com/news/introducing-claude-tag).",
       "links": [
@@ -1214,6 +1468,30 @@
   {
     "profileId": "8830e0cb-0989-4814-b9f5-0fbcb212fdf4",
     "name": "Lee Robinson",
+    "title": {
+      "value": "Product, SpaceX",
+      "source": "https://x.com/leerob",
+      "read": "2026-11-05",
+      "was": "VP of Developer Experience at Vercel",
+      "also": ["https://leerob.com"]
+    },
+    "bio": {
+      "value": "Lee Robinson works at SpaceX on machine learning, helping train useful AI models. He was previously at Cursor, and before that at Vercel working on Next.js, and has spent years teaching developers about the web and AI, most recently in an October 2026 Stanford CS146S lecture on how always-on agents work. At an allthings evening at Vapi he spoke about a performance optimizing agent for Next.js.",
+      "source": "https://leerob.com",
+      "read": "2026-11-05",
+      "was": "Lee Robinson is the VP of Developer Experience at Vercel. He's a developer, optimist, and community builder. Lee is passionate about teaching about React, Next.js, and the web.",
+      "also": [
+        "https://x.com/leerob",
+        "https://x.com/leerob/status/2108650243365736855",
+        "https://github.com/leerob",
+        "https://allthings.dev/people/lee-robinson"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "now": {
       "line": "Lee [works on ML at SpaceX, helping train useful AI models, after Cursor and Vercel](https://leerob.com). He [lectured Stanford's CS146S in October on how always-on agents work](https://x.com/leerob/status/2108650243365736855).",
       "links": [
