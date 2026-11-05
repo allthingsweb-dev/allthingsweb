@@ -49,3 +49,7 @@ Before any Pull Request please make sure to:
 - `make check` to check for issues
 
 > this is enforced in the CI
+
+## License
+
+MIT, for the whole repository, the `allthings` CLI included: see [LICENSE](LICENSE).
