@@ -361,7 +361,7 @@
       "also": ["https://x.com/torresmateo", "https://torresmateo.com"]
     },
     "bio": {
-      "value": "Mateo Torres is a developer advocate at Arcade.dev, where he works on agentic AI and LLM tool integration, and an AAIF Ambassador. Before Arcade he was a postdoctoral researcher in computational biology at Cornell University and FGV, and he writes about MCP and A2A on his site. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke on how to distill an agent’s behavior into a workflow.",
+      "value": "Mateo Torres is a developer advocate at Arcade.dev, where he works on agentic AI and LLM tool integration, and an AAIF Ambassador. Before Arcade he was a postdoctoral researcher in computational biology at Cornell University and FGV, and he writes about MCP and A2A on his site. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on how to distill an agent’s behavior into a workflow.",
       "source": "https://torresmateo.com",
       "read": "2026-11-05",
       "was": "Mateo Torres is a Developer Advocate at Arcade.dev working on Agentic AI and LLM Tool Integration. Previously, he was a postdoctoral researcher in the field of Computational Biology at Cornell Unversity and FGV.",
@@ -410,7 +410,7 @@
       ]
     },
     "bio": {
-      "value": "Michael Grinich is the founder and CEO of WorkOS, whose single sign-on, SCIM and audit log APIs serve companies such as OpenAI, Anthropic and Cursor. He started WorkOS in 2018 after hitting enterprise-readiness problems at his previous company, Nylas. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke on why language is the final interface, and he co-hosted at/dev setups and the at/typescript ai after-party.",
+      "value": "Michael Grinich is the founder and CEO of WorkOS, whose single sign-on, SCIM and audit log APIs serve companies such as OpenAI, Anthropic and Cursor. He started WorkOS in 2018 after hitting enterprise-readiness problems at his previous company, Nylas. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on why language is the final interface, and he co-hosted at/dev setups and the at/typescript ai after-party.",
       "source": "https://sfelc.com/speaker/michael-grinich",
       "read": "2026-11-05",
       "was": "Michael is the founder and CEO of WorkOS, a developer platform that enables companies to become Enterprise Ready through features like Single Sign-On, SCIM provisioning, Audit Logs, and RBAC.",
@@ -451,7 +451,7 @@
       "also": ["https://neelmango.com/"]
     },
     "bio": {
-      "value": "Neel Rao is a member of technical staff at OpenAI who likes making games, 3D worlds and things you can play with. He was co-founder and CTO of GameSnacks and Advr, both acquired by Google, and built mangobox.ai for making visual novels with AI. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke on harness engineering at OpenAI.",
+      "value": "Neel Rao is a member of technical staff at OpenAI who likes making games, 3D worlds and things you can play with. He was co-founder and CTO of GameSnacks and Advr, both acquired by Google, and built mangobox.ai for making visual novels with AI. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on harness engineering at OpenAI.",
       "source": "https://neelmango.com/",
       "read": "2026-11-05",
       "was": "Neel likes making games, 3D worlds, and things you can play with. Currently a Member of Technical Staff at OpenAI.",
@@ -492,7 +492,7 @@
       "also": ["https://www.linkedin.com/in/nicholas-pipitone"]
     },
     "bio": {
-      "value": "Nicholas Pipitone is co-founder and CTO of ZeroEntropy (YC W25), which trains rerankers, embeddings and custom models for production AI systems. His background is theoretical mathematics and computer science; he left CMU for startups and has been CTO or lead developer at five of them, writing low-level C, C++ and GPU code. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he gave the talk Make Your Agents Fight.",
+      "value": "Nicholas Pipitone is co-founder and CTO of ZeroEntropy (YC W25), which trains rerankers, embeddings and custom models for production AI systems. His background is theoretical mathematics and computer science; he left CMU for startups and has been CTO or lead developer at five of them, writing low-level C, C++ and GPU code. At Mastra’s TypeScript AI Demo Day, which allthings shared, he gave the talk Make Your Agents Fight.",
       "source": "https://www.ycombinator.com/companies/zeroentropy",
       "read": "2026-11-05",
       "was": "Cofounder & CTO @ ZeroEntropy (YC W25). His background is in theoretical mathematics and computer science. Dropped out of CMU to pursue startups. Worked on low-level C/C++/Assembly/GPU Code. CTO and/or main dev for 5 different startups. Created stat-arb algorithms and audited blockchains for bug bounties and hedge fund due diligence.",
@@ -533,7 +533,7 @@
       "also": ["https://www.ycombinator.com/companies/vapi"]
     },
     "bio": {
-      "value": "Nikhil Gupta is the founder and CTO of Vapi, voice AI for developers. He and Jordan Dearsley started the company as Superpowered in Y Combinator’s W21 batch before it became Vapi in 2023. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke on why every business needs a voice interface.",
+      "value": "Nikhil Gupta is the founder and CTO of Vapi, voice AI for developers. He and Jordan Dearsley started the company as Superpowered in Y Combinator’s W21 batch before it became Vapi in 2023. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on why every business needs a voice interface.",
       "source": "https://www.ycombinator.com/companies/vapi",
       "read": "2026-11-05",
       "also": [
