@@ -156,7 +156,7 @@
       "also": ["https://mastra.ai/customers/range"]
     },
     "bio": {
-      "value": "David Cusatis is co-founder and Chief AI Architect at Range, an AI-native wealth management firm and SEC-registered investment adviser. He builds Range’s agents on Mastra, including Rai, its flagship agent for member questions, and before Range he worked at Amazon. At TypeScript AI Demo Day, Mastra’s event which allthings shared, he spoke about compliance, reliability and observability in scaling agents at Range.",
+      "value": "David Cusatis is co-founder and Chief AI Architect at Range, an AI-native wealth management firm and SEC-registered investment adviser. He builds Range’s agents on Mastra, including Rai, its flagship agent for member questions, and before Range he worked at Amazon. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke about compliance, reliability and observability in scaling agents at Range.",
       "source": "https://mastra.ai/customers/range",
       "read": "2026-11-05",
       "also": [
