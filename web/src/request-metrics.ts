@@ -53,12 +53,18 @@ export const pathLimit = 200;
  * never stores one. A segment with an `@` (an email address, raw or
  * encoded) becomes `(email)`. One of 24 or more letters, digits and `_`
  * with no `-`, or with capitals and digits among its `-`s, becomes
- * `(token)`: a token or a key. The site's own paths have neither: slugs
+ * `(token)`: a token or a key. So does one with such a part between its
+ * dots, a JWT among them. The site's own paths have neither: slugs
  * are lowercase words and dates joined by `-`, and a photo's version is
  * 10 digits. A segment that doesn't decode becomes `(malformed)`. Then
  * at most {@link pathLimit} characters.
  */
 export function redactedPath(pathname: string): string {
+  const isTokenLike = (part: string) =>
+    /^[A-Za-z0-9_]{24,}$/.test(part) ||
+    (/^[A-Za-z0-9_-]{24,}$/.test(part) &&
+      /[A-Z]/.test(part) &&
+      /[0-9]/.test(part));
   return pathname
     .split("/")
     .map((segment) => {
@@ -71,14 +77,9 @@ export function redactedPath(pathname: string): string {
         return "(malformed)";
       }
       if (decoded.includes("@")) return "(email)";
-      if (
-        /^[A-Za-z0-9_]{24,}$/.test(decoded) ||
-        (/^[A-Za-z0-9_-]{24,}$/.test(decoded) &&
-          /[A-Z]/.test(decoded) &&
-          /[0-9]/.test(decoded))
-      ) {
-        return "(token)";
-      }
+      // Each part between dots is checked, so a JWT (three such parts) is
+      // a token too, and a file name (`photo.jpg`) isn't.
+      if (decoded.split(".").some(isTokenLike)) return "(token)";
       return segment;
     })
     .join("/")

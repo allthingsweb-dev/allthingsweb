@@ -58,6 +58,10 @@ describe("redactedPath", () => {
       ["/people/alice%40example.com", "/people/(email)"],
       ["/reset/" + "a1B2c3D4".repeat(4), "/reset/(token)"],
       ["/k/" + "a1b2c3d4".repeat(3), "/k/(token)"],
+      [
+        "/auth/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFkYSJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        "/auth/(token)",
+      ],
       ["/s/" + "Ab3-xY9_".repeat(4), "/s/(token)"],
       ["/x/%E0%A4%A", "/x/(malformed)"],
       ["/people/alice%40example.com%ZZ", "/people/(malformed)"],
