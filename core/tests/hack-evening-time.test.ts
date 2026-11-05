@@ -102,9 +102,10 @@ describe("through the migrator", () => {
       const applied = await Effect.runPromise(
         Migrations.run().pipe(Effect.provide(sqlLayer(old))),
       );
-      expect(applied.map((done) => `${done.id}_${done.name}`)).toEqual([
+      // Later migrations may run too; this one must be among them.
+      expect(applied.map((done) => `${done.id}_${done.name}`)).toContain(
         "35_hack_evening_time",
-      ]);
+      );
       const { rows } = await old.query<{ name: string }>(
         `SELECT name FROM effect_sql.migrations WHERE name = 'hack_evening_time'`,
       );
