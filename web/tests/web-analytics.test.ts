@@ -87,6 +87,24 @@ describe("withBeacon", () => {
     expect(answer.status).toBe(200);
   });
 
+  test("answers a HEAD with the page's widened policy and no body, without the rewriter", async () => {
+    const head = new Response(null, {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "content-security-policy": contentSecurityPolicy.variants,
+        "content-length": "73",
+      },
+    });
+    const answer = withBeacon(head, token);
+    expect(answer.body).toBeNull();
+    expect(answer.headers.get("content-security-policy")).toBe(
+      withBeaconPolicy(contentSecurityPolicy.variants),
+    );
+    expect(answer.headers.get("content-length")).toBeNull();
+    expect(await answer.text()).toBe("");
+  });
+
   test("leaves everything else as it was: no token, a failure, a 404, anything but a page", async () => {
     for (const [what, response, given] of [
       ["no token", page(), undefined],

@@ -820,6 +820,11 @@ describe("Web Analytics", () => {
   });
 
   it("leaves a page that isn't found, and every Worker without a token, unmeasured", async (url, _, measured) => {
+    const head = await fetch(`${measured}/about`, { method: "HEAD" });
+    expect(head.status).toBe(200);
+    expect(head.headers.get("content-security-policy")).toContain(
+      "cloudflareinsights",
+    );
     const missing = await fetch(`${measured}/no-such-page`);
     expect(missing.status).toBe(404);
     expect(await missing.text()).not.toContain("cloudflareinsights");

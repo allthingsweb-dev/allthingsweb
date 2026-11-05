@@ -77,6 +77,15 @@ export function withBeacon(
   }
   // The body grows by the beacon.
   headers.delete("content-length");
+  // A HEAD has no body to add to (and the rewriter may never settle on
+  // an empty one): its headers say what the page's would.
+  if (response.body === null) {
+    return new Response(null, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
   return new HTMLRewriter()
     .on("body", {
       element(body) {
