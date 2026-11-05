@@ -4,6 +4,7 @@ import {
   pathClass,
   pathLimit,
   recordRequest,
+  redactedPath,
   REQUESTS_DATASET,
   requestDatasetOf,
   requestPoint,
@@ -43,6 +44,33 @@ describe("pathClass", () => {
       `/${"a".repeat(33)}`,
     ]) {
       expect([path, pathClass(path)]).toEqual([path, "/(other)"]);
+    }
+  });
+});
+
+describe("redactedPath", () => {
+  test("replaces a segment that could name a person or hold a secret", () => {
+    for (const [path, kept] of [
+      ["/people/alice@example.com", "/people/(email)"],
+      ["/people/alice%40example.com", "/people/(email)"],
+      ["/reset/" + "a1B2c3D4".repeat(4), "/reset/(token)"],
+      ["/k/" + "a1b2c3d4".repeat(3), "/k/(token)"],
+      ["/s/" + "Ab3-xY9_".repeat(4), "/s/(token)"],
+      ["/x/%E0%A4%A", "/x/%E0%A4%A"],
+    ] as const) {
+      expect([path, redactedPath(path)]).toEqual([path, kept]);
+    }
+  });
+
+  test("keeps the site's own paths as they are", () => {
+    for (const path of [
+      "/",
+      "/people/erik-thorelli",
+      "/events/2024-11-12-all-things-web-at-vercel",
+      "/img/240/avif/1791086442/events/2024-11-12-all-thin.jpg",
+      "/wp-login.php",
+    ]) {
+      expect(redactedPath(path)).toBe(path);
     }
   });
 });
@@ -134,7 +162,7 @@ describe("requestPoint", () => {
 
   test("keeps at most pathLimit characters of a path, and no negative time", () => {
     const point = requestPoint(
-      request(`/${"x".repeat(500)}`),
+      request(`/${"ab-".repeat(200)}`),
       new Response(null),
       -3,
     );

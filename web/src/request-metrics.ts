@@ -11,8 +11,8 @@
  * once, for a coarse `bot` or `human`, and dropped.
  *
  * - `indexes`: the path's class, Analytics Engine's sampling key.
- * - `blobs`: the class, the path (no query, at most {@link pathLimit}
- *   characters), what answered (`store-hit`, `img-miss`, `none`, … from
+ * - `blobs`: the class, the path (no query, redacted by
+ *   {@link redactedPath}), what answered (`store-hit`, `img-miss`, `none`, … from
  *   Server-Timing), the data center (`colo`), the method, `bot` or `human`.
  * - `doubles`: the status, then how long the Worker took in milliseconds.
  *
@@ -46,6 +46,41 @@ export interface RequestDataset {
 
 /** How many characters of a path a point keeps. */
 export const pathLimit = 200;
+
+/**
+ * A path as a point keeps it: each segment that could name a person or
+ * hold a secret replaced by what it was, so a mistyped or crafted URL
+ * never stores one. A segment with an `@` (an email address, raw or
+ * encoded) becomes `(email)`. One of 24 or more letters, digits and `_`
+ * with no `-`, or with capitals and digits among its `-`s, becomes
+ * `(token)`: a token or a key. The site's own paths have neither: slugs
+ * are lowercase words and dates joined by `-`, and a photo's version is
+ * 10 digits. Then at most {@link pathLimit} characters.
+ */
+export function redactedPath(pathname: string): string {
+  return pathname
+    .split("/")
+    .map((segment) => {
+      let decoded = segment;
+      try {
+        decoded = decodeURIComponent(segment);
+      } catch {
+        // A malformed escape is kept as it was sent.
+      }
+      if (decoded.includes("@")) return "(email)";
+      if (
+        /^[A-Za-z0-9_]{24,}$/.test(decoded) ||
+        (/^[A-Za-z0-9_-]{24,}$/.test(decoded) &&
+          /[A-Z]/.test(decoded) &&
+          /[0-9]/.test(decoded))
+      ) {
+        return "(token)";
+      }
+      return segment;
+    })
+    .join("/")
+    .slice(0, pathLimit);
+}
 
 /** The `REQUESTS` binding, if the Worker has one. */
 export const requestDatasetOf = (
@@ -113,7 +148,7 @@ export function requestPoint(
     indexes: [kind],
     blobs: [
       kind,
-      pathname.slice(0, pathLimit),
+      redactedPath(pathname),
       answeredBy(response),
       typeof colo === "string" ? colo : "",
       request.method,
