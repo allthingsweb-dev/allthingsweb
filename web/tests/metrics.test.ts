@@ -58,6 +58,9 @@ describe("redactedPath", () => {
       ["/people/alice%40example.com", "/people/(email)"],
       ["/reset/" + "a1B2c3D4".repeat(4), "/reset/(token)"],
       ["/k/" + "a1b2c3d4".repeat(3), "/k/(token)"],
+      ["/reset/550e8400-e29b-41d4-a716-446655440000", "/reset/(token)"],
+      ["/invite/x7k9q2m4", "/invite/(token)"],
+      ["/i/a1b2c3d4e5", "/i/(token)"],
       [
         // A JWT, built from its parts here so no scanner takes it for a real one.
         `/auth/${["eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiJ0ZXN0In0", "c2lnbmF0dXJl"].join(".")}`,
@@ -77,6 +80,7 @@ describe("redactedPath", () => {
       "/people/erik-thorelli",
       "/events/2024-11-12-all-things-web-at-vercel",
       "/img/240/avif/1791086442/events/2024-11-12-all-thin.jpg",
+      "/img/336x336/avif/1791075639/profiles/erik-thorelli-84f10f03-be3d-4542-80f8-8fb9b9ea1503.png",
       "/wp-login.php",
     ]) {
       expect(redactedPath(path)).toBe(path);
@@ -196,6 +200,38 @@ describe("recordRequest", () => {
         doubles: [200, expect.any(Number)],
       },
     ]);
+  });
+
+  test("writes nothing for the writers' own paths, a prewarm's dry run among them", () => {
+    const points: Array<unknown> = [];
+    const env = {
+      REQUESTS: { writeDataPoint: (point: unknown) => points.push(point) },
+    };
+    for (const path of [
+      "/_site/prewarm?dry-run",
+      "/_site/prewarm",
+      "/_site/refresh",
+      "/_site/variants-check",
+    ]) {
+      recordRequest(
+        env,
+        request(path, { method: "POST" }),
+        new Response(null),
+        Date.now(),
+      );
+    }
+    expect(points).toEqual([]);
+  });
+
+  test("never throws, even when reading its binding does", () => {
+    const env = Object.defineProperty({}, "REQUESTS", {
+      get: () => {
+        throw new Error("no binding");
+      },
+    }) as Readonly<Record<string, unknown>>;
+    expect(() =>
+      recordRequest(env, request("/"), new Response(null), Date.now()),
+    ).not.toThrow();
   });
 
   test("does nothing without a dataset, and never throws when writing fails", () => {

@@ -54,9 +54,10 @@ export const pathLimit = 200;
  * encoded) becomes `(email)`. One of 24 or more letters, digits and `_`
  * with no `-`, or with capitals and digits among its `-`s, becomes
  * `(token)`: a token or a key. So does one with such a part between its
- * dots, a JWT among them. The site's own paths have neither: slugs
- * are lowercase words and dates joined by `-`, and a photo's version is
- * 10 digits. A segment that doesn't decode becomes `(malformed)`. Then
+ * dots, a JWT among them, one that is a UUID, and one of 8 or more
+ * letters and digits mixed with no separator (a short code). The site's
+ * own paths have none of these but a photo's id: slugs are lowercase
+ * words and dates joined by `-`, and a photo's version is 10 digits. A segment that doesn't decode becomes `(malformed)`. Then
  * at most {@link pathLimit} characters.
  */
 export function redactedPath(pathname: string): string {
@@ -64,7 +65,15 @@ export function redactedPath(pathname: string): string {
     /^[A-Za-z0-9_]{24,}$/.test(part) ||
     (/^[A-Za-z0-9_-]{24,}$/.test(part) &&
       /[A-Z]/.test(part) &&
-      /[0-9]/.test(part));
+      /[0-9]/.test(part)) ||
+    // An id: a UUID, as a reset or invitation link might carry.
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      part,
+    ) ||
+    // A short random code: 8 or more letters and digits, both, unbroken.
+    (/^[A-Za-z0-9]{8,}$/.test(part) &&
+      /[0-9]/.test(part) &&
+      /[A-Za-z]/.test(part));
   return pathname
     .split("/")
     .map((segment) => {
@@ -183,9 +192,16 @@ export function recordRequest(
   /** When the Worker started on it (`Date.now()`). */
   started: number,
 ): void {
-  const dataset = requestDatasetOf(env);
-  if (dataset === undefined) return;
   try {
+    const dataset = requestDatasetOf(env);
+    // The writers' own paths (refresh, prewarm and its dry run, the
+    // variants check) are no visitor's, and a dry run writes nothing.
+    if (
+      dataset === undefined ||
+      new URL(request.url).pathname.startsWith("/_site/")
+    ) {
+      return;
+    }
     dataset.writeDataPoint(
       requestPoint(request, response, Date.now() - started),
     );
