@@ -6,6 +6,7 @@ import { EventPages } from "../event-page.ts";
 import { formats } from "../formats.ts";
 import {
   hostingRoles,
+  checkDay,
   PeopleRecord,
   profileCheck,
 } from "../organizer-profiles.ts";
@@ -462,7 +463,12 @@ const make = Effect.gen(function* () {
                   ).values(),
                 ].map((person) => ({
                   name: person.name,
-                  check: profileCheck(peopleRecord.file, person.id, today),
+                  // The file's days are UTC days (checkDay), not the evening's.
+                  check: profileCheck(
+                    peopleRecord.file,
+                    person.id,
+                    checkDay(now),
+                  ),
                 })),
               },
               events,

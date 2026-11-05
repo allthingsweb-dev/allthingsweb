@@ -129,14 +129,14 @@ const plan = <A, E>(
 const draft = "2026-09-01-draft-night";
 
 /** Readiness's checks of hosts' profiles on the draft, with `file` as the record. */
-const hostChecks = (file: PeopleFile) =>
+const hostChecks = (file: PeopleFile, clock = clockLayer) =>
   Effect.runPromise(
     Readiness.use((r) => r.report({ _tag: "Event", slug: draft })).pipe(
       Effect.provide(
         Readiness.layerWith(PeopleRecord.fromFile(file)).pipe(
           Layer.provideMerge(Planning.layer),
           Layer.provideMerge(sqlLayer(db)),
-          Layer.provideMerge(clockLayer),
+          Layer.provideMerge(clock),
         ),
       ),
     ),
@@ -186,6 +186,27 @@ describe("readiness", () => {
     expect((await hostChecks(file)).checks).toEqual([]);
   });
 
+  test("counts a check read today in UTC, even before that day in San Francisco", async () => {
+    // 00:30 UTC on 2026-10-04 is still 2026-10-03 in San Francisco.
+    const file: PeopleFile = [
+      ...adaRead("2026-10-04"),
+      {
+        profileId: grace,
+        name: "Grace Hopper",
+        title: { value: "Admiral", source, read: "2026-10-04" },
+        bio: { value: "Wrote the first compiler.", source, read: "2026-10-04" },
+      },
+    ];
+    expect(
+      (
+        await hostChecks(
+          file,
+          clockAt(DateTime.makeUnsafe("2026-10-04T00:30:00Z")),
+        )
+      ).checks,
+    ).toEqual([]);
+  });
+
   test("an MC alone isn't a host", async () => {
     await plan((p) =>
       p.setDraftLineup(draft, [{ role: "mc", profile: "Grace Hopper" }]),
@@ -195,9 +216,9 @@ describe("readiness", () => {
 });
 
 describe("people stale --organizers", () => {
-  test("judges by San Francisco's day, as readiness does", async () => {
-    // 00:30 UTC on 2026-10-04 is still 2026-10-03 in San Francisco: a read
-    // on 2026-07-06 is 89 days old there, and fresh, as readiness has it.
+  test("judges on the UTC day, as the file's days are and readiness does", async () => {
+    // 00:30 UTC on 2026-10-04 is still 2026-10-03 in San Francisco, but the
+    // file's days are UTC days: a read on 2026-07-06 is 90 days old, stale.
     await db.exec(`INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
       ('e0000000-0000-4000-8000-000000000004', '${ada}', 'organizer', 0, 'site', now())`);
     const stale = await Effect.runPromise(
@@ -206,9 +227,9 @@ describe("people stale --organizers", () => {
         Effect.provide(clockAt(DateTime.makeUnsafe("2026-10-04T00:30:00Z"))),
       ),
     );
-    // And it says the day it judged by, which `people stale` prints as
-    // `organizersToday`: a check recorded with it counts at once.
-    expect(stale).toEqual({ today: "2026-10-03", hosts: [] });
+    expect(stale.today).toBe("2026-10-04");
+    expect(stale.hosts.map((host) => host.name)).toEqual(["Ada Lovelace"]);
+    // A check recorded on that day counts at once.
     const recorded = await Effect.runPromise(
       staleHosts(adaRead(stale.today)).pipe(
         Effect.provide(sqlLayer(db)),
