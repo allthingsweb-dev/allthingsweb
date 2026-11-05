@@ -69,6 +69,12 @@ jobs:
         name: Publish to npm
         needs: releaseandpublish
         runs-on: ubuntu-latest
+        # Publishing waits for a person: the npm-release environment needs
+        # esthor's approval (admins can't bypass it) and runs only for version
+        # tags. npm's trusted publisher names this environment, so npm takes
+        # the OIDC token only from a run that was approved here. GitHub's
+        # release and its binaries (the job above) don't wait.
+        environment: npm-release
         # One publish at a time, none cancelled and up to 100 waiting (queue: max):
         # each run reads npm's latest only after the one before has moved it.
         concurrency:
@@ -83,7 +89,19 @@ jobs:
             - name: ⬇️ Checkout repo
               uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
+                  # All history and branches, so origin/main is there to check against.
+                  fetch-depth: 0
                   persist-credentials: false
+
+            # Only what's on main is published: a tag pushed on a commit that
+            # never reached main (a branch, a fork's commit) stops here.
+            - name: 🔒 Check the tagged commit is on main
+              run: |
+                  if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+                    echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main; nothing is published"
+                    exit 1
+                  fi
+                  echo "$GITHUB_REF_NAME ($GITHUB_SHA) is on main"
 
             - name: ⎔ Setup bun
               uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
