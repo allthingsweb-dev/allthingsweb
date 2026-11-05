@@ -401,6 +401,20 @@ function pngSize(png: Uint8Array): { width: number; height: number } {
   return { width: view.getUint32(16), height: view.getUint32(20) };
 }
 
+/** A baseline JPEG's size, from its start-of-frame segment. */
+function jpegSize(jpeg: Uint8Array): { width: number; height: number } {
+  const view = new DataView(jpeg.buffer, jpeg.byteOffset, jpeg.byteLength);
+  let at = 2;
+  while (at + 9 < jpeg.byteLength) {
+    const marker = view.getUint16(at);
+    if (marker === 0xffc0 || marker === 0xffc2) {
+      return { width: view.getUint16(at + 7), height: view.getUint16(at + 5) };
+    }
+    at += 2 + view.getUint16(at + 2);
+  }
+  throw new Error("A JPEG without a start-of-frame segment");
+}
+
 /** The marks brand/marks generates, by the name pages use for them. */
 export interface Marks {
   readonly wordmark: Image;
@@ -411,6 +425,8 @@ export interface Marks {
   readonly favicon: Image;
   /** The blank avatar, for a person without a photo. */
   readonly avatar: Image;
+  /** The same as a PNG, which a person's card draws (og/person-card.ts). */
+  readonly avatarPng: Image;
   readonly appleTouchIcon: Image;
 }
 
@@ -425,7 +441,9 @@ async function mark(file: string, from = generated): Promise<Image> {
   const size =
     extension === "svg"
       ? svgSize(new TextDecoder().decode(bytes))
-      : pngSize(bytes);
+      : extension === "jpg"
+        ? jpegSize(bytes)
+        : pngSize(bytes);
   return { src: await writeAsset(name, extension, bytes), ...size };
 }
 
@@ -500,6 +518,7 @@ async function buildMarks(): Promise<Marks> {
     icon: await mark("icon.svg"),
     favicon: await mark("favicon.svg"),
     avatar: await mark("avatar.svg"),
+    avatarPng: await mark("avatar.png"),
     appleTouchIcon: await mark("apple-touch-icon.png"),
   };
 }
@@ -509,6 +528,8 @@ export interface OgCards {
   readonly home: Image;
   readonly events: Image;
   readonly people: Image;
+  /** The same as a JPEG: what a person's card falls back to. */
+  readonly peopleJpeg: Image;
   readonly about: Image;
   readonly codeOfConduct: Image;
   readonly brand: Image;
@@ -516,12 +537,33 @@ export interface OgCards {
   /** An event card's grounds, which the Worker sets its words on. */
   readonly eventNight: Image;
   readonly eventPaper: Image;
+  /** A person's card's grounds, one for each part it can name. */
+  readonly person: Readonly<Record<PersonPart, Image>>;
 }
 
-/** The fonts the Worker has Images set an event card's words in. */
+/** The parts a person's card names in its meta (og.py's PERSON_PARTS). */
+export const personParts = [
+  "organizer",
+  "speaker",
+  "co-host",
+  "mc",
+  "people",
+] as const;
+
+export type PersonPart = (typeof personParts)[number];
+
+/** Where on its ground a person's card draws their photo, in pixels. */
+export interface PhotoBox {
+  readonly left: number;
+  readonly top: number;
+  readonly side: number;
+}
+
+/** The fonts the Worker has Images set a card's words in. */
 export interface OgFonts {
   readonly lockup: string;
   readonly label: string;
+  readonly lead: string;
   readonly meta: string;
 }
 
@@ -533,35 +575,66 @@ export interface OgFontMetrics {
 
 export type OgMetrics = Readonly<Record<keyof OgFonts, OgFontMetrics>>;
 
-async function buildOg(): Promise<{ cards: OgCards; fonts: OgFonts }> {
+/** og.py's box for a person's photo, checked whole. */
+function photoBox(value: unknown): PhotoBox {
+  const box = value as Partial<Record<keyof PhotoBox, unknown>> | undefined;
+  const sides = [box?.left, box?.top, box?.side];
+  if (!sides.every((side) => Number.isInteger(side) && Number(side) >= 0)) {
+    fail("og-person-photo");
+  }
+  return {
+    left: Number(box?.left),
+    top: Number(box?.top),
+    side: Number(box?.side),
+  };
+}
+
+async function buildOg(): Promise<{
+  cards: OgCards;
+  fonts: OgFonts;
+  personPhoto: PhotoBox;
+}> {
   const font = async (name: string) =>
     writeAsset(name, "ttf", await Bun.file(join(og, `${name}.ttf`)).bytes());
   // The Worker reads the metrics only when it draws a card, so they stay
   // out of the build manifest every request loads.
   const metrics = JSON.parse(
     await Bun.file(join(og, "og-metrics.json")).text(),
-  ) as Record<string, OgFontMetrics>;
+  ) as Record<string, OgFontMetrics | undefined>;
   const byRole: OgMetrics = {
     lockup: metrics["og-lockup"] ?? fail("og-lockup"),
     label: metrics["og-label"] ?? fail("og-label"),
+    lead: metrics["og-lead"] ?? fail("og-lead"),
     meta: metrics["og-meta"] ?? fail("og-meta"),
   };
   await Bun.write(join(dist, "og-metrics.json"), `${JSON.stringify(byRole)}\n`);
+  const person = Object.fromEntries(
+    await Promise.all(
+      personParts.map(
+        async (part) =>
+          [part, await mark(`og-person-${part}.png`, og)] as const,
+      ),
+    ),
+  ) as Record<PersonPart, Image>;
   return {
+    personPhoto: photoBox(metrics["og-person-photo"]),
     cards: {
       home: await mark("og-home.png", og),
       events: await mark("og-events.png", og),
       people: await mark("og-people.png", og),
+      peopleJpeg: await mark("og-people.jpg", og),
       about: await mark("og-about.png", og),
       codeOfConduct: await mark("og-code-of-conduct.png", og),
       brand: await mark("og-brand.png", og),
       notFound: await mark("og-not-found.png", og),
       eventNight: await mark("og-event-night.png", og),
       eventPaper: await mark("og-event-paper.png", og),
+      person,
     },
     fonts: {
       lockup: await font("og-lockup"),
       label: await font("og-label"),
+      lead: await font("og-lead"),
       meta: await font("og-meta"),
     },
   };
@@ -654,7 +727,11 @@ export interface BuildManifest {
   readonly labScript: string;
   readonly fonts: ReadonlyArray<Font>;
   readonly marks: Marks;
-  readonly og: { readonly cards: OgCards; readonly fonts: OgFonts };
+  readonly og: {
+    readonly cards: OgCards;
+    readonly fonts: OgFonts;
+    readonly personPhoto: PhotoBox;
+  };
 }
 
 /** What the Worker reads from dist/foundations.json: the foundations as HTML. */

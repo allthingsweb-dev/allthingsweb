@@ -15,7 +15,7 @@ import type { ImageMode } from "./picture.tsx";
 import { personStructuredData } from "./structured-data.ts";
 import type { Theme } from "./theme.ts";
 import { simpleDate, simpleDayOrMonth, simpleMonth } from "./time.ts";
-import { ogCards } from "../og/cards.ts";
+import { personCard } from "../og/person-card.ts";
 
 /**
  * /people/<slug>: one person, as their profile has them, beside what they
@@ -241,7 +241,7 @@ export function personPage({
       title: gatheringTitle(person.name),
       description: description(person, ours.length),
       path,
-      image: ogCards.people,
+      image: personCard(person),
       structuredData: [personStructuredData(person, `${origin}${path}`)],
       ...(noindex === true ? { noindex } : {}),
     },

@@ -14,6 +14,7 @@ import json
 from dataclasses import dataclass
 
 import uharfbuzz as hb
+from PIL import Image
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
@@ -272,11 +273,76 @@ def event_ground(setter: Setter, c: dict[str, str], night: bool) -> str:
     return card("".join(parts), "allthings/_")
 
 
-# What the Worker draws event cards with: each role's instance, written as
-# a font file it can point the Images binding at, with advance widths.
+# A person's card is the people card made theirs: its meta names their part
+# at our evenings, and their photo fills the right of the card, square, from
+# margin to margin, as their page shows it. The Worker draws the photo (or
+# the blank avatar) into this box and sets their name, title and X handle
+# (web/src/og/person-card.ts), so the box is written beside the metrics.
+PERSON_PHOTO_SIDE = H - 2 * MARGIN
+PERSON_PHOTO = {
+    "left": W - MARGIN - PERSON_PHOTO_SIDE,
+    "top": MARGIN,
+    "side": PERSON_PHOTO_SIDE,
+}
+# Each part a person's card can name, as the people page groups them, and
+# "people" for someone with no part yet.
+PERSON_PARTS = ("organizer", "speaker", "co-host", "mc", "people")
+# The hairline that keeps a photo as dark as Night visible on Night, as
+# site.css rules portraits; two pixels, since cards are mostly seen at half
+# size.
+PERSON_RULE = 2
+
+
+def person_ground(setter: Setter, c: dict[str, str], part: str) -> str:
+    """A person's card's ground: the people card's meta, here their part,
+    and its small wordmark, with the rule around their photo's box."""
+    p = palette(c, night=True)
+    wordmark = [
+        Span("allthings", p["text"]),
+        Span("/", p["accent"]),
+        Span("_", p["accent"]),
+    ]
+    box = PERSON_PHOTO
+    half = PERSON_RULE / 2
+    # The rule sits outside the box, so the photo drawn into it never covers it.
+    rule = (
+        f'<rect x="{_number(box["left"] - half)}" y="{_number(box["top"] - half)}" '
+        f'width="{_number(box["side"] + PERSON_RULE)}" '
+        f'height="{_number(box["side"] + PERSON_RULE)}" '
+        f'fill="none" stroke="{c["ruleNight"]}" stroke-width="{PERSON_RULE}"/>'
+    )
+    parts = [
+        ground(c, night=True),
+        setter.draw([Span(part, p["meta"])], META, MARGIN, MARGIN + 24),
+        setter.draw(wordmark, SMALL_WORDMARK, MARGIN, 210),
+        rule,
+    ]
+    return card("".join(parts), f"{part} · allthings/_")
+
+
+# A person's card is a JPEG (web/src/og/person-card.ts): with a photo over
+# the grain, a PNG is too large for some apps' previews. When the Worker
+# can't draw one, the people card stands in, as a JPEG at the same quality,
+# so it is the type the page names.
+PERSON_CARD_QUALITY = 85
+
+
+def jpeg(png_bytes: bytes) -> bytes:
+    """A PNG as a baseline JPEG at the person card's quality."""
+    out = io.BytesIO()
+    Image.open(io.BytesIO(png_bytes)).convert("RGB").save(
+        out, format="JPEG", quality=PERSON_CARD_QUALITY
+    )
+    return out.getvalue()
+
+
+# What the Worker draws cards with: each role's instance, written as a font
+# file it can point the Images binding at, with advance widths. The lead is
+# a person's title, set as the people card sets its sentences.
 INSTANCES = {
     "og-lockup": Style("archivo", 800, 112, 1000),
     "og-label": Style("archivo", 700, 75, 1000),
+    "og-lead": Style("archivo", 500, 100, 1000),
     "og-meta": Style("mono", 500, 100, 1000),
 }
 
@@ -318,9 +384,12 @@ def build_og(faces: dict[str, bytes], c: dict[str, str], png) -> dict[str, bytes
     files: dict[str, bytes] = {}
     for page in PAGES:
         files[page.file] = png(page_card(setter, c, page))
+    files["og-people.jpg"] = jpeg(files["og-people.png"])
     files["og-event-night.png"] = png(event_ground(setter, c, night=True))
     files["og-event-paper.png"] = png(event_ground(setter, c, night=False))
-    measured = {}
+    for part in PERSON_PARTS:
+        files[f"og-person-{part}.png"] = png(person_ground(setter, c, part))
+    measured: dict[str, object] = {"og-person-photo": PERSON_PHOTO}
     for name, style in INSTANCES.items():
         files[f"{name}.ttf"] = instance(faces[style.face], style)
         measured[name] = metrics(setter, style)
