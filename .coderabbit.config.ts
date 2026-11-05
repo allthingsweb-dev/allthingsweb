@@ -45,7 +45,7 @@ const areas = [
     dir: "infra",
     rules: [
       "infra declares allthings' Cloudflare resources with Alchemy v2 in alchemy.run.ts. infra/README.md is its documentation; flag a change that contradicts it or leaves it stale.",
-      "When alchemy.run.ts declares more, ci-token.json widens in the same pull request.",
+      "When alchemy.run.ts declares more, ci-token.json widens in the same pull request by the permission groups the new declaration needs to deploy (a binding that provisions nothing through the API, such as an Analytics Engine dataset, needs none).",
       "Each database role holds exactly the grants its script lists (scripts/site-reader.ts, site-sync.ts, draft-collab.ts) and is made with SQL by the database owner, never in Neon's console or API.",
       "Secrets are never printed: they are read with `op read` into variables, and scripts pass tokens through memory only.",
       "Production has one writer at a time, the app's cron or the Sync Worker (tests/sync.test.ts). A change to SYNC in src/sync.ts is a one-line pull request of its own.",
@@ -137,7 +137,7 @@ ${numbered([
   "A script or command that writes to production shows what it will do before it does it, and checks the result afterwards, as the existing ones do: `bun run plan --stage prod` before `bun run deploy --stage prod`, and every deploy proves uploads work by storing and deleting one object; copy-media.ts's plan, copy and verify, which never overwrites or deletes; dry runs that roll back or only read. A new production write without a dry run or plan before it, or a change that skips one, fails.",
   "Tests and rehearsals never write to production. Tests run on PGlite or a disposable Postgres (CORE_TEST_POSTGRES_URL) made with the scripts' own statements, and nothing in them reaches Luma or Discord. A rehearsal that reads production (bun run sync:rehearse, web/scripts/sync-dry-run.ts) writes nothing: its transaction always rolls back, and it runs as site_sync.",
   "Production has one writer at a time: the app's cron or the Sync Worker, never both (infra/tests/sync.test.ts). A change to SYNC in src/sync.ts is a one-line pull request of its own, in the handover's order.",
-  "When alchemy.run.ts declares more, ci-token.json widens in the same pull request.",
+  "When alchemy.run.ts declares more, ci-token.json widens in the same pull request by every permission group the new declaration needs to deploy. A binding that provisions nothing through the API, such as an Analytics Engine dataset, needs none beyond the Workers Scripts Write that uploads the script, and ci-token.json stays as it is.",
 ])}`,
   ),
 };
