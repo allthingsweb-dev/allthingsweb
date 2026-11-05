@@ -1,3 +1,9 @@
+import {
+  PROFILE_EDITOR,
+  PROFILE_EDITOR_READS,
+  PROFILE_EDITOR_SETTINGS,
+  PROFILE_EDITOR_WRITES,
+} from "../src/profile-editor.ts";
 import { statements } from "./statements.ts";
 
 /**
@@ -8,7 +14,7 @@ import { statements } from "./statements.ts";
  * statements do, and nothing else:
  *
  * - read, on `public.profiles` only, the columns applyPeople reads
- *   (PROFILE_EDITOR_READS): the row it locks (`FOR UPDATE`, which Postgres
+ *   (PROFILE_EDITOR_READS, src/profile-editor.ts, which infra reads too): the row it locks (`FOR UPDATE`, which Postgres
  *   allows a role with UPDATE on any column), its name, and each value
  *   it compares or keeps (`COALESCE(…, title)`);
  * - change only the columns it writes (PROFILE_EDITOR_WRITES). The
@@ -33,41 +39,6 @@ import { statements } from "./statements.ts";
  * tries every column of `public` and `planning` both ways, and runs
  * applyPeople as the role.
  */
-
-export const PROFILE_EDITOR = "profile_editor";
-
-/** What applyPeople reads of `public.profiles`. */
-export const PROFILE_EDITOR_READS = [
-  "id",
-  "name",
-  "title",
-  "bio",
-  "twitter_handle",
-  "bluesky_handle",
-  "linkedin_handle",
-  "photo_source_url",
-  "image",
-  "now_record",
-] as const;
-
-/** What applyPeople writes of `public.profiles`. */
-export const PROFILE_EDITOR_WRITES = [
-  "title",
-  "bio",
-  "twitter_handle",
-  "bluesky_handle",
-  "linkedin_handle",
-  "photo_source_url",
-  "now_record",
-  "updated_at",
-] as const;
-
-/** Bounds on every session, as the studio's (infra/scripts/studio.ts). */
-export const PROFILE_EDITOR_SETTINGS = {
-  statement_timeout: "30s",
-  lock_timeout: "5s",
-  idle_in_transaction_session_timeout: "30s",
-} as const;
 
 const columns = (names: ReadonlyArray<string>) =>
   names.map((name) => `"${name}"`).join(", ");

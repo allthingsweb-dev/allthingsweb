@@ -13,7 +13,7 @@ import {
   STUDIO_PUBLIC_FUNCTIONS,
 } from "../../infra/scripts/studio.ts";
 import { vaultItems } from "../../infra/scripts/vault-items.ts";
-import { PROFILE_EDITOR } from "../migrations/0034_profile_editor.ts";
+import { PROFILE_EDITOR } from "../src/profile-editor.ts";
 import { sqlLayer as ownerLayer } from "../scripts/pglite.ts";
 import * as Migrations from "../src/migrator.ts";
 import type { Now } from "../src/now.ts";

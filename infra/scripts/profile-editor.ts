@@ -4,7 +4,8 @@
  * profiles"). Its privileges aren't this script's: migration
  * 0034_profile_editor (core/migrations/0034_profile_editor.ts) makes the
  * role without a login and grants exactly what the people pipeline needs
- * on public.profiles, and this script only checks them. So run
+ * on public.profiles (core/src/profile-editor.ts, which imports nothing),
+ * and this script only checks them. So run
  * `bun run migrate` first; on a database where the migration hasn't run,
  * it refuses and changes nothing.
  *
@@ -37,7 +38,7 @@ import {
   PROFILE_EDITOR_READS,
   PROFILE_EDITOR_SETTINGS,
   PROFILE_EDITOR_WRITES,
-} from "../../core/migrations/0034_profile_editor.ts";
+} from "../../core/src/profile-editor.ts";
 import {
   connectionStringFor,
   newPassword,
@@ -161,6 +162,17 @@ async function plan(owner: string, vault: string): Promise<void> {
  * printed.
  */
 async function apply(owner: string, vault: string): Promise<void> {
+  // 1Password first, with the reads storeItem starts with: a password
+  // changed while op can't store it would leave the item holding the old one.
+  try {
+    await run(["op", "item", "list", "--vault", vault, "--format", "json"]);
+    await run(["op", "item", "template", "get", "API Credential"]);
+  } catch (cause) {
+    throw new Error(
+      `1Password can't store "${PROFILE_EDITOR_ITEM}" in ${vault} yet (${cause instanceof Error ? cause.message : String(cause)}), so the password wasn't changed. Sign op in (your session, or OP_SERVICE_ACCOUNT_TOKEN) and rerun.`,
+      { cause },
+    );
+  }
   const password = newPassword();
   const sql = new Bun.SQL(owner);
   try {
