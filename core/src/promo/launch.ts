@@ -59,11 +59,14 @@ export interface MeetupGroup {
 
 /**
  * The groups each evening is listed in (drafts.ts, the Meetup checklist),
- * with their addresses as the evenings' old descriptions link them.
+ * by their names on Meetup and the addresses the evenings' old
+ * descriptions link. The first was React San Francisco Bay Area until
+ * 2026-11-05; it keeps "React & Web · San Francisco" in its name for
+ * Meetup's search, and its address, which Meetup doesn't redirect.
  */
 export const meetupGroups: ReadonlyArray<MeetupGroup> = [
   {
-    name: "React San Francisco Bay Area",
+    name: "allthings · React & Web · San Francisco",
     url: "https://www.meetup.com/reactjs-san-francisco/",
   },
   { name: "Remix Bay Area", url: "https://www.meetup.com/remix-bay-area/" },
@@ -329,10 +332,10 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const meetup = meetupGroups.map(
     (group): MeetupAnnouncement => ({
       group,
-      subject: `${group.name}'s evenings are now allthings`,
+      subject: "allthings/_: these evenings are now allthings",
       body: fitOn("meetup", [
         paragraphs(
-          `The evenings ${group.name} lists went by ${formerName}. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.`,
+          `The evenings this group lists were part of ${formerName}. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.`,
           `Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (${calendar}); the list on Meetup is a waitlist.`,
           `What's new on ${site} (${formerDomain} redirects there): a short link for every evening, ${shortLink}; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.`,
           `${nextLine(true)} ${next.url}`,
