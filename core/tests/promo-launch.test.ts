@@ -3,6 +3,7 @@ import { DateTime, Effect, Layer } from "effect";
 import { type EventPage, EventPages } from "../src/event-page.ts";
 import { formatLaunch, launchJson } from "../src/promo/format.ts";
 import {
+  cliTry,
   formerName,
   type LaunchConfig,
   type LaunchDrafts,
@@ -169,11 +170,13 @@ describe("diction", () => {
         ["checklist", drafts.checklist.join("\n")] as const,
       ];
       for (const [name, text] of texts) {
+        // The command is code, named as the CLI names it, not our voice.
+        const voice = text.replaceAll(cliTry, "");
         for (const pattern of banned) {
           expect({
             name,
             pattern: String(pattern),
-            says: pattern.test(text),
+            says: pattern.test(voice),
           }).toEqual({ name, pattern: String(pattern), says: false });
         }
       }
@@ -200,6 +203,33 @@ describe("diction", () => {
       expect({ name, times }).toEqual({ name, times: expected });
     }
     expect(drafts.x[0]).toStartWith(`${formerName} is now allthings.`);
+  });
+});
+
+describe("the allthings command", () => {
+  test("is named as cli/README.md gives it, with the MCP server the plugin adds", async () => {
+    const readme = await Bun.file(
+      new URL("../../cli/README.md", import.meta.url),
+    ).text();
+    expect(readme).toContain(`\n${cliTry}\n`);
+    const plugin = (await Bun.file(
+      new URL("../../plugins/allthings/mcp.json", import.meta.url),
+    ).json()) as { mcpServers: { allthings: { url: string } } };
+    const mcp = plugin.mcpServers.allthings.url;
+    const drafts = launchDrafts(settled);
+    for (const [name, text] of [
+      ["x", drafts.x.join("\n\n")],
+      ["linkedin", drafts.linkedin],
+      ["discord", drafts.discord],
+      ["luma", drafts.luma.body],
+    ] as const) {
+      expect({ name, command: text.includes(cliTry) }).toEqual({
+        name,
+        command: true,
+      });
+      expect({ name, mcp: text.includes(mcp) }).toEqual({ name, mcp: true });
+    }
+    for (const { body } of drafts.meetup) expect(body).toContain(cliTry);
   });
 });
 
@@ -285,7 +315,7 @@ describe("JSON", () => {
       "about",
     ]);
     expect(json.about).toMatchObject({ limit: null });
-    expect(json.x).toHaveLength(6);
+    expect(json.x).toHaveLength(7);
     expect(json.meetup?.[1]?.body).toMatchObject({ limit: 5000 });
   });
 });

@@ -26,7 +26,8 @@ import { fitOn } from "./limits.ts";
  * infra/docs/r2-migration.md, the full cutover), short links
  * (src/short-slugs.ts), person pages (web/src/pages/person.tsx), shared
  * evenings (src/rows.ts, `Curation`), the at/hack starter (src/formats.ts,
- * `hackStarter`), and the next evening. In the brand's voice like every
+ * `hackStarter`), the `allthings` command and the MCP server it reads
+ * (cli/README.md), and the next evening. In the brand's voice like every
  * other draft, with one exception the brand makes for launch messaging:
  * the old name, said once, as what we were.
  *
@@ -50,6 +51,17 @@ export const formerName = "All Things Web";
 
 /** The domain the site had, which redirects to the new one. */
 export const formerDomain = "allthingsweb.dev";
+
+/**
+ * The `allthings` command as the drafts give it: the one line that tries
+ * it with Bun, as cli/README.md gives it, and its package on npm. It reads
+ * the site's public MCP server, at {@link mcpPath}, the one agents add.
+ */
+export const cliTry = "bunx allthings events";
+export const cliPackage = "https://www.npmjs.com/package/allthings";
+
+/** The MCP server on the site, as plugins/allthings/mcp.json names it. */
+export const mcpPath = "/mcp";
 
 /** A Meetup group the evenings are listed in, which continues under allthings. */
 export interface MeetupGroup {
@@ -201,6 +213,8 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const examples = "allthings/effect, allthings/expo";
   const shortLink = `${site}/<topic>`;
   const people = `${site}/people`;
+  const mcp = `${config.origin}${mcpPath}`;
+  const npm = bare(cliPackage).replace(/^www\./, "");
 
   /** "Next: allthings/trivia, Thu Nov 12, 6:00 PM, hosted at …." */
   const nextLine = (
@@ -227,6 +241,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const checklist = [
     `${site} serves the new site and every ${formerDomain} address redirects to it, as every draft says (infra/docs/r2-migration.md, the full cutover). Post nothing before.`,
     `Every published evening has its short link, as the drafts say: bun run slugs --dry-run (in core/) gives none, or run it without --dry-run first.`,
+    `${cliTry} prints what's coming up on a machine that never ran it, as the drafts say.`,
     `Post the X thread from @${handle}, each post a reply to the one before.`,
     "Display names say allthings before the posts do: X, Bluesky, the LinkedIn page, the Discord server and the Luma calendar.",
     "Send each Meetup announcement from its own group, to all its members.",
@@ -238,6 +253,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
     `Everyone who has been on stage has a page now, at ${people}: their talks and parts at our evenings, latest first, and the talks they gave elsewhere.`,
     "Some evenings aren't ours. When someone else runs one we think is good, we share it: it's listed beside ours, marked shared, with who organizes it.",
     `Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look: judges run each one and its tests.\n\n${hack}`,
+    `allthings is in your terminal now: ${cliTry} shows what's coming up, and --json gives scripts the same answer.\n\nIt reads the public MCP server your agents can add, ${mcp}\n\n${npm}`,
     fitOn("x", [
       paragraphs(
         nextLine(true),
@@ -283,6 +299,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
     `Everyone who has been on stage has a page, at ${people}: their talks and parts at our evenings, and the talks they gave elsewhere.`,
     "Evenings other people run that we think are good are listed beside ours, marked shared, with who organizes them.",
     `Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look. ${hack}`,
+    `allthings is in your terminal: ${cliTry} shows what's coming up (${npm}). It reads the public MCP server your agents can add, ${mcp}`,
   ];
 
   const linkedin = fitOn("linkedin", [
@@ -304,6 +321,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
     `Everyone who has been on stage has a page: ${people}.`,
     "Evenings other people run that we think are good are listed beside ours, marked shared.",
     `Hackathons start from **at/hack**, a template: fork it, build, hand in a public repo. <${hackStarter.repository}>`,
+    `allthings is in your terminal: \`${cliTry}\`. It reads the public MCP server your agents can add, \`${mcp}\`.`,
   ];
 
   const discordPost = fitOn("discord", [
@@ -337,7 +355,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
         paragraphs(
           `The evenings this group lists were part of ${formerName}. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.`,
           `Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (${calendar}); the list on Meetup is a waitlist.`,
-          `What's new on ${site} (${formerDomain} redirects there): a short link for every evening, ${shortLink}; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.`,
+          `What's new on ${site} (${formerDomain} redirects there): a short link for every evening, ${shortLink}; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; at/hack, the template hackathons start from; and allthings in your terminal: ${cliTry}.`,
           `${nextLine(true)} ${next.url}`,
           `Talk between evenings → ${discord}`,
         ),
