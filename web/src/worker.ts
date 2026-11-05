@@ -110,14 +110,17 @@ export default {
     if (env["REQUESTS"] !== undefined) {
       const tookMs = Date.now() - started;
       context.waitUntil(
-        import("./request-metrics.ts").then((metrics) =>
-          metrics.recordRequest(
-            metrics.requestDatasetOf(env),
-            request,
-            response,
-            tookMs,
-          ),
-        ),
+        import("./request-metrics.ts")
+          .then((metrics) =>
+            metrics.recordRequest(
+              metrics.requestDatasetOf(env),
+              request,
+              response,
+              tookMs,
+            ),
+          )
+          // Analytics never fails a request, even when its module can't load.
+          .catch(() => undefined),
       );
     }
     return response;
