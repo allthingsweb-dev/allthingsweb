@@ -8,6 +8,7 @@ import { instant, outgoingOf, Studio } from "../src/luma/publish.ts";
 import { LumaWrite, type ManagedEvent } from "../src/luma/write.ts";
 import { Planning } from "../src/planning/planning.ts";
 import { Promo } from "../src/promo/promo.ts";
+import { PeopleRecord } from "../src/organizer-profiles.ts";
 import { Readiness } from "../src/readiness/readiness.ts";
 import { ShortSlugs } from "../src/slugs.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
@@ -98,6 +99,28 @@ beforeEach(async () => {
 });
 afterEach(() => db.close());
 
+/**
+ * The seed's organizer, Ada, with her title and bio checked on the test
+ * clock's day, so readiness doesn't block on her profile
+ * (tests/organizer-profiles.test.ts holds that check).
+ */
+const checked = PeopleRecord.fromFile([
+  {
+    profileId: "b0000000-0000-4000-8000-000000000001",
+    name: "Ada Lovelace",
+    title: {
+      value: "Engineer",
+      source: "https://example.com/ada",
+      read: "2026-10-03",
+    },
+    bio: {
+      value: "Writes compilers.",
+      source: "https://example.com/ada",
+      read: "2026-10-03",
+    },
+  },
+]);
+
 /** Runs `f` with Luma answering each path from `replies`; what it was asked. */
 const run = async <A, E>(
   f: (studio: Studio["Service"]) => Effect.Effect<A, E>,
@@ -113,7 +136,7 @@ const run = async <A, E>(
         ),
         Planning.layer,
         Promo.layer,
-        Readiness.layer,
+        Readiness.layerWith(checked),
       ),
     ),
     Layer.provideMerge(sqlLayer(db)),

@@ -4,6 +4,11 @@ import { Completeness } from "../completeness.ts";
 import { DataSourceError } from "../errors.ts";
 import { EventPages } from "../event-page.ts";
 import { formats } from "../formats.ts";
+import {
+  hostingRoles,
+  PeopleRecord,
+  profileCheck,
+} from "../organizer-profiles.ts";
 import { coverFactsOf } from "../cover.ts";
 import { eventTopic } from "../lockup.ts";
 import type { HostProspect, Idea, WantedSpeaker } from "../planning/model.ts";
@@ -213,6 +218,7 @@ const make = Effect.gen(function* () {
   const planning = yield* Planning;
   const pages = yield* EventPages;
   const slugs = yield* ShortSlugs;
+  const peopleRecord = yield* PeopleRecord;
 
   /**
    * Whether the evening's cover is ours and says what its facts say now:
@@ -442,6 +448,22 @@ const make = Effect.gen(function* () {
                   (checked ?? record).curation.kind === "ours"
                     ? yield* coverOf(fact)
                     : "not ours",
+                // Its lineup as planned, while a draft: who hosts it
+                // publishes with it.
+                hostingPeople: [
+                  ...new Map(
+                    (checked ?? record).people
+                      .filter((entry) =>
+                        (hostingRoles as ReadonlyArray<string>).includes(
+                          entry.role,
+                        ),
+                      )
+                      .map((entry) => [entry.person.id, entry.person]),
+                  ).values(),
+                ].map((person) => ({
+                  name: person.name,
+                  check: profileCheck(peopleRecord.file, person.id, today),
+                })),
               },
               events,
               now,
@@ -580,14 +602,23 @@ const make = Effect.gen(function* () {
 export class Readiness extends Context.Service<Readiness, ReadinessShape>()(
   "allthings/Readiness",
 ) {
-  static readonly layer = Layer.effect(Readiness, make).pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        Completeness.layer,
-        Planning.layer,
-        EventPages.layer,
-        ShortSlugs.layer,
+  /**
+   * Readiness over `record`: which checks of hosts' profiles
+   * core/backfill/people.json holds (src/organizer-profiles.ts), or a
+   * test's.
+   */
+  static readonly layerWith = (record: Layer.Layer<PeopleRecord>) =>
+    Layer.effect(Readiness, make).pipe(
+      Layer.provide(
+        Layer.mergeAll(
+          Completeness.layer,
+          Planning.layer,
+          EventPages.layer,
+          ShortSlugs.layer,
+          record,
+        ),
       ),
-    ),
-  );
+    );
+
+  static readonly layer = Readiness.layerWith(PeopleRecord.layer);
 }

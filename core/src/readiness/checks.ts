@@ -15,6 +15,11 @@ import {
   sizeOf,
 } from "../formats.ts";
 import { eventMode } from "../mode.ts";
+import {
+  organizerCheckDays,
+  type ProfileCheck,
+  staleLine,
+} from "../organizer-profiles.ts";
 import { neighborhoodOf } from "../places.ts";
 import { sfDay } from "./calendar.ts";
 import type { CollabCheckKind } from "./collab.ts";
@@ -57,6 +62,8 @@ export const draftCheckKinds = {
   "cover-facts": "a cover drawn for facts that have changed",
   "talk-unconfirmed": "someone on a talk who hasn't said yes",
   "talk-profile": "someone on a talk with no profile",
+  "organizer-profile":
+    "an organizer whose title and bio weren't checked lately",
 } as const;
 
 export type DraftCheckKind = keyof typeof draftCheckKinds;
@@ -97,6 +104,15 @@ export interface DraftFacts {
    * set by hand).
    */
   readonly cover: "ours" | "stale" | "not ours";
+  /**
+   * Its organizers and co-hosts, each with when core/backfill/people.json
+   * last read their title and bio (src/organizer-profiles.ts): every
+   * caller says, even when there is no one.
+   */
+  readonly hostingPeople: ReadonlyArray<{
+    readonly name: string;
+    readonly check: ProfileCheck;
+  }>;
 }
 
 /** Another event on the calendar, published or draft. */
@@ -357,6 +373,21 @@ export function draftChecks(
         "rules",
         "advice",
         `Its description must carry the ${format.name}'s rules, word for word (the promo drafts do): ${rules.map((rule) => rule.text).join(" ")}`,
+      ),
+    );
+  }
+
+  // What the people hosting it say about themselves is read before
+  // anything else of theirs: an old title or bio goes out with the
+  // evening, so it waits until someone has checked them.
+  for (const { name, check: profile } of facts.hostingPeople) {
+    if (profile.fresh) continue;
+    checks.push(
+      check(
+        "organizer-profile",
+        "blocker",
+        `${name}'s title and bio weren't both checked in the last ${organizerCheckDays} days (${staleLine(profile)}): read them against their own sources, record both in core/backfill/people.json with today as \`read\`, then bun run people.`,
+        name,
       ),
     );
   }
