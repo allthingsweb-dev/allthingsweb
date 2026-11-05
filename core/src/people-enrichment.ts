@@ -364,21 +364,6 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
         `X posts read after today, ${today}: ${readAhead.join(", ")}`,
       );
     }
-    // A post is shown once: in "now" or among the X posts, never both.
-    const shownTwice = file.flatMap((entry) => {
-      if (entry.xPosts == null || entry.now == null) return [];
-      const linked = new Set(
-        entry.now.links.flatMap((link) => postIdOf(link.url) ?? []),
-      );
-      return entry.xPosts.posts
-        .filter((post) => linked.has(statusOf(post.url)!.id))
-        .map((post) => `${entry.name} ${post.url}`);
-    });
-    if (shownTwice.length > 0) {
-      return yield* fail(
-        `X posts also linked from now (keep one): ${shownTwice.join(", ")}`,
-      );
-    }
 
     const work = Effect.gen(function* () {
       const lines: Array<string> = [];
@@ -432,17 +417,43 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
             );
           }
         }
-        if (entry.xPosts != null) {
-          // The handle the profile will have once this entry is written.
+        // The records the profile will hold once this entry is written: the
+        // file's where it gives one, else what is stored.
+        const nowAfter =
+          entry.now !== undefined
+            ? entry.now
+            : yield* decodeStoredNow(row.now_record).pipe(
+                Effect.orElseSucceed(() => null),
+              );
+        const postsAfter =
+          entry.xPosts !== undefined
+            ? entry.xPosts
+            : yield* decodeStoredXPosts(row.x_posts).pipe(
+                Effect.orElseSucceed(() => null),
+              );
+        if (postsAfter !== null) {
+          // Every post by the handle the profile will have.
           const handle = xHandleOf(
             fill.twitterHandle ?? row.twitter_handle,
           )?.toLowerCase();
-          const others = entry.xPosts.posts.filter(
+          const others = postsAfter.posts.filter(
             (post) => authorOf(post.url) !== handle,
           );
           if (others.length > 0) {
             return yield* fail(
-              `${entry.name}'s X posts aren't by their X handle (${handle === undefined ? "none" : `@${handle}`}): ${others.map((post) => post.url).join(", ")}`,
+              `${entry.name}'s X posts aren't by their X handle (${handle === undefined ? "none" : `@${handle}`}): ${others.map((post) => post.url).join(", ")}${entry.xPosts === undefined ? " (stored; set xPosts to null or to posts by the new handle)" : ""}`,
+            );
+          }
+          // A post is shown once: in "now" or among the X posts, never both.
+          const linked = new Set(
+            (nowAfter?.links ?? []).flatMap((link) => postIdOf(link.url) ?? []),
+          );
+          const shown = postsAfter.posts.filter((post) =>
+            linked.has(statusOf(post.url)!.id),
+          );
+          if (shown.length > 0) {
+            return yield* fail(
+              `X posts also linked from now (keep one): ${shown.map((post) => `${entry.name} ${post.url}`).join(", ")}`,
             );
           }
         }

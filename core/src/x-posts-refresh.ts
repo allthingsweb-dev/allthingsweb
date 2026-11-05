@@ -144,6 +144,9 @@ export const refreshPosts = (file: PeopleFile, today: string, days: number) =>
     const refreshed = file.map((entry) => {
       if (!due.includes(entry)) return entry;
       const kept: Array<XPost> = [];
+      // A post X didn't answer for keeps its old counts, so the record
+      // keeps the day they were read.
+      let unread = false;
       for (const post of entry.xPosts!.posts) {
         const now = read.get(statusOf(post.url)!.id);
         if (now === null) {
@@ -157,6 +160,7 @@ export const refreshPosts = (file: PeopleFile, today: string, days: number) =>
             `${entry.name}: ${post.url} wasn't read; its counts stay as read on ${entry.xPosts!.readOn}`,
           );
           kept.push(post);
+          unread = true;
           continue;
         }
         if (
@@ -176,7 +180,9 @@ export const refreshPosts = (file: PeopleFile, today: string, days: number) =>
         });
       }
       const xPosts: XPosts | null =
-        kept.length === 0 ? null : { posts: kept, readOn: today };
+        kept.length === 0
+          ? null
+          : { posts: kept, readOn: unread ? entry.xPosts!.readOn : today };
       return { ...entry, xPosts };
     });
     lines.push(`Read ${ids.length} posts of ${due.length} people again.`);

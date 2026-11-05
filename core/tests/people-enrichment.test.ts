@@ -568,6 +568,50 @@ describe("applyPeople: xPosts", () => {
     expect(await stored(db)).toBeNull();
   });
 
+  test("checks what is stored too: a new handle against stored posts, and posts against a stored now, and the other way", async () => {
+    const db = await fresh();
+    await apply(db, withPosts(record));
+    expect(
+      reasonOf(
+        await apply(db, [
+          {
+            profileId: ada,
+            name: "Ada Lovelace",
+            twitterHandle: { value: "lovelace", source, read, was: "ada" },
+          },
+        ]),
+      ),
+    ).toBe(
+      "Ada Lovelace's X posts aren't by their X handle (@lovelace): https://x.com/ada/status/2000000000000000002, https://x.com/ada/status/2000000000000000001 (stored; set xPosts to null or to posts by the new handle)",
+    );
+    const linking = {
+      line: "Ada [writes compilers](https://ada.example).",
+      links: [
+        {
+          title: "On the engine",
+          date: "2026-10-01",
+          url: "https://x.com/ada/status/2000000000000000002",
+          kind: "post" as const,
+        },
+      ],
+      checkedOn: "2026-10-02",
+    };
+    expect(
+      reasonOf(
+        await apply(db, [
+          { profileId: ada, name: "Ada Lovelace", now: linking },
+        ]),
+      ),
+    ).toBe(
+      "X posts also linked from now (keep one): Ada Lovelace https://x.com/ada/status/2000000000000000002",
+    );
+    await apply(db, withPosts(null));
+    await apply(db, [{ profileId: ada, name: "Ada Lovelace", now: linking }]);
+    expect(reasonOf(await apply(db, withPosts(record)))).toBe(
+      "X posts also linked from now (keep one): Ada Lovelace https://x.com/ada/status/2000000000000000002",
+    );
+  });
+
   test("the column takes only an object", async () => {
     const db = await fresh();
     await expect(

@@ -85,6 +85,10 @@ const User = Schema.Struct({
   data: Schema.Struct({ id: Schema.String, username: Schema.String }),
 });
 
+/** X's API escapes &, < and > in a post's text; its words, as written. */
+export const unescapeText = (text: string): string =>
+  text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+
 const postOf = (
   tweet: typeof Tweet.Type,
   handles: ReadonlyMap<string, string>,
@@ -93,7 +97,7 @@ const postOf = (
   handle:
     tweet.author_id === undefined ? undefined : handles.get(tweet.author_id),
   createdAt: tweet.created_at,
-  text: tweet.note_tweet?.text ?? tweet.text,
+  text: unescapeText(tweet.note_tweet?.text ?? tweet.text),
   likes: tweet.public_metrics.like_count,
   reposts: tweet.public_metrics.retweet_count,
   replies: tweet.public_metrics.reply_count,

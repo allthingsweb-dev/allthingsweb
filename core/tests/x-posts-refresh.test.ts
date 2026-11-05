@@ -8,6 +8,7 @@ import {
 } from "../src/x-posts-refresh.ts";
 import {
   type ReadPost,
+  unescapeText,
   XPostsSource,
   XReadError,
 } from "../src/x-posts-source.ts";
@@ -139,7 +140,7 @@ describe("refreshPosts", () => {
       ),
     );
 
-  test("reads every post's counts again, drops one X no longer serves, keeps one it didn't answer for, and takes a record left empty down", async () => {
+  test("reads every post's counts again, drops one X no longer serves, keeps one it didn't answer for (and the day it was read), and takes a record left empty down", async () => {
     const { file: after, lines } = await run(
       new Map([
         [
@@ -159,7 +160,7 @@ describe("refreshPosts", () => {
         { ...post("2", "2026-09-20"), likes: 7, reposts: 2, replies: 3 },
         post("9", "2026-09-01"),
       ],
-      readOn: "2026-10-03",
+      readOn: "2026-09-21",
     });
     expect(after[1]!.xPosts).toBeNull();
     expect(after[2]).toEqual(file[2]);
@@ -172,10 +173,29 @@ describe("refreshPosts", () => {
     ]);
   });
 
+  test("dates the record today once every post was read", async () => {
+    const all = new Map(
+      ["2", "1", "9", "5"].map(
+        (id) => [id, read(id, "2026-09-01T10:00:00.000Z")] as const,
+      ),
+    );
+    const { file: after } = await run(all);
+    expect(after[0]!.xPosts?.readOn).toBe("2026-10-03");
+    expect(after[1]!.xPosts?.readOn).toBe("2026-10-03");
+  });
+
   test("with days, reads only the records read that long ago", async () => {
     const { file: after } = await run(new Map([["5", null]]), 20);
     expect(after[0]).toEqual(file[0]);
     expect(after[1]!.xPosts).toBeNull();
+  });
+});
+
+describe("unescapeText", () => {
+  test("gives back the words X's API escaped", () => {
+    expect(unescapeText("human &lt;&gt; agent &amp;amp; more")).toBe(
+      "human <> agent &amp; more",
+    );
   });
 });
 
