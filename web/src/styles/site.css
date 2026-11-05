@@ -792,6 +792,20 @@ main > section,
   border-top: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
+/* Commands to copy: one to a line, a click selects the whole of one. */
+.commands {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commands code {
+  user-select: all;
+}
+
 .about .organizers {
   margin: 0;
   padding: 0;

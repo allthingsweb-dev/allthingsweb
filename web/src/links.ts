@@ -68,6 +68,26 @@ export const discord = "https://discord.gg/B3Sm4b5mfD";
 /** The X account's handle, without the @. Its URL and mentions derive from it. */
 export const xHandle = "allthingswebdev";
 
+/**
+ * The MCP server agents read the evenings from, on this site
+ * (mcp/endpoint.ts). The `allthings` command reads it too.
+ */
+export const mcpPath = "/mcp";
+
+/** The `allthings` command on npm, which `bunx allthings` runs (cli/README.md). */
+export const cliPackage = "https://www.npmjs.com/package/allthings";
+
+/**
+ * The commands that get the CLI, as cli/README.md gives them: one run with
+ * Bun, and the installer (pages/install.bash, on GitHub Pages), which puts
+ * `allthings` in ~/.allthings/bin.
+ */
+export const cliCommands = {
+  bunx: "bunx allthings events",
+  install:
+    "curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash",
+} as const;
+
 export interface Social {
   /** The channel's name as the footer prints it: lowercase, one word. */
   readonly name: string;

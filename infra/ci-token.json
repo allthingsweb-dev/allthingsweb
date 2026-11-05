@@ -4,7 +4,7 @@
   "account": "af627f300cd00c4dca56aacf05bea050",
   "permissionGroups": [
     "Workers Scripts Write",
-    "Account Settings Read",
+    "Account Settings Write",
     "Notifications Write",
     "Secrets Store Write",
     "Hyperdrive Write",
