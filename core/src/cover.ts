@@ -200,22 +200,6 @@ export function isStockCover(url: string | null): boolean {
   }
 }
 
-/**
- * Whether `url` was uploaded through Luma's API (images.lumacdn.com/api-uploads/),
- * as `luma cover` uploads; the dashboard's uploads are event-covers/.
- */
-export function isApiUpload(url: string | null): boolean {
-  if (url === null) return false;
-  try {
-    const { hostname, pathname } = new URL(url);
-    return (
-      hostname === "images.lumacdn.com" && pathname.startsWith("/api-uploads/")
-    );
-  } catch {
-    return false;
-  }
-}
-
 /** The SHA-256 of `bytes`, as 64 hex digits. */
 export const sha256 = (bytes: Uint8Array) =>
   Effect.promise(async () =>

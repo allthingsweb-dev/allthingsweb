@@ -7,7 +7,6 @@ import {
   CoverRenderer,
   type CoverUnrendered,
   isLumaDefaultCover,
-  isApiUpload,
   isStockCover,
   sha256,
 } from "../cover.ts";
@@ -40,12 +39,12 @@ import { LumaWrite, type LumaWriteError, type ManagedEvent } from "./write.ts";
  * Only a private event of ours is ever changed: a public one changes only
  * through publish, and a shared one's Luma page is its organizer's. Its
  * cover can still be drawn and read, for an evening already out. One
- * exception: a past evening of ours, over on Luma too, that still shows a
- * stock photo (one of Luma's defaults, or an Unsplash picture,
- * src/cover.ts) may get its own cover, public or not. Nobody is coming to
- * it any more, and a cover someone uploaded in Luma is never replaced this
- * way. An upload of this command's that it couldn't record stays in
- * reach, so approving again records it.
+ * exception: a past evening of ours, over on Luma too, that still shows a stock photo (one of
+ * Luma's defaults, or an Unsplash picture, src/cover.ts) may get its own
+ * cover, public or not. Nobody is coming to it any more, and a cover we
+ * uploaded is never replaced this way. A draft never is. If recording such
+ * a cover fails, the stock photo is put back on Luma, so the evening is as
+ * it was and approving again can finish it.
  *
  * The short link a draft's cover prints is the one it will get when it is
  * published (src/slugs.ts, by the same dry run the sync's rehearsal uses).
@@ -172,15 +171,13 @@ const make = Effect.gen(function* () {
       const lumaOver =
         Date.parse(event.end_at ?? event.start_at) <=
         (yield* Clock.currentTimeMillis);
-      // An upload through the API that the evening doesn't record is ours
-      // too: only this command uploads through our calendar's key, so it is
-      // one whose recording failed, and approving again records it.
-      const unrecorded =
-        isApiUpload(event.cover_url) && row.generatedCoverUrl === null;
+      // Published evenings only: a draft's Luma page changes only through
+      // publish, whatever its dates say.
       const pastStock =
+        !row.isDraft &&
         !facts.ahead &&
         lumaOver &&
-        (isStockCover(event.cover_url) || unrecorded);
+        isStockCover(event.cover_url);
       const refused =
         event.access !== "manage"
           ? `${row.lumaEventId} is not our calendar's to change.`
@@ -269,11 +266,35 @@ const make = Effect.gen(function* () {
           }),
         )
         .pipe(
-          Effect.catch((cause) =>
-            refuse(
-              `Luma has the cover (${coverUrl}), but recording it here failed: ${cause instanceof Error ? cause.message : String(cause)}. Run luma cover --dry-run and approve again to record it.`,
-            ),
-          ),
+          Effect.catch((cause) => {
+            const why = cause instanceof Error ? cause.message : String(cause);
+            // A public evening (a past one, the only kind that gets here) is
+            // out of reach once it shows an upload, so a retry couldn't record
+            // it: put the stock photo back, and the evening is as it was.
+            if (
+              prepared.visibility !== "public" ||
+              prepared.current.url === null
+            ) {
+              return refuse(
+                `Luma has the cover (${coverUrl}), but recording it here failed: ${why}. Run luma cover --dry-run and approve again to record it.`,
+              );
+            }
+            const replaced = prepared.current.url;
+            return luma
+              .update(prepared.lumaEventId, { cover_url: replaced })
+              .pipe(
+                Effect.matchEffect({
+                  onSuccess: () =>
+                    refuse(
+                      `Recording the cover here failed: ${why}. Its old cover (${replaced}) is back on Luma, so nothing changed. Run luma cover --dry-run and approve again.`,
+                    ),
+                  onFailure: () =>
+                    refuse(
+                      `Luma has the cover (${coverUrl}), but recording it here failed (${why}), and putting its old cover back failed too. Set its cover back to ${replaced} in Luma, then run luma cover --dry-run and approve again.`,
+                    ),
+                }),
+              );
+          }),
         );
       if (recorded.length !== 1) {
         return yield* refuse(

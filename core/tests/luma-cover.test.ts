@@ -8,7 +8,6 @@ import {
   coverFacts,
   CoverRenderer,
   hostNames,
-  isApiUpload,
   isLumaDefaultCover,
   isStockCover,
   sha256,
@@ -314,17 +313,6 @@ describe("what a cover says", () => {
     expect(isLumaDefaultCover("not a url")).toBe(false);
   });
 
-  test("an API upload is on images.lumacdn.com/api-uploads/", () => {
-    expect(
-      isApiUpload("https://images.lumacdn.com/api-uploads/ab/new-cover.png"),
-    ).toBe(true);
-    expect(isApiUpload(ownCover)).toBe(false);
-    expect(isApiUpload(gallery)).toBe(false);
-    expect(isApiUpload("https://example.com/api-uploads/x.png")).toBe(false);
-    expect(isApiUpload(null)).toBe(false);
-    expect(isApiUpload("not a url")).toBe(false);
-  });
-
   test("stock photos are Luma's defaults and Unsplash's, never an upload", () => {
     expect(isStockCover(gallery)).toBe(true);
     expect(isStockCover(unsplash)).toBe(true);
@@ -512,25 +500,6 @@ describe("prepare", () => {
       },
     );
     expect(value(exit).refused).toBeNull();
-  });
-
-  test("lets a past public evening showing an API upload it doesn't record through, so a failed recording can be redone", async () => {
-    const apiUpload = "https://images.lumacdn.com/api-uploads/ab/new-cover.png";
-    const { exit } = await run(
-      (c) => c.prepare({ _tag: "Slug", slug: "2026-08-12-react-at-acme" }),
-      {
-        "/v1/events/get": [
-          json(lumaEvent({ ...reactOnLuma, cover_url: apiUpload })),
-        ],
-      },
-    );
-    const prepared = value(exit);
-    expect(prepared.current).toEqual({
-      url: apiUpload,
-      lumaDefault: false,
-      ours: false,
-    });
-    expect(prepared.refused).toBeNull();
   });
 
   test("refuses a shared evening, and one without a Luma event", async () => {
@@ -753,6 +722,60 @@ describe("approve", () => {
       "/v1/events/get": [past(uploaded)],
     });
     expect(value(again.exit).refused).toBe(
+      "React at Acme is public on Luma: what the public sees changes only through publish.",
+    );
+  });
+
+  test("puts a past public evening's stock photo back when recording its cover fails", async () => {
+    const react = { _tag: "Slug", slug: "2026-08-12-react-at-acme" } as const;
+    const past = (cover_url: string) =>
+      json(lumaEvent({ ...reactOnLuma, cover_url }));
+    const token = value(
+      (
+        await run((c) => c.prepare(react), {
+          "/v1/events/get": [past(gallery)],
+        })
+      ).exit,
+    ).token;
+    // The draft log the recording writes to is gone, so recording fails.
+    await db.exec("DROP TABLE planning.draft_log");
+    const { exit, requests } = await run((c) => c.approve(react, token), {
+      "/v1/events/get": [past(gallery), past(uploaded)],
+      "/v1/images/create-upload-url": [
+        json({
+          upload_url: "https://upload.example/put/abc",
+          file_url: uploaded,
+        }),
+      ],
+      "/put/abc": [{ status: 200 }],
+      "/v1/events/update": [json({}), json({})],
+    });
+    expect(message(exit)).toStartWith("Recording the cover here failed:");
+    expect(message(exit)).toContain(
+      `Its old cover (${gallery}) is back on Luma`,
+    );
+    const updates = requests.filter(
+      (r) => new URL(r.url).pathname === "/v1/events/update",
+    );
+    expect(updates.map((r) => JSON.parse(r.body ?? ""))).toEqual([
+      { event_id: "evt-react", cover_url: uploaded },
+      { event_id: "evt-react", cover_url: gallery },
+    ]);
+  });
+
+  test("refuses a past draft's stock cover once its Luma page is public", async () => {
+    await db.exec(
+      "UPDATE events SET is_draft = true WHERE slug = '2026-08-12-react-at-acme'",
+    );
+    const { exit } = await run(
+      (c) => c.prepare({ _tag: "Slug", slug: "2026-08-12-react-at-acme" }),
+      {
+        "/v1/events/get": [
+          json(lumaEvent({ ...reactOnLuma, cover_url: gallery })),
+        ],
+      },
+    );
+    expect(value(exit).refused).toBe(
       "React at Acme is public on Luma: what the public sees changes only through publish.",
     );
   });
