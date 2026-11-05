@@ -1,18 +1,38 @@
 import { asOf } from "allthings-core/src/clock.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
+import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
+import { slugPattern as personSlugPattern } from "allthings-core/src/person-slug.ts";
 import { Context, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
-import type { OgMetrics } from "../../scripts/build.ts";
+import type { Image, OgMetrics, PhotoBox } from "../../scripts/build.ts";
 import { built } from "../assets.ts";
 import { CacheControl } from "../cache.ts";
 import { repositories } from "../database.ts";
-import { Images, type ImageTransformer } from "../images/route.ts";
+import {
+  fetchOriginal,
+  Images,
+  type ImagesBinding,
+  type ImageTransformer,
+  maxResizeBytes,
+  withTransformBudget,
+} from "../images/route.ts";
 import { eventPath, mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { ogCards } from "./cards.ts";
-import { cardFacts, cardPath, layoutCard } from "./event-card.ts";
+import {
+  type CardText,
+  cardFacts,
+  cardPath,
+  layoutCard,
+} from "./event-card.ts";
+import {
+  layoutPersonCard,
+  personCardFacts,
+  personCardGround,
+  personCardPath,
+} from "./person-card.ts";
 
 /**
  * Link-preview cards and QR codes:
@@ -24,6 +44,10 @@ import { cardFacts, cardPath, layoutCard } from "./event-card.ts";
  *   set over it by the Images binding in the site's fonts. The edge cache
  *   keeps each a day, and its page names it with its version, so a changed
  *   event gets a new card at once.
+ * - `/og/people/<slug>.png`: a person's card (person-card.ts), drawn the
+ *   same way over the people card's ground, with their photo (or the blank
+ *   avatar) drawn into its box first, and named by their page with its
+ *   version: a new photo, title or handle is a new card.
  * - The current site's card routes (`/api/v1/preview.png` and the rest)
  *   redirect for good to their counterparts here.
  * - `/api/v1/<slug>/qr.png`: a QR code to the event's page, and
@@ -101,56 +125,204 @@ function decoded(segment: string): string | undefined {
   }
 }
 
+/** What a card is drawn with, when the Worker has both. */
+interface Drawing {
+  readonly images: ImagesBinding;
+  readonly text: NonNullable<ImagesBinding["text"]>;
+  readonly assets: AssetsBinding;
+}
+
+/** The Images binding and the assets, or none when either is missing. */
+const drawing = Effect.gen(function* () {
+  const images = yield* Images;
+  const assets = yield* Assets;
+  if (
+    Option.isNone(images) ||
+    Option.isNone(assets) ||
+    images.value.text === undefined
+  ) {
+    return Option.none<Drawing>();
+  }
+  return Option.some<Drawing>({
+    images: images.value,
+    // Bound: workerd's binding methods throw when called detached from it.
+    text: images.value.text.bind(images.value),
+    assets: assets.value,
+  });
+});
+
+/** One of the Worker's own assets, as a stream. */
+async function asset(
+  assets: AssetsBinding,
+  image: Image,
+  origin: string,
+): Promise<ReadableStream<Uint8Array>> {
+  const response = await assets.fetch(
+    new Request(new URL(image.src, origin).href),
+  );
+  if (!response.ok || response.body === null) {
+    throw new Error(`${image.src} answered ${response.status}`);
+  }
+  return response.body;
+}
+
+/** A photo to draw into a box, square, cropped to fill it as portraits are. */
+interface Photo {
+  readonly body: ReadableStream<Uint8Array>;
+  readonly box: PhotoBox;
+}
+
+/**
+ * `ground` with `photo` drawn into its box, then `texts` over it, as a
+ * PNG response.
+ */
+async function draw(
+  { images, text, assets }: Drawing,
+  ground: Image,
+  texts: ReadonlyArray<CardText>,
+  origin: string,
+  photo?: Photo,
+): Promise<Response> {
+  let card: ImageTransformer = images.input(
+    await asset(assets, ground, origin),
+  );
+  if (photo !== undefined) {
+    const { side, top, left } = photo.box;
+    card = card.draw(
+      images
+        .input(photo.body)
+        .transform({ width: side, height: side, fit: "cover" }),
+      { top, left },
+    );
+  }
+  for (const run of texts) {
+    card = card.draw(
+      text(run.text, {
+        font: { url: new URL(built.og.fonts[run.font], origin).href },
+        color: run.color,
+        size: run.size,
+      }),
+      { top: run.top, left: run.left },
+    );
+  }
+  return (await card.output({ format: "image/png" })).response();
+}
+
+/** A drawing that failed, logged: the card isn't drawn this time. */
+const notDrawn = (what: string) => (cause: unknown) =>
+  Effect.logError(`Error drawing the card for ${what}:`, cause).pipe(
+    Effect.as(undefined),
+  );
+
 /** The event's card, drawn: undefined when Images can't draw it. */
 const drawCard = (slug: string, origin: string) =>
   Effect.gen(function* () {
     const found = yield* readEvent(slug);
     if (Option.isNone(found)) return Option.none<Response | undefined>();
-    const images = yield* Images;
-    const assets = yield* Assets;
-    if (
-      Option.isNone(images) ||
-      Option.isNone(assets) ||
-      images.value.text === undefined
-    ) {
+    const tools = yield* drawing;
+    if (Option.isNone(tools)) {
       return Option.some<Response | undefined>(undefined);
     }
-    // Bound: workerd's binding methods throw when called detached from it.
-    const text = images.value.text.bind(images.value);
     const facts = cardFacts(found.value, yield* asOf);
     const texts = layoutCard(facts, yield* loadMetrics);
     const ground =
       facts.mode === "night"
         ? built.og.cards.eventNight
         : built.og.cards.eventPaper;
-    const drawn = yield* Effect.tryPromise(async () => {
-      const base = await assets.value.fetch(
-        new Request(new URL(ground.src, origin).href),
-      );
-      if (!base.ok || base.body === null) {
-        throw new Error(`the card's ground answered ${base.status}`);
-      }
-      let card: ImageTransformer = images.value.input(base.body);
-      for (const run of texts) {
-        card = card.draw(
-          text(run.text, {
-            font: { url: new URL(built.og.fonts[run.font], origin).href },
-            color: run.color,
-            size: run.size,
-          }),
-          { top: run.top, left: run.left },
-        );
-      }
-      return (await card.output({ format: "image/png" })).response();
-    }).pipe(
-      Effect.catchCause((cause) =>
-        Effect.logError(`Error drawing the card for ${slug}:`, cause).pipe(
-          Effect.as(undefined),
-        ),
-      ),
-    );
+    const drawn = yield* Effect.tryPromise(() =>
+      draw(tools.value, ground, texts, origin),
+    ).pipe(Effect.catchCause(notDrawn(slug)));
     return Option.some(drawn);
   });
+
+/** The person at `slug`: found, moved to another slug, or no one. */
+const readPerson = (slug: string) =>
+  PeopleDirectory.use((directory) => directory.person(slug, mediaOrigin)).pipe(
+    Effect.provide(repositories),
+  );
+
+/**
+ * What `/og/people/<slug>.png` finds: no one; the slug they moved to; or
+ * their card, drawn, which is undefined when it can't be drawn this time
+ * (no Images binding, an original too large to hand it, no room in the
+ * budget, or a failure on the way).
+ */
+const drawPersonCard = (slug: string, origin: string) =>
+  Effect.gen(function* () {
+    const found = yield* readPerson(slug);
+    if (found.kind === "none") return { kind: "none" } as const;
+    if (found.kind === "moved") {
+      return { kind: "moved", slug: found.slug } as const;
+    }
+    const drawn = (response: Response | undefined) =>
+      ({ kind: "drawn", response }) as const;
+    const tools = yield* drawing;
+    if (Option.isNone(tools)) return drawn(undefined);
+    const facts = personCardFacts(found.person);
+    const texts = layoutPersonCard(facts, yield* loadMetrics);
+    const ground = personCardGround(facts);
+    const box = built.og.personPhoto;
+    const avatar = Effect.tryPromise(async () =>
+      draw(tools.value, ground, texts, origin, {
+        body: await asset(tools.value.assets, built.marks.avatarPng, origin),
+        box,
+      }),
+    );
+    if (facts.photo === null) {
+      return drawn(yield* avatar.pipe(Effect.catchCause(notDrawn(slug))));
+    }
+    const { media } = yield* Site;
+    const photo = facts.photo;
+    return drawn(
+      yield* Effect.gen(function* () {
+        const original = yield* fetchOriginal(photo.key, media);
+        // A photo the media origin no longer has: the blank avatar, as their page shows.
+        if (original === undefined) return yield* avatar;
+        const { body } = original.response;
+        const length = Number(
+          original.response.headers.get("content-length") ?? Number.NaN,
+        );
+        // Images takes an original whole, so only one whose size is known
+        // and small enough is handed to it, within the isolate's budget.
+        if (
+          body === null ||
+          !Number.isFinite(length) ||
+          length > maxResizeBytes
+        ) {
+          yield* Effect.promise(() => body?.cancel() ?? Promise.resolve());
+          return undefined;
+        }
+        const made = yield* withTransformBudget(
+          length,
+          Effect.tryPromise(() =>
+            draw(tools.value, ground, texts, origin, { body, box }),
+          ).pipe(
+            // A body Images never read is let go of.
+            Effect.tapCause(() =>
+              Effect.promise(() => body.cancel().catch(() => undefined)),
+            ),
+          ),
+        );
+        if (Option.isNone(made)) {
+          yield* Effect.promise(() => body.cancel().catch(() => undefined));
+          return undefined;
+        }
+        return made.value;
+      }).pipe(Effect.catchCause(notDrawn(slug))),
+    );
+  });
+
+/** A drawn card, kept a day. */
+const cardResponse = (body: ReadableStream<Uint8Array> | null) =>
+  HttpServerResponse.raw(
+    new Response(body, {
+      headers: {
+        "content-type": "image/png",
+        "cache-control": cardCacheControl,
+        "x-content-type-options": "nosniff",
+      },
+    }),
+  );
 
 const card = HttpRouter.add(
   "GET",
@@ -169,19 +341,43 @@ const card = HttpRouter.add(
       // Not drawn this time: the site's card instead, and never kept.
       return redirect(ogCards.home.src, 302, CacheControl.failure);
     }
-    return HttpServerResponse.raw(
-      new Response(drawn.value.body, {
-        headers: {
-          "content-type": "image/png",
-          "cache-control": cardCacheControl,
-          "x-content-type-options": "nosniff",
-        },
-      }),
-    );
+    return cardResponse(drawn.value.body);
   }).pipe(
     Effect.catchCause((cause) =>
       Effect.logError("Error serving a card:", cause).pipe(
         Effect.as(redirect(ogCards.home.src, 302, CacheControl.failure)),
+      ),
+    ),
+  ),
+);
+
+/**
+ * A person's card at `/og/people/<slug>.png`; a slug they had before
+ * redirects to their card at their current one, for good, as their page
+ * does. When it can't be drawn, the people card stands in, never kept.
+ */
+const personCardRoute = HttpRouter.add(
+  "GET",
+  "/og/people/:file",
+  Effect.gen(function* () {
+    const { file = "" } = yield* HttpRouter.params;
+    const slug = file.endsWith(".png") ? decoded(file.slice(0, -4)) : undefined;
+    if (slug === undefined || !personSlugPattern.test(slug)) return notFound;
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const { origin } = new URL(request.originalUrl);
+    const found = yield* drawPersonCard(slug, origin);
+    if (found.kind === "none") return notFound;
+    if (found.kind === "moved") {
+      return redirect(personCardPath(found.slug), 301, CacheControl.page);
+    }
+    if (found.response === undefined) {
+      return redirect(ogCards.people.src, 302, CacheControl.failure);
+    }
+    return cardResponse(found.response.body);
+  }).pipe(
+    Effect.catchCause((cause) =>
+      Effect.logError("Error serving a person's card:", cause).pipe(
+        Effect.as(redirect(ogCards.people.src, 302, CacheControl.failure)),
       ),
     ),
   ),
@@ -269,4 +465,10 @@ const urlQr = HttpRouter.add(
   }),
 );
 
-export const ogRoutes = Layer.mergeAll(card, legacyCards, eventQr, urlQr);
+export const ogRoutes = Layer.mergeAll(
+  card,
+  personCardRoute,
+  legacyCards,
+  eventQr,
+  urlQr,
+);

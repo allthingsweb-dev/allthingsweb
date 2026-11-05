@@ -5,6 +5,7 @@ import * as Effect from "effect/Effect";
 import { CacheControl } from "../src/cache.ts";
 import { ogCards } from "../src/og/cards.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
+import { png, serveMedia } from "./support/media.ts";
 import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
 
@@ -12,14 +13,23 @@ import { testStack } from "./support/stack.ts";
  * Link-preview cards and QR codes, served by the Worker in workerd against
  * the event catalog. Alchemy's local Images binding rasterizes text but
  * skips draws, so a card drawn here is its ground alone: what the words
- * look like is checked on a deployed preview (the PR has samples).
+ * look like is checked on a deployed preview (the PR has samples). Ada's
+ * photo is on a stand-in media origin; Grace has none.
  */
 
 const origin = "https://allthings.dev";
 const database = await serve(await eventDatabase(new Date()));
+const media = serveMedia({
+  "profiles/ada.jpg": { body: png(400, 400), type: "image/png" },
+});
 
 const Stack = testStack("allthings-web-og-test", {
-  Cards: { ORIGIN: origin, DATABASE_URL: database.url, IMAGES: true },
+  Cards: {
+    ORIGIN: origin,
+    DATABASE_URL: database.url,
+    IMAGES: true,
+    MEDIA_ORIGIN: media.origin,
+  },
   NoImages: { ORIGIN: origin, DATABASE_URL: database.url },
 });
 
@@ -29,7 +39,14 @@ const { test, beforeAll, afterAll, deploy, destroy } = Test.make({
 });
 const workers = beforeAll(deploy(Stack));
 afterAll(
-  destroy(Stack).pipe(Effect.ensuring(Effect.promise(() => database.stop()))),
+  destroy(Stack).pipe(
+    Effect.ensuring(
+      Effect.promise(async () => {
+        await database.stop();
+        await media.stop();
+      }),
+    ),
+  ),
 );
 
 type Worker = "Cards" | "NoImages";
@@ -130,6 +147,73 @@ describe("pages' cards", () => {
     "/og/.png",
     "/og/home.jpg",
     "/og/%E0%A4%A.png",
+  ]) {
+    it(`${path} is not found`, async ({ Cards }) => {
+      const { response } = await get(`${Cards}${path}`);
+      expect(response.status).toBe(404);
+    });
+  }
+});
+
+describe("people's cards", () => {
+  it("are named by each person's page; the people page keeps the brand's", async ({
+    Cards,
+  }) => {
+    const html = await (await fetch(`${Cards}/people/ada-lovelace`)).text();
+    const image = /<meta property="og:image" content="([^"]+)"/.exec(html)?.[1];
+    expect(image).toMatch(
+      new RegExp(`^${origin}/og/people/ada-lovelace\\.png\\?v=[0-9a-z]+$`),
+    );
+    expect(html).toContain(`<meta name="twitter:image" content="${image}"/>`);
+    expect(html).toContain(
+      '<meta property="og:image:alt" content="Ada Lovelace · Engineer, Analytical Engines · @ada · allthings/_"/>',
+    );
+    const people = await (await fetch(`${Cards}/people`)).text();
+    expect(people).toContain(
+      `<meta property="og:image" content="${origin}${ogCards.people.src}"/>`,
+    );
+  });
+
+  it("draw a person's card with their photo, kept a day", async ({ Cards }) => {
+    const before = media.fetches("profiles/ada.jpg");
+    const { response, body } = await get(`${Cards}/og/people/ada-lovelace.png`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+    );
+    const view = new DataView(body.buffer);
+    expect([view.getUint32(16), view.getUint32(20)]).toEqual([1200, 630]);
+    expect(media.fetches("profiles/ada.jpg")).toBe(before + 1);
+  });
+
+  it("draw one without a photo with the blank avatar, asking the media origin nothing", async ({
+    Cards,
+  }) => {
+    const before = media.requests.length;
+    const { response, body } = await get(`${Cards}/og/people/grace-hopper.png`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    const view = new DataView(body.buffer);
+    expect([view.getUint32(16), view.getUint32(20)]).toEqual([1200, 630]);
+    expect(media.requests.length).toBe(before);
+  });
+
+  it("send the people card, never kept, when a person's can't be drawn", async ({
+    NoImages,
+  }) => {
+    const { response } = await get(`${NoImages}/og/people/ada-lovelace.png`);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(ogCards.people.src);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+  });
+
+  for (const path of [
+    "/og/people/no-such-person.png",
+    "/og/people/.png",
+    "/og/people/Ada-Lovelace.png",
+    "/og/people/ada-lovelace.jpg",
+    "/og/people/%E0%A4%A.png",
   ]) {
     it(`${path} is not found`, async ({ Cards }) => {
       const { response } = await get(`${Cards}${path}`);

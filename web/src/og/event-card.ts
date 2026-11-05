@@ -112,7 +112,7 @@ export function textWidth(
 }
 
 /** `text` cut to fit `width` with an ellipsis, if it doesn't. */
-function fit(
+export function fit(
   metrics: OgFontMetrics,
   text: string,
   size: number,
@@ -133,7 +133,7 @@ function fit(
 }
 
 /** Words set into lines no wider than `width`, a word too long cut to fit. */
-function wrap(
+export function wrap(
   metrics: OgFontMetrics,
   text: string,
   size: number,
@@ -282,7 +282,7 @@ export function layoutCard(
 }
 
 /** FNV-1a, 32 bits, in base 36: short, stable, and enough to tell versions apart. */
-function fnv(text: string): string {
+export function fnv(text: string): string {
   let hash = 0x811c9dc5;
   for (const byte of new TextEncoder().encode(text)) {
     hash ^= byte;

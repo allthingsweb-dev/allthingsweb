@@ -223,6 +223,24 @@ const permitsFor = (length: number) =>
     Math.max(1, Math.ceil(length / permitBytes)),
   );
 
+/**
+ * `use`, run while the budget an original of `length` bytes takes is
+ * held, as a person's card drawing their photo (og/route.ts) holds it:
+ * none when the budget has no room within {@link budgetWait}.
+ */
+export const withTransformBudget = <A, E, R>(
+  length: number,
+  use: Effect.Effect<A, E, R>,
+): Effect.Effect<Option.Option<A>, E, R> =>
+  Effect.gen(function* () {
+    const permits = permitsFor(length);
+    if (!(yield* takeBudget(permits))) return Option.none<A>();
+    return yield* use.pipe(
+      Effect.map(Option.some),
+      Effect.ensuring(Semaphore.release(transformBudget, permits)),
+    );
+  });
+
 /** Originals sent as they are, when no variant could be made. */
 const originalCacheControl = "public, max-age=300";
 
@@ -427,17 +445,17 @@ export async function fetchOnceMore(url: string): Promise<Response> {
 }
 
 /**
- * The original of `variant` from `media`, when it is there as a raster
- * image: `undefined` when the media origin has no such photo. Only the
+ * The original at `key` on `media`, when it is there as a raster image:
+ * `undefined` when the media origin has no such photo. Only the
  * key's own object is fetched, never where a redirect points, and its body
  * is left unread, so the Worker never holds a whole original in memory. An
  * original stored without a type is taken for the raster image its first
  * bytes say it is, and refused like any other type when they say none.
  */
-const fetchOriginal = (variant: Variant, media: string) =>
+export const fetchOriginal = (key: string, media: string) =>
   Effect.gen(function* () {
     const original = yield* Effect.tryPromise({
-      try: () => fetchOnceMore(`${media}/${encodeKey(variant.key)}`),
+      try: () => fetchOnceMore(`${media}/${encodeKey(key)}`),
       catch: (cause) => new FetchFailed({ cause }),
     });
     const contentType =
@@ -497,7 +515,7 @@ const serve = (
     }
 
     const started = Date.now();
-    const original = yield* fetchOriginal(variant, media);
+    const original = yield* fetchOriginal(variant.key, media);
     if (original === undefined) return notFound;
     const { response, contentType } = original;
 
@@ -537,7 +555,7 @@ const serve = (
     );
     if (Option.isNone(made)) {
       // Images read the first copy; the media origin's edge has another.
-      const again = yield* fetchOriginal(variant, media);
+      const again = yield* fetchOriginal(variant.key, media);
       if (again === undefined) return notFound;
       return asOriginal(again.response.body, again.contentType);
     }
