@@ -866,6 +866,31 @@ describe("approve", () => {
     );
   });
 
+  test("names both covers when reading the event back after the update fails", async () => {
+    const token = await tokenFor();
+    const { exit } = await run(
+      (c) => c.approve({ _tag: "Slug", slug: draft }, token),
+      {
+        "/v1/events/get": [json(lumaEvent()), { status: 500, body: "{}" }],
+        "/v1/images/create-upload-url": [
+          json({
+            upload_url: "https://upload.example/put/abc",
+            file_url: uploaded,
+          }),
+        ],
+        "/put/abc": [{ status: 200 }],
+        "/v1/events/update": [json({})],
+      },
+    );
+    expect(message(exit)).toStartWith(
+      "Luma took the cover update, but reading the event back failed:",
+    );
+    expect(message(exit)).toContain(
+      `The uploaded cover is ${uploaded}; the one before was ${gallery}.`,
+    );
+    expect(await recorded()).toMatchObject({ generated_cover_url: null });
+  });
+
   test("refuses a public event, whatever the token", async () => {
     const token = await tokenFor();
     const { exit, requests } = await run(

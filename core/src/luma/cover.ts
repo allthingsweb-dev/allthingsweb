@@ -227,7 +227,16 @@ const make = Effect.gen(function* () {
       }
       const fileUrl = yield* luma.uploadImage(prepared.png, "image/png");
       yield* luma.update(prepared.lumaEventId, { cover_url: fileUrl });
-      const after = yield* luma.get(prepared.lumaEventId);
+      // A failed read leaves which cover Luma shows unknown: say both.
+      const after = yield* luma
+        .get(prepared.lumaEventId)
+        .pipe(
+          Effect.catch((cause) =>
+            refuse(
+              `Luma took the cover update, but reading the event back failed: ${cause.message}. Nothing was recorded. The uploaded cover is ${fileUrl}; the one before was ${prepared.current.url ?? "none"}. Check which ${prepared.name} shows on Luma before approving again.`,
+            ),
+          ),
+        );
       const coverUrl = after.cover_url;
       // Only the uploaded cover is recorded as ours: anything else on the
       // event now (the old one, Luma's default, another upload) is not.
