@@ -2,7 +2,6 @@ import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { ahead, ours } from "./catalog.ts";
 import { asOf } from "./clock.ts";
-import { isStale } from "./now.ts";
 import { decodePeopleFile, type PeopleFile } from "./people-enrichment.ts";
 import { orDataSourceError } from "./sql.ts";
 
@@ -31,6 +30,20 @@ export const organizerCheckDays = 90;
 /** The parts that host an evening: whose profile it is about. */
 export const hostingRoles = ["organizer", "co-host"] as const;
 
+/**
+ * Whether `read` (YYYY-MM-DD) is a real day from 0 up to `days` days
+ * before `today`. A day ahead (a typo'd year) or no real day at all
+ * isn't a check: a gate fails closed on a bad date.
+ */
+const readWithin = (read: string, today: string, days: number): boolean => {
+  const at = Date.parse(`${read}T00:00:00Z`);
+  if (Number.isNaN(at) || new Date(at).toISOString().slice(0, 10) !== read) {
+    return false;
+  }
+  const age = (Date.parse(`${today}T00:00:00Z`) - at) / 86_400_000;
+  return age >= 0 && age < days;
+};
+
 /** When a host's title and bio were last read in the file, and whether that's recent enough. */
 export interface ProfileCheck {
   readonly fresh: boolean;
@@ -53,8 +66,8 @@ export const profileCheck = (
     fresh:
       title !== null &&
       bio !== null &&
-      !isStale(title, today, days) &&
-      !isStale(bio, today, days),
+      readWithin(title, today, days) &&
+      readWithin(bio, today, days),
     title,
     bio,
   };

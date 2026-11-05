@@ -117,6 +117,7 @@ const facts = (
   scheduleItems: 0,
   plannedTalks: [],
   cover: "ours",
+  hostingPeople: [],
   ...more,
 });
 

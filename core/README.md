@@ -905,16 +905,14 @@ An entry's `now` is what the person does now (docs/now.md,
 `bun run people stale` prints, as JSON, the records checked `--days` (90)
 or more days ago, oldest first, with their held claims, for an agent to look
 at again under docs/now.md's rules. `--speakers` adds everyone who has spoken
-at one of our evenings and never had a record; only that reads the
-database, and site_reader's connection is enough:
-
-`--organizers` adds, as `organizers`, everyone who organizes or co-hosts an
+at one of our evenings and never had a record. `--organizers` adds, as `organizers`, everyone who organizes or co-hosts an
 evening of ours not over yet whose title and bio the file hasn't both read
 in the last 90 days, with those evenings: what readiness blocks a draft on,
 and what to check before any evening ahead. It reads the database too:
 site_reader's connection sees the published lineups, and a role that may
 read planning adds each draft's lineup as planned (readiness checks those on
-the draft itself).
+the draft itself). Only these two read the database, and site_reader's
+connection is enough for both:
 
 ```sh
 bun run people stale --days 90
@@ -1189,7 +1187,9 @@ to add. A draft is an event the Luma sync stored as one (a private or
 cancelled Luma event), named by slug, or an idea from planning, named by id:
 through its draft evening when it has one, else on its own, with everything
 still to do. Its checks and rankings are pure functions of what the database
-holds at the Clock's now.
+holds at the Clock's now and of `backfill/people.json`, the record of when
+each host's title and bio were checked (`PeopleRecord`, which
+`Readiness.layerWith` replaces in a test).
 
 A draft that came from an idea is checked as the idea's kind of evening (a
 social, a hackathon): the program is kept in planning, private, while the

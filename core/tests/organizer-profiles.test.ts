@@ -2,6 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { Effect, Layer } from "effect";
 import {
+  provisionLoginRole,
+  type Statements,
+} from "../../infra/scripts/login-role.ts";
+import {
+  grantStatements as readerGrants,
+  SITE_READER,
+} from "../../infra/scripts/site-reader.ts";
+import {
   organizerCheckDays,
   PeopleRecord,
   profileCheck,
@@ -53,6 +61,20 @@ describe("a host's profile check", () => {
     );
     expect(old.fresh).toBe(false);
     expect(staleLine(old)).toBe("title read 2026-10-01, bio read 2026-07-05");
+  });
+
+  test("is stale with a read dated ahead, or on no real day: a bad date fails closed", () => {
+    for (const read of [
+      "2063-11-01",
+      "2026-10-04",
+      "2026-13-01",
+      "2026-02-30",
+    ]) {
+      expect(profileCheck(adaRead(read), ada, "2026-10-03").fresh).toBe(false);
+    }
+    expect(profileCheck(adaRead("2026-10-03"), ada, "2026-10-03").fresh).toBe(
+      true,
+    );
   });
 
   test("is stale with no entry, or an entry missing either fact", () => {
@@ -191,6 +213,35 @@ describe("people stale --organizers", () => {
         evenings: ["2026-11-05-upcoming"],
       },
     ]);
+    expect((await run([])).map((host) => host.name)).toEqual([
+      "Ada Lovelace",
+      "Grace Hopper",
+    ]);
+  });
+
+  test("as site_reader, reads the published lineups only", async () => {
+    await db.exec(`UPDATE events SET start_date = '2026-10-28T00:30:00Z', end_date = '2026-10-28T03:30:00Z'
+      WHERE slug = '${draft}'`);
+    await plan((p) =>
+      p.setDraftLineup(draft, [{ role: "co-host", profile: "Ada Lovelace" }]),
+    );
+    await db.exec(`INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
+      ('e0000000-0000-4000-8000-000000000004', '${grace}', 'organizer', 0, 'site', now())`);
+    const owner: Statements = {
+      unsafe: async (query, values) =>
+        (await db.query(query, values === undefined ? [] : [...values])).rows,
+    };
+    await provisionLoginRole(owner, SITE_READER, "test-only");
+    for (const statement of readerGrants()) await db.exec(statement);
+    await db.exec(`SET ROLE ${SITE_READER}`);
+    try {
+      expect((await run([])).map((host) => host.name)).toEqual([
+        "Grace Hopper",
+      ]);
+    } finally {
+      await db.exec("RESET ROLE");
+    }
+    // As the owner, the draft's planned co-host joins.
     expect((await run([])).map((host) => host.name)).toEqual([
       "Ada Lovelace",
       "Grace Hopper",

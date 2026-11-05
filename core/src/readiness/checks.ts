@@ -106,10 +106,10 @@ export interface DraftFacts {
   readonly cover: "ours" | "stale" | "not ours";
   /**
    * Its organizers and co-hosts, each with when core/backfill/people.json
-   * last read their title and bio (src/organizer-profiles.ts). None when
-   * not given.
+   * last read their title and bio (src/organizer-profiles.ts): every
+   * caller says, even when there is no one.
    */
-  readonly hostingPeople?: ReadonlyArray<{
+  readonly hostingPeople: ReadonlyArray<{
     readonly name: string;
     readonly check: ProfileCheck;
   }>;
@@ -380,7 +380,7 @@ export function draftChecks(
   // What the people hosting it say about themselves is read before
   // anything else of theirs: an old title or bio goes out with the
   // evening, so it waits until someone has checked them.
-  for (const { name, check: profile } of facts.hostingPeople ?? []) {
+  for (const { name, check: profile } of facts.hostingPeople) {
     if (profile.fresh) continue;
     checks.push(
       check(
