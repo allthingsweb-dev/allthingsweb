@@ -213,9 +213,9 @@ const stale = Command.make(
       ];
       const hosts = organizers
         ? yield* staleHosts(people).pipe(
-            Effect.map((stale) => ({
-              organizersToday: stale.today,
-              organizers: stale.hosts,
+            Effect.map((checked) => ({
+              organizersToday: checked.today,
+              organizers: checked.hosts,
             })),
             Effect.provide(Database.scriptLayer),
           )
