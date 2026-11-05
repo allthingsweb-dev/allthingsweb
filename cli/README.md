@@ -6,16 +6,12 @@ allthings from your terminal: what's coming up, who's on stage and how to get in
 curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash
 ```
 
-That installs the latest stable release in `~/.allthings/bin`. `allthings` 2 is in prerelease until the launch, so ask for one by name:
+That installs the latest stable release, `allthings` 2, in `~/.allthings/bin`.
+
+It is also on npm as `allthings`, for Bun:
 
 ```sh
-curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | ALLTHINGS_VERSION=2.0.0-alpha.3 bash
-```
-
-It is also on npm as `allthings`, for Bun. Prereleases carry the `alpha` dist-tag:
-
-```sh
-bunx allthings@alpha events
+bunx allthings events
 ```
 
 ## Use
