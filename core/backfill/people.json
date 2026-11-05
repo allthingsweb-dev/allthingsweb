@@ -209,7 +209,7 @@
       "also": ["https://x.com/grichadev", "https://github.com/gricha"]
     },
     "bio": {
-      "value": "Greg Pstrucha is an engineer on the AI/ML team at Sentry, where he helped build dotagents, a tool that manages agent skills as versioned, lock-filed dependencies. He previously co-founded Subroutine, led the API Platform team at Robinhood, and worked on mobile infrastructure at Facebook, where he created FBRetainCycleDetector. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke on why Claude Code skills are a security threat.",
+      "value": "Greg Pstrucha is an engineer on the AI/ML team at Sentry, where he helped build dotagents, a tool that manages agent skills as versioned, lock-filed dependencies. He previously co-founded Subroutine, led the API Platform team at Robinhood, and worked on mobile infrastructure at Facebook, where he created FBRetainCycleDetector. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on why Claude Code skills are a security threat.",
       "source": "https://gricha.dev/work",
       "read": "2026-11-05",
       "also": [
@@ -260,7 +260,7 @@
       "also": ["https://x.com/ivanburazin"]
     },
     "bio": {
-      "value": "Ivan Burazin is the co-founder and CEO of Daytona, which builds infrastructure for running AI-generated code. He earlier co-founded Codeanywhere, one of the first cloud IDEs, and created Shift, a developer conference in Croatia that Infobip acquired, after which he served as Infobip’s Chief Developer Experience Officer. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke about why sandboxes aren’t enough for agents.",
+      "value": "Ivan Burazin is the co-founder and CEO of Daytona, which builds infrastructure for running AI-generated code. He earlier co-founded Codeanywhere, one of the first cloud IDEs, and created Shift, a developer conference in Croatia that Infobip acquired, after which he served as Infobip’s Chief Developer Experience Officer. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke about why sandboxes aren’t enough for agents.",
       "source": "https://slush.org/2026-speakers/ivan-burazin",
       "read": "2026-11-05",
       "was": "Ivan Burazin is the co-founder and CEO of Daytona, a startup building agent cloud infrastructure for enterprises and AI labs. A longtime developer tools entrepreneur, Ivan previously co-founded Codeanywhere, one of the first cloud IDEs launched in 2009. He also created Shift, Croatia's flagship developer conference and the biggest in Southeast Europe, which was acquired by Infobip, where he went on to serve as Chief Developer Experience Officer.",
@@ -310,7 +310,7 @@
       "also": ["https://jeffreyhuber.com"]
     },
     "bio": {
-      "value": "Jeff Huber is the founder and CEO of Chroma, the open-source data infrastructure for AI, which signed an agreement in October 2026 to join Replit. Chroma recently open-sourced Context-1, a search agent model, and he writes essays on AI and company building, including The Rise of Context Engineering. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke on building agentic search.",
+      "value": "Jeff Huber is the founder and CEO of Chroma, the open-source data infrastructure for AI, which signed an agreement in October 2026 to join Replit. Chroma recently open-sourced Context-1, a search agent model, and he writes essays on AI and company building, including The Rise of Context Engineering. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on building agentic search.",
       "source": "https://www.trychroma.com/blog/chroma-joins-replit",
       "read": "2026-11-05",
       "also": [
