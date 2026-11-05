@@ -335,7 +335,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
       subject: "allthings/_: these evenings are now allthings",
       body: fitOn("meetup", [
         paragraphs(
-          `The evenings this group lists went by ${formerName}. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.`,
+          `The evenings this group lists were part of ${formerName}. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.`,
           `Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (${calendar}); the list on Meetup is a waitlist.`,
           `What's new on ${site} (${formerDomain} redirects there): a short link for every evening, ${shortLink}; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.`,
           `${nextLine(true)} ${next.url}`,
