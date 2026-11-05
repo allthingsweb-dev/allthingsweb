@@ -538,6 +538,37 @@ describe("MCP", () => {
     expect(response.status).toBe(413);
   });
 
+  it("refuses a streamed body once it has read past its size limit", async ({
+    Web,
+  }) => {
+    // No Content-Length: the limit holds on the bytes as they arrive.
+    const text = JSON.stringify(
+      call("get_event", { slug: "x".repeat(maxRequestBodySize) }),
+    );
+    const chunk = 4096;
+    const bytes = new TextEncoder().encode(text);
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent >= bytes.length) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(bytes.slice(sent, sent + chunk));
+        sent += chunk;
+      },
+    });
+    const request = new Request(`${Web}/mcp`, {
+      method: "POST",
+      headers: mcpHeaders,
+      body,
+    });
+    expect(request.headers.get("content-length")).toBeNull();
+    const response = await fetch(request);
+    await response.body?.cancel();
+    expect(response.status).toBe(413);
+  });
+
   it("answers a call whose arguments hold too many elements with an error, and still serves", async ({
     Web,
   }) => {
