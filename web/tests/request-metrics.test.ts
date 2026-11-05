@@ -40,6 +40,9 @@ describe("pathClass", () => {
     for (const path of [
       "/.env",
       "/wp-login.php",
+      // A token-like first segment, or one with an address, is never an index.
+      "/abcdefghijklmnopqrstuvwxyz012345",
+      "/alice%40example.com",
       "/%2e%2e/etc",
       `/${"a".repeat(33)}`,
     ]) {
@@ -56,7 +59,8 @@ describe("redactedPath", () => {
       ["/reset/" + "a1B2c3D4".repeat(4), "/reset/(token)"],
       ["/k/" + "a1b2c3d4".repeat(3), "/k/(token)"],
       ["/s/" + "Ab3-xY9_".repeat(4), "/s/(token)"],
-      ["/x/%E0%A4%A", "/x/%E0%A4%A"],
+      ["/x/%E0%A4%A", "/x/(malformed)"],
+      ["/people/alice%40example.com%ZZ", "/people/(malformed)"],
     ] as const) {
       expect([path, redactedPath(path)]).toEqual([path, kept]);
     }

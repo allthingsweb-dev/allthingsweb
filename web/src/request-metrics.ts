@@ -55,17 +55,20 @@ export const pathLimit = 200;
  * with no `-`, or with capitals and digits among its `-`s, becomes
  * `(token)`: a token or a key. The site's own paths have neither: slugs
  * are lowercase words and dates joined by `-`, and a photo's version is
- * 10 digits. Then at most {@link pathLimit} characters.
+ * 10 digits. A segment that doesn't decode becomes `(malformed)`. Then
+ * at most {@link pathLimit} characters.
  */
 export function redactedPath(pathname: string): string {
   return pathname
     .split("/")
     .map((segment) => {
-      let decoded = segment;
+      let decoded: string;
       try {
         decoded = decodeURIComponent(segment);
       } catch {
-        // A malformed escape is kept as it was sent.
+        // A malformed escape could hide either (`%40` beside `%ZZ`), so
+        // the segment is never kept.
+        return "(malformed)";
       }
       if (decoded.includes("@")) return "(email)";
       if (
@@ -101,7 +104,10 @@ export const requestDatasetOf = (
  * `/wp-login.php`) is `/(other)`, which keeps the classes few.
  */
 export function pathClass(pathname: string): string {
-  const [first = "", ...rest] = pathname.replace(/^\/+/, "").split("/");
+  // Redacted first, so a token-like first segment is never an index.
+  const [first = "", ...rest] = redactedPath(pathname)
+    .replace(/^\/+/, "")
+    .split("/");
   if (first === "") return "/";
   if (!/^[a-z0-9_-]{1,32}$/i.test(first)) return "/(other)";
   const segment = first.toLowerCase();
