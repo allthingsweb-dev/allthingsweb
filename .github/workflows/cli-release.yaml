@@ -69,11 +69,12 @@ jobs:
         name: Publish to npm
         needs: releaseandpublish
         runs-on: ubuntu-latest
-        # One publish at a time, never cancelled: each run reads npm's latest
-        # only after the one before has finished moving it.
+        # One publish at a time, none cancelled and up to 100 waiting (queue: max):
+        # each run reads npm's latest only after the one before has moved it.
         concurrency:
             group: npm-publish
             cancel-in-progress: false
+            queue: max
         permissions:
             contents: read
         steps:
