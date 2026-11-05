@@ -1,8 +1,9 @@
-import { Context, DateTime, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { ahead, ours } from "./catalog.ts";
 import { asOf } from "./clock.ts";
 import { decodePeopleFile, type PeopleFile } from "./people-enrichment.ts";
+import { sfDay } from "./readiness/calendar.ts";
 import { orDataSourceError } from "./sql.ts";
 
 /**
@@ -132,7 +133,8 @@ export const staleHosts = (file: PeopleFile, days = organizerCheckDays) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     const now = yield* asOf;
-    const today = DateTime.formatIsoDateUtc(now);
+    // San Francisco's day, as readiness judges the same draft by.
+    const today = sfDay(now);
     const [planning] = yield* sql<{ readable: boolean }>`
       SELECT EXISTS (
         SELECT 1 FROM pg_catalog.pg_namespace n

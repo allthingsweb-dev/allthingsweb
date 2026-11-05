@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
-import { Effect, Layer } from "effect";
+import { DateTime, Effect, Layer } from "effect";
 import {
   provisionLoginRole,
   type Statements,
@@ -19,7 +19,12 @@ import {
 import type { PeopleFile } from "../src/people-enrichment.ts";
 import { Planning } from "../src/planning/planning.ts";
 import { Readiness } from "../src/readiness/readiness.ts";
-import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
+import {
+  clockAt,
+  clockLayer,
+  seededDatabase,
+  sqlLayer,
+} from "./support/database.ts";
 
 /**
  * The hosts' own profiles (src/organizer-profiles.ts): fresh only with a
@@ -190,6 +195,20 @@ describe("readiness", () => {
 });
 
 describe("people stale --organizers", () => {
+  test("judges by San Francisco's day, as readiness does", async () => {
+    // 00:30 UTC on 2026-10-04 is still 2026-10-03 in San Francisco: a read
+    // on 2026-07-06 is 89 days old there, and fresh, as readiness has it.
+    await db.exec(`INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
+      ('e0000000-0000-4000-8000-000000000004', '${ada}', 'organizer', 0, 'site', now())`);
+    const hosts = await Effect.runPromise(
+      staleHosts(adaRead("2026-07-06")).pipe(
+        Effect.provide(sqlLayer(db)),
+        Effect.provide(clockAt(DateTime.makeUnsafe("2026-10-04T00:30:00Z"))),
+      ),
+    );
+    expect(hosts).toEqual([]);
+  });
+
   const run = (file: PeopleFile) =>
     Effect.runPromise(
       staleHosts(file).pipe(
