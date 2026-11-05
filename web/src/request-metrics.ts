@@ -79,7 +79,13 @@ export function redactedPath(pathname: string): string {
       if (decoded.includes("@")) return "(email)";
       // Each part between dots is checked, so a JWT (three such parts) is
       // a token too, and a file name (`photo.jpg`) isn't.
-      if (decoded.split(".").some(isTokenLike)) return "(token)";
+      if (
+        decoded.split(".").some(isTokenLike) ||
+        // A JWT, however short its parts: a base64url JSON header first.
+        /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/.test(decoded)
+      ) {
+        return "(token)";
+      }
       return segment;
     })
     .join("/")

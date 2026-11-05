@@ -59,7 +59,8 @@ describe("redactedPath", () => {
       ["/reset/" + "a1B2c3D4".repeat(4), "/reset/(token)"],
       ["/k/" + "a1b2c3d4".repeat(3), "/k/(token)"],
       [
-        "/auth/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFkYSJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        // A JWT, built from its parts here so no scanner takes it for a real one.
+        `/auth/${["eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiJ0ZXN0In0", "c2lnbmF0dXJl"].join(".")}`,
         "/auth/(token)",
       ],
       ["/s/" + "Ab3-xY9_".repeat(4), "/s/(token)"],
@@ -255,7 +256,11 @@ describe("the request queries", () => {
             { answered: "store-hit", requests: "60" },
             { answered: "store-miss", requests: "15" },
           ],
-          notFound: [{ path: "/wp-login.php", requests: "20", bots: "19" }],
+          notFound: [
+            { path: "/wp-login.php", requests: "20", bots: "19" },
+            // Kept before paths were redacted: redacted when shown.
+            { path: "/people/someone%40example.com", requests: "1", bots: "0" },
+          ],
         },
       ),
     ).toBe(
@@ -272,6 +277,7 @@ describe("the request queries", () => {
         "",
         "top 404 paths (requests, of them bots)",
         "  20  19  /wp-login.php",
+        "  1  0  /people/(email)",
       ].join("\n"),
     );
   });

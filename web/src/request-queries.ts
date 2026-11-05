@@ -1,4 +1,4 @@
-import { REQUESTS_DATASET } from "./request-metrics.ts";
+import { REQUESTS_DATASET, redactedPath } from "./request-metrics.ts";
 
 /**
  * What web/scripts/requests.ts asks of the Worker's request data points
@@ -94,7 +94,7 @@ export function formatReport(
       ? ["  none"]
       : notFound.map(
           (row) =>
-            `  ${count(row["requests"])}  ${count(row["bots"])}  ${String(row["path"])}`,
+            `  ${count(row["requests"])}  ${count(row["bots"])}  ${redactedPath(String(row["path"]))}`,
         )),
   ].join("\n");
 }
