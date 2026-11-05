@@ -5,12 +5,19 @@
     "title": {
       "value": "Freelance Developer / AI Engineer",
       "source": "https://stockman.codes",
-      "read": "2026-10-05"
+      "read": "2026-11-05"
     },
     "bio": {
-      "value": "Arthur started coding at a young age, founded his first company in university (and sold it a couple years later), then founded and failed the second one.",
+      "value": "Arthur Stockman is a freelance developer and AI engineer who works across the LLM pipeline: embeddings, RAG, semantic search, agents and MCP. He co-founded Broadkastr, a livestreaming company he later sold, and was co-founder and CTO of Itempass. At at/dev setups he shared his most used slash commands and custom subagents for development.",
       "source": "https://stockman.codes",
-      "read": "2026-10-05"
+      "read": "2026-11-05",
+      "was": "Arthur started coding at a young age, founded his first company in university (and sold it a couple years later), then founded and failed the second one.",
+      "also": ["https://allthings.dev/people/arthur-stockman"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     }
   },
   {
@@ -101,6 +108,27 @@
   {
     "profileId": "4815e292-05ea-49eb-b4d3-b6bc8775a958",
     "name": "Abhi Aiyer",
+    "title": {
+      "value": "Co-founder & CTO, Mastra",
+      "source": "https://mastra.ai/about",
+      "read": "2026-11-05",
+      "also": ["https://x.com/abhiaiyer", "https://github.com/abhiaiyer91"]
+    },
+    "bio": {
+      "value": "Abhi Aiyer is co-founder and CTO of Mastra, the open-source TypeScript agent framework. Before Mastra he worked at Netlify, Gatsby and Workpop. At at/expo he joined the panel on AI and the tools we build, and he gave the keynote at Mastra’s TypeScript AI Demo Day, which allthings shared.",
+      "source": "https://x.com/abhiaiyer",
+      "read": "2026-11-05",
+      "also": [
+        "https://mastra.ai/about",
+        "https://github.com/abhiaiyer91",
+        "https://allthings.dev/people/abhi-aiyer"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "abhiaiyer",
       "source": "https://api.fxtwitter.com/abhiaiyer",
@@ -111,18 +139,6 @@
       "source": "https://mastra.ai/about",
       "read": "2026-10-05"
     },
-    "held": [
-      {
-        "field": "bio",
-        "value": null,
-        "sources": [
-          "https://api.fxtwitter.com/abhiaiyer",
-          "https://api.github.com/users/abhiaiyer91",
-          "https://mastra.ai/authors/abhi-aiyer"
-        ],
-        "reason": "only a terse profile bio"
-      }
-    ],
     "photoSourceUrl": {
       "value": "https://pbs.twimg.com/profile_images/2082204958808526848/jz2rjLpH_400x400.jpg",
       "source": "https://x.com/abhiaiyer",
@@ -132,6 +148,27 @@
   {
     "profileId": "92da927e-104f-4bef-b86b-247941a28444",
     "name": "David Cusatis",
+    "title": {
+      "value": "Co-founder & Chief AI Architect, Range",
+      "source": "https://www.range.com/public/about-us",
+      "read": "2026-11-05",
+      "was": "Co-Founder & Chief Architect, Range",
+      "also": ["https://mastra.ai/customers/range"]
+    },
+    "bio": {
+      "value": "David Cusatis is co-founder and Chief AI Architect at Range, an AI-native wealth management firm and SEC-registered investment adviser. He builds Range’s agents on Mastra, including Rai, its flagship agent for member questions, and before Range he worked at Amazon. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke about compliance, reliability and observability in scaling agents at Range.",
+      "source": "https://mastra.ai/customers/range",
+      "read": "2026-11-05",
+      "also": [
+        "https://www.range.com/public/about-us",
+        "https://allthings.dev/people/david-cusatis"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "linkedinHandle": {
       "value": "david-cusatis",
       "source": "https://www.linkedin.com/in/david-cusatis/",
@@ -148,12 +185,6 @@
         "value": null,
         "sources": ["https://api.fxtwitter.com/dcusatis"],
         "reason": "No X account found that is cross-linked to Range"
-      },
-      {
-        "field": "bio",
-        "value": null,
-        "sources": ["https://www.range.com/public/about-us"],
-        "reason": "No bio in his own words was found. The Range about page text about him is written by co-founder Fahad Hassan, in the first person."
       }
     ]
   },
@@ -1147,6 +1178,29 @@
   {
     "profileId": "8b86e373-0709-4086-97e7-4e83102a6564",
     "name": "Dan Goosewin",
+    "title": {
+      "value": "Founder, Goosewin Media Group",
+      "source": "https://goosewin.com",
+      "read": "2026-11-05",
+      "was": "DevRel Lead @ Vapi",
+      "also": ["https://goose.dev/about", "https://x.com/Goosewin"]
+    },
+    "bio": {
+      "value": "Dan Goosewin is the founder of Goosewin Media Group, which does fractional DevRel and marketing for devtools and AI companies. He previously led developer relations at Vapi. He spoke at an allthings evening at Vapi about giving voice agents superpowers with MCP, moderated NextDev.fm Live, and co-hosted the at/typescript ai after-party.",
+      "source": "https://goosewin.com",
+      "read": "2026-11-05",
+      "was": "Dan is a DevRel Lead at Vapi and co-hosts the NextDev.fm podcast. He's passionate about software, videogames, finance, entrepreneurship, and ducks. He was formerly at Deaglo.",
+      "also": [
+        "https://goose.dev/about",
+        "https://x.com/Goosewin",
+        "https://allthings.dev/people/dan-goosewin"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "Goosewin",
       "source": "https://goosewin.com",
@@ -1495,9 +1549,26 @@
     "profileId": "67eaf1e1-07f0-485d-b4ba-0a10091abdbe",
     "name": "Chas Jhin",
     "title": {
-      "value": "Director of Engineering at Discord",
+      "value": "Director of Engineering, Discord",
       "source": "https://infinite.red/react-native-radio/rnr-343-discords-journey-to-react-native-with-chas-jhin",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Director of Engineering at Discord",
+      "also": ["https://www.linkedin.com/in/chas-jhin/"]
+    },
+    "bio": {
+      "value": "Chas Jhin is a director of engineering at Discord, where he leads client platform, the team behind its cross-platform foundations, including keeping React Native and React up to date. Before Discord he was one of the first engineers at Cameo, where he spent more than four years, and then joined Otter. He co-hosted at/react native at Discord HQ.",
+      "source": "https://infinite.red/react-native-radio/rnr-343-discords-journey-to-react-native-with-chas-jhin",
+      "read": "2026-11-05",
+      "also": [
+        "https://www.linkedin.com/in/chas-jhin/",
+        "https://luma.com/41fkw8b0",
+        "https://allthings.dev/people/chas-jhin"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "chasjhin",
@@ -1520,12 +1591,6 @@
         "value": "chasjhin.bsky.social",
         "sources": ["https://bsky.app/profile/chasjhin.bsky.social"],
         "reason": "An empty account (no name, bio or posts), and his site does not link it."
-      },
-      {
-        "field": "bio",
-        "value": "I like pizza rolls.",
-        "sources": ["https://x.com/chasjhin"],
-        "reason": "Only a terse profile line, which is no bio."
       }
     ]
   },
@@ -1609,9 +1674,22 @@
     "profileId": "e5cc3768-37ff-4583-a429-38545b42b50d",
     "name": "Emily Kim",
     "title": {
-      "value": "Chief of Staff at ElectricSQL",
-      "source": "https://web.archive.org/web/20260429175541/https://electric.ax/about/team",
-      "read": "2026-10-06"
+      "value": "Chief of Staff, Electric",
+      "source": "https://electric.ax/about/team",
+      "read": "2026-11-05",
+      "was": "Chief of Staff at ElectricSQL",
+      "also": ["https://luma.com/user/usr-QIXfcQ3R22UgJsX"]
+    },
+    "bio": {
+      "value": "Emily Kim is Chief of Staff at Electric, the team behind ElectricSQL. Her background includes VP of Marketing at Timescale, developer relations and marketing at Agora, Adobe and Samsung, and founding Trilemetry. She co-hosted at/sync.",
+      "source": "https://electric.ax/about/team",
+      "read": "2026-11-05",
+      "also": ["https://allthings.dev/people/emily-kim"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "emilybkim",
@@ -1909,6 +1987,123 @@
       "source": "https://2026.allthingsopen.org/speakers/erik-thorelli",
       "read": "2026-11-02",
       "was": "Erik Thorelli is an Engineering Leader at Cisco Meraki, leading the mobile engineering organization. He's been developing React and React Native apps for almost a decade, across many industries...and seen some stuff."
+    }
+  },
+  {
+    "profileId": "c182a883-8601-44d7-b804-3f31e7d3e184",
+    "name": "Aiden Bai",
+    "title": {
+      "value": "Founder & CEO, Million",
+      "source": "https://www.ycombinator.com/companies/million",
+      "read": "2026-11-05",
+      "was": "Creator of React Scan",
+      "also": ["https://github.com/aidenybai", "https://aidenybai.com"]
+    },
+    "bio": {
+      "value": "Aiden Bai is founder and CEO of Million (YC W24), a research lab that builds datasets to teach models to write great frontend code. He created Million.js, a React compiler he started at 16, and the open-source tools React Scan, React Grab and React Doctor. At an allthings evening at Sentry he asked whether React renders matter.",
+      "source": "https://aidenybai.com",
+      "read": "2026-11-05",
+      "was": "Aiden cares too much about React performance and spent the last 4 years building tooling to make your website fast.",
+      "also": [
+        "https://www.ycombinator.com/companies/million",
+        "https://million.dev",
+        "https://allthings.dev/people/aiden-bai"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "blueskyHandle": {
+      "value": "aidenybai.bsky.social",
+      "source": "https://bsky.app/profile/aidenybai.bsky.social",
+      "read": "2026-11-05",
+      "was": "@aidenybai.bsky.social"
+    }
+  },
+  {
+    "profileId": "35a0780b-2381-4a47-942d-c825d5125cef",
+    "name": "Alex Bodin",
+    "title": {
+      "value": "CTO, Strapi",
+      "source": "https://strapi.io/about-us",
+      "read": "2026-11-05",
+      "was": "CTO",
+      "also": ["https://x.com/_alexandrebodin"]
+    },
+    "bio": {
+      "value": "Alex Bodin is CTO of Strapi, the open-source headless CMS, where he works across its JavaScript, Node.js and React stack. At the Pre Next.js Conf Meetup he spoke about Strapi 5 and Next.js as a modern, open-source stack.",
+      "source": "https://github.com/alexandrebodin",
+      "read": "2026-11-05",
+      "was": "Alex is the CTO @Strapi. He is a Product builder, software engineer, and open-source enthusiast from Paris.",
+      "also": [
+        "https://strapi.io/about-us",
+        "https://x.com/_alexandrebodin",
+        "https://allthings.dev/people/alex-bodin"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "twitterHandle": {
+      "value": "_alexandrebodin",
+      "source": "https://x.com/_alexandrebodin",
+      "read": "2026-11-05",
+      "was": "_alexandrebodin "
+    }
+  },
+  {
+    "profileId": "d077b550-4f59-4f5b-86fa-26249d475afa",
+    "name": "Alex Hendrix",
+    "title": {
+      "value": "Senior Software Engineer, Discord",
+      "source": "https://luma.com/41fkw8b0",
+      "read": "2026-11-05",
+      "was": "Senior Software Engineer",
+      "also": ["https://www.linkedin.com/in/flewp/", "https://github.com/Flewp"]
+    },
+    "bio": {
+      "value": "Alex Hendrix is a senior software engineer at Discord. At at/react native, held at Discord HQ, he spoke about Discord’s journey to React Native’s New Architecture.",
+      "source": "https://luma.com/41fkw8b0",
+      "read": "2026-11-05",
+      "was": "Senior Software Engineer at Discord with experience building scalable systems. Previously worked at ONENIGMA and Microsoft.",
+      "also": ["https://allthings.dev/people/alex-hendrix"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "13368c6c-6dd0-46ca-883c-0841d480a302",
+    "name": "Cody De Arkland",
+    "title": {
+      "value": "GM, Agent Experience, Railway",
+      "source": "https://x.com/Codydearkland",
+      "read": "2026-11-05",
+      "was": "Developer Experience @ Sentry",
+      "also": ["https://www.linkedin.com/in/codydearkland/"]
+    },
+    "bio": {
+      "value": "Cody De Arkland is GM of Agent Experience at Railway, where his launch posts cover Railway’s remote MCP server and the railway agent CLI. Before Railway he looked after developer experience at Sentry, and he builds tools like an MCP server for TanStack Start. At an allthings evening at Sentry he gave \"Anti-Crash Course: Building Better Errors and Traces\".",
+      "source": "https://x.com/Codydearkland",
+      "read": "2026-11-05",
+      "was": "Cody is a Senior Director at Sentry for Developer Experience. He is a passionate technologist who loves learning, community, and sharing knowledge.",
+      "also": [
+        "https://www.linkedin.com/in/codydearkland/",
+        "https://blog.railway.com/p/agent-rails-remote-mcp-cli",
+        "https://codyde.io",
+        "https://allthings.dev/people/cody-de-arkland"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     }
   }
 ]
