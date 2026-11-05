@@ -31,7 +31,7 @@ import {
   layoutPersonCard,
   personCardFacts,
   personCardGround,
-  personCardPath,
+  personCard,
   personCardQuality,
 } from "./person-card.ts";
 
@@ -253,8 +253,8 @@ const readPerson = (slug: string) =>
   );
 
 /**
- * What `/og/people/<slug>.jpg` finds: no one; the slug they moved to; or
- * their card, drawn, which is undefined when it can't be drawn this time
+ * What `/og/people/<slug>.jpg` finds: no one; for a slug they had before,
+ * their card's current URL, as their page names it; or their card, drawn, which is undefined when it can't be drawn this time
  * (no Images binding, an original too large to hand it, no room in the
  * budget, or a failure on the way).
  */
@@ -263,7 +263,10 @@ const drawPersonCard = (slug: string, origin: string) =>
     const found = yield* readPerson(slug);
     if (found.kind === "none") return { kind: "none" } as const;
     if (found.kind === "moved") {
-      return { kind: "moved", slug: found.slug } as const;
+      const moved = yield* readPerson(found.slug);
+      return moved.kind === "found"
+        ? ({ kind: "moved", src: personCard(moved.person).src } as const)
+        : ({ kind: "none" } as const);
     }
     const drawn = (response: Response | undefined) =>
       ({ kind: "drawn", response }) as const;
@@ -369,10 +372,15 @@ const card = HttpRouter.add(
 );
 
 /**
- * A person's card at `/og/people/<slug>.jpg`; a slug they had before
- * redirects to their card at their current one, for good, as their page
- * does. When it can't be drawn, the people card stands in, never kept.
+ * A person's card at `/og/people/<slug>.jpg`. A slug they had before
+ * redirects to their card's current, versioned URL, never kept, so a
+ * redirect never outlives the version it names. When it can't be drawn,
+ * the people card stands in as a JPEG, the type their page names, never
+ * kept.
  */
+/** What a person's card falls back to: the people card, as a JPEG. */
+const peopleFallback = built.og.cards.peopleJpeg.src;
+
 const personCardRoute = HttpRouter.add(
   "GET",
   "/og/people/:file",
@@ -385,16 +393,16 @@ const personCardRoute = HttpRouter.add(
     const found = yield* drawPersonCard(slug, origin);
     if (found.kind === "none") return notFound;
     if (found.kind === "moved") {
-      return redirect(personCardPath(found.slug), 301, CacheControl.page);
+      return redirect(found.src, 302, CacheControl.failure);
     }
     if (found.response === undefined) {
-      return redirect(ogCards.people.src, 302, CacheControl.failure);
+      return redirect(peopleFallback, 302, CacheControl.failure);
     }
     return cardResponse(found.response.body, "image/jpeg");
   }).pipe(
     Effect.catchCause((cause) =>
       Effect.logError("Error serving a person's card:", cause).pipe(
-        Effect.as(redirect(ogCards.people.src, 302, CacheControl.failure)),
+        Effect.as(redirect(peopleFallback, 302, CacheControl.failure)),
       ),
     ),
   ),

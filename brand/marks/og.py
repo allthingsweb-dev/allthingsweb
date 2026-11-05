@@ -14,6 +14,7 @@ import json
 from dataclasses import dataclass
 
 import uharfbuzz as hb
+from PIL import Image
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
@@ -319,6 +320,22 @@ def person_ground(setter: Setter, c: dict[str, str], part: str) -> str:
     return card("".join(parts), f"{part} · allthings/_")
 
 
+# A person's card is a JPEG (web/src/og/person-card.ts): with a photo over
+# the grain, a PNG is too large for some apps' previews. When the Worker
+# can't draw one, the people card stands in, as a JPEG at the same quality,
+# so it is the type the page names.
+PERSON_CARD_QUALITY = 85
+
+
+def jpeg(png_bytes: bytes) -> bytes:
+    """A PNG as a baseline JPEG at the person card's quality."""
+    out = io.BytesIO()
+    Image.open(io.BytesIO(png_bytes)).convert("RGB").save(
+        out, format="JPEG", quality=PERSON_CARD_QUALITY
+    )
+    return out.getvalue()
+
+
 # What the Worker draws cards with: each role's instance, written as a font
 # file it can point the Images binding at, with advance widths. The lead is
 # a person's title, set as the people card sets its sentences.
@@ -367,6 +384,7 @@ def build_og(faces: dict[str, bytes], c: dict[str, str], png) -> dict[str, bytes
     files: dict[str, bytes] = {}
     for page in PAGES:
         files[page.file] = png(page_card(setter, c, page))
+    files["og-people.jpg"] = jpeg(files["og-people.png"])
     files["og-event-night.png"] = png(event_ground(setter, c, night=True))
     files["og-event-paper.png"] = png(event_ground(setter, c, night=False))
     for part in PERSON_PARTS:

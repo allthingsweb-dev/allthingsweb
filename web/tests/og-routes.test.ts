@@ -3,6 +3,7 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl } from "../src/cache.ts";
+import { built } from "../src/assets.ts";
 import { ogCards } from "../src/og/cards.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
 import { dimensions, png, serveMedia } from "./support/media.ts";
@@ -18,7 +19,12 @@ import { testStack } from "./support/stack.ts";
  */
 
 const origin = "https://allthings.dev";
-const database = await serve(await eventDatabase(new Date()));
+const catalog = await eventDatabase(new Date());
+// A slug Ada had before, which her card's address still answers.
+await catalog.exec(
+  "INSERT INTO profile_slugs (slug, profile_id) VALUES ('ada-byron', 'b0000000-0000-4000-8000-000000000501')",
+);
+const database = await serve(catalog);
 const media = serveMedia({
   "profiles/ada.jpg": { body: png(400, 400), type: "image/png" },
 });
@@ -206,12 +212,28 @@ describe("people's cards", () => {
     expect(media.requests.length).toBe(before);
   });
 
-  it("send the people card, never kept, when a person's can't be drawn", async ({
+  it("send the people card as a JPEG, never kept, when a person's can't be drawn", async ({
     NoImages,
   }) => {
     const { response } = await get(`${NoImages}/og/people/ada-lovelace.jpg`);
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe(ogCards.people.src);
+    const location = response.headers.get("location");
+    expect(location).toBe(built.og.cards.peopleJpeg.src);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    const fallback = await get(`${NoImages}${location}`);
+    expect(fallback.response.headers.get("content-type")).toBe("image/jpeg");
+    expect(dimensions(fallback.body)).toEqual({ width: 1200, height: 630 });
+  });
+
+  it("send a slug someone had before to their card's current version, never kept", async ({
+    Cards,
+  }) => {
+    const html = await (await fetch(`${Cards}/people/ada-lovelace`)).text();
+    const image = /<meta property="og:image" content="([^"]+)"/.exec(html)?.[1];
+    const { response } = await get(`${Cards}/og/people/ada-byron.jpg`);
+    expect(response.status).toBe(302);
+    expect(image).toBeDefined();
+    expect(`${origin}${response.headers.get("location")}`).toBe(image ?? "");
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
   });
 

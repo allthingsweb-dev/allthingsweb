@@ -401,6 +401,20 @@ function pngSize(png: Uint8Array): { width: number; height: number } {
   return { width: view.getUint32(16), height: view.getUint32(20) };
 }
 
+/** A baseline JPEG's size, from its start-of-frame segment. */
+function jpegSize(jpeg: Uint8Array): { width: number; height: number } {
+  const view = new DataView(jpeg.buffer, jpeg.byteOffset, jpeg.byteLength);
+  let at = 2;
+  while (at + 9 < jpeg.byteLength) {
+    const marker = view.getUint16(at);
+    if (marker === 0xffc0 || marker === 0xffc2) {
+      return { width: view.getUint16(at + 7), height: view.getUint16(at + 5) };
+    }
+    at += 2 + view.getUint16(at + 2);
+  }
+  throw new Error("A JPEG without a start-of-frame segment");
+}
+
 /** The marks brand/marks generates, by the name pages use for them. */
 export interface Marks {
   readonly wordmark: Image;
@@ -427,7 +441,9 @@ async function mark(file: string, from = generated): Promise<Image> {
   const size =
     extension === "svg"
       ? svgSize(new TextDecoder().decode(bytes))
-      : pngSize(bytes);
+      : extension === "jpg"
+        ? jpegSize(bytes)
+        : pngSize(bytes);
   return { src: await writeAsset(name, extension, bytes), ...size };
 }
 
@@ -512,6 +528,8 @@ export interface OgCards {
   readonly home: Image;
   readonly events: Image;
   readonly people: Image;
+  /** The same as a JPEG: what a person's card falls back to. */
+  readonly peopleJpeg: Image;
   readonly about: Image;
   readonly codeOfConduct: Image;
   readonly brand: Image;
@@ -604,6 +622,7 @@ async function buildOg(): Promise<{
       home: await mark("og-home.png", og),
       events: await mark("og-events.png", og),
       people: await mark("og-people.png", og),
+      peopleJpeg: await mark("og-people.jpg", og),
       about: await mark("og-about.png", og),
       codeOfConduct: await mark("og-code-of-conduct.png", og),
       brand: await mark("og-brand.png", og),
