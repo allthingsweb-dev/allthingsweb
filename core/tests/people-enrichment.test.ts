@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { Effect, Exit } from "effect";
 import type { Now } from "../src/now.ts";
+import type { XPosts } from "../src/x-posts.ts";
 import { profilePhotoHosts } from "../../app/src/lib/profile-photos/hosts.ts";
 import {
   applyPeople,
@@ -419,6 +420,159 @@ describe("applyPeople: now", () => {
         `UPDATE profiles SET now_record = '"Linus"' WHERE id = '${linus}'`,
       ),
     ).rejects.toThrow(/profiles_now_record_check/);
+  });
+});
+
+describe("applyPeople: xPosts", () => {
+  const post = (id: string, postedOn: string, handle = "ada") => ({
+    url: `https://x.com/${handle}/status/${id}`,
+    postedOn,
+    excerpt: "The engine weaves algebraic patterns.",
+    likes: 1200,
+    reposts: 80,
+    replies: 12,
+  });
+  const record: XPosts = {
+    posts: [
+      post("2000000000000000002", "2026-10-01"),
+      post("2000000000000000001", "2026-09-30"),
+    ],
+    readOn: "2026-10-02",
+  };
+  const withPosts = (value: XPosts | null | undefined): PeopleFile => [
+    {
+      profileId: ada,
+      name: "Ada Lovelace",
+      ...(value === undefined ? {} : { xPosts: value }),
+    },
+  ];
+  const stored = async (db: PGlite, id = ada) =>
+    (
+      await db.query<{ x_posts: unknown }>(
+        `SELECT x_posts FROM profiles WHERE id = '${id}'`,
+      )
+    ).rows[0]?.x_posts;
+  const linesOf = (exit: Exit.Exit<ReadonlyArray<string>, unknown>) =>
+    Exit.isSuccess(exit) ? exit.value : exit;
+  const reasonOf = (exit: Exit.Exit<ReadonlyArray<string>, unknown>) => {
+    const error = failureOf(exit);
+    expect(error).toBeInstanceOf(PeopleEnrichmentError);
+    return (error as PeopleEnrichmentError).reason;
+  };
+
+  test("writes them, is safe to repeat, replaces them when they differ, and null takes them down", async () => {
+    const db = await fresh();
+    expect(linesOf(await apply(db, withPosts(record)))).toEqual([
+      "Ada Lovelace: x posts ← 2 posts, read 2026-10-02",
+    ]);
+    expect(await stored(db)).toEqual(record);
+    expect(linesOf(await apply(db, withPosts(record)))).toEqual([
+      "Ada Lovelace: unchanged",
+    ]);
+    const refreshed = {
+      posts: [{ ...record.posts[0]!, likes: 1300 }],
+      readOn: "2026-10-03",
+    };
+    expect(linesOf(await apply(db, withPosts(refreshed)))).toEqual([
+      "Ada Lovelace: x posts → 1 post, read 2026-10-03",
+    ]);
+    expect(linesOf(await apply(db, withPosts(undefined)))).toEqual([
+      "Ada Lovelace: unchanged",
+    ]);
+    expect(await stored(db)).toEqual(refreshed);
+    expect(linesOf(await apply(db, withPosts(null)))).toEqual([
+      "Ada Lovelace: x posts cleared",
+    ]);
+    expect(await stored(db)).toBeNull();
+  });
+
+  test("a dry run writes none", async () => {
+    const db = await fresh();
+    await apply(db, withPosts(record), true);
+    expect(await stored(db)).toBeNull();
+  });
+
+  test("takes posts by the handle the same entry sets, or the stored one with its @", async () => {
+    const db = await fresh();
+    expect(
+      linesOf(
+        await apply(db, [
+          {
+            profileId: linus,
+            name: "Linus",
+            xPosts: {
+              posts: [post("5", "2026-10-01", "Linus")],
+              readOn: "2026-10-02",
+            },
+          },
+        ]),
+      ),
+    ).toEqual(["Linus: x posts ← 1 post, read 2026-10-02"]);
+    const exit = await apply(db, [
+      {
+        profileId: grace,
+        name: "Grace Hopper",
+        twitterHandle: { value: "Grace", source, read },
+        xPosts: {
+          posts: [post("3", "2026-10-01", "grace")],
+          readOn: "2026-10-02",
+        },
+      },
+    ]);
+    expect(linesOf(exit)).toEqual([
+      "Grace Hopper: twitter_handle ← Grace, x posts ← 1 post, read 2026-10-02",
+    ]);
+  });
+
+  test("refuses posts by another handle, read after today, or also linked from now, and writes nothing", async () => {
+    const db = await fresh();
+    expect(
+      reasonOf(
+        await apply(
+          db,
+          withPosts({
+            posts: [post("4", "2026-10-01", "grace")],
+            readOn: "2026-10-02",
+          }),
+        ),
+      ),
+    ).toBe(
+      "Ada Lovelace's X posts aren't by their X handle (@ada): https://x.com/grace/status/4",
+    );
+    expect(
+      reasonOf(await apply(db, withPosts({ ...record, readOn: "2026-10-04" }))),
+    ).toBe("X posts read after today, 2026-10-03: Ada Lovelace (2026-10-04)");
+    expect(
+      reasonOf(
+        await apply(db, [
+          {
+            ...withPosts(record)[0]!,
+            now: {
+              line: "Ada [writes compilers](https://ada.example).",
+              links: [
+                {
+                  title: "On the engine",
+                  date: "2026-10-01",
+                  url: "https://twitter.com/ada/status/2000000000000000002?s=20",
+                  kind: "post",
+                },
+              ],
+              checkedOn: "2026-10-02",
+            },
+          },
+        ]),
+      ),
+    ).toBe(
+      "X posts also linked from now (keep one): Ada Lovelace https://x.com/ada/status/2000000000000000002",
+    );
+    expect(await stored(db)).toBeNull();
+  });
+
+  test("the column takes only an object", async () => {
+    const db = await fresh();
+    await expect(
+      db.exec(`UPDATE profiles SET x_posts = '[]' WHERE id = '${ada}'`),
+    ).rejects.toThrow(/profiles_x_posts_check/);
   });
 });
 

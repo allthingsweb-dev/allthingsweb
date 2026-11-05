@@ -166,6 +166,12 @@ export const profilesTable = pgTable(
      * it down.
      */
     nowRecord: jsonb("now_record"),
+    /**
+     * Their standout recent posts on X: up to three links, each with its
+     * day, a short quote and its counts as read, written only by core's
+     * people backfill (core/src/x-posts.ts). Null takes it down.
+     */
+    xPosts: jsonb("x_posts"),
   },
   () => [
     check(
@@ -187,6 +193,7 @@ export const profilesTable = pgTable(
       "profiles_now_record_check",
       sql`jsonb_typeof("now_record") = 'object'`,
     ),
+    check("profiles_x_posts_check", sql`jsonb_typeof("x_posts") = 'object'`),
   ],
 );
 

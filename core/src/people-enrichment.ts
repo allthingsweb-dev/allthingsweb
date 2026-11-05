@@ -3,7 +3,14 @@ import { SqlClient } from "effect/sql/SqlClient";
 import { asOf } from "./clock.ts";
 import { HttpUrl } from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
+import { xHandleOf } from "./followers.ts";
 import { canonicalNow, decodeStoredNow, Now } from "./now.ts";
+import {
+  canonicalXPosts,
+  decodeStoredXPosts,
+  statusOf,
+  XPosts,
+} from "./x-posts.ts";
 
 /**
  * What profiles lack, filled from public sources (core/backfill/people.json):
@@ -21,6 +28,11 @@ import { canonicalNow, decodeStoredNow, Now } from "./now.ts";
  * which only this file writes, so it is written whenever it differs from
  * what is stored. `null` clears it and keeps it off; an entry without
  * `now` leaves it as it is.
+ *
+ * `xPosts` are their standout recent posts on X (src/x-posts.ts), written
+ * the same way: whenever they differ from what is stored, `null` clearing
+ * them. Every post must be by the profile's X handle (as stored, or as this
+ * file sets it), and none may also be shown by their `now`.
  *
  * A title is the person's job title now, as of the day it was read, so
  * their page and its card say what they do today; their talks already say
@@ -152,6 +164,11 @@ export const PeopleEntry = Schema.Struct({
    */
   now: Schema.optionalKey(Schema.NullOr(Now)),
   /**
+   * Their standout recent posts on X, with their counts as read
+   * (src/x-posts.ts). `null`: taken down, and kept off.
+   */
+  xPosts: Schema.optionalKey(Schema.NullOr(XPosts)),
+  /**
    * Facts found but not confirmed well enough to write, each with why. A
    * claim held from `now` sits beside the record it was left out of.
    */
@@ -204,6 +221,7 @@ const ProfileRow = Schema.Struct({
   photo_source_url: Schema.NullOr(Schema.String),
   has_image: Schema.Boolean,
   now_record: Schema.Unknown,
+  x_posts: Schema.Unknown,
 });
 type ProfileRow = typeof ProfileRow.Type;
 
@@ -251,11 +269,53 @@ const writeNow = (profileId: string, held: unknown, now: Now | null) =>
   });
 
 /**
+ * Writes a profile's `x_posts` where the file's differ from what is
+ * stored (`null` clears them), and says what changed, or nothing when
+ * nothing did. A stored record that no longer decodes is replaced.
+ */
+const writeXPosts = (profileId: string, held: unknown, posts: XPosts | null) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const current = yield* decodeStoredXPosts(held).pipe(
+      Effect.orElseSucceed(() => undefined),
+    );
+    const same =
+      current !== undefined &&
+      (current === null || posts === null
+        ? current === posts
+        : canonicalXPosts(current) === canonicalXPosts(posts));
+    if (same) return undefined;
+    yield* sql`
+      UPDATE profiles SET
+        x_posts = ${posts === null ? null : canonicalXPosts(posts)}::jsonb,
+        updated_at = now()
+      WHERE id = ${profileId}::uuid`;
+    if (posts === null) return "x posts cleared";
+    const count = `${posts.posts.length} ${posts.posts.length === 1 ? "post" : "posts"}`;
+    return current === null || current === undefined
+      ? `x posts ← ${count}, read ${posts.readOn}`
+      : `x posts → ${count}, read ${posts.readOn}`;
+  });
+
+/** The X handle that wrote a post, by its address, in lower case. */
+const authorOf = (url: string) => statusOf(url)?.handle.toLowerCase();
+
+/** The id of a post on X at `url`, or undefined for any other page. */
+const postIdOf = (url: string) => {
+  const match =
+    /^https:\/\/(?:www\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]{1,15}\/status\/([0-9]{1,20})/.exec(
+      url,
+    );
+  return match?.[1];
+};
+
+/**
  * Writes `file` in one transaction, filling only blank columns; with
  * `dryRun`, rolls it back after doing everything. Fails, writing nothing,
  * on a profile that isn't stored, whose name no longer matches, or that is
- * listed twice, on a fact that is both held and set, and on a "now"
- * record checked after today (UTC).
+ * listed twice, on a fact that is both held and set, on a "now" record
+ * checked after today (UTC), on X posts read after today, by another
+ * handle than the profile's, or also linked from its "now".
  */
 export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
   Effect.gen(function* () {
@@ -294,6 +354,31 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
         `Now records checked after today, ${today}: ${ahead.join(", ")}`,
       );
     }
+    const readAhead = file.flatMap((entry) =>
+      entry.xPosts != null && entry.xPosts.readOn > today
+        ? [`${entry.name} (${entry.xPosts.readOn})`]
+        : [],
+    );
+    if (readAhead.length > 0) {
+      return yield* fail(
+        `X posts read after today, ${today}: ${readAhead.join(", ")}`,
+      );
+    }
+    // A post is shown once: in "now" or among the X posts, never both.
+    const shownTwice = file.flatMap((entry) => {
+      if (entry.xPosts == null || entry.now == null) return [];
+      const linked = new Set(
+        entry.now.links.flatMap((link) => postIdOf(link.url) ?? []),
+      );
+      return entry.xPosts.posts
+        .filter((post) => linked.has(statusOf(post.url)!.id))
+        .map((post) => `${entry.name} ${post.url}`);
+    });
+    if (shownTwice.length > 0) {
+      return yield* fail(
+        `X posts also linked from now (keep one): ${shownTwice.join(", ")}`,
+      );
+    }
 
     const work = Effect.gen(function* () {
       const lines: Array<string> = [];
@@ -301,7 +386,7 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
         const rows = yield* sql`
           SELECT name, title, bio, twitter_handle, bluesky_handle,
             linkedin_handle, photo_source_url, image IS NOT NULL AS has_image,
-            now_record
+            now_record, x_posts
           FROM profiles WHERE id = ${entry.profileId}::uuid
           FOR UPDATE`.pipe(
           Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(ProfileRow))),
@@ -347,6 +432,20 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
             );
           }
         }
+        if (entry.xPosts != null) {
+          // The handle the profile will have once this entry is written.
+          const handle = xHandleOf(
+            fill.twitterHandle ?? row.twitter_handle,
+          )?.toLowerCase();
+          const others = entry.xPosts.posts.filter(
+            (post) => authorOf(post.url) !== handle,
+          );
+          if (others.length > 0) {
+            return yield* fail(
+              `${entry.name}'s X posts aren't by their X handle (${handle === undefined ? "none" : `@${handle}`}): ${others.map((post) => post.url).join(", ")}`,
+            );
+          }
+        }
         if (Object.keys(fill).length > 0) {
           yield* sql`
             UPDATE profiles SET
@@ -364,6 +463,14 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
             entry.profileId,
             row.now_record,
             entry.now,
+          );
+          if (note !== undefined) notes.push(note);
+        }
+        if (entry.xPosts !== undefined) {
+          const note = yield* writeXPosts(
+            entry.profileId,
+            row.x_posts,
+            entry.xPosts,
           );
           if (note !== undefined) notes.push(note);
         }

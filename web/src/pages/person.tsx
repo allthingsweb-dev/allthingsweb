@@ -7,6 +7,8 @@ import { lineParts } from "allthings-core/src/now.ts";
 import type { PersonPage } from "allthings-core/src/people-directory.ts";
 import { personRows, shortBio } from "allthings-core/src/people-directory.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
+import type { XPosts } from "allthings-core/src/x-posts.ts";
+import { countLabel, statusOf } from "allthings-core/src/x-posts.ts";
 import { personPath } from "../links.ts";
 import { Document } from "./document.tsx";
 import { gatheringTitle } from "./metadata.tsx";
@@ -190,6 +192,43 @@ function NowSection({ now }: { readonly now: Now }) {
   );
 }
 
+/** "1 like" and "4.7k likes": a count as the page says it, and its noun. */
+const counted = (n: number, one: string, many: string) =>
+  `${countLabel(n)} ${n === 1 ? one : many}`;
+
+/**
+ * Their standout recent posts on X, latest first, as talks elsewhere are
+ * listed: the day, a short quote linking to the post, and who posted it
+ * with how many liked and reposted it, under "On X · as of" the month the
+ * counts were read. Only links and short quotes: X's own page has the post.
+ */
+function XPostsSection({ record }: { readonly record: XPosts }) {
+  return (
+    <Section id="on-x" title={`On X · as of ${simpleMonth(record.readOn)}`}>
+      <ul class="talks">
+        {record.posts.map((post) => (
+          <li>
+            <a class="talk" href={post.url}>
+              <time class="date at-type-meta" datetime={post.postedOn} safe>
+                {simpleDate(post.postedOn)}
+              </time>
+              <span class="talk-title" safe>
+                {`“${post.excerpt}”`}
+              </span>
+              <span class="talk-evening">
+                <span safe>{`@${statusOf(post.url)?.handle ?? ""}`}</span>
+                <span class="talk-role at-type-meta" safe>
+                  {` · ${counted(post.likes, "like", "likes")} · ${counted(post.reposts, "repost", "reposts")}`}
+                </span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
 /** "3 talks" and "1 talk", for the page's description. */
 const count = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`;
@@ -279,6 +318,11 @@ export function personPage({
             <NowSection now={person.now} />
           ) : (
             ""
+          )}
+          {person.xPosts === null ? (
+            ""
+          ) : (
+            <XPostsSection record={person.xPosts} />
           )}
           {ours.length === 0 ? (
             ""

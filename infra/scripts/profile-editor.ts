@@ -103,7 +103,7 @@ async function checkRole(sql: Statements): Promise<void> {
   ];
   if (wrong.length > 0) {
     throw new Error(
-      `${PROFILE_EDITOR}'s privileges aren't migration 0034's, so nothing was changed:\n${wrong.join("\n")}`,
+      `${PROFILE_EDITOR}'s privileges aren't what core's migrations grant (0034, 0036), so nothing was changed:\n${wrong.join("\n")}`,
     );
   }
   const settings = (
@@ -139,7 +139,7 @@ async function plan(owner: string, vault: string): Promise<void> {
       await checkRole(transaction);
       console.log(
         [
-          `${PROFILE_EDITOR} would ${before?.login === true ? "get a new password" : "get a login and a password"}, keeping migration 0034's ${expectedPrivileges().length} privileges on public.profiles:`,
+          `${PROFILE_EDITOR} would ${before?.login === true ? "get a new password" : "get a login and a password"}, keeping the ${expectedPrivileges().length} privileges on public.profiles:`,
           ...expectedPrivileges().map((line) => `  ${line}`),
           `Settings: ${expectedSettings().join(", ")}.`,
           `Its connection string would go to 1Password, "${PROFILE_EDITOR_ITEM}" (credential) in ${vault}, and nowhere else.`,
@@ -222,7 +222,7 @@ async function apply(owner: string, vault: string): Promise<void> {
     await editor.end();
   }
   console.log(
-    `✓ ${PROFILE_EDITOR} has a login and a new password, with exactly migration 0034's privileges; 1Password ("${PROFILE_EDITOR_ITEM}" in ${vault}) updated, and it signs in as ${PROFILE_EDITOR}`,
+    `✓ ${PROFILE_EDITOR} has a login and a new password, with exactly the privileges core's migrations grant; 1Password ("${PROFILE_EDITOR_ITEM}" in ${vault}) updated, and it signs in as ${PROFILE_EDITOR}`,
   );
 }
 
