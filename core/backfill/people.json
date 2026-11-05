@@ -1599,58 +1599,6 @@
     ]
   },
   {
-    "profileId": "0a9c5976-388a-4a5b-a01c-7b43c7f711ba",
-    "name": "Oscar Newman",
-    "title": {
-      "value": "Engineering Lead, Solv",
-      "source": "https://oscarnewman.me/",
-      "read": "2026-11-05",
-      "was": "Engineering Lead at Solv",
-      "also": ["https://github.com/oscarnewman"]
-    },
-    "bio": {
-      "value": "Oscar Newman is an engineering lead at Solv, where he builds consumer healthcare experiences and, in his words, works on healthcare payments. A product- and design-focused engineer, he led his team’s move to Remix and spoke at Remix Conf 2023 about fast native mobile apps powered by Remix and defer. He co-hosted the first two allthings evenings, then Remix Bay Area, at Solv.",
-      "source": "https://oscarnewman.me/",
-      "read": "2026-11-05",
-      "was": "Oscar graduated from Brown in 2021 studying Computer Science and Machine Learning (officially), and Healthcare Policy (unofficially). Raised in Austin, Texas.",
-      "also": [
-        "https://x.com/__oscarnewman",
-        "https://v2.remix.run/conf/2023/speakers/oscar-newman/",
-        "https://allthings.dev/people/oscar-newman"
-      ],
-      "askedBy": {
-        "who": "Erik",
-        "on": "2026-11-05",
-        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
-      }
-    },
-    "twitterHandle": {
-      "value": "__oscarnewman",
-      "source": "https://v2.remix.run/conf/2023/speakers/oscar-newman/",
-      "read": "2026-10-06"
-    },
-    "linkedinHandle": {
-      "value": "oscarnewman",
-      "source": "https://v2.remix.run/conf/2023/speakers/oscar-newman/",
-      "read": "2026-10-06"
-    },
-    "photoSourceUrl": {
-      "value": "https://avatars.githubusercontent.com/u/4020585",
-      "source": "https://github.com/oscarnewman",
-      "read": "2026-10-06"
-    },
-    "held": [
-      {
-        "field": "blueskyHandle",
-        "value": "oscarnewman.bsky.social",
-        "sources": [
-          "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=oscarnewman.bsky.social"
-        ],
-        "reason": "The account exists but has no display name, no bio and 0 posts, and none of his pages link to it. I can't tie it to him."
-      }
-    ]
-  },
-  {
     "profileId": "d3172ee3-bdd1-4a97-86ea-b220c7e7459e",
     "name": "Pierre Burgy",
     "title": {
@@ -1727,6 +1675,45 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    }
+  },
+  {
+    "profileId": "0a9c5976-388a-4a5b-a01c-7b43c7f711ba",
+    "name": "Oscar Newman",
+    "bio": {
+      "value": "Oscar graduated from Brown in 2021 studying Computer Science and Machine Learning (officially), and Healthcare Policy (unofficially). Raised in Austin, Texas.",
+      "source": "https://oscarnewman.me/",
+      "read": "2026-10-06"
+    },
+    "twitterHandle": {
+      "value": "__oscarnewman",
+      "source": "https://v2.remix.run/conf/2023/speakers/oscar-newman/",
+      "read": "2026-10-06"
+    },
+    "linkedinHandle": {
+      "value": "oscarnewman",
+      "source": "https://v2.remix.run/conf/2023/speakers/oscar-newman/",
+      "read": "2026-10-06"
+    },
+    "photoSourceUrl": {
+      "value": "https://avatars.githubusercontent.com/u/4020585",
+      "source": "https://github.com/oscarnewman",
+      "read": "2026-10-06"
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "oscarnewman.bsky.social",
+        "sources": [
+          "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=oscarnewman.bsky.social"
+        ],
+        "reason": "The account exists but has no display name, no bio and 0 posts, and none of his pages link to it. I can't tie it to him."
+      }
+    ],
+    "title": {
+      "value": "Engineering Lead at Solv",
+      "source": "https://web.archive.org/web/20240419092253/https://oscarnewman.me/",
+      "read": "2026-10-06"
     }
   },
   {
