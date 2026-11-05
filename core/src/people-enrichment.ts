@@ -39,9 +39,22 @@ const Url = HttpUrl.check(Schema.isPattern(/^https:\/\/\S+$/));
 const Day = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/));
 
 /**
+ * An organizer's instruction a fact was written on: who asked, the day, and
+ * their words. A bio an organizer asked for as a best attempt, before the
+ * person could give their own, says so here, beside the pages it drew on.
+ */
+const AskedBy = Schema.Struct({
+  who: Schema.String.check(Schema.isNonEmpty()),
+  on: Day,
+  said: Schema.String.check(Schema.isNonEmpty()),
+});
+
+/**
  * A value, where it was read, and when. `was` names the one stale value it
  * may replace: a filled column is replaced only while it still holds
- * exactly that, so an edit made since is never lost.
+ * exactly that, so an edit made since is never lost. `also` lists the
+ * other pages a value drew on, when no one page holds all of it, and
+ * `askedBy` the organizer's instruction it was written on.
  */
 const fact = <S extends Schema.Top>(value: S) =>
   Schema.Struct({
@@ -49,6 +62,8 @@ const fact = <S extends Schema.Top>(value: S) =>
     source: Url,
     read: Day,
     was: Schema.optionalKey(Schema.String.check(Schema.isNonEmpty())),
+    also: Schema.optionalKey(Schema.Array(Url).check(Schema.isMinLength(1))),
+    askedBy: Schema.optionalKey(AskedBy),
   });
 
 /**

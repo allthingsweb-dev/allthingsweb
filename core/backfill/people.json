@@ -724,27 +724,30 @@
       "read": "2026-11-05",
       "was": "Senior Developer Advocate"
     },
+    "bio": {
+      "value": "Andre is a passionate developer from Germany who loves building for the web. Based in the Bay Area, he's a Staff Developer Advocate at Databricks, working on Neon, and before that was a Senior Software Engineer at LinkedIn. He wrote Full Stack Web Development with Remix, writes about agents and the platforms they run on, and started the meetups that became allthings with Erik. Off the clock, he's out eating good food with friends and family.",
+      "source": "https://www.databricks.com/dataaisummit/speaker/andre-landgraf",
+      "read": "2026-11-05",
+      "was": "Andre is a passionate developer from Germany and the author of Full Stack Web Development with Remix. He lives in Cupertino, California, and works at Neon. Andre enjoys learning, writing, and teaching about web development, and he organizes All Things Web events in San Francisco. In his free time, he enjoys eating good food and spending time with friends and family.",
+      "also": [
+        "https://github.com/andrelandgraf",
+        "https://andrelandgraf.dev",
+        "https://andrelandgraf.dev/blog/2026-05-20_two-types-of-agents",
+        "https://neon.com/blog/agent-skills-in-2026",
+        "https://allthings.dev/about"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "do a deep dive and figure out the best blurb for him now… we can always change it later… do a best attempt and let him know"
+      }
+    },
     "twitterHandle": {
       "value": "andrelandgraf",
       "source": "https://github.com/andrelandgraf",
       "read": "2026-10-05",
       "was": "andrelandgraf94"
-    },
-    "held": [
-      {
-        "field": "bio",
-        "value": "Andre is a passionate developer from Germany who loves building for the web. Based in the Bay Area, he's a Staff Developer Advocate at Databricks, working on Neon, and before that was a Senior Software Engineer at LinkedIn. He wrote Full Stack Web Development with Remix, writes about agents and the platforms they run on, and started the meetups that became allthings with Erik. Off the clock, he's out eating good food with friends and family.",
-        "sources": [
-          "https://www.databricks.com/dataaisummit/speaker/andre-landgraf",
-          "https://github.com/andrelandgraf",
-          "https://x.com/andrelandgraf",
-          "https://andrelandgraf.dev/blog/2026-05-20_two-types-of-agents",
-          "https://neon.com/blog/agent-skills-in-2026",
-          "https://allthings.dev/about"
-        ],
-        "reason": "Applied on 2026-11-04 at Erik's request as a best attempt Andre can change; it isn't his own words yet, and no one page holds all of it (the Databricks page has Germany, the Bay Area, Databricks and LinkedIn; GitHub, X and his posts the rest; the meetups line is on our About page). Recorded once Andre confirms it."
-      }
-    ]
+    }
   },
   {
     "profileId": "748690f9-037b-4c10-b0d7-3f64c3b31ad4",
