@@ -245,6 +245,26 @@ cd web && DATABASE_URL=$(op read "op://allthings/allthings site_sync/credential"
   bun scripts/sync-dry-run.ts
 ```
 
+## Alerts
+
+`prod` emails the maintainer (`ALERT_EMAIL`, the allthings account's one member) when something breaks, from three Cloudflare notification policies declared in [`src/alerts.ts`](src/alerts.ts). Each is a custom alert: every 10 minutes Cloudflare runs an SQL query over the account's Workers Logs (`logs.workersLogs`) and emails when its `value` crosses the threshold, then again each hour while it still does. Nothing runs in our Workers for them, so they fire even when a Worker can't run.
+
+| Alert                                 | Fires when                                                                                                                                       | Reads                                                                            |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `allthings: site errors over 5%`      | over 5% of the Web Worker's requests in the last hour failed (a 5xx or an exception), counting only an hour of 100 or more                       | its invocation lines                                                             |
+| `allthings: hourly sync failed`       | a run of the sync failed in the last hour: a step `failed`, a `summary` that isn't `ok`, a `preflight` that refused, or an invocation that threw | its `luma-sync` lines (see [The Luma sync](#the-luma-sync)) and invocation lines |
+| `allthings: no good sync for 2 hours` | no `summary` with `ok: true` in the last two hours: the sync stopped, or every run failed                                                        | its `luma-sync` lines                                                            |
+
+Alchemy's own `NotificationPolicy` can't declare a custom alert (its schema drops the query, schedule and trigger filters), so `SqlAlert` is a resource of ours: its provider calls the same notification policies API with the deploy's Cloudflare login, which has `notifications.write`. The stack runs it beside Alchemy's providers (`withAlertProviders`). Renaming a policy here renames it in Cloudflare; removing one deletes it.
+
+To see one reach the inbox, ask Cloudflare to send a policy's test notification, with the cf CLI signed in to the allthings account:
+
+```sh
+export CLOUDFLARE_ACCOUNT_ID=af627f300cd00c4dca56aacf05bea050 NODE_OPTIONS=--dns-result-order=ipv4first
+bunx cf@1.0.0-beta.12 --profile allthings alerting policies list | jq -r '.. | objects | select(.alert_type? == "custom_analytics") | "\(.id) \(.name)"'
+bunx cf@1.0.0-beta.12 --profile allthings alerting policies test <id>
+```
+
 ## CI credentials
 
 GitHub Actions deploys with an account-owned token that has only the permissions listed in [`ci-token.json`](ci-token.json). [`scripts/ci-token.sh`](scripts/ci-token.sh) applies that file. It creates the token, or updates its policies in place, and writes the value straight into the repository's `CLOUDFLARE_API_TOKEN` secret, so nobody ever sees or copies it. When `alchemy.run.ts` declares more, widen `ci-token.json` in the same PR, then rerun the script after it merges.

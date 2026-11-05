@@ -2,6 +2,7 @@ import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
+import { makeAlerts, withAlertProviders } from "./src/alerts.ts";
 import {
   MEDIA_BUCKET,
   MEDIA_DOMAIN,
@@ -26,7 +27,11 @@ import {
 
 export default Alchemy.Stack(
   "allthings",
-  { providers: Cloudflare.providers(), state: Cloudflare.state() },
+  {
+    // Alchemy's Cloudflare providers, and the alerts' own (src/alerts.ts).
+    providers: withAlertProviders(Cloudflare.providers()),
+    state: Cloudflare.state(),
+  },
   Effect.gen(function* () {
     // Every stage but prod (PR previews, staging, personal stages) runs only
     // the Worker replacing the app, reading production through its own
@@ -85,6 +90,13 @@ export default Alchemy.Stack(
     const sync =
       syncing === undefined ? undefined : yield* makeSync(syncing.images, site);
     const syncWorker = sync?.workerName.as<string>();
+
+    // Email when the site's Worker fails, a sync fails, or none has
+    // succeeded for two hours (src/alerts.ts), in the allthings account.
+    yield* makeAlerts(
+      site?.workerName.as<string>(),
+      sync?.workerName.as<string>(),
+    );
 
     if (role === "stage") {
       return {
