@@ -6,6 +6,10 @@ import * as Schedule from "effect/Schedule";
 import { variantsCheckPath } from "../../core/src/refresh-path.ts";
 import { compatibility } from "../../web/src/compatibility.ts";
 import { readerCaching } from "../../web/src/reader-caching.ts";
+import {
+  REQUESTS_DATASET,
+  type RequestsDataset,
+} from "../../web/src/request-metrics.ts";
 import { Reader } from "./reader.ts";
 import { requiredSecret } from "./sync.ts";
 
@@ -85,6 +89,7 @@ export const SITE_ORIGIN = `https://${SITE_HOST}`;
 export const makeWeb = (
   domain?: Cloudflare.WorkerDomainConfig,
   refreshToken?: ReturnType<typeof requiredSecret>,
+  requests: RequestsDataset = REQUESTS_DATASET.preview,
 ) =>
   Effect.flatMap(Effect.all([Pages, Variants]), ([pages, variants]) =>
     Cloudflare.Worker("Web", {
@@ -105,6 +110,10 @@ export const makeWeb = (
         HYPERDRIVE: Database,
         IMAGES: Cloudflare.Images.Images("IMAGES"),
         VARIANTS: variants,
+        // One anonymous data point per request (web/src/request-metrics.ts).
+        REQUESTS: Cloudflare.AnalyticsEngine.Dataset("Requests", {
+          dataset: requests,
+        }),
         ...(refreshToken === undefined
           ? {}
           : { SITE_REFRESH_TOKEN: refreshToken }),
