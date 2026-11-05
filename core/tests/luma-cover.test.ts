@@ -32,6 +32,14 @@ const gallery =
   "https://images.lumacdn.com/gallery-images/kd/12b33577-492a-4ae2-af6f-f7cd814d862c";
 const unsplash =
   "https://images.unsplash.com/photo-1485579149621-3123dd979885?fit=max&fm=jpg&q=80&w=1080";
+/** React at Acme (the seed's past evening) as Luma has it: public, and over. */
+const reactOnLuma = {
+  id: "evt-react",
+  name: "React at Acme",
+  visibility: "public",
+  start_at: "2026-08-13T01:00:00.000Z",
+  end_at: "2026-08-13T04:00:00.000Z",
+} as const;
 /** A cover someone uploaded for the evening. */
 const ownCover = "https://images.lumacdn.com/event-covers/z7/3a8a1e03.jpg";
 
@@ -441,9 +449,7 @@ describe("prepare", () => {
           "/v1/events/get": [
             json(
               lumaEvent({
-                id: "evt-react",
-                name: "React at Acme",
-                visibility: "public",
+                ...reactOnLuma,
                 cover_url: stock,
               }),
             ),
@@ -455,6 +461,43 @@ describe("prepare", () => {
       expect(prepared.refused).toBeNull();
     },
   );
+
+  test.each([
+    ["ends after now", { end_at: "2026-11-18T05:00:00.000Z" }],
+    [
+      "has no end and starts after now",
+      { start_at: "2026-11-18T02:00:00.000Z", end_at: null },
+    ],
+  ])(
+    "refuses a past evening's stock cover while Luma's event %s",
+    async (_which, dates) => {
+      const { exit } = await run(
+        (c) => c.prepare({ _tag: "Slug", slug: "2026-08-12-react-at-acme" }),
+        {
+          "/v1/events/get": [
+            json(lumaEvent({ ...reactOnLuma, cover_url: gallery, ...dates })),
+          ],
+        },
+      );
+      const prepared = value(exit);
+      expect(prepared.facts.ahead).toBe(false);
+      expect(prepared.refused).toBe(
+        "React at Acme is public on Luma: what the public sees changes only through publish.",
+      );
+    },
+  );
+
+  test("lets a past evening with no end on Luma through once its start is past", async () => {
+    const { exit } = await run(
+      (c) => c.prepare({ _tag: "Slug", slug: "2026-08-12-react-at-acme" }),
+      {
+        "/v1/events/get": [
+          json(lumaEvent({ ...reactOnLuma, cover_url: gallery, end_at: null })),
+        ],
+      },
+    );
+    expect(value(exit).refused).toBeNull();
+  });
 
   test("refuses a shared evening, and one without a Luma event", async () => {
     await db.exec(`
@@ -609,14 +652,7 @@ describe("approve", () => {
   test("sets a past public evening's own cover over Luma's default, and records it", async () => {
     const react = { _tag: "Slug", slug: "2026-08-12-react-at-acme" } as const;
     const past = (cover_url: string) =>
-      json(
-        lumaEvent({
-          id: "evt-react",
-          name: "React at Acme",
-          visibility: "public",
-          cover_url,
-        }),
-      );
+      json(lumaEvent({ ...reactOnLuma, cover_url }));
     const token = value(
       (
         await run((c) => c.prepare(react), {

@@ -1535,7 +1535,7 @@ set, saying what its facts say now.
 Only a private event of ours is changed. A public one changes only through
 publish and a shared one's Luma page is its organizer's; a public
 evening's cover is still drawn to look at, and the dry run exits 1 saying
-why it wouldn't be set. One exception: a past evening of ours that still
+why it wouldn't be set. One exception: a past evening of ours, over on Luma too, that still
 shows a stock photo, one of Luma's defaults or an Unsplash picture
 (`isStockCover` in src/cover.ts), may get its own cover even when it is
 public. Nobody is coming to it any more, and a cover anyone uploaded is

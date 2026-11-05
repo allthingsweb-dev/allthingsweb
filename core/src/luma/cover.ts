@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Clock, Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken } from "../approval.ts";
 import {
@@ -38,7 +38,7 @@ import { LumaWrite, type LumaWriteError, type ManagedEvent } from "./write.ts";
  * Only a private event of ours is ever changed: a public one changes only
  * through publish, and a shared one's Luma page is its organizer's. Its
  * cover can still be drawn and read, for an evening already out. One
- * exception: a past evening of ours that still shows a stock photo (one of
+ * exception: a past evening of ours, over on Luma too, that still shows a stock photo (one of
  * Luma's defaults, or an Unsplash picture, src/cover.ts) may get its own
  * cover, public or not. Nobody is coming to it any more, and a cover we
  * uploaded is never replaced this way.
@@ -163,8 +163,13 @@ const make = Effect.gen(function* () {
       const digest = yield* sha256(png);
       const event = yield* luma.get(row.lumaEventId);
       // A past evening still showing a stock photo may get its own cover,
-      // public or not; the page's own clock says it is past (facts.ahead).
-      const pastStock = !facts.ahead && isStockCover(event.cover_url);
+      // public or not: past on its page (facts.ahead) and over on Luma (its
+      // end, or its start without one), by the same clock.
+      const lumaOver =
+        Date.parse(event.end_at ?? event.start_at) <=
+        (yield* Clock.currentTimeMillis);
+      const pastStock =
+        !facts.ahead && lumaOver && isStockCover(event.cover_url);
       const refused =
         event.access !== "manage"
           ? `${row.lumaEventId} is not our calendar's to change.`
