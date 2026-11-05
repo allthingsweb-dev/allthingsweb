@@ -22,7 +22,7 @@ export function community(origin: string): Contract.Community {
       "We choose hosting companies whose tools and work we admire. They welcome the community by providing space, food, and a great place to spend time together. Hosting is an in-kind contribution to the community, not a paid sponsorship or a purchased speaking slot.",
     links: {
       website: origin,
-      events: "https://luma.com/allthingsweb",
+      events: "https://luma.com/allthings",
       discord: "https://discord.gg/B3Sm4b5mfD",
       codeOfConduct: `${origin}/code-of-conduct`,
     },

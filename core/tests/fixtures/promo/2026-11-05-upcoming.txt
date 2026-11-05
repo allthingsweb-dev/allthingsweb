@@ -5,7 +5,7 @@
 - No host or venue is on record, so nothing says where.
 - Future Speaker has no Bluesky handle on record, so Bluesky posts name them untagged.
 
-## luma: description (402 / 5000)
+## luma: description (399 / 5000)
 
 Soon
 
@@ -23,7 +23,7 @@ Next month.
 
 Writes compilers.
 
-**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthings)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
 ## meetup
 
@@ -45,7 +45,7 @@ settings to set by hand:
 - [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
 - [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
 
-description (544 / 5000):
+description (541 / 5000):
 
 **Seats are on Luma: [lu.ma/event/evt%20with%20space](https://lu.ma/event/evt%20with%20space).** The list here on Meetup is a waitlist only.
 
@@ -65,7 +65,7 @@ Next month.
 
 Writes compilers.
 
-**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthings)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
 ## x: announce (121 / 280)
 

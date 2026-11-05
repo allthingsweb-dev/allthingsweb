@@ -241,7 +241,7 @@ describe("/ with evenings announced", () => {
     expect(recently).not.toContain(past[3].slug);
     expect(recently).toContain('<a href="/events">every evening');
     expect(recently).toContain(
-      '<a href="https://luma.com/allthingsweb">subscribe on luma</a>',
+      '<a href="https://luma.com/allthings">subscribe on luma</a>',
     );
   });
 
@@ -300,7 +300,7 @@ describe("/ with nothing announced", () => {
       '<h1 id="next" class="hero-name lockup-l">allthings<span class="slash">/</span><br/><span class="at-cursor" aria-hidden="true">_</span></h1>',
     );
     expect(html).toContain(
-      '<a class="button" href="https://luma.com/allthingsweb">Subscribe on Luma <span aria-hidden="true">→</span></a>',
+      '<a class="button" href="https://luma.com/allthings">Subscribe on Luma <span aria-hidden="true">→</span></a>',
     );
     expect(html).not.toContain("I’m in");
   });
@@ -309,9 +309,7 @@ describe("/ with nothing announced", () => {
     const { html } = await home(Quiet);
     expect(html).not.toContain("After that");
     expect(html).not.toContain("subscribe on luma");
-    expect(
-      html.match(/href="https:\/\/luma\.com\/allthingsweb"/g),
-    ).toHaveLength(
+    expect(html.match(/href="https:\/\/luma\.com\/allthings"/g)).toHaveLength(
       // The hero's button and the footer's luma.
       2,
     );

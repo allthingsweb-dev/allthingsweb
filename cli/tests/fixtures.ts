@@ -73,7 +73,7 @@ export const community: Community = {
   hosting: "Hosting.",
   links: {
     website: "https://allthings.dev",
-    events: "https://luma.com/allthingsweb",
+    events: "https://luma.com/allthings",
     discord: "https://discord.gg/B3Sm4b5mfD",
     codeOfConduct: "https://allthings.dev/code-of-conduct",
   },

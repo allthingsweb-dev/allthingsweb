@@ -10,7 +10,7 @@ import {
 } from "./write.ts";
 
 /**
- * The Luma calendar (luma.com/allthingsweb) in the brand: what its page
+ * The Luma calendar (luma.com/allthings) in the brand: what its page
  * says, set through Luma's API (`calendars/update`) in two steps, as
  * publishing is.
  *

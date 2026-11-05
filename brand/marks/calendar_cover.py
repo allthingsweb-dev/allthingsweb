@@ -1,4 +1,4 @@
-"""The Luma calendar's cover (luma.com/allthingsweb): the open slot.
+"""The Luma calendar's cover (luma.com/allthings): the open slot.
 
 The calendar is every evening at once, so its cover is the master wordmark,
 allthings/_, with the slot after the slash left open, and the two sentences

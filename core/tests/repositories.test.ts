@@ -437,7 +437,7 @@ describe("Redirects", () => {
       await run(Redirects.use((redirects) => redirects.lookup("Luma"))),
     ).toEqual({
       slug: "Luma",
-      destinationUrl: "https://luma.com/allthingsweb",
+      destinationUrl: "https://luma.com/allthings",
     });
   });
 

@@ -112,7 +112,7 @@ Nothing changes here: you keep following this calendar, and every evening's seat
 
 Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**. On X: **[@\[x-handle\]](https://x.com/[x-handle])**.
 
-## meetup: React San Francisco Bay Area (768 / 5000)
+## meetup: React San Francisco Bay Area (765 / 5000)
 
 group: https://www.meetup.com/reactjs-san-francisco/
 
@@ -120,7 +120,7 @@ subject: React San Francisco Bay Area's evenings are now allthings
 
 The evenings React San Francisco Bay Area lists went by All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.
 
-Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthingsweb); the list on Meetup is a waitlist.
+Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthings); the list on Meetup is a waitlist.
 
 What's new on allthings.dev (allthingsweb.dev redirects there): a short link for every evening, allthings.dev/<topic>; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.
 
@@ -128,7 +128,7 @@ Next: [next evening], [day, time], [hosted at …]. https://allthings.dev/[next]
 
 Talk between evenings → discord.gg/B3Sm4b5mfD
 
-## meetup: Remix Bay Area (754 / 5000)
+## meetup: Remix Bay Area (751 / 5000)
 
 group: https://www.meetup.com/remix-bay-area/
 
@@ -136,7 +136,7 @@ subject: Remix Bay Area's evenings are now allthings
 
 The evenings Remix Bay Area lists went by All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.
 
-Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthingsweb); the list on Meetup is a waitlist.
+Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthings); the list on Meetup is a waitlist.
 
 What's new on allthings.dev (allthingsweb.dev redirects there): a short link for every evening, allthings.dev/<topic>; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; and at/hack, the template hackathons start from.
 

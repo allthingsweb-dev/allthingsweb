@@ -8,7 +8,7 @@ import { ourAccount } from "allthings-core/src/social/account.ts";
  */
 
 /** The community calendar on Luma, where people subscribe to every evening. */
-export const lumaCalendar = "https://luma.com/allthingsweb";
+export const lumaCalendar = "https://luma.com/allthings";
 
 /**
  * Where event photos are served from (R2). Pages load them as variants from
