@@ -1,35 +1,39 @@
-import { afterAll, beforeEach, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { Effect } from "effect";
-import migration, {
-  lumaEventId,
-  right,
-  wrong,
-} from "../migrations/0035_hack_evening_time.ts";
-import { seededDatabase, sqlLayer } from "./support/database.ts";
+import type { PGlite } from "@electric-sql/pglite";
+import * as Migrator from "effect/sql/Migrator";
+import migration from "../migrations/0035_hack_evening_time.ts";
+import { migrations } from "../migrations/index.ts";
+import * as Migrations from "../src/migrator.ts";
+import {
+  migratedDatabase,
+  seededDatabase,
+  sqlLayer,
+} from "./support/database.ts";
 
 /**
  * migrations/0035_hack_evening_time.ts on a database holding the evening as
- * production did: seven hours early, the local time stored as UTC.
+ * production did: seven hours early, the local time stored as UTC. The
+ * times are written out here, not read from the migration, so a wrong
+ * correction there can't pass.
  */
 
 const id = "e0000000-0000-4000-8000-000000000703";
 
-const db = await seededDatabase();
-afterAll(() => db.close());
+/** The evening as production holds it. */
+const seedEvening = `
+  DELETE FROM events WHERE id = '${id}';
+  INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, is_draft, luma_event_id, updated_at) VALUES
+    ('${id}', '2025-03-12-all-things-web-hack-evening', 'All Things Web Hack Evening', '', '2025-03-12T17:30:00Z', '2025-03-12T20:30:00Z', 100, false, false, 'evt-4tdtev7Ap2qLcPW', '2025-03-01T00:00:00Z');
+`;
 
-// Each test starts from the evening as production holds it, so either runs alone.
-beforeEach(() =>
-  db.exec(`
-    DELETE FROM events WHERE id = '${id}';
-    INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, is_draft, luma_event_id, updated_at) VALUES
-      ('${id}', '2025-03-12-all-things-web-hack-evening', 'All Things Web Hack Evening', '', '${wrong.start}', '${wrong.end}', 100, false, false, '${lumaEventId}', '2025-03-01T00:00:00Z');
-  `),
-);
+/** Luma's times: 5:30 to 8:30 PM in San Francisco on 2025-03-12. */
+const lumaTimes = {
+  start: "2025-03-13T00:30:00Z",
+  end: "2025-03-13T03:30:00Z",
+};
 
-const migrate = () =>
-  Effect.runPromise(migration.pipe(Effect.provide(sqlLayer(db))));
-
-const stored = async () =>
+const stored = async (db: PGlite) =>
   (
     await db.query<{ start: string; end: string; changed: boolean }>(
       `SELECT to_char(start_date AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS start,
@@ -40,37 +44,74 @@ const stored = async () =>
     )
   ).rows[0];
 
-/** Every other evening's times, which the migration must not touch. */
-const others = async () =>
-  (
-    await db.query(
-      `SELECT id, start_date, end_date, updated_at FROM events WHERE id <> $1 ORDER BY id`,
-      [id],
-    )
-  ).rows;
+const db = await seededDatabase();
+afterAll(() => db.close());
 
-test("sets the evening to Luma's times, 5:30 to 8:30 PM in San Francisco, and touches nothing else", async () => {
-  const before = await others();
-  await migrate();
-  expect(await stored()).toEqual({
-    start: right.start,
-    end: right.end,
-    changed: true,
+describe("the migration", () => {
+  // Each test starts from the evening as production holds it, so either runs alone.
+  beforeEach(() => db.exec(seedEvening));
+
+  const migrate = () =>
+    Effect.runPromise(migration.pipe(Effect.provide(sqlLayer(db))));
+
+  /** Every other evening's times, which the migration must not touch. */
+  const others = async () =>
+    (
+      await db.query(
+        `SELECT id, start_date, end_date, updated_at FROM events WHERE id <> $1 ORDER BY id`,
+        [id],
+      )
+    ).rows;
+
+  test("sets the evening to Luma's times, 5:30 to 8:30 PM in San Francisco, and touches nothing else", async () => {
+    const before = await others();
+    await migrate();
+    expect(await stored(db)).toEqual({ ...lumaTimes, changed: true });
+    expect(await others()).toEqual(before);
   });
-  expect(await others()).toEqual(before);
+
+  test("a second run changes nothing", async () => {
+    await migrate();
+    const { rows: before } = await db.query(
+      `SELECT updated_at FROM events WHERE id = $1`,
+      [id],
+    );
+    await migrate();
+    const { rows: after } = await db.query(
+      `SELECT updated_at FROM events WHERE id = $1`,
+      [id],
+    );
+    expect(after).toEqual(before);
+    expect(await stored(db)).toMatchObject(lumaTimes);
+  });
 });
 
-test("a second run changes nothing", async () => {
-  await migrate();
-  const { rows: before } = await db.query(
-    `SELECT updated_at FROM events WHERE id = $1`,
-    [id],
-  );
-  await migrate();
-  const { rows: after } = await db.query(
-    `SELECT updated_at FROM events WHERE id = $1`,
-    [id],
-  );
-  expect(after).toEqual(before);
-  expect(await stored()).toMatchObject({ start: right.start, end: right.end });
+describe("through the migrator", () => {
+  test("bun run migrate, on a database migrated through 0034, applies 0035 and corrects the evening", async () => {
+    // Every migration before this one, whatever comes after it.
+    const before = Migrator.fromRecord(
+      Object.fromEntries(
+        Object.entries(migrations).filter(
+          ([name]) => Number(name.split("_")[0]) < 35,
+        ),
+      ),
+    );
+    const old = await migratedDatabase(before);
+    try {
+      await old.exec(seedEvening);
+      const applied = await Effect.runPromise(
+        Migrations.run().pipe(Effect.provide(sqlLayer(old))),
+      );
+      expect(applied.map(({ id, name }) => `${id}_${name}`)).toEqual([
+        "35_hack_evening_time",
+      ]);
+      const { rows } = await old.query<{ name: string }>(
+        `SELECT name FROM effect_sql.migrations WHERE name = 'hack_evening_time'`,
+      );
+      expect(rows).toHaveLength(1);
+      expect(await stored(old)).toEqual({ ...lumaTimes, changed: true });
+    } finally {
+      await old.close();
+    }
+  });
 });
