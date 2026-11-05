@@ -300,10 +300,13 @@ const writeXPosts = (profileId: string, held: unknown, posts: XPosts | null) =>
 /** The X handle that wrote a post, by its address, in lower case. */
 const authorOf = (url: string) => statusOf(url)?.handle.toLowerCase();
 
-/** The id of a post on X at `url`, or undefined for any other page. */
+/**
+ * The id of a post on X at `url` (x.com or twitter.com, any case, with or
+ * without www and a query), or undefined for any other page.
+ */
 const postIdOf = (url: string) => {
   const match =
-    /^https:\/\/(?:www\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]{1,15}\/status\/([0-9]{1,20})/.exec(
+    /^https:\/\/(?:www\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]{1,15}\/status\/([0-9]{1,20})(?:[/?#]|$)/i.exec(
       url,
     );
   return match?.[1];

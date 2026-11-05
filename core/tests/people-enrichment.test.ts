@@ -590,7 +590,7 @@ describe("applyPeople: xPosts", () => {
         {
           title: "On the engine",
           date: "2026-10-01",
-          url: "https://x.com/ada/status/2000000000000000002",
+          url: "https://X.com/ada/status/2000000000000000002",
           kind: "post" as const,
         },
       ],
@@ -605,7 +605,7 @@ describe("applyPeople: xPosts", () => {
     ).toBe(
       "X posts also linked from now (keep one): Ada Lovelace https://x.com/ada/status/2000000000000000002",
     );
-    // A post its line cites counts too.
+    // A post its line cites counts too, whatever case its host is written in.
     expect(
       reasonOf(
         await apply(db, [
@@ -614,7 +614,7 @@ describe("applyPeople: xPosts", () => {
             name: "Ada Lovelace",
             now: {
               ...linking,
-              line: "Ada [wrote about the engine](https://x.com/ada/status/2000000000000000001).",
+              line: "Ada [wrote about the engine](https://www.Twitter.com/ada/status/2000000000000000001?s=20).",
               links: [],
             },
           },

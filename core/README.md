@@ -833,7 +833,8 @@ DATABASE_URL=… bun run event-extras             # write
 
 `backfill/people.json` fills what profiles of people on published events
 lack: a title, a bio, X, Bluesky and LinkedIn handles, and a photo, and
-what they do now and their standout posts on X. Every
+what they do now (and, below, their standout posts on X, which are found
+and refreshed through X's API with the app's bearer token). Every other
 fact carries the URL it was read from and the day it was read, taken from
 public, keyless sources: the person's own X or Bluesky profile, GitHub,
 their site, a company team page or a conference speaker page. A value no
