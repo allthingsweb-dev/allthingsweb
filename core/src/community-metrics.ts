@@ -414,7 +414,11 @@ export const snapshotCommunity = ({
     for (const source of sources) {
       if (kept.has(source)) continue;
       if (source === "x" && dryRun) {
-        skipped.x = "a dry run never reads X, which bills each read";
+        // The plan says whether this hour's run would read and store X.
+        skipped.x =
+          DateTime.getPartUtc(now, "hour") === 0
+            ? "a dry run never reads X, which bills each read; this hour's run would read and store it"
+            : "a dry run never reads X, which bills each read; this hour's run wouldn't either (only the day's first hour, UTC)";
         continue;
       }
       if (source === "x" && DateTime.getPartUtc(now, "hour") !== 0) {

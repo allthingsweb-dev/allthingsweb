@@ -271,7 +271,7 @@ describe("snapshotCommunity", () => {
       );
       expect(dry.asked).not.toContain("x");
       expect(dry.skipped).toEqual({
-        x: "a dry run never reads X, which bills each read",
+        x: "a dry run never reads X, which bills each read; this hour's run would read and store it",
       });
       expect(dry.stored).toEqual([]);
       expect(dry.wouldStore?.discord).toEqual({ members: 517, online: 56 });
@@ -385,7 +385,7 @@ describe("the history", () => {
 
 describe("migration 0037's grants", () => {
   test.skipIf(studioRun)(
-    "give site_sync and the studio exactly what their scripts list for the snapshot",
+    "give site_sync exactly what its script lists for the snapshot, and the studio nothing",
     async () => {
       const fresh = await migratedDatabase();
       try {
@@ -442,11 +442,8 @@ describe("migration 0037's grants", () => {
         expect(STUDIO_GRANTS["public.community_metrics"]).toEqual({
           select: true,
         });
-        expect(await held("studio")).toEqual(
-          ["day", "metric", "read_at", "source", "value"].map(
-            (column) => `community_metrics.${column} select`,
-          ),
-        );
+        // The studio's own script grants it (studio.ts --apply).
+        expect(await held("studio")).toEqual([]);
       } finally {
         await fresh.close();
       }
