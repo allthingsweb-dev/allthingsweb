@@ -435,6 +435,29 @@ describe("decodePeopleFile", () => {
     ).toBe(true);
   });
 
+  test("takes the other pages a fact drew on, and the organizer's instruction it was written on", async () => {
+    const bio = { value: "Linus maintains the kernel.", source, read };
+    const askedBy = { who: "Erik", on: read, said: "Do a best attempt." };
+    expect(
+      await decodes({
+        ...base,
+        bio: { ...bio, also: ["https://kernel.example/about"], askedBy },
+      }),
+    ).toBe(true);
+    // Each is held to its shape: pages are https, the day a real date, and
+    // no part of either is left empty.
+    for (const wrong of [
+      { also: [] },
+      { also: ["http://kernel.example/about"] },
+      { askedBy: { ...askedBy, on: "Nov 5" } },
+      { askedBy: { ...askedBy, said: "" } },
+      { askedBy: { who: "Erik", on: read } },
+      { askedBy: { ...askedBy, via: "chat" } },
+    ]) {
+      expect(await decodes({ ...base, bio: { ...bio, ...wrong } })).toBe(false);
+    }
+  });
+
   test("refuses an unknown field, a fact without its day, a photo from elsewhere, and padded text", async () => {
     expect(
       await decodes({

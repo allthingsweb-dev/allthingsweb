@@ -835,7 +835,10 @@ DATABASE_URL=… bun run event-extras             # write
 lack: a title, a bio, X, Bluesky and LinkedIn handles, and a photo. Every
 fact carries the URL it was read from and the day it was read, taken from
 public, keyless sources: the person's own X or Bluesky profile, GitHub,
-their site, a company team page or a conference speaker page.
+their site, a company team page or a conference speaker page. A value no
+one page holds all of lists the others under `also`, and one written at an
+organizer's request, as a best attempt before the person gives their own,
+says so under `askedBy`: who asked, the day, and their words.
 
 - A filled column is kept; only blank ones (or handles stored as empty
   strings) are set. The one exception: a fact may name the exact stale value
