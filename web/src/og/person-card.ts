@@ -239,9 +239,13 @@ export const personCardVersion = (facts: PersonCardFacts): string =>
     ]),
   );
 
-/** Where a person's card is: its own URL, stable, and the one link previews ask. */
+/**
+ * Where a person's card is: its own URL, stable, and the one link previews
+ * ask. A JPEG: with a photo over the grain, a PNG is 300 to 750 KB, past
+ * what some apps (WhatsApp) show a preview for.
+ */
 export const personCardPath = (slug: string): `/${string}` =>
-  `/og/people/${encodeURIComponent(slug)}.png`;
+  `/og/people/${encodeURIComponent(slug)}.jpg`;
 
 /** The person's card as their page names it, and what it says in words. */
 export function personCard(person: PersonPage): OgImage {
@@ -250,6 +254,7 @@ export function personCard(person: PersonPage): OgImage {
     src: `${personCardPath(person.slug)}?v=${personCardVersion(facts)}`,
     width: cardWidth,
     height: cardHeight,
+    type: "image/jpeg",
     alt: [
       person.name,
       ...(facts.title === null ? [] : [facts.title]),

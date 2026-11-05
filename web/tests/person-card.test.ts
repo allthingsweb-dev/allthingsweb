@@ -243,9 +243,10 @@ describe("a person's card", () => {
   test("is named by their page with a version that changes when what it shows does", () => {
     const card = personCard(person());
     expect(card).toEqual({
-      src: `/og/people/erik-thorelli.png?v=${personCardVersion(personCardFacts(person()))}`,
+      src: `/og/people/erik-thorelli.jpg?v=${personCardVersion(personCardFacts(person()))}`,
       width: 1200,
       height: 630,
+      type: "image/jpeg",
       alt: "Erik Thorelli · Head of Developer Experience, CodeRabbit · @esthor · allthings/_",
     });
     const version = (overrides: Partial<PersonPage>) =>

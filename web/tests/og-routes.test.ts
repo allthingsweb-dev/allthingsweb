@@ -5,7 +5,7 @@ import * as Effect from "effect/Effect";
 import { CacheControl } from "../src/cache.ts";
 import { ogCards } from "../src/og/cards.ts";
 import { eventDatabase, slugs } from "./support/event-catalog.ts";
-import { png, serveMedia } from "./support/media.ts";
+import { dimensions, png, serveMedia } from "./support/media.ts";
 import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
 
@@ -94,6 +94,9 @@ describe("pages' cards", () => {
       '<meta name="twitter:card" content="summary_large_image"/>',
     );
     expect(html).toContain(`<meta name="twitter:image" content="${image}"/>`);
+    expect(html).toContain(
+      '<meta property="og:image:type" content="image/png"/>',
+    );
     const home = await (await fetch(`${Cards}/`)).text();
     expect(home).toContain(
       `<meta property="og:image" content="${origin}${ogCards.home.src}"/>`,
@@ -162,7 +165,10 @@ describe("people's cards", () => {
     const html = await (await fetch(`${Cards}/people/ada-lovelace`)).text();
     const image = /<meta property="og:image" content="([^"]+)"/.exec(html)?.[1];
     expect(image).toMatch(
-      new RegExp(`^${origin}/og/people/ada-lovelace\\.png\\?v=[0-9a-z]+$`),
+      new RegExp(`^${origin}/og/people/ada-lovelace\\.jpg\\?v=[0-9a-z]+$`),
+    );
+    expect(html).toContain(
+      '<meta property="og:image:type" content="image/jpeg"/>',
     );
     expect(html).toContain(`<meta name="twitter:image" content="${image}"/>`);
     expect(html).toContain(
@@ -172,18 +178,20 @@ describe("people's cards", () => {
     expect(people).toContain(
       `<meta property="og:image" content="${origin}${ogCards.people.src}"/>`,
     );
+    expect(people).toContain(
+      '<meta property="og:image:type" content="image/png"/>',
+    );
   });
 
   it("draw a person's card with their photo, kept a day", async ({ Cards }) => {
     const before = media.fetches("profiles/ada.jpg");
-    const { response, body } = await get(`${Cards}/og/people/ada-lovelace.png`);
+    const { response, body } = await get(`${Cards}/og/people/ada-lovelace.jpg`);
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(response.headers.get("content-type")).toBe("image/jpeg");
     expect(response.headers.get("cache-control")).toBe(
       "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
     );
-    const view = new DataView(body.buffer);
-    expect([view.getUint32(16), view.getUint32(20)]).toEqual([1200, 630]);
+    expect(dimensions(body)).toEqual({ width: 1200, height: 630 });
     expect(media.fetches("profiles/ada.jpg")).toBe(before + 1);
   });
 
@@ -191,29 +199,28 @@ describe("people's cards", () => {
     Cards,
   }) => {
     const before = media.requests.length;
-    const { response, body } = await get(`${Cards}/og/people/grace-hopper.png`);
+    const { response, body } = await get(`${Cards}/og/people/grace-hopper.jpg`);
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("image/png");
-    const view = new DataView(body.buffer);
-    expect([view.getUint32(16), view.getUint32(20)]).toEqual([1200, 630]);
+    expect(response.headers.get("content-type")).toBe("image/jpeg");
+    expect(dimensions(body)).toEqual({ width: 1200, height: 630 });
     expect(media.requests.length).toBe(before);
   });
 
   it("send the people card, never kept, when a person's can't be drawn", async ({
     NoImages,
   }) => {
-    const { response } = await get(`${NoImages}/og/people/ada-lovelace.png`);
+    const { response } = await get(`${NoImages}/og/people/ada-lovelace.jpg`);
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(ogCards.people.src);
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
   });
 
   for (const path of [
-    "/og/people/no-such-person.png",
-    "/og/people/.png",
-    "/og/people/Ada-Lovelace.png",
-    "/og/people/ada-lovelace.jpg",
-    "/og/people/%E0%A4%A.png",
+    "/og/people/no-such-person.jpg",
+    "/og/people/.jpg",
+    "/og/people/Ada-Lovelace.jpg",
+    "/og/people/ada-lovelace.png",
+    "/og/people/%E0%A4%A.jpg",
   ]) {
     it(`${path} is not found`, async ({ Cards }) => {
       const { response } = await get(`${Cards}${path}`);

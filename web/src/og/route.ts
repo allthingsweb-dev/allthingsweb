@@ -44,7 +44,7 @@ import {
  *   set over it by the Images binding in the site's fonts. The edge cache
  *   keeps each a day, and its page names it with its version, so a changed
  *   event gets a new card at once.
- * - `/og/people/<slug>.png`: a person's card (person-card.ts), drawn the
+ * - `/og/people/<slug>.jpg`: a person's card (person-card.ts), drawn the
  *   same way over the people card's ground, with their photo (or the blank
  *   avatar) drawn into its box first, and named by their page with its
  *   version: a new photo, title or handle is a new card.
@@ -172,15 +172,22 @@ interface Photo {
   readonly box: PhotoBox;
 }
 
+/** How a card is encoded: an event's as a PNG, a person's (a photo) as a JPEG. */
+type CardFormat = "image/png" | "image/jpeg";
+
+/** A JPEG card's quality: the grain and the type stay crisp, well under 300 KB. */
+const jpegQuality = 85;
+
 /**
- * `ground` with `photo` drawn into its box, then `texts` over it, as a
- * PNG response.
+ * `ground` with `photo` drawn into its box, then `texts` over it,
+ * encoded as `format`.
  */
 async function draw(
   { images, text, assets }: Drawing,
   ground: Image,
   texts: ReadonlyArray<CardText>,
   origin: string,
+  format: CardFormat,
   photo?: Photo,
 ): Promise<Response> {
   let card: ImageTransformer = images.input(
@@ -205,7 +212,11 @@ async function draw(
       { top: run.top, left: run.left },
     );
   }
-  return (await card.output({ format: "image/png" })).response();
+  return (
+    await card.output(
+      format === "image/jpeg" ? { format, quality: jpegQuality } : { format },
+    )
+  ).response();
 }
 
 /** A drawing that failed, logged: the card isn't drawn this time. */
@@ -230,7 +241,7 @@ const drawCard = (slug: string, origin: string) =>
         ? built.og.cards.eventNight
         : built.og.cards.eventPaper;
     const drawn = yield* Effect.tryPromise(() =>
-      draw(tools.value, ground, texts, origin),
+      draw(tools.value, ground, texts, origin, "image/png"),
     ).pipe(Effect.catchCause(notDrawn(slug)));
     return Option.some(drawn);
   });
@@ -242,7 +253,7 @@ const readPerson = (slug: string) =>
   );
 
 /**
- * What `/og/people/<slug>.png` finds: no one; the slug they moved to; or
+ * What `/og/people/<slug>.jpg` finds: no one; the slug they moved to; or
  * their card, drawn, which is undefined when it can't be drawn this time
  * (no Images binding, an original too large to hand it, no room in the
  * budget, or a failure on the way).
@@ -263,7 +274,7 @@ const drawPersonCard = (slug: string, origin: string) =>
     const ground = personCardGround(facts);
     const box = built.og.personPhoto;
     const avatar = Effect.tryPromise(async () =>
-      draw(tools.value, ground, texts, origin, {
+      draw(tools.value, ground, texts, origin, "image/jpeg", {
         body: await asset(tools.value.assets, built.marks.avatarPng, origin),
         box,
       }),
@@ -295,7 +306,10 @@ const drawPersonCard = (slug: string, origin: string) =>
         const made = yield* withTransformBudget(
           length,
           Effect.tryPromise(() =>
-            draw(tools.value, ground, texts, origin, { body, box }),
+            draw(tools.value, ground, texts, origin, "image/jpeg", {
+              body,
+              box,
+            }),
           ).pipe(
             // A body Images never read is let go of.
             Effect.tapCause(() =>
@@ -313,11 +327,14 @@ const drawPersonCard = (slug: string, origin: string) =>
   });
 
 /** A drawn card, kept a day. */
-const cardResponse = (body: ReadableStream<Uint8Array> | null) =>
+const cardResponse = (
+  body: ReadableStream<Uint8Array> | null,
+  contentType: CardFormat,
+) =>
   HttpServerResponse.raw(
     new Response(body, {
       headers: {
-        "content-type": "image/png",
+        "content-type": contentType,
         "cache-control": cardCacheControl,
         "x-content-type-options": "nosniff",
       },
@@ -341,7 +358,7 @@ const card = HttpRouter.add(
       // Not drawn this time: the site's card instead, and never kept.
       return redirect(ogCards.home.src, 302, CacheControl.failure);
     }
-    return cardResponse(drawn.value.body);
+    return cardResponse(drawn.value.body, "image/png");
   }).pipe(
     Effect.catchCause((cause) =>
       Effect.logError("Error serving a card:", cause).pipe(
@@ -352,7 +369,7 @@ const card = HttpRouter.add(
 );
 
 /**
- * A person's card at `/og/people/<slug>.png`; a slug they had before
+ * A person's card at `/og/people/<slug>.jpg`; a slug they had before
  * redirects to their card at their current one, for good, as their page
  * does. When it can't be drawn, the people card stands in, never kept.
  */
@@ -361,7 +378,7 @@ const personCardRoute = HttpRouter.add(
   "/og/people/:file",
   Effect.gen(function* () {
     const { file = "" } = yield* HttpRouter.params;
-    const slug = file.endsWith(".png") ? decoded(file.slice(0, -4)) : undefined;
+    const slug = file.endsWith(".jpg") ? decoded(file.slice(0, -4)) : undefined;
     if (slug === undefined || !personSlugPattern.test(slug)) return notFound;
     const request = yield* HttpServerRequest.HttpServerRequest;
     const { origin } = new URL(request.originalUrl);
@@ -373,7 +390,7 @@ const personCardRoute = HttpRouter.add(
     if (found.response === undefined) {
       return redirect(ogCards.people.src, 302, CacheControl.failure);
     }
-    return cardResponse(found.response.body);
+    return cardResponse(found.response.body, "image/jpeg");
   }).pipe(
     Effect.catchCause((cause) =>
       Effect.logError("Error serving a person's card:", cause).pipe(

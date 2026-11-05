@@ -81,6 +81,8 @@ export interface ImageTransformer {
   ) => ImageTransformer;
   readonly output: (options: {
     readonly format: string;
+    /** For JPEG and WebP: 1 to 100. */
+    readonly quality?: number;
   }) => Promise<ImageTransformationResult>;
 }
 

@@ -57,6 +57,8 @@ export interface OgImage {
   readonly height: number;
   /** What the card shows, for people who can't see it. */
   readonly alt: string;
+  /** Its type, when it isn't a PNG: a person's card, with a photo, is a JPEG. */
+  readonly type?: "image/jpeg";
 }
 
 /** A page, as its head describes it. */
@@ -155,7 +157,7 @@ export function Metadata({ meta, origin, theme }: MetadataProps) {
       <meta property="og:description" content={meta.description} />
       <meta property="og:url" content={canonical} />
       <meta property="og:image" content={image} />
-      <meta property="og:image:type" content="image/png" />
+      <meta property="og:image:type" content={meta.image.type ?? "image/png"} />
       <meta property="og:image:width" content={String(meta.image.width)} />
       <meta property="og:image:height" content={String(meta.image.height)} />
       <meta property="og:image:alt" content={meta.image.alt} />
