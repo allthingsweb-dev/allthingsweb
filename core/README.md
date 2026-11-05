@@ -1536,11 +1536,16 @@ set, saying what its facts say now.
 Only a private event of ours is changed. A public one changes only through
 publish and a shared one's Luma page is its organizer's; a public
 evening's cover is still drawn to look at, and the dry run exits 1 saying
-why it wouldn't be set. One exception: a past evening of ours, over on Luma too, that still
-shows a stock photo, one of Luma's defaults or an Unsplash picture
+why it wouldn't be set.
+
+One exception: a past evening of ours, over on Luma too, that still shows
+a stock photo, one of Luma's defaults or an Unsplash picture
 (`isStockCover` in src/cover.ts), may get its own cover even when it is
-public. Nobody is coming to it any more, and a cover anyone uploaded is
-never replaced this way; once it shows ours, it is out of reach again.
+public. Nobody is coming to it any more, and a cover someone uploaded in
+Luma is never replaced this way. Once it shows ours, it is out of reach
+again. So is one this command uploaded (`isApiUpload`: only it uploads
+through our calendar's key) but couldn't record: approving again records
+it, rather than leaving it set and unrecorded.
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \

@@ -7,6 +7,7 @@ import {
   CoverRenderer,
   type CoverUnrendered,
   isLumaDefaultCover,
+  isApiUpload,
   isStockCover,
   sha256,
 } from "../cover.ts";
@@ -39,10 +40,12 @@ import { LumaWrite, type LumaWriteError, type ManagedEvent } from "./write.ts";
  * Only a private event of ours is ever changed: a public one changes only
  * through publish, and a shared one's Luma page is its organizer's. Its
  * cover can still be drawn and read, for an evening already out. One
- * exception: a past evening of ours, over on Luma too, that still shows a stock photo (one of
- * Luma's defaults, or an Unsplash picture, src/cover.ts) may get its own
- * cover, public or not. Nobody is coming to it any more, and a cover we
- * uploaded is never replaced this way.
+ * exception: a past evening of ours, over on Luma too, that still shows a
+ * stock photo (one of Luma's defaults, or an Unsplash picture,
+ * src/cover.ts) may get its own cover, public or not. Nobody is coming to
+ * it any more, and a cover someone uploaded in Luma is never replaced this
+ * way. An upload of this command's that it couldn't record stays in
+ * reach, so approving again records it.
  *
  * The short link a draft's cover prints is the one it will get when it is
  * published (src/slugs.ts, by the same dry run the sync's rehearsal uses).
@@ -169,8 +172,15 @@ const make = Effect.gen(function* () {
       const lumaOver =
         Date.parse(event.end_at ?? event.start_at) <=
         (yield* Clock.currentTimeMillis);
+      // An upload through the API that the evening doesn't record is ours
+      // too: only this command uploads through our calendar's key, so it is
+      // one whose recording failed, and approving again records it.
+      const unrecorded =
+        isApiUpload(event.cover_url) && row.generatedCoverUrl === null;
       const pastStock =
-        !facts.ahead && lumaOver && isStockCover(event.cover_url);
+        !facts.ahead &&
+        lumaOver &&
+        (isStockCover(event.cover_url) || unrecorded);
       const refused =
         event.access !== "manage"
           ? `${row.lumaEventId} is not our calendar's to change.`
