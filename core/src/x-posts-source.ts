@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, rename } from "node:fs/promises";
 import {
   Config,
   Context,
@@ -211,16 +211,22 @@ export class XPostsSource extends Context.Service<
             const cached =
               path === undefined
                 ? undefined
-                : yield* Effect.promise(async () =>
-                    (await Bun.file(path).exists())
-                      ? await Bun.file(path).json()
-                      : undefined,
-                  );
+                : // A missing or unreadable entry is a miss: X is read again.
+                  yield* Effect.promise(async (): Promise<unknown> => {
+                    try {
+                      return await Bun.file(path).json();
+                    } catch {
+                      return undefined;
+                    }
+                  });
             const body = cached ?? (yield* fetchJson(what, url));
             if (path !== undefined && cached === undefined) {
               yield* Effect.promise(async () => {
                 await mkdir(cache!.directory, { recursive: true });
-                await Bun.write(path, JSON.stringify(body));
+                // Written whole, then renamed: a reader never sees half of it.
+                const partial = `${path}.${process.pid}.${randomUUID()}.partial`;
+                await Bun.write(partial, JSON.stringify(body));
+                await rename(partial, path);
               });
             }
             return yield* Schema.decodeUnknownEffect(schema)(body).pipe(

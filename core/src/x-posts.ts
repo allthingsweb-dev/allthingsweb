@@ -139,7 +139,8 @@ export function excerptOf(text: string, max = maxExcerpt): string {
     .replace(/\s+/g, " ")
     .trim();
   if (plain.length <= max) return plain;
-  const cut = plain.slice(0, max - 1);
+  // Never half of a character written as two code units (an emoji, say).
+  const cut = plain.slice(0, max - 1).replace(/[\uD800-\uDBFF]$/, "");
   const atWord = cut.lastIndexOf(" ");
   return `${(atWord > max / 2 ? cut.slice(0, atWord) : cut).replace(/[\s,;:.–—-]+$/, "")}…`;
 }

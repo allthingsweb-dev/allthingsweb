@@ -301,12 +301,14 @@ const writeXPosts = (profileId: string, held: unknown, posts: XPosts | null) =>
 const authorOf = (url: string) => statusOf(url)?.handle.toLowerCase();
 
 /**
- * The id of a post on X at `url` (x.com or twitter.com, any case, with or
- * without www and a query), or undefined for any other page.
+ * The id of a post on X at `url`, in any of the forms X links it
+ * (x.com or twitter.com, with www or mobile, any case, by its author or as
+ * /i/status or /i/web/status, with or without a query), or undefined for
+ * any other page.
  */
-const postIdOf = (url: string) => {
+export const postIdOf = (url: string) => {
   const match =
-    /^https:\/\/(?:www\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]{1,15}\/status\/([0-9]{1,20})(?:[/?#]|$)/i.exec(
+    /^https:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/(?:i\/web|[A-Za-z0-9_]{1,15})\/status\/([0-9]{1,20})(?:[/?#]|$)/i.exec(
       url,
     );
   return match?.[1];

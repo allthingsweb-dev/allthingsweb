@@ -10,6 +10,7 @@ import {
   type PeopleFile,
   PeopleEnrichmentError,
   photoHosts,
+  postIdOf,
 } from "../src/people-enrichment.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
@@ -635,6 +636,29 @@ describe("applyPeople: xPosts", () => {
     await expect(
       db.exec(`UPDATE profiles SET x_posts = '[]' WHERE id = '${ada}'`),
     ).rejects.toThrow(/profiles_x_posts_check/);
+  });
+});
+
+describe("postIdOf", () => {
+  test("reads a post's id from every form X links it in, and nothing else", () => {
+    for (const url of [
+      "https://x.com/ada/status/123",
+      "https://X.com/ada/status/123?s=20",
+      "https://www.twitter.com/ada/status/123/photo/1",
+      "https://mobile.twitter.com/ada/status/123",
+      "https://x.com/i/status/123",
+      "https://x.com/i/web/status/123#reply",
+    ]) {
+      expect(postIdOf(url)).toBe("123");
+    }
+    for (const url of [
+      "https://x.com/ada",
+      "https://x.com/ada/status/123abc",
+      "https://notx.com/ada/status/123",
+      "http://x.com/ada/status/123",
+    ]) {
+      expect(postIdOf(url)).toBeUndefined();
+    }
   });
 });
 

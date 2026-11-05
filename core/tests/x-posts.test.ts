@@ -117,6 +117,11 @@ describe("excerptOf", () => {
     ).toBe("Shipped it. Read more: today");
   });
 
+  test("never leaves half of a two-unit character before the ellipsis", () => {
+    const cut = excerptOf("x".repeat(138) + "😀 and more", 140);
+    expect(cut).toBe(`${"x".repeat(138)}…`);
+  });
+
   test("cuts a long post at a word, with an ellipsis", () => {
     const long = `${"word ".repeat(40)}end`;
     const cut = excerptOf(long);

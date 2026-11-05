@@ -350,6 +350,14 @@ const posts = Command.make(
         }),
       ).pipe(Layer.provide(FetchHttpClient.layer));
       if (find) {
+        if (top < 1 || read < 1) {
+          return yield* Effect.fail(
+            new Error("--top and --read must be at least 1."),
+          );
+        }
+        if (Option.getOrElse(days, () => 90) < 0) {
+          return yield* Effect.fail(new Error("--days can't be negative."));
+        }
         const named = Option.match(only, {
           onNone: () => people,
           onSome: (name) => people.filter((entry) => entry.name === name),
