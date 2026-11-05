@@ -56,7 +56,7 @@ import { shellWord } from "./shell.ts";
  *   bun run luma publish <draft slug> --dry-run        what would go out, and its approval token
  *   bun run luma publish <draft slug> --approve <token>   put out exactly that
  *   bun run luma cover <slug|evt-…> --dry-run          draw its cover from its facts, and the token
- *   bun run luma cover <slug|evt-…> --approve <token>  set exactly that cover on its private event
+ *   bun run luma cover <slug|evt-…> --approve <token>  set exactly that cover on its private event (or a past one showing a stock photo)
  *   bun run luma show evt-…                            the event as Luma has it
  *   bun run luma calendar --dry-run [--slug <slug>]    how the calendar's page differs from the brand, and the token
  *   bun run luma calendar --approve <token> [--slug <slug>]   make exactly those changes
@@ -561,7 +561,7 @@ const cover = Command.make(
     }).pipe(Effect.provide(coverLayer)),
 ).pipe(
   Command.withDescription(
-    "Draw an evening's cover from its facts, or set exactly the one approved on its private Luma event.",
+    "Draw an evening's cover from its facts, or set exactly the one approved on its private Luma event (or a past one showing a stock photo).",
   ),
 );
 

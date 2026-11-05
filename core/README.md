@@ -1586,8 +1586,9 @@ any cover.
 - `--dry-run` draws the cover, writes the PNG to look at (`--out`, or a
   fresh temporary directory), says what it replaces on Luma (Luma's
   default, the one we last set, or another) and prints the approval token:
-  the first 16 hex digits of the SHA-256 of the event, the facts, the PNG's
-  SHA-256 and the cover it replaces, as canonical JSON. It sends nothing.
+  the first 16 hex digits of the SHA-256 of the event (with its visibility
+  and dates on Luma), the facts, the PNG's SHA-256 and the cover it
+  replaces, as canonical JSON. It sends nothing.
 - `--approve <token>` draws and works it out again, and goes on only if it
   hashes the same: a fact or Luma's cover changed in between stops it. It
   uploads the PNG to Luma's CDN, sets it on the event, reads the event back
@@ -1605,6 +1606,14 @@ Only a private event of ours is changed. A public one changes only through
 publish and a shared one's Luma page is its organizer's; a public
 evening's cover is still drawn to look at, and the dry run exits 1 saying
 why it wouldn't be set.
+
+One exception: a published evening of ours that is past, over on Luma too,
+and still shows a stock photo, one of Luma's defaults or an Unsplash picture
+(`isStockCover` in src/cover.ts), may get its own cover even when it is
+public. Nobody is coming to it any more, and a cover anyone uploaded is
+never replaced this way; once it shows ours, it is out of reach again. If
+recording that cover fails, the stock photo is put back on Luma, so the
+evening is as it was and approving again can finish it.
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \

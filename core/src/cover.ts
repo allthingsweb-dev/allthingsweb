@@ -185,6 +185,21 @@ export function isLumaDefaultCover(url: string | null): boolean {
   }
 }
 
+/**
+ * Whether `url` is a stock photo, not an evening's own cover: one of Luma's
+ * defaults, or a picture from Unsplash, which Luma's cover search offers
+ * (images.unsplash.com). Never anything uploaded.
+ */
+export function isStockCover(url: string | null): boolean {
+  if (url === null) return false;
+  if (isLumaDefaultCover(url)) return true;
+  try {
+    return new URL(url).hostname === "images.unsplash.com";
+  } catch {
+    return false;
+  }
+}
+
 /** The SHA-256 of `bytes`, as 64 hex digits. */
 export const sha256 = (bytes: Uint8Array) =>
   Effect.promise(async () =>
