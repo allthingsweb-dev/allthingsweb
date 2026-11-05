@@ -213,7 +213,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const examples = "allthings/effect, allthings/expo";
   const shortLink = `${site}/<topic>`;
   const people = `${site}/people`;
-  const mcp = `${config.origin}${mcpPath}`;
+  const mcp = new URL(mcpPath, config.origin).href;
   const npm = bare(cliPackage).replace(/^www\./, "");
 
   /** "Next: allthings/trivia, Thu Nov 12, 6:00 PM, hosted at …." */
