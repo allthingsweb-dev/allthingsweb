@@ -15,8 +15,12 @@ import {
   sources,
   youtubeCount,
 } from "../src/community-metrics.ts";
+import { communityMetrics } from "../migrations/0037_community_metrics.ts";
+import { SITE_SYNC_GRANTS } from "../../infra/scripts/site-sync.ts";
+import { STUDIO_GRANTS } from "../../infra/scripts/studio.ts";
 import {
   clockAt,
+  migratedDatabase,
   seededDatabase,
   sqlLayer,
   studioRun,
@@ -242,12 +246,10 @@ const snapshotAt = (
   );
   return Effect.runPromise(
     snapshotCommunity({ dryRun }).pipe(Effect.provide(layer)),
-  ).then(
-    (report): CommunityReport & { asked: Array<Source> } => ({
-      ...report,
-      asked,
-    }),
-  );
+  ).then((report): CommunityReport & { asked: Array<Source> } => ({
+    ...report,
+    asked,
+  }));
 };
 
 const stored = async (day: string) =>
@@ -379,4 +381,75 @@ describe("the history", () => {
     );
     expect(formatHistory([])).toBe("No community numbers stored yet.");
   });
+});
+
+describe("migration 0037's grants", () => {
+  test.skipIf(studioRun)(
+    "give site_sync and the studio exactly what their scripts list for the snapshot",
+    async () => {
+      const fresh = await migratedDatabase();
+      try {
+        // Roles belong to the server, which other tests may have made them on.
+        for (const role of ["site_sync", "studio"]) {
+          await fresh.exec(
+            `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = '${role}') THEN CREATE ROLE ${role} NOLOGIN; END IF; END $$`,
+          );
+          await fresh.exec(
+            `REVOKE ALL ON public.community_metrics FROM ${role}`,
+          );
+        }
+        await fresh.exec(
+          `REVOKE SELECT (luma_guest_count, luma_checked_in_count) ON public.events FROM site_sync`,
+        );
+        // The grants, as production takes them: its roles exist already.
+        const grants = communityMetrics.at(-1) ?? "";
+        expect(grants).toContain("DO $grant$");
+        await fresh.exec(grants);
+        const held = async (role: string) =>
+          (
+            await fresh.query<{ grant: string }>(
+              `SELECT table_name || '.' || column_name || ' ' || lower(privilege_type) AS grant
+               FROM information_schema.column_privileges
+               WHERE grantee = $1 AND table_schema = 'public'
+                 AND (table_name = 'community_metrics' OR column_name IN ('luma_guest_count', 'luma_checked_in_count'))
+               ORDER BY 1`,
+              [role],
+            )
+          ).rows.map(({ grant }) => grant);
+        const listed = (
+          table: string,
+          grants: {
+            select?: ReadonlyArray<string>;
+            insert?: ReadonlyArray<string>;
+          },
+        ) => [
+          ...(grants.select ?? []).map((column) => `${table}.${column} select`),
+          ...(grants.insert ?? []).map((column) => `${table}.${column} insert`),
+        ];
+        expect(await held("site_sync")).toEqual(
+          [
+            ...listed(
+              "community_metrics",
+              SITE_SYNC_GRANTS["community_metrics"] ?? {},
+            ),
+            "events.luma_checked_in_count select",
+            "events.luma_guest_count select",
+          ].toSorted(),
+        );
+        expect(SITE_SYNC_GRANTS["events"]?.select).toEqual(
+          expect.arrayContaining(["luma_guest_count", "luma_checked_in_count"]),
+        );
+        expect(STUDIO_GRANTS["public.community_metrics"]).toEqual({
+          select: true,
+        });
+        expect(await held("studio")).toEqual(
+          ["day", "metric", "read_at", "source", "value"].map(
+            (column) => `community_metrics.${column} select`,
+          ),
+        );
+      } finally {
+        await fresh.close();
+      }
+    },
+  );
 });

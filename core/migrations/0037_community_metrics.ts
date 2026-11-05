@@ -26,6 +26,21 @@ export const communityMetrics: ReadonlyArray<string> = [
     CONSTRAINT "community_metrics_metric_check" CHECK ("metric" ~ '^[a-z][a-z_]{0,31}$'),
     CONSTRAINT "community_metrics_value_check" CHECK ("value" >= 0)
   )`,
+  // The roles get here what their scripts list (infra/scripts/site-sync.ts,
+  // infra/scripts/studio.ts), so neither needs rerunning, nor a new
+  // password, for this table. Where a role doesn't exist (a fresh
+  // database), its script grants it all when it makes it.
+  `DO $grant$
+  BEGIN
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'site_sync') THEN
+      GRANT SELECT ("day", "source", "metric"), INSERT ("day", "source", "metric", "value") ON "public"."community_metrics" TO site_sync;
+      GRANT SELECT ("luma_guest_count", "luma_checked_in_count") ON "public"."events" TO site_sync;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'studio') THEN
+      GRANT SELECT ON "public"."community_metrics" TO studio;
+    END IF;
+  END
+  $grant$`,
 ];
 
 export default statements(communityMetrics);
