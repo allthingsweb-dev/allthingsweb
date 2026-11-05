@@ -33,6 +33,7 @@ import forgetDraftCoverMigration from "./0031_forget_draft_cover.ts";
 import profileNowMigration from "./0032_profile_now.ts";
 import sanityEveningSlugMigration from "./0033_sanity_evening_slug.ts";
 import profileEditorMigration from "./0034_profile_editor.ts";
+import hackEveningTimeMigration from "./0035_hack_evening_time.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -76,6 +77,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0032_profile_now": profileNowMigration,
   "0033_sanity_evening_slug": sanityEveningSlugMigration,
   "0034_profile_editor": profileEditorMigration,
+  "0035_hack_evening_time": hackEveningTimeMigration,
 };
 
 /** The migrations, in id order, for the migrator. */
