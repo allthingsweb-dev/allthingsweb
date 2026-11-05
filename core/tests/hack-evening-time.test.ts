@@ -1,4 +1,4 @@
-import { afterAll, expect, test } from "bun:test";
+import { afterAll, beforeEach, expect, test } from "bun:test";
 import { Effect } from "effect";
 import migration, {
   lumaEventId,
@@ -17,10 +17,14 @@ const id = "e0000000-0000-4000-8000-000000000703";
 const db = await seededDatabase();
 afterAll(() => db.close());
 
-await db.exec(`
-  INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, is_draft, luma_event_id, updated_at) VALUES
-    ('${id}', '2025-03-12-all-things-web-hack-evening', 'All Things Web Hack Evening', '', '${wrong.start}', '${wrong.end}', 100, false, false, '${lumaEventId}', '2025-03-01T00:00:00Z');
-`);
+// Each test starts from the evening as production holds it, so either runs alone.
+beforeEach(() =>
+  db.exec(`
+    DELETE FROM events WHERE id = '${id}';
+    INSERT INTO events (id, slug, name, tagline, start_date, end_date, attendee_limit, is_hackathon, is_draft, luma_event_id, updated_at) VALUES
+      ('${id}', '2025-03-12-all-things-web-hack-evening', 'All Things Web Hack Evening', '', '${wrong.start}', '${wrong.end}', 100, false, false, '${lumaEventId}', '2025-03-01T00:00:00Z');
+  `),
+);
 
 const migrate = () =>
   Effect.runPromise(migration.pipe(Effect.provide(sqlLayer(db))));
@@ -57,6 +61,7 @@ test("sets the evening to Luma's times, 5:30 to 8:30 PM in San Francisco, and to
 });
 
 test("a second run changes nothing", async () => {
+  await migrate();
   const { rows: before } = await db.query(
     `SELECT updated_at FROM events WHERE id = $1`,
     [id],
