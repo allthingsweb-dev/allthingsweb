@@ -180,8 +180,10 @@ jobs:
                     WANT_LATEST="$VERSION"
                     WANT_ALPHA=""
                   fi
-                  # The registry may take a moment to show a new version.
-                  for _ in 1 2 3 4 5 6; do
+                  # The registry can take minutes to show a new version ("Your package
+                  # is being processed"): 2.0.0 and 2.0.1 each needed more than a
+                  # minute. Up to 10 minutes, every 10 s.
+                  for _ in $(seq 60); do
                     TAGS=$(tags)
                     if [[ "$(jq -r '.latest // ""' <<<"$TAGS")" == "$WANT_LATEST" ]] &&
                       [[ -z "$WANT_ALPHA" || "$(jq -r '.alpha // ""' <<<"$TAGS")" == "$WANT_ALPHA" ]]; then
