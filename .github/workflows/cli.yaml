@@ -71,4 +71,6 @@ jobs:
           bun add "$pack"/allthings-*.tgz
           bunx allthings --version
           bunx allthings --help
-          bunx atw --version 2>&1 >/dev/null | grep -q "atw is now allthings"
+          # Captured first, so a failing atw fails the step (-e), not just a missing note.
+          note=$(bunx atw --version 2>&1 >/dev/null)
+          grep -q "atw is now allthings" <<<"$note"
