@@ -339,8 +339,9 @@ a value (the day's first stays). A source that fails is read again the next
 hour, and the step's log line names it (`failed`). X bills each read, so it
 is read once a day at most: only in the run of the day's first hour (UTC),
 whatever comes of it. A dry run reads every source but X (whose read is
-billed) and stores nothing: it reports what it would store (`wouldStore`),
-and whether this hour would read X. It writes as site_sync, which
+billed), those the day already has too, so it checks each integration, and
+stores nothing: it reports what it would store (`wouldStore`, only what the
+day lacks) and whether this hour's run would attempt to read X. It writes as site_sync, which
 may insert rows and read which the day has, nothing else (migration 0037
 grants it, as the script lists)
 (infra/scripts/site-sync.ts). Nothing in it identifies anyone.

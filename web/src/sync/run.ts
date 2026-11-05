@@ -510,9 +510,7 @@ const community = (dryRun: boolean) =>
     const context = yield* Effect.context<CommunitySources | SqlClient>();
     return snapshotCommunity({ dryRun }).pipe(
       Effect.flatMap((report) => {
-        const succeeded = dryRun
-          ? Object.keys(report.wouldStore ?? {}).length
-          : report.stored.length;
+        const succeeded = report.read.length;
         const tried = succeeded + Object.keys(report.failed).length;
         return tried > 0 && succeeded === 0
           ? Effect.fail(

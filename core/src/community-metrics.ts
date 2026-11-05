@@ -373,6 +373,8 @@ export interface CommunityReport {
   readonly day: string;
   /** In a dry run, what each source read would store; nothing is written. */
   readonly wouldStore?: Readonly<Partial<Record<Source, Metrics>>>;
+  /** Sources read now, successfully (a dry run reads those the day has too). */
+  readonly read: ReadonlyArray<Source>;
   /** Sources read and stored now. */
   readonly stored: ReadonlyArray<Source>;
   /** Sources the day already had. */
@@ -408,16 +410,19 @@ export const snapshotCommunity = ({
     );
     const kept = new Set(had.map(({ source }) => source));
     const stored: Array<Source> = [];
+    const answered: Array<Source> = [];
     const wouldStore: Partial<Record<Source, Metrics>> = {};
     const skipped: Partial<Record<Source, string>> = {};
     const failed: Partial<Record<Source, string>> = {};
     for (const source of sources) {
-      if (kept.has(source)) continue;
+      // A dry run reads every source but X, those the day has too, so it
+      // checks each integration; it would store only what the day lacks.
+      if (kept.has(source) && !(dryRun && source !== "x")) continue;
       if (source === "x" && dryRun) {
-        // The plan says whether this hour's run would read and store X.
+        // The plan says whether this hour's run would try X.
         skipped.x =
           DateTime.getPartUtc(now, "hour") === 0
-            ? "a dry run never reads X, which bills each read; this hour's run would read and store it"
+            ? "a dry run never reads X, which bills each read; this hour's run would attempt to read it"
             : "a dry run never reads X, which bills each read; this hour's run wouldn't either (only the day's first hour, UTC)";
         continue;
       }
@@ -437,9 +442,10 @@ export const snapshotCommunity = ({
         metric,
         value,
       }));
+      answered.push(source);
       if (rows.length === 0) continue;
       if (dryRun) {
-        wouldStore[source] = read.success;
+        if (!kept.has(source)) wouldStore[source] = read.success;
         continue;
       }
       // The day's first value stays: a second writer never replaces it.
@@ -452,6 +458,7 @@ export const snapshotCommunity = ({
     return {
       day,
       stored,
+      read: answered,
       ...(dryRun ? { wouldStore } : {}),
       kept: sources.filter((source) => kept.has(source)),
       skipped,

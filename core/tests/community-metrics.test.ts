@@ -271,12 +271,19 @@ describe("snapshotCommunity", () => {
       );
       expect(dry.asked).not.toContain("x");
       expect(dry.skipped).toEqual({
-        x: "a dry run never reads X, which bills each read; this hour's run would read and store it",
+        x: "a dry run never reads X, which bills each read; this hour's run would attempt to read it",
       });
       expect(dry.stored).toEqual([]);
       expect(dry.wouldStore?.discord).toEqual({ members: 517, online: 56 });
       expect(dry.failed).toEqual({ npm: "answered 503" });
       expect(await stored("2026-10-30")).toEqual([]);
+      // Once the day has its numbers, a dry run still reads every source
+      // but X, checking each, and would store nothing.
+      await snapshotAt("2026-10-30T05:00:00Z", {});
+      const after = await snapshotAt("2026-10-30T06:00:00Z", {}, true);
+      expect(after.asked).toEqual(sources.filter((source) => source !== "x"));
+      expect(after.wouldStore).toEqual({});
+      expect(after.read).toEqual(after.asked);
     },
   );
 
@@ -291,6 +298,7 @@ describe("snapshotCommunity", () => {
       expect(morning).toEqual({
         day: "2026-11-01",
         stored: ["bluesky", "youtube", "discord", "meetup", "luma", "github"],
+        read: ["bluesky", "youtube", "discord", "meetup", "luma", "github"],
         kept: [],
         skipped: {
           x: "read only in the day's first hour (UTC): X bills each read",
