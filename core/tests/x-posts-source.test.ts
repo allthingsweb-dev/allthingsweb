@@ -92,4 +92,16 @@ describe("XPostsSource.xApi", () => {
     expect(asked).toEqual(["/2/tweets", "/2/tweets"]);
     expect(await readdir(directory)).toEqual(files);
   });
+
+  test("uses X's answer all the same when it can't keep it", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "x-cache-"));
+    directories.push(directory);
+    // A file where the cache's directory should be: nothing can be kept there.
+    const blocked = join(directory, "not-a-directory");
+    await Bun.write(blocked, "");
+    const asked: Array<string> = [];
+    const posts = await read(blocked, asked);
+    expect(posts.get("1")?.text).toBe("human <> agent");
+    expect(await readdir(directory)).toEqual(["not-a-directory"]);
+  });
 });

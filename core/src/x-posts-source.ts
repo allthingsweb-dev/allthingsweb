@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, rename } from "node:fs/promises";
+import { mkdir, rename, rm } from "node:fs/promises";
 import {
   Config,
   Context,
@@ -221,13 +221,22 @@ export class XPostsSource extends Context.Service<
                   });
             const body = cached ?? (yield* fetchJson(what, url));
             if (path !== undefined && cached === undefined) {
-              yield* Effect.promise(async () => {
+              // Written whole, then renamed: a reader never sees half of it.
+              // The cache only saves a read: one it can't keep (a full disk,
+              // a directory it may not write) costs nothing but that, so the
+              // answer X gave is used all the same.
+              const partial = `${path}.${process.pid}.${randomUUID()}.partial`;
+              yield* Effect.tryPromise(async () => {
                 await mkdir(cache!.directory, { recursive: true });
-                // Written whole, then renamed: a reader never sees half of it.
-                const partial = `${path}.${process.pid}.${randomUUID()}.partial`;
                 await Bun.write(partial, JSON.stringify(body));
                 await rename(partial, path);
-              });
+              }).pipe(
+                Effect.catch(() =>
+                  Effect.tryPromise(() => rm(partial, { force: true })).pipe(
+                    Effect.ignore,
+                  ),
+                ),
+              );
             }
             return yield* Schema.decodeUnknownEffect(schema)(body).pipe(
               Effect.mapError(
