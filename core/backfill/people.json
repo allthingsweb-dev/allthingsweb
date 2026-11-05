@@ -561,19 +561,36 @@
   {
     "profileId": "ba3c81e8-064c-4931-aa98-6478cfdc19bc",
     "name": "Tyler Slaton",
-    "photoSourceUrl": {
-      "value": "https://avatars.githubusercontent.com/u/54378333",
-      "source": "https://api.github.com/users/tylerslaton",
-      "read": "2026-10-05"
+    "title": {
+      "value": "Founding Engineer, CopilotKit",
+      "source": "https://hangzhou2025.gosim.org/speakers/michael-tyler-slaton/",
+      "read": "2026-11-05",
+      "was": "Senior Founding Engineer, CopilotKit",
+      "also": ["https://www.linkedin.com/in/michael-t-slaton"]
+    },
+    "bio": {
+      "value": "Tyler Slaton is a founding engineer at CopilotKit, the company behind AG-UI, where he works on standardizing how users interact with AI agents across applications. An open-source engineer, he previously worked at Red Hat and Oracle, as well as startups. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke about the three flavors of generative UI.",
+      "source": "https://hangzhou2025.gosim.org/speakers/michael-tyler-slaton/",
+      "read": "2026-11-05",
+      "was": "Tyler is an open-source engineer focused on the evolving boundary between humans and AI agents. He is currently part of the founding team at CopilotKit, the company behind AG-UI, where they're working to standardize how users interact with AI agents across applications. Previously, he has worked at companies like Red Hat and Oracle, as well as various startups, giving him perspective on both enterprise-scale challenges and the rapid iteration needed in emerging technologies. Through the process of building AG-UI, he has had a front-row seat to the practical challenges of creating truly intuitive agent-user interfaces.",
+      "also": [
+        "https://www.linkedin.com/in/michael-t-slaton",
+        "https://allthings.dev/people/tyler-slaton"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "linkedinHandle": {
       "value": "michael-t-slaton",
       "source": "https://hangzhou2025.gosim.org/speakers/michael-tyler-slaton/",
       "read": "2026-10-05"
     },
-    "bio": {
-      "value": "Tyler is an open-source engineer focused on the evolving boundary between humans and AI agents. He is currently part of the founding team at CopilotKit, the company behind AG-UI, where they're working to standardize how users interact with AI agents across applications. Previously, he has worked at companies like Red Hat and Oracle, as well as various startups, giving him perspective on both enterprise-scale challenges and the rapid iteration needed in emerging technologies. Through the process of building AG-UI, he has had a front-row seat to the practical challenges of creating truly intuitive agent-user interfaces.",
-      "source": "https://hangzhou2025.gosim.org/speakers/michael-tyler-slaton/",
+    "photoSourceUrl": {
+      "value": "https://avatars.githubusercontent.com/u/54378333",
+      "source": "https://api.github.com/users/tylerslaton",
       "read": "2026-10-05"
     },
     "held": [
@@ -592,6 +609,250 @@
         "reason": "x.com/tylerslaton does not exist (404), and no X account for him was found through GOSIM, GitHub, his site or search."
       }
     ]
+  },
+  {
+    "profileId": "623074e2-4763-4deb-b627-f7ce3cb67665",
+    "name": "Simon Farshid",
+    "title": {
+      "value": "Founder & CEO, assistant-ui",
+      "source": "https://www.ycombinator.com/companies/assistant-ui",
+      "read": "2026-11-05",
+      "also": ["https://x.com/simonfarshid"]
+    },
+    "bio": {
+      "value": "Simon Farshid is the founder and CEO of assistant-ui (YC W25), an open-source library of components, runtimes and primitives for building AI chat interfaces in React, Vue, React Native and the terminal. He writes about shipping TypeScript libraries on his blog. At at/effect he co-hosted the evening and moderated the fireside chat with Michael Arnaldi, creator of Effect.",
+      "source": "https://www.ycombinator.com/companies/assistant-ui",
+      "read": "2026-11-05",
+      "was": "Founder and CEO of assistant-ui, the open-source React toolkit for AI chat.",
+      "also": [
+        "https://x.com/simonfarshid",
+        "https://www.assistant-ui.com/",
+        "https://blog.simonfarshid.com/",
+        "https://allthings.dev/people/simon-farshid"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "twitterHandle": {
+      "value": "simonfarshid",
+      "source": "https://github.com/Yonom",
+      "read": "2026-11-05",
+      "was": "@simonfarshid"
+    }
+  },
+  {
+    "profileId": "5ac5689e-0633-4daa-a203-fb92c91b7372",
+    "name": "Simon Sturmer",
+    "title": {
+      "value": "Software Engineer, Y Combinator",
+      "source": "https://x.com/sstur_",
+      "read": "2026-11-05",
+      "was": "Director of Product Engineering",
+      "also": ["https://bsky.app/profile/sstur.com"]
+    },
+    "bio": {
+      "value": "Simon Sturmer is a software engineer on the software team at Y Combinator. He previously worked at Google/YouTube and Facebook, went through YC as a founder in W21, and teaches as a Pluralsight instructor. At an allthings evening at Convex he spoke about local-first with React Native.",
+      "source": "https://x.com/sstur_",
+      "read": "2026-11-05",
+      "was": "Simon is a software engineer, founder, speaker, and father from Kansas City.",
+      "also": [
+        "https://bsky.app/profile/sstur.com",
+        "https://allthings.dev/people/simon-sturmer"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "458980d5-75c3-4b1f-9a55-2803d1a303e2",
+    "name": "Steve Heffernan",
+    "title": {
+      "value": "Co-founder & Product Architect, Mux",
+      "source": "https://www.mux.com/team/steve-heffernan",
+      "read": "2026-11-05",
+      "was": "Founder of Mux",
+      "also": ["https://x.com/heff"]
+    },
+    "bio": {
+      "value": "Steve Heffernan is co-founder and Product Architect at Mux. He created Video.js and Media Chrome and co-founded Zencoder, and in October 2026 he released Video.js 10, the rebuild of the player that ships as @videojs/react and @videojs/html. At React Bay Area at Mux, an early allthings evening, he spoke about custom component-based media players.",
+      "source": "https://www.mux.com/team/steve-heffernan",
+      "read": "2026-11-05",
+      "was": "Steve Heffernan is the creator of Video.js and a founder of Mux.",
+      "also": [
+        "https://x.com/heff",
+        "https://videojs.org/blog/videojs-10",
+        "https://allthings.dev/people/steve-heffernan"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "held": [
+      {
+        "field": "blueskyHandle",
+        "value": "heff.bsky.social",
+        "sources": ["https://bsky.app/profile/heff.bsky.social"],
+        "reason": "Belongs to someone else (display name \"Jash\", unrelated bio)."
+      }
+    ]
+  },
+  {
+    "profileId": "493e6fa8-e48b-4dd8-82f4-4f30d8de0a9e",
+    "name": "Sébastien Morel",
+    "title": {
+      "value": "CTO, Crystallize",
+      "source": "https://sebastien.morel.me",
+      "read": "2026-11-05",
+      "was": "CTO",
+      "also": ["https://x.com/Plopix", "https://github.com/Plopix"]
+    },
+    "bio": {
+      "value": "Sébastien Morel (Plopix) is CTO of Crystallize, the headless commerce platform, where he builds agentic systems in production, including Claudette, an internal AI engineer that works in the company’s Slack. He maintains the open-source Missive.js and CLIffhanger. He spoke at React Bay Area at Mux, an early allthings evening, about a shopping cart with React 19, and co-hosted an allthings evening at Vapi.",
+      "source": "https://sebastien.morel.me",
+      "read": "2026-11-05",
+      "was": "Sébastien is a passionate and accomplished tech leader and problem-solver with extensive experience in architecture, performance optimizations, development, and system administration. CTO at Crystallize, a super-fast, super modern, super sexy, and super-powerful Headless eCommerce, he's in charge (among others) of the Developer eXperience initiative. Previously, he led and grew his former web agency for 18 years, working on more than 150 projects that were successfully and proudly implemented, deployed, and maintained. Sébastien is also an open-source maintainer and is active in several communities.",
+      "also": [
+        "https://crystallize.com/blog/claudette-ai-agent-at-crystallize",
+        "https://allthings.dev/people/sebastien-morel"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "blueskyHandle": {
+      "value": "morel.me",
+      "source": "https://sebastien.morel.me",
+      "read": "2026-11-05"
+    }
+  },
+  {
+    "profileId": "419b7781-718b-41cc-aa7a-a3a4a334cf74",
+    "name": "Ted Nyman",
+    "title": {
+      "value": "Code Infrastructure & Git, OpenAI",
+      "source": "https://x.com/tnm",
+      "read": "2026-11-05",
+      "was": "CEO at Cased",
+      "also": ["https://github.com/tnm", "https://ted.io"]
+    },
+    "bio": {
+      "value": "Ted Nyman works on code infrastructure and Git at OpenAI, building developer tools. He was CTO of GitHub and later founded Cased, where he was CEO, and he wrote High Performance Git, a book about Git at scale. He spoke at NextDev.fm Live, an allthings evening.",
+      "source": "https://ted.io",
+      "read": "2026-11-05",
+      "was": "Ted Nyman is the CEO of Cased, a platform for agent-enabled infrastructure and IaC. Previously, Ted served as CTO and worked as a systems engineer at GitHub.",
+      "also": [
+        "https://x.com/tnm",
+        "https://github.com/tnm",
+        "https://allthings.dev/people/ted-nyman"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "b9a4aa87-5880-4b75-b8d0-929f4bb7e288",
+    "name": "Tom Occhino",
+    "title": {
+      "value": "Chief Product Officer, Vercel",
+      "source": "https://www.saastrannual2026.com/speaker/tom-occhino",
+      "read": "2026-11-05",
+      "was": "Chief Product Officer at Vercel",
+      "also": ["https://x.com/tomocchino"]
+    },
+    "bio": {
+      "value": "Tom Occhino is Chief Product Officer at Vercel, where he leads engineering, product and design. In more than 12 years at Facebook he led the company’s core JavaScript infrastructure, shaped its open source program, and was responsible for the creation and development of React and React Native. At an allthings evening at Vercel HQ he spoke about the history of React.",
+      "source": "https://www.saastrannual2026.com/speaker/tom-occhino",
+      "read": "2026-11-05",
+      "was": "​Tom is the Chief Product Officer at Vercel leading Engineering, Product, and Design. Previously he spent over 12 years at Facebook where he led development of the company’s core JavaScript Infra, shaped its open source program, and was responsible for the creation and development of React and React Native. He enjoys traveling, dance music, fancy cocktails, and simple food.",
+      "also": [
+        "https://x.com/tomocchino",
+        "https://allthings.dev/people/tom-occhino"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "linkedinHandle": {
+      "value": "tomocchino",
+      "source": "https://tomocchino.com",
+      "read": "2026-11-05"
+    }
+  },
+  {
+    "profileId": "74d096e0-34e9-4f33-89c4-c38554b38b6b",
+    "name": "Tony Dang",
+    "title": {
+      "value": "Developer Relations, Databricks",
+      "source": "https://bsky.app/profile/tonydang.com",
+      "read": "2026-11-05",
+      "was": "Web Developer",
+      "also": [
+        "https://x.com/thisistonydang",
+        "https://github.com/thisistonydang"
+      ]
+    },
+    "bio": {
+      "value": "Tony Dang works in developer relations at Databricks on Neon. He is a web developer drawn to Svelte, Elixir, PWAs, local-first and self-hosting, and his projects include an offline-enabled Phoenix LiveView and Svelte PWA. At Remix Bay Area at Solv, one of the first allthings evenings, he spoke about enhancing user authentication with passkeys.",
+      "source": "https://bsky.app/profile/tonydang.com",
+      "read": "2026-11-05",
+      "was": "Tony Dang is a web developer from the California Bay Area. He's excited about all things web - from Remix to SvelteKit, and even beyond to non-JS web technologies such as Phoenix, Laravel, Rails, and Django.",
+      "also": [
+        "https://x.com/thisistonydang",
+        "https://tonydang.com/projects",
+        "https://allthings.dev/people/tony-dang"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "blueskyHandle": {
+      "value": "tonydang.com",
+      "source": "https://tonydang.com",
+      "read": "2026-11-05"
+    }
+  },
+  {
+    "profileId": "a473938c-1afd-46e4-b1e0-26593ae02d25",
+    "name": "Tony Holdstock-Brown",
+    "title": {
+      "value": "CEO & Co-founder, Inngest",
+      "source": "https://x.com/itstonyhb",
+      "read": "2026-11-05",
+      "was": "CEO & co-founder",
+      "also": ["https://github.com/tonyhb"]
+    },
+    "bio": {
+      "value": "Tony Holdstock-Brown is CEO and co-founder of Inngest, which runs durable workflows and functions on any platform, serverless or servers. Before Inngest he worked at Docker and was head of engineering at a healthcare company. At the Pre Next.js Conf Meetup he spoke about bringing state to Next.js serverless functions with Inngest.",
+      "source": "https://x.com/itstonyhb",
+      "read": "2026-11-05",
+      "was": "​Tony is the CEO and co-founder of Inngest.",
+      "also": [
+        "https://github.com/tonyhb",
+        "https://allthings.dev/people/tony-holdstock-brown"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
   },
   {
     "profileId": "0f8bde0a-3828-4d02-8dfc-a016fa8ca68e",
@@ -859,14 +1120,26 @@
     "profileId": "0e56fe5f-bfe5-46a6-a762-f5881c0ae90f",
     "name": "Wayne Sutton",
     "title": {
-      "value": "Head of Community/Events & Startup Programs at Convex",
+      "value": "Head of Community/Events & Startup Programs, Convex",
       "source": "https://x.com/waynesutton",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Head of Community/Events & Startup Programs at Convex",
+      "also": ["https://github.com/waynesutton"]
     },
     "bio": {
-      "value": "Helping developers & startups build faster with Convex and AI. Motorcycle rider.",
+      "value": "Wayne Sutton is Head of Community/Events & Startup Programs at Convex, where he helps developers and startups build faster with Convex and AI. He also publishes convexskills, a set of agent skills for builders shipping Convex apps. He co-hosted at/sync and two allthings evenings at Convex.",
       "source": "https://x.com/waynesutton",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Helping developers & startups build faster with Convex and AI. Motorcycle rider.",
+      "also": [
+        "https://github.com/waynesutton/convexskills",
+        "https://allthings.dev/people/wayne-sutton"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "waynesutton",
@@ -888,14 +1161,28 @@
     "profileId": "77ebfb27-2e47-4774-8d27-e331b0ce8fd9",
     "name": "Victor Coisne",
     "title": {
-      "value": "VP Marketing at Strapi",
-      "source": "https://strapi.io/blog/save-the-date-strapi-conf-2025-join-us-in-paris",
-      "read": "2026-10-06"
+      "value": "Head of GTM, Plakar",
+      "source": "https://www.plakar.io/posts/2026-09-08/agentless-vss-sql-server-backup/",
+      "read": "2026-11-05",
+      "was": "VP Marketing at Strapi",
+      "also": ["https://github.com/vcoisne"]
     },
     "bio": {
-      "value": "Community-led human. Building the next generation of CMS at Strapi; previously Head of Community at Docker. French, wine lover, soccer fan.",
-      "source": "https://x.com/vcoisne",
-      "read": "2026-10-06"
+      "value": "Victor Coisne is Head of GTM at Plakar, which makes encrypted, deduplicated backup and restore tooling, and writes for its blog. He has led marketing, growth and community at Strapi, and before that was Head of Community at Docker. He co-hosted the Pre Next.js Conf Meetup and at/ship ai.",
+      "source": "https://www.plakar.io/posts/2026-09-08/agentless-vss-sql-server-backup/",
+      "read": "2026-11-05",
+      "was": "Community-led human. Building the next generation of CMS at Strapi; previously Head of Community at Docker. French, wine lover, soccer fan.",
+      "also": [
+        "https://www.plakar.io/",
+        "https://github.com/vcoisne",
+        "https://x.com/vcoisne",
+        "https://allthings.dev/people/victor-coisne"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "vcoisne",
