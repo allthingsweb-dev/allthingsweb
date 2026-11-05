@@ -22,9 +22,15 @@ import { canonicalNow, decodeStoredNow, Now } from "./now.ts";
  * what is stored. `null` clears it and keeps it off; an entry without
  * `now` leaves it as it is.
  *
- * A title is the person's job title at the time of their evening (the
- * role they had when they spoke or hosted), or their latest known title
- * where no source gives one from then (Erik, 2026-10-06).
+ * A title is the person's job title now, as of the day it was read, so
+ * their page and its card say what they do today; their talks already say
+ * when they spoke. Where no source gives a current one, it is their latest
+ * known title (Erik, 2026-11-05, replacing "at the time of their evening"
+ * from 2026-10-06).
+ *
+ * A bio is the person's own words, lightly trimmed or put in the third
+ * person, or one an organizer asked for (`askedBy`): written in the
+ * site's voice from the pages its fact lists, every claim on one of them.
  *
  * Photos go only into `photo_source_url`, and only from hosts the app's
  * hourly ingestion copies from (app/src/lib/profile-photos/hosts.ts), which
@@ -122,9 +128,9 @@ export const PeopleEntry = Schema.Struct({
     ),
   ),
   name: Schema.String.check(Schema.isNonEmpty()),
-  /** Their job title at the time of their evening, else their latest known one. */
+  /** Their job title now, as of `read`, else their latest known one. */
   title: Schema.optionalKey(fact(Text(120))),
-  /** The person's own words, at most lightly trimmed or put in the third person. */
+  /** Their own words, lightly trimmed or put in the third person, or written as an organizer asked (`askedBy`). */
   bio: Schema.optionalKey(fact(Text(2000))),
   twitterHandle: Schema.optionalKey(
     fact(Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_]{1,15}$/))),

@@ -844,10 +844,14 @@ says so under `askedBy`: who asked, the day, and their words.
   strings) are set. The one exception: a fact may name the exact stale value
   it replaces (`was`), and replaces it only while the column still holds
   just that. A photo source is never replaced once its image is copied.
-- A title is the person's job title at the time of their evening, or
-  their latest known title where no source gives one from then.
+- A title is the person's job title now, as of the day it was read
+  (their talks already say when they spoke), or their latest known title
+  where no source gives a current one.
 - A bio is the person's own words, at most trimmed or put in the third
-  person; a terse profile line is no bio.
+  person, or one an organizer asked for (`askedBy`): two or three
+  sentences in the site's voice on what they build, what they're known
+  for and what they did at allthings, every claim on a page the fact
+  lists. A terse profile line is no bio.
 - A photo is only ever a `photo_source_url` on a host the hourly ingestion
   copies from (`app/src/lib/profile-photos/hosts.ts`), which then makes it
   the profile's image.
