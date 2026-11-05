@@ -254,7 +254,7 @@ describe("/brand", () => {
       ),
     ).toEqual([...socials]);
     expect(elsewhere).toContain(
-      '<li><a href="https://www.linkedin.com/company/all-things-web-dev/">linkedin</a></li></ul>',
+      '<li><a href="https://www.linkedin.com/company/allthings-dev/">linkedin</a></li></ul>',
     );
   });
 
