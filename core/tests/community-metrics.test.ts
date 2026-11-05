@@ -402,9 +402,9 @@ describe("migration 0037's grants", () => {
           `REVOKE SELECT (luma_guest_count, luma_checked_in_count) ON public.events FROM site_sync`,
         );
         // The grants, as production takes them: its roles exist already.
-        const grants = communityMetrics.at(-1) ?? "";
-        expect(grants).toContain("DO $grant$");
-        await fresh.exec(grants);
+        const statement = communityMetrics.at(-1) ?? "";
+        expect(statement).toContain("DO $grant$");
+        await fresh.exec(statement);
         const held = async (role: string) =>
           (
             await fresh.query<{ grant: string }>(
