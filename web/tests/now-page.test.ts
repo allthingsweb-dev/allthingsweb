@@ -55,6 +55,7 @@ const person = (
   organizes: false,
   hosted: [],
   now: record,
+  xPosts: null,
   ...overrides,
 });
 

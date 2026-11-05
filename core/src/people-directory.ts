@@ -22,6 +22,7 @@ import {
 } from "./catalog.ts";
 import { personLinks } from "./mappers.ts";
 import { Now } from "./now.ts";
+import { XPosts } from "./x-posts.ts";
 import { type StageRole, stageRole } from "./people.ts";
 import * as Rows from "./rows.ts";
 import { byFollowers } from "./followers.ts";
@@ -120,6 +121,12 @@ export interface PersonPage extends Person {
    * where they have none, or theirs no longer reads as one.
    */
   readonly now: Now | null;
+  /**
+   * Their standout recent posts on X, with their counts as read
+   * (src/x-posts.ts), or null where they have none, or theirs no longer
+   * reads as such.
+   */
+  readonly xPosts: XPosts | null;
 }
 
 /**
@@ -271,6 +278,8 @@ export const PersonRow = Schema.Struct({
   hosted: Schema.Array(HostedRow),
   /** `profiles.now_record` as stored, decoded by {@link toPersonPage}. */
   now: Schema.Unknown,
+  /** `profiles.x_posts` as stored, decoded by {@link toPersonPage}. */
+  xPosts: Schema.Unknown,
 });
 
 export type TalkRow = typeof TalkRow.Type;
@@ -442,6 +451,11 @@ const decodeNow = Schema.decodeUnknownOption(Now, {
   onExcessProperty: "error",
 });
 
+/** Stored X posts, or none where there are none or they don't decode. */
+const decodeXPosts = Schema.decodeUnknownOption(XPosts, {
+  onExcessProperty: "error",
+});
+
 /** A person's own page from their row (see {@link PersonPage}). */
 export const toPersonPage = (
   row: PersonRow,
@@ -450,6 +464,7 @@ export const toPersonPage = (
   ...toPerson(row, now),
   organizes: row.organizes,
   now: Option.getOrNull(decodeNow(row.now)),
+  xPosts: Option.getOrNull(decodeXPosts(row.xPosts)),
   hosted: row.hosted.map(
     (evening): HostedEvening => ({
       ...partEvening(evening, now),
@@ -533,6 +548,7 @@ const make = Effect.gen(function* () {
         p.linkedin_handle AS "linkedinHandle",
         p.x_followers AS "xFollowers",
         p.now_record AS now,
+        p.x_posts AS "xPosts",
         (
           SELECT json_build_object(
             'url', i.url, 'alt', i.alt, 'width', i.width, 'height', i.height,

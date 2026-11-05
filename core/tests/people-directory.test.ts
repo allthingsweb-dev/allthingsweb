@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { DateTime, Effect, Layer } from "effect";
 import { DataSourceError } from "../src/errors.ts";
 import type { Now } from "../src/now.ts";
+import type { XPosts } from "../src/x-posts.ts";
 import {
   appearances,
   eveningPartOrder,
@@ -92,6 +93,7 @@ describe("PeopleDirectory", () => {
       organizes: false,
       hosted: [],
       now: null,
+      xPosts: null,
     });
     // Organizing is said by the group, never as a part; the evenings they
     // hosted come with them, as on their own page.
@@ -223,6 +225,7 @@ describe("PeopleDirectory", () => {
       organizes: false,
       hosted: [],
       now: null,
+      xPosts: null,
     });
     const zed = speakers.find((person) => person.name === "Zed Nobody");
     expect(zed?.parts[0]).toMatchObject({ kind: "talk", role: "panelist" });
@@ -338,6 +341,7 @@ describe("toPeople", () => {
     roles: [],
     hosted: [],
     now: null,
+    xPosts: null,
     ...overrides,
   });
 
@@ -495,6 +499,7 @@ describe("toPerson", () => {
         roles: [],
         hosted: [],
         now: null,
+        xPosts: null,
       },
       now,
     );
@@ -559,6 +564,38 @@ describe("one person's page", () => {
       expect(ada.kind === "found" ? ada.person.now : ada).toBeNull();
     } finally {
       await db.exec("UPDATE profiles SET now_record = NULL");
+    }
+  });
+
+  test("carries their X posts, or none where they don't read as a record", async () => {
+    const record: XPosts = {
+      posts: [
+        {
+          url: "https://x.com/ada/status/2000000000000000001",
+          postedOn: "2026-09-30",
+          excerpt: "The engine weaves algebraic patterns.",
+          likes: 1200,
+          reposts: 80,
+          replies: 12,
+        },
+      ],
+      readOn: "2026-10-01",
+    };
+    await db.exec(`
+      UPDATE profiles SET x_posts = '${JSON.stringify(record)}'
+        WHERE id = 'b0000000-0000-4000-8000-000000000001';
+      UPDATE profiles SET x_posts = '{"posts": []}'
+        WHERE id = '${grace}';`);
+    try {
+      const ada = await lookup("ada-lovelace");
+      const hopper = await lookup("grace-hopper");
+      if (ada.kind !== "found" || hopper.kind !== "found") {
+        throw new Error("Ada and Grace have pages");
+      }
+      expect(ada.person.xPosts).toEqual(record);
+      expect(hopper.person.xPosts).toBeNull();
+    } finally {
+      await db.exec("UPDATE profiles SET x_posts = NULL");
     }
   });
 
@@ -750,6 +787,7 @@ describe("appearances", () => {
           roles: [],
           hosted: [],
           now: null,
+          xPosts: null,
         },
         now,
       ),
@@ -757,6 +795,7 @@ describe("appearances", () => {
       organizes: true,
       hosted: [{ ...effect, roles: ["mc"] }],
       now: null,
+      xPosts: null,
     });
     expect(rows.ours).toEqual([
       {

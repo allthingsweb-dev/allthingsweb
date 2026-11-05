@@ -52,6 +52,7 @@ const person = (overrides: Partial<PersonPage> = {}): PersonPage => ({
   organizes: true,
   hosted: [],
   now: null,
+  xPosts: null,
   ...overrides,
 });
 

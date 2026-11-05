@@ -30,6 +30,8 @@ The record is a fact like a title or a bio, so it goes through the people pipeli
   - absent: never researched; nothing is written.
 - **Checked** by the schema the file is decoded with: one or two sentences, at most 280 characters as it reads, at least one source in the line, https only, at most four links, latest first and none dated after `checkedOn`. `checkedOn` is a real calendar day (YYYY-MM-DD); a link's date is a real day, or a YYYY-MM month where the page gives only that, and a month orders against a day by its month alone. `bun run people` also refuses a record whose `checkedOn` is after the day it runs, so a record can't stay fresh by being dated ahead.
 
+Their standout posts on X are a record of their own beside this one, `xPosts` (core's README, "Their posts on X"): picked from X by how people took them and refreshed by a command, where this is written by hand. A post is in one or the other, never both.
+
 To take someone's down: set their entry's `now` to `null`, then `bun run people`. The page drops it within about two minutes (the page store's refresh).
 
 ## On the page

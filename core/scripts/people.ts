@@ -1,7 +1,9 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Console, DateTime, Effect, Option } from "effect";
+import { Console, DateTime, Effect, Layer, Option, Schema } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { SqlClient } from "effect/sql/SqlClient";
 import { asOf } from "../src/clock.ts";
 import { Argument, Command, Flag } from "effect/cli";
 import * as Database from "../src/database.ts";
@@ -9,7 +11,15 @@ import { changeLines } from "../src/image-columns.ts";
 import { speakersWithoutNow, staleRecords } from "../src/now-refresh.ts";
 import { organizerCheckDays, staleHosts } from "../src/organizer-profiles.ts";
 import { applyPeople, decodePeopleFile } from "../src/people-enrichment.ts";
+import { formatJsonFile } from "../src/json-file.ts";
 import { planProfilePhoto, setProfilePhoto } from "../src/profile-photo.ts";
+import { orDataSourceError } from "../src/sql.ts";
+import {
+  duePosts,
+  findCandidates,
+  refreshPosts,
+} from "../src/x-posts-refresh.ts";
+import { XPostsSource } from "../src/x-posts-source.ts";
 import { encode, placeholder } from "./encode.ts";
 import { mediaOrigin, uploadMedia } from "./media.ts";
 import { shellWord } from "./shell.ts";
@@ -23,7 +33,10 @@ import { shellWord } from "./shell.ts";
  *   bun run people photo <profile> <file> --dry-run
  *   bun run people photo <profile> <file> --approve <token>
  *
- *   bun run people stale [--days 90] [--speakers] [--organizers]
+ *   bun run people stale [--days 90] [--speakers] [--organizers] [--posts-days 30]
+ *
+ *   bun run people posts [file] --find [--only <name>] [--days 90] [--top 8]
+ *   bun run people posts [file] --refresh [--days 0] [--dry-run]
  *
  * The facts are core/backfill/people.json (src/people-enrichment.ts):
  * titles, bios, links, photos and what each person does now (src/now.ts),
@@ -37,6 +50,21 @@ import { shellWord } from "./shell.ts";
  * evening of ours not over yet whose title and bio the file hasn't both
  * read in the last 90 days (src/organizer-profiles.ts): what readiness
  * blocks a draft on. It reads DATABASE_URL too.
+ *
+ * stale also lists, as `posts`, the X posts (src/x-posts.ts) read
+ * --posts-days (30) or more days ago: what `posts --refresh` is for.
+ *
+ * posts reads X with X_BEARER_TOKEN (1Password's "allthings X app",
+ * "Bearer Token"; read only). --find prints, as JSON, each person's own
+ * posts of the last --days days, ranked by how they were taken up, for
+ * an agent to pick up to three that stand out for building software and
+ * write them into the file as `xPosts`; it writes nothing, and reads the
+ * profiles' X handles from DATABASE_URL (site_reader's is enough).
+ * --refresh reads the counts of every post the file holds again (only
+ * those read --days or more days ago), drops each one X no longer serves,
+ * and writes the file; --dry-run prints what would change. --cache <dir>
+ * keeps X's answers for the rest of their UTC day, so a rerun reads (and
+ * is billed for) nothing twice.
  *
  * photo sets a profile's photo from a local file (src/profile-photo.ts).
  * <profile> is its id, its slug (as /people/<slug> has it) or its exact
@@ -189,6 +217,10 @@ const stale = Command.make(
       ),
       Flag.withDefault(false),
     ),
+    postsDays: Flag.Int("posts-days").pipe(
+      Flag.withDescription("List X posts read this many days ago or more."),
+      Flag.withDefault(30),
+    ),
     organizers: Flag.Boolean("organizers").pipe(
       Flag.withDescription(
         `Add the organizers and co-hosts of evenings ahead whose title and bio weren't both checked in ${organizerCheckDays} days (reads DATABASE_URL).`,
@@ -196,7 +228,7 @@ const stale = Command.make(
       Flag.withDefault(false),
     ),
   },
-  ({ file, days, speakers, organizers }) =>
+  ({ file, days, speakers, organizers, postsDays }) =>
     Effect.gen(function* () {
       if (days < 0) {
         return yield* Effect.fail(new Error("--days can't be negative."));
@@ -218,8 +250,9 @@ const stale = Command.make(
             Effect.provide(Database.scriptLayer),
           )
         : {};
+      const posts = duePosts(people, today, postsDays);
       return yield* Console.log(
-        JSON.stringify({ today, days, due, ...hosts }, null, 2),
+        JSON.stringify({ today, days, due, posts, ...hosts }, null, 2),
       );
     }),
 ).pipe(
@@ -228,6 +261,160 @@ const stale = Command.make(
   ),
 );
 
-Command.run(applyFacts.pipe(Command.withSubcommands([photo, stale])), {
+const Poster = Schema.Struct({
+  profileId: Schema.String,
+  name: Schema.String,
+  handle: Schema.String,
+  userId: Schema.NullOr(Schema.String),
+});
+
+/** The X handle and user id of each profile in `ids` that has a handle. */
+const postersOf = (ids: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    return yield* sql`
+      SELECT id::text AS "profileId", name,
+        ltrim(btrim(twitter_handle), '@') AS handle, x_user_id AS "userId"
+      FROM profiles
+      WHERE id::text IN ${sql.in(ids)} AND btrim(coalesce(twitter_handle, '')) <> ''
+      ORDER BY name`.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Poster))),
+      orDataSourceError,
+    );
+  });
+
+const posts = Command.make(
+  "posts",
+  {
+    file: fileArgument,
+    find: Flag.Boolean("find").pipe(
+      Flag.withDescription(
+        "Print each person's own recent posts, ranked, as JSON, to pick from; write nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+    refresh: Flag.Boolean("refresh").pipe(
+      Flag.withDescription(
+        "Read the counts of the file's posts again, drop those X no longer serves, and write the file.",
+      ),
+      Flag.withDefault(false),
+    ),
+    only: Flag.String("only").pipe(
+      Flag.withDescription("Only this person, by their exact name (--find)."),
+      Flag.optional,
+    ),
+    days: Flag.Int("days").pipe(
+      Flag.withDescription(
+        "--find: posts of the last this many days (90). --refresh: only records read this many days ago or more (0: all).",
+      ),
+      Flag.optional,
+    ),
+    top: Flag.Int("top").pipe(
+      Flag.withDescription("--find: list this many of each person's posts."),
+      Flag.withDefault(8),
+    ),
+    read: Flag.Int("read").pipe(
+      Flag.withDescription(
+        "--find: read at most this many of each person's posts (X bills each).",
+      ),
+      Flag.withDefault(100),
+    ),
+    cache: Flag.String("cache").pipe(
+      Flag.withDescription(
+        "Keep X's answers in this directory for the rest of their UTC day.",
+      ),
+      Flag.optional,
+    ),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "--refresh: print what would change; write nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
+  },
+  ({ file, find, refresh, only, days, top, read, cache, dryRun }) =>
+    Effect.gen(function* () {
+      if (find === refresh) {
+        return yield* Effect.fail(
+          new Error(
+            "Give --find to list posts to pick from, or --refresh to read the file's again.",
+          ),
+        );
+      }
+      const people = yield* readPeopleFile(file);
+      const today = DateTime.formatIsoDateUtc(yield* asOf);
+      const source = XPostsSource.xApi(
+        Option.match(cache, {
+          onNone: () => undefined,
+          onSome: (directory) => ({
+            directory,
+            day: today,
+            // A dry run keeps nothing, not even in the cache.
+            readOnly: refresh && dryRun,
+          }),
+        }),
+      ).pipe(Layer.provide(FetchHttpClient.layer));
+      if (find) {
+        if (top < 1 || read < 5) {
+          return yield* Effect.fail(
+            new Error(
+              "--top must be at least 1, and --read at least 5 (X answers 5 to 100 posts a page).",
+            ),
+          );
+        }
+        if (Option.getOrElse(days, () => 90) < 0) {
+          return yield* Effect.fail(new Error("--days can't be negative."));
+        }
+        const named = Option.match(only, {
+          onNone: () => people,
+          onSome: (name) => people.filter((entry) => entry.name === name),
+        });
+        if (named.length === 0) {
+          return yield* Effect.fail(
+            new Error(
+              `No one in ${file} is named ${Option.getOrElse(only, () => "")}.`,
+            ),
+          );
+        }
+        const posters = yield* postersOf(
+          named.map((entry) => entry.profileId),
+        ).pipe(Effect.provide(Database.scriptLayer));
+        const found = yield* findCandidates(posters, {
+          today,
+          days: Option.getOrElse(days, () => 90),
+          top,
+          read,
+        }).pipe(Effect.provide(source));
+        return yield* Console.log(JSON.stringify({ today, found }, null, 2));
+      }
+      const refreshed = yield* refreshPosts(
+        people,
+        today,
+        Option.getOrElse(days, () => 0),
+      ).pipe(Effect.provide(source));
+      if (!dryRun) {
+        yield* Effect.promise(() =>
+          Bun.write(
+            resolve(coreDirectory, file),
+            formatJsonFile(refreshed.file),
+          ),
+        );
+      }
+      return yield* Console.log(
+        [
+          ...refreshed.lines,
+          dryRun
+            ? "Dry run: the file is unchanged."
+            : `Wrote ${file}; apply it with bun run people.`,
+        ].join("\n"),
+      );
+    }),
+).pipe(
+  Command.withDescription(
+    "Find people's standout posts on X to pick from, or read the counts of the file's posts again.",
+  ),
+);
+
+Command.run(applyFacts.pipe(Command.withSubcommands([photo, stale, posts])), {
   version: "1.0.0",
 }).pipe(Effect.provide(BunServices.layer), BunRuntime.runMain);

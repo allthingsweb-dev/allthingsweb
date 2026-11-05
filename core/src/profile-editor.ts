@@ -2,7 +2,8 @@
  * profile_editor, the role `bun run people <file>` connects as (core's
  * README, "Filling in profiles"): its name, the `public.profiles` columns
  * src/people-enrichment.ts reads and writes, and the bounds on its
- * sessions. migrations/0034_profile_editor.ts granted exactly these, and
+ * sessions. migrations/0034_profile_editor.ts granted these, and
+ * 0036_profile_x_posts.ts the `x_posts` column beside them, and
  * infra/scripts/profile-editor.ts refuses to give the role a login unless
  * the catalog holds exactly these. It imports nothing, so the infra
  * scripts read it without core's dependencies.
@@ -29,6 +30,7 @@ export const PROFILE_EDITOR_READS = [
   "photo_source_url",
   "image",
   "now_record",
+  "x_posts",
 ] as const;
 
 /** What applyPeople writes of `public.profiles`. */
@@ -40,6 +42,7 @@ export const PROFILE_EDITOR_WRITES = [
   "linkedin_handle",
   "photo_source_url",
   "now_record",
+  "x_posts",
   "updated_at",
 ] as const;
 

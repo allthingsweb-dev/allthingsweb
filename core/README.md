@@ -832,7 +832,9 @@ DATABASE_URL=… bun run event-extras             # write
 ## Filling in profiles
 
 `backfill/people.json` fills what profiles of people on published events
-lack: a title, a bio, X, Bluesky and LinkedIn handles, and a photo. Every
+lack: a title, a bio, X, Bluesky and LinkedIn handles, and a photo, and
+what they do now (and, below, their standout posts on X, which are found
+and refreshed through X's API with the app's bearer token). Every other
 fact carries the URL it was read from and the day it was read, taken from
 public, keyless sources: the person's own X or Bluesky profile, GitHub,
 their site, a company team page or a conference speaker page. A value no
@@ -878,7 +880,8 @@ database role.
   makes the role and grants it, on `public.profiles` alone, SELECT of the
   columns `src/people-enrichment.ts` reads (the id, the name and each
   value it compares) and UPDATE of those it writes: `title`, `bio`, the X,
-  Bluesky and LinkedIn handles, `photo_source_url`, `now_record` and
+  Bluesky and LinkedIn handles, `photo_source_url`, `now_record`, `x_posts`
+  (granted by migration 0036) and
   `updated_at`. No INSERT or DELETE, no other table, no DDL, no function
   but PUBLIC's; its statements time out as the studio's do. Anything else
   `people` might do one day takes a migration first.
@@ -927,6 +930,64 @@ connection is enough for both:
 bun run people stale --days 90
 DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run people stale --speakers
 DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run people stale --organizers
+```
+
+### Their posts on X
+
+An entry's `xPosts` are the person's standout recent posts on X
+(`src/x-posts.ts`): up to three of their own posts, latest first, each its
+address (`https://x.com/<handle>/status/<id>`), the day it was posted, a
+short quote of its words (at most 140 characters, one line) and its likes,
+reposts and replies, with `readOn`, the day it was all read. It is stored
+whole in `profiles.x_posts` (migration 0036), and their page shows it after
+the bio as "On X · as of" that month: each post a link to X, never an
+embed, with its day, the quote and its counts.
+
+It sits beside `now` rather than in it. `now` is a line about what someone
+does, every fact sourced, written by hand; these are picked from what they
+posted by how people took it, and their counts are read again by a command.
+A post is never in both: `bun run people` refuses one that the profile's
+`now` also links, from its line or its links, as the file or the database
+holds it.
+
+- Like `now`, only this file writes it, so a record is written whenever it
+  differs from the stored one; `"xPosts": null` takes it down and keeps it
+  off, and an entry without `xPosts` leaves the column as it is.
+- Every post must be by the profile's X handle, as stored or as the same
+  entry sets it, and `readOn` can't be after the day it runs.
+- **Picking them:** `bun run people posts --find` prints, as JSON, up to
+  `--top` (8) of each person's own posts of the last `--days` (90) days,
+  no reposts or replies and none without words of their own, ranked by
+  likes plus twice their reposts and quotes, with each one's whole text.
+  Replies don't count: a giveaway draws them. A person whose stored X id
+  now posts under another handle gets none, and is told to run `bun run
+followers` first. The ranking only orders the list; an agent picks up to
+  three that stand out for building software (their work, a launch, an
+  idea, a talk), not the most liked giveaway, and writes each in as the
+  command printed it, the picks latest first by `postedOn` (the record
+  refuses any other order). It writes nothing.
+- **Refreshing them:** `bun run people posts --refresh` reads the counts of
+  every post the file holds again (`--days` limits it to records read that
+  many days ago or more), drops each one X no longer serves (deleted, or
+  its account private or suspended: X's terms say such a post must go),
+  takes down a record left with none, and writes the file for review and
+  `bun run people`. `--dry-run` only prints. `bun run people stale` lists,
+  as `posts`, the records read `--posts-days` (30) or more days ago.
+
+Both read X's own API with the app's bearer token, read only, which bills
+each post it returns ($0.005, once a UTC day per post) and each account
+it looks up ($0.010): `--find` reads at most `--read` (100, and at least 5,
+the fewest X answers a page) posts a person, after looking the account up
+once where the profile has no X user id yet; `--refresh` reads one per post
+the file holds, up to 100 a request, and drops a post X now gives as
+another account's. `--cache <dir>` keeps every answer that reads as one
+for the rest of its UTC day, so a rerun is free; a dry run reads it but
+keeps nothing new. `--find` reads the profiles' handles from the
+database, where site_reader's connection is enough:
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token") bun run people posts --find --only "Ada Lovelace" --cache /tmp/x-cache
+X_BEARER_TOKEN=$(op read "op://allthings/allthings X app/Bearer Token") bun run people posts --refresh --dry-run
 ```
 
 ### A photo from a file

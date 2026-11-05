@@ -46,6 +46,7 @@ const reads = [
   "photo_source_url",
   "image",
   "now_record",
+  "x_posts",
 ];
 const writes = [
   "title",
@@ -55,6 +56,7 @@ const writes = [
   "linkedin_handle",
   "photo_source_url",
   "now_record",
+  "x_posts",
   "updated_at",
 ];
 const privileges = [
@@ -500,7 +502,7 @@ if (serverUrl === undefined) {
       // The role is the server's, so another database's migration may have
       // made it; here it holds nothing, and the script says so.
       expect(result.stderr).toMatch(
-        /run core's migrations first|privileges aren't migration 0034's/,
+        /run core's migrations first|privileges aren't what core's migrations grant/,
       );
     }, 30_000);
 

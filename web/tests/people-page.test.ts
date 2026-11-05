@@ -43,6 +43,7 @@ const person = (
   organizes: false,
   hosted: [],
   now: null,
+  xPosts: null,
   ...overrides,
 });
 
