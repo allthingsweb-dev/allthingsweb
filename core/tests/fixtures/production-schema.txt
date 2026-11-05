@@ -773,3 +773,14 @@ routine planning.collab_recent_actions(p_since timestamp with time zone, p_actio
 routine planning.collab_roster(p_event uuid) 181ec3245586458c5c0d18db656e3cc7
 trigger CREATE TRIGGER profiles_slug BEFORE INSERT OR UPDATE OF name, slug ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_slug()
 trigger CREATE TRIGGER profiles_x_followers_reset BEFORE UPDATE OF twitter_handle ON public.profiles FOR EACH ROW EXECUTE FUNCTION profiles_x_followers_reset()
+column public.community_metrics #001 day date not null
+column public.community_metrics #002 source text not null
+column public.community_metrics #003 metric text not null
+column public.community_metrics #004 value bigint not null
+column public.community_metrics #005 read_at timestamp with time zone not null default now()
+constraint public.community_metrics community_metrics_day_source_metric_pk PRIMARY KEY (day, source, metric)
+constraint public.community_metrics community_metrics_metric_check CHECK ((metric ~ '^[a-z][a-z_]{0,31}$'::text))
+constraint public.community_metrics community_metrics_source_check CHECK ((source = ANY (ARRAY['x'::text, 'bluesky'::text, 'youtube'::text, 'discord'::text, 'meetup'::text, 'luma'::text, 'npm'::text, 'github'::text])))
+constraint public.community_metrics community_metrics_value_check CHECK ((value >= 0))
+index public.community_metrics CREATE UNIQUE INDEX community_metrics_day_source_metric_pk ON public.community_metrics USING btree (day, source, metric)
+relation public.community_metrics kind=r persistence=p rls=f force_rls=f replica_identity=d options=

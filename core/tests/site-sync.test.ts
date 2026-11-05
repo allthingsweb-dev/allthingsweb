@@ -12,6 +12,10 @@ import {
   type Statements,
 } from "../../infra/scripts/login-role.ts";
 import { FollowerSource, refreshFollowers } from "../src/followers.ts";
+import {
+  CommunitySources,
+  snapshotCommunity,
+} from "../src/community-metrics.ts";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { ImageIngest } from "../src/ingest/ingest.ts";
 import { CandidateSearches, findCandidates } from "../src/posts/candidates.ts";
@@ -392,6 +396,43 @@ describe("site_sync", () => {
     );
     expect(report.failed).toEqual([]);
     expect(report.refreshed.length).toBeGreaterThan(0);
+  });
+
+  test("takes the day's community snapshot, reading Luma's guests and keeping each first value", async () => {
+    const snapshot = (value: number) =>
+      Effect.runPromise(
+        snapshotCommunity.pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              Layer.succeed(
+                CommunitySources,
+                CommunitySources.of({
+                  read: () => Effect.succeed({ followers: value }),
+                }),
+              ),
+              sqlLayer(db),
+              // The day's first hour, when X is read too.
+              clockAt(DateTime.makeUnsafe("2026-10-05T00:00:05Z")),
+            ),
+          ),
+        ),
+      );
+    const first = await snapshot(1);
+    expect(first.failed).toEqual({});
+    expect(first.stored).toContain("x");
+    // A second run that day reads nothing: every source has its number.
+    expect((await snapshot(2)).stored).toEqual([]);
+    expect(await refusal("UPDATE community_metrics SET value = 3")).toContain(
+      "permission denied",
+    );
+    expect(await refusal("DELETE FROM community_metrics")).toContain(
+      "permission denied",
+    );
+    expect(
+      await refusal(
+        "SELECT sum(luma_guest_count), sum(luma_checked_in_count) FROM events",
+      ),
+    ).toBeUndefined();
   });
 
   test("searches past evenings for posts, and reports what it would add", async () => {

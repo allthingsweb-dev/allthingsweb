@@ -323,6 +323,13 @@
       "when": 1793861430700,
       "tag": "0045_profile_x_posts",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793918537541,
+      "tag": "0046_community_metrics",
+      "breakpoints": true
     }
   ]
 }

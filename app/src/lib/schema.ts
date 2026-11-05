@@ -19,6 +19,7 @@ import {
   pgRole,
   customType,
   jsonb,
+  bigint,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -1815,5 +1816,36 @@ export const externalTalksTable = pgTable(
     check("external_talks_url_check", sql`"url" ~ '^https://'`),
     check("external_talks_video_url_check", sql`"video_url" ~ '^https://'`),
     check("external_talks_source_url_check", sql`"source_url" ~ '^https://'`),
+  ],
+);
+
+/**
+ * The community's public numbers, one snapshot a day: a row per day,
+ * source and metric. core/migrations/0037_community_metrics.ts makes the
+ * same table; the sync Worker writes it (core/src/community-metrics.ts).
+ */
+export const communityMetricsTable = pgTable(
+  "community_metrics",
+  {
+    day: date("day").notNull(),
+    source: text("source").notNull(),
+    metric: text("metric").notNull(),
+    value: bigint("value", { mode: "number" }).notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "community_metrics_day_source_metric_pk",
+      columns: [table.day, table.source, table.metric],
+    }),
+    check(
+      "community_metrics_source_check",
+      sql`"source" IN ('x', 'bluesky', 'youtube', 'discord', 'meetup', 'luma', 'npm', 'github')`,
+    ),
+    check(
+      "community_metrics_metric_check",
+      sql`"metric" ~ '^[a-z][a-z_]{0,31}$'`,
+    ),
+    check("community_metrics_value_check", sql`"value" >= 0`),
   ],
 );

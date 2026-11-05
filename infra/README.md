@@ -123,7 +123,7 @@ The file's header has the commands.
 
 ## The Luma sync
 
-The Sync Worker runs what the app's cron runs every hour. It syncs `events` from Luma's calendar first, then fills in the venues the calendar hides (shown to guests only) from Luma's API and gives new evenings their short links. Then it stores the images still missing: profile photos, post images, event covers. Last, in a window of its own, it imports their descriptions from Luma's API. Every step writes only what is missing or changed, so a run cut short leaves nothing half done, and the next run carries on. It answers no requests.
+The Sync Worker runs what the app's cron runs every hour. It syncs `events` from Luma's calendar first, then fills in the venues the calendar hides (shown to guests only) from Luma's API and gives new evenings their short links. Then it stores the images still missing: profile photos, post images, event covers. Last, in a window of its own, it imports their descriptions from Luma's API. Every step writes only what is missing or changed, so a run cut short leaves nothing half done, and the next run carries on. It answers no requests. Last, it takes the day's snapshot of the community's public numbers (X, Bluesky, YouTube, Discord, Meetup, Luma, npm, GitHub) into `community_metrics`, each source once a day and X only in the day's first hour (core's README, "The community's numbers").
 
 Three reviewed constants in [`src/sync.ts`](src/sync.ts) decide what it does, so each change is a one-line pull request:
 

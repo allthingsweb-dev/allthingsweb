@@ -78,12 +78,21 @@ interface ColumnGrants {
  *   the account the profile already has: a renamed account's new handle, or
  *   none, with the lost one recorded, when X gives the handle to another.
  *
+ * - community_metrics: the daily snapshot of the community's public numbers
+ *   (core/src/community-metrics.ts) reads which sources the day has and
+ *   inserts a row per metric for each one it reads, never replacing one
+ *   (ON CONFLICT DO NOTHING); to sum Luma's guests it reads the events'
+ *   guest and check-in counts.
+ *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
  */
 export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
   events: {
     select: [
+      // The community snapshot sums Luma's guests (core/src/community-metrics.ts).
+      "luma_guest_count",
+      "luma_checked_in_count",
       "id",
       "luma_event_id",
       "slug",
@@ -196,6 +205,12 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
   event_people: { select: ["event_id", "profile_id"] },
   event_talks: { select: ["event_id", "talk_id"] },
   talk_speakers: { select: ["talk_id", "speaker_id"] },
+  // The community snapshot: which sources today has, and today's rows
+  // (core/src/community-metrics.ts). `read_at` takes its default.
+  community_metrics: {
+    select: ["day", "source", "metric"],
+    insert: ["day", "source", "metric", "value"],
+  },
 };
 
 /**

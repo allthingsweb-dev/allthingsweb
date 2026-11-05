@@ -1,3 +1,7 @@
+import {
+  COMMUNITY,
+  CommunitySources,
+} from "allthings-core/src/community-metrics.ts";
 import { FollowerSource } from "allthings-core/src/followers.ts";
 import { CandidateSearches } from "allthings-core/src/posts/candidates.ts";
 import { PostSources } from "allthings-core/src/posts/sources.ts";
@@ -214,6 +218,11 @@ async function run(
     ),
     // The post search finds nothing here; its own tests are core's.
     Layer.succeed(CandidateSearches, searches),
+    // Every community source counts 7 here; its own tests are core's.
+    Layer.succeed(
+      CommunitySources,
+      CommunitySources.of({ read: () => Effect.succeed({ count: 7 }) }),
+    ),
     Layer.succeed(
       PostSources,
       PostSources.of({
@@ -288,6 +297,7 @@ describe("a sync run that writes", () => {
         "descriptions",
         "followers",
         "post-search",
+        "community",
       ]);
       // Recent evenings are searched for posts; this search finds none.
       expect(report.steps["post-search"]).toMatchObject({ status: "done" });
@@ -389,6 +399,7 @@ describe("a sync run that writes", () => {
         "descriptions",
         "followers",
         "post-search",
+        "community",
         "summary",
       ]);
       expect(logged.every((entry) => entry["source"] === "luma-sync")).toBe(
@@ -912,6 +923,45 @@ function fakeInternet() {
       if (url.href.startsWith("https://luma.com/event/")) {
         return new Response("<html></html>");
       }
+      // The community's public numbers (core's src/community-metrics.ts).
+      if (
+        url.href ===
+        `https://api.x.com/2/users/${COMMUNITY.xUserId}?user.fields=public_metrics`
+      ) {
+        return json({
+          data: {
+            public_metrics: {
+              followers_count: 116,
+              following_count: 45,
+              tweet_count: 172,
+              listed_count: 0,
+            },
+          },
+        });
+      }
+      if (url.hostname === "public.api.bsky.app") {
+        return json({ followersCount: 50, followsCount: 19, postsCount: 45 });
+      }
+      if (url.hostname === "www.youtube.com") {
+        return new Response('{"subscriberCountText":"50 subscribers"}');
+      }
+      if (url.hostname === "discord.com") {
+        return json({
+          approximate_member_count: 517,
+          approximate_presence_count: 56,
+        });
+      }
+      if (url.hostname === "api.meetup.com") {
+        return json({
+          data: { groupByUrlname: { stats: { memberCounts: { all: 6884 } } } },
+        });
+      }
+      if (url.hostname === "api.npmjs.org") {
+        return json({ downloads: 10 });
+      }
+      if (url.hostname === "api.github.com") {
+        return json({ stargazers_count: 6, forks_count: 3 });
+      }
       unexpected.push(url.href);
       return new Response(null, { status: 404 });
     },
@@ -1050,6 +1100,18 @@ describe("the Worker, from its bindings", () => {
       expect(put.some((key) => key.startsWith("events/"))).toBe(true);
       // Nothing was asked of a host this test doesn't answer.
       expect(internet.unexpected).toEqual([]);
+      // The day's community numbers, stored as site_sync (which may read
+      // which the day has, not the values).
+      const community = await db.query<{ row: string }>(
+        "SELECT source || ' ' || metric AS row FROM community_metrics ORDER BY 1",
+      );
+      expect(community.rows.map(({ row }) => row)).toEqual(
+        expect.arrayContaining([
+          "discord members",
+          "github stars",
+          "meetup members",
+        ]),
+      );
       expect(internet.fetched[0]?.href).toStartWith(
         "https://api.luma.com/ics/get",
       );

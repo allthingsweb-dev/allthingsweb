@@ -97,6 +97,7 @@ export const STUDIO_COMMANDS = [
   "people photo",
   "hosts logo",
   "talks",
+  "community",
   "collab !end-sessions",
 ] as const;
 
@@ -359,6 +360,10 @@ export const STUDIO_GRANTS: Readonly<Record<string, TableGrants>> = {
   "public.event_schedule_items": { select: true },
   "public.event_notes": { select: true },
   "public.event_slugs": { select: true },
+  // community: the community's public numbers, day by day
+  // (src/community-metrics.ts). The site never reads them, so they are the
+  // one public table beyond site_reader's (core/tests/studio-role.test.ts).
+  "public.community_metrics": { select: true },
 
   // ── planning's collaboration (src/collab/collab.ts, bun run collab), read
   // whole: the studio is who invites, and who reads what was handed in.

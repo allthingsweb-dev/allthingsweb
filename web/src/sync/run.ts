@@ -25,6 +25,10 @@ import {
 } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
+import {
+  CommunitySources,
+  snapshotCommunity,
+} from "allthings-core/src/community-metrics.ts";
 import { Clock, Context, DateTime, Duration, Effect, Exit } from "effect";
 
 /**
@@ -418,6 +422,7 @@ const write = (limits: SyncLimits) =>
       "post-search",
       yield* postSearch(limits, false),
     );
+    steps["community"] = yield* step("community", yield* community);
     return steps;
   });
 
@@ -491,6 +496,31 @@ const followers = (limits: SyncLimits, dryRun: boolean) =>
     );
   });
 
+/**
+ * Today's snapshot of the community's public numbers (core's
+ * src/community-metrics.ts), as a step reports it, with the services the
+ * run already has: each source it stored, kept, skipped (X outside the
+ * day's first hour) or failed. A source that failed is read again next
+ * run; the step fails only when every source it tried did, or the
+ * database did.
+ */
+const community = Effect.gen(function* () {
+  const context = yield* Effect.context<CommunitySources | SqlClient>();
+  return snapshotCommunity.pipe(
+    Effect.flatMap((report) => {
+      const tried = report.stored.length + Object.keys(report.failed).length;
+      return tried > 0 && report.stored.length === 0
+        ? Effect.fail(
+            `every source failed: ${Object.entries(report.failed)
+              .map(([source, reason]) => `${source} (${reason})`)
+              .join(", ")}`,
+          )
+        : Effect.succeed({ ...report });
+    }),
+    Effect.provideContext(context),
+  );
+});
+
 /** A run that writes nothing and reports what `write` would do now. */
 const dryRun = (limits: SyncLimits) =>
   Effect.gen(function* () {
@@ -556,6 +586,11 @@ const dryRun = (limits: SyncLimits) =>
     steps["post-search"] = yield* step(
       "post-search",
       yield* postSearch(limits, true),
+    );
+    // Its rows are only ever the day's first read, and X bills each.
+    steps["community"] = yield* skipped(
+      "community",
+      "a dry run reads nothing for the community's numbers",
     );
     return steps;
   });

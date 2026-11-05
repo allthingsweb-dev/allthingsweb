@@ -16,6 +16,7 @@ import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
+import { CommunitySources } from "allthings-core/src/community-metrics.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
@@ -73,6 +74,13 @@ const report = await Effect.runPromise(
   runSync("dry-run", syncLimits.paid).pipe(
     Effect.provide(
       Layer.mergeAll(
+        // A dry run reads nothing for the community's numbers.
+        Layer.succeed(
+          CommunitySources,
+          CommunitySources.of({
+            read: () => Effect.die(new Error("a dry run reads no source")),
+          }),
+        ),
         LumaSync.layer,
         LumaVenues.layer,
         LumaDrafts.layer,
