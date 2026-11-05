@@ -47,7 +47,7 @@ There is no scheduled job yet. One would run weekly:
 1. List the stale records.
 2. For each person, an agent re-reads their channels under the rules above and rewrites the record, or leaves it as it was and moves `checkedOn` when nothing changed.
 3. It opens one pull request with the changed entries of `people.json`, through CodeRabbit like any other.
-4. After merge, the maintainer applies it (`bun run people --dry-run`, then `bun run people`); the backfills run as the database owner.
+4. After merge, it is applied (`bun run people --dry-run`, then `bun run people`) as `profile_editor`, whose connection is the 1Password item "allthings profile_editor" (core's README, "Filling in profiles"): the database owner isn't needed.
 
 ## The pilot
 

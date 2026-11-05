@@ -173,16 +173,37 @@ neonctl when it is needed, and passes it without printing it:
 
 ```sh
 DATABASE_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
-  --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
+  --project-id wispy-sea-75401301 --org-id org-broad-sea-60121176 \
+  --role-name neondb_owner --database-name neondb) \
   bun run migrate --dry-run
 ```
 
+Production is the Neon project `wispy-sea-75401301`, branch
+`br-round-dust-a6avtg0r`, database `neondb`, owner role `neondb_owner`, in
+the Neon organization **All Things Web** (`org-broad-sea-60121176`), which
+is Andre's. neonctl reaches it only signed in as an account that is a
+member: Erik's is `ethorelli@gmail.com`; `erik@allthingsweb.dev` is not a
+member, and neonctl answers it with "not an organization member". Check
+before fetching anything:
+
+```sh
+bunx neonctl@latest me          # Email: the account neonctl is signed in as
+bunx neonctl@latest orgs list   # must list org-broad-sea-60121176  All Things Web
+```
+
+If the org isn't listed, sign in as a member (`bunx neonctl@latest auth`
+opens the browser), or ask Andre to invite your Neon account to All Things
+Web. Without it, nothing here needs the owner but migrations and the
+backfills below.
+
 Until they have a role of their own, the backfills still need it, so only
-the maintainer runs them (`OWNER_ONLY` in the script says why): `people`,
-`hosts`, `lineups`, `programs`, `curation`, `event-extras`,
-`external-talks` and `luma:people`. They rewrite the public record from
-reviewed files: they create profiles and companies, and delete talks and
-people's parts, which no role in the shared vault should be able to do.
+the maintainer runs them (`OWNER_ONLY` in the script says why): `hosts`,
+`lineups`, `programs`, `curation`, `event-extras`, `external-talks` and
+`luma:people`. They rewrite the public record from reviewed files: they
+create profiles and companies, and delete talks and people's parts, which
+no role in the shared vault should be able to do. Filling profiles from a
+people file (`bun run people`) has its own role, `profile_editor`, and
+needs no owner (see "Filling in profiles").
 
 ## Image ingestion
 
@@ -830,13 +851,40 @@ their site, a company team page or a conference speaker page.
 - Anything uncertain, a same-name collision above all, is kept under
   `held` with its reason and never written.
 
+It runs as `profile_editor`, from any machine, with no owner and no
+neonctl: its connection string is the 1Password item "allthings
+profile_editor" (field `credential`) in the allthings vault, read with `op`
+signed in to the 1Password account that holds that vault (the desktop
+app, or `OP_SERVICE_ACCOUNT_TOKEN`, as the agents' service account does):
+
 ```sh
-DATABASE_URL=… bun run people --dry-run   # what would be filled, rolled back
-DATABASE_URL=… bun run people             # fill it, in one transaction
+DATABASE_URL=$(op read "op://allthings/allthings profile_editor/credential") bun run people --dry-run   # what would be filled, rolled back
+DATABASE_URL=$(op read "op://allthings/allthings profile_editor/credential") bun run people             # fill it, in one transaction
 ```
 
 `[file]` is `backfill/people.json` unless given, relative to core/ or
-absolute.
+absolute. When it ends, the command tells allthings.dev its data changed
+with the site's own token (see "The studio's connection"), which needs no
+database role.
+
+- **Exactly what the pipeline does.** `migrations/0034_profile_editor.ts`
+  makes the role and grants it, on `public.profiles` alone, SELECT of the
+  columns `src/people-enrichment.ts` reads (the id, the name and each
+  value it compares) and UPDATE of those it writes: `title`, `bio`, the X,
+  Bluesky and LinkedIn handles, `photo_source_url`, `now_record` and
+  `updated_at`. No INSERT or DELETE, no other table, no DDL, no function
+  but PUBLIC's; its statements time out as the studio's do. Anything else
+  `people` might do one day takes a migration first.
+- **Its login** is set by `infra/scripts/profile-editor.ts`, run by the
+  maintainer with the owner's connection once the migration is on
+  production: `--dry-run` shows it, `--apply` sets a new password, stores
+  the connection string in "allthings profile_editor" without printing it,
+  and signs in with what 1Password holds. Rerun `--apply` to rotate it.
+- **Proved.** `tests/profile-editor-role.test.ts` holds the role's catalog
+  privileges to the lists above, tries every column of `public` and
+  `planning` both ways, and runs the whole pipeline as the role.
+- `people photo` is the studio's (below), and `people stale --speakers`
+  reads as site_reader.
 
 ### What they do now
 
@@ -1873,7 +1921,9 @@ DATABASE_URL=postgres://… bun run migrate             # run it
 ```
 
 `DATABASE_URL` here is the database owner's, which only the maintainer
-holds: fetched with neonctl, never stored (see "The studio's connection").
+holds: fetched with neonctl (with `--org-id org-broad-sea-60121176`, signed
+in as a member of All Things Web), never stored (see "The studio's
+connection").
 
 A migration reaches production before the code that needs it: the app on
 Vercel builds and serves against production's database (previews too), so

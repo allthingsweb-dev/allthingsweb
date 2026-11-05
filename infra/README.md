@@ -89,6 +89,8 @@ OWNER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
 
 `--dry-run` makes the role and runs every grant in a transaction that is rolled back, and prints how its privileges would change and where its credential would go. `--apply` does it, then checks it: the catalog holds exactly `STUDIO_GRANTS`, and the connection string read back from 1Password signs in as `studio`.
 
+Filling profiles from a people file (core's `bun run people`, "Filling in profiles") connects as `profile_editor`, a fifth login role. Its privileges are a migration's, not a script's: [`core/migrations/0034_profile_editor.ts`](../core/migrations/0034_profile_editor.ts) makes it without a login and grants SELECT and UPDATE of only the `public.profiles` columns the pipeline reads and writes. [`scripts/profile-editor.ts`](scripts/profile-editor.ts) gives it its login once the migration is on production, checking first that it holds exactly those, and stores the connection string only in the "allthings profile_editor" 1Password item. It runs like `studio.ts`, `--dry-run` then `--apply`, with `--org-id org-broad-sea-60121176` in the neonctl command, as its header shows.
+
 The database owner's connection is for migrations only. It is never stored in the vault or a repository secret: the maintainer fetches it with neonctl, as above, whenever it is needed.
 
 [`vault-items.json`](vault-items.json) lists the allthings vault's items and their fields (titles and labels, never values). `core/tests/vault.test.ts` fails on an `op://` reference to anything it doesn't list, and on a documented studio command that doesn't read "allthings studio". An item still to be made is marked `pending`. `bun infra/scripts/vault-items.ts` checks the list against the vault itself.

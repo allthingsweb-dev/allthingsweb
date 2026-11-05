@@ -438,7 +438,10 @@ export const STUDIO_GRANTS: Readonly<Record<string, TableGrants>> = {
 /**
  * What stays the owner's, and why: no grant would do, short of
  * BYPASSRLS, which only a superuser can give and this role must never
- * have, or what the role exists to keep from every agent.
+ * have, or what the role exists to keep from every agent. Filling profiles
+ * from a people file (`bun run people <file>`) is neither the studio's nor
+ * the owner's: it runs as profile_editor
+ * (core/migrations/0034_profile_editor.ts, infra/scripts/profile-editor.ts).
  */
 export const OWNER_ONLY: ReadonlyArray<{
   readonly what: string;
@@ -449,7 +452,7 @@ export const OWNER_ONLY: ReadonlyArray<{
     why: "DDL and ownership of every table: no login role in the vault may change the schema.",
   },
   {
-    what: "the backfills: `bun run people`, `hosts`, `lineups`, `programs`, `curation`, `event-extras`, `external-talks`, `luma:people`",
+    what: "the backfills: `bun run hosts`, `lineups`, `programs`, `curation`, `event-extras`, `external-talks`, `luma:people`",
     why: "They rewrite the public record from files reviewed in pull requests: they create profiles and companies, delete talks and people's parts, and set venues and recordings. That is most of public's write surface, which a role every agent can read must not hold.",
   },
 ];
