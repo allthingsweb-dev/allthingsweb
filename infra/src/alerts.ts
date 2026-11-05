@@ -131,33 +131,46 @@ const policies = <T>(
     return { status: response.status, answer };
   });
 
-/** What Cloudflare holds under `policyId`, or undefined when it holds none. */
+const failed = (what: string, answer: Answer<unknown>) =>
+  new Error(
+    `Cloudflare refused to ${what}: ${(answer.errors ?? [])
+      .map((error) => `${error.code ?? "?"} ${error.message ?? ""}`)
+      .join("; ")}`,
+  );
+
+/**
+ * `policyId` when Cloudflare holds it, undefined when it answers that it
+ * doesn't (404). Any other failure fails, so a lookup that couldn't be
+ * made is never taken for a policy that is gone: that would make another.
+ */
 const findById = (accountId: string, policyId: string) =>
   policies<{ readonly id: string }>("GET", accountId, `/${policyId}`).pipe(
-    Effect.map(({ answer }) =>
+    Effect.flatMap(({ status, answer }) =>
       answer.success === true && answer.result?.id === policyId
-        ? policyId
-        : undefined,
+        ? Effect.succeed<string | undefined>(policyId)
+        : status === 404
+          ? Effect.succeed(undefined)
+          : Effect.fail(failed(`read alert ${policyId}`, answer)),
     ),
   );
 
-/** The id of the account's policy named `name`, if there is one. */
+/**
+ * The id of the account's policy named `name`, if there is one. The list
+ * comes whole (it has no pages); a list that couldn't be read fails.
+ */
 const findByName = (accountId: string, name: string) =>
   policies<ReadonlyArray<{ readonly id: string; readonly name: string }>>(
     "GET",
     accountId,
     "",
   ).pipe(
-    Effect.map(
-      ({ answer }) => answer.result?.find((policy) => policy.name === name)?.id,
+    Effect.flatMap(({ answer }) =>
+      answer.success === true
+        ? Effect.succeed(
+            answer.result?.find((policy) => policy.name === name)?.id,
+          )
+        : Effect.fail(failed("list the alerts", answer)),
     ),
-  );
-
-const failed = (what: string, answer: Answer<unknown>) =>
-  new Error(
-    `Cloudflare refused to ${what}: ${(answer.errors ?? [])
-      .map((error) => `${error.code ?? "?"} ${error.message ?? ""}`)
-      .join("; ")}`,
   );
 
 export const SqlAlertProvider = () =>

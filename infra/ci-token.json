@@ -5,6 +5,7 @@
   "permissionGroups": [
     "Workers Scripts Write",
     "Account Settings Read",
+    "Notifications Write",
     "Secrets Store Write",
     "Hyperdrive Write",
     "Workers KV Storage Write",
