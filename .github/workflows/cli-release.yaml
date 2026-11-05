@@ -122,7 +122,8 @@ jobs:
                   BEFORE=$(tags)
                   LATEST=$(jq -r '.latest // ""' <<<"$BEFORE")
                   if [[ "$VERSION" == *-* ]]; then
-                    bun publish --access public --tag alpha
+                    # A rerun after a publish that went through goes on to the tags.
+                    bun publish --access public --tag alpha --tolerate-republish
                     WANT_ALPHA="$VERSION"
                     if [[ -z "$LATEST" || "$LATEST" == *-* ]]; then
                       # Retried: the new version may not be visible yet.
@@ -140,7 +141,7 @@ jobs:
                       WANT_LATEST="$LATEST"
                     fi
                   else
-                    bun publish --access public --tag latest
+                    bun publish --access public --tag latest --tolerate-republish
                     WANT_LATEST="$VERSION"
                     WANT_ALPHA=""
                   fi
