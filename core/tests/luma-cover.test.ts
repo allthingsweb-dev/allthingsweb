@@ -533,6 +533,18 @@ describe("prepare", () => {
   });
 });
 
+/**
+ * Makes recording a cover fail: the draft log refuses the line the
+ * recording writes, while every read (the studio's too) still works.
+ */
+const failRecording = () =>
+  db.exec(`
+    CREATE FUNCTION planning.refuse_draft_log() RETURNS trigger LANGUAGE plpgsql AS $refuse$
+    BEGIN RAISE EXCEPTION 'draft log refused for the test'; END $refuse$;
+    CREATE TRIGGER refuse_draft_log BEFORE INSERT ON planning.draft_log
+      FOR EACH ROW EXECUTE FUNCTION planning.refuse_draft_log();
+  `);
+
 describe("approve", () => {
   const tokenFor = async () =>
     value(
@@ -737,8 +749,7 @@ describe("approve", () => {
         })
       ).exit,
     ).token;
-    // The draft log the recording writes to is gone, so recording fails.
-    await db.exec("DROP TABLE planning.draft_log");
+    await failRecording();
     const { exit, requests } = await run((c) => c.approve(react, token), {
       "/v1/events/get": [
         past(gallery),
@@ -779,7 +790,7 @@ describe("approve", () => {
         })
       ).exit,
     ).token;
-    await db.exec("DROP TABLE planning.draft_log");
+    await failRecording();
     const { exit } = await run((c) => c.approve(react, token), {
       // Luma takes the put-back but still shows the upload.
       "/v1/events/get": [
@@ -817,7 +828,7 @@ describe("approve", () => {
         })
       ).exit,
     ).token;
-    await db.exec("DROP TABLE planning.draft_log");
+    await failRecording();
     const { exit, requests } = await run((c) => c.approve(react, token), {
       "/v1/events/get": [past(gallery), past(uploaded), past(ownCover)],
       "/v1/images/create-upload-url": [
