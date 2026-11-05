@@ -84,7 +84,7 @@ export const socials: ReadonlyArray<Social> = [
   { name: "bluesky", href: `https://bsky.app/profile/${ourAccount.handle}` },
   {
     name: "linkedin",
-    href: "https://www.linkedin.com/company/all-things-web-dev/",
+    href: "https://www.linkedin.com/company/allthings-dev/",
   },
 ];
 

@@ -51,7 +51,7 @@ const calendarDone: ManagedCalendar = {
   tint_color: "#c0362c",
   website: "https://allthings.dev/",
   youtube_handle: "@allthingsweb-dev",
-  linkedin_handle: "/company/all-things-web-dev",
+  linkedin_handle: "/company/allthings-dev",
   avatar_url: "https://images.lumacdn.com/calendars/zz/new",
 };
 
@@ -140,9 +140,9 @@ describe("what differs", () => {
     expect(
       comparable(
         "linkedin_handle",
-        "https://www.linkedin.com/company/all-things-web-dev/",
+        "https://www.linkedin.com/company/allthings-dev/",
       ),
-    ).toBe("/company/all-things-web-dev");
+    ).toBe("/company/allthings-dev");
     expect(comparable("website", "https://allthings.dev/")).toBe(
       "https://allthings.dev",
     );
@@ -173,7 +173,7 @@ describe("what differs", () => {
       {
         field: "linkedin_handle",
         from: null,
-        to: "https://www.linkedin.com/company/all-things-web-dev/",
+        to: "https://www.linkedin.com/company/allthings-dev/",
       },
     ]);
     expect(calendarChanges(calendarDone, wantedCalendar)).toEqual([]);
@@ -303,7 +303,7 @@ describe("approve", () => {
       website: "https://allthings.dev",
       twitter_handle: "allthingswebdev",
       youtube_handle: "allthingsweb-dev",
-      linkedin_handle: "https://www.linkedin.com/company/all-things-web-dev/",
+      linkedin_handle: "https://www.linkedin.com/company/allthings-dev/",
       avatar_url: "https://images.lumacdn.com/calendars/zz/new",
     });
   });

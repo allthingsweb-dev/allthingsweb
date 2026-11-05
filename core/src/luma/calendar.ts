@@ -52,7 +52,7 @@ export const wantedCalendar = {
   website: siteOrigin,
   twitter_handle: "allthingswebdev",
   youtube_handle: "allthingsweb-dev",
-  linkedin_handle: "https://www.linkedin.com/company/all-things-web-dev/",
+  linkedin_handle: "https://www.linkedin.com/company/allthings-dev/",
 } as const satisfies CalendarFields;
 
 /** The calendar's avatar: the a/ app icon on Night, 512 px. */
