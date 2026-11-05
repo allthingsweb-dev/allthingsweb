@@ -908,9 +908,18 @@ at again under docs/now.md's rules. `--speakers` adds everyone who has spoken
 at one of our evenings and never had a record; only that reads the
 database, and site_reader's connection is enough:
 
+`--organizers` adds, as `organizers`, everyone who organizes or co-hosts an
+evening of ours not over yet whose title and bio the file hasn't both read
+in the last 90 days, with those evenings: what readiness blocks a draft on,
+and what to check before any evening ahead. It reads the database too:
+site_reader's connection sees the published lineups, and a role that may
+read planning adds each draft's lineup as planned (readiness checks those on
+the draft itself).
+
 ```sh
 bun run people stale --days 90
 DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run people stale --speakers
+DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run people stale --organizers
 ```
 
 ### A photo from a file
@@ -1205,6 +1214,13 @@ asked:
   (Luma's default, or one set by hand) blocks, and so does one drawn
   before a fact changed; the site's copy of it, which the hourly
   ingestion stores, is advice
+- every organizer and co-host (its lineup as planned, while a draft) has a
+  title and a bio that `backfill/people.json` read in the last 90 days
+  (`src/organizer-profiles.ts`): what the people hosting an evening say
+  about themselves goes out with it, so an old title or bio, or one never
+  checked, blocks until someone reads it against their own sources and
+  records both facts with that day as `read` (see "Filling in profiles";
+  a value that is still right only moves its `read`)
 
 **Suggestions,** each ranked deterministically, so the same rows suggest
 the same in the same order:

@@ -7,6 +7,7 @@ import { Argument, Command, Flag } from "effect/cli";
 import * as Database from "../src/database.ts";
 import { changeLines } from "../src/image-columns.ts";
 import { speakersWithoutNow, staleRecords } from "../src/now-refresh.ts";
+import { organizerCheckDays, staleHosts } from "../src/organizer-profiles.ts";
 import { applyPeople, decodePeopleFile } from "../src/people-enrichment.ts";
 import { planProfilePhoto, setProfilePhoto } from "../src/profile-photo.ts";
 import { encode, placeholder } from "./encode.ts";
@@ -22,7 +23,7 @@ import { shellWord } from "./shell.ts";
  *   bun run people photo <profile> <file> --dry-run
  *   bun run people photo <profile> <file> --approve <token>
  *
- *   bun run people stale [--days 90] [--speakers]
+ *   bun run people stale [--days 90] [--speakers] [--organizers]
  *
  * The facts are core/backfill/people.json (src/people-enrichment.ts):
  * titles, bios, links, photos and what each person does now (src/now.ts),
@@ -32,6 +33,10 @@ import { shellWord } from "./shell.ts";
  * ago, for an agent to look at again (docs/now.md, "Refreshing").
  * --speakers adds everyone who has spoken at one of our evenings and has
  * never had one, which needs DATABASE_URL (site_reader's is enough).
+ * --organizers adds, as `organizers`, everyone who organizes or co-hosts an
+ * evening of ours not over yet whose title and bio the file hasn't both
+ * read in the last 90 days (src/organizer-profiles.ts): what readiness
+ * blocks a draft on. It reads DATABASE_URL too.
  *
  * photo sets a profile's photo from a local file (src/profile-photo.ts).
  * <profile> is its id, its slug (as /people/<slug> has it) or its exact
@@ -184,8 +189,14 @@ const stale = Command.make(
       ),
       Flag.withDefault(false),
     ),
+    organizers: Flag.Boolean("organizers").pipe(
+      Flag.withDescription(
+        `Add the organizers and co-hosts of evenings ahead whose title and bio weren't both checked in ${organizerCheckDays} days (reads DATABASE_URL).`,
+      ),
+      Flag.withDefault(false),
+    ),
   },
-  ({ file, days, speakers }) =>
+  ({ file, days, speakers, organizers }) =>
     Effect.gen(function* () {
       if (days < 0) {
         return yield* Effect.fail(new Error("--days can't be negative."));
@@ -200,7 +211,16 @@ const stale = Command.make(
             )
           : []),
       ];
-      return yield* Console.log(JSON.stringify({ today, days, due }, null, 2));
+      const hosts = organizers
+        ? {
+            organizers: yield* staleHosts(people).pipe(
+              Effect.provide(Database.scriptLayer),
+            ),
+          }
+        : {};
+      return yield* Console.log(
+        JSON.stringify({ today, days, due, ...hosts }, null, 2),
+      );
     }),
 ).pipe(
   Command.withDescription(
