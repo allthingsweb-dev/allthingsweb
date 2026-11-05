@@ -147,12 +147,23 @@
     "title": {
       "value": "Chief Technology Officer, Edge & Node",
       "source": "https://www.edgeandnode.com/company",
-      "read": "2026-10-05"
+      "read": "2026-11-05",
+      "also": ["https://github.com/fubhy"]
     },
     "bio": {
-      "value": "Based in Vienna, Sebastian is a full-stack engineer and software architect specializing in modern web technologies. With years of experience as a CTO and senior advisor across various companies, he currently serves as CTO at Edge&Node.",
-      "source": "https://web.archive.org/web/20260513193410/https://effect.website/events/effect-days/speakers/sebastian-lorenz",
-      "read": "2026-10-05"
+      "value": "Sebastian Lorenz is the CTO of Edge & Node, which builds and runs blockchain data infrastructure. A full-stack engineer and software architect, he is a core contributor to Effect and has spent years as a CTO and senior advisor across companies. At at/effect he co-hosted the evening and gave the State of Effect 2026 talk.",
+      "source": "https://www.edgeandnode.com/company",
+      "read": "2026-11-05",
+      "was": "Based in Vienna, Sebastian is a full-stack engineer and software architect specializing in modern web technologies. With years of experience as a CTO and senior advisor across various companies, he currently serves as CTO at Edge&Node.",
+      "also": [
+        "https://web.archive.org/web/20260513193410/https://effect.website/events/effect-days/speakers/sebastian-lorenz",
+        "https://allthings.dev/people/sebastian-lorenz"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "held": [
       {
@@ -859,10 +870,30 @@
   {
     "profileId": "059c4d56-c3dd-480f-8e3f-97f664823ad9",
     "name": "Rostislav Melkumyan",
-    "photoSourceUrl": {
-      "value": "https://avatars.githubusercontent.com/u/25268506",
-      "source": "https://api.github.com/users/RostiMelk",
-      "read": "2026-10-05"
+    "title": {
+      "value": "Growth Engineer, Sanity",
+      "source": "https://rosti.no",
+      "read": "2026-11-05",
+      "was": "Senior Software Engineer, Sanity",
+      "also": [
+        "https://github.com/RostiMelk",
+        "https://bsky.app/profile/rosti.no"
+      ]
+    },
+    "bio": {
+      "value": "Rostislav Melkumyan is a growth engineer at Sanity. He publishes small open-source TypeScript tools such as pt-string, for single-line Portable Text, and packmorph, which translates package manager install commands. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on why most agent failures are context failures, drawing on agents for content work at Sanity.",
+      "source": "https://github.com/RostiMelk",
+      "read": "2026-11-05",
+      "also": [
+        "https://rosti.no",
+        "https://podwise.ai/episodes/8120049",
+        "https://allthings.dev/people/rostislav-melkumyan"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "blueskyHandle": {
       "value": "rosti.no",
@@ -874,36 +905,49 @@
       "source": "https://rosti.no",
       "read": "2026-10-05"
     },
+    "photoSourceUrl": {
+      "value": "https://avatars.githubusercontent.com/u/25268506",
+      "source": "https://api.github.com/users/RostiMelk",
+      "read": "2026-10-05"
+    },
     "held": [
       {
         "field": "twitterHandle",
         "value": "rostimelk",
         "sources": ["https://api.fxtwitter.com/rostimelk"],
         "reason": "Name 'Melk', empty bio, no website, joined 2025-05. Nothing ties it to Sanity or rosti.no, and his site does not link an X account."
-      },
-      {
-        "field": "bio",
-        "value": "Rosti writes code and makes software go beep boop",
-        "sources": ["https://rosti.no"],
-        "reason": "His own words ('Hey! I'm Rosti. I write code and make software go beep boop'), but it is a playful one-liner of about the same weight as a terse profile bio. Other bios are also terse ('Breaking stuff at @sanity.io', 'Introducting bugs @ sanity.io'). Left to editorial judgment."
       }
     ]
   },
   {
     "profileId": "f671b3cc-4058-4a4b-9613-e41ab7320de3",
     "name": "Sam Bhagwat",
+    "title": {
+      "value": "Founder & CEO, Mastra",
+      "source": "https://mastra.ai/about",
+      "read": "2026-11-05",
+      "was": "CEO, Mastra",
+      "also": ["https://x.com/calcsam"]
+    },
+    "bio": {
+      "value": "Sam Bhagwat is the founder and CEO of Mastra, the open-source TypeScript agent framework, and the author of Principles of Building AI Agents. He previously co-founded Gatsby, the open-source React framework later sold to Netlify, and was an early engineer at Zenefits and PlanGrid. At Mastra’s TypeScript AI Demo Day, which allthings shared, he gave the Mastra keynote with Shane Thomas.",
+      "source": "https://mastra.ai/about",
+      "read": "2026-11-05",
+      "was": "Founder/CEO of Mastra. Spent last ~8yrs as cofounder of Gatsby.js, an open-source React website framework, scaled to $5M ARR, sold to Netlify. Eng <20 at Zenefits (W13) and Plangrid (W12). Spent two years knocking doors. Stanford '11.",
+      "also": [
+        "https://x.com/calcsam",
+        "https://mastra.ai/book",
+        "https://www.ycombinator.com/companies/mastra",
+        "https://allthings.dev/people/sam-bhagwat"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "calcsam",
-      "source": "https://www.ycombinator.com/companies/mastra",
-      "read": "2026-10-05"
-    },
-    "photoSourceUrl": {
-      "value": "https://pbs.twimg.com/profile_images/1609808333896310787/hwNl8YrT_400x400.jpg",
-      "source": "https://api.fxtwitter.com/calcsam",
-      "read": "2026-10-05"
-    },
-    "linkedinHandle": {
-      "value": "sambhagwat",
       "source": "https://www.ycombinator.com/companies/mastra",
       "read": "2026-10-05"
     },
@@ -912,23 +956,46 @@
       "source": "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=calcsam.bsky.social",
       "read": "2026-10-05"
     },
-    "bio": {
-      "value": "Founder/CEO of Mastra. Spent last ~8yrs as cofounder of Gatsby.js, an open-source React website framework, scaled to $5M ARR, sold to Netlify. Eng <20 at Zenefits (W13) and Plangrid (W12). Spent two years knocking doors. Stanford '11.",
+    "linkedinHandle": {
+      "value": "sambhagwat",
       "source": "https://www.ycombinator.com/companies/mastra",
+      "read": "2026-10-05"
+    },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1609808333896310787/hwNl8YrT_400x400.jpg",
+      "source": "https://api.fxtwitter.com/calcsam",
       "read": "2026-10-05"
     }
   },
   {
     "profileId": "991c97b4-b920-4052-8e73-552fe57b802d",
     "name": "Shane Thomas",
+    "title": {
+      "value": "Co-founder & Chief Product Officer, Mastra",
+      "source": "https://mastra.ai/about",
+      "read": "2026-11-05",
+      "was": "CPO, Mastra",
+      "also": ["https://x.com/smthomas3"]
+    },
+    "bio": {
+      "value": "Shane Thomas is a co-founder and the chief product officer of Mastra, the open-source TypeScript agent framework, and co-hosts Agents Hour. He created the first course delivered as an MCP server, and before Mastra he built the AI podcasting product Audiofeed and was a staff engineer and head of product at Gatsby. At Mastra’s TypeScript AI Demo Day, which allthings shared, he gave the Mastra keynote with Sam Bhagwat.",
+      "source": "https://x.com/smthomas3",
+      "read": "2026-11-05",
+      "was": "Founder/CPO of Mastra. Prev: built Audiofeed (AI podcasting). Staff eng / head of product @ Gatsby. 15+ years in open source. State wrestling champion.",
+      "also": [
+        "https://mastra.ai/about",
+        "https://www.ycombinator.com/companies/mastra",
+        "https://allthings.dev/people/shane-thomas"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "smthomas3",
       "source": "https://www.ycombinator.com/companies/mastra",
-      "read": "2026-10-05"
-    },
-    "photoSourceUrl": {
-      "value": "https://pbs.twimg.com/profile_images/1879344432295837696/UqdlnRvs_400x400.jpg",
-      "source": "https://api.fxtwitter.com/smthomas3",
       "read": "2026-10-05"
     },
     "linkedinHandle": {
@@ -936,9 +1003,9 @@
       "source": "https://www.ycombinator.com/companies/mastra",
       "read": "2026-10-05"
     },
-    "bio": {
-      "value": "Founder/CPO of Mastra. Prev: built Audiofeed (AI podcasting). Staff eng / head of product @ Gatsby. 15+ years in open source. State wrestling champion.",
-      "source": "https://www.ycombinator.com/companies/mastra",
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1879344432295837696/UqdlnRvs_400x400.jpg",
+      "source": "https://api.fxtwitter.com/smthomas3",
       "read": "2026-10-05"
     },
     "held": [
@@ -1252,10 +1319,29 @@
     "profileId": "0f8bde0a-3828-4d02-8dfc-a016fa8ca68e",
     "name": "Rhys Sullivan",
     "title": {
-      "value": "Founder, executor.sh",
-      "source": "https://rhys.dev",
-      "read": "2026-10-05",
-      "was": "Product Engineer at Vercel"
+      "value": "Founder, Executor",
+      "source": "https://executor.sh",
+      "read": "2026-11-05",
+      "was": "Founder, executor.sh",
+      "also": ["https://rhys.dev", "https://x.com/RhysSullivan"]
+    },
+    "bio": {
+      "value": "Rhys Sullivan is the founder of Executor, an open-source cloud for personal software that connects integrations to any agent, in Y Combinator’s Summer 2026 batch. He built Answer Overflow and ShipTalkers.dev, and was a product engineer at Vercel after work at Dosu and Microsoft. At at/effect he joined the fireside chat with Michael Arnaldi, creator of Effect, and at an allthings evening at Sanity he spoke about growing through tech Twitter.",
+      "source": "https://executor.sh",
+      "read": "2026-11-05",
+      "was": "Rhys is a product engineer at Vercel who, over the course of 2024, built his Twitter audience from 0 to 10k followers. During this time, he had multiple viral tweets with over 1M+ views, created http://ShipTalkers.dev—a viral Twitter app with 250k+ views and 80k+ users in just three days—and gained deep expertise in leveraging Twitter to launch successful products. Previously, he worked as a software engineer at http://Dosu.dev and at Microsoft on Teams.",
+      "also": [
+        "https://x.com/RhysSullivan",
+        "https://www.ycombinator.com/companies/executor",
+        "https://rhys.dev",
+        "https://bsky.app/profile/rhys.dev",
+        "https://allthings.dev/people/rhys-sullivan"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "now": {
       "line": "Rhys is building [Executor](https://executor.sh), [the cloud for personal software](https://x.com/RhysSullivan), in [YC's Summer 2026 batch](https://www.ycombinator.com/companies/executor).",
@@ -1293,6 +1379,29 @@
   {
     "profileId": "2fb6b3b8-2bf7-437f-83e2-bc60ad00890a",
     "name": "Ryan Vogel",
+    "title": {
+      "value": "Founding Developer, OpenCode",
+      "source": "https://ryan.ceo",
+      "read": "2026-11-05",
+      "was": "Devrel @ Neon",
+      "also": ["https://x.com/ryanvogel", "https://github.com/R44VC0RP"]
+    },
+    "bio": {
+      "value": "Ryan Vogel is a founding developer at OpenCode and builds Inbound, an email infrastructure project. Before OpenCode he was a developer advocate at Neon and a member of technical staff at Databricks, and he hosts the NextDev.fm podcast. At NextDev.fm Live, an allthings evening, he co-hosted and moderated a live episode of the show.",
+      "source": "https://ryan.ceo",
+      "read": "2026-11-05",
+      "was": "Ryan is a developer advocate at Neon. He also co-hosts the NextDev.fm podcast and founder of Mandarin 3D Prints, a 3D printing service.",
+      "also": [
+        "https://github.com/R44VC0RP",
+        "https://rephonic.com/podcasts/nextdevfm",
+        "https://allthings.dev/people/ryan-vogel"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "ryanvogel",
       "source": "https://ryan.ceo",
@@ -1459,6 +1568,27 @@
   {
     "profileId": "748690f9-037b-4c10-b0d7-3f64c3b31ad4",
     "name": "Raouf Chebri",
+    "title": {
+      "value": "AI Education, Replit",
+      "source": "https://x.com/elimilu_",
+      "read": "2026-11-05",
+      "was": "DevRel"
+    },
+    "bio": {
+      "value": "Raouf Chebri works on AI education at Replit. Before that he was a developer advocate at Neon, helping developers build AI-powered apps where databases meet full-stack development, and he held engineering and advocacy roles at Microsoft and ScyllaDB. At the Pre Next.js Conf Meetup he compared TCP, WebSockets and HTTP for Postgres queries.",
+      "source": "https://www.wearedevelopers.com/@raouf-chebri",
+      "read": "2026-11-05",
+      "was": "Raouf Chebri is a Developer Advocate at Neon and enjoys helping developers be more productive. Raouf has over a decade of experience in the tech industry and loves to connect with developers and talk about AI and modern application development. Raouf enjoys Mexican food, skiing, and riding his bike for hours in the Alps. ",
+      "also": [
+        "https://x.com/elimilu_",
+        "https://allthings.dev/people/raouf-chebri"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "raoufcode",
       "source": "https://x.com/raoufcode",
@@ -1469,10 +1599,28 @@
   {
     "profileId": "0a9c5976-388a-4a5b-a01c-7b43c7f711ba",
     "name": "Oscar Newman",
-    "bio": {
-      "value": "Oscar graduated from Brown in 2021 studying Computer Science and Machine Learning (officially), and Healthcare Policy (unofficially). Raised in Austin, Texas.",
+    "title": {
+      "value": "Engineering Lead, Solv",
       "source": "https://oscarnewman.me/",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Engineering Lead at Solv",
+      "also": ["https://github.com/oscarnewman"]
+    },
+    "bio": {
+      "value": "Oscar Newman is an engineering lead at Solv, where he builds consumer healthcare experiences and, in his words, works on healthcare payments. A product- and design-focused engineer, he led his team’s move to Remix and spoke at Remix Conf 2023 about fast native mobile apps powered by Remix and defer. He co-hosted the first two allthings evenings, then Remix Bay Area, at Solv.",
+      "source": "https://oscarnewman.me/",
+      "read": "2026-11-05",
+      "was": "Oscar graduated from Brown in 2021 studying Computer Science and Machine Learning (officially), and Healthcare Policy (unofficially). Raised in Austin, Texas.",
+      "also": [
+        "https://x.com/__oscarnewman",
+        "https://v2.remix.run/conf/2023/speakers/oscar-newman/",
+        "https://allthings.dev/people/oscar-newman"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "__oscarnewman",
@@ -1498,11 +1646,85 @@
         ],
         "reason": "The account exists but has no display name, no bio and 0 posts, and none of his pages link to it. I can't tie it to him."
       }
-    ],
+    ]
+  },
+  {
+    "profileId": "d3172ee3-bdd1-4a97-86ea-b220c7e7459e",
+    "name": "Pierre Burgy",
     "title": {
-      "value": "Engineering Lead at Solv",
-      "source": "https://web.archive.org/web/20240419092253/https://oscarnewman.me/",
-      "read": "2026-10-06"
+      "value": "Co-founder & CEO, Strapi",
+      "source": "https://x.com/pierre_burgy",
+      "read": "2026-11-05",
+      "was": "CEO",
+      "also": ["https://github.com/pierreburgy"]
+    },
+    "bio": {
+      "value": "Pierre Burgy is the co-founder and CEO of Strapi, the open-source headless CMS. He is also building Fimo, an autonomous website platform for marketers whose agents keep sites optimized for search engines and AI assistants. At at/ship ai he spoke about what his team learned from building a vibe coding tool.",
+      "source": "https://x.com/pierre_burgy",
+      "read": "2026-11-05",
+      "was": "Pierre Burgy is the CEO of Strapi, the leading open-source headless CMS. He's passionate about building developer tools and empowering teams to create amazing digital experiences with JavaScript and TypeScript.",
+      "also": [
+        "https://fimo.ai",
+        "https://www.producthunt.com/posts/1050891",
+        "https://allthings.dev/people/pierre-burgy"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "dfec59da-6301-415a-afab-6916b5e9eb13",
+    "name": "Pillippa Pérez Pons",
+    "title": {
+      "value": "Frontend Software Engineer",
+      "source": "https://sessionize.com/pillippa",
+      "read": "2026-11-05",
+      "was": "Software Engineer at Doordash"
+    },
+    "bio": {
+      "value": "Pillippa Pérez Pons is a frontend software engineer who works with JavaScript, TypeScript, React and SolidJS. She organized JSConf Chile 2023, mentored girls through Niñas Pro, taught at Django Girls, and spoke at React Summit US 2023 about React Server Components. At React Bay Area at Cisco Meraki, an early allthings evening, she spoke about making videos accessible with React and Cloudflare.",
+      "source": "https://sessionize.com/pillippa",
+      "read": "2026-11-05",
+      "was": "​I'm Pillippa Perez Pons, a Frontend Software Engineer at Doordash, I am passionate about developing innovative web applications that enhance user experiences and improve efficiency. Originally from Chile, I have been living in the Bay Area for the past three years, embracing the vibrant tech community here.",
+      "also": [
+        "https://gitnation.com/person/pillippa_perez_pons",
+        "https://allthings.dev/people/pillippa-perez-pons"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "a074ee80-6d52-4399-a16c-048e1e07ea62",
+    "name": "Sam Goodwin",
+    "title": {
+      "value": "Creator, Alchemy",
+      "source": "https://getpodcast.com/podcast/devtools-fm/sam-goodwin-alchemy_2f85f2798f",
+      "read": "2026-11-05",
+      "was": "Alchemy",
+      "also": ["https://x.com/samgoodwin89", "https://github.com/sam-goodwin"]
+    },
+    "bio": {
+      "value": "Sam Goodwin is the creator of Alchemy, an open-source TypeScript project for infrastructure as code that its site now calls Infrastructure as Effects, and in his words he is type-checking the cloud. He also wrote punchcard, a type-safe AWS infrastructure library, and typesafe-dynamodb. At at/effect he presented Alchemy 2.0 and joined the fireside chat with Michael Arnaldi, creator of Effect.",
+      "source": "https://github.com/sam-goodwin",
+      "read": "2026-11-05",
+      "also": [
+        "https://x.com/samgoodwin89",
+        "https://alchemy.run/",
+        "https://getpodcast.com/podcast/devtools-fm/sam-goodwin-alchemy_2f85f2798f",
+        "https://allthings.dev/people/sam-goodwin"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     }
   },
   {
