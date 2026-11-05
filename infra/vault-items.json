@@ -2,6 +2,10 @@
   "vault": "allthings",
   "items": [
     {
+      "title": "allthings analytics read",
+      "fields": ["credential"]
+    },
+    {
       "title": "allthings Bluesky",
       "fields": ["handle", "app password"],
       "pending": true
@@ -52,6 +56,10 @@
       "fields": ["credential"]
     },
     {
+      "title": "allthings trivia Luma approve tokens",
+      "fields": ["password", "registration", "hosts"]
+    },
+    {
       "title": "allthings X app",
       "fields": [
         "username",
@@ -66,6 +74,14 @@
     {
       "title": "allthings zero trust",
       "fields": ["credential"]
+    },
+    {
+      "title": "domains Cloudflare allthings",
+      "fields": ["credential", "account", "token id", "expires"]
+    },
+    {
+      "title": "domains Cloudflare personal",
+      "fields": ["credential", "account", "token id", "expires"]
     }
   ]
 }
