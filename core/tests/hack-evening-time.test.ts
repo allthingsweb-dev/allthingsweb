@@ -102,7 +102,7 @@ describe("through the migrator", () => {
       const applied = await Effect.runPromise(
         Migrations.run().pipe(Effect.provide(sqlLayer(old))),
       );
-      expect(applied.map(({ id, name }) => `${id}_${name}`)).toEqual([
+      expect(applied.map((done) => `${done.id}_${done.name}`)).toEqual([
         "35_hack_evening_time",
       ]);
       const { rows } = await old.query<{ name: string }>(
