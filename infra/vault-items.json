@@ -32,6 +32,10 @@
       "fields": []
     },
     {
+      "title": "allthings profile_editor",
+      "fields": ["credential"]
+    },
+    {
       "title": "allthings site refresh",
       "fields": ["credential"]
     },
