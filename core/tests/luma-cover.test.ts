@@ -740,7 +740,7 @@ describe("approve", () => {
     // The draft log the recording writes to is gone, so recording fails.
     await db.exec("DROP TABLE planning.draft_log");
     const { exit, requests } = await run((c) => c.approve(react, token), {
-      "/v1/events/get": [past(gallery), past(uploaded)],
+      "/v1/events/get": [past(gallery), past(uploaded), past(gallery)],
       "/v1/images/create-upload-url": [
         json({
           upload_url: "https://upload.example/put/abc",
@@ -761,6 +761,39 @@ describe("approve", () => {
       { event_id: "evt-react", cover_url: uploaded },
       { event_id: "evt-react", cover_url: gallery },
     ]);
+  });
+
+  test("says so, with what Luma shows, when the stock photo didn't go back", async () => {
+    const react = { _tag: "Slug", slug: "2026-08-12-react-at-acme" } as const;
+    const past = (cover_url: string) =>
+      json(lumaEvent({ ...reactOnLuma, cover_url }));
+    const token = value(
+      (
+        await run((c) => c.prepare(react), {
+          "/v1/events/get": [past(gallery)],
+        })
+      ).exit,
+    ).token;
+    await db.exec("DROP TABLE planning.draft_log");
+    const { exit } = await run((c) => c.approve(react, token), {
+      // Luma takes the put-back but still shows the upload.
+      "/v1/events/get": [past(gallery), past(uploaded), past(uploaded)],
+      "/v1/images/create-upload-url": [
+        json({
+          upload_url: "https://upload.example/put/abc",
+          file_url: uploaded,
+        }),
+      ],
+      "/put/abc": [{ status: 200 }],
+      "/v1/events/update": [json({}), json({})],
+    });
+    expect(message(exit)).toStartWith(
+      `Luma has the cover (${uploaded}), but recording it here failed`,
+    );
+    expect(message(exit)).toContain(
+      `putting its old cover back failed too (Luma shows ${uploaded})`,
+    );
+    expect(message(exit)).toContain(`Set its cover back to ${gallery} in Luma`);
   });
 
   test("refuses a past draft's stock cover once its Luma page is public", async () => {

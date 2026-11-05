@@ -280,18 +280,24 @@ const make = Effect.gen(function* () {
               );
             }
             const replaced = prepared.current.url;
+            const stuck = (because: string) =>
+              refuse(
+                `Luma has the cover (${coverUrl}), but recording it here failed (${why}), and putting its old cover back failed too (${because}). Set its cover back to ${replaced} in Luma, then run luma cover --dry-run and approve again.`,
+              );
+            // Put back, then read back: only Luma showing the old cover
+            // again means the evening is as it was.
             return luma
               .update(prepared.lumaEventId, { cover_url: replaced })
               .pipe(
+                Effect.flatMap(() => luma.get(prepared.lumaEventId)),
                 Effect.matchEffect({
-                  onSuccess: () =>
-                    refuse(
-                      `Recording the cover here failed: ${why}. Its old cover (${replaced}) is back on Luma, so nothing changed. Run luma cover --dry-run and approve again.`,
-                    ),
-                  onFailure: () =>
-                    refuse(
-                      `Luma has the cover (${coverUrl}), but recording it here failed (${why}), and putting its old cover back failed too. Set its cover back to ${replaced} in Luma, then run luma cover --dry-run and approve again.`,
-                    ),
+                  onSuccess: (restored) =>
+                    restored.cover_url === replaced
+                      ? refuse(
+                          `Recording the cover here failed: ${why}. Its old cover (${replaced}) is back on Luma, so nothing changed. Run luma cover --dry-run and approve again.`,
+                        )
+                      : stuck(`Luma shows ${restored.cover_url ?? "no cover"}`),
+                  onFailure: (error) => stuck(error.message),
                 }),
               );
           }),
