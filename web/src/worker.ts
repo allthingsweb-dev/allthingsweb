@@ -20,6 +20,7 @@ import {
   variantsCheckRequest,
 } from "./refresh.ts";
 import { withoutTrailingSlash } from "./trailing-slash.ts";
+import { siteTokenOf, withBeacon } from "./web-analytics.ts";
 import {
   checkVariantStore,
   keptVariant,
@@ -94,141 +95,129 @@ const pagesOf = (
  * (refresh.ts).
  */
 export default {
-  /**
-   * Every answer, and one anonymous data point for it in `REQUESTS` when the
-   * Worker has that dataset (request-metrics.ts). The point is written after
-   * the answer is sent, and its module loaded only then, so a cold start
-   * parses none of it before answering (tests/support/stack.ts).
-   */
-  async fetch(
+  fetch(
     request: Request,
     env: Readonly<Record<string, unknown>>,
     context: ExecutionContext,
   ): Promise<Response> {
     const started = Date.now();
-    const response = await answer(request, env, context);
-    if (env["REQUESTS"] !== undefined) {
-      const tookMs = Date.now() - started;
-      context.waitUntil(
-        import("./request-metrics.ts")
-          .then((metrics) =>
-            metrics.recordRequest(
-              metrics.requestDatasetOf(env),
-              request,
-              response,
-              tookMs,
-            ),
-          )
-          // Analytics never fails a request, even when its module can't load.
-          .catch(() => undefined),
-      );
+    // Before anything else: it keeps nothing and reads nothing.
+    const redirect = withoutTrailingSlash(request.url);
+    // It answers before the store and the app, so it takes the edge rule here.
+    if (redirect !== undefined) {
+      return Promise.resolve(forWorkersCache(request, redirect));
     }
-    return response;
+    if (handle === undefined) {
+      let store: Handler | undefined;
+      const { app, siteState } = lazyApp(env, () => store);
+      const pages = pagesOf(env);
+      const turnover = env["HYPERDRIVE"] === undefined ? 0 : readerTurnover;
+      const token = env["SITE_REFRESH_TOKEN"];
+      // Each data center's copies are named by the namespace (PAGES_ID).
+      const pagesId = env["PAGES_ID"];
+      const local =
+        typeof pagesId === "string" && pagesId !== ""
+          ? (() => {
+              const cache = dataCenterCache();
+              return cache === undefined ? undefined : { cache, id: pagesId };
+            })()
+          : undefined;
+      const site =
+        pages === undefined
+          ? app
+          : pageStored(app, {
+              pages,
+              build: built.build,
+              now: Date.now,
+              siteState,
+              turnover,
+              ...(local === undefined ? {} : { local }),
+            });
+      // `/mcp` answers its tools through the store (mcp/endpoint.ts).
+      if (pages !== undefined) store = site;
+      // Only a Worker with a store and a token answers the writers.
+      const writers =
+        pages === undefined || typeof token !== "string" || token.trim() === ""
+          ? undefined
+          : {
+              token,
+              refresh: () =>
+                refreshSite({ pages, now: Date.now, siteState, turnover }),
+              // Once the store holds the current pages, Workers Cache drops the
+              // answers that show the data (cache.ts), so visitors get them now
+              // rather than within the edge lifetime. The report says how it went.
+              prewarm: withEdgePurge(() =>
+                prewarm({
+                  build: built.build,
+                  serve: site,
+                  pointer: () => readSitePointer(pages),
+                  now: Date.now,
+                  sleep: (ms) =>
+                    new Promise((resolve) => setTimeout(resolve, ms)),
+                }),
+              ),
+            };
+      const noStore = () => Promise.reject(new Error("no store"));
+      handle = (incoming, incomingContext) => {
+        const { pathname } = new URL(incoming.url);
+        if (pathname === refreshPath) {
+          return refreshRequest(
+            incoming,
+            writers?.token,
+            writers?.refresh ?? noStore,
+          );
+        }
+        if (pathname === prewarmPath) {
+          return prewarmRequest(
+            incoming,
+            writers?.token,
+            writers === undefined
+              ? noStore
+              : () => writers.prewarm(incomingContext),
+            // `?dry-run` answers the plan, and does nothing (cache.ts).
+            () => prewarmPlan,
+          );
+        }
+        if (pathname === variantsCheckPath) {
+          const variants = variantStoreOf(env);
+          return variantsCheckRequest(
+            incoming,
+            writers?.token,
+            variants === undefined
+              ? noStore
+              : () => checkVariantStore(variants),
+          );
+        }
+        return site(incoming, incomingContext);
+      };
+    }
+    const app = handle;
+    // A photo variant already made is answered before the app loads
+    // (images/kept.ts); one not made yet goes on to it. Then what Workers
+    // Cache may keep, and for how long (cache.ts), for every answer: the
+    // writers' paths too, whose refusals carry no lifetime. On prod, each
+    // page answered 200 carries the Web Analytics beacon (web-analytics.ts).
+    // Then one anonymous data point for the answer, where the Worker has a
+    // `REQUESTS` dataset
+    // (metrics.ts), written after it is sent: its module
+    // loads only then, so a cold start parses none of it
+    // (tests/support/stack.ts), and nothing it does fails the request.
+    return keptVariant(request, variantStoreOf(env), (promise) =>
+      context.waitUntil(promise),
+    )
+      .then((kept) => kept ?? app(request, context))
+      .then((response) => {
+        const answer = forWorkersCache(
+          request,
+          withBeacon(response, siteTokenOf(env)),
+        );
+        context.waitUntil(
+          import("./metrics.ts").then(
+            (metrics) => metrics.default(env, request, answer, started),
+            () => {},
+          ),
+        );
+        return answer;
+      });
   },
 };
-
-/** The answer to one request: see the default export. */
-function answer(
-  request: Request,
-  env: Readonly<Record<string, unknown>>,
-  context: ExecutionContext,
-): Promise<Response> {
-  // Before anything else: it keeps nothing and reads nothing.
-  const redirect = withoutTrailingSlash(request.url);
-  // It answers before the store and the app, so it takes the edge rule here.
-  if (redirect !== undefined) {
-    return Promise.resolve(forWorkersCache(request, redirect));
-  }
-  if (handle === undefined) {
-    let store: Handler | undefined;
-    const { app, siteState } = lazyApp(env, () => store);
-    const pages = pagesOf(env);
-    const turnover = env["HYPERDRIVE"] === undefined ? 0 : readerTurnover;
-    const token = env["SITE_REFRESH_TOKEN"];
-    // Each data center's copies are named by the namespace (PAGES_ID).
-    const pagesId = env["PAGES_ID"];
-    const local =
-      typeof pagesId === "string" && pagesId !== ""
-        ? (() => {
-            const cache = dataCenterCache();
-            return cache === undefined ? undefined : { cache, id: pagesId };
-          })()
-        : undefined;
-    const site =
-      pages === undefined
-        ? app
-        : pageStored(app, {
-            pages,
-            build: built.build,
-            now: Date.now,
-            siteState,
-            turnover,
-            ...(local === undefined ? {} : { local }),
-          });
-    // `/mcp` answers its tools through the store (mcp/endpoint.ts).
-    if (pages !== undefined) store = site;
-    // Only a Worker with a store and a token answers the writers.
-    const writers =
-      pages === undefined || typeof token !== "string" || token.trim() === ""
-        ? undefined
-        : {
-            token,
-            refresh: () =>
-              refreshSite({ pages, now: Date.now, siteState, turnover }),
-            // Once the store holds the current pages, Workers Cache drops the
-            // answers that show the data (cache.ts), so visitors get them now
-            // rather than within the edge lifetime. The report says how it went.
-            prewarm: withEdgePurge(() =>
-              prewarm({
-                build: built.build,
-                serve: site,
-                pointer: () => readSitePointer(pages),
-                now: Date.now,
-                sleep: (ms) =>
-                  new Promise((resolve) => setTimeout(resolve, ms)),
-              }),
-            ),
-          };
-    const noStore = () => Promise.reject(new Error("no store"));
-    handle = (incoming, incomingContext) => {
-      const { pathname } = new URL(incoming.url);
-      if (pathname === refreshPath) {
-        return refreshRequest(
-          incoming,
-          writers?.token,
-          writers?.refresh ?? noStore,
-        );
-      }
-      if (pathname === prewarmPath) {
-        return prewarmRequest(
-          incoming,
-          writers?.token,
-          writers === undefined
-            ? noStore
-            : () => writers.prewarm(incomingContext),
-          // `?dry-run` answers the plan, and does nothing (cache.ts).
-          () => prewarmPlan,
-        );
-      }
-      if (pathname === variantsCheckPath) {
-        const variants = variantStoreOf(env);
-        return variantsCheckRequest(
-          incoming,
-          writers?.token,
-          variants === undefined ? noStore : () => checkVariantStore(variants),
-        );
-      }
-      return site(incoming, incomingContext);
-    };
-  }
-  const app = handle;
-  // A photo variant already made is answered before the app loads
-  // (images/kept.ts); one not made yet goes on to it. Then what Workers
-  // Cache may keep, and for how long (cache.ts), for every answer: the
-  // writers' paths too, whose refusals carry no lifetime.
-  return keptVariant(request, variantStoreOf(env), (promise) =>
-    context.waitUntil(promise),
-  )
-    .then((kept) => kept ?? app(request, context))
-    .then((response) => forWorkersCache(request, response));
-}

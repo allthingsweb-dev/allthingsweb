@@ -172,19 +172,27 @@ export function requestPoint(
 }
 
 /**
- * Writes the request's point, if the Worker has a dataset. Never throws: a
- * point that can't be written is lost, and the visitor's answer is not.
+ * Writes the request's point, if the Worker has a dataset (`REQUESTS` in
+ * `env`). Never throws: a point that can't be written is lost, and the
+ * visitor's answer is not.
  */
 export function recordRequest(
-  dataset: RequestDataset | undefined,
+  env: Readonly<Record<string, unknown>>,
   request: Request,
   response: Response,
-  tookMs: number,
+  /** When the Worker started on it (`Date.now()`). */
+  started: number,
 ): void {
+  const dataset = requestDatasetOf(env);
   if (dataset === undefined) return;
   try {
-    dataset.writeDataPoint(requestPoint(request, response, tookMs));
+    dataset.writeDataPoint(
+      requestPoint(request, response, Date.now() - started),
+    );
   } catch {
     // Analytics never fails a request.
   }
 }
+
+/** For the Worker, which loads this module after each answer (worker.ts). */
+export default recordRequest;

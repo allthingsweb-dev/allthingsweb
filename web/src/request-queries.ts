@@ -1,8 +1,8 @@
-import { REQUESTS_DATASET, redactedPath } from "./request-metrics.ts";
+import { REQUESTS_DATASET, redactedPath } from "./metrics.ts";
 
 /**
  * What web/scripts/requests.ts asks of the Worker's request data points
- * (request-metrics.ts), in Analytics Engine's SQL. Each point stands for
+ * (metrics.ts), in Analytics Engine's SQL. Each point stands for
  * `_sample_interval` requests, so counts are sums of it. A point's columns:
  * `blob1` the path's class, `blob2` the path, `blob3` what answered,
  * `blob4` the data center, `blob5` the method, `blob6` `bot` or `human`;

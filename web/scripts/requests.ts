@@ -12,7 +12,7 @@ import {
 
 /**
  * What reached the Web Worker, from its one anonymous data point per
- * request (src/request-metrics.ts): the statuses, what answered (the page
+ * request (src/metrics.ts): the statuses, what answered (the page
  * store's hit rate among them) and the paths that answered 404 most. It
  * reads Analytics Engine's SQL API with a token that may only read the
  * account's analytics ("allthings analytics read"), passed without

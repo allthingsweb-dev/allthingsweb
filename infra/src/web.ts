@@ -1,5 +1,6 @@
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
+import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
@@ -9,7 +10,7 @@ import { readerCaching } from "../../web/src/reader-caching.ts";
 import {
   REQUESTS_DATASET,
   type RequestsDataset,
-} from "../../web/src/request-metrics.ts";
+} from "../../web/src/metrics.ts";
 import { Reader } from "./reader.ts";
 import { requiredSecret } from "./sync.ts";
 
@@ -90,6 +91,7 @@ export const makeWeb = (
   domain?: Cloudflare.WorkerDomainConfig,
   refreshToken?: ReturnType<typeof requiredSecret>,
   requests: RequestsDataset = REQUESTS_DATASET.preview,
+  analyticsToken?: Output.Output<string>,
 ) =>
   Effect.flatMap(Effect.all([Pages, Variants]), ([pages, variants]) =>
     Cloudflare.Worker("Web", {
@@ -110,13 +112,18 @@ export const makeWeb = (
         HYPERDRIVE: Database,
         IMAGES: Cloudflare.Images.Images("IMAGES"),
         VARIANTS: variants,
-        // One anonymous data point per request (web/src/request-metrics.ts).
+        // One anonymous data point per request (web/src/metrics.ts).
         REQUESTS: Cloudflare.AnalyticsEngine.Dataset("Requests", {
           dataset: requests,
         }),
         ...(refreshToken === undefined
           ? {}
           : { SITE_REFRESH_TOKEN: refreshToken }),
+        // Prod's Web Analytics site token: its pages carry the beacon
+        // (web/src/web-analytics.ts). No other stage is measured.
+        ...(analyticsToken === undefined
+          ? {}
+          : { WEB_ANALYTICS_TOKEN: analyticsToken }),
       },
       ...(domain === undefined ? {} : { domain }),
     }),
@@ -128,6 +135,21 @@ export const makeWeb = (
  * scripts/site-refresh-token.ts). A Config, so only a prod deploy needs it.
  */
 export const siteRefreshToken = requiredSecret("SITE_REFRESH_TOKEN");
+
+/**
+ * Cloudflare Web Analytics for allthings.dev (prod, once the zone is
+ * active in the account): page views, referrers and Core Web Vitals,
+ * cookieless. The site existed before it was declared here, so it is
+ * adopted. Cloudflare doesn't inject its beacon (`autoInstall: false`):
+ * it can't reach the site's compressed pages, and their policy would
+ * refuse it. The Web Worker adds it instead, with this site's token
+ * (web/src/web-analytics.ts).
+ */
+export const webAnalytics = (zoneId: string) =>
+  Cloudflare.Rum.Site("WebAnalytics", {
+    zoneTag: zoneId,
+    autoInstall: false,
+  }).pipe(Alchemy.AdoptPolicy.adopt(true));
 
 /** The site on its own (every stage but prod): no custom domain, on workers.dev. */
 export const Web = makeWeb();

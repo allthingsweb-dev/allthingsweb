@@ -13,7 +13,7 @@ import {
   siteServing,
 } from "./src/media.ts";
 import { PREVIEW, makePreview } from "./src/preview.ts";
-import { REQUESTS_DATASET } from "../web/src/request-metrics.ts";
+import { REQUESTS_DATASET } from "../web/src/metrics.ts";
 import { makeSync, syncPlan } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
@@ -23,6 +23,7 @@ import {
   makeWeb,
   siteDomain,
   siteRefreshToken,
+  webAnalytics,
 } from "./src/web.ts";
 
 export default Alchemy.Stack(
@@ -49,6 +50,11 @@ export default Alchemy.Stack(
     // The new site, in the allthings account only: on workers.dev until
     // allthings.dev is active there, then on allthings.dev (www redirects).
     const serving = siteServing(accountId, zone);
+    // Web Analytics measures allthings.dev alone, once it serves here.
+    const analytics =
+      serving === "allthings.dev" && zone !== undefined
+        ? yield* webAnalytics(zone.id)
+        : undefined;
     const site =
       serving === "none"
         ? undefined
@@ -58,6 +64,7 @@ export default Alchemy.Stack(
               : undefined,
             siteRefreshToken,
             REQUESTS_DATASET.prod,
+            analytics?.siteToken.as<string>(),
           );
     const webUrl = site?.url.as<string>();
     // Every deploy proves the variants bucket takes writes (src/web.ts).

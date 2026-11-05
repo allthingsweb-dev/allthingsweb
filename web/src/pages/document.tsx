@@ -16,8 +16,9 @@ import { type Choice, choices, type Theme } from "./theme.ts";
 /**
  * The frame of every page: the document, the header with the wordmark, the
  * site's pages and the mode, and the footer that signs off with the hosts and the socials.
- * Pages are server-rendered HTML with no JavaScript; the cursor blinks in
- * CSS, and the mode is chosen with links (see theme.ts). The one exception
+ * Pages are server-rendered HTML with no JavaScript of their own; the cursor
+ * blinks in CSS, and the mode is chosen with links (see theme.ts). On prod
+ * the Worker adds Cloudflare's Web Analytics beacon (web-analytics.ts). The one exception
  * is a lab page with an engine (`script`), which loads the site's own
  * module and is whole without it.
  */

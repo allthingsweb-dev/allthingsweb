@@ -9,7 +9,7 @@ import {
   requestDatasetOf,
   requestPoint,
   visitorKind,
-} from "../src/request-metrics.ts";
+} from "../src/metrics.ts";
 import {
   answeredQuery,
   formatReport,
@@ -182,17 +182,18 @@ describe("requestPoint", () => {
 });
 
 describe("recordRequest", () => {
-  test("writes one point to the dataset", () => {
+  test("writes one point to the Worker's dataset", () => {
     const points: Array<unknown> = [];
-    const dataset = requestDatasetOf({
+    const env = {
       REQUESTS: { writeDataPoint: (point: unknown) => points.push(point) },
-    });
-    recordRequest(dataset, request("/"), new Response(null), 5);
+    };
+    expect(requestDatasetOf(env)).toBe(env.REQUESTS);
+    recordRequest(env, request("/"), new Response(null), Date.now() - 5);
     expect(points).toEqual([
       {
         indexes: ["/"],
         blobs: ["/", "/", "none", "", "GET", "bot"],
-        doubles: [200, 5],
+        doubles: [200, expect.any(Number)],
       },
     ]);
   });
@@ -200,11 +201,14 @@ describe("recordRequest", () => {
   test("does nothing without a dataset, and never throws when writing fails", () => {
     expect(requestDatasetOf({})).toBeUndefined();
     expect(requestDatasetOf({ REQUESTS: "nope" })).toBeUndefined();
-    recordRequest(undefined, request("/"), new Response(null), 1);
+    recordRequest({}, request("/"), new Response(null), 1);
+    recordRequest({ REQUESTS: "nope" }, request("/"), new Response(null), 1);
     recordRequest(
       {
-        writeDataPoint: () => {
-          throw new Error("full");
+        REQUESTS: {
+          writeDataPoint: () => {
+            throw new Error("full");
+          },
         },
       },
       request("/"),

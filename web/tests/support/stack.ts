@@ -15,6 +15,8 @@ export interface WorkerEnv {
   readonly PAGES?: true;
   /** Lets the writers tell the Worker its data changed (src/refresh.ts). */
   readonly SITE_REFRESH_TOKEN?: string;
+  /** Prod's Web Analytics site token: pages carry the beacon (src/web-analytics.ts). */
+  readonly WEB_ANALYTICS_TOKEN?: string;
   /** The origin of a `HYPERDRIVE` binding, as the Worker deploys. */
   readonly HYPERDRIVE?: Cloudflare.Hyperdrive.PublicOrigin;
   /**
@@ -155,6 +157,10 @@ export const testStack = <const Name extends string>(
  *
  * Workers may be 3 MB gzipped, but every byte of the startup modules is
  * parsed on a cold start: raise these only on purpose. When the test
- * fails, it lists what the cold start is made of.
+ * fails, it lists what the cold start is made of. `startup` went from
+ * 10,000 to 10,100 on 2026-11-05 for the request data points
+ * (src/worker.ts, src/metrics.ts): about 45 bytes that hand each answer to
+ * the lazily loaded src/metrics.ts after it is sent, which no smaller hook
+ * does.
  */
-export const bundleBudgets = { startup: 10_000, lazy: 120_000 } as const;
+export const bundleBudgets = { startup: 10_100, lazy: 120_000 } as const;
