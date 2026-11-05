@@ -18,9 +18,11 @@
  * modules, which have a budget (tests/support/stack.ts).
  */
 
+/** The beacon's host: its script redirects to a versioned path there. */
+export const beaconHost = "https://static.cloudflareinsights.com";
+
 /** Where the beacon's script comes from. */
-export const beaconScript =
-  "https://static.cloudflareinsights.com/beacon.min.js";
+export const beaconScript = `${beaconHost}/beacon.min.js`;
 
 /** Where the beacon reports. */
 export const beaconReports = "https://cloudflareinsights.com";
@@ -43,15 +45,17 @@ export const beaconElement = (token: string) =>
   `<script defer src="${beaconScript}" data-cf-beacon='{"token":"${token}"}'></script>`;
 
 /**
- * `policy` with the beacon allowed: its script added to `script-src` (made
+ * `policy` with the beacon allowed: its host added to `script-src` (made
  * if the page has none) and its reports to `connect-src`, which no page
- * has otherwise. Nothing else in the policy changes.
+ * has otherwise. The host, not the script's path: `beacon.min.js` loads
+ * its code from a versioned path beside it, which a path-exact source
+ * refuses. Nothing else in the policy changes.
  */
 export const withBeaconPolicy = (policy: string): string =>
   `${
     policy.includes("script-src ")
-      ? policy.replace("script-src ", `script-src ${beaconScript} `)
-      : `${policy}; script-src ${beaconScript}`
+      ? policy.replace("script-src ", `script-src ${beaconHost} `)
+      : `${policy}; script-src ${beaconHost}`
   }; connect-src ${beaconReports}`;
 
 /**
