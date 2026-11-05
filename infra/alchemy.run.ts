@@ -22,6 +22,7 @@ import {
   makeWeb,
   siteDomain,
   siteRefreshToken,
+  webAnalytics,
 } from "./src/web.ts";
 
 export default Alchemy.Stack(
@@ -48,6 +49,11 @@ export default Alchemy.Stack(
     // The new site, in the allthings account only: on workers.dev until
     // allthings.dev is active there, then on allthings.dev (www redirects).
     const serving = siteServing(accountId, zone);
+    // Web Analytics measures allthings.dev alone, once it serves here.
+    const analytics =
+      serving === "allthings.dev" && zone !== undefined
+        ? yield* webAnalytics(zone.id)
+        : undefined;
     const site =
       serving === "none"
         ? undefined
@@ -56,6 +62,7 @@ export default Alchemy.Stack(
               ? siteDomain(zone.id)
               : undefined,
             siteRefreshToken,
+            analytics?.siteToken.as<string>(),
           );
     const webUrl = site?.url.as<string>();
     // Every deploy proves the variants bucket takes writes (src/web.ts).

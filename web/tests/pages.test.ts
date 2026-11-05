@@ -18,6 +18,7 @@ import {
 } from "../src/cache.ts";
 import { mediaOrigin, socials } from "../src/links.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
+import { beaconElement, withBeaconPolicy } from "../src/web-analytics.ts";
 import { labPath, variantPath } from "../src/pages/lab/paths.ts";
 import { variants } from "../src/pages/lab/variants.tsx";
 import { themeCookieMaxAge } from "../src/pages/theme.ts";
@@ -48,9 +49,18 @@ import { bundleBudgets, testStack } from "./support/stack.ts";
 
 const database = await serve(await eventDatabase(new Date()));
 
+/** A Web Analytics site token, for the Worker that measures. */
+const siteToken = "0123456789abcdef0123456789abcdef";
+
 const Stack = testStack("allthings-web-pages-test", {
   Pages: { ORIGIN: "https://allthings.dev", DATABASE_URL: database.url },
   NoDatabase: { ORIGIN: "https://allthings.dev" },
+  // Prod's pages carry the Web Analytics beacon (src/web-analytics.ts).
+  Measured: {
+    ORIGIN: "https://allthings.dev",
+    DATABASE_URL: database.url,
+    WEB_ANALYTICS_TOKEN: siteToken,
+  },
 });
 
 const { test, beforeAll, afterAll, deploy, destroy } = Test.make({
@@ -68,13 +78,13 @@ afterAll(
  */
 const it = (
   name: string,
-  run: (url: string, noDatabase: string) => Promise<void>,
+  run: (url: string, noDatabase: string, measured: string) => Promise<void>,
 ) =>
   test(
     name,
     Effect.flatMap(workers, (outputs) =>
       Effect.promise(() => {
-        const url = (worker: "Pages" | "NoDatabase") => {
+        const url = (worker: "Pages" | "NoDatabase" | "Measured") => {
           const value = outputs[worker];
           if (
             typeof value !== "string" ||
@@ -86,7 +96,7 @@ const it = (
           }
           return value;
         };
-        return run(url("Pages"), url("NoDatabase"));
+        return run(url("Pages"), url("NoDatabase"), url("Measured"));
       }),
     ),
   );
@@ -786,5 +796,37 @@ describe("/lab", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
     await response.arrayBuffer();
+  });
+});
+
+describe("Web Analytics", () => {
+  it("adds the beacon to each page answered 200, compressed as before, with the policy allowing it and nothing more", async (url, _, measured) => {
+    for (const path of ["/", "/events", "/people", "/about", "/brand"]) {
+      const response = await fetch(`${measured}${path}`, {
+        headers: { "accept-encoding": "br" },
+      });
+      const html = await response.text();
+      expect([path, response.status]).toEqual([path, 200]);
+      expect(
+        html.match(/<script(?! type="application\/ld\+json")[^>]*>/g),
+      ).toEqual([beaconElement(siteToken).replace("</script>", "")]);
+      expect(html).toEndWith(`${beaconElement(siteToken)}</body></html>`);
+      const plain = await fetch(`${url}${path}`);
+      expect(response.headers.get("content-security-policy")).toBe(
+        withBeaconPolicy(plain.headers.get("content-security-policy") ?? ""),
+      );
+      await plain.arrayBuffer();
+    }
+  });
+
+  it("leaves a page that isn't found, and every Worker without a token, unmeasured", async (url, _, measured) => {
+    const missing = await fetch(`${measured}/no-such-page`);
+    expect(missing.status).toBe(404);
+    expect(await missing.text()).not.toContain("cloudflareinsights");
+    const plain = await fetch(`${url}/`);
+    expect(await plain.text()).not.toContain("cloudflareinsights");
+    expect(plain.headers.get("content-security-policy")).not.toContain(
+      "cloudflareinsights",
+    );
   });
 });
