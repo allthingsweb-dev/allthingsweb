@@ -212,11 +212,13 @@ const stale = Command.make(
           : []),
       ];
       const hosts = organizers
-        ? {
-            organizers: yield* staleHosts(people).pipe(
-              Effect.provide(Database.scriptLayer),
-            ),
-          }
+        ? yield* staleHosts(people).pipe(
+            Effect.map((stale) => ({
+              organizersToday: stale.today,
+              organizers: stale.hosts,
+            })),
+            Effect.provide(Database.scriptLayer),
+          )
         : {};
       return yield* Console.log(
         JSON.stringify({ today, days, due, ...hosts }, null, 2),

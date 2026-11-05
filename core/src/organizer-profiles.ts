@@ -127,7 +127,8 @@ const HostRow = Schema.Struct({
  * each with the evenings, by slug. A draft's lineup is kept in planning
  * until it is published (planning.draft_people), so it joins as a role that
  * may read planning (the studio, or the owner); site_reader sees the
- * published lineups only.
+ * published lineups only. Returns them with `today`, San Francisco's day
+ * they were judged by (readiness's): a `read` dated after it isn't a check.
  */
 export const staleHosts = (file: PeopleFile, days = organizerCheckDays) =>
   Effect.gen(function* () {
@@ -169,5 +170,6 @@ export const staleHosts = (file: PeopleFile, days = organizerCheckDays) =>
       host.evenings.push(row.slug);
       hosts.set(row.id, host);
     }
-    return [...hosts.values()] as ReadonlyArray<StaleHost>;
+    // The day it judged by, so whoever records a check can date it so.
+    return { today, hosts: [...hosts.values()] as ReadonlyArray<StaleHost> };
   });

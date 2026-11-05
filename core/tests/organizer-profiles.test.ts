@@ -200,18 +200,28 @@ describe("people stale --organizers", () => {
     // on 2026-07-06 is 89 days old there, and fresh, as readiness has it.
     await db.exec(`INSERT INTO event_people (event_id, profile_id, role, position, source, updated_at) VALUES
       ('e0000000-0000-4000-8000-000000000004', '${ada}', 'organizer', 0, 'site', now())`);
-    const hosts = await Effect.runPromise(
+    const stale = await Effect.runPromise(
       staleHosts(adaRead("2026-07-06")).pipe(
         Effect.provide(sqlLayer(db)),
         Effect.provide(clockAt(DateTime.makeUnsafe("2026-10-04T00:30:00Z"))),
       ),
     );
-    expect(hosts).toEqual([]);
+    // And it says the day it judged by, which `people stale` prints as
+    // `organizersToday`: a check recorded with it counts at once.
+    expect(stale).toEqual({ today: "2026-10-03", hosts: [] });
+    const recorded = await Effect.runPromise(
+      staleHosts(adaRead(stale.today)).pipe(
+        Effect.provide(sqlLayer(db)),
+        Effect.provide(clockAt(DateTime.makeUnsafe("2026-10-04T00:30:00Z"))),
+      ),
+    );
+    expect(recorded.hosts).toEqual([]);
   });
 
   const run = (file: PeopleFile) =>
     Effect.runPromise(
       staleHosts(file).pipe(
+        Effect.map((stale) => stale.hosts),
         Effect.provide(sqlLayer(db)),
         Effect.provide(clockLayer),
       ),

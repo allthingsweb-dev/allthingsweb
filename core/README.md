@@ -905,7 +905,9 @@ An entry's `now` is what the person does now (docs/now.md,
 `bun run people stale` prints, as JSON, the records checked `--days` (90)
 or more days ago, oldest first, with their held claims, for an agent to look
 at again under docs/now.md's rules. `--speakers` adds everyone who has spoken
-at one of our evenings and never had a record. `--organizers` adds, as `organizers`, everyone who organizes or co-hosts an
+at one of our evenings and never had a record. `--organizers` adds, as `organizers`, with `organizersToday` (San
+Francisco's day, which readiness judges by, so a check recorded with it
+counts at once), everyone who organizes or co-hosts an
 evening of ours not over yet whose title and bio the file hasn't both read
 in the last 90 days, with those evenings: what readiness blocks a draft on,
 and what to check before any evening ahead. It reads the database too:
