@@ -1,9 +1,8 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { ahead, ours } from "./catalog.ts";
 import { asOf } from "./clock.ts";
 import { decodePeopleFile, type PeopleFile } from "./people-enrichment.ts";
-import { sfDay } from "./readiness/calendar.ts";
 import { orDataSourceError } from "./sql.ts";
 
 /**
@@ -24,6 +23,15 @@ import { orDataSourceError } from "./sql.ts";
  * (src/readiness/checks.ts, "organizer-profile"); `bun run people stale
  * --organizers` lists the hosts of every evening of ours ahead.
  */
+
+/**
+ * The day a check is judged on: the UTC day, as every day in the file is
+ * (`bun run people` refuses a "now" record checked after the UTC day), so a
+ * `read` recorded today counts at once wherever it is run. Readiness and
+ * `people stale --organizers` both use it.
+ */
+export const checkDay = (now: DateTime.Utc): string =>
+  DateTime.formatIsoDateUtc(now);
 
 /** How old a host's checked title and bio may be, in days. */
 export const organizerCheckDays = 90;
@@ -127,15 +135,20 @@ const HostRow = Schema.Struct({
  * each with the evenings, by slug. A draft's lineup is kept in planning
  * until it is published (planning.draft_people), so it joins as a role that
  * may read planning (the studio, or the owner); site_reader sees the
- * published lineups only. Returns them with `today`, San Francisco's day
- * they were judged by (readiness's): a `read` dated after it isn't a check.
+ * published lineups only. Returns them with `today`, the day they were
+ * judged on ({@link checkDay}): a `read` dated after it isn't a check.
+ * `on` is that day when the caller has already read the clock, so what it
+ * prints beside them is the same day.
  */
-export const staleHosts = (file: PeopleFile, days = organizerCheckDays) =>
+export const staleHosts = (
+  file: PeopleFile,
+  days = organizerCheckDays,
+  on?: string,
+) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     const now = yield* asOf;
-    // San Francisco's day, as readiness judges the same draft by.
-    const today = sfDay(now);
+    const today = on ?? checkDay(now);
     const [planning] = yield* sql<{ readable: boolean }>`
       SELECT EXISTS (
         SELECT 1 FROM pg_catalog.pg_namespace n
