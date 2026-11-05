@@ -237,6 +237,15 @@ describe("people stale --organizers", () => {
       ),
     );
     expect(recorded.hosts).toEqual([]);
+    // Given the day the caller already read, it judges on that one, even if
+    // the clock has moved on to the next.
+    const given = await Effect.runPromise(
+      staleHosts(adaRead("2026-07-06"), 90, "2026-10-03").pipe(
+        Effect.provide(sqlLayer(db)),
+        Effect.provide(clockAt(DateTime.makeUnsafe("2026-10-04T00:30:00Z"))),
+      ),
+    );
+    expect(given).toEqual({ today: "2026-10-03", hosts: [] });
   });
 
   const run = (file: PeopleFile) =>

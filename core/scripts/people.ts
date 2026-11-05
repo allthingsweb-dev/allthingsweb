@@ -212,8 +212,8 @@ const stale = Command.make(
           : []),
       ];
       const hosts = organizers
-        ? yield* staleHosts(people).pipe(
-            // Judged on the UTC day, the `today` printed here.
+        ? yield* staleHosts(people, organizerCheckDays, today).pipe(
+            // Judged on the `today` printed here: one reading of the clock.
             Effect.map((checked) => ({ organizers: checked.hosts })),
             Effect.provide(Database.scriptLayer),
           )

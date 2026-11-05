@@ -137,12 +137,18 @@ const HostRow = Schema.Struct({
  * may read planning (the studio, or the owner); site_reader sees the
  * published lineups only. Returns them with `today`, the day they were
  * judged on ({@link checkDay}): a `read` dated after it isn't a check.
+ * `on` is that day when the caller has already read the clock, so what it
+ * prints beside them is the same day.
  */
-export const staleHosts = (file: PeopleFile, days = organizerCheckDays) =>
+export const staleHosts = (
+  file: PeopleFile,
+  days = organizerCheckDays,
+  on?: string,
+) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     const now = yield* asOf;
-    const today = checkDay(now);
+    const today = on ?? checkDay(now);
     const [planning] = yield* sql<{ readable: boolean }>`
       SELECT EXISTS (
         SELECT 1 FROM pg_catalog.pg_namespace n
