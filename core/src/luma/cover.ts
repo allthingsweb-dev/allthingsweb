@@ -7,6 +7,7 @@ import {
   CoverRenderer,
   type CoverUnrendered,
   isLumaDefaultCover,
+  isStockCover,
   sha256,
 } from "../cover.ts";
 import { DataSourceError } from "../errors.ts";
@@ -36,7 +37,11 @@ import { LumaWrite, type LumaWriteError, type ManagedEvent } from "./write.ts";
  *
  * Only a private event of ours is ever changed: a public one changes only
  * through publish, and a shared one's Luma page is its organizer's. Its
- * cover can still be drawn and read, for an evening already out.
+ * cover can still be drawn and read, for an evening already out. One
+ * exception: a past evening of ours that still shows a stock photo (one of
+ * Luma's defaults, or an Unsplash picture, src/cover.ts) may get its own
+ * cover, public or not. Nobody is coming to it any more, and a cover we
+ * uploaded is never replaced this way.
  *
  * The short link a draft's cover prints is the one it will get when it is
  * published (src/slugs.ts, by the same dry run the sync's rehearsal uses).
@@ -157,10 +162,13 @@ const make = Effect.gen(function* () {
       const png = yield* renderer.render(facts);
       const digest = yield* sha256(png);
       const event = yield* luma.get(row.lumaEventId);
+      // A past evening still showing a stock photo may get its own cover,
+      // public or not; the page's own clock says it is past (facts.ahead).
+      const pastStock = !facts.ahead && isStockCover(event.cover_url);
       const refused =
         event.access !== "manage"
           ? `${row.lumaEventId} is not our calendar's to change.`
-          : event.visibility === "public"
+          : event.visibility === "public" && !pastStock
             ? `${event.name} is public on Luma: what the public sees changes only through publish.`
             : null;
       const current = {
@@ -211,7 +219,7 @@ const make = Effect.gen(function* () {
         );
       }
       // Recorded only on the evening it was drawn for, while it is still
-      // our private one; its stored copy of the old cover is let go, so the
+      // ours to change (above); its stored copy of the old cover is let go, so the
       // ingestion stores this one.
       // Recorded with its line in the draft's log, in one transaction.
       const recorded = yield* sql

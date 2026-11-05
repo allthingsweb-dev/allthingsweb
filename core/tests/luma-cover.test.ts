@@ -9,6 +9,7 @@ import {
   CoverRenderer,
   hostNames,
   isLumaDefaultCover,
+  isStockCover,
   sha256,
 } from "../src/cover.ts";
 import { EventPages } from "../src/event-page.ts";
@@ -29,6 +30,10 @@ const key = "test-luma-key";
 const draft = "2026-09-01-draft-night";
 const gallery =
   "https://images.lumacdn.com/gallery-images/kd/12b33577-492a-4ae2-af6f-f7cd814d862c";
+const unsplash =
+  "https://images.unsplash.com/photo-1485579149621-3123dd979885?fit=max&fm=jpg&q=80&w=1080";
+/** A cover someone uploaded for the evening. */
+const ownCover = "https://images.lumacdn.com/event-covers/z7/3a8a1e03.jpg";
 
 /** The seed's draft with a date ahead, a place in East Cut, a host and a topic. */
 const ready = `
@@ -299,6 +304,18 @@ describe("what a cover says", () => {
     expect(isLumaDefaultCover(null)).toBe(false);
     expect(isLumaDefaultCover("not a url")).toBe(false);
   });
+
+  test("stock photos are Luma's defaults and Unsplash's, never an upload", () => {
+    expect(isStockCover(gallery)).toBe(true);
+    expect(isStockCover(unsplash)).toBe(true);
+    expect(isStockCover(ownCover)).toBe(false);
+    expect(
+      isStockCover("https://images.lumacdn.com/api-uploads/3n/5366.jpg"),
+    ).toBe(false);
+    expect(isStockCover("https://unsplash.com/photos/abc")).toBe(false);
+    expect(isStockCover(null)).toBe(false);
+    expect(isStockCover("not a url")).toBe(false);
+  });
 });
 
 describe("prepare", () => {
@@ -395,6 +412,7 @@ describe("prepare", () => {
               id: "evt-react",
               name: "React at Acme",
               visibility: "public",
+              cover_url: ownCover,
             }),
           ),
         ],
@@ -410,6 +428,33 @@ describe("prepare", () => {
       "React at Acme is public on Luma: what the public sees changes only through publish.",
     );
   });
+
+  test.each([
+    ["one of Luma's defaults", gallery],
+    ["an Unsplash picture", unsplash],
+  ])(
+    "lets a past public evening showing %s get its own cover",
+    async (_which, stock) => {
+      const { exit } = await run(
+        (c) => c.prepare({ _tag: "Slug", slug: "2026-08-12-react-at-acme" }),
+        {
+          "/v1/events/get": [
+            json(
+              lumaEvent({
+                id: "evt-react",
+                name: "React at Acme",
+                visibility: "public",
+                cover_url: stock,
+              }),
+            ),
+          ],
+        },
+      );
+      const prepared = value(exit);
+      expect(prepared.facts.ahead).toBe(false);
+      expect(prepared.refused).toBeNull();
+    },
+  );
 
   test("refuses a shared evening, and one without a Luma event", async () => {
     await db.exec(`
@@ -559,6 +604,54 @@ describe("approve", () => {
       ]);
     }
     expect(await recorded()).toMatchObject({ generated_cover_url: null });
+  });
+
+  test("sets a past public evening's own cover over Luma's default, and records it", async () => {
+    const react = { _tag: "Slug", slug: "2026-08-12-react-at-acme" } as const;
+    const past = (cover_url: string) =>
+      json(
+        lumaEvent({
+          id: "evt-react",
+          name: "React at Acme",
+          visibility: "public",
+          cover_url,
+        }),
+      );
+    const token = value(
+      (
+        await run((c) => c.prepare(react), {
+          "/v1/events/get": [past(gallery)],
+        })
+      ).exit,
+    ).token;
+    const { exit, requests } = await run((c) => c.approve(react, token), {
+      "/v1/events/get": [past(gallery), past(uploaded)],
+      "/v1/images/create-upload-url": [
+        json({
+          upload_url: "https://upload.example/put/abc",
+          file_url: uploaded,
+        }),
+      ],
+      "/put/abc": [{ status: 200 }],
+      "/v1/events/update": [json({})],
+    });
+    expect(value(exit).coverUrl).toBe(uploaded);
+    expect(JSON.parse(requests[3]?.body ?? "")).toEqual({
+      event_id: "evt-react",
+      cover_url: uploaded,
+    });
+    const { rows } = await db.query(
+      `SELECT generated_cover_url FROM events WHERE slug = '2026-08-12-react-at-acme'`,
+    );
+    expect(rows).toEqual([{ generated_cover_url: uploaded }]);
+
+    // Once it shows our cover, a past public evening is out of reach again.
+    const again = await run((c) => c.prepare(react), {
+      "/v1/events/get": [past(uploaded)],
+    });
+    expect(value(again.exit).refused).toBe(
+      "React at Acme is public on Luma: what the public sees changes only through publish.",
+    );
   });
 
   test("refuses a public event, whatever the token", async () => {
