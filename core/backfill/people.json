@@ -718,12 +718,33 @@
   {
     "profileId": "9527ccf6-8056-4225-b695-cb2a6e1ea50e",
     "name": "Andre Landgraf",
+    "title": {
+      "value": "Staff Developer Advocate, Databricks",
+      "source": "https://www.databricks.com/dataaisummit/speaker/andre-landgraf",
+      "read": "2026-11-05",
+      "was": "Senior Developer Advocate"
+    },
     "twitterHandle": {
       "value": "andrelandgraf",
       "source": "https://github.com/andrelandgraf",
       "read": "2026-10-05",
       "was": "andrelandgraf94"
-    }
+    },
+    "held": [
+      {
+        "field": "bio",
+        "value": "Andre is a passionate developer from Germany who loves building for the web. Based in the Bay Area, he's a Staff Developer Advocate at Databricks, working on Neon, and before that was a Senior Software Engineer at LinkedIn. He wrote Full Stack Web Development with Remix, writes about agents and the platforms they run on, and started the meetups that became allthings with Erik. Off the clock, he's out eating good food with friends and family.",
+        "sources": [
+          "https://www.databricks.com/dataaisummit/speaker/andre-landgraf",
+          "https://github.com/andrelandgraf",
+          "https://x.com/andrelandgraf",
+          "https://andrelandgraf.dev/blog/2026-05-20_two-types-of-agents",
+          "https://neon.com/blog/agent-skills-in-2026",
+          "https://allthings.dev/about"
+        ],
+        "reason": "Applied on 2026-11-04 at Erik's request as a best attempt Andre can change; it isn't his own words yet, and no one page holds all of it (the Databricks page has Germany, the Bay Area, Databricks and LinkedIn; GitHub, X and his posts the rest; the meetups line is on our About page). Recorded once Andre confirms it."
+      }
+    ]
   },
   {
     "profileId": "748690f9-037b-4c10-b0d7-3f64c3b31ad4",
@@ -1305,5 +1326,21 @@
         "reason": "No public recording found."
       }
     ]
+  },
+  {
+    "profileId": "717803b9-074f-47b9-adb7-ff3f2e520eee",
+    "name": "Erik Thorelli",
+    "title": {
+      "value": "Head of Developer Experience, CodeRabbit",
+      "source": "https://2026.allthingsopen.org/speakers/erik-thorelli",
+      "read": "2026-11-02",
+      "was": "Engineering Leader"
+    },
+    "bio": {
+      "value": "Erik Thorelli leads developer experience at CodeRabbit, where he works on agent-first products and developer tools. He speaks about agent experience and AI code review, and before CodeRabbit he led the mobile and applied AI teams at Cisco Meraki. He and Andre host allthings.",
+      "source": "https://2026.allthingsopen.org/speakers/erik-thorelli",
+      "read": "2026-11-02",
+      "was": "Erik Thorelli is an Engineering Leader at Cisco Meraki, leading the mobile engineering organization. He's been developing React and React Native apps for almost a decade, across many industries...and seen some stuff."
+    }
   }
 ]
