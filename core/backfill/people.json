@@ -116,10 +116,29 @@
   {
     "profileId": "181d776e-1c8d-4af1-a0dc-ca6600a46c1c",
     "name": "Mirela Prifti",
+    "title": {
+      "value": "Community Manager, Effectful Technologies",
+      "source": "https://effect.website/blog/this-week-in-effect/138",
+      "read": "2026-11-05",
+      "was": "Community Manager, Effect",
+      "also": ["https://effectful.co/", "https://x.com/MirelaPriftix"]
+    },
     "bio": {
-      "value": "Mirela is a web designer focussing on web accessibility and usability.",
-      "source": "https://adplist.org/mentors/mirela-prifti",
-      "read": "2026-10-05"
+      "value": "Mirela Prifti is community manager at Effectful Technologies, the company behind Effect, where she works on community and design and writes This Week in Effect. She is a web designer focused on accessibility and usability. She co-hosted at/effect.",
+      "source": "https://dev.to/mirelaprifti",
+      "read": "2026-11-05",
+      "was": "Mirela is a web designer focussing on web accessibility and usability.",
+      "also": [
+        "https://effect.website/blog/this-week-in-effect/138",
+        "https://effectful.co/",
+        "https://adplist.org/mentors/mirela-prifti",
+        "https://allthings.dev/people/mirela-prifti"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     }
   },
   {
@@ -627,6 +646,28 @@
   {
     "profileId": "332815b6-cee6-4819-b233-fc61244b5399",
     "name": "Mateo Torres",
+    "title": {
+      "value": "Developer Advocate, Arcade.dev",
+      "source": "https://bsky.app/profile/torresmateo.com",
+      "read": "2026-11-05",
+      "was": "Developer Relations, Arcade",
+      "also": ["https://x.com/torresmateo", "https://torresmateo.com"]
+    },
+    "bio": {
+      "value": "Mateo Torres is a developer advocate at Arcade.dev, where he works on agentic AI and LLM tool integration, and an AAIF Ambassador. Before Arcade he was a postdoctoral researcher in computational biology at Cornell University and FGV, and he writes about MCP and A2A on his site. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on how to distill an agent’s behavior into a workflow.",
+      "source": "https://torresmateo.com",
+      "read": "2026-11-05",
+      "was": "Mateo Torres is a Developer Advocate at Arcade.dev working on Agentic AI and LLM Tool Integration. Previously, he was a postdoctoral researcher in the field of Computational Biology at Cornell Unversity and FGV.",
+      "also": [
+        "https://x.com/torresmateo",
+        "https://allthings.dev/people/mateo-torres"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "torresmateo",
       "source": "https://torresmateo.com",
@@ -646,24 +687,40 @@
       "value": "https://avatars.githubusercontent.com/u/2292288",
       "source": "https://api.github.com/users/torresmateo",
       "read": "2026-10-05"
-    },
-    "bio": {
-      "value": "Mateo Torres is a Developer Advocate at Arcade.dev working on Agentic AI and LLM Tool Integration. Previously, he was a postdoctoral researcher in the field of Computational Biology at Cornell Unversity and FGV.",
-      "source": "https://torresmateo.com",
-      "read": "2026-10-05"
     }
   },
   {
     "profileId": "6c9ded36-168e-4b89-80b6-2c676f9bbcce",
     "name": "Michael Grinich",
+    "title": {
+      "value": "Founder & CEO, WorkOS",
+      "source": "https://sfelc.com/speaker/michael-grinich",
+      "read": "2026-11-05",
+      "was": "CEO, WorkOS",
+      "also": [
+        "https://startwithidentity.com/experts/michael-grinich/",
+        "https://x.com/grinich"
+      ]
+    },
+    "bio": {
+      "value": "Michael Grinich is the founder and CEO of WorkOS, whose single sign-on, SCIM and audit log APIs serve companies such as OpenAI, Anthropic and Cursor. He started WorkOS in 2018 after hitting enterprise-readiness problems at his previous company, Nylas. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on why language is the final interface, and he co-hosted at/dev setups and the at/typescript ai after-party.",
+      "source": "https://sfelc.com/speaker/michael-grinich",
+      "read": "2026-11-05",
+      "was": "Michael is the founder and CEO of WorkOS, a developer platform that enables companies to become Enterprise Ready through features like Single Sign-On, SCIM provisioning, Audit Logs, and RBAC.",
+      "also": [
+        "https://startwithidentity.com/experts/michael-grinich/",
+        "https://leaddev.com/community/michael-grinich",
+        "https://allthings.dev/people/michael-grinich"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "photoSourceUrl": {
       "value": "https://pbs.twimg.com/profile_images/1978687600656580608/m2TFWGlC_400x400.jpg",
       "source": "https://api.fxtwitter.com/grinich",
-      "read": "2026-10-05"
-    },
-    "bio": {
-      "value": "Michael is the founder and CEO of WorkOS, a developer platform that enables companies to become Enterprise Ready through features like Single Sign-On, SCIM provisioning, Audit Logs, and RBAC.",
-      "source": "https://leaddev.com/community/michael-grinich",
       "read": "2026-10-05"
     },
     "held": [
@@ -680,13 +737,29 @@
   {
     "profileId": "a205eb8b-7da1-4e3c-8bcf-9306913593de",
     "name": "Neel Rao",
+    "title": {
+      "value": "Member of Technical Staff, OpenAI",
+      "source": "https://x.com/neelmango",
+      "read": "2026-11-05",
+      "also": ["https://neelmango.com/"]
+    },
+    "bio": {
+      "value": "Neel Rao is a member of technical staff at OpenAI who likes making games, 3D worlds and things you can play with. He was co-founder and CTO of GameSnacks and Advr, both acquired by Google, and built mangobox.ai for making visual novels with AI. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on harness engineering at OpenAI.",
+      "source": "https://neelmango.com/",
+      "read": "2026-11-05",
+      "was": "Neel likes making games, 3D worlds, and things you can play with. Currently a Member of Technical Staff at OpenAI.",
+      "also": [
+        "https://x.com/neelmango",
+        "https://allthings.dev/people/neel-rao"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "neelmango",
-      "source": "https://api.fxtwitter.com/neelmango",
-      "read": "2026-10-05"
-    },
-    "photoSourceUrl": {
-      "value": "https://pbs.twimg.com/profile_images/1249811791820931073/jOlVNh_p_400x400.jpg",
       "source": "https://api.fxtwitter.com/neelmango",
       "read": "2026-10-05"
     },
@@ -695,22 +768,39 @@
       "source": "https://neelmango.com",
       "read": "2026-10-05"
     },
-    "bio": {
-      "value": "Neel likes making games, 3D worlds, and things you can play with. Currently a Member of Technical Staff at OpenAI.",
-      "source": "https://neelmango.com",
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1249811791820931073/jOlVNh_p_400x400.jpg",
+      "source": "https://api.fxtwitter.com/neelmango",
       "read": "2026-10-05"
     }
   },
   {
     "profileId": "12f8f874-eda6-4a0a-aa47-d67679b2ece8",
     "name": "Nicholas Pipitone",
+    "title": {
+      "value": "Co-founder & CTO, ZeroEntropy",
+      "source": "https://www.ycombinator.com/companies/zeroentropy",
+      "read": "2026-11-05",
+      "was": "CTO, ZeroEntropy",
+      "also": ["https://www.linkedin.com/in/nicholas-pipitone"]
+    },
+    "bio": {
+      "value": "Nicholas Pipitone is co-founder and CTO of ZeroEntropy (YC W25), which trains rerankers, embeddings and custom models for production AI systems. His background is theoretical mathematics and computer science; he left CMU for startups and has been CTO or lead developer at five of them, writing low-level C, C++ and GPU code. At Mastra’s TypeScript AI Demo Day, which allthings shared, he gave the talk Make Your Agents Fight.",
+      "source": "https://www.ycombinator.com/companies/zeroentropy",
+      "read": "2026-11-05",
+      "was": "Cofounder & CTO @ ZeroEntropy (YC W25). His background is in theoretical mathematics and computer science. Dropped out of CMU to pursue startups. Worked on low-level C/C++/Assembly/GPU Code. CTO and/or main dev for 5 different startups. Created stat-arb algorithms and audited blockchains for bug bounties and hedge fund due diligence.",
+      "also": [
+        "https://www.zeroentropy.dev/",
+        "https://allthings.dev/people/nicholas-pipitone"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "npip99",
-      "source": "https://api.fxtwitter.com/npip99",
-      "read": "2026-10-05"
-    },
-    "photoSourceUrl": {
-      "value": "https://pbs.twimg.com/profile_images/1878979469983256576/p6anzq94_400x400.jpg",
       "source": "https://api.fxtwitter.com/npip99",
       "read": "2026-10-05"
     },
@@ -719,22 +809,39 @@
       "source": "https://www.linkedin.com/in/nicholas-pipitone/",
       "read": "2026-10-05"
     },
-    "bio": {
-      "value": "Cofounder & CTO @ ZeroEntropy (YC W25). His background is in theoretical mathematics and computer science. Dropped out of CMU to pursue startups. Worked on low-level C/C++/Assembly/GPU Code. CTO and/or main dev for 5 different startups. Created stat-arb algorithms and audited blockchains for bug bounties and hedge fund due diligence.",
-      "source": "https://www.ycombinator.com/companies/zeroentropy",
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1878979469983256576/p6anzq94_400x400.jpg",
+      "source": "https://api.fxtwitter.com/npip99",
       "read": "2026-10-05"
     }
   },
   {
     "profileId": "6ed25a3a-b623-4f00-9ab8-141eadda0748",
     "name": "Nikhil Gupta",
+    "title": {
+      "value": "Founder & CTO, Vapi",
+      "source": "https://x.com/nikhilro_",
+      "read": "2026-11-05",
+      "was": "CTO, Vapi",
+      "also": ["https://www.ycombinator.com/companies/vapi"]
+    },
+    "bio": {
+      "value": "Nikhil Gupta is the founder and CTO of Vapi, voice AI for developers. He and Jordan Dearsley started the company as Superpowered in Y Combinator’s W21 batch before it became Vapi in 2023. At Mastra’s TypeScript AI Demo Day, which allthings shared, he spoke on why every business needs a voice interface.",
+      "source": "https://www.ycombinator.com/companies/vapi",
+      "read": "2026-11-05",
+      "also": [
+        "https://x.com/nikhilro_",
+        "https://atlasiko.com/news/ai/vapi-voice-ai-platform-natural-sounding-bots",
+        "https://allthings.dev/people/nikhil-gupta"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "nikhilro_",
-      "source": "https://api.fxtwitter.com/nikhilro_",
-      "read": "2026-10-05"
-    },
-    "photoSourceUrl": {
-      "value": "https://pbs.twimg.com/profile_images/2032705160590553088/OYYxzWVi_400x400.jpg",
       "source": "https://api.fxtwitter.com/nikhilro_",
       "read": "2026-10-05"
     },
@@ -743,17 +850,11 @@
       "source": "https://www.ycombinator.com/companies/vapi",
       "read": "2026-10-05"
     },
-    "held": [
-      {
-        "field": "bio",
-        "value": null,
-        "sources": [
-          "https://api.fxtwitter.com/nikhilro_",
-          "https://www.ycombinator.com/companies/vapi"
-        ],
-        "reason": "only a terse profile bio ('founder/cto @vapi_ai' on X; 'Founder, CTO @ Vapi' on YC)"
-      }
-    ]
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/2032705160590553088/OYYxzWVi_400x400.jpg",
+      "source": "https://api.fxtwitter.com/nikhilro_",
+      "read": "2026-10-05"
+    }
   },
   {
     "profileId": "059c4d56-c3dd-480f-8e3f-97f664823ad9",
@@ -1202,11 +1303,40 @@
   {
     "profileId": "460cca46-56d7-44da-a6a1-a2358ca28f3d",
     "name": "Matt Palmer",
+    "title": {
+      "value": "Developer Experience and Community, Cursor",
+      "source": "https://mattpalmer.io/decks/2026-10-vercel-ship/",
+      "read": "2026-11-05",
+      "was": "Developer Experience Engineer",
+      "also": ["https://x.com/mattyp", "https://mattpalmer.io/"]
+    },
+    "bio": {
+      "value": "Matt Palmer works on developer experience and community at Cursor, which he joined in August 2026, shortly before it became part of SpaceX. Before that he worked at Replit and Conductor. He teaches AI developer tools through videos, talks and courses such as Vibe Coding 101 with DeepLearning.AI, and builds mcut, an open source video editing SDK for TypeScript. At at/ship ai he spoke on how Replit writes and uses its docs.",
+      "source": "https://mattpalmer.io/",
+      "read": "2026-11-05",
+      "was": "Matt Palmer is a Developer Experience Engineer at Replit, focused on creating exceptional documentation and developer tools. He believes that great docs are product and works to make developer experiences seamless.",
+      "also": [
+        "https://x.com/mattyp/status/2084398105802448903",
+        "https://mattpalmer.io/decks/2026-10-vercel-ship/",
+        "https://allthings.dev/people/matt-palmer",
+        "https://cursor.com/blog/joining-spacex"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "mattyp",
       "source": "https://mattpalmer.io",
       "read": "2026-10-05",
       "was": "mattppal"
+    },
+    "linkedinHandle": {
+      "value": "matt-palmer",
+      "source": "https://mattpalmer.io/",
+      "read": "2026-11-05"
     },
     "now": {
       "line": "Matt [joined Cursor in August to work on developer experience and education](https://x.com/mattyp/status/2084398105802448903), eleven days before [Cursor became part of SpaceX](https://cursor.com/blog/joining-spacex). He [works on Cursor and Grok Bot at SpaceXSI](https://x.com/mattyp).",
@@ -1378,10 +1508,23 @@
   {
     "profileId": "bf6c6fb4-6283-4ff3-b874-93ee8069d7e3",
     "name": "Neha Varshneya",
-    "bio": {
-      "value": "Marketing exec for when it's all on fire, or nothing's built yet. GTM leader for developer tools, AI and cybersecurity, driving growth from 0 to 1.",
+    "title": {
+      "value": "GTM Leader for Developer Tools, AI & Cybersecurity",
       "source": "https://x.com/NehaVarshneya",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "GTM Leader for Developer Tools & AI"
+    },
+    "bio": {
+      "value": "Neha Varshneya is a go-to-market leader for developer tools, AI and cybersecurity companies, and calls herself the marketing exec “for when it’s all on fire, or nothing’s built yet.” She co-hosted Mastra’s TypeScript AI Demo Day, which allthings shared, and the at/typescript ai after-party.",
+      "source": "https://x.com/NehaVarshneya",
+      "read": "2026-11-05",
+      "was": "Marketing exec for when it's all on fire, or nothing's built yet. GTM leader for developer tools, AI and cybersecurity, driving growth from 0 to 1.",
+      "also": ["https://allthings.dev/people/neha-varshneya"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "NehaVarshneya",
@@ -1392,20 +1535,27 @@
       "value": "https://images.lumacdn.com/avatars/08/e6c42b8e-eb18-4b17-a682-766552b5be25.png",
       "source": "https://luma.com/tsai",
       "read": "2026-10-06"
-    },
-    "title": {
-      "value": "GTM Leader for Developer Tools & AI",
-      "source": "https://x.com/NehaVarshneya",
-      "read": "2026-10-06"
     }
   },
   {
     "profileId": "e506570b-c2a9-42b5-a8f6-9d14b4c1ee05",
     "name": "Melissa Cheng",
     "title": {
-      "value": "Event & Field Marketing Lead at Sentry",
+      "value": "Event & Field Marketing Lead, Sentry",
       "source": "https://x.com/hellomelcheng",
-      "read": "2026-10-06"
+      "read": "2026-11-05",
+      "was": "Event & Field Marketing Lead at Sentry"
+    },
+    "bio": {
+      "value": "Melissa Cheng leads event and field marketing at Sentry. She has co-hosted four allthings evenings: the Lightning Hackathon, at/ship ai, the at/typescript ai after-party and at/agent setups.",
+      "source": "https://x.com/hellomelcheng",
+      "read": "2026-11-05",
+      "also": ["https://allthings.dev/people/melissa-cheng"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "hellomelcheng",
@@ -1423,12 +1573,6 @@
         "value": "melcheng.bsky.social",
         "sources": ["https://bsky.app/profile/melcheng.bsky.social"],
         "reason": "An empty account (no name, bio or posts). It matches her Luma username, but none of her pages link to it."
-      },
-      {
-        "field": "bio",
-        "value": "Event & Field Marketing Lead at Sentry. Retired college athlete.",
-        "sources": ["https://x.com/hellomelcheng"],
-        "reason": "Only a terse profile line, which is no bio."
       }
     ]
   },
@@ -1523,9 +1667,21 @@
     "profileId": "c3eb1d79-1841-4223-92d7-cb095fe66bb9",
     "name": "Maribel Garcia",
     "title": {
-      "value": "Executive Assistant to the CEO at Sanity",
+      "value": "Executive Assistant to the CEO, Sanity",
       "source": "https://www.linkedin.com/in/maribel-garcia-0339442a5/",
-      "read": "2026-10-06"
+      "read": "2026-10-06",
+      "was": "Executive Assistant to the CEO at Sanity"
+    },
+    "bio": {
+      "value": "Maribel Garcia is executive assistant to the CEO at Sanity. She co-hosted an allthings evening at Sanity in January 2025.",
+      "source": "https://www.linkedin.com/in/maribel-garcia-0339442a5/",
+      "read": "2026-10-06",
+      "also": ["https://allthings.dev/people/maribel-garcia"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "linkedinHandle": {
       "value": "maribel-garcia-0339442a5",
@@ -1546,6 +1702,64 @@
         "reason": "A same-name account with no bio or posts, and nothing ties it to her."
       }
     ]
+  },
+  {
+    "profileId": "5ee6723b-2c3b-4426-a86c-3bc68fc558eb",
+    "name": "Mikael Lirbank",
+    "title": {
+      "value": "Independent consultant",
+      "source": "https://www.lirbank.com/",
+      "read": "2026-11-05",
+      "was": "Tech lead",
+      "also": ["https://bsky.app/profile/lirbank.com"]
+    },
+    "bio": {
+      "value": "Mikael Lirbank is an independent consultant who helps teams ship reliable AI systems, working on evals, test suites, data models and architecture for clients such as Convex, Databricks and Neon. He wrote neon-testing, an integration-testing utility for Neon Postgres with Vitest and Bun Test. At at/ai he spoke on a structured approach to building quality software with AI.",
+      "source": "https://www.lirbank.com/",
+      "read": "2026-11-05",
+      "was": "With over 20 years of experience, Mikael has built a strong track record of building apps from scratch, rescuing existing ones, and leading development teams. He is a tech lead, product manager, UI designer, and code quality expert, known for taking ownership of every project and delivering predictability and peace of mind to my clients.",
+      "also": [
+        "https://www.starmode.dev/",
+        "https://bsky.app/profile/lirbank.com",
+        "https://allthings.dev/people/mikael-lirbank"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "twitterHandle": {
+      "value": "MikaelLirbank",
+      "source": "https://www.lirbank.com/",
+      "read": "2026-11-05"
+    }
+  },
+  {
+    "profileId": "0d02e61b-aca8-49c0-abc8-43c6b80c0658",
+    "name": "Nipunn Koorapati",
+    "title": {
+      "value": "Software Engineer, Convex",
+      "source": "https://github.com/nipunn1313/nipunn1313.github.io/blob/main/README.md",
+      "read": "2026-11-05",
+      "was": "Software Engineer at Convex",
+      "also": ["https://github.com/nipunn1313", "https://x.com/nipunn1313"]
+    },
+    "bio": {
+      "value": "Nipunn Koorapati is a software engineer at Convex, which builds a reactive serverless backend for web developers. Before Convex he spent eight years at Dropbox, where he helped rewrite the desktop client’s sync engine and worked on developer environments and CI, and he maintains mypy-protobuf and pb-jelly. At an allthings evening at Convex he spoke on technical leadership in the world of AI coding agents.",
+      "source": "https://github.com/nipunn1313/nipunn1313.github.io/blob/main/README.md",
+      "read": "2026-11-05",
+      "was": "Nipunn is a software engineer at Convex, building a serverless backend abstraction that empowers frontend and product engineers to manage data without backend expertise. Previously, he spent eight years at Dropbox (2013–2021), working on sync engines, developer tooling, and team leadership. He also maintains mypy-protobuf and has held engineering roles at Talaria, Microsoft, and MIT Lincoln Labs. He earned his BS and MS in Electrical and Computer Engineering from Carnegie Mellon and is based in San Francisco.",
+      "also": [
+        "https://github.com/nipunn1313",
+        "https://allthings.dev/people/nipunn-koorapati"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
   },
   {
     "profileId": "eb6a6870-446b-4e92-afd3-9c1e3fa08ec1",
@@ -2233,6 +2447,35 @@
   {
     "profileId": "e0a891dd-df9f-4ca2-8cef-db8bb3e1f605",
     "name": "Michael Arnaldi",
+    "title": {
+      "value": "Founder & CEO, Effectful Technologies",
+      "source": "https://effectful.co/",
+      "read": "2026-11-05",
+      "was": "Creator of Effect",
+      "also": ["https://x.com/MichaelArnaldi"]
+    },
+    "bio": {
+      "value": "Michael Arnaldi is the founder and CEO of Effectful Technologies, the company behind Effect, the TypeScript library he leads as its BDFL. He also co-founded Matechs. At at/effect he gave the State of Effect 2026 talk, sat for a fireside chat and co-hosted the evening, where the Effect 4.0 stable release was merged live.",
+      "source": "https://effectful.co/",
+      "read": "2026-11-05",
+      "was": "Creator of Effect, the TypeScript library for building robust, type-safe applications, and founder of Effectful Technologies.",
+      "also": [
+        "https://x.com/MichaelArnaldi",
+        "https://effect.website/blog/this-week-in-effect/138",
+        "https://allthings.dev/people/michael-arnaldi"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "twitterHandle": {
+      "value": "MichaelArnaldi",
+      "source": "https://x.com/MichaelArnaldi",
+      "read": "2026-11-05",
+      "was": "@MichaelArnaldi"
+    },
     "now": {
       "line": "Michael [leads Effect and runs Effectful](https://x.com/MichaelArnaldi). [He and Sebastian Lorenz merged Effect 4.0 stable live at at/effect](https://effect.website/blog/this-week-in-effect/138).",
       "links": [
