@@ -1589,12 +1589,14 @@
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
     },
-    "twitterHandle": {
-      "value": "raoufcode",
-      "source": "https://x.com/raoufcode",
-      "read": "2026-10-06",
-      "was": "_raoufai "
-    }
+    "held": [
+      {
+        "field": "twitterHandle",
+        "value": "raoufcode",
+        "sources": ["https://x.com/raoufcode"],
+        "reason": "The earlier pass proposed raoufcode; that account no longer exists. The stored elimilu_ is his (name Raouf Chebri, bio 'AI Education @replit')."
+      }
+    ]
   },
   {
     "profileId": "0a9c5976-388a-4a5b-a01c-7b43c7f711ba",
