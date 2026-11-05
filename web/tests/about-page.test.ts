@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import type { AboutView, Organizer } from "allthings-core/src/about.ts";
 import type { Evening } from "allthings-core/src/home.ts";
 import { DateTime } from "effect";
-import { discord, socials } from "../src/links.ts";
+import { cliCommands, discord, socials } from "../src/links.ts";
 import { aboutPage, count } from "../src/pages/about.tsx";
 import { headingLevels, htmlProblems } from "./support/pages.ts";
 
@@ -238,6 +238,35 @@ describe("the about page", () => {
       "bluesky",
       "linkedin",
     ]);
+  });
+
+  test("says how to get the CLI and where the MCP server is, as the CLI's README and the plugin give them", async () => {
+    const terminal = part(render(view()), "terminal");
+    expect(terminal).toContain(
+      '<h2 id="terminal" class="list-title at-type-meta">From your terminal</h2>',
+    );
+    const commands = [
+      ...terminal.matchAll(/<li><code>([^<]+)<\/code><\/li>/g),
+    ].map(([, command]) => command);
+    expect(commands).toEqual([
+      "bunx allthings events",
+      "curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash",
+    ]);
+    const readme = await Bun.file(
+      new URL("../../cli/README.md", import.meta.url),
+    ).text();
+    for (const command of Object.values(cliCommands)) {
+      expect(readme).toContain(`\n${command}\n`);
+    }
+    const plugin = (await Bun.file(
+      new URL("../../plugins/allthings/mcp.json", import.meta.url),
+    ).json()) as { mcpServers: { allthings: { url: string } } };
+    expect(terminal).toContain(
+      `<code>${plugin.mcpServers.allthings.url}</code>`,
+    );
+    expect(terminal).toContain(
+      '<a href="https://www.npmjs.com/package/allthings">allthings on npm',
+    );
   });
 
   test("escapes what it prints", () => {

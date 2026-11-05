@@ -4,10 +4,13 @@ import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { DateTime } from "effect";
 import {
   aboutPath,
+  cliCommands,
+  cliPackage,
   discord,
   eventPath,
   everyEvening,
   lumaCalendar,
+  mcpPath,
   personPath,
   socials,
 } from "../links.ts";
@@ -23,8 +26,9 @@ import { fullDate, simpleDate } from "./time.ts";
  * /about: what allthings is, in the foundations' words ("Who we are"),
  * what it has done so far, counted from the data, where it came from (the
  * one place its former names appear, brand/foundations.md, "Name"), who
- * organizes it, how to host an evening or take the stage, and where else
- * it is. Every number and date comes from the evenings themselves.
+ * organizes it, how to host an evening or take the stage, where else it
+ * is, and how to read it from a terminal or an agent. Every number and
+ * date comes from the evenings themselves.
  */
 
 export interface AboutProps {
@@ -336,6 +340,31 @@ export function aboutPage({
                 {" · "}
                 <a href={everyEvening}>
                   every evening <span aria-hidden="true">→</span>
+                </a>
+              </p>
+            </>
+          </Part>
+          <Part id="terminal" title="From your terminal">
+            <>
+              <p>
+                Every evening, who’s on stage and how to get in, as a command.
+                Run it with Bun, or install it:
+              </p>
+              <ul class="commands">
+                <li>
+                  <code>{cliCommands.bunx}</code>
+                </li>
+                <li>
+                  <code>{cliCommands.install}</code>
+                </li>
+              </ul>
+              <p>
+                It reads the same public MCP server your agents can add:{" "}
+                <code safe>{`${origin}${mcpPath}`}</code>
+              </p>
+              <p class="fact-links">
+                <a href={cliPackage}>
+                  allthings on npm <span aria-hidden="true">→</span>
                 </a>
               </p>
             </>
