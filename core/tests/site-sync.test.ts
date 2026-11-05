@@ -401,7 +401,7 @@ describe("site_sync", () => {
   test("takes the day's community snapshot, reading Luma's guests and keeping each first value", async () => {
     const snapshot = (value: number) =>
       Effect.runPromise(
-        snapshotCommunity.pipe(
+        snapshotCommunity().pipe(
           Effect.provide(
             Layer.mergeAll(
               Layer.succeed(

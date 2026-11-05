@@ -5,6 +5,7 @@ import {
   Duration,
   Effect,
   Layer,
+  Option,
   Redacted,
   Schema,
 } from "effect";
@@ -143,7 +144,8 @@ export class CommunitySources extends Context.Service<
     Effect.gen(function* () {
       const client = yield* HttpClient.HttpClient;
       const sql = yield* SqlClient;
-      const xToken = yield* Config.Redacted("X_BEARER_TOKEN");
+      // Without it, X alone fails; a dry run never reads X.
+      const xToken = yield* Config.option(Config.Redacted("X_BEARER_TOKEN"));
       const get = (
         source: Source,
         request: HttpClientRequest.HttpClientRequest,
@@ -196,23 +198,33 @@ export class CommunitySources extends Context.Service<
         Source,
         Effect.Effect<Metrics, CommunityReadError>
       > = {
-        x: json(
-          "x",
-          XUser,
-          HttpClientRequest.get(
-            `https://api.x.com/2/users/${COMMUNITY.xUserId}`,
-          ).pipe(
-            HttpClientRequest.bearerToken(Redacted.value(xToken)),
-            HttpClientRequest.setUrlParam("user.fields", "public_metrics"),
-          ),
-        ).pipe(
-          Effect.map(({ data: { public_metrics: m } }) => ({
-            followers: m.followers_count,
-            following: m.following_count,
-            posts: m.tweet_count,
-            listed: m.listed_count,
-          })),
-        ),
+        x: Option.match(xToken, {
+          onNone: () =>
+            Effect.fail(
+              new CommunityReadError({
+                source: "x",
+                reason: "no X_BEARER_TOKEN",
+              }),
+            ),
+          onSome: (token) =>
+            json(
+              "x",
+              XUser,
+              HttpClientRequest.get(
+                `https://api.x.com/2/users/${COMMUNITY.xUserId}`,
+              ).pipe(
+                HttpClientRequest.bearerToken(Redacted.value(token)),
+                HttpClientRequest.setUrlParam("user.fields", "public_metrics"),
+              ),
+            ).pipe(
+              Effect.map(({ data: { public_metrics: m } }) => ({
+                followers: m.followers_count,
+                following: m.following_count,
+                posts: m.tweet_count,
+                listed: m.listed_count,
+              })),
+            ),
+        }),
         bluesky: json(
           "bluesky",
           BlueskyProfile,
@@ -338,7 +350,19 @@ export class CommunitySources extends Context.Service<
           })),
         ),
       };
-      return CommunitySources.of({ read: (source) => readers[source] });
+      // One deadline for a source's whole read, bodies included (npm makes
+      // two requests), so a source that stalls never holds the run.
+      return CommunitySources.of({
+        read: (source) =>
+          readers[source].pipe(
+            Effect.timeout(Duration.seconds(35)),
+            Effect.catchTag("TimeoutError", () =>
+              Effect.fail(
+                new CommunityReadError({ source, reason: "no answer in 35 s" }),
+              ),
+            ),
+          ),
+      });
     }),
   );
 }
@@ -347,6 +371,8 @@ export class CommunitySources extends Context.Service<
 export interface CommunityReport {
   /** The day it is for (UTC), as `YYYY-MM-DD`. */
   readonly day: string;
+  /** In a dry run, what each source read would store; nothing is written. */
+  readonly wouldStore?: Readonly<Partial<Record<Source, Metrics>>>;
   /** Sources read and stored now. */
   readonly stored: ReadonlyArray<Source>;
   /** Sources the day already had. */
@@ -364,54 +390,70 @@ const dayOf = (now: DateTime.Utc) => DateTime.formatIsoDateUtc(now);
  * Takes today's snapshot (UTC): reads every source the day has no row
  * for yet and stores what it reads, one row per metric. X only in the
  * day's first hour. A source that fails is left for the next run; the
- * snapshot fails only when the database does.
+ * snapshot fails only when the database does. A dry run reads the same
+ * sources but X and reports what it would store (`wouldStore`), writing
+ * nothing.
  */
-export const snapshotCommunity = Effect.gen(function* () {
-  const sql = yield* SqlClient;
-  const reader = yield* CommunitySources;
-  const now = yield* DateTime.now;
-  const day = dayOf(now);
-  const had = yield* orDataSourceError(
-    sql<{ source: string }>`
-      SELECT DISTINCT source FROM community_metrics WHERE day = ${day}`,
-  );
-  const kept = new Set(had.map(({ source }) => source));
-  const stored: Array<Source> = [];
-  const skipped: Partial<Record<Source, string>> = {};
-  const failed: Partial<Record<Source, string>> = {};
-  for (const source of sources) {
-    if (kept.has(source)) continue;
-    if (source === "x" && DateTime.getPartUtc(now, "hour") !== 0) {
-      skipped.x = "read only in the day's first hour (UTC): X bills each read";
-      continue;
-    }
-    const read = yield* Effect.result(reader.read(source));
-    if (read._tag === "Failure") {
-      failed[source] = read.failure.reason;
-      continue;
-    }
-    const rows = Object.entries(read.success).map(([metric, value]) => ({
-      day,
-      source,
-      metric,
-      value,
-    }));
-    if (rows.length === 0) continue;
-    // The day's first value stays: a second writer never replaces it.
-    yield* orDataSourceError(
-      sql`INSERT INTO community_metrics ${sql.insert(rows)}
-        ON CONFLICT (day, source, metric) DO NOTHING`,
+export const snapshotCommunity = ({
+  dryRun = false,
+}: { readonly dryRun?: boolean } = {}) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const reader = yield* CommunitySources;
+    const now = yield* DateTime.now;
+    const day = dayOf(now);
+    const had = yield* orDataSourceError(
+      sql<{ source: string }>`
+        SELECT DISTINCT source FROM community_metrics WHERE day = ${day}`,
     );
-    stored.push(source);
-  }
-  return {
-    day,
-    stored,
-    kept: sources.filter((source) => kept.has(source)),
-    skipped,
-    failed,
-  } satisfies CommunityReport;
-});
+    const kept = new Set(had.map(({ source }) => source));
+    const stored: Array<Source> = [];
+    const wouldStore: Partial<Record<Source, Metrics>> = {};
+    const skipped: Partial<Record<Source, string>> = {};
+    const failed: Partial<Record<Source, string>> = {};
+    for (const source of sources) {
+      if (kept.has(source)) continue;
+      if (source === "x" && dryRun) {
+        skipped.x = "a dry run never reads X, which bills each read";
+        continue;
+      }
+      if (source === "x" && DateTime.getPartUtc(now, "hour") !== 0) {
+        skipped.x =
+          "read only in the day's first hour (UTC): X bills each read";
+        continue;
+      }
+      const read = yield* Effect.result(reader.read(source));
+      if (read._tag === "Failure") {
+        failed[source] = read.failure.reason;
+        continue;
+      }
+      const rows = Object.entries(read.success).map(([metric, value]) => ({
+        day,
+        source,
+        metric,
+        value,
+      }));
+      if (rows.length === 0) continue;
+      if (dryRun) {
+        wouldStore[source] = read.success;
+        continue;
+      }
+      // The day's first value stays: a second writer never replaces it.
+      yield* orDataSourceError(
+        sql`INSERT INTO community_metrics ${sql.insert(rows)}
+          ON CONFLICT (day, source, metric) DO NOTHING`,
+      );
+      stored.push(source);
+    }
+    return {
+      day,
+      stored,
+      ...(dryRun ? { wouldStore } : {}),
+      kept: sources.filter((source) => kept.has(source)),
+      skipped,
+      failed,
+    } satisfies CommunityReport;
+  });
 
 /** One stored number. */
 export interface CommunityRow {

@@ -74,13 +74,8 @@ const report = await Effect.runPromise(
   runSync("dry-run", syncLimits.paid).pipe(
     Effect.provide(
       Layer.mergeAll(
-        // A dry run reads nothing for the community's numbers.
-        Layer.succeed(
-          CommunitySources,
-          CommunitySources.of({
-            read: () => Effect.die(new Error("a dry run reads no source")),
-          }),
-        ),
+        // The community's numbers, read but not written (X never read).
+        CommunitySources.live,
         LumaSync.layer,
         LumaVenues.layer,
         LumaDrafts.layer,

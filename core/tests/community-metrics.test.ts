@@ -219,6 +219,7 @@ describe("the community's sources", () => {
 const snapshotAt = (
   at: string,
   answers: Partial<Record<Source, Metrics | "fail">>,
+  dryRun = false,
 ) => {
   const asked: Array<Source> = [];
   const layer = Layer.mergeAll(
@@ -239,7 +240,9 @@ const snapshotAt = (
     sqlLayer(db),
     clockAt(DateTime.makeUnsafe(at)),
   );
-  return Effect.runPromise(snapshotCommunity.pipe(Effect.provide(layer))).then(
+  return Effect.runPromise(
+    snapshotCommunity({ dryRun }).pipe(Effect.provide(layer)),
+  ).then(
     (report): CommunityReport & { asked: Array<Source> } => ({
       ...report,
       asked,
@@ -256,6 +259,25 @@ const stored = async (day: string) =>
   ).rows.map(({ row }) => row);
 
 describe("snapshotCommunity", () => {
+  test.skipIf(studioRun)(
+    "in a dry run, reads every source but X and writes nothing",
+    async () => {
+      const dry = await snapshotAt(
+        "2026-10-30T00:00:04Z",
+        { discord: { members: 517, online: 56 }, npm: "fail" },
+        true,
+      );
+      expect(dry.asked).not.toContain("x");
+      expect(dry.skipped).toEqual({
+        x: "a dry run never reads X, which bills each read",
+      });
+      expect(dry.stored).toEqual([]);
+      expect(dry.wouldStore?.discord).toEqual({ members: 517, online: 56 });
+      expect(dry.failed).toEqual({ npm: "answered 503" });
+      expect(await stored("2026-10-30")).toEqual([]);
+    },
+  );
+
   test.skipIf(studioRun)(
     "stores every source once a day, X only in the day's first hour",
     async () => {
