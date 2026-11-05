@@ -1517,8 +1517,9 @@ any cover.
 - `--dry-run` draws the cover, writes the PNG to look at (`--out`, or a
   fresh temporary directory), says what it replaces on Luma (Luma's
   default, the one we last set, or another) and prints the approval token:
-  the first 16 hex digits of the SHA-256 of the event, the facts, the PNG's
-  SHA-256 and the cover it replaces, as canonical JSON. It sends nothing.
+  the first 16 hex digits of the SHA-256 of the event (with its visibility
+  and dates on Luma), the facts, the PNG's SHA-256 and the cover it
+  replaces, as canonical JSON. It sends nothing.
 - `--approve <token>` draws and works it out again, and goes on only if it
   hashes the same: a fact or Luma's cover changed in between stops it. It
   uploads the PNG to Luma's CDN, sets it on the event, reads the event back

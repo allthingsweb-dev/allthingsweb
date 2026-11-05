@@ -25,8 +25,9 @@ import { LumaWrite, type LumaWriteError, type ManagedEvent } from "./write.ts";
  * - `prepare` draws the cover the evening's facts say, and says what it
  *   would replace (Luma's cover now, and whether that is Luma's default or
  *   the one we last set) and the approval token for exactly that: the
- *   first 16 hex digits of the SHA-256 of the event, the facts, the drawn
- *   PNG's SHA-256 and the cover it replaces, as canonical JSON.
+ *   first 16 hex digits of the SHA-256 of the event (with its visibility
+ *   and dates on Luma), the facts, the drawn PNG's SHA-256 and the cover it
+ *   replaces, as canonical JSON.
  * - `approve` takes that token, draws and works it out again, and goes on
  *   only if it hashes the same. It uploads the PNG to Luma's CDN, sets it
  *   as the event's cover, reads the event back to check it took, and
@@ -194,6 +195,11 @@ const make = Effect.gen(function* () {
         current,
         token: yield* approvalToken({
           lumaEventId: row.lumaEventId,
+          // What decides whether it may be set at all, so a change to any
+          // of it between the dry run and the approval stops the approval.
+          visibility: event.visibility,
+          startAt: event.start_at,
+          endAt: event.end_at,
           facts,
           sha256: digest,
           replaces: event.cover_url,
@@ -209,7 +215,7 @@ const make = Effect.gen(function* () {
       if (prepared.refused !== null) return yield* refuse(prepared.refused);
       if (prepared.token !== token) {
         return yield* refuse(
-          `The cover, or what it would replace, has changed since ${token} was approved: it is now ${prepared.token}. Read it again with --dry-run, and approve that.`,
+          `The cover, what it would replace or the event on Luma has changed since ${token} was approved: it is now ${prepared.token}. Read it again with --dry-run, and approve that.`,
         );
       }
       const fileUrl = yield* luma.uploadImage(prepared.png, "image/png");

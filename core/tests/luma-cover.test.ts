@@ -352,6 +352,9 @@ describe("prepare", () => {
       await Effect.runPromise(
         approvalToken({
           lumaEventId: "evt-draft",
+          visibility: "private",
+          startAt: "2026-11-18T02:00:00.000Z",
+          endAt: "2026-11-18T05:00:00.000Z",
           facts: draftFacts,
           sha256: digest,
           replaces: gallery,
@@ -627,7 +630,7 @@ describe("approve", () => {
       { "/v1/events/get": [json(lumaEvent())] },
     );
     expect(message(moved.exit)).toStartWith(
-      `The cover, or what it would replace, has changed since ${token} was approved`,
+      `The cover, what it would replace or the event on Luma has changed since ${token} was approved`,
     );
     await db.exec(
       `UPDATE events SET start_date = '2026-11-18T02:00:00Z', end_date = '2026-11-18T05:00:00Z' WHERE slug = '${draft}'`,
@@ -640,7 +643,9 @@ describe("approve", () => {
         ],
       },
     );
-    expect(message(replaced.exit)).toStartWith("The cover, or what it would");
+    expect(message(replaced.exit)).toStartWith(
+      "The cover, what it would replace",
+    );
     for (const { requests } of [moved, replaced]) {
       expect(requests.map((r) => new URL(r.url).pathname)).toEqual([
         "/v1/events/get",
@@ -648,6 +653,37 @@ describe("approve", () => {
     }
     expect(await recorded()).toMatchObject({ generated_cover_url: null });
   });
+
+  test.each([
+    [
+      "its dates moved",
+      {
+        start_at: "2026-08-20T01:00:00.000Z",
+        end_at: "2026-08-20T04:00:00.000Z",
+      },
+    ],
+    ["it went private", { visibility: "private" as const }],
+  ])(
+    "refuses a past evening's token once on Luma %s, still eligible or not",
+    async (_which, change) => {
+      const react = { _tag: "Slug", slug: "2026-08-12-react-at-acme" } as const;
+      const past = lumaEvent({ ...reactOnLuma, cover_url: gallery });
+      const token = value(
+        (
+          await run((c) => c.prepare(react), {
+            "/v1/events/get": [json(past)],
+          })
+        ).exit,
+      ).token;
+      const { exit, requests } = await run((c) => c.approve(react, token), {
+        "/v1/events/get": [json({ ...past, ...change })],
+      });
+      expect(message(exit)).toStartWith(
+        `The cover, what it would replace or the event on Luma has changed since ${token} was approved`,
+      );
+      expect(requests).toHaveLength(1);
+    },
+  );
 
   test("sets a past public evening's own cover over Luma's default, and records it", async () => {
     const react = { _tag: "Slug", slug: "2026-08-12-react-at-acme" } as const;
