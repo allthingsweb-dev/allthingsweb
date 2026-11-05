@@ -223,10 +223,14 @@ export function layoutPersonCard(
 export const personCardGround = (facts: PersonCardFacts) =>
   built.og.cards.person[facts.part];
 
+/** The card's JPEG quality: its grain and type stay crisp, well under 300 KB. */
+export const personCardQuality = 85;
+
 /**
  * The card's version: a hash of what it says and shows (its facts, whose
- * photo carries its own version) and of the grounds, avatar, box and fonts
- * it is drawn with, so a link preview fetches it again when any changes.
+ * photo carries its own version) and of the grounds, avatar, box, fonts and
+ * quality it is drawn with, so a link preview fetches it again when any
+ * changes.
  */
 export const personCardVersion = (facts: PersonCardFacts): string =>
   fnv(
@@ -236,6 +240,7 @@ export const personCardVersion = (facts: PersonCardFacts): string =>
       built.marks.avatarPng.src,
       built.og.personPhoto,
       built.og.fonts,
+      personCardQuality,
     ]),
   );
 

@@ -32,6 +32,7 @@ import {
   personCardFacts,
   personCardGround,
   personCardPath,
+  personCardQuality,
 } from "./person-card.ts";
 
 /**
@@ -175,9 +176,6 @@ interface Photo {
 /** How a card is encoded: an event's as a PNG, a person's (a photo) as a JPEG. */
 type CardFormat = "image/png" | "image/jpeg";
 
-/** A JPEG card's quality: the grain and the type stay crisp, well under 300 KB. */
-const jpegQuality = 85;
-
 /**
  * `ground` with `photo` drawn into its box, then `texts` over it,
  * encoded as `format`.
@@ -214,7 +212,9 @@ async function draw(
   }
   return (
     await card.output(
-      format === "image/jpeg" ? { format, quality: jpegQuality } : { format },
+      format === "image/jpeg"
+        ? { format, quality: personCardQuality }
+        : { format },
     )
   ).response();
 }
