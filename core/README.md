@@ -945,8 +945,9 @@ embed, with its day, the quote and its counts.
 It sits beside `now` rather than in it. `now` is a line about what someone
 does, every fact sourced, written by hand; these are picked from what they
 posted by how people took it, and their counts are read again by a command.
-A post is never in both: `bun run people` refuses one that is also a link
-of the same entry's `now`.
+A post is never in both: `bun run people` refuses one that the profile's
+`now` also links, from its line or its links, as the file or the database
+holds it.
 
 - Like `now`, only this file writes it, so a record is written whenever it
   differs from the stored one; `"xPosts": null` takes it down and keeps it

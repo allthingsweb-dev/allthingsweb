@@ -605,6 +605,24 @@ describe("applyPeople: xPosts", () => {
     ).toBe(
       "X posts also linked from now (keep one): Ada Lovelace https://x.com/ada/status/2000000000000000002",
     );
+    // A post its line cites counts too.
+    expect(
+      reasonOf(
+        await apply(db, [
+          {
+            profileId: ada,
+            name: "Ada Lovelace",
+            now: {
+              ...linking,
+              line: "Ada [wrote about the engine](https://x.com/ada/status/2000000000000000001).",
+              links: [],
+            },
+          },
+        ]),
+      ),
+    ).toBe(
+      "X posts also linked from now (keep one): Ada Lovelace https://x.com/ada/status/2000000000000000001",
+    );
     await apply(db, withPosts(null));
     await apply(db, [{ profileId: ada, name: "Ada Lovelace", now: linking }]);
     expect(reasonOf(await apply(db, withPosts(record)))).toBe(

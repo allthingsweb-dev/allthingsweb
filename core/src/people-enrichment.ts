@@ -4,7 +4,7 @@ import { asOf } from "./clock.ts";
 import { HttpUrl } from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
 import { xHandleOf } from "./followers.ts";
-import { canonicalNow, decodeStoredNow, Now } from "./now.ts";
+import { canonicalNow, decodeStoredNow, lineParts, Now } from "./now.ts";
 import {
   canonicalXPosts,
   decodeStoredXPosts,
@@ -444,9 +444,18 @@ export const applyPeople = (file: PeopleFile, dryRun: boolean) =>
               `${entry.name}'s X posts aren't by their X handle (${handle === undefined ? "none" : `@${handle}`}): ${others.map((post) => post.url).join(", ")}${entry.xPosts === undefined ? " (stored; set xPosts to null or to posts by the new handle)" : ""}`,
             );
           }
-          // A post is shown once: in "now" or among the X posts, never both.
+          // A post is shown once: in "now" (its line or its links) or among the
+          // X posts, never both.
+          // Its line's sources count as much as its links.
           const linked = new Set(
-            (nowAfter?.links ?? []).flatMap((link) => postIdOf(link.url) ?? []),
+            nowAfter === null
+              ? []
+              : [
+                  ...nowAfter.links.map((link) => link.url),
+                  ...lineParts(nowAfter.line).flatMap(
+                    (part) => part.source ?? [],
+                  ),
+                ].flatMap((url) => postIdOf(url) ?? []),
           );
           const shown = postsAfter.posts.filter((post) =>
             linked.has(statusOf(post.url)!.id),
