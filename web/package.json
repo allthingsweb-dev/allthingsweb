@@ -14,7 +14,7 @@
   "dependencies": {
     "@effect/sql-pg": "4.0.0",
     "@kitajs/html": "4.2.13",
-    "@modelcontextprotocol/server": "2.2.0",
+    "@modelcontextprotocol/server": "2.3.0",
     "allthings-brand": "workspace:*",
     "allthings-core": "workspace:*",
     "effect": "4.0.0",
