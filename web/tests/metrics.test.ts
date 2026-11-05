@@ -56,6 +56,8 @@ describe("redactedPath", () => {
     for (const [path, kept] of [
       ["/people/alice@example.com", "/people/(email)"],
       ["/people/alice%40example.com", "/people/(email)"],
+      ["/people/alice%2540example.com", "/people/(email)"],
+      ["/people/alice%252540example.com", "/people/(email)"],
       ["/reset/" + "a1B2c3D4".repeat(4), "/reset/(token)"],
       ["/k/" + "a1b2c3d4".repeat(3), "/k/(token)"],
       ["/reset/550e8400-e29b-41d4-a716-446655440000", "/reset/(token)"],

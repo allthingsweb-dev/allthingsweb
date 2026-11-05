@@ -77,15 +77,19 @@ export function redactedPath(pathname: string): string {
   return pathname
     .split("/")
     .map((segment) => {
-      let decoded: string;
-      try {
-        decoded = decodeURIComponent(segment);
-      } catch {
-        // A malformed escape could hide either (`%40` beside `%ZZ`), so
-        // the segment is never kept.
-        return "(malformed)";
+      // Decoded until it no longer changes (three times at most), so an
+      // address encoded twice over (`%2540`) is found too.
+      let decoded = segment;
+      for (let pass = 0; pass < 3 && decoded.includes("%"); pass++) {
+        try {
+          decoded = decodeURIComponent(decoded);
+        } catch {
+          // A malformed escape could hide either (`%40` beside `%ZZ`), so
+          // the segment is never kept.
+          return "(malformed)";
+        }
       }
-      if (decoded.includes("@")) return "(email)";
+      if (/@|%40/i.test(decoded)) return "(email)";
       // Each part between dots is checked, so a JWT (three such parts) is
       // a token too, and a file name (`photo.jpg`) isn't.
       if (
