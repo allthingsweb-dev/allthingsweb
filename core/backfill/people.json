@@ -58,6 +58,19 @@
       "source": "https://www.ycombinator.com/companies/mintlify",
       "read": "2026-10-05"
     },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/hahnbeelee/status/2112291215895085118",
+          "postedOn": "2026-10-19",
+          "excerpt": "The TUI is dead. Long live the GUI. TUIs were not built for you to read prose - they strain your eyes, links are not stylized, the padding…",
+          "likes": 226,
+          "reposts": 3,
+          "replies": 81
+        }
+      ],
+      "readOn": "2026-11-05"
+    },
     "held": [
       {
         "field": "blueskyHandle",
@@ -111,6 +124,27 @@
       "value": "chebykin",
       "source": "https://chebykin.org",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/ichebykin/status/2113455386082595321",
+          "postedOn": "2026-10-23",
+          "excerpt": "PHP CVEs once again show how much of a foot gun C is. It is the same class of bugs that leads to all crashes and vulnerabilities: memory…",
+          "likes": 4,
+          "reposts": 0,
+          "replies": 0
+        },
+        {
+          "url": "https://x.com/ichebykin/status/2090435888744431726",
+          "postedOn": "2026-08-20",
+          "excerpt": "Our team Sloppe Street got 1st place in accuracy in the @_openstocks @AITinkerers hackathon, hell yeah! 🚀🚀🚀",
+          "likes": 3,
+          "reposts": 0,
+          "replies": 2
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -139,6 +173,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/MirelaPriftix/status/2112180763307422061",
+          "postedOn": "2026-10-19",
+          "excerpt": "The Effect team is taking the stage this week in SF 🇺🇸 and London 🇬🇧 @maxwellbrown is speaking at @Cloudflare Connect…",
+          "likes": 38,
+          "reposts": 7,
+          "replies": 1
+        },
+        {
+          "url": "https://x.com/MirelaPriftix/status/2105665029270061185",
+          "postedOn": "2026-10-01",
+          "excerpt": "🔴 Breaking: Effect v4.0 Stable Release Transforms TypeScript Development",
+          "likes": 43,
+          "reposts": 3,
+          "replies": 0
+        },
+        {
+          "url": "https://x.com/MirelaPriftix/status/2088233222916186274",
+          "postedOn": "2026-08-14",
+          "excerpt": "Launching Effect Days always makes me both excited and nervous 🙃 So grateful to be organising it again this year! 🙌",
+          "likes": 24,
+          "reposts": 0,
+          "replies": 2
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -164,6 +227,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/thefubhy/status/2109908203047932125",
+          "postedOn": "2026-10-13",
+          "excerpt": "Effect native test runner (zero dependencies) achieved internally. First class effects, layers, scopes (no \"before/after\" hooks), works…",
+          "likes": 304,
+          "reposts": 17,
+          "replies": 17
+        },
+        {
+          "url": "https://x.com/thefubhy/status/2110011177250021610",
+          "postedOn": "2026-10-13",
+          "excerpt": "I'm on side quest level three now: `effect/docker` client (actual, not just cli wrapper) with effect native `testcontainers` replacement…",
+          "likes": 124,
+          "reposts": 3,
+          "replies": 11
+        },
+        {
+          "url": "https://x.com/thefubhy/status/2108431633883787689",
+          "postedOn": "2026-10-09",
+          "excerpt": "The `effect/net` family is growing. We've now got Datagram sockets (UDP) and a DNS resolver in core with accompanying data types and…",
+          "likes": 67,
+          "reposts": 6,
+          "replies": 1
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -214,6 +306,19 @@
       "value": "https://pbs.twimg.com/profile_images/2082204958808526848/jz2rjLpH_400x400.jpg",
       "source": "https://x.com/abhiaiyer",
       "read": "2026-10-06"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/abhiaiyer/status/2107950534846189710",
+          "postedOn": "2026-10-07",
+          "excerpt": "Next version of MastraCode is looking dope thanks to @maxktz",
+          "likes": 26,
+          "reposts": 2,
+          "replies": 3
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -299,6 +404,35 @@
       "source": "https://api.fxtwitter.com/grichadev",
       "read": "2026-10-05"
     },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/grichadev/status/2117745940622930393",
+          "postedOn": "2026-11-03",
+          "excerpt": "i've shifted my work style pretty heavily in recent weeks to start using \"review desk\". the guiding principle I have for this is that lots…",
+          "likes": 60,
+          "reposts": 2,
+          "replies": 3
+        },
+        {
+          "url": "https://x.com/grichadev/status/2110515689505337480",
+          "postedOn": "2026-10-14",
+          "excerpt": "new jev model enabling instant (super duper cheap) face detection is awesome. common @typesafeai win",
+          "likes": 669,
+          "reposts": 14,
+          "replies": 17
+        },
+        {
+          "url": "https://x.com/grichadev/status/2109697614333837385",
+          "postedOn": "2026-10-12",
+          "excerpt": "i'll be speaking at @Cloudflare connect next week! i'll be talking about detecting and preventing prompt injection through @sentry in a…",
+          "likes": 39,
+          "reposts": 7,
+          "replies": 2
+        }
+      ],
+      "readOn": "2026-11-05"
+    },
     "held": [
       {
         "field": "blueskyHandle",
@@ -350,6 +484,27 @@
       "source": "https://api.fxtwitter.com/ivanburazin",
       "read": "2026-10-05"
     },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/ivanburazin/status/2118001323043958892",
+          "postedOn": "2026-11-04",
+          "excerpt": "A $10B+ infra company reached out to us last week and said they want to use our GPUs to fine-tune models. Basically - load an entire model…",
+          "likes": 193,
+          "reposts": 1,
+          "replies": 19
+        },
+        {
+          "url": "https://x.com/ivanburazin/status/2117664468603670928",
+          "postedOn": "2026-11-03",
+          "excerpt": "We just crossed $100M in run rate. Four quarters ago, we were at $1M. Then this year alone, we grew 37.5x. Not long before that, we did a…",
+          "likes": 1258,
+          "reposts": 82,
+          "replies": 191
+        }
+      ],
+      "readOn": "2026-11-05"
+    },
     "held": [
       {
         "field": "blueskyHandle",
@@ -400,6 +555,35 @@
       "value": "https://pbs.twimg.com/profile_images/1588236352797126656/i-XMejJn_400x400.jpg",
       "source": "https://api.fxtwitter.com/jeffreyhuber",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/jeffreyhuber/status/2113678036080194008",
+          "postedOn": "2026-10-23",
+          "excerpt": "excited to work with @pirroh and @amasad to bring the full power of AI to every knowledge worker and organization on earth.",
+          "likes": 422,
+          "reposts": 9,
+          "replies": 103
+        },
+        {
+          "url": "https://x.com/jeffreyhuber/status/2112562264096321586",
+          "postedOn": "2026-10-20",
+          "excerpt": "I’m thrilled to release this course on Context Engineering!",
+          "likes": 86,
+          "reposts": 5,
+          "replies": 3
+        },
+        {
+          "url": "https://x.com/jeffreyhuber/status/2093088026515939761",
+          "postedOn": "2026-08-27",
+          "excerpt": "I hear you all like systems deep dives. We invented a new concurrency control protocol, named Fission, for agents swarms to update shared…",
+          "likes": 97,
+          "reposts": 10,
+          "replies": 6
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -457,6 +641,35 @@
       "value": "https://pbs.twimg.com/profile_images/2056622551426908160/tHqB5TID_400x400.jpg",
       "source": "https://api.fxtwitter.com/kevinwhinnery",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/kevinwhinnery/status/2111180091351048410",
+          "postedOn": "2026-10-16",
+          "excerpt": "Browser and computer use got waaaay easier in the latest @OpenAIDevs Python and Node.js SDKs 🧵",
+          "likes": 90,
+          "reposts": 17,
+          "replies": 10
+        },
+        {
+          "url": "https://x.com/kevinwhinnery/status/2110417815161430456",
+          "postedOn": "2026-10-14",
+          "excerpt": "There are 3 DevRel archetypes: cool kids, educators, and hackers. - Cool kids throw fun parties, know the right people, give the big preso…",
+          "likes": 50,
+          "reposts": 4,
+          "replies": 5
+        },
+        {
+          "url": "https://x.com/kevinwhinnery/status/2109684324048236713",
+          "postedOn": "2026-10-12",
+          "excerpt": "Big update in the OpenAI Agents API: dramatically reduce latency with sandbox pre-warming 🔥⏱️ How it works 🧵",
+          "likes": 116,
+          "reposts": 20,
+          "replies": 9
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -527,6 +740,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/kitlangton/status/2112674328034857049",
+          "postedOn": "2026-10-20",
+          "excerpt": "I reworked the Hex homepage for no reason 😅 Try it out for all your speech to text needs. It's free, multi-platform, and pretty good…",
+          "likes": 672,
+          "reposts": 23,
+          "replies": 82
+        },
+        {
+          "url": "https://x.com/kitlangton/status/2111955962781384846",
+          "postedOn": "2026-10-18",
+          "excerpt": "hey. here's a little demo of the most meaningful improvement to my productivity since speech-to-text.",
+          "likes": 3287,
+          "reposts": 140,
+          "replies": 209
+        },
+        {
+          "url": "https://x.com/kitlangton/status/2107191504020378005",
+          "postedOn": "2026-10-05",
+          "excerpt": "idea: autogenerated Civilization II style morning debriefs.",
+          "likes": 1101,
+          "reposts": 71,
+          "replies": 57
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -554,6 +796,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/kmelve/status/2118058944845537588",
+          "postedOn": "2026-11-04",
+          "excerpt": "We have had the sanity engineering blog out for about a quarter, and here's how it went: Six posts by the engineers who did the work…",
+          "likes": 14,
+          "reposts": 2,
+          "replies": 4
+        },
+        {
+          "url": "https://x.com/kmelve/status/2113295590876660007",
+          "postedOn": "2026-10-22",
+          "excerpt": "It has been interesting to see all the applications of @typesafeai's Jev at @sanity_io. Like our new internal agent harness which allows…",
+          "likes": 27,
+          "reposts": 4,
+          "replies": 1
+        },
+        {
+          "url": "https://x.com/kmelve/status/2110493990718173559",
+          "postedOn": "2026-10-14",
+          "excerpt": "Jev got 👀 📐🖼️ now! Multimodal Jev and a new bounding box type from @typesafeai launched today as early access aka \"dreamer mode\" aka…",
+          "likes": 26,
+          "reposts": 2,
+          "replies": 5
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -579,6 +850,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/0xblacklight/status/2118097867567231053",
+          "postedOn": "2026-11-04",
+          "excerpt": "Ok hear me out Agent workstreams for monitoring infra and deployments are becoming part of your production environment Why not manage them…",
+          "likes": 114,
+          "reposts": 4,
+          "replies": 18
+        },
+        {
+          "url": "https://x.com/0xblacklight/status/2116032246973079557",
+          "postedOn": "2026-10-30",
+          "excerpt": "It seems so obvious in hindsight but i remember telling models to stop editing files with bash and to stop using python for everything…",
+          "likes": 148,
+          "reposts": 4,
+          "replies": 6
+        },
+        {
+          "url": "https://x.com/0xblacklight/status/2113052639034482773",
+          "postedOn": "2026-10-21",
+          "excerpt": "Look guys if you’re building something on a cloud platform and you don’t want to get owned through a platform compromise at some point you…",
+          "likes": 455,
+          "reposts": 20,
+          "replies": 43
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -606,6 +906,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/mrousavy/status/2117311762970406919",
+          "postedOn": "2026-11-02",
+          "excerpt": "Here's a guide on fixing performance issues in your app: 1. Install the \"Mobile Dev\" Codex Plugin 2. Open your app in the Simulator inside…",
+          "likes": 754,
+          "reposts": 62,
+          "replies": 35
+        },
+        {
+          "url": "https://x.com/mrousavy/status/2111448600878215398",
+          "postedOn": "2026-10-17",
+          "excerpt": "I just decoupled Nitro from react-native. The new package \"𝚗𝚒𝚝𝚛𝚘-𝚌𝚘𝚛𝚎\" exposes all portable native APIs, JS bindings and…",
+          "likes": 249,
+          "reposts": 16,
+          "replies": 17
+        },
+        {
+          "url": "https://x.com/mrousavy/status/2106050089861136888",
+          "postedOn": "2026-10-02",
+          "excerpt": "We just released our Mobile Dev plugin for Codex! 🥳 Profiling and fixing performance issues has never been so easy 😍",
+          "likes": 266,
+          "reposts": 15,
+          "replies": 12
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -652,6 +981,35 @@
       "value": "https://pbs.twimg.com/profile_images/1723401610527735808/j6y7q1ZA_400x400.jpg",
       "source": "https://api.fxtwitter.com/FlyaKiet",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/FlyaKiet/status/2114766543347442014",
+          "postedOn": "2026-10-26",
+          "excerpt": "Superset is now Paradev! Also we just raised a $11.5M seed to keep building the tool we love",
+          "likes": 205,
+          "reposts": 7,
+          "replies": 63
+        },
+        {
+          "url": "https://x.com/FlyaKiet/status/2112648239476560083",
+          "postedOn": "2026-10-20",
+          "excerpt": "We've been running our own review agent on our Mac Mini in the office for every PR. It now out-performs all the major code review tool on…",
+          "likes": 264,
+          "reposts": 2,
+          "replies": 61
+        },
+        {
+          "url": "https://x.com/FlyaKiet/status/2112218194203349167",
+          "postedOn": "2026-10-19",
+          "excerpt": "Every few months the best coding agent changes. Your tools shouldn't have to. Today we're launching Plugins in @superset_sh. Install once…",
+          "likes": 75,
+          "reposts": 2,
+          "replies": 23
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -698,6 +1056,35 @@
       "value": "https://avatars.githubusercontent.com/u/2292288",
       "source": "https://api.github.com/users/torresmateo",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/torresmateo/status/2103123940440785357",
+          "postedOn": "2026-09-24",
+          "excerpt": "So far, the dumb zone of all models capable of 1M context windows was about 20-30% of the limit. The exceptions are Fable 5.1 and Opus…",
+          "likes": 5,
+          "reposts": 0,
+          "replies": 0
+        },
+        {
+          "url": "https://x.com/torresmateo/status/2094536048944546242",
+          "postedOn": "2026-08-31",
+          "excerpt": "Every time I have a conversation about A2A it goes to \"Couldn't you just do this with MCP?\" Before actually reading about it my answer was…",
+          "likes": 5,
+          "reposts": 1,
+          "replies": 1
+        },
+        {
+          "url": "https://x.com/torresmateo/status/2093106269011820610",
+          "postedOn": "2026-08-27",
+          "excerpt": "OpenAI shipped WebMCP support in ChatGPT's browser and in Codex, then put Chrome, Shopify, Cloudflare, Vercel and Netlify on the judging…",
+          "likes": 4,
+          "reposts": 2,
+          "replies": 1
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -733,6 +1120,27 @@
       "value": "https://pbs.twimg.com/profile_images/1978687600656580608/m2TFWGlC_400x400.jpg",
       "source": "https://api.fxtwitter.com/grinich",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/grinich/status/2108293070668378214",
+          "postedOn": "2026-10-08",
+          "excerpt": "Sign in once. Get to work. @WorkOS Passport Coming soon.",
+          "likes": 224,
+          "reposts": 7,
+          "replies": 13
+        },
+        {
+          "url": "https://x.com/grinich/status/2102418391512531448",
+          "postedOn": "2026-09-22",
+          "excerpt": "weekend side project: I built a new zoom client for mac ui feels more native (like facetime), calendar events in the menu bar, and plays…",
+          "likes": 173,
+          "reposts": 1,
+          "replies": 22
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -783,6 +1191,27 @@
       "value": "https://pbs.twimg.com/profile_images/1249811791820931073/jOlVNh_p_400x400.jpg",
       "source": "https://api.fxtwitter.com/neelmango",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/neelmango/status/2099529789833113601",
+          "postedOn": "2026-09-14",
+          "excerpt": "Over the weekend, I modded melee to be a 100 player battle royale, playable in the browser! GPT-6 Astra took a game that came out 25 years…",
+          "likes": 809,
+          "reposts": 79,
+          "replies": 31
+        },
+        {
+          "url": "https://x.com/neelmango/status/2094672380924957118",
+          "postedOn": "2026-09-01",
+          "excerpt": "Over 6 years ago, I built CityCraft, basically a 3D version of Reddit’s r/place. More than 100,000 users placed blocks across a 1,450 ×…",
+          "likes": 7,
+          "reposts": 0,
+          "replies": 1
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -965,6 +1394,35 @@
       "value": "https://pbs.twimg.com/profile_images/1609808333896310787/hwNl8YrT_400x400.jpg",
       "source": "https://api.fxtwitter.com/calcsam",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/calcsam/status/2116591934731145282",
+          "postedOn": "2026-10-31",
+          "excerpt": "The reason Databricks is the largest open source company in history is both structural and execution focused. Ben gives a great overview…",
+          "likes": 241,
+          "reposts": 22,
+          "replies": 25
+        },
+        {
+          "url": "https://x.com/calcsam/status/2116230199180443956",
+          "postedOn": "2026-10-30",
+          "excerpt": "WE JUST HIT 3M DOWNLOADS 📈📈📈",
+          "likes": 190,
+          "reposts": 11,
+          "replies": 25
+        },
+        {
+          "url": "https://x.com/calcsam/status/2115846978890551338",
+          "postedOn": "2026-10-29",
+          "excerpt": "Agent memory gets harder the longer a chat runs. We wondered: how well does Observational Memory hold up at 100K, 1M and 10M tokens? So we…",
+          "likes": 117,
+          "reposts": 34,
+          "replies": 37
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1007,6 +1465,35 @@
       "value": "https://pbs.twimg.com/profile_images/1879344432295837696/UqdlnRvs_400x400.jpg",
       "source": "https://api.fxtwitter.com/smthomas3",
       "read": "2026-10-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/smthomas3/status/2118017677046485200",
+          "postedOn": "2026-11-04",
+          "excerpt": "agents need more than memory they need a self-improving knowledge base to pull context from more coming soon",
+          "likes": 21,
+          "reposts": 1,
+          "replies": 3
+        },
+        {
+          "url": "https://x.com/smthomas3/status/2116231336918667742",
+          "postedOn": "2026-10-30",
+          "excerpt": "24 months to go from 0 to 2m 1 month to go from 2m to 3m appreciate all the people using @mastra to ship production agents",
+          "likes": 26,
+          "reposts": 3,
+          "replies": 0
+        },
+        {
+          "url": "https://x.com/smthomas3/status/2110075032877850944",
+          "postedOn": "2026-10-13",
+          "excerpt": "Agents write code faster than CI can check it. GitHub Actions minutes are up 4x. Anthropic's CI job volume grew 25x in 6 months. @dbworku…",
+          "likes": 15,
+          "reposts": 3,
+          "replies": 7
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -1102,6 +1589,35 @@
       "source": "https://github.com/Yonom",
       "read": "2026-11-05",
       "was": "@simonfarshid"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/simonfarshid/status/2114928503737225404",
+          "postedOn": "2026-10-27",
+          "excerpt": "I no longer get frustrated that LLMs feel dumb. Until Fable and Opus 5.5, some tasks were beyond LLMs no matter how hard I pushed. Not…",
+          "likes": 75,
+          "reposts": 7,
+          "replies": 16
+        },
+        {
+          "url": "https://x.com/simonfarshid/status/2114125284228350355",
+          "postedOn": "2026-10-24",
+          "excerpt": "The rate of AI improvement is uneven across fields. This causes the work you do to shift inversely to the areas where AI is getting good",
+          "likes": 6,
+          "reposts": 0,
+          "replies": 0
+        },
+        {
+          "url": "https://x.com/simonfarshid/status/2113726096483258770",
+          "postedOn": "2026-10-23",
+          "excerpt": "With the current wave of always-on personal agents (Muse, Instinct, Grok Bot, Dots), the question is how many of them you’ll want. I think…",
+          "likes": 17,
+          "reposts": 1,
+          "replies": 2
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1156,6 +1672,19 @@
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
     },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/heff/status/2115159521719177479",
+          "postedOn": "2026-10-27",
+          "excerpt": "Video.js is built into shadcn now. Cool!",
+          "likes": 9,
+          "reposts": 3,
+          "replies": 2
+        }
+      ],
+      "readOn": "2026-11-05"
+    },
     "held": [
       {
         "field": "blueskyHandle",
@@ -1194,6 +1723,19 @@
       "value": "morel.me",
       "source": "https://sebastien.morel.me",
       "read": "2026-11-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/Plopix/status/2110047849962668113",
+          "postedOn": "2026-10-13",
+          "excerpt": "Bun, Claude Agent SDK, MCP, orchestration, and OS-level sandboxes. That's how I built Claudette, our new AI teammate at Crystallize! She…",
+          "likes": 5,
+          "reposts": 1,
+          "replies": 2
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1221,6 +1763,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/tnm/status/2117412636002513197",
+          "postedOn": "2026-11-03",
+          "excerpt": "We've scaled source control at @OpenAI to keep up with merges, commits, & repo growth. Here's our technical blog post about how we do…",
+          "likes": 277,
+          "reposts": 25,
+          "replies": 24
+        },
+        {
+          "url": "https://x.com/tnm/status/2091801973687505305",
+          "postedOn": "2026-08-24",
+          "excerpt": "new git work at @OpenAI. packfile-uri concurrency fixes now in upstream. 20 more patches in openai/git’s status work (still only our fork…",
+          "likes": 130,
+          "reposts": 7,
+          "replies": 8
+        },
+        {
+          "url": "https://x.com/tnm/status/2087207136141218273",
+          "postedOn": "2026-08-11",
+          "excerpt": "openai will be cohosting Git Merge this year in Lisbon. see you in September. much to share.",
+          "likes": 48,
+          "reposts": 4,
+          "replies": 1
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1287,6 +1858,27 @@
       "value": "tonydang.com",
       "source": "https://tonydang.com",
       "read": "2026-11-05"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/thisistonydang/status/2115901126512123954",
+          "postedOn": "2026-10-29",
+          "excerpt": "Database branching isn't new, but in the age of agents, everyone should be doing it Great talk from @andrelangraf at @GitHub Universe 👏",
+          "likes": 43,
+          "reposts": 4,
+          "replies": 3
+        },
+        {
+          "url": "https://x.com/thisistonydang/status/2111603186104668437",
+          "postedOn": "2026-10-17",
+          "excerpt": "Playing around with Neon Realtime + @tan_stack DB. Even the background is synced 🌴😎",
+          "likes": 40,
+          "reposts": 4,
+          "replies": 1
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1367,6 +1959,27 @@
       ],
       "checkedOn": "2026-11-02"
     },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/RhysSullivan/status/2117367337846505967",
+          "postedOn": "2026-11-02",
+          "excerpt": "i mostly see no reason these days for: - my laptop and phone being different operating systems - my laptop and phone not just being super…",
+          "likes": 1411,
+          "reposts": 42,
+          "replies": 115
+        },
+        {
+          "url": "https://x.com/RhysSullivan/status/2114394680070942947",
+          "postedOn": "2026-10-25",
+          "excerpt": "the tech industry spent basically the past 15 years doing the worst possible thing for their users and now LLMs are letting people debloat…",
+          "likes": 2287,
+          "reposts": 133,
+          "replies": 38
+        }
+      ],
+      "readOn": "2026-11-05"
+    },
     "held": [
       {
         "field": "now",
@@ -1407,6 +2020,27 @@
       "source": "https://ryan.ceo",
       "read": "2026-10-05",
       "was": "ryandavogel"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/ryanvogel/status/2117025562468483278",
+          "postedOn": "2026-11-01",
+          "excerpt": "i don't wanna watch a video so my agent found some useful stuff - put your agent config in git - keep the always-loaded rules file short…",
+          "likes": 254,
+          "reposts": 3,
+          "replies": 9
+        },
+        {
+          "url": "https://x.com/ryanvogel/status/2114907339836834095",
+          "postedOn": "2026-10-27",
+          "excerpt": "i made the most 𝚋𝚎𝚊𝚞𝚝𝚒𝚏𝚞𝚕 way for agents to ask for envs and it's called query",
+          "likes": 257,
+          "reposts": 3,
+          "replies": 15
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1476,6 +2110,35 @@
         }
       ],
       "checkedOn": "2026-11-02"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/mattyp/status/2115111897397628974",
+          "postedOn": "2026-10-27",
+          "excerpt": "What's New in Grok Bot 00:00 🎃 00:13 Pages in Grok Bot 01:09 Vault 02:05 1Password 02:21 Apple integrations 03:21 Bot makes videos 03:47…",
+          "likes": 10225,
+          "reposts": 779,
+          "replies": 814
+        },
+        {
+          "url": "https://x.com/mattyp/status/2109784144649838754",
+          "postedOn": "2026-10-12",
+          "excerpt": "One plan now covers Cursor, Grok, Grok Bot, and X. This is the biggest change to how Cursor is priced. If you've been with us since the…",
+          "likes": 3092,
+          "reposts": 195,
+          "replies": 504
+        },
+        {
+          "url": "https://x.com/mattyp/status/2107486048154738995",
+          "postedOn": "2026-10-06",
+          "excerpt": "I gave Grok Bot a printer. Now, it helps me plan my day 1:18 Prototyping with @bot 2:02 Printer access through desktop 2:55 Pulling…",
+          "likes": 2949,
+          "reposts": 200,
+          "replies": 257
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -1563,6 +2226,35 @@
       "source": "https://github.com/andrelandgraf",
       "read": "2026-10-05",
       "was": "andrelandgraf94"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/andrelandgraf/status/2111141974686540196",
+          "postedOn": "2026-10-16",
+          "excerpt": "Congrats again to all the winners! Build Personal Agents Hack was a blast! 250 hackers · $280k in prizes · dying Wi-Fi · dozens of…",
+          "likes": 34,
+          "reposts": 5,
+          "replies": 4
+        },
+        {
+          "url": "https://x.com/andrelandgraf/status/2110764790025216063",
+          "postedOn": "2026-10-15",
+          "excerpt": "This is the launch of the year for me. The best UX on the web have always been realtime (Notion, Linear, Google Docs) but realtime has…",
+          "likes": 92,
+          "reposts": 12,
+          "replies": 14
+        },
+        {
+          "url": "https://x.com/andrelandgraf/status/2105736591125942730",
+          "postedOn": "2026-10-01",
+          "excerpt": "Neon now has @EffectTS_ bindings! Since our SDK is built for and used by platforms that provision Postgres per user, an Effect abstraction…",
+          "likes": 72,
+          "reposts": 5,
+          "replies": 2
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1588,6 +2280,27 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/elimilu_/status/2117680869695525125",
+          "postedOn": "2026-11-03",
+          "excerpt": "I can't count how many IDEs, agents and tools I used in the past 2 years, and Replit replaced them all for me the last 3 months. So I made…",
+          "likes": 33,
+          "reposts": 5,
+          "replies": 6
+        },
+        {
+          "url": "https://x.com/elimilu_/status/2091311652494803424",
+          "postedOn": "2026-08-22",
+          "excerpt": "The team has been busy lately. This is what shipped on Replit this week: - Free Mode - Conversations - Routines - Steer conversations…",
+          "likes": 52,
+          "reposts": 8,
+          "replies": 4
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -1623,6 +2336,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/pierre_burgy/status/2114701187555397712",
+          "postedOn": "2026-10-26",
+          "excerpt": "We completely revamped the Strapi Media Library ✨ - Folders are always in view 📁 - Finding and checking assets is faster 🔍 - It works on…",
+          "likes": 3,
+          "reposts": 2,
+          "replies": 1
+        },
+        {
+          "url": "https://x.com/pierre_burgy/status/2105411528794968077",
+          "postedOn": "2026-09-30",
+          "excerpt": "We merge 1,200 pull requests per month, with a team of 3 engineers. All of this thanks to the Software Factory we’ve built…",
+          "likes": 10,
+          "reposts": 0,
+          "replies": 2
+        },
+        {
+          "url": "https://x.com/pierre_burgy/status/2097256122725945722",
+          "postedOn": "2026-09-08",
+          "excerpt": ".@fimoai 2.0 is LIVE! Make your AI-generated website editable and autonomous, so it gets better while you sleep 🧵",
+          "likes": 29,
+          "reposts": 5,
+          "replies": 1
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1675,6 +2417,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/samgoodwin89/status/2115220937176224224",
+          "postedOn": "2026-10-27",
+          "excerpt": "Software is having its Industrial Revolution and it’s changing what matters in software frameworks. Today’s frameworks were designed for…",
+          "likes": 686,
+          "reposts": 42,
+          "replies": 28
+        },
+        {
+          "url": "https://x.com/samgoodwin89/status/2113842850291159536",
+          "postedOn": "2026-10-24",
+          "excerpt": "tsrs reduced compilation memory from 18GB to 3GB. Best release of 2026.",
+          "likes": 535,
+          "reposts": 13,
+          "replies": 10
+        },
+        {
+          "url": "https://x.com/samgoodwin89/status/2108624604352979379",
+          "postedOn": "2026-10-09",
+          "excerpt": "I built \"foldkit for the backend\" on top of Alchemy. I absolutely love this style of testing.",
+          "likes": 217,
+          "reposts": 7,
+          "replies": 14
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1826,6 +2597,19 @@
       "value": "waynesutton",
       "source": "https://luma.com/user/wayne_convex",
       "read": "2026-10-06"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/waynesutton/status/2113828727440478287",
+          "postedOn": "2026-10-24",
+          "excerpt": "We’ve been at @CalHacks hackathon all day demoing and pitching @convex to 2500+ hackers. Whew, we have a lot of work to do because so many…",
+          "likes": 46,
+          "reposts": 0,
+          "replies": 4
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -1864,6 +2648,35 @@
       "value": "victorcoisne",
       "source": "https://luma.com/user/usr-uzoGL6sasbn1bGD",
       "read": "2026-10-06"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/vcoisne/status/2108196293772468232",
+          "postedOn": "2026-10-08",
+          "excerpt": "Another week, another major announcement for us at Plakar. You can now back up VMware for free with Plakar OSS. Bottom line: You can…",
+          "likes": 2,
+          "reposts": 1,
+          "replies": 1
+        },
+        {
+          "url": "https://x.com/vcoisne/status/2103024360110047332",
+          "postedOn": "2026-09-24",
+          "excerpt": "Ten years ago we started managing infra as code with tools such as k8s, Terraform, Ansible, etc. There is no good reason to leave data…",
+          "likes": 1,
+          "reposts": 0,
+          "replies": 0
+        },
+        {
+          "url": "https://x.com/vcoisne/status/2095582719963226403",
+          "postedOn": "2026-09-03",
+          "excerpt": "Big day for us at @PlakarKorp 🥁🥁🥁 We just announced a technology partnership with @OVHcloud Shoutout to the team at OVHcloud for…",
+          "likes": 2,
+          "reposts": 0,
+          "replies": 0
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -1970,6 +2783,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/nipunn1313/status/2116629374040764824",
+          "postedOn": "2026-10-31",
+          "excerpt": "With all of this “rewrite in rust” energy flowing, it reminds me of work throughout my career. Been writing rust for over a decade at…",
+          "likes": 8,
+          "reposts": 0,
+          "replies": 1
+        },
+        {
+          "url": "https://x.com/nipunn1313/status/2113062391529583054",
+          "postedOn": "2026-10-22",
+          "excerpt": "I love helping people get better at the craft. Helping agents get better... not so much.",
+          "likes": 7,
+          "reposts": 1,
+          "replies": 0
+        },
+        {
+          "url": "https://x.com/nipunn1313/status/2112752308421583042",
+          "postedOn": "2026-10-21",
+          "excerpt": "compression is wisdom. Repeatedly putting in 2x effort to simplify 10% is the skill. @huntjordan22 puts in the work.",
+          "likes": 10,
+          "reposts": 0,
+          "replies": 0
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -2136,6 +2978,19 @@
       "value": "loiszhao",
       "source": "https://luma.com/user/zmzlois",
       "read": "2026-10-06"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/zmzlois/status/2115829830524829774",
+          "postedOn": "2026-10-29",
+          "excerpt": "migrated all frontend to tanstack start, millions of logs coming",
+          "likes": 11,
+          "reposts": 1,
+          "replies": 0
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -2180,6 +3035,35 @@
       "value": "thruflo",
       "source": "https://luma.com/user/thruflo",
       "read": "2026-10-06"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/thruflo/status/2118045459084349535",
+          "postedOn": "2026-11-04",
+          "excerpt": "At @aiDotEngineer Code Summit in SF next week? Come and hear how we built @neondatabase Realtime.",
+          "likes": 23,
+          "reposts": 3,
+          "replies": 2
+        },
+        {
+          "url": "https://x.com/thruflo/status/2111896823099265142",
+          "postedOn": "2026-10-18",
+          "excerpt": "Presenting Livebase, a demo app showing how to build collaborative human <> agent systems on a @neondatabase + @mastra stack.",
+          "likes": 57,
+          "reposts": 8,
+          "replies": 7
+        },
+        {
+          "url": "https://x.com/thruflo/status/2110759337874616322",
+          "postedOn": "2026-10-15",
+          "excerpt": "Previously, to build realtime apps you've needed some sort of special sync system. With Neon Realtime you now get realtime reactivity…",
+          "likes": 72,
+          "reposts": 6,
+          "replies": 4
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -2271,6 +3155,19 @@
       "value": "https://avatars.githubusercontent.com/u/1445984?v=4",
       "source": "https://github.com/LewisJEllis",
       "read": "2026-10-06"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/LewisJEllis/status/2097024242852503824",
+          "postedOn": "2026-09-07",
+          "excerpt": "i talked about SQL and agents at planetscale's meetup last month, video's up, check it out!",
+          "likes": 23,
+          "reposts": 0,
+          "replies": 1
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -2333,6 +3230,35 @@
         }
       ],
       "checkedOn": "2026-11-02"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/lydiahallie/status/2118045439803195567",
+          "postedOn": "2026-11-04",
+          "excerpt": "We recently added /storage to the desktop app! You can see how much disk space Claude is using on your computer and clear out inactive…",
+          "likes": 3151,
+          "reposts": 123,
+          "replies": 236
+        },
+        {
+          "url": "https://x.com/lydiahallie/status/2110484840256819380",
+          "postedOn": "2026-10-14",
+          "excerpt": "We recently added idle compaction to Claude Code! It now compacts long idle sessions right before the prompt cache expires (~1h). If you…",
+          "likes": 6313,
+          "reposts": 196,
+          "replies": 513
+        },
+        {
+          "url": "https://x.com/lydiahallie/status/2102438490759983302",
+          "postedOn": "2026-09-22",
+          "excerpt": "Opus 5.5 is here! 🎉 It's honestly such a nice model to work with. Feels like Fable, but ~30% faster and ~40% cheaper per task than Opus…",
+          "likes": 5051,
+          "reposts": 234,
+          "replies": 304
+        }
+      ],
+      "readOn": "2026-11-05"
     },
     "held": [
       {
@@ -2411,6 +3337,27 @@
       ],
       "checkedOn": "2026-11-02"
     },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/leerob/status/2092276970226671789",
+          "postedOn": "2026-08-25",
+          "excerpt": "We just increased the included usage of Grok models in Cursor! Demand has been increasing with the launch of Grok 4.6. We already doubled…",
+          "likes": 7697,
+          "reposts": 324,
+          "replies": 596
+        },
+        {
+          "url": "https://x.com/leerob/status/2088252015193509987",
+          "postedOn": "2026-08-14",
+          "excerpt": "Big day! Cursor has officially joined SpaceX. I’m proud of our team and what we’ve accomplished so far. Our momentum is accelerating with…",
+          "likes": 4340,
+          "reposts": 110,
+          "replies": 190
+        }
+      ],
+      "readOn": "2026-11-05"
+    },
     "held": [
       {
         "field": "now",
@@ -2467,6 +3414,35 @@
       ],
       "checkedOn": "2026-11-02"
     },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/Baconbrix/status/2118064051771310169",
+          "postedOn": "2026-11-04",
+          "excerpt": "Bot has this bias for action that makes it feel like the most fearless coworker you’ve ever worked with. So much work is needless…",
+          "likes": 1354,
+          "reposts": 157,
+          "replies": 106
+        },
+        {
+          "url": "https://x.com/Baconbrix/status/2118042065305325792",
+          "postedOn": "2026-11-04",
+          "excerpt": "In the next version of Grok Bot Your recently messaged bots will show up as contacts that you can quickly share with.",
+          "likes": 1251,
+          "reposts": 37,
+          "replies": 83
+        },
+        {
+          "url": "https://x.com/Baconbrix/status/2112576730804478374",
+          "postedOn": "2026-10-20",
+          "excerpt": "I gave my Grok bot $1000 to build itself a body. Parts just keep showing up at my apartment.",
+          "likes": 10599,
+          "reposts": 426,
+          "replies": 668
+        }
+      ],
+      "readOn": "2026-11-05"
+    },
     "held": [
       {
         "field": "now",
@@ -2510,6 +3486,27 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/ErikCH/status/2103920317492306380",
+          "postedOn": "2026-09-26",
+          "excerpt": "I was trying out Opus 5.5 that just came out on Kiro. Within a few prompts I recreated my favorite MP3 player back in the day! With a few…",
+          "likes": 13,
+          "reposts": 0,
+          "replies": 2
+        },
+        {
+          "url": "https://x.com/ErikCH/status/2093021162133713014",
+          "postedOn": "2026-08-27",
+          "excerpt": "I'll be at @CommitYourCode next week! Can't wait to talk to you all about Kiro and Durable functions! See you there!",
+          "likes": 20,
+          "reposts": 1,
+          "replies": 2
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -2626,6 +3623,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/jahooma/status/2112279845732483384",
+          "postedOn": "2026-10-19",
+          "excerpt": "The new DeepSeek Flash is now 100% free forever in our coding agent! Higher limits than anywhere else, b/c funded by ads…",
+          "likes": 1251,
+          "reposts": 56,
+          "replies": 70
+        },
+        {
+          "url": "https://x.com/jahooma/status/2101890985148183023",
+          "postedOn": "2026-09-21",
+          "excerpt": "Introducing the best value coding subscription ever For $8 per month, every single day you get 15 hours (!) of DeepSeek V4.1 Flash, with…",
+          "likes": 1370,
+          "reposts": 68,
+          "replies": 243
+        },
+        {
+          "url": "https://x.com/jahooma/status/2088052629347967108",
+          "postedOn": "2026-08-13",
+          "excerpt": "We're offering DeepSeek V4 Pro 100% free. It's free forever because we put ads in our harness…",
+          "likes": 8023,
+          "reposts": 480,
+          "replies": 408
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -2653,6 +3679,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/jamesqquick/status/2108554432879140957",
+          "postedOn": "2026-10-09",
+          "excerpt": "Cloudflare is a WILD place to work right now. So far this year... - Astro - VoidZero (vite + others) - Deno OMG 😱",
+          "likes": 682,
+          "reposts": 15,
+          "replies": 24
+        },
+        {
+          "url": "https://x.com/jamesqquick/status/2106046381777367512",
+          "postedOn": "2026-10-02",
+          "excerpt": "Every agent you build needs the ability to search the web! Ex. Agent to draft blog posts - Without doing research, drafts could have…",
+          "likes": 124,
+          "reposts": 5,
+          "replies": 4
+        },
+        {
+          "url": "https://x.com/jamesqquick/status/2093367523408220253",
+          "postedOn": "2026-08-28",
+          "excerpt": "My agent instructions for implementing a new feature: - create worktree - copy local db and env variables - implement feature - do code…",
+          "likes": 104,
+          "reposts": 1,
+          "replies": 12
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -2711,6 +3766,35 @@
       ],
       "checkedOn": "2026-11-02"
     },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/MichaelArnaldi/status/2117933247812526230",
+          "postedOn": "2026-11-04",
+          "excerpt": "There will never be a formal proof method that ensures a program behaviour matches what’s in your head",
+          "likes": 390,
+          "reposts": 27,
+          "replies": 47
+        },
+        {
+          "url": "https://x.com/MichaelArnaldi/status/2110063098446873027",
+          "postedOn": "2026-10-13",
+          "excerpt": "Every 5 times TypeScript is downloaded Effect is, that’s a lot",
+          "likes": 209,
+          "reposts": 6,
+          "replies": 12
+        },
+        {
+          "url": "https://x.com/MichaelArnaldi/status/2108755964862349608",
+          "postedOn": "2026-10-10",
+          "excerpt": "Software will be much more messy for the next 12 months before tracking back to good practices. In this phase people suggest full rewrites…",
+          "likes": 650,
+          "reposts": 43,
+          "replies": 51
+        }
+      ],
+      "readOn": "2026-11-05"
+    },
     "held": [
       {
         "field": "now",
@@ -2734,6 +3818,35 @@
       "source": "https://2026.allthingsopen.org/speakers/erik-thorelli",
       "read": "2026-11-02",
       "was": "Erik Thorelli is an Engineering Leader at Cisco Meraki, leading the mobile engineering organization. He's been developing React and React Native apps for almost a decade, across many industries...and seen some stuff."
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/esthor/status/2117296442578801040",
+          "postedOn": "2026-11-02",
+          "excerpt": "i am consistently uninstalling mcp/plugins from major dev tool and infra platforms in favor of host machine CLIs if you want me to use…",
+          "likes": 14,
+          "reposts": 0,
+          "replies": 3
+        },
+        {
+          "url": "https://x.com/esthor/status/2114804211905142898",
+          "postedOn": "2026-10-26",
+          "excerpt": "Can't say it loud enough... CodeRabbit Secure is running GPT CYBER MODELS + an ensemble of models to help secure your codebases. And the…",
+          "likes": 147,
+          "reposts": 8,
+          "replies": 1
+        },
+        {
+          "url": "https://x.com/esthor/status/2110135155646152737",
+          "postedOn": "2026-10-13",
+          "excerpt": "on banning markdown: .md is a toxic artifact format. and the answer is not \"html is best for agents!\" yes -- .md is easy. yes -- .html >…",
+          "likes": 101,
+          "reposts": 1,
+          "replies": 18
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -2767,6 +3880,35 @@
       "source": "https://bsky.app/profile/aidenybai.bsky.social",
       "read": "2026-11-05",
       "was": "@aidenybai.bsky.social"
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/aidenybai/status/2115477440747413995",
+          "postedOn": "2026-10-28",
+          "excerpt": "Introducing TLA-ts A 2× faster drop-in replacement for TLC, written 100% in TypeScript Why? TLA+ for formal verification and model…",
+          "likes": 439,
+          "reposts": 27,
+          "replies": 42
+        },
+        {
+          "url": "https://x.com/aidenybai/status/2113410369356226944",
+          "postedOn": "2026-10-22",
+          "excerpt": "the holy grail is formal verification for all code currently code has tests (a lossy proxy for the behavior of the code) in reality, code…",
+          "likes": 984,
+          "reposts": 34,
+          "replies": 59
+        },
+        {
+          "url": "https://x.com/aidenybai/status/2111991261540528454",
+          "postedOn": "2026-10-19",
+          "excerpt": "design eng tip for skeleton UIs: ask your agent to measure the loaded UI with Playwright then match the skeleton's sizes and positions to…",
+          "likes": 2576,
+          "reposts": 67,
+          "replies": 80
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   },
   {
@@ -2851,6 +3993,35 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "xPosts": {
+      "posts": [
+        {
+          "url": "https://x.com/Codydearkland/status/2110050842468655216",
+          "postedOn": "2026-10-13",
+          "excerpt": "We built A LOT in Railway for @tan_stack Start 1.0 - Pulled telemetry for build failures and fixed the break area - Added support in…",
+          "likes": 52,
+          "reposts": 5,
+          "replies": 0
+        },
+        {
+          "url": "https://x.com/Codydearkland/status/2097846615205978341",
+          "postedOn": "2026-09-10",
+          "excerpt": "I cannot stress enough how people should NOT be sleeping on building @opencode plugins. The amount of leverage im getting out of them…",
+          "likes": 256,
+          "reposts": 6,
+          "replies": 10
+        },
+        {
+          "url": "https://x.com/Codydearkland/status/2094863641875185862",
+          "postedOn": "2026-09-01",
+          "excerpt": "It's wild to me the idea of people in tech who work on software, and aren't power users of that software. Every product i've worked on…",
+          "likes": 40,
+          "reposts": 2,
+          "replies": 1
+        }
+      ],
+      "readOn": "2026-11-05"
     }
   }
 ]
