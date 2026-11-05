@@ -284,22 +284,35 @@ const make = Effect.gen(function* () {
               refuse(
                 `Luma has the cover (${coverUrl}), but recording it here failed (${why}), and putting its old cover back failed too (${because}). Set its cover back to ${replaced} in Luma, then run luma cover --dry-run and approve again.`,
               );
-            // Put back, then read back: only Luma showing the old cover
-            // again means the evening is as it was.
-            return luma
-              .update(prepared.lumaEventId, { cover_url: replaced })
-              .pipe(
-                Effect.flatMap(() => luma.get(prepared.lumaEventId)),
-                Effect.matchEffect({
-                  onSuccess: (restored) =>
-                    restored.cover_url === replaced
-                      ? refuse(
-                          `Recording the cover here failed: ${why}. Its old cover (${replaced}) is back on Luma, so nothing changed. Run luma cover --dry-run and approve again.`,
-                        )
-                      : stuck(`Luma shows ${restored.cover_url ?? "no cover"}`),
-                  onFailure: (error) => stuck(error.message),
-                }),
+            return Effect.gen(function* () {
+              // Read first: put the old cover back only over our own upload,
+              // never over a cover someone set since. Luma's update takes no
+              // precondition, so this narrows the window; it can't close it.
+              const now = yield* luma.get(prepared.lumaEventId);
+              if (now.cover_url !== coverUrl) {
+                return yield* refuse(
+                  `Recording the cover here failed: ${why}. Luma now shows ${now.cover_url ?? "no cover"}, set since our upload (${coverUrl}), so it was left alone and nothing was recorded.`,
+                );
+              }
+              yield* luma.update(prepared.lumaEventId, { cover_url: replaced });
+              // Read back: only Luma showing the old cover again means the
+              // evening is as it was.
+              const restored = yield* luma.get(prepared.lumaEventId);
+              if (restored.cover_url !== replaced) {
+                return yield* stuck(
+                  `Luma shows ${restored.cover_url ?? "no cover"}`,
+                );
+              }
+              return yield* refuse(
+                `Recording the cover here failed: ${why}. Its old cover (${replaced}) is back on Luma, so nothing changed. Run luma cover --dry-run and approve again.`,
               );
+            }).pipe(
+              Effect.catch((error) =>
+                error instanceof StudioRefused
+                  ? Effect.fail(error)
+                  : stuck(error.message),
+              ),
+            );
           }),
         );
       if (recorded.length !== 1) {
