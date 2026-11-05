@@ -5,6 +5,7 @@ import * as Test from "alchemy/Test/Bun";
 import { seededDatabase } from "allthings-core/tests/support/database.ts";
 import * as Effect from "effect/Effect";
 import { CacheControl } from "../src/cache.ts";
+import { maxRequestBodySize, maxToolInputElements } from "../src/mcp/server.ts";
 import { loadApp } from "./support/app.ts";
 import {
   type Answer,
@@ -522,6 +523,70 @@ describe("MCP", () => {
       result: { structuredContent: { events: Array<unknown> } };
     };
     expect(message.result.structuredContent.events).toHaveLength(5);
+  });
+
+  it("refuses a body over its size limit before reading it", async ({
+    Web,
+  }) => {
+    const response = await fetch(
+      mcpRequest(
+        `${Web}/mcp`,
+        call("get_event", { slug: "x".repeat(maxRequestBodySize) }),
+      ),
+    );
+    await response.body?.cancel();
+    expect(response.status).toBe(413);
+  });
+
+  it("refuses a streamed body once it has read past its size limit", async ({
+    Web,
+  }) => {
+    // No Content-Length: the limit holds on the bytes as they arrive.
+    const text = JSON.stringify(
+      call("get_event", { slug: "x".repeat(maxRequestBodySize) }),
+    );
+    const chunk = 4096;
+    const bytes = new TextEncoder().encode(text);
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent >= bytes.length) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(bytes.slice(sent, sent + chunk));
+        sent += chunk;
+      },
+    });
+    const request = new Request(`${Web}/mcp`, {
+      method: "POST",
+      headers: mcpHeaders,
+      body,
+    });
+    expect(request.headers.get("content-length")).toBeNull();
+    const response = await fetch(request);
+    await response.body?.cancel();
+    expect(response.status).toBe(413);
+  });
+
+  it("answers a call whose arguments hold too many elements with an error, and still serves", async ({
+    Web,
+  }) => {
+    const elements = Object.fromEntries(
+      Array.from({ length: maxToolInputElements + 1 }, (_, i) => [`k${i}`, i]),
+    );
+    const refused = rpcMessage(
+      await (
+        await fetch(mcpRequest(`${Web}/mcp`, call("list_events", elements)))
+      ).text(),
+    ) as { result: { isError?: boolean } };
+    expect(refused.result.isError).toBe(true);
+    const served = rpcMessage(
+      await (
+        await fetch(mcpRequest(`${Web}/mcp`, call("get_community", {})))
+      ).text(),
+    ) as { result: { isError?: boolean } };
+    expect(served.result.isError).toBeUndefined();
   });
 
   for (const [label, method, headers, message] of [
