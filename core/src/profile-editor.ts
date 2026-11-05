@@ -2,15 +2,17 @@
  * profile_editor, the role `bun run people <file>` connects as (core's
  * README, "Filling in profiles"): its name, the `public.profiles` columns
  * src/people-enrichment.ts reads and writes, and the bounds on its
- * sessions. migrations/0034_profile_editor.ts grants exactly these, and
+ * sessions. migrations/0034_profile_editor.ts granted exactly these, and
  * infra/scripts/profile-editor.ts refuses to give the role a login unless
  * the catalog holds exactly these. It imports nothing, so the infra
  * scripts read it without core's dependencies.
  *
- * Production keeps what 0034 granted when it ran: widening the role takes
- * a new migration that grants the difference, with this list changed in
- * the same pull request so the script and tests/profile-editor-role.test.ts
- * (which states the list once more) agree with it.
+ * Migration 0034 states its own copy, fixed as it ran, and no migration
+ * reads this module: a change to the role is a new migration that grants
+ * (or revokes) the difference, with this list changed in the same pull
+ * request, so the script and tests/profile-editor-role.test.ts (which
+ * states the list once more, and reads the catalog after every migration)
+ * agree with it.
  */
 
 export const PROFILE_EDITOR = "profile_editor";

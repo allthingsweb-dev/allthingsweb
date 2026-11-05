@@ -1,9 +1,3 @@
-import {
-  PROFILE_EDITOR,
-  PROFILE_EDITOR_READS,
-  PROFILE_EDITOR_SETTINGS,
-  PROFILE_EDITOR_WRITES,
-} from "../src/profile-editor.ts";
 import { statements } from "./statements.ts";
 
 /**
@@ -14,10 +8,10 @@ import { statements } from "./statements.ts";
  * statements do, and nothing else:
  *
  * - read, on `public.profiles` only, the columns applyPeople reads
- *   (PROFILE_EDITOR_READS, src/profile-editor.ts, which infra reads too): the row it locks (`FOR UPDATE`, which Postgres
+ *   (READS): the row it locks (`FOR UPDATE`, which Postgres
  *   allows a role with UPDATE on any column), its name, and each value
  *   it compares or keeps (`COALESCE(…, title)`);
- * - change only the columns it writes (PROFILE_EDITOR_WRITES). The
+ * - change only the columns it writes (WRITES). The
  *   `profiles_x_followers_reset` trigger clears the X counts a new handle
  *   makes stale as part of the same UPDATE, which needs no grant of its
  *   own: privileges are checked on what the statement names.
@@ -40,6 +34,44 @@ import { statements } from "./statements.ts";
  * applyPeople as the role.
  */
 
+/*
+ * Fixed here, as this migration ran: src/profile-editor.ts is the role as
+ * it stands now (what infra/scripts/profile-editor.ts and the tests check),
+ * and a later change to it ships as a migration of its own that grants the
+ * difference, so this one keeps granting exactly this on a fresh database.
+ */
+const PROFILE_EDITOR = "profile_editor";
+
+const READS = [
+  "id",
+  "name",
+  "title",
+  "bio",
+  "twitter_handle",
+  "bluesky_handle",
+  "linkedin_handle",
+  "photo_source_url",
+  "image",
+  "now_record",
+];
+
+const WRITES = [
+  "title",
+  "bio",
+  "twitter_handle",
+  "bluesky_handle",
+  "linkedin_handle",
+  "photo_source_url",
+  "now_record",
+  "updated_at",
+];
+
+const SETTINGS = {
+  statement_timeout: "30s",
+  lock_timeout: "5s",
+  idle_in_transaction_session_timeout: "30s",
+};
+
 const columns = (names: ReadonlyArray<string>) =>
   names.map((name) => `"${name}"`).join(", ");
 
@@ -58,9 +90,9 @@ $role$`,
     `REVOKE ALL ON SCHEMA ${schema} FROM ${PROFILE_EDITOR}`,
   ]),
   `GRANT USAGE ON SCHEMA public TO ${PROFILE_EDITOR}`,
-  `GRANT SELECT (${columns(PROFILE_EDITOR_READS)}) ON "public"."profiles" TO ${PROFILE_EDITOR}`,
-  `GRANT UPDATE (${columns(PROFILE_EDITOR_WRITES)}) ON "public"."profiles" TO ${PROFILE_EDITOR}`,
-  ...Object.entries(PROFILE_EDITOR_SETTINGS).map(
+  `GRANT SELECT (${columns(READS)}) ON "public"."profiles" TO ${PROFILE_EDITOR}`,
+  `GRANT UPDATE (${columns(WRITES)}) ON "public"."profiles" TO ${PROFILE_EDITOR}`,
+  ...Object.entries(SETTINGS).map(
     ([name, value]) => `ALTER ROLE ${PROFILE_EDITOR} SET ${name} = '${value}'`,
   ),
 ];
