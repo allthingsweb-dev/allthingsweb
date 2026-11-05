@@ -16,6 +16,31 @@
   {
     "profileId": "829ad53f-48c7-4786-8889-8670f9a1b3f1",
     "name": "Hahnbee Lee",
+    "title": {
+      "value": "Co-founder, Mintlify",
+      "source": "https://www.hahnbee.com/",
+      "read": "2026-11-05",
+      "also": [
+        "https://x.com/hahnbeelee",
+        "https://www.ycombinator.com/companies/mintlify"
+      ]
+    },
+    "bio": {
+      "value": "Hahnbee Lee is a co-founder of Mintlify, the documentation platform she started with Han Wang in 2022. She studied computer and information sciences at Cornell, where she and Wang built a course planning app that Cornell undergraduates still use. At at/agents for web dev she co-hosted the evening and spoke about modern docs.",
+      "source": "https://www.lemelson.org/hahnbee-lee/",
+      "read": "2026-11-05",
+      "was": "Hahnbee Lee is the co-founder of Mintlify, a next-generation documentation platform that powers developer docs for over 5,000 companies including Anthropic, Scale, Cursor and Pinecone. Before founding Mintlify through Y Combinator in 2022, she worked as a software engineer at Duolingo. She graduated from Cornell University with a degree in Computer and Information Sciences, where she met her co-founder Han Wang and built a course planning app still used by ~50% of Cornell's undergraduate students.",
+      "also": [
+        "https://www.ycombinator.com/companies/mintlify",
+        "https://www.hahnbee.com/",
+        "https://allthings.dev/people/hahnbee-lee"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "hahnbeelee",
       "source": "https://www.ycombinator.com/companies/mintlify",
@@ -43,6 +68,28 @@
   {
     "profileId": "803cd0be-f8ad-4999-a764-e0aeb5e92225",
     "name": "Ivan Chebykin",
+    "title": {
+      "value": "Founder, SourceWizard",
+      "source": "https://chebykin.org",
+      "read": "2026-11-05",
+      "also": ["https://x.com/ichebykin", "https://autonomous-agents.co"]
+    },
+    "bio": {
+      "value": "Ivan Chebykin is an engineer turned founder building SourceWizard, an agentic scoping platform from Autonomous Agents Co., the product and research lab he is building. He previously worked on AI infrastructure at Meta and on backends at Yandex.Taxi and Tinkoff Investments, and he made the Typeconf and Mify developer tools. At at/agents for web dev he showed an open-source tool that gets agents to install modern dev tools for you.",
+      "source": "https://chebykin.org",
+      "read": "2026-11-05",
+      "was": "Ivan Chebykin is an AI engineer at Meta focusing on AI infrastructure, with previous experience building complex backend systems at Yandex.Taxi and Tinkoff Investments. He is the founder of SourceWizard, an open-source AI-powered setup wizard that helps developers quickly find, install, and configure packages using natural language queries with MCP integration. Based in San Francisco, his work reflects his passion for automating coding processes with LLMs and improving developer experience through intelligent tooling.",
+      "also": [
+        "https://x.com/ichebykin",
+        "https://autonomous-agents.co",
+        "https://allthings.dev/people/ivan-chebykin"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "ichebykin",
       "source": "https://chebykin.org",
@@ -57,12 +104,6 @@
       "value": "chebykin",
       "source": "https://chebykin.org",
       "read": "2026-10-05"
-    },
-    "title": {
-      "value": "Founder, SourceWizard",
-      "source": "https://chebykin.org",
-      "read": "2026-10-05",
-      "was": "Founder, SourceWizard & AI Engineer at Meta"
     }
   },
   {
@@ -160,13 +201,30 @@
   {
     "profileId": "813bcbac-7ef3-4414-8801-3c99db881f6b",
     "name": "Greg Pstrucha",
+    "title": {
+      "value": "AI/ML Engineer, Sentry",
+      "source": "https://gricha.dev/work",
+      "read": "2026-11-05",
+      "was": "Staff Engineer, Sentry",
+      "also": ["https://x.com/grichadev", "https://github.com/gricha"]
+    },
+    "bio": {
+      "value": "Greg Pstrucha is an engineer on the AI/ML team at Sentry, where he helped build dotagents, a tool that manages agent skills as versioned, lock-filed dependencies. He previously co-founded Subroutine, led the API Platform team at Robinhood, and worked on mobile infrastructure at Facebook, where he created FBRetainCycleDetector. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke on why Claude Code skills are a security threat.",
+      "source": "https://gricha.dev/work",
+      "read": "2026-11-05",
+      "also": [
+        "https://gricha.dev/blog/dotagents",
+        "https://x.com/grichadev",
+        "https://allthings.dev/people/greg-pstrucha"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "grichadev",
-      "source": "https://api.fxtwitter.com/grichadev",
-      "read": "2026-10-05"
-    },
-    "photoSourceUrl": {
-      "value": "https://pbs.twimg.com/profile_images/2015189616777912320/yM57ZlqT_400x400.jpg",
       "source": "https://api.fxtwitter.com/grichadev",
       "read": "2026-10-05"
     },
@@ -175,16 +233,12 @@
       "source": "https://gricha.dev",
       "read": "2026-10-05"
     },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/2015189616777912320/yM57ZlqT_400x400.jpg",
+      "source": "https://api.fxtwitter.com/grichadev",
+      "read": "2026-10-05"
+    },
     "held": [
-      {
-        "field": "bio",
-        "value": null,
-        "sources": [
-          "https://api.fxtwitter.com/grichadev",
-          "https://api.github.com/users/gricha"
-        ],
-        "reason": "only a terse profile bio"
-      },
       {
         "field": "blueskyHandle",
         "value": null,
@@ -198,13 +252,30 @@
   {
     "profileId": "034f4e87-345b-46e6-b984-2226d760f7fb",
     "name": "Ivan Burazin",
+    "title": {
+      "value": "Co-founder & CEO, Daytona",
+      "source": "https://slush.org/2026-speakers/ivan-burazin",
+      "read": "2026-11-05",
+      "was": "CEO, Daytona",
+      "also": ["https://x.com/ivanburazin"]
+    },
+    "bio": {
+      "value": "Ivan Burazin is the co-founder and CEO of Daytona, which builds infrastructure for running AI-generated code. He earlier co-founded Codeanywhere, one of the first cloud IDEs, and created Shift, a developer conference in Croatia that Infobip acquired, after which he served as Infobip’s Chief Developer Experience Officer. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke about why sandboxes aren’t enough for agents.",
+      "source": "https://slush.org/2026-speakers/ivan-burazin",
+      "read": "2026-11-05",
+      "was": "Ivan Burazin is the co-founder and CEO of Daytona, a startup building agent cloud infrastructure for enterprises and AI labs. A longtime developer tools entrepreneur, Ivan previously co-founded Codeanywhere, one of the first cloud IDEs launched in 2009. He also created Shift, Croatia's flagship developer conference and the biggest in Southeast Europe, which was acquired by Infobip, where he went on to serve as Chief Developer Experience Officer.",
+      "also": [
+        "https://www.daytona.io/",
+        "https://allthings.dev/people/ivan-burazin"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "ivanburazin",
-      "source": "https://api.fxtwitter.com/ivanburazin",
-      "read": "2026-10-05"
-    },
-    "photoSourceUrl": {
-      "value": "https://pbs.twimg.com/profile_images/1549052013178134529/FljtGcgj_400x400.jpg",
       "source": "https://api.fxtwitter.com/ivanburazin",
       "read": "2026-10-05"
     },
@@ -213,9 +284,9 @@
       "source": "https://www.linkedin.com/in/ivanburazin/",
       "read": "2026-10-05"
     },
-    "bio": {
-      "value": "Ivan Burazin is the co-founder and CEO of Daytona, a startup building agent cloud infrastructure for enterprises and AI labs. A longtime developer tools entrepreneur, Ivan previously co-founded Codeanywhere, one of the first cloud IDEs launched in 2009. He also created Shift, Croatia's flagship developer conference and the biggest in Southeast Europe, which was acquired by Infobip, where he went on to serve as Chief Developer Experience Officer.",
-      "source": "https://slush.org/2026-speakers/ivan-burazin",
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1549052013178134529/FljtGcgj_400x400.jpg",
+      "source": "https://api.fxtwitter.com/ivanburazin",
       "read": "2026-10-05"
     },
     "held": [
@@ -232,13 +303,30 @@
   {
     "profileId": "94d586bf-53a4-433b-acdb-d81d5a6db3bd",
     "name": "Jeff Huber",
+    "title": {
+      "value": "CEO, Chroma",
+      "source": "https://www.trychroma.com/blog/chroma-joins-replit",
+      "read": "2026-11-05",
+      "also": ["https://jeffreyhuber.com"]
+    },
+    "bio": {
+      "value": "Jeff Huber is the founder and CEO of Chroma, the open-source data infrastructure for AI, which signed an agreement in October 2026 to join Replit. Chroma recently open-sourced Context-1, a search agent model, and he writes essays on AI and company building, including The Rise of Context Engineering. At TypeScript AI Demo Day, Mastra’s event that allthings shared, he spoke on building agentic search.",
+      "source": "https://www.trychroma.com/blog/chroma-joins-replit",
+      "read": "2026-11-05",
+      "also": [
+        "https://jeffreyhuber.com",
+        "https://x.com/trychroma",
+        "https://www.linkedin.com/in/jeffchuber",
+        "https://allthings.dev/people/jeff-huber"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "twitterHandle": {
       "value": "jeffreyhuber",
-      "source": "https://api.fxtwitter.com/jeffreyhuber",
-      "read": "2026-10-05"
-    },
-    "photoSourceUrl": {
-      "value": "https://pbs.twimg.com/profile_images/1588236352797126656/i-XMejJn_400x400.jpg",
       "source": "https://api.fxtwitter.com/jeffreyhuber",
       "read": "2026-10-05"
     },
@@ -247,16 +335,12 @@
       "source": "https://www.linkedin.com/in/jeffchuber/",
       "read": "2026-10-05"
     },
+    "photoSourceUrl": {
+      "value": "https://pbs.twimg.com/profile_images/1588236352797126656/i-XMejJn_400x400.jpg",
+      "source": "https://api.fxtwitter.com/jeffreyhuber",
+      "read": "2026-10-05"
+    },
     "held": [
-      {
-        "field": "bio",
-        "value": null,
-        "sources": [
-          "https://api.fxtwitter.com/jeffreyhuber",
-          "https://jeffhuber.net/"
-        ],
-        "reason": "only a terse profile bio. The ai.engineer profile is editorial or generated, not in his own words."
-      },
       {
         "field": "blueskyHandle",
         "value": null,
@@ -1068,14 +1152,29 @@
     "profileId": "1a1fab0c-7fbe-4b5a-8ec0-3c4136e4b882",
     "name": "James Arthur",
     "title": {
-      "value": "Co-founder & CEO at ElectricSQL",
-      "source": "https://web.archive.org/web/20260429175541/https://electric.ax/about/team",
-      "read": "2026-10-06"
+      "value": "Neon, Databricks",
+      "source": "https://x.com/thruflo",
+      "read": "2026-11-05",
+      "was": "Co-founder & CEO at ElectricSQL",
+      "also": [
+        "https://electric.ax/blog/2026/08/11/electric-joining-databricks"
+      ]
     },
     "bio": {
-      "value": "Building Neon at Databricks. Previously co-founder of ElectricSQL.",
-      "source": "https://x.com/thruflo",
-      "read": "2026-10-06"
+      "value": "James Arthur builds Neon at Databricks, which Electric joined in August 2026. He co-founded ElectricSQL and was its CEO, and before that he co-founded Hazy and Opendesk and was a founding partner of Post Urban Ventures. He co-hosted at/sync.",
+      "source": "https://electric.ax/about/team",
+      "read": "2026-11-05",
+      "was": "Building Neon at Databricks. Previously co-founder of ElectricSQL.",
+      "also": [
+        "https://x.com/thruflo",
+        "https://electric.ax/blog/2026/08/11/electric-joining-databricks",
+        "https://allthings.dev/people/james-arthur"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "thruflo",
@@ -1259,6 +1358,29 @@
   {
     "profileId": "8bcce267-3c71-45c2-b366-0a22e4c61ed9",
     "name": "Evan Bacon",
+    "title": {
+      "value": "Frontend Lead for Grok, SpaceX Super Intelligence",
+      "source": "https://x.com/Baconbrix",
+      "read": "2026-11-05",
+      "was": "Creator of Expo Router",
+      "also": ["https://x.com/SpaceXSI"]
+    },
+    "bio": {
+      "value": "Evan Bacon leads frontend for Grok at SpaceX Super Intelligence. Before that he worked at Expo, where he created Expo Router and managed the developer tools team behind Expo CLI and Metro, and before turning to software full-time in 2015 he was a Lego artist. At at/react native he gave the talk \"I’m Evan Bacon\", and at at/expo he joined the panel on AI and the tools we build.",
+      "source": "https://x.com/Baconbrix",
+      "read": "2026-11-05",
+      "was": "Creator of Expo Router at Expo.",
+      "also": [
+        "https://evanbacon.dev/faq",
+        "https://share.transistor.fm/s/e9f2b98e",
+        "https://allthings.dev/people/evan-bacon"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
     "now": {
       "line": "Evan [leads frontend for Grok at SpaceXSI, after Expo](https://x.com/Baconbrix). His latest: [Grok Bot on your phone's calendar, reminders and contacts](https://x.com/Baconbrix/status/2113398485961855364).",
       "links": [
@@ -1293,6 +1415,177 @@
         "reason": "The page shows only \"3mo\"; the day is decoded from the post's id, not given by the page."
       }
     ]
+  },
+  {
+    "profileId": "87dafb25-2858-4b6a-b59a-e7fab6eb3664",
+    "name": "Erik Hanchett",
+    "title": {
+      "value": "Developer Advocate, AWS",
+      "source": "https://www.programwitherik.com/",
+      "read": "2026-11-05",
+      "was": "Senior Developer Advocate",
+      "also": ["https://x.com/ErikCH"]
+    },
+    "bio": {
+      "value": "Erik Hanchett is a developer advocate at AWS, where he works on Kiro and builds with AgentCore. He has taught developers for more than ten years through his Program With Erik YouTube channel, books and conference talks, and he wrote Vue.js in Action for Manning and the Ember.js Cookbook. At at/ai he spoke about full-stack AI with AWS Amplify.",
+      "source": "https://www.programwitherik.com/",
+      "read": "2026-11-05",
+      "was": "Hello! 👋 My name is Erik Hanchett! I'm a developer and author from Reno, NV. I've been teaching software development for over 10 years. Currently I work as a Senior Developer Advocate at AWS.",
+      "also": [
+        "https://x.com/ErikCH",
+        "https://bsky.app/profile/erikch.bsky.social",
+        "https://github.com/ErikCH",
+        "https://allthings.dev/people/erik-hanchett"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "88612a67-9020-4011-9605-1fa4bc81155d",
+    "name": "Erik Peña",
+    "title": {
+      "value": "Solutions Architect Senior Manager, Mux",
+      "source": "https://www.mux.com/team/erik-pena",
+      "read": "2026-11-05",
+      "was": "Solution Architecture"
+    },
+    "bio": {
+      "value": "Erik Peña is a solutions architect senior manager at Mux, where he helps customers with online video. He has spent more than 15 years in the video industry, including at Comcast Technology Solutions and You.i TV, and writes Mux guides on uploads, live streaming with React Native and the Mux plugin for Strapi. At the Pre Next.js Conf Meetup he spoke about building video-driven web apps with Mux, Strapi and Next.js.",
+      "source": "https://www.mux.com/team/erik-pena",
+      "read": "2026-11-05",
+      "was": "​Erik is a Solutions Architect at Mux where he helps customers navigate the very nuanced world online video.  Being in this industry for 15+ years, Erik has performed in various roles from Operations, Sales Engineering, Architecture, Product Management.  Erik has built width and depth to his acumen working for major leaders in this space including Mux, Comcast Technology Solutions and You.i TV (now part of Warner Brothers Discovery).",
+      "also": [
+        "https://luma.com/bhkeic0n",
+        "https://www.mux.com/blog/live-streaming-with-react-native",
+        "https://www.mux.com/blog/the-mux-plugin-for-strapi-is-now-verified",
+        "https://allthings.dev/people/erik-pena"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    },
+    "held": [
+      {
+        "field": "linkedinHandle",
+        "value": "erikspena",
+        "sources": ["https://www.linkedin.com/in/erikspena"],
+        "reason": "The public LinkedIn URL now returns 'Profile Not Found'; I could not confirm the handle or find a replacement."
+      }
+    ]
+  },
+  {
+    "profileId": "c07dc1e8-cf1a-4647-8669-9de7d903814e",
+    "name": "Ian Macartney",
+    "title": {
+      "value": "Software Engineer, Convex",
+      "source": "https://convex.dev/about-us",
+      "read": "2026-11-05",
+      "was": "Product Engineer",
+      "also": ["https://x.com/ianmacartney"]
+    },
+    "bio": {
+      "value": "Ian Macartney leads API development at Convex, building the libraries and Components developers use on its backend. He previously led infrastructure for file previews at Dropbox and freelanced for The New York Times, and he writes on Stack about agents, durable workflows and local-first apps. At an allthings evening at Convex he spoke about using Automerge’s local-first technology within an authoritative server model.",
+      "source": "https://convex.dev/about-us",
+      "read": "2026-11-05",
+      "was": "Ian is a senior engineer at Convex working on libraries, best practices, and demos for DX including developing AI Town in collaboration with a16z. He has previously created backend infrastructure for file previews at Dropbox, an ML workflow system for journalists at The New York Times, and other projects across iOS, web, and hardware platforms. Ian grew up in Colorado and studied Computer Science at Stanford.",
+      "also": [
+        "https://x.com/ianmacartney",
+        "https://stack.convex.dev/author/ian-macartney",
+        "https://allthings.dev/people/ian-macartney"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "5648da8b-3452-493d-bb83-7d40ada8b4bd",
+    "name": "JJ Kasper",
+    "title": {
+      "value": "Software Engineer, Vercel",
+      "source": "https://x.com/_ijjk",
+      "read": "2026-11-05",
+      "was": "Software Engineer at Vercel",
+      "also": ["https://github.com/ijjk"]
+    },
+    "bio": {
+      "value": "JJ Kasper is a software engineer at Vercel and a Next.js maintainer who works in open source. At an allthings evening at Vercel HQ he spoke about dynamicIO.",
+      "source": "https://bsky.app/profile/ijjk.bsky.social",
+      "read": "2026-11-05",
+      "was": "Next.js maintainer and Software Engineer at Vercel.",
+      "also": [
+        "https://x.com/_ijjk",
+        "https://github.com/ijjk",
+        "https://allthings.dev/people/jj-kasper"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "7ee03efb-9e4a-44c5-8385-3f119dab6b54",
+    "name": "James Grugett",
+    "title": {
+      "value": "Founder, Freebuff",
+      "source": "https://x.com/jahooma",
+      "read": "2026-11-05",
+      "was": "Cofounder of Codebuff",
+      "also": ["https://freebuff.com"]
+    },
+    "bio": {
+      "value": "James Grugett is the founder of Freebuff, a free coding agent built on Codebuff, an open multi-agent framework, and he also founded Manifold Markets. At an allthings evening at Convex he spoke about AI, IDEs and the future of code understanding.",
+      "source": "https://x.com/jahooma",
+      "read": "2026-11-05",
+      "was": "James is the cofounder of Codebuff. He also previously cofounded Manifold Markets. Previously, he was a software engineer at Google.",
+      "also": [
+        "https://freebuff.com",
+        "https://github.com/CodebuffAI/freebuff",
+        "https://allthings.dev/people/james-grugett"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "0eb9db21-6b8f-4e65-9fc5-b1e21e64aeed",
+    "name": "James Q Quick",
+    "title": {
+      "value": "Developer Educator, Cloudflare",
+      "source": "https://x.com/jamesqquick",
+      "read": "2026-11-05",
+      "was": "Head of Developer Experience",
+      "also": ["https://jamesqquick.com"]
+    },
+    "bio": {
+      "value": "James Q Quick is a developer educator at Cloudflare and a keynote speaker, creator and teacher whose motto is Learn Build Teach. He has spent years on developer experience at Auth0, PlanetScale and Cloudflare, and gives conference talks around the world on AI for developers and career growth. He was head of developer experience at Makeswift when he spoke at the Pre Next.js Conf Meetup, on design system patterns for Server Components.",
+      "source": "https://jamesqquick.com",
+      "read": "2026-11-05",
+      "was": "James is a developer, speaker, and teacher whose content has impacted hundreds of thousands of developers across the world. With 10+ years of experience, he blends deep technical knowledge with the ability to communicate across different levels of understanding and is currently serving a Head of Developer Experience at Makeswift. In his spare time, he and his wife love to travel, chase their toddler around, and play co-ed soccer.",
+      "also": [
+        "https://x.com/jamesqquick",
+        "https://luma.com/bhkeic0n",
+        "https://allthings.dev/people/james-q-quick"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
   },
   {
     "profileId": "e0a891dd-df9f-4ca2-8cef-db8bb3e1f605",
