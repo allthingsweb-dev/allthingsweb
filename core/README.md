@@ -1565,8 +1565,9 @@ sets it through Luma's API (`calendars/update`):
 - the a/ app icon as its avatar (app/public/brand/icon-512.png).
 
 `tests/luma-calendar.test.ts` holds each of these to its source. The address
-changes only with `--slug`, because links to luma.com/allthingsweb are
-everywhere. It works the way publish does:
+changes only with `--slug`. It moved from luma.com/allthingsweb to
+luma.com/allthings on 2026-11-04 (`--slug allthings`), and Luma sends the old
+address to the new one. It works the way publish does:
 
 - `--dry-run` prints each field that differs, from what to what, and its
   approval token.

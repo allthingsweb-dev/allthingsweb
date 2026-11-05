@@ -6,7 +6,7 @@
 - Linus has no Bluesky handle on record, so Bluesky posts name them untagged.
 - Grace Hopper has no X or Bluesky handle on record, so posts name them untagged.
 
-## luma: description (534 / 5000)
+## luma: description (531 / 5000)
 
 **On stage**
 
@@ -36,7 +36,7 @@ Why RSC & streaming matter.
 
 Writes compilers.
 
-**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthings)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
 ## meetup
 
@@ -58,7 +58,7 @@ settings to set by hand:
 - [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
 - [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
 
-description (534 / 5000):
+description (531 / 5000):
 
 **On stage**
 
@@ -88,7 +88,7 @@ Why RSC & streaming matter.
 
 Writes compilers.
 
-**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthings)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
 ## x: announce (82 / 280)
 

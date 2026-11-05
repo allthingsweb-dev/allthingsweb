@@ -98,7 +98,7 @@ INSERT INTO event_images (event_id, image_id, created_at, updated_at) VALUES
 
 INSERT INTO redirects (slug, destination_url, comment, updated_at) VALUES
   ('discord', 'https://discord.gg/B3Sm4b5mfD', 'Community chat', now()),
-  ('Luma', 'https://luma.com/allthingsweb', NULL, now());
+  ('Luma', 'https://luma.com/allthings', NULL, now());
 
 -- Posts about React at Acme: an approved one whose photo was copied into the
 -- bucket, an approved one without images, a hidden one and a pending one;

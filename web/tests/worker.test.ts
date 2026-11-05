@@ -477,7 +477,10 @@ describe("MCP", () => {
     expect(actual.contentType).toBe(expected.contentType);
     const appAnswer = toolAnswer(expected.body) as {
       result: {
-        structuredContent: { mission: string };
+        structuredContent: {
+          mission: string;
+          links: Record<string, string>;
+        };
         content: ReadonlyArray<{ text: string }>;
       };
     };
@@ -489,6 +492,11 @@ describe("MCP", () => {
       oneLiner:
         "Evenings for people who build software. In the neighborhoods of San Francisco.",
       mission: mission.replace("All Things Web brings ", "allthings brings "),
+      // The calendar moved from luma.com/allthingsweb on 2026-11-04.
+      links: {
+        ...appAnswer.result.structuredContent.links,
+        events: "https://luma.com/allthings",
+      },
     };
     expect(toolAnswer(actual.body)).toEqual({
       ...appAnswer,

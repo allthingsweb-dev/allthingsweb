@@ -5,7 +5,7 @@
 - No Luma event is linked, so nothing says where to take a seat.
 - No host or venue is on record, so nothing says where.
 
-## luma: description (313 / 5000)
+## luma: description (310 / 5000)
 
 Build something
 
@@ -17,7 +17,7 @@ Build something
 
 Writes compilers.
 
-**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthings)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
 ## meetup
 
@@ -39,7 +39,7 @@ settings to set by hand:
 - [ ] Cross-post to Remix Bay Area (meetup.com/remix-bay-area): its Discord chat link comes prefilled, so add no second one, and turn its registration form off, which otherwise blocks publishing.
 - [ ] After publishing: announce it to each group, React San Francisco Bay Area and Remix Bay Area.
 
-description (313 / 5000):
+description (310 / 5000):
 
 Build something
 
@@ -51,7 +51,7 @@ Build something
 
 Writes compilers.
 
-**[allthings](https://luma.com/allthingsweb)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
+**[allthings](https://luma.com/allthings)**: evenings for people who build software, in the neighborhoods of San Francisco. Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**.
 
 ## x: announce (56 / 280)
 

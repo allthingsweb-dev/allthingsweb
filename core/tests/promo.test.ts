@@ -270,7 +270,7 @@ describe("Meetup", () => {
       expect(text).toContain(
         "Hosted at **Globex** and **[Acme](https://acme.example/)**",
       );
-      expect(text).toContain("**[allthings](https://luma.com/allthingsweb)**");
+      expect(text).toContain("**[allthings](https://luma.com/allthings)**");
     }
   });
 

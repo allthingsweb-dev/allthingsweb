@@ -314,7 +314,7 @@ describe("the ledger", () => {
       '<p class="next-name">allthings<span class="slash">/</span><span class="at-cursor" aria-hidden="true">_</span></p>',
     );
     expect(html).toContain(
-      '<a href="https://luma.com/allthingsweb">subscribe on luma</a>',
+      '<a href="https://luma.com/allthings">subscribe on luma</a>',
     );
   });
 

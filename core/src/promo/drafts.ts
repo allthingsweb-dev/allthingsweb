@@ -28,7 +28,7 @@ import { fitOn, type Platform } from "./limits.ts";
 export const discordInvite = "https://discord.gg/B3Sm4b5mfD";
 
 /** Every evening, on Luma: the group our copy names. */
-export const lumaCalendar = "https://luma.com/allthingsweb";
+export const lumaCalendar = "https://luma.com/allthings";
 
 /** A profile's handles as stored, for tagging. */
 export interface Handles {
