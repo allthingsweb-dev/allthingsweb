@@ -77,6 +77,8 @@ jobs:
             queue: max
         permissions:
             contents: read
+            # GitHub's OIDC token, which npm trades for a short-lived publish token.
+            id-token: write
         steps:
             - name: ⬇️ Checkout repo
               uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -90,6 +92,33 @@ jobs:
               run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
               working-directory: cli
 
+            # npm trusted publishing, without npm's CLI: GitHub's OIDC token
+            # (audience npm:registry.npmjs.org) is traded at npm's exchange for
+            # a short-lived token that can publish allthings, as npm's own CLI
+            # does (lib/utils/oidc.js). npm accepts it only from the trusted
+            # publisher set on the package: this repository's cli-release.yaml.
+            # Both tokens are masked before anything could print them.
+            - name: 🔑 Trade GitHub's OIDC token for an npm token
+              run: |
+                  set -euo pipefail
+                  id_token=$(curl -fsS \
+                    -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                    "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r '.value // empty')
+                  if [ -z "$id_token" ]; then
+                    echo "::error::GitHub gave no OIDC token (the job needs id-token: write)"
+                    exit 1
+                  fi
+                  echo "::add-mask::$id_token"
+                  npm_token=$(curl -fsS -X POST \
+                    -H "Authorization: Bearer $id_token" \
+                    "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/allthings" | jq -r '.token // empty') || true
+                  if [ -z "$npm_token" ]; then
+                    echo "::error::npm refused the OIDC exchange: is this workflow the trusted publisher on allthings's npm settings?"
+                    exit 1
+                  fi
+                  echo "::add-mask::$npm_token"
+                  echo "NPM_CONFIG_TOKEN=$npm_token" >> "$GITHUB_ENV"
+
             # Packing builds the bundle (prepack). A prerelease goes to the
             # alpha dist-tag and a release to latest. npm gives a package's
             # first version latest whatever its tag, and latest can't be
@@ -102,7 +131,7 @@ jobs:
               working-directory: cli
               run: |
                   if [ -z "${NPM_CONFIG_TOKEN:-}" ]; then
-                    echo "::error::The NPM_TOKEN repository secret is not set"
+                    echo "::error::No npm token: the OIDC exchange step should have set one"
                     exit 1
                   fi
                   VERSION="$GITHUB_REF_NAME"
@@ -163,5 +192,3 @@ jobs:
                   done
                   echo "::error::npm dist-tags are $TAGS, not latest=$WANT_LATEST${WANT_ALPHA:+ alpha=$WANT_ALPHA}"
                   exit 1
-              env:
-                  NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
