@@ -69,15 +69,47 @@ export const slugRoots: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * One segment as a point may keep it, decoded: the site's own shape,
- * lowercase words and numbers of at most 4 digits joined by `-`, `_` or
- * `.` (`2024-11-12-react-at-vercel`, `wp-login.php`). Anything else is
- * replaced by what it was: `(email)` for an address however often encoded,
- * `(malformed)` for an escape that doesn't decode or is still encoded
- * after 8 passes, and `(code)` for every other shape (capitals, longer
- * numbers, letters and digits mixed: tokens, keys, ids, codes).
+ * The single words the site has pages and routes under (its sections, the
+ * lab's, its feeds and the old app's retired paths), which a point keeps
+ * as they are; any other single word could be a code, and is `(word)`.
+ */
+export const siteWords: ReadonlySet<string> = new Set([
+  ...slugRoots,
+  "_site",
+  "home",
+  "now",
+  "feed",
+  "rss",
+  "sitemap",
+  "robots",
+  "mcp",
+  "og",
+  "img",
+  "assets",
+  "logos",
+  "monitoring",
+  "profile",
+  "handler",
+  "admin",
+  "v1",
+]);
+
+/**
+ * One segment as a point may keep it, decoded: the site's own shape, two
+ * or more lowercase words, with numbers of at most 4 digits among them,
+ * joined by `-`, `_` or `.` (`2024-11-12-react-at-vercel`,
+ * `erik-thorelli`, `wp-login.php`). A single word is kept only where the
+ * site has a page of that name ({@link siteWords}). Anything else is
+ * replaced by what it was: `(email)` for an address however often
+ * encoded, `(malformed)` for an escape that doesn't decode or is still
+ * encoded after 8 passes, `(word)` for any other single word, and
+ * `(code)` for every other shape (capitals, numbers alone or longer than
+ * 4 digits, letters and digits mixed: tokens, keys, ids, codes). A
+ * marker an earlier pass wrote stays as it is, so the report's second
+ * pass over stored paths gives the same result.
  */
 function keptSegment(segment: string): string {
+  if (/^\((?:email|malformed|code|word)\)$|^…$/.test(segment)) return segment;
   let decoded = segment;
   for (let pass = 0; pass < 8 && decoded.includes("%"); pass++) {
     try {
@@ -88,13 +120,16 @@ function keptSegment(segment: string): string {
   }
   if (/@|%40/i.test(decoded)) return "(email)";
   if (decoded.includes("%")) return "(malformed)";
-  const words = decoded.split(/[-_.]/);
-  return words.every(
-    // An empty word is a separator at an end or doubled (`_site`, `a--b`).
-    (word) => word === "" || /^[a-z]+$/.test(word) || /^[0-9]{1,4}$/.test(word),
-  )
-    ? segment
-    : "(code)";
+  // An empty word is a separator at an end or doubled (`_site`, `a--b`).
+  const words = decoded.split(/[-_.]/).filter((word) => word !== "");
+  const shaped = words.every(
+    (word) => /^[a-z]+$/.test(word) || /^[0-9]{1,4}$/.test(word),
+  );
+  if (!shaped || !words.some((word) => /^[a-z]+$/.test(word))) {
+    return "(code)";
+  }
+  if (words.length === 1 && !siteWords.has(decoded)) return "(word)";
+  return segment;
 }
 
 /**

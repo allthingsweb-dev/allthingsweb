@@ -64,6 +64,11 @@ describe("redactedPath", () => {
       ["/r/x7k9q2m4", "/r/(code)"],
       ["/r/123456", "/r/(code)"],
       ["/people/Erik-Thorelli", "/people/(code)"],
+      ["/api/1234", "/api/(code)"],
+      ["/people/abcdefgh", "/people/(word)"],
+      // A path already stored redacted stays as it is.
+      ["/people/(email)", "/people/(email)"],
+      ["/people/(word)", "/people/(word)"],
       [
         // A JWT, built from its parts here so no scanner takes it for a real one.
         `/api/${["eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiJ0ZXN0In0", "c2lnbmF0dXJl"].join(".")}`,
@@ -79,9 +84,12 @@ describe("redactedPath", () => {
 
   test("keeps below any other first segment only that segment, and a photo variant as its class", () => {
     for (const [path, kept] of [
-      ["/reset/123456", "/reset/…"],
-      ["/reset/abcdefgh", "/reset/…"],
-      ["/invite/alice%40example.com/x", "/invite/…"],
+      ["/reset/123456", "/(word)/…"],
+      ["/reset/abcdefgh", "/(word)/…"],
+      ["/password-reset/abcdefgh", "/password-reset/…"],
+      ["/abcdefgh", "/(word)"],
+      ["/1234", "/(code)"],
+      ["/invite/alice%40example.com/x", "/(word)/…"],
       ["/123456", "/(code)"],
       ["/alice%40example.com", "/(email)"],
       ["/img/240/avif/1791086442/events/2024-11-12-all-thin.jpg", "/img/…"],
@@ -145,7 +153,7 @@ describe("visitorKind", () => {
 
 describe("requestPoint", () => {
   test("holds the class, the path, what answered, the colo, the method, the kind, the status and the time", () => {
-    const incoming = request("/people/erik?utm_source=x", {
+    const incoming = request("/people/erik-thorelli?utm_source=x", {
       headers: {
         "user-agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/140.0",
         "cf-connecting-ip": "203.0.113.9",
@@ -164,7 +172,14 @@ describe("requestPoint", () => {
     );
     expect(point).toEqual({
       indexes: ["/people/*"],
-      blobs: ["/people/*", "/people/erik", "store-miss", "SJC", "GET", "human"],
+      blobs: [
+        "/people/*",
+        "/people/erik-thorelli",
+        "store-miss",
+        "SJC",
+        "GET",
+        "human",
+      ],
       doubles: [404, 37.5],
     });
   });
