@@ -341,10 +341,11 @@ is read once a day at most: only in the run of the day's first hour (UTC),
 whatever comes of it. A dry run reads every source but X (whose read is
 billed), those the day already has too, so it checks each integration, and
 stores nothing: it reports what it would store (`wouldStore`, only what the
-day lacks) and whether this hour's run would attempt to read X. It writes as site_sync, which
-may insert rows and read which the day has, nothing else (migration 0037
-grants it, as the script lists)
-(infra/scripts/site-sync.ts). Nothing in it identifies anyone.
+day lacks) and whether this hour's run would attempt to read X. It writes as
+site_sync, which may read which sources the day has (`day`, `source`,
+`metric`) and insert rows, but never update one, and read the events' Luma
+guest and check-in counts for Luma's sums; migration 0037 grants exactly
+that, as infra/scripts/site-sync.ts lists. Nothing in it identifies anyone.
 
 The studio reads it, day by day, a line per source and metric:
 
