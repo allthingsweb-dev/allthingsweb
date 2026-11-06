@@ -48,61 +48,77 @@ export interface RequestDataset {
 export const pathLimit = 200;
 
 /**
- * A path as a point keeps it: each segment that could name a person or
- * hold a secret replaced by what it was, so a mistyped or crafted URL
- * never stores one. A segment with an `@` (an email address, raw or
- * encoded) becomes `(email)`. One of 24 or more letters, digits and `_`
- * with no `-`, or with capitals and digits among its `-`s, becomes
- * `(token)`: a token or a key. So does one with such a part between its
- * dots, a JWT among them, one that is a UUID, and one of 8 or more
- * letters and digits mixed with no separator (a short code). The site's
- * own paths have none of these but a photo's id: slugs are lowercase
- * words and dates joined by `-`, and a photo's version is 10 digits. A segment that doesn't decode becomes `(malformed)`. Then
- * at most {@link pathLimit} characters.
+ * The first segments of the site's own routes whose deeper paths are
+ * slugs: an evening's, a person's, a short link's, a lab variant's, an
+ * API resource's. Only below these is a path kept segment by segment;
+ * below any other first segment, a point keeps that segment alone and
+ * `/…` for the rest, so whatever a crafted URL carries after it is never
+ * stored. Photo variants (`/img/…`) are kept as their class: their paths
+ * are the site's own, and a 404 there says enough by its count.
+ */
+export const slugRoots: ReadonlySet<string> = new Set([
+  "events",
+  "people",
+  "speakers",
+  "about",
+  "brand",
+  "lab",
+  "r",
+  "api",
+  "code-of-conduct",
+]);
+
+/**
+ * One segment as a point may keep it, decoded: the site's own shape,
+ * lowercase words and numbers of at most 4 digits joined by `-`, `_` or
+ * `.` (`2024-11-12-react-at-vercel`, `wp-login.php`). Anything else is
+ * replaced by what it was: `(email)` for an address however often encoded,
+ * `(malformed)` for an escape that doesn't decode or is still encoded
+ * after 8 passes, and `(code)` for every other shape (capitals, longer
+ * numbers, letters and digits mixed: tokens, keys, ids, codes).
+ */
+function keptSegment(segment: string): string {
+  let decoded = segment;
+  for (let pass = 0; pass < 8 && decoded.includes("%"); pass++) {
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch {
+      return "(malformed)";
+    }
+  }
+  if (/@|%40/i.test(decoded)) return "(email)";
+  if (decoded.includes("%")) return "(malformed)";
+  const words = decoded.split(/[-_.]/);
+  return words.every(
+    // An empty word is a separator at an end or doubled (`_site`, `a--b`).
+    (word) => word === "" || /^[a-z]+$/.test(word) || /^[0-9]{1,4}$/.test(word),
+  )
+    ? segment
+    : "(code)";
+}
+
+/**
+ * A path as a point keeps it, so a mistyped or crafted URL never stores
+ * what could name a person or hold a secret: below the site's slug routes
+ * ({@link slugRoots}) each segment as {@link keptSegment} keeps it; below
+ * any other first segment only that segment, then `/…`; photo variants as
+ * `/img/…`. Then at most {@link pathLimit} characters. The 404 report
+ * passes stored paths through it again, so older points are kept to the
+ * same rule.
  */
 export function redactedPath(pathname: string): string {
-  const isTokenLike = (part: string) =>
-    /^[A-Za-z0-9_]{24,}$/.test(part) ||
-    (/^[A-Za-z0-9_-]{24,}$/.test(part) &&
-      /[A-Z]/.test(part) &&
-      /[0-9]/.test(part)) ||
-    // An id: a UUID, as a reset or invitation link might carry.
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      part,
-    ) ||
-    // A short random code: 8 or more letters and digits, both, unbroken.
-    (/^[A-Za-z0-9]{8,}$/.test(part) &&
-      /[0-9]/.test(part) &&
-      /[A-Za-z]/.test(part));
-  return pathname
-    .split("/")
-    .map((segment) => {
-      // Decoded until it no longer changes (three times at most), so an
-      // address encoded twice over (`%2540`) is found too.
-      let decoded = segment;
-      for (let pass = 0; pass < 3 && decoded.includes("%"); pass++) {
-        try {
-          decoded = decodeURIComponent(decoded);
-        } catch {
-          // A malformed escape could hide either (`%40` beside `%ZZ`), so
-          // the segment is never kept.
-          return "(malformed)";
-        }
-      }
-      if (/@|%40/i.test(decoded)) return "(email)";
-      // Each part between dots is checked, so a JWT (three such parts) is
-      // a token too, and a file name (`photo.jpg`) isn't.
-      if (
-        decoded.split(".").some(isTokenLike) ||
-        // A JWT, however short its parts: a base64url JSON header first.
-        /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/.test(decoded)
-      ) {
-        return "(token)";
-      }
-      return segment;
-    })
-    .join("/")
-    .slice(0, pathLimit);
+  const [first = "", ...rest] = pathname.replace(/^\/+/, "").split("/");
+  if (first === "") return "/";
+  const root = keptSegment(first);
+  const kept =
+    first === "img"
+      ? "/img/…"
+      : slugRoots.has(first)
+        ? `/${[root, ...rest.map(keptSegment)].join("/")}`
+        : rest.length === 0
+          ? `/${root}`
+          : `/${root}/…`;
+  return kept.slice(0, pathLimit);
 }
 
 /** The `REQUESTS` binding, if the Worker has one. */

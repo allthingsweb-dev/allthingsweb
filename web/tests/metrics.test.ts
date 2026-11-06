@@ -28,7 +28,8 @@ describe("pathClass", () => {
       ["//", "/"],
       ["/about", "/about"],
       ["/people/erik-thorelli", "/people/*"],
-      ["/Events/2024-11-12-all-things-web", "/events/*"],
+      // Capitals aren't the site's: such a first segment is never an index.
+      ["/Events/2024-11-12-all-things-web", "/(other)"],
       ["/img/240/avif/1791086442/events/x.jpg", "/img/*"],
       ["/_site/prewarm", "/_site/*"],
     ] as const) {
@@ -52,25 +53,38 @@ describe("pathClass", () => {
 });
 
 describe("redactedPath", () => {
-  test("replaces a segment that could name a person or hold a secret", () => {
+  test("keeps below the site's slug routes only segments of its own shape", () => {
     for (const [path, kept] of [
       ["/people/alice@example.com", "/people/(email)"],
       ["/people/alice%40example.com", "/people/(email)"],
       ["/people/alice%2540example.com", "/people/(email)"],
-      ["/people/alice%252540example.com", "/people/(email)"],
-      ["/reset/" + "a1B2c3D4".repeat(4), "/reset/(token)"],
-      ["/k/" + "a1b2c3d4".repeat(3), "/k/(token)"],
-      ["/reset/550e8400-e29b-41d4-a716-446655440000", "/reset/(token)"],
-      ["/invite/x7k9q2m4", "/invite/(token)"],
-      ["/i/a1b2c3d4e5", "/i/(token)"],
+      ["/people/alice%2525252540example.com", "/people/(email)"],
+      ["/events/" + "a1B2c3D4".repeat(4), "/events/(code)"],
+      ["/events/550e8400-e29b-41d4-a716-446655440000", "/events/(code)"],
+      ["/r/x7k9q2m4", "/r/(code)"],
+      ["/r/123456", "/r/(code)"],
+      ["/people/Erik-Thorelli", "/people/(code)"],
       [
         // A JWT, built from its parts here so no scanner takes it for a real one.
-        `/auth/${["eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiJ0ZXN0In0", "c2lnbmF0dXJl"].join(".")}`,
-        "/auth/(token)",
+        `/api/${["eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiJ0ZXN0In0", "c2lnbmF0dXJl"].join(".")}`,
+        "/api/(code)",
       ],
-      ["/s/" + "Ab3-xY9_".repeat(4), "/s/(token)"],
-      ["/x/%E0%A4%A", "/x/(malformed)"],
+      ["/events/%E0%A4%A", "/events/(malformed)"],
       ["/people/alice%40example.com%ZZ", "/people/(malformed)"],
+      [`/people/a${"%25".repeat(9)}40b`, "/people/(malformed)"],
+    ] as const) {
+      expect([path, redactedPath(path)]).toEqual([path, kept]);
+    }
+  });
+
+  test("keeps below any other first segment only that segment, and a photo variant as its class", () => {
+    for (const [path, kept] of [
+      ["/reset/123456", "/reset/…"],
+      ["/reset/abcdefgh", "/reset/…"],
+      ["/invite/alice%40example.com/x", "/invite/…"],
+      ["/123456", "/(code)"],
+      ["/alice%40example.com", "/(email)"],
+      ["/img/240/avif/1791086442/events/2024-11-12-all-thin.jpg", "/img/…"],
     ] as const) {
       expect([path, redactedPath(path)]).toEqual([path, kept]);
     }
@@ -79,11 +93,12 @@ describe("redactedPath", () => {
   test("keeps the site's own paths as they are", () => {
     for (const path of [
       "/",
+      "/about",
       "/people/erik-thorelli",
       "/events/2024-11-12-all-things-web-at-vercel",
-      "/img/240/avif/1791086442/events/2024-11-12-all-thin.jpg",
-      "/img/336x336/avif/1791075639/profiles/erik-thorelli-84f10f03-be3d-4542-80f8-8fb9b9ea1503.png",
+      "/lab/home/slash-grid",
       "/wp-login.php",
+      "/sentry-example-page",
     ]) {
       expect(redactedPath(path)).toBe(path);
     }
