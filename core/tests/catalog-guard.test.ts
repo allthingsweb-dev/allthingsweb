@@ -107,9 +107,11 @@ const ownTime: Readonly<Record<string, string>> = {
   "core/src/social/announce.ts": "announcing",
   "core/src/social/sent-posts.ts": "recording what was posted",
   "web/src/images/kept.ts": "timing image variants read from the bucket",
+  "web/src/metrics.ts": "timing each request's data point",
   "web/src/images/route.ts": "timing image variants",
   "web/src/sync/run.ts": "the sync Worker",
   "web/src/sync/worker.ts": "the sync Worker, timing its word to the site",
+  "web/src/worker.ts": "the site's Worker, timing each answer for its data point",
 };
 
 const root = new URL("../../", import.meta.url);
