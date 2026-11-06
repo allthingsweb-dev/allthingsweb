@@ -170,19 +170,16 @@ export const requestDatasetOf = (
 
 /**
  * A path's class: its first segment, with `/*` when more follows, so
- * `/people/erik` is `/people/*` and `/` is `/`. A first segment no route of
- * the site could have (a dot, other characters, over 32 of them: `/.env`,
- * `/wp-login.php`) is `/(other)`, which keeps the classes few.
+ * `/people/erik` is `/people/*` and `/` is `/`, for the first segments the
+ * site has ({@link siteWords}). Any other first segment (`/.env`,
+ * `/wp-login.php`, a mistyped or crafted URL) is `/(other)`: the classes
+ * stay few, and an index never holds what a URL carried.
  */
 export function pathClass(pathname: string): string {
-  // Redacted first, so a token-like first segment is never an index.
-  const [first = "", ...rest] = redactedPath(pathname)
-    .replace(/^\/+/, "")
-    .split("/");
+  const [first = "", ...rest] = pathname.replace(/^\/+/, "").split("/");
   if (first === "") return "/";
-  if (!/^[a-z0-9_-]{1,32}$/i.test(first)) return "/(other)";
-  const segment = first.toLowerCase();
-  return rest.length > 0 ? `/${segment}/*` : `/${segment}`;
+  if (!siteWords.has(first)) return "/(other)";
+  return rest.length > 0 ? `/${first}/*` : `/${first}`;
 }
 
 /**
@@ -225,7 +222,10 @@ export function requestPoint(
     indexes: [kind],
     blobs: [
       kind,
-      redactedPath(pathname),
+      // A path the site answered is one of its own; any other (a 404, a
+      // refusal) is kept as its class alone, so nothing a crafted URL
+      // carries is ever stored.
+      response.status < 400 ? redactedPath(pathname) : kind,
       answeredBy(response),
       typeof colo === "string" ? colo : "",
       request.method,

@@ -1,4 +1,4 @@
-import { REQUESTS_DATASET, redactedPath } from "./metrics.ts";
+import { pathClass, REQUESTS_DATASET } from "./metrics.ts";
 
 /**
  * What web/scripts/requests.ts asks of the Worker's request data points
@@ -16,13 +16,16 @@ export type RequestsStage = keyof typeof REQUESTS_DATASET;
 const since = (days: number) =>
   `timestamp > NOW() - INTERVAL '${Math.trunc(days)}' DAY`;
 
-/** The paths that answered 404 most, with how many of those asked were bots. */
+/**
+ * The path classes that answered 404 most (a 404 keeps its class alone),
+ * with how many of those asked were bots.
+ */
 export const top404Query = (
   stage: RequestsStage,
   days: number,
   limit: number,
 ) =>
-  `SELECT blob2 AS path, SUM(_sample_interval) AS requests, ` +
+  `SELECT blob1 AS path, SUM(_sample_interval) AS requests, ` +
   `SUM(IF(blob6 = 'bot', _sample_interval, 0)) AS bots ` +
   `FROM ${REQUESTS_DATASET[stage]} WHERE ${since(days)} AND double1 = 404 ` +
   `GROUP BY path ORDER BY requests DESC LIMIT ${Math.trunc(limit)}`;
@@ -89,12 +92,12 @@ export function formatReport(
       (row) => `  ${String(row["answered"])}  ${count(row["requests"])}`,
     ),
     "",
-    "top 404 paths (requests, of them bots)",
+    "top 404 path classes (requests, of them bots)",
     ...(notFound.length === 0
       ? ["  none"]
       : notFound.map(
           (row) =>
-            `  ${count(row["requests"])}  ${count(row["bots"])}  ${redactedPath(String(row["path"]))}`,
+            `  ${count(row["requests"])}  ${count(row["bots"])}  ${pathClass(String(row["path"]))}`,
         )),
   ].join("\n");
 }

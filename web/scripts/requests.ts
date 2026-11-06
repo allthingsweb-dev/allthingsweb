@@ -13,7 +13,7 @@ import {
 /**
  * What reached the Web Worker, from its one anonymous data point per
  * request (src/metrics.ts): the statuses, what answered (the page
- * store's hit rate among them) and the paths that answered 404 most. It
+ * store's hit rate among them) and the path classes that answered 404 most. It
  * reads Analytics Engine's SQL API with a token that may only read the
  * account's analytics ("allthings analytics read"), passed without
  * printing it:
@@ -59,7 +59,7 @@ const command = Command.make(
       Flag.withDefault(7),
     ),
     limit: Flag.Int("limit").pipe(
-      Flag.withDescription("List at most this many 404 paths."),
+      Flag.withDescription("List at most this many 404 path classes."),
       Flag.filter(
         (limit) => limit >= 1 && limit <= 1000,
         (limit) => `--limit must be 1 to 1000, not ${limit}`,

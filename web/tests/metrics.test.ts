@@ -77,6 +77,15 @@ describe("redactedPath", () => {
       ["/events/%E0%A4%A", "/events/(malformed)"],
       ["/people/alice%40example.com%ZZ", "/people/(malformed)"],
       [`/people/a${"%25".repeat(9)}40b`, "/people/(malformed)"],
+      // After 8 passes, 9 levels leave `%40`; 10 leave `%2540`.
+      [`/people/alice${"%" + "25".repeat(8)}40example.com`, "/people/(email)"],
+      [
+        `/people/alice${"%" + "25".repeat(9)}40example.com`,
+        "/people/(malformed)",
+      ],
+      // Stored paths stay the same on a second pass.
+      ["/(word)/…", "/(word)/…"],
+      ["/(code)", "/(code)"],
     ] as const) {
       expect([path, redactedPath(path)]).toEqual([path, kept]);
     }
@@ -165,7 +174,7 @@ describe("requestPoint", () => {
     const point = requestPoint(
       incoming,
       new Response("x", {
-        status: 404,
+        status: 200,
         headers: { "server-timing": 'store;desc="miss";dur=2.0' },
       }),
       37.5,
@@ -180,8 +189,24 @@ describe("requestPoint", () => {
         "GET",
         "human",
       ],
-      doubles: [404, 37.5],
+      doubles: [200, 37.5],
     });
+  });
+
+  test("keeps a 404's path as its class alone, so nothing a crafted URL carries is stored", () => {
+    for (const path of [
+      "/r/correct-horse-battery-staple",
+      "/correct-horse-battery-staple",
+      "/people/alice%40example.com",
+    ]) {
+      const point = requestPoint(
+        request(path),
+        new Response(null, { status: 404 }),
+        1,
+      );
+      expect([path, point.blobs[1]]).toEqual([path, point.blobs[0]]);
+      expect(point.blobs.join(" ")).not.toMatch(/horse|alice/);
+    }
   });
 
   test("keeps nothing that identifies a person: no query, address, agent, cookie or referrer", () => {
@@ -289,7 +314,7 @@ describe("recordRequest", () => {
 describe("the request queries", () => {
   test("read prod's dataset, or the previews', over the window", () => {
     expect(top404Query("prod", 7, 20)).toBe(
-      "SELECT blob2 AS path, SUM(_sample_interval) AS requests, SUM(IF(blob6 = 'bot', _sample_interval, 0)) AS bots FROM allthings_requests WHERE timestamp > NOW() - INTERVAL '7' DAY AND double1 = 404 GROUP BY path ORDER BY requests DESC LIMIT 20",
+      "SELECT blob1 AS path, SUM(_sample_interval) AS requests, SUM(IF(blob6 = 'bot', _sample_interval, 0)) AS bots FROM allthings_requests WHERE timestamp > NOW() - INTERVAL '7' DAY AND double1 = 404 GROUP BY path ORDER BY requests DESC LIMIT 20",
     );
     expect(answeredQuery("preview", 1)).toContain(
       `FROM ${REQUESTS_DATASET.preview} WHERE timestamp > NOW() - INTERVAL '1' DAY`,
@@ -329,7 +354,7 @@ describe("the request queries", () => {
             { answered: "store-miss", requests: "15" },
           ],
           notFound: [
-            { path: "/wp-login.php", requests: "20", bots: "19" },
+            { path: "/(other)", requests: "20", bots: "19" },
             // Kept before paths were redacted: redacted when shown.
             { path: "/people/someone%40example.com", requests: "1", bots: "0" },
           ],
@@ -347,9 +372,9 @@ describe("the request queries", () => {
         "  store-hit  60",
         "  store-miss  15",
         "",
-        "top 404 paths (requests, of them bots)",
-        "  20  19  /wp-login.php",
-        "  1  0  /people/(email)",
+        "top 404 path classes (requests, of them bots)",
+        "  20  19  /(other)",
+        "  1  0  /people/*",
       ].join("\n"),
     );
   });
