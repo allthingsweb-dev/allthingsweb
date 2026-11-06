@@ -98,6 +98,7 @@ function fakeInternet(answers: Partial<Record<string, () => Response>> = {}) {
   return { asked, layer: Layer.succeed(HttpClient.HttpClient, client) };
 }
 
+/** The live sources over `internet`, the test database and a test X token. */
 const live = (internet: ReturnType<typeof fakeInternet>) =>
   CommunitySources.live.pipe(
     Layer.provide(
@@ -111,6 +112,7 @@ const live = (internet: ReturnType<typeof fakeInternet>) =>
     ),
   );
 
+/** Every source read once through the live layer: its metrics, or why it failed. */
 const readAll = (internet: ReturnType<typeof fakeInternet>) =>
   Effect.runPromise(
     Effect.gen(function* () {
@@ -252,6 +254,7 @@ const snapshotAt = (
   }));
 };
 
+/** The rows stored for `day`, as `source metric value` lines. */
 const stored = async (day: string) =>
   (
     await db.query<{ row: string }>(

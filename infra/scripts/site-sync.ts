@@ -367,6 +367,11 @@ async function plan(owner: string, vault: string): Promise<void> {
   }
 }
 
+/**
+ * Without flags: makes site_sync or gives it a new password, grants it
+ * exactly SITE_SYNC_GRANTS (checked before the commit), and stores its
+ * connection string. `--dry-run` shows the change and keeps nothing.
+ */
 async function main(): Promise<void> {
   const owner = process.env["OWNER_URL"];
   if (!owner) throw new Error("OWNER_URL is required (see this file's header)");
