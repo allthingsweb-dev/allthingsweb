@@ -1109,9 +1109,15 @@ describe("the Worker, from its bindings", () => {
         expect.arrayContaining([
           "discord members",
           "github stars",
+          "luma guests",
           "meetup members",
         ]),
       );
+      // Every source it tried answered, Luma's sums as site_sync included.
+      expect(report.steps["community"]).toMatchObject({
+        status: "done",
+        failed: {},
+      });
       expect(internet.fetched[0]?.href).toStartWith(
         "https://api.luma.com/ics/get",
       );
