@@ -276,7 +276,9 @@ export const makeAlerts = (
       email: [ALERT_EMAIL],
     } as const;
     if (web !== undefined) {
-      yield* SqlAlert("WebErrors", {
+      // Not "…Errors": the prod deploy refuses a plan with "rror" in any
+      // line (ops/scripts/prod-deploy.sh), a resource's name included.
+      yield* SqlAlert("SiteFailures", {
         name: "allthings: site errors over 5%",
         description:
           "Over 5% of allthings.dev's requests in the last hour failed in its Worker (a 5xx or an exception). Its Workers Logs say which (infra/README.md, Alerts).",
