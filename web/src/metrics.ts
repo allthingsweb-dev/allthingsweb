@@ -104,9 +104,8 @@ export const siteWords: ReadonlySet<string> = new Set([
  * encoded, `(malformed)` for an escape that doesn't decode or is still
  * encoded after 8 passes, `(word)` for any other single word, and
  * `(code)` for every other shape (capitals, numbers alone or longer than
- * 4 digits, letters and digits mixed: tokens, keys, ids, codes). A
- * marker an earlier pass wrote stays as it is, so the report's second
- * pass over stored paths gives the same result.
+ * 4 digits, letters and digits mixed: tokens, keys, ids, codes). Markers
+ * and `…` already in a path stay as they are.
  */
 function keptSegment(segment: string): string {
   if (/^\((?:email|malformed|code|word)\)$|^…$/.test(segment)) return segment;
@@ -137,9 +136,9 @@ function keptSegment(segment: string): string {
  * what could name a person or hold a secret: below the site's slug routes
  * ({@link slugRoots}) each segment as {@link keptSegment} keeps it; below
  * any other first segment only that segment, then `/…`; photo variants as
- * `/img/…`. Then at most {@link pathLimit} characters. The 404 report
- * passes stored paths through it again, so older points are kept to the
- * same rule.
+ * `/img/…`. Then at most {@link pathLimit} characters. Only a path the
+ * site answered 200 is kept this way (requestPoint); the 404 report
+ * prints classes.
  */
 export function redactedPath(pathname: string): string {
   const [first = "", ...rest] = pathname.replace(/^\/+/, "").split("/");
@@ -222,10 +221,11 @@ export function requestPoint(
     indexes: [kind],
     blobs: [
       kind,
-      // A path the site answered is one of its own; any other (a 404, a
-      // refusal) is kept as its class alone, so nothing a crafted URL
-      // carries is ever stored.
-      response.status < 400 ? redactedPath(pathname) : kind,
+      // A path the site answered 200 is one of its own pages; any other (a
+      // redirect, which some routes give for any slug, a 404, a refusal)
+      // is kept as its class alone, so nothing a crafted URL carries is
+      // ever stored.
+      response.status === 200 ? redactedPath(pathname) : kind,
       answeredBy(response),
       typeof colo === "string" ? colo : "",
       request.method,

@@ -193,15 +193,18 @@ describe("requestPoint", () => {
     });
   });
 
-  test("keeps a 404's path as its class alone, so nothing a crafted URL carries is stored", () => {
-    for (const path of [
-      "/r/correct-horse-battery-staple",
-      "/correct-horse-battery-staple",
-      "/people/alice%40example.com",
-    ]) {
+  test("keeps the path of anything but a 200 as its class alone, so nothing a crafted URL carries is stored", () => {
+    for (const [path, status] of [
+      ["/r/correct-horse-battery-staple", 404],
+      ["/correct-horse-battery-staple", 404],
+      ["/people/alice%40example.com", 404],
+      // The mode's redirect answers any path, before its slug is read.
+      ["/people/correct-horse-battery-staple?theme=system", 303],
+      ["/api/v1/correct-horse-battery-staple/preview.png", 301],
+    ] as const) {
       const point = requestPoint(
         request(path),
-        new Response(null, { status: 404 }),
+        new Response(null, { status }),
         1,
       );
       expect([path, point.blobs[1]]).toEqual([path, point.blobs[0]]);
