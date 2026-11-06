@@ -2,6 +2,7 @@ import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
+import { makeAlerts, withAlertProviders } from "./src/alerts.ts";
 import {
   MEDIA_BUCKET,
   MEDIA_DOMAIN,
@@ -13,6 +14,7 @@ import {
   siteServing,
 } from "./src/media.ts";
 import { PREVIEW, makePreview } from "./src/preview.ts";
+import { REQUESTS_DATASET } from "../web/src/metrics.ts";
 import { makeSync, syncPlan } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
@@ -27,7 +29,11 @@ import {
 
 export default Alchemy.Stack(
   "allthings",
-  { providers: Cloudflare.providers(), state: Cloudflare.state() },
+  {
+    // Alchemy's Cloudflare providers, and the alerts' own (src/alerts.ts).
+    providers: withAlertProviders(Cloudflare.providers()),
+    state: Cloudflare.state(),
+  },
   Effect.gen(function* () {
     // Every stage but prod (PR previews, staging, personal stages) runs only
     // the Worker replacing the app, reading production through its own
@@ -62,6 +68,7 @@ export default Alchemy.Stack(
               ? siteDomain(zone.id)
               : undefined,
             siteRefreshToken,
+            REQUESTS_DATASET.prod,
             analytics?.siteToken.as<string>(),
           );
     const webUrl = site?.url.as<string>();
@@ -92,6 +99,13 @@ export default Alchemy.Stack(
     const sync =
       syncing === undefined ? undefined : yield* makeSync(syncing.images, site);
     const syncWorker = sync?.workerName.as<string>();
+
+    // Email when the site's Worker fails, a sync fails, or none has
+    // succeeded for two hours (src/alerts.ts), in the allthings account.
+    yield* makeAlerts(
+      site?.workerName.as<string>(),
+      sync?.workerName.as<string>(),
+    );
 
     if (role === "stage") {
       return {

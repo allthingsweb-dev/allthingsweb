@@ -55,14 +55,20 @@ describe("siteTokenOf", () => {
 describe("withBeaconPolicy", () => {
   test("allows the beacon's script and its reports, and changes nothing else", () => {
     expect(withBeaconPolicy(contentSecurityPolicy.variants)).toBe(
-      "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; script-src https://static.cloudflareinsights.com/beacon.min.js; connect-src https://cloudflareinsights.com",
+      "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; script-src https://static.cloudflareinsights.com; connect-src https://cloudflareinsights.com",
+    );
+  });
+
+  test("allows the beacon's whole host, which its script loads its versioned code from", () => {
+    expect(withBeaconPolicy(contentSecurityPolicy.variants)).toMatch(
+      /script-src https:\/\/static\.cloudflareinsights\.com;/,
     );
   });
 
   test("adds to a page's own script-src, keeping 'self'", () => {
     const policy = withBeaconPolicy(scriptedContentSecurityPolicy.originals);
     expect(policy).toContain(
-      "script-src https://static.cloudflareinsights.com/beacon.min.js 'self';",
+      "script-src https://static.cloudflareinsights.com 'self';",
     );
     expect(policy.match(/script-src/g)).toHaveLength(1);
     expect(policy).toContain("connect-src https://cloudflareinsights.com");
