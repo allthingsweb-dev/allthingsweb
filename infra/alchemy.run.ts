@@ -14,6 +14,7 @@ import {
   siteServing,
 } from "./src/media.ts";
 import { PREVIEW, makePreview } from "./src/preview.ts";
+import { REQUESTS_DATASET } from "../web/src/metrics.ts";
 import { makeSync, syncPlan } from "./src/sync.ts";
 import { MediaUpload, MediaUploadCheck } from "./src/upload-worker.ts";
 import { VercelEnv } from "./src/vercel-env.ts";
@@ -67,6 +68,7 @@ export default Alchemy.Stack(
               ? siteDomain(zone.id)
               : undefined,
             siteRefreshToken,
+            REQUESTS_DATASET.prod,
             analytics?.siteToken.as<string>(),
           );
     const webUrl = site?.url.as<string>();

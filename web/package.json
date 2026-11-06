@@ -9,7 +9,8 @@
     "check": "prettier --check .",
     "typecheck": "bun run build && tsc --noEmit && tsc --noEmit -p src/client",
     "xss-scan": "bun run build && ../tools/xss-scan/node_modules/.bin/xss-scan --project tsconfig.json",
-    "test": "bun run build && bun test"
+    "test": "bun run build && bun test",
+    "requests": "bun --no-env-file scripts/requests.ts"
   },
   "dependencies": {
     "@effect/sql-pg": "4.0.0",

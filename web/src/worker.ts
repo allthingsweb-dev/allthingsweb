@@ -100,6 +100,7 @@ export default {
     env: Readonly<Record<string, unknown>>,
     context: ExecutionContext,
   ): Promise<Response> {
+    const started = Date.now();
     // Before anything else: it keeps nothing and reads nothing.
     const redirect = withoutTrailingSlash(request.url);
     // It answers before the store and the app, so it takes the edge rule here.
@@ -196,12 +197,27 @@ export default {
     // Cache may keep, and for how long (cache.ts), for every answer: the
     // writers' paths too, whose refusals carry no lifetime. On prod, each
     // page answered 200 carries the Web Analytics beacon (web-analytics.ts).
+    // Then one anonymous data point for the answer, where the Worker has a
+    // `REQUESTS` dataset
+    // (metrics.ts), written after it is sent: its module
+    // loads only then, so a cold start parses none of it
+    // (tests/support/stack.ts), and nothing it does fails the request.
     return keptVariant(request, variantStoreOf(env), (promise) =>
       context.waitUntil(promise),
     )
       .then((kept) => kept ?? app(request, context))
-      .then((response) =>
-        forWorkersCache(request, withBeacon(response, siteTokenOf(env))),
-      );
+      .then((response) => {
+        const answer = forWorkersCache(
+          request,
+          withBeacon(response, siteTokenOf(env)),
+        );
+        context.waitUntil(
+          import("./metrics.ts").then(
+            (metrics) => metrics.default(env, request, answer, started),
+            () => {},
+          ),
+        );
+        return answer;
+      });
   },
 };
