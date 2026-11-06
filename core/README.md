@@ -108,8 +108,8 @@ The event studio's commands connect as `studio`, a login role made by
 [`infra/scripts/studio.ts`](../infra/scripts/studio.ts): `plan`,
 `readiness`, `luma create`, `update`, `publish`, `cover`, `registration`
 and `hosts`, `luma:drafts --add` and `--forget`, `social bluesky`, `discord` and `x`, `posts`,
-`photos`, `people photo`, `hosts logo`, `talks` and `collab` (all but
-`collab access end-sessions`, which reaches only Cloudflare). Its
+`photos`, `people photo`, `hosts logo`, `talks`, `community` and `collab`
+(all but `collab access end-sessions`, which reaches only Cloudflare). Its
 connection string
 is the 1Password item "allthings studio" (`credential`), so every one of
 them runs as
@@ -143,7 +143,8 @@ has it, the command says so on stderr; nothing else changes.
 - **Exactly what its commands use.** The script lists each grant with the
   command whose statement needs it: planning's tables, the collaboration's
   included, read whole and written by column; on `public`, reads
-  of only tables site_reader already reads, and writes of only the columns
+  of only tables site_reader already reads (and `community_metrics`, which
+  `bun run community` reads and the site never shows), and writes of only the columns
   the studio writes (a draft's stored event, its program, its cover, the
   lineup publish copies, photos and their images, a profile's photo, a
   host's logos, a talk's title, description and speakers, posts).
