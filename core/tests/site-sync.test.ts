@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { DateTime, Effect, Exit, Layer, Option } from "effect";
 import {
+  expectedPrivileges,
   grantStatements,
+  regrant,
   SITE_SYNC,
   SITE_SYNC_GRANTS,
   SITE_SYNC_SETTINGS,
@@ -12,6 +14,10 @@ import {
   type Statements,
 } from "../../infra/scripts/login-role.ts";
 import { FollowerSource, refreshFollowers } from "../src/followers.ts";
+import {
+  CommunitySources,
+  snapshotCommunity,
+} from "../src/community-metrics.ts";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { ImageIngest } from "../src/ingest/ingest.ts";
 import { CandidateSearches, findCandidates } from "../src/posts/candidates.ts";
@@ -394,6 +400,43 @@ describe("site_sync", () => {
     expect(report.refreshed.length).toBeGreaterThan(0);
   });
 
+  test("takes the day's community snapshot, reading Luma's guests and keeping each first value", async () => {
+    const snapshot = (value: number) =>
+      Effect.runPromise(
+        snapshotCommunity().pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              Layer.succeed(
+                CommunitySources,
+                CommunitySources.of({
+                  read: () => Effect.succeed({ followers: value }),
+                }),
+              ),
+              sqlLayer(db),
+              // The day's first hour, when X is read too.
+              clockAt(DateTime.makeUnsafe("2026-10-05T00:00:05Z")),
+            ),
+          ),
+        ),
+      );
+    const first = await snapshot(1);
+    expect(first.failed).toEqual({});
+    expect(first.stored).toContain("x");
+    // A second run that day reads nothing: every source has its number.
+    expect((await snapshot(2)).stored).toEqual([]);
+    expect(await refusal("UPDATE community_metrics SET value = 3")).toContain(
+      "permission denied",
+    );
+    expect(await refusal("DELETE FROM community_metrics")).toContain(
+      "permission denied",
+    );
+    expect(
+      await refusal(
+        "SELECT sum(luma_guest_count), sum(luma_checked_in_count) FROM events",
+      ),
+    ).toBeUndefined();
+  });
+
   test("searches past evenings for posts, and reports what it would add", async () => {
     const reports = await searchPast(true);
     expect(reports[0]?.candidates.map((c) => c.outcome)).toEqual(["would add"]);
@@ -660,6 +703,31 @@ describe("site_sync", () => {
         ([name, value]) => `${name}=${value}`,
       ),
     });
+  });
+
+  test("plans its grants: how the role would change, and that it would hold exactly the list", async () => {
+    await db.exec("RESET ROLE");
+    await db.exec(`GRANT SELECT, DELETE ON talks TO ${SITE_SYNC}`);
+    await db.exec("BEGIN");
+    try {
+      const plan = await regrant(owner(db), "test-only");
+      expect(plan.created).toBe(false);
+      expect(plan.wrong).toEqual([]);
+      expect(plan.delta).toContain("- public.talks delete");
+      expect(plan.delta).toContain("- public.talks select");
+    } finally {
+      // The dry run's way: nothing is kept.
+      await db.exec("ROLLBACK");
+    }
+    const kept = await db.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM information_schema.table_privileges
+       WHERE grantee = $1 AND table_name = 'talks'`,
+      [SITE_SYNC],
+    );
+    expect(kept.rows[0]?.n).toBeGreaterThan(0);
+    expect(expectedPrivileges()).toContain(
+      "public.community_metrics insert value",
+    );
   });
 
   test("grants only what the list says, and a rerun narrows to it", async () => {

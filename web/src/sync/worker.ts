@@ -1,5 +1,6 @@
 import { PgClient } from "@effect/sql-pg";
 import { FollowerSource } from "allthings-core/src/followers.ts";
+import { CommunitySources } from "allthings-core/src/community-metrics.ts";
 import { CoverSource } from "allthings-core/src/ingest/covers.ts";
 import { CandidateSearches } from "allthings-core/src/posts/candidates.ts";
 import { PostSources } from "allthings-core/src/posts/sources.ts";
@@ -258,6 +259,9 @@ export const syncLayer = (
     PostSources.layer,
     // As site_sync: found posts go in only as pending.
     EventPostWriter.pendingOnly,
+    // The community's public numbers, once a day (core's
+    // src/community-metrics.ts).
+    CommunitySources.live,
   ).pipe(
     Layer.provide(Layer.mergeAll(Luma.layer, LumaApi.layer, CoverSource.layer)),
     // Merged, not only provided: the follower refresh and the post search

@@ -273,7 +273,7 @@ describe("its privileges in the catalog", () => {
 });
 
 describe("what the script grants", () => {
-  test("reads on public only tables site_reader reads", () => {
+  test("reads on public only tables site_reader reads, but the community's numbers", () => {
     const beyond = Object.keys(STUDIO_GRANTS)
       .filter((table) => table.startsWith("public."))
       .filter(
@@ -282,7 +282,10 @@ describe("what the script grants", () => {
             table.slice("public.".length),
           ),
       );
-    expect(beyond).toEqual([]);
+    // Public counts of the community's own accounts, which the site never
+    // shows; read only, by `bun run community`.
+    expect(beyond).toEqual(["public.community_metrics"]);
+    expect(STUDIO_GRANTS["public.community_metrics"]).toEqual({ select: true });
   });
 
   test("reads every collaboration table, each with row security and the studio's own policy", async () => {
@@ -504,6 +507,7 @@ const suites: Readonly<
   "people photo": ["profile-photo.test.ts"],
   "hosts logo": ["host-logos.test.ts"],
   talks: ["talk-edits.test.ts"],
+  community: ["community-metrics.test.ts"],
   "collab !end-sessions": [
     "collab.test.ts",
     "collab-cli.test.ts",

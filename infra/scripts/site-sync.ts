@@ -18,7 +18,8 @@
  *
  *   OWNER_URL=$(bunx neonctl@latest connection-string br-round-dust-a6avtg0r \
  *     --project-id wispy-sea-75401301 --role-name neondb_owner --database-name neondb) \
- *     bun infra/scripts/site-sync.ts
+ *     bun infra/scripts/site-sync.ts --dry-run   # how its privileges would change; keeps nothing
+ *   … bun infra/scripts/site-sync.ts             # do it: grants checked against the list before commit
  *
  * VAULT names the 1Password vault (default: allthings, the one vault this
  * repository reads its credentials from, and the only one agents' service
@@ -28,8 +29,10 @@ import {
   connectionStringFor,
   newPassword,
   provisionLoginRole,
+  type Statements,
   storeConnectionString,
 } from "./login-role.ts";
+import { grantedQuery } from "./studio.ts";
 
 export const SITE_SYNC = "site_sync";
 
@@ -78,12 +81,21 @@ interface ColumnGrants {
  *   the account the profile already has: a renamed account's new handle, or
  *   none, with the lost one recorded, when X gives the handle to another.
  *
+ * - community_metrics: the daily snapshot of the community's public numbers
+ *   (core/src/community-metrics.ts) reads which sources the day has and
+ *   inserts a row per metric for each one it reads, never replacing one
+ *   (ON CONFLICT DO NOTHING); to sum Luma's guests it reads the events'
+ *   guest and check-in counts.
+ *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
  */
 export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
   events: {
     select: [
+      // The community snapshot sums Luma's guests (core/src/community-metrics.ts).
+      "luma_guest_count",
+      "luma_checked_in_count",
       "id",
       "luma_event_id",
       "slug",
@@ -196,6 +208,12 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
   event_people: { select: ["event_id", "profile_id"] },
   event_talks: { select: ["event_id", "talk_id"] },
   talk_speakers: { select: ["talk_id", "speaker_id"] },
+  // The community snapshot: which sources today has, and today's rows
+  // (core/src/community-metrics.ts). `read_at` takes its default.
+  community_metrics: {
+    select: ["day", "source", "metric"],
+    insert: ["day", "source", "metric", "value"],
+  },
 };
 
 /**
@@ -247,23 +265,137 @@ export function grantStatements(role = SITE_SYNC): string[] {
   return statements;
 }
 
+/** What {@link grantedQuery} reads once {@link grantStatements} has run: SITE_SYNC_GRANTS, line by line. */
+export function expectedPrivileges(): string[] {
+  return [
+    "schema public usage",
+    ...Object.entries(SITE_SYNC_GRANTS).flatMap(([table, grants]) =>
+      (["select", "insert", "update"] as const).flatMap((privilege) =>
+        (grants[privilege] ?? []).map(
+          (column) => `public.${table} ${privilege} ${column}`,
+        ),
+      ),
+    ),
+  ].toSorted();
+}
+
+/** The role's table, column and schema privileges, as the catalog holds them. */
+const granted = async (sql: Statements, role: string): Promise<string[]> =>
+  ((await sql.unsafe(grantedQuery, [role])) as Array<{ grant: string }>).map(
+    (row) => row.grant,
+  );
+
+/** Lines in `to` and not `from`, as `+ line`, then the reverse, as `- line`. */
+const changes = (from: ReadonlyArray<string>, to: ReadonlyArray<string>) => [
+  ...to.filter((line) => !from.includes(line)).map((line) => `+ ${line}`),
+  ...from.filter((line) => !to.includes(line)).map((line) => `- ${line}`),
+];
+
+/**
+ * Makes `role` (or gives it `password`) and runs {@link grantStatements} on
+ * `sql`, a transaction: how its privileges change, and where they would
+ * differ from SITE_SYNC_GRANTS (nothing, unless the list and its statements
+ * disagree). The caller commits, or rolls back to keep nothing.
+ */
+export async function regrant(
+  sql: Statements,
+  password: string,
+  role = SITE_SYNC,
+): Promise<{
+  readonly created: boolean;
+  readonly delta: ReadonlyArray<string>;
+  readonly wrong: ReadonlyArray<string>;
+}> {
+  const existed =
+    (
+      (await sql.unsafe("SELECT 1 FROM pg_roles WHERE rolname = $1", [
+        role,
+      ])) as unknown[]
+    ).length > 0;
+  const before = existed ? await granted(sql, role) : [];
+  const created = await provisionLoginRole(sql, role, password);
+  for (const statement of grantStatements(role)) {
+    await sql.unsafe(statement);
+  }
+  const after = await granted(sql, role);
+  return {
+    created,
+    delta: changes(before, after),
+    wrong: changes(after, expectedPrivileges()),
+  };
+}
+
 const item = "allthings site_sync";
 
+/** Rolls the plan's transaction back once it has shown what it would do. */
+class Planned extends Error {}
+
+/**
+ * `--dry-run`: in a transaction that is always rolled back, makes the role
+ * (with a throwaway password) and runs every statement, then prints how its
+ * privileges would change. Nothing is kept or stored.
+ */
+async function plan(owner: string, vault: string): Promise<void> {
+  const sql = new Bun.SQL(owner);
+  try {
+    await sql.begin(async (transaction) => {
+      const { created, delta, wrong } = await regrant(
+        transaction,
+        newPassword(),
+      );
+      if (wrong.length > 0) {
+        throw new Error(
+          `The statements would leave ${SITE_SYNC} with other privileges than SITE_SYNC_GRANTS:\n${wrong.join("\n")}`,
+        );
+      }
+      console.log(
+        [
+          `${SITE_SYNC} would be ${created ? "created" : "given a new password"}, with column grants on ${Object.keys(SITE_SYNC_GRANTS).length} tables.`,
+          delta.length === 0
+            ? "Its privileges would stay as they are."
+            : `Its privileges would change:\n${delta.join("\n")}`,
+          `Its connection string would go to NEON_SYNC_URL and 1Password, "${item}" (credential) in ${vault}.`,
+          "Nothing was changed. Run it again without --dry-run to do it.",
+        ].join("\n"),
+      );
+      throw new Planned();
+    });
+  } catch (error) {
+    if (!(error instanceof Planned)) throw error;
+  } finally {
+    await sql.end();
+  }
+}
+
+/**
+ * Without flags: makes site_sync or gives it a new password, grants it
+ * exactly SITE_SYNC_GRANTS (checked before the commit), and stores its
+ * connection string. `--dry-run` shows the change and keeps nothing.
+ */
 async function main(): Promise<void> {
   const owner = process.env["OWNER_URL"];
   if (!owner) throw new Error("OWNER_URL is required (see this file's header)");
   const vault = process.env["VAULT"] ?? "allthings";
+  if (process.argv.includes("--dry-run")) return plan(owner, vault);
 
   const password = newPassword();
   const sql = new Bun.SQL(owner);
-  const created = await sql.begin(async (transaction) => {
-    const isNew = await provisionLoginRole(transaction, SITE_SYNC, password);
-    for (const statement of grantStatements()) {
-      await transaction.unsafe(statement);
-    }
-    return isNew;
-  });
-  await sql.end();
+  let created: boolean;
+  try {
+    created = await sql.begin(async (transaction) => {
+      const result = await regrant(transaction, password);
+      // Checked before the commit: a mismatch rolls the grants and the new
+      // password back, and leaves the role as it was.
+      if (result.wrong.length > 0) {
+        throw new Error(
+          `${SITE_SYNC}'s privileges wouldn't be SITE_SYNC_GRANTS, so nothing was changed:\n${result.wrong.join("\n")}`,
+        );
+      }
+      return result.created;
+    });
+  } finally {
+    await sql.end();
+  }
 
   await storeConnectionString({
     value: connectionStringFor(owner, SITE_SYNC, password),
@@ -274,7 +406,7 @@ async function main(): Promise<void> {
       "The hourly Luma sync's connection to production (its Worker's Hyperdrive). Rotate with infra/scripts/site-sync.ts in allthingsweb-dev/allthingsweb.",
   });
   console.log(
-    `✓ ${SITE_SYNC} ${created ? "created" : "has a new password"}, column grants on ${Object.keys(SITE_SYNC_GRANTS).length} tables; NEON_SYNC_URL and 1Password ("${item}" in ${vault}) updated`,
+    `✓ ${SITE_SYNC} ${created ? "created" : "has a new password"}, exactly SITE_SYNC_GRANTS on ${Object.keys(SITE_SYNC_GRANTS).length} tables; NEON_SYNC_URL and 1Password ("${item}" in ${vault}) updated`,
   );
 }
 

@@ -108,8 +108,8 @@ The event studio's commands connect as `studio`, a login role made by
 [`infra/scripts/studio.ts`](../infra/scripts/studio.ts): `plan`,
 `readiness`, `luma create`, `update`, `publish`, `cover`, `registration`
 and `hosts`, `luma:drafts --add` and `--forget`, `social bluesky`, `discord` and `x`, `posts`,
-`photos`, `people photo`, `hosts logo`, `talks` and `collab` (all but
-`collab access end-sessions`, which reaches only Cloudflare). Its
+`photos`, `people photo`, `hosts logo`, `talks`, `community` and `collab`
+(all but `collab access end-sessions`, which reaches only Cloudflare). Its
 connection string
 is the 1Password item "allthings studio" (`credential`), so every one of
 them runs as
@@ -143,7 +143,8 @@ has it, the command says so on stderr; nothing else changes.
 - **Exactly what its commands use.** The script lists each grant with the
   command whose statement needs it: planning's tables, the collaboration's
   included, read whole and written by column; on `public`, reads
-  of only tables site_reader already reads, and writes of only the columns
+  of only tables site_reader already reads (and `community_metrics`, which
+  `bun run community` reads and the site never shows), and writes of only the columns
   the studio writes (a draft's stored event, its program, its cover, the
   lineup publish copies, photos and their images, a profile's photo, a
   host's logos, a talk's title, description and speakers, posts).
@@ -314,6 +315,44 @@ authors by id too.
 DATABASE_URL=… bun run followers --dry-run   # read the counts, write nothing
 DATABASE_URL=… bun run followers             # store them
 DATABASE_URL=… bun run followers --stale-days 0 --max 1000   # re-read everyone
+```
+
+## The community's numbers
+
+`community_metrics` keeps the community's public numbers, one snapshot a day
+(UTC), so they have a history (`src/community-metrics.ts`,
+`migrations/0037_community_metrics.ts`): a row per day, source and metric.
+
+| Source    | Metrics                                     | Read from                                                             |
+| --------- | ------------------------------------------- | --------------------------------------------------------------------- |
+| `x`       | `followers`, `following`, `posts`, `listed` | X's API, @allthingswebdev by its user id, with the app's bearer token |
+| `bluesky` | `followers`, `following`, `posts`           | `app.bsky.actor.getProfile` for allthingsweb.dev                      |
+| `youtube` | `subscribers`, `views`                      | the channel's public page (YouTube has no keyless API)                |
+| `discord` | `members`, `online`                         | the server's invite, with counts                                      |
+| `meetup`  | `members`                                   | Meetup's GraphQL, the group's member count                            |
+| `luma`    | `guests`, `checked_in`, `events`            | the database: the sums of published evenings' Luma counts             |
+| `npm`     | `downloads_day`, `downloads_week`           | npm's downloads API for `allthings`                                   |
+| `github`  | `stars`, `forks`                            | GitHub's API for this repository                                      |
+
+The sync Worker takes it in each hourly run (`community`): it reads each
+source the day has no row for yet and stores what it reads, never replacing
+a value (the day's first stays). A source that fails is read again the next
+hour, and the step's log line names it (`failed`). X bills each read, so it
+is read once a day at most: only in the run of the day's first hour (UTC),
+whatever comes of it. A dry run reads every source but X (whose read is
+billed), those the day already has too, so it checks each integration, and
+stores nothing: it reports what it would store (`wouldStore`, only what the
+day lacks) and whether this hour's run would attempt to read X. It writes as
+site_sync, which may read which sources the day has (`day`, `source`,
+`metric`) and insert rows, but never update one, and read the events' Luma
+guest and check-in counts for Luma's sums; migration 0037 grants exactly
+that, as infra/scripts/site-sync.ts lists. Nothing in it identifies anyone.
+
+The studio reads it, day by day, a line per source and metric:
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run community             # the last 14 days
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run community --days 90
 ```
 
 ## Luma descriptions
