@@ -4,6 +4,7 @@ import { Command, Flag } from "effect/cli";
 import {
   answeredQuery,
   formatReport,
+  notFoundKindsQuery,
   type RequestsStage,
   type Row,
   statusQuery,
@@ -13,7 +14,8 @@ import {
 /**
  * What reached the Web Worker, from its one anonymous data point per
  * request (src/metrics.ts): the statuses, what answered (the page
- * store's hit rate among them) and the path classes that answered 404 most. It
+ * store's hit rate among them), the 404s by kind and the 404 shapes asked
+ * most (src/not-found.ts). It
  * reads Analytics Engine's SQL API with a token that may only read the
  * account's analytics ("allthings analytics read"), passed without
  * printing it:
@@ -59,7 +61,7 @@ const command = Command.make(
       Flag.withDefault(7),
     ),
     limit: Flag.Int("limit").pipe(
-      Flag.withDescription("List at most this many 404 path classes."),
+      Flag.withDescription("List at most this many 404 shapes."),
       Flag.filter(
         (limit) => limit >= 1 && limit <= 1000,
         (limit) => `--limit must be 1 to 1000, not ${limit}`,
@@ -77,16 +79,17 @@ const command = Command.make(
     Effect.gen(function* () {
       const token = yield* Config.Redacted("CLOUDFLARE_API_TOKEN");
       const stage: RequestsStage = preview ? "preview" : "prod";
-      const [statuses, answered, notFound] = yield* Effect.all(
+      const [statuses, answered, kinds, notFound] = yield* Effect.all(
         [
           query(token, statusQuery(stage, days)),
           query(token, answeredQuery(stage, days)),
+          query(token, notFoundKindsQuery(stage, days)),
           query(token, top404Query(stage, days, limit)),
         ],
-        { concurrency: 3 },
+        { concurrency: 4 },
       );
       yield* Console.log(
-        formatReport({ stage, days }, { statuses, answered, notFound }),
+        formatReport({ stage, days }, { statuses, answered, kinds, notFound }),
       );
     }),
 ).pipe(

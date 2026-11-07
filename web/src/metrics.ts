@@ -11,14 +11,19 @@
  * once, for a coarse `bot` or `human`, and dropped.
  *
  * - `indexes`: the path's class, Analytics Engine's sampling key.
- * - `blobs`: the class, the path (no query, redacted by
- *   {@link redactedPath}), what answered (`store-hit`, `img-miss`, `none`, … from
- *   Server-Timing), the data center (`colo`), the method, `bot` or `human`.
+ * - `blobs`: the class, the path (no query: a 200's redacted by
+ *   {@link redactedPath}, a 404's as its shape from not-found.ts, any other
+ *   status's as its class), what answered (`store-hit`, `img-miss`, `none`,
+ *   … from Server-Timing), the data center (`colo`), the method, `bot` or
+ *   `human`, and a 404's kind (`well-known`, `legacy`, `probe`, `guessed`,
+ *   `other`; empty for any other status).
  * - `doubles`: the status, then how long the Worker took in milliseconds.
  *
- * It imports nothing. The Worker loads it after each answer is sent
- * (worker.ts), so it is no part of a cold start.
+ * It imports only not-found.ts, which imports nothing. The Worker loads it
+ * after each answer is sent (worker.ts), so it is no part of a cold start.
  */
+
+import { notFoundShape } from "./not-found.ts";
 
 /**
  * The datasets the points go to, bound as `REQUESTS` (infra/src/web.ts).
@@ -137,8 +142,8 @@ function keptSegment(segment: string): string {
  * ({@link slugRoots}) each segment as {@link keptSegment} keeps it; below
  * any other first segment only that segment, then `/…`; photo variants as
  * `/img/…`. Then at most {@link pathLimit} characters. Only a path the
- * site answered 200 is kept this way (requestPoint); the 404 report
- * prints classes.
+ * site answered 200 is kept this way (requestPoint); a 404 keeps its shape
+ * (not-found.ts), made of fixed words and markers alone.
  */
 export function redactedPath(pathname: string): string {
   const [first = "", ...rest] = pathname.replace(/^\/+/, "").split("/");
@@ -209,11 +214,13 @@ export function requestPoint(
   tookMs: number,
 ): {
   readonly indexes: [string];
-  readonly blobs: [string, string, string, string, string, string];
+  readonly blobs: [string, string, string, string, string, string, string];
   readonly doubles: [number, number];
 } {
   const { pathname } = new URL(request.url);
   const kind = pathClass(pathname);
+  const notFound =
+    response.status === 404 ? notFoundShape(pathname) : undefined;
   const cf: unknown = Reflect.get(request, "cf");
   const colo: unknown =
     typeof cf === "object" && cf !== null ? Reflect.get(cf, "colo") : undefined;
@@ -221,15 +228,18 @@ export function requestPoint(
     indexes: [kind],
     blobs: [
       kind,
-      // A path the site answered 200 is one of its own pages; any other (a
-      // redirect, which some routes give for any slug, a 404, a refusal)
-      // is kept as its class alone, so nothing a crafted URL carries is
-      // ever stored.
-      response.status === 200 ? redactedPath(pathname) : kind,
+      // A path the site answered 200 is one of its own pages, kept
+      // redacted; a 404 as its shape, made of fixed words and markers
+      // alone; any other (a redirect, which some routes give for any slug,
+      // a refusal) as its class. Nothing a crafted URL carries is stored.
+      response.status === 200
+        ? redactedPath(pathname)
+        : (notFound?.shape.slice(0, pathLimit) ?? kind),
       answeredBy(response),
       typeof colo === "string" ? colo : "",
       request.method,
       visitorKind(request.headers.get("user-agent")),
+      notFound?.kind ?? "",
     ],
     doubles: [response.status, Math.max(0, tookMs)],
   };

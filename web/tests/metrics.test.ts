@@ -13,6 +13,7 @@ import {
 import {
   answeredQuery,
   formatReport,
+  notFoundKindsQuery,
   statusQuery,
   storeHitRate,
   top404Query,
@@ -188,16 +189,39 @@ describe("requestPoint", () => {
         "SJC",
         "GET",
         "human",
+        "",
       ],
       doubles: [200, 37.5],
     });
   });
 
-  test("keeps the path of anything but a 200 as its class alone, so nothing a crafted URL carries is stored", () => {
+  test("keeps a 404's path as its shape and kind, so nothing a crafted URL carries is stored", () => {
+    for (const [path, kind, shape] of [
+      ["/r/correct-horse-battery-staple", "guessed", "/r/(slug)"],
+      ["/correct-horse-battery-staple", "guessed", "/(slug)"],
+      ["/people/alice%40example.com", "guessed", "/people/(slug)"],
+      ["/backend/.env", "probe", "(probe: env)"],
+      ["/ssl/correct-horse.key", "probe", "(probe: keys and certificates)"],
+      ["/press", "guessed", "/press"],
+    ] as const) {
+      const point = requestPoint(
+        request(path),
+        new Response(null, { status: 404 }),
+        1,
+      );
+      expect([path, point.blobs[1], point.blobs[6]]).toEqual([
+        path,
+        shape,
+        kind,
+      ]);
+      expect(point.blobs.join(" ")).not.toMatch(/horse|alice|backend/);
+    }
+  });
+
+  test("keeps the path of any other status but 200 as its class alone, with no kind", () => {
     for (const [path, status] of [
-      ["/r/correct-horse-battery-staple", 404],
-      ["/correct-horse-battery-staple", 404],
-      ["/people/alice%40example.com", 404],
+      ["/r/correct-horse-battery-staple", 410],
+      ["/people/alice%40example.com", 400],
       // The mode's redirect answers any path, before its slug is read.
       ["/people/correct-horse-battery-staple?theme=system", 303],
       ["/api/v1/correct-horse-battery-staple/preview.png", 301],
@@ -208,6 +232,7 @@ describe("requestPoint", () => {
         1,
       );
       expect([path, point.blobs[1]]).toEqual([path, point.blobs[0]]);
+      expect(point.blobs[6]).toBe("");
       expect(point.blobs.join(" ")).not.toMatch(/horse|alice/);
     }
   });
@@ -256,7 +281,7 @@ describe("recordRequest", () => {
     expect(points).toEqual([
       {
         indexes: ["/"],
-        blobs: ["/", "/", "none", "", "GET", "bot"],
+        blobs: ["/", "/", "none", "", "GET", "bot", ""],
         doubles: [200, expect.any(Number)],
       },
     ]);
@@ -317,7 +342,10 @@ describe("recordRequest", () => {
 describe("the request queries", () => {
   test("read prod's dataset, or the previews', over the window", () => {
     expect(top404Query("prod", 7, 20)).toBe(
-      "SELECT blob1 AS path, SUM(_sample_interval) AS requests, SUM(IF(blob6 = 'bot', _sample_interval, 0)) AS bots FROM allthings_requests WHERE timestamp > NOW() - INTERVAL '7' DAY AND double1 = 404 GROUP BY path ORDER BY requests DESC LIMIT 20",
+      "SELECT blob7 AS kind, blob2 AS path, SUM(_sample_interval) AS requests, SUM(IF(blob6 = 'bot', _sample_interval, 0)) AS bots FROM allthings_requests WHERE timestamp > NOW() - INTERVAL '7' DAY AND double1 = 404 GROUP BY kind, path ORDER BY requests DESC LIMIT 20",
+    );
+    expect(notFoundKindsQuery("prod", 7)).toBe(
+      "SELECT blob7 AS kind, SUM(_sample_interval) AS requests, SUM(IF(blob6 = 'bot', _sample_interval, 0)) AS bots FROM allthings_requests WHERE timestamp > NOW() - INTERVAL '7' DAY AND double1 = 404 GROUP BY kind ORDER BY requests DESC",
     );
     expect(answeredQuery("preview", 1)).toContain(
       `FROM ${REQUESTS_DATASET.preview} WHERE timestamp > NOW() - INTERVAL '1' DAY`,
@@ -356,10 +384,28 @@ describe("the request queries", () => {
             { answered: "store-hit", requests: "60" },
             { answered: "store-miss", requests: "15" },
           ],
+          kinds: [
+            { kind: "probe", requests: "18", bots: "18" },
+            { kind: "", requests: "7", bots: "1" },
+          ],
           notFound: [
-            { path: "/(other)", requests: "20", bots: "19" },
+            { kind: "probe", path: "(probe: env)", requests: "18", bots: "18" },
+            // Kept before shapes were: its class.
+            { kind: "", path: "/(other)", requests: "6", bots: "1" },
             // Kept before paths were redacted: redacted when shown.
-            { path: "/people/someone%40example.com", requests: "1", bots: "0" },
+            {
+              kind: "",
+              path: "/people/someone%40example.com",
+              requests: "1",
+              bots: "0",
+            },
+            // A shape no code gives is never shown.
+            {
+              kind: "guessed",
+              path: "/correct-horse-battery",
+              requests: "1",
+              bots: "0",
+            },
           ],
         },
       ),
@@ -375,9 +421,15 @@ describe("the request queries", () => {
         "  store-hit  60",
         "  store-miss  15",
         "",
-        "top 404 path classes (requests, of them bots)",
-        "  20  19  /(other)",
-        "  1  0  /people/*",
+        "404s by kind (requests, of them bots)",
+        "  18  18  probe",
+        "  7  1  (none)",
+        "",
+        "top 404s (requests, of them bots, kind, path)",
+        "  18  18  probe  (probe: env)",
+        "  6  1  (none)  /(other)",
+        "  1  0  (none)  /people/*",
+        "  1  0  guessed  /(other)",
       ].join("\n"),
     );
   });
