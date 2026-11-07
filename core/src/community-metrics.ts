@@ -28,6 +28,17 @@ import { orDataSourceError } from "./sql.ts";
  * the day ends. X bills each read, so it is read at most once a day: only
  * in the run of the day's first hour (UTC), whatever comes of it.
  *
+ * A source that can't be read now is a **gap** or a **failure**
+ * ({@link CommunityReadError}'s `temporary`, decided by
+ * {@link isGapAnswer}). A gap is known and temporary: a rate limit or a
+ * refusal, which public APIs answer Cloudflare's shared addresses at
+ * times, a source down or slow, or npm's counts of a package too new to
+ * have them. It is retried the next run and recorded in `community_gaps`
+ * (migrations/0038_community_gaps.ts), so `bun run community` shows it, and
+ * it never fails the sync. A failure needs someone: an answer that isn't
+ * what it should be, a missing key, the database. So is a gap that lasts:
+ * a source with no number for {@link gapDays} days.
+ *
  * Every source is public, read without a key but X's app token (the
  * sync's own, X_BEARER_TOKEN): nothing here identifies anyone, only
  * counts of the community's own accounts.
@@ -62,11 +73,86 @@ export type Source = (typeof sources)[number];
 /** A source's metrics as read: whole counts, by name. */
 export type Metrics = Readonly<Record<string, number>>;
 
-/** A source could not be read; it is tried again on a later run. */
+/**
+ * A source could not be read; it is tried again on a later run. A
+ * `temporary` one is a gap, which needs no one; any other is a failure.
+ */
 export class CommunityReadError extends Schema.TaggedError<CommunityReadError>()(
   "CommunityReadError",
-  { source: Schema.String, reason: Schema.String },
+  { source: Schema.String, reason: Schema.String, temporary: Schema.Boolean },
 ) {}
+
+/**
+ * Whether a source's answer, `status` and not 200, is a gap: known and
+ * temporary, so the next run reads it again and no one is told.
+ *
+ * - 429: a rate limit. Every source is read from Cloudflare's shared
+ *   addresses, which other callers' traffic can exhaust (Discord's and
+ *   npm's both have).
+ * - 403: a refusal of the caller, which for these public APIs is a rate
+ *   limit too (GitHub answers 403 when an address has used its hourly
+ *   allowance) or a block of an address.
+ * - 5xx: the source is down.
+ * - npm's 404: npm's downloads API knows a package only a day or so after
+ *   it is published.
+ *
+ * Any other answer is a failure: a page or an API that moved, or a request
+ * of ours that is wrong. A refusal that lasts is one too ({@link gapDays}).
+ */
+export const isGapAnswer = (source: Source, status: number): boolean =>
+  status === 429 ||
+  status === 403 ||
+  status >= 500 ||
+  (source === "npm" && status === 404);
+
+/**
+ * How many days a source may go without a number, today included, while
+ * each read is a gap. A source still a gap after that, read every hour for
+ * two days and more without an answer, is no longer temporary: its gap is
+ * a failure, until it answers.
+ */
+export const gapDays = 3;
+
+/**
+ * Why a source answered `status` rather than 200, with what its answer says
+ * about when to ask again: a rate limit's headers (how many requests are
+ * left and when they reset, as GitHub and Discord send them, Discord's
+ * scope, anyone's Retry-After) and Cloudflare's block of the caller's
+ * address (error 1015), which only its body names. At most 200 characters.
+ */
+export function refusal(
+  status: number,
+  headers: Readonly<Record<string, string | undefined>>,
+  body = "",
+): string {
+  const notes: Array<string> = [];
+  if (/error code: 1015\b/.test(body)) {
+    notes.push("Cloudflare 1015, the address is rate-limited");
+  }
+  const remaining = headers["x-ratelimit-remaining"];
+  if (remaining !== undefined) notes.push(`${remaining} left`);
+  // Seconds since the epoch, as both send it.
+  const reset = Number(headers["x-ratelimit-reset"]);
+  if (Number.isFinite(reset) && reset > 1e9) {
+    notes.push(
+      `resets ${new Date(Math.round(reset) * 1000).toISOString().slice(11, 16)} UTC`,
+    );
+  }
+  if (headers["x-ratelimit-global"] === "true") notes.push("global");
+  const scope = headers["x-ratelimit-scope"];
+  if (scope !== undefined) notes.push(`scope ${scope}`);
+  const retry = headers["retry-after"];
+  if (retry !== undefined) {
+    notes.push(
+      `retry after ${retry}${/^\d+(\.\d+)?$/.test(retry) ? " s" : ""}`,
+    );
+  }
+  const reason =
+    notes.length === 0
+      ? `answered ${status}`
+      : `answered ${status} (${notes.join(", ")})`;
+  return reason.slice(0, 200);
+}
 
 const count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 
@@ -157,22 +243,41 @@ export class CommunitySources extends Context.Service<
             ),
           );
           if (response.status !== 200) {
+            const temporary = isGapAnswer(source, response.status);
+            // Only a refusal's body says why (Cloudflare's 1015).
+            const body =
+              response.status === 403 || response.status === 429
+                ? yield* response.text.pipe(
+                    Effect.orElseSucceed(() => ""),
+                    Effect.map((text) => text.slice(0, 2000)),
+                  )
+                : "";
             return yield* new CommunityReadError({
               source,
-              reason: `answered ${response.status}`,
+              reason: refusal(response.status, response.headers, body),
+              temporary,
             });
           }
           return response;
         }).pipe(
           Effect.timeout(Duration.seconds(15)),
           Effect.catchTags({
+            // Not reached, or no answer in time: the source is down or slow.
             HttpClientError: () =>
               Effect.fail(
-                new CommunityReadError({ source, reason: "no answer" }),
+                new CommunityReadError({
+                  source,
+                  reason: "no answer",
+                  temporary: true,
+                }),
               ),
             TimeoutError: () =>
               Effect.fail(
-                new CommunityReadError({ source, reason: "no answer in 15 s" }),
+                new CommunityReadError({
+                  source,
+                  reason: "no answer in 15 s",
+                  temporary: true,
+                }),
               ),
           }),
         );
@@ -187,9 +292,11 @@ export class CommunitySources extends Context.Service<
           Effect.mapError((error) =>
             error instanceof CommunityReadError
               ? error
-              : new CommunityReadError({
+              : // The API moved: someone has to look.
+                new CommunityReadError({
                   source,
                   reason: "the answer is not what it should be",
+                  temporary: false,
                 }),
           ),
         ) as Effect.Effect<S["Type"], CommunityReadError>;
@@ -204,6 +311,7 @@ export class CommunitySources extends Context.Service<
               new CommunityReadError({
                 source: "x",
                 reason: "no X_BEARER_TOKEN",
+                temporary: false,
               }),
             ),
           onSome: (token) =>
@@ -253,6 +361,7 @@ export class CommunitySources extends Context.Service<
                 new CommunityReadError({
                   source: "youtube",
                   reason: "no page",
+                  temporary: true,
                 }),
             ),
           ),
@@ -264,6 +373,7 @@ export class CommunitySources extends Context.Service<
                   new CommunityReadError({
                     source: "youtube",
                     reason: "the channel page shows no subscriber count",
+                    temporary: false,
                   }),
                 )
               : Effect.succeed({
@@ -313,6 +423,7 @@ export class CommunitySources extends Context.Service<
               new CommunityReadError({
                 source: "luma",
                 reason: "the database didn't answer",
+                temporary: false,
               }),
           ),
         ),
@@ -358,7 +469,11 @@ export class CommunitySources extends Context.Service<
             Effect.timeout(Duration.seconds(35)),
             Effect.catchTag("TimeoutError", () =>
               Effect.fail(
-                new CommunityReadError({ source, reason: "no answer in 35 s" }),
+                new CommunityReadError({
+                  source,
+                  reason: "no answer in 35 s",
+                  temporary: true,
+                }),
               ),
             ),
           ),
@@ -381,20 +496,93 @@ export interface CommunityReport {
   readonly kept: ReadonlyArray<Source>;
   /** Sources not read now, and why. */
   readonly skipped: Readonly<Partial<Record<Source, string>>>;
-  /** Sources that failed, and why: tried again on the next run. */
+  /**
+   * Sources not read now for a known, temporary reason, and why: tried
+   * again on the next run, recorded in `community_gaps`, and nobody's to
+   * act on.
+   */
+  readonly gaps: Readonly<Partial<Record<Source, string>>>;
+  /**
+   * Sources that failed in a way someone has to act on, and why: tried
+   * again on the next run, and the step fails until none is left.
+   */
   readonly failed: Readonly<Partial<Record<Source, string>>>;
 }
+
+/**
+ * What in a snapshot someone has to act on, or undefined when nothing: its
+ * failures, each source with why. Skips and gaps never are: X outside the
+ * day's first hour, a rate limit, a refusal, a source down, npm's counts
+ * not out yet. The sync fails its `community` step on this alone
+ * (web/src/sync/run.ts), and a failed step is what the hourly sync's
+ * alerts read (infra/src/alerts.ts).
+ */
+export const needsAction = (
+  report: Pick<CommunityReport, "failed">,
+): string | undefined => {
+  const failed = Object.entries(report.failed);
+  return failed.length === 0
+    ? undefined
+    : `needs action: ${failed
+        .map(([source, reason]) => `${source} (${reason})`)
+        .join(", ")}`;
+};
 
 /** The UTC day of `now`, as `YYYY-MM-DD`. */
 const dayOf = (now: DateTime.Utc) => DateTime.formatIsoDateUtc(now);
 
 /**
+ * Of the sources whose read was a gap now, those that have had no number
+ * for {@link gapDays} days, today included, each with the day it was last
+ * read, or `undefined` if never: then its first gap counts as the day.
+ */
+const lastingGaps = (
+  sql: SqlClient,
+  now: DateTime.Utc,
+  gapped: ReadonlyArray<Source>,
+) =>
+  Effect.gen(function* () {
+    if (gapped.length === 0) return new Map<Source, string | undefined>();
+    const since = (rows: ReadonlyArray<{ source: string; day: string }>) =>
+      new Map(rows.map(({ source, day }) => [source, day]));
+    const read = since(
+      yield* orDataSourceError(
+        sql<{ source: string; day: string }>`
+          SELECT source, to_char(max(day), 'YYYY-MM-DD') AS day
+          FROM community_metrics WHERE source IN ${sql.in(gapped)}
+          GROUP BY source`,
+      ),
+    );
+    const firstGap = since(
+      yield* orDataSourceError(
+        sql<{ source: string; day: string }>`
+          SELECT source, to_char(min(day), 'YYYY-MM-DD') AS day
+          FROM community_gaps WHERE source IN ${sql.in(gapped)}
+          GROUP BY source`,
+      ),
+    );
+    // The first day of the span with no number allowed.
+    const oldest = dayOf(DateTime.subtract(now, { days: gapDays - 1 }));
+    const lasting = new Map<Source, string | undefined>();
+    for (const source of gapped) {
+      const lastRead = read.get(source);
+      const reference = lastRead ?? firstGap.get(source) ?? dayOf(now);
+      if (reference < oldest) lasting.set(source, lastRead);
+    }
+    return lasting;
+  });
+
+/**
  * Takes today's snapshot (UTC): reads every source the day has no row
  * for yet and stores what it reads, one row per metric. X only in the
- * day's first hour. A source that fails is left for the next run; the
- * snapshot fails only when the database does. A dry run reads the same
- * sources but X and reports what it would store (`wouldStore`), writing
- * nothing.
+ * day's first hour. A source that can't be read is left for the next run:
+ * a gap (`gaps`) when its reason is known and temporary
+ * ({@link CommunityReadError}'s `temporary`), recorded in `community_gaps`
+ * with how often it was tried, else, or when it has lasted
+ * {@link gapDays} days, a failure (`failed`). The snapshot itself fails
+ * only when the database does. A dry run reads the same sources but X and
+ * reports what it would store (`wouldStore`), writing nothing, gaps
+ * included.
  */
 export const snapshotCommunity = ({
   dryRun = false,
@@ -413,6 +601,7 @@ export const snapshotCommunity = ({
     const answered: Array<Source> = [];
     const wouldStore: Partial<Record<Source, Metrics>> = {};
     const skipped: Partial<Record<Source, string>> = {};
+    const gaps: Partial<Record<Source, string>> = {};
     const failed: Partial<Record<Source, string>> = {};
     for (const source of sources) {
       // A dry run reads every source but X, those the day has too, so it
@@ -433,7 +622,7 @@ export const snapshotCommunity = ({
       }
       const read = yield* Effect.result(reader.read(source));
       if (read._tag === "Failure") {
-        failed[source] = read.failure.reason;
+        (read.failure.temporary ? gaps : failed)[source] = read.failure.reason;
         continue;
       }
       const rows = Object.entries(read.success).map(([metric, value]) => ({
@@ -455,6 +644,35 @@ export const snapshotCommunity = ({
       );
       stored.push(source);
     }
+    const gapped = sources.filter((source) => gaps[source] !== undefined);
+    if (!dryRun) {
+      // One row per day and source: its latest reason, and how often. Each
+      // its own statement: `excluded.*` would need site_sync to read the
+      // reasons, which it never does.
+      const at = DateTime.formatIso(now);
+      for (const source of gapped) {
+        const reason = gaps[source] ?? "";
+        yield* orDataSourceError(
+          sql`INSERT INTO community_gaps ${sql.insert({
+            day,
+            source,
+            reason,
+            first_at: at,
+            last_at: at,
+          })}
+            ON CONFLICT (day, source) DO UPDATE SET
+              reason = ${reason},
+              tries = community_gaps.tries + 1,
+              last_at = ${at}`,
+        );
+      }
+    }
+    // A gap that has lasted is no longer temporary.
+    for (const [source, lastRead] of yield* lastingGaps(sql, now, gapped)) {
+      failed[source] =
+        `no number ${lastRead === undefined ? "yet" : `since ${lastRead}`}, ${gapDays} days of gaps: ${gaps[source] ?? ""}`;
+      delete gaps[source];
+    }
     return {
       day,
       stored,
@@ -462,6 +680,7 @@ export const snapshotCommunity = ({
       ...(dryRun ? { wouldStore } : {}),
       kept: sources.filter((source) => kept.has(source)),
       skipped,
+      gaps,
       failed,
     } satisfies CommunityReport;
   });
@@ -474,6 +693,12 @@ export interface CommunityRow {
   readonly value: number;
 }
 
+/** The UTC days of the last `days` days, today included: the first and last. */
+const span = (now: DateTime.Utc, days: number) => ({
+  since: dayOf(DateTime.subtract(now, { days: Math.max(0, days - 1) })),
+  until: dayOf(now),
+});
+
 /**
  * The snapshots of the last `days` days (UTC, today included), oldest
  * first, each source's metrics in a fixed order.
@@ -483,11 +708,7 @@ export const communityHistory = (
 ): Effect.Effect<ReadonlyArray<CommunityRow>, DataSourceError, SqlClient> =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
-    const now = yield* DateTime.now;
-    const until = dayOf(now);
-    const since = dayOf(
-      DateTime.subtract(now, { days: Math.max(0, days - 1) }),
-    );
+    const { since, until } = span(yield* DateTime.now, days);
     const rows = yield* orDataSourceError(
       sql<{ day: string; source: string; metric: string; value: string }>`
         SELECT to_char(day, 'YYYY-MM-DD') AS day, source, metric, value::text AS value
@@ -498,19 +719,66 @@ export const communityHistory = (
     return rows.map((row) => ({ ...row, value: Number(row.value) }));
   });
 
+/** One day's gap for a source: its latest reason, how often it was tried, when. */
+export interface CommunityGap {
+  readonly day: string;
+  readonly source: string;
+  readonly reason: string;
+  readonly tries: number;
+  /** The first and the latest try, as `HH:MM` (UTC). */
+  readonly first: string;
+  readonly last: string;
+}
+
+/** The gaps of the last `days` days (UTC, today included), oldest first. */
+export const communityGaps = (
+  days: number,
+): Effect.Effect<ReadonlyArray<CommunityGap>, DataSourceError, SqlClient> =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const { since, until } = span(yield* DateTime.now, days);
+    // `tries` is an integer, which arrives as a number.
+    return yield* orDataSourceError(
+      sql<CommunityGap>`
+        SELECT to_char(day, 'YYYY-MM-DD') AS day, source, reason, tries,
+          to_char(first_at AT TIME ZONE 'UTC', 'HH24:MI') AS first,
+          to_char(last_at AT TIME ZONE 'UTC', 'HH24:MI') AS last
+        FROM community_gaps
+        WHERE day >= ${since} AND day <= ${until}
+        ORDER BY day, source`,
+    );
+  });
+
 /**
  * The history as a table: a line per source and metric, a column per day,
- * `-` where a day has no number.
+ * `gap` where a day has no number for a known, temporary reason (its
+ * gaps), `-` where it has none at all. Then each gap: its source, latest
+ * reason and tries, and whether the source answered later that day.
  */
-export function formatHistory(rows: ReadonlyArray<CommunityRow>): string {
-  if (rows.length === 0) return "No community numbers stored yet.";
-  const days = [...new Set(rows.map((row) => row.day))].toSorted();
+export function formatHistory(
+  rows: ReadonlyArray<CommunityRow>,
+  gaps: ReadonlyArray<CommunityGap> = [],
+): string {
+  if (rows.length === 0 && gaps.length === 0) {
+    return "No community numbers stored yet.";
+  }
+  const days = [
+    ...new Set([...rows, ...gaps].map((row) => row.day)),
+  ].toSorted();
   const series = new Map<string, Map<string, number>>();
   for (const row of rows) {
     const name = `${row.source} ${row.metric}`;
     const values = series.get(name) ?? new Map<string, number>();
     values.set(row.day, row.value);
     series.set(name, values);
+  }
+  const gapped = new Set(gaps.map((gap) => `${gap.day} ${gap.source}`));
+  // A source with gaps and no number yet still gets its line.
+  for (const gap of gaps) {
+    const named = [...series.keys()].some((name) =>
+      name.startsWith(`${gap.source} `),
+    );
+    if (!named) series.set(`${gap.source} (no number yet)`, new Map());
   }
   const order = (name: string) => sources.indexOf(name.split(" ")[0] as Source);
   const names = [...series.keys()].toSorted(
@@ -519,16 +787,28 @@ export function formatHistory(rows: ReadonlyArray<CommunityRow>): string {
   const width = Math.max(...names.map((name) => name.length));
   const cells = (values: ReadonlyArray<string>) =>
     values.map((value) => value.padStart(10)).join("");
-  return [
+  const table = [
     `${"".padEnd(width)}${cells(days.map((day) => day.slice(5)))}`,
     ...names.map(
       (name) =>
         `${name.padEnd(width)}${cells(
           days.map((day) => {
             const value = series.get(name)?.get(day);
-            return value === undefined ? "-" : String(value);
+            if (value !== undefined) return String(value);
+            return gapped.has(`${day} ${name.split(" ")[0]}`) ? "gap" : "-";
           }),
         )}`,
+    ),
+  ];
+  if (gaps.length === 0) return table.join("\n");
+  const answered = new Set(rows.map((row) => `${row.day} ${row.source}`));
+  return [
+    ...table,
+    "",
+    "Gaps (known and temporary, retried each hour; none fails the sync):",
+    ...gaps.map(
+      (gap) =>
+        `  ${gap.day.slice(5)} ${gap.source.padEnd(8)} ${gap.reason}: ${gap.tries} ${gap.tries === 1 ? "try" : "tries"}, ${gap.first}${gap.last === gap.first ? "" : `–${gap.last}`} UTC${answered.has(`${gap.day} ${gap.source}`) ? ", then read" : ""}`,
     ),
   ].join("\n");
 }

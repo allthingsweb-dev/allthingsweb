@@ -36,6 +36,7 @@ import profileEditorMigration from "./0034_profile_editor.ts";
 import hackEveningTimeMigration from "./0035_hack_evening_time.ts";
 import profileXPostsMigration from "./0036_profile_x_posts.ts";
 import communityMetricsMigration from "./0037_community_metrics.ts";
+import communityGapsMigration from "./0038_community_gaps.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -82,6 +83,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0035_hack_evening_time": hackEveningTimeMigration,
   "0036_profile_x_posts": profileXPostsMigration,
   "0037_community_metrics": communityMetricsMigration,
+  "0038_community_gaps": communityGapsMigration,
 };
 
 /** The migrations, in id order, for the migrator. */

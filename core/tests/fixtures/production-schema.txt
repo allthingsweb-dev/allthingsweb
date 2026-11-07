@@ -784,3 +784,16 @@ constraint public.community_metrics community_metrics_source_check CHECK ((sourc
 constraint public.community_metrics community_metrics_value_check CHECK ((value >= 0))
 index public.community_metrics CREATE UNIQUE INDEX community_metrics_day_source_metric_pk ON public.community_metrics USING btree (day, source, metric)
 relation public.community_metrics kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+column public.community_gaps #001 day date not null
+column public.community_gaps #002 source text not null
+column public.community_gaps #003 reason text not null
+column public.community_gaps #004 tries integer not null default 1
+column public.community_gaps #005 first_at timestamp with time zone not null
+column public.community_gaps #006 last_at timestamp with time zone not null
+constraint public.community_gaps community_gaps_day_source_pk PRIMARY KEY (day, source)
+constraint public.community_gaps community_gaps_last_at_check CHECK ((last_at >= first_at))
+constraint public.community_gaps community_gaps_reason_check CHECK (((length(reason) >= 1) AND (length(reason) <= 200)))
+constraint public.community_gaps community_gaps_source_check CHECK ((source = ANY (ARRAY['x'::text, 'bluesky'::text, 'youtube'::text, 'discord'::text, 'meetup'::text, 'luma'::text, 'npm'::text, 'github'::text])))
+constraint public.community_gaps community_gaps_tries_check CHECK ((tries >= 1))
+index public.community_gaps CREATE UNIQUE INDEX community_gaps_day_source_pk ON public.community_gaps USING btree (day, source)
+relation public.community_gaps kind=r persistence=p rls=f force_rls=f replica_identity=d options=

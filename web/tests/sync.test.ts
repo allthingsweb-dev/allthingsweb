@@ -1,5 +1,6 @@
 import {
   COMMUNITY,
+  CommunityReadError,
   CommunitySources,
 } from "allthings-core/src/community-metrics.ts";
 import { FollowerSource } from "allthings-core/src/followers.ts";
@@ -172,8 +173,11 @@ async function run(
   feed: ReadonlyArray<Reply> = [{ body: calendar }],
   {
     searches = [],
+    community = () => Effect.succeed({ count: 7 }),
   }: {
     readonly searches?: ReadonlyArray<CandidateSearches["Service"][number]>;
+    /** How each community source answers; each counts 7 by default. */
+    readonly community?: CommunitySources["Service"]["read"];
   } = {},
 ) {
   const db = await migratedDatabase();
@@ -218,11 +222,9 @@ async function run(
     ),
     // The post search finds nothing here; its own tests are core's.
     Layer.succeed(CandidateSearches, searches),
-    // Every community source counts 7 here; its own tests are core's.
-    Layer.succeed(
-      CommunitySources,
-      CommunitySources.of({ read: () => Effect.succeed({ count: 7 }) }),
-    ),
+    // Every community source counts 7 here, unless the test says; its own
+    // tests are core's.
+    Layer.succeed(CommunitySources, CommunitySources.of({ read: community })),
     Layer.succeed(
       PostSources,
       PostSources.of({
@@ -429,6 +431,55 @@ describe("a sync run that writes", () => {
       expect(bucket.log.put).toHaveLength(6);
     } finally {
       await db.close();
+    }
+  });
+
+  test("is ok when community sources are only gaps, and fails when one needs action", async () => {
+    // As on 2026-11-07: GitHub refused Cloudflare's address all day.
+    const gap = await run("write", syncLimits.paid, undefined, {
+      community: (source) =>
+        source === "github"
+          ? Effect.fail(
+              new CommunityReadError({
+                source,
+                reason: "answered 403 (0 left, resets 18:00 UTC)",
+                temporary: true,
+              }),
+            )
+          : Effect.succeed({ count: 7 }),
+    });
+    try {
+      expect(gap.report.ok).toBe(true);
+      expect(gap.report.steps["community"]).toMatchObject({
+        status: "done",
+        gaps: { github: "answered 403 (0 left, resets 18:00 UTC)" },
+        failed: {},
+      });
+      expect(gap.logged.at(-1)).toMatchObject({ step: "summary", ok: true });
+    } finally {
+      await gap.db.close();
+    }
+    const moved = await run("write", syncLimits.paid, undefined, {
+      community: (source) =>
+        source === "youtube"
+          ? Effect.fail(
+              new CommunityReadError({
+                source,
+                reason: "the channel page shows no subscriber count",
+                temporary: false,
+              }),
+            )
+          : Effect.succeed({ count: 7 }),
+    });
+    try {
+      expect(moved.report.ok).toBe(false);
+      expect(moved.report.steps["community"]).toEqual({
+        status: "failed",
+        reason:
+          "needs action: youtube (the channel page shows no subscriber count)",
+      });
+    } finally {
+      await moved.db.close();
     }
   });
 

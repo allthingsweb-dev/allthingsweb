@@ -330,6 +330,13 @@
       "when": 1793918537541,
       "tag": "0046_community_metrics",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794070910851,
+      "tag": "0047_community_gaps",
+      "breakpoints": true
     }
   ]
 }

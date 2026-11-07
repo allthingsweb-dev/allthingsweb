@@ -86,6 +86,10 @@ interface ColumnGrants {
  *   inserts a row per metric for each one it reads, never replacing one
  *   (ON CONFLICT DO NOTHING); to sum Luma's guests it reads the events'
  *   guest and check-in counts.
+ * - community_gaps: the snapshot's gaps, a source not read for a known,
+ *   temporary reason: it inserts a row per day and source, and on each
+ *   later try that day updates its reason, tries and latest try, reading
+ *   the key to find a source's first gap.
  *
  * Row locks taken while an image is claimed (FOR UPDATE) need UPDATE on the
  * table, which these grant.
@@ -213,6 +217,14 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
   community_metrics: {
     select: ["day", "source", "metric"],
     insert: ["day", "source", "metric", "value"],
+  },
+  // The snapshot's gaps (core/src/community-metrics.ts): a row per day and
+  // source, its reason and tries updated on each try; `tries` read to count
+  // them, the key to find a source's first gap.
+  community_gaps: {
+    select: ["day", "source", "tries"],
+    insert: ["day", "source", "reason", "first_at", "last_at"],
+    update: ["reason", "tries", "last_at"],
   },
 };
 

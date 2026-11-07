@@ -7,15 +7,21 @@ import {
   type CommunityReport,
   CommunityReadError,
   CommunitySources,
+  communityGaps,
   communityHistory,
   formatHistory,
+  gapDays,
+  isGapAnswer,
   type Metrics,
+  needsAction,
+  refusal,
   type Source,
   snapshotCommunity,
   sources,
   youtubeCount,
 } from "../src/community-metrics.ts";
 import { communityMetrics } from "../migrations/0037_community_metrics.ts";
+import { communityGaps as communityGapsMigration } from "../migrations/0038_community_gaps.ts";
 import { SITE_SYNC_GRANTS } from "../../infra/scripts/site-sync.ts";
 import { STUDIO_GRANTS } from "../../infra/scripts/studio.ts";
 import {
@@ -123,7 +129,9 @@ const readAll = (internet: ReturnType<typeof fakeInternet>) =>
           .read(source)
           .pipe(
             Effect.catchTag("CommunityReadError", (error) =>
-              Effect.succeed(error.reason),
+              Effect.succeed(
+                `${error.temporary ? "gap" : "failure"}: ${error.reason}`,
+              ),
             ),
           );
       }
@@ -212,10 +220,12 @@ describe("the community's sources", () => {
             json({ stargazers_count: -1, forks_count: 0 }),
         }),
       );
-      expect(read.discord).toBe("answered 429");
-      expect(read.npm).toBe("the answer is not what it should be");
-      expect(read.youtube).toBe("the channel page shows no subscriber count");
-      expect(read.github).toBe("the answer is not what it should be");
+      expect(read.discord).toBe("gap: answered 429");
+      expect(read.npm).toBe("failure: the answer is not what it should be");
+      expect(read.youtube).toBe(
+        "failure: the channel page shows no subscriber count",
+      );
+      expect(read.github).toBe("failure: the answer is not what it should be");
       expect(read.bluesky).toEqual({ followers: 50, following: 19, posts: 45 });
     },
   );
@@ -224,7 +234,7 @@ describe("the community's sources", () => {
 /** A snapshot at `at`, each source answering as `answers` says. */
 const snapshotAt = (
   at: string,
-  answers: Partial<Record<Source, Metrics | "fail">>,
+  answers: Partial<Record<Source, Metrics | "gap" | "fail">>,
   dryRun = false,
 ) => {
   const asked: Array<Source> = [];
@@ -235,11 +245,23 @@ const snapshotAt = (
         read: (source) => {
           asked.push(source);
           const answer = answers[source] ?? { count: 1 };
-          return answer === "fail"
+          return answer === "gap"
             ? Effect.fail(
-                new CommunityReadError({ source, reason: "answered 503" }),
+                new CommunityReadError({
+                  source,
+                  reason: "answered 503",
+                  temporary: true,
+                }),
               )
-            : Effect.succeed(answer);
+            : answer === "fail"
+              ? Effect.fail(
+                  new CommunityReadError({
+                    source,
+                    reason: "the answer is not what it should be",
+                    temporary: false,
+                  }),
+                )
+              : Effect.succeed(answer);
         },
       }),
     ),
@@ -263,13 +285,209 @@ const stored = async (day: string) =>
     )
   ).rows.map(({ row }) => row);
 
+/** The gaps recorded for `day`, as `source tries reason` lines. */
+const gapRows = async (day: string) =>
+  (
+    await db.query<{ row: string }>(
+      `SELECT source || ' ' || tries || ' ' || reason AS row FROM community_gaps WHERE day = $1 ORDER BY source`,
+      [day],
+    )
+  ).rows.map(({ row }) => row);
+
+describe("which outcomes count as failures", () => {
+  // A gap is known and temporary: retried next run, recorded, and never
+  // the sync's failure. Anything else needs someone.
+  test.each([
+    ["discord", 429, "gap"],
+    ["npm", 429, "gap"],
+    ["github", 403, "gap"],
+    ["youtube", 403, "gap"],
+    ["meetup", 500, "gap"],
+    ["bluesky", 503, "gap"],
+    ["npm", 404, "gap"],
+    ["github", 404, "failure"],
+    ["discord", 404, "failure"],
+    ["youtube", 404, "failure"],
+    ["bluesky", 400, "failure"],
+    ["x", 401, "failure"],
+    ["meetup", 410, "failure"],
+  ] as const)("%s answering %i is a %s", (source, status, outcome) => {
+    expect(isGapAnswer(source, status) ? "gap" : "failure").toBe(outcome);
+  });
+
+  test("a refusal says when to ask again, and Cloudflare's block of the address", () => {
+    expect(
+      refusal(403, {
+        "x-ratelimit-remaining": "0",
+        "x-ratelimit-reset": "1794074400",
+      }),
+    ).toBe("answered 403 (0 left, resets 18:00 UTC)");
+    expect(
+      refusal(429, {
+        "retry-after": "3600",
+        "x-ratelimit-global": "true",
+        "x-ratelimit-scope": "global",
+      }),
+    ).toBe("answered 429 (global, scope global, retry after 3600 s)");
+    expect(refusal(429, {}, "<p>error code: 1015</p>")).toBe(
+      "answered 429 (Cloudflare 1015, the address is rate-limited)",
+    );
+    expect(refusal(503, {})).toBe("answered 503");
+    expect(refusal(429, { "retry-after": "x".repeat(400) })).toHaveLength(200);
+  });
+
+  test.skipIf(studioRun)(
+    "a live read is a gap for a rate limit, a refusal, a source down or npm's counts not out yet, else a failure",
+    async () => {
+      const gaps = await readAll(
+        fakeInternet({
+          "discord.com": () =>
+            new Response("error code: 1015", {
+              status: 429,
+              headers: { "retry-after": "60" },
+            }),
+          "api.github.com": () =>
+            new Response('{"message":"API rate limit exceeded"}', {
+              status: 403,
+              headers: {
+                "x-ratelimit-remaining": "0",
+                "x-ratelimit-reset": "1794074400",
+              },
+            }),
+          // As npm answered the day after the CLI was published.
+          "api.npmjs.org": () =>
+            new Response('{"error":"package allthings not found"}', {
+              status: 404,
+            }),
+          "www.youtube.com": () => new Response(null, { status: 503 }),
+        }),
+      );
+      expect(gaps.discord).toBe(
+        "gap: answered 429 (Cloudflare 1015, the address is rate-limited, retry after 60 s)",
+      );
+      expect(gaps.github).toBe("gap: answered 403 (0 left, resets 18:00 UTC)");
+      expect(gaps.npm).toBe("gap: answered 404");
+      expect(gaps.youtube).toBe("gap: answered 503");
+      const failures = await readAll(
+        fakeInternet({
+          "api.meetup.com": () => new Response(null, { status: 404 }),
+          "public.api.bsky.app": () => new Response(null, { status: 401 }),
+        }),
+      );
+      expect(failures.meetup).toBe("failure: answered 404");
+      expect(failures.bluesky).toBe("failure: answered 401");
+    },
+  );
+
+  test("only a failure needs action: never a skip or a gap", () => {
+    expect(
+      needsAction({
+        failed: {},
+      }),
+    ).toBeUndefined();
+    expect(
+      needsAction({
+        failed: { youtube: "the channel page shows no subscriber count" },
+      }),
+    ).toBe(
+      "needs action: youtube (the channel page shows no subscriber count)",
+    );
+  });
+
+  test.skipIf(studioRun)(
+    "a gap is recorded with its tries and fails nothing, until it has lasted gapDays days",
+    async () => {
+      expect(gapDays).toBe(3);
+      // GitHub answers on the 1st, then is a gap every hour after.
+      const first = await snapshotAt("2027-01-01T05:00:00Z", {
+        github: { stars: 6 },
+      });
+      expect(first.stored).toContain("github");
+      const second = await snapshotAt("2027-01-02T05:00:00Z", {
+        github: "gap",
+        youtube: "fail",
+      });
+      expect(second.gaps).toEqual({ github: "answered 503" });
+      // A failure is a failure at once, and no gap.
+      expect(second.failed).toEqual({
+        youtube: "the answer is not what it should be",
+      });
+      expect(needsAction(second)).toBe(
+        "needs action: youtube (the answer is not what it should be)",
+      );
+      const later = await snapshotAt("2027-01-02T06:00:00Z", {
+        github: "gap",
+      });
+      expect(needsAction(later)).toBeUndefined();
+      expect(await gapRows("2027-01-02")).toEqual(["github 2 answered 503"]);
+      // Still a gap on the third day without a number…
+      const third = await snapshotAt("2027-01-03T05:00:00Z", { github: "gap" });
+      expect(third.gaps).toEqual({ github: "answered 503" });
+      expect(needsAction(third)).toBeUndefined();
+      // …and on the fourth, with none since the 1st, a failure, still
+      // recorded as a gap.
+      const fourth = await snapshotAt("2027-01-04T05:00:00Z", {
+        github: "gap",
+      });
+      expect(fourth.gaps).toEqual({});
+      expect(fourth.failed).toEqual({
+        github: "no number since 2027-01-01, 3 days of gaps: answered 503",
+      });
+      expect(needsAction(fourth)).toStartWith("needs action: github (");
+      expect(await gapRows("2027-01-04")).toEqual(["github 1 answered 503"]);
+      // Once it answers, it is read again, and the day's gap stays.
+      const back = await snapshotAt("2027-01-04T06:00:00Z", {
+        github: { stars: 7 },
+      });
+      expect(back.stored).toEqual(["github"]);
+      expect(needsAction(back)).toBeUndefined();
+      const gaps = await Effect.runPromise(
+        communityGaps(3).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              sqlLayer(db),
+              clockAt(DateTime.makeUnsafe("2027-01-04T07:00:00Z")),
+            ),
+          ),
+        ),
+      );
+      expect(gaps).toEqual([
+        {
+          day: "2027-01-02",
+          source: "github",
+          reason: "answered 503",
+          tries: 2,
+          first: "05:00",
+          last: "06:00",
+        },
+        {
+          day: "2027-01-03",
+          source: "github",
+          reason: "answered 503",
+          tries: 1,
+          first: "05:00",
+          last: "05:00",
+        },
+        {
+          day: "2027-01-04",
+          source: "github",
+          reason: "answered 503",
+          tries: 1,
+          first: "05:00",
+          last: "05:00",
+        },
+      ]);
+    },
+  );
+});
+
 describe("snapshotCommunity", () => {
   test.skipIf(studioRun)(
     "in a dry run, reads every source but X and writes nothing",
     async () => {
       const dry = await snapshotAt(
         "2026-10-30T00:00:04Z",
-        { discord: { members: 517, online: 56 }, npm: "fail" },
+        { discord: { members: 517, online: 56 }, npm: "gap" },
         true,
       );
       expect(dry.asked).not.toContain("x");
@@ -278,8 +496,11 @@ describe("snapshotCommunity", () => {
       });
       expect(dry.stored).toEqual([]);
       expect(dry.wouldStore?.discord).toEqual({ members: 517, online: 56 });
-      expect(dry.failed).toEqual({ npm: "answered 503" });
+      expect(dry.gaps).toEqual({ npm: "answered 503" });
+      expect(dry.failed).toEqual({});
       expect(await stored("2026-10-30")).toEqual([]);
+      // Nor its gaps.
+      expect(await gapRows("2026-10-30")).toEqual([]);
       // Once the day has its numbers, a dry run still reads every source
       // but X, checking each, and would store nothing.
       await snapshotAt("2026-10-30T05:00:00Z", {});
@@ -296,7 +517,7 @@ describe("snapshotCommunity", () => {
       // 05:00 UTC: everything but X.
       const morning = await snapshotAt("2026-11-01T05:00:04Z", {
         discord: { members: 517, online: 56 },
-        npm: "fail",
+        npm: "gap",
       });
       expect(morning).toEqual({
         day: "2026-11-01",
@@ -306,7 +527,8 @@ describe("snapshotCommunity", () => {
         skipped: {
           x: "read only in the day's first hour (UTC): X bills each read",
         },
-        failed: { npm: "answered 503" },
+        gaps: { npm: "answered 503" },
+        failed: {},
         asked: [
           "bluesky",
           "youtube",
@@ -392,6 +614,96 @@ describe("the history", () => {
     );
     expect(formatHistory([])).toBe("No community numbers stored yet.");
   });
+
+  test("marks a day's gap in the table and lists each, with its reason and tries", () => {
+    const rows = [
+      { day: "2026-11-06", source: "github", metric: "stars", value: 6 },
+      { day: "2026-11-06", source: "discord", metric: "members", value: 517 },
+      { day: "2026-11-07", source: "discord", metric: "members", value: 514 },
+    ];
+    const gap = {
+      reason: "answered 429 (Cloudflare 1015, the address is rate-limited)",
+      first: "02:00",
+      last: "15:00",
+    };
+    expect(
+      formatHistory(rows, [
+        { ...gap, day: "2026-11-06", source: "discord", tries: 14 },
+        {
+          day: "2026-11-07",
+          source: "github",
+          reason: "answered 403 (0 left, resets 18:00 UTC)",
+          tries: 1,
+          first: "00:00",
+          last: "00:00",
+        },
+        {
+          day: "2026-11-07",
+          source: "npm",
+          reason: "answered 404",
+          tries: 3,
+          first: "00:00",
+          last: "02:00",
+        },
+      ]),
+    ).toBe(
+      [
+        "                        11-06     11-07",
+        "discord members           517       514",
+        "npm (no number yet)         -       gap",
+        "github stars                6       gap",
+        "",
+        "Gaps (known and temporary, retried each hour; none fails the sync):",
+        "  11-06 discord  answered 429 (Cloudflare 1015, the address is rate-limited): 14 tries, 02:00–15:00 UTC, then read",
+        "  11-07 github   answered 403 (0 left, resets 18:00 UTC): 1 try, 00:00 UTC",
+        "  11-07 npm      answered 404: 3 tries, 00:00–02:00 UTC",
+      ].join("\n"),
+    );
+  });
+});
+
+describe("migration 0038's grants", () => {
+  test.skipIf(studioRun)(
+    "give site_sync exactly what its script lists for the gaps, and the studio nothing",
+    async () => {
+      const fresh = await migratedDatabase();
+      try {
+        for (const role of ["site_sync", "studio"]) {
+          await fresh.exec(
+            `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = '${role}') THEN CREATE ROLE ${role} NOLOGIN; END IF; END $$`,
+          );
+          await fresh.exec(`REVOKE ALL ON public.community_gaps FROM ${role}`);
+        }
+        const statement = communityGapsMigration.at(-1) ?? "";
+        expect(statement).toContain("DO $grant$");
+        await fresh.exec(statement);
+        const held = async (role: string) =>
+          (
+            await fresh.query<{ grant: string }>(
+              `SELECT column_name || ' ' || lower(privilege_type) AS grant
+               FROM information_schema.column_privileges
+               WHERE grantee = $1 AND table_schema = 'public' AND table_name = 'community_gaps'
+               ORDER BY 1`,
+              [role],
+            )
+          ).rows.map(({ grant }) => grant);
+        const listed = SITE_SYNC_GRANTS["community_gaps"] ?? {};
+        expect(await held("site_sync")).toEqual(
+          [
+            ...(listed.select ?? []).map((column) => `${column} select`),
+            ...(listed.insert ?? []).map((column) => `${column} insert`),
+            ...(listed.update ?? []).map((column) => `${column} update`),
+          ].toSorted(),
+        );
+        expect(STUDIO_GRANTS["public.community_gaps"]).toEqual({
+          select: true,
+        });
+        expect(await held("studio")).toEqual([]);
+      } finally {
+        await fresh.close();
+      }
+    },
+  );
 });
 
 describe("migration 0037's grants", () => {
