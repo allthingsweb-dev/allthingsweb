@@ -167,6 +167,11 @@ async function snapshot(db: PGlite) {
   return rows;
 }
 
+/**
+ * One run in `mode` within `limits` against a seeded database, Luma's feed
+ * answering `feed`, the post search `searches` and each community source
+ * `community`: its report, its log lines, the bucket and the rows before.
+ */
 async function run(
   mode: SyncMode,
   limits: SyncLimits,

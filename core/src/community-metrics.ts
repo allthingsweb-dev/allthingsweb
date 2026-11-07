@@ -233,6 +233,11 @@ export class CommunitySources extends Context.Service<
       const sql = yield* SqlClient;
       // Without it, X alone fails; a dry run never reads X.
       const xToken = yield* Config.option(Config.Redacted("X_BEARER_TOKEN"));
+      /**
+       * `request` for `source`, within 15 s: its answer when 200, else a
+       * read error, a gap or a failure as `isGapAnswer` says, with why
+       * (`refusal`); no answer in time is a gap.
+       */
       const get = (
         source: Source,
         request: HttpClientRequest.HttpClientRequest,
@@ -282,6 +287,10 @@ export class CommunitySources extends Context.Service<
               ),
           }),
         );
+      /**
+       * `request` for `source` as JSON decoded by `schema`: an answer of
+       * any other shape is a failure, since the API moved.
+       */
       const json = <S extends Schema.Top>(
         source: Source,
         schema: S,
