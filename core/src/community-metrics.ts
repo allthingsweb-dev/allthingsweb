@@ -535,7 +535,9 @@ const dayOf = (now: DateTime.Utc) => DateTime.formatIsoDateUtc(now);
 /**
  * Of the sources whose read was a gap now, those that have had no number
  * for {@link gapDays} days, today included, each with the day it was last
- * read, or `undefined` if never: then its first gap counts as the day.
+ * read, or `undefined` if never. Read on day L, the third day after it is
+ * its third without a number; never read, its first gap's day is its first
+ * without one, so the third is two days after it.
  */
 const lastingGaps = (
   sql: SqlClient,
@@ -567,8 +569,11 @@ const lastingGaps = (
     const lasting = new Map<Source, string | undefined>();
     for (const source of gapped) {
       const lastRead = read.get(source);
-      const reference = lastRead ?? firstGap.get(source) ?? dayOf(now);
-      if (reference < oldest) lasting.set(source, lastRead);
+      const lasted =
+        lastRead === undefined
+          ? (firstGap.get(source) ?? dayOf(now)) <= oldest
+          : lastRead < oldest;
+      if (lasted) lasting.set(source, lastRead);
     }
     return lasting;
   });

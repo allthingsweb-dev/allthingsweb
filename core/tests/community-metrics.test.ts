@@ -231,11 +231,15 @@ describe("the community's sources", () => {
   );
 });
 
-/** A snapshot at `at`, each source answering as `answers` says. */
+/**
+ * A snapshot at `at`, each source answering as `answers` says, in the
+ * shared database or `database`.
+ */
 const snapshotAt = (
   at: string,
   answers: Partial<Record<Source, Metrics | "gap" | "fail">>,
   dryRun = false,
+  database?: PGlite,
 ) => {
   const asked: Array<Source> = [];
   const layer = Layer.mergeAll(
@@ -265,7 +269,7 @@ const snapshotAt = (
         },
       }),
     ),
-    sqlLayer(db),
+    sqlLayer(database ?? db),
     clockAt(DateTime.makeUnsafe(at)),
   );
   return Effect.runPromise(
@@ -479,6 +483,32 @@ describe("which outcomes count as failures", () => {
           last: "05:00",
         },
       ]);
+    },
+  );
+});
+
+describe("a source never read", () => {
+  test.skipIf(studioRun)(
+    "fails on its third day of gaps, its first gap's day counted",
+    async () => {
+      const fresh = await migratedDatabase();
+      try {
+        const at = (when: string) =>
+          snapshotAt(when, { npm: "gap" }, false, fresh);
+        expect((await at("2027-02-01T05:00:00Z")).gaps).toEqual({
+          npm: "answered 503",
+        });
+        expect((await at("2027-02-02T05:00:00Z")).gaps).toEqual({
+          npm: "answered 503",
+        });
+        const third = await at("2027-02-03T05:00:00Z");
+        expect(third.gaps).toEqual({});
+        expect(third.failed).toEqual({
+          npm: "no number yet, 3 days of gaps: answered 503",
+        });
+      } finally {
+        await fresh.close();
+      }
     },
   );
 });
