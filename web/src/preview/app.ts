@@ -39,6 +39,13 @@ import {
   type Evening,
   type Signer,
 } from "./collab.ts";
+import {
+  type AnalyticsSql,
+  analyticsSql,
+  notFoundPage,
+  notFoundReport,
+  windowOf,
+} from "./not-found.ts";
 import { CollabPanel, type OpenedRound, type PanelForms } from "./panel.tsx";
 import {
   keyProblem,
@@ -75,6 +82,8 @@ import {
  *   sees only the evenings they are invited to, drafts or published; any
  *   other slug answers as one that doesn't exist does.
  * - `/img/…` serves the photos' variants, as the site does.
+ * - `/404s` is the site's 404s by day and kind, for an organizer
+ *   (not-found.ts).
  * - Anything else the page links to (the evenings, people, about) is the
  *   public site's: it redirects there.
  *
@@ -409,6 +418,52 @@ const answer = (text: string, status: number): Response =>
 export interface PreviewOptions {
   readonly keys?: KeySource;
   readonly now?: () => number;
+  readonly analytics?: AnalyticsSql;
+}
+
+/** Analytics Engine's SQL API, with the Worker's `ANALYTICS_READ_TOKEN`; none without it. */
+const analyticsOf = (
+  env: Readonly<Record<string, unknown>>,
+): AnalyticsSql | undefined => {
+  const token = env["ANALYTICS_READ_TOKEN"];
+  return typeof token === "string" && token.trim() !== ""
+    ? analyticsSql(token.trim())
+    : undefined;
+};
+
+/**
+ * `/404s`, for an organizer alone: anyone else is told what a page they
+ * may not see tells them.
+ */
+async function notFoundAnswer(
+  request: Request,
+  who: SignedIn,
+  analytics: AnalyticsSql | undefined,
+  now: number,
+): Promise<Response> {
+  if (!who.organizer) return answer(refusal, 403);
+  if (analytics === undefined) {
+    console.error("The 404 page has no ANALYTICS_READ_TOKEN");
+    return answer("The 404 page isn't configured.", 503);
+  }
+  try {
+    const report = await notFoundReport(
+      analytics,
+      windowOf(new URL(request.url)),
+      now,
+    );
+    return new Response(notFoundPage(report), {
+      headers: {
+        ...previewHeaders,
+        "content-type": "text/html; charset=utf-8",
+      },
+    });
+  } catch (cause) {
+    console.error(
+      `The 404 page couldn't read Analytics Engine: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+    return answer("Analytics Engine didn't answer; try again.", 502);
+  }
 }
 
 /** The request's context, as the Worker passes it. */
@@ -428,6 +483,7 @@ export function makePreviewHandler(
   const settings: AccessSettings | string = accessSettings(env);
   const keys = options.keys ?? publishedKeys();
   const now = options.now ?? Date.now;
+  const analytics = options.analytics ?? analyticsOf(env);
   const services = Site.layer.pipe(
     Layer.provideMerge(
       Layer.mergeAll(
@@ -467,6 +523,12 @@ export function makePreviewHandler(
       organizer: verdict.organizer,
       issuedAt: verdict.issuedAt,
     };
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      new URL(request.url).pathname === "/404s"
+    ) {
+      return notFoundAnswer(request, who, analytics, now());
+    }
     // Forms come here; the router only shows.
     if (request.method === "POST") {
       return withPreviewHeaders(await post(request, who, env));

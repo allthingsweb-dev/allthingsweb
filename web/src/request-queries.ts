@@ -12,6 +12,9 @@ import { isNotFoundShape } from "./not-found.ts";
  * `double1` the status, `double2` the milliseconds the Worker took.
  */
 
+/** The allthings Cloudflare account (infra/README.md, "Accounts and stages"). */
+export const ANALYTICS_ACCOUNT = "af627f300cd00c4dca56aacf05bea050";
+
 /** Which stage's points: prod's (allthings.dev), or every other stage's. */
 export type RequestsStage = keyof typeof REQUESTS_DATASET;
 
@@ -50,6 +53,18 @@ export const top404Query = (
  */
 export const shownPath = (path: string): string =>
   isNotFoundShape(path) ? path : pathClass(path);
+
+/** How many requests reached the Worker in the window. */
+export const totalQuery = (stage: RequestsStage, days: number) =>
+  `SELECT SUM(_sample_interval) AS requests ` +
+  `FROM ${REQUESTS_DATASET[stage]} WHERE ${since(days)}`;
+
+/** The 404s per day (UTC) and kind, oldest first. */
+export const notFoundDailyQuery = (stage: RequestsStage, days: number) =>
+  `SELECT toStartOfInterval(timestamp, INTERVAL '1' DAY) AS day, blob7 AS kind, ` +
+  `SUM(_sample_interval) AS requests ` +
+  `FROM ${REQUESTS_DATASET[stage]} WHERE ${since(days)} AND double1 = 404 ` +
+  `GROUP BY day, kind ORDER BY day ASC`;
 
 /** How many requests each part of the Worker answered (`store-hit`, …). */
 export const answeredQuery = (stage: RequestsStage, days: number) =>

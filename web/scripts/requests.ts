@@ -2,6 +2,7 @@ import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Config, Console, Effect, Redacted } from "effect";
 import { Command, Flag } from "effect/cli";
 import {
+  ANALYTICS_ACCOUNT,
   answeredQuery,
   formatReport,
   notFoundKindsQuery,
@@ -26,13 +27,10 @@ import {
  *   … bun run requests --preview        # every other stage's points
  */
 
-/** The allthings Cloudflare account (infra/README.md, "Accounts and stages"). */
-const ACCOUNT = "af627f300cd00c4dca56aacf05bea050";
-
 const query = (token: Redacted.Redacted, sql: string) =>
   Effect.tryPromise(async () => {
     const response = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/analytics_engine/sql`,
+      `https://api.cloudflare.com/client/v4/accounts/${ANALYTICS_ACCOUNT}/analytics_engine/sql`,
       {
         method: "POST",
         headers: { authorization: `Bearer ${Redacted.value(token)}` },

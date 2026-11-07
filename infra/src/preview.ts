@@ -157,6 +157,11 @@ export const makePreview = (publicUrl: Output.Output<string> | string) =>
         // made into 1Password by scripts/collab-answers-key.ts, and a prod
         // deploy reads it from there.
         COLLAB_ANSWERS_KEY: requiredSecret("COLLAB_ANSWERS_KEY"),
+        // The organizers' 404 page (web/src/preview/not-found.ts) reads the
+        // site's request data points through Analytics Engine's SQL API
+        // with it: the "allthings analytics read" token, Account Analytics
+        // Read alone.
+        ANALYTICS_READ_TOKEN: requiredSecret("ANALYTICS_READ_TOKEN"),
         IMAGES: Cloudflare.Images.Images("IMAGES"),
         ACCESS_TEAM_DOMAIN: team.authDomain,
         ACCESS_AUD: access.aud,
