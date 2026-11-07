@@ -170,11 +170,17 @@ export const guessedWords: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The site's own first segments whose deeper paths are slugs (as
- * metrics.ts's `slugRoots`): a guess below one is shown as the root and
- * `(slug)`, never the slug.
+ * The first segments of the site's own routes whose deeper paths are
+ * slugs: an evening's, a person's, a short link's, a lab variant's, an
+ * API resource's. Only below these is a path kept segment by segment;
+ * below any other first segment, a point keeps that segment alone and
+ * `/…` for the rest, so whatever a crafted URL carries after it is never
+ * stored (metrics.ts). Photo variants (`/img/…`) are kept as their class:
+ * their paths are the site's own, and a 404 there says enough by its
+ * count. A 404 below one is shown as the root and `(slug)`, never the slug.
+ * Here, not in metrics.ts, so this module imports nothing.
  */
-const slugRoots: ReadonlySet<string> = new Set([
+export const slugRoots: ReadonlySet<string> = new Set([
   "events",
   "people",
   "speakers",

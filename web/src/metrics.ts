@@ -23,7 +23,9 @@
  * after each answer is sent (worker.ts), so it is no part of a cold start.
  */
 
-import { notFoundShape } from "./not-found.ts";
+import { notFoundShape, slugRoots } from "./not-found.ts";
+
+export { slugRoots };
 
 /**
  * The datasets the points go to, bound as `REQUESTS` (infra/src/web.ts).
@@ -51,27 +53,6 @@ export interface RequestDataset {
 
 /** How many characters of a path a point keeps. */
 export const pathLimit = 200;
-
-/**
- * The first segments of the site's own routes whose deeper paths are
- * slugs: an evening's, a person's, a short link's, a lab variant's, an
- * API resource's. Only below these is a path kept segment by segment;
- * below any other first segment, a point keeps that segment alone and
- * `/…` for the rest, so whatever a crafted URL carries after it is never
- * stored. Photo variants (`/img/…`) are kept as their class: their paths
- * are the site's own, and a 404 there says enough by its count.
- */
-export const slugRoots: ReadonlySet<string> = new Set([
-  "events",
-  "people",
-  "speakers",
-  "about",
-  "brand",
-  "lab",
-  "r",
-  "api",
-  "code-of-conduct",
-]);
 
 /**
  * The single words the site has pages and routes under (its sections, the
