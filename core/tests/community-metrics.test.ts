@@ -513,6 +513,49 @@ describe("a source never read", () => {
   );
 });
 
+describe("X, read in the day's first hour only", () => {
+  test.skipIf(studioRun)(
+    "stays a failure all day once its gap has lasted, without being read again",
+    async () => {
+      const fresh = await migratedDatabase();
+      try {
+        const at = (when: string, x: Metrics | "gap") =>
+          snapshotAt(when, { x }, false, fresh);
+        expect(
+          (await at("2027-03-01T00:00:05Z", { followers: 116 })).stored,
+        ).toContain("x");
+        for (const day of ["02", "03"]) {
+          const run = await at(`2027-03-${day}T00:00:05Z`, "gap");
+          expect(run.gaps).toEqual({ x: "answered 503" });
+          expect(needsAction(run)).toBeUndefined();
+          // Later that day X isn't read, and its gap is no failure yet.
+          const later = await at(`2027-03-${day}T05:00:00Z`, "gap");
+          expect(later.asked).not.toContain("x");
+          expect(needsAction(later)).toBeUndefined();
+        }
+        const third = await at("2027-03-04T00:00:05Z", "gap");
+        expect(third.failed).toEqual({
+          x: "no number since 2027-03-01, 3 days of gaps: answered 503",
+        });
+        // Every run after it that day still needs action, X not read.
+        const later = await at("2027-03-04T05:00:00Z", "gap");
+        expect(later.asked).not.toContain("x");
+        expect(later.failed).toEqual({
+          x: "no number since 2027-03-01, 3 days of gaps: a gap in the day's first hour, when X is read",
+        });
+        // Read again the next day, it is no failure.
+        const back = await at("2027-03-05T00:00:05Z", { followers: 117 });
+        expect(needsAction(back)).toBeUndefined();
+        expect(
+          needsAction(await at("2027-03-05T05:00:00Z", "gap")),
+        ).toBeUndefined();
+      } finally {
+        await fresh.close();
+      }
+    },
+  );
+});
+
 describe("snapshotCommunity", () => {
   test.skipIf(studioRun)(
     "in a dry run, reads every source but X and writes nothing",
