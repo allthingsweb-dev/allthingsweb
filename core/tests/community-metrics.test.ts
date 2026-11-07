@@ -741,7 +741,7 @@ describe("the history", () => {
 
 describe("migration 0038's grants", () => {
   test.skipIf(studioRun)(
-    "give site_sync and the studio exactly what their scripts list for the gaps",
+    "give site_sync exactly what its script lists for the gaps, and the studio nothing",
     async () => {
       const fresh = await migratedDatabase();
       try {
@@ -773,15 +773,10 @@ describe("migration 0038's grants", () => {
             ...(listed.update ?? []).map((column) => `${column} update`),
           ].toSorted(),
         );
-        // The studio reads it whole, as its script lists.
         expect(STUDIO_GRANTS["public.community_gaps"]).toEqual({
           select: true,
         });
-        expect(await held("studio")).toEqual(
-          ["day", "first_at", "last_at", "reason", "source", "tries"].map(
-            (column) => `${column} select`,
-          ),
-        );
+        expect(await held("studio")).toEqual([]);
       } finally {
         await fresh.close();
       }
