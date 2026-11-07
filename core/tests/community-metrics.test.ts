@@ -543,7 +543,7 @@ describe("X, read in the day's first hour only", () => {
         const later = await at("2027-03-04T05:00:00Z", "gap");
         expect(later.asked).not.toContain("x");
         expect(later.failed).toEqual({
-          x: "no number since 2027-03-01, 3 days of gaps: a gap in the day's first hour, when X is read",
+          x: "no number since 2027-03-01, 3 days of gaps: a gap when X was last read, in a day's first hour",
         });
         // Read again the next day, it is no failure.
         const back = await at("2027-03-05T00:00:05Z", { followers: 117 });
@@ -551,6 +551,31 @@ describe("X, read in the day's first hour only", () => {
         expect(
           needsAction(await at("2027-03-05T05:00:00Z", "gap")),
         ).toBeUndefined();
+      } finally {
+        await fresh.close();
+      }
+    },
+  );
+});
+
+describe("X, its first-hour run missed", () => {
+  test.skipIf(studioRun)(
+    "still fails once its open gap has lasted",
+    async () => {
+      const fresh = await migratedDatabase();
+      try {
+        /** A run at `when` in the fresh database, X answering `x`. */
+        const at = (when: string, x: Metrics | "gap") =>
+          snapshotAt(when, { x }, false, fresh);
+        await at("2027-04-01T00:00:05Z", { followers: 116 });
+        await at("2027-04-02T00:00:05Z", "gap");
+        await at("2027-04-03T00:00:05Z", "gap");
+        // The 4th's first-hour run never ran: its later run still knows.
+        const later = await at("2027-04-04T05:00:00Z", "gap");
+        expect(later.asked).not.toContain("x");
+        expect(later.failed).toEqual({
+          x: "no number since 2027-04-01, 3 days of gaps: a gap when X was last read, in a day's first hour",
+        });
       } finally {
         await fresh.close();
       }

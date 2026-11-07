@@ -683,24 +683,29 @@ export const snapshotCommunity = ({
         );
       }
     }
-    // X is read in the day's first hour only, so its gap then stands all
-    // day: the runs after it check that gap again, without reading X, and a
-    // lasting one stays a failure until the next day's read.
-    const xGapToday =
+    // X is read in the day's first hour only, so its gap stands until a
+    // later day's read: the runs in between check it again, without
+    // reading X, today's first-hour run or not, and a lasting one stays a
+    // failure until X is read. Open means a gap after X's last number.
+    const xGapOpen =
       !dryRun &&
       skipped.x !== undefined &&
       !kept.has("x") &&
       (yield* orDataSourceError(
-        sql`SELECT 1 AS gap FROM community_gaps WHERE day = ${day} AND source = 'x'`,
+        sql`SELECT 1 AS gap FROM community_gaps g
+          WHERE g.source = 'x' AND g.day > COALESCE(
+            (SELECT max(m.day) FROM community_metrics m WHERE m.source = 'x'),
+            '-infinity'::date)
+          LIMIT 1`,
       )).length > 0;
     // A gap that has lasted is no longer temporary.
     for (const [source, lastRead] of yield* lastingGaps(
       sql,
       now,
-      xGapToday ? [...gapped, "x"] : gapped,
+      xGapOpen ? [...gapped, "x"] : gapped,
     )) {
       failed[source] =
-        `no number ${lastRead === undefined ? "yet" : `since ${lastRead}`}, ${gapDays} days of gaps: ${gaps[source] ?? "a gap in the day's first hour, when X is read"}`;
+        `no number ${lastRead === undefined ? "yet" : `since ${lastRead}`}, ${gapDays} days of gaps: ${gaps[source] ?? "a gap when X was last read, in a day's first hour"}`;
       delete gaps[source];
     }
     return {
