@@ -39,11 +39,14 @@ NEON_COLLAB_URL=$(v "allthings draft_collab/credential")
 COLLAB_ANSWERS_KEY=$(v "allthings collab answers key/credential")
 # The writers tell the site its data changed with this token (web/src/refresh.ts).
 SITE_REFRESH_TOKEN=$(v "allthings site refresh/credential")
+# The draft preview's 404 page reads Analytics Engine with this (Account
+# Analytics Read alone).
+ANALYTICS_READ_TOKEN=$(v "allthings analytics read/credential")
 : "${NEON_READER_URL:?empty}" "${NEON_SYNC_URL:?empty}" "${LUMA_API_KEY:?empty}" "${X_BEARER_TOKEN:?empty}"
 : "${MEDIA_UPLOAD_URL:?empty}" "${MEDIA_UPLOAD_TOKEN:?empty}"
-: "${NEON_COLLAB_URL:?empty}" "${COLLAB_ANSWERS_KEY:?empty}" "${SITE_REFRESH_TOKEN:?empty}"
+: "${NEON_COLLAB_URL:?empty}" "${COLLAB_ANSWERS_KEY:?empty}" "${SITE_REFRESH_TOKEN:?empty}" "${ANALYTICS_READ_TOKEN:?empty}"
 export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN MEDIA_UPLOAD_URL MEDIA_UPLOAD_TOKEN
-export NEON_COLLAB_URL COLLAB_ANSWERS_KEY SITE_REFRESH_TOKEN
+export NEON_COLLAB_URL COLLAB_ANSWERS_KEY SITE_REFRESH_TOKEN ANALYTICS_READ_TOKEN
 log "secrets read"
 
 # Prove the allthings profile can still deploy before waiting on it.

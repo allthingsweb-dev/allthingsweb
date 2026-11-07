@@ -187,9 +187,10 @@ describe("the 404 page", () => {
 });
 
 describe("the report", () => {
-  test("has a bar for each day of the window, oldest first, zero where nothing was asked", async () => {
+  test("has a bar for each UTC day the window touches, oldest first, zero where nothing was asked", async () => {
     const report = await notFoundReport(analytics, 7, now);
     expect(report.daily.map(({ day }) => day)).toEqual([
+      "2026-10-31",
       "2026-11-01",
       "2026-11-02",
       "2026-11-03",
@@ -198,7 +199,7 @@ describe("the report", () => {
       "2026-11-06",
       "2026-11-07",
     ]);
-    expect(report.daily[5]?.kinds.get("probe")).toBe(900);
+    expect(report.daily[6]?.kinds.get("probe")).toBe(900);
     expect(report.daily[0]?.kinds.size).toBe(0);
   });
 
@@ -244,5 +245,21 @@ describe("analyticsSql", () => {
     );
     expect(message).toContain("401");
     expect(message).not.toContain("t0ken");
+  });
+});
+
+describe("a stalled Analytics Engine", () => {
+  test("is given up on: each query carries a timeout signal, and its abort reaches the page as a 502", async () => {
+    let signal: AbortSignal | undefined;
+    const stalled = analyticsSql("t0ken", (async (
+      _url: string,
+      init?: RequestInit,
+    ) => {
+      signal = init?.signal ?? undefined;
+      return new Promise<Response>(() => {});
+    }) as unknown as typeof fetch);
+    void stalled("SELECT 1");
+    await Promise.resolve();
+    expect(signal).toBeInstanceOf(AbortSignal);
   });
 });

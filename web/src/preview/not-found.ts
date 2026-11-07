@@ -22,6 +22,9 @@ import {
 /** Runs one Analytics Engine SQL query, answering its rows. */
 export type AnalyticsSql = (sql: string) => Promise<ReadonlyArray<Row>>;
 
+/** How long one query may take before the page gives up on it. */
+export const sqlTimeoutMs = 10_000;
+
 /** Analytics Engine's SQL API, read with `token` (Account Analytics Read). */
 export const analyticsSql =
   (token: string, fetcher: typeof fetch = fetch): AnalyticsSql =>
@@ -32,6 +35,8 @@ export const analyticsSql =
         method: "POST",
         headers: { authorization: `Bearer ${token}` },
         body: sql,
+        // A stalled answer fails the page (502), never holds it open.
+        signal: AbortSignal.timeout(sqlTimeoutMs),
       },
     );
     if (!response.ok) {
@@ -61,7 +66,10 @@ export interface NotFoundReport {
   readonly days: number;
   /** Every request that reached the Worker in the window. */
   readonly total: number;
-  /** Each day (UTC, `YYYY-MM-DD`), oldest first, with its 404s by kind. */
+  /**
+   * Each day (UTC, `YYYY-MM-DD`) the window touches, oldest first (the
+   * first partly), with its 404s by kind.
+   */
   readonly daily: ReadonlyArray<{
     readonly day: string;
     readonly kinds: ReadonlyMap<ShownKind, number>;
@@ -108,8 +116,10 @@ export async function notFoundReport(
     sql(notFoundKindsQuery("prod", days)),
     sql(top404Query("prod", days, topLimit)),
   ]);
+  // The window is the last `days` × 24 hours, so it starts partway into
+  // a UTC day: one bar more than `days`, so every 404 counted is drawn.
   const byDay = new Map<string, Map<ShownKind, number>>();
-  for (let back = days - 1; back >= 0; back--) {
+  for (let back = days; back >= 0; back--) {
     byDay.set(
       new Date(now - back * 86_400_000).toISOString().slice(0, 10),
       new Map(),
