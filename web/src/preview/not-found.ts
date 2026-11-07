@@ -25,7 +25,18 @@ export type AnalyticsSql = (sql: string) => Promise<ReadonlyArray<Row>>;
 /** How long one query may take before the page gives up on it. */
 export const sqlTimeoutMs = 10_000;
 
-/** Analytics Engine's SQL API, read with `token` (Account Analytics Read). */
+/**
+ * Why a query failed, in words fixed here: never the request's, the
+ * answer's or an underlying error's, any of which could carry the token.
+ */
+export class AnalyticsEngineError extends Error {
+  readonly _tag = "AnalyticsEngineError";
+}
+
+/**
+ * Analytics Engine's SQL API, read with `token` (Account Analytics Read).
+ * Every failure is an {@link AnalyticsEngineError}.
+ */
 export const analyticsSql =
   (
     token: string,
@@ -42,14 +53,20 @@ export const analyticsSql =
         // A stalled answer fails the page (502), never holds it open.
         signal: AbortSignal.timeout(timeoutMs),
       },
-    );
+    ).catch(() => {
+      throw new AnalyticsEngineError(
+        `Analytics Engine didn't answer within ${timeoutMs} ms, or the request failed`,
+      );
+    });
     if (!response.ok) {
       // The status alone: the body may echo the request.
-      throw new Error(`Analytics Engine answered ${response.status}`);
+      throw new AnalyticsEngineError(
+        `Analytics Engine answered ${response.status}`,
+      );
     }
-    const body = (await response.json()) as {
-      readonly data?: ReadonlyArray<Row>;
-    };
+    const body = (await response.json().catch(() => {
+      throw new AnalyticsEngineError("Analytics Engine's answer isn't JSON");
+    })) as { readonly data?: ReadonlyArray<Row> };
     return body.data ?? [];
   };
 

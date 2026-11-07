@@ -40,6 +40,7 @@ import {
   type Signer,
 } from "./collab.ts";
 import {
+  AnalyticsEngineError,
   type AnalyticsSql,
   analyticsSql,
   notFoundPage,
@@ -459,8 +460,10 @@ async function notFoundAnswer(
       },
     });
   } catch (cause) {
+    // Only this module's own words are logged: an error from anywhere
+    // else could carry the token.
     console.error(
-      `The 404 page couldn't read Analytics Engine: ${cause instanceof Error ? cause.message : String(cause)}`,
+      `The 404 page couldn't read Analytics Engine: ${cause instanceof AnalyticsEngineError ? cause.message : "an unexpected error"}`,
     );
     return answer("Analytics Engine didn't answer; try again.", 502);
   }

@@ -258,7 +258,9 @@ describe("a stalled Analytics Engine", () => {
         );
       })) as unknown as typeof fetch;
     const query = analyticsSql("t0ken", stalled, 20);
-    await expect(query("SELECT 1")).rejects.toThrow("aborted");
+    await expect(query("SELECT 1")).rejects.toThrow(
+      "didn't answer within 20 ms",
+    );
     const page = makePreviewHandler(env, {
       keys,
       now: () => now,
@@ -270,5 +272,67 @@ describe("a stalled Analytics Engine", () => {
       }),
     );
     expect(response.status).toBe(502);
+  });
+});
+
+describe("what a failure logs", () => {
+  test("never the token: not a failed fetch's, an unreadable answer's or an unexpected error's words", async () => {
+    const leaky = new Error("connect failed: Bearer t0ken");
+    const throwing = (async () => {
+      throw leaky;
+    }) as unknown as typeof fetch;
+    const failures: ReadonlyArray<typeof fetch> = [
+      throwing,
+      (async () =>
+        new Response("t0ken is not JSON", {
+          status: 200,
+        })) as unknown as typeof fetch,
+      (async () =>
+        new Response("bad token t0ken", {
+          status: 403,
+        })) as unknown as typeof fetch,
+    ];
+    for (const fetcher of failures) {
+      const message = await analyticsSql(
+        "t0ken",
+        fetcher,
+      )("SELECT 1").then(
+        () => "",
+        (cause: Error) => cause.message,
+      );
+      expect(message).toContain("Analytics Engine");
+      expect(message).not.toContain("t0ken");
+    }
+    const logged: Array<string> = [];
+    const original = console.error;
+    console.error = (...parts: Array<unknown>) => {
+      logged.push(parts.map(String).join(" "));
+    };
+    try {
+      for (const failing of [
+        analyticsSql("t0ken", throwing),
+        // Not this module's error: its words are never logged.
+        async () => {
+          throw leaky;
+        },
+      ]) {
+        const page = makePreviewHandler(env, {
+          keys,
+          now: () => now,
+          analytics: failing,
+        });
+        const response = await page(
+          new Request("https://preview.example/404s", {
+            headers: { "cf-access-jwt-assertion": await token(organizer) },
+          }),
+        );
+        expect(response.status).toBe(502);
+        expect(await response.text()).not.toContain("t0ken");
+      }
+    } finally {
+      console.error = original;
+    }
+    expect(logged).toHaveLength(2);
+    expect(logged.join("\n")).not.toContain("t0ken");
   });
 });
