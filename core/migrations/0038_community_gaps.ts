@@ -12,8 +12,8 @@ import { statements } from "./statements.ts";
  * The sync Worker writes it as site_sync (infra/scripts/site-sync.ts
  * grants that role the columns it inserts and updates, and those it reads
  * to count tries and find a source's first gap, nothing else), and the
- * studio reads it (`bun run community`, infra/scripts/studio.ts). The site
- * never shows it, so site_reader has no grant. Ships with the app's
+ * studio reads it (`bun run community`, infra/scripts/studio.ts lists the
+ * same read). The site never shows it, so site_reader has no grant. Ships with the app's
  * drizzle migration 0047_community_gaps, which makes the same schema.
  */
 export const communityGaps: ReadonlyArray<string> = [
@@ -30,14 +30,19 @@ export const communityGaps: ReadonlyArray<string> = [
     CONSTRAINT "community_gaps_tries_check" CHECK ("tries" >= 1),
     CONSTRAINT "community_gaps_last_at_check" CHECK ("last_at" >= "first_at")
   )`,
-  // site_sync gets here what its script lists (infra/scripts/site-sync.ts),
-  // as migration 0037 granted community_metrics: the Sync Worker records
-  // gaps without the script rerunning and its password changing. The
-  // studio holds nothing until its own script grants it.
+  // site_sync and the studio get here what their scripts list
+  // (infra/scripts/site-sync.ts, infra/scripts/studio.ts), so the Sync
+  // Worker records gaps and `bun run community` reads them from the
+  // migration on, with neither script rerunning and its password changing.
+  // Where a role doesn't exist (a fresh database), its script grants it all
+  // when it makes it.
   `DO $grant$
   BEGIN
     IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'site_sync') THEN
       GRANT SELECT ("day", "source", "tries"), INSERT ("day", "source", "reason", "first_at", "last_at"), UPDATE ("reason", "tries", "last_at") ON "public"."community_gaps" TO site_sync;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'studio') THEN
+      GRANT SELECT ON "public"."community_gaps" TO studio;
     END IF;
   END
   $grant$`,
