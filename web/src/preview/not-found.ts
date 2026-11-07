@@ -27,7 +27,11 @@ export const sqlTimeoutMs = 10_000;
 
 /** Analytics Engine's SQL API, read with `token` (Account Analytics Read). */
 export const analyticsSql =
-  (token: string, fetcher: typeof fetch = fetch): AnalyticsSql =>
+  (
+    token: string,
+    fetcher: typeof fetch = fetch,
+    timeoutMs: number = sqlTimeoutMs,
+  ): AnalyticsSql =>
   async (sql) => {
     const response = await fetcher(
       `https://api.cloudflare.com/client/v4/accounts/${ANALYTICS_ACCOUNT}/analytics_engine/sql`,
@@ -36,7 +40,7 @@ export const analyticsSql =
         headers: { authorization: `Bearer ${token}` },
         body: sql,
         // A stalled answer fails the page (502), never holds it open.
-        signal: AbortSignal.timeout(sqlTimeoutMs),
+        signal: AbortSignal.timeout(timeoutMs),
       },
     );
     if (!response.ok) {

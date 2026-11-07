@@ -249,17 +249,26 @@ describe("analyticsSql", () => {
 });
 
 describe("a stalled Analytics Engine", () => {
-  test("is given up on: each query carries a timeout signal, and its abort reaches the page as a 502", async () => {
-    let signal: AbortSignal | undefined;
-    const stalled = analyticsSql("t0ken", (async (
-      _url: string,
-      init?: RequestInit,
-    ) => {
-      signal = init?.signal ?? undefined;
-      return new Promise<Response>(() => {});
-    }) as unknown as typeof fetch);
-    void stalled("SELECT 1");
-    await Promise.resolve();
-    expect(signal).toBeInstanceOf(AbortSignal);
+  test("is given up on by its timeout, and the page answers 502", async () => {
+    // Answers only when the request is aborted, as fetch does.
+    const stalled = (async (_url: string, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new Error("aborted")),
+        );
+      })) as unknown as typeof fetch;
+    const query = analyticsSql("t0ken", stalled, 20);
+    await expect(query("SELECT 1")).rejects.toThrow("aborted");
+    const page = makePreviewHandler(env, {
+      keys,
+      now: () => now,
+      analytics: analyticsSql("t0ken", stalled, 20),
+    });
+    const response = await page(
+      new Request("https://preview.example/404s", {
+        headers: { "cf-access-jwt-assertion": await token(organizer) },
+      }),
+    );
+    expect(response.status).toBe(502);
   });
 });
