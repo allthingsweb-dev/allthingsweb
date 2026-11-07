@@ -333,6 +333,8 @@ describe("which outcomes count as failures", () => {
       "answered 429 (Cloudflare 1015, the address is rate-limited)",
     );
     expect(refusal(503, {})).toBe("answered 503");
+    // A reset past any valid date is left out rather than thrown on.
+    expect(refusal(403, { "x-ratelimit-reset": "1e15" })).toBe("answered 403");
     expect(refusal(429, { "retry-after": "x".repeat(400) })).toHaveLength(200);
   });
 
@@ -653,7 +655,7 @@ describe("the history", () => {
         "npm (no number yet)         -       gap",
         "github stars                6       gap",
         "",
-        "Gaps (known and temporary, retried each hour; none fails the sync):",
+        "Gaps (known and temporary: read again each hour until stored, X at most once a UTC day; 3 days with no number, today included, fail the sync):",
         "  11-06 discord  answered 429 (Cloudflare 1015, the address is rate-limited): 14 tries, 02:00–15:00 UTC, then read",
         "  11-07 github   answered 403 (0 left, resets 18:00 UTC): 1 try, 00:00 UTC",
         "  11-07 npm      answered 404: 3 tries, 00:00–02:00 UTC",

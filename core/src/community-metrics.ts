@@ -131,9 +131,10 @@ export function refusal(
   }
   const remaining = headers["x-ratelimit-remaining"];
   if (remaining !== undefined) notes.push(`${remaining} left`);
-  // Seconds since the epoch, as both send it.
+  // Seconds since the epoch, as both send it; past 8.64e12 s no Date is
+  // valid, so a stray header can't throw here.
   const reset = Number(headers["x-ratelimit-reset"]);
-  if (Number.isFinite(reset) && reset > 1e9) {
+  if (Number.isFinite(reset) && reset > 1e9 && reset <= 8.64e12) {
     notes.push(
       `resets ${new Date(Math.round(reset) * 1000).toISOString().slice(11, 16)} UTC`,
     );
@@ -805,7 +806,7 @@ export function formatHistory(
   return [
     ...table,
     "",
-    "Gaps (known and temporary, retried each hour; none fails the sync):",
+    `Gaps (known and temporary: read again each hour until stored, X at most once a UTC day; ${gapDays} days with no number, today included, fail the sync):`,
     ...gaps.map(
       (gap) =>
         `  ${gap.day.slice(5)} ${gap.source.padEnd(8)} ${gap.reason}: ${gap.tries} ${gap.tries === 1 ? "try" : "tries"}, ${gap.first}${gap.last === gap.first ? "" : `–${gap.last}`} UTC${answered.has(`${gap.day} ${gap.source}`) ? ", then read" : ""}`,
