@@ -27,6 +27,7 @@ import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   CommunitySources,
+  needsAction,
   snapshotCommunity,
 } from "allthings-core/src/community-metrics.ts";
 import { Clock, Context, DateTime, Duration, Effect, Exit } from "effect";
@@ -500,25 +501,21 @@ const followers = (limits: SyncLimits, dryRun: boolean) =>
  * Today's snapshot of the community's public numbers (core's
  * src/community-metrics.ts), as a step reports it, with the services the
  * run already has: each source it stored, kept, skipped (X outside the
- * day's first hour) or failed. A source that failed is read again next
- * run; the step fails only when every source it tried did, or the
- * database did. A dry run reads them (X never) and reports what it would
- * store, writing nothing.
+ * day's first hour), left as a gap (known and temporary, recorded in
+ * community_gaps) or failed. Each source not read is read again next run.
+ * The step fails only on what someone has to act on (`needsAction`): a
+ * failure, a gap that has lasted, or the database. A dry run reads them
+ * (X never) and reports what it would store, writing nothing.
  */
 const community = (dryRun: boolean) =>
   Effect.gen(function* () {
     const context = yield* Effect.context<CommunitySources | SqlClient>();
     return snapshotCommunity({ dryRun }).pipe(
       Effect.flatMap((report) => {
-        const succeeded = report.read.length;
-        const tried = succeeded + Object.keys(report.failed).length;
-        return tried > 0 && succeeded === 0
-          ? Effect.fail(
-              `every source failed: ${Object.entries(report.failed)
-                .map(([source, reason]) => `${source} (${reason})`)
-                .join(", ")}`,
-            )
-          : Effect.succeed({ ...report });
+        const action = needsAction(report);
+        return action === undefined
+          ? Effect.succeed({ ...report })
+          : Effect.fail(action);
       }),
       Effect.provideContext(context),
     );

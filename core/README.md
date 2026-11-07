@@ -143,7 +143,7 @@ has it, the command says so on stderr; nothing else changes.
 - **Exactly what its commands use.** The script lists each grant with the
   command whose statement needs it: planning's tables, the collaboration's
   included, read whole and written by column; on `public`, reads
-  of only tables site_reader already reads (and `community_metrics`, which
+  of only tables site_reader already reads (and `community_metrics` and `community_gaps`, which
   `bun run community` reads and the site never shows), and writes of only the columns
   the studio writes (a draft's stored event, its program, its cover, the
   lineup publish copies, photos and their images, a profile's photo, a
@@ -322,6 +322,9 @@ DATABASE_URL=… bun run followers --stale-days 0 --max 1000   # re-read everyon
 `community_metrics` keeps the community's public numbers, one snapshot a day
 (UTC), so they have a history (`src/community-metrics.ts`,
 `migrations/0037_community_metrics.ts`): a row per day, source and metric.
+`community_gaps` (`migrations/0038_community_gaps.ts`) keeps the days a
+source couldn't be read for a known, temporary reason: a row per day and
+source, with the latest reason, the tries and the first and latest try.
 
 | Source    | Metrics                                     | Read from                                                             |
 | --------- | ------------------------------------------- | --------------------------------------------------------------------- |
@@ -336,8 +339,24 @@ DATABASE_URL=… bun run followers --stale-days 0 --max 1000   # re-read everyon
 
 The sync Worker takes it in each hourly run (`community`): it reads each
 source the day has no row for yet and stores what it reads, never replacing
-a value (the day's first stays). A source that fails is read again the next
-hour, and the step's log line names it (`failed`). X bills each read, so it
+a value (the day's first stays). A source not read is read again the next
+hour, and the step's log line names it, as one of two kinds:
+
+- **A gap** (`gaps`): known and temporary, so it never fails the sync. A
+  rate limit (429) or a refusal (403), which public APIs answer Cloudflare's
+  shared addresses at times; the source down (5xx) or not answering; npm's
+  counts of a package too new to have them (404). Each is recorded in
+  `community_gaps`, with what the answer said about when to ask again
+  (`Retry-After`, a rate limit's remaining and reset, Cloudflare's 1015).
+- **A failure** (`failed`): someone has to act. An answer that isn't what it
+  should be, any other status, a missing key, the database; and a gap that
+  has lasted, a source with no number for three days, today included
+  (`gapDays`). The step fails (`needsAction`), and with it the run's
+  `summary`, which is what the sync's alerts read (infra/README.md,
+  "Alerts").
+
+`tests/community-metrics.test.ts` ("which outcomes count as failures")
+holds each case. X bills each read, so it
 is read once a day at most: only in the run of the day's first hour (UTC),
 whatever comes of it. A dry run reads every source but X (whose read is
 billed), those the day already has too, so it checks each integration, and
@@ -346,9 +365,14 @@ day lacks) and whether this hour's run would attempt to read X. It writes as
 site_sync, which may read which sources the day has (`day`, `source`,
 `metric`) and insert rows, but never update one, and read the events' Luma
 guest and check-in counts for Luma's sums; migration 0037 grants exactly
-that, as infra/scripts/site-sync.ts lists. Nothing in it identifies anyone.
+that, as infra/scripts/site-sync.ts lists; it records gaps with the columns
+migration 0038 grants it (inserting a day's row, then updating its reason,
+tries and latest try), never reading a reason. Nothing in either identifies
+anyone.
 
-The studio reads it, day by day, a line per source and metric:
+The studio reads both, day by day, a line per source and metric, `gap` on a
+day a source had a gap and no number, then each gap with its reason and
+tries:
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run community             # the last 14 days

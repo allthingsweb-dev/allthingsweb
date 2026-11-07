@@ -1,14 +1,19 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Console, Effect } from "effect";
 import { Command, Flag } from "effect/cli";
-import { communityHistory, formatHistory } from "../src/community-metrics.ts";
+import {
+  communityGaps,
+  communityHistory,
+  formatHistory,
+} from "../src/community-metrics.ts";
 import * as Database from "../src/database.ts";
 
 /**
  * The community's public numbers, day by day (src/community-metrics.ts):
  * X, Bluesky, YouTube, Discord, Meetup, Luma, npm and GitHub, as the sync
- * Worker snapshots them each day. It only reads, as the studio (core's
- * README, "The community's numbers"):
+ * Worker snapshots them each day, and each day's gaps: a source not read
+ * yet for a known, temporary reason, with why and how often it was tried.
+ * It only reads, as the studio (core's README, "The community's numbers"):
  *
  *   DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
  *     bun run community               # the last 14 days
@@ -30,8 +35,8 @@ const command = Command.make(
     ),
   },
   ({ days }) =>
-    communityHistory(days).pipe(
-      Effect.flatMap((rows) => Console.log(formatHistory(rows))),
+    Effect.all([communityHistory(days), communityGaps(days)]).pipe(
+      Effect.flatMap(([rows, gaps]) => Console.log(formatHistory(rows, gaps))),
       Effect.provide(Database.scriptLayer),
     ),
 ).pipe(

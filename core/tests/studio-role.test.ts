@@ -273,7 +273,7 @@ describe("its privileges in the catalog", () => {
 });
 
 describe("what the script grants", () => {
-  test("reads on public only tables site_reader reads, but the community's numbers", () => {
+  test("reads on public only tables site_reader reads, but the community's numbers and gaps", () => {
     const beyond = Object.keys(STUDIO_GRANTS)
       .filter((table) => table.startsWith("public."))
       .filter(
@@ -282,10 +282,16 @@ describe("what the script grants", () => {
             table.slice("public.".length),
           ),
       );
-    // Public counts of the community's own accounts, which the site never
-    // shows; read only, by `bun run community`.
-    expect(beyond).toEqual(["public.community_metrics"]);
-    expect(STUDIO_GRANTS["public.community_metrics"]).toEqual({ select: true });
+    // Public counts of the community's own accounts, and the days a source
+    // couldn't be read, which the site never shows; read only, by `bun run
+    // community`.
+    expect(beyond).toEqual([
+      "public.community_metrics",
+      "public.community_gaps",
+    ]);
+    for (const table of beyond) {
+      expect(STUDIO_GRANTS[table]).toEqual({ select: true });
+    }
   });
 
   test("reads every collaboration table, each with row security and the studio's own policy", async () => {

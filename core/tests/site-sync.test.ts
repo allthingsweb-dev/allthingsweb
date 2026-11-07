@@ -15,6 +15,7 @@ import {
 } from "../../infra/scripts/login-role.ts";
 import { FollowerSource, refreshFollowers } from "../src/followers.ts";
 import {
+  CommunityReadError,
   CommunitySources,
   snapshotCommunity,
 } from "../src/community-metrics.ts";
@@ -424,6 +425,44 @@ describe("site_sync", () => {
     expect(first.stored).toContain("x");
     // A second run that day reads nothing: every source has its number.
     expect((await snapshot(2)).stored).toEqual([]);
+    // The next day, a source that is a gap is recorded, each try counted.
+    /** A snapshot as site_sync the next day, every source a gap. */
+    const gap = () =>
+      Effect.runPromise(
+        snapshotCommunity().pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              Layer.succeed(
+                CommunitySources,
+                CommunitySources.of({
+                  read: (source) =>
+                    Effect.fail(
+                      new CommunityReadError({
+                        source,
+                        reason: "answered 429",
+                        temporary: true,
+                      }),
+                    ),
+                }),
+              ),
+              sqlLayer(db),
+              clockAt(DateTime.makeUnsafe("2026-10-06T05:00:05Z")),
+            ),
+          ),
+        ),
+      );
+    expect((await gap()).gaps).toMatchObject({ github: "answered 429" });
+    expect((await gap()).failed).toEqual({});
+    const tries = await db.query<{ tries: number }>(
+      "SELECT tries FROM community_gaps WHERE day = '2026-10-06' AND source = 'github'",
+    );
+    expect(tries.rows).toEqual([{ tries: 2 }]);
+    expect(await refusal("DELETE FROM community_gaps")).toContain(
+      "permission denied",
+    );
+    expect(
+      await refusal("UPDATE community_gaps SET day = '2026-10-07'"),
+    ).toContain("permission denied");
     expect(await refusal("UPDATE community_metrics SET value = 3")).toContain(
       "permission denied",
     );

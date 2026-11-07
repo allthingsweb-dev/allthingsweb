@@ -1849,3 +1849,38 @@ export const communityMetricsTable = pgTable(
     check("community_metrics_value_check", sql`"value" >= 0`),
   ],
 );
+
+/**
+ * The days a source of the community's numbers couldn't be read for a
+ * known, temporary reason: a row per day and source, its latest reason,
+ * tries, and first and latest try. core/migrations/0038_community_gaps.ts
+ * makes the same table; the sync Worker writes it
+ * (core/src/community-metrics.ts).
+ */
+export const communityGapsTable = pgTable(
+  "community_gaps",
+  {
+    day: date("day").notNull(),
+    source: text("source").notNull(),
+    reason: text("reason").notNull(),
+    tries: integer("tries").notNull().default(1),
+    firstAt: timestamp("first_at", { withTimezone: true }).notNull(),
+    lastAt: timestamp("last_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "community_gaps_day_source_pk",
+      columns: [table.day, table.source],
+    }),
+    check(
+      "community_gaps_source_check",
+      sql`"source" IN ('x', 'bluesky', 'youtube', 'discord', 'meetup', 'luma', 'npm', 'github')`,
+    ),
+    check(
+      "community_gaps_reason_check",
+      sql`length("reason") BETWEEN 1 AND 200`,
+    ),
+    check("community_gaps_tries_check", sql`"tries" >= 1`),
+    check("community_gaps_last_at_check", sql`"last_at" >= "first_at"`),
+  ],
+);
