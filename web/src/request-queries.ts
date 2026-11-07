@@ -1,11 +1,14 @@
 import { pathClass, REQUESTS_DATASET } from "./metrics.ts";
+import { isNotFoundShape } from "./not-found.ts";
 
 /**
  * What web/scripts/requests.ts asks of the Worker's request data points
  * (metrics.ts), in Analytics Engine's SQL. Each point stands for
  * `_sample_interval` requests, so counts are sums of it. A point's columns:
  * `blob1` the path's class, `blob2` the path, `blob3` what answered,
- * `blob4` the data center, `blob5` the method, `blob6` `bot` or `human`;
+ * `blob4` the data center, `blob5` the method, `blob6` `bot` or `human`,
+ * `blob7` a 404's kind (not-found.ts), empty in points written
+ * before kinds were;
  * `double1` the status, `double2` the milliseconds the Worker took.
  */
 
@@ -17,18 +20,36 @@ const since = (days: number) =>
   `timestamp > NOW() - INTERVAL '${Math.trunc(days)}' DAY`;
 
 /**
- * The path classes that answered 404 most (a 404 keeps its class alone),
+ * The 404s by kind (`blob7`; empty for points written before kinds were),
  * with how many of those asked were bots.
+ */
+export const notFoundKindsQuery = (stage: RequestsStage, days: number) =>
+  `SELECT blob7 AS kind, SUM(_sample_interval) AS requests, ` +
+  `SUM(IF(blob6 = 'bot', _sample_interval, 0)) AS bots ` +
+  `FROM ${REQUESTS_DATASET[stage]} WHERE ${since(days)} AND double1 = 404 ` +
+  `GROUP BY kind ORDER BY requests DESC`;
+
+/**
+ * The 404 shapes asked most (`blob2`: a 404 keeps its shape, not-found.ts),
+ * with their kind and how many of those asked were bots.
  */
 export const top404Query = (
   stage: RequestsStage,
   days: number,
   limit: number,
 ) =>
-  `SELECT blob1 AS path, SUM(_sample_interval) AS requests, ` +
+  `SELECT blob7 AS kind, blob2 AS path, SUM(_sample_interval) AS requests, ` +
   `SUM(IF(blob6 = 'bot', _sample_interval, 0)) AS bots ` +
   `FROM ${REQUESTS_DATASET[stage]} WHERE ${since(days)} AND double1 = 404 ` +
-  `GROUP BY path ORDER BY requests DESC LIMIT ${Math.trunc(limit)}`;
+  `GROUP BY kind, path ORDER BY requests DESC LIMIT ${Math.trunc(limit)}`;
+
+/**
+ * What a report shows of a stored 404's path: its shape when it is one
+ * not-found.ts gives, else its class (a point written before shapes were
+ * kept its class, and older ones a path), so nothing a URL carried shows.
+ */
+export const shownPath = (path: string): string =>
+  isNotFoundShape(path) ? path : pathClass(path);
 
 /** How many requests each part of the Worker answered (`store-hit`, …). */
 export const answeredQuery = (stage: RequestsStage, days: number) =>
@@ -61,16 +82,24 @@ export function storeHitRate(rows: ReadonlyArray<Row>): number | undefined {
   return asked === 0 ? undefined : hits / asked;
 }
 
-/** The report, as text: the statuses, what answered, the top 404s. */
+/** A 404 row's kind as shown: `(none)` for points written before kinds were. */
+const kindOf = (row: Row) => {
+  const kind = String(row["kind"] ?? "");
+  return kind === "" ? "(none)" : kind;
+};
+
+/** The report, as text: the statuses, what answered, the 404s by kind and the top ones. */
 export function formatReport(
   { stage, days }: { readonly stage: RequestsStage; readonly days: number },
   {
     statuses,
     answered,
+    kinds,
     notFound,
   }: {
     readonly statuses: ReadonlyArray<Row>;
     readonly answered: ReadonlyArray<Row>;
+    readonly kinds: ReadonlyArray<Row>;
     readonly notFound: ReadonlyArray<Row>;
   },
 ): string {
@@ -92,12 +121,20 @@ export function formatReport(
       (row) => `  ${String(row["answered"])}  ${count(row["requests"])}`,
     ),
     "",
-    "top 404 path classes (requests, of them bots)",
+    "404s by kind (requests, of them bots)",
+    ...(kinds.length === 0
+      ? ["  none"]
+      : kinds.map(
+          (row) =>
+            `  ${count(row["requests"])}  ${count(row["bots"])}  ${kindOf(row)}`,
+        )),
+    "",
+    "top 404s (requests, of them bots, kind, path)",
     ...(notFound.length === 0
       ? ["  none"]
       : notFound.map(
           (row) =>
-            `  ${count(row["requests"])}  ${count(row["bots"])}  ${pathClass(String(row["path"]))}`,
+            `  ${count(row["requests"])}  ${count(row["bots"])}  ${kindOf(row)}  ${shownPath(String(row["path"]))}`,
         )),
   ].join("\n");
 }
