@@ -493,6 +493,7 @@ describe("a source never read", () => {
     async () => {
       const fresh = await migratedDatabase();
       try {
+        /** A run at `when` in the fresh database, npm a gap. */
         const at = (when: string) =>
           snapshotAt(when, { npm: "gap" }, false, fresh);
         expect((await at("2027-02-01T05:00:00Z")).gaps).toEqual({
@@ -519,6 +520,7 @@ describe("X, read in the day's first hour only", () => {
     async () => {
       const fresh = await migratedDatabase();
       try {
+        /** A run at `when` in the fresh database, X answering `x`. */
         const at = (when: string, x: Metrics | "gap") =>
           snapshotAt(when, { x }, false, fresh);
         expect(
@@ -752,6 +754,7 @@ describe("migration 0038's grants", () => {
         const statement = communityGapsMigration.at(-1) ?? "";
         expect(statement).toContain("DO $grant$");
         await fresh.exec(statement);
+        /** What `role` holds on community_gaps, as `column privilege` lines. */
         const held = async (role: string) =>
           (
             await fresh.query<{ grant: string }>(

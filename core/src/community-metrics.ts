@@ -546,6 +546,7 @@ const lastingGaps = (
 ) =>
   Effect.gen(function* () {
     if (gapped.length === 0) return new Map<Source, string | undefined>();
+    /** Each source's day, from rows of both. */
     const since = (rows: ReadonlyArray<{ source: string; day: string }>) =>
       new Map(rows.map(({ source, day }) => [source, day]));
     const read = since(

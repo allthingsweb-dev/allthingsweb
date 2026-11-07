@@ -426,6 +426,7 @@ describe("site_sync", () => {
     // A second run that day reads nothing: every source has its number.
     expect((await snapshot(2)).stored).toEqual([]);
     // The next day, a source that is a gap is recorded, each try counted.
+    /** A snapshot as site_sync the next day, every source a gap. */
     const gap = () =>
       Effect.runPromise(
         snapshotCommunity().pipe(
