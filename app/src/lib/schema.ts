@@ -704,6 +704,7 @@ export const ideaStatuses = [
   "idea",
   "drafting",
   "scheduled",
+  "postponed",
   "dropped",
 ] as const;
 

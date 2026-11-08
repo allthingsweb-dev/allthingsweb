@@ -178,17 +178,20 @@ export function draftChecks(
 
   // An evening put off says so, and blocks: its date, likely passed, is
   // asked again only once its idea is back to drafting.
-  const postponed = facts.idea?.status === "postponed";
-  if (facts.idea !== null && facts.idea.status === "postponed") {
+  const postponed = facts.idea?.status === "postponed" ? facts.idea : null;
+  if (postponed !== null) {
     checks.push(
       check(
         "postponed",
         "blocker",
-        `Postponed: its idea is on hold, with no date. To bring it back, give it a date ahead with bun run luma update ${record.slug}, then bun run plan idea update ${facts.idea.id} --status drafting.`,
+        `Postponed: its idea is on hold, with no date. To bring it back, give it a date ahead with bun run luma update ${record.slug}, then bun run plan idea update ${postponed.id} --status drafting.`,
       ),
     );
   }
-  if (!postponed && DateTime.isLessThanOrEqualTo(record.startDate, now)) {
+  if (
+    postponed === null &&
+    DateTime.isLessThanOrEqualTo(record.startDate, now)
+  ) {
     checks.push(
       check(
         "starts-in-past",
