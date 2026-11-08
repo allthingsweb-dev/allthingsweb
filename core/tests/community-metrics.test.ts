@@ -354,6 +354,9 @@ describe("Discord's short rate limit", () => {
     ).toBeUndefined();
     expect(retryAfterSeconds({}, "error code: 1015")).toBeUndefined();
     expect(retryAfterSeconds({}, '{"retry_after":-1}')).toBeUndefined();
+    expect(
+      retryAfterSeconds({ "retry-after": "9".repeat(400) }),
+    ).toBeUndefined();
     expect([...retriedOnShortLimit]).toEqual(["discord"]);
     expect(shortRetrySeconds).toBe(5);
   });

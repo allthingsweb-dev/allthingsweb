@@ -124,7 +124,9 @@ export function retryAfterSeconds(
 ): number | undefined {
   const header = headers["retry-after"];
   if (header !== undefined && /^\d+(\.\d+)?$/.test(header.trim())) {
-    return Number(header.trim());
+    // Hundreds of digits parse to Infinity: no wait at all.
+    const seconds = Number(header.trim());
+    return Number.isFinite(seconds) ? seconds : undefined;
   }
   try {
     const parsed: unknown = JSON.parse(body);
