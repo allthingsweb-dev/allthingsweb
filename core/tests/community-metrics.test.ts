@@ -104,22 +104,34 @@ function fakeInternet(answers: Partial<Record<string, () => Response>> = {}) {
   return { asked, layer: Layer.succeed(HttpClient.HttpClient, client) };
 }
 
-/** The live sources over `internet`, the test database and a test X token. */
-const live = (internet: ReturnType<typeof fakeInternet>) =>
+/**
+ * The live sources over `internet`, the test database, a test X token and
+ * whatever else `config` holds.
+ */
+const live = (
+  internet: ReturnType<typeof fakeInternet>,
+  config: Readonly<Record<string, string>> = {},
+) =>
   CommunitySources.live.pipe(
     Layer.provide(
       Layer.mergeAll(
         internet.layer,
         sqlLayer(db),
         ConfigProvider.layer(
-          ConfigProvider.fromUnknown({ X_BEARER_TOKEN: "x-test-token" }),
+          ConfigProvider.fromUnknown({
+            X_BEARER_TOKEN: "x-test-token",
+            ...config,
+          }),
         ),
       ),
     ),
   );
 
 /** Every source read once through the live layer: its metrics, or why it failed. */
-const readAll = (internet: ReturnType<typeof fakeInternet>) =>
+const readAll = (
+  internet: ReturnType<typeof fakeInternet>,
+  config: Readonly<Record<string, string>> = {},
+) =>
   Effect.runPromise(
     Effect.gen(function* () {
       const reader = yield* CommunitySources;
@@ -136,7 +148,7 @@ const readAll = (internet: ReturnType<typeof fakeInternet>) =>
           );
       }
       return read;
-    }).pipe(Effect.provide(live(internet))),
+    }).pipe(Effect.provide(live(internet, config))),
   );
 
 describe("youtubeCount", () => {
@@ -240,6 +252,7 @@ const snapshotAt = (
   answers: Partial<Record<Source, Metrics | "gap" | "fail">>,
   dryRun = false,
   database?: PGlite,
+  only?: ReadonlyArray<Source>,
 ) => {
   const asked: Array<Source> = [];
   const layer = Layer.mergeAll(
@@ -273,7 +286,9 @@ const snapshotAt = (
     clockAt(DateTime.makeUnsafe(at)),
   );
   return Effect.runPromise(
-    snapshotCommunity({ dryRun }).pipe(Effect.provide(layer)),
+    snapshotCommunity({ dryRun, ...(only === undefined ? {} : { only }) }).pipe(
+      Effect.provide(layer),
+    ),
   ).then((report): CommunityReport & { asked: Array<Source> } => ({
     ...report,
     asked,
@@ -576,6 +591,61 @@ describe("X, its first-hour run missed", () => {
         expect(later.failed).toEqual({
           x: "no number since 2027-04-01, 3 days of gaps: a gap when X was last read, in a day's first hour",
         });
+      } finally {
+        await fresh.close();
+      }
+    },
+  );
+});
+
+describe("GitHub, read from GitHub Actions", () => {
+  test.skipIf(studioRun)(
+    "is read with GITHUB_TOKEN when there is one, and nothing else is sent it",
+    async () => {
+      const internet = fakeInternet();
+      const read = await readAll(internet, { GITHUB_TOKEN: "gh-test-token" });
+      expect(read.github).toEqual({ stars: 6, forks: 3 });
+      const sent = internet.asked.filter(
+        ({ authorization }) => authorization !== undefined,
+      );
+      expect(sent).toEqual([
+        {
+          url: `https://api.x.com/2/users/${COMMUNITY.xUserId}?user.fields=public_metrics`,
+          authorization: "Bearer x-test-token",
+        },
+        {
+          url: `https://api.github.com/repos/${COMMUNITY.githubRepo}`,
+          authorization: "Bearer gh-test-token",
+        },
+      ]);
+    },
+  );
+
+  test.skipIf(studioRun)(
+    "snapshots only the sources named, and stores what the day lacks",
+    async () => {
+      const fresh = await migratedDatabase();
+      try {
+        const run = await snapshotAt(
+          "2027-05-01T00:20:00Z",
+          { github: { stars: 6, forks: 3 } },
+          false,
+          fresh,
+          ["github"],
+        );
+        expect(run.asked).toEqual(["github"]);
+        expect(run.stored).toEqual(["github"]);
+        // In the day's first hour too: X is read only when named.
+        expect(run.skipped).toEqual({});
+        // The Worker's run that day then leaves GitHub alone.
+        const worker = await snapshotAt(
+          "2027-05-01T01:00:00Z",
+          {},
+          false,
+          fresh,
+        );
+        expect(worker.asked).not.toContain("github");
+        expect(worker.kept).toContain("github");
       } finally {
         await fresh.close();
       }

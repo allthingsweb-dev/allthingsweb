@@ -224,7 +224,10 @@ export class CommunitySources extends Context.Service<
   /**
    * Each source from its public API (or YouTube's channel page), Luma's
    * from the database the sync writes it to. Needs an `HttpClient`, a
-   * `SqlClient` and X_BEARER_TOKEN.
+   * `SqlClient` and X_BEARER_TOKEN. With GITHUB_TOKEN, GitHub is read with
+   * it, in that token's own allowance rather than the caller's address's
+   * (GitHub Actions' built-in token, `.github/workflows/community.yaml`);
+   * the sync Worker has none and reads GitHub without a key.
    */
   static readonly live = Layer.effect(
     CommunitySources,
@@ -232,6 +235,7 @@ export class CommunitySources extends Context.Service<
       const client = yield* HttpClient.HttpClient;
       const sql = yield* SqlClient;
       // Without it, X alone fails; a dry run never reads X.
+      const githubToken = yield* Config.option(Config.Redacted("GITHUB_TOKEN"));
       const xToken = yield* Config.option(Config.Redacted("X_BEARER_TOKEN"));
       /**
        * `request` for `source`, within 15 s: its answer when 200, else a
@@ -463,6 +467,12 @@ export class CommunitySources extends Context.Service<
           GitHubRepo,
           HttpClientRequest.get(
             `https://api.github.com/repos/${COMMUNITY.githubRepo}`,
+          ).pipe((request) =>
+            Option.match(githubToken, {
+              onNone: () => request,
+              onSome: (token) =>
+                HttpClientRequest.bearerToken(request, Redacted.value(token)),
+            }),
           ),
         ).pipe(
           Effect.map((repo) => ({
@@ -598,11 +608,17 @@ const lastingGaps = (
  * {@link gapDays} days, a failure (`failed`). The snapshot itself fails
  * only when the database does. A dry run reads the same sources but X and
  * reports what it would store (`wouldStore`), writing nothing, gaps
- * included.
+ * included. `only` limits it to those sources: the others are neither read
+ * nor checked (GitHub Actions' snapshot of GitHub alone,
+ * scripts/community-snapshot.ts).
  */
 export const snapshotCommunity = ({
   dryRun = false,
-}: { readonly dryRun?: boolean } = {}) =>
+  only,
+}: {
+  readonly dryRun?: boolean;
+  readonly only?: ReadonlyArray<Source>;
+} = {}) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     const reader = yield* CommunitySources;
@@ -620,6 +636,7 @@ export const snapshotCommunity = ({
     const gaps: Partial<Record<Source, string>> = {};
     const failed: Partial<Record<Source, string>> = {};
     for (const source of sources) {
+      if (only !== undefined && !only.includes(source)) continue;
       // A dry run reads every source but X, those the day has too, so it
       // checks each integration; it would store only what the day lacks.
       if (kept.has(source) && !(dryRun && source !== "x")) continue;
