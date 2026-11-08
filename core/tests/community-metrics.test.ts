@@ -303,15 +303,21 @@ const gapRows = async (day: string) =>
 
 /**
  * Answers that a host gives in turn, the last one again once they run out,
- * counting how often it was asked.
+ * counting how often it was asked, and the milliseconds between each
+ * request and the one before it.
  */
 function inTurn(...answers: ReadonlyArray<() => Response>) {
   let asked = 0;
+  const at: Array<number> = [];
   return {
     get asked() {
       return asked;
     },
+    get gaps() {
+      return at.slice(1).map((time, index) => time - (at[index] ?? time));
+    },
     answer: () => {
+      at.push(performance.now());
       const next = answers[Math.min(asked, answers.length - 1)];
       asked += 1;
       return next?.() ?? new Response(null, { status: 500 });
@@ -364,19 +370,22 @@ describe("Discord's short rate limit", () => {
   test.skipIf(studioRun)(
     "is asked once more after the wait, and read when it answers",
     async () => {
-      const byHeader = inTurn(() => limited({ header: "0.05" }), discordInvite);
+      const byHeader = inTurn(() => limited({ header: "0.2" }), discordInvite);
       const read = await readAll(
         fakeInternet({ "discord.com": byHeader.answer }),
       );
       expect(read.discord).toEqual({ members: 517, online: 56 });
       expect(byHeader.asked).toBe(2);
+      // Only after the wait it asked for (less a timer's slack).
+      expect(byHeader.gaps[0]).toBeGreaterThanOrEqual(190);
       // Discord's body says it too, when no header does.
-      const byBody = inTurn(() => limited({ body: 0.05 }), discordInvite);
+      const byBody = inTurn(() => limited({ body: 0.2 }), discordInvite);
       const again = await readAll(
         fakeInternet({ "discord.com": byBody.answer }),
       );
       expect(again.discord).toEqual({ members: 517, online: 56 });
       expect(byBody.asked).toBe(2);
+      expect(byBody.gaps[0]).toBeGreaterThanOrEqual(190);
     },
   );
 
