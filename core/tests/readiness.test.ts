@@ -113,6 +113,7 @@ const facts = (
 ): DraftFacts => ({
   record: { ...ready, ...overrides },
   isDraft: true,
+  idea: null,
   shortLocation: "CodeRabbit",
   scheduleItems: 0,
   plannedTalks: [],
@@ -355,6 +356,33 @@ describe("draftChecks", () => {
         ),
       ),
     ).toEqual(["advice luma-event", "advice cover"]);
+  });
+
+  test("a postponed idea's evening is put off, and its passed date isn't asked", () => {
+    const passed = {
+      startDate: at("2026-10-01T00:30:00Z"),
+      endDate: at("2026-10-01T03:30:00Z"),
+    };
+    const idea = (status: "postponed" | "dropped" | "drafting") => ({
+      idea: { id: "11111111-1111-4111-8111-111111111111", status },
+    });
+    const postponed = draftChecks(facts(passed, idea("postponed")), [], now);
+    expect(kinds(postponed)).toEqual(["blocker postponed"]);
+    expect(postponed[0]?.message).toBe(
+      "Postponed: its idea is on hold, with no date. To bring it back, give it a date ahead with bun run luma update 2026-10-27-made-up, then bun run plan idea update 11111111-1111-4111-8111-111111111111 --status drafting.",
+    );
+    // Ahead or not, postponed blocks: it waits for its idea to come back.
+    expect(kinds(draftChecks(facts({}, idea("postponed")), [], now))).toEqual([
+      "blocker postponed",
+    ]);
+    // Back to drafting, its date is asked again; dropped, the idea no
+    // longer counts (src/readiness/readiness.ts), so neither is it put off.
+    expect(kinds(draftChecks(facts(passed, idea("dropped")), [], now))).toEqual(
+      ["blocker starts-in-past"],
+    );
+    expect(
+      kinds(draftChecks(facts(passed, idea("drafting")), [], now)),
+    ).toEqual(["blocker starts-in-past"]);
   });
 
   test("the date is ahead, ends after it starts, and reads as an evening", () => {
@@ -900,6 +928,34 @@ describe("the report", () => {
     expect((await report({ _tag: "Event", slug })).subject).toMatchObject({
       program: "talks",
     });
+  });
+
+  test("a draft whose idea is postponed says so, as its idea's kind of evening, and keeps its draft", async () => {
+    const slug = "2026-09-01-draft-night";
+    const idea = await plan((p) =>
+      p.addIdea({
+        title: "Made-up quiz",
+        pitch: "Rounds.",
+        program: "social",
+        status: "drafting",
+        eventSlug: slug,
+      }),
+    );
+    // Its day (2026-09-01) has passed at the test clock.
+    expect(kinds((await report({ _tag: "Event", slug })).checks)).toContain(
+      "blocker starts-in-past",
+    );
+    const postponed = await plan((p) =>
+      p.updateIdea(idea.id, { status: "postponed" }),
+    );
+    expect(postponed.status).toBe("postponed");
+    expect(postponed.event?.slug).toBe(slug);
+    const checks = (await report({ _tag: "Event", slug })).checks;
+    expect(kinds(checks)).toContain("blocker postponed");
+    expect(kinds(checks)).not.toContain("blocker starts-in-past");
+    expect((await report({ _tag: "Idea", id: idea.id })).subject).toMatchObject(
+      { kind: "event", slug, program: "social" },
+    );
   });
 
   test("a draft's private lineup counts as its people", async () => {

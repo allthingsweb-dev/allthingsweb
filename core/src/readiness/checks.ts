@@ -22,6 +22,7 @@ import {
 } from "../organizer-profiles.ts";
 import { neighborhoodOf } from "../places.ts";
 import { sfDay } from "./calendar.ts";
+import type { IdeaStatus } from "../planning/model.ts";
 import type { CollabCheckKind } from "./collab.ts";
 
 /**
@@ -47,6 +48,7 @@ export type CheckLevel = "blocker" | "advice";
 /** The checks only a draft is asked, beyond the completeness report's gaps. */
 export const draftCheckKinds = {
   published: "already public",
+  postponed: "its idea is postponed",
   "luma-event": "no Luma event yet",
   "starts-in-past": "starts in the past",
   "ends-before-start": "ends before it starts",
@@ -88,6 +90,11 @@ const pastOnly: ReadonlySet<GapKind> = new Set([
 export interface DraftFacts {
   readonly record: EventRecord;
   readonly isDraft: boolean;
+  /**
+   * The idea it comes from, when planning has one and may be read: a
+   * postponed idea says the evening is put off, whatever its date.
+   */
+  readonly idea: { readonly id: string; readonly status: IdeaStatus } | null;
   /** The venue's name, as Luma's location name is stored. */
   readonly shortLocation: string | null;
   readonly scheduleItems: number;
@@ -169,7 +176,22 @@ export function draftChecks(
     );
   }
 
-  if (DateTime.isLessThanOrEqualTo(record.startDate, now)) {
+  // An evening put off says so, and blocks: its date, likely passed, is
+  // asked again only once its idea is back to drafting.
+  const postponed = facts.idea?.status === "postponed" ? facts.idea : null;
+  if (postponed !== null) {
+    checks.push(
+      check(
+        "postponed",
+        "blocker",
+        `Postponed: its idea is on hold, with no date. To bring it back, give it a date ahead with bun run luma update ${record.slug}, then bun run plan idea update ${postponed.id} --status drafting.`,
+      ),
+    );
+  }
+  if (
+    postponed === null &&
+    DateTime.isLessThanOrEqualTo(record.startDate, now)
+  ) {
     checks.push(
       check(
         "starts-in-past",

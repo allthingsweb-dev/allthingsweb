@@ -704,6 +704,7 @@ export const ideaStatuses = [
   "idea",
   "drafting",
   "scheduled",
+  "postponed",
   "dropped",
 ] as const;
 
@@ -781,7 +782,7 @@ export const planningIdeasTable = planningSchema.table(
     check("ideas_topic_check", topicRule("topic")),
     check(
       "ideas_status_check",
-      sql`"status" IN ('idea', 'drafting', 'scheduled', 'dropped')`,
+      sql`"status" IN ('idea', 'drafting', 'scheduled', 'postponed', 'dropped')`,
     ),
     check(
       "ideas_scheduled_event_check",

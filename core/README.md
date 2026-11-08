@@ -1215,8 +1215,9 @@ kit with placeholders and settled as golden files; regenerate them with
 Every evening starts in `planning`, a Postgres schema of its own
 (`migrations/0012_planning.ts`): ideas for evenings (title, pitch, program,
 topic, and a status from `idea` through `drafting` to `scheduled`, or
-`dropped`, linked to the draft evening it becomes and to a past one it
-builds on), speakers we'd like on stage (a profile, or a contact without
+`postponed` (put off with no date, keeping its draft evening and all on
+it), or `dropped`, linked to the draft evening it becomes and to a past
+one it builds on), speakers we'd like on stage (a profile, or a contact without
 one) with their topics and when they're free or not, companies we'd like
 to host (one we know, or a new name) with who to talk to and when each last
 hosted, notes on the people and companies we know, and an unpublished
@@ -1340,7 +1341,10 @@ each host's title and bio were checked (`PeopleRecord`, which
 A draft that came from an idea is checked as the idea's kind of evening (a
 social, a hackathon): the program is kept in planning, private, while the
 evening is a draft, and publishing writes it to the event. A dropped idea
-no longer counts.
+no longer counts. A postponed one still does, and its draft is put off:
+readiness blocks on that alone, never on a date that passed while it
+waited, until it has a date ahead (`bun run luma update`) and its idea is
+back to `drafting` (`bun run plan idea update <id> --status drafting`).
 
 **Checks.** The completeness rules run ahead of time, all but the ones only a
 past evening can have (photos, a recording, a guest count): what the report
