@@ -23,7 +23,13 @@ const core = fileURLToPath(new URL("../../core/", import.meta.url));
  */
 
 const programs = ["talks", "open-floor", "social", "hackathon"] as const;
-const ideaStatuses = ["idea", "drafting", "scheduled", "dropped"] as const;
+const ideaStatuses = [
+  "idea",
+  "drafting",
+  "scheduled",
+  "postponed",
+  "dropped",
+] as const;
 const speakerStatuses = ["wanted", "asked", "confirmed", "declined"] as const;
 const hostStatuses = ["prospect", "asked", "confirmed", "declined"] as const;
 

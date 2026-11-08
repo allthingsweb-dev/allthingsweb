@@ -8,11 +8,15 @@ import { EventProgram } from "../rows.ts";
  * the inputs each change takes, and the rows each list returns.
  */
 
-/** An idea, from a first thought to a scheduled evening, or dropped. */
+/**
+ * An idea, from a first thought to a scheduled evening, or put off with
+ * no date (postponed, keeping its draft and everything on it), or dropped.
+ */
 export const IdeaStatus = Schema.Literals([
   "idea",
   "drafting",
   "scheduled",
+  "postponed",
   "dropped",
 ]);
 export type IdeaStatus = typeof IdeaStatus.Type;

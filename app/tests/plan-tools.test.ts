@@ -52,6 +52,28 @@ describe("planning tools", () => {
     ]);
   });
 
+  test("an idea takes core's statuses, postponed among them", () => {
+    expect(planSchemas.update_idea.shape.status.unwrap().options).toEqual([
+      "idea",
+      "drafting",
+      "scheduled",
+      "postponed",
+      "dropped",
+    ]);
+    expect(
+      planArguments("update_idea", {
+        id: "11111111-1111-4111-8111-111111111111",
+        status: "postponed",
+      }),
+    ).toEqual([
+      "idea",
+      "update",
+      "--status=postponed",
+      "--",
+      "11111111-1111-4111-8111-111111111111",
+    ]);
+  });
+
   test("null clears, and ids and queries follow --", () => {
     expect(
       planArguments("update_idea", {

@@ -441,6 +441,8 @@ const make = Effect.gen(function* () {
               {
                 record: checked ?? record,
                 isDraft: fact.isDraft,
+                idea:
+                  idea === null ? null : { id: idea.id, status: idea.status },
                 shortLocation: fact.shortLocation,
                 scheduleItems: fact.scheduleItems,
                 plannedTalks,
