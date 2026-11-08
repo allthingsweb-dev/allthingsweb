@@ -24,6 +24,7 @@
     "external-talks": "bun --no-env-file scripts/external-talks.ts",
     "followers": "bun --no-env-file scripts/followers.ts",
     "community": "bun --no-env-file scripts/community.ts",
+    "community-snapshot": "bun --no-env-file scripts/community-snapshot.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts",
     "talks": "bun --no-env-file scripts/talks.ts",
     "people": "bun --no-env-file scripts/people.ts",

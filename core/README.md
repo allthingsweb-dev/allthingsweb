@@ -335,7 +335,7 @@ source, with the latest reason, the tries and the first and latest try.
 | `meetup`  | `members`                                   | Meetup's GraphQL, the group's member count                            |
 | `luma`    | `guests`, `checked_in`, `events`            | the database: the sums of published evenings' Luma counts             |
 | `npm`     | `downloads_day`, `downloads_week`           | npm's downloads API for `allthings`                                   |
-| `github`  | `stars`, `forks`                            | GitHub's API for this repository                                      |
+| `github`  | `stars`, `forks`                            | GitHub's API for this repository, from GitHub Actions (below)         |
 
 The sync Worker takes it in each hourly run (`community`): it reads each
 source the day has no row for yet and stores what it reads, never replacing
@@ -369,6 +369,14 @@ that, as infra/scripts/site-sync.ts lists; it records gaps with the columns
 migration 0038 grants it (inserting a day's row, then updating its reason,
 tries and latest try), never reading a reason. Nothing in either identifies
 anyone.
+
+GitHub's API refuses the Worker most hours: it reads without a key from
+Cloudflare's shared addresses, whose hourly allowance others use up. So
+GitHub Actions takes GitHub's snapshot too (`.github/workflows/community.yaml`,
+four times a day): `bun run community-snapshot --only github` reads it with
+the run's built-in `GITHUB_TOKEN` and stores it as site_sync
+(`NEON_SYNC_URL`), through the same snapshot, so the day's first value
+stays and the Worker leaves GitHub alone once the day has it.
 
 The studio reads both, day by day, a line per source and metric, `gap` on a
 day a source had a gap and no number, then each gap with its reason and
