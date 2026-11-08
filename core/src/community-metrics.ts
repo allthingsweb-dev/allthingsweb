@@ -114,6 +114,47 @@ export const isGapAnswer = (source: Source, status: number): boolean =>
 export const gapDays = 3;
 
 /**
+ * How long a 429 asks to wait, in seconds: its `Retry-After` header when
+ * it is a number, else the `retry_after` its JSON body carries (Discord
+ * sends both), else undefined (an HTTP date, or nothing).
+ */
+export function retryAfterSeconds(
+  headers: Readonly<Record<string, string | undefined>>,
+  body = "",
+): number | undefined {
+  const header = headers["retry-after"];
+  if (header !== undefined && /^\d+(\.\d+)?$/.test(header.trim())) {
+    // Hundreds of digits parse to Infinity: no wait at all.
+    const seconds = Number(header.trim());
+    return Number.isFinite(seconds) ? seconds : undefined;
+  }
+  try {
+    const parsed: unknown = JSON.parse(body);
+    const value =
+      typeof parsed === "object" && parsed !== null
+        ? (parsed as { readonly retry_after?: unknown }).retry_after
+        : undefined;
+    return typeof value === "number" && Number.isFinite(value) && value >= 0
+      ? value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The sources asked once more, right away, when a 429 asks to wait at most
+ * {@link shortRetrySeconds}: Discord, whose limit on Cloudflare's shared
+ * addresses mostly asks for a second (`scope user, retry after 1 s`). One
+ * retry only, so a run never waits more than that on it; a second 429 is a
+ * gap, read again next hour.
+ */
+export const retriedOnShortLimit: ReadonlySet<Source> = new Set(["discord"]);
+
+/** The longest wait a 429 may ask for and still be retried in the run. */
+export const shortRetrySeconds = 5;
+
+/**
  * Why a source answered `status` rather than 200, with what its answer says
  * about when to ask again: a rate limit's headers (how many requests are
  * left and when they reset, as GitHub and Discord send them, Discord's
@@ -240,21 +281,24 @@ export class CommunitySources extends Context.Service<
       /**
        * `request` for `source`, within 15 s: its answer when 200, else a
        * read error, a gap or a failure as `isGapAnswer` says, with why
-       * (`refusal`); no answer in time is a gap.
+       * (`refusal`); no answer in time is a gap. A source in
+       * `retriedOnShortLimit` whose 429 asks to wait at most
+       * `shortRetrySeconds` is asked once more after that wait.
        */
       const get = (
         source: Source,
         request: HttpClientRequest.HttpClientRequest,
       ) =>
         Effect.gen(function* () {
-          const response = yield* client.execute(
-            request.pipe(
-              HttpClientRequest.setHeader("user-agent", "allthings.dev"),
-            ),
-          );
-          if (response.status !== 200) {
-            const temporary = isGapAnswer(source, response.status);
-            // Only a refusal's body says why (Cloudflare's 1015).
+          /** One request: its answer, and a refusal's body, which says why. */
+          const send = Effect.gen(function* () {
+            const response = yield* client.execute(
+              request.pipe(
+                HttpClientRequest.setHeader("user-agent", "allthings.dev"),
+              ),
+            );
+            // Only a refusal's body says why (Cloudflare's 1015), or how
+            // long to wait (Discord's retry_after).
             const body =
               response.status === 403 || response.status === 429
                 ? yield* response.text.pipe(
@@ -262,6 +306,19 @@ export class CommunitySources extends Context.Service<
                     Effect.map((text) => text.slice(0, 2000)),
                   )
                 : "";
+            return { response, body };
+          });
+          let { response, body } = yield* send;
+          const wait =
+            response.status === 429 && retriedOnShortLimit.has(source)
+              ? retryAfterSeconds(response.headers, body)
+              : undefined;
+          if (wait !== undefined && wait <= shortRetrySeconds) {
+            yield* Effect.sleep(Duration.millis(Math.ceil(wait * 1000)));
+            ({ response, body } = yield* send);
+          }
+          if (response.status !== 200) {
+            const temporary = isGapAnswer(source, response.status);
             return yield* new CommunityReadError({
               source,
               reason: refusal(response.status, response.headers, body),

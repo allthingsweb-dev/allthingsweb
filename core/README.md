@@ -348,6 +348,9 @@ hour, and the step's log line names it, as one of two kinds:
   counts of a package too new to have them (404). Each is recorded in
   `community_gaps`, with what the answer said about when to ask again
   (`Retry-After`, a rate limit's remaining and reset, Cloudflare's 1015).
+  Discord is asked once more within the run when its 429 asks to wait 5 s or
+  less (its `Retry-After`, else its body's `retry_after`); only a second 429,
+  or a longer wait, is a gap.
 - **A failure** (`failed`): someone has to act. An answer that isn't what it
   should be, any other status, a missing key, the database; and a gap that
   has lasted, a source with no number for three days, today included
