@@ -31,6 +31,17 @@ describe("config", () => {
     expect(config.bridge.ip).toBe(testEnv.AUX_BRIDGE_IP);
   });
 
+  test("a host token longer than 256 characters is refused", () => {
+    expect(() =>
+      parseConfig(example(), { ...testEnv, AUX_HOST_TOKEN: "a".repeat(257) }),
+    ).toThrow("32 to 256");
+    const longest = parseConfig(example(), {
+      ...testEnv,
+      AUX_HOST_TOKEN: "a".repeat(256),
+    });
+    expect(longest.hostToken).toHaveLength(256);
+  });
+
   test("a public Bridge address is refused", () => {
     expect(() =>
       parseConfig(example(), { ...testEnv, AUX_BRIDGE_IP: "8.8.8.8" }),

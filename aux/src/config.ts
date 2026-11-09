@@ -50,12 +50,15 @@ const sceneSchema = z.record(
   z.object({ color: nameSchema, brightness: brightnessSchema }).strict(),
 );
 
+/** The longest bearer token the hub reads (Hub.identify): longer ones are refused. */
+export const maxSecretLength = 256;
+
 const secret = (what: string, min: number) =>
   z
     .string()
     .regex(
-      new RegExp(`^[\\w-]{${min},}$`),
-      `${what} must be at least ${min} letters, digits, _ or -`,
+      new RegExp(`^[\\w-]{${min},${maxSecretLength}}$`),
+      `${what} must be ${min} to ${maxSecretLength} letters, digits, _ or -`,
     );
 
 export const configSchema = z
