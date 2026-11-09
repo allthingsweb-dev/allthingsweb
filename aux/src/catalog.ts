@@ -108,9 +108,16 @@ export async function readCatalog(
 function readManifest(dir: string): Manifest {
   const path = join(dir, manifestName);
   if (!existsSync(path)) return { version: 1, tracks: [] };
-  const parsed = manifestSchema.safeParse(
-    JSON.parse(readFileSync(path, "utf8")),
-  );
+  let json: unknown;
+  try {
+    json = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    throw new Error(
+      `${path} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
+  const parsed = manifestSchema.safeParse(json);
   if (!parsed.success) {
     throw new Error(`${path} is not a music manifest: ${parsed.error.message}`);
   }
@@ -169,6 +176,8 @@ export interface PrefetchResult {
   /** Already on disk, unchanged since the manifest recorded it. */
   readonly kept: readonly string[];
   readonly failed: readonly { slug: string; error: string }[];
+  /** Why the old manifest was ignored, when it couldn't be read; every file was then fetched again. */
+  readonly ignoredManifest?: string;
 }
 
 /**
@@ -193,9 +202,17 @@ export async function prefetch({
   const catalog = new Map(
     (await readCatalog(base, fetch)).map((song) => [song.slug, song]),
   );
-  const previous = new Map(
-    readManifest(dir).tracks.map((track) => [track.slug, track]),
-  );
+  // A manifest that can't be read vouches for nothing: every track is fetched
+  // again and the manifest rewritten.
+  let previous = new Map<string, ManifestTrack>();
+  let ignoredManifest: string | undefined;
+  try {
+    previous = new Map(
+      readManifest(dir).tracks.map((track) => [track.slug, track]),
+    );
+  } catch (error) {
+    ignoredManifest = error instanceof Error ? error.message : String(error);
+  }
   const saved: string[] = [];
   const kept: string[] = [];
   const failed: { slug: string; error: string }[] = [];
@@ -250,7 +267,9 @@ export async function prefetch({
     join(dir, manifestName),
     `${JSON.stringify({ version: 1, tracks } satisfies Manifest, null, 2)}\n`,
   );
-  return { saved, kept, failed };
+  return ignoredManifest === undefined
+    ? { saved, kept, failed }
+    : { saved, kept, failed, ignoredManifest };
 }
 
 /**

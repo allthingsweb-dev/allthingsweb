@@ -78,6 +78,11 @@ async function prefetchMusic(): Promise<void> {
   console.log(
     `Music in ${music.cacheDir}: ${result.saved.length} saved, ${result.kept.length} already there, ${result.failed.length} failed.`,
   );
+  if (result.ignoredManifest !== undefined) {
+    console.error(
+      `Ignored the old manifest (${result.ignoredManifest}); every track was fetched again.`,
+    );
+  }
   for (const { slug, error } of result.failed) {
     console.error(`${slug}: ${error}`);
   }

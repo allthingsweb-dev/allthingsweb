@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import {
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -146,6 +147,34 @@ describe("prefetch", () => {
       { slug: "not-on-musax", error: "not in mus.ax's catalog" },
     ]);
     expect(readdirSync(dir).toSorted()).toEqual(["song-0.mp3", manifestName]);
+  });
+});
+
+describe("an unreadable manifest", () => {
+  test("is ignored by prefetch, which says so and rewrites it", async () => {
+    const dir = join(directory, "corrupt");
+    const { fetch } = fakeMusAx(2);
+    await prefetch({ base, slugs: ["song-0"], dir, fetch });
+    writeFileSync(join(dir, manifestName), "{not json");
+    const result = await prefetch({
+      base,
+      slugs: ["song-0", "song-1"],
+      dir,
+      fetch,
+    });
+    expect(result.saved).toEqual(["song-0", "song-1"]);
+    expect(result.kept).toEqual([]);
+    expect(result.ignoredManifest).toContain(join(dir, manifestName));
+    expect(loadPlaylist(dir, ["song-0", "song-1"]).tracks).toHaveLength(2);
+  });
+
+  test("is named when the playlist can't load it", () => {
+    const dir = join(directory, "corrupt-load");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, manifestName), "{not json");
+    expect(() => loadPlaylist(dir, ["song-0"])).toThrow(
+      `${join(dir, manifestName)} is not valid JSON`,
+    );
   });
 });
 
