@@ -49,7 +49,8 @@ export const homeVariable = "ALLTHINGS_HOME";
 export function auxEndpointFrom(
   env: Record<string, string | undefined>,
 ): string {
-  return env[auxEndpointVariable] ?? defaultAuxEndpoint;
+  const chosen = env[auxEndpointVariable]?.trim();
+  return chosen ? chosen : defaultAuxEndpoint;
 }
 
 /**

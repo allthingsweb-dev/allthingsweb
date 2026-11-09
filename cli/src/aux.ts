@@ -7,7 +7,12 @@ import {
   toolResultSchema,
   type Fetch,
 } from "./client.ts";
-import { auxCodePath, auxCodeVariable, commandName } from "./config.ts";
+import {
+  auxCodePath,
+  auxCodeVariable,
+  auxEndpointVariable,
+  commandName,
+} from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
 
 /**
@@ -192,6 +197,33 @@ function toolError(
   }
 }
 
+const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+/**
+ * The hub's endpoint, checked before any code is sent to it: HTTPS, or plain
+ * HTTP only to a hub on this machine. Anything else is a usage error.
+ */
+export function checkedAuxEndpoint(endpoint: string): URL {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    throw new CliError(
+      `${auxEndpointVariable} isn't a URL: set it to the hub's https address, or unset it for ${commandName}'s default.`,
+      ExitCode.UsageError,
+    );
+  }
+  const loopback =
+    loopbackHosts.has(url.hostname) || url.hostname.startsWith("127.");
+  if (url.protocol === "https:" || (url.protocol === "http:" && loopback)) {
+    return url;
+  }
+  throw new CliError(
+    `${auxEndpointVariable} must be an https address, or http to a hub on this machine, so your code is never sent in the clear.`,
+    ExitCode.UsageError,
+  );
+}
+
 export function createAuxClient({
   endpoint,
   code,
@@ -203,6 +235,7 @@ export function createAuxClient({
   fetch?: Fetch | undefined;
   now?: () => number;
 }) {
+  const url = checkedAuxEndpoint(endpoint).href;
   async function post<T>(
     method: string,
     params: Record<string, unknown>,
@@ -210,7 +243,7 @@ export function createAuxClient({
   ): Promise<T> {
     let response: Response;
     try {
-      response = await fetch(endpoint, {
+      response = await fetch(url, {
         method: "POST",
         headers: {
           "content-type": "application/json",

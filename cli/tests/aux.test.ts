@@ -9,7 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { retryAfterSeconds } from "../src/aux.ts";
+import { checkedAuxEndpoint, retryAfterSeconds } from "../src/aux.ts";
 import { run, type Io } from "../src/cli.ts";
 import type { Fetch } from "../src/client.ts";
 import { ExitCode } from "../src/errors.ts";
@@ -431,5 +431,43 @@ describe("allthings aux", () => {
       { name: "queue_track", arguments: { slug: "night-drive" } },
       { name: "skip_track", arguments: {} },
     ]);
+  });
+});
+
+describe("the aux endpoint", () => {
+  test("is refused before any request unless it's https or http to this machine", async () => {
+    for (const url of [
+      "http://aux.allthings.dev/mcp",
+      "http://192.168.1.20:8787/mcp",
+      "ftp://aux.allthings.dev/mcp",
+      "not a url",
+    ]) {
+      const { exitCode, stderr, requests } = await exec(["status"], {
+        env: { ALLTHINGS_AUX_CODE: code, ALLTHINGS_AUX_URL: url },
+      });
+      expect(exitCode).toBe(ExitCode.UsageError);
+      expect(stderr).toContain("ALLTHINGS_AUX_URL");
+      expect(stderr).not.toContain(code);
+      expect(requests).toHaveLength(0);
+    }
+  });
+
+  test("accepts https and http to a loopback host", () => {
+    for (const url of [
+      "https://aux.allthings.dev/mcp",
+      "http://localhost:8787/mcp",
+      "http://127.0.0.1:8787/mcp",
+      "http://[::1]:8787/mcp",
+    ]) {
+      expect(checkedAuxEndpoint(url).href).toBe(new URL(url).href);
+    }
+  });
+
+  test("treats a blank ALLTHINGS_AUX_URL as unset", async () => {
+    const { exitCode, requests } = await exec(["status"], {
+      env: { ALLTHINGS_AUX_CODE: code, ALLTHINGS_AUX_URL: "  " },
+    });
+    expect(exitCode).toBe(ExitCode.Ok);
+    expect(requests[0]?.url).toBe("https://aux.allthings.dev/mcp");
   });
 });
