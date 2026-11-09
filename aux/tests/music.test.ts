@@ -1,5 +1,13 @@
-import { describe, expect, test } from "bun:test";
-import { Music, musicLimits } from "../src/music.ts";
+import { describe, expect, spyOn, test } from "bun:test";
+import {
+  choosePlayer,
+  Music,
+  musicLimits,
+  mpvVolume,
+  playerCommand,
+  playerEnv,
+  spawnPlayer,
+} from "../src/music.ts";
 import { fakeSpawn, settle, track } from "./support.ts";
 
 /** A player over `slugs`, with its fake processes and the errors it reported. */
@@ -203,5 +211,113 @@ describe("music", () => {
           spawn: fakeSpawn().spawn,
         }),
     ).toThrow("must be 0 to 1");
+  });
+});
+
+describe("players", () => {
+  test("each player gets the volume ceiling in its own scale", () => {
+    expect(playerCommand("afplay", "/m/a.mp3", 0.6)).toEqual([
+      "afplay",
+      "-v",
+      "0.6",
+      "/m/a.mp3",
+    ]);
+    expect(playerCommand("mpv", "/m/a.mp3", 0.6)).toEqual([
+      "mpv",
+      "--no-video",
+      "--no-terminal",
+      "--volume=60",
+      "/m/a.mp3",
+    ]);
+    expect(playerCommand("pw-play", "/m/a.mp3", 0.6)).toEqual([
+      "pw-play",
+      "--volume=0.6",
+      "/m/a.mp3",
+    ]);
+  });
+
+  test("mpv's percentage never passes a fractional ceiling", () => {
+    expect(mpvVolume(0.995)).toBe("99.5");
+    expect(mpvVolume(0.99999)).toBe("99.99");
+    expect(mpvVolume(0.9999999999999)).toBe("99.99");
+    expect(mpvVolume(0.99999999999995)).toBe("99.99");
+    expect(mpvVolume(0.57)).toBe("57");
+    expect(mpvVolume(1)).toBe("100");
+    expect(mpvVolume(0)).toBe("0");
+    expect(playerCommand("mpv", "/m/a.mp3", 0.995)).toContain("--volume=99.5");
+  });
+
+  test("pw-play runs in the C locale, and the others inherit theirs", () => {
+    expect(playerEnv("pw-play")).toEqual({ LC_ALL: "C" });
+    expect(playerEnv("mpv")).toBeUndefined();
+    expect(playerEnv("afplay")).toBeUndefined();
+  });
+
+  test("spawnPlayer starts pw-play with LC_ALL=C over the inherited environment", () => {
+    const calls: {
+      cmd: string[];
+      env: Record<string, string | undefined> | undefined;
+    }[] = [];
+    const spawn = spyOn(Bun, "spawn").mockImplementation(((
+      cmd: string[],
+      options?: { env?: Record<string, string | undefined> },
+    ) => {
+      calls.push({ cmd, env: options?.env });
+      return { exited: Promise.resolve(0), kill: () => {} };
+    }) as unknown as typeof Bun.spawn);
+    try {
+      spawnPlayer("pw-play")("/m/a.mp3", 0.6);
+      spawnPlayer("mpv")("/m/a.mp3", 0.6);
+    } finally {
+      spawn.mockRestore();
+    }
+    expect(calls.map((call) => call.cmd[0])).toEqual(["pw-play", "mpv"]);
+    expect(calls[0]?.env?.["LC_ALL"]).toBe("C");
+    expect(calls[0]?.env?.["PATH"]).toBe(process.env["PATH"]);
+    expect(calls[1]?.env).toBeUndefined();
+  });
+
+  const installed =
+    (...commands: string[]) =>
+    (command: string) =>
+      commands.includes(command) ? `/usr/bin/${command}` : null;
+
+  test("macOS plays through afplay", () => {
+    expect(choosePlayer("darwin", installed("afplay"))).toEqual({
+      player: "afplay",
+    });
+  });
+
+  test("Linux picks mpv, and pw-play only when it's configured", () => {
+    expect(choosePlayer("linux", installed("mpv", "pw-play"))).toEqual({
+      player: "mpv",
+    });
+    const unconfigured = choosePlayer("linux", installed("pw-play"));
+    expect("error" in unconfigured && unconfigured.error).toContain(
+      "set music.player to pw-play",
+    );
+    expect(choosePlayer("linux", installed("pw-play"), "pw-play")).toEqual({
+      player: "pw-play",
+    });
+  });
+
+  test("Linux without a player says what to install", () => {
+    const chosen = choosePlayer("linux", installed());
+    expect("error" in chosen && chosen.error).toContain("sudo apt install mpv");
+  });
+
+  test("a configured player wins, but only if it's installed", () => {
+    expect(
+      choosePlayer("linux", installed("mpv", "pw-play"), "pw-play"),
+    ).toEqual({ player: "pw-play" });
+    expect(choosePlayer("linux", installed("mpv"), "afplay")).toEqual({
+      error: "music.player is afplay, which isn't installed here",
+    });
+  });
+
+  test("another platform gets no player", () => {
+    expect(choosePlayer("win32", installed("mpv"))).toEqual({
+      error: "no player is known for win32; run the hub on macOS or Linux",
+    });
   });
 });

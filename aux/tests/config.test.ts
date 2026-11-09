@@ -93,4 +93,17 @@ describe("config", () => {
       parseConfig({ ...example(), transitionMs: 500 }, testEnv),
     ).toThrow("transitionMs");
   });
+
+  test("music.player names afplay, mpv or pw-play, or is left out", () => {
+    const raw = example();
+    const music = raw["music"] as Record<string, unknown>;
+    expect(parseConfig(raw, testEnv).music?.player).toBeUndefined();
+    expect(
+      parseConfig({ ...raw, music: { ...music, player: "mpv" } }, testEnv).music
+        ?.player,
+    ).toBe("mpv");
+    expect(() =>
+      parseConfig({ ...raw, music: { ...music, player: "vlc" } }, testEnv),
+    ).toThrow("player");
+  });
 });

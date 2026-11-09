@@ -33,14 +33,110 @@ export interface PlayProcess {
 /** Starts playing `file` at `volume` (0 to 1). */
 export type Spawn = (file: string, volume: number) => PlayProcess;
 
+/** The players the hub can drive: macOS's afplay, or mpv or PipeWire's pw-play on Linux. */
+export const playerNames = ["afplay", "mpv", "pw-play"] as const;
+export type PlayerName = (typeof playerNames)[number];
+
+/**
+ * mpv's `--volume` for a 0-to-1 ceiling: a percentage to two decimals,
+ * rounded down so it never passes the ceiling. `toPrecision` first drops
+ * float noise, so 0.57 reads 57 rather than 56.99.
+ */
+export function mpvVolume(volume: number): string {
+  const rounded = Math.floor(Number((volume * 10_000).toPrecision(12)));
+  // toPrecision can round a value just under a hundredth up to it, past the ceiling; step back down when it did.
+  const hundredths = rounded / 10_000 > volume ? rounded - 1 : rounded;
+  return String(hundredths / 100);
+}
+
+/**
+ * Environment additions for a player's process. pw-play reads `--volume` in
+ * the process locale, so a comma-decimal locale would read 0.6 as 0 and play
+ * silently; `LC_ALL=C` pins the decimal point. The others need none.
+ */
+export function playerEnv(
+  player: PlayerName,
+): Record<string, string> | undefined {
+  return player === "pw-play" ? { LC_ALL: "C" } : undefined;
+}
+
+/**
+ * The command line that plays `file` once at `volume` (0 to 1) and exits.
+ * Each player takes the ceiling in its own scale; killing it stops the track.
+ */
+export function playerCommand(
+  player: PlayerName,
+  file: string,
+  volume: number,
+): string[] {
+  switch (player) {
+    case "afplay":
+      return ["afplay", "-v", String(volume), file];
+    case "mpv":
+      // mpv's --volume is a percentage; 100 is the file's own level.
+      return [
+        "mpv",
+        "--no-video",
+        "--no-terminal",
+        `--volume=${mpvVolume(volume)}`,
+        file,
+      ];
+    case "pw-play":
+      return ["pw-play", `--volume=${volume}`, file];
+    default: {
+      const unknown: never = player;
+      throw new Error(`Unknown music player: ${String(unknown)}`);
+    }
+  }
+}
+
+/** A Spawn that runs `player` for each track. */
+export function spawnPlayer(player: PlayerName): Spawn {
+  const extra = playerEnv(player);
+  return (file, volume) => {
+    const child = Bun.spawn(playerCommand(player, file, volume), {
+      stdout: "ignore",
+      stderr: "ignore",
+      ...(extra === undefined ? {} : { env: { ...process.env, ...extra } }),
+    });
+    return { exited: child.exited, kill: () => child.kill() };
+  };
+}
+
 /** macOS's afplay: `-v` sets the volume, and killing it stops the track. */
-export const afplay: Spawn = (file, volume) => {
-  const child = Bun.spawn(["afplay", "-v", String(volume), file], {
-    stdout: "ignore",
-    stderr: "ignore",
-  });
-  return { exited: child.exited, kill: () => child.kill() };
-};
+export const afplay: Spawn = spawnPlayer("afplay");
+
+/**
+ * The player for this machine: the configured one if it's installed, else
+ * afplay on macOS or mpv on Linux. `which` finds a command on PATH, as
+ * Bun.which does. pw-play plays MP3 only through libsndfile 1.1.0 or later,
+ * and a track that fails to play leaves the set for the night, so it runs
+ * only when `music.player` names it.
+ */
+export function choosePlayer(
+  platform: string,
+  which: (command: string) => string | null,
+  configured?: PlayerName,
+): { player: PlayerName } | { error: string } {
+  if (configured !== undefined) {
+    return which(configured) === null
+      ? { error: `music.player is ${configured}, which isn't installed here` }
+      : { player: configured };
+  }
+  const candidates: readonly PlayerName[] =
+    platform === "darwin" ? ["afplay"] : platform === "linux" ? ["mpv"] : [];
+  for (const candidate of candidates) {
+    if (which(candidate) !== null) return { player: candidate };
+  }
+  return {
+    error:
+      platform === "linux"
+        ? "mpv isn't installed: install it (sudo apt install mpv), or set music.player to pw-play if its libsndfile is 1.1.0 or later"
+        : platform === "darwin"
+          ? "afplay isn't on PATH"
+          : `no player is known for ${platform}; run the hub on macOS or Linux`,
+  };
+}
 
 interface Entry {
   readonly track: Track;
