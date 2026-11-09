@@ -60,6 +60,10 @@ export function playerCommand(
       ];
     case "pw-play":
       return ["pw-play", `--volume=${volume}`, file];
+    default: {
+      const unknown: never = player;
+      throw new Error(`Unknown music player: ${String(unknown)}`);
+    }
   }
 }
 
