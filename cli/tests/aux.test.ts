@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import {
   chmod,
   mkdtemp,
@@ -148,6 +149,9 @@ describe("allthings aux", () => {
       ["login"],
       ["login", "two words"],
       ["nope"],
+      ["status", "--zone", "terrace"],
+      ["scene", "ocean", "--zone", "terrace"],
+      ["request", "--zone", "terrace"],
     ]) {
       const { exitCode, stderr, requests } = await exec(argv);
       expect(exitCode).toBe(ExitCode.UsageError);
@@ -197,6 +201,17 @@ describe("allthings aux", () => {
       name: "set_color",
       arguments: { color: "mint", zone: "terrace" },
     });
+  });
+
+  test("login with --zone is a usage error and saves nothing", async () => {
+    const home = await newHome();
+    const login = await exec(["login", code, "--zone", "terrace"], {
+      env: { ALLTHINGS_HOME: home },
+    });
+    expect(login.exitCode).toBe(ExitCode.UsageError);
+    expect(login.stderr).toContain('"--zone" works only with "aux color".');
+    expect(login.stdout + login.stderr).not.toContain(code);
+    expect(existsSync(join(home, "aux-code"))).toBe(false);
   });
 
   test("login saves the code for its owner alone and never prints it", async () => {

@@ -275,6 +275,9 @@ async function runAux(
       values.json ? `${JSON.stringify(maskData(data), null, 2)}\n` : mask(text),
     );
   try {
+    if (values.zone !== undefined && name !== "color") {
+      auxUsage('"--zone" works only with "aux color".');
+    }
     if (name === "login") {
       code = checkedCode(
         oneArgument(rest, "the code from your card", name),
@@ -359,6 +362,8 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       io.stdout(help);
       return ExitCode.Ok;
     }
+    if (values.zone !== undefined)
+      usage('"--zone" works only with "aux color".');
 
     const color = io.isTTY && !io.env["NO_COLOR"] && !values.json;
     const client =
