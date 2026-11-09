@@ -106,8 +106,10 @@ export const afplay: Spawn = spawnPlayer("afplay");
 
 /**
  * The player for this machine: the configured one if it's installed, else
- * afplay on macOS, else the first of mpv and pw-play on Linux. `which`
- * finds a command on PATH, as Bun.which does.
+ * afplay on macOS or mpv on Linux. `which` finds a command on PATH, as
+ * Bun.which does. pw-play plays MP3 only through libsndfile 1.1.0 or later,
+ * and a track that fails to play leaves the set for the night, so it runs
+ * only when `music.player` names it.
  */
 export function choosePlayer(
   platform: string,
@@ -120,18 +122,14 @@ export function choosePlayer(
       : { player: configured };
   }
   const candidates: readonly PlayerName[] =
-    platform === "darwin"
-      ? ["afplay"]
-      : platform === "linux"
-        ? ["mpv", "pw-play"]
-        : [];
+    platform === "darwin" ? ["afplay"] : platform === "linux" ? ["mpv"] : [];
   for (const candidate of candidates) {
     if (which(candidate) !== null) return { player: candidate };
   }
   return {
     error:
       platform === "linux"
-        ? "no player found: install mpv (sudo apt install mpv) or PipeWire's pw-play"
+        ? "mpv isn't installed: install it (sudo apt install mpv), or set music.player to pw-play if its libsndfile is 1.1.0 or later"
         : platform === "darwin"
           ? "afplay isn't on PATH"
           : `no player is known for ${platform}; run the hub on macOS or Linux`,

@@ -93,7 +93,7 @@ const musicSchema = z
     cacheDir: z.string().min(1).default("aux.music"),
     /** The volume ceiling agreed with the venue, 0 to 1. Guests can't change it. */
     volume: z.number().min(0).max(1),
-    /** The player; by default afplay on macOS and mpv, else pw-play, on Linux. */
+    /** The player; by default afplay on macOS and mpv on Linux. pw-play runs only when named here. */
     player: z.enum(playerNames).optional(),
   })
   .strict();

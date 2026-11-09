@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import {
   choosePlayer,
   Music,
@@ -6,6 +6,7 @@ import {
   mpvVolume,
   playerCommand,
   playerEnv,
+  spawnPlayer,
 } from "../src/music.ts";
 import { fakeSpawn, settle, track } from "./support.ts";
 
@@ -250,6 +251,30 @@ describe("players", () => {
     expect(playerEnv("afplay")).toBeUndefined();
   });
 
+  test("spawnPlayer starts pw-play with LC_ALL=C over the inherited environment", () => {
+    const calls: {
+      cmd: string[];
+      env: Record<string, string | undefined> | undefined;
+    }[] = [];
+    const spawn = spyOn(Bun, "spawn").mockImplementation(((
+      cmd: string[],
+      options?: { env?: Record<string, string | undefined> },
+    ) => {
+      calls.push({ cmd, env: options?.env });
+      return { exited: Promise.resolve(0), kill: () => {} };
+    }) as unknown as typeof Bun.spawn);
+    try {
+      spawnPlayer("pw-play")("/m/a.mp3", 0.6);
+      spawnPlayer("mpv")("/m/a.mp3", 0.6);
+    } finally {
+      spawn.mockRestore();
+    }
+    expect(calls.map((call) => call.cmd[0])).toEqual(["pw-play", "mpv"]);
+    expect(calls[0]?.env?.["LC_ALL"]).toBe("C");
+    expect(calls[0]?.env?.["PATH"]).toBe(process.env["PATH"]);
+    expect(calls[1]?.env).toBeUndefined();
+  });
+
   const installed =
     (...commands: string[]) =>
     (command: string) =>
@@ -261,11 +286,15 @@ describe("players", () => {
     });
   });
 
-  test("Linux prefers mpv, then pw-play", () => {
+  test("Linux picks mpv, and pw-play only when it's configured", () => {
     expect(choosePlayer("linux", installed("mpv", "pw-play"))).toEqual({
       player: "mpv",
     });
-    expect(choosePlayer("linux", installed("pw-play"))).toEqual({
+    const unconfigured = choosePlayer("linux", installed("pw-play"));
+    expect("error" in unconfigured && unconfigured.error).toContain(
+      "set music.player to pw-play",
+    );
+    expect(choosePlayer("linux", installed("pw-play"), "pw-play")).toEqual({
       player: "pw-play",
     });
   });
