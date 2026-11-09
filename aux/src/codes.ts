@@ -1,15 +1,13 @@
+import { dlopen, FFIType } from "bun:ffi";
 import { createHmac, randomBytes } from "node:crypto";
 import {
   closeSync,
   existsSync,
-  linkSync,
   openSync,
   readFileSync,
   renameSync,
-  statSync,
   unlinkSync,
   writeFileSync,
-  writeSync,
 } from "node:fs";
 import { z } from "zod";
 
@@ -50,6 +48,7 @@ export function normalizeCode(input: string): string | undefined {
   return code;
 }
 
+/** A normalized code's HMAC-SHA256 under the file's salt, in hex. */
 export function hashCode(salt: string, normalized: string): string {
   return createHmac("sha256", Buffer.from(salt, "hex"))
     .update(normalized)
@@ -70,96 +69,75 @@ const codesFileSchema = z.object({
 type CodesFile = z.infer<typeof codesFileSchema>;
 
 const lockWaitMs = 5_000;
-const staleLockMs = 30_000;
 
+/** Blocks the thread for `ms`: lock waits are short, and the writes are synchronous. */
 function sleepSync(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-function readToken(file: string): string | undefined {
-  try {
-    return readFileSync(file, "utf8");
-  } catch {
-    return undefined;
-  }
-}
+const LOCK_EX = 2;
+const LOCK_NB = 4;
+const LOCK_UN = 8;
+let flockSymbol: ((fd: number, operation: number) => number) | undefined;
 
 /**
- * Takes a crashed holder's lock: moves it aside under a unique name, then
- * checks the moved file still holds the token that was judged stale. If a
- * live process took the lock in between, it puts that lock back.
+ * flock(2) from the C library, loaded on first use: an advisory lock the
+ * kernel releases when its holder closes the file or exits, a crash included.
+ * Returns 0 on success and -1 when the lock is held elsewhere or fails.
  */
-function reclaimStale(lock: string, staleToken: string): void {
-  const aside = `${lock}.${randomBytes(8).toString("hex")}.stale`;
-  try {
-    renameSync(lock, aside);
-  } catch {
-    return;
-  }
-  if (readToken(aside) !== staleToken) {
-    try {
-      linkSync(aside, lock);
-    } catch {
-      // A newer lock already holds the name; leave it.
+function flock(fd: number, operation: number): number {
+  if (flockSymbol === undefined) {
+    const library =
+      process.platform === "darwin"
+        ? "/usr/lib/libSystem.B.dylib"
+        : process.platform === "linux"
+          ? "libc.so.6"
+          : undefined;
+    if (library === undefined) {
+      throw new Error(
+        `Locking the codes file isn't supported on ${process.platform}.`,
+      );
     }
+    flockSymbol = dlopen(library, {
+      flock: { args: [FFIType.i32, FFIType.i32], returns: FFIType.i32 },
+    }).symbols.flock;
   }
-  unlinkSync(aside);
+  return flockSymbol(fd, operation);
 }
 
 /**
- * Runs `fn` holding `<path>.lock`, an exclusively created file holding this
- * call's random token, so the hub revoking a code and a `--generate` run never
- * write over each other. A lock older than 30 s is a crash's leftover and is
- * reclaimed; otherwise it waits up to 5 s. It releases the lock only while
- * the lock still holds its own token.
+ * Runs `fn` holding an exclusive flock(2) on `<path>.lock`, so the hub
+ * revoking a code and a `--generate` run never write over each other. The
+ * kernel releases the lock when its holder exits, so a crash leaves nothing
+ * to reclaim, and the lock file itself is never removed: no process can take
+ * or delete another's lock. It waits up to `waitMs` (5 s by default).
  */
-export function withFileLock<T>(path: string, fn: () => T): T {
+export function withFileLock<T>(
+  path: string,
+  fn: () => T,
+  waitMs = lockWaitMs,
+): T {
   const lock = `${path}.lock`;
-  const token = `${process.pid}:${randomBytes(16).toString("hex")}`;
-  const deadline = Date.now() + lockWaitMs;
-  for (;;) {
-    try {
-      const fd = openSync(lock, "wx", 0o600);
-      try {
-        writeSync(fd, token);
-      } finally {
-        closeSync(fd);
-      }
-      break;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      const held = readToken(lock);
-      let age: number;
-      try {
-        age = Date.now() - statSync(lock).mtimeMs;
-      } catch {
-        continue;
-      }
-      if (held !== undefined && age > staleLockMs) {
-        reclaimStale(lock, held);
-        continue;
-      }
-      if (Date.now() > deadline) {
-        throw new Error(`${lock} is held by another process; try again.`, {
-          cause: error,
-        });
-      }
-      sleepSync(50);
-    }
-  }
+  const fd = openSync(lock, "a", 0o600);
   try {
-    return fn();
-  } finally {
-    if (readToken(lock) === token) {
-      try {
-        unlinkSync(lock);
-      } catch {
-        // Already gone: nothing to release.
+    const deadline = Date.now() + waitMs;
+    while (flock(fd, LOCK_EX | LOCK_NB) !== 0) {
+      if (Date.now() >= deadline) {
+        throw new Error(`${lock} is held by another process; try again.`);
       }
+      sleepSync(25);
     }
+    try {
+      return fn();
+    } finally {
+      flock(fd, LOCK_UN);
+    }
+  } finally {
+    closeSync(fd);
   }
 }
 
+/** Reads and validates the codes file at `path`. */
 function readCodesFile(path: string): CodesFile {
   const parsed = codesFileSchema.safeParse(
     JSON.parse(readFileSync(path, "utf8")),
@@ -186,6 +164,7 @@ export class CodeBook {
     this.#index();
   }
 
+  /** Rebuilds the hash → revoked map from the file in memory. */
   #index(): void {
     this.#byHash.clear();
     for (const { hash, revoked } of this.#file.codes) {
@@ -238,6 +217,7 @@ export class CodeBook {
     return new CodeBook(path, readCodesFile(path));
   }
 
+  /** How many codes the book holds, revoked ones included. */
   get size(): number {
     return this.#byHash.size;
   }
@@ -260,6 +240,7 @@ export class CodeBook {
     return this.#update(() => this.#generate(count, random));
   }
 
+  /** Draws `count` codes with distinct ids and adds their hashes, in memory. */
   #generate(count: number, random?: (size: number) => Uint8Array): string[] {
     const ids = new Set(
       [...this.#byHash.keys()].map((hash) => hash.slice(0, idLength)),
@@ -285,6 +266,7 @@ export class CodeBook {
     return this.#update(() => this.#revoke(needle));
   }
 
+  /** Marks the one code whose hash starts with `needle` revoked, in memory. */
   #revoke(needle: string): RevokeResult {
     const matches = this.#file.codes.filter((entry) =>
       entry.hash.startsWith(needle),

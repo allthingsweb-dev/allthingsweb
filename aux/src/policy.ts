@@ -167,14 +167,17 @@ export class Policy {
     this.#frozen = frozen;
   }
 
+  /** Whether guest control is paused. */
   get frozen(): boolean {
     return this.#frozen;
   }
 
+  /** Pauses (`on`) or resumes guest control. */
   freeze(on: boolean): void {
     this.#frozen = on;
   }
 
+  /** Code `id`'s state, created on first use. */
   #state(id: string): CodeState {
     let state = this.#codes.get(id);
     if (state === undefined) {
@@ -196,6 +199,7 @@ export class Policy {
     }
   }
 
+  /** Whether code `id` holds the aux now. */
   #isHolder(id: string): boolean {
     return this.#holder?.id === id;
   }
@@ -223,6 +227,7 @@ export class Policy {
     return Math.max(0, wait);
   }
 
+  /** How long the room's flash guard holds any change, in ms (0: now). */
   #roomWait(now: number): number {
     return Math.max(0, this.#lastRoomChange + flash.roomIntervalMs - now);
   }
@@ -309,6 +314,7 @@ export class Policy {
     this.#codes.delete(id);
   }
 
+  /** What guest `id` sees at `now`: the holder, its place in line and its cooldown. */
   view(id: string, now: number): AuxView {
     this.#advance(now);
     const index = this.#line.indexOf(id);

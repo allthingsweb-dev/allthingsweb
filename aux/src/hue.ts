@@ -79,6 +79,7 @@ export interface Hue {
   groups(): Promise<HueGroup[]>;
 }
 
+/** A Hue CLIP v2 client for the Bridge at `bridgeIp`, a private IPv4 address, using its app key. */
 export function createHue({
   bridgeIp,
   appKey,
@@ -97,6 +98,7 @@ export function createHue({
   }
   const base = `https://${bridgeIp}/clip/v2/resource`;
 
+  /** One CLIP request; a timeout, a redirect, a non-2xx answer or a CLIP error throws HueError. */
   async function request(
     method: "GET" | "PUT",
     path: string,
@@ -112,6 +114,8 @@ export function createHue({
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         signal: AbortSignal.timeout(timeoutMs),
+        // A redirect would carry the app key away from the Bridge.
+        redirect: "error",
         // The Bridge's certificate is self-signed. This client only ever
         // calls the configured Bridge, at a private address (above).
         tls: { rejectUnauthorized: false },
@@ -142,6 +146,7 @@ export function createHue({
     return Array.isArray(parsed.data) ? (parsed.data as ClipResource[]) : [];
   }
 
+  /** The Bridge's groups of `kind`, each with its grouped light's id. */
   async function groupsOf(kind: HueGroup["kind"]): Promise<HueGroup[]> {
     const resources = await request("GET", `/${kind}`);
     return resources.flatMap((resource) => {
@@ -160,6 +165,7 @@ export function createHue({
   }
 
   return {
+    /** Sets one grouped light's color and brightness, with its transition. */
     async setGroupedLight(id, command) {
       await request(
         "PUT",
@@ -167,12 +173,14 @@ export function createHue({
         lightBody(command),
       );
     },
+    /** Every grouped light id the Bridge has. */
     async groupedLightIds() {
       const resources = await request("GET", "/grouped_light");
       return resources.flatMap((resource) =>
         typeof resource.id === "string" ? [resource.id] : [],
       );
     },
+    /** The Bridge's home, rooms and zones. */
     async groups() {
       return [
         ...(await groupsOf("bridge_home")),

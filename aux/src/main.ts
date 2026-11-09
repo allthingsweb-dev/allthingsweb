@@ -24,6 +24,7 @@ const usage = `Usage:
   bun src/main.ts --generate <n>   print n new guest codes (1-500), once
   bun src/main.ts --zones          list the Bridge's rooms and zones`;
 
+/** Prints that many new codes and saves their hashes. */
 function generate(countArgument: string | undefined): void {
   const count = Number(countArgument);
   if (!Number.isInteger(count) || count < 1 || count > 500) {
@@ -37,6 +38,7 @@ function generate(countArgument: string | undefined): void {
   );
 }
 
+/** Lists the Bridge's home, rooms and zones, and exits 1 if a config zone names one it lacks. */
 async function zones(): Promise<void> {
   const config = loadConfig(env);
   const hue = createHue({
@@ -58,6 +60,7 @@ async function zones(): Promise<void> {
   if (missing.length > 0) process.exit(1);
 }
 
+/** Runs the hub's MCP server. */
 async function serve(): Promise<void> {
   const config = loadConfig(env);
   const codes = CodeBook.load(codesPath);
@@ -80,6 +83,7 @@ async function serve(): Promise<void> {
     idleTimeout: 30,
     fetch: (request, bunServer) =>
       handle(request, bunServer.requestIP(request)?.address ?? "unknown"),
+    /** Logs an unexpected error and answers 500 without detail. */
     error(error) {
       console.error(error);
       return Response.json({ error: "Internal error" }, { status: 500 });

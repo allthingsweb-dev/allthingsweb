@@ -29,6 +29,7 @@ export class AuditLog {
     this.#keep = keep;
   }
 
+  /** Appends `entry` to the log file, if there is one, and keeps it among the recent entries. */
   write(entry: AuditEntry): void {
     if (this.#path !== undefined) {
       appendFileSync(this.#path, `${JSON.stringify(entry)}\n`, {

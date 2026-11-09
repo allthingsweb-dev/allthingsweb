@@ -62,6 +62,7 @@ describe("Hue client", () => {
     });
     // The Bridge's certificate is self-signed.
     expect(request?.init.tls).toEqual({ rejectUnauthorized: false });
+    expect(request?.init.redirect).toBe("error");
     expect(request?.init.signal).toBeInstanceOf(AbortSignal);
     expect(request?.body).toEqual({
       on: { on: true },

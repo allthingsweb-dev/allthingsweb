@@ -24,12 +24,21 @@ export function exampleConfig(): Config {
   return parseConfig(raw, testEnv);
 }
 
-/** A Bridge that records each change, or fails when `failing` is set. */
+/**
+ * A Bridge that records each change, or fails when `failing` is set. While
+ * `gate` is set, each change waits for it; `started` counts changes begun.
+ */
 export function fakeHue() {
   const changes: { id: string; command: LightCommand }[] = [];
-  const state = { failing: false };
+  const state: {
+    failing: boolean;
+    gate: Promise<void> | undefined;
+    started: number;
+  } = { failing: false, gate: undefined, started: 0 };
   const hue: Pick<Hue, "setGroupedLight"> = {
     async setGroupedLight(id, command) {
+      state.started += 1;
+      if (state.gate !== undefined) await state.gate;
       if (state.failing) {
         throw new Error("The Bridge didn't answer within 4000 ms");
       }

@@ -5,8 +5,6 @@ import {
   readFileSync,
   rmSync,
   statSync,
-  utimesSync,
-  writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import {
@@ -101,29 +99,77 @@ describe("guest codes", () => {
     for (const code of added) expect(after.identify(code)).toBeDefined();
   });
 
-  test("clears a stale lock left by a crash", () => {
-    const path = join(directory, "stale.json");
-    writeFileSync(`${path}.lock`, "");
-    const old = new Date(Date.now() - 60_000);
-    utimesSync(`${path}.lock`, old, old);
-    const book = CodeBook.load(path, { create: true });
-    expect(book.generate(1)).toHaveLength(1);
-    expect(existsSync(`${path}.lock`)).toBe(false);
-  });
+  /** Starts tests/lock-worker.ts in its own process. */
+  function worker(...args: string[]) {
+    return Bun.spawn(
+      [process.execPath, join(import.meta.dir, "lock-worker.ts"), ...args],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+  }
 
-  test("waits for a fresh lock, then gives up after 5 s and leaves it alone", () => {
+  /** A second process holding the codes lock, once it says so. */
+  async function holder(path: string) {
+    const child = worker("hold", path);
+    const reader = child.stdout.getReader();
+    let said = "";
+    while (!said.includes("locked")) {
+      const { value, done } = await reader.read();
+      if (done) {
+        throw new Error(
+          `The lock holder exited: ${await new Response(child.stderr).text()}`,
+        );
+      }
+      said += new TextDecoder().decode(value);
+    }
+    return child;
+  }
+
+  test("waits for another process's lock, then gives up and leaves it held", async () => {
     const path = join(directory, "busy.json");
-    writeFileSync(`${path}.lock`, "another-process");
-    const book = CodeBook.load(path, { create: true });
-    const started = Date.now();
-    expect(() => book.generate(1)).toThrow("is held by another process");
-    expect(Date.now() - started).toBeGreaterThanOrEqual(4_900);
-    expect(readFileSync(`${path}.lock`, "utf8")).toBe("another-process");
+    const child = await holder(path);
+    try {
+      const started = Date.now();
+      expect(() => withFileLock(path, () => 0, 300)).toThrow(
+        "is held by another process",
+      );
+      expect(Date.now() - started).toBeGreaterThanOrEqual(290);
+      const book = CodeBook.load(path, { create: true });
+      expect(() => book.generate(1)).toThrow("is held by another process");
+      expect(existsSync(path)).toBe(false);
+    } finally {
+      child.kill(9);
+      await child.exited;
+    }
   }, 10_000);
 
-  test("never releases a lock it no longer owns", () => {
-    const path = join(directory, "owned.json");
-    withFileLock(path, () => writeFileSync(`${path}.lock`, "someone-else"));
-    expect(readFileSync(`${path}.lock`, "utf8")).toBe("someone-else");
+  test("a crashed holder's lock is released, with nothing to reclaim", async () => {
+    const path = join(directory, "crashed.json");
+    const child = await holder(path);
+    child.kill(9);
+    await child.exited;
+    expect(withFileLock(path, () => "mine", 1_000)).toBe("mine");
+    expect(CodeBook.load(path, { create: true }).generate(1)).toHaveLength(1);
   });
+
+  test("processes writing at once never lose a code", async () => {
+    const path = join(directory, "concurrent.json");
+    const children = Array.from({ length: 4 }, () =>
+      worker("generate", path, "10"),
+    );
+    const printed = await Promise.all(
+      children.map(async (child) => {
+        const [out, exit] = await Promise.all([
+          new Response(child.stdout).text(),
+          child.exited,
+        ]);
+        expect(exit).toBe(0);
+        return out.split("\n").filter(Boolean);
+      }),
+    );
+    const all = printed.flat();
+    expect(all).toHaveLength(40);
+    const book = CodeBook.load(path);
+    expect(book.size).toBe(40);
+    for (const code of all) expect(book.identify(code)).toBeDefined();
+  }, 20_000);
 });

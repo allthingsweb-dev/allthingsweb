@@ -132,6 +132,7 @@ export class Hub {
     return id === undefined ? { kind: "anonymous" } : { kind: "guest", id };
   }
 
+  /** Writes the call to the audit log and returns its outcome. */
   #record(
     tool: string,
     caller: Caller,
@@ -149,6 +150,7 @@ export class Hub {
     return outcome;
   }
 
+  /** The scene, color and zone names guests may use. */
   get #names() {
     return {
       scenes: Object.keys(this.config.scenes),
@@ -157,12 +159,24 @@ export class Hub {
     };
   }
 
-  /** Sends `parts` (zone → color, brightness) to the Bridge, one zone at a time. */
+  /**
+   * Sends `parts` (zone → color, brightness) to the Bridge, one zone at a
+   * time, and returns the zones it changed. For a guest it checks the freeze
+   * before each zone, so a freeze while a write is pending stops the rest;
+   * the host's writes ignore the freeze. `stopped` says why it stopped short.
+   */
   async #apply(
     parts: readonly { zone: string; color: LightColor; brightness: number }[],
-  ): Promise<boolean> {
+    by: "guest" | "host",
+  ): Promise<{ applied: string[]; stopped?: "frozen" | "bridge" }> {
+    const applied: string[] = [];
+    let stopped: "frozen" | "bridge" | undefined;
     try {
       for (const { zone, color, brightness } of parts) {
+        if (by === "guest" && this.policy.frozen) {
+          stopped = "frozen";
+          break;
+        }
         const id = this.config.zones[zone];
         if (id === undefined) throw new Error(`No zone "${zone}"`);
         await this.#hue.setGroupedLight(id, {
@@ -170,23 +184,37 @@ export class Hub {
           brightness,
           transitionMs: this.config.transitionMs,
         });
+        applied.push(zone);
       }
-      this.#bridge = {
-        ...this.#bridge,
-        lastOkAt: new Date(this.#now()).toISOString(),
-      };
-      return true;
     } catch (error) {
+      stopped = "bridge";
       this.#bridge = {
         ...this.#bridge,
         lastErrorAt: new Date(this.#now()).toISOString(),
         lastError: error instanceof Error ? error.message : String(error),
       };
       console.error(`Bridge: ${this.#bridge.lastError}`);
-      return false;
     }
+    if (stopped !== "bridge" && applied.length > 0) {
+      this.#bridge = {
+        ...this.#bridge,
+        lastOkAt: new Date(this.#now()).toISOString(),
+      };
+    }
+    return stopped === undefined ? { applied } : { applied, stopped };
   }
 
+  /** The refusal for a guest change a freeze stopped, naming any zones it changed first. */
+  #stoppedByFreeze(applied: readonly string[]): Outcome {
+    return refuse(
+      "frozen",
+      applied.length === 0
+        ? messages.frozen
+        : `${messages.frozen} Only ${applied.join(", ")} changed before the pause.`,
+    );
+  }
+
+  /** The scene's zones, each with its palette color and brightness. */
   #sceneParts(scene: string) {
     return Object.entries(this.config.scenes[scene] ?? {}).map(
       ([zone, { color, brightness }]) => {
@@ -201,10 +229,12 @@ export class Hub {
     );
   }
 
+  /** Seconds until code `id` may change the lights again. */
   #cooldown(id: string): number {
     return this.policy.view(id, this.#now()).cooldownSeconds;
   }
 
+  /** aux_status: the line, the holder and the caller's cooldown; the host also sees code ids and recent calls. */
   status(caller: Caller): Outcome {
     const now = this.#now();
     if (caller.kind === "anonymous") {
@@ -268,6 +298,7 @@ export class Hub {
     );
   }
 
+  /** set_scene and host_set_scene: fades the scene's zones, within the caller's limits. */
   async setScene(caller: Caller, input: string): Promise<Outcome> {
     const tool = caller.kind === "host" ? "host_set_scene" : "set_scene";
     if (caller.kind === "anonymous") {
@@ -307,11 +338,11 @@ export class Hub {
       );
     }
     const parts = this.#sceneParts(scene.name);
-    const applied = await this.#apply(parts);
+    const { applied, stopped } = await this.#apply(parts, caller.kind);
     return this.#record(
       tool,
       caller,
-      applied
+      stopped === undefined
         ? ok({
             scene: scene.name,
             zones: parts.map((part) => part.zone),
@@ -320,11 +351,16 @@ export class Hub {
               ? { cooldown_seconds: this.#cooldown(caller.id) }
               : {}),
           })
-        : refuse("bridge_unavailable", messages.bridge_unavailable),
-      { scene: scene.name },
+        : stopped === "frozen"
+          ? this.#stoppedByFreeze(applied)
+          : refuse("bridge_unavailable", messages.bridge_unavailable),
+      stopped === "frozen"
+        ? { scene: scene.name, applied_zones: applied.join(",") }
+        : { scene: scene.name },
     );
   }
 
+  /** set_color: fades one zone, the default unless named, to a palette color. */
   async setColor(
     caller: Caller,
     input: string,
@@ -384,17 +420,20 @@ export class Hub {
       );
     }
     const entry = color.value;
-    const applied = await this.#apply([
-      {
-        zone: zone.name,
-        color: "xy" in entry ? { xy: entry.xy } : { mirek: entry.mirek },
-        brightness: entry.brightness ?? this.config.colorBrightness,
-      },
-    ]);
+    const { stopped } = await this.#apply(
+      [
+        {
+          zone: zone.name,
+          color: "xy" in entry ? { xy: entry.xy } : { mirek: entry.mirek },
+          brightness: entry.brightness ?? this.config.colorBrightness,
+        },
+      ],
+      caller.kind,
+    );
     return this.#record(
       tool,
       caller,
-      applied
+      stopped === undefined
         ? ok({
             color: color.name,
             zone: zone.name,
@@ -403,11 +442,14 @@ export class Hub {
               ? { cooldown_seconds: this.#cooldown(caller.id) }
               : {}),
           })
-        : refuse("bridge_unavailable", messages.bridge_unavailable),
+        : stopped === "frozen"
+          ? this.#stoppedByFreeze([])
+          : refuse("bridge_unavailable", messages.bridge_unavailable),
       detail,
     );
   }
 
+  /** request_aux: joins the line for a 5-minute aux turn. */
   requestAux(caller: Caller): Outcome {
     if (caller.kind !== "guest") {
       return this.#record(
@@ -438,6 +480,7 @@ export class Hub {
     );
   }
 
+  /** pass_aux: the holder hands the aux to the next in line, or frees it. */
   passAux(caller: Caller): Outcome {
     if (caller.kind !== "guest") {
       return this.#record(
@@ -464,6 +507,7 @@ export class Hub {
     );
   }
 
+  /** host_freeze: pauses or resumes guest control. */
   freeze(on: boolean): Outcome {
     this.policy.freeze(on);
     return this.#record("host_freeze", { kind: "host" }, ok({ frozen: on }), {
@@ -471,6 +515,7 @@ export class Hub {
     });
   }
 
+  /** host_clear_queue: empties the line and ends the current turn. */
   clearQueue(): Outcome {
     const cleared = this.policy.clearAux();
     return this.#record("host_clear_queue", { kind: "host" }, ok({ cleared }), {
@@ -478,6 +523,7 @@ export class Hub {
     });
   }
 
+  /** host_revoke_code: revokes the one code whose id starts with `prefix`. */
   revoke(prefix: string): Outcome {
     const result = this.#codes.revoke(prefix);
     if ("error" in result) {
@@ -517,6 +563,7 @@ export class Hub {
   }
 }
 
+/** An outcome as an MCP tool result; a refusal is an error result with the same JSON in its text. */
 function toResult(outcome: Outcome): CallToolResult {
   if (outcome.ok) {
     return {

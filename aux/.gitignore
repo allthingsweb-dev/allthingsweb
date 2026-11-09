@@ -6,11 +6,9 @@ node_modules
 # the audit log what each code did on the night.
 aux.config.json
 aux.codes.json
-# Its uniquely named temporary writes, its lock, and stale locks set aside
-# (src/codes.ts).
+# Its uniquely named temporary writes and its lock file (src/codes.ts).
 aux.codes.json.*.tmp
 aux.codes.json.lock
-aux.codes.json.lock.*.stale
 *.jsonl
 
 # The tests' scratch directories, removed when they finish

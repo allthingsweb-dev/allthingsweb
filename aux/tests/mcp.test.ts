@@ -307,6 +307,34 @@ describe("guest tools", () => {
     });
   });
 
+  test("a freeze during a guest's scene stops the zones it hasn't reached", async () => {
+    const { hub, guestCodes, bridge } = testHub();
+    const { call } = client(hub);
+    hub.policy.freeze(false);
+    let open = () => {};
+    bridge.state.gate = new Promise<void>((resolve) => {
+      open = resolve;
+    });
+    const pending = call("set_scene", { scene: "sunset" }, guestCodes[0]);
+    while (bridge.state.started === 0) await Bun.sleep(1);
+    expect(await call("host_freeze", { on: true }, hostToken)).toEqual({
+      isError: false,
+      data: { frozen: true },
+    });
+    open();
+    expect(await pending).toMatchObject({
+      isError: true,
+      data: {
+        code: "frozen",
+        message:
+          "The host has paused guest control for now. Only lounge changed before the pause.",
+      },
+    });
+    expect(bridge.changes.map((change) => change.id)).toEqual([
+      hub.config.zones["lounge"] ?? "",
+    ]);
+  });
+
   test("aux_status says who holds the aux, your place and your cooldown", async () => {
     const { hub, guestCodes, clock } = testHub();
     const { call } = client(hub);
