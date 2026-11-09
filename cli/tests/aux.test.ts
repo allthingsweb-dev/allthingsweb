@@ -222,6 +222,24 @@ describe("allthings aux", () => {
     expect(JSON.parse(json.stdout)).toEqual({ saved: true, path });
   });
 
+  test("login --json stays valid JSON when the code matches a JSON word or the path", async () => {
+    for (const tricky of ["true", "saved", "aux-code"]) {
+      const home = await newHome();
+      const json = await exec(["login", tricky, "--json"], {
+        env: { ALLTHINGS_HOME: home },
+      });
+      expect(json.exitCode).toBe(ExitCode.Ok);
+      const parsed = JSON.parse(json.stdout) as {
+        saved: unknown;
+        path: string;
+      };
+      expect(parsed.saved).toBe(true);
+      for (const value of Object.values(parsed)) {
+        if (typeof value === "string") expect(value).not.toContain(tricky);
+      }
+    }
+  });
+
   test("login narrows a code file others could read to 0600", async () => {
     if (process.platform === "win32") return;
     const home = await newHome();

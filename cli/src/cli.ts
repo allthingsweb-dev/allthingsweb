@@ -257,8 +257,23 @@ async function runAux(
   let code: string | null = null;
   const mask = (text: string) =>
     code === null ? text : text.replaceAll(code, "[your code]");
+  // In JSON, the code is masked inside string values, never in the
+  // serialized text or the keys, so masking can't break the JSON or change
+  // other values.
+  const maskData = (value: unknown): unknown => {
+    if (typeof value === "string") return mask(value);
+    if (Array.isArray(value)) return value.map(maskData);
+    if (value !== null && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [key, maskData(entry)]),
+      );
+    }
+    return value;
+  };
   const print = (text: string, data: unknown) =>
-    io.stdout(mask(values.json ? `${JSON.stringify(data, null, 2)}\n` : text));
+    io.stdout(
+      values.json ? `${JSON.stringify(maskData(data), null, 2)}\n` : mask(text),
+    );
   try {
     if (name === "login") {
       code = checkedCode(
