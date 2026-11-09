@@ -2,7 +2,7 @@
 
 The pass-the-aux hub for an allthings evening. It runs on the host's laptop, controls the room's Philips Hue lights through the Hue Bridge, and serves an MCP endpoint that guests reach with `allthings aux …` (or any MCP client) and the code on their card. A safety policy sits between every guest and every light.
 
-With `music` in the config, the hub also plays a curated set from [mus.ax](https://mus.ax), prefetched to disk and played through macOS's `afplay`. Guests queue tracks from the set and the aux holder may skip. Without `music`, the music tools stay out of `tools/list` and `now_playing` is `null`.
+With `music` in the config, the hub also plays a curated set from [mus.ax](https://mus.ax), prefetched to disk and played through macOS's `afplay`, or `mpv` or PipeWire's `pw-play` on Linux. Guests queue tracks from the set and the aux holder may skip. Without `music`, the music tools stay out of `tools/list` and `now_playing` is `null`.
 
 ## Guest tools
 
@@ -57,7 +57,7 @@ With the host token, `aux_status` also returns `host`: the holder's and the line
 
 ## Setup
 
-Bun 1.3 or later, on the laptop that joins the travel router's network, the same LAN as the Bridge.
+Bun 1.3 or later, on the machine that joins the travel router's network, the same LAN as the Bridge: a Mac, or a Linux box such as a Raspberry Pi 5 (see [Running on a Raspberry Pi 5](#running-on-a-raspberry-pi-5)).
 
 ```sh
 cd aux
@@ -83,9 +83,20 @@ cp aux.config.example.json aux.config.json   # gitignored
 
 5. **Codes.** `bun src/main.ts --generate 150` prints 150 codes once, to stdout, and adds their hashes to `aux.codes.json`. Send the codes straight to card printing. They are not stored anywhere, so don't save them in the repository or anywhere near it. Generating codes while the hub runs is safe, since the hub and `--generate` take turns on the file. The hub starts accepting the new codes when it next reads the file: at its next start, or the next time the host revokes a code with `host_revoke_code`.
 
-6. **Music** (optional, macOS only). List the set's mus.ax slugs in `music.tracks`, in the order they should play, and set `music.volume`. Only tracks whose rights you hold belong in the set. `bun src/main.ts --prefetch` reads mus.ax's public catalog, saves each track as `aux.music/<slug>.mp3` (`music.cacheDir`, gitignored) with a `tracks.json` manifest of sizes and SHA-256s, keeps files it already saved, and exits 1 if any track didn't arrive. The hub plays only saved tracks at their recorded size and says at start which are missing. If none are saved, or the hub isn't on a Mac, it says why and starts without music: the lights run, and the music tools stay out of `tools/list`.
+6. **Music** (optional). List the set's mus.ax slugs in `music.tracks`, in the order they should play, and set `music.volume`. Only tracks whose rights you hold belong in the set. `bun src/main.ts --prefetch` reads mus.ax's public catalog, saves each track as `aux.music/<slug>.mp3` (`music.cacheDir`, gitignored) with a `tracks.json` manifest of sizes and SHA-256s, keeps files it already saved, and exits 1 if any track didn't arrive. The hub plays only saved tracks at their recorded size and says at start which are missing. The hub plays through `afplay` on macOS and `mpv`, else `pw-play`, on Linux; `music.player` names one instead. If none are saved, or no player is installed, it says why and starts without music: the lights run, and the music tools stay out of `tools/list`.
 
 `AUX_CONFIG`, `AUX_PORT`, `AUX_CODES_FILE` and `AUX_LOG_FILE` move the config, the port (8787), the codes file and the log.
+
+## Running on a Raspberry Pi 5
+
+The hub, the Bridge's HTTP API and `cloudflared` don't depend on macOS, so a Raspberry Pi 5 on 64-bit Raspberry Pi OS runs the night, and a Mac with the same checkout stands by as the backup.
+
+1. **Install.** Bun ships a Linux arm64 build (`curl -fsSL https://bun.sh/install | bash`). Install `mpv` for the music (`sudo apt install mpv`). Install `cloudflared` from Cloudflare's arm64 package.
+2. **Sound.** The Pi 5 has no headphone jack, so play through HDMI, a USB audio adapter or a USB speaker. Pick the output with `wpctl status` and `wpctl set-default <id>`, then test it with `mpv --no-video <a saved track>` at the agreed volume.
+3. **Same files on both machines.** Copy `aux.config.json`, `aux.codes.json` and the tunnel's credentials JSON to the Pi and the Mac, and run `bun src/main.ts --prefetch` on each. The Bridge's application key works from any machine on its LAN.
+4. **Run.** Start the hub and the tunnel as below, in two terminals or as two systemd services that start after the network is up.
+
+**Only one hub at a time.** A Cloudflare Tunnel takes several connectors and spreads requests across them, so a second machine running `cloudflared tunnel run allthings-aux` would split guests between two hubs with separate lines. Stop the hub and the tunnel on one machine before starting them on the other. Switching starts the backup frozen with an empty line, as any restart does (see Restarts).
 
 ## Running behind cloudflared at aux.allthings.dev
 
@@ -166,4 +177,4 @@ bun install
 bun run check && bun run typecheck && bun test
 ```
 
-The tests drive the policy on a fake clock, the Hue client and the mus.ax prefetch with a fake `fetch`, and the player with fake processes in place of `afplay`. The endpoint tests call it as the CLI does. Nothing here has run against a real Bridge yet: the soak and the rehearsal do that.
+The tests drive the policy on a fake clock, the Hue client and the mus.ax prefetch with a fake `fetch`, and the player with fake processes in place of `afplay`, `mpv` and `pw-play`, whose command lines and choice are tested on their own. The endpoint tests call it as the CLI does. Nothing here has run against a real Bridge yet: the soak and the rehearsal do that.

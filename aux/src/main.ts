@@ -4,7 +4,7 @@ import { loadConfig } from "./config.ts";
 import { createHue } from "./hue.ts";
 import { AuditLog } from "./log.ts";
 import { createFetch, Hub, maxRequestBodySize } from "./mcp.ts";
-import { Music } from "./music.ts";
+import { choosePlayer, Music, spawnPlayer } from "./music.ts";
 import { AddressLimiter } from "./policy.ts";
 
 /**
@@ -97,9 +97,10 @@ async function prefetchMusic(): Promise<void> {
 function loadMusic(config: ReturnType<typeof loadConfig>): Music | undefined {
   const { music } = config;
   if (music === undefined) return undefined;
-  if (process.platform !== "darwin") {
+  const chosen = choosePlayer(process.platform, Bun.which, music.player);
+  if ("error" in chosen) {
     console.error(
-      "Music off: the music plays through macOS's afplay; run the hub on a Mac, or remove music from the config.",
+      `Music off: ${chosen.error}; or remove music from the config.`,
     );
     return undefined;
   }
@@ -124,7 +125,12 @@ function loadMusic(config: ReturnType<typeof loadConfig>): Music | undefined {
       `Music: ${missing.length} tracks aren't saved and won't play (${missing.join(", ")}); run --prefetch again.`,
     );
   }
-  return new Music({ tracks, volume: music.volume });
+  console.error(`Music plays through ${chosen.player}.`);
+  return new Music({
+    tracks,
+    volume: music.volume,
+    spawn: spawnPlayer(chosen.player),
+  });
 }
 
 /** Runs the hub's MCP server. */

@@ -33,14 +33,83 @@ export interface PlayProcess {
 /** Starts playing `file` at `volume` (0 to 1). */
 export type Spawn = (file: string, volume: number) => PlayProcess;
 
+/** The players the hub can drive: macOS's afplay, or mpv or PipeWire's pw-play on Linux. */
+export const playerNames = ["afplay", "mpv", "pw-play"] as const;
+export type PlayerName = (typeof playerNames)[number];
+
+/**
+ * The command line that plays `file` once at `volume` (0 to 1) and exits.
+ * Each player takes the ceiling in its own scale; killing it stops the track.
+ */
+export function playerCommand(
+  player: PlayerName,
+  file: string,
+  volume: number,
+): string[] {
+  switch (player) {
+    case "afplay":
+      return ["afplay", "-v", String(volume), file];
+    case "mpv":
+      // mpv's --volume is a percentage; 100 is the file's own level.
+      return [
+        "mpv",
+        "--no-video",
+        "--no-terminal",
+        `--volume=${Math.round(volume * 100)}`,
+        file,
+      ];
+    case "pw-play":
+      return ["pw-play", `--volume=${volume}`, file];
+  }
+}
+
+/** A Spawn that runs `player` for each track. */
+export function spawnPlayer(player: PlayerName): Spawn {
+  return (file, volume) => {
+    const child = Bun.spawn(playerCommand(player, file, volume), {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+    return { exited: child.exited, kill: () => child.kill() };
+  };
+}
+
 /** macOS's afplay: `-v` sets the volume, and killing it stops the track. */
-export const afplay: Spawn = (file, volume) => {
-  const child = Bun.spawn(["afplay", "-v", String(volume), file], {
-    stdout: "ignore",
-    stderr: "ignore",
-  });
-  return { exited: child.exited, kill: () => child.kill() };
-};
+export const afplay: Spawn = spawnPlayer("afplay");
+
+/**
+ * The player for this machine: the configured one if it's installed, else
+ * afplay on macOS, else the first of mpv and pw-play on Linux. `which`
+ * finds a command on PATH, as Bun.which does.
+ */
+export function choosePlayer(
+  platform: string,
+  which: (command: string) => string | null,
+  configured?: PlayerName,
+): { player: PlayerName } | { error: string } {
+  if (configured !== undefined) {
+    return which(configured) === null
+      ? { error: `music.player is ${configured}, which isn't installed here` }
+      : { player: configured };
+  }
+  const candidates: readonly PlayerName[] =
+    platform === "darwin"
+      ? ["afplay"]
+      : platform === "linux"
+        ? ["mpv", "pw-play"]
+        : [];
+  for (const candidate of candidates) {
+    if (which(candidate) !== null) return { player: candidate };
+  }
+  return {
+    error:
+      platform === "linux"
+        ? "no player found: install mpv (sudo apt install mpv) or PipeWire's pw-play"
+        : platform === "darwin"
+          ? "afplay isn't on PATH"
+          : `no player is known for ${platform}; run the hub on macOS or Linux`,
+  };
+}
 
 interface Entry {
   readonly track: Track;

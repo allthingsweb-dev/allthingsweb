@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { Music, musicLimits } from "../src/music.ts";
+import {
+  choosePlayer,
+  Music,
+  musicLimits,
+  playerCommand,
+} from "../src/music.ts";
 import { fakeSpawn, settle, track } from "./support.ts";
 
 /** A player over `slugs`, with its fake processes and the errors it reported. */
@@ -203,5 +208,68 @@ describe("music", () => {
           spawn: fakeSpawn().spawn,
         }),
     ).toThrow("must be 0 to 1");
+  });
+});
+
+describe("players", () => {
+  test("each player gets the volume ceiling in its own scale", () => {
+    expect(playerCommand("afplay", "/m/a.mp3", 0.6)).toEqual([
+      "afplay",
+      "-v",
+      "0.6",
+      "/m/a.mp3",
+    ]);
+    expect(playerCommand("mpv", "/m/a.mp3", 0.6)).toEqual([
+      "mpv",
+      "--no-video",
+      "--no-terminal",
+      "--volume=60",
+      "/m/a.mp3",
+    ]);
+    expect(playerCommand("pw-play", "/m/a.mp3", 0.6)).toEqual([
+      "pw-play",
+      "--volume=0.6",
+      "/m/a.mp3",
+    ]);
+  });
+
+  const installed =
+    (...commands: string[]) =>
+    (command: string) =>
+      commands.includes(command) ? `/usr/bin/${command}` : null;
+
+  test("macOS plays through afplay", () => {
+    expect(choosePlayer("darwin", installed("afplay"))).toEqual({
+      player: "afplay",
+    });
+  });
+
+  test("Linux prefers mpv, then pw-play", () => {
+    expect(choosePlayer("linux", installed("mpv", "pw-play"))).toEqual({
+      player: "mpv",
+    });
+    expect(choosePlayer("linux", installed("pw-play"))).toEqual({
+      player: "pw-play",
+    });
+  });
+
+  test("Linux without a player says what to install", () => {
+    const chosen = choosePlayer("linux", installed());
+    expect("error" in chosen && chosen.error).toContain("sudo apt install mpv");
+  });
+
+  test("a configured player wins, but only if it's installed", () => {
+    expect(
+      choosePlayer("linux", installed("mpv", "pw-play"), "pw-play"),
+    ).toEqual({ player: "pw-play" });
+    expect(choosePlayer("linux", installed("mpv"), "afplay")).toEqual({
+      error: "music.player is afplay, which isn't installed here",
+    });
+  });
+
+  test("another platform gets no player", () => {
+    expect(choosePlayer("win32", installed("mpv"))).toEqual({
+      error: "no player is known for win32; run the hub on macOS or Linux",
+    });
   });
 });
