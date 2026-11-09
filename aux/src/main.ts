@@ -84,20 +84,26 @@ async function prefetchMusic(): Promise<void> {
   if (result.failed.length > 0) process.exit(1);
 }
 
-/** Tonight's music from the prefetched set, or undefined when the config has none. */
+/**
+ * Tonight's music from the prefetched set, or undefined when the config has
+ * none or it can't play here. Music never stops the hub: the lights run
+ * either way, and without music its tools stay out of tools/list.
+ */
 function loadMusic(config: ReturnType<typeof loadConfig>): Music | undefined {
   const { music } = config;
   if (music === undefined) return undefined;
   if (process.platform !== "darwin") {
-    throw new Error(
-      "The music plays through macOS's afplay; run the hub on a Mac, or remove music from the config.",
+    console.error(
+      "Music off: the music plays through macOS's afplay; run the hub on a Mac, or remove music from the config.",
     );
+    return undefined;
   }
   const { tracks, missing } = loadPlaylist(music.cacheDir, music.tracks);
   if (tracks.length === 0) {
-    throw new Error(
-      `No music is saved in ${music.cacheDir}; run bun src/main.ts --prefetch first.`,
+    console.error(
+      `Music off: no music is saved in ${music.cacheDir}; run bun src/main.ts --prefetch first.`,
     );
+    return undefined;
   }
   if (missing.length > 0) {
     console.error(
