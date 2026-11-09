@@ -173,6 +173,9 @@ export class Music {
    */
   start(): void {
     if (this.#running) return;
+    // With every track out, a host start retries the whole set; with some
+    // still playable, the failed ones stay out for the night.
+    if (this.#failed.size >= this.#order.length) this.#failed.clear();
     this.#running = true;
     const generation = ++this.#generation;
     this.#loop = this.#loop.then(() => this.#play(generation));

@@ -135,6 +135,30 @@ describe("music", () => {
     expect(started).toHaveLength(1);
   });
 
+  test("a start after every track failed retries the set; a partial failure stays out", async () => {
+    const { music, started } = player(["a", "b"]);
+    music.start();
+    await settle();
+    started[0]?.finish(1);
+    await settle();
+    started[1]?.finish(1);
+    await settle();
+    expect(music.tracks).toEqual([]);
+    expect(music.nowPlaying).toBeNull();
+    music.start();
+    await settle();
+    expect(music.tracks.map((entry) => entry.slug)).toEqual(["a", "b"]);
+    expect(music.nowPlaying).toMatchObject({ slug: "a" });
+    // a fails again but b plays: stop and start keep a out.
+    started[2]?.finish(1);
+    await settle();
+    await music.stop();
+    music.start();
+    await settle();
+    expect(music.tracks.map((entry) => entry.slug)).toEqual(["b"]);
+    await music.stop();
+  });
+
   test("stop cuts the track and ends the loop", async () => {
     const { music, started } = player();
     music.start();
