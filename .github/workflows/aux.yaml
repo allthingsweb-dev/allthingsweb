@@ -1,0 +1,49 @@
+name: Aux CI
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "aux/**"
+      - ".github/workflows/aux.yaml"
+      - ".github/scripts/bun-install.sh"
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "aux/**"
+      - ".github/workflows/aux.yaml"
+      - ".github/scripts/bun-install.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 🎛️ Aux hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - name: 📥 Download aux deps
+        working-directory: aux
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
+
+      - name: 💄 Format check
+        working-directory: aux
+        run: bun run check
+
+      - name: 🔍 Type check
+        working-directory: aux
+        run: bun run typecheck
+
+      - name: 🏄 Run the tests
+        working-directory: aux
+        run: bun run test
