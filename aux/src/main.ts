@@ -98,7 +98,16 @@ function loadMusic(config: ReturnType<typeof loadConfig>): Music | undefined {
     );
     return undefined;
   }
-  const { tracks, missing } = loadPlaylist(music.cacheDir, music.tracks);
+  let playlist: ReturnType<typeof loadPlaylist>;
+  try {
+    playlist = loadPlaylist(music.cacheDir, music.tracks);
+  } catch (error) {
+    console.error(
+      `Music off: ${error instanceof Error ? error.message : String(error)}; run bun src/main.ts --prefetch again.`,
+    );
+    return undefined;
+  }
+  const { tracks, missing } = playlist;
   if (tracks.length === 0) {
     console.error(
       `Music off: no music is saved in ${music.cacheDir}; run bun src/main.ts --prefetch first.`,

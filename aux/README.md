@@ -138,7 +138,7 @@ host() {
 2. `curl -s http://127.0.0.1:8787/healthz` shows `frozen`, the number of codes and the Bridge's last success and error.
 3. From a phone on cellular, run `allthings aux status`.
 4. Set the room: `host host_set_scene '{"scene":"house"}'`. Guests stay frozen.
-5. With music: run `bun src/main.ts --prefetch` while the venue's network is up (12:30 PM on the day), check the hub's start line names no missing tracks, and test the speaker at the agreed volume with `host host_music '{"on":true}'`, then `'{"on":false}'`.
+5. With music: the hub loads the saved tracks when it starts, so run `bun src/main.ts --prefetch` before step 1, at 12:30 PM on the day while the venue's network is up; if you prefetch after the hub is running, restart it. Check the hub's start line names no missing tracks, then test the speaker at the agreed volume with `host host_music '{"on":true}'`, then `'{"on":false}'`.
 
 **Doors:** `host host_freeze '{"on":false}'`, and with music `host host_music '{"on":true}'`.
 
