@@ -43,7 +43,9 @@ export type PlayerName = (typeof playerNames)[number];
  * float noise, so 0.57 reads 57 rather than 56.99.
  */
 export function mpvVolume(volume: number): string {
-  const hundredths = Math.floor(Number((volume * 10_000).toPrecision(12)));
+  const rounded = Math.floor(Number((volume * 10_000).toPrecision(12)));
+  // toPrecision can round a value just under a hundredth up to it, past the ceiling; step back down when it did.
+  const hundredths = rounded / 10_000 > volume ? rounded - 1 : rounded;
   return String(hundredths / 100);
 }
 

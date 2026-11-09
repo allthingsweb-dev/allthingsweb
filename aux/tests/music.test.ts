@@ -239,6 +239,8 @@ describe("players", () => {
   test("mpv's percentage never passes a fractional ceiling", () => {
     expect(mpvVolume(0.995)).toBe("99.5");
     expect(mpvVolume(0.99999)).toBe("99.99");
+    expect(mpvVolume(0.9999999999999)).toBe("99.99");
+    expect(mpvVolume(0.99999999999995)).toBe("99.99");
     expect(mpvVolume(0.57)).toBe("57");
     expect(mpvVolume(1)).toBe("100");
     expect(mpvVolume(0)).toBe("0");
