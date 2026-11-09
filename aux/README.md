@@ -52,7 +52,7 @@ With the host token, `aux_status` also returns `host`: the holder's and the line
 - **Codes** are 10 characters of Crockford base32 (50 random bits). The codes file stores only their HMAC-SHA256 under a random salt. A code's id is the first 12 hex characters of its hash.
 - **Audit log:** one JSON line per tool call in `aux.log.jsonl`, appended only. Guests appear by code id. Only names from the config are recorded, never what a guest typed.
 - **HTTP guards:** request bodies over 16 KiB get 413. Each address may make 600 requests a minute (`addressLimitPerMinute`) before any code is read, and gets 429 with `Retry-After` past that. Guests on the venue's Wi-Fi may share one address, so this stops a runaway script, not a guest. Requests with an `Origin` header (browser pages) get 403. Bridge calls time out after 4 s.
-- **Sound:** guests can't change the volume. `music.volume` (0 to 1, passed to `afplay -v`) is the ceiling agreed with the venue. Only the configured set plays, from files saved before the night: no streaming and no uploads. A track that fails to play is out of the set for the night.
+- **Sound:** guests can't change the volume. `music.volume` (0 to 1) is the ceiling agreed with the venue; each player takes it in its own scale (`afplay -v 0.6`, `mpv --volume=60`, `pw-play --volume=0.6`). Only the configured set plays, from files saved before the night: no streaming and no uploads. A track that fails to play is out of the set for the night.
 - **Network:** the hub listens on 127.0.0.1 only. It accepts only a private IPv4 address for the Bridge, because the Bridge's self-signed certificate is accepted unverified for that one address. `/healthz` answers only requests that didn't come through Cloudflare.
 
 ## Setup
