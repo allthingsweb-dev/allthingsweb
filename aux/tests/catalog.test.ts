@@ -70,9 +70,9 @@ describe("the mus.ax catalog", () => {
 
   test("an unexpected answer is an error, not an empty set", async () => {
     const broken: CatalogFetch = async () => Response.json({ items: [] });
-    expect(readCatalog(base, broken)).rejects.toThrow("unexpected shape");
+    await expect(readCatalog(base, broken)).rejects.toThrow("unexpected shape");
     const down: CatalogFetch = async () => new Response("", { status: 503 });
-    expect(readCatalog(base, down)).rejects.toThrow("answered 503");
+    await expect(readCatalog(base, down)).rejects.toThrow("answered 503");
   });
 });
 

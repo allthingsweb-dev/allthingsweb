@@ -73,8 +73,10 @@ export class Music {
   #current:
     | { readonly entry: Entry; readonly process: PlayProcess }
     | undefined;
-  #loop: Promise<void> | undefined;
+  #loop: Promise<void> = Promise.resolve();
   #running = false;
+  /** Bumped by every start and stop; a loop whose generation is old exits. */
+  #generation = 0;
 
   constructor({
     tracks,
@@ -165,16 +167,21 @@ export class Music {
     this.#queue = this.#queue.filter((entry) => entry.by !== by);
   }
 
-  /** Starts playing, if it isn't already. */
+  /**
+   * Starts playing, if it isn't already. A start during a stop waits for the
+   * old loop to end, so only one loop ever plays.
+   */
   start(): void {
     if (this.#running) return;
     this.#running = true;
-    this.#loop = this.#play();
+    const generation = ++this.#generation;
+    this.#loop = this.#loop.then(() => this.#play(generation));
   }
 
   /** Stops the current track and the player, and waits for it to end. */
   async stop(): Promise<void> {
     this.#running = false;
+    this.#generation++;
     this.skip();
     await this.#loop;
   }
@@ -195,8 +202,8 @@ export class Music {
   }
 
   /** Plays entries one after another until stopped or nothing is playable. */
-  async #play(): Promise<void> {
-    while (this.#running) {
+  async #play(generation: number): Promise<void> {
+    while (this.#running && generation === this.#generation) {
       const entry = this.#take();
       if (entry === undefined) {
         this.#onError("no playable tracks left; the music has stopped");

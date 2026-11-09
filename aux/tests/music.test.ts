@@ -147,6 +147,29 @@ describe("music", () => {
     expect(music.nowPlaying).toBeNull();
   });
 
+  test("a start during a stop waits for the old loop, so only one plays", async () => {
+    const { music, started } = player(["a", "b", "c"]);
+    music.start();
+    await settle();
+    const stopping = music.stop();
+    music.start();
+    await stopping;
+    await settle();
+    expect(started.map((run) => [run.file, run.killed])).toEqual([
+      ["/music/a.mp3", true],
+      ["/music/b.mp3", false],
+    ]);
+    started[1]?.finish();
+    await settle();
+    // One loop moves on to one next track, not two.
+    expect(started.map((run) => run.file)).toEqual([
+      "/music/a.mp3",
+      "/music/b.mp3",
+      "/music/c.mp3",
+    ]);
+    await music.stop();
+  });
+
   test("the volume ceiling is 0 to 1", () => {
     expect(
       () =>
