@@ -197,7 +197,17 @@ function toolError(
   }
 }
 
-const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+const loopbackNames = new Set(["localhost", "[::1]", "::1"]);
+const loopbackIPv4 = /^127\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+
+/** Whether `hostname` is this machine: localhost, ::1, or a 127.0.0.0/8 address. */
+export function isLoopbackHost(hostname: string): boolean {
+  if (loopbackNames.has(hostname)) return true;
+  const match = loopbackIPv4.exec(hostname);
+  return (
+    match !== null && match.slice(1).every((octet) => Number(octet) <= 255)
+  );
+}
 
 /**
  * The hub's endpoint, checked before any code is sent to it: HTTPS, or plain
@@ -213,8 +223,7 @@ export function checkedAuxEndpoint(endpoint: string): URL {
       ExitCode.UsageError,
     );
   }
-  const loopback =
-    loopbackHosts.has(url.hostname) || url.hostname.startsWith("127.");
+  const loopback = isLoopbackHost(url.hostname);
   if (url.protocol === "https:" || (url.protocol === "http:" && loopback)) {
     return url;
   }

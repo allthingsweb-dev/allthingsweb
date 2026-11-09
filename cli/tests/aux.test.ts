@@ -439,6 +439,8 @@ describe("the aux endpoint", () => {
     for (const url of [
       "http://aux.allthings.dev/mcp",
       "http://192.168.1.20:8787/mcp",
+      "http://127.evil.com/mcp",
+      "http://127.0.0.1.evil.com/mcp",
       "ftp://aux.allthings.dev/mcp",
       "not a url",
     ]) {
