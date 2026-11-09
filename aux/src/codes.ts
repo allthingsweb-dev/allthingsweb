@@ -2,12 +2,14 @@ import { createHmac, randomBytes } from "node:crypto";
 import {
   closeSync,
   existsSync,
+  linkSync,
   openSync,
   readFileSync,
   renameSync,
   statSync,
   unlinkSync,
   writeFileSync,
+  writeSync,
 } from "node:fs";
 import { z } from "zod";
 
@@ -74,27 +76,67 @@ function sleepSync(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
+function readToken(file: string): string | undefined {
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * Runs `fn` holding `<path>.lock`, an exclusively created file, so the hub
- * revoking a code and a `--generate` run never write over each other. A lock
- * older than 30 s is left by a crash and is cleared; otherwise it waits up to
- * 5 s for the other process.
+ * Takes a crashed holder's lock: moves it aside under a unique name, then
+ * checks the moved file still holds the token that was judged stale. If a
+ * live process took the lock in between, it puts that lock back.
+ */
+function reclaimStale(lock: string, staleToken: string): void {
+  const aside = `${lock}.${randomBytes(8).toString("hex")}.stale`;
+  try {
+    renameSync(lock, aside);
+  } catch {
+    return;
+  }
+  if (readToken(aside) !== staleToken) {
+    try {
+      linkSync(aside, lock);
+    } catch {
+      // A newer lock already holds the name; leave it.
+    }
+  }
+  unlinkSync(aside);
+}
+
+/**
+ * Runs `fn` holding `<path>.lock`, an exclusively created file holding this
+ * call's random token, so the hub revoking a code and a `--generate` run never
+ * write over each other. A lock older than 30 s is a crash's leftover and is
+ * reclaimed; otherwise it waits up to 5 s. It releases the lock only while
+ * the lock still holds its own token.
  */
 export function withFileLock<T>(path: string, fn: () => T): T {
   const lock = `${path}.lock`;
+  const token = `${process.pid}:${randomBytes(16).toString("hex")}`;
   const deadline = Date.now() + lockWaitMs;
   for (;;) {
     try {
-      closeSync(openSync(lock, "wx", 0o600));
+      const fd = openSync(lock, "wx", 0o600);
+      try {
+        writeSync(fd, token);
+      } finally {
+        closeSync(fd);
+      }
       break;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      const held = readToken(lock);
+      let age: number;
       try {
-        if (Date.now() - statSync(lock).mtimeMs > staleLockMs) {
-          unlinkSync(lock);
-          continue;
-        }
+        age = Date.now() - statSync(lock).mtimeMs;
       } catch {
+        continue;
+      }
+      if (held !== undefined && age > staleLockMs) {
+        reclaimStale(lock, held);
         continue;
       }
       if (Date.now() > deadline) {
@@ -108,10 +150,12 @@ export function withFileLock<T>(path: string, fn: () => T): T {
   try {
     return fn();
   } finally {
-    try {
-      unlinkSync(lock);
-    } catch {
-      // Already gone: nothing to release.
+    if (readToken(lock) === token) {
+      try {
+        unlinkSync(lock);
+      } catch {
+        // Already gone: nothing to release.
+      }
     }
   }
 }
@@ -255,10 +299,20 @@ export class CodeBook {
 
   /** Writes the book atomically, readable by its owner only. */
   #write(path: string): void {
-    const temporary = `${path}.tmp`;
+    const temporary = `${path}.${randomBytes(8).toString("hex")}.tmp`;
     writeFileSync(temporary, `${JSON.stringify(this.#file, null, 2)}\n`, {
       mode: 0o600,
+      flag: "wx",
     });
-    renameSync(temporary, path);
+    try {
+      renameSync(temporary, path);
+    } catch (error) {
+      try {
+        unlinkSync(temporary);
+      } catch {
+        // Nothing left to clean up.
+      }
+      throw error;
+    }
   }
 }

@@ -72,7 +72,7 @@ cp aux.config.example.json aux.config.json   # gitignored
 
 4. **Scenes and palette.** Palette colors are CIE `xy` or a white as `mirek` (153–500), with an optional `brightness`. Each scene maps one to three zones to a palette color and a brightness from 25 to 80. Check every scene by eye at the rehearsal.
 
-5. **Codes.** `bun src/main.ts --generate 150` prints 150 codes once, to stdout, and adds their hashes to `aux.codes.json`. Send the codes straight to card printing. They are not stored anywhere, so don't save them in the repository or anywhere near it. Generating codes while the hub runs is safe, since the hub and `--generate` take turns on the file, but the hub recognizes new codes only after a restart.
+5. **Codes.** `bun src/main.ts --generate 150` prints 150 codes once, to stdout, and adds their hashes to `aux.codes.json`. Send the codes straight to card printing. They are not stored anywhere, so don't save them in the repository or anywhere near it. Generating codes while the hub runs is safe, since the hub and `--generate` take turns on the file. The hub starts accepting the new codes when it next reads the file: at its next start, or the next time the host revokes a code with `host_revoke_code`.
 
 `AUX_CONFIG`, `AUX_PORT`, `AUX_CODES_FILE` and `AUX_LOG_FILE` move the config, the port (8787), the codes file and the log.
 

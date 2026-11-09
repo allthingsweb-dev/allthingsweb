@@ -9,7 +9,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { CodeBook, newCode, normalizeCode } from "../src/codes.ts";
+import {
+  CodeBook,
+  newCode,
+  normalizeCode,
+  withFileLock,
+} from "../src/codes.ts";
 
 const directory = mkdtempSync(join(import.meta.dir, ".tmp-codes-"));
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -104,5 +109,21 @@ describe("guest codes", () => {
     const book = CodeBook.load(path, { create: true });
     expect(book.generate(1)).toHaveLength(1);
     expect(existsSync(`${path}.lock`)).toBe(false);
+  });
+
+  test("waits for a fresh lock, then gives up after 5 s and leaves it alone", () => {
+    const path = join(directory, "busy.json");
+    writeFileSync(`${path}.lock`, "another-process");
+    const book = CodeBook.load(path, { create: true });
+    const started = Date.now();
+    expect(() => book.generate(1)).toThrow("is held by another process");
+    expect(Date.now() - started).toBeGreaterThanOrEqual(4_900);
+    expect(readFileSync(`${path}.lock`, "utf8")).toBe("another-process");
+  }, 10_000);
+
+  test("never releases a lock it no longer owns", () => {
+    const path = join(directory, "owned.json");
+    withFileLock(path, () => writeFileSync(`${path}.lock`, "someone-else"));
+    expect(readFileSync(`${path}.lock`, "utf8")).toBe("someone-else");
   });
 });
