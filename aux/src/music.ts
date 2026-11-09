@@ -38,6 +38,27 @@ export const playerNames = ["afplay", "mpv", "pw-play"] as const;
 export type PlayerName = (typeof playerNames)[number];
 
 /**
+ * mpv's `--volume` for a 0-to-1 ceiling: a percentage to two decimals,
+ * rounded down so it never passes the ceiling. `toPrecision` first drops
+ * float noise, so 0.57 reads 57 rather than 56.99.
+ */
+export function mpvVolume(volume: number): string {
+  const hundredths = Math.floor(Number((volume * 10_000).toPrecision(12)));
+  return String(hundredths / 100);
+}
+
+/**
+ * Environment additions for a player's process. pw-play reads `--volume` in
+ * the process locale, so a comma-decimal locale would read 0.6 as 0 and play
+ * silently; `LC_ALL=C` pins the decimal point. The others need none.
+ */
+export function playerEnv(
+  player: PlayerName,
+): Record<string, string> | undefined {
+  return player === "pw-play" ? { LC_ALL: "C" } : undefined;
+}
+
+/**
  * The command line that plays `file` once at `volume` (0 to 1) and exits.
  * Each player takes the ceiling in its own scale; killing it stops the track.
  */
@@ -55,7 +76,7 @@ export function playerCommand(
         "mpv",
         "--no-video",
         "--no-terminal",
-        `--volume=${Math.round(volume * 100)}`,
+        `--volume=${mpvVolume(volume)}`,
         file,
       ];
     case "pw-play":
@@ -69,10 +90,12 @@ export function playerCommand(
 
 /** A Spawn that runs `player` for each track. */
 export function spawnPlayer(player: PlayerName): Spawn {
+  const extra = playerEnv(player);
   return (file, volume) => {
     const child = Bun.spawn(playerCommand(player, file, volume), {
       stdout: "ignore",
       stderr: "ignore",
+      ...(extra === undefined ? {} : { env: { ...process.env, ...extra } }),
     });
     return { exited: child.exited, kill: () => child.kill() };
   };

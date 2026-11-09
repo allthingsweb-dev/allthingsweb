@@ -3,7 +3,9 @@ import {
   choosePlayer,
   Music,
   musicLimits,
+  mpvVolume,
   playerCommand,
+  playerEnv,
 } from "../src/music.ts";
 import { fakeSpawn, settle, track } from "./support.ts";
 
@@ -231,6 +233,21 @@ describe("players", () => {
       "--volume=0.6",
       "/m/a.mp3",
     ]);
+  });
+
+  test("mpv's percentage never passes a fractional ceiling", () => {
+    expect(mpvVolume(0.995)).toBe("99.5");
+    expect(mpvVolume(0.99999)).toBe("99.99");
+    expect(mpvVolume(0.57)).toBe("57");
+    expect(mpvVolume(1)).toBe("100");
+    expect(mpvVolume(0)).toBe("0");
+    expect(playerCommand("mpv", "/m/a.mp3", 0.995)).toContain("--volume=99.5");
+  });
+
+  test("pw-play runs in the C locale, and the others inherit theirs", () => {
+    expect(playerEnv("pw-play")).toEqual({ LC_ALL: "C" });
+    expect(playerEnv("mpv")).toBeUndefined();
+    expect(playerEnv("afplay")).toBeUndefined();
   });
 
   const installed =

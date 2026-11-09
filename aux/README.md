@@ -96,7 +96,7 @@ The hub, the Bridge's HTTP API and `cloudflared` don't depend on macOS, so a Ras
 3. **Same files on both machines.** Copy `aux.config.json`, `aux.codes.json` and the tunnel's credentials JSON to the Pi and the Mac, and run `bun src/main.ts --prefetch` on each. The Bridge's application key works from any machine on its LAN.
 4. **Run.** Start the hub and the tunnel as below, in two terminals or as two systemd services that start after the network is up.
 
-**Only one hub at a time.** A Cloudflare Tunnel takes several connectors and spreads requests across them, so a second machine running `cloudflared tunnel run allthings-aux` would split guests between two hubs with separate lines. Stop the hub and the tunnel on one machine before starting them on the other. Switching starts the backup frozen with an empty line, as any restart does (see Restarts).
+**Only one hub at a time.** A Cloudflare Tunnel takes several connectors and spreads requests across them, so a second machine running `cloudflared tunnel run allthings-aux` would split guests between two hubs with separate lines. Stop the hub and the tunnel on one machine before starting them on the other. Then copy the stopped hub's current `aux.codes.json` to the other machine before starting its hub: the file holds every revocation and every code generated since the first copy, so a stale copy would let a revoked code back in once guests are unfrozen. If the current file can't be copied, keep guests frozen (don't send `host host_freeze '{"on":false}'`) until each revoked code is revoked again on the backup. Switching starts the backup frozen with an empty line, as any restart does (see Restarts).
 
 ## Running behind cloudflared at aux.allthings.dev
 
