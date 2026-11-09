@@ -42,6 +42,10 @@ jobs:
         working-directory: cli
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
 
+      - name: 📥 Download aux deps
+        working-directory: aux
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"
+
       - name: 📥 Download infra deps
         working-directory: infra
         run: bash "$GITHUB_WORKSPACE/.github/scripts/bun-install.sh"

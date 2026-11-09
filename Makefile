@@ -10,6 +10,7 @@ CURRENT_DIR := $(shell pwd)
 DEPENDENCIES := bun git
 APP_DIR := $(CURRENT_DIR)/app
 CLI_DIR := $(CURRENT_DIR)/cli
+AUX_DIR := $(CURRENT_DIR)/aux
 
 .PHONY: list
 list:
@@ -36,11 +37,13 @@ app/.env.local:
 install: check-dependencies ## Install the dependencies
 	@cd $(APP_DIR) && $(PACKAGE_MANAGER) install
 	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) install
+	@cd $(AUX_DIR) && $(PACKAGE_MANAGER) install
 
 .PHONY: fmt
 fmt: ## Format the code
 	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run fmt
 	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run fmt
+	@cd $(AUX_DIR) && $(PACKAGE_MANAGER) run fmt
 
 .PHONY: check
 check: ## Check the code
@@ -48,6 +51,8 @@ check: ## Check the code
 	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run typecheck
 	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run check
 	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run typecheck
+	@cd $(AUX_DIR) && $(PACKAGE_MANAGER) run check
+	@cd $(AUX_DIR) && $(PACKAGE_MANAGER) run typecheck
 
 .PHONY: build
 build: ## Build the Next.js app

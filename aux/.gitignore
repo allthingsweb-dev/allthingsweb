@@ -1,0 +1,16 @@
+# dependencies (bun install)
+node_modules
+
+# The hub's local state: never committed. The config holds the Bridge's
+# app key and the host token, the codes file the codes' salted hashes, and
+# the audit log what each code did on the night.
+aux.config.json
+aux.codes.json
+aux.codes.json.tmp
+*.jsonl
+
+# The tests' scratch directories, removed when they finish
+tests/.tmp-*
+
+# Finder (MacOS) folder config
+.DS_Store

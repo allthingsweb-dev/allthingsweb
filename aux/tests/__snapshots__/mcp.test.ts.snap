@@ -1,0 +1,112 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`tools/list anyone sees the five guest tools and nothing else 1`] = `
+[
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Who holds the aux, your place in line, your cooldown, whether the host has paused guest control, and the scene, color and zone names you can use. Once every 5 s per code.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {},
+      "type": "object",
+    },
+    "name": "aux_status",
+    "title": "Aux status",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Fade the room's lights to one of the host's scenes (names from aux_status). One light change per code every 30 s and 6 per 10 minutes; every 10 s while you hold the aux.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "scene": {
+          "description": "A scene name from aux_status.",
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "required": [
+        "scene",
+      ],
+      "type": "object",
+    },
+    "name": "set_scene",
+    "title": "Set the scene",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Fade one zone's lights to a named palette color (names from aux_status). Shares set_scene's limits.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "color": {
+          "description": "A color name from aux_status.",
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string",
+        },
+        "zone": {
+          "description": "A zone name from aux_status; the host's default if left out.",
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "required": [
+        "color",
+      ],
+      "type": "object",
+    },
+    "name": "set_color",
+    "title": "Set a color",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Join the line to hold the aux: 5-minute turns, first come first served. queue_position 0 means you hold it now. Asking again keeps your place.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {},
+      "type": "object",
+    },
+    "name": "request_aux",
+    "title": "Request the aux",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Hand the aux to the next guest in line, if you hold it.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {},
+      "type": "object",
+    },
+    "name": "pass_aux",
+    "title": "Pass the aux",
+  },
+]
+`;

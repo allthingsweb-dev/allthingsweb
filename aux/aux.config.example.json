@@ -1,0 +1,51 @@
+{
+  "port": 8787,
+  "hostToken": "<32+ random letters and digits: openssl rand -hex 24>",
+  "startFrozen": true,
+  "transitionMs": 2000,
+  "addressLimitPerMinute": 600,
+  "colorBrightness": 60,
+  "bridge": {
+    "ip": "<the Bridge's address on the hub's LAN>",
+    "appKey": "<the key from pairing, see README.md>"
+  },
+  "zones": {
+    "all": "<grouped_light id of home, from --zones>",
+    "lounge": "<grouped_light id of the lounge zone>",
+    "terrace": "<grouped_light id of the terrace zone>"
+  },
+  "defaultZone": "all",
+  "palette": {
+    "warm white": { "mirek": 370 },
+    "cool white": { "mirek": 220 },
+    "orange": { "xy": [0.58, 0.39] },
+    "red": { "xy": [0.67, 0.31] },
+    "pink": { "xy": [0.46, 0.25] },
+    "purple": { "xy": [0.27, 0.12] },
+    "periwinkle": { "xy": [0.22, 0.2] },
+    "blue": { "xy": [0.16, 0.08] },
+    "ocean": { "xy": [0.16, 0.25] },
+    "mint": { "xy": [0.2, 0.45] },
+    "green": { "xy": [0.21, 0.66] },
+    "gold": { "xy": [0.5, 0.45] }
+  },
+  "scenes": {
+    "house": { "all": { "color": "warm white", "brightness": 80 } },
+    "warm": { "all": { "color": "warm white", "brightness": 55 } },
+    "mint": { "all": { "color": "mint", "brightness": 60 } },
+    "periwinkle": { "all": { "color": "periwinkle", "brightness": 60 } },
+    "orange": { "all": { "color": "orange", "brightness": 65 } },
+    "ocean": {
+      "lounge": { "color": "ocean", "brightness": 55 },
+      "terrace": { "color": "blue", "brightness": 50 }
+    },
+    "sunset": {
+      "lounge": { "color": "orange", "brightness": 60 },
+      "terrace": { "color": "pink", "brightness": 50 }
+    },
+    "terrace calm": {
+      "lounge": { "color": "warm white", "brightness": 60 },
+      "terrace": { "color": "periwinkle", "brightness": 35 }
+    }
+  }
+}

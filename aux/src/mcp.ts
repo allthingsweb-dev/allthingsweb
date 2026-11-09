@@ -1,0 +1,749 @@
+import { createHash, timingSafeEqual } from "node:crypto";
+import {
+  type CallToolResult,
+  createMcpHandler,
+  McpServer,
+} from "@modelcontextprotocol/server";
+import { z } from "zod";
+import packageJson from "../package.json" with { type: "json" };
+import type { CodeBook } from "./codes.ts";
+import type { Config } from "./config.ts";
+import type { Hue } from "./hue.ts";
+import type { AuditLog } from "./log.ts";
+import { type AddressLimiter, type LightColor, Policy } from "./policy.ts";
+
+/**
+ * The hub's MCP server at `/mcp`: stateless JSON-RPC over HTTP, as the
+ * site's own server and the allthings CLI speak it (web/src/mcp/,
+ * cli/src/client.ts). Every request gets a fresh server that knows who is
+ * calling, from `Authorization: Bearer <code>`:
+ *
+ * - anyone may list the tools; the guest tools then answer `unauthorized`
+ * - a guest code calls the five guest tools
+ * - the host token also sees and calls the four host tools
+ *
+ * A refusal is a tool error whose structured content, repeated as JSON in
+ * its text, has a stable `code`, a `message`, and `retry_after_seconds`
+ * when rate limited, so clients can word it.
+ */
+
+export type ErrorCode =
+  | "rate_limited"
+  | "frozen"
+  | "unknown_scene"
+  | "unknown_color"
+  | "unknown_zone"
+  | "not_holder"
+  | "unauthorized"
+  | "bridge_unavailable"
+  | "unknown_code"
+  | "ambiguous_prefix";
+
+export type Caller =
+  | { readonly kind: "guest"; readonly id: string }
+  | { readonly kind: "host" }
+  | { readonly kind: "anonymous" };
+
+type Outcome =
+  | { readonly ok: true; readonly value: Record<string, unknown> }
+  | {
+      readonly ok: false;
+      readonly code: ErrorCode;
+      readonly message: string;
+      readonly retryAfterSeconds?: number;
+    };
+
+const ok = (value: Record<string, unknown>): Outcome => ({ ok: true, value });
+
+const refuse = (
+  code: ErrorCode,
+  message: string,
+  retryAfterSeconds?: number,
+): Outcome =>
+  retryAfterSeconds === undefined
+    ? { ok: false, code, message }
+    : { ok: false, code, message, retryAfterSeconds };
+
+const messages = {
+  unauthorized:
+    "This needs an aux code from the check-in table, sent as Authorization: Bearer <code>.",
+  frozen: "The host has paused guest control for now.",
+  not_holder: "Only the guest holding the aux can pass it.",
+  bridge_unavailable: "The lights didn't answer. Try again in a moment.",
+} as const;
+
+const rateLimited = (seconds: number): Outcome =>
+  refuse(
+    "rate_limited",
+    `Easy on the lights: try again in ${seconds} s.`,
+    seconds,
+  );
+
+/** A key of `record` named by `input`, ignoring case and outer spaces. */
+function lookup<T>(record: Readonly<Record<string, T>>, input: string) {
+  const name = input.trim().toLowerCase();
+  return Object.hasOwn(record, name)
+    ? { name, value: record[name] as T }
+    : undefined;
+}
+
+const sha256 = (value: string) => createHash("sha256").update(value).digest();
+
+export interface HubDeps {
+  readonly config: Config;
+  readonly hue: Pick<Hue, "setGroupedLight">;
+  readonly codes: CodeBook;
+  readonly log: AuditLog;
+  readonly policy?: Policy;
+  readonly now?: () => number;
+}
+
+/** The tools' behavior, apart from MCP: policy, then the Bridge, then the log. */
+export class Hub {
+  readonly config: Config;
+  readonly policy: Policy;
+  readonly #hue: Pick<Hue, "setGroupedLight">;
+  readonly #codes: CodeBook;
+  readonly #log: AuditLog;
+  readonly #now: () => number;
+  readonly #hostToken: Buffer;
+  readonly #started: number;
+  #bridge: { lastOkAt?: string; lastErrorAt?: string; lastError?: string } = {};
+
+  constructor({ config, hue, codes, log, policy, now = Date.now }: HubDeps) {
+    this.config = config;
+    this.policy = policy ?? new Policy({ frozen: config.startFrozen });
+    this.#hue = hue;
+    this.#codes = codes;
+    this.#log = log;
+    this.#now = now;
+    this.#hostToken = sha256(config.hostToken);
+    this.#started = now();
+  }
+
+  /** Who `authorization` (the header) names. A bad code is anonymous. */
+  identify(authorization: string | null): Caller {
+    const match = /^Bearer\s+(\S.*)$/i.exec(authorization?.trim() ?? "");
+    const token = match?.[1]?.trim();
+    if (token === undefined || token.length > 256) return { kind: "anonymous" };
+    if (timingSafeEqual(sha256(token), this.#hostToken))
+      return { kind: "host" };
+    const id = this.#codes.identify(token);
+    return id === undefined ? { kind: "anonymous" } : { kind: "guest", id };
+  }
+
+  #record(
+    tool: string,
+    caller: Caller,
+    outcome: Outcome,
+    detail?: Record<string, string | number | boolean>,
+  ): Outcome {
+    this.#log.write({
+      at: new Date(this.#now()).toISOString(),
+      tool,
+      caller: caller.kind,
+      ...(caller.kind === "guest" ? { code_id: caller.id } : {}),
+      outcome: outcome.ok ? "ok" : outcome.code,
+      ...(detail === undefined ? {} : { detail }),
+    });
+    return outcome;
+  }
+
+  get #names() {
+    return {
+      scenes: Object.keys(this.config.scenes),
+      colors: Object.keys(this.config.palette),
+      zones: Object.keys(this.config.zones),
+    };
+  }
+
+  /** Sends `parts` (zone → color, brightness) to the Bridge, one zone at a time. */
+  async #apply(
+    parts: readonly { zone: string; color: LightColor; brightness: number }[],
+  ): Promise<boolean> {
+    try {
+      for (const { zone, color, brightness } of parts) {
+        const id = this.config.zones[zone];
+        if (id === undefined) throw new Error(`No zone "${zone}"`);
+        await this.#hue.setGroupedLight(id, {
+          color,
+          brightness,
+          transitionMs: this.config.transitionMs,
+        });
+      }
+      this.#bridge = {
+        ...this.#bridge,
+        lastOkAt: new Date(this.#now()).toISOString(),
+      };
+      return true;
+    } catch (error) {
+      this.#bridge = {
+        ...this.#bridge,
+        lastErrorAt: new Date(this.#now()).toISOString(),
+        lastError: error instanceof Error ? error.message : String(error),
+      };
+      console.error(`Bridge: ${this.#bridge.lastError}`);
+      return false;
+    }
+  }
+
+  #sceneParts(scene: string) {
+    return Object.entries(this.config.scenes[scene] ?? {}).map(
+      ([zone, { color, brightness }]) => {
+        const entry = this.config.palette[color];
+        if (entry === undefined) throw new Error(`No color "${color}"`);
+        return {
+          zone,
+          color: "xy" in entry ? { xy: entry.xy } : { mirek: entry.mirek },
+          brightness,
+        };
+      },
+    );
+  }
+
+  #cooldown(id: string): number {
+    return this.policy.view(id, this.#now()).cooldownSeconds;
+  }
+
+  status(caller: Caller): Outcome {
+    const now = this.#now();
+    if (caller.kind === "anonymous") {
+      return this.#record(
+        "aux_status",
+        caller,
+        refuse("unauthorized", messages.unauthorized),
+      );
+    }
+    const { scenes, colors, zones } = this.#names;
+    if (caller.kind === "host") {
+      const host = this.policy.hostView(now);
+      return this.#record(
+        "aux_status",
+        caller,
+        ok({
+          now_playing: null,
+          holder: host.holder === null ? null : "someone",
+          queue_position: null,
+          queue_length: host.line.length,
+          turn_ends_in_seconds: host.turnEndsInSeconds,
+          cooldown_seconds: 0,
+          frozen: host.frozen,
+          scenes,
+          colors,
+          zones,
+          host: {
+            holder_code_id: host.holder,
+            line_code_ids: host.line,
+            recent: this.#log.recent(),
+          },
+        }),
+      );
+    }
+    const refusal = this.policy.admitStatus(caller.id, now);
+    if (refusal !== undefined) {
+      return this.#record(
+        "aux_status",
+        caller,
+        refusal.code === "rate_limited"
+          ? rateLimited(refusal.retryAfterSeconds)
+          : refuse(refusal.code, messages[refusal.code]),
+      );
+    }
+    const view = this.policy.view(caller.id, now);
+    return this.#record(
+      "aux_status",
+      caller,
+      ok({
+        now_playing: null,
+        holder: view.holder,
+        queue_position: view.position,
+        queue_length: view.waiting,
+        turn_ends_in_seconds: view.turnEndsInSeconds,
+        cooldown_seconds: view.cooldownSeconds,
+        frozen: view.frozen,
+        scenes,
+        colors,
+        zones,
+      }),
+    );
+  }
+
+  async setScene(caller: Caller, input: string): Promise<Outcome> {
+    const tool = caller.kind === "host" ? "host_set_scene" : "set_scene";
+    if (caller.kind === "anonymous") {
+      return this.#record(
+        tool,
+        caller,
+        refuse("unauthorized", messages.unauthorized),
+      );
+    }
+    if (caller.kind === "guest" && this.policy.frozen) {
+      return this.#record(tool, caller, refuse("frozen", messages.frozen));
+    }
+    const scene = lookup(this.config.scenes, input);
+    if (scene === undefined) {
+      return this.#record(
+        tool,
+        caller,
+        refuse(
+          "unknown_scene",
+          `That isn't a scene here. Scenes: ${this.#names.scenes.join(", ")}.`,
+        ),
+      );
+    }
+    const now = this.#now();
+    const refusal =
+      caller.kind === "host"
+        ? this.policy.admitHostLight(now)
+        : this.policy.admitGuestLight(caller.id, now);
+    if (refusal !== undefined) {
+      return this.#record(
+        tool,
+        caller,
+        refusal.code === "rate_limited"
+          ? rateLimited(refusal.retryAfterSeconds)
+          : refuse(refusal.code, messages[refusal.code]),
+        { scene: scene.name },
+      );
+    }
+    const parts = this.#sceneParts(scene.name);
+    const applied = await this.#apply(parts);
+    return this.#record(
+      tool,
+      caller,
+      applied
+        ? ok({
+            scene: scene.name,
+            zones: parts.map((part) => part.zone),
+            transition_seconds: this.config.transitionMs / 1000,
+            ...(caller.kind === "guest"
+              ? { cooldown_seconds: this.#cooldown(caller.id) }
+              : {}),
+          })
+        : refuse("bridge_unavailable", messages.bridge_unavailable),
+      { scene: scene.name },
+    );
+  }
+
+  async setColor(
+    caller: Caller,
+    input: string,
+    zoneInput: string | undefined,
+  ): Promise<Outcome> {
+    const tool = "set_color";
+    if (caller.kind === "anonymous") {
+      return this.#record(
+        tool,
+        caller,
+        refuse("unauthorized", messages.unauthorized),
+      );
+    }
+    if (caller.kind === "guest" && this.policy.frozen) {
+      return this.#record(tool, caller, refuse("frozen", messages.frozen));
+    }
+    const color = lookup(this.config.palette, input);
+    if (color === undefined) {
+      return this.#record(
+        tool,
+        caller,
+        refuse(
+          "unknown_color",
+          `That isn't a color here. Colors: ${this.#names.colors.join(", ")}.`,
+        ),
+      );
+    }
+    const zone = lookup(
+      this.config.zones,
+      zoneInput ?? this.config.defaultZone,
+    );
+    if (zone === undefined) {
+      return this.#record(
+        tool,
+        caller,
+        refuse(
+          "unknown_zone",
+          `That isn't a zone here. Zones: ${this.#names.zones.join(", ")}.`,
+        ),
+        { color: color.name },
+      );
+    }
+    const detail = { color: color.name, zone: zone.name };
+    const now = this.#now();
+    const refusal =
+      caller.kind === "host"
+        ? this.policy.admitHostLight(now)
+        : this.policy.admitGuestLight(caller.id, now);
+    if (refusal !== undefined) {
+      return this.#record(
+        tool,
+        caller,
+        refusal.code === "rate_limited"
+          ? rateLimited(refusal.retryAfterSeconds)
+          : refuse(refusal.code, messages[refusal.code]),
+        detail,
+      );
+    }
+    const entry = color.value;
+    const applied = await this.#apply([
+      {
+        zone: zone.name,
+        color: "xy" in entry ? { xy: entry.xy } : { mirek: entry.mirek },
+        brightness: entry.brightness ?? this.config.colorBrightness,
+      },
+    ]);
+    return this.#record(
+      tool,
+      caller,
+      applied
+        ? ok({
+            color: color.name,
+            zone: zone.name,
+            transition_seconds: this.config.transitionMs / 1000,
+            ...(caller.kind === "guest"
+              ? { cooldown_seconds: this.#cooldown(caller.id) }
+              : {}),
+          })
+        : refuse("bridge_unavailable", messages.bridge_unavailable),
+      detail,
+    );
+  }
+
+  requestAux(caller: Caller): Outcome {
+    if (caller.kind !== "guest") {
+      return this.#record(
+        "request_aux",
+        caller,
+        refuse("unauthorized", messages.unauthorized),
+      );
+    }
+    const now = this.#now();
+    const result = this.policy.requestAux(caller.id, now);
+    if ("code" in result) {
+      return this.#record(
+        "request_aux",
+        caller,
+        refuse("frozen", messages.frozen),
+      );
+    }
+    const view = this.policy.view(caller.id, now);
+    return this.#record(
+      "request_aux",
+      caller,
+      ok({
+        queue_position: result.position,
+        queue_length: view.waiting,
+        turn_ends_in_seconds: view.turnEndsInSeconds,
+      }),
+      { position: result.position },
+    );
+  }
+
+  passAux(caller: Caller): Outcome {
+    if (caller.kind !== "guest") {
+      return this.#record(
+        "pass_aux",
+        caller,
+        refuse("unauthorized", messages.unauthorized),
+      );
+    }
+    const result = this.policy.passAux(caller.id, this.#now());
+    if ("code" in result) {
+      return this.#record(
+        "pass_aux",
+        caller,
+        refuse(
+          result.code === "not_holder" ? "not_holder" : "frozen",
+          result.code === "not_holder" ? messages.not_holder : messages.frozen,
+        ),
+      );
+    }
+    return this.#record(
+      "pass_aux",
+      caller,
+      ok({ holder: result.passed ? "someone" : null }),
+    );
+  }
+
+  freeze(on: boolean): Outcome {
+    this.policy.freeze(on);
+    return this.#record("host_freeze", { kind: "host" }, ok({ frozen: on }), {
+      on,
+    });
+  }
+
+  clearQueue(): Outcome {
+    const cleared = this.policy.clearAux();
+    return this.#record("host_clear_queue", { kind: "host" }, ok({ cleared }), {
+      cleared,
+    });
+  }
+
+  revoke(prefix: string): Outcome {
+    const result = this.#codes.revoke(prefix);
+    if ("error" in result) {
+      return this.#record(
+        "host_revoke_code",
+        { kind: "host" },
+        refuse(
+          result.error,
+          result.error === "ambiguous_prefix"
+            ? "More than one code starts with that; give more of it."
+            : "No code starts with that.",
+        ),
+      );
+    }
+    this.policy.revoke(result.id, this.#now());
+    return this.#record(
+      "host_revoke_code",
+      { kind: "host" },
+      ok({ revoked_code_id: result.id }),
+      { revoked_code_id: result.id },
+    );
+  }
+
+  /** For `/healthz`, on the hub's own machine only. */
+  health(): Record<string, unknown> {
+    return {
+      ok: true,
+      frozen: this.policy.frozen,
+      codes: this.#codes.size,
+      uptime_seconds: Math.round((this.#now() - this.#started) / 1000),
+      bridge: {
+        last_ok_at: this.#bridge.lastOkAt ?? null,
+        last_error_at: this.#bridge.lastErrorAt ?? null,
+        last_error: this.#bridge.lastError ?? null,
+      },
+    };
+  }
+}
+
+function toResult(outcome: Outcome): CallToolResult {
+  if (outcome.ok) {
+    return {
+      content: [{ type: "text", text: JSON.stringify(outcome.value, null, 2) }],
+      structuredContent: outcome.value,
+    };
+  }
+  const detail = {
+    code: outcome.code,
+    message: outcome.message,
+    ...(outcome.retryAfterSeconds === undefined
+      ? {}
+      : { retry_after_seconds: outcome.retryAfterSeconds }),
+  };
+  // The same JSON in both, as allthings aux (cli/src/aux.ts) reads either.
+  return {
+    isError: true,
+    content: [{ type: "text", text: JSON.stringify(detail) }],
+    structuredContent: detail,
+  };
+}
+
+const nameInput = z.string().min(1).max(64);
+
+const guestTool = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: false,
+} as const;
+
+/** The server one request is answered by, for `caller`. */
+export function buildServer(hub: Hub, caller: Caller): McpServer {
+  const server = new McpServer(
+    { name: "allthings-aux", version: packageJson.version },
+    { maxToolInputElements: 16 },
+  );
+
+  server.registerTool(
+    "aux_status",
+    {
+      title: "Aux status",
+      description:
+        "Who holds the aux, your place in line, your cooldown, whether the host has paused guest control, and the scene, color and zone names you can use. Once every 5 s per code.",
+      inputSchema: z.object({}),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    () => toResult(hub.status(caller)),
+  );
+
+  server.registerTool(
+    "set_scene",
+    {
+      title: "Set the scene",
+      description:
+        "Fade the room's lights to one of the host's scenes (names from aux_status). One light change per code every 30 s and 6 per 10 minutes; every 10 s while you hold the aux.",
+      inputSchema: z.object({
+        scene: nameInput.describe("A scene name from aux_status."),
+      }),
+      annotations: guestTool,
+    },
+    async ({ scene }) => toResult(await hub.setScene(caller, scene)),
+  );
+
+  server.registerTool(
+    "set_color",
+    {
+      title: "Set a color",
+      description:
+        "Fade one zone's lights to a named palette color (names from aux_status). Shares set_scene's limits.",
+      inputSchema: z.object({
+        color: nameInput.describe("A color name from aux_status."),
+        zone: nameInput
+          .optional()
+          .describe(
+            "A zone name from aux_status; the host's default if left out.",
+          ),
+      }),
+      annotations: guestTool,
+    },
+    async ({ color, zone }) =>
+      toResult(await hub.setColor(caller, color, zone)),
+  );
+
+  server.registerTool(
+    "request_aux",
+    {
+      title: "Request the aux",
+      description:
+        "Join the line to hold the aux: 5-minute turns, first come first served. queue_position 0 means you hold it now. Asking again keeps your place.",
+      inputSchema: z.object({}),
+      annotations: { ...guestTool, idempotentHint: true },
+    },
+    () => toResult(hub.requestAux(caller)),
+  );
+
+  server.registerTool(
+    "pass_aux",
+    {
+      title: "Pass the aux",
+      description: "Hand the aux to the next guest in line, if you hold it.",
+      inputSchema: z.object({}),
+      annotations: guestTool,
+    },
+    () => toResult(hub.passAux(caller)),
+  );
+
+  if (caller.kind === "host") {
+    server.registerTool(
+      "host_freeze",
+      {
+        title: "Freeze guest control",
+        description:
+          "on: true makes every guest tool but aux_status refuse; on: false opens them again.",
+        inputSchema: z.object({ on: z.boolean() }),
+        annotations: { ...guestTool, idempotentHint: true },
+      },
+      ({ on }) => toResult(hub.freeze(on)),
+    );
+    server.registerTool(
+      "host_set_scene",
+      {
+        title: "Set the scene (host)",
+        description:
+          "Set a scene even while frozen, with no per-code limit. The flash guard still holds: one change every 3 s.",
+        inputSchema: z.object({ scene: nameInput }),
+        annotations: guestTool,
+      },
+      async ({ scene }) => toResult(await hub.setScene(caller, scene)),
+    );
+    server.registerTool(
+      "host_clear_queue",
+      {
+        title: "Clear the aux line",
+        description: "Empty the aux line and end the current turn.",
+        inputSchema: z.object({}),
+        annotations: { ...guestTool, destructiveHint: true },
+      },
+      () => toResult(hub.clearQueue()),
+    );
+    server.registerTool(
+      "host_revoke_code",
+      {
+        title: "Revoke a guest code",
+        description:
+          "Revoke the guest code whose id (from aux_status's host view or the audit log) starts with code_hash_prefix, 6+ hex characters.",
+        inputSchema: z.object({
+          code_hash_prefix: z.string().min(6).max(64),
+        }),
+        annotations: { ...guestTool, destructiveHint: true },
+      },
+      ({ code_hash_prefix }) => toResult(hub.revoke(code_hash_prefix)),
+    );
+  }
+
+  return server;
+}
+
+/** The largest request body read, in bytes; a tool call is far less. */
+export const maxRequestBodySize = 16 * 1024;
+
+const json = (
+  status: number,
+  body: Record<string, unknown>,
+  headers: Record<string, string> = {},
+) =>
+  Response.json(body, {
+    status,
+    headers: { "cache-control": "no-store", ...headers },
+  });
+
+/**
+ * The hub's HTTP face: `/mcp` and, on this machine only, `/healthz`.
+ * `address` is the connecting socket's; behind cloudflared every request
+ * comes from this machine, so the guest's address is Cloudflare's
+ * `cf-connecting-ip`.
+ */
+export function createFetch(
+  hub: Hub,
+  limiter: AddressLimiter,
+  { now = Date.now }: { now?: () => number } = {},
+): (request: Request, address: string) => Promise<Response> {
+  return async (request, address) => {
+    const url = new URL(request.url);
+    const viaTunnel =
+      request.headers.has("cf-connecting-ip") || request.headers.has("cf-ray");
+
+    if (url.pathname === "/healthz" && !viaTunnel) {
+      return request.method === "GET"
+        ? json(200, hub.health())
+        : json(405, { error: "GET only" });
+    }
+    if (url.pathname !== "/mcp") return json(404, { error: "Not found" });
+
+    // MCP clients and the CLI send no Origin; a browser page would.
+    if (request.headers.has("origin")) {
+      return json(403, { error: "Browser origins are not served" });
+    }
+
+    const wait = limiter.hit(
+      request.headers.get("cf-connecting-ip") ?? address,
+      now(),
+    );
+    if (wait > 0) {
+      const seconds = Math.max(1, Math.ceil(wait / 1000));
+      return json(
+        429,
+        { error: "Too many requests", retry_after_seconds: seconds },
+        { "retry-after": String(seconds) },
+      );
+    }
+
+    const length = Number(request.headers.get("content-length") ?? "0");
+    if (!Number.isFinite(length) || length > maxRequestBodySize) {
+      return json(413, { error: "Request body too large" });
+    }
+
+    const caller = hub.identify(request.headers.get("authorization"));
+    const handler = createMcpHandler(() => buildServer(hub, caller), {
+      legacy: "stateless",
+      maxRequestBodySize,
+    });
+    return handler.fetch(request);
+  };
+}
