@@ -118,8 +118,8 @@ function readManifest(dir: string): Manifest {
 /** Writes `data` to `path` through a uniquely named temporary file. */
 function writeAtomically(path: string, data: string | Uint8Array): void {
   const temporary = `${path}.${randomBytes(8).toString("hex")}.tmp`;
-  writeFileSync(temporary, data, { flag: "wx", mode: 0o644 });
   try {
+    writeFileSync(temporary, data, { flag: "wx", mode: 0o644 });
     renameSync(temporary, path);
   } catch (error) {
     try {

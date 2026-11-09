@@ -325,7 +325,6 @@ export class Hub {
     );
   }
 
-  /** set_scene and host_set_scene: fades the scene's zones, within the caller's limits. */
   /** now_playing (null without music or between tracks) and, with music, up_next's slugs. */
   #playing(): Record<string, unknown> {
     const music = this.music;
@@ -338,6 +337,7 @@ export class Hub {
     };
   }
 
+  /** set_scene and host_set_scene: fades the scene's zones, within the caller's limits. */
   async setScene(caller: Caller, input: string): Promise<Outcome> {
     const tool = caller.kind === "host" ? "host_set_scene" : "set_scene";
     if (caller.kind === "anonymous") {
@@ -874,7 +874,11 @@ export function buildServer(hub: Hub, caller: Caller): McpServer {
         description:
           "Queue a track from the set by its slug (from list_tracks). One waiting per code and two a night; the queue holds 8.",
         inputSchema: z.object({
-          slug: nameInput.describe("A track slug from list_tracks."),
+          slug: z
+            .string()
+            .min(1)
+            .max(100)
+            .describe("A track slug from list_tracks."),
         }),
         annotations: guestTool,
       },
