@@ -1,5 +1,13 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { CodeBook, newCode, normalizeCode } from "../src/codes.ts";
 
@@ -72,5 +80,29 @@ describe("guest codes", () => {
     expect(() => CodeBook.load(join(directory, "missing.json"))).toThrow(
       "--generate",
     );
+  });
+
+  test("a revoke keeps codes another process generated since the hub loaded", () => {
+    const path = join(directory, "merge.json");
+    const hub = CodeBook.load(path, { create: true });
+    const [first] = hub.generate(2);
+    const added = CodeBook.load(path).generate(5);
+    const id = hub.identify(first ?? "");
+    expect(id).toBeDefined();
+    expect(hub.revoke(id ?? "")).toEqual({ id: id ?? "" });
+    const after = CodeBook.load(path);
+    expect(after.size).toBe(7);
+    expect(after.identify(first ?? "")).toBeUndefined();
+    for (const code of added) expect(after.identify(code)).toBeDefined();
+  });
+
+  test("clears a stale lock left by a crash", () => {
+    const path = join(directory, "stale.json");
+    writeFileSync(`${path}.lock`, "");
+    const old = new Date(Date.now() - 60_000);
+    utimesSync(`${path}.lock`, old, old);
+    const book = CodeBook.load(path, { create: true });
+    expect(book.generate(1)).toHaveLength(1);
+    expect(existsSync(`${path}.lock`)).toBe(false);
   });
 });

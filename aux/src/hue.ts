@@ -25,10 +25,14 @@ export class HueError extends Error {
  * certificate is self-signed and so is accepted unverified.
  */
 export function isPrivateIPv4(ip: string): boolean {
-  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
+  // Canonical dotted quads only: no leading zeros, which some resolvers
+  // read as octal, and each octet 0-255.
+  const octet = "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
+  const match = new RegExp(`^${octet}\\.${octet}\\.${octet}\\.${octet}$`).exec(
+    ip,
+  );
   if (match === null) return false;
   const octets = match.slice(1).map(Number);
-  if (octets.some((octet) => octet > 255)) return false;
   const [a = 0, b = 0] = octets;
   return (
     a === 10 ||

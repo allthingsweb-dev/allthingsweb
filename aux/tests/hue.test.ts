@@ -130,6 +130,9 @@ describe("Hue client", () => {
       "localhost",
       "::1",
       "10.0.0.2/evil",
+      "010.0.0.1",
+      "10.00.0.1",
+      "192.168.01.5",
     ]) {
       expect(isPrivateIPv4(ip)).toBe(false);
     }
