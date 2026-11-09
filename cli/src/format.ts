@@ -1,4 +1,5 @@
 import { styleText } from "node:util";
+import type { AuxStatus, Track } from "./aux.ts";
 import type { Community, Event, EventSummary, Speaker } from "./schemas.ts";
 
 type Style = Parameters<typeof styleText>[0];
@@ -150,4 +151,33 @@ export function formatCommunity(community: Community, color: boolean): string {
     `${style("dim", "conduct")}  ${community.links.codeOfConduct}`,
     "",
   ].join("\n");
+}
+
+/** aux_status, for a person: the holder, your place in line and cooldown. */
+export function formatAuxStatus(status: AuxStatus, color: boolean): string {
+  const style = createStyler(color);
+  const cooldown = status.cooldownSeconds ?? 0;
+  return [
+    `${style("dim", "aux     ")}  ${status.holder ?? "nobody has it"}`,
+    `${style("dim", "line    ")}  ${status.queuePosition === null ? "you're not in line" : `you're #${status.queuePosition}`}`,
+    `${style("dim", "cooldown")}  ${cooldown > 0 ? `${Math.ceil(cooldown)} s` : "ready"}`,
+    `${style("dim", "guests  ")}  ${status.frozen ? style("yellow", "paused by the host") : "in control"}`,
+    `${style("dim", "scenes  ")}  ${status.scenes.join(", ")}`,
+    `${style("dim", "colors  ")}  ${status.colors.join(", ")}`,
+    "",
+  ].join("\n");
+}
+
+export function formatTracks(tracks: Track[], color: boolean): string {
+  const style = createStyler(color);
+  if (tracks.length === 0) return "No tracks tonight.\n";
+  return (
+    tracks
+      .map((track) =>
+        track.title === undefined
+          ? track.slug
+          : `${style("bold", track.slug)}  ${track.title}`,
+      )
+      .join("\n") + "\n"
+  );
 }

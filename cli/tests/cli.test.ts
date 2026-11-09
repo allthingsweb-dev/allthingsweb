@@ -60,6 +60,8 @@ describe("allthings", () => {
       ["events", "--past", "--all"],
       ["events", "--limit", "0"],
       ["events", "--unknown"],
+      ["events", "--zone", "terrace"],
+      ["about", "--zone", "terrace"],
     ]) {
       const { code, stderr } = await exec(argv);
       expect(code).toBe(ExitCode.UsageError);

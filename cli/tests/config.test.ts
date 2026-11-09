@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {
+  auxCodePath,
   defaultEndpoint,
   endpointFrom,
   invokedAsLegacy,
@@ -24,6 +27,16 @@ describe("config", () => {
         ATW_MCP_URL: "https://old.test/mcp",
       }),
     ).toBe("https://new.test/mcp");
+  });
+
+  test("the aux code is saved in ALLTHINGS_HOME, or ~/.allthings when it's unset or blank", () => {
+    const fallback = join(homedir(), ".allthings", "aux-code");
+    expect(auxCodePath({})).toBe(fallback);
+    expect(auxCodePath({ ALLTHINGS_HOME: "" })).toBe(fallback);
+    expect(auxCodePath({ ALLTHINGS_HOME: "   " })).toBe(fallback);
+    expect(auxCodePath({ ALLTHINGS_HOME: "/opt/allthings" })).toBe(
+      join("/opt/allthings", "aux-code"),
+    );
   });
 
   test("knows when it was started by its old name", () => {

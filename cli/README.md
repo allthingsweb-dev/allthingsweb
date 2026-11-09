@@ -29,6 +29,31 @@ Add `--json` to any of them for the public contract, unformatted, for scripts an
 
 `ALLTHINGS_MCP_URL` points it at another server, such as a local Worker.
 
+## aux
+
+At an evening that passes the aux, guests set the room's lights from their terminal, with the code on the card from the check-in table:
+
+```sh
+allthings aux login <code>           # save the code from your card
+allthings aux status                 # who has the aux, your place in line, your cooldown
+allthings aux scenes                 # tonight's scenes
+allthings aux scene ocean            # set the room to one of them
+allthings aux color mint             # set a color, everywhere or on one --zone
+allthings aux request                # get in line for the aux
+allthings aux pass                   # hand it to the next person
+allthings aux tracks                 # tonight's tracks, when music is on
+allthings aux queue <slug>           # queue one
+allthings aux skip                   # skip the track playing, if you hold the aux
+```
+
+`login` saves the code in `~/.allthings/aux-code` (`$ALLTHINGS_HOME/aux-code` when the installer's `ALLTHINGS_HOME` is set), readable by you alone. No command prints the code, even when the hub sends it back. `ALLTHINGS_AUX_CODE` wins over the saved code.
+
+The hub is an MCP server at `https://aux.allthings.dev/mcp`, and `ALLTHINGS_AUX_URL` points at another, such as one on `localhost`. Every call sends the code as `Authorization: Bearer <code>`, so agents can use the same endpoint and code. Its tools are `aux_status`, `set_scene`, `set_color`, `request_aux` and `pass_aux`, plus `list_tracks`, `queue_track` and `skip_track` when music is on. The music commands check `tools/list` first and say "Music isn't on tonight" when they're missing.
+
+When the hub refuses, the CLI says why from the tool error's `code`: going too fast (`rate_limited`, with the seconds to wait from `retry_after_seconds`, or from `Retry-After` on an HTTP 429), guest control paused by the host (`frozen`), a scene or color tonight doesn't have (`unknown_scene`, `unknown_color`), something only the aux holder can do (`not_holder`), or a code the hub doesn't accept (`unauthorized`, or an HTTP 401). Exit codes: 1 when the hub refused or couldn't be reached, 2 for an unknown scene or color, a missing code and other usage errors.
+
+`status` reads `holder`, `queue_position`, `cooldown_seconds`, `frozen`, `scenes` and `colors` (or their camelCase names) from `aux_status`, and prints the hub's own text when its result has another shape. `--json` prints what the hub returned.
+
 ## The old name
 
 This CLI used to be `atw`. The installer still puts an `atw` beside `allthings`, and the package still has an `atw` bin. Both run the same CLI and print a note on stderr, so scripts reading stdout keep working. The old name goes away in a later release. `ATW_MCP_URL` and `ATW_VERSION` are still read when the new names are unset.

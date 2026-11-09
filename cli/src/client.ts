@@ -20,7 +20,7 @@ export function isEventNotFound(message: string): boolean {
   return message.startsWith("No published event");
 }
 
-function networkFailure(endpoint: string, error: unknown): CliError {
+export function networkFailure(endpoint: string, error: unknown): CliError {
   const reason =
     error instanceof Error && error.name === "TimeoutError"
       ? "timed out"
@@ -33,7 +33,7 @@ function networkFailure(endpoint: string, error: unknown): CliError {
   );
 }
 
-const toolResultSchema = z.object({
+export const toolResultSchema = z.object({
   isError: z.boolean().optional(),
   content: z.array(z.object({ type: z.string(), text: z.string().optional() })),
   structuredContent: z.unknown().optional(),
@@ -47,7 +47,7 @@ const rpcResponseSchema = z.union([
 export type Fetch = (input: string, init: RequestInit) => Promise<Response>;
 
 /** Reads a single JSON-RPC message from a JSON or event-stream response. */
-function parseRpcBody(body: string, contentType: string): unknown {
+export function parseRpcBody(body: string, contentType: string): unknown {
   if (!contentType.includes("text/event-stream")) return JSON.parse(body);
   const data = body
     .split("\n")
