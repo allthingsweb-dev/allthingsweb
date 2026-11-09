@@ -55,8 +55,10 @@ export function auxEndpointFrom(
 
 /**
  * Where `aux login` saves the code: beside the installed binary, in
- * ALLTHINGS_HOME (~/.allthings by default), readable by its owner alone.
+ * ALLTHINGS_HOME (~/.allthings when it's unset or blank), readable by its
+ * owner alone.
  */
 export function auxCodePath(env: Record<string, string | undefined>): string {
-  return join(env[homeVariable] ?? join(homedir(), ".allthings"), "aux-code");
+  const home = env[homeVariable]?.trim();
+  return join(home ? home : join(homedir(), ".allthings"), "aux-code");
 }
