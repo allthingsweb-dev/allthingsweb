@@ -4,6 +4,8 @@ import { type Config, parseConfig } from "../src/config.ts";
 import type { Hue } from "../src/hue.ts";
 import { AuditLog } from "../src/log.ts";
 import { Hub } from "../src/mcp.ts";
+import type { Track } from "../src/catalog.ts";
+import type { Music, Spawn } from "../src/music.ts";
 import type { LightCommand } from "../src/policy.ts";
 
 /** Made-up values for the example config's placeholders. */
@@ -48,8 +50,11 @@ export function fakeHue() {
   return { hue, changes, state };
 }
 
-/** A hub on a fake clock and Bridge, with three guest codes. */
-export function testHub({ logPath }: { logPath?: string } = {}) {
+/** A hub on a fake clock and Bridge, with three guest codes, and `music` if given. */
+export function testHub({
+  logPath,
+  music,
+}: { logPath?: string; music?: Music } = {}) {
   const clock = { now: 1_000_000 };
   const codes = CodeBook.empty();
   const guestCodes = codes.generate(3);
@@ -60,7 +65,52 @@ export function testHub({ logPath }: { logPath?: string } = {}) {
     hue: bridge.hue,
     codes,
     log,
+    ...(music === undefined ? {} : { music }),
     now: () => clock.now,
   });
   return { hub, clock, codes, guestCodes, bridge, log };
 }
+
+/** A track of the curated set, as loadPlaylist gives it. */
+export function track(slug: string): Track {
+  return {
+    slug,
+    title: `Title of ${slug}`,
+    file: `/music/${slug}.mp3`,
+    durationSeconds: 200,
+  };
+}
+
+/** A player whose tracks end only when a test finishes or kills them. */
+export function fakeSpawn() {
+  const started: {
+    file: string;
+    volume: number;
+    killed: boolean;
+    finish: (code?: number) => void;
+  }[] = [];
+  const spawn: Spawn = (file, volume) => {
+    let end: (code: number) => void = () => {};
+    const exited = new Promise<number>((resolve) => {
+      end = resolve;
+    });
+    const run = {
+      file,
+      volume,
+      killed: false,
+      finish: (code = 0) => end(code),
+    };
+    started.push(run);
+    return {
+      exited,
+      kill: () => {
+        run.killed = true;
+        end(143);
+      },
+    };
+  };
+  return { spawn, started };
+}
+
+/** Lets the player's loop run up to its next wait. */
+export const settle = () => new Promise((resolve) => setTimeout(resolve, 0));

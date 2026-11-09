@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
+import { slugPattern } from "./catalog.ts";
 import { isPrivateIPv4 } from "./hue.ts";
 import { flash } from "./policy.ts";
 
@@ -61,6 +62,39 @@ const secret = (what: string, min: number) =>
       `${what} must be ${min} to ${maxSecretLength} letters, digits, _ or -`,
     );
 
+const musicSchema = z
+  .object({
+    /** mus.ax, whose public API lists the tracks and serves their MP3s. */
+    base: z
+      .string()
+      .refine(
+        (value) => URL.canParse(value) && new URL(value).protocol === "https:",
+        "music.base must be an https URL",
+      )
+      .default("https://mus.ax"),
+    /** The set: mus.ax slugs, in the order they play when nobody queues. */
+    tracks: z
+      .array(
+        z
+          .string()
+          .regex(
+            slugPattern,
+            "music.tracks are mus.ax slugs: lowercase letters, digits and hyphens",
+          ),
+      )
+      .min(1)
+      .max(100)
+      .refine(
+        (tracks) => new Set(tracks).size === tracks.length,
+        "music.tracks repeats a slug",
+      ),
+    /** Where --prefetch saves the MP3s and their manifest (gitignored). */
+    cacheDir: z.string().min(1).default("aux.music"),
+    /** The volume ceiling agreed with the venue, 0 to 1 (afplay -v). Guests can't change it. */
+    volume: z.number().min(0).max(1),
+  })
+  .strict();
+
 export const configSchema = z
   .object({
     port: z.number().int().min(1).max(65_535).default(8787),
@@ -93,6 +127,8 @@ export const configSchema = z
     defaultZone: nameSchema,
     palette: z.record(nameSchema, colorSchema),
     scenes: z.record(nameSchema, sceneSchema),
+    /** The curated mus.ax set; without it, the music tools stay out of tools/list. */
+    music: musicSchema.optional(),
   })
   .strict()
   .superRefine((config, context) => {

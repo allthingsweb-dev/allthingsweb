@@ -47,5 +47,11 @@
       "lounge": { "color": "warm white", "brightness": 60 },
       "terrace": { "color": "periwinkle", "brightness": 35 }
     }
+  },
+  "music": {
+    "base": "https://mus.ax",
+    "tracks": ["anywhere-but-sleep", "neon-drift", "slipstream", "deep-down"],
+    "cacheDir": "aux.music",
+    "volume": 0.6
   }
 }
