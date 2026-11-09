@@ -30,6 +30,8 @@ export const manifestName = "tracks.json";
 
 const pageSize = 100;
 const requestTimeoutMs = 30_000;
+/** One track's download, fetch and body read together: a 15 MB file on slow venue Wi-Fi. */
+const audioTimeoutMs = 5 * 60_000;
 
 const songSchema = z.object({
   slug: z.string(),
@@ -217,8 +219,9 @@ export async function prefetch({
       continue;
     }
     try {
+      // The signal also bounds readCapped's body read below.
       const response = await fetch(new URL(`/audio/${slug}.mp3`, base), {
-        signal: AbortSignal.timeout(requestTimeoutMs),
+        signal: AbortSignal.timeout(audioTimeoutMs),
       });
       if (!response.ok) throw new Error(`answered ${response.status}`);
       const type = response.headers.get("content-type") ?? "";

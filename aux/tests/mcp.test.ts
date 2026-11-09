@@ -732,6 +732,28 @@ describe("music tools", () => {
     });
   });
 
+  test("passing the aux and taking it back doesn't earn another skip", async () => {
+    const { hub, guestCodes, clock } = musicHub();
+    const { call } = client(hub);
+    const [a = ""] = guestCodes;
+    hub.policy.freeze(false);
+    await call("host_music", { on: true }, hostToken);
+    await settle();
+    await call("request_aux", {}, a);
+    expect(await call("skip_track", {}, a)).toMatchObject({ isError: false });
+    await settle();
+    await call("pass_aux", {}, a);
+    await call("request_aux", {}, a);
+    expect(await call("skip_track", {}, a)).toMatchObject({
+      isError: true,
+      data: { code: "skip_used" },
+    });
+    clock.now += 5 * 60_000;
+    await call("request_aux", {}, a);
+    expect(await call("skip_track", {}, a)).toMatchObject({ isError: false });
+    await call("host_music", { on: false }, hostToken);
+  });
+
   test("revoking a code drops its waiting track", async () => {
     const { hub, guestCodes, music } = musicHub();
     const { call } = client(hub);

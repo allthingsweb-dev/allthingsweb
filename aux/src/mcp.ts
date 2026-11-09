@@ -11,7 +11,12 @@ import type { Config } from "./config.ts";
 import type { Hue } from "./hue.ts";
 import type { AuditLog } from "./log.ts";
 import type { Music } from "./music.ts";
-import { type AddressLimiter, type LightColor, Policy } from "./policy.ts";
+import {
+  type AddressLimiter,
+  type LightColor,
+  limits,
+  Policy,
+} from "./policy.ts";
 
 /**
  * The hub's MCP server at `/mcp`: stateless JSON-RPC over HTTP, as the
@@ -81,7 +86,8 @@ const messages = {
   queue_full: "The queue is full (8 tracks). Try again once one plays.",
   already_queued: "You have a track waiting; queue another once it plays.",
   night_limit: "You've queued your 2 tracks for tonight.",
-  skip_used: "You've used this turn's skip.",
+  skip_used:
+    "You've skipped in the last 5 minutes; one skip per turn's length.",
   nothing_playing: "Nothing is playing right now.",
 } as const;
 
@@ -118,8 +124,8 @@ export class Hub {
   readonly config: Config;
   readonly policy: Policy;
   readonly music: Music | undefined;
-  /** The turns (holder and start) whose skip was used. */
-  readonly #skippedTurns = new Set<string>();
+  /** Each guest code's last skip, so a code skips once per turn's length however often it holds the aux. */
+  readonly #lastSkip = new Map<string, number>();
   readonly #hue: Pick<Hue, "setGroupedLight">;
   readonly #codes: CodeBook;
   readonly #log: AuditLog;
@@ -653,7 +659,7 @@ export class Hub {
     );
   }
 
-  /** skip_track: the aux holder skips once a turn; the host any time. */
+  /** skip_track: the aux holder skips once per turn's length, by code; the host any time. */
   skipTrack(caller: Caller): Outcome {
     const tool = "skip_track";
     if (caller.kind === "anonymous") {
@@ -666,9 +672,9 @@ export class Hub {
     if (caller.kind === "guest" && this.policy.frozen) {
       return this.#record(tool, caller, refuse("frozen", messages.frozen));
     }
-    let turn: string | undefined;
+    const now = this.#now();
     if (caller.kind === "guest") {
-      const holder = this.policy.holder(this.#now());
+      const holder = this.policy.holder(now);
       if (holder?.id !== caller.id) {
         return this.#record(
           tool,
@@ -676,8 +682,8 @@ export class Hub {
           refuse("not_holder", "Only the guest holding the aux can skip."),
         );
       }
-      turn = `${holder.id}:${holder.since}`;
-      if (this.#skippedTurns.has(turn)) {
+      const last = this.#lastSkip.get(caller.id);
+      if (last !== undefined && now - last < limits.turnMs) {
         return this.#record(
           tool,
           caller,
@@ -693,7 +699,7 @@ export class Hub {
         refuse("nothing_playing", messages.nothing_playing),
       );
     }
-    if (turn !== undefined) this.#skippedTurns.add(turn);
+    if (caller.kind === "guest") this.#lastSkip.set(caller.id, now);
     return this.#record(tool, caller, ok({ skipped }), { track: skipped });
   }
 
@@ -889,7 +895,7 @@ export function buildServer(hub: Hub, caller: Caller): McpServer {
       {
         title: "Skip the track",
         description:
-          "Skip the track playing now. Only the guest holding the aux, once a turn.",
+          "Skip the track playing now. Only the guest holding the aux, once every 5 minutes per code.",
         inputSchema: z.object({}),
         annotations: guestTool,
       },
