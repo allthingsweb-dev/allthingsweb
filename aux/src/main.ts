@@ -1,8 +1,10 @@
+import { loadPlaylist, prefetch } from "./catalog.ts";
 import { CodeBook } from "./codes.ts";
 import { loadConfig } from "./config.ts";
 import { createHue } from "./hue.ts";
 import { AuditLog } from "./log.ts";
 import { createFetch, Hub, maxRequestBodySize } from "./mcp.ts";
+import { Music } from "./music.ts";
 import { AddressLimiter } from "./policy.ts";
 
 /**
@@ -11,6 +13,7 @@ import { AddressLimiter } from "./policy.ts";
  *   bun src/main.ts                  serve /mcp on 127.0.0.1 for cloudflared
  *   bun src/main.ts --generate 150   print 150 new guest codes, once
  *   bun src/main.ts --zones          list the Bridge's rooms and zones
+ *   bun src/main.ts --prefetch       save the music set from mus.ax
  *
  * See README.md for setup and the host runbook.
  */
@@ -22,7 +25,8 @@ const logPath = env["AUX_LOG_FILE"] ?? "aux.log.jsonl";
 const usage = `Usage:
   bun src/main.ts                  serve the hub on 127.0.0.1
   bun src/main.ts --generate <n>   print n new guest codes (1-500), once
-  bun src/main.ts --zones          list the Bridge's rooms and zones`;
+  bun src/main.ts --zones          list the Bridge's rooms and zones
+  bun src/main.ts --prefetch       save the config's music set from mus.ax`;
 
 /** Prints that many new codes and saves their hashes. */
 function generate(countArgument: string | undefined): void {
@@ -60,6 +64,69 @@ async function zones(): Promise<void> {
   if (missing.length > 0) process.exit(1);
 }
 
+/** Saves the config's music set from mus.ax, and exits 1 if any track didn't arrive. */
+async function prefetchMusic(): Promise<void> {
+  const { music } = loadConfig(env);
+  if (music === undefined) {
+    throw new Error("The config has no music; add music.tracks first.");
+  }
+  const result = await prefetch({
+    base: music.base,
+    slugs: music.tracks,
+    dir: music.cacheDir,
+  });
+  console.log(
+    `Music in ${music.cacheDir}: ${result.saved.length} saved, ${result.kept.length} already there, ${result.failed.length} failed.`,
+  );
+  if (result.ignoredManifest !== undefined) {
+    console.error(
+      `Ignored the old manifest (${result.ignoredManifest}); every track was fetched again.`,
+    );
+  }
+  for (const { slug, error } of result.failed) {
+    console.error(`${slug}: ${error}`);
+  }
+  if (result.failed.length > 0) process.exit(1);
+}
+
+/**
+ * Tonight's music from the prefetched set, or undefined when the config has
+ * none or it can't play here. Music never stops the hub: the lights run
+ * either way, and without music its tools stay out of tools/list.
+ */
+function loadMusic(config: ReturnType<typeof loadConfig>): Music | undefined {
+  const { music } = config;
+  if (music === undefined) return undefined;
+  if (process.platform !== "darwin") {
+    console.error(
+      "Music off: the music plays through macOS's afplay; run the hub on a Mac, or remove music from the config.",
+    );
+    return undefined;
+  }
+  let playlist: ReturnType<typeof loadPlaylist>;
+  try {
+    playlist = loadPlaylist(music.cacheDir, music.tracks);
+  } catch (error) {
+    console.error(
+      `Music off: ${error instanceof Error ? error.message : String(error)}; run bun src/main.ts --prefetch again.`,
+    );
+    return undefined;
+  }
+  const { tracks, missing } = playlist;
+  if (tracks.length === 0) {
+    console.error(
+      `Music off: no music is saved in ${music.cacheDir}; run bun src/main.ts --prefetch first.`,
+    );
+    return undefined;
+  }
+  if (missing.length > 0) {
+    console.error(
+      `Music: ${missing.length} tracks aren't saved and won't play (${missing.join(", ")}); run --prefetch again.`,
+    );
+  }
+  return new Music({ tracks, volume: music.volume });
+}
+
 /** Runs the hub's MCP server. */
 async function serve(): Promise<void> {
   const config = loadConfig(env);
@@ -68,7 +135,14 @@ async function serve(): Promise<void> {
     bridgeIp: config.bridge.ip,
     appKey: config.bridge.appKey,
   });
-  const hub = new Hub({ config, hue, codes, log: new AuditLog(logPath) });
+  const music = loadMusic(config);
+  const hub = new Hub({
+    config,
+    hue,
+    codes,
+    log: new AuditLog(logPath),
+    ...(music === undefined ? {} : { music }),
+  });
   const handle = createFetch(
     hub,
     new AddressLimiter(config.addressLimitPerMinute),
@@ -110,9 +184,15 @@ async function serve(): Promise<void> {
     );
   }
 
+  if (music !== undefined) {
+    console.log(
+      `Music: ${music.tracks.length} tracks ready, stopped until the host starts them with host_music.`,
+    );
+  }
+
   const stop = () => {
     void server.stop();
-    process.exit(0);
+    void (music?.stop() ?? Promise.resolve()).then(() => process.exit(0));
   };
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
@@ -122,6 +202,7 @@ const [command, argument] = process.argv.slice(2);
 try {
   if (command === "--generate") generate(argument);
   else if (command === "--zones") await zones();
+  else if (command === "--prefetch") await prefetchMusic();
   else if (command === undefined) await serve();
   else {
     console.error(usage);

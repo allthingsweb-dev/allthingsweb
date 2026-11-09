@@ -314,6 +314,14 @@ export class Policy {
     this.#codes.delete(id);
   }
 
+  /** Who holds the aux at `now`, and since when: one turn is one holder and start. */
+  holder(
+    now: number,
+  ): { readonly id: string; readonly since: number } | undefined {
+    this.#advance(now);
+    return this.#holder === undefined ? undefined : { ...this.#holder };
+  }
+
   /** What guest `id` sees at `now`: the holder, its place in line and its cooldown. */
   view(id: string, now: number): AuxView {
     this.#advance(now);

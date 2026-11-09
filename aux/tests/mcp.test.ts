@@ -3,8 +3,9 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { normalizeCode } from "../src/codes.ts";
 import { createFetch, type Hub, maxRequestBodySize } from "../src/mcp.ts";
+import { Music } from "../src/music.ts";
 import { AddressLimiter } from "../src/policy.ts";
-import { testEnv, testHub } from "./support.ts";
+import { fakeSpawn, settle, testEnv, testHub, track } from "./support.ts";
 
 const directory = mkdtempSync(join(import.meta.dir, ".tmp-mcp-"));
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -602,5 +603,166 @@ describe("audit log", () => {
       { tool: "host_freeze", caller: "host", outcome: "ok" },
     ]);
     expect(entries[0]?.["code_id"]).toMatch(/^[0-9a-f]{12}$/);
+  });
+});
+
+describe("music tools", () => {
+  /** A hub with a three-track set and a fake player. */
+  function musicHub() {
+    const { spawn, started } = fakeSpawn();
+    const music = new Music({
+      tracks: ["a", "b", "c"].map(track),
+      volume: 0.5,
+      spawn,
+      onError: () => {},
+    });
+    return { ...testHub({ music }), music, started };
+  }
+  const musicTools = ["list_tracks", "queue_track", "skip_track"];
+
+  test("are listed only when the hub has music, and host_music to the host alone", async () => {
+    expect(await listed(testHub().hub)).toEqual(guestTools);
+    const { hub } = musicHub();
+    expect(await listed(hub)).toEqual([...guestTools, ...musicTools]);
+    expect(await listed(hub, hostToken)).toEqual([
+      ...guestTools,
+      ...musicTools,
+      "host_music",
+      ...hostTools,
+    ]);
+  });
+
+  test("list_tracks gives the set; queue_track queues within the limits", async () => {
+    const { hub, guestCodes } = musicHub();
+    const { call } = client(hub);
+    const [a = "", b = ""] = guestCodes;
+    expect(await call("list_tracks", {}, a)).toEqual({
+      isError: false,
+      data: {
+        tracks: ["a", "b", "c"].map((slug) => ({
+          slug,
+          title: `Title of ${slug}`,
+          duration_seconds: 200,
+        })),
+      },
+    });
+    expect(await call("list_tracks", {})).toMatchObject({
+      isError: true,
+      data: { code: "unauthorized" },
+    });
+    // Guests start frozen.
+    expect(await call("queue_track", { slug: "a" }, a)).toMatchObject({
+      isError: true,
+      data: { code: "frozen" },
+    });
+    hub.policy.freeze(false);
+    expect(await call("queue_track", { slug: " B " }, a)).toEqual({
+      isError: false,
+      data: { queued: "b", title: "Title of b", position: 1 },
+    });
+    expect(await call("queue_track", { slug: "c" }, a)).toEqual({
+      isError: true,
+      data: {
+        code: "already_queued",
+        message: "You have a track waiting; queue another once it plays.",
+      },
+    });
+    expect(await call("queue_track", { slug: "nope" }, b)).toMatchObject({
+      isError: true,
+      data: { code: "unknown_track" },
+    });
+    expect(await call("aux_status", {}, b)).toMatchObject({
+      data: { now_playing: null, up_next: ["b"] },
+    });
+  });
+
+  test("skip_track: the holder once a turn, the host any time", async () => {
+    const { hub, guestCodes, started, clock } = musicHub();
+    const { call } = client(hub);
+    const [a = "", b = ""] = guestCodes;
+    hub.policy.freeze(false);
+    expect(await call("host_music", { on: true }, hostToken)).toEqual({
+      isError: false,
+      data: { playing: true },
+    });
+    await settle();
+    expect(await call("aux_status", {}, b)).toMatchObject({
+      data: { now_playing: { slug: "a", title: "Title of a" } },
+    });
+    expect(await call("skip_track", {}, a)).toMatchObject({
+      isError: true,
+      data: { code: "not_holder" },
+    });
+    await call("request_aux", {}, a);
+    expect(await call("skip_track", {}, a)).toEqual({
+      isError: false,
+      data: { skipped: "a" },
+    });
+    await settle();
+    expect(await call("skip_track", {}, a)).toMatchObject({
+      isError: true,
+      data: { code: "skip_used" },
+    });
+    expect(await call("skip_track", {}, hostToken)).toEqual({
+      isError: false,
+      data: { skipped: "b" },
+    });
+    await settle();
+    // The next turn gets its own skip.
+    await call("request_aux", {}, b);
+    clock.now += 5 * 60_000;
+    expect(await call("skip_track", {}, b)).toEqual({
+      isError: false,
+      data: { skipped: "c" },
+    });
+    await settle();
+    expect(started.map((run) => run.file)).toEqual([
+      "/music/a.mp3",
+      "/music/b.mp3",
+      "/music/c.mp3",
+      "/music/a.mp3",
+    ]);
+    expect(await call("host_music", { on: false }, hostToken)).toEqual({
+      isError: false,
+      data: { playing: false },
+    });
+    expect(await call("skip_track", {}, hostToken)).toMatchObject({
+      isError: true,
+      data: { code: "nothing_playing" },
+    });
+  });
+
+  test("passing the aux and taking it back doesn't earn another skip", async () => {
+    const { hub, guestCodes, clock } = musicHub();
+    const { call } = client(hub);
+    const [a = ""] = guestCodes;
+    hub.policy.freeze(false);
+    await call("host_music", { on: true }, hostToken);
+    await settle();
+    await call("request_aux", {}, a);
+    expect(await call("skip_track", {}, a)).toMatchObject({ isError: false });
+    await settle();
+    await call("pass_aux", {}, a);
+    await call("request_aux", {}, a);
+    expect(await call("skip_track", {}, a)).toMatchObject({
+      isError: true,
+      data: { code: "skip_used" },
+    });
+    clock.now += 5 * 60_000;
+    await call("request_aux", {}, a);
+    expect(await call("skip_track", {}, a)).toMatchObject({ isError: false });
+    await call("host_music", { on: false }, hostToken);
+  });
+
+  test("revoking a code drops its waiting track", async () => {
+    const { hub, guestCodes, music } = musicHub();
+    const { call } = client(hub);
+    hub.policy.freeze(false);
+    await call("queue_track", { slug: "a" }, guestCodes[0]);
+    expect(music.upNext).toEqual(["a"]);
+    const caller = hub.identify(`Bearer ${guestCodes[0] ?? ""}`);
+    if (caller.kind !== "guest") throw new Error("expected a guest code");
+    await call("host_revoke_code", { code_hash_prefix: caller.id }, hostToken);
+    expect(music.upNext).toEqual([]);
   });
 });

@@ -9,6 +9,8 @@ aux.codes.json
 # Its uniquely named temporary writes and its lock file (src/codes.ts).
 aux.codes.json.*.tmp
 aux.codes.json.lock
+# The prefetched music and its manifest (src/catalog.ts).
+aux.music/
 *.jsonl
 
 # The tests' scratch directories, removed when they finish

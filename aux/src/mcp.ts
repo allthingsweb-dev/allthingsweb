@@ -10,7 +10,13 @@ import type { CodeBook } from "./codes.ts";
 import type { Config } from "./config.ts";
 import type { Hue } from "./hue.ts";
 import type { AuditLog } from "./log.ts";
-import { type AddressLimiter, type LightColor, Policy } from "./policy.ts";
+import type { Music } from "./music.ts";
+import {
+  type AddressLimiter,
+  type LightColor,
+  limits,
+  Policy,
+} from "./policy.ts";
 
 /**
  * The hub's MCP server at `/mcp`: stateless JSON-RPC over HTTP, as the
@@ -37,7 +43,13 @@ export type ErrorCode =
   | "unauthorized"
   | "bridge_unavailable"
   | "unknown_code"
-  | "ambiguous_prefix";
+  | "ambiguous_prefix"
+  | "unknown_track"
+  | "queue_full"
+  | "already_queued"
+  | "night_limit"
+  | "skip_used"
+  | "nothing_playing";
 
 export type Caller =
   | { readonly kind: "guest"; readonly id: string }
@@ -70,6 +82,13 @@ const messages = {
   frozen: "The host has paused guest control for now.",
   not_holder: "Only the guest holding the aux can pass it.",
   bridge_unavailable: "The lights didn't answer. Try again in a moment.",
+  unknown_track: "That isn't a track in tonight's set; list_tracks has them.",
+  queue_full: "The queue is full (8 tracks). Try again once one plays.",
+  already_queued: "You have a track waiting; queue another once it plays.",
+  night_limit: "You've queued your 2 tracks for tonight.",
+  skip_used:
+    "You've skipped in the last 5 minutes; one skip per turn's length.",
+  nothing_playing: "Nothing is playing right now.",
 } as const;
 
 const rateLimited = (seconds: number): Outcome =>
@@ -95,6 +114,8 @@ export interface HubDeps {
   readonly codes: CodeBook;
   readonly log: AuditLog;
   readonly policy?: Policy;
+  /** Tonight's music; without it, the music tools stay out of tools/list. */
+  readonly music?: Music;
   readonly now?: () => number;
 }
 
@@ -102,6 +123,9 @@ export interface HubDeps {
 export class Hub {
   readonly config: Config;
   readonly policy: Policy;
+  readonly music: Music | undefined;
+  /** Each guest code's last skip, so a code skips once per turn's length however often it holds the aux. */
+  readonly #lastSkip = new Map<string, number>();
   readonly #hue: Pick<Hue, "setGroupedLight">;
   readonly #codes: CodeBook;
   readonly #log: AuditLog;
@@ -110,8 +134,17 @@ export class Hub {
   readonly #started: number;
   #bridge: { lastOkAt?: string; lastErrorAt?: string; lastError?: string } = {};
 
-  constructor({ config, hue, codes, log, policy, now = Date.now }: HubDeps) {
+  constructor({
+    config,
+    hue,
+    codes,
+    log,
+    policy,
+    music,
+    now = Date.now,
+  }: HubDeps) {
     this.config = config;
+    this.music = music;
     this.policy = policy ?? new Policy({ frozen: config.startFrozen });
     this.#hue = hue;
     this.#codes = codes;
@@ -251,7 +284,7 @@ export class Hub {
         "aux_status",
         caller,
         ok({
-          now_playing: null,
+          ...this.#playing(),
           holder: host.holder === null ? null : "someone",
           queue_position: null,
           queue_length: host.line.length,
@@ -284,7 +317,7 @@ export class Hub {
       "aux_status",
       caller,
       ok({
-        now_playing: null,
+        ...this.#playing(),
         holder: view.holder,
         queue_position: view.position,
         queue_length: view.waiting,
@@ -296,6 +329,18 @@ export class Hub {
         zones,
       }),
     );
+  }
+
+  /** now_playing (null without music or between tracks) and, with music, up_next's slugs. */
+  #playing(): Record<string, unknown> {
+    const music = this.music;
+    if (music === undefined) return { now_playing: null };
+    const playing = music.nowPlaying;
+    return {
+      now_playing:
+        playing === null ? null : { slug: playing.slug, title: playing.title },
+      up_next: music.upNext,
+    };
   }
 
   /** set_scene and host_set_scene: fades the scene's zones, within the caller's limits. */
@@ -539,11 +584,137 @@ export class Hub {
       );
     }
     this.policy.revoke(result.id, this.#now());
+    this.music?.dropQueuedBy(result.id);
     return this.#record(
       "host_revoke_code",
       { kind: "host" },
       ok({ revoked_code_id: result.id }),
       { revoked_code_id: result.id },
+    );
+  }
+
+  /** list_tracks: tonight's set, in play order. */
+  listTracks(caller: Caller): Outcome {
+    if (caller.kind === "anonymous") {
+      return this.#record(
+        "list_tracks",
+        caller,
+        refuse("unauthorized", messages.unauthorized),
+      );
+    }
+    return this.#record(
+      "list_tracks",
+      caller,
+      ok({
+        tracks: (this.music?.tracks ?? []).map((track) => ({
+          slug: track.slug,
+          title: track.title,
+          duration_seconds: track.durationSeconds,
+        })),
+      }),
+    );
+  }
+
+  /** queue_track: queues a track from the set, within the caller's limits. */
+  queueTrack(caller: Caller, input: string): Outcome {
+    const tool = "queue_track";
+    if (caller.kind === "anonymous") {
+      return this.#record(
+        tool,
+        caller,
+        refuse("unauthorized", messages.unauthorized),
+      );
+    }
+    if (caller.kind === "guest" && this.policy.frozen) {
+      return this.#record(tool, caller, refuse("frozen", messages.frozen));
+    }
+    const music = this.music;
+    if (music === undefined) {
+      return this.#record(
+        tool,
+        caller,
+        refuse("unknown_track", messages.unknown_track),
+      );
+    }
+    const result = music.enqueue(
+      input.trim().toLowerCase(),
+      caller.kind === "guest" ? caller.id : undefined,
+    );
+    if ("code" in result) {
+      return this.#record(
+        tool,
+        caller,
+        refuse(result.code, messages[result.code]),
+      );
+    }
+    return this.#record(
+      tool,
+      caller,
+      ok({
+        queued: result.track.slug,
+        title: result.track.title,
+        position: result.position,
+      }),
+      { track: result.track.slug },
+    );
+  }
+
+  /** skip_track: the aux holder skips once per turn's length, by code; the host any time. */
+  skipTrack(caller: Caller): Outcome {
+    const tool = "skip_track";
+    if (caller.kind === "anonymous") {
+      return this.#record(
+        tool,
+        caller,
+        refuse("unauthorized", messages.unauthorized),
+      );
+    }
+    if (caller.kind === "guest" && this.policy.frozen) {
+      return this.#record(tool, caller, refuse("frozen", messages.frozen));
+    }
+    const now = this.#now();
+    if (caller.kind === "guest") {
+      const holder = this.policy.holder(now);
+      if (holder?.id !== caller.id) {
+        return this.#record(
+          tool,
+          caller,
+          refuse("not_holder", "Only the guest holding the aux can skip."),
+        );
+      }
+      const last = this.#lastSkip.get(caller.id);
+      if (last !== undefined && now - last < limits.turnMs) {
+        return this.#record(
+          tool,
+          caller,
+          refuse("skip_used", messages.skip_used),
+        );
+      }
+    }
+    const skipped = this.music?.skip();
+    if (skipped === undefined) {
+      return this.#record(
+        tool,
+        caller,
+        refuse("nothing_playing", messages.nothing_playing),
+      );
+    }
+    if (caller.kind === "guest") this.#lastSkip.set(caller.id, now);
+    return this.#record(tool, caller, ok({ skipped }), { track: skipped });
+  }
+
+  /** host_music: starts the music, or stops it after the current track is cut. */
+  async setMusic(on: boolean): Promise<Outcome> {
+    const music = this.music;
+    if (music !== undefined) {
+      if (on) music.start();
+      else await music.stop();
+    }
+    return this.#record(
+      "host_music",
+      { kind: "host" },
+      ok({ playing: on && music !== undefined }),
+      { on },
     );
   }
 
@@ -559,6 +730,15 @@ export class Hub {
         last_error_at: this.#bridge.lastErrorAt ?? null,
         last_error: this.#bridge.lastError ?? null,
       },
+      ...(this.music === undefined
+        ? {}
+        : {
+            music: {
+              tracks: this.music.tracks.length,
+              now_playing: this.music.nowPlaying?.slug ?? null,
+              queued: this.music.upNext.length,
+            },
+          }),
     };
   }
 }
@@ -676,7 +856,67 @@ export function buildServer(hub: Hub, caller: Caller): McpServer {
     () => toResult(hub.passAux(caller)),
   );
 
+  if (hub.music !== undefined) {
+    server.registerTool(
+      "list_tracks",
+      {
+        title: "List tracks",
+        description:
+          "Tonight's curated set, in play order: each track's slug, title and length. With nothing queued, the set plays in this order.",
+        inputSchema: z.object({}),
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      () => toResult(hub.listTracks(caller)),
+    );
+    server.registerTool(
+      "queue_track",
+      {
+        title: "Queue a track",
+        description:
+          "Queue a track from the set by its slug (from list_tracks). One waiting per code and two a night; the queue holds 8.",
+        inputSchema: z.object({
+          slug: z
+            .string()
+            .min(1)
+            .max(100)
+            .describe("A track slug from list_tracks."),
+        }),
+        annotations: guestTool,
+      },
+      ({ slug }) => toResult(hub.queueTrack(caller, slug)),
+    );
+    server.registerTool(
+      "skip_track",
+      {
+        title: "Skip the track",
+        description:
+          "Skip the track playing now. Only the guest holding the aux, once every 5 minutes per code.",
+        inputSchema: z.object({}),
+        annotations: guestTool,
+      },
+      () => toResult(hub.skipTrack(caller)),
+    );
+  }
+
   if (caller.kind === "host") {
+    if (hub.music !== undefined) {
+      server.registerTool(
+        "host_music",
+        {
+          title: "Start or stop the music",
+          description:
+            "on: true starts the set; on: false cuts the current track and stops.",
+          inputSchema: z.object({ on: z.boolean() }),
+          annotations: { ...guestTool, idempotentHint: true },
+        },
+        async ({ on }) => toResult(await hub.setMusic(on)),
+      );
+    }
     server.registerTool(
       "host_freeze",
       {
