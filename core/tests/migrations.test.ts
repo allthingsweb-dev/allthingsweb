@@ -17,12 +17,10 @@ import {
   migratedDatabase,
   sqlLayer,
 } from "./support/database.ts";
-import { drizzleDatabase } from "./support/drizzle.ts";
 
 /**
  * core/migrations against what they must reproduce: production's catalog
- * (tests/fixtures/production-schema.txt), and the app's drizzle history with
- * the changes production received by hand. Then the migrator's behavior:
+ * (tests/fixtures/production-schema.txt). Then the migrator's behavior:
  * runs, reruns, later migrations, and stamping a database built without it.
  */
 
@@ -60,7 +58,7 @@ function failureOf(exit: Exit.Exit<unknown, unknown>): unknown {
 const messages = (error: unknown): string =>
   error instanceof Error ? `${error.message}\n${messages(error.cause)}` : "";
 
-/** A database with `sql` applied directly, as drizzle built production. */
+/** A database with `sql` applied directly, as production was built before the migrator. */
 async function provisioned(sql: ReadonlyArray<string>): Promise<PGlite> {
   const db = keep(await PGlite.create());
   for (const statement of sql) await db.exec(statement);
@@ -204,78 +202,7 @@ describe("core/migrations", () => {
   });
 });
 
-/**
- * Where replaying app/migrations differs from production, each with the
- * reason: changes applied to production by hand that no drizzle migration
- * records. Lines are as the snapshot prints them, `baseline` for core's
- * migrations (production) and `drizzle` for the replay.
- */
-const handApplied: ReadonlyArray<{
-  readonly reason: string;
-  readonly baseline: ReadonlyArray<string>;
-  readonly drizzle: ReadonlyArray<string>;
-}> = [
-  {
-    reason:
-      "images.width and images.height were added on production after updated_at; 0000 creates them before created_at.",
-    baseline: [
-      "column public.images #005 created_at timestamp with time zone not null default now()",
-      "column public.images #006 updated_at timestamp with time zone not null",
-      "column public.images #007 width integer not null",
-      "column public.images #008 height integer not null",
-    ],
-    drizzle: [
-      "column public.images #005 width integer not null",
-      "column public.images #006 height integer not null",
-      "column public.images #007 created_at timestamp with time zone not null default now()",
-      "column public.images #008 updated_at timestamp with time zone not null",
-    ],
-  },
-  {
-    reason:
-      "Production's redirects key is named redirects_slug_unique; 0000 names it redirects_pkey.",
-    baseline: [
-      "constraint public.redirects redirects_slug_unique PRIMARY KEY (slug)",
-      "index public.redirects CREATE UNIQUE INDEX redirects_slug_unique ON public.redirects USING btree (slug)",
-    ],
-    drizzle: [
-      "constraint public.redirects redirects_pkey PRIMARY KEY (slug)",
-      "index public.redirects CREATE UNIQUE INDEX redirects_pkey ON public.redirects USING btree (slug)",
-    ],
-  },
-  {
-    reason:
-      "Production sets REPLICA IDENTITY FULL on events and images; no migration does.",
-    baseline: [
-      "relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=f options=",
-      "relation public.images kind=r persistence=p rls=f force_rls=f replica_identity=f options=",
-    ],
-    drizzle: [
-      "relation public.events kind=r persistence=p rls=f force_rls=f replica_identity=d options=",
-      "relation public.images kind=r persistence=p rls=f force_rls=f replica_identity=d options=",
-    ],
-  },
-];
-
-describe("against the app's drizzle history", () => {
-  test("they differ only where production was changed by hand", async () => {
-    const drizzle = await snapshotOf(keep(await drizzleDatabase()));
-    const difference = SchemaSnapshot.diff(fromMigrations, drizzle);
-    // Compared as text so a failure reads as a diff.
-    expect(SchemaSnapshot.format(difference)).toBe(
-      SchemaSnapshot.format({
-        missing: handApplied
-          .flatMap((entry) => entry.baseline)
-          .toSorted(
-            (a, b) => fromMigrations.indexOf(a) - fromMigrations.indexOf(b),
-          ),
-        unexpected: handApplied
-          .flatMap((entry) => entry.drizzle)
-          .toSorted((a, b) => drizzle.indexOf(a) - drizzle.indexOf(b)),
-      }),
-    );
-  });
-
+describe("the schema snapshot", () => {
   /**
    * Breaking the baseline must break the comparison: each mutation, applied
    * to the baseline's text, shows up as exactly the lines it changes.
@@ -421,7 +348,7 @@ describe("the migrator", () => {
   });
 
   test("refuses a Neon Auth table other than the one it expects, recording nothing", async () => {
-    // users_sync as app/migrations 0010 records it, not as Neon makes it.
+    // users_sync as the app's drizzle migration 0010 recorded it, not as Neon makes it.
     const db = await provisioned([
       `CREATE SCHEMA "neon_auth"`,
       `CREATE TABLE "neon_auth"."users_sync" ("raw_json" jsonb NOT NULL, "id" text PRIMARY KEY NOT NULL, "name" text, "email" text, "created_at" timestamp with time zone, "deleted_at" timestamp with time zone, "updated_at" timestamp with time zone)`,
@@ -492,9 +419,18 @@ describe("the migrator", () => {
   });
 
   test("refuses to stamp a database whose schema differs, recording nothing", async () => {
-    const db = keep(await drizzleDatabase());
+    // The baseline, built without the migrator, with its redirects key named
+    // as the old app's drizzle migrations named it.
+    const db = await provisioned(
+      baseline.map((statement) =>
+        statement.replace(
+          `CONSTRAINT "redirects_slug_unique" PRIMARY KEY`,
+          `CONSTRAINT "redirects_pkey" PRIMARY KEY`,
+        ),
+      ),
+    );
     const failure = failureOf(
-      await runExit(db, Migrations.stamp(fromMigrations)),
+      await runExit(db, Migrations.stamp(fromBaseline, baselineOnly)),
     );
     expect(failure).toBeInstanceOf(Migrations.SchemaMismatch);
     expect(String(failure)).toContain(

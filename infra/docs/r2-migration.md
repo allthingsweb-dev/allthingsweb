@@ -187,7 +187,7 @@ The source bucket stays intact, so any object can be re-copied at any time.
 
 ## Later: the full cutover
 
-Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to allthings.dev. Step 4 is not scheduled; Erik calls it. allthingsweb.dev's DNS stays at name.com, pointing at Vercel, until then. Each step is its own PR, in this order:
+Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to allthings.dev. Step 4 is under way: since November 10, 2026 (22:29 UTC) the redirect is Cloudflare's, so the app serves nothing; deleting `app/` and retiring the Vercel project are what is left. Each step is its own PR, in this order:
 
 1. **The sync moves to the sync Worker.** The handover in [`infra/README.md`](../README.md#the-luma-sync) ("The handover"), one PR per step, so the two never write in the same hour: It needs no zone: the Sync Worker runs in the allthings account while allthings.dev is still pending, so the handover can finish before the domain moves.
    1. `schedule: "hourly"` with `mode: "dry-run"` in `infra/src/sync.ts` (done), and deploy prod. Compare a few hours of the Worker's logged work with the Vercel cron's writes.
@@ -230,10 +230,10 @@ Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to all
    - **What it leaves.** `/_next/image` doesn't redirect, though the middleware matches it and `cutoverRedirect` would send a media-origin photo to its URL: on Vercel the image optimizer answers it before the middleware runs. Checked Nov 2 and 3: a media-origin photo there answers `200 image/png` from `server: Vercel` (`x-vercel-cache: MISS`, then `STALE`), with no `location`. It reads the photo from media.allthings.dev and touches no database. Step 4 ends it, along with Vercel. The app has no cron, deploy hook or webhook left, and its only database writer, `/api/cron/luma-sync`, now redirects too.
    - **Undo.** Set the variable to `off` (or remove it) and redeploy, then give www.allthingsweb.dev back its redirect the same way: read it first (it must show `null`), PATCH `{"redirect":"allthingsweb.dev","redirectStatusCode":307}`, then read it again and check that www answers 307 to the apex. Browsers that cached a redirect follow it for at most an hour.
 4. **Vercel retires.** allthingsweb.dev's redirects then need a home off Vercel:
-   - Add allthingsweb.dev as a zone in the allthings account and point name.com's nameservers at it. This is the only DNS change, and it waits until this step.
-   - Add allthingsweb.dev and www.allthingsweb.dev to the site's `redirects` in `siteDomain` (`infra/src/web.ts`). They become 301s to allthings.dev, with path and query kept, and the Worker's legacy handling does the rest.
+   - Done Nov 10: allthingsweb.dev is a Cloudflare zone, and a redirect rule there, managed in esthor/domains (`infra/alchemy/redirects.json`), sends allthingsweb.dev and www.allthingsweb.dev to allthings.dev, 301 with path and query kept (308 for other methods). The Worker's legacy handling does the rest, so where the app redirected in one hop (a long slug, `/speakers`), it now takes two. Its mail (Google Workspace MX) is unchanged.
    - Delete the Vercel project and its env, then Stack Auth's project and the app's Sentry project.
-   - Delete `app/` and its workflow. The parity tests that hold core to the app's schemas go with it, and so does the one exception they allow: the contract's event-page description already names allthings.dev, where the app names allthingsweb.dev.
+   - Done: nothing outside `app/` runs it. The stack no longer writes the Vercel env, and the tests that held the Worker to the app's answers hold it to answers recorded from the app on Nov 10 (`web/tests/fixtures/legacy-app.json`, `core/tests/fixtures/legacy-rich-text.json`); the parity tests that ran the app's sync, ingestion and drizzle history are gone.
+   - Delete `app/` and its workflow, once Vercel no longer builds the repository: without `app/`, every commit's Vercel deployment fails.
 
 ## Open questions and assumptions
 

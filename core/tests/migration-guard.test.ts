@@ -50,7 +50,7 @@ describe("checkMigrations", () => {
         claims: [],
       }),
     ).toEqual([
-      "Production has applied 0011_event_description, where this pull request has 0011_planning: merge main, then renumber 0011_planning to 0012_planning (core/migrations/0011_planning.ts, its key in core/migrations/index.ts, and its drizzle twin in app/migrations).",
+      "Production has applied 0011_event_description, where this pull request has 0011_planning: merge main, then renumber 0011_planning to 0012_planning (core/migrations/0011_planning.ts and its key in core/migrations/index.ts).",
     ]);
   });
 
@@ -104,7 +104,7 @@ describe("checkMigrations", () => {
         claims: [{ pr: 153, ...m(11, "theirs") }],
       }),
     ).toEqual([
-      "0011_mine takes 0011, as #153's 0011_theirs does: renumber 0011_mine to 0012_mine (core/migrations/0011_mine.ts, its key in core/migrations/index.ts, and its drizzle twin in app/migrations), or agree that the other pull request moves instead.",
+      "0011_mine takes 0011, as #153's 0011_theirs does: renumber 0011_mine to 0012_mine (core/migrations/0011_mine.ts and its key in core/migrations/index.ts), or agree that the other pull request moves instead.",
     ]);
   });
 
@@ -117,7 +117,7 @@ describe("checkMigrations", () => {
         claims: [{ pr: 153, ...m(11, "x") }],
       }),
     ).toEqual([
-      "0011_a takes 0011, as #153's 0011_x does: renumber 0011_a to 0013_a (core/migrations/0011_a.ts, its key in core/migrations/index.ts, and its drizzle twin in app/migrations), or agree that the other pull request moves instead.",
+      "0011_a takes 0011, as #153's 0011_x does: renumber 0011_a to 0013_a (core/migrations/0011_a.ts and its key in core/migrations/index.ts), or agree that the other pull request moves instead.",
     ]);
   });
 

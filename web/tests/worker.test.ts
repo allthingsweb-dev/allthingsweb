@@ -21,10 +21,10 @@ import { bundleBudgets, hyperdriveTo, testStack } from "./support/stack.ts";
 
 /**
  * The Worker, bundled as it deploys and running in workerd, against the app
- * it replaced. Both read one database: the production schema (core's
- * migrations) with core's seed, in PGlite. The app reads it in process; the
- * Worker connects over TCP with @effect/sql-pg through its Hyperdrive
- * binding, as it deploys.
+ * it replaced. It reads the production schema (core's migrations) with
+ * core's seed, in PGlite, over TCP with @effect/sql-pg through its
+ * Hyperdrive binding, as it deploys. The app answered the same database;
+ * its answers are recorded (support/app.ts).
  *
  * The app is legacy and no longer the reference for the contract: it never
  * says whose an evening is (`curation`, `organizer`). The Worker's MCP
@@ -37,7 +37,7 @@ const origin = "https://allthingsweb.dev";
 const db = await seededDatabase();
 const postgres = new PGLiteSocketServer({ db, port: 0, maxConnections: 8 });
 await postgres.start();
-const app = await loadApp(db, { origin });
+const app = await loadApp(db);
 
 const Stack = testStack("allthings-web-test", {
   Web: {
@@ -106,8 +106,7 @@ const it = (name: string, run: (urls: Workers) => Promise<void>) =>
 
 /** The Worker's answer to a GET, next to the app's. */
 async function get(url: string, path: string): Promise<[Answer, Answer]> {
-  // The app first: it shares the database, and the two never query at once.
-  const expected = await answer(await app.v1(path));
+  const expected = app.v1(path);
   return [await answer(await fetch(new URL(path, url))), expected];
 }
 
@@ -117,8 +116,10 @@ async function mcp(
   message: unknown,
   headers?: Readonly<Record<string, string>>,
 ): Promise<[Answer, Answer]> {
-  const expected = await answer(
-    await app.mcp(mcpRequest(`${origin}/mcp`, message, headers)),
+  const expected = app.mcp(
+    "POST",
+    headers ?? mcpHeaders,
+    JSON.stringify(message),
   );
   return [
     await answer(await fetch(mcpRequest(`${url}/mcp`, message, headers))),
@@ -618,7 +619,11 @@ describe("MCP", () => {
           headers,
           ...(message === undefined ? {} : { body: JSON.stringify(message) }),
         });
-      const expected = await answer(await app.mcp(init(`${origin}/mcp`)));
+      const expected = app.mcp(
+        method,
+        headers,
+        message === undefined ? null : JSON.stringify(message),
+      );
       const actual = await answer(await fetch(init(`${Web}/mcp`)));
       expect(actual.status).toBe(expected.status);
       expect(actual.body).toBe(expected.body);

@@ -17,7 +17,6 @@ import {
   refreshFollowers,
   xHandleOf,
 } from "../src/followers.ts";
-import { byFollowers as appByFollowers } from "../../app/src/lib/speaker-directory.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 import { configFrom, fakeLumaBy, type Reply, settle } from "./support/luma.ts";
 
@@ -61,30 +60,6 @@ describe("byFollowers", () => {
         { name: "a", followers: null },
       ]),
     ).toEqual(["a", "b"]);
-  });
-});
-
-describe("the app's speaker order", () => {
-  test("is core's, until the app is retired", () => {
-    const people = [
-      { name: "eve", followers: null },
-      { name: "dan", followers: 10 },
-      { name: "cat", followers: 10 },
-      { name: "bob", followers: 0 },
-      { name: "ann", followers: null },
-      { name: "abe", followers: 5_000_000 },
-    ].toSorted((a, b) => a.name.localeCompare(b.name));
-    const core = people.toSorted(
-      byFollowers(
-        (p) => p.followers,
-        Order.mapInput(Order.String, (p: (typeof people)[number]) => p.name),
-      ),
-    );
-    // The app sorts its by-name list stably by followers alone.
-    const app = people.toSorted((a, b) =>
-      appByFollowers(a.followers, b.followers),
-    );
-    expect(app.map((p) => p.name)).toEqual(core.map((p) => p.name));
   });
 });
 

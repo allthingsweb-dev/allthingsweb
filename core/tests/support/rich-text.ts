@@ -2,18 +2,43 @@
  * Talk descriptions to sanitize, in the spirit of OWASP's XSS filter evasion
  * cheat sheet: what editors write, then every way markup has been used to
  * smuggle script past sanitizers. core's tests run them in Bun and web's in
- * workerd; both hold the output to the app's (sanitize-html), except for the
- * divergences below, and to {@link unsafeParts}.
+ * workerd; both hold the output to the retired app's (sanitize-html), except
+ * for the divergences below, and to {@link unsafeParts}.
  */
 
-const app = new URL("../../../app/", import.meta.url);
+/**
+ * What the app (app/src/lib/safe-html.ts and public-api/mappers.ts) answered
+ * for every input the tests use, recorded in fixtures/legacy-rich-text.json
+ * on 2026-11-10, ahead of the app's deletion: its sanitized HTML, and the plain text it read
+ * from that.
+ */
+const legacy = (await Bun.file(
+  new URL("../fixtures/legacy-rich-text.json", import.meta.url),
+).json()) as {
+  readonly sanitized: Readonly<Record<string, string>>;
+  readonly plainText: Readonly<Record<string, string>>;
+};
 
-const { sanitizeRichText: appSanitizeRichText } = (await import(
-  new URL("src/lib/safe-html.ts", app).href
-)) as { sanitizeRichText: (html: string) => string };
+const recorded = (
+  answers: Readonly<Record<string, string>>,
+  html: string,
+): string => {
+  const answer = answers[html];
+  if (answer === undefined) {
+    throw new Error(
+      `The app's answer for ${JSON.stringify(html)} wasn't recorded.`,
+    );
+  }
+  return answer;
+};
 
 /** The app's sanitized HTML for `html`. */
-export const appSanitize = (html: string): string => appSanitizeRichText(html);
+export const appSanitize = (html: string): string =>
+  recorded(legacy.sanitized, html);
+
+/** The plain text the app read from `html`, once sanitized. */
+export const appPlainText = (html: string): string =>
+  recorded(legacy.plainText, html);
 
 const script = "<script>alert(1)</script>";
 const img = "<img src=x onerror=alert(1)>";

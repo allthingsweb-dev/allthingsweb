@@ -12,23 +12,47 @@ import {
 import { serve } from "./support/socket.ts";
 import { testStack } from "./support/stack.ts";
 
-const app = new URL("../../app/", import.meta.url).pathname;
-
-/** The app's routes, as paths: app/src/app/about/page.tsx is "/about". */
-const appRoutes = Array.from(
-  new Bun.Glob("src/app/**/{page.tsx,route.ts,route.tsx,manifest.ts}").scanSync(
-    app,
-  ),
-  (file) =>
-    file === "src/app/manifest.ts"
-      ? "/manifest.webmanifest"
-      : `/${file.split("/").slice(2, -1).join("/")}`,
-).toSorted();
+/**
+ * The app's routes on 2026-11-10, as paths: app/src/app/about/page.tsx
+ * was "/about", and app/src/app/manifest.ts "/manifest.webmanifest".
+ */
+const appRoutes = [
+  "/",
+  "/2024-10-05-hackathon-at-sentry",
+  "/2024-12-03-all-things-web-at-convex",
+  "/2025-04-26-hackathon-at-sentry",
+  "/2025-06-02-nextdevfm-live",
+  "/2025-09-23-lightning-hackathon-at-sentry",
+  "/[slug]",
+  "/about",
+  "/api/cron/luma-sync",
+  "/api/sentry-example-api",
+  "/api/v1/[slug]/preview.png",
+  "/api/v1/[slug]/qr.png",
+  "/api/v1/[slug]/thumbnail.png",
+  "/api/v1/events",
+  "/api/v1/events/[id]",
+  "/api/v1/preview.png",
+  "/api/v1/qr.png",
+  "/api/v1/speakers",
+  "/api/v1/speakers.png",
+  "/code-of-conduct",
+  "/manifest.webmanifest",
+  "/mcp",
+  "/r/[id]",
+  "/robots.txt",
+  "/rss",
+  "/rss.xml",
+  "/sentry-example-page",
+  "/shared/[slug]",
+  "/sitemap.xml",
+  "/speakers",
+];
 
 /**
  * The admin's and the members' profile routes the old app served before it
  * dropped them, which a wildcard entry still covers: each must answer as its
- * entry says, though the app's tree no longer has them to find.
+ * entry says, though the app's tree no longer had them on 2026-11-10.
  */
 const retiredRoutes = [
   "/admin",
@@ -49,11 +73,56 @@ const retiredRoutes = [
   "/profile",
 ];
 
-/** The app's public files, as paths: app/public/favicon.ico is "/favicon.ico". */
-const publicFiles = Array.from(
-  new Bun.Glob("**/*").scanSync(`${app}public`),
-  (file) => `/${file}`,
-).toSorted();
+/**
+ * The app's public files on 2026-11-10, as paths: app/public/favicon.ico
+ * was "/favicon.ico".
+ */
+const publicFiles = [
+  "/android-chrome-192.png",
+  "/android-chrome-512.png",
+  "/apple-touch-icon.png",
+  "/brand/apple-touch-icon.png",
+  "/brand/avatar.png",
+  "/brand/avatar.svg",
+  "/brand/favicon.ico",
+  "/brand/favicon.svg",
+  "/brand/icon-16.png",
+  "/brand/icon-192.png",
+  "/brand/icon-32.png",
+  "/brand/icon-512.png",
+  "/brand/icon.svg",
+  "/brand/mark-night.svg",
+  "/brand/mark.svg",
+  "/brand/wordmark-animated.svg",
+  "/brand/wordmark-night-animated.svg",
+  "/brand/wordmark-night.svg",
+  "/brand/wordmark.svg",
+  "/favicon-16.png",
+  "/favicon-32.png",
+  "/favicon.ico",
+  "/hero-image-404.png",
+  "/hero-image-goodbye.png",
+  "/hero-image-hackathon.png",
+  "/hero-image-meetup.png",
+  "/hero-image-rocket.png",
+  "/logos/icon-circle-nobuffer.png",
+  "/logos/icon-circle-text.jpg",
+  "/logos/icon-circle-text.png",
+  "/logos/icon-circle-transparent-bigtext.png",
+  "/logos/icon-circle-transparent-nobuffer.png",
+  "/logos/icon-circle-transparent-text.png",
+  "/logos/icon-rectangle-nobuffer.png",
+  "/logos/icon-rectangle-text.png",
+  "/logos/icon-rectangle.png",
+  "/logos/logo-1.91x1.png",
+  "/logos/logo-2048x1152-yt.png",
+  "/logos/logo-2048x1152.png",
+  "/logos/logo-3.5x1.png",
+  "/logos/logo-3x1-nobuffer.png",
+  "/logos/logo-nobuffer.png",
+  "/logos/logo-transparent-nobuffer.png",
+  "/logos/logo_transparent.svg",
+];
 
 /** The type a public file is served as, by its extension. */
 const fileTypes: Readonly<Record<string, string>> = {

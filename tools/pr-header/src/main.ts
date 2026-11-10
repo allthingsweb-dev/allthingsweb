@@ -25,7 +25,7 @@ function required(name: string): string {
 /** The a/ mark from the brand kit, inlined for shields.io. */
 async function logo(): Promise<string | undefined> {
   const file = Bun.file(
-    join(import.meta.dir, "../../../app/public/brand/mark-night.svg"),
+    join(import.meta.dir, "../../../brand/public/mark-night.svg"),
   );
   if (!(await file.exists())) return undefined;
   return `data:image/svg+xml;base64,${Buffer.from(await file.bytes()).toString("base64")}`;

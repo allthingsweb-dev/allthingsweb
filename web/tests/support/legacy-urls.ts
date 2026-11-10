@@ -2,8 +2,8 @@ import { mediaOrigin } from "../../src/links.ts";
 import { longSlugs, redirects, slugs } from "./event-catalog.ts";
 
 /**
- * Every URL the current site (allthingsweb.dev, the Next app in app/)
- * answers, and what the Worker does with it after the cutover. Gathered
+ * Every URL the old site (allthingsweb.dev, the Next app in app/)
+ * answered, and what the Worker does with it since the cutover. Gathered
  * from the app's route tree (app/src/app/**), its public files
  * (app/public/**), its sitemap, robots.txt and feeds, the redirects table,
  * and the live site's sitemap and pages' head (2026-10-05). Nothing in the
@@ -12,7 +12,7 @@ import { longSlugs, redirects, slugs } from "./event-catalog.ts";
  * tests/legacy-urls.test.ts asks the Worker for each example, against the
  * event catalog (support/event-catalog.ts), and holds it to `worker`. It
  * also finds an entry for every route in the app's tree and every file in
- * app/public, so one the app adds without an entry here fails it.
+ * app/public, as they were on 2026-11-10.
  */
 
 /** What the Worker answers. */
