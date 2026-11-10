@@ -36,9 +36,11 @@ import {
  *
  * A title is the person's job title now, as of the day it was read, so
  * their page and its card say what they do today; their talks already say
- * when they spoke. Where no source gives a current one, it is their latest
- * known title (Erik, 2026-11-05, replacing "at the time of their evening"
- * from 2026-10-06).
+ * when they spoke. It is never a stale one (Erik, 2026-11-10, replacing
+ * "their latest known title" from 2026-11-05): "Role, Company" only when a
+ * public page from the last 12 months says so; just the company when only
+ * that is confirmed ("Moss"); otherwise their part at our evenings, as the
+ * site names it ("Speaker, at/ai").
  *
  * A bio is the person's own words, lightly trimmed or put in the third
  * person, or one an organizer asked for (`askedBy`): written in the
@@ -140,7 +142,7 @@ export const PeopleEntry = Schema.Struct({
     ),
   ),
   name: Schema.String.check(Schema.isNonEmpty()),
-  /** Their job title now, as of `read`, else their latest known one. */
+  /** Their job title now, as of `read`; never a stale one (see above). */
   title: Schema.optionalKey(fact(Text(120))),
   /** Their own words, lightly trimmed or put in the third person, or written as an organizer asked (`askedBy`). */
   bio: Schema.optionalKey(fact(Text(2000))),

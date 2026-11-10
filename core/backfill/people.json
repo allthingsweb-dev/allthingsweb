@@ -2452,9 +2452,20 @@
     "profileId": "0a9c5976-388a-4a5b-a01c-7b43c7f711ba",
     "name": "Oscar Newman",
     "bio": {
-      "value": "Oscar graduated from Brown in 2021 studying Computer Science and Machine Learning (officially), and Healthcare Policy (unofficially). Raised in Austin, Texas.",
+      "value": "Oscar Newman is an engineer who works on healthcare payments, as his X profile puts it, and studied computer science and machine learning at Brown. As an engineering lead at Solv Health he built consumer healthcare products and adopted Remix in production, and he spoke at Remix Conf 2023 on hybrid native apps powered by Remix. He co-hosted two at/remix bay area evenings at Solv in 2024.",
       "source": "https://oscarnewman.me/",
-      "read": "2026-10-06"
+      "read": "2026-11-10",
+      "was": "Oscar graduated from Brown in 2021 studying Computer Science and Machine Learning (officially), and Healthcare Policy (unofficially). Raised in Austin, Texas.",
+      "also": [
+        "https://x.com/__oscarnewman",
+        "https://allthings.dev/remix-bay-area-2024-05",
+        "https://allthings.dev/remix-bay-area"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     },
     "twitterHandle": {
       "value": "__oscarnewman",
@@ -2482,26 +2493,42 @@
       }
     ],
     "title": {
-      "value": "Engineering Lead at Solv",
-      "source": "https://web.archive.org/web/20240419092253/https://oscarnewman.me/",
-      "read": "2026-10-06"
+      "value": "Co-host, at/remix bay area",
+      "source": "https://allthings.dev/remix-bay-area-2024-05",
+      "read": "2026-11-10",
+      "was": "Engineering Lead at Solv",
+      "also": ["https://allthings.dev/remix-bay-area"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-10",
+        "said": "never show a stale title: if only the current company is confirmed, just the company; if nothing current is confirmed, their allthings role"
+      }
     }
   },
   {
     "profileId": "bf6c6fb4-6283-4ff3-b874-93ee8069d7e3",
     "name": "Neha Varshneya",
     "title": {
-      "value": "GTM Leader for Developer Tools, AI & Cybersecurity",
-      "source": "https://x.com/NehaVarshneya",
-      "read": "2026-11-05",
-      "was": "GTM Leader for Developer Tools & AI"
+      "value": "Moss",
+      "source": "https://www.moss.dev/blog/founding-agent-case-study",
+      "read": "2026-11-10",
+      "was": "GTM Leader for Developer Tools, AI & Cybersecurity",
+      "also": ["https://luma.com/mossfoundingagent"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-10",
+        "said": "never show a stale title: if only the current company is confirmed, just the company; if nothing current is confirmed, their allthings role"
+      }
     },
     "bio": {
-      "value": "Neha Varshneya is a go-to-market leader for developer tools, AI and cybersecurity companies, and calls herself the marketing exec “for when it’s all on fire, or nothing’s built yet.” She co-hosted Mastra’s TypeScript AI Demo Day, which allthings shared, and the at/typescript ai after-party.",
+      "value": "Neha Varshneya is a go-to-market leader for developer tools, AI and cybersecurity companies, and calls herself the marketing exec “for when it’s all on fire, or nothing’s built yet.” At Moss, which builds a retrieval layer for AI agents, she wrote the case study on Founding Agent, its AI agent for websites. She co-hosted Mastra’s TypeScript AI Demo Day, which allthings shared, and the at/typescript ai after-party.",
       "source": "https://x.com/NehaVarshneya",
-      "read": "2026-11-05",
-      "was": "Marketing exec for when it's all on fire, or nothing's built yet. GTM leader for developer tools, AI and cybersecurity, driving growth from 0 to 1.",
-      "also": ["https://allthings.dev/people/neha-varshneya"],
+      "read": "2026-11-10",
+      "was": "Neha Varshneya is a go-to-market leader for developer tools, AI and cybersecurity companies, and calls herself the marketing exec “for when it’s all on fire, or nothing’s built yet.” She co-hosted Mastra’s TypeScript AI Demo Day, which allthings shared, and the at/typescript ai after-party.",
+      "also": [
+        "https://www.moss.dev/blog/founding-agent-case-study",
+        "https://allthings.dev/people/neha-varshneya"
+      ],
       "askedBy": {
         "who": "Erik",
         "on": "2026-11-05",
@@ -4022,6 +4049,141 @@
         }
       ],
       "readOn": "2026-11-05"
+    }
+  },
+  {
+    "profileId": "d96f0e84-c3cf-452e-8d75-5b61695deebb",
+    "name": "Akshat Agrawal",
+    "title": {
+      "value": "Speaker, at/ai",
+      "source": "https://allthings.dev/ai",
+      "read": "2026-11-10",
+      "was": "Product + GTM @ Codeium",
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-10",
+        "said": "never show a stale title: if only the current company is confirmed, just the company; if nothing current is confirmed, their allthings role"
+      }
+    },
+    "bio": {
+      "value": "Akshat Agrawal spoke at at/ai in April 2025 on the agent-first bet that took Windsurf to 500,000 users in three months. At the time he led product and go-to-market at Codeium, the company behind Windsurf. Before that he was a senior product manager at Skyflow, and he spent more than four years at Google as a software engineer and product manager.",
+      "source": "https://luma.com/9dga4f43",
+      "read": "2026-11-10",
+      "was": "Akshat is the product and GTM lead at Codeium. He was previously a senior product manager at Skyflow, and before that, he spent over four years at Google as a software engineer and product manager.",
+      "also": ["https://allthings.dev/people/akshat-agrawal"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "991bc68e-1f30-48ac-8f5f-b5ecb4dfcc06",
+    "name": "Daniel Shin",
+    "title": {
+      "value": "Speaker, at/react bay area",
+      "source": "https://allthings.dev/react-bay-area-2024-09",
+      "read": "2026-11-10",
+      "was": "Staff Software Engineer at LinkedIn",
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-10",
+        "said": "never show a stale title: if only the current company is confirmed, just the company; if nothing current is confirmed, their allthings role"
+      }
+    },
+    "bio": {
+      "value": "Daniel Shin works on web accessibility, which his GitHub profile calls an accessibility practice for a human-centric web. At at/react bay area in September 2024, then a staff software engineer at LinkedIn, he spoke on accessibility as the bridge between a product's dream and its reality.",
+      "source": "https://github.com/deyshin",
+      "read": "2026-11-10",
+      "was": "​Daniel is a Staff Software Engineer at LinkedIn and is passionate about web accessibility.",
+      "also": ["https://luma.com/s9fudfm8"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "65d77e0d-8ea3-4f9a-9011-3e8a61e4032f",
+    "name": "Elizabeth Trykin",
+    "title": {
+      "value": "Speaker, at/web",
+      "source": "https://allthings.dev/web-2025-05",
+      "read": "2026-11-10",
+      "was": "DX @ Vapi",
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-10",
+        "said": "never show a stale title: if only the current company is confirmed, just the company; if nothing current is confirmed, their allthings role"
+      }
+    },
+    "bio": {
+      "value": "Elizabeth Trykin got into building things after making an app in high school to help nonverbal kids communicate. She went on to lead developer relations at Exa, build tools for biotech automation at Invert and work on developer experience at Vapi. At at/web, held at Vapi in May 2025, she co-hosted the evening and showed how she built an open-source Gemini Live with Vapi.",
+      "source": "https://luma.com/czqywp6f",
+      "read": "2026-11-10",
+      "was": "Elizabeth works on Developer Experience at Vapi. She got into building things after making an app in high school to help nonverbal kids communicate. Since then, she’s led DevRel at Exa and built tools for biotech automation at Invert. These days, she’s into great DX, writing, running, and hitting Solidcore in the Castro.",
+      "also": ["https://allthings.dev/people/elizabeth-trykin"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "0ac10c1a-3adc-4416-9639-649b6cbb4467",
+    "name": "Ram Senthamarai",
+    "title": {
+      "value": "Speaker, at/ship ai",
+      "source": "https://allthings.dev/ship-ai",
+      "read": "2026-11-10",
+      "was": "Senior Machine Learning Engineer",
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-10",
+        "said": "never show a stale title: if only the current company is confirmed, just the company; if nothing current is confirmed, their allthings role"
+      }
+    },
+    "bio": {
+      "value": "Ram Senthamarai was a senior machine learning engineer at Sentry when he spoke at at/ship ai in October 2025, on context engineering: how Sentry grounds Seer, its AI debugger, in reality. He also co-wrote a post on the Sentry blog about anomaly detection in time series with Matrix Profile and Prophet.",
+      "source": "https://luma.com/glgtoqlb",
+      "read": "2026-11-10",
+      "was": "Ram Senthamarai is a Senior Machine Learning Engineer at Sentry, specializing in context engineering and grounding AI systems in reality. He works on innovative ML solutions for developer tools and debugging platforms.",
+      "also": ["https://blog.sentry.io/authors/ram-senthamarai/"],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
+    }
+  },
+  {
+    "profileId": "ee88e1a3-3cd4-4280-b7ee-36f8d7632e6b",
+    "name": "Sean Strong",
+    "title": {
+      "value": "Product, Anthropic",
+      "source": "https://x.com/sean_t_strong",
+      "read": "2026-11-10",
+      "was": "Partnerships @ Anthropic"
+    },
+    "bio": {
+      "value": "Sean Strong works on product at Anthropic, where the first product he worked on was Imagine with Claude, a preview launched with Claude Sonnet 4.5 in September 2025 that builds interfaces on the fly with the model as their backend. He joined Anthropic in November 2024 to head strategic partnerships with startups, after starting out as a software engineer at Apple, founding two startups and investing at Pear VC. At at/ai he co-hosted the evening and spoke on how to build AI agents.",
+      "source": "https://x.com/sean_t_strong",
+      "read": "2026-11-10",
+      "was": "Sean is the head of technical partnerships at Anthropic. Sean started his career as a software engineer at Apple and then moved on to found two startups. He also previously worked as an investor for Pear VC.",
+      "also": [
+        "https://x.com/sean_t_strong/status/1972708794745626678",
+        "https://x.com/sean_t_strong/status/1860010211584671989",
+        "https://luma.com/9dga4f43",
+        "https://allthings.dev/people/sean-strong"
+      ],
+      "askedBy": {
+        "who": "Erik",
+        "on": "2026-11-05",
+        "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
+      }
     }
   }
 ]
