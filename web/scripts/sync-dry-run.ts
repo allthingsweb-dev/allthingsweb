@@ -17,6 +17,7 @@ import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
 import { CommunitySources } from "allthings-core/src/community-metrics.ts";
+import { LumaVenueVisibility } from "allthings-core/src/luma/venue-visibility.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
@@ -26,16 +27,18 @@ import { runSync, syncLimits } from "../src/sync/run.ts";
  * The sync Worker's dry run (src/sync/run.ts), from a maintainer's machine:
  * the same program the Cron Trigger runs in "dry-run" mode, against the
  * database at DATABASE_URL and Luma itself. It writes nothing. The event
- * sync is rehearsed in a transaction that rolls back, the venue fill lists
- * the venues it would write, the short links it would give are listed, the
+ * sync is rehearsed in a transaction that rolls back, the venue visibility
+ * lists which evenings ahead it would mark as keeping their venue to
+ * guests, the venue fill lists the venues it would write, the short links
+ * it would give are listed, the
  * image phases list what they would fetch, so the bucket and the Images
  * binding are never touched (here they refuse), and the description import
  * lists what it would change. It prints a JSON line per step, as the Worker
  * logs them.
  *
  * Run it from web/ as site_sync, the role the Worker writes as, so it also
- * proves the role's grants. LUMA_API_KEY lets it ask for hidden venues and
- * descriptions, and
+ * proves the role's grants. LUMA_API_KEY lets it ask for hidden venues,
+ * who may see them, and descriptions, and
  * list the covers it would look up. Pass both without printing them:
  *
  *   DATABASE_URL=$(op read "op://allthings/allthings site_sync/credential") \
@@ -77,6 +80,7 @@ const report = await Effect.runPromise(
         // The community's numbers, read but not written (X never read).
         CommunitySources.live,
         LumaSync.layer,
+        LumaVenueVisibility.layer,
         LumaVenues.layer,
         LumaDrafts.layer,
         ShortSlugs.layer,

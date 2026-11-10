@@ -26,8 +26,9 @@ import { Writer } from "./reader.ts";
  *   the sync's one writer. Back to "dry-run" before the app's cron returns.
  * - `plan`: the account's Workers plan. "paid" (the allthings account is on
  *   Workers Paid) runs with the app's own limits. "free" would keep each run
- *   within the Free plan's 50 subrequests (two venues, two descriptions and
- *   two images of each kind per run, the rest in later runs), though its 10 ms of CPU per run is likely too
+ *   within the Free plan's 50 subrequests (two venue visibilities, two
+ *   venues, two descriptions and two images of each kind per run, the rest
+ *   in later runs), though its 10 ms of CPU per run is likely too
  *   little for the calendar and image conversions. See infra/README.md.
  */
 export const SYNC = {

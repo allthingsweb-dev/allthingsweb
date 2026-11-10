@@ -17,6 +17,7 @@ import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
+import { LumaVenueVisibility } from "allthings-core/src/luma/venue-visibility.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   clockAt,
@@ -202,6 +203,7 @@ async function run(
   const logged: Array<Record<string, unknown>> = [];
   const layer = Layer.mergeAll(
     LumaSync.layer,
+    LumaVenueVisibility.layer,
     LumaVenues.layer,
     LumaDrafts.layer,
     ShortSlugs.layer,
@@ -285,7 +287,7 @@ const unplaced = `SELECT count(*) AS n FROM events
     AND COALESCE(full_address, street_address) IS NULL`;
 
 describe("a sync run that writes", () => {
-  test("syncs events, fills in the venues the calendar hides, refreshes its drafts and gives short links, stores photos, post images and covers, then imports descriptions, logging each step", async () => {
+  test("syncs events, marks the evenings ahead that keep their venue to guests, fills in the venues the calendar hides, refreshes its drafts and gives short links, stores photos, post images and covers, then imports descriptions, logging each step", async () => {
     const { db, report, logged, bucket, before } = await run(
       "write",
       syncLimits.paid,
@@ -295,6 +297,7 @@ describe("a sync run that writes", () => {
       expect(await snapshot(db)).not.toEqual(before);
       expect(Object.keys(report.steps)).toEqual([
         "events",
+        "venue-visibility",
         "venues",
         "drafts",
         "slugs",
@@ -342,6 +345,38 @@ describe("a sync run that writes", () => {
         ]),
       });
       expect(await count(db, unplaced)).toBe(0);
+      // Luma shows every venue to guests only here: each published evening
+      // not over with a Luma page is marked, whatever venue it has, and
+      // none other.
+      const ahead = await count(
+        db,
+        `SELECT count(*) AS n FROM events WHERE is_draft = false
+          AND luma_event_id IS NOT NULL AND end_date >= '2026-10-05T12:00:00Z'`,
+      );
+      expect(ahead).toBeGreaterThan(0);
+      expect(report.steps["venue-visibility"]).toMatchObject({
+        status: "done",
+        asked: ahead,
+        written: ahead,
+        unavailable: [],
+        changed: expect.arrayContaining([
+          { slug: "secret-venue-night", guestsOnly: true },
+        ]),
+      });
+      expect(
+        await count(
+          db,
+          `SELECT count(*) AS n FROM events WHERE venue_guests_only
+            AND NOT (is_draft = false AND luma_event_id IS NOT NULL
+              AND end_date >= '2026-10-05T12:00:00Z')`,
+        ),
+      ).toBe(0);
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE venue_guests_only",
+        ),
+      ).toBe(ahead);
       const described = await count(
         db,
         "SELECT count(*) AS n FROM events WHERE is_draft = false AND luma_event_id IS NOT NULL",
@@ -397,6 +432,7 @@ describe("a sync run that writes", () => {
       expect(logged.map((entry) => entry["step"])).toEqual([
         "start",
         "events",
+        "venue-visibility",
         "venues",
         "drafts",
         "slugs",
@@ -421,6 +457,10 @@ describe("a sync run that writes", () => {
     const { db, report, bucket } = await run("write", syncLimits.free);
     try {
       expect(report.ok).toBe(true);
+      expect(report.steps["venue-visibility"]).toMatchObject({
+        asked: 2,
+        written: 2,
+      });
       expect(report.steps["venues"]).toMatchObject({ asked: 2, written: 2 });
       expect(report.steps["descriptions"]).toMatchObject({
         asked: 2,
@@ -590,6 +630,19 @@ describe("a dry run", () => {
         ]),
       });
       expect(await count(db, unplaced)).toBeGreaterThan(0);
+      expect(report.steps["venue-visibility"]).toMatchObject({
+        status: "done",
+        written: null,
+        changed: expect.arrayContaining([
+          { slug: "secret-venue-night", guestsOnly: true },
+        ]),
+      });
+      expect(
+        await count(
+          db,
+          "SELECT count(*) AS n FROM events WHERE venue_guests_only",
+        ),
+      ).toBe(0);
       expect(report.steps["descriptions"]).toMatchObject({
         status: "done",
         written: null,

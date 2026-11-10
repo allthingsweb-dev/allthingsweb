@@ -51,13 +51,14 @@ const Request = Schema.Struct({ now: Schema.DateTimeUtcFromDate });
 
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
-  const listing = sql.literal(listingJson);
 
   // As on home: ahead soonest first, over latest first.
   const findEvenings = SqlSchema.findOne({
     Request,
     Result: EveningsRow,
-    execute: ({ now }) => sql`
+    execute: ({ now }) => {
+      const listing = listingJson(sql, now);
+      return sql`
       SELECT
         COALESCE((
           SELECT json_agg(${listing} ORDER BY ${soonestFirst(sql, "e")})
@@ -68,7 +69,8 @@ const make = Effect.gen(function* () {
           SELECT json_agg(${listing} ORDER BY ${latestFirst(sql, "e")})
           FROM events e
           WHERE ${published(sql, "e")} AND ${ended(sql, "e", now)}
-        ), '[]'::json) AS past`,
+        ), '[]'::json) AS past`;
+    },
   });
 
   return Evenings.of({

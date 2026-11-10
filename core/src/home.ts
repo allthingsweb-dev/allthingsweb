@@ -105,14 +105,14 @@ const Request = Schema.Struct({ now: Schema.DateTimeUtcFromDate });
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  const listing = sql.literal(listingJson);
-
   // "Next" is the soonest of ours not yet over; "ahead" holds enough to
   // list the rest after it.
   const findHome = SqlSchema.findOne({
     Request,
     Result: Rows.HomeRow,
-    execute: ({ now }) => sql`
+    execute: ({ now }) => {
+      const listing = listingJson(sql, now);
+      return sql`
       SELECT
         (
           SELECT ${listing}
@@ -141,7 +141,8 @@ const make = Effect.gen(function* () {
             ORDER BY ${latestFirst(sql, "e")}
             LIMIT ${recentlyLimit}
           ) x
-        ), '[]'::json) AS recent`,
+        ), '[]'::json) AS recent`;
+    },
   });
 
   return Home.of({

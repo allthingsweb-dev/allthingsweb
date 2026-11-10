@@ -10,6 +10,7 @@ import {
   linkFirst,
   ours,
   peopleOf,
+  publicVenue,
   published,
   resolve,
   soonestFirst,
@@ -596,9 +597,7 @@ const make = Effect.gen(function* () {
         ev.luma_summary AS "lumaSummary",
         ev.start_date AS "startDate", ev.end_date AS "endDate",
         ev.updated_at AS "updatedAt",
-        ev.street_address AS "streetAddress",
-        ev.short_location AS "shortLocation",
-        ev.full_address AS "fullAddress",
+        ${publicVenue(sql, "ev", now, "columns")},
         ev.luma_event_id AS "lumaEventId",
         ev.recording_url AS "recordingUrl",
         ev.attendee_limit AS "attendeeLimit",
@@ -669,7 +668,7 @@ const make = Effect.gen(function* () {
           WHERE event_id = ev.id AND status = 'approved'
         ) AS "postCount",
         (
-          SELECT ${sql.literal(listingJson)}
+          SELECT ${listingJson(sql, now)}
           FROM events e
           WHERE ${published(sql, "e")} AND ${ahead(sql, "e", now)}
             AND ${ours(sql, "e")} AND e.id <> ev.id

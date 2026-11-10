@@ -1,6 +1,8 @@
-import { Effect, type Schema } from "effect";
+import { type DateTime, Effect, type Schema } from "effect";
+import type { SqlClient } from "effect/sql/SqlClient";
 import type { SqlError } from "effect/sql/SqlError";
-import { hostOrder } from "./catalog.ts";
+import type * as Statement from "effect/sql/Statement";
+import { hostOrder, publicVenue } from "./catalog.ts";
 import { DataSourceError } from "./errors.ts";
 
 /**
@@ -55,21 +57,25 @@ export const siteSlug = (alias: "e" | "ev"): string =>
   `COALESCE(${alias}.short_slug, ${alias}.slug)`;
 
 /**
- * The event aliased `e` as lists show it, a JSON object matching
- * `rows.Listing`: its hosts' names in the order they were attached.
+ * The event aliased `e` as lists show it at `now`, a JSON object matching
+ * `rows.Listing`: its venue as public surfaces may say it
+ * (`publicVenue`), and its hosts' names in the order they were attached.
  */
-export const listingJson: string = `json_build_object(
-    'id', e.id, 'slug', ${siteSlug("e")}, 'name', e.name, 'topic', e.topic,
-    'startDate', e.start_date, 'endDate', e.end_date,
-    'streetAddress', e.street_address, 'shortLocation', e.short_location,
-    'fullAddress', e.full_address, 'lumaEventId', e.luma_event_id,
+export const listingJson = (
+  sql: SqlClient,
+  now: DateTime.Utc | Date,
+): Statement.Fragment => sql`json_build_object(
+    'id', e.id, 'slug', ${sql.literal(siteSlug("e"))}, 'name', e.name,
+    'topic', e.topic, 'startDate', e.start_date, 'endDate', e.end_date,
+    ${publicVenue(sql, "e", now, "json")},
+    'lumaEventId', e.luma_event_id,
     'hosts', COALESCE((
-      SELECT json_agg(s.name ORDER BY ${hostOrder})
+      SELECT json_agg(s.name ORDER BY ${sql.literal(hostOrder)})
       FROM event_sponsors es
       JOIN sponsors s ON s.id = es.sponsor_id
       WHERE es.event_id = e.id
     ), '[]'::json),
-    'curation', ${curationJson("e")}
+    'curation', ${sql.literal(curationJson("e"))}
   )`;
 
 /** Folds SQL and decoding failures into the one error callers handle. */

@@ -301,6 +301,12 @@ export const eventsTable = pgTable(
      * (core/migrations/0020_venue_by_organizer.ts).
      */
     venueByOrganizer: boolean("venue_by_organizer").notNull().default(false),
+    /**
+     * Luma shows the venue to approved guests only, as the hourly sync last
+     * read it: until the evening is over, public surfaces show only its
+     * city (core/migrations/0040_venue_guests_only.ts).
+     */
+    venueGuestsOnly: boolean("venue_guests_only").notNull().default(false),
     lumaEventId: text("luma_event_id").unique(),
     isHackathon: boolean("is_hackathon").notNull().default(false),
     isDraft: boolean("is_draft").notNull().default(false),
