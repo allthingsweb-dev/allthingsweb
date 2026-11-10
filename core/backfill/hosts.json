@@ -102,6 +102,21 @@
     }
   },
   {
+    "name": "Databricks",
+    "about": {
+      "value": "Databricks offers a unified platform for data, analytics and AI.",
+      "source": "https://www.databricks.com/"
+    },
+    "website": {
+      "value": "https://www.databricks.com",
+      "source": "https://www.databricks.com/"
+    },
+    "lumaUserId": {
+      "value": "usr-PpGRTzC2IgZzAF9",
+      "source": "https://luma.com/user/usr-PpGRTzC2IgZzAF9"
+    }
+  },
+  {
     "name": "Discord",
     "website": {
       "value": "https://discord.com",
