@@ -221,12 +221,17 @@ export class AccessList extends Context.Service<AccessList, AccessListShape>()(
       /**
        * Every page of `path`, as Cloudflare pages them: page 1, 2, … until
        * one is empty, or the server says it answered another page than the
-       * one asked (an endpoint that doesn't page).
+       * one asked. With `unpagedWhole`, an answer with no page in
+       * `result_info` is the whole result: Cloudflare's list of Zero Trust
+       * lists answers every page with the whole list and `result_info:
+       * null`. Without it (a list's items), a missing page never stops the
+       * reading: only an empty page does.
        */
       const pages = <S extends Schema.Top>(
         what: string,
         path: string,
         entry: S,
+        unpagedWhole = false,
       ) =>
         Effect.gen(function* () {
           const all: Array<S["Type"]> = [];
@@ -250,6 +255,7 @@ export class AccessList extends Context.Service<AccessList, AccessListShape>()(
             )(answer.result ?? null);
             if (entries === null || entries.length === 0) break;
             all.push(...entries);
+            if (unpagedWhole && typeof reported !== "number") break;
             if (page === maxPages) {
               return yield* new AccessError({
                 reason: `${what}: more than ${maxPages * perPage} entries`,
@@ -264,6 +270,7 @@ export class AccessList extends Context.Service<AccessList, AccessListShape>()(
           "listing Zero Trust lists",
           "/gateway/lists",
           ListEntry,
+          true,
         );
         const found = lists.filter((list) => list.name === COLLABORATOR_LIST);
         const [list, ...others] = found;
