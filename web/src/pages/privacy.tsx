@@ -38,6 +38,7 @@ export const privacyEmail = "hello@allthings.dev";
 const lumaPrivacy = "https://luma.com/privacy-policy";
 const cloudflarePrivacy = "https://www.cloudflare.com/privacypolicy/";
 
+/** The privacy page, whole, in the site's frame. */
 export function privacyPage({
   origin,
   theme,
@@ -120,10 +121,17 @@ export function privacyPage({
           <h2 id="agents">The API, the MCP server and the command</h2>
           <p>
             <code>/api</code>, <code>/mcp</code> and the <code>allthings</code>{" "}
-            command read only what the pages already show. They need no account
-            or key, and their requests are counted and logged like any page's.
-            To answer quickly, the site keeps each answer under the question
-            asked, never under who asked it.
+            command's reads show only what the pages already show. They need no
+            account or key, and their requests are counted and logged like any
+            page's. To answer quickly, the site keeps each answer under the
+            question asked, never under who asked it.
+          </p>
+          <p>
+            At an evening that passes the aux, <code>allthings aux</code> sets
+            the room's lights or music with the code on your card, which the
+            command saves on your machine. The hub, on the host's laptop, logs
+            each change by the code's id, never by your name or what you typed,
+            and the host sees the latest ones.
           </p>
           <h2 id="elsewhere">Our accounts elsewhere</h2>
           <p>
