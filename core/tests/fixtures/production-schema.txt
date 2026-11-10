@@ -313,6 +313,7 @@ column public.events #029 venue_by_organizer boolean not null default false
 column public.events #030 generated_cover_url text
 column public.events #031 generated_cover_sha256 text
 column public.events #032 generated_cover_facts text
+column public.events #033 venue_guests_only boolean not null default false
 column public.external_talks #001 id uuid not null default gen_random_uuid()
 column public.external_talks #002 profile_id uuid not null
 column public.external_talks #003 title text not null

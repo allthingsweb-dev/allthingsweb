@@ -4,9 +4,10 @@ import { describe, expect, test } from "bun:test";
  * The catalog's rules are written in src/catalog.ts and nowhere else
  * (README, "One catalog"): no public read states for itself which evenings
  * are published, ahead or over, ours or shared, how evenings are ordered,
- * or how an evening's lineup is. This reads the source of core and of the
- * Worker and fails on any file that does, unless it is listed below as
- * code that isn't a public read, with its reason.
+ * how an evening's lineup is, or where an evening is (its venue columns,
+ * which a public read takes from `publicVenue`). This reads the source of
+ * core and of the Worker and fails on any file that does, unless it is
+ * listed below as code that isn't a public read, with its reason.
  *
  * The list only shrinks. A listed file that no longer states a rule fails
  * too, so it comes off the list.
@@ -42,6 +43,12 @@ const rules: ReadonlyArray<readonly [string, RegExp]> = [
         String.raw`(?:et\.position|ts\.created_at|es\.created_at|ep\.(?:role|position)|array_position\(\s*ARRAY\['organizer')`,
     ),
   ],
+  // A venue column read or written in SQL, by an alias or bare; never a
+  // key of Luma's answer (`full_address: …`, `json?.full_address`).
+  [
+    "an evening's venue",
+    /(?<![\w?.])(?:[a-z_]+\.)?(?:street_address|short_location|full_address)\b(?!\s*:(?!:))/,
+  ],
 ];
 
 /** Where the rules are written. */
@@ -55,6 +62,8 @@ const internal: Readonly<Record<string, string>> = {
   "core/src/completeness.ts": "the completeness report",
   "core/src/curation.ts": "writes curation from its backfill",
   "core/src/drafts.ts": "lists drafts for the organizers",
+  "core/src/lineups.ts":
+    "writes the venues the organizers set, from their backfill",
   "web/src/preview/collab.ts":
     "the draft preview: which evenings a signer may help with, drafts included",
   "core/src/luma/descriptions.ts": "Luma import",
@@ -62,6 +71,8 @@ const internal: Readonly<Record<string, string>> = {
   "core/src/luma/people-sync.ts": "Luma import of people",
   "core/src/luma/sync.ts": "the Luma sync, which writes is_draft",
   "core/src/luma/venues.ts": "Luma import of venues",
+  "core/src/planning/draft.ts":
+    "a draft's notes and status, for the organizers",
   "core/src/planning/planning.ts": "planning, for the organizers",
   "core/src/posts/candidates.ts": "the post search",
   "core/src/posts/review.ts": "post review, for the organizers",
@@ -98,6 +109,7 @@ const ownTime: Readonly<Record<string, string>> = {
   "core/src/luma/people-sync.ts": "Luma import of people",
   "core/src/luma/publish.ts": "publishing, for the organizers",
   "core/src/luma/sync.ts": "the Luma sync",
+  "core/src/luma/venue-visibility.ts": "Luma import of venue visibility",
   "core/src/luma/venues.ts": "Luma import of venues",
   "core/src/planning/planning.ts": "planning, for the organizers",
   "core/src/posts/candidates.ts": "the post search",
@@ -158,6 +170,14 @@ describe("what stating a rule looks like", () => {
   });
 
   test.each([
+    "full_address: Schema.optionalKey(Schema.NullOr(Schema.String)),",
+    "event.geo_address_json?.full_address?.trim()",
+    "fullAddress: row.fullAddress,",
+  ])("%s is no venue column", (code) => {
+    expect(states(code)).toEqual([]);
+  });
+
+  test.each([
     ["e.end_date >= now", "ahead or over"],
     ["e.end_date < $1", "ahead or over"],
     ["e.curation = 'ours'", "ours or shared"],
@@ -174,6 +194,11 @@ describe("what stating a rule looks like", () => {
     ["ORDER BY s.name, es.created_at, s.id", "an evening's lineup"],
     ["ORDER BY e.id DESC NULLS LAST, et.position", "an evening's lineup"],
     ["ORDER BY ep.role, ep.position", "an evening's lineup"],
+    ['e.street_address AS "streetAddress"', "an evening's venue"],
+    ["'fullAddress', ev.full_address", "an evening's venue"],
+    ["SELECT short_location FROM events", "an evening's venue"],
+    ["UPDATE events SET full_address = $1", "an evening's venue"],
+    ["e.full_address::text", "an evening's venue"],
     [
       "ORDER BY array_position(ARRAY['organizer', 'co-host', 'mc'], ep.role)",
       "an evening's lineup",
@@ -187,7 +212,16 @@ describe("the catalog's rules are stated once", () => {
   test("the catalog states each of them", async () => {
     // Its fragments name columns through a helper, so check the names.
     const text = await Bun.file(new URL(catalog, root)).text();
-    for (const name of ["is_draft", "end_date", "curation", "start_date"]) {
+    for (const name of [
+      "is_draft",
+      "end_date",
+      "curation",
+      "start_date",
+      "street_address",
+      "short_location",
+      "full_address",
+      "venue_guests_only",
+    ]) {
       expect(text).toContain(`"${name}"`);
     }
   });

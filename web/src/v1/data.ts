@@ -1,6 +1,7 @@
 import {
   hostsOf,
   latestFirst,
+  publicVenue,
   published,
   talkAppearances,
   talksOf,
@@ -14,8 +15,10 @@ import * as SqlSchema from "effect/sql/SqlSchema";
 
 /**
  * What the v1 API reads: the app's rows as drizzle selects them, every
- * column included, because the v1 responses publish them as they are.
- * Related rows are nested as JSON so each call is a single statement.
+ * column included, because the v1 responses publish them as they are,
+ * except the venue, as public surfaces may say it as of the `Clock`'s now
+ * (core's catalog.ts, `publicVenue`). Related rows are nested as JSON so
+ * each call is a single statement.
  */
 
 // Top-level timestamptz columns decode to Date; nested in JSON they are text.
@@ -175,11 +178,12 @@ const orDataSourceError = <A, R>(
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  const eventColumns = sql.literal(`
+  /** Every column, the venue as public surfaces may say it at `now`. */
+  const eventColumns = (now: Date) => sql`
     e.id, e.name, e.start_date AS "startDate", e.end_date AS "endDate",
     e.slug, e.tagline, e.attendee_limit AS "attendeeLimit",
-    e.street_address AS "streetAddress", e.short_location AS "shortLocation",
-    e.full_address AS "fullAddress", e.luma_event_id AS "lumaEventId",
+    ${publicVenue(sql, "e", now, "columns")},
+    e.luma_event_id AS "lumaEventId",
     e.is_hackathon AS "isHackathon", e.is_draft AS "isDraft",
     e.highlight_on_landing_page AS "highlightOnLandingPage",
     e.recording_url AS "recordingUrl",
@@ -189,13 +193,13 @@ const make = Effect.gen(function* () {
     e.curation, e.organized_by AS "organizedBy", e.short_slug AS "shortSlug",
     e.luma_description AS "lumaDescription", e.luma_summary AS "lumaSummary",
     e.description,
-    ${imageJson("e.preview_image")} AS "previewImage"`);
+    ${sql.literal(imageJson("e.preview_image"))} AS "previewImage"`;
 
   const listPublished = SqlSchema.findAll({
-    Request: Schema.Void,
+    Request: Timestamp,
     Result: EventRow,
-    execute: () => sql`
-      SELECT ${eventColumns}
+    execute: (now) => sql`
+      SELECT ${eventColumns(now)}
       FROM events e
       WHERE ${published(sql, "e")}
       ORDER BY ${latestFirst(sql, "e")}`,
@@ -204,10 +208,10 @@ const make = Effect.gen(function* () {
   // The app reads talks, speakers, hosts and photos without ORDER BY; the
   // lineup follows the catalog's order, photos the order they were attached.
   const findById = SqlSchema.findOneOption({
-    Request: Schema.String,
+    Request: Schema.Struct({ id: Schema.String, now: Timestamp }),
     Result: EventDetailsRow,
-    execute: (id) => sql`
-      SELECT ${eventColumns},
+    execute: ({ id, now }) => sql`
+      SELECT ${eventColumns(now)},
         ${talksOf(sql, "e", {
           talk: sql`'id', t.id, 'title', t.title, 'description', t.description`,
           speaker: sql`json_build_object(
@@ -262,8 +266,9 @@ const make = Effect.gen(function* () {
   });
 
   return V1Data.of({
-    listPublishedEvents: orDataSourceError(listPublished(undefined)),
-    findPublishedEvent: (id) => orDataSourceError(findById(id)),
+    listPublishedEvents: orDataSourceError(Effect.flatMap(asOf, listPublished)),
+    findPublishedEvent: (id) =>
+      orDataSourceError(Effect.flatMap(asOf, (now) => findById({ id, now }))),
     directory: asOf.pipe(
       Effect.flatMap((now) => orDataSourceError(findDirectory(now))),
     ),

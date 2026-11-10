@@ -14,6 +14,7 @@ import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
+import { LumaVenueVisibility } from "allthings-core/src/luma/venue-visibility.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   ConfigProvider,
@@ -249,6 +250,7 @@ export const syncLayer = (
 ) =>
   Layer.mergeAll(
     LumaSync.layer,
+    LumaVenueVisibility.layer,
     LumaVenues.layer,
     LumaDrafts.layer,
     ShortSlugs.layer,

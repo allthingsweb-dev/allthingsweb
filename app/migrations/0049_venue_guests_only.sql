@@ -1,0 +1,2 @@
+-- Whether Luma shows an evening's venue to guests only; core/migrations/0040_venue_guests_only.ts is the same change.
+ALTER TABLE "events" ADD COLUMN "venue_guests_only" boolean DEFAULT false NOT NULL;

@@ -344,6 +344,13 @@
       "when": 1794110126022,
       "tag": "0048_idea_postponed",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794270453334,
+      "tag": "0049_venue_guests_only",
+      "breakpoints": true
     }
   ]
 }

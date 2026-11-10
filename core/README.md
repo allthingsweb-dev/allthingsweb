@@ -25,6 +25,9 @@ statement from it.
   lists the code that reads the time for its own work.
 - **Ours or shared:** `ours(e)`. Whether a surface counts the evenings we
   share is a named choice, never a filter written inline.
+- **Where an evening is:** `publicVenue(e, now)`, its venue as stored, or
+  only its city while Luma keeps the venue to guests and the evening is
+  ahead (`venueHidden`; "Hidden venues", below).
 - **An evening's lineup:** its talks in running order, each talk's
   speakers in the order they were attached, with their part; its hosts, as
   attached; its people, by role. `talksOf`, `hostsOf` and `peopleOf` read
@@ -52,7 +55,8 @@ people there are, or their order.
 `tests/catalog-guard.test.ts` reads core's and the Worker's source and
 fails on any file that states one of these rules itself (selecting by
 `is_draft`, a comparison on `end_date`, `curation = '…'`, an `ORDER BY` on
-`start_date`, or a lineup's order) outside `src/catalog.ts`. It lists the
+`start_date`, a lineup's order, or reading a venue column) outside
+`src/catalog.ts`. It lists the
 code that isn't a public read (the Luma sync, the organizers' tools, the
 reports), each with why; the list only shrinks, and a listed file that
 states no rule fails it too. `tests/catalog.test.ts` holds the fragments to
@@ -472,6 +476,27 @@ DATABASE_URL=… LUMA_API_KEY=… bun run luma:venues             # write them
 
 The completeness check fails on any published evening without a venue,
 however old, since Luma always knows where one was.
+
+Luma hides a guests-only venue from everyone but approved guests, and the
+site does too: while an evening is ahead (upcoming or live) and Luma shows
+its venue to guests only, every public surface says only its city (the
+event page and its schema.org data and calendar file, home, /events, the
+v1 API, the MCP tools, and so the CLI): no street, no venue name, no map
+link, no neighborhood. Once the evening is over, its venue shows again in
+full. `src/luma/venue-visibility.ts` keeps Luma's setting in
+`events.venue_guests_only`: the hourly sync asks Luma's API about every
+published evening not over with a Luma page, whatever venue is stored, and
+writes the ones that changed, before the venue fill runs, so a guests-only
+venue it fills in is never shown. Luma alone decides it: an organizer's
+venue (`venue_by_organizer`) is still Luma's to hide. The city is read from
+the address as Luma writes one ("…, San Francisco, CA 94105, USA"); where
+the address names none, the surfaces say nothing of the place. Every public
+read takes the venue from `publicVenue` (src/catalog.ts), never the columns
+themselves, which `tests/catalog-guard.test.ts` holds it to; the
+organizers' tools (readiness, planning, the completeness report) read the
+venue as stored. A cover is drawn from the evening's page, so one drawn
+while its venue is hidden names no neighborhood; one drawn before still
+does, and readiness counts it stale until it is drawn again.
 
 Where Luma's venue is wrong, the organizers' replaces it: a `venue` in an
 evening's entry in `backfill/lineups.json`, with its sources, written by

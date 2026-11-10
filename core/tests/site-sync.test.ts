@@ -29,6 +29,7 @@ import { LumaDescriptions } from "../src/luma/descriptions.ts";
 import { Luma } from "../src/luma/luma.ts";
 import { LumaSync } from "../src/luma/sync.ts";
 import { LumaDrafts } from "../src/luma/drafts.ts";
+import { LumaVenueVisibility } from "../src/luma/venue-visibility.ts";
 import { LumaVenues } from "../src/luma/venues.ts";
 import { ShortSlugs } from "../src/slugs.ts";
 import { clockAt, migratedDatabase, sqlLayer } from "./support/database.ts";
@@ -47,8 +48,9 @@ import {
  * the hourly sync's writes run as it and must succeed, while everything
  * outside its grants must be refused.
  *
- * The sync's writes are core's event sync, its venue fill, its short links
- * and description import, and the app's three image ingestions (event covers, profile photos, post images), whose statements
+ * The sync's writes are core's event sync, its venue visibility and venue
+ * fill, its short links and description import, and the app's three image
+ * ingestions (event covers, profile photos, post images), whose statements
  * the Worker's port keeps. The app's are loaded at runtime, as in
  * luma-parity.test.ts, with downloads, processing and storage faked: only
  * their SQL matters here.
@@ -308,6 +310,24 @@ describe("site_sync", () => {
       LumaVenues.use((venues) => venues.run({ dryRun: false })).pipe(
         Effect.provide(layer),
       ),
+    );
+    expect(result).toMatchObject({ _tag: "Planned", unavailable: [] });
+    if (result._tag === "Planned") {
+      expect(result.written).toBeGreaterThan(0);
+      expect(result.written).toBe(result.asked);
+    }
+  });
+
+  test("marks the evenings ahead whose venue Luma keeps to guests", async () => {
+    const layer = LumaVenueVisibility.layer.pipe(
+      Layer.provide(fakeApi),
+      Layer.provideMerge(sqlLayer(db)),
+      Layer.provideMerge(clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z"))),
+    );
+    const result = await Effect.runPromise(
+      LumaVenueVisibility.use((visibility) =>
+        visibility.run({ dryRun: false }),
+      ).pipe(Effect.provide(layer)),
     );
     expect(result).toMatchObject({ _tag: "Planned", unavailable: [] });
     if (result._tag === "Planned") {
@@ -706,6 +726,7 @@ describe("site_sync", () => {
       "SELECT description FROM events",
       "UPDATE events SET topic = 'x'",
       "UPDATE events SET recording_url = 'x'",
+      "UPDATE events SET venue_by_organizer = true",
       "UPDATE profiles SET name = 'x'",
       "UPDATE profiles SET photo_source_url = 'x'",
       "UPDATE event_posts SET status = 'approved'",

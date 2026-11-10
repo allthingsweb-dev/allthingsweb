@@ -72,11 +72,12 @@ export async function getExpandedEventById(
 async function getExpandedEventFromQuery(
   eventRow: any,
 ): Promise<ExpandedEvent> {
-  // Whether the organizers set the venue is the syncs' business, and the
-  // cover core's generator recorded (core/src/luma/cover.ts) the studio's,
-  // not the public API's.
+  // Whether the organizers set the venue, and whether Luma shows it to
+  // guests only, are the syncs' business, and the cover core's generator
+  // recorded (core/src/luma/cover.ts) the studio's, not the public API's.
   const {
     venueByOrganizer,
+    venueGuestsOnly,
     generatedCoverUrl,
     generatedCoverSha256,
     generatedCoverFacts,

@@ -215,7 +215,7 @@ const make = Effect.gen(function* () {
       SELECT
         ${tally(sql, now)},
         (
-          SELECT ${sql.literal(listingJson)}
+          SELECT ${listingJson(sql, now)}
           FROM held e
           ORDER BY ${soonestFirst(sql, "e")}
           LIMIT 1
@@ -225,7 +225,7 @@ const make = Effect.gen(function* () {
             ORDER BY f.position)
           FROM (
             SELECT DISTINCT ON (n.position) n.name, n.position,
-              ${sql.literal(listingJson)} AS listing
+              ${listingJson(sql, now)} AS listing
             FROM json_array_elements_text(${names}::json)
               WITH ORDINALITY AS n(name, position)
             JOIN held e ON starts_with(lower(e.name), lower(n.name))

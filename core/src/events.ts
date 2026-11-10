@@ -1,11 +1,13 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
+import { asOf } from "./clock.ts";
 import {
   hostsOf,
   latestFirst,
   linkFirst,
   peopleOf,
+  publicVenue,
   published,
   resolve,
   talksOf,
@@ -20,8 +22,10 @@ import {
 } from "./sql.ts";
 
 /**
- * Published events. Drafts never leave this service: they are filtered in SQL,
- * and a draft's slug is reported as not found, as the app does today.
+ * Published events, as of the `Clock`'s now (src/clock.ts). Drafts never
+ * leave this service: they are filtered in SQL, and a draft's slug is
+ * reported as not found, as the app does today. Each venue is as public
+ * surfaces may say it (catalog.ts, `publicVenue`).
  */
 export interface EventsShape {
   /** Every published event, latest start first. */
@@ -42,20 +46,21 @@ export interface EventsShape {
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient;
 
-  const eventColumns = sql.literal(`
+  /** The event's columns, its venue as public surfaces may say it at `now`. */
+  const eventColumns = (now: Date) => sql`
     e.id, e.slug, e.name, e.tagline,
     e.start_date AS "startDate", e.end_date AS "endDate",
-    e.street_address AS "streetAddress", e.short_location AS "shortLocation",
-    e.full_address AS "fullAddress", e.luma_event_id AS "lumaEventId",
+    ${publicVenue(sql, "e", now, "columns")},
+    e.luma_event_id AS "lumaEventId",
     e.recording_url AS "recordingUrl", e.is_hackathon AS "isHackathon",
-    ${imageJson("e.preview_image")} AS "previewImage",
-    ${curationJson("e")} AS curation`);
+    ${sql.literal(imageJson("e.preview_image"))} AS "previewImage",
+    ${sql.literal(curationJson("e"))} AS curation`;
 
   const listPublished = SqlSchema.findAll({
-    Request: Schema.Void,
+    Request: Schema.DateTimeUtcFromDate,
     Result: Rows.Event,
-    execute: () => sql`
-      SELECT ${eventColumns}
+    execute: (now) => sql`
+      SELECT ${eventColumns(now)}
       FROM events e
       WHERE ${published(sql, "e")}
       ORDER BY ${latestFirst(sql, "e")}`,
@@ -64,10 +69,13 @@ const make = Effect.gen(function* () {
   // The lineup in the catalog's order; photos in the order they were
   // attached, the join row's created_at, then id.
   const findPublished = SqlSchema.findOneOption({
-    Request: Schema.String,
+    Request: Schema.Struct({
+      slug: Schema.String,
+      now: Schema.DateTimeUtcFromDate,
+    }),
     Result: Rows.EventDetails,
-    execute: (slug) => sql`
-      SELECT ${eventColumns},
+    execute: ({ slug, now }) => sql`
+      SELECT ${eventColumns(now)},
         e.luma_guest_count AS "lumaGuestCount",
         e.luma_checked_in_count AS "lumaCheckedInCount",
         ${talksOf(sql, "e", {
@@ -112,9 +120,11 @@ const make = Effect.gen(function* () {
   });
 
   return Events.of({
-    listPublished: orDataSourceError(listPublished(undefined)),
+    listPublished: orDataSourceError(Effect.flatMap(asOf, listPublished)),
     getPublished: (slug) =>
-      orDataSourceError(findPublished(slug)).pipe(
+      orDataSourceError(
+        Effect.flatMap(asOf, (now) => findPublished({ slug, now })),
+      ).pipe(
         Effect.flatMap(
           Option.match({
             onNone: () => Effect.fail(new EventNotFound({ slug })),

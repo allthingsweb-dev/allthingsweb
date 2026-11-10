@@ -24,6 +24,7 @@ import {
   ShortSlugs,
 } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
+import { LumaVenueVisibility } from "allthings-core/src/luma/venue-visibility.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   CommunitySources,
@@ -35,23 +36,25 @@ import { Clock, Context, DateTime, Duration, Effect, Exit } from "effect";
 /**
  * One run of the hourly sync, as the app's cron runs it
  * (app/src/app/api/cron/luma-sync/route.ts): events from Luma's calendar
- * first, then the venues the calendar hides and the drafts it never
- * carries, from Luma's API, then short
- * links for the evenings without one, then the images still missing
- * (profile photos, post images, event covers), each image phase in its own
- * time window, then the events' descriptions from Luma's API, in a window
- * of their own, so slow answers from Luma never cost the images theirs.
- * (The app's cron does neither venues, links nor descriptions.) Every step
- * writes only what is missing or changed, so a run repeated, or one cut
- * short, leaves the database as consistent as before and the next run
- * carries on.
+ * first, then, from Luma's API, which evenings ahead keep their venue to
+ * guests (before any venue is filled in, so a guests-only one is never
+ * shown), the venues the calendar hides and the drafts it never carries,
+ * then short links for the evenings without one, then the images still
+ * missing (profile photos, post images, event covers), each image phase in
+ * its own time window, then the events' descriptions from Luma's API, in a
+ * window of their own, so slow answers from Luma never cost the images
+ * theirs. (The app's cron does neither venues, links nor descriptions.)
+ * Every step writes only what is missing or changed, so a run repeated, or
+ * one cut short, leaves the database as consistent as before and the next
+ * run carries on.
  *
  * - `write` writes, as the app's cron does.
  * - `dry-run` writes nothing: the event sync is rehearsed (its statement in
- *   a transaction that rolls back), the venue fill lists the venues it
- *   would write, the links it would give are listed, the image phases list
- *   what they would fetch, without fetching it, and the description import
- *   lists what it would change.
+ *   a transaction that rolls back), the venue visibility lists what it
+ *   would change, the venue fill lists the venues it would write, the
+ *   links it would give are listed, the image phases list what they would
+ *   fetch, without fetching it, and the description import lists what it
+ *   would change.
  *
  * Each step logs one JSON line, and the run one summary line, for Workers
  * Logs to index.
@@ -80,6 +83,11 @@ export interface SyncLimits {
     readonly maxItems?: number;
   };
   readonly covers: { readonly maxItems?: number };
+  /**
+   * Evenings ahead asked whether Luma shows their venue to guests only;
+   * every one by default.
+   */
+  readonly venueVisibility: { readonly maxEvents?: number };
   /** Events without a venue asked about; every one by default. */
   readonly venues: { readonly maxEvents?: number };
   /** Drafts asked about, which the feed never carries; every one by default. */
@@ -119,6 +127,7 @@ export const syncLimits = {
     photos: { window: "10 seconds" },
     posts: { window: "20 seconds", maxItems: 40 },
     covers: {},
+    venueVisibility: {},
     venues: {},
     drafts: {},
     // Luma can't say which changed: every evening not over a week ago each
@@ -132,10 +141,11 @@ export const syncLimits = {
     postSearch: { within: "7 days", maxEvents: 10, window: "5 minutes" },
   },
   /**
-   * Within 50 subrequests: the feed is one, each venue, draft and
-   * description one, and each image at most six (a cover lookup and its
-   * fallback, a download and three redirects), so two venues, a draft, two
-   * descriptions and two images of each kind are at most 42.
+   * Within 50 subrequests: the feed is one, each venue visibility, venue,
+   * draft and description one, and each image at most six (a cover lookup
+   * and its fallback, a download and three redirects), so two venue
+   * visibilities, two venues, a draft, two descriptions and two images of
+   * each kind are at most 44.
    */
   free: {
     startBefore: "35 seconds",
@@ -143,15 +153,16 @@ export const syncLimits = {
     photos: { window: "10 seconds", maxItems: 2 },
     posts: { window: "20 seconds", maxItems: 2 },
     covers: { maxItems: 2 },
+    venueVisibility: { maxEvents: 2 },
     venues: { maxEvents: 2 },
     drafts: { maxEvents: 1 },
     descriptions: { window: "30 seconds", maxEvents: 2 },
     followers: { maxProfiles: 2, staleAfter: "7 days", window: "30 seconds" },
-    // What the 50 subrequests leave after the steps before it (42).
+    // What the 50 subrequests leave after the steps before it (44).
     postSearch: {
       within: "7 days",
       maxEvents: 1,
-      maxRequests: 7,
+      maxRequests: 5,
       window: "30 seconds",
     },
   },
@@ -230,6 +241,35 @@ const slugs = (
     written,
     given: given.map(({ slug, shortSlug }) => ({ slug, shortSlug })),
   }));
+
+/**
+ * The venue visibility (core's src/luma/venue-visibility.ts) within
+ * `limits`, as a step reports it: the evenings ahead whose venue Luma shows
+ * to guests only, and each whose setting changed.
+ */
+const venueVisibility = (
+  checker: LumaVenueVisibility["Service"],
+  limits: SyncLimits,
+  dryRun: boolean,
+) =>
+  Effect.gen(function* () {
+    const { maxEvents } = limits.venueVisibility;
+    const result = yield* checker.run({
+      dryRun,
+      ...(maxEvents === undefined ? {} : { maxEvents }),
+    });
+    if (result._tag === "Skipped") return { skipped: result.reason };
+    return {
+      asked: result.asked,
+      written: result.written,
+      guestsOnly: result.guestsOnly,
+      changed: result.changed.map(({ slug, guestsOnly }) => ({
+        slug,
+        guestsOnly,
+      })),
+      unavailable: result.unavailable,
+    };
+  });
 
 /**
  * The venue fill (core's src/luma/venues.ts) within `limits`, as a step
@@ -343,6 +383,10 @@ const write = (limits: SyncLimits) =>
     // then wait for a run that reads the calendar.
     if (steps["events"].status !== "done") return steps;
 
+    steps["venue-visibility"] = yield* step(
+      "venue-visibility",
+      venueVisibility(yield* LumaVenueVisibility, limits, false),
+    );
     steps["venues"] = yield* step(
       "venues",
       venues(yield* LumaVenues, limits, false),
@@ -550,6 +594,10 @@ const dryRun = (limits: SyncLimits) =>
           })),
         };
       }),
+    );
+    steps["venue-visibility"] = yield* step(
+      "venue-visibility",
+      venueVisibility(yield* LumaVenueVisibility, limits, true),
     );
     steps["venues"] = yield* step(
       "venues",

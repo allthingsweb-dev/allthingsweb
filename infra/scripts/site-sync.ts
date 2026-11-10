@@ -64,7 +64,10 @@ interface ColumnGrants {
  *   the rule reads: name, topic, curation, start) and every slug taken,
  *   then set `short_slug`.
  *   Both the upsert and the venue fill read `venue_by_organizer`, and leave
- *   alone a venue the organizers set.
+ *   alone a venue the organizers set. The venue visibility
+ *   (core/src/luma/venue-visibility.ts) reads published evenings not over
+ *   with a Luma id, and writes `venue_guests_only` where Luma says
+ *   otherwise.
  * - event_slugs: every link given, read to know which are taken, and one
  *   row for each link given.
  * - images: one row per stored image, its id made by the sync.
@@ -118,6 +121,7 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "curation",
       "short_slug",
       "venue_by_organizer",
+      "venue_guests_only",
     ],
     insert: [
       "luma_event_id",
@@ -147,6 +151,7 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "luma_description",
       "luma_summary",
       "short_slug",
+      "venue_guests_only",
     ],
   },
   event_slugs: {
