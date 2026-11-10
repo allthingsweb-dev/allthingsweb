@@ -9,6 +9,7 @@ import { ImageIngest } from "allthings-core/src/ingest/ingest.ts";
 import { MediaBucket } from "allthings-core/src/ingest/media-bucket.ts";
 import { Pictures } from "allthings-core/src/ingest/pictures.ts";
 import { LumaApi } from "allthings-core/src/luma/api.ts";
+import { LumaCompanyHosts } from "allthings-core/src/luma/company-hosts.ts";
 import { LumaDescriptions } from "allthings-core/src/luma/descriptions.ts";
 import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
@@ -251,6 +252,7 @@ export const syncLayer = (
     LumaSync.layer,
     LumaVenues.layer,
     LumaDrafts.layer,
+    LumaCompanyHosts.layer,
     ShortSlugs.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,

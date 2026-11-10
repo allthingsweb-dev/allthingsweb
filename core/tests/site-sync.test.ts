@@ -25,6 +25,7 @@ import { CandidateSearches, findCandidates } from "../src/posts/candidates.ts";
 import { PostSources } from "../src/posts/sources.ts";
 import { EventPostWriter } from "../src/posts/store.ts";
 import { LumaApi } from "../src/luma/api.ts";
+import { LumaCompanyHosts } from "../src/luma/company-hosts.ts";
 import { LumaDescriptions } from "../src/luma/descriptions.ts";
 import { Luma } from "../src/luma/luma.ts";
 import { LumaSync } from "../src/luma/sync.ts";
@@ -333,6 +334,68 @@ describe("site_sync", () => {
       expect(result.written).toBe(result.refreshed.length);
       expect(result.written).toBeGreaterThan(0);
     }
+  });
+
+  test("attaches the hosting companies Luma lists, never more", async () => {
+    // Sentry's Luma account is on record, as backfill/hosts.json writes it.
+    await db.exec(`RESET ROLE;
+      UPDATE sponsors SET luma_user_id = 'usr-Sentry1'
+        WHERE id = 'c0000000-0000-4000-8000-000000000001';
+      SET ROLE ${SITE_SYNC}`);
+    const hostedBySentry = Layer.succeed(
+      LumaApi,
+      LumaApi.of({
+        eventPeople: Option.some((lumaEventId: string) =>
+          Effect.succeed(
+            Option.some({
+              lumaEventId,
+              managed: true,
+              hosts: [
+                { lumaUserId: "usr-Sentry1", name: "Sentry", avatarUrl: null },
+                {
+                  lumaUserId: "usr-Someone1",
+                  name: "Someone",
+                  avatarUrl: null,
+                },
+              ],
+              guestCount: null,
+              checkedInCount: null,
+            }),
+          ),
+        ),
+        eventVenue: Option.none(),
+        eventDetails: Option.none(),
+        eventDescription: Option.none(),
+      }),
+    );
+    const layer = LumaCompanyHosts.layer.pipe(
+      Layer.provide(hostedBySentry),
+      Layer.provideMerge(sqlLayer(db)),
+      Layer.provideMerge(clockAt(DateTime.makeUnsafe("2026-10-05T12:00:00Z"))),
+    );
+    const result = await Effect.runPromise(
+      LumaCompanyHosts.use((step) =>
+        step.run({ dryRun: false, within: "7 days" }),
+      ).pipe(Effect.provide(layer)),
+    );
+    expect(result).toMatchObject({ _tag: "Planned", unavailable: [] });
+    if (result._tag === "Planned") {
+      expect(result.asked).toBeGreaterThan(0);
+      expect(result.written).toBe(result.plan.attach.length);
+      expect(result.written).toBeGreaterThan(0);
+    }
+    // It only adds: it may neither change nor remove an attachment.
+    expect(
+      await refusal("UPDATE event_sponsors SET updated_at = now()"),
+    ).toContain("permission denied");
+    expect(await refusal("DELETE FROM event_sponsors")).toContain(
+      "permission denied",
+    );
+    expect(
+      await refusal(
+        "INSERT INTO sponsors (name, about, updated_at) VALUES ('x', 'x', now())",
+      ),
+    ).toContain("permission denied");
   });
 
   test("runs the description import", async () => {

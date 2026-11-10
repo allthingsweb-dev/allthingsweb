@@ -26,7 +26,7 @@ bun run deploy --profile allthings   # your own stage (live_$USER): the Web Work
 - **Sync Worker:** `prod` only, and only in the allthings account, whether allthings.dev is pending or active there. The hourly Luma sync ([`web/src/sync/`](../web/src/sync/worker.ts)), off Vercel's cron and outside the site's Worker. It has its own bindings:
   - a `Writer` Hyperdrive in front of production as `site_sync`, from `NEON_SYNC_URL`, which never caches
   - the media bucket and the Images binding
-  - `LUMA_API_KEY` as a secret: hidden venues, drafts, descriptions and cover lookups
+  - `LUMA_API_KEY` as a secret: hidden venues, drafts, hosting companies, descriptions and cover lookups
   - `X_BEARER_TOKEN` as a secret: follower counts and the post finder's X search, billed per post it reads
 
   It writes every hour, as the sync's one writer since the app's cron stopped, and runs nothing without every one of them: see [The Luma sync](#the-luma-sync).

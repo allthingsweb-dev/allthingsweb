@@ -571,7 +571,10 @@ from `backfill/hosts.json`) is that company: it is attached to the event as
 a hosting company (`event_sponsors`, only ever added), never matched to a
 person. Nothing is created without an organizer's decision: Luma's hosts
 include companies' accounts not yet on record and people under other names.
-Run it from `core/`:
+The hourly sync attaches hosting companies the same way for evenings that
+ended within the last week (`src/luma/company-hosts.ts`), and reports the
+hosts whose Luma account is neither a company's nor a profile's; people stay
+this import's. Run it from `core/`:
 
 ```sh
 DATABASE_URL=… LUMA_API_KEY=$(op read "op://allthings/allthings Luma API key/credential") \
