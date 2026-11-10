@@ -81,6 +81,13 @@ interface ColumnGrants {
  *   the account the profile already has: a renamed account's new handle, or
  *   none, with the lost one recorded, when X gives the handle to another.
  *
+ * - event_sponsors, sponsors: the company hosts step
+ *   (core/src/luma/company-hosts.ts) reads recent evenings, the hosting
+ *   companies with a Luma account on record, the Luma accounts profiles
+ *   hold, and the companies already attached to those evenings, then
+ *   attaches each company Luma lists as a host, never replacing a row
+ *   (ON CONFLICT DO NOTHING) and never removing one.
+ *
  * - community_metrics: the daily snapshot of the community's public numbers
  *   (core/src/community-metrics.ts) reads which sources the day has and
  *   inserts a row per metric for each one it reads, never replacing one
@@ -179,6 +186,8 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
       "x_followers_at",
       "x_followers_tried_at",
       "x_user_id",
+      // The company hosts step tells people from unknown Luma accounts.
+      "luma_user_id",
     ],
     update: [
       "image",
@@ -207,8 +216,12 @@ export const SITE_SYNC_GRANTS: Readonly<Record<string, ColumnGrants>> = {
     ],
     update: ["image", "author_avatar", "updated_at"],
   },
-  event_sponsors: { select: ["event_id", "sponsor_id", "created_at"] },
-  sponsors: { select: ["id", "name"] },
+  event_sponsors: {
+    select: ["event_id", "sponsor_id", "created_at"],
+    // The company hosts step attaches the companies Luma lists.
+    insert: ["event_id", "sponsor_id", "created_at", "updated_at"],
+  },
+  sponsors: { select: ["id", "name", "luma_user_id"] },
   event_people: { select: ["event_id", "profile_id"] },
   event_talks: { select: ["event_id", "talk_id"] },
   talk_speakers: { select: ["talk_id", "speaker_id"] },

@@ -17,6 +17,7 @@ import { Luma } from "allthings-core/src/luma/luma.ts";
 import { LumaSync } from "allthings-core/src/luma/sync.ts";
 import { ShortSlugs } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
+import { LumaCompanyHosts } from "allthings-core/src/luma/company-hosts.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   clockAt,
@@ -91,6 +92,9 @@ const seed = `${stored}
     ('70000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/1', 'Ada', now(), 't', 'https://pbs.twimg.com/1.jpg', '2024-01-01T00:00:00Z', now()),
     ('70000000-0000-4000-8000-000000000002', 'e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/2', 'Grace', now(), 't', 'https://pbs.twimg.com/2.jpg', '2024-01-02T00:00:00Z', now()),
     ('70000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000001', 'x', 'https://x.com/3', 'Linus', now(), 't', 'https://pbs.twimg.com/3.jpg', '2024-01-03T00:00:00Z', now());
+  -- Sentry's Luma account is on record, so the company hosts step knows it.
+  UPDATE sponsors SET luma_user_id = 'usr-Sentry1'
+    WHERE id = 'c0000000-0000-4000-8000-000000000001';
 `;
 
 const cover = "https://images.lumacdn.com/cover.png";
@@ -105,13 +109,27 @@ const images = {
 };
 
 /**
- * Luma's API, faked: every event it is asked about is at CodeRabbit, and
- * has a description; every draft it is asked about is still private.
+ * Luma's API, faked: every event it is asked about is at CodeRabbit, is
+ * hosted by Sentry's Luma account and one we have no record of, and has a
+ * description; every draft it is asked about is still private.
  */
 const placedApi = Layer.succeed(
   LumaApi,
   LumaApi.of({
-    eventPeople: Option.none(),
+    eventPeople: Option.some((lumaEventId: string) =>
+      Effect.succeed(
+        Option.some({
+          lumaEventId,
+          managed: true,
+          hosts: [
+            { lumaUserId: "usr-Sentry1", name: "Sentry", avatarUrl: null },
+            { lumaUserId: "usr-Someone1", name: "Someone", avatarUrl: null },
+          ],
+          guestCount: null,
+          checkedInCount: null,
+        }),
+      ),
+    ),
     eventVenue: Option.some((lumaEventId: string) =>
       Effect.succeed(
         Option.some({
@@ -204,6 +222,7 @@ async function run(
     LumaSync.layer,
     LumaVenues.layer,
     LumaDrafts.layer,
+    LumaCompanyHosts.layer,
     ShortSlugs.layer,
     LumaDescriptions.layer,
     ImageIngest.layer,
@@ -297,6 +316,7 @@ describe("a sync run that writes", () => {
         "events",
         "venues",
         "drafts",
+        "company-hosts",
         "slugs",
         "photos",
         "posts",
@@ -326,6 +346,30 @@ describe("a sync run that writes", () => {
         status: "done",
         syncedCount: 24,
       });
+      // Luma lists Sentry, on record, and an account we have no record of,
+      // on each recent evening: Sentry is attached to each, the other only
+      // reported.
+      const hosted = report.steps["company-hosts"];
+      expect(hosted).toMatchObject({ status: "done", unavailable: [] });
+      const attached = (hosted as { attached: ReadonlyArray<unknown> })
+        .attached;
+      expect(attached.length).toBeGreaterThan(0);
+      expect(hosted).toMatchObject({ written: attached.length });
+      expect(hosted).toMatchObject({
+        unknown: expect.arrayContaining([
+          expect.objectContaining({
+            lumaUserId: "usr-Someone1",
+            name: "Someone",
+          }),
+        ]),
+      });
+      expect(
+        await count(
+          db,
+          `SELECT count(*) AS n FROM event_sponsors
+            WHERE sponsor_id = 'c0000000-0000-4000-8000-000000000001'`,
+        ),
+      ).toBe(attached.length + 1);
       // The seed's draft is still private on Luma, a month later and renamed.
       expect(report.steps["drafts"]).toMatchObject({
         status: "done",
@@ -399,6 +443,7 @@ describe("a sync run that writes", () => {
         "events",
         "venues",
         "drafts",
+        "company-hosts",
         "slugs",
         "photos",
         "posts",
