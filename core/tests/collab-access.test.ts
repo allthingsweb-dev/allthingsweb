@@ -41,6 +41,11 @@ function fakeCloudflare(
     readonly perPage?: number;
     /** Items answered nested one deep, as Cloudflare has answered them. */
     readonly nested?: boolean;
+    /**
+     * The lists answered whole on every page, with `result_info: null`, as
+     * Cloudflare's /gateway/lists answers (seen 2026-11-09).
+     */
+    readonly unpagedLists?: boolean;
   } = {},
 ) {
   const perPage = options.perPage ?? 100;
@@ -80,11 +85,14 @@ function fakeCloudflare(
           request,
           reply({
             success: true,
-            result: paged(
-              lists.map(({ id, name, type }) => ({ id, name, type })),
-              page,
-            ),
-            result_info: { page },
+            result:
+              options.unpagedLists === true
+                ? lists.map(({ id, name, type }) => ({ id, name, type }))
+                : paged(
+                    lists.map(({ id, name, type }) => ({ id, name, type })),
+                    page,
+                  ),
+            result_info: options.unpagedLists === true ? null : { page },
           }),
         );
       }
@@ -284,6 +292,33 @@ describe("pages", () => {
         fake.sent.map((s) => new URL(s.url).searchParams.get("page")),
       ).toEqual(["1", "2", "3", "1", "2", "3"]);
     }
+  });
+
+  test("a listing that doesn't page is read once, whole", async () => {
+    const list = {
+      id: "list-9",
+      name: COLLABORATOR_LIST,
+      type: "EMAIL",
+      items: ["a@example.com"],
+    };
+    const fake = fakeCloudflare([list], { unpagedLists: true });
+    expect(
+      value(
+        await run(fake, (access) =>
+          access.sync(["a@example.com", "b@example.com"]),
+        ),
+      ),
+    ).toEqual({ listId: "list-9", added: ["b@example.com"], removed: [] });
+    expect(list.items).toEqual(["a@example.com", "b@example.com"]);
+    // The lists once, then the items to their first empty page.
+    expect(
+      fake.sent
+        .filter((s) => s.method === "GET")
+        .map((s) => {
+          const url = new URL(s.url);
+          return `${url.pathname.endsWith("/items") ? "items" : "lists"} ${url.searchParams.get("page")}`;
+        }),
+    ).toEqual(["lists 1", "items 1", "items 2"]);
   });
 
   test("a revoked member on a later page of items is still removed", async () => {
