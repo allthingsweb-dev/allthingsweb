@@ -24,7 +24,11 @@ import {
   ShortSlugs,
 } from "allthings-core/src/slugs.ts";
 import { LumaDrafts } from "allthings-core/src/luma/drafts.ts";
-import { LumaCompanyHosts } from "allthings-core/src/luma/company-hosts.ts";
+import {
+  LumaCompanyHosts,
+  type RehearsedEvening,
+  rehearsedEvenings,
+} from "allthings-core/src/luma/company-hosts.ts";
 import { LumaVenues } from "allthings-core/src/luma/venues.ts";
 import {
   CommunitySources,
@@ -310,12 +314,14 @@ const companyHosts = (
   attacher: LumaCompanyHosts["Service"],
   limits: SyncLimits,
   dryRun: boolean,
+  rehearsed: ReadonlyArray<RehearsedEvening> = [],
 ) =>
   Effect.gen(function* () {
     const { within, maxEvents } = limits.companyHosts;
     const result = yield* attacher.run({
       dryRun,
       within,
+      rehearsed,
       ...(maxEvents === undefined ? {} : { maxEvents }),
     });
     if (result._tag === "Skipped") return { skipped: result.reason };
@@ -584,11 +590,14 @@ const dryRun = (limits: SyncLimits) =>
     // rolls back: the links step lists theirs too.
     let created: ReadonlyArray<PendingEvening> = [];
     let published: ReadonlyArray<PublishedDraft> = [];
+    // The same evenings as the company hosts step would see them.
+    let rehearsed: ReadonlyArray<RehearsedEvening> = [];
     steps["events"] = yield* step(
       "events",
       Effect.map(sync.rehearse, (rehearsal) => {
         created = pendingEvenings(rehearsal.created);
         published = publishedDrafts(rehearsal.updated);
+        rehearsed = rehearsedEvenings(rehearsal);
         return {
           syncedCount: rehearsal.syncedCount,
           changedCount: rehearsal.changedCount,
@@ -614,7 +623,7 @@ const dryRun = (limits: SyncLimits) =>
     );
     steps["company-hosts"] = yield* step(
       "company-hosts",
-      companyHosts(yield* LumaCompanyHosts, limits, true),
+      companyHosts(yield* LumaCompanyHosts, limits, true, rehearsed),
     );
     steps["slugs"] = yield* step(
       "slugs",

@@ -8,6 +8,7 @@ import {
   Schema,
 } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import { ahead, latestFirst, published } from "../catalog.ts";
 import type { DataSourceError } from "../errors.ts";
 import { orDataSourceError } from "../sql.ts";
 import { LumaApi, type LumaApiError, type LumaEventPeople } from "./api.ts";
@@ -133,6 +134,85 @@ export type CompanyHostsRun =
       readonly written: number | null;
     };
 
+/**
+ * An evening as a rehearsed event sync would leave it, which a dry run's
+ * database doesn't show: the rehearsal rolls back. Each column it doesn't
+ * change is null, and stays as stored.
+ */
+export interface RehearsedEvening {
+  readonly lumaEventId: string;
+  readonly slug: string;
+  readonly isDraft: boolean | null;
+  readonly startDate: string | null;
+  readonly endDate: string | null;
+}
+
+const Rehearsed = Schema.Struct({
+  isDraft: Schema.optionalKey(Schema.Boolean),
+  startDate: Schema.optionalKey(Schema.String),
+  endDate: Schema.optionalKey(Schema.String),
+});
+
+const after = (change: unknown): unknown =>
+  typeof change === "object" && change !== null && "after" in change
+    ? change.after
+    : undefined;
+
+/**
+ * The evenings a rehearsed event sync (src/luma/sync.ts) would create or
+ * change, as a dry run of this step takes them, so it asks about the same
+ * evenings the step would ask about after the sync wrote.
+ */
+export function rehearsedEvenings(rehearsal: {
+  readonly created: ReadonlyArray<{
+    readonly lumaEventId: string;
+    readonly slug: string;
+    readonly fields: Readonly<Record<string, unknown>>;
+  }>;
+  readonly updated: ReadonlyArray<{
+    readonly lumaEventId: string;
+    readonly slug: string;
+    readonly changes: Readonly<Record<string, unknown>>;
+  }>;
+}): ReadonlyArray<RehearsedEvening> {
+  const decode = Schema.decodeUnknownOption(Rehearsed);
+  const of = (
+    lumaEventId: string,
+    slug: string,
+    fields: Record<string, unknown>,
+  ): Array<RehearsedEvening> =>
+    Option.match(decode(fields), {
+      onNone: () => [],
+      onSome: (row) => [
+        {
+          lumaEventId,
+          slug,
+          isDraft: row.isDraft ?? null,
+          startDate: row.startDate ?? null,
+          endDate: row.endDate ?? null,
+        },
+      ],
+    });
+  return [
+    ...rehearsal.created.flatMap(({ lumaEventId, slug, fields }) =>
+      of(lumaEventId, slug, fields),
+    ),
+    ...rehearsal.updated.flatMap(({ lumaEventId, slug, changes }) =>
+      of(lumaEventId, slug, {
+        ...(after(changes["isDraft"]) === undefined
+          ? {}
+          : { isDraft: after(changes["isDraft"]) }),
+        ...(after(changes["startDate"]) === undefined
+          ? {}
+          : { startDate: after(changes["startDate"]) }),
+        ...(after(changes["endDate"]) === undefined
+          ? {}
+          : { endDate: after(changes["endDate"]) }),
+      }),
+    ),
+  ];
+}
+
 export interface CompanyHostsOptions {
   /** Plan only: ask Luma, write nothing. */
   readonly dryRun: boolean;
@@ -140,6 +220,12 @@ export interface CompanyHostsOptions {
   readonly within: Duration.Input;
   /** Ask about at most this many evenings, the latest to start first. */
   readonly maxEvents?: number;
+  /**
+   * A dry run's evenings as the rehearsed event sync would leave them
+   * ({@link rehearsedEvenings}): one it would create is asked about as
+   * `pending:<Luma id>`, with nothing attached yet.
+   */
+  readonly rehearsed?: ReadonlyArray<RehearsedEvening>;
 }
 
 export interface LumaCompanyHostsShape {
@@ -174,20 +260,52 @@ const make = Effect.gen(function* () {
   const api = yield* LumaApi;
   const sql = yield* SqlClient;
 
-  const read = (since: DateTime.Utc, maxEvents: number | null) =>
-    sql`
-      WITH evenings AS (
-        SELECT e.id, e.slug, e.luma_event_id, e.start_date
-        FROM events e
-        WHERE e.is_draft = false AND e.luma_event_id IS NOT NULL
-          AND e.end_date >= ${DateTime.formatIso(since)}::timestamptz
-        ORDER BY e.start_date DESC, e.id
+  const read = (
+    since: DateTime.Utc,
+    maxEvents: number | null,
+    rehearsed: ReadonlyArray<RehearsedEvening>,
+  ) => {
+    const overlay = JSON.stringify(
+      rehearsed.map((row) => ({
+        luma_event_id: row.lumaEventId,
+        slug: row.slug,
+        is_draft: row.isDraft,
+        start_date: row.startDate,
+        end_date: row.endDate,
+      })),
+    );
+    // Stored evenings, with what a rehearsed sync would change laid over
+    // them, and those it would create; a run that writes lays nothing.
+    return sql`
+      WITH r AS (
+        SELECT * FROM jsonb_to_recordset(${overlay}::jsonb) AS r(
+          luma_event_id text, slug text, is_draft boolean,
+          start_date timestamptz, end_date timestamptz)
+      ), x AS (
+        SELECT e.id::text AS id, e.slug, e.luma_event_id,
+          COALESCE(r.is_draft, e.is_draft) AS is_draft,
+          COALESCE(r.start_date, e.start_date) AS start_date,
+          COALESCE(r.end_date, e.end_date) AS end_date
+        FROM events e LEFT JOIN r ON r.luma_event_id = e.luma_event_id
+        UNION ALL
+        SELECT 'pending:' || r.luma_event_id, r.slug, r.luma_event_id,
+          r.is_draft, r.start_date, r.end_date
+        FROM r
+        WHERE NOT EXISTS (
+          SELECT 1 FROM events e WHERE e.luma_event_id = r.luma_event_id)
+      ), evenings AS (
+        SELECT x.id, x.slug, x.luma_event_id,
+          row_number() OVER (ORDER BY ${latestFirst(sql, "x")}) AS ord
+        FROM x
+        WHERE ${published(sql, "x")} AND x.luma_event_id IS NOT NULL
+          AND ${ahead(sql, "x", since)}
+        ORDER BY ord
         LIMIT ${maxEvents}
       )
       SELECT
         COALESCE((
           SELECT json_agg(json_build_object('eventId', v.id, 'slug', v.slug,
-            'lumaEventId', v.luma_event_id) ORDER BY v.start_date DESC, v.id)
+            'lumaEventId', v.luma_event_id) ORDER BY v.ord)
           FROM evenings v
         ), '[]'::json) AS evenings,
         COALESCE((
@@ -201,11 +319,13 @@ const make = Effect.gen(function* () {
         ), '[]'::json) AS people,
         COALESCE((
           SELECT json_agg(es.event_id || ' ' || es.sponsor_id)
-          FROM event_sponsors es WHERE es.event_id IN (SELECT id FROM evenings)
+          FROM event_sponsors es
+          WHERE es.event_id::text IN (SELECT id FROM evenings)
         ), '[]'::json) AS attached`.pipe(
       Effect.flatMap(([row]) => Schema.decodeUnknownEffect(Stored)(row)),
       orDataSourceError,
     );
+  };
 
   const write = (
     attach: ReadonlyArray<CompanyAttachment>,
@@ -235,7 +355,12 @@ const make = Effect.gen(function* () {
     );
   };
 
-  const run = ({ dryRun, within, maxEvents }: CompanyHostsOptions) =>
+  const run = ({
+    dryRun,
+    within,
+    maxEvents,
+    rehearsed = [],
+  }: CompanyHostsOptions) =>
     Option.match(api.eventPeople, {
       onNone: () =>
         Effect.succeed<CompanyHostsRun>({
@@ -249,7 +374,12 @@ const make = Effect.gen(function* () {
             now,
             Duration.fromInputUnsafe(within),
           );
-          const stored = yield* read(since, maxEvents ?? null);
+          const stored = yield* read(
+            since,
+            maxEvents ?? null,
+            // Only a dry run has a rehearsal to lay over the database.
+            dryRun ? rehearsed : [],
+          );
           const answers = yield* Effect.forEach(
             stored.evenings,
             (evening) =>

@@ -10,6 +10,7 @@ import {
   type CompanyHostsOptions,
   LumaCompanyHosts,
   planCompanyHosts,
+  rehearsedEvenings,
 } from "../src/luma/company-hosts.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
@@ -88,6 +89,52 @@ describe("planCompanyHosts", () => {
     expect(plan.attach).toEqual([]);
     expect(plan.unknown).toEqual([
       { slug: "night", lumaUserId: "usr-Initech1", name: "Initech" },
+    ]);
+  });
+});
+
+describe("rehearsedEvenings", () => {
+  test("takes what a rehearsed sync creates, and the draft flag and dates it changes", () => {
+    expect(
+      rehearsedEvenings({
+        created: [
+          {
+            lumaEventId: "evt-new",
+            slug: "new-night",
+            fields: {
+              name: "New night",
+              isDraft: false,
+              startDate: "2026-10-09T01:00:00+00:00",
+              endDate: "2026-10-09T04:00:00+00:00",
+            },
+          },
+        ],
+        updated: [
+          {
+            lumaEventId: "evt-draft",
+            slug: "draft-night",
+            changes: {
+              isDraft: { before: true, after: false },
+              name: { before: "Draft night", after: "Night" },
+            },
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        lumaEventId: "evt-new",
+        slug: "new-night",
+        isDraft: false,
+        startDate: "2026-10-09T01:00:00+00:00",
+        endDate: "2026-10-09T04:00:00+00:00",
+      },
+      {
+        lumaEventId: "evt-draft",
+        slug: "draft-night",
+        isDraft: false,
+        startDate: null,
+        endDate: null,
+      },
     ]);
   });
 });
@@ -234,6 +281,50 @@ describe("LumaCompanyHosts", () => {
       plan: { attach: [], unknown: [] },
       written: 0,
     });
+  });
+
+  test("a dry run asks about the evenings as the rehearsed sync would leave them; a run that writes, as stored", async () => {
+    const rehearsed = [
+      // The seed's draft, published and moved into the window.
+      {
+        lumaEventId: "evt-draft",
+        slug: "2026-09-01-draft-night",
+        isDraft: false,
+        startDate: "2026-10-02T01:00:00Z",
+        endDate: "2026-10-02T04:00:00Z",
+      },
+      // An evening the sync would create.
+      {
+        lumaEventId: "evt-new",
+        slug: "2026-10-08-new-night-evt-new",
+        isDraft: false,
+        startDate: "2026-10-09T01:00:00Z",
+        endDate: "2026-10-09T04:00:00Z",
+      },
+      // The upcoming meetup, cancelled: a draft now.
+      {
+        lumaEventId: "evt with space",
+        slug: "2026-11-05-upcoming",
+        isDraft: true,
+        startDate: null,
+        endDate: null,
+      },
+    ];
+    const dry = await run({ dryRun: true, rehearsed });
+    expect(asked.toSorted()).toEqual(["evt-draft", "evt-new"]);
+    expect(dry).toMatchObject({
+      asked: 2,
+      plan: {
+        attach: [
+          { eventId: "pending:evt-new", company: "Acme" },
+          { eventId: "e0000000-0000-4000-8000-000000000002", company: "Acme" },
+        ],
+      },
+      written: null,
+    });
+    asked.length = 0;
+    await run({ rehearsed });
+    expect(asked).toEqual(["evt with space"]);
   });
 
   test("does nothing without LUMA_API_KEY", async () => {

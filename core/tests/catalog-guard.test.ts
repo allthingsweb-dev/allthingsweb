@@ -57,7 +57,6 @@ const internal: Readonly<Record<string, string>> = {
   "core/src/drafts.ts": "lists drafts for the organizers",
   "web/src/preview/collab.ts":
     "the draft preview: which evenings a signer may help with, drafts included",
-  "core/src/luma/company-hosts.ts": "Luma import of hosting companies",
   "core/src/luma/descriptions.ts": "Luma import",
   "core/src/luma/drafts.ts": "Luma import of drafts",
   "core/src/luma/people-sync.ts": "Luma import of people",

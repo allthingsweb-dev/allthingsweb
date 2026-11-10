@@ -351,8 +351,9 @@ describe("a sync run that writes", () => {
       // reported.
       const hosted = report.steps["company-hosts"];
       expect(hosted).toMatchObject({ status: "done", unavailable: [] });
-      const attached = (hosted as { attached: ReadonlyArray<unknown> })
-        .attached;
+      const attached = (
+        hosted as unknown as { attached: ReadonlyArray<unknown> }
+      ).attached;
       expect(attached.length).toBeGreaterThan(0);
       expect(hosted).toMatchObject({ written: attached.length });
       expect(hosted).toMatchObject({
@@ -588,6 +589,24 @@ describe("a dry run", () => {
       expect(wetAsked).toContain("x");
       expect(dryAsked).toContain("bluesky");
       expect(dryAsked).not.toContain("x");
+    } finally {
+      await dry.db.close();
+      await wet.db.close();
+    }
+  });
+
+  test("plans the very hosting companies a run that writes then attaches", async () => {
+    const dry = await run("dry-run", syncLimits.paid);
+    const wet = await run("write", syncLimits.paid);
+    try {
+      const attached = (outcome: unknown) =>
+        (outcome as { attached: ReadonlyArray<unknown> }).attached;
+      const planned = attached(dry.report.steps["company-hosts"]);
+      expect(planned.length).toBeGreaterThan(0);
+      expect(planned).toEqual(attached(wet.report.steps["company-hosts"]));
+      expect(dry.report.steps["company-hosts"]).toMatchObject({
+        written: null,
+      });
     } finally {
       await dry.db.close();
       await wet.db.close();
