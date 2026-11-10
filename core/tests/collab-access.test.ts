@@ -304,7 +304,14 @@ describe("pages", () => {
       type: "EMAIL",
       items: ["a@example.com"],
     };
-    const fake = fakeCloudflare([list], { unpagedLists: true });
+    // A hundred other lists first: the whole answer is read, not its first 100.
+    const others = Array.from({ length: 100 }, (_, i) => ({
+      id: `other-${i}`,
+      name: `other ${i}`,
+      type: "EMAIL",
+      items: [],
+    }));
+    const fake = fakeCloudflare([...others, list], { unpagedLists: true });
     expect(
       value(
         await run(fake, (access) =>
