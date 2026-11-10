@@ -46,6 +46,8 @@ function fakeCloudflare(
      * Cloudflare's /gateway/lists answers (seen 2026-11-09).
      */
     readonly unpagedLists?: boolean;
+    /** Items answered with `result_info: null`, still a page at a time. */
+    readonly itemsWithoutPageInfo?: boolean;
   } = {},
 ) {
   const perPage = options.perPage ?? 100;
@@ -106,7 +108,8 @@ function fakeCloudflare(
             success: true,
             result:
               options.nested === true && values.length > 0 ? [values] : values,
-            result_info: { page },
+            result_info:
+              options.itemsWithoutPageInfo === true ? null : { page },
           }),
         );
       }
@@ -319,6 +322,24 @@ describe("pages", () => {
           return `${url.pathname.endsWith("/items") ? "items" : "lists"} ${url.searchParams.get("page")}`;
         }),
     ).toEqual(["lists 1", "items 1", "items 2"]);
+  });
+
+  test("items with no page info are still read to their first empty page", async () => {
+    const list = {
+      id: "list-9",
+      name: COLLABORATOR_LIST,
+      type: "EMAIL",
+      items: ["kept@example.com", "gone@example.com"],
+    };
+    const fake = fakeCloudflare([list], {
+      perPage: 1,
+      unpagedLists: true,
+      itemsWithoutPageInfo: true,
+    });
+    expect(
+      value(await run(fake, (access) => access.sync(["kept@example.com"]))),
+    ).toEqual({ listId: "list-9", added: [], removed: ["gone@example.com"] });
+    expect(list.items).toEqual(["kept@example.com"]);
   });
 
   test("a revoked member on a later page of items is still removed", async () => {
