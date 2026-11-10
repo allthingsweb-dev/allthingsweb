@@ -1590,6 +1590,10 @@
           "description": "",
           "speakers": [
             {
+              "person": "erik-thorelli",
+              "role": "moderator"
+            },
+            {
               "person": "evan-bacon",
               "role": "speaker"
             },
@@ -1607,6 +1611,11 @@
               "confirmedBy": "Erik",
               "on": "2026-10-10",
               "in": "chat"
+            },
+            {
+              "confirmedBy": "Erik",
+              "on": "2026-11-10",
+              "in": "his answer to Claude's question: he moderated the panel"
             },
             "https://x.com/Ari_S_123/status/2013817431194505353"
           ],

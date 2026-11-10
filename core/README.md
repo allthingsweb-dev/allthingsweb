@@ -924,8 +924,10 @@ says so under `askedBy`: who asked, the day, and their words.
   it replaces (`was`), and replaces it only while the column still holds
   just that. A photo source is never replaced once its image is copied.
 - A title is the person's job title now, as of the day it was read
-  (their talks already say when they spoke), or their latest known title
-  where no source gives a current one.
+  (their talks already say when they spoke), and never a stale one:
+  "Role, Company" only when a public page from the last 12 months says so,
+  just the company when only that is confirmed ("Moss"), and otherwise
+  their part at our evenings, as the site names it ("Speaker, at/ai").
 - A bio is the person's own words, at most trimmed or put in the third
   person, or one an organizer asked for (`askedBy`): two or three
   sentences in the site's voice on what they build, what they're known
