@@ -41,6 +41,7 @@ import { ThroughStore } from "../through-store.ts";
 import { aboutPage } from "./about.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
 import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
+import { privacyPage, privacyPath } from "./privacy.tsx";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
@@ -671,6 +672,24 @@ const codeOfConduct = page(
 );
 
 /**
+ * The privacy page changes only when the Worker is deployed, but for the
+ * hosts' portraits in its footer; it is cached as a page, as /brand is.
+ */
+const privacy = page(privacyPath, ({ theme, acceptEncoding, images }) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      privacyPage({ origin, theme, portraits, images }),
+      acceptEncoding,
+      { cacheControl: read ? "page" : "failure", theme, images },
+    );
+  }),
+);
+
+/**
  * Where an event's routes are: at the root, and a shared evening's link
  * under shared/ (core's src/short-slugs.ts).
  */
@@ -1046,6 +1065,7 @@ export const pageRoutes = Layer.mergeAll(
   nowLabPerson,
   brand,
   codeOfConduct,
+  privacy,
   eventAt(""),
   eventAt(sharedPrefix),
   calendarAt(""),

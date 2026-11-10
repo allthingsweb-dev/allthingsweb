@@ -208,6 +208,14 @@ PAGES = (
         ("How we treat each other at every evening,", "and how to report a concern."),
     ),
     Page(
+        "og-privacy.png",
+        "privacy · allthings/_",
+        ("privacy",),
+        False,
+        "what we keep, and why",
+        ("What this site keeps about you,", "and how to have it taken down."),
+    ),
+    Page(
         "og-brand.png",
         "allthings/brand",
         ("brand",),

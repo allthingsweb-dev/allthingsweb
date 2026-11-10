@@ -29,6 +29,10 @@ export const ogCards = {
     cards.codeOfConduct,
     "code of conduct · allthings/_ · How we treat each other at every evening, and how to report a concern.",
   ),
+  privacy: card(
+    cards.privacy,
+    "privacy · allthings/_ · What this site keeps about you, and how to have it taken down.",
+  ),
   brand: card(
     cards.brand,
     "allthings/brand · The rules every page, cover and line of copy is checked against.",

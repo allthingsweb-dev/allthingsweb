@@ -87,6 +87,7 @@ const pageCards: Readonly<Record<string, string>> = {
   people: ogCards.people.src,
   about: ogCards.about.src,
   "code-of-conduct": ogCards.codeOfConduct.src,
+  privacy: ogCards.privacy.src,
   brand: ogCards.brand.src,
   "not-found": ogCards.notFound.src,
 };
