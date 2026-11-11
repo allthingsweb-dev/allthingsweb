@@ -48,6 +48,7 @@ async function prNumbers(
   return open.map((pr) => pr.number);
 }
 
+/** Rewrites one PR's header from its current state, unless it is unchanged. */
 async function refresh(
   github: GitHub,
   repo: Repo,
@@ -74,6 +75,10 @@ async function refresh(
   console.log(`#${number}: header updated`);
 }
 
+/**
+ * Refreshes the header of every PR the triggering event touches. One PR's
+ * failure doesn't stop the rest, but fails the run.
+ */
 async function main(): Promise<void> {
   const [owner, name] = required("GITHUB_REPOSITORY").split("/");
   if (!owner || !name) throw new Error("GITHUB_REPOSITORY must be owner/name");
