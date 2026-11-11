@@ -1,1 +1,0 @@
-ALTER TABLE "hacks" ADD COLUMN "project_link" text;

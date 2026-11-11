@@ -76,8 +76,8 @@ it is on the fields the app had.
 
 ## Luma sync
 
-`src/luma/` is the app's hourly Luma calendar sync (`app/src/lib/luma/`) as
-Effect services, for a Worker cron to run: `Luma` reads the calendar's public
+`src/luma/` is the hourly Luma calendar sync, carried over from the old app,
+as Effect services for a Worker cron to run: `Luma` reads the calendar's public
 iCalendar feed over `HttpClient` (retrying 429, 5xx, timeouts and dropped
 connections), and `LumaSync` writes it to `events` in one statement, touching
 only the events Luma changed, so `updated_at` says when it last did. Which
@@ -207,7 +207,7 @@ needs no owner (see "Filling in profiles").
 
 ## Image ingestion
 
-`src/ingest/` is the image half of the app's hourly sync (`app/src/lib/event-covers`, `profile-photos`, `post-images`) as an Effect service, `ImageIngest`. It fills in three kinds of missing image:
+`src/ingest/` is the image half of the hourly sync, carried over from the old app, as an Effect service, `ImageIngest`. It fills in three kinds of missing image:
 
 - each event without a cover gets its Luma cover
 - each profile without a photo gets the one at its `photo_source_url`
@@ -714,9 +714,8 @@ DATABASE_URL=… bun run completeness --check  # also fail if an evening of talk
                                              # or any published evening, past or upcoming, has no venue
 ```
 
-It only reads, so the read-only `site_reader` role is enough. The admin MCP
-server (`app/scripts/mcp-server.ts`) serves the same JSON as
-`get_completeness_report`. `.github/workflows/completeness.yaml` runs
+It only reads, so the read-only `site_reader` role is enough.
+`.github/workflows/completeness.yaml` runs
 `--check` against production every Monday and puts the report in the run's
 summary.
 
@@ -726,8 +725,8 @@ summary.
 row has the post's canonical URL (unique), its plain text, its author, when
 it was posted, and a status: `approved` shows, `hidden` was taken down,
 `pending` waits for an organizer. Nothing approves itself. Images are kept
-as their source URLs, and the app's hourly sync copies them into the media
-bucket (`app/src/lib/post-images/`). Pages show only those copies.
+as their source URLs, and the hourly sync copies them into the media
+bucket (`src/ingest/`). Pages show only those copies.
 
 `src/posts/` reads a post from public sources that need no key. X posts
 come through the FixTweet API (api.fxtwitter.com), Bluesky posts through
@@ -742,7 +741,6 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pos
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts apply [--dry-run]   # every post in backfill/posts.json
 ```
 
-The admin MCP server's `add_event_post` runs the same script.
 `tests/posts.test.ts` runs against recorded answers; nothing in the tests
 reaches X, FixTweet or Bluesky.
 
@@ -773,8 +771,7 @@ Worker searches the last week's evenings on its schedule and queues what it find
 only through `public.queue_event_post` (migrations/0018_pending_posts.ts), a
 SECURITY DEFINER function with its search path pinned that checks every
 field and inserts nothing but pending posts; the role holds no INSERT on
-`event_posts`, and EXECUTE is revoked from everyone else. The admin MCP server's `list_pending_posts`, `approve_post` and
-`hide_post` run the same script.
+`event_posts`, and EXECUTE is revoked from everyone else.
 
 ## An evening's photos
 
@@ -838,9 +835,7 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pho
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos remove effect 5 --approve <token>   # exactly that change
 ```
 
-The admin MCP server's `list_event_photos`, `add_event_photos`,
-`replace_event_photo` and `remove_event_photo` run the same script.
-`remove_event_photo` without `approve` is the dry run. `tests/photos.test.ts`
+`tests/photos.test.ts`
 runs it against `tests/seed.sql` with a media origin that only keeps what it
 is given.
 
@@ -931,7 +926,7 @@ says so under `askedBy`: who asked, the day, and their words.
   for and what they did at allthings, every claim on a page the fact
   lists. A terse profile line is no bio.
 - A photo is only ever a `photo_source_url` on a host the hourly ingestion
-  copies from (`app/src/lib/profile-photos/hosts.ts`), which then makes it
+  copies from (`profilePhotoHosts` in `src/ingest/remote.ts`), which then makes it
   the profile's image.
 - Anything uncertain, a same-name collision above all, is kept under
   `held` with its reason and never written.
@@ -1183,8 +1178,7 @@ cover centered on black in the smallest exact 16:9 frame that holds it,
 unscaled (`scripts/pad-cover.ts`), by default to the system's temporary
 directory.
 
-It only reads. The admin MCP server's `get_promo_drafts` runs the same
-script. `tests/promo.test.ts` keeps each seeded evening's drafts as golden
+It only reads. `tests/promo.test.ts` keeps each seeded evening's drafts as golden
 files in `tests/fixtures/promo/`; after an intended change, regenerate them
 with `UPDATE_GOLDEN=1 bun test tests/promo.test.ts` and read the diff.
 
@@ -1256,9 +1250,7 @@ planning rows: they live only in the database, written through the CLI.
 the studio (see "The studio's connection"); no site role may use the
 schema. Each change runs in
 one transaction and prints the row as it now is; every command takes
-`--json`, which the admin MCP server's planning tools (`add_idea`,
-`list_wanted_speakers`, `search_planning`, `audit_planning` and the rest)
-read, so the tools and the CLI can never disagree. People and companies are
+`--json`, for scripts and agents to read. People and companies are
 named by id or exact name, events by slug, and a name two rows share is
 refused with both ids. Every command that writes takes `--dry-run`: the write runs in a
 transaction that is rolled back, so it prints exactly what it would be and
@@ -1319,8 +1311,7 @@ blockers and advice, its lineup and talks with whether each person has
 said yes, the companies we'd like to host, its collaboration (rounds, active
 invitations by role, submissions; only as a role that reads every row of
 it), its open questions, decisions and notes, and the last 20 lines of its
-log. The admin MCP server's `draft_status`, `add_draft_note` and
-`resolve_draft_note` run the same commands.
+log.
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan note <draft slug> --kind question --text "CodeRabbit or Vercel?" --dry-run
@@ -1399,7 +1390,6 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run rea
 ```
 
 It exits 1 when something blocks publishing, 2 on a draft that isn't there.
-The admin MCP server's `get_draft_readiness` runs the same script.
 
 ## Collaborating on a draft
 
@@ -1536,10 +1526,8 @@ checks it sees every row (it counts them, and `planning.collab_row_counts()`
 counts them as their owner, in one statement) and refuses as any role row
 security holds back, rather than read them short. `collab access sync`
 checks again as it reads the invitations: unless it sees every
-collaborator, it leaves Access's list as it is. Each command is also an admin
-MCP tool (`collab_invite`, `collab_brief_set`, `collab_review`, … in
-app/scripts/collab.ts, which runs the CLI with `--json`). `collab_show` and
-`collab_export` open a round only into a file and return its path, so a
+collaborator, it leaves Access's list as it is. `collab show` and
+`collab export` open a round only into a file and print its path, so a
 round's answers never reach an agent's transcript. What changes who may see what (an invitation, a revocation, the
 brief, a review) is read first: without `--approve`, the command prints
 what it would write and the approval token of exactly that, as publishing
@@ -1836,8 +1824,7 @@ the change at once; `--approve <token>` works the plan out again, goes on
 only if it hashes the same, sets approval on the ticket types, sends one
 event update with the rest, and reads registration back to check each took.
 Questions are the whole list, in the order given across `--question`
-(required) and `--question-optional`; `--clear-questions` asks none. The
-admin MCP server's `luma_registration` runs the same command.
+(required) and `--question-optional`; `--clear-questions` asks none.
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") \
@@ -1867,8 +1854,7 @@ It works the way publish does: `--dry-run` reads and prints who would be
 added and removed and the approval token for exactly that (the event, its
 hosts now and the changes), saying so when the event is public;
 `--approve <token>` works the plan out again, goes on only if it hashes the
-same, adds, then removes, and reads the hosts back to check each took. The
-admin MCP server's `luma_hosts` runs the same command.
+same, adds, then removes, and reads the hosts back to check each took.
 
 Each host is added at the least access it needs: `none` (shown on the page,
 no rights to manage it: a hosting company, anyone credited) unless

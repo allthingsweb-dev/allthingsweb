@@ -44,7 +44,7 @@ import { PlanningError } from "../src/planning/planning.ts";
 /**
  * Collaborating on a draft (src/collab/; README, "Collaborating on a
  * draft"), the studio's side, at the Postgres at DATABASE_URL. Every
- * command takes --json, which the admin MCP server's collab tools read.
+ * command takes --json, for scripts and agents to read.
  *
  *   bun run collab invite <slug> --email … --name … --role round_host --round 5   read it, and its token
  *   bun run collab invite <slug> --email … --name … --role round_host --round 5 --approve <token>

@@ -284,16 +284,15 @@ describe("planning is private", () => {
 
 /**
  * Files that hold data rather than code: anything in a backfill, fixtures
- * or seed directory, anything named for a seed, and SQL or tabular data
- * outside the migrations that define the schema.
+ * or seed directory, anything named for a seed, and any SQL or tabular
+ * file (the migrations that define the schema are TypeScript).
  */
 const isDataFile = (path: string): boolean =>
   path
     .split("/")
     .some((part) => ["backfill", "fixtures", "seed", "seeds"].includes(part)) ||
   /seed/i.test(basename(path)) ||
-  (/\.(sql|csv|tsv|jsonl|ndjson)$/.test(path) &&
-    !path.startsWith("app/migrations/"));
+  /\.(sql|csv|tsv|jsonl|ndjson)$/.test(path);
 
 /** production-schema.txt is the catalog: planning appears there only as schema. */
 const catalog = "core/tests/fixtures/production-schema.txt";

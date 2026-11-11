@@ -37,7 +37,7 @@ import {
  * a draft"; migrations/0026_draft_collaboration.ts): who is invited to an
  * evening, its rounds, brief, tasks and logistics, and the organizers'
  * reviews of what collaborators hand in. `bun run collab` (scripts/collab.ts)
- * and the admin MCP server's collab tools run through here.
+ * runs through here.
  *
  * It runs as the studio (infra/scripts/studio.ts), whose own policies
  * (migrations/0029_studio_collab.ts) show it every row, or as the owner,

@@ -12,8 +12,7 @@ import {
 
 /**
  * Listing an evening's photos, adding them, and replacing or removing one
- * (scripts/photos.ts, and the admin MCP server's `list_event_photos`,
- * `add_event_photos`, `replace_event_photo` and `remove_event_photo`): each
+ * (scripts/photos.ts): each
  * file is re-encoded the way the bucket keeps photos (upright, at most
  * {@link maxEdge} pixels on its long edge, JPEG, no metadata, so no
  * location), stored through the upload Worker under a key named after its

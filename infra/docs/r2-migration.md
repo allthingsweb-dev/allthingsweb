@@ -187,7 +187,7 @@ The source bucket stays intact, so any object can be re-copied at any time.
 
 ## Later: the full cutover
 
-Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to allthings.dev. Step 4 is under way: since November 10, 2026 (22:29 UTC) the redirect is Cloudflare's, so the app serves nothing; deleting `app/` and retiring the Vercel project are what is left. Each step is its own PR, in this order:
+Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to allthings.dev. Step 4 is done but for the app's Upstash store, Sentry project and Stack Auth project: since November 10, 2026 (22:29 UTC) the redirect is Cloudflare's, the Vercel project was deleted on November 11, and `app/` is gone. Each step is its own PR, in this order:
 
 1. **The sync moves to the sync Worker.** The handover in [`infra/README.md`](../README.md#the-luma-sync) ("The handover"), one PR per step, so the two never write in the same hour: It needs no zone: the Sync Worker runs in the allthings account while allthings.dev is still pending, so the handover can finish before the domain moves.
    1. `schedule: "hourly"` with `mode: "dry-run"` in `infra/src/sync.ts` (done), and deploy prod. Compare a few hours of the Worker's logged work with the Vercel cron's writes.
@@ -205,8 +205,8 @@ Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to all
    **The upload Worker stays.** The admin is not its only caller, so `MediaUpload` and its check stay in the stack (the Vercel env writes stayed too, until step 4 removed them: a deploy no longer touches Vercel). These store media through it:
    - `core/scripts/photos.ts` (`bun run photos`), which adds and replaces an evening's photos.
    - `core/scripts/reencode-originals.ts` (`bun run reencode`), which re-encodes oversized originals.
-   - The admin MCP server on stdio (`app/scripts/mcp-server.ts`). `add_event_photos` and `replace_event_photo` run `bun run photos`. `create_profile`, `set_profile_image`, `create_host`, `delete_event_images` and `delete_orphaned_image` use the app's media store (`app/scripts/functions.ts`), whose `appMediaStore().put` and `removeStoredObject` write to and delete from the bucket through the upload Worker at `MEDIA_UPLOAD_URL`, with `MEDIA_UPLOAD_TOKEN`.
-   - The Vercel cron's image ingestion (`app/src/lib/remote-images/bucket.ts`), which stores Luma covers, profile photos and post images. It stops when step 1.2 removes the cron. From step 1.3 the sync Worker stores Luma covers, profile photos and post images in the bucket itself. Each run in `write` mode stores the images it finds still missing, as many as its time and item limits allow, and later runs store the rest. So nothing the handover skipped is lost.
+   - Until `app/` was deleted in step 4, the admin MCP server on stdio (`app/scripts/mcp-server.ts`). It is gone with the app. `add_event_photos` and `replace_event_photo` ran `bun run photos`. `create_profile`, `set_profile_image`, `create_host`, `delete_event_images` and `delete_orphaned_image` used the app's media store (`app/scripts/functions.ts`), whose `appMediaStore().put` and `removeStoredObject` wrote to and deleted from the bucket through the upload Worker at `MEDIA_UPLOAD_URL`, with `MEDIA_UPLOAD_TOKEN`.
+   - The Vercel cron's image ingestion (`app/src/lib/remote-images/bucket.ts`, gone with the app), which stored Luma covers, profile photos and post images. It stops when step 1.2 removes the cron. From step 1.3 the sync Worker stores Luma covers, profile photos and post images in the bucket itself. Each run in `write` mode stores the images it finds still missing, as many as its time and item limits allow, and later runs store the rest. So nothing the handover skipped is lost.
 
 3. **allthingsweb.dev redirects to allthings.dev.** The old Next app does it, behind one flag that ships off. No DNS change is needed. Done Nov 2 at 18:33 UTC (below, "The flip").
    - **The code.** `app/src/middleware.ts` runs on every path but Next's static files (`/_next/static/*`, which its matcher leaves out, so the old app still serves them, and nothing on allthings.dev links to them). With `ALLTHINGS_DEV_REDIRECT=on`, it answers each request with a redirect from `app/src/lib/cutover/redirect.ts`; with the variable unset or `off`, it redirects nothing.
@@ -231,9 +231,9 @@ Steps 1 to 3 are done: since November 2, 2026, allthingsweb.dev redirects to all
    - **Undo.** Set the variable to `off` (or remove it) and redeploy, then give www.allthingsweb.dev back its redirect the same way: read it first (it must show `null`), PATCH `{"redirect":"allthingsweb.dev","redirectStatusCode":307}`, then read it again and check that www answers 307 to the apex. Browsers that cached a redirect follow it for at most an hour.
 4. **Vercel retires.** allthingsweb.dev's redirects then need a home off Vercel:
    - Done Nov 10: allthingsweb.dev is a Cloudflare zone, and a redirect rule there, managed in esthor/domains (`infra/alchemy/redirects.json`), sends allthingsweb.dev and www.allthingsweb.dev to allthings.dev, 301 with path and query kept (308 for other methods). The Worker's legacy handling does the rest, so where the app redirected in one hop (a long slug, `/speakers`), it now takes two. Its mail (Google Workspace MX) is unchanged.
-   - Delete the Vercel project and its env, then Stack Auth's project and the app's Sentry project.
+   - Done Nov 11: the Vercel project is deleted, after its Git connection and allthingsweb.dev's two domains came off it. Its env is in the allthings vault. Left for Andre, who owns them: the app's Upstash store, its Sentry project and its Stack Auth project.
    - Done: nothing outside `app/` runs it. The stack no longer writes the Vercel env, and the tests that held the Worker to the app's answers hold it to answers recorded from the app on Nov 10 (`web/tests/fixtures/legacy-app.json`, `core/tests/fixtures/legacy-rich-text.json`); the parity tests that ran the app's sync, ingestion and drizzle history are gone.
-   - Delete `app/` and its workflow, once Vercel no longer builds the repository: without `app/`, every commit's Vercel deployment fails.
+   - Done: `app/` and its workflow are deleted, now that Vercel no longer builds the repository.
 
 ## Open questions and assumptions
 

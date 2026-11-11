@@ -5,9 +5,6 @@
 .env
 .playwright-mcp
 
-# Sentry Config File
-.sentryclirc
-
 # Cursor
 .cursor/mcp.json
 

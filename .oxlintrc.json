@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  // One rule set for every package. app/ and web/ extend it with their JSX
-  // plugins in their own .oxlintrc.json.
+  // One rule set for every package. web/ extends it with its JSX plugins in
+  // its own .oxlintrc.json.
   "plugins": ["typescript", "unicorn", "oxc", "import", "promise"],
   "categories": {
     "correctness": "error",
@@ -21,15 +21,11 @@
     // Omitting keys with a rest sibling (`const { a, ...rest } = x`) is how we
     // drop fields, so those siblings are used.
     "eslint/no-unused-vars": ["error", { "ignoreRestSiblings": true }],
-    // TypeScript checks namespace members already, and this rule resolves
-    // conditional exports wrongly (it misses @sentry/nextjs's browser API).
+    // TypeScript checks namespace members already.
     "import/namespace": "off",
-    "import/no-unassigned-import": [
-      "error",
-      { "allow": ["**/*.css", "server-only"] }
-    ],
-    // Each of today's casts (most in app/) needs a runtime check to replace
-    // it. That is its own change; this one keeps behavior as it is.
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+    // Each of today's casts needs a runtime check to replace it. That is its
+    // own change; this one keeps behavior as it is.
     "typescript/no-unsafe-type-assertion": "off",
     // JSX event handlers may be async: React ignores what they return.
     "typescript/no-misused-promises": [

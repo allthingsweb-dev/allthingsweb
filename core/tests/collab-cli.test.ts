@@ -12,8 +12,8 @@ import { seal } from "../src/collab/seal.ts";
 import { cliUrlFor, readSeed } from "./support/database.ts";
 
 /**
- * `bun run collab` (scripts/collab.ts) end to end, as the admin MCP
- * server's collab tools run it: flags in, text or JSON out, against a real
+ * `bun run collab` (scripts/collab.ts) end to end, as an agent runs it:
+ * flags in, text or JSON out, against a real
  * Postgres. The service itself is tested in collab.test.ts.
  *
  * Needs `CORE_TEST_POSTGRES_URL`, as tests/postgres.test.ts does; the test

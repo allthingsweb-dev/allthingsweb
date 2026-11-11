@@ -8,7 +8,6 @@ RESTORE := $(shell echo "\033[0m")
 PACKAGE_MANAGER := bun
 CURRENT_DIR := $(shell pwd)
 DEPENDENCIES := bun git
-APP_DIR := $(CURRENT_DIR)/app
 CLI_DIR := $(CURRENT_DIR)/cli
 AUX_DIR := $(CURRENT_DIR)/aux
 
@@ -29,38 +28,22 @@ check-dependencies:
 	done
 	@echo "All ${YELLOW}dependencies are installed.${RESTORE}"
 
-app/.env.local:
-	@echo "You need to create the '.env.local' file from the 'example.env' example."
-	@exit 1
-
 .PHONY: install
 install: check-dependencies ## Install the dependencies
-	@cd $(APP_DIR) && $(PACKAGE_MANAGER) install
 	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) install
 	@cd $(AUX_DIR) && $(PACKAGE_MANAGER) install
 
 .PHONY: fmt
 fmt: ## Format the code
-	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run fmt
 	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run fmt
 	@cd $(AUX_DIR) && $(PACKAGE_MANAGER) run fmt
 
 .PHONY: check
 check: ## Check the code
-	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run check
-	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run typecheck
 	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run check
 	@cd $(CLI_DIR) && $(PACKAGE_MANAGER) run typecheck
 	@cd $(AUX_DIR) && $(PACKAGE_MANAGER) run check
 	@cd $(AUX_DIR) && $(PACKAGE_MANAGER) run typecheck
-
-.PHONY: build
-build: ## Build the Next.js app
-	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run build
-
-.PHONY: serve
-serve: app/.env ## Serve the Next.js application
-	@cd $(APP_DIR) && $(PACKAGE_MANAGER) run dev
 
 .PHONY: build-cli
 build-cli:  ## Build CLI

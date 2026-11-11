@@ -46,8 +46,8 @@ import {
 /**
  * Organizers' planning (src/planning/) at the Postgres at DATABASE_URL:
  * ideas for evenings, speakers we'd like and when they're free, companies
- * we'd like to host, and notes. Every command takes --json, which the
- * admin MCP server's planning tools read.
+ * we'd like to host, and notes. Every command takes --json, for scripts
+ * and agents to read.
  *
  *   bun run plan idea add --title … --pitch … --program social [--topic …] [--inspired-by <slug>]
  *   bun run plan idea list [--status idea]

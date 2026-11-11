@@ -7,8 +7,8 @@ import { STUDIO } from "../../infra/scripts/studio.ts";
 import { cliUrlFor, readSeed, testRole } from "./support/database.ts";
 
 /**
- * `bun run plan` (scripts/plan.ts) end to end, as the admin MCP server's
- * planning tools run it: flags in, JSON out, against a real Postgres. The
+ * `bun run plan` (scripts/plan.ts) end to end, as an agent runs it:
+ * flags in, JSON out, against a real Postgres. The
  * service itself is tested in planning.test.ts.
  *
  * Needs `CORE_TEST_POSTGRES_URL`, as tests/postgres.test.ts does; the test

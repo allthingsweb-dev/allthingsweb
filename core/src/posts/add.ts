@@ -14,8 +14,8 @@ import {
 } from "./store.ts";
 
 /**
- * Adds the post at `url` to the event with `slug`: the one path the CLI,
- * the admin MCP tool and backfills share. A post already stored is reported
+ * Adds the post at `url` to the event with `slug`: the one path the CLI
+ * and backfills share. A post already stored is reported
  * as it is, without asking its platform when its URL alone says which post
  * it is. A dry run reads the post and writes nothing.
  *

@@ -17,8 +17,7 @@ import { readsEveryRow } from "./privacy.ts";
  * A draft evening's notes, decisions and questions, and its status in one
  * read (README, "A draft's log, notes and status";
  * migrations/0028_draft_log.ts). `bun run plan note` and `plan status`
- * (scripts/plan.ts) and the admin MCP server's draft tools run through
- * here.
+ * (scripts/plan.ts) run through here.
  *
  * A note is written once, as ALLTHINGS_ACTOR, with its line in the draft's
  * log in the same transaction; only an open question is ever changed, to
