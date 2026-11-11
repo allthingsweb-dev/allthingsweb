@@ -132,7 +132,7 @@ export function privacyPage({
             command saves on your machine. The hub, on the host's laptop, logs
             each call by the code's id, never your name, with only the choices
             it knows (a scene, color, zone or track), never other text you type.
-            The host sees the latest calls.
+            The host can read the whole log, which stays on that laptop.
           </p>
           <h2 id="elsewhere">Our accounts elsewhere</h2>
           <p>
