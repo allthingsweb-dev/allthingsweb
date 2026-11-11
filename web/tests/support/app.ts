@@ -36,12 +36,17 @@ export interface App {
   ) => Answer;
 }
 
+/** One request's key among the recorded MCP answers: its method, headers and body. */
 const keyOf = (
   method: string,
   headers: Readonly<Record<string, string>>,
   body: string | null,
 ): string => JSON.stringify([method, headers, body]);
 
+/**
+ * The app's recorded answers, with `{seededAt}` set to when `db`'s seed ran.
+ * A request the recording doesn't have fails the test, naming it.
+ */
 export async function loadApp(db: PGlite): Promise<App> {
   const recorded = (await Bun.file(
     new URL("../fixtures/legacy-app.json", import.meta.url),
@@ -52,6 +57,7 @@ export async function loadApp(db: PGlite): Promise<App> {
   );
   const seededAt = rows[0]?.at.toISOString();
   if (seededAt === undefined) throw new Error("The seed has no event 1.");
+  /** `answer` with the seed time of `db` in place of `{seededAt}`. */
   const restore = (answer: Answer): Answer => ({
     ...answer,
     body: answer.body.replaceAll("{seededAt}", seededAt),

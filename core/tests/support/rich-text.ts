@@ -19,6 +19,7 @@ const legacy = (await Bun.file(
   readonly plainText: Readonly<Record<string, string>>;
 };
 
+/** The answer recorded for `html`, or an error naming the input that has none. */
 const recorded = (
   answers: Readonly<Record<string, string>>,
   html: string,
