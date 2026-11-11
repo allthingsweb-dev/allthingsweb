@@ -35,8 +35,7 @@ import {
  * Organizers' planning (migrations/0012_planning.ts): ideas for evenings,
  * speakers we'd like on stage and when they're free, companies we'd like to
  * host, and notes on the people and companies we know. The CLI
- * (scripts/plan.ts) and the admin MCP server's planning tools both run
- * through here, so they can never disagree.
+ * (scripts/plan.ts) runs through here.
  *
  * Every change runs in one transaction and returns the row as it now is.
  * People and companies are named by id or by exact name (any case), events

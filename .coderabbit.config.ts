@@ -34,7 +34,7 @@ const areas = [
   {
     dir: "web",
     rules: [
-      "web is the Cloudflare Worker that serves allthings.dev: the pages, the v1 API, the MCP server, the draft preview (src/preview/) and the hourly Luma sync (src/sync/). It replaces the old app in app/.",
+      "web is the Cloudflare Worker that serves allthings.dev: the pages, the v1 API, the MCP server, the draft preview (src/preview/) and the hourly Luma sync (src/sync/).",
       "Reads build on core/src/catalog.ts, and the surfaces must agree: web/tests/parity.test.ts holds list_events, /api/v1, the feeds, the pages and the sitemap to the same evenings, people and order.",
       "The pages run no JavaScript; forms post to the same page. The one exception is the lab (src/pages/lab/): its variants marked `scripted` load the site's own module (src/client/lab.ts) under `script-src 'self'`, and fall back to a still composition without it. Canonical URLs, the sitemap, feeds and link previews always name https://allthings.dev (ORIGIN), on every stage.",
       "The Web Worker never reads a draft: only the preview Worker does, as draft_collab, behind Cloudflare Access.",
@@ -78,12 +78,6 @@ const areas = [
       "Marks are generated: brand/marks/generate.py writes them, and `uv run --locked generate.py --check` in brand/marks must pass.",
     ],
   },
-  {
-    dir: "app",
-    rules: [
-      "app is the retired Next.js app on Vercel: allthingsweb.dev redirects at Cloudflare now, so it serves nothing, and nothing outside it runs its code. It is deleted next; a change inside it is out of place.",
-    ],
-  },
 ] as const;
 
 const pathInstructions: Reviews["path_instructions"] = areas.map(
@@ -109,7 +103,7 @@ const migrationsCheck: CustomCheck = {
   name: "Migrations reach production safely",
   mode: "error",
   instructions: scoped(
-    "core/migrations/ or app/migrations/",
+    "core/migrations/",
     `Production applies migrations by id and name (core/README.md, "Migrations"). Pass only if every item holds; otherwise fail and name each that doesn't.
 
 ${numbered([
@@ -145,7 +139,7 @@ const secretsCheck: CustomCheck = {
   name: "Secrets are never printed",
   mode: "error",
   instructions: scoped(
-    "core/migrations/, app/migrations/ or infra/",
+    "core/migrations/ or infra/",
     `Pass only if every item holds for the code, scripts, workflows and documentation this pull request changes; otherwise fail and name each that doesn't.
 
 ${numbered([
@@ -161,7 +155,7 @@ const rolesCheck: CustomCheck = {
   name: "Database roles hold only listed grants",
   mode: "error",
   instructions: scoped(
-    "core/migrations/, app/migrations/ or infra/",
+    "core/migrations/ or infra/",
     `Pass only if every item holds; otherwise fail and name each that doesn't.
 
 ${numbered([
@@ -186,7 +180,7 @@ export default defineConfig((ctx) => {
         prefixes.some((prefix) => path.startsWith(prefix)),
       ));
 
-  const migrations = touches("core/migrations/", "app/migrations/");
+  const migrations = touches("core/migrations/");
   const infra = touches("infra/");
 
   const customChecks: CustomCheck[] = [
@@ -209,9 +203,6 @@ export default defineConfig((ctx) => {
         unit_tests: { enabled: false },
         simplify: { enabled: true },
       },
-      // The retired app is deleted whole; its files need no line review, and
-      // counting them would put the deletion over the review's file limit.
-      path_filters: ["!app/**"],
       path_instructions: pathInstructions,
       ...(customChecks.length > 0
         ? { pre_merge_checks: { custom_checks: customChecks } }

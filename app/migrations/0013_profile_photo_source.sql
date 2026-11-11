@@ -1,1 +1,0 @@
-ALTER TABLE "profiles" ADD COLUMN "photo_source_url" text;
