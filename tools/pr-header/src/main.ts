@@ -9,12 +9,6 @@ import {
 } from "./github.ts";
 import { renderHeader, withHeader } from "./render.ts";
 import { targetsFor } from "./targets.ts";
-import {
-  assignPreviewAlias,
-  previewAlias,
-  stablePreviewUrl,
-  type VercelConfig,
-} from "./vercel.ts";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -58,38 +52,13 @@ async function refresh(
   github: GitHub,
   repo: Repo,
   number: number,
-  vercel: VercelConfig | null,
   mark: string | undefined,
-  justDeployed: { sha: string; url: string } | null,
 ): Promise<void> {
   const pr = await fetchPullRequest(github, repo, number);
   const deployment = await previewDeployment(github, repo, pr.headRefOid);
-
-  let stableUrl: string | null = null;
-  if (vercel) {
-    // Stable previews are a nicety: a Vercel failure must not block the header.
-    try {
-      const alias = previewAlias(number);
-      // Only the head commit's preview moves the alias, so a slow build of an
-      // older commit can't take it back.
-      if (justDeployed?.sha === pr.headRefOid) {
-        await assignPreviewAlias(vercel, justDeployed.url, alias);
-      }
-      stableUrl = await stablePreviewUrl(
-        vercel,
-        alias,
-        deployment?.url ?? null,
-      );
-    } catch (error) {
-      console.warn(
-        `#${number}: no stable preview: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
   const body = withHeader(
     pr.body,
-    renderHeader(summarize(repo, pr, deployment, stableUrl), mark),
+    renderHeader(summarize(repo, pr, deployment), mark),
   );
   if (body === (pr.body ?? "")) {
     console.log(`#${number}: header up to date`);
@@ -111,34 +80,14 @@ async function main(): Promise<void> {
   const repo = { owner, name };
   const github = createGitHub(required("GITHUB_TOKEN"));
   const eventName = required("GITHUB_EVENT_NAME");
-  const payload = (await Bun.file(required("GITHUB_EVENT_PATH")).json()) as {
-    deployment?: { sha: string; environment: string };
-    deployment_status?: { state: string; environment_url?: string };
-  };
-
-  const token = process.env["VERCEL_TOKEN"];
-  const vercel: VercelConfig | null = token
-    ? {
-        token,
-        teamId: required("VERCEL_TEAM_ID"),
-        projectId: required("VERCEL_PROJECT_ID"),
-      }
-    : null;
-  const status = payload.deployment_status;
-  const justDeployed =
-    eventName === "deployment_status" &&
-    payload.deployment?.environment === "Preview" &&
-    status?.state === "success" &&
-    status.environment_url
-      ? { sha: payload.deployment.sha, url: status.environment_url }
-      : null;
+  const payload: object = await Bun.file(required("GITHUB_EVENT_PATH")).json();
 
   const mark = await logo();
   const numbers = await prNumbers(github, repo, eventName, payload);
   let failed = false;
   for (const number of numbers) {
     try {
-      await refresh(github, repo, number, vercel, mark, justDeployed);
+      await refresh(github, repo, number, mark);
     } catch (error) {
       failed = true;
       console.error(

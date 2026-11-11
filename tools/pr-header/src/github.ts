@@ -120,7 +120,7 @@ export type PullRequestData = {
   };
 };
 
-/** The newest Vercel preview deployment of the PR's head commit. */
+/** The newest preview deployment of the PR's head commit. */
 export type PreviewDeployment = {
   state: string;
   url: string | null;
@@ -146,7 +146,7 @@ function contextOutcome(context: Context): "passed" | "failed" | "running" {
 }
 
 // Shown in their own badges, or this workflow itself.
-const separateChecks = /^(CodeRabbit|Vercel|PR header)/;
+const separateChecks = /^(CodeRabbit|PR header)/;
 
 const mergeStates: Record<string, PrState["mergeState"]> = {
   CLEAN: "clean",
@@ -163,7 +163,6 @@ export function summarize(
   repo: Repo,
   pr: PullRequestData,
   deployment: PreviewDeployment,
-  stablePreviewUrl: string | null,
 ): PrState {
   const contexts =
     pr.commits.nodes[0]?.commit.statusCheckRollup?.contexts.nodes ?? [];
@@ -240,7 +239,7 @@ export function summarize(
     },
     preview: {
       state: previewState,
-      url: deployment ? (stablePreviewUrl ?? deployment.url) : null,
+      url: deployment?.url ?? null,
     },
     coderabbit: {
       review,
@@ -250,7 +249,7 @@ export function summarize(
   };
 }
 
-/** The newest preview deployment for a commit, from Vercel's GitHub records. */
+/** The newest preview deployment for a commit, as the Deploy workflow records it. */
 export async function previewDeployment(
   github: GitHub,
   repo: Repo,

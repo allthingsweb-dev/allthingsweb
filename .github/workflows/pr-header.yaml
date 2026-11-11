@@ -57,7 +57,3 @@ jobs:
         run: bun tools/pr-header/src/main.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional: with a token, previews get a stable per-PR address.
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_TEAM_ID: team_3lnclzRbyCETAcu719mQjKVP
-          VERCEL_PROJECT_ID: prj_fLEr8ydZgpAUv8e7wCtJKX7e5Rpg

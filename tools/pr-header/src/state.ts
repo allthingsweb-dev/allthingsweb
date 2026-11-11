@@ -16,7 +16,7 @@ export type PrState = {
   diff: { additions: number; deletions: number; files: number };
   preview: {
     state: "ready" | "building" | "failed" | "none";
-    /** The PR's stable alias when one is set up, else the latest deployment. */
+    /** The latest preview deployment's address. */
     url: string | null;
   };
   coderabbit: {
