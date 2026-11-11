@@ -31,7 +31,7 @@ function data(overrides: Partial<PullRequestData> = {}): PullRequestData {
 
 const ready = {
   state: "success",
-  url: "https://allthingsweb-abc-team.vercel.app",
+  url: "https://allthings-web-pr-52-abc123.allthings.workers.dev",
 };
 
 function thread(login: string, isResolved: boolean) {
@@ -64,7 +64,7 @@ describe("summarizing a pull request", () => {
         ],
       },
     });
-    expect(summarize(repo, pr, ready, null).coderabbit.review).toBe("approved");
+    expect(summarize(repo, pr, ready).coderabbit.review).toBe("approved");
   });
 
   test("shows CodeRabbit as reviewing while its check runs", () => {
@@ -76,9 +76,7 @@ describe("summarizing a pull request", () => {
       },
       commits: contexts(checkRun("CodeRabbit", "IN_PROGRESS", null)),
     });
-    expect(summarize(repo, pr, ready, null).coderabbit.review).toBe(
-      "reviewing",
-    );
+    expect(summarize(repo, pr, ready).coderabbit.review).toBe("reviewing");
   });
 
   test("counts only CodeRabbit's review threads as findings", () => {
@@ -92,60 +90,56 @@ describe("summarizing a pull request", () => {
         ],
       },
     });
-    expect(summarize(repo, pr, ready, null).coderabbit.findings).toEqual({
+    expect(summarize(repo, pr, ready).coderabbit.findings).toEqual({
       resolved: 2,
       open: 1,
     });
   });
 
-  test("judges checks without CodeRabbit, Vercel or this header's own run", () => {
+  test("judges checks without CodeRabbit or this header's own run", () => {
     const passing = data({
       commits: contexts(
         checkRun("🧪 Tests", "COMPLETED", "SUCCESS"),
         checkRun("CodeRabbit", "IN_PROGRESS", null),
-        checkRun("Vercel", "COMPLETED", "FAILURE"),
         checkRun("PR header", "IN_PROGRESS", null),
       ),
     });
-    expect(summarize(repo, passing, ready, null).checks).toBe("passing");
+    expect(summarize(repo, passing, ready).checks).toBe("passing");
     const failing = data({
       commits: contexts(
         checkRun("🧪 Tests", "COMPLETED", "FAILURE"),
         checkRun("🧪 CLI", "IN_PROGRESS", null),
       ),
     });
-    expect(summarize(repo, failing, ready, null).checks).toBe("failing");
+    expect(summarize(repo, failing, ready).checks).toBe("failing");
     const running = data({
       commits: contexts(checkRun("🧪 CLI", "QUEUED", null)),
     });
-    expect(summarize(repo, running, ready, null).checks).toBe("running");
-    expect(summarize(repo, data(), ready, null).checks).toBe("none");
+    expect(summarize(repo, running, ready).checks).toBe("running");
+    expect(summarize(repo, data(), ready).checks).toBe("none");
   });
 
-  test("links the stable preview when there is one, else the deployment", () => {
-    const stable = "https://allthings-pr-52.vercel.app";
-    expect(summarize(repo, data(), ready, stable).preview).toEqual({
+  test("links the latest preview deployment", () => {
+    expect(summarize(repo, data(), ready).preview).toEqual({
       state: "ready",
-      url: stable,
+      url: ready.url,
     });
-    expect(summarize(repo, data(), ready, null).preview.url).toBe(ready.url);
-    expect(summarize(repo, data(), null, stable).preview).toEqual({
+    expect(summarize(repo, data(), null).preview).toEqual({
       state: "none",
       url: null,
     });
     expect(
-      summarize(repo, data(), { state: "in_progress", url: null }, null).preview
+      summarize(repo, data(), { state: "in_progress", url: null }).preview
         .state,
     ).toBe("building");
     expect(
-      summarize(repo, data(), { state: "error", url: null }, null).preview
-        .state,
+      summarize(repo, data(), { state: "error", url: null }).preview.state,
     ).toBe("failed");
   });
 
   test("maps GitHub's merge states", () => {
     const merge = (mergeStateStatus: string) =>
-      summarize(repo, data({ mergeStateStatus }), ready, null).mergeState;
+      summarize(repo, data({ mergeStateStatus }), ready).mergeState;
     expect(merge("CLEAN")).toBe("clean");
     expect(merge("DIRTY")).toBe("conflicts");
     expect(merge("BEHIND")).toBe("behind");
@@ -174,7 +168,7 @@ describe("findings outside the diff", () => {
       },
       reviewThreads: { nodes: [thread("coderabbitai", false)] },
     });
-    expect(summarize(repo, pr, ready, null).coderabbit.findings).toEqual({
+    expect(summarize(repo, pr, ready).coderabbit.findings).toEqual({
       resolved: 0,
       open: 3,
     });
@@ -189,7 +183,7 @@ describe("findings outside the diff", () => {
         ],
       },
     });
-    expect(summarize(repo, pr, ready, null).coderabbit.findings.open).toBe(0);
+    expect(summarize(repo, pr, ready).coderabbit.findings.open).toBe(0);
   });
 });
 
@@ -231,7 +225,7 @@ describe("loading a pull request", () => {
     const pr = await fetchPullRequest(github, repo, 52);
     expect(pr.reviewThreads.nodes).toHaveLength(3);
     expect(calls.map((c) => c["after"] ?? null)).toEqual([null, "c1"]);
-    expect(summarize(repo, pr, ready, null).coderabbit.findings).toEqual({
+    expect(summarize(repo, pr, ready).coderabbit.findings).toEqual({
       resolved: 1,
       open: 2,
     });

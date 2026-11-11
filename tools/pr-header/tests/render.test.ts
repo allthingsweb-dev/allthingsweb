@@ -9,6 +9,8 @@ import {
 } from "../src/render.ts";
 import type { PrState } from "../src/state.ts";
 
+const previewUrl = "https://allthings-web-pr-52-abc123.allthings.workers.dev";
+
 const pr: PrState = {
   repo: { owner: "allthingsweb-dev", name: "allthingsweb" },
   number: 52,
@@ -17,7 +19,7 @@ const pr: PrState = {
   isDraft: false,
   mergeState: "clean",
   diff: { additions: 120, deletions: 30, files: 6 },
-  preview: { state: "ready", url: "https://allthings-pr-52.vercel.app" },
+  preview: { state: "ready", url: previewUrl },
   coderabbit: { review: "approved", findings: { resolved: 5, open: 0 } },
   checks: "passing",
 };
@@ -33,7 +35,7 @@ describe("the PR header", () => {
     expect(
       badges(renderHeader(pr)).map(({ alt, href }) => [alt, href]),
     ).toEqual([
-      ["preview: ready", "https://allthings-pr-52.vercel.app"],
+      ["preview: ready", previewUrl],
       ["coderabbit: approved", changeStackUrl(pr)],
       ["findings: 5 resolved · 0 open", pr.url],
       ["checks: passing", `${pr.url}/checks`],
@@ -90,7 +92,7 @@ describe("the PR header", () => {
 
   test("summarizes the diff and the key links on one line", () => {
     expect(renderHeader(pr)).toContain(
-      `<sub>[Preview](https://allthings-pr-52.vercel.app) · [Change Stack](${changeStackUrl(pr)}) · [Checks](${pr.url}/checks) · [Files](${pr.url}/files): +120 −30 in 6 files</sub>`,
+      `<sub>[Preview](${previewUrl}) · [Change Stack](${changeStackUrl(pr)}) · [Checks](${pr.url}/checks) · [Files](${pr.url}/files): +120 −30 in 6 files</sub>`,
     );
   });
 
