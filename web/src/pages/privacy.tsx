@@ -130,8 +130,9 @@ export function privacyPage({
             At an evening that passes the aux, <code>allthings aux</code> sets
             the room's lights or music with the code on your card, which the
             command saves on your machine. The hub, on the host's laptop, logs
-            each change by the code's id, never by your name or what you typed,
-            and the host sees the latest ones.
+            each call by the code's id, never your name, with only the choices
+            it knows (a scene, color, zone or track), never other text you type.
+            The host sees the latest calls.
           </p>
           <h2 id="elsewhere">Our accounts elsewhere</h2>
           <p>
