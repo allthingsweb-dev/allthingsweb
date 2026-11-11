@@ -532,6 +532,7 @@ export interface OgCards {
   readonly peopleJpeg: Image;
   readonly about: Image;
   readonly codeOfConduct: Image;
+  readonly privacy: Image;
   readonly brand: Image;
   readonly notFound: Image;
   /** An event card's grounds, which the Worker sets its words on. */
@@ -625,6 +626,7 @@ async function buildOg(): Promise<{
       peopleJpeg: await mark("og-people.jpg", og),
       about: await mark("og-about.png", og),
       codeOfConduct: await mark("og-code-of-conduct.png", og),
+      privacy: await mark("og-privacy.png", og),
       brand: await mark("og-brand.png", og),
       notFound: await mark("og-not-found.png", og),
       eventNight: await mark("og-event-night.png", og),

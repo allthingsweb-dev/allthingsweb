@@ -190,6 +190,7 @@ export const slugRoots: ReadonlySet<string> = new Set([
   "r",
   "api",
   "code-of-conduct",
+  "privacy",
 ]);
 
 /**
