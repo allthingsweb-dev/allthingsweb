@@ -71,7 +71,8 @@ The public contract is `src/contract.ts`, the one source of it. The CLI's
 zod copy (`cli/src/schemas.ts`) is held to it by `tests/contract.test.ts`,
 which the core workflow runs whenever `cli/src` changes. The old app's
 schemas and answers are legacy: where tests still compare the Worker with
-the app, it is on the fields the app has.
+the answers it recorded before it was deleted (web/tests/support/app.ts),
+it is on the fields the app had.
 
 ## Luma sync
 
@@ -81,9 +82,7 @@ iCalendar feed over `HttpClient` (retrying 429, 5xx, timeouts and dropped
 connections), and `LumaSync` writes it to `events` in one statement, touching
 only the events Luma changed, so `updated_at` says when it last did. Which
 columns Luma owns, and which the site does, is written down in
-`src/luma/sync.ts`. `tests/luma-parity.test.ts` runs the app's sync and
-core's on copies of one database with the same feed and requires the same
-rows; nothing in the tests reaches Luma.
+`src/luma/sync.ts`. Nothing in the tests reaches Luma.
 
 `LumaSync.rehearse` is the dry run. It runs the same statement in a
 transaction that always rolls back, and reports every event the sync would
@@ -221,8 +220,6 @@ needs no owner (see "Filling in profiles").
 **Storing** an image means putting it in the `MediaBucket` under a new key. Then one statement records it in `images` and sets it on its row, only while the row still has none. An object stored for nothing is deleted again.
 
 Each phase starts nothing new after its budget, and `pending` is the dry run: it lists what would be fetched and fetches nothing.
-
-`tests/ingest-parity.test.ts` runs each phase and the app's on copies of one database, with the same downloads, processing, ids and time. It requires the same rows, the same objects stored and deleted, and the same results.
 
 ## Who took part
 
@@ -1790,7 +1787,7 @@ sets it through Luma's API (`calendars/update`):
 - the two sentences from brand/foundations.md;
 - Bridge, the slash's color, as its tint;
 - the site, and the channels the site's footer lists (web/src/links.ts);
-- the a/ app icon as its avatar (app/public/brand/icon-512.png).
+- the a/ app icon as its avatar (brand/public/icon-512.png).
 
 `tests/luma-calendar.test.ts` holds each of these to its source. The address
 changes only with `--slug`. It moved from luma.com/allthingsweb to
@@ -2043,9 +2040,7 @@ OP_SERVICE_ACCOUNT_TOKEN=… bun run social x-sign-in --from-xurl               
 ## Migrations
 
 `migrations/` holds the schema as Effect SQL migrations, applied by Effect's
-migrator (`src/migrator.ts`). The Next app in `app/` still runs on drizzle and
-its hand-applied `app/migrations` until the cutover; both share production
-until then (see below).
+migrator (`src/migrator.ts`). Production takes migrations from here alone.
 
 ### Writing one
 
@@ -2059,16 +2054,6 @@ until then (see below).
   of the migrations here.
 - Each runs in one transaction with the others pending, so no
   `CREATE INDEX CONCURRENTLY`; split such a change out when it is needed.
-- Until the cutover, a schema change ships twice: as the app's drizzle
-  migration and as a migration here. `tests/migrations.test.ts` replays
-  `app/migrations` and fails when the two schemas drift apart. Change
-  `app/src/lib/schema.ts`, run `bun run db:generate --name <name>` in `app/`
-  for the migration and its snapshot, and append any data statements to the
-  generated SQL by hand. Only the test replays those files: production, now
-  stamped, takes migrations from here alone. One exception: a migration that
-  only brings production back to what `app/migrations` already creates (one
-  of the hand-applied differences the test lists) ships here alone, and its
-  entry leaves that list.
 - Add the lines the migration creates to
   `tests/fixtures/production-schema.txt`, which is production's catalog once
   every migration here has run (`bun run migrate`, below).
@@ -2080,8 +2065,8 @@ until then (see below).
   failure names each migration to renumber, and the number it should take.
 
 `0001_baseline` is production's schema on 2026-10-04, read from its catalog,
-not a copy of `app/migrations`: production received changes by hand that
-those files do not record. The test lists each difference with its reason.
+not a replay of the old Next app's drizzle migrations: production received
+changes by hand that those never recorded.
 `tests/fixtures/production-schema.txt` is that catalog plus what each later
 migration adds, and the tests hold the migrations to it both in PGlite and on
 Postgres 17 (`tests/postgres.test.ts`, in CI).
@@ -2106,8 +2091,8 @@ holds: fetched with neonctl (with `--org-id org-broad-sea-60121176`, signed
 in as a member of All Things Web), never stored (see "The studio's
 connection").
 
-A migration reaches production before the code that needs it: the app on
-Vercel builds and serves against production's database (previews too), so
+A migration reaches production before the code that needs it: every stage's
+Web Worker, pull request previews included, reads production's database, so
 code that reads a new column fails until it exists. Once a pull request with
 a migration is approved and green, check out its final head commit and run
 both against production; the dry run must list exactly that pull request's

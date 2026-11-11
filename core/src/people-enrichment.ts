@@ -46,10 +46,10 @@ import {
  * person, or one an organizer asked for (`askedBy`): written in the
  * site's voice from the pages its fact lists, every claim on one of them.
  *
- * Photos go only into `photo_source_url`, and only from hosts the app's
- * hourly ingestion copies from (app/src/lib/profile-photos/hosts.ts), which
- * then sets the profile's image. A dry run does everything, reports it,
- * and rolls back.
+ * Photos go only into `photo_source_url`, and only from hosts the hourly
+ * sync's image ingestion copies from (`profilePhotoHosts` in
+ * src/ingest/remote.ts), which then sets the profile's image. A dry run
+ * does everything, reports it, and rolls back.
  */
 
 /** An https URL with a domain-name host, as the public contract accepts, and no whitespace. */
@@ -87,8 +87,9 @@ const fact = <S extends Schema.Top>(value: S) =>
   });
 
 /**
- * Hosts profile photos may come from: the app's ingestion list
- * (app/src/lib/profile-photos/hosts.ts), which a test keeps this equal to.
+ * Hosts profile photos may come from: the sync's ingestion list
+ * (`profilePhotoHosts` in src/ingest/remote.ts), which a test keeps this
+ * equal to.
  */
 export const photoHosts: ReadonlySet<string> = new Set([
   "avatars.githubusercontent.com",

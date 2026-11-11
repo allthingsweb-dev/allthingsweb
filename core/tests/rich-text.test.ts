@@ -6,6 +6,7 @@ import {
 } from "../src/html-entities.ts";
 import { htmlToPlainText, sanitizeRichText } from "../src/rich-text.ts";
 import {
+  appPlainText,
   appSanitize,
   corpus,
   divergences,
@@ -16,14 +17,10 @@ import {
 
 /**
  * Talk descriptions, sanitized in Bun as the Worker sanitizes them in workerd
- * (web/tests/rich-text.test.ts runs the same corpus there), against the app's
- * sanitize-html and against what makes HTML safe to render.
+ * (web/tests/rich-text.test.ts runs the same corpus there), against the
+ * retired app's sanitize-html (its answers recorded in
+ * fixtures/legacy-rich-text.json) and against what makes HTML safe to render.
  */
-
-const app = new URL("../../app/", import.meta.url);
-const { htmlToPlainText: appPlainText } = (await import(
-  new URL("src/lib/public-api/mappers.ts", app).href
-)) as { htmlToPlainText: (html: string) => string };
 
 const sanitize = async (html: string): Promise<string> =>
   Effect.runPromise(sanitizeRichText(html));
@@ -52,7 +49,7 @@ describe("htmlToPlainText", () => {
     "%j reads as the app's",
     async (html) => {
       const sanitized = await Effect.runPromise(sanitizeRichText(html));
-      expect(htmlToPlainText(sanitized)).toBe(appPlainText(appSanitize(html)));
+      expect(htmlToPlainText(sanitized)).toBe(appPlainText(html));
     },
   );
 });

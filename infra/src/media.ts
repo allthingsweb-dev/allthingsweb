@@ -23,7 +23,7 @@ export interface MediaZone {
  * What prod is in the deploying account:
  *
  * - `serve`: allthings.dev is active here, so its bucket answers on
- *   media.allthings.dev and the upload Worker and Vercel's settings follow it.
+ *   media.allthings.dev and the upload Worker follow it.
  * - `stage`: the allthings account while the domain hasn't moved in. Only the
  *   bucket, for scripts/copy-media.ts to fill. media.allthings.dev isn't
  *   attached yet: R2 refuses a custom domain on a pending zone ("The
@@ -31,7 +31,7 @@ export interface MediaZone {
  *   turns active attaches it (see {@link mediaDomains}).
  *
  * Anywhere else prod is refused: an account the domain has left would
- * otherwise drop the upload Worker and the Vercel settings the app relies on.
+ * otherwise drop the upload Worker core's scripts rely on.
  */
 export type ProductionRole = "serve" | "stage";
 

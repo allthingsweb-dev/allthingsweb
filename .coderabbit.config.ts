@@ -48,7 +48,7 @@ const areas = [
       "When alchemy.run.ts declares more, ci-token.json gains every permission group the new declarations need to deploy that it doesn't hold already; when they need none it lacks (a binding that provisions nothing through the API, such as an Analytics Engine dataset, needs none), it stays as it is.",
       "Each database role holds exactly the grants its script lists (scripts/site-reader.ts, site-sync.ts, draft-collab.ts) and is made with SQL by the database owner, never in Neon's console or API.",
       "Secrets are never printed: they are read with `op read` into variables, and scripts pass tokens through memory only.",
-      "Production has one writer at a time, the app's cron or the Sync Worker (tests/sync.test.ts). A change to SYNC in src/sync.ts is a one-line pull request of its own.",
+      "The Sync Worker is production's one sync writer (workerWrites in src/sync.ts). A change to SYNC in src/sync.ts is a one-line pull request of its own.",
       "Media objects are never overwritten: a replacement goes under a new key.",
     ],
   },
@@ -81,9 +81,7 @@ const areas = [
   {
     dir: "app",
     rules: [
-      "app is the old Next.js app on Vercel, which web/ and core replace. Keep changes to what it needs until the cutover; new features belong in web/ and core.",
-      "A change to app/src/lib/schema.ts ships twice until the cutover: as the app's drizzle migration (bun run db:generate --name <name>) and as a core migration. core/tests/migrations.test.ts replays app/migrations and fails when the two drift; production takes migrations from core alone.",
-      "app/vercel.json may not bring the Luma cron back while the Sync Worker writes (infra/tests/sync.test.ts).",
+      "app is the retired Next.js app on Vercel: allthingsweb.dev redirects at Cloudflare now, so it serves nothing, and nothing outside it runs its code. It is deleted next; a change inside it is out of place.",
     ],
   },
 ] as const;
@@ -118,9 +116,9 @@ ${numbered([
   "Forward only, and never edited after merge: no migration that exists on the base branch is modified, renamed or deleted. To change something, the pull request adds a migration.",
   "Each new core migration is migrations/NNNN_short_name.ts with the next id after the last, default-exporting statements([...]), listed in core/migrations/index.ts with no id skipped. Its number must be free: CI's migration guard (Migration numbers) compares it with what production has applied and with other open pull requests, and when it fails, the migration takes the number it names.",
   "No CREATE INDEX CONCURRENTLY: each migration runs in one transaction with the others pending.",
-  "Until the cutover, a change to a table in app/src/lib/schema.ts ships twice: as the app's drizzle migration in app/migrations (from bun run db:generate) and as a core migration. The one exception is a migration that only brings production back to what app/migrations already creates: it ships in core alone, and its entry leaves the list in core/tests/migrations.test.ts. The lines a migration creates are added to core/tests/fixtures/production-schema.txt.",
+  "The lines a migration creates are added to core/tests/fixtures/production-schema.txt.",
   "The code already on main keeps running on the migrated schema: a column or table is added before code uses it, and a drop or rename is a later migration, after the code stops using the old shape.",
-  "A migration reaches production before the code that needs it, since the app on Vercel and its previews read production's database. The pull request description must say whether this pull request's migrations must be applied to production before it merges, and if so, that they will be run as core/README.md, \"Running them\", says: once approved and green, from the final head commit, `bun run migrate --dry-run` against production lists exactly this pull request's migrations as pending, then `bun run migrate`, then merge, with nothing pushed in between. Fail if the description doesn't say either way.",
+  "A migration reaches production before the code that needs it, since every stage's Web Worker, pull request previews included, reads production's database. The pull request description must say whether this pull request's migrations must be applied to production before it merges, and if so, that they will be run as core/README.md, \"Running them\", says: once approved and green, from the final head commit, `bun run migrate --dry-run` against production lists exactly this pull request's migrations as pending, then `bun run migrate`, then merge, with nothing pushed in between. Fail if the description doesn't say either way.",
 ])}`,
   ),
 };
@@ -136,7 +134,7 @@ const productionScriptsCheck: CustomCheck = {
 ${numbered([
   "A script or command that writes to production shows what it will do before it does it, and checks the result afterwards, as the existing ones do: `bun run plan --stage prod` before `bun run deploy --stage prod`, and every deploy proves uploads work by storing and deleting one object; copy-media.ts's plan, copy and verify, which never overwrites or deletes; dry runs that roll back or only read. A new production write without a dry run or plan before it, or a change that skips one, fails.",
   "Tests and rehearsals never write to production. Tests run on PGlite or a disposable Postgres (CORE_TEST_POSTGRES_URL) made with the scripts' own statements, and nothing in them reaches Luma or Discord. A rehearsal that reads production (bun run sync:rehearse, web/scripts/sync-dry-run.ts) writes nothing: its transaction always rolls back, and it runs as site_sync.",
-  "Production has one writer at a time: the app's cron or the Sync Worker, never both (infra/tests/sync.test.ts). A change to SYNC in src/sync.ts is a one-line pull request of its own, in the handover's order.",
+  "The Sync Worker is production's one sync writer (workerWrites in src/sync.ts). A change to SYNC in src/sync.ts is a one-line pull request of its own.",
   "When alchemy.run.ts declares more, ci-token.json gains, in the same pull request, every permission group the new declarations need to deploy that it doesn't hold already. It stays as it is only when none of them needs one it lacks (a binding that provisions nothing through the API, such as an Analytics Engine dataset, needs none beyond the Workers Scripts Write that uploads the script).",
 ])}`,
   ),
@@ -211,6 +209,9 @@ export default defineConfig((ctx) => {
         unit_tests: { enabled: false },
         simplify: { enabled: true },
       },
+      // The retired app is deleted whole; its files need no line review, and
+      // counting them would put the deletion over the review's file limit.
+      path_filters: ["!app/**"],
       path_instructions: pathInstructions,
       ...(customChecks.length > 0
         ? { pre_merge_checks: { custom_checks: customChecks } }

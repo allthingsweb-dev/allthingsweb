@@ -3,7 +3,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { Effect, Exit } from "effect";
 import type { Now } from "../src/now.ts";
 import type { XPosts } from "../src/x-posts.ts";
-import { profilePhotoHosts } from "../../app/src/lib/profile-photos/hosts.ts";
+import { profilePhotoHosts } from "../src/ingest/remote.ts";
 import {
   applyPeople,
   decodePeopleFile,
@@ -741,7 +741,7 @@ describe("decodePeopleFile", () => {
 });
 
 describe("photo hosts", () => {
-  test("are the hosts the app's hourly ingestion copies from", () => {
+  test("are the hosts the sync's image ingestion copies from", () => {
     expect([...photoHosts].toSorted()).toEqual(
       [...profilePhotoHosts].toSorted(),
     );

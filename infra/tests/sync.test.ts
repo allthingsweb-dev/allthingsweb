@@ -5,7 +5,6 @@ import * as Redacted from "effect/Redacted";
 import * as Result from "effect/Result";
 import { Writer } from "../src/reader.ts";
 import {
-  APP_SYNC_CRON,
   cronsFor,
   requiredSecret,
   SYNC,
@@ -39,23 +38,8 @@ describe("the sync Worker", () => {
     expect(cronsFor("off")).toEqual([]);
   });
 
-  test("runs at the top of every hour once on, as the app's cron does", () => {
+  test("runs at the top of every hour once on", () => {
     expect(cronsFor("hourly")).toEqual(["0 * * * *"]);
-  });
-
-  test("never writes while the app's cron on Vercel still does", async () => {
-    const vercel = (await Bun.file(
-      new URL("../../app/vercel.json", import.meta.url),
-    ).json()) as { readonly crons?: ReadonlyArray<{ readonly path: string }> };
-    const appWrites = (vercel.crons ?? []).some(
-      (cron) => cron.path === APP_SYNC_CRON,
-    );
-    // Hand over in two pull requests: remove the app's cron first, then
-    // set `mode: "write"` (infra/README.md, "The Luma sync").
-    expect({ worker: workerWrites(SYNC), app: appWrites }).not.toEqual({
-      worker: true,
-      app: true,
-    });
   });
 
   test("writes only on a schedule, in write mode", () => {

@@ -1,0 +1,669 @@
+{
+  "v1": {
+    "/api/v1/events": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"events\":[{\"id\":\"e0000000-0000-4000-8000-000000000004\",\"name\":\"Upcoming meetup\",\"startDate\":\"2026-11-06T02:00:00.000Z\",\"endDate\":\"2026-11-06T05:00:00.000Z\",\"slug\":\"2026-11-05-upcoming\",\"tagline\":\"Soon\",\"attendeeLimit\":100,\"streetAddress\":null,\"shortLocation\":\"TBA\",\"fullAddress\":null,\"lumaEventId\":\"evt with space\",\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Upcoming meetup preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":null,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":\"https://lu.ma/event/evt with space\"},{\"id\":\"e0000000-0000-4000-8000-000000000003\",\"name\":\"Hack day\",\"startDate\":\"2026-10-03T16:00:00.000Z\",\"endDate\":\"2026-10-04T01:00:00.000Z\",\"slug\":\"2026-10-03-hack-day\",\"tagline\":\"Build something\",\"attendeeLimit\":80,\"streetAddress\":null,\"shortLocation\":null,\"fullAddress\":null,\"lumaEventId\":null,\"isHackathon\":true,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Hack day preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":null,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"hackathon\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":null},{\"id\":\"e0000000-0000-4000-8000-000000000005\",\"name\":\"Ends now\",\"startDate\":\"2026-10-03T15:00:00.000Z\",\"endDate\":\"2026-10-03T19:00:00.000Z\",\"slug\":\"2026-10-03-ends-now\",\"tagline\":\"Just finished\",\"attendeeLimit\":30,\"streetAddress\":null,\"shortLocation\":\"Park\",\"fullAddress\":\"Golden Gate Park\",\"lumaEventId\":null,\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Ends now preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":\"not a url\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":null},{\"id\":\"e0000000-0000-4000-8000-000000000001\",\"name\":\"React at Acme\",\"startDate\":\"2026-08-13T01:00:00.000Z\",\"endDate\":\"2026-08-13T04:00:00.000Z\",\"slug\":\"2026-08-12-react-at-acme\",\"tagline\":\"Server components in practice\",\"attendeeLimit\":120,\"streetAddress\":\"1 Market St\",\"shortLocation\":\"Acme HQ\",\"fullAddress\":\"1 Market St, San Francisco, CA 94105\",\"lumaEventId\":\"evt-react\",\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"id\":\"d0000000-0000-4000-8000-000000000001\",\"url\":\"https://storage.example/covers/react.png\",\"placeholder\":\"data:image/png;base64,AA\",\"alt\":\"React at Acme\",\"width\":1200,\"height\":630,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"recordingUrl\":\"https://www.youtube.com/watch?v=abc123\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":118,\"lumaCheckedInCount\":97,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":\"<p>Server components in practice, with <strong>two talks</strong> and time to talk after.</p>\\n\",\"lumaSummary\":\"Server components in practice, with two talks and time to talk after.\",\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":\"https://lu.ma/event/evt-react\"},{\"id\":\"e0000000-0000-4000-8000-000000000006\",\"name\":\"Café night\",\"startDate\":\"2025-12-03T02:00:00.000Z\",\"endDate\":\"2025-12-03T05:00:00.000Z\",\"slug\":\"2025-12-02-café-night\",\"tagline\":\"Coffee and code\",\"attendeeLimit\":40,\"streetAddress\":null,\"shortLocation\":null,\"fullAddress\":\"500 Coffee Ave, Oakland, CA\",\"lumaEventId\":null,\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Café night preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":\"javascript:alert(1)\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":null}]}"
+    },
+    "/api/v1/speakers": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000001\",\"name\":\"Ada Lovelace\",\"image\":{\"id\":\"d0000000-0000-4000-8000-000000000005\",\"url\":\"https://storage.example/people/ada.jpg\",\"placeholder\":\"data:image/png;base64,AE\",\"alt\":\"Ada Lovelace\",\"width\":400,\"height\":400,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"title\":\"Engineer\",\"bio\":\"Writes compilers.\",\"type\":\"member\",\"socials\":{\"linkedinUrl\":\"https://www.linkedin.com/in/ada-lovelace\",\"twitterUrl\":\"https://twitter.com/ada\",\"blueskyUrl\":\"https://bsky.app/profile/ada.bsky.social\"},\"talkIds\":[\"a0000000-0000-4000-8000-000000000004\",\"a0000000-0000-4000-8000-000000000001\"]},{\"id\":\"b0000000-0000-4000-8000-000000000005\",\"name\":\"Future Speaker\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Future Speaker\",\"placeholder\":null,\"width\":512,\"height\":512},\"title\":\"Soon\",\"bio\":\"Next month.\",\"type\":\"member\",\"socials\":{\"linkedinUrl\":null,\"twitterUrl\":\"https://twitter.com/future\",\"blueskyUrl\":null},\"talkIds\":[\"a0000000-0000-4000-8000-000000000005\"]},{\"id\":\"b0000000-0000-4000-8000-000000000002\",\"name\":\"Grace Hopper\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Grace Hopper\",\"placeholder\":null,\"width\":512,\"height\":512},\"title\":\"Admiral\",\"bio\":\"\",\"type\":\"organizer\",\"socials\":{\"linkedinUrl\":\"https://www.linkedin.com/in/grace hopper\",\"twitterUrl\":null,\"blueskyUrl\":null},\"talkIds\":[\"a0000000-0000-4000-8000-000000000001\"]},{\"id\":\"b0000000-0000-4000-8000-000000000003\",\"name\":\"Linus\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Linus\",\"placeholder\":null,\"width\":512,\"height\":512},\"title\":\"\",\"bio\":\"Kernel.\",\"type\":\"member\",\"socials\":{\"linkedinUrl\":null,\"twitterUrl\":\"https://twitter.com/@linus\",\"blueskyUrl\":null},\"talkIds\":[\"a0000000-0000-4000-8000-000000000002\",\"a0000000-0000-4000-8000-000000000007\"]},{\"id\":\"b0000000-0000-4000-8000-000000000006\",\"name\":\"Zed Nobody\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Zed Nobody\",\"placeholder\":null,\"width\":512,\"height\":512},\"title\":\"\",\"bio\":\"\",\"type\":\"member\",\"socials\":{\"linkedinUrl\":null,\"twitterUrl\":null,\"blueskyUrl\":null},\"talkIds\":[\"a0000000-0000-4000-8000-000000000006\"]}]}"
+    },
+    "/api/v1/events/e0000000-0000-4000-8000-000000000001": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"event\":{\"id\":\"e0000000-0000-4000-8000-000000000001\",\"name\":\"React at Acme\",\"startDate\":\"2026-08-13T01:00:00.000Z\",\"endDate\":\"2026-08-13T04:00:00.000Z\",\"slug\":\"2026-08-12-react-at-acme\",\"tagline\":\"Server components in practice\",\"attendeeLimit\":120,\"streetAddress\":\"1 Market St\",\"shortLocation\":\"Acme HQ\",\"fullAddress\":\"1 Market St, San Francisco, CA 94105\",\"lumaEventId\":\"evt-react\",\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"id\":\"d0000000-0000-4000-8000-000000000001\",\"url\":\"https://storage.example/covers/react.png\",\"placeholder\":\"data:image/png;base64,AA\",\"alt\":\"React at Acme\",\"width\":1200,\"height\":630,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"recordingUrl\":\"https://www.youtube.com/watch?v=abc123\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":118,\"lumaCheckedInCount\":97,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":\"<p>Server components in practice, with <strong>two talks</strong> and time to talk after.</p>\\n\",\"lumaSummary\":\"Server components in practice, with two talks and time to talk after.\",\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":\"https://lu.ma/event/evt-react\",\"talks\":[{\"id\":\"a0000000-0000-4000-8000-000000000002\",\"title\":\"Effect in production\",\"description\":\"<p>Typed errors<br />and services.</p>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000003\",\"name\":\"Linus\",\"title\":\"\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Linus\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"Kernel.\",\"socials\":{\"twitter\":\"@linus\"}}]},{\"id\":\"a0000000-0000-4000-8000-000000000001\",\"title\":\"Server components\",\"description\":\"<p>Why <strong>RSC</strong> &amp; streaming matter.</p><ul><li>One</li><li>Two</li></ul>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000001\",\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"image\":{\"id\":\"d0000000-0000-4000-8000-000000000005\",\"url\":\"https://storage.example/people/ada.jpg\",\"placeholder\":\"data:image/png;base64,AE\",\"alt\":\"Ada Lovelace\",\"width\":400,\"height\":400,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"bio\":\"Writes compilers.\",\"socials\":{\"twitter\":\"ada\",\"bluesky\":\"ada.bsky.social\",\"linkedin\":\"ada-lovelace\"}},{\"id\":\"b0000000-0000-4000-8000-000000000002\",\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Grace Hopper\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"\",\"socials\":{\"linkedin\":\"grace hopper\"}}]}],\"hosts\":[{\"id\":\"c0000000-0000-4000-8000-000000000002\",\"name\":\"Globex\",\"about\":\"Drinks.\",\"squareLogoLight\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Globex\",\"placeholder\":null,\"width\":512,\"height\":512},\"squareLogoDark\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Globex\",\"placeholder\":null,\"width\":512,\"height\":512}},{\"id\":\"c0000000-0000-4000-8000-000000000001\",\"name\":\"Acme\",\"about\":\"Space and pizza.\",\"squareLogoLight\":{\"id\":\"d0000000-0000-4000-8000-000000000002\",\"url\":\"https://storage.example/logos/acme.png\",\"placeholder\":\"data:image/png;base64,AB\",\"alt\":\"Acme\",\"width\":512,\"height\":512,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"squareLogoDark\":{\"id\":\"d0000000-0000-4000-8000-000000000002\",\"url\":\"https://storage.example/logos/acme.png\",\"placeholder\":\"data:image/png;base64,AB\",\"alt\":\"Acme\",\"width\":512,\"height\":512,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"}}],\"images\":[{\"id\":\"d0000000-0000-4000-8000-000000000003\",\"url\":\"https://storage.example/photos/crowd.jpg\",\"placeholder\":\"data:image/png;base64,AC\",\"alt\":\"The crowd\",\"width\":1600,\"height\":1067,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},{\"id\":\"d0000000-0000-4000-8000-000000000004\",\"url\":\"https://storage.example/photos/stage.jpg\",\"placeholder\":\"data:image/png;base64,AD\",\"alt\":\"The stage\",\"width\":1600,\"height\":900,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"}]}}"
+    },
+    "/api/v1/events/e0000000-0000-4000-8000-000000000002": {
+      "status": 404,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"error\":\"Event not found\"}"
+    },
+    "/api/v1/events/e0000000-0000-4000-8000-000000000003": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"event\":{\"id\":\"e0000000-0000-4000-8000-000000000003\",\"name\":\"Hack day\",\"startDate\":\"2026-10-03T16:00:00.000Z\",\"endDate\":\"2026-10-04T01:00:00.000Z\",\"slug\":\"2026-10-03-hack-day\",\"tagline\":\"Build something\",\"attendeeLimit\":80,\"streetAddress\":null,\"shortLocation\":null,\"fullAddress\":null,\"lumaEventId\":null,\"isHackathon\":true,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Hack day preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":null,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"hackathon\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":null,\"talks\":[{\"id\":\"a0000000-0000-4000-8000-000000000004\",\"title\":\"Hacking live\",\"description\":\"\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000001\",\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"image\":{\"id\":\"d0000000-0000-4000-8000-000000000005\",\"url\":\"https://storage.example/people/ada.jpg\",\"placeholder\":\"data:image/png;base64,AE\",\"alt\":\"Ada Lovelace\",\"width\":400,\"height\":400,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"bio\":\"Writes compilers.\",\"socials\":{\"twitter\":\"ada\",\"bluesky\":\"ada.bsky.social\",\"linkedin\":\"ada-lovelace\"}}]}],\"hosts\":[],\"images\":[]}}"
+    },
+    "/api/v1/events/e0000000-0000-4000-8000-000000000004": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"event\":{\"id\":\"e0000000-0000-4000-8000-000000000004\",\"name\":\"Upcoming meetup\",\"startDate\":\"2026-11-06T02:00:00.000Z\",\"endDate\":\"2026-11-06T05:00:00.000Z\",\"slug\":\"2026-11-05-upcoming\",\"tagline\":\"Soon\",\"attendeeLimit\":100,\"streetAddress\":null,\"shortLocation\":\"TBA\",\"fullAddress\":null,\"lumaEventId\":\"evt with space\",\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Upcoming meetup preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":null,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":\"https://lu.ma/event/evt with space\",\"talks\":[{\"id\":\"a0000000-0000-4000-8000-000000000005\",\"title\":\"Next month\",\"description\":\"<p>Coming up.</p>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000005\",\"name\":\"Future Speaker\",\"title\":\"Soon\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Future Speaker\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"Next month.\",\"socials\":{\"twitter\":\"future\"}}]}],\"hosts\":[],\"images\":[]}}"
+    },
+    "/api/v1/events/e0000000-0000-4000-8000-000000000005": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"event\":{\"id\":\"e0000000-0000-4000-8000-000000000005\",\"name\":\"Ends now\",\"startDate\":\"2026-10-03T15:00:00.000Z\",\"endDate\":\"2026-10-03T19:00:00.000Z\",\"slug\":\"2026-10-03-ends-now\",\"tagline\":\"Just finished\",\"attendeeLimit\":30,\"streetAddress\":null,\"shortLocation\":\"Park\",\"fullAddress\":\"Golden Gate Park\",\"lumaEventId\":null,\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Ends now preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":\"not a url\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":null,\"talks\":[{\"id\":\"a0000000-0000-4000-8000-000000000006\",\"title\":\"Lightning talk\",\"description\":\"Plain text, no markup.\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000006\",\"name\":\"Zed Nobody\",\"title\":\"\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Zed Nobody\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"\",\"socials\":{}}]}],\"hosts\":[],\"images\":[]}}"
+    },
+    "/api/v1/events/e0000000-0000-4000-8000-000000000006": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"event\":{\"id\":\"e0000000-0000-4000-8000-000000000006\",\"name\":\"Café night\",\"startDate\":\"2025-12-03T02:00:00.000Z\",\"endDate\":\"2025-12-03T05:00:00.000Z\",\"slug\":\"2025-12-02-café-night\",\"tagline\":\"Coffee and code\",\"attendeeLimit\":40,\"streetAddress\":null,\"shortLocation\":null,\"fullAddress\":\"500 Coffee Ave, Oakland, CA\",\"lumaEventId\":null,\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Café night preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":\"javascript:alert(1)\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":null,\"talks\":[{\"id\":\"a0000000-0000-4000-8000-000000000007\",\"title\":\"Coffee & code\",\"description\":\"<p>Café &lt;3 web</p><p></p><p></p><p></p><blockquote>Quote</blockquote><p>End</p>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000003\",\"name\":\"Linus\",\"title\":\"\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Linus\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"Kernel.\",\"socials\":{\"twitter\":\"@linus\"}}]},{\"id\":\"a0000000-0000-4000-8000-000000000001\",\"title\":\"Server components\",\"description\":\"<p>Why <strong>RSC</strong> &amp; streaming matter.</p><ul><li>One</li><li>Two</li></ul>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000001\",\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"image\":{\"id\":\"d0000000-0000-4000-8000-000000000005\",\"url\":\"https://storage.example/people/ada.jpg\",\"placeholder\":\"data:image/png;base64,AE\",\"alt\":\"Ada Lovelace\",\"width\":400,\"height\":400,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"bio\":\"Writes compilers.\",\"socials\":{\"twitter\":\"ada\",\"bluesky\":\"ada.bsky.social\",\"linkedin\":\"ada-lovelace\"}},{\"id\":\"b0000000-0000-4000-8000-000000000002\",\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Grace Hopper\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"\",\"socials\":{\"linkedin\":\"grace hopper\"}}]}],\"hosts\":[],\"images\":[]}}"
+    },
+    "/api/v1/events/E0000000-0000-4000-8000-000000000001": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"event\":{\"id\":\"e0000000-0000-4000-8000-000000000001\",\"name\":\"React at Acme\",\"startDate\":\"2026-08-13T01:00:00.000Z\",\"endDate\":\"2026-08-13T04:00:00.000Z\",\"slug\":\"2026-08-12-react-at-acme\",\"tagline\":\"Server components in practice\",\"attendeeLimit\":120,\"streetAddress\":\"1 Market St\",\"shortLocation\":\"Acme HQ\",\"fullAddress\":\"1 Market St, San Francisco, CA 94105\",\"lumaEventId\":\"evt-react\",\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"id\":\"d0000000-0000-4000-8000-000000000001\",\"url\":\"https://storage.example/covers/react.png\",\"placeholder\":\"data:image/png;base64,AA\",\"alt\":\"React at Acme\",\"width\":1200,\"height\":630,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"recordingUrl\":\"https://www.youtube.com/watch?v=abc123\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":118,\"lumaCheckedInCount\":97,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":\"<p>Server components in practice, with <strong>two talks</strong> and time to talk after.</p>\\n\",\"lumaSummary\":\"Server components in practice, with two talks and time to talk after.\",\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":\"https://lu.ma/event/evt-react\",\"talks\":[{\"id\":\"a0000000-0000-4000-8000-000000000002\",\"title\":\"Effect in production\",\"description\":\"<p>Typed errors<br />and services.</p>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000003\",\"name\":\"Linus\",\"title\":\"\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Linus\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"Kernel.\",\"socials\":{\"twitter\":\"@linus\"}}]},{\"id\":\"a0000000-0000-4000-8000-000000000001\",\"title\":\"Server components\",\"description\":\"<p>Why <strong>RSC</strong> &amp; streaming matter.</p><ul><li>One</li><li>Two</li></ul>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000001\",\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"image\":{\"id\":\"d0000000-0000-4000-8000-000000000005\",\"url\":\"https://storage.example/people/ada.jpg\",\"placeholder\":\"data:image/png;base64,AE\",\"alt\":\"Ada Lovelace\",\"width\":400,\"height\":400,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"bio\":\"Writes compilers.\",\"socials\":{\"twitter\":\"ada\",\"bluesky\":\"ada.bsky.social\",\"linkedin\":\"ada-lovelace\"}},{\"id\":\"b0000000-0000-4000-8000-000000000002\",\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Grace Hopper\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"\",\"socials\":{\"linkedin\":\"grace hopper\"}}]}],\"hosts\":[{\"id\":\"c0000000-0000-4000-8000-000000000002\",\"name\":\"Globex\",\"about\":\"Drinks.\",\"squareLogoLight\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Globex\",\"placeholder\":null,\"width\":512,\"height\":512},\"squareLogoDark\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Globex\",\"placeholder\":null,\"width\":512,\"height\":512}},{\"id\":\"c0000000-0000-4000-8000-000000000001\",\"name\":\"Acme\",\"about\":\"Space and pizza.\",\"squareLogoLight\":{\"id\":\"d0000000-0000-4000-8000-000000000002\",\"url\":\"https://storage.example/logos/acme.png\",\"placeholder\":\"data:image/png;base64,AB\",\"alt\":\"Acme\",\"width\":512,\"height\":512,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"squareLogoDark\":{\"id\":\"d0000000-0000-4000-8000-000000000002\",\"url\":\"https://storage.example/logos/acme.png\",\"placeholder\":\"data:image/png;base64,AB\",\"alt\":\"Acme\",\"width\":512,\"height\":512,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"}}],\"images\":[{\"id\":\"d0000000-0000-4000-8000-000000000003\",\"url\":\"https://storage.example/photos/crowd.jpg\",\"placeholder\":\"data:image/png;base64,AC\",\"alt\":\"The crowd\",\"width\":1600,\"height\":1067,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},{\"id\":\"d0000000-0000-4000-8000-000000000004\",\"url\":\"https://storage.example/photos/stage.jpg\",\"placeholder\":\"data:image/png;base64,AD\",\"alt\":\"The stage\",\"width\":1600,\"height\":900,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"}]}}"
+    },
+    "/api/v1/events/e0000000000040008000000000000001": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"event\":{\"id\":\"e0000000-0000-4000-8000-000000000001\",\"name\":\"React at Acme\",\"startDate\":\"2026-08-13T01:00:00.000Z\",\"endDate\":\"2026-08-13T04:00:00.000Z\",\"slug\":\"2026-08-12-react-at-acme\",\"tagline\":\"Server components in practice\",\"attendeeLimit\":120,\"streetAddress\":\"1 Market St\",\"shortLocation\":\"Acme HQ\",\"fullAddress\":\"1 Market St, San Francisco, CA 94105\",\"lumaEventId\":\"evt-react\",\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"id\":\"d0000000-0000-4000-8000-000000000001\",\"url\":\"https://storage.example/covers/react.png\",\"placeholder\":\"data:image/png;base64,AA\",\"alt\":\"React at Acme\",\"width\":1200,\"height\":630,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"recordingUrl\":\"https://www.youtube.com/watch?v=abc123\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":118,\"lumaCheckedInCount\":97,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":\"<p>Server components in practice, with <strong>two talks</strong> and time to talk after.</p>\\n\",\"lumaSummary\":\"Server components in practice, with two talks and time to talk after.\",\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":\"https://lu.ma/event/evt-react\",\"talks\":[{\"id\":\"a0000000-0000-4000-8000-000000000002\",\"title\":\"Effect in production\",\"description\":\"<p>Typed errors<br />and services.</p>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000003\",\"name\":\"Linus\",\"title\":\"\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Linus\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"Kernel.\",\"socials\":{\"twitter\":\"@linus\"}}]},{\"id\":\"a0000000-0000-4000-8000-000000000001\",\"title\":\"Server components\",\"description\":\"<p>Why <strong>RSC</strong> &amp; streaming matter.</p><ul><li>One</li><li>Two</li></ul>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000001\",\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"image\":{\"id\":\"d0000000-0000-4000-8000-000000000005\",\"url\":\"https://storage.example/people/ada.jpg\",\"placeholder\":\"data:image/png;base64,AE\",\"alt\":\"Ada Lovelace\",\"width\":400,\"height\":400,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"bio\":\"Writes compilers.\",\"socials\":{\"twitter\":\"ada\",\"bluesky\":\"ada.bsky.social\",\"linkedin\":\"ada-lovelace\"}},{\"id\":\"b0000000-0000-4000-8000-000000000002\",\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Grace Hopper\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"\",\"socials\":{\"linkedin\":\"grace hopper\"}}]}],\"hosts\":[{\"id\":\"c0000000-0000-4000-8000-000000000002\",\"name\":\"Globex\",\"about\":\"Drinks.\",\"squareLogoLight\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Globex\",\"placeholder\":null,\"width\":512,\"height\":512},\"squareLogoDark\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Globex\",\"placeholder\":null,\"width\":512,\"height\":512}},{\"id\":\"c0000000-0000-4000-8000-000000000001\",\"name\":\"Acme\",\"about\":\"Space and pizza.\",\"squareLogoLight\":{\"id\":\"d0000000-0000-4000-8000-000000000002\",\"url\":\"https://storage.example/logos/acme.png\",\"placeholder\":\"data:image/png;base64,AB\",\"alt\":\"Acme\",\"width\":512,\"height\":512,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"squareLogoDark\":{\"id\":\"d0000000-0000-4000-8000-000000000002\",\"url\":\"https://storage.example/logos/acme.png\",\"placeholder\":\"data:image/png;base64,AB\",\"alt\":\"Acme\",\"width\":512,\"height\":512,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"}}],\"images\":[{\"id\":\"d0000000-0000-4000-8000-000000000003\",\"url\":\"https://storage.example/photos/crowd.jpg\",\"placeholder\":\"data:image/png;base64,AC\",\"alt\":\"The crowd\",\"width\":1600,\"height\":1067,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},{\"id\":\"d0000000-0000-4000-8000-000000000004\",\"url\":\"https://storage.example/photos/stage.jpg\",\"placeholder\":\"data:image/png;base64,AD\",\"alt\":\"The stage\",\"width\":1600,\"height\":900,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"}]}}"
+    },
+    "/api/v1/events/%7Be0000000-0000-4000-8000-000000000006%7D": {
+      "status": 200,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"event\":{\"id\":\"e0000000-0000-4000-8000-000000000006\",\"name\":\"Café night\",\"startDate\":\"2025-12-03T02:00:00.000Z\",\"endDate\":\"2025-12-03T05:00:00.000Z\",\"slug\":\"2025-12-02-café-night\",\"tagline\":\"Coffee and code\",\"attendeeLimit\":40,\"streetAddress\":null,\"shortLocation\":null,\"fullAddress\":\"500 Coffee Ave, Oakland, CA\",\"lumaEventId\":null,\"isHackathon\":false,\"isDraft\":false,\"highlightOnLandingPage\":false,\"previewImage\":{\"url\":\"/hero-image-rocket.png\",\"alt\":\"Café night preview\",\"placeholder\":null,\"width\":1200,\"height\":630},\"recordingUrl\":\"javascript:alert(1)\",\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\",\"topic\":null,\"lumaGuestCount\":null,\"lumaCheckedInCount\":null,\"program\":\"talks\",\"curation\":\"ours\",\"organizedBy\":null,\"lumaDescription\":null,\"lumaSummary\":null,\"description\":null,\"shortSlug\":null,\"lumaEventUrl\":null,\"talks\":[{\"id\":\"a0000000-0000-4000-8000-000000000007\",\"title\":\"Coffee & code\",\"description\":\"<p>Café &lt;3 web</p><p></p><p></p><p></p><blockquote>Quote</blockquote><p>End</p>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000003\",\"name\":\"Linus\",\"title\":\"\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Linus\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"Kernel.\",\"socials\":{\"twitter\":\"@linus\"}}]},{\"id\":\"a0000000-0000-4000-8000-000000000001\",\"title\":\"Server components\",\"description\":\"<p>Why <strong>RSC</strong> &amp; streaming matter.</p><ul><li>One</li><li>Two</li></ul>\",\"speakers\":[{\"id\":\"b0000000-0000-4000-8000-000000000001\",\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"image\":{\"id\":\"d0000000-0000-4000-8000-000000000005\",\"url\":\"https://storage.example/people/ada.jpg\",\"placeholder\":\"data:image/png;base64,AE\",\"alt\":\"Ada Lovelace\",\"width\":400,\"height\":400,\"createdAt\":\"{seededAt}\",\"updatedAt\":\"{seededAt}\"},\"bio\":\"Writes compilers.\",\"socials\":{\"twitter\":\"ada\",\"bluesky\":\"ada.bsky.social\",\"linkedin\":\"ada-lovelace\"}},{\"id\":\"b0000000-0000-4000-8000-000000000002\",\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"image\":{\"url\":\"/brand/avatar.png\",\"alt\":\"Grace Hopper\",\"placeholder\":null,\"width\":512,\"height\":512},\"bio\":\"\",\"socials\":{\"linkedin\":\"grace hopper\"}}]}],\"hosts\":[],\"images\":[]}}"
+    },
+    "/api/v1/events/e000-0000-0000-4000-8000-0000-0000-0002": {
+      "status": 404,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"error\":\"Event not found\"}"
+    },
+    "/api/v1/events/e0000000-0000-4000-8000-0000000000ff": {
+      "status": 404,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"error\":\"Event not found\"}"
+    },
+    "/api/v1/events/not-a-uuid": {
+      "status": 500,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"error\":\"Failed to fetch event\"}"
+    },
+    "/api/v1/events/2026-08-12-react-at-acme": {
+      "status": 500,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"error\":\"Failed to fetch event\"}"
+    },
+    "/api/v1/events/e0000000-0000-4000-8000-00000000000": {
+      "status": 500,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"error\":\"Failed to fetch event\"}"
+    },
+    "/api/v1/events/%7Be0000000-0000-4000-8000-000000000001": {
+      "status": 500,
+      "contentType": "application/json;charset=utf-8",
+      "cacheControl": null,
+      "body": "{\"error\":\"Failed to fetch event\"}"
+    }
+  },
+  "mcp": [
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"1\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{\"listChanged\":true}},\"serverInfo\":{\"name\":\"allthings\",\"version\":\"0.1.0\"}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"tools\":[{\"name\":\"list_events\",\"title\":\"List events\",\"description\":\"List all things events in San Francisco. Upcoming (including live) events come soonest first; past events come most recent first. Registration always happens at each event's rsvpUrl.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"when\":{\"default\":\"upcoming\",\"description\":\"Which events to list.\",\"type\":\"string\",\"enum\":[\"upcoming\",\"past\",\"all\"]},\"limit\":{\"default\":20,\"type\":\"integer\",\"minimum\":1,\"maximum\":100}}},\"annotations\":{\"readOnlyHint\":true,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false},\"outputSchema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"events\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"slug\":{\"type\":\"string\",\"description\":\"Stable identifier; pass it to get_event.\"},\"name\":{\"type\":\"string\"},\"tagline\":{\"type\":\"string\"},\"url\":{\"type\":\"string\",\"format\":\"uri\",\"description\":\"Event page on allthingsweb.dev.\"},\"status\":{\"type\":\"string\",\"enum\":[\"upcoming\",\"live\",\"past\"],\"description\":\"Whether the event is still ahead, happening now, or over.\"},\"startsAt\":{\"type\":\"string\",\"format\":\"date-time\",\"pattern\":\"^(?:(?:\\\\d\\\\d[2468][048]|\\\\d\\\\d[13579][26]|\\\\d\\\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\\\d|30)|(?:02)-(?:0[1-9]|1\\\\d|2[0-8])))T(?:(?:[01]\\\\d|2[0-3]):[0-5]\\\\d:[0-5]\\\\d(?:\\\\.\\\\d+)?(?:Z))$\",\"description\":\"Start time as an ISO 8601 UTC instant.\"},\"endsAt\":{\"type\":\"string\",\"format\":\"date-time\",\"pattern\":\"^(?:(?:\\\\d\\\\d[2468][048]|\\\\d\\\\d[13579][26]|\\\\d\\\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\\\d|30)|(?:02)-(?:0[1-9]|1\\\\d|2[0-8])))T(?:(?:[01]\\\\d|2[0-3]):[0-5]\\\\d:[0-5]\\\\d(?:\\\\.\\\\d+)?(?:Z))$\",\"description\":\"End time as an ISO 8601 UTC instant.\"},\"timeZone\":{\"type\":\"string\",\"const\":\"America/Los_Angeles\",\"description\":\"Local time zone for presenting times.\"},\"venue\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"name\":{\"type\":[\"string\",\"null\"]},\"address\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"name\",\"address\"],\"additionalProperties\":false},{\"type\":\"null\"}]},\"rsvpUrl\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}],\"description\":\"Where to register. Registration always happens on this page.\"},\"recordingUrl\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}]},\"isHackathon\":{\"type\":\"boolean\"}},\"required\":[\"slug\",\"name\",\"tagline\",\"url\",\"status\",\"startsAt\",\"endsAt\",\"timeZone\",\"venue\",\"rsvpUrl\",\"recordingUrl\",\"isHackathon\"],\"additionalProperties\":false}}},\"required\":[\"events\"],\"additionalProperties\":false}},{\"name\":\"get_event\",\"title\":\"Get event\",\"description\":\"Get one all things event by slug: schedule, venue, talks with speakers, hosting companies and where to register.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"slug\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Event slug from list_events.\"}},\"required\":[\"slug\"]},\"annotations\":{\"readOnlyHint\":true,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false},\"outputSchema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"slug\":{\"type\":\"string\",\"description\":\"Stable identifier; pass it to get_event.\"},\"name\":{\"type\":\"string\"},\"tagline\":{\"type\":\"string\"},\"url\":{\"type\":\"string\",\"format\":\"uri\",\"description\":\"Event page on allthingsweb.dev.\"},\"status\":{\"type\":\"string\",\"enum\":[\"upcoming\",\"live\",\"past\"],\"description\":\"Whether the event is still ahead, happening now, or over.\"},\"startsAt\":{\"type\":\"string\",\"format\":\"date-time\",\"pattern\":\"^(?:(?:\\\\d\\\\d[2468][048]|\\\\d\\\\d[13579][26]|\\\\d\\\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\\\d|30)|(?:02)-(?:0[1-9]|1\\\\d|2[0-8])))T(?:(?:[01]\\\\d|2[0-3]):[0-5]\\\\d:[0-5]\\\\d(?:\\\\.\\\\d+)?(?:Z))$\",\"description\":\"Start time as an ISO 8601 UTC instant.\"},\"endsAt\":{\"type\":\"string\",\"format\":\"date-time\",\"pattern\":\"^(?:(?:\\\\d\\\\d[2468][048]|\\\\d\\\\d[13579][26]|\\\\d\\\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\\\d|30)|(?:02)-(?:0[1-9]|1\\\\d|2[0-8])))T(?:(?:[01]\\\\d|2[0-3]):[0-5]\\\\d:[0-5]\\\\d(?:\\\\.\\\\d+)?(?:Z))$\",\"description\":\"End time as an ISO 8601 UTC instant.\"},\"timeZone\":{\"type\":\"string\",\"const\":\"America/Los_Angeles\",\"description\":\"Local time zone for presenting times.\"},\"venue\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"name\":{\"type\":[\"string\",\"null\"]},\"address\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"name\",\"address\"],\"additionalProperties\":false},{\"type\":\"null\"}]},\"rsvpUrl\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}],\"description\":\"Where to register. Registration always happens on this page.\"},\"recordingUrl\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}]},\"isHackathon\":{\"type\":\"boolean\"},\"talks\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"description\":{\"type\":\"string\",\"description\":\"Plain text.\"},\"speakers\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"title\":{\"type\":[\"string\",\"null\"]},\"bio\":{\"type\":[\"string\",\"null\"]},\"links\":{\"type\":\"object\",\"properties\":{\"x\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}]},\"bluesky\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}]},\"linkedin\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}]}},\"required\":[\"x\",\"bluesky\",\"linkedin\"],\"additionalProperties\":false}},\"required\":[\"name\",\"title\",\"bio\",\"links\"],\"additionalProperties\":false}}},\"required\":[\"title\",\"description\",\"speakers\"],\"additionalProperties\":false}},\"hosts\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"about\":{\"type\":\"string\"}},\"required\":[\"name\",\"about\"],\"additionalProperties\":false},\"description\":\"Companies hosting the event: space, food and drinks.\"}},\"required\":[\"slug\",\"name\",\"tagline\",\"url\",\"status\",\"startsAt\",\"endsAt\",\"timeZone\",\"venue\",\"rsvpUrl\",\"recordingUrl\",\"isHackathon\",\"talks\",\"hosts\"],\"additionalProperties\":false}},{\"name\":\"list_speakers\",\"title\":\"List speakers\",\"description\":\"List people who have spoken at past all things events, with their talks. Optionally filter by a case-insensitive name, title or talk search.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{\"query\":{\"type\":\"string\",\"minLength\":1},\"limit\":{\"default\":50,\"type\":\"integer\",\"minimum\":1,\"maximum\":200}}},\"annotations\":{\"readOnlyHint\":true,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false},\"outputSchema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"speakers\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"title\":{\"type\":[\"string\",\"null\"]},\"bio\":{\"type\":[\"string\",\"null\"]},\"links\":{\"type\":\"object\",\"properties\":{\"x\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}]},\"bluesky\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}]},\"linkedin\":{\"anyOf\":[{\"type\":\"string\",\"format\":\"uri\"},{\"type\":\"null\"}]}},\"required\":[\"x\",\"bluesky\",\"linkedin\"],\"additionalProperties\":false},\"talks\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"eventName\":{\"type\":\"string\"},\"eventSlug\":{\"type\":\"string\"},\"eventUrl\":{\"type\":\"string\",\"format\":\"uri\"},\"date\":{\"type\":\"string\",\"format\":\"date-time\",\"pattern\":\"^(?:(?:\\\\d\\\\d[2468][048]|\\\\d\\\\d[13579][26]|\\\\d\\\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\\\d|30)|(?:02)-(?:0[1-9]|1\\\\d|2[0-8])))T(?:(?:[01]\\\\d|2[0-3]):[0-5]\\\\d:[0-5]\\\\d(?:\\\\.\\\\d+)?(?:Z))$\"}},\"required\":[\"title\",\"eventName\",\"eventSlug\",\"eventUrl\",\"date\"],\"additionalProperties\":false}}},\"required\":[\"name\",\"title\",\"bio\",\"links\",\"talks\"],\"additionalProperties\":false}}},\"required\":[\"speakers\"],\"additionalProperties\":false}},{\"name\":\"get_community\",\"title\":\"About all things\",\"description\":\"What all things is: mission, history, how hosting works, and links to events, Discord and the code of conduct.\",\"inputSchema\":{\"type\":\"object\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"properties\":{}},\"annotations\":{\"readOnlyHint\":true,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false},\"outputSchema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"oneLiner\":{\"type\":\"string\"},\"introduction\":{\"type\":\"string\"},\"mission\":{\"type\":\"string\"},\"history\":{\"type\":\"string\"},\"independence\":{\"type\":\"string\"},\"hosting\":{\"type\":\"string\"},\"links\":{\"type\":\"object\",\"properties\":{\"website\":{\"type\":\"string\",\"format\":\"uri\"},\"events\":{\"type\":\"string\",\"format\":\"uri\"},\"discord\":{\"type\":\"string\",\"format\":\"uri\"},\"codeOfConduct\":{\"type\":\"string\",\"format\":\"uri\"}},\"required\":[\"website\",\"events\",\"discord\",\"codeOfConduct\"],\"additionalProperties\":false}},\"required\":[\"name\",\"oneLiner\",\"introduction\",\"mission\",\"history\",\"independence\",\"hosting\",\"links\"],\"additionalProperties\":false}}]},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_events\",\"arguments\":{}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"events\\\": []\\n}\"}],\"structuredContent\":{\"events\":[]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_events\",\"arguments\":{\"when\":\"upcoming\",\"limit\":100}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"events\\\": []\\n}\"}],\"structuredContent\":{\"events\":[]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_events\",\"arguments\":{\"when\":\"past\",\"limit\":100}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"events\\\": [\\n    {\\n      \\\"slug\\\": \\\"2026-11-05-upcoming\\\",\\n      \\\"name\\\": \\\"Upcoming meetup\\\",\\n      \\\"tagline\\\": \\\"Soon\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-11-05-upcoming\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-11-06T02:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-11-06T05:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": \\\"TBA\\\",\\n        \\\"address\\\": null\\n      },\\n      \\\"rsvpUrl\\\": \\\"https://lu.ma/event/evt%20with%20space\\\",\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": false\\n    },\\n    {\\n      \\\"slug\\\": \\\"2026-10-03-hack-day\\\",\\n      \\\"name\\\": \\\"Hack day\\\",\\n      \\\"tagline\\\": \\\"Build something\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-10-03-hack-day\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-10-03T16:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-10-04T01:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": null,\\n      \\\"rsvpUrl\\\": null,\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": true\\n    },\\n    {\\n      \\\"slug\\\": \\\"2026-10-03-ends-now\\\",\\n      \\\"name\\\": \\\"Ends now\\\",\\n      \\\"tagline\\\": \\\"Just finished\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-10-03-ends-now\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-10-03T15:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-10-03T19:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": \\\"Park\\\",\\n        \\\"address\\\": \\\"Golden Gate Park\\\"\\n      },\\n      \\\"rsvpUrl\\\": null,\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": false\\n    },\\n    {\\n      \\\"slug\\\": \\\"2026-08-12-react-at-acme\\\",\\n      \\\"name\\\": \\\"React at Acme\\\",\\n      \\\"tagline\\\": \\\"Server components in practice\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-08-13T01:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-08-13T04:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": \\\"Acme HQ\\\",\\n        \\\"address\\\": \\\"1 Market St, San Francisco, CA 94105\\\"\\n      },\\n      \\\"rsvpUrl\\\": \\\"https://lu.ma/event/evt-react\\\",\\n      \\\"recordingUrl\\\": \\\"https://www.youtube.com/watch?v=abc123\\\",\\n      \\\"isHackathon\\\": false\\n    },\\n    {\\n      \\\"slug\\\": \\\"2025-12-02-café-night\\\",\\n      \\\"name\\\": \\\"Café night\\\",\\n      \\\"tagline\\\": \\\"Coffee and code\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2025-12-03T02:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2025-12-03T05:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": null,\\n        \\\"address\\\": \\\"500 Coffee Ave, Oakland, CA\\\"\\n      },\\n      \\\"rsvpUrl\\\": null,\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": false\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"events\":[{\"slug\":\"2026-11-05-upcoming\",\"name\":\"Upcoming meetup\",\"tagline\":\"Soon\",\"url\":\"https://allthingsweb.dev/2026-11-05-upcoming\",\"status\":\"past\",\"startsAt\":\"2026-11-06T02:00:00.000Z\",\"endsAt\":\"2026-11-06T05:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"TBA\",\"address\":null},\"rsvpUrl\":\"https://lu.ma/event/evt%20with%20space\",\"recordingUrl\":null,\"isHackathon\":false},{\"slug\":\"2026-10-03-hack-day\",\"name\":\"Hack day\",\"tagline\":\"Build something\",\"url\":\"https://allthingsweb.dev/2026-10-03-hack-day\",\"status\":\"past\",\"startsAt\":\"2026-10-03T16:00:00.000Z\",\"endsAt\":\"2026-10-04T01:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":null,\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":true},{\"slug\":\"2026-10-03-ends-now\",\"name\":\"Ends now\",\"tagline\":\"Just finished\",\"url\":\"https://allthingsweb.dev/2026-10-03-ends-now\",\"status\":\"past\",\"startsAt\":\"2026-10-03T15:00:00.000Z\",\"endsAt\":\"2026-10-03T19:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"Park\",\"address\":\"Golden Gate Park\"},\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":false},{\"slug\":\"2026-08-12-react-at-acme\",\"name\":\"React at Acme\",\"tagline\":\"Server components in practice\",\"url\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"status\":\"past\",\"startsAt\":\"2026-08-13T01:00:00.000Z\",\"endsAt\":\"2026-08-13T04:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"Acme HQ\",\"address\":\"1 Market St, San Francisco, CA 94105\"},\"rsvpUrl\":\"https://lu.ma/event/evt-react\",\"recordingUrl\":\"https://www.youtube.com/watch?v=abc123\",\"isHackathon\":false},{\"slug\":\"2025-12-02-café-night\",\"name\":\"Café night\",\"tagline\":\"Coffee and code\",\"url\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"status\":\"past\",\"startsAt\":\"2025-12-03T02:00:00.000Z\",\"endsAt\":\"2025-12-03T05:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":null,\"address\":\"500 Coffee Ave, Oakland, CA\"},\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":false}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_events\",\"arguments\":{\"when\":\"all\",\"limit\":100}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"events\\\": [\\n    {\\n      \\\"slug\\\": \\\"2026-11-05-upcoming\\\",\\n      \\\"name\\\": \\\"Upcoming meetup\\\",\\n      \\\"tagline\\\": \\\"Soon\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-11-05-upcoming\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-11-06T02:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-11-06T05:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": \\\"TBA\\\",\\n        \\\"address\\\": null\\n      },\\n      \\\"rsvpUrl\\\": \\\"https://lu.ma/event/evt%20with%20space\\\",\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": false\\n    },\\n    {\\n      \\\"slug\\\": \\\"2026-10-03-hack-day\\\",\\n      \\\"name\\\": \\\"Hack day\\\",\\n      \\\"tagline\\\": \\\"Build something\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-10-03-hack-day\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-10-03T16:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-10-04T01:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": null,\\n      \\\"rsvpUrl\\\": null,\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": true\\n    },\\n    {\\n      \\\"slug\\\": \\\"2026-10-03-ends-now\\\",\\n      \\\"name\\\": \\\"Ends now\\\",\\n      \\\"tagline\\\": \\\"Just finished\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-10-03-ends-now\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-10-03T15:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-10-03T19:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": \\\"Park\\\",\\n        \\\"address\\\": \\\"Golden Gate Park\\\"\\n      },\\n      \\\"rsvpUrl\\\": null,\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": false\\n    },\\n    {\\n      \\\"slug\\\": \\\"2026-08-12-react-at-acme\\\",\\n      \\\"name\\\": \\\"React at Acme\\\",\\n      \\\"tagline\\\": \\\"Server components in practice\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-08-13T01:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-08-13T04:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": \\\"Acme HQ\\\",\\n        \\\"address\\\": \\\"1 Market St, San Francisco, CA 94105\\\"\\n      },\\n      \\\"rsvpUrl\\\": \\\"https://lu.ma/event/evt-react\\\",\\n      \\\"recordingUrl\\\": \\\"https://www.youtube.com/watch?v=abc123\\\",\\n      \\\"isHackathon\\\": false\\n    },\\n    {\\n      \\\"slug\\\": \\\"2025-12-02-café-night\\\",\\n      \\\"name\\\": \\\"Café night\\\",\\n      \\\"tagline\\\": \\\"Coffee and code\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2025-12-03T02:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2025-12-03T05:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": null,\\n        \\\"address\\\": \\\"500 Coffee Ave, Oakland, CA\\\"\\n      },\\n      \\\"rsvpUrl\\\": null,\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": false\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"events\":[{\"slug\":\"2026-11-05-upcoming\",\"name\":\"Upcoming meetup\",\"tagline\":\"Soon\",\"url\":\"https://allthingsweb.dev/2026-11-05-upcoming\",\"status\":\"past\",\"startsAt\":\"2026-11-06T02:00:00.000Z\",\"endsAt\":\"2026-11-06T05:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"TBA\",\"address\":null},\"rsvpUrl\":\"https://lu.ma/event/evt%20with%20space\",\"recordingUrl\":null,\"isHackathon\":false},{\"slug\":\"2026-10-03-hack-day\",\"name\":\"Hack day\",\"tagline\":\"Build something\",\"url\":\"https://allthingsweb.dev/2026-10-03-hack-day\",\"status\":\"past\",\"startsAt\":\"2026-10-03T16:00:00.000Z\",\"endsAt\":\"2026-10-04T01:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":null,\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":true},{\"slug\":\"2026-10-03-ends-now\",\"name\":\"Ends now\",\"tagline\":\"Just finished\",\"url\":\"https://allthingsweb.dev/2026-10-03-ends-now\",\"status\":\"past\",\"startsAt\":\"2026-10-03T15:00:00.000Z\",\"endsAt\":\"2026-10-03T19:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"Park\",\"address\":\"Golden Gate Park\"},\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":false},{\"slug\":\"2026-08-12-react-at-acme\",\"name\":\"React at Acme\",\"tagline\":\"Server components in practice\",\"url\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"status\":\"past\",\"startsAt\":\"2026-08-13T01:00:00.000Z\",\"endsAt\":\"2026-08-13T04:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"Acme HQ\",\"address\":\"1 Market St, San Francisco, CA 94105\"},\"rsvpUrl\":\"https://lu.ma/event/evt-react\",\"recordingUrl\":\"https://www.youtube.com/watch?v=abc123\",\"isHackathon\":false},{\"slug\":\"2025-12-02-café-night\",\"name\":\"Café night\",\"tagline\":\"Coffee and code\",\"url\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"status\":\"past\",\"startsAt\":\"2025-12-03T02:00:00.000Z\",\"endsAt\":\"2025-12-03T05:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":null,\"address\":\"500 Coffee Ave, Oakland, CA\"},\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":false}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_events\",\"arguments\":{\"when\":\"all\",\"limit\":2}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"events\\\": [\\n    {\\n      \\\"slug\\\": \\\"2026-11-05-upcoming\\\",\\n      \\\"name\\\": \\\"Upcoming meetup\\\",\\n      \\\"tagline\\\": \\\"Soon\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-11-05-upcoming\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-11-06T02:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-11-06T05:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": {\\n        \\\"name\\\": \\\"TBA\\\",\\n        \\\"address\\\": null\\n      },\\n      \\\"rsvpUrl\\\": \\\"https://lu.ma/event/evt%20with%20space\\\",\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": false\\n    },\\n    {\\n      \\\"slug\\\": \\\"2026-10-03-hack-day\\\",\\n      \\\"name\\\": \\\"Hack day\\\",\\n      \\\"tagline\\\": \\\"Build something\\\",\\n      \\\"url\\\": \\\"https://allthingsweb.dev/2026-10-03-hack-day\\\",\\n      \\\"status\\\": \\\"past\\\",\\n      \\\"startsAt\\\": \\\"2026-10-03T16:00:00.000Z\\\",\\n      \\\"endsAt\\\": \\\"2026-10-04T01:00:00.000Z\\\",\\n      \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n      \\\"venue\\\": null,\\n      \\\"rsvpUrl\\\": null,\\n      \\\"recordingUrl\\\": null,\\n      \\\"isHackathon\\\": true\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"events\":[{\"slug\":\"2026-11-05-upcoming\",\"name\":\"Upcoming meetup\",\"tagline\":\"Soon\",\"url\":\"https://allthingsweb.dev/2026-11-05-upcoming\",\"status\":\"past\",\"startsAt\":\"2026-11-06T02:00:00.000Z\",\"endsAt\":\"2026-11-06T05:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"TBA\",\"address\":null},\"rsvpUrl\":\"https://lu.ma/event/evt%20with%20space\",\"recordingUrl\":null,\"isHackathon\":false},{\"slug\":\"2026-10-03-hack-day\",\"name\":\"Hack day\",\"tagline\":\"Build something\",\"url\":\"https://allthingsweb.dev/2026-10-03-hack-day\",\"status\":\"past\",\"startsAt\":\"2026-10-03T16:00:00.000Z\",\"endsAt\":\"2026-10-04T01:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":null,\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":true}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"2026-08-12-react-at-acme\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"slug\\\": \\\"2026-08-12-react-at-acme\\\",\\n  \\\"name\\\": \\\"React at Acme\\\",\\n  \\\"tagline\\\": \\\"Server components in practice\\\",\\n  \\\"url\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n  \\\"status\\\": \\\"past\\\",\\n  \\\"startsAt\\\": \\\"2026-08-13T01:00:00.000Z\\\",\\n  \\\"endsAt\\\": \\\"2026-08-13T04:00:00.000Z\\\",\\n  \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n  \\\"venue\\\": {\\n    \\\"name\\\": \\\"Acme HQ\\\",\\n    \\\"address\\\": \\\"1 Market St, San Francisco, CA 94105\\\"\\n  },\\n  \\\"rsvpUrl\\\": \\\"https://lu.ma/event/evt-react\\\",\\n  \\\"recordingUrl\\\": \\\"https://www.youtube.com/watch?v=abc123\\\",\\n  \\\"isHackathon\\\": false,\\n  \\\"talks\\\": [\\n    {\\n      \\\"title\\\": \\\"Effect in production\\\",\\n      \\\"description\\\": \\\"Typed errors\\\\nand services.\\\",\\n      \\\"speakers\\\": [\\n        {\\n          \\\"name\\\": \\\"Linus\\\",\\n          \\\"title\\\": null,\\n          \\\"bio\\\": \\\"Kernel.\\\",\\n          \\\"links\\\": {\\n            \\\"x\\\": \\\"https://twitter.com/@linus\\\",\\n            \\\"bluesky\\\": null,\\n            \\\"linkedin\\\": null\\n          }\\n        }\\n      ]\\n    },\\n    {\\n      \\\"title\\\": \\\"Server components\\\",\\n      \\\"description\\\": \\\"Why RSC & streaming matter.\\\\n\\\\n- One\\\\n- Two\\\",\\n      \\\"speakers\\\": [\\n        {\\n          \\\"name\\\": \\\"Ada Lovelace\\\",\\n          \\\"title\\\": \\\"Engineer\\\",\\n          \\\"bio\\\": \\\"Writes compilers.\\\",\\n          \\\"links\\\": {\\n            \\\"x\\\": \\\"https://twitter.com/ada\\\",\\n            \\\"bluesky\\\": \\\"https://bsky.app/profile/ada.bsky.social\\\",\\n            \\\"linkedin\\\": \\\"https://www.linkedin.com/in/ada-lovelace\\\"\\n          }\\n        },\\n        {\\n          \\\"name\\\": \\\"Grace Hopper\\\",\\n          \\\"title\\\": \\\"Admiral\\\",\\n          \\\"bio\\\": null,\\n          \\\"links\\\": {\\n            \\\"x\\\": null,\\n            \\\"bluesky\\\": null,\\n            \\\"linkedin\\\": \\\"https://www.linkedin.com/in/grace%20hopper\\\"\\n          }\\n        }\\n      ]\\n    }\\n  ],\\n  \\\"hosts\\\": [\\n    {\\n      \\\"name\\\": \\\"Globex\\\",\\n      \\\"about\\\": \\\"Drinks.\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"Acme\\\",\\n      \\\"about\\\": \\\"Space and pizza.\\\"\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"slug\":\"2026-08-12-react-at-acme\",\"name\":\"React at Acme\",\"tagline\":\"Server components in practice\",\"url\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"status\":\"past\",\"startsAt\":\"2026-08-13T01:00:00.000Z\",\"endsAt\":\"2026-08-13T04:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"Acme HQ\",\"address\":\"1 Market St, San Francisco, CA 94105\"},\"rsvpUrl\":\"https://lu.ma/event/evt-react\",\"recordingUrl\":\"https://www.youtube.com/watch?v=abc123\",\"isHackathon\":false,\"talks\":[{\"title\":\"Effect in production\",\"description\":\"Typed errors\\nand services.\",\"speakers\":[{\"name\":\"Linus\",\"title\":null,\"bio\":\"Kernel.\",\"links\":{\"x\":\"https://twitter.com/@linus\",\"bluesky\":null,\"linkedin\":null}}]},{\"title\":\"Server components\",\"description\":\"Why RSC & streaming matter.\\n\\n- One\\n- Two\",\"speakers\":[{\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"bio\":\"Writes compilers.\",\"links\":{\"x\":\"https://twitter.com/ada\",\"bluesky\":\"https://bsky.app/profile/ada.bsky.social\",\"linkedin\":\"https://www.linkedin.com/in/ada-lovelace\"}},{\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"bio\":null,\"links\":{\"x\":null,\"bluesky\":null,\"linkedin\":\"https://www.linkedin.com/in/grace%20hopper\"}}]}],\"hosts\":[{\"name\":\"Globex\",\"about\":\"Drinks.\"},{\"name\":\"Acme\",\"about\":\"Space and pizza.\"}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"2026-10-03-hack-day\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"slug\\\": \\\"2026-10-03-hack-day\\\",\\n  \\\"name\\\": \\\"Hack day\\\",\\n  \\\"tagline\\\": \\\"Build something\\\",\\n  \\\"url\\\": \\\"https://allthingsweb.dev/2026-10-03-hack-day\\\",\\n  \\\"status\\\": \\\"past\\\",\\n  \\\"startsAt\\\": \\\"2026-10-03T16:00:00.000Z\\\",\\n  \\\"endsAt\\\": \\\"2026-10-04T01:00:00.000Z\\\",\\n  \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n  \\\"venue\\\": null,\\n  \\\"rsvpUrl\\\": null,\\n  \\\"recordingUrl\\\": null,\\n  \\\"isHackathon\\\": true,\\n  \\\"talks\\\": [\\n    {\\n      \\\"title\\\": \\\"Hacking live\\\",\\n      \\\"description\\\": \\\"\\\",\\n      \\\"speakers\\\": [\\n        {\\n          \\\"name\\\": \\\"Ada Lovelace\\\",\\n          \\\"title\\\": \\\"Engineer\\\",\\n          \\\"bio\\\": \\\"Writes compilers.\\\",\\n          \\\"links\\\": {\\n            \\\"x\\\": \\\"https://twitter.com/ada\\\",\\n            \\\"bluesky\\\": \\\"https://bsky.app/profile/ada.bsky.social\\\",\\n            \\\"linkedin\\\": \\\"https://www.linkedin.com/in/ada-lovelace\\\"\\n          }\\n        }\\n      ]\\n    }\\n  ],\\n  \\\"hosts\\\": []\\n}\"}],\"structuredContent\":{\"slug\":\"2026-10-03-hack-day\",\"name\":\"Hack day\",\"tagline\":\"Build something\",\"url\":\"https://allthingsweb.dev/2026-10-03-hack-day\",\"status\":\"past\",\"startsAt\":\"2026-10-03T16:00:00.000Z\",\"endsAt\":\"2026-10-04T01:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":null,\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":true,\"talks\":[{\"title\":\"Hacking live\",\"description\":\"\",\"speakers\":[{\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"bio\":\"Writes compilers.\",\"links\":{\"x\":\"https://twitter.com/ada\",\"bluesky\":\"https://bsky.app/profile/ada.bsky.social\",\"linkedin\":\"https://www.linkedin.com/in/ada-lovelace\"}}]}],\"hosts\":[]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"2026-11-05-upcoming\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"slug\\\": \\\"2026-11-05-upcoming\\\",\\n  \\\"name\\\": \\\"Upcoming meetup\\\",\\n  \\\"tagline\\\": \\\"Soon\\\",\\n  \\\"url\\\": \\\"https://allthingsweb.dev/2026-11-05-upcoming\\\",\\n  \\\"status\\\": \\\"past\\\",\\n  \\\"startsAt\\\": \\\"2026-11-06T02:00:00.000Z\\\",\\n  \\\"endsAt\\\": \\\"2026-11-06T05:00:00.000Z\\\",\\n  \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n  \\\"venue\\\": {\\n    \\\"name\\\": \\\"TBA\\\",\\n    \\\"address\\\": null\\n  },\\n  \\\"rsvpUrl\\\": \\\"https://lu.ma/event/evt%20with%20space\\\",\\n  \\\"recordingUrl\\\": null,\\n  \\\"isHackathon\\\": false,\\n  \\\"talks\\\": [\\n    {\\n      \\\"title\\\": \\\"Next month\\\",\\n      \\\"description\\\": \\\"Coming up.\\\",\\n      \\\"speakers\\\": [\\n        {\\n          \\\"name\\\": \\\"Future Speaker\\\",\\n          \\\"title\\\": \\\"Soon\\\",\\n          \\\"bio\\\": \\\"Next month.\\\",\\n          \\\"links\\\": {\\n            \\\"x\\\": \\\"https://twitter.com/future\\\",\\n            \\\"bluesky\\\": null,\\n            \\\"linkedin\\\": null\\n          }\\n        }\\n      ]\\n    }\\n  ],\\n  \\\"hosts\\\": []\\n}\"}],\"structuredContent\":{\"slug\":\"2026-11-05-upcoming\",\"name\":\"Upcoming meetup\",\"tagline\":\"Soon\",\"url\":\"https://allthingsweb.dev/2026-11-05-upcoming\",\"status\":\"past\",\"startsAt\":\"2026-11-06T02:00:00.000Z\",\"endsAt\":\"2026-11-06T05:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"TBA\",\"address\":null},\"rsvpUrl\":\"https://lu.ma/event/evt%20with%20space\",\"recordingUrl\":null,\"isHackathon\":false,\"talks\":[{\"title\":\"Next month\",\"description\":\"Coming up.\",\"speakers\":[{\"name\":\"Future Speaker\",\"title\":\"Soon\",\"bio\":\"Next month.\",\"links\":{\"x\":\"https://twitter.com/future\",\"bluesky\":null,\"linkedin\":null}}]}],\"hosts\":[]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"2026-10-03-ends-now\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"slug\\\": \\\"2026-10-03-ends-now\\\",\\n  \\\"name\\\": \\\"Ends now\\\",\\n  \\\"tagline\\\": \\\"Just finished\\\",\\n  \\\"url\\\": \\\"https://allthingsweb.dev/2026-10-03-ends-now\\\",\\n  \\\"status\\\": \\\"past\\\",\\n  \\\"startsAt\\\": \\\"2026-10-03T15:00:00.000Z\\\",\\n  \\\"endsAt\\\": \\\"2026-10-03T19:00:00.000Z\\\",\\n  \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n  \\\"venue\\\": {\\n    \\\"name\\\": \\\"Park\\\",\\n    \\\"address\\\": \\\"Golden Gate Park\\\"\\n  },\\n  \\\"rsvpUrl\\\": null,\\n  \\\"recordingUrl\\\": null,\\n  \\\"isHackathon\\\": false,\\n  \\\"talks\\\": [\\n    {\\n      \\\"title\\\": \\\"Lightning talk\\\",\\n      \\\"description\\\": \\\"Plain text, no markup.\\\",\\n      \\\"speakers\\\": [\\n        {\\n          \\\"name\\\": \\\"Zed Nobody\\\",\\n          \\\"title\\\": null,\\n          \\\"bio\\\": null,\\n          \\\"links\\\": {\\n            \\\"x\\\": null,\\n            \\\"bluesky\\\": null,\\n            \\\"linkedin\\\": null\\n          }\\n        }\\n      ]\\n    }\\n  ],\\n  \\\"hosts\\\": []\\n}\"}],\"structuredContent\":{\"slug\":\"2026-10-03-ends-now\",\"name\":\"Ends now\",\"tagline\":\"Just finished\",\"url\":\"https://allthingsweb.dev/2026-10-03-ends-now\",\"status\":\"past\",\"startsAt\":\"2026-10-03T15:00:00.000Z\",\"endsAt\":\"2026-10-03T19:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":\"Park\",\"address\":\"Golden Gate Park\"},\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":false,\"talks\":[{\"title\":\"Lightning talk\",\"description\":\"Plain text, no markup.\",\"speakers\":[{\"name\":\"Zed Nobody\",\"title\":null,\"bio\":null,\"links\":{\"x\":null,\"bluesky\":null,\"linkedin\":null}}]}],\"hosts\":[]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"2025-12-02-café-night\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"slug\\\": \\\"2025-12-02-café-night\\\",\\n  \\\"name\\\": \\\"Café night\\\",\\n  \\\"tagline\\\": \\\"Coffee and code\\\",\\n  \\\"url\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n  \\\"status\\\": \\\"past\\\",\\n  \\\"startsAt\\\": \\\"2025-12-03T02:00:00.000Z\\\",\\n  \\\"endsAt\\\": \\\"2025-12-03T05:00:00.000Z\\\",\\n  \\\"timeZone\\\": \\\"America/Los_Angeles\\\",\\n  \\\"venue\\\": {\\n    \\\"name\\\": null,\\n    \\\"address\\\": \\\"500 Coffee Ave, Oakland, CA\\\"\\n  },\\n  \\\"rsvpUrl\\\": null,\\n  \\\"recordingUrl\\\": null,\\n  \\\"isHackathon\\\": false,\\n  \\\"talks\\\": [\\n    {\\n      \\\"title\\\": \\\"Coffee & code\\\",\\n      \\\"description\\\": \\\"Café <3 web\\\\n\\\\nQuote\\\\nEnd\\\",\\n      \\\"speakers\\\": [\\n        {\\n          \\\"name\\\": \\\"Linus\\\",\\n          \\\"title\\\": null,\\n          \\\"bio\\\": \\\"Kernel.\\\",\\n          \\\"links\\\": {\\n            \\\"x\\\": \\\"https://twitter.com/@linus\\\",\\n            \\\"bluesky\\\": null,\\n            \\\"linkedin\\\": null\\n          }\\n        }\\n      ]\\n    },\\n    {\\n      \\\"title\\\": \\\"Server components\\\",\\n      \\\"description\\\": \\\"Why RSC & streaming matter.\\\\n\\\\n- One\\\\n- Two\\\",\\n      \\\"speakers\\\": [\\n        {\\n          \\\"name\\\": \\\"Ada Lovelace\\\",\\n          \\\"title\\\": \\\"Engineer\\\",\\n          \\\"bio\\\": \\\"Writes compilers.\\\",\\n          \\\"links\\\": {\\n            \\\"x\\\": \\\"https://twitter.com/ada\\\",\\n            \\\"bluesky\\\": \\\"https://bsky.app/profile/ada.bsky.social\\\",\\n            \\\"linkedin\\\": \\\"https://www.linkedin.com/in/ada-lovelace\\\"\\n          }\\n        },\\n        {\\n          \\\"name\\\": \\\"Grace Hopper\\\",\\n          \\\"title\\\": \\\"Admiral\\\",\\n          \\\"bio\\\": null,\\n          \\\"links\\\": {\\n            \\\"x\\\": null,\\n            \\\"bluesky\\\": null,\\n            \\\"linkedin\\\": \\\"https://www.linkedin.com/in/grace%20hopper\\\"\\n          }\\n        }\\n      ]\\n    }\\n  ],\\n  \\\"hosts\\\": []\\n}\"}],\"structuredContent\":{\"slug\":\"2025-12-02-café-night\",\"name\":\"Café night\",\"tagline\":\"Coffee and code\",\"url\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"status\":\"past\",\"startsAt\":\"2025-12-03T02:00:00.000Z\",\"endsAt\":\"2025-12-03T05:00:00.000Z\",\"timeZone\":\"America/Los_Angeles\",\"venue\":{\"name\":null,\"address\":\"500 Coffee Ave, Oakland, CA\"},\"rsvpUrl\":null,\"recordingUrl\":null,\"isHackathon\":false,\"talks\":[{\"title\":\"Coffee & code\",\"description\":\"Café <3 web\\n\\nQuote\\nEnd\",\"speakers\":[{\"name\":\"Linus\",\"title\":null,\"bio\":\"Kernel.\",\"links\":{\"x\":\"https://twitter.com/@linus\",\"bluesky\":null,\"linkedin\":null}}]},{\"title\":\"Server components\",\"description\":\"Why RSC & streaming matter.\\n\\n- One\\n- Two\",\"speakers\":[{\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"bio\":\"Writes compilers.\",\"links\":{\"x\":\"https://twitter.com/ada\",\"bluesky\":\"https://bsky.app/profile/ada.bsky.social\",\"linkedin\":\"https://www.linkedin.com/in/ada-lovelace\"}},{\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"bio\":null,\"links\":{\"x\":null,\"bluesky\":null,\"linkedin\":\"https://www.linkedin.com/in/grace%20hopper\"}}]}],\"hosts\":[]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"2026-09-01-draft-night\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"No published event has the slug \\\"2026-09-01-draft-night\\\". Use list_events to find one.\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"no-such-event\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"No published event has the slug \\\"no-such-event\\\". Use list_events to find one.\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"2026-08-12-REACT-AT-ACME\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"No published event has the slug \\\"2026-08-12-REACT-AT-ACME\\\". Use list_events to find one.\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_speakers\",\"arguments\":{}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"speakers\\\": [\\n    {\\n      \\\"name\\\": \\\"Ada Lovelace\\\",\\n      \\\"title\\\": \\\"Engineer\\\",\\n      \\\"bio\\\": \\\"Writes compilers.\\\",\\n      \\\"links\\\": {\\n        \\\"x\\\": \\\"https://twitter.com/ada\\\",\\n        \\\"bluesky\\\": \\\"https://bsky.app/profile/ada.bsky.social\\\",\\n        \\\"linkedin\\\": \\\"https://www.linkedin.com/in/ada-lovelace\\\"\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Hacking live\\\",\\n          \\\"eventName\\\": \\\"Hack day\\\",\\n          \\\"eventSlug\\\": \\\"2026-10-03-hack-day\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-10-03-hack-day\\\",\\n          \\\"date\\\": \\\"2026-10-03T16:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"React at Acme\\\",\\n          \\\"eventSlug\\\": \\\"2026-08-12-react-at-acme\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n          \\\"date\\\": \\\"2026-08-13T01:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"Café night\\\",\\n          \\\"eventSlug\\\": \\\"2025-12-02-café-night\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n          \\\"date\\\": \\\"2025-12-03T02:00:00.000Z\\\"\\n        }\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Future Speaker\\\",\\n      \\\"title\\\": \\\"Soon\\\",\\n      \\\"bio\\\": \\\"Next month.\\\",\\n      \\\"links\\\": {\\n        \\\"x\\\": \\\"https://twitter.com/future\\\",\\n        \\\"bluesky\\\": null,\\n        \\\"linkedin\\\": null\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Next month\\\",\\n          \\\"eventName\\\": \\\"Upcoming meetup\\\",\\n          \\\"eventSlug\\\": \\\"2026-11-05-upcoming\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-11-05-upcoming\\\",\\n          \\\"date\\\": \\\"2026-11-06T02:00:00.000Z\\\"\\n        }\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Grace Hopper\\\",\\n      \\\"title\\\": \\\"Admiral\\\",\\n      \\\"bio\\\": null,\\n      \\\"links\\\": {\\n        \\\"x\\\": null,\\n        \\\"bluesky\\\": null,\\n        \\\"linkedin\\\": \\\"https://www.linkedin.com/in/grace%20hopper\\\"\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"React at Acme\\\",\\n          \\\"eventSlug\\\": \\\"2026-08-12-react-at-acme\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n          \\\"date\\\": \\\"2026-08-13T01:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"Café night\\\",\\n          \\\"eventSlug\\\": \\\"2025-12-02-café-night\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n          \\\"date\\\": \\\"2025-12-03T02:00:00.000Z\\\"\\n        }\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Linus\\\",\\n      \\\"title\\\": null,\\n      \\\"bio\\\": \\\"Kernel.\\\",\\n      \\\"links\\\": {\\n        \\\"x\\\": \\\"https://twitter.com/@linus\\\",\\n        \\\"bluesky\\\": null,\\n        \\\"linkedin\\\": null\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Effect in production\\\",\\n          \\\"eventName\\\": \\\"React at Acme\\\",\\n          \\\"eventSlug\\\": \\\"2026-08-12-react-at-acme\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n          \\\"date\\\": \\\"2026-08-13T01:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Coffee & code\\\",\\n          \\\"eventName\\\": \\\"Café night\\\",\\n          \\\"eventSlug\\\": \\\"2025-12-02-café-night\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n          \\\"date\\\": \\\"2025-12-03T02:00:00.000Z\\\"\\n        }\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Zed Nobody\\\",\\n      \\\"title\\\": null,\\n      \\\"bio\\\": null,\\n      \\\"links\\\": {\\n        \\\"x\\\": null,\\n        \\\"bluesky\\\": null,\\n        \\\"linkedin\\\": null\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Lightning talk\\\",\\n          \\\"eventName\\\": \\\"Ends now\\\",\\n          \\\"eventSlug\\\": \\\"2026-10-03-ends-now\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-10-03-ends-now\\\",\\n          \\\"date\\\": \\\"2026-10-03T15:00:00.000Z\\\"\\n        }\\n      ]\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"speakers\":[{\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"bio\":\"Writes compilers.\",\"links\":{\"x\":\"https://twitter.com/ada\",\"bluesky\":\"https://bsky.app/profile/ada.bsky.social\",\"linkedin\":\"https://www.linkedin.com/in/ada-lovelace\"},\"talks\":[{\"title\":\"Hacking live\",\"eventName\":\"Hack day\",\"eventSlug\":\"2026-10-03-hack-day\",\"eventUrl\":\"https://allthingsweb.dev/2026-10-03-hack-day\",\"date\":\"2026-10-03T16:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"React at Acme\",\"eventSlug\":\"2026-08-12-react-at-acme\",\"eventUrl\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"date\":\"2026-08-13T01:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"Café night\",\"eventSlug\":\"2025-12-02-café-night\",\"eventUrl\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"date\":\"2025-12-03T02:00:00.000Z\"}]},{\"name\":\"Future Speaker\",\"title\":\"Soon\",\"bio\":\"Next month.\",\"links\":{\"x\":\"https://twitter.com/future\",\"bluesky\":null,\"linkedin\":null},\"talks\":[{\"title\":\"Next month\",\"eventName\":\"Upcoming meetup\",\"eventSlug\":\"2026-11-05-upcoming\",\"eventUrl\":\"https://allthingsweb.dev/2026-11-05-upcoming\",\"date\":\"2026-11-06T02:00:00.000Z\"}]},{\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"bio\":null,\"links\":{\"x\":null,\"bluesky\":null,\"linkedin\":\"https://www.linkedin.com/in/grace%20hopper\"},\"talks\":[{\"title\":\"Server components\",\"eventName\":\"React at Acme\",\"eventSlug\":\"2026-08-12-react-at-acme\",\"eventUrl\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"date\":\"2026-08-13T01:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"Café night\",\"eventSlug\":\"2025-12-02-café-night\",\"eventUrl\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"date\":\"2025-12-03T02:00:00.000Z\"}]},{\"name\":\"Linus\",\"title\":null,\"bio\":\"Kernel.\",\"links\":{\"x\":\"https://twitter.com/@linus\",\"bluesky\":null,\"linkedin\":null},\"talks\":[{\"title\":\"Effect in production\",\"eventName\":\"React at Acme\",\"eventSlug\":\"2026-08-12-react-at-acme\",\"eventUrl\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"date\":\"2026-08-13T01:00:00.000Z\"},{\"title\":\"Coffee & code\",\"eventName\":\"Café night\",\"eventSlug\":\"2025-12-02-café-night\",\"eventUrl\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"date\":\"2025-12-03T02:00:00.000Z\"}]},{\"name\":\"Zed Nobody\",\"title\":null,\"bio\":null,\"links\":{\"x\":null,\"bluesky\":null,\"linkedin\":null},\"talks\":[{\"title\":\"Lightning talk\",\"eventName\":\"Ends now\",\"eventSlug\":\"2026-10-03-ends-now\",\"eventUrl\":\"https://allthingsweb.dev/2026-10-03-ends-now\",\"date\":\"2026-10-03T15:00:00.000Z\"}]}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_speakers\",\"arguments\":{\"query\":\"  ADA \"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"speakers\\\": [\\n    {\\n      \\\"name\\\": \\\"Ada Lovelace\\\",\\n      \\\"title\\\": \\\"Engineer\\\",\\n      \\\"bio\\\": \\\"Writes compilers.\\\",\\n      \\\"links\\\": {\\n        \\\"x\\\": \\\"https://twitter.com/ada\\\",\\n        \\\"bluesky\\\": \\\"https://bsky.app/profile/ada.bsky.social\\\",\\n        \\\"linkedin\\\": \\\"https://www.linkedin.com/in/ada-lovelace\\\"\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Hacking live\\\",\\n          \\\"eventName\\\": \\\"Hack day\\\",\\n          \\\"eventSlug\\\": \\\"2026-10-03-hack-day\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-10-03-hack-day\\\",\\n          \\\"date\\\": \\\"2026-10-03T16:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"React at Acme\\\",\\n          \\\"eventSlug\\\": \\\"2026-08-12-react-at-acme\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n          \\\"date\\\": \\\"2026-08-13T01:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"Café night\\\",\\n          \\\"eventSlug\\\": \\\"2025-12-02-café-night\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n          \\\"date\\\": \\\"2025-12-03T02:00:00.000Z\\\"\\n        }\\n      ]\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"speakers\":[{\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"bio\":\"Writes compilers.\",\"links\":{\"x\":\"https://twitter.com/ada\",\"bluesky\":\"https://bsky.app/profile/ada.bsky.social\",\"linkedin\":\"https://www.linkedin.com/in/ada-lovelace\"},\"talks\":[{\"title\":\"Hacking live\",\"eventName\":\"Hack day\",\"eventSlug\":\"2026-10-03-hack-day\",\"eventUrl\":\"https://allthingsweb.dev/2026-10-03-hack-day\",\"date\":\"2026-10-03T16:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"React at Acme\",\"eventSlug\":\"2026-08-12-react-at-acme\",\"eventUrl\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"date\":\"2026-08-13T01:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"Café night\",\"eventSlug\":\"2025-12-02-café-night\",\"eventUrl\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"date\":\"2025-12-03T02:00:00.000Z\"}]}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_speakers\",\"arguments\":{\"query\":\"server components\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"speakers\\\": [\\n    {\\n      \\\"name\\\": \\\"Ada Lovelace\\\",\\n      \\\"title\\\": \\\"Engineer\\\",\\n      \\\"bio\\\": \\\"Writes compilers.\\\",\\n      \\\"links\\\": {\\n        \\\"x\\\": \\\"https://twitter.com/ada\\\",\\n        \\\"bluesky\\\": \\\"https://bsky.app/profile/ada.bsky.social\\\",\\n        \\\"linkedin\\\": \\\"https://www.linkedin.com/in/ada-lovelace\\\"\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Hacking live\\\",\\n          \\\"eventName\\\": \\\"Hack day\\\",\\n          \\\"eventSlug\\\": \\\"2026-10-03-hack-day\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-10-03-hack-day\\\",\\n          \\\"date\\\": \\\"2026-10-03T16:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"React at Acme\\\",\\n          \\\"eventSlug\\\": \\\"2026-08-12-react-at-acme\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n          \\\"date\\\": \\\"2026-08-13T01:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"Café night\\\",\\n          \\\"eventSlug\\\": \\\"2025-12-02-café-night\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n          \\\"date\\\": \\\"2025-12-03T02:00:00.000Z\\\"\\n        }\\n      ]\\n    },\\n    {\\n      \\\"name\\\": \\\"Grace Hopper\\\",\\n      \\\"title\\\": \\\"Admiral\\\",\\n      \\\"bio\\\": null,\\n      \\\"links\\\": {\\n        \\\"x\\\": null,\\n        \\\"bluesky\\\": null,\\n        \\\"linkedin\\\": \\\"https://www.linkedin.com/in/grace%20hopper\\\"\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"React at Acme\\\",\\n          \\\"eventSlug\\\": \\\"2026-08-12-react-at-acme\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n          \\\"date\\\": \\\"2026-08-13T01:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"Café night\\\",\\n          \\\"eventSlug\\\": \\\"2025-12-02-café-night\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n          \\\"date\\\": \\\"2025-12-03T02:00:00.000Z\\\"\\n        }\\n      ]\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"speakers\":[{\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"bio\":\"Writes compilers.\",\"links\":{\"x\":\"https://twitter.com/ada\",\"bluesky\":\"https://bsky.app/profile/ada.bsky.social\",\"linkedin\":\"https://www.linkedin.com/in/ada-lovelace\"},\"talks\":[{\"title\":\"Hacking live\",\"eventName\":\"Hack day\",\"eventSlug\":\"2026-10-03-hack-day\",\"eventUrl\":\"https://allthingsweb.dev/2026-10-03-hack-day\",\"date\":\"2026-10-03T16:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"React at Acme\",\"eventSlug\":\"2026-08-12-react-at-acme\",\"eventUrl\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"date\":\"2026-08-13T01:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"Café night\",\"eventSlug\":\"2025-12-02-café-night\",\"eventUrl\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"date\":\"2025-12-03T02:00:00.000Z\"}]},{\"name\":\"Grace Hopper\",\"title\":\"Admiral\",\"bio\":null,\"links\":{\"x\":null,\"bluesky\":null,\"linkedin\":\"https://www.linkedin.com/in/grace%20hopper\"},\"talks\":[{\"title\":\"Server components\",\"eventName\":\"React at Acme\",\"eventSlug\":\"2026-08-12-react-at-acme\",\"eventUrl\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"date\":\"2026-08-13T01:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"Café night\",\"eventSlug\":\"2025-12-02-café-night\",\"eventUrl\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"date\":\"2025-12-03T02:00:00.000Z\"}]}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_speakers\",\"arguments\":{\"query\":\"nobody\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"speakers\\\": [\\n    {\\n      \\\"name\\\": \\\"Zed Nobody\\\",\\n      \\\"title\\\": null,\\n      \\\"bio\\\": null,\\n      \\\"links\\\": {\\n        \\\"x\\\": null,\\n        \\\"bluesky\\\": null,\\n        \\\"linkedin\\\": null\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Lightning talk\\\",\\n          \\\"eventName\\\": \\\"Ends now\\\",\\n          \\\"eventSlug\\\": \\\"2026-10-03-ends-now\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-10-03-ends-now\\\",\\n          \\\"date\\\": \\\"2026-10-03T15:00:00.000Z\\\"\\n        }\\n      ]\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"speakers\":[{\"name\":\"Zed Nobody\",\"title\":null,\"bio\":null,\"links\":{\"x\":null,\"bluesky\":null,\"linkedin\":null},\"talks\":[{\"title\":\"Lightning talk\",\"eventName\":\"Ends now\",\"eventSlug\":\"2026-10-03-ends-now\",\"eventUrl\":\"https://allthingsweb.dev/2026-10-03-ends-now\",\"date\":\"2026-10-03T15:00:00.000Z\"}]}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_speakers\",\"arguments\":{\"limit\":1}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"speakers\\\": [\\n    {\\n      \\\"name\\\": \\\"Ada Lovelace\\\",\\n      \\\"title\\\": \\\"Engineer\\\",\\n      \\\"bio\\\": \\\"Writes compilers.\\\",\\n      \\\"links\\\": {\\n        \\\"x\\\": \\\"https://twitter.com/ada\\\",\\n        \\\"bluesky\\\": \\\"https://bsky.app/profile/ada.bsky.social\\\",\\n        \\\"linkedin\\\": \\\"https://www.linkedin.com/in/ada-lovelace\\\"\\n      },\\n      \\\"talks\\\": [\\n        {\\n          \\\"title\\\": \\\"Hacking live\\\",\\n          \\\"eventName\\\": \\\"Hack day\\\",\\n          \\\"eventSlug\\\": \\\"2026-10-03-hack-day\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-10-03-hack-day\\\",\\n          \\\"date\\\": \\\"2026-10-03T16:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"React at Acme\\\",\\n          \\\"eventSlug\\\": \\\"2026-08-12-react-at-acme\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2026-08-12-react-at-acme\\\",\\n          \\\"date\\\": \\\"2026-08-13T01:00:00.000Z\\\"\\n        },\\n        {\\n          \\\"title\\\": \\\"Server components\\\",\\n          \\\"eventName\\\": \\\"Café night\\\",\\n          \\\"eventSlug\\\": \\\"2025-12-02-café-night\\\",\\n          \\\"eventUrl\\\": \\\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\\\",\\n          \\\"date\\\": \\\"2025-12-03T02:00:00.000Z\\\"\\n        }\\n      ]\\n    }\\n  ]\\n}\"}],\"structuredContent\":{\"speakers\":[{\"name\":\"Ada Lovelace\",\"title\":\"Engineer\",\"bio\":\"Writes compilers.\",\"links\":{\"x\":\"https://twitter.com/ada\",\"bluesky\":\"https://bsky.app/profile/ada.bsky.social\",\"linkedin\":\"https://www.linkedin.com/in/ada-lovelace\"},\"talks\":[{\"title\":\"Hacking live\",\"eventName\":\"Hack day\",\"eventSlug\":\"2026-10-03-hack-day\",\"eventUrl\":\"https://allthingsweb.dev/2026-10-03-hack-day\",\"date\":\"2026-10-03T16:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"React at Acme\",\"eventSlug\":\"2026-08-12-react-at-acme\",\"eventUrl\":\"https://allthingsweb.dev/2026-08-12-react-at-acme\",\"date\":\"2026-08-13T01:00:00.000Z\"},{\"title\":\"Server components\",\"eventName\":\"Café night\",\"eventSlug\":\"2025-12-02-café-night\",\"eventUrl\":\"https://allthingsweb.dev/2025-12-02-caf%C3%A9-night\",\"date\":\"2025-12-03T02:00:00.000Z\"}]}]}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_events\",\"arguments\":{\"limit\":0}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_events: limit: Too small: expected number to be >=1\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_events\",\"arguments\":{\"when\":\"tomorrow\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_events: when: Invalid option: expected one of \\\"upcoming\\\"|\\\"past\\\"|\\\"all\\\"\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool get_event: slug: Invalid input: expected string, received undefined\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_event\",\"arguments\":{\"slug\":\"\"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool get_event: slug: Too small: expected string to have >=1 characters\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_speakers\",\"arguments\":{\"query\":\"   \"}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_speakers: query: Too small: expected string to have >=1 characters\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_speakers\",\"arguments\":{\"limit\":201}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Input validation error: Invalid arguments for tool list_speakers: limit: Too big: expected number to be <=200\"}],\"isError\":true},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"no_such_tool\",\"arguments\":{}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32602,\"message\":\"Tool no_such_tool not found\"}}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_community\",\"arguments\":{}}}"
+      },
+      "answer": {
+        "status": 200,
+        "contentType": "text/event-stream",
+        "cacheControl": "no-cache, no-transform",
+        "body": "event: message\ndata: {\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"{\\n  \\\"name\\\": \\\"All Things Web\\\",\\n  \\\"oneLiner\\\": \\\"A hacker club for everyone building the web.\\\",\\n  \\\"introduction\\\": \\\"Just starting out, leading a company, or creating tools the world uses every day? Here, we meet as peers. Come learn, share what you’re building, ask questions, and find your people.\\\",\\n  \\\"mission\\\": \\\"All Things Web brings the San Francisco Bay Area tech community together on a level playing field. We make room to listen, learn, collaborate, connect, show off a project, and get support—whatever your experience or job title.\\\",\\n  \\\"history\\\": \\\"Erik Thorelli and Andre Landgraf started this community to help rebuild San Francisco’s local tech meetup scene after COVID disrupted it. Our roots are in Remix Bay Area and React meetups: the spirit of an old hacker club, with the tools and ideas of today.\\\",\\n  \\\"independence\\\": \\\"We have never taken money or paid sponsorship. Our events are community first, and our presentations are for sharing useful ideas and real work. No shilling. No sales pitches.\\\",\\n  \\\"hosting\\\": \\\"We choose hosting companies whose tools and work we admire. They welcome the community by providing space, food, and a great place to spend time together. Hosting is an in-kind contribution to the community, not a paid sponsorship or a purchased speaking slot.\\\",\\n  \\\"links\\\": {\\n    \\\"website\\\": \\\"https://allthingsweb.dev\\\",\\n    \\\"events\\\": \\\"https://luma.com/allthingsweb\\\",\\n    \\\"discord\\\": \\\"https://discord.gg/B3Sm4b5mfD\\\",\\n    \\\"codeOfConduct\\\": \\\"https://allthingsweb.dev/code-of-conduct\\\"\\n  }\\n}\"}],\"structuredContent\":{\"name\":\"All Things Web\",\"oneLiner\":\"A hacker club for everyone building the web.\",\"introduction\":\"Just starting out, leading a company, or creating tools the world uses every day? Here, we meet as peers. Come learn, share what you’re building, ask questions, and find your people.\",\"mission\":\"All Things Web brings the San Francisco Bay Area tech community together on a level playing field. We make room to listen, learn, collaborate, connect, show off a project, and get support—whatever your experience or job title.\",\"history\":\"Erik Thorelli and Andre Landgraf started this community to help rebuild San Francisco’s local tech meetup scene after COVID disrupted it. Our roots are in Remix Bay Area and React meetups: the spirit of an old hacker club, with the tools and ideas of today.\",\"independence\":\"We have never taken money or paid sponsorship. Our events are community first, and our presentations are for sharing useful ideas and real work. No shilling. No sales pitches.\",\"hosting\":\"We choose hosting companies whose tools and work we admire. They welcome the community by providing space, food, and a great place to spend time together. Hosting is an in-kind contribution to the community, not a paid sponsorship or a purchased speaking slot.\",\"links\":{\"website\":\"https://allthingsweb.dev\",\"events\":\"https://luma.com/allthingsweb\",\"discord\":\"https://discord.gg/B3Sm4b5mfD\",\"codeOfConduct\":\"https://allthingsweb.dev/code-of-conduct\"}}},\"jsonrpc\":\"2.0\",\"id\":1}\n\n"
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": null
+      },
+      "answer": {
+        "status": 405,
+        "contentType": "application/json;charset=utf-8",
+        "cacheControl": null,
+        "body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Method not allowed.\"},\"id\":null}"
+      }
+    },
+    {
+      "request": {
+        "method": "DELETE",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": null
+      },
+      "answer": {
+        "status": 405,
+        "contentType": "application/json;charset=utf-8",
+        "cacheControl": null,
+        "body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Method not allowed.\"},\"id\":null}"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+      },
+      "answer": {
+        "status": 202,
+        "contentType": null,
+        "cacheControl": null,
+        "body": ""
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "accept": "application/json",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}"
+      },
+      "answer": {
+        "status": 406,
+        "contentType": "application/json",
+        "cacheControl": null,
+        "body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"},\"id\":null}"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "headers": {
+          "content-type": "text/plain",
+          "accept": "application/json, text/event-stream",
+          "mcp-protocol-version": "2025-06-18"
+        },
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}"
+      },
+      "answer": {
+        "status": 415,
+        "contentType": "application/json;charset=utf-8",
+        "cacheControl": null,
+        "body": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Unsupported Media Type: Content-Type must be application/json\"},\"id\":null}"
+      }
+    }
+  ]
+}

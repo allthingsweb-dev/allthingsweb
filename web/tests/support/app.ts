@@ -1,108 +1,89 @@
-import { mock } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
+import type { Answer } from "./http.ts";
 
 /**
- * The app's own public surfaces, run in this process over the same database
- * the Worker reads: its v1 route handlers and its MCP tools, wired as
- * app/src/app/mcp/route.ts wires them (through mcp-handler, its drizzle
- * queries and its mappers). The Worker is held to their answers.
+ * The retired app's public surfaces, as it answered them: its v1 route
+ * handlers and its MCP tools, wired as app/src/app/mcp/route.ts wired them,
+ * over core's seed. Each answer the tests compare with was recorded in
+ * fixtures/legacy-app.json on 2026-11-10, ahead of the app's deletion, so the Worker is
+ * still held to them.
  *
- * The app's modules are loaded at runtime rather than imported: the app's own
- * compiler checks them, and web's stricter settings would reject code that is
- * not being changed here. The narrow types below are all the tests rely on.
+ * The seed stamps the rows it doesn't date with the time it ran, so the
+ * recorded answers hold that time as `{seededAt}`, and each lookup puts back
+ * the seed time of the database the Worker reads.
  */
 
-const app = new URL("../../../app/", import.meta.url);
-const load = (path: string): Promise<unknown> =>
-  import(new URL(path, app).href);
-const appPackage = (name: string): Promise<unknown> =>
-  import(Bun.resolveSync(name, app.pathname));
-
-type RouteHandler = (
-  request: Request,
-  context: { params: Promise<Record<string, string>> },
-) => Promise<Response>;
+interface Recorded {
+  readonly v1: Readonly<Record<string, Answer>>;
+  readonly mcp: ReadonlyArray<{
+    readonly request: {
+      readonly method: string;
+      readonly headers: Readonly<Record<string, string>>;
+      readonly body: string | null;
+    };
+    readonly answer: Answer;
+  }>;
+}
 
 export interface App {
-  /** Answers a GET to one of the v1 API's paths, as the app's routes do. */
-  readonly v1: (path: string) => Promise<Response>;
-  /** The app's MCP endpoint. */
-  readonly mcp: (request: Request) => Promise<Response>;
+  /** The app's answer to a GET of one of the v1 API's paths. */
+  readonly v1: (path: string) => Answer;
+  /** The app's MCP endpoint's answer to a request. */
+  readonly mcp: (
+    method: string,
+    headers: Readonly<Record<string, string>>,
+    body: string | null,
+  ) => Answer;
 }
 
-export async function loadApp(
-  db: PGlite,
-  settings: { readonly origin: string },
-): Promise<App> {
-  const { drizzle } = (await appPackage("drizzle-orm/pglite")) as {
-    drizzle: (config: { client: PGlite }) => unknown;
-  };
-  const appDb = drizzle({ client: db });
-  // The app reads its database and config from modules; point them here.
-  await mock.module(new URL("src/lib/db.ts", app).pathname, () => ({
-    db: appDb,
-  }));
-  await mock.module(new URL("src/lib/config.ts", app).pathname, () => ({
-    mainConfig: {
-      instance: { origin: settings.origin },
-    },
-  }));
+/** One request's key among the recorded MCP answers: its method, headers and body. */
+const keyOf = (
+  method: string,
+  headers: Readonly<Record<string, string>>,
+  body: string | null,
+): string => JSON.stringify([method, headers, body]);
 
-  const route = async (path: string) =>
-    ((await load(path)) as { GET: RouteHandler }).GET;
-  const events = await route("src/app/api/v1/events/route.ts");
-  const eventById = await route("src/app/api/v1/events/[id]/route.ts");
-  const speakers = await route("src/app/api/v1/speakers/route.ts");
-
-  const { createMcpHandler } = (await appPackage("mcp-handler")) as {
-    createMcpHandler: (
-      init: (server: unknown) => void,
-      options: { serverInfo: { name: string; version: string } },
-    ) => (request: Request) => Promise<Response>;
-  };
-  const { registerAtwTools } = (await load("src/lib/mcp/tools.ts")) as {
-    registerAtwTools: (server: unknown, deps: unknown) => void;
-  };
-  const { getPublishedEvents } = (await load(
-    "src/lib/published-events.ts",
-  )) as { getPublishedEvents: () => Promise<unknown> };
-  const { getExpandedEventBySlug } = (await load(
-    "src/lib/expanded-events.ts",
-  )) as { getExpandedEventBySlug: (slug: string) => Promise<unknown> };
-  const { getSpeakerDirectory } = (await load(
-    "src/lib/speaker-directory.ts",
-  )) as { getSpeakerDirectory: (database: unknown) => Promise<unknown> };
-  const { version } = (await load("package.json")) as { version: string };
-
-  const mcp = createMcpHandler(
-    (server) =>
-      registerAtwTools(server, {
-        origin: settings.origin,
-        now: () => new Date(),
-        listPublishedEvents: getPublishedEvents,
-        getEventBySlug: getExpandedEventBySlug,
-        getSpeakerDirectory: () => getSpeakerDirectory(appDb),
-        reportError: (error: unknown) => {
-          throw error;
-        },
-      }),
-    { serverInfo: { name: "allthings", version } },
+/**
+ * The app's recorded answers, with `{seededAt}` set to when `db`'s seed ran.
+ * A request the recording doesn't have fails the test, naming it.
+ */
+export async function loadApp(db: PGlite): Promise<App> {
+  const recorded = (await Bun.file(
+    new URL("../fixtures/legacy-app.json", import.meta.url),
+  ).json()) as Recorded;
+  // Every row the seed doesn't date has the same created_at: when it ran.
+  const { rows } = await db.query<{ at: Date }>(
+    "SELECT created_at AS at FROM events WHERE id = 'e0000000-0000-4000-8000-000000000001'",
   );
-
-  const eventPath = /^\/api\/v1\/events\/([^/]+)$/;
+  const seededAt = rows[0]?.at.toISOString();
+  if (seededAt === undefined) throw new Error("The seed has no event 1.");
+  /** `answer` with the seed time of `db` in place of `{seededAt}`. */
+  const restore = (answer: Answer): Answer => ({
+    ...answer,
+    body: answer.body.replaceAll("{seededAt}", seededAt),
+  });
+  const mcp = new Map(
+    recorded.mcp.map(({ request, answer }) => [
+      keyOf(request.method, request.headers, request.body),
+      answer,
+    ]),
+  );
   return {
     v1: (path) => {
-      const request = new Request(new URL(path, settings.origin).href);
-      if (path === "/api/v1/events") return events(request, params({}));
-      if (path === "/api/v1/speakers") return speakers(request, params({}));
-      const id = eventPath.exec(path)?.[1];
-      if (id === undefined) throw new Error(`The app has no route ${path}.`);
-      return eventById(request, params({ id: decodeURIComponent(id) }));
+      const answer = recorded.v1[path];
+      if (answer === undefined) {
+        throw new Error(`The app's answer to GET ${path} wasn't recorded.`);
+      }
+      return restore(answer);
     },
-    mcp,
+    mcp: (method, headers, body) => {
+      const answer = mcp.get(keyOf(method, headers, body));
+      if (answer === undefined) {
+        throw new Error(
+          `The app's answer to ${method} /mcp ${body ?? ""} wasn't recorded.`,
+        );
+      }
+      return restore(answer);
+    },
   };
 }
-
-const params = (values: Record<string, string>) => ({
-  params: Promise.resolve(values),
-});

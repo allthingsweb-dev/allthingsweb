@@ -5,7 +5,7 @@ kerning matches the browser, and written as plain SVG paths: no font is
 needed to display them. Colors and the wordmark's type settings come from
 the design tokens, so the marks stay in step with the rest of the brand.
 
-    uv run generate.py          # write the marks to app/public/brand
+    uv run generate.py          # write the marks to brand/public
     uv run generate.py --check  # fail if the committed marks are stale
 """
 
@@ -33,7 +33,7 @@ from PIL import IcoImagePlugin, Image
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 TOKENS = ROOT / "brand/all-things.tokens.json"
-OUT = ROOT / "app/public/brand"
+OUT = ROOT / "brand/public"
 # Link-preview cards and what the Worker draws event cards with (og.py).
 OG_OUT = ROOT / "brand/og"
 # The Luma calendar's cover (calendar_cover.py), uploaded by hand on Luma,
@@ -448,7 +448,7 @@ def main() -> None:
     for path, data in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
-    print(f"Wrote {len(files)} marks to app/public/brand, brand/og and brand/covers")
+    print(f"Wrote {len(files)} marks to brand/public, brand/og and brand/covers")
 
 
 if __name__ == "__main__":

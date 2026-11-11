@@ -22,8 +22,8 @@ import { Writer } from "./reader.ts";
  *   handover's first step.
  * - `mode`: "dry-run" writes nothing and logs what it would write (the
  *   event sync rehearsed, the images it would fetch); "write" writes.
- *   "write" since the app's cron stopped (app/vercel.json): the Worker is
- *   the sync's one writer. Back to "dry-run" before the app's cron returns.
+ *   "write" since the app's cron stopped: the Worker is the sync's one
+ *   writer.
  * - `plan`: the account's Workers plan. "paid" (the allthings account is on
  *   Workers Paid) runs with the app's own limits. "free" would keep each run
  *   within the Free plan's 50 subrequests (two venues, two descriptions and
@@ -45,18 +45,8 @@ export const cronsFor = (schedule: "off" | "hourly"): string[] =>
   schedule === "hourly" ? ["0 * * * *"] : [];
 
 /**
- * The app's cron (app/vercel.json), which runs the same sync on Vercel and
- * writes production until the cutover.
- */
-export const APP_SYNC_CRON = "/api/cron/luma-sync";
-
-/**
  * Whether the Worker writes production with these switches: on a schedule,
- * in "write" mode. Production has one writer, so the Worker may write only
- * once the app's cron is gone from app/vercel.json, and the app's cron may
- * only come back once the Worker stops writing. infra/tests/sync.test.ts
- * holds the two files to that, so a pull request that would make two
- * writers fails CI.
+ * in "write" mode. It is the sync's one writer.
  */
 export const workerWrites = (sync: {
   readonly schedule: "off" | "hourly";

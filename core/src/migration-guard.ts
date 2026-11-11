@@ -61,7 +61,7 @@ export function checkMigrations(input: GuardInput): ReadonlyArray<string> {
     return number;
   };
   const renumber = (migration: MigrationRef) =>
-    `renumber ${fileOf(migration)} to ${fileOf({ ...migration, id: freeFor(migration) })} (core/migrations/${fileOf(migration)}.ts, its key in core/migrations/index.ts, and its drizzle twin in app/migrations)`;
+    `renumber ${fileOf(migration)} to ${fileOf({ ...migration, id: freeFor(migration) })} (core/migrations/${fileOf(migration)}.ts and its key in core/migrations/index.ts)`;
 
   const problems: Array<string> = [];
 

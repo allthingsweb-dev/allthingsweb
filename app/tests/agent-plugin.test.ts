@@ -36,7 +36,7 @@ describe("the allthings agent plugin", () => {
   });
 
   test("it carries the a/ app icon, byte for byte", () => {
-    const brand = join(repoRoot, "app/public/brand");
+    const brand = join(repoRoot, "brand/public");
     for (const [asset, mark] of [
       ["icon.png", "icon-192.png"],
       ["logo.png", "icon-512.png"],

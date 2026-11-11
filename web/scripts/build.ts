@@ -430,7 +430,7 @@ export interface Marks {
   readonly appleTouchIcon: Image;
 }
 
-const generated = join(root, "app/public/brand");
+const generated = join(root, "brand/public");
 /** What brand/marks/og.py generates: link-preview cards and their fonts. */
 const og = join(root, "brand/og");
 
@@ -448,11 +448,11 @@ async function mark(file: string, from = generated): Promise<Image> {
 }
 
 /**
- * Files the current site serves under fixed names, which browsers, link
- * previews and other sites ask for by those names: its icons, now the
- * brand's (the names its pages linked; app/src/app/layout.tsx), and every
- * generated mark under /brand/, as app/public/brand serves them. They can't
- * be hashed, so the asset layer serves them as they are named.
+ * Files the site serves under fixed names, which browsers, link previews
+ * and other sites ask for by those names: its icons (the names the old
+ * site's pages linked), and every generated mark in brand/public under
+ * /brand/. They can't be hashed, so the asset layer serves them as they
+ * are named.
  */
 export const fixedNames: ReadonlyArray<readonly [string, string]> = [
   ["favicon.ico", "favicon.ico"],
@@ -641,7 +641,7 @@ async function buildOg(): Promise<{
 }
 
 function fail(name: string): never {
-  throw new Error(`app/public/brand/og-metrics.json has no ${name}`);
+  throw new Error(`brand/og/og-metrics.json has no ${name}`);
 }
 
 function escapeAttribute(value: string): string {

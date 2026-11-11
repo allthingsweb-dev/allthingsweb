@@ -39,10 +39,9 @@ import {
  *   what is left is picked up by the next run. Nothing is ever deleted
  *   from `images` or the rows.
  *
- * The statements are the app's, so site_sync's grants
- * (infra/scripts/site-sync.ts) cover both; tests/ingest-parity.test.ts runs
- * each phase and the app's on copies of one database and requires the same
- * rows.
+ * The statements are the ones the app ran, so site_sync's grants
+ * (infra/scripts/site-sync.ts) cover them; tests/site-sync.test.ts runs
+ * each phase as site_sync.
  */
 
 /** A new image's id: random, or fixed in tests. */
