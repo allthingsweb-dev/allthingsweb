@@ -79,13 +79,13 @@ export const cliPackage = "https://www.npmjs.com/package/allthings";
 
 /**
  * The commands that get the CLI, as cli/README.md gives them: one run with
- * Bun, and the installer (pages/install.bash, on GitHub Pages), which puts
- * `allthings` in ~/.allthings/bin.
+ * Bun, and the installer (cli/install.bash, which this site serves at
+ * /install.bash: see web/scripts/build.ts), which puts `allthings` in
+ * ~/.allthings/bin.
  */
 export const cliCommands = {
   bunx: "bunx allthings events",
-  install:
-    "curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash",
+  install: "curl -fsSL https://allthings.dev/install.bash | bash",
 } as const;
 
 export interface Social {

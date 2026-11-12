@@ -11,7 +11,7 @@ import {
   tokens,
 } from "allthings-brand/src/tokens.ts";
 import { Marked, Renderer, type Tokens } from "marked";
-import { immutable } from "../src/cache.ts";
+import { CacheControl, immutable } from "../src/cache.ts";
 
 /**
  * Builds everything the Worker serves besides its own code, into web/dist:
@@ -27,6 +27,8 @@ import { immutable } from "../src/cache.ts";
  * - Files the current site serves under fixed names (its icons, /brand/*,
  *   /manifest.webmanifest) are written under those names too, so links to
  *   them keep working after the cutover (see fixedNames).
+ * - The CLI's installers, at /install.bash and /atw-install.bash (see
+ *   installers).
  *
  * The same sources always build the same files, byte for byte.
  */
@@ -508,6 +510,24 @@ async function buildFixedNames(): Promise<void> {
   );
 }
 
+/**
+ * The CLI's installers, by the path the site serves each at and its source
+ * from the repository's root. `curl -fsSL https://allthings.dev/install.bash
+ * | bash` runs the first (cli/README.md); /atw-install.bash, the old name's,
+ * runs it in turn. They are copied as they are: what curl gets is what the
+ * repository holds. The GitHub Pages copies in pages/ run these.
+ */
+export const installers: ReadonlyArray<readonly [string, string]> = [
+  ["install.bash", "cli/install.bash"],
+  ["atw-install.bash", "cli/atw-install.bash"],
+];
+
+async function buildInstallers(): Promise<void> {
+  for (const [published, source] of installers) {
+    await Bun.write(join(publicDir, published), Bun.file(join(root, source)));
+  }
+}
+
 async function buildMarks(): Promise<Marks> {
   await buildFixedNames();
   return {
@@ -749,7 +769,18 @@ const headers = `# Content-hashed files never change under their name.
 # The web app manifest, by its registered type.
 /manifest.webmanifest
   Content-Type: application/manifest+json
-`;
+
+# The CLI's installers: plain text, which curl pipes to bash and a browser
+# shows as it is. They change only with deploys, as a page like /brand does.
+${installers
+  .map(
+    ([published]) => `/${published}
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: ${CacheControl.page}
+  X-Content-Type-Options: nosniff
+`,
+  )
+  .join("\n")}`;
 
 export async function build(): Promise<BuildManifest> {
   await rm(dist, { recursive: true, force: true });
@@ -776,6 +807,7 @@ export async function build(): Promise<BuildManifest> {
     build: contentHash(`${await buildHash()}${JSON.stringify(assets)}`),
     ...assets,
   };
+  await buildInstallers();
   await Bun.write(join(publicDir, "_headers"), headers);
   await Bun.write(
     join(dist, "build.json"),

@@ -9,6 +9,10 @@ on:
       - "infra/scripts/site-sync.ts"
       - "infra/scripts/login-role.ts"
       - "brand/**"
+      # The CLI's installers, which the site serves, and their Pages copies.
+      - "cli/install.bash"
+      - "cli/atw-install.bash"
+      - "pages/**"
       - "tools/xss-scan/**"
       - "package.json"
       - "bun.lock"
@@ -22,6 +26,10 @@ on:
       - "infra/scripts/site-sync.ts"
       - "infra/scripts/login-role.ts"
       - "brand/**"
+      # The CLI's installers, which the site serves, and their Pages copies.
+      - "cli/install.bash"
+      - "cli/atw-install.bash"
+      - "pages/**"
       - "tools/xss-scan/**"
       - "package.json"
       - "bun.lock"

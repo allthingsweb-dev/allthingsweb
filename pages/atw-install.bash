@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The old installer's address. The CLI is now `allthings`; this runs its
-# installer, which also keeps `atw` as an alias for now.
+# The old installer's first address, on GitHub Pages. It moved to
+# allthings.dev, where this runs it from, so links to this one keep working
+# for now.
 set -euo pipefail
-echo "atw is now allthings. Installing it from install.bash."
-curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash
+curl -fsSL https://allthings.dev/atw-install.bash | bash
