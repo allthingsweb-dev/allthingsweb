@@ -66,7 +66,7 @@ export interface Size {
 
 /**
  * The at/hack starter a hackathon's teams start from
- * (github.com/allthingsweb-dev/hack), once a version is published: then
+ * (github.com/allthings-sf/hack), once a version is published: then
  * its rules say which.
  */
 export interface Starter {
@@ -133,7 +133,7 @@ export const judgingCriteria: PublicRule = {
  */
 export const hackStarter: Starter = {
   name: "at/hack",
-  repository: "https://github.com/allthingsweb-dev/hack",
+  repository: "https://github.com/allthings-sf/hack",
   version: "1.0.0",
   since: "2026-10-06",
 };

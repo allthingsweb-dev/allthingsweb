@@ -31,11 +31,11 @@ Everyone who has been on stage has a page now, at allthings.dev/people: their ta
 
 Some evenings aren't ours. When someone else runs one we think is good, we share it: it's listed beside ours, marked shared, with who organizes it.
 
-## x: thread 5/7 (213 / 280)
+## x: thread 5/7 (209 / 280)
 
 Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look: judges run each one and its tests.
 
-github.com/allthingsweb-dev/hack
+github.com/allthings-sf/hack
 
 ## x: thread 6/7 (228 / 280)
 
@@ -61,7 +61,7 @@ New: a short link for every evening, a page for everyone who's been on stage, ev
 
 Next: allthings/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-11-05-upcoming
 
-## linkedin (1311 / 3000)
+## linkedin (1307 / 3000)
 
 All Things Web is now allthings.
 
@@ -72,7 +72,7 @@ The site is now allthings.dev, and allthingsweb.dev redirects there. With it:
 - Every evening has a short link, allthings.dev/<topic>. A link, once given, is that evening's for good.
 - Everyone who has been on stage has a page, at allthings.dev/people: their talks and parts at our evenings, and the talks they gave elsewhere.
 - Evenings other people run that we think are good are listed beside ours, marked shared, with who organizes them.
-- Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look. github.com/allthingsweb-dev/hack
+- Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look. github.com/allthings-sf/hack
 - allthings is in your terminal: bunx allthings events shows what's coming up (npmjs.com/package/allthings). It reads the public MCP server your agents can add, https://allthings.dev/mcp
 
 Next: allthings/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-11-05-upcoming
@@ -80,7 +80,7 @@ Next: allthings/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-
 Talk between evenings → discord.gg/B3Sm4b5mfD
 On X: x.com/allthingsdev
 
-## discord (943 / 2000)
+## discord (939 / 2000)
 
 **All Things Web is now allthings.**
 
@@ -91,14 +91,14 @@ Same evenings, same server. An open door and a high bar. The name is allthings/\
 - Every evening has a short link, allthings.dev/\<topic\>. Once given, it's that evening's for good.
 - Everyone who has been on stage has a page: allthings.dev/people.
 - Evenings other people run that we think are good are listed beside ours, marked shared.
-- Hackathons start from **at/hack**, a template: fork it, build, hand in a public repo. <https://github.com/allthingsweb-dev/hack>
+- Hackathons start from **at/hack**, a template: fork it, build, hand in a public repo. <https://github.com/allthings-sf/hack>
 - allthings is in your terminal: `bunx allthings events`. It reads the public MCP server your agents can add, `https://allthings.dev/mcp`.
 
 **Next: allthings/upcoming meetup, Thu Nov 5, 6:00 PM.** <https://allthings.dev/2026-11-05-upcoming>
 
 On X: **@allthingsdev**
 
-## luma: newsletter (1269 / 5000)
+## luma: newsletter (1265 / 5000)
 
 subject: These evenings are now allthings
 
@@ -112,7 +112,7 @@ Nothing changes here: you keep following this calendar, and every evening's seat
 - Every evening has a short link, allthings.dev/\<topic\>. Once given, it's that evening's for good.
 - Everyone who has been on stage has a page: allthings.dev/people.
 - Evenings other people run that we think are good are listed beside ours, marked shared.
-- Hackathons start from **at/hack**, a template: fork it, build, hand in a public repo. <https://github.com/allthingsweb-dev/hack>
+- Hackathons start from **at/hack**, a template: fork it, build, hand in a public repo. <https://github.com/allthings-sf/hack>
 - allthings is in your terminal: `bunx allthings events`. It reads the public MCP server your agents can add, `https://allthings.dev/mcp`.
 
 **Next: allthings/upcoming meetup, Thu Nov 5, 6:00 PM.** [allthings.dev/2026-11-05-upcoming](https://allthings.dev/2026-11-05-upcoming)

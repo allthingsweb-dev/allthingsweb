@@ -6,12 +6,12 @@ import {
   type PullRequestData,
 } from "../src/github.ts";
 
-const repo = { owner: "allthingsweb-dev", name: "allthingsweb" };
+const repo = { owner: "allthings-sf", name: "allthingsweb" };
 
 function data(overrides: Partial<PullRequestData> = {}): PullRequestData {
   return {
     number: 52,
-    url: "https://github.com/allthingsweb-dev/allthingsweb/pull/52",
+    url: "https://github.com/allthings-sf/allthingsweb/pull/52",
     state: "OPEN",
     isDraft: false,
     mergeStateStatus: "CLEAN",

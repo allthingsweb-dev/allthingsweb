@@ -428,7 +428,7 @@ async function main(): Promise<void> {
     item,
     vault,
     notes:
-      "The hourly Luma sync's connection to production (its Worker's Hyperdrive). Rotate with infra/scripts/site-sync.ts in allthingsweb-dev/allthingsweb.",
+      "The hourly Luma sync's connection to production (its Worker's Hyperdrive). Rotate with infra/scripts/site-sync.ts in allthings-sf/allthingsweb.",
   });
   console.log(
     `✓ ${SITE_SYNC} ${created ? "created" : "has a new password"}, exactly SITE_SYNC_GRANTS on ${Object.keys(SITE_SYNC_GRANTS).length} tables; NEON_SYNC_URL and 1Password ("${item}" in ${vault}) updated`,

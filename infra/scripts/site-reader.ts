@@ -89,7 +89,7 @@ async function main(): Promise<void> {
     item,
     vault,
     notes:
-      "Read-only connection to production for Hyperdrive on every non-prod stage. Rotate with infra/scripts/site-reader.ts in allthingsweb-dev/allthingsweb.",
+      "Read-only connection to production for Hyperdrive on every non-prod stage. Rotate with infra/scripts/site-reader.ts in allthings-sf/allthingsweb.",
   });
   console.log(
     `✓ ${SITE_READER} ${created ? "created" : "has a new password"}, SELECT on ${SITE_TABLES.length} tables; NEON_READER_URL and 1Password ("${item}" in ${vault}) updated`,

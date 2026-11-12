@@ -16,7 +16,7 @@ set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
 spec="$here/../ci-token.json"
-repo=allthingsweb-dev/allthingsweb
+repo=allthings-sf/allthingsweb
 profile=${CF_PROFILE:-allthings}
 rotate=false
 [[ ${1:-} == --rotate ]] && rotate=true

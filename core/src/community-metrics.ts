@@ -53,7 +53,7 @@ export const COMMUNITY = {
   discordInvite: "B3Sm4b5mfD",
   meetupGroup: "reactjs-san-francisco",
   npmPackage: "allthings",
-  githubRepo: "allthingsweb-dev/allthingsweb",
+  githubRepo: "allthings-sf/allthingsweb",
 } as const;
 
 /** The sources, in the order they are shown. */
