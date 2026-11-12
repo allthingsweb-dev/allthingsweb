@@ -20,7 +20,7 @@
       }
     },
     "now": {
-      "line": "Arthur is a [freelance developer and AI engineer](https://stockman.codes). He [built Loiterly](https://x.com/StockmanArthur/status/2047473079635599504), a small companion that lives next to your cursor and gives you micro-apps while your agents run.",
+      "line": "Arthur is a [freelance developer and AI engineer](https://stockman.codes). He [built Loiterly, a small companion that lives next to your cursor and gives you micro-apps while your agents run](https://x.com/StockmanArthur/status/2047473079635599504).",
       "links": [
         {
           "title": "Introducing Loiterly, a small companion next to your cursor with micro-apps, for while your agents run",
@@ -94,7 +94,7 @@
       "read": "2026-10-05"
     },
     "now": {
-      "line": "Hahnbee is [a co-founder of Mintlify](https://x.com/hahnbeelee), which [launched Mintlify Base in October](https://www.mintlify.com/blog/introducing-mintlify-base), a workspace where people and agents work from the same specs, runbooks and onboarding pages.",
+      "line": "Hahnbee is [a co-founder of Mintlify](https://x.com/hahnbeelee), which [launched Mintlify Base in October, a workspace where people and agents work from the same specs, runbooks and onboarding pages](https://www.mintlify.com/blog/introducing-mintlify-base).",
       "links": [
         {
           "title": "On Mintlify open-sourcing agent-traffic, the classifier it uses to tell which agent, crawler or person is behind each docs request",
