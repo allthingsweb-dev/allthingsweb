@@ -2536,7 +2536,7 @@ th {
   }
 
   .brief-body :is(th, td) {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 }
 
