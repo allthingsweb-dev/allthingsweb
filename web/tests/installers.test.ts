@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { chmod, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { installers } from "../scripts/build.ts";
 import { cliCommands } from "../src/links.ts";
 
@@ -49,6 +52,42 @@ describe("the CLI's installers", () => {
       expect(curls(await read(`pages/${published}`))).toEqual([
         `curl -fsSL ${origin}/${published} | bash`,
       ]);
+    }
+  });
+
+  test("take the old name's ATW_VERSION, with a note on stderr, when ALLTHINGS_VERSION is unset", async () => {
+    // A curl that fetches nothing, so the run ends at the download: what it
+    // printed by then is the note, or not.
+    const fake = await mkdtemp(join(tmpdir(), "allthings-installer-"));
+    await Bun.write(join(fake, "bin/curl"), "#!/bin/sh\nexit 22\n");
+    await chmod(join(fake, "bin/curl"), 0o755);
+    const note =
+      "ATW_VERSION is now ALLTHINGS_VERSION. The old name still works for now and goes away in a later release.";
+    const run = (env: Record<string, string>) => {
+      const result = Bun.spawnSync(["bash", "cli/install.bash"], {
+        cwd: new URL("../..", import.meta.url).pathname,
+        env: {
+          PATH: `${join(fake, "bin")}:/usr/bin:/bin`,
+          HOME: fake,
+          ALLTHINGS_HOME: join(fake, "home"),
+          ...env,
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      return { code: result.exitCode, stderr: result.stderr.toString() };
+    };
+    try {
+      const old = run({ ATW_VERSION: "9.9.9" });
+      expect(old.code).toBe(1);
+      expect(old.stderr).toContain(`${note}\n`);
+      expect(old.stderr).toContain("Release 9.9.9 has no binary");
+      const both = run({ ATW_VERSION: "9.9.9", ALLTHINGS_VERSION: "9.9.8" });
+      expect(both.code).toBe(1);
+      expect(both.stderr).not.toContain(note);
+      expect(both.stderr).toContain("Release 9.9.8 has no binary");
+    } finally {
+      await rm(fake, { recursive: true, force: true });
     }
   });
 

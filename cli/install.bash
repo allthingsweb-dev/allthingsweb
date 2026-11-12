@@ -14,6 +14,11 @@ repo="allthingsweb-dev/allthingsweb"
 home_dir="${ALLTHINGS_HOME:-$HOME/.allthings}"
 bin_dir="$home_dir/bin"
 version="${ALLTHINGS_VERSION:-${ATW_VERSION:-}}"
+# The old name's variable still works, with a note on stderr, as the CLI's
+# old names do.
+if [[ -z "${ALLTHINGS_VERSION:-}" && -n "${ATW_VERSION:-}" ]]; then
+  echo "ATW_VERSION is now ALLTHINGS_VERSION. The old name still works for now and goes away in a later release." >&2
+fi
 
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 case "$os" in
