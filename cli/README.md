@@ -3,7 +3,7 @@
 allthings from your terminal: what's coming up, who's on stage and how to get in. It reads the same public MCP server agents use, so what you see here is what they see.
 
 ```sh
-curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash
+curl -fsSL https://allthings.dev/install.bash | bash
 ```
 
 That installs the latest stable release, `allthings` 2, in `~/.allthings/bin`.

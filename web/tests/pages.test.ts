@@ -10,7 +10,7 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
-import { immutable } from "../scripts/build.ts";
+import { immutable, installers } from "../scripts/build.ts";
 import {
   CacheControl,
   PrivateCacheControl,
@@ -697,6 +697,21 @@ describe("static assets", () => {
     expect(preloads[1]).toMatch(
       /href="\/assets\/geist-mono-latin-wght-normal\.[0-9a-f]{16}\.woff2" as="font" type="font\/woff2" crossorigin=""/,
     );
+  });
+
+  it("serve the CLI's installers as the repository holds them, as plain text", async (url) => {
+    for (const [published, source] of installers) {
+      const response = await fetch(`${url}/${published}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe(
+        "text/plain; charset=utf-8",
+      );
+      expect(response.headers.get("cache-control")).toBe(CacheControl.page);
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(await response.text()).toBe(
+        await Bun.file(new URL(`../../${source}`, import.meta.url)).text(),
+      );
+    }
   });
 
   it("answer a file that isn't there with 404, through the Worker", async (url) => {

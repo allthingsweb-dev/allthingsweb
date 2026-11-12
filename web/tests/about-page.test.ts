@@ -250,7 +250,7 @@ describe("the about page", () => {
     ].map(([, command]) => command);
     expect(commands).toEqual([
       "bunx allthings events",
-      "curl -fsSL https://allthingsweb-dev.github.io/allthingsweb/install.bash | bash",
+      "curl -fsSL https://allthings.dev/install.bash | bash",
     ]);
     const readme = await Bun.file(
       new URL("../../cli/README.md", import.meta.url),
