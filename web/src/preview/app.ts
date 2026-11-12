@@ -47,6 +47,7 @@ import {
   notFoundReport,
   windowOf,
 } from "./not-found.ts";
+import { briefDocumentPage, briefPath } from "./brief-document.tsx";
 import { CollabPanel, type OpenedRound, type PanelForms } from "./panel.tsx";
 import {
   keyProblem,
@@ -82,6 +83,8 @@ import {
  *   with the collaborators' panel under it (panel.tsx). A collaborator
  *   sees only the evenings they are invited to, drafts or published; any
  *   other slug answers as one that doesn't exist does.
+ * - `/<slug>/brief` is the same evening's brief as one document, to read
+ *   or print (brief-document.tsx): the sections its panel shows the signer.
  * - `/img/…` serves the photos' variants, as the site does.
  * - `/404s` is the site's 404s by day and kind, for an organizer
  *   (not-found.ts).
@@ -381,12 +384,82 @@ const draftPage = HttpRouter.add(
               after: CollabPanel({
                 panel: panel.value,
                 opened,
+                briefHref: briefPath(slug),
                 ...(forms === undefined ? {} : { forms }),
               }),
             }
           : {}),
       }),
       acceptEncoding,
+      { cacheControl: "failure", theme, images },
+    );
+  }),
+);
+
+/**
+ * `/<slug>/brief`: the evening's brief as one document (brief-document.tsx),
+ * with the sections the panel under its page shows the signer, and no
+ * others. Who may see it is who may see the page: a collaborator asking
+ * for an evening they aren't on, and anyone asking for a slug no evening
+ * has, is sent where the page would send them.
+ */
+const briefDocument = HttpRouter.add(
+  "GET",
+  "/:slug/brief",
+  Effect.gen(function* () {
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const { slug = "" } = yield* HttpRouter.params;
+    const { origin } = yield* Site;
+    const theme = themeOf(request.cookies);
+    const images = Option.isSome(yield* Images) ? "variants" : "originals";
+    const who = yield* signer;
+    const evening = Option.flatten(
+      yield* withCollab((collab) => collab.evening(who, slug)),
+    );
+    if (!who.organizer && Option.isNone(evening)) {
+      return yield* toPublic(request.url);
+    }
+    const draft = Option.match(evening, {
+      onNone: () => true,
+      onSome: (e) => e.isDraft,
+    });
+    const [found, { portraits }] = yield* Effect.all(
+      [
+        EventPages.use((pages) =>
+          draft
+            ? pages.readDraft(slug, mediaOrigin)
+            : pages.read(slug, mediaOrigin),
+        ).pipe(
+          Effect.map(Option.some),
+          Effect.catchTag("EventNotFound", () => Effect.succeedNone),
+        ),
+        footer(hostPortraits),
+      ],
+      { concurrency: "unbounded" },
+    ).pipe(Effect.provide(preview));
+    if (Option.isNone(found)) return yield* toPublic(request.url);
+    const panel = Option.isNone(evening)
+      ? Option.none()
+      : yield* withCollab((collab) => collab.panel(who, evening.value));
+    return htmlResponse(
+      briefDocumentPage({
+        event: found.value,
+        sections: Option.match(panel, {
+          onNone: () => [],
+          onSome: (shown) => shown.brief,
+        }),
+        roles: Option.match(panel, {
+          onNone: () => (who.organizer ? ["organizer"] : []),
+          onSome: (shown) => shown.roles,
+        }),
+        draft,
+        origin,
+        theme,
+        portraits,
+        images,
+        now: yield* asOf,
+      }),
+      request.headers["accept-encoding"],
       { cacheControl: "failure", theme, images },
     );
   }),
@@ -501,9 +574,13 @@ export function makePreviewHandler(
     ),
   );
   const { handler } = HttpRouter.toWebHandler(
-    Layer.mergeAll(index, imageRoutes, draftPage, elsewhere).pipe(
-      Layer.provideMerge(services),
-    ),
+    Layer.mergeAll(
+      index,
+      imageRoutes,
+      draftPage,
+      briefDocument,
+      elsewhere,
+    ).pipe(Layer.provideMerge(services)),
     { disableLogger: true, routerConfig: { ignoreTrailingSlash: false } },
   );
   return async (request, context) => {

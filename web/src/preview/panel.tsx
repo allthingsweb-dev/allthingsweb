@@ -26,7 +26,8 @@ const roleNames: Readonly<Record<string, string>> = {
   organizer: "organizer",
 };
 
-const roleName = (role: string) => roleNames[role] ?? role;
+/** A role as the pages name it. */
+export const roleName = (role: string) => roleNames[role] ?? role;
 
 /**
  * The forms a signer who may write sees: where they post, the comment
@@ -447,9 +448,12 @@ export function CollabPanel({
   panel,
   forms,
   opened = [],
+  briefHref,
 }: {
   readonly panel: Panel;
   readonly forms?: PanelForms;
+  /** Where the brief is as one document (brief-document.tsx), linked above its sections. */
+  readonly briefHref?: string;
   /** The rounds' latest saves the signer may see, opened. */
   readonly opened?: ReadonlyArray<OpenedRound>;
 }) {
@@ -577,6 +581,15 @@ export function CollabPanel({
               </Fact>
             ))
           : ""}
+        {panel.brief.length === 0 || briefHref === undefined ? (
+          ""
+        ) : (
+          <Fact label="The brief">
+            <p>
+              <a href={briefHref}>read it as one document, or print it →</a>
+            </p>
+          </Fact>
+        )}
         {panel.brief.map((section) => {
           const safeBody = briefHtml(section.body);
           return (

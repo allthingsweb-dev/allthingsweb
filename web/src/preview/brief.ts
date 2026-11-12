@@ -12,7 +12,9 @@ import { Marked } from "marked";
  * - Links keep only http, https and mailto, and open in a new tab without
  *   access to this page, as rich text's do.
  * - `###` is the section's subheading (h4), anything deeper an h5: the
- *   section's own heading is the panel's h3.
+ *   section's own heading is the panel's h3. In the brief as one document
+ *   (brief-document.tsx), whose sections are headed by h2s, they are an h3
+ *   and an h4.
  *
  * If the output still holds any other tag or attribute, the section is
  * shown as escaped plain text instead. The page runs no script under its
@@ -33,6 +35,7 @@ const allowed: Readonly<Record<string, ReadonlySet<string>>> = {
   ol: new Set(["start"]),
   li: new Set(),
   a: new Set(["href", "target", "rel"]),
+  h3: new Set(),
   h4: new Set(),
   h5: new Set(),
   table: new Set(),
@@ -62,31 +65,47 @@ const safeHref = (href: string): string | null => {
   }
 };
 
-const markdown = new Marked({
-  gfm: true,
-  renderer: {
-    html() {
-      return "";
+/** Where a section's body sits: in the panel, or in the brief as one document. */
+export type BriefPlace = "panel" | "document";
+
+/** A section's subheading and anything deeper, in each place. */
+const subheadings: Readonly<Record<BriefPlace, readonly [string, string]>> = {
+  panel: ["h4", "h5"],
+  document: ["h3", "h4"],
+};
+
+const markdownFor = (place: BriefPlace) =>
+  new Marked({
+    gfm: true,
+    renderer: {
+      html() {
+        return "";
+      },
+      image() {
+        return "";
+      },
+      hr() {
+        return "";
+      },
+      heading(token) {
+        const [sub, deeper] = subheadings[place];
+        const tag = token.depth <= 3 ? sub : deeper;
+        return `<${tag}>${this.parser.parseInline(token.tokens)}</${tag}>\n`;
+      },
+      link(token) {
+        const text = this.parser.parseInline(token.tokens);
+        const href = safeHref(token.href);
+        return href === null
+          ? text
+          : `<a href="${escape(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+      },
     },
-    image() {
-      return "";
-    },
-    hr() {
-      return "";
-    },
-    heading(token) {
-      const tag = token.depth <= 3 ? "h4" : "h5";
-      return `<${tag}>${this.parser.parseInline(token.tokens)}</${tag}>\n`;
-    },
-    link(token) {
-      const text = this.parser.parseInline(token.tokens);
-      const href = safeHref(token.href);
-      return href === null
-        ? text
-        : `<a href="${escape(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
-    },
-  },
-});
+  });
+
+const markdown: Readonly<Record<BriefPlace, Marked>> = {
+  panel: markdownFor("panel"),
+  document: markdownFor("document"),
+};
 
 const tag = /<\/?([a-z0-9]+)((?:\s+[a-z]+="[^"<>]*")*)\s*\/?>/g;
 const attribute = /\s+([a-z]+)="([^"<>]*)"/g;
@@ -111,8 +130,8 @@ export function onlyAllowed(html: string): boolean {
   return !stripped.includes("\u0000") && !stripped.includes("<");
 }
 
-/** A section's body as the panel shows it: allowed HTML, or its text escaped. */
-export function briefHtml(body: string): string {
-  const html = markdown.parse(body, { async: false });
+/** A section's body as `place` shows it: allowed HTML, or its text escaped. */
+export function briefHtml(body: string, place: BriefPlace = "panel"): string {
+  const html = markdown[place].parse(body, { async: false });
   return onlyAllowed(html) ? html : `<pre>${escape(body)}</pre>`;
 }
