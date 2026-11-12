@@ -18,7 +18,42 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
-    }
+    },
+    "now": {
+      "line": "Arthur is a [freelance developer and AI engineer](https://stockman.codes). He [built Loiterly, a small companion that lives next to your cursor and gives you micro-apps while your agents run](https://x.com/StockmanArthur/status/2047473079635599504).",
+      "links": [
+        {
+          "title": "Introducing Loiterly, a small companion next to your cursor with micro-apps, for while your agents run",
+          "date": "2026-04-24",
+          "url": "https://x.com/StockmanArthur/status/2047473079635599504",
+          "kind": "post"
+        },
+        {
+          "title": "Ported Peter Steinberger's coding setup to VR/AR at a hackathon, built in 4 hours with Matty Hempstead",
+          "date": "2026-03-31",
+          "url": "https://x.com/StockmanArthur/status/2038994743976493393",
+          "kind": "post"
+        },
+        {
+          "title": "VoiceCC, an open-source AI that phones him the moment a new listing appears",
+          "date": "2026-03-12",
+          "url": "https://x.com/StockmanArthur/status/2032097895152021829",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Open Paper Digest as a current project",
+        "sources": [
+          "https://stockman.codes",
+          "https://github.com/ArthurDevel/OpenPaperDigest"
+        ],
+        "reason": "Listed on his site with no date or description; the repo was last pushed in April 2026, so it's unclear whether it's current."
+      }
+    ]
   },
   {
     "profileId": "829ad53f-48c7-4786-8889-8670f9a1b3f1",
@@ -58,6 +93,30 @@
       "source": "https://www.ycombinator.com/companies/mintlify",
       "read": "2026-10-05"
     },
+    "now": {
+      "line": "Hahnbee is [a co-founder of Mintlify](https://x.com/hahnbeelee), which [launched Mintlify Base in October, a workspace where people and agents work from the same specs, runbooks and onboarding pages](https://www.mintlify.com/blog/introducing-mintlify-base).",
+      "links": [
+        {
+          "title": "On Mintlify open-sourcing agent-traffic, the classifier it uses to tell which agent, crawler or person is behind each docs request",
+          "date": "2026-11-10",
+          "url": "https://x.com/hahnbeelee/status/2120237787408687292",
+          "kind": "post"
+        },
+        {
+          "title": "what does collaboration look like when everyone has their own agent?",
+          "date": "2026-11-03",
+          "url": "https://x.com/hahnbeelee/status/2117744315879608403",
+          "kind": "post"
+        },
+        {
+          "title": "markdown and git-backed is the future of knowledge work",
+          "date": "2026-10-29",
+          "url": "https://x.com/hahnbeelee/status/2115898517013307546",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -82,6 +141,21 @@
           "https://www.ycombinator.com/companies/mintlify"
         ],
         "reason": "No Bluesky account found. The obvious handles return 'Profile not found'. Her site hahnbee.com ('Co-founder @ Mintlify') and the YC page link no Bluesky profile. Web search only found unrelated accounts (hanbee.bsky.social, hanbee1.bsky.social)."
+      },
+      {
+        "field": "now",
+        "value": "Co-founder and CTO of Mintlify",
+        "sources": [
+          "https://jobs.a16z.com/company/mintlify",
+          "https://www.everydev.ai/developers/mintlify"
+        ],
+        "reason": "Only third-party directories say CTO. Her X bio and hahnbee.com say just co-founder, and Mintlify's Series B post gives no title."
+      },
+      {
+        "field": "now",
+        "value": "Talk at SheTO Summit 2026, Oct 2, Computer History Museum",
+        "sources": ["https://www.mintlify.com/events"],
+        "reason": "Mintlify's events page lists her as a speaker, but there's no recording or talk page to link."
       }
     ]
   },
@@ -124,6 +198,18 @@
       "value": "chebykin",
       "source": "https://chebykin.org",
       "read": "2026-10-05"
+    },
+    "now": {
+      "line": "Ivan is [building SourceWizard](https://chebykin.org), [an agentic scoping platform](https://autonomous-agents.co), at [Autonomous Agents Co.](https://x.com/ichebykin), [a product and research lab](https://autonomous-agents.co).",
+      "links": [
+        {
+          "title": "On Writing Browsers with AI Agents",
+          "date": "2026-01-28",
+          "url": "https://chebykin.org/posts/writing-browsers-with-ai-agents",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -228,6 +314,30 @@
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
     },
+    "now": {
+      "line": "Sebastian is [CTO of Edge & Node, which builds and operates blockchain data infrastructure](https://www.edgeandnode.com/company), and [a core contributor to Effect](https://github.com/Effect-TS/effect/pulls?q=is%3Apr+author%3Afubhy), whose [4.0 release he announced in September](https://effect.website/blog/releases/effect/40).",
+      "links": [
+        {
+          "title": "Effect 4.0: The First Week",
+          "date": "2026-10-08",
+          "url": "https://effect.website/blog/effect-4-first-week",
+          "kind": "article"
+        },
+        {
+          "title": "Effect 4.0",
+          "date": "2026-09-30",
+          "url": "https://effect.website/blog/releases/effect/40",
+          "kind": "article"
+        },
+        {
+          "title": "We think this is it ...",
+          "date": "2026-08-12",
+          "url": "https://effect.website/blog/releases/effect/40-rc",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -306,6 +416,30 @@
       "value": "https://pbs.twimg.com/profile_images/2082204958808526848/jz2rjLpH_400x400.jpg",
       "source": "https://x.com/abhiaiyer",
       "read": "2026-10-06"
+    },
+    "now": {
+      "line": "Abhi is [co-founder and CTO of Mastra](https://mastra.ai/about), [the open-source TypeScript agent framework](https://mastra.ai/about), where he recently [taught a workshop on Signals for long-running agents](https://www.youtube.com/watch?v=AvHa8OkCveI).",
+      "links": [
+        {
+          "title": "Your UI is hiding security holes",
+          "date": "2026-11-05",
+          "url": "https://www.youtube.com/watch?v=bGvxqsJBhg0",
+          "kind": "video"
+        },
+        {
+          "title": "Is all security broken?",
+          "date": "2026-10-27",
+          "url": "https://www.youtube.com/watch?v=RK3s-CUoMYk",
+          "kind": "video"
+        },
+        {
+          "title": "Wake, Notify, and Steer Long-Running Agents with Signals",
+          "date": "2026-10-23",
+          "url": "https://www.youtube.com/watch?v=AvHa8OkCveI",
+          "kind": "video"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -698,6 +832,36 @@
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
     },
+    "now": {
+      "line": "Joshua is [a Community Engineer at Mux](https://www.mux.com/team/joshua-alphonse), where he [writes about building with Mux Robots](https://www.mux.com/blog/mux-robots-made-our-video-editor-s-life-easier) and [talks with builders on Mux Dev Talks](https://www.mux.com/blog/dev-talks-gauge).",
+      "links": [
+        {
+          "title": "Agent experience and agent-led growth: a chat with Caelean Barnes",
+          "date": "2026-11-03",
+          "url": "https://www.mux.com/blog/dev-talks-gauge",
+          "kind": "video"
+        },
+        {
+          "title": "Mux Robots made our video editor’s life easier",
+          "date": "2026-09-17",
+          "url": "https://www.mux.com/blog/mux-robots-made-our-video-editor-s-life-easier",
+          "kind": "article"
+        },
+        {
+          "title": "Queuing Mux Robots Directives With Laravel",
+          "date": "2026-09-09",
+          "url": "https://www.mux.com/blog/queuing-mux-robots-directives-with-laravel",
+          "kind": "article"
+        },
+        {
+          "title": "React Native needs a new video player",
+          "date": "2026-06-12",
+          "url": "https://www.mux.com/blog/react-native-needs-a-new-video-player",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "held": [
       {
         "field": "twitterHandle",
@@ -740,6 +904,36 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Kit [works on OpenCode](https://kitlangton.com) at [Anomaly](https://github.com/kitlangton), and he is [making a programming language called blood](https://x.com/kitlangton/status/2119137520529375499).",
+      "links": [
+        {
+          "title": "I'm making a programming language called blood.",
+          "date": "2026-11-07",
+          "url": "https://x.com/kitlangton/status/2119137520529375499",
+          "kind": "post"
+        },
+        {
+          "title": "Scrawl, his tool for showing an agent a problem on your screen, is open source",
+          "date": "2026-10-19",
+          "url": "https://x.com/kitlangton/status/2112000728223121538",
+          "kind": "post"
+        },
+        {
+          "title": "Introducing 2password",
+          "date": "2026-10-03",
+          "url": "https://x.com/kitlangton/status/2106481559176196140",
+          "kind": "post"
+        },
+        {
+          "title": "OpenCode Reloaded",
+          "date": "2026-09-21",
+          "url": "https://anoma.ly/notes/opencode-reloaded/",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -797,6 +991,36 @@
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
     },
+    "now": {
+      "line": "Knut is [Principal Developer Marketing Manager at Sanity](https://www.sanity.io/blog/in-defense-of-agent-sprawl), where he [writes about what agents need from content](https://www.sanity.io/blog/what-agents-need-to-operate-your-content). He also [advises Heavybit](https://x.com/kmelve).",
+      "links": [
+        {
+          "title": "In defense of agent sprawl",
+          "date": "2026-10-20",
+          "url": "https://www.sanity.io/blog/in-defense-of-agent-sprawl",
+          "kind": "article"
+        },
+        {
+          "title": "Taking Karpathy's wiki to work",
+          "date": "2026-09-03",
+          "url": "https://www.sanity.io/blog/taking-karpathys-wiki-to-work",
+          "kind": "article"
+        },
+        {
+          "title": "…but some of us were watching",
+          "date": "2026-07-17",
+          "url": "https://www.knut.fyi/blog/2026-07-17/but-some-of-us-were-watching",
+          "kind": "article"
+        },
+        {
+          "title": "What agents need to operate your content",
+          "date": "2026-06-30",
+          "url": "https://www.sanity.io/blog/what-agents-need-to-operate-your-content",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -825,7 +1049,18 @@
         }
       ],
       "readOn": "2026-11-05"
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Posts on knut.fyi such as 'The 10 laws of developer experience for content management systems' and 'Agentic developer experience starts with your system, not your prompts'",
+        "sources": [
+          "https://www.knut.fyi/blog/2026-06-04/the-10-laws-of-developer-experience-for-content-management-systems",
+          "https://www.knut.fyi/blog/2026-06-04/agentic-developer-experience-starts-with-your-system"
+        ],
+        "reason": "The dates disagree: the site's index gives 2026-04-04 and 2026-03-30, but each post page and URL say 2026-06-04, which looks like a migration date. Left out for newer, unambiguous links."
+      }
+    ]
   },
   {
     "profileId": "38129d23-ad1f-439d-9dc3-33ce13636928",
@@ -850,6 +1085,36 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Kyle [co-founded HumanLayer](https://x.com/0xblacklight), which [joined Factory in November](https://factory.com/news/humanlayer), and is now a [member of technical staff at Factory](https://x.com/0xblacklight).",
+      "links": [
+        {
+          "title": "HumanLayer is joining Factory",
+          "date": "2026-11-04",
+          "url": "https://www.humanlayer.dev/blog/humanlayer-joins-factory",
+          "kind": "post"
+        },
+        {
+          "title": "Loop Engineering from First Principles",
+          "date": "2026-07-25",
+          "url": "https://www.youtube.com/watch?v=xIt_mTQp6mY",
+          "kind": "talk"
+        },
+        {
+          "title": "Context Forking to Save Time, Tokens and Trouble",
+          "date": "2026-05-15",
+          "url": "https://www.humanlayer.dev/blog/context-forking-to-save-time-trouble-and-tokens",
+          "kind": "article"
+        },
+        {
+          "title": "Long-Context Isn't the Answer",
+          "date": "2026-03-23",
+          "url": "https://www.humanlayer.dev/blog/long-context-isnt-the-answer",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -906,6 +1171,36 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Marc is [founder and CEO of Margelo](https://x.com/mrousavy), which [joined Callstack in September](https://margelo.com/blog/margelo-joins-callstack). He built [VisionCamera and Nitro](https://x.com/mrousavy), and now ships [Mobile Dev, a Codex plugin for app development](https://x.com/mrousavy/status/2117976155580240156).",
+      "links": [
+        {
+          "title": "Mobile Dev in Codex: no more separate Terminal, DevTools, Simulators or IDEs (video)",
+          "date": "2026-11-03",
+          "url": "https://x.com/mrousavy/status/2117642205183553957",
+          "kind": "post"
+        },
+        {
+          "title": "The first Nitro V1 alpha is out",
+          "date": "2026-10-22",
+          "url": "https://x.com/mrousavy/status/2113257713169821719",
+          "kind": "post"
+        },
+        {
+          "title": "My PR to fbjni was merged: calls to Java/Kotlin in React Native and Nitro are 14% faster",
+          "date": "2026-10-22",
+          "url": "https://x.com/mrousavy/status/2113254496470175795",
+          "kind": "post"
+        },
+        {
+          "title": "Scanning Barcodes in React Native Apps: The Complete Guide (2026)",
+          "date": "2026-08-11",
+          "url": "https://margelo.com/blog/react-native-barcode-scanner",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -1590,6 +1885,30 @@
       "read": "2026-11-05",
       "was": "@simonfarshid"
     },
+    "now": {
+      "line": "Simon [founded assistant-ui](https://x.com/simonfarshid), [the frontend library for AI agents](https://www.assistant-ui.com/), which [co-hosted the Build Personal Agents Hack in October](https://luma.com/build-agents).",
+      "links": [
+        {
+          "title": "We're hosting a hackathon with our friends. $279,500 in prizes.",
+          "date": "2026-09-30",
+          "url": "https://x.com/simonfarshid/status/2105421021230879049",
+          "kind": "post"
+        },
+        {
+          "title": "Compiling .ts to .js",
+          "date": "2026-05-27",
+          "url": "https://blog.simonfarshid.com/compiling-ts-to-js",
+          "kind": "article"
+        },
+        {
+          "title": "modelpedia, an open source catalog of all models across providers",
+          "date": "2026-03-24",
+          "url": "https://x.com/simonfarshid/status/2036320120092631161",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -1618,7 +1937,27 @@
         }
       ],
       "readOn": "2026-11-05"
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "assistant-ui crossed a million weekly downloads in June 2026",
+        "sources": [
+          "https://x.com/simonfarshid/status/2063325390396080132",
+          "https://x.com/simonfarshid/status/2063524325957980412"
+        ],
+        "reason": "His posts say 'crossed a mil in weekly downloads' and '1.1M downloads/week', but don't name the package."
+      },
+      {
+        "field": "now",
+        "value": "Talk on background agents at Freestyle's event, June 2026",
+        "sources": [
+          "https://x.com/simonfarshid/status/2062710900759613739",
+          "https://luma.com/freestyle-htd6"
+        ],
+        "reason": "The event page doesn't list him as a speaker or give a date."
+      }
+    ]
   },
   {
     "profileId": "5ac5689e-0633-4daa-a203-fb92c91b7372",
@@ -1644,7 +1983,20 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
-    }
+    },
+    "now": {
+      "line": "Simon is [on the software team at Y Combinator](https://x.com/sstur_).",
+      "links": [],
+      "checkedOn": "2026-11-11"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Director of Engineering at Gather",
+        "sources": ["https://theorg.com/org/gather-1/org-chart/simon-sturmer"],
+        "reason": "A third-party org chart that conflicts with his own X bio (Software Team @ YC), and is probably out of date. Not used."
+      }
+    ]
   },
   {
     "profileId": "458980d5-75c3-4b1f-9a55-2803d1a303e2",
@@ -1671,6 +2023,36 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Steve is [co-founder and Product Architect at Mux](https://www.mux.com/team/steve-heffernan). In October he [shipped Video.js 10](https://videojs.org/blog/videojs-10), and the player's story is now [a documentary](https://videojs.org/blog/videojs-documentary).",
+      "links": [
+        {
+          "title": "Video.js: The Documentary",
+          "date": "2026-11-09",
+          "url": "https://videojs.org/blog/videojs-documentary",
+          "kind": "post"
+        },
+        {
+          "title": "Video.js v10 is GA — let the migrations begin!",
+          "date": "2026-10-01",
+          "url": "https://videojs.org/blog/videojs-10",
+          "kind": "article"
+        },
+        {
+          "title": "Video.js v10 Beta: Hello, World (again)",
+          "date": "2026-03-10",
+          "url": "https://videojs.org/blog/videojs-v10-beta-hello-world-again",
+          "kind": "article"
+        },
+        {
+          "title": "Five players, one future: How we're building Video.js v10",
+          "date": "2026-01-27",
+          "url": "https://www.mux.com/blog/five-players-one-future-how-we-re-building-video-js-v10",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -1724,6 +2106,36 @@
       "source": "https://sebastien.morel.me",
       "read": "2026-11-05"
     },
+    "now": {
+      "line": "Sébastien is [CTO of Crystallize](https://x.com/Plopix), where he [builds agentic systems that run in production](https://sebastien.morel.me). He maintains [Missive.js](https://github.com/missive-js/missive.js) and [CLIffhanger](https://github.com/plopix/cliffhanger).",
+      "links": [
+        {
+          "title": "How We Gave an AI Agent Our Codebase Without Giving It the Keys?",
+          "date": "2026-10-13",
+          "url": "https://crystallize.com/blog/claudette-ai-agent-at-crystallize",
+          "kind": "article"
+        },
+        {
+          "title": "superfast.shop: e-commerce storefronts built on Crystallize, each with the prompt that generated it",
+          "date": "2026-10-05",
+          "url": "https://x.com/Plopix/status/2107189143344431533",
+          "kind": "post"
+        },
+        {
+          "title": "Beyond Chat: When AI streams React components! Your cart has ideas! (React Norway 2026)",
+          "date": "2026-06-05",
+          "url": "https://youtu.be/Ge0DbLf-2R0?t=23593",
+          "kind": "talk"
+        },
+        {
+          "title": "Build with Crystallize Using AI — Meet the MCP Server",
+          "date": "2026-03-19",
+          "url": "https://www.youtube.com/watch?v=gk-oJs-g028",
+          "kind": "video"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -1764,6 +2176,18 @@
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
     },
+    "now": {
+      "line": "Ted works on [code infrastructure and Git at OpenAI](https://x.com/tnm), where [Pando, a new Git backend, now powers all development in the monorepo](https://openai.com/index/scaling-git-at-openai/). He also [wrote High Performance Git](https://gitperf.com/).",
+      "links": [
+        {
+          "title": "Scaling Git at OpenAI",
+          "date": "2026-11-02",
+          "url": "https://openai.com/index/scaling-git-at-openai/",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -1792,7 +2216,15 @@
         }
       ],
       "readOn": "2026-11-05"
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "High Performance Git as a dated link",
+        "sources": ["https://gitperf.com/"],
+        "reason": "The book's page gives no release date (it was on Hacker News on 2026-04-28), so it is in the line, not the links."
+      }
+    ]
   },
   {
     "profileId": "b9a4aa87-5880-4b75-b8d0-929f4bb7e288",
@@ -1823,6 +2255,24 @@
       "value": "tomocchino",
       "source": "https://tomocchino.com",
       "read": "2026-11-05"
+    },
+    "now": {
+      "line": "Tom is [Chief Product Officer at Vercel](https://www.saastrannual2026.com/speaker/tom-occhino), where he [leads engineering, product and design](https://x.com/tomocchino), and [introduced the Agent Stack at Ship 26](https://vercel.com/blog/vercel-ship-2026-recap).",
+      "links": [
+        {
+          "title": "The Agent Stack",
+          "date": "2026-06-17",
+          "url": "https://vercel.com/ship/london/session/agents-have-a-shape",
+          "kind": "talk"
+        },
+        {
+          "title": "Kick off to SaaStr Deploy Summit: From Pages to Agents, Building for a New Era with Vercel's CPO",
+          "date": "2026-05-11",
+          "url": "https://www.saastrannual2026.com/speaker/tom-occhino",
+          "kind": "talk"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     }
   },
   {
@@ -1858,6 +2308,30 @@
       "value": "tonydang.com",
       "source": "https://tonydang.com",
       "read": "2026-11-05"
+    },
+    "now": {
+      "line": "Tony is [on the DevRel team at Databricks and Neon](https://tonydang.com/now), where he [works on Neon's agent skills](https://github.com/neondatabase/agent-skills/pulls?q=is%3Apr+author%3Athisistonydang) and [makes technical videos](https://bsky.app/profile/tonydang.com/post/3mun463vgc227).",
+      "links": [
+        {
+          "title": "Reskinned an old Three.js game with a realtime leaderboard and event system backed by Neon functions",
+          "date": "2026-09-25",
+          "url": "https://bsky.app/profile/tonydang.com/post/3mwelfisjfs2f",
+          "kind": "post"
+        },
+        {
+          "title": "How to Connect Your Coding Agent and IDE to Databricks Compute | Databricks SSH Tunnel Demo",
+          "date": "2026-09-03",
+          "url": "https://www.youtube.com/watch?v=rHoGWVpb6kg",
+          "kind": "video"
+        },
+        {
+          "title": "A neonctl 2.28.0 setup that shows your current Neon branch in your Starship prompt",
+          "date": "2026-06-29",
+          "url": "https://bsky.app/profile/tonydang.com/post/3mphkhezcrs2q",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -1905,6 +2379,30 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Tony is [CEO and co-founder of Inngest](https://x.com/itstonyhb), which [added Sandboxes, isolated microVMs started from inside a function](https://www.inngest.com/changelog/2026-10-06-sandboxes), in October.",
+      "links": [
+        {
+          "title": "What everyone gets wrong about building sandboxes",
+          "date": "2026-10-21",
+          "url": "https://www.inngest.com/blog/what-everyone-gets-wrong-when-building-sandboxes",
+          "kind": "article"
+        },
+        {
+          "title": "Inngest now correlates agent runs into sessions, tracks outcomes across them and A/B tests agents in production",
+          "date": "2026-06-30",
+          "url": "https://x.com/itstonyhb/status/2072067619109380367",
+          "kind": "post"
+        },
+        {
+          "title": "One thing we do in our company routinely: what will kill us sessions",
+          "date": "2026-02-24",
+          "url": "https://x.com/itstonyhb/status/2026370258198823380",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     }
   },
   {
@@ -1936,8 +2434,14 @@
       }
     },
     "now": {
-      "line": "Rhys is building [Executor](https://executor.sh), [the cloud for personal software](https://x.com/RhysSullivan), in [YC's Summer 2026 batch](https://www.ycombinator.com/companies/executor).",
+      "line": "Rhys is building [Executor](https://executor.sh), [the cloud for personal software](https://x.com/RhysSullivan), in [YC's Summer 2026 batch](https://www.ycombinator.com/companies/executor). He [launched Executor v2 in November](https://x.com/RhysSullivan/status/2118440383353172022).",
       "links": [
+        {
+          "title": "Executor v2",
+          "date": "2026-11-05",
+          "url": "https://x.com/RhysSullivan/status/2118440383353172022",
+          "kind": "video"
+        },
         {
           "title": "We're not using enough inference",
           "date": "2026-08-09",
@@ -1957,7 +2461,7 @@
           "kind": "article"
         }
       ],
-      "checkedOn": "2026-11-02"
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -2021,6 +2525,18 @@
       "read": "2026-10-05",
       "was": "ryandavogel"
     },
+    "now": {
+      "line": "Ryan is [a founding developer at OpenCode](https://ryan.ceo), [the open source coding agent](https://opencode.ai), and just [soft-launched its Android app](https://x.com/ryanvogel/status/2119768385353294159). He also builds [Inbound, an email API for developers](https://inbound.new).",
+      "links": [
+        {
+          "title": "A desktop widget system that lets agents create custom frontends and map them to codemode actions",
+          "date": "2026-11-09",
+          "url": "https://x.com/ryanvogel/status/2119899460922712214",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -2041,7 +2557,24 @@
         }
       ],
       "readOn": "2026-11-05"
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "A new project called Bane",
+        "sources": [
+          "https://x.com/ryanvogel",
+          "https://x.com/ryanvogel/status/2119923397463355689"
+        ],
+        "reason": "His X bio and a 2026-11-09 post tease it, but nothing says what it is."
+      },
+      {
+        "field": "now",
+        "value": "Hosts NextDev.fm and Rebase TV",
+        "sources": ["https://ryan.ceo", "https://www.buzzsprout.com/2521587"],
+        "reason": "No dated 2026 episode found for either, so they may not be current."
+      }
+    ]
   },
   {
     "profileId": "460cca46-56d7-44da-a6a1-a2358ca28f3d",
@@ -2085,31 +2618,31 @@
       "line": "Matt [joined Cursor in August to work on developer experience and education](https://x.com/mattyp/status/2084398105802448903), eleven days before [Cursor became part of SpaceX](https://cursor.com/blog/joining-spacex). He [works on Cursor and Grok Bot at SpaceXSI](https://x.com/mattyp).",
       "links": [
         {
+          "title": "We just shipped multiplayer in Cursor Projects",
+          "date": "2026-11-11",
+          "url": "https://x.com/mattyp/status/2120307529674883177",
+          "kind": "video"
+        },
+        {
+          "title": "What's new in Grok Bot",
+          "date": "2026-11-10",
+          "url": "https://x.com/mattyp/status/2120206234804727821",
+          "kind": "video"
+        },
+        {
+          "title": "Agents rebuilt Slack as video (using code) by looking at the real thing",
+          "date": "2026-10-29",
+          "url": "https://x.com/mattyp/status/2115805862837264832",
+          "kind": "video"
+        },
+        {
           "title": "The future of Cursor",
           "date": "2026-10",
           "url": "https://mattpalmer.io/decks/2026-10-vercel-ship/",
           "kind": "talk"
-        },
-        {
-          "title": "Chat is all you need",
-          "date": "2026-08-18",
-          "url": "https://x.com/mattyp/status/2089758434921160877",
-          "kind": "article"
-        },
-        {
-          "title": "Intro to Grok Bot",
-          "date": "2026-08-11",
-          "url": "https://x.com/mattyp/status/2087252657589412119",
-          "kind": "article"
-        },
-        {
-          "title": "Content Is Code",
-          "date": "2026-07-18",
-          "url": "https://www.youtube.com/watch?v=yv6xovSsB1U",
-          "kind": "talk"
         }
       ],
-      "checkedOn": "2026-11-02"
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -2143,21 +2676,12 @@
     "held": [
       {
         "field": "now",
-        "value": "Matt joined Cursor a day before it became part of SpaceX AI.",
-        "sources": [
-          "https://x.com/mattyp/status/2084398105802448903",
-          "https://cursor.com/blog/joining-spacex"
-        ],
-        "reason": "His first day was 2026-08-03; the acquisition closed 2026-08-14, eleven days later. SpaceX's AI unit was SpaceXAI then and is SpaceXSI (SpaceX Super Intelligence) since October. The line says what the sources say."
-      },
-      {
-        "field": "now",
         "value": "Matt leads developer experience at Cursor.",
         "sources": [
           "https://x.com/mattyp",
           "https://mattpalmer.io/decks/2026-10-vercel-ship/"
         ],
-        "reason": "No exact title on his own channels: his deck says \"Developer experience and community\", his X bio \"cursor & @bot at @spacexsi\". A Bessemer page with \"leads\" may be another Matt Palmer."
+        "reason": "No exact title on his own channels: his deck says \"Developer experience and community\", his X bio \"cursor & @bot at @spacexsi\"."
       }
     ]
   },
@@ -2192,6 +2716,30 @@
       "source": "https://goosewin.com",
       "read": "2026-10-05",
       "was": "dan_goosewin"
+    },
+    "now": {
+      "line": "Dan runs [Goosewin Media Group](https://goose.dev/about), which does [fractional DevRel and marketing for devtools and AI companies like Kernel and Mastra](https://goosewin.com).",
+      "links": [
+        {
+          "title": "\"AI is going to replace engineers in X months\"",
+          "date": "2026-02-17",
+          "url": "https://www.youtube.com/watch?v=4oXrE_rlkFQ",
+          "kind": "video"
+        },
+        {
+          "title": "Is JJ going to replace Git?",
+          "date": "2026-02-12",
+          "url": "https://www.youtube.com/watch?v=BWlSgYG7UpQ",
+          "kind": "video"
+        },
+        {
+          "title": "Lessons from 2025, Bets for 2026",
+          "date": "2026-01-04",
+          "url": "https://goose.dev/blog/2025-year-in-review",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     }
   },
   {
@@ -2226,6 +2774,36 @@
       "source": "https://github.com/andrelandgraf",
       "read": "2026-10-05",
       "was": "andrelandgraf94"
+    },
+    "now": {
+      "line": "Andre is a [Staff Developer Advocate at Databricks, working on Neon](https://www.databricks.com/dataaisummit/speaker/andre-landgraf), and [writes about agents and the platforms they run on](https://neon.com/blog/is-mcp-good-yet).",
+      "links": [
+        {
+          "title": "Is MCP good yet?",
+          "date": "2026-11-04",
+          "url": "https://neon.com/blog/is-mcp-good-yet",
+          "kind": "article"
+        },
+        {
+          "title": "Neon Docs search is now built on Neon",
+          "date": "2026-10-26",
+          "url": "https://neon.com/blog/neon-docs-search-lakebase-search",
+          "kind": "article"
+        },
+        {
+          "title": "Announcing @neon/effect",
+          "date": "2026-10-01",
+          "url": "https://neon.com/blog/announcing-neon-effect",
+          "kind": "article"
+        },
+        {
+          "title": "Electrifying Neon: building the realtime backend",
+          "date": "2026-09-24",
+          "url": "https://neon.com/blog/electrifying-neon-building-the-realtime-backend",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -2281,6 +2859,18 @@
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
     },
+    "now": {
+      "line": "Raouf works on [AI education at Replit](https://x.com/elimilu_), and [talks about how Replit's agents let people build software in plain English](https://www.youtube.com/watch?v=GAXzncUO7Iw).",
+      "links": [
+        {
+          "title": "GenAI Days Paris 2026 - Replit - \"Building Cooperative AI Systems at Scale\"",
+          "date": "2026-08-31",
+          "url": "https://www.youtube.com/watch?v=GAXzncUO7Iw",
+          "kind": "talk"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -2308,6 +2898,18 @@
         "value": "raoufcode",
         "sources": ["https://x.com/raoufcode"],
         "reason": "The earlier pass proposed raoufcode; that account no longer exists. The stored elimilu_ is his (name Raouf Chebri, bio 'AI Education @replit')."
+      },
+      {
+        "field": "now",
+        "value": "Head of Developer Relations at Replit",
+        "sources": ["https://www.linkedin.com/in/raoufchebri/"],
+        "reason": "A search result said an April 22 Avanai x Replit event in London billed him this way; I could not open the event page, and his X bio says AI Education @replit, so the title was left out."
+      },
+      {
+        "field": "now",
+        "value": "Co-hosted the Replit x Black Forest Labs Pre-GTC Breakfast in Berlin",
+        "sources": ["https://luma.com/replit-gtc-berlin"],
+        "reason": "He is listed as a host, but the page gives no date and it is an event he hosted rather than his own work."
       }
     ]
   },
@@ -2336,6 +2938,18 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Pierre is [CEO of Strapi](https://strapi.io/about-us) and [co-founder and CEO of Fimo, the autonomous website platform for AI-built websites](https://fimo.ai/about). [Fimo is now in Claude and ChatGPT](https://fimo.ai/blog/fimo-in-claude-and-chatgpt).",
+      "links": [
+        {
+          "title": "Bye 2025, Hello 2026! A year in review",
+          "date": "2026-01-13",
+          "url": "https://strapi.io/blog/bye-2025-hello-2026-a-year-in-review",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -2390,7 +3004,45 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
-    }
+    },
+    "now": {
+      "line": "Pillippa is a [full-stack engineer focused on frontend craft and design systems](https://pillippa.cl), and [vice president of Niñas Pro, which runs programs for girls in tech across Latin America](https://pillippa.cl).",
+      "links": [
+        {
+          "title": "Why good talks don’t get selected",
+          "date": "2026-03-17",
+          "url": "https://dev.to/pillin/why-good-talks-dont-get-selected-5772",
+          "kind": "article"
+        },
+        {
+          "title": "Day 01 - One Key, One Coordinator",
+          "date": "2025-12-22",
+          "url": "https://dev.to/pillin/day-01-one-key-one-coordinator-3e69",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Current employer",
+        "sources": ["https://pillippa.cl", "https://sessionize.com/pillippa"],
+        "reason": "Her site (dated May 23, 2026) lists DoorDash for 2024 to 2025 only and names no current employer; Sessionize names none either."
+      },
+      {
+        "field": "now",
+        "value": "Mainstage talk at GitHub Universe 2025",
+        "sources": ["https://pillippa.cl"],
+        "reason": "Her site mentions it, but I found no talk title, recording or session page to link."
+      },
+      {
+        "field": "now",
+        "value": "Feature in La Tercera (Chile), Oct 2026",
+        "sources": ["https://x.com/_pilliin_/status/2114429515317629103"],
+        "reason": "Her post shows a newspaper photo, but I couldn't find the article online to confirm what it says."
+      }
+    ]
   },
   {
     "profileId": "a074ee80-6d52-4399-a16c-048e1e07ea62",
@@ -2417,6 +3069,24 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Sam is [type-checking the cloud with Alchemy](https://x.com/samgoodwin89): [cloud programs composed from Layers, deployed per pull request](https://alchemy.run/). It [now runs on Effect 4.1 and aims for weekly releases](https://x.com/samgoodwin89/status/2117367779703845159).",
+      "links": [
+        {
+          "title": "Alchemy is now on Effect 4.1, aiming for a weekly release cadence, with a thread of feature highlights",
+          "date": "2026-11-02",
+          "url": "https://x.com/samgoodwin89/status/2117367779703845159",
+          "kind": "post"
+        },
+        {
+          "title": "Episode #172: Sam Goodwin - Alchemy",
+          "date": "2026-05",
+          "url": "https://www.devtools.fm/episode/172",
+          "kind": "podcast"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -2446,7 +3116,18 @@
         }
       ],
       "readOn": "2026-11-05"
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Hillclimbing distilled (Alchemy blog, 2026-10-24) and A Test Runner for Agents (2026-07-22)",
+        "sources": [
+          "https://alchemy.run/blog/2026-10-24-optimizing-distilled/",
+          "https://alchemy.run/blog/2026-07-22-a-test-runner-for-agents/"
+        ],
+        "reason": "The Alchemy blog gives no byline, so I couldn't confirm Sam wrote them."
+      }
+    ]
   },
   {
     "profileId": "0a9c5976-388a-4a5b-a01c-7b43c7f711ba",
@@ -2784,6 +3465,36 @@
       "value": "MikaelLirbank",
       "source": "https://www.lirbank.com/",
       "read": "2026-11-05"
+    },
+    "now": {
+      "line": "Mikael [helps teams ship robust, reliable, high-quality AI systems](https://www.lirbank.com/) and [runs STΛR MODΞ, a collective of independent builders](https://www.starmode.dev/). His [Neon Testing now supports Bun Test](https://github.com/starmode-base/neon-testing/releases/tag/v3.0.0).",
+      "links": [
+        {
+          "title": "Taming production database migrations",
+          "date": "2026-06-30",
+          "url": "https://www.lirbank.com/taming-production-database-migrations",
+          "kind": "article"
+        },
+        {
+          "title": "Neon Testing v3.0.0 supports Bun Test: integration tests against isolated Neon Postgres branches",
+          "date": "2026-06-17",
+          "url": "https://x.com/MikaelLirbank/status/2067315558476124489",
+          "kind": "post"
+        },
+        {
+          "title": "Liberate yourself from infrastructure over-planning",
+          "date": "2026-03-04",
+          "url": "https://www.lirbank.com/liberate-yourself-from-infrastructure-over-planning",
+          "kind": "article"
+        },
+        {
+          "title": "Harnessing Postgres race conditions",
+          "date": "2026-02-13",
+          "url": "https://www.lirbank.com/harnessing-postgres-race-conditions",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     }
   },
   {
@@ -2810,6 +3521,11 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Nipunn is an [engineer at Convex](https://x.com/nipunn1313) and [works on its open-source backend](https://github.com/convex/convex-backend/commits?author=nipunn1313).",
+      "links": [],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -2839,7 +3555,15 @@
         }
       ],
       "readOn": "2026-11-05"
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Migrating data from Postgres to Convex (Stack post, with Ian Macartney)",
+        "sources": ["https://stack.convex.dev/migrate-data-postgres-to-convex"],
+        "reason": "His latest Stack post is dated July 8, 2025, older than about 12 months; no recent talk, post or podcast found."
+      }
+    ]
   },
   {
     "profileId": "eb6a6870-446b-4e92-afd3-9c1e3fa08ec1",
@@ -3232,21 +3956,21 @@
       "line": "Lydia works on [Claude Code at Anthropic](https://x.com/lydiahallie) and [teaches it in a free course](https://master.dev/courses/claude-code/). She [announced Claude Tag in June](https://x.com/lydiahallie/status/2069487432383467617): [Claude in Slack, as a teammate](https://www.anthropic.com/news/introducing-claude-tag).",
       "links": [
         {
-          "title": "Projects in Claude Code",
-          "date": "2026-09-17",
-          "url": "https://x.com/lydiahallie/status/2100636318590267474",
-          "kind": "post"
+          "title": "Doing what you did in Conductor with Claude Code Projects",
+          "date": "2026-11-07",
+          "url": "https://x.com/lydiahallie/status/2118863157569737109",
+          "kind": "video"
         },
         {
-          "title": "Which Claude Code feature do you wish you'd found sooner?",
-          "date": "2026-09-07",
-          "url": "https://x.com/lydiahallie/status/2097061523550322858",
-          "kind": "post"
+          "title": "Dynamic workflows don't have to be hundreds of subagents",
+          "date": "2026-10-28",
+          "url": "https://x.com/lydiahallie/status/2115533617984401464",
+          "kind": "video"
         },
         {
-          "title": "Claude Tag is live",
-          "date": "2026-06-23",
-          "url": "https://x.com/lydiahallie/status/2069487432383467617",
+          "title": "Asking Claude to run subagents at a specific effort level",
+          "date": "2026-10-07",
+          "url": "https://x.com/lydiahallie/status/2107625236430798909",
           "kind": "post"
         },
         {
@@ -3256,7 +3980,7 @@
           "kind": "talk"
         }
       ],
-      "checkedOn": "2026-11-02"
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -3303,7 +4027,7 @@
         "sources": [
           "https://claude.com/resources/webinars/claude-code-maximizing-value"
         ],
-        "reason": "Anthropic's page gives no date; 2026-09-10 is only on a third-party listing. Kept out of the links until a dated page says so."
+        "reason": "Anthropic's page gives no date; 2026-09-10 is only on a third-party listing."
       }
     ]
   },
@@ -3335,8 +4059,14 @@
       }
     },
     "now": {
-      "line": "Lee [works on ML at SpaceX, helping train useful AI models, after Cursor and Vercel](https://leerob.com). He [lectured Stanford's CS146S in October on how always-on agents work](https://x.com/leerob/status/2108650243365736855).",
+      "line": "Lee [works on product at SpaceX, after Cursor and Vercel](https://x.com/leerob), and [helps build Grok Bot](https://x.com/leerob/status/2113792409448714468). He [lectured at Stanford's CS146S on how always-on agents work](https://x.com/leerob/status/2108650243365736855).",
       "links": [
+        {
+          "title": "What I'd teach kids interested in web development and programming today, from a reply to a cold email",
+          "date": "2026-11-10",
+          "url": "https://x.com/leerob/status/2120182450416500819",
+          "kind": "post"
+        },
         {
           "title": "Stanford CS146S: How always-on agents work",
           "date": "2026-10-11",
@@ -3354,15 +4084,9 @@
           "date": "2026-07",
           "url": "https://leerob.com/model-behavior",
           "kind": "article"
-        },
-        {
-          "title": "Cursor: coding agents tutorial (2026)",
-          "date": "2026-04-15",
-          "url": "https://www.youtube.com/watch?v=kF2WQgk1LtY",
-          "kind": "video"
         }
       ],
-      "checkedOn": "2026-11-02"
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -3388,7 +4112,13 @@
     "held": [
       {
         "field": "now",
-        "value": "When Lee moved from Cursor to SpaceX's ML work, and whether through the acquisition.",
+        "value": "Lee works on ML at SpaceX, helping train useful AI models.",
+        "sources": ["https://leerob.com", "https://x.com/leerob"],
+        "reason": "His site still says this, but his X bio now reads \"Product at SpaceX. Previously Cursor and Vercel/Next.js. Helping build @bot.\" The record follows the X bio; the site may lag."
+      },
+      {
+        "field": "now",
+        "value": "When Lee moved from Cursor to SpaceX, and whether through the acquisition.",
         "sources": [
           "https://leerob.com",
           "https://cursor.com/blog/joining-spacex"
@@ -3424,22 +4154,34 @@
       }
     },
     "now": {
-      "line": "Evan [leads frontend for Grok at SpaceXSI, after Expo](https://x.com/Baconbrix). His latest: [Grok Bot on your phone's calendar, reminders and contacts](https://x.com/Baconbrix/status/2113398485961855364).",
+      "line": "Evan [leads frontend for Grok at SpaceXSI, after Expo](https://x.com/Baconbrix). He [helped build the new shopping experience in Grok Bot](https://x.com/Baconbrix/status/2117743013355196777).",
       "links": [
+        {
+          "title": "Send suspicious texts, emails and voicemails to Grok Bot to check if they're real",
+          "date": "2026-11-11",
+          "url": "https://x.com/Baconbrix/status/2120540365086429279",
+          "kind": "post"
+        },
+        {
+          "title": "Having Grok Bot decorate my office to dogfood the new shopping features",
+          "date": "2026-11-04",
+          "url": "https://x.com/Baconbrix/status/2117833704731234598",
+          "kind": "video"
+        },
+        {
+          "title": "Using Grok Bot as my always-on domain broker",
+          "date": "2026-11-03",
+          "url": "https://x.com/Baconbrix/status/2117694260199977363",
+          "kind": "video"
+        },
         {
           "title": "My dream Lego app",
           "date": "2026-10-24",
           "url": "https://x.com/Baconbrix/status/2114125784688271524",
           "kind": "post"
-        },
-        {
-          "title": "Grok Bot's local tools on iPhone and Android",
-          "date": "2026-10-22",
-          "url": "https://x.com/Baconbrix/status/2113398485961855364",
-          "kind": "post"
         }
       ],
-      "checkedOn": "2026-11-02"
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -3483,7 +4225,7 @@
         "sources": [
           "https://www.linkedin.com/posts/evanbacon_honored-to-announce-that-ive-officially-activity-7485557125797031936-CrWg"
         ],
-        "reason": "The page shows only \"3mo\"; the day is decoded from the post's id, not given by the page."
+        "reason": "The page shows only a relative age; the day is decoded from the post's id, not given by the page."
       }
     ]
   },
@@ -3514,6 +4256,36 @@
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
     },
+    "now": {
+      "line": "Erik is a [developer advocate at AWS](https://www.programwitherik.com/) working on [Kiro](https://x.com/ErikCH), and [makes videos on AI coding for frontend developers](https://www.youtube.com/@ProgramWithErik).",
+      "links": [
+        {
+          "title": "How To Review Pull Requests with Kiro CLI and GitHub Actions",
+          "date": "2026-11-11",
+          "url": "https://dev.to/erikch/how-to-review-pull-requests-with-kiro-cli-and-github-actions-1b9b",
+          "kind": "article"
+        },
+        {
+          "title": "Top 5 AI Agent Patterns for Frontend Devs",
+          "date": "2026-11-10",
+          "url": "https://www.youtube.com/watch?v=qRv3NHLY_8o",
+          "kind": "video"
+        },
+        {
+          "title": "Nuxt CLI v4 Is Great for AI Coding Agents (You gotta try it)",
+          "date": "2026-11-04",
+          "url": "https://www.youtube.com/watch?v=XdWNtDoLBaM",
+          "kind": "video"
+        },
+        {
+          "title": "Vite+ 1.0 Replaced My Entire Frontend Toolchain",
+          "date": "2026-10-28",
+          "url": "https://www.youtube.com/watch?v=gGM3UTiL5Gc",
+          "kind": "video"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -3534,7 +4306,18 @@
         }
       ],
       "readOn": "2026-11-05"
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Speaking at React Summit US (Nov 16-20, 2026, New York) on TanStack Start and the Server Factory",
+        "sources": [
+          "https://www.programwitherik.com/",
+          "https://reactsummit.us/#person-erik-hanchett"
+        ],
+        "reason": "Listed on his own site, but the React Summit page as read did not show him in its speaker list; left out."
+      }
+    ]
   },
   {
     "profileId": "88612a67-9020-4011-9605-1fa4bc81155d",
@@ -3568,6 +4351,15 @@
         "value": "erikspena",
         "sources": ["https://www.linkedin.com/in/erikspena"],
         "reason": "The public LinkedIn URL now returns 'Profile Not Found'; I could not confirm the handle or find a replacement."
+      },
+      {
+        "field": "now",
+        "value": "Erik is a Product Manager at DoveRunner and writes for Streaming Media on OTT content protection.",
+        "sources": [
+          "https://www.streamingmedia.com/Authors/10583-Erik-Pena.htm",
+          "https://www.streamingmedia.com/2025/Speakers/Erik-Peña.aspx"
+        ],
+        "reason": "The bio matches his field (about 20 years in media and entertainment solutions architecture) but names no past employer, no Mux, no handle, so it may be a same-name collision."
       }
     ]
   },
@@ -3596,6 +4388,24 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Ian [leads API development at Convex](https://www.convex.dev/about-us), where he works on [the core API, convex-helpers and Components](https://x.com/ianmacartney/status/1989124009976635408).",
+      "links": [
+        {
+          "title": "v.nullable(...) is now shorthand for v.union(..., v.null()) in Convex",
+          "date": "2025-11-19",
+          "url": "https://x.com/ianmacartney/status/1990971648305238184",
+          "kind": "post"
+        },
+        {
+          "title": "Validation utilities landed in Convex 1.29: pick, extend and partial on v.object",
+          "date": "2025-11-14",
+          "url": "https://x.com/ianmacartney/status/1989124009976635408",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     }
   },
   {
@@ -3623,6 +4433,24 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "JJ is [a software engineer at Vercel](https://x.com/_ijjk) who works on [Next.js](https://github.com/vercel/next.js/commits?author=ijjk) and on [eve, Vercel's open-source agent framework](https://vercel.com/blog/introducing-eve).",
+      "links": [
+        {
+          "title": "Introducing eve",
+          "date": "2026-06-17",
+          "url": "https://vercel.com/blog/introducing-eve",
+          "kind": "article"
+        },
+        {
+          "title": "Next.js Across Platforms: Adapters, OpenNext, and Our Commitments",
+          "date": "2026-03-25",
+          "url": "https://nextjs.org/blog/nextjs-across-platforms",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     }
   },
   {
@@ -3650,6 +4478,30 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "James is the [founder of Freebuff](https://x.com/jahooma), [the 100% free, unlimited coding agent, funded by ads instead of a subscription](https://freebuff.com). Freebuff [now has iOS and Android apps](https://x.com/jahooma/status/2119982082227343592).",
+      "links": [
+        {
+          "title": "Freebuff's iOS and Android apps are out: free, unlimited coding",
+          "date": "2026-11-10",
+          "url": "https://x.com/jahooma/status/2119982082227343592",
+          "kind": "post"
+        },
+        {
+          "title": "Claude Haiku 5.5 is free forever in Freebuff, funded by ads",
+          "date": "2026-10-12",
+          "url": "https://x.com/jahooma/status/2109768462688235592",
+          "kind": "post"
+        },
+        {
+          "title": "Introducing \"The New Freebuff\": unified products, partial-usage refunds and custom themes",
+          "date": "2026-10-09",
+          "url": "https://x.com/jahooma/status/2108686918892638595",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -3706,6 +4558,36 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "James is a [developer educator at Cloudflare](https://x.com/jamesqquick), and [makes videos on building for the web, from WebMCP to Vinext](https://www.youtube.com/@jamesqquick).",
+      "links": [
+        {
+          "title": "Vinext 1.0 - A New Alternative to Next.js",
+          "date": "2026-09-29",
+          "url": "https://www.youtube.com/watch?v=eFFH_4aD6Ig",
+          "kind": "video"
+        },
+        {
+          "title": "WebMCP Changes How We Interact with the Web! (beginner intro with React)",
+          "date": "2026-09-10",
+          "url": "https://www.youtube.com/watch?v=9Fmtz_oiijk",
+          "kind": "video"
+        },
+        {
+          "title": "How I Trigger AI Workflows From My Phone",
+          "date": "2026-09-08",
+          "url": "https://www.youtube.com/watch?v=Vg6VpdtKukI",
+          "kind": "video"
+        },
+        {
+          "title": "What Everyone Missed About Emdash, Cloudflare's Wordpress Alternative",
+          "date": "2026-04-07",
+          "url": "https://www.youtube.com/watch?v=hgOJH9bp75k",
+          "kind": "video"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -3770,19 +4652,19 @@
       "was": "@MichaelArnaldi"
     },
     "now": {
-      "line": "Michael [leads Effect and runs Effectful](https://x.com/MichaelArnaldi). [He and Sebastian Lorenz merged Effect 4.0 stable live at at/effect](https://effect.website/blog/this-week-in-effect/138).",
+      "line": "Michael [leads Effect and runs Effectful](https://x.com/MichaelArnaldi). He [merged Effect 4.0 stable live at at/effect](https://effect.website/blog/this-week-in-effect/138).",
       "links": [
         {
-          "title": "Effect 4.0",
-          "date": "2026-09-30",
-          "url": "https://effect.website/blog/releases/effect/40",
-          "kind": "article"
-        },
-        {
-          "title": "Software Engineering in the Age of AI, with John De Goes (Cause & Effect 10)",
+          "title": "Software Engineering in the Age of AI // John De Goes // Cause & Effect 10",
           "date": "2026-08-07",
           "url": "https://www.youtube.com/watch?v=irmz5X3c7Do",
           "kind": "podcast"
+        },
+        {
+          "title": "Vibe Engineering Effect Apps",
+          "date": "2026-05-07",
+          "url": "https://www.youtube.com/watch?v=Wmp2Tku2PrI",
+          "kind": "talk"
         },
         {
           "title": "The Death of Software Development",
@@ -3791,7 +4673,7 @@
           "kind": "article"
         }
       ],
-      "checkedOn": "2026-11-02"
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -3828,6 +4710,18 @@
         "value": "State of Effect 2026 (his talk at at/effect)",
         "sources": ["https://effect.website/blog/this-week-in-effect/138"],
         "reason": "No public recording found."
+      },
+      {
+        "field": "now",
+        "value": "Effect 4.0 (release post), 2026-09-30",
+        "sources": ["https://effect.website/blog/releases/effect/40"],
+        "reason": "Its byline is Sebastian Lorenz, not Michael, so it is not his own piece; dropped from the links."
+      },
+      {
+        "field": "now",
+        "value": "He and Sebastian Lorenz merged Effect 4.0 stable live at at/effect.",
+        "sources": ["https://effect.website/blog/this-week-in-effect/138"],
+        "reason": "The post names only \"Sebastian\", with no surname; the line now says only that Michael merged it."
       }
     ]
   },
@@ -3845,6 +4739,18 @@
       "source": "https://2026.allthingsopen.org/speakers/erik-thorelli",
       "read": "2026-11-02",
       "was": "Erik Thorelli is an Engineering Leader at Cisco Meraki, leading the mobile engineering organization. He's been developing React and React Native apps for almost a decade, across many industries...and seen some stuff."
+    },
+    "now": {
+      "line": "Erik is [Head of Developer Experience at CodeRabbit](https://2026.allthingsopen.org/speakers/erik-thorelli), and [spoke on making what agents want at All Things Open in October](https://2026.allthingsopen.org/sessions/make-what-agents-want).",
+      "links": [
+        {
+          "title": "Make What Agents Want",
+          "date": "2026-10",
+          "url": "https://2026.allthingsopen.org/sessions/make-what-agents-want",
+          "kind": "talk"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -3908,6 +4814,36 @@
       "read": "2026-11-05",
       "was": "@aidenybai.bsky.social"
     },
+    "now": {
+      "line": "Aiden is building [Million](https://aidenybai.com), [a research lab specializing in frontend coding data](https://million.dev), and [React Doctor, which flags poor React code agents write](https://github.com/millionco/react-doctor). His latest is [TLA-ts, a TLA+ model checker in TypeScript](https://github.com/aidenybai/tla-ts).",
+      "links": [
+        {
+          "title": "Introducing TLA-ts proofs, written 100% in TypeScript",
+          "date": "2026-11-02",
+          "url": "https://x.com/aidenybai/status/2117306744523161732",
+          "kind": "post"
+        },
+        {
+          "title": "React Doctor just hit 3M downloads a week",
+          "date": "2026-10-30",
+          "url": "https://x.com/aidenybai/status/2116293972356432027",
+          "kind": "post"
+        },
+        {
+          "title": "How to Demo",
+          "date": "2026-09-12",
+          "url": "https://aidenybai.com/blog/how-to-demo",
+          "kind": "article"
+        },
+        {
+          "title": "Agent Writing Guidelines",
+          "date": "2026-09-11",
+          "url": "https://aidenybai.com/blog/write",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
     "xPosts": {
       "posts": [
         {
@@ -3969,7 +4905,20 @@
       "source": "https://x.com/_alexandrebodin",
       "read": "2026-11-05",
       "was": "_alexandrebodin "
-    }
+    },
+    "now": {
+      "line": "Alex is [CTO of Strapi](https://x.com/_alexandrebodin), and built [reel, which records an AI agent clicking through your app and turns it into a demo video](https://github.com/alexandrebodin/reel).",
+      "links": [],
+      "checkedOn": "2026-11-11"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Building the Future Web: Best Practices with Strapi, v0, and Next.js (StrapiConf 2025, with Alice De Mauro of Vercel)",
+        "sources": ["https://conf.strapi.io/"],
+        "reason": "StrapiConf 2025 talk with no date or recording on the page, and older than about 12 months; reel is a GitHub repo (made public 2026-11-04), not a post, article, video, talk or podcast, so it is in the line rather than the links."
+      }
+    ]
   },
   {
     "profileId": "d077b550-4f59-4f5b-86fa-26249d475afa",
@@ -3992,6 +4941,11 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Alex is [an engineer at Discord](https://github.com/Flewp), where he [works on Discord's fork of Hermes](https://github.com/discord/hermes/pull/13), [the JavaScript engine optimized for React Native](https://github.com/discord/hermes).",
+      "links": [],
+      "checkedOn": "2026-11-11"
     }
   },
   {
@@ -4020,6 +4974,36 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
+    },
+    "now": {
+      "line": "Cody is [GM of Agent Experience at Railway](https://x.com/Codydearkland), where he [writes about how agents use Railway](https://blog.railway.com/p/state-of-railway-agents) and [announced its remote MCP server](https://blog.railway.com/p/agent-rails-remote-mcp-cli).",
+      "links": [
+        {
+          "title": "Every (Agents) Connection to Railway",
+          "date": "2026-06-26",
+          "url": "https://blog.railway.com/p/agent-connection-to-railway",
+          "kind": "article"
+        },
+        {
+          "title": "Agents in the Sandbox",
+          "date": "2026-06-24",
+          "url": "https://blog.railway.com/p/agents-in-the-sandbox",
+          "kind": "article"
+        },
+        {
+          "title": "State of Railway: Agents",
+          "date": "2026-06-23",
+          "url": "https://blog.railway.com/p/state-of-railway-agents",
+          "kind": "article"
+        },
+        {
+          "title": "Less Dashboards. More Robots. Railway, for Agents",
+          "date": "2026-06-03",
+          "url": "https://blog.railway.com/p/railway-for-agents",
+          "kind": "article"
+        }
+      ],
+      "checkedOn": "2026-11-11"
     },
     "xPosts": {
       "posts": [
@@ -4076,7 +5060,23 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "VP of Product and Strategy at Windsurf",
+        "sources": [
+          "https://bdtechtalks.substack.com/p/how-windsurf-came-back-from-the-brink"
+        ],
+        "reason": "Dated July 24, 2025, more than 12 months ago; no later source says he still holds it, at Windsurf or at Cognition."
+      },
+      {
+        "field": "now",
+        "value": "Works at Codeium",
+        "sources": ["https://akshat.vercel.app/"],
+        "reason": "His own site, but undated and stale: Codeium became Windsurf and then part of Cognition."
+      }
+    ]
   },
   {
     "profileId": "991bc68e-1f30-48ac-8f5f-b5ecb4dfcc06",
@@ -4103,7 +5103,24 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Runs an accessibility practice",
+        "sources": [
+          "https://github.com/deyshin",
+          "https://www.linkedin.com/in/deyshin"
+        ],
+        "reason": "GitHub and LinkedIn list \"Accessibility Practice\" with no title, name or dates, so it can't be confirmed as current or described."
+      },
+      {
+        "field": "now",
+        "value": "A11y Clinic (A11yClinic.com)",
+        "sources": ["https://x.com/deys_co"],
+        "reason": "Linked from his X profile, but the domain doesn't resolve and nothing else describes it."
+      }
+    ]
   },
   {
     "profileId": "65d77e0d-8ea3-4f9a-9011-3e8a61e4032f",
@@ -4130,7 +5147,26 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Leads a public mural project (February 2026 press).",
+        "sources": [
+          "https://www.yahoo.com/news/articles/bankrolled-tech-ceos-mural-murdered-203102344.html",
+          "https://x.com/lizatrykin"
+        ],
+        "reason": "Not software work, and her X bio no longer names a tech role; left off her page."
+      },
+      {
+        "field": "now",
+        "value": "Developer experience at Vapi",
+        "sources": [
+          "https://allthingsweb.dev/2025-05-28-all-things-web-at-vapi"
+        ],
+        "reason": "From May 2025; her X bio now says she was previously in tech."
+      }
+    ]
   },
   {
     "profileId": "0ac10c1a-3adc-4416-9639-649b6cbb4467",
@@ -4157,7 +5193,15 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
-    }
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Ram works at EvenUp",
+        "sources": ["https://www.linkedin.com/in/ramsenth/"],
+        "reason": "His LinkedIn lists EvenUp as current experience, with no title or date. A job change has to be checked against the company's own post or the press, and none was found. Erik could ask him in the note and add it if he confirms."
+      }
+    ]
   },
   {
     "profileId": "ee88e1a3-3cd4-4280-b7ee-36f8d7632e6b",
@@ -4184,6 +5228,26 @@
         "on": "2026-11-05",
         "said": "most are out of date and many have no description at all; each should have a very good, up-to-date bio and title"
       }
-    }
+    },
+    "now": {
+      "line": "Sean [works on product at Anthropic](https://x.com/sean_t_strong), and [helped build interactive website embeds in Claude through MCP Apps](https://x.com/sean_t_strong/status/2120211018295238665).",
+      "links": [
+        {
+          "title": "You can now embed your website in Claude and have it be interactable, via MCP Apps; it was a blast to build this out with the team and our partners",
+          "date": "2026-11-10",
+          "url": "https://x.com/sean_t_strong/status/2120211018295238665",
+          "kind": "post"
+        }
+      ],
+      "checkedOn": "2026-11-11"
+    },
+    "held": [
+      {
+        "field": "now",
+        "value": "Anthropic's product manager for MCP Apps",
+        "sources": [],
+        "reason": "Only a web-search summary of an unnamed third-party article said this; not read on any page or confirmed by Sean or Anthropic."
+      }
+    ]
   }
 ]
