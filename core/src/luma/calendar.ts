@@ -51,7 +51,7 @@ export const wantedCalendar = {
   tint_color: "#C0362C",
   website: siteOrigin,
   twitter_handle: "allthingswebdev",
-  youtube_handle: "allthingsweb-dev",
+  youtube_handle: "allthings-sf",
   linkedin_handle: "https://www.linkedin.com/company/allthings-dev/",
 } as const satisfies CalendarFields;
 
