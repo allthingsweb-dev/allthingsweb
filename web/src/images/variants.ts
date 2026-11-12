@@ -63,8 +63,9 @@ export type Format = keyof typeof formats;
  * The quality each format is encoded at, 1 to 100. Every format names its
  * own: given none, the Images binding encodes WebP losslessly, five to ten
  * times the JPEG's bytes (a 960 of a phone photo was 990 KB). These were
- * chosen by bytes against SSIM on real photos, measured on the binding
- * itself: each looks as the photo does at the size it is shown.
+ * chosen on the binding itself, by bytes, SSIM and eye on real photos at
+ * 960: the binding's AVIF at 60 smoothed wood and fabric away; at 70 it
+ * keeps them, at about two thirds of the bytes its default made.
  */
 export const quality = {
   avif: 70,
