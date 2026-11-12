@@ -476,7 +476,7 @@ describe("the home page's photos as variants", () => {
       variants(view(), new Map(), wallOf(walled("a", undefined, 200, 150))),
     );
     expect(tile).toContain(
-      'srcset="/img/240/avif/1767323045-q60/events/a.jpg 200w"',
+      'srcset="/img/240/avif/1767323045-q70/events/a.jpg 200w"',
     );
     expect(tile).toContain('src="/img/240/jpeg/1767323045-q80/events/a.jpg"');
   });

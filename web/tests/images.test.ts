@@ -251,7 +251,7 @@ describe("/ with variants", () => {
   }) => {
     const html = await (await fetch(`${Variants}/`)).text();
     expect(html).toContain(
-      `<source type="image/avif" srcset="/img/36x36/avif/${version}-q60/profiles/erik.jpg 1x, /img/72x72/avif/${version}-q60/profiles/erik.jpg 2x"/>`,
+      `<source type="image/avif" srcset="/img/36x36/avif/${version}-q70/profiles/erik.jpg 1x, /img/72x72/avif/${version}-q70/profiles/erik.jpg 2x"/>`,
     );
   });
 
@@ -356,7 +356,7 @@ describe("/img/", () => {
     Elsewhere,
     Probe,
   }) => {
-    const path = `/img/480/avif/${fresh}-q60/events/home/mux.jpg`;
+    const path = `/img/480/avif/${fresh}-q70/events/home/mux.jpg`;
     const before = media.fetches("events/home/mux.jpg");
     const made = await get(Variants, path);
     expect(made.response.headers.get("server-timing")).toMatch(
@@ -417,7 +417,7 @@ describe("/img/", () => {
   });
 
   it("is one entry in the cache whatever the query", async ({ Variants }) => {
-    const path = `/img/240/avif/${fresh}-q60/events/home/mux.jpg`;
+    const path = `/img/240/avif/${fresh}-q70/events/home/mux.jpg`;
     const before = media.fetches("events/home/mux.jpg");
     await get(Variants, `${path}?a=1`);
     const again = await get(Variants, `${path}?b=2`);
@@ -531,11 +531,11 @@ describe("/img/", () => {
         [1, 2, 3, 4].flatMap((n) => [
           get(
             Variants,
-            `/img/240/avif/${fresh}-q60/events/large/over-${n}.png`,
+            `/img/240/avif/${fresh}-q70/events/large/over-${n}.png`,
           ),
           get(
             Variants,
-            `/img/240/avif/${fresh}-q60/events/large/near-${n}.png`,
+            `/img/240/avif/${fresh}-q70/events/large/near-${n}.png`,
           ),
         ]),
       );
@@ -574,7 +574,7 @@ describe("/img/", () => {
     expect(between.byteLength).toBeLessThan(20_000_000);
     const { response, body } = await get(
       Variants,
-      `/img/240/avif/${fresh}-q60/events/large/between.png`,
+      `/img/240/avif/${fresh}-q70/events/large/between.png`,
     );
     expect(response.headers.get("server-timing")).toBe('img;desc="original"');
     expect(body.byteLength).toBe(between.byteLength);

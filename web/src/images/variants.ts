@@ -67,7 +67,7 @@ export type Format = keyof typeof formats;
  * itself: each looks as the photo does at the size it is shown.
  */
 export const quality = {
-  avif: 60,
+  avif: 70,
   webp: 80,
   jpeg: 80,
 } as const satisfies Record<Format, number>;

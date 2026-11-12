@@ -47,7 +47,7 @@ describe("variant URLs", () => {
         version: "1",
         key: "profiles/erik-peña.png",
       }),
-    ).toBe("/img/480/avif/1-q60/profiles/erik-pe%C3%B1a.png");
+    ).toBe("/img/480/avif/1-q70/profiles/erik-pe%C3%B1a.png");
     expect(
       variantPath({
         size: { kind: "square", side: 72 },
@@ -62,7 +62,7 @@ describe("variant URLs", () => {
     // Before each format named its quality, and at others than its own.
     "/img/480/webp/1767323045/events/a.jpg",
     "/img/480/webp/1767323045-q/events/a.jpg",
-    "/img/480/webp/1767323045-q60/events/a.jpg",
+    "/img/480/webp/1767323045-q70/events/a.jpg",
     "/img/480/webp/1767323045-q080/events/a.jpg",
     "/img/480/avif/1767323045-q80/events/a.jpg",
     "/img/480/webp/1767323045-q80-q80/events/a.jpg",
