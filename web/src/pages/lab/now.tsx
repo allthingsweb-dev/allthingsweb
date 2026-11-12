@@ -6,10 +6,9 @@ import { LabDocument, type LabPage } from "./lab.tsx";
 import { labRoot, nowLabPath, nowLabPersonPath } from "./paths.ts";
 
 /**
- * /lab/now: the pilot of "Now" (docs/now.md), what people who spoke at
- * allthings do now. Each person with a record links to their page as it
- * would be with its Now section (/lab/now/<slug>); people's own pages
- * leave it out until Erik says yes.
+ * /lab/now: everyone with a "Now" record (docs/now.md), what people who
+ * spoke at allthings do now. Each links to the lab's copy of their page
+ * with its Now section (/lab/now/<slug>), as their own page shows it too.
  */
 
 /** Everyone in the people page's directory with a record, by name. */
