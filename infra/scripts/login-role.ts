@@ -9,7 +9,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const repo = "allthingsweb-dev/allthingsweb";
+const repo = "allthings-sf/allthingsweb";
 
 /** Runs a command with `input` on stdin; fails with its stderr, never its input. */
 export async function run(

@@ -10,7 +10,7 @@
 # the latest stable release. ALLTHINGS_HOME moves the install (~/.allthings).
 set -euo pipefail
 
-repo="allthingsweb-dev/allthingsweb"
+repo="allthings-sf/allthingsweb"
 home_dir="${ALLTHINGS_HOME:-$HOME/.allthings}"
 bin_dir="$home_dir/bin"
 version="${ALLTHINGS_VERSION:-${ATW_VERSION:-}}"

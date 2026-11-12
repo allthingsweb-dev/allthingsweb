@@ -713,7 +713,7 @@ async function apply(owner: string, vault: string): Promise<void> {
       item,
       vault,
       notes:
-        "The event studio's connection to production (core's README, \"The studio's connection\"). Rotate with infra/scripts/studio.ts in allthingsweb-dev/allthingsweb.",
+        "The event studio's connection to production (core's README, \"The studio's connection\"). Rotate with infra/scripts/studio.ts in allthings-sf/allthingsweb.",
     });
   } catch (cause) {
     throw new Error(

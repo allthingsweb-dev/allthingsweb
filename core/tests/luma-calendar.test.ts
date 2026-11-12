@@ -50,7 +50,7 @@ const calendarDone: ManagedCalendar = {
   // Luma keeps some fields its own way; they still read as the same.
   tint_color: "#c0362c",
   website: "https://allthings.dev/",
-  youtube_handle: "@allthingsweb-dev",
+  youtube_handle: "@allthings-sf",
   linkedin_handle: "/company/allthings-dev",
   avatar_url: "https://images.lumacdn.com/calendars/zz/new",
 };
@@ -135,8 +135,8 @@ describe("what differs", () => {
       "allthingswebdev",
     );
     expect(
-      comparable("youtube_handle", "https://youtube.com/@allthingsweb-dev"),
-    ).toBe("allthingsweb-dev");
+      comparable("youtube_handle", "https://youtube.com/@allthings-sf"),
+    ).toBe("allthings-sf");
     expect(
       comparable(
         "linkedin_handle",
@@ -169,7 +169,7 @@ describe("what differs", () => {
         from: "ReactBayArea",
         to: "allthingswebdev",
       },
-      { field: "youtube_handle", from: null, to: "allthingsweb-dev" },
+      { field: "youtube_handle", from: null, to: "allthings-sf" },
       {
         field: "linkedin_handle",
         from: null,
@@ -302,7 +302,7 @@ describe("approve", () => {
       tint_color: "#C0362C",
       website: "https://allthings.dev",
       twitter_handle: "allthingswebdev",
-      youtube_handle: "allthingsweb-dev",
+      youtube_handle: "allthings-sf",
       linkedin_handle: "https://www.linkedin.com/company/allthings-dev/",
       avatar_url: "https://images.lumacdn.com/calendars/zz/new",
     });

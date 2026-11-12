@@ -98,8 +98,8 @@ export interface Social {
 export const socials: ReadonlyArray<Social> = [
   { name: "luma", href: lumaCalendar },
   { name: "discord", href: discord },
-  { name: "youtube", href: "https://www.youtube.com/@allthingsweb-dev" },
-  { name: "github", href: "https://github.com/allthingsweb-dev/allthingsweb" },
+  { name: "youtube", href: "https://www.youtube.com/@allthings-sf" },
+  { name: "github", href: "https://github.com/allthings-sf/allthingsweb" },
   { name: "x", href: `https://x.com/${xHandle}` },
   { name: "bluesky", href: `https://bsky.app/profile/${ourAccount.handle}` },
   {

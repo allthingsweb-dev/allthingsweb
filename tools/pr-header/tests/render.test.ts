@@ -12,9 +12,9 @@ import type { PrState } from "../src/state.ts";
 const previewUrl = "https://allthings-web-pr-52-abc123.allthings.workers.dev";
 
 const pr: PrState = {
-  repo: { owner: "allthingsweb-dev", name: "allthingsweb" },
+  repo: { owner: "allthings-sf", name: "allthingsweb" },
   number: 52,
-  url: "https://github.com/allthingsweb-dev/allthingsweb/pull/52",
+  url: "https://github.com/allthings-sf/allthingsweb/pull/52",
   state: "open",
   isDraft: false,
   mergeState: "clean",
@@ -45,7 +45,7 @@ describe("the PR header", () => {
 
   test("links the CodeRabbit Change Stack for the PR", () => {
     expect(changeStackUrl(pr)).toBe(
-      "https://app.coderabbit.ai/change-stack/allthingsweb-dev/allthingsweb/pull/52",
+      "https://app.coderabbit.ai/change-stack/allthings-sf/allthingsweb/pull/52",
     );
   });
 

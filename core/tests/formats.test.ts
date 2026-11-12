@@ -126,7 +126,7 @@ describe("formats", () => {
     expect(judgingCriteria.text).toMatch(/useful/);
     expect(judgingCriteria.text).toMatch(/creative/);
     expect(starterRule(hackStarter)?.text).toBe(
-      "Start from at/hack v1.0.0 (https://github.com/allthingsweb-dev/hack), or include its files.",
+      "Start from at/hack v1.0.0 (https://github.com/allthings-sf/hack), or include its files.",
     );
     // Without a published version, no starter is asked for.
     expect(

@@ -49,11 +49,11 @@ export const COMMUNITY = {
   /** allthings' own account, @allthingswebdev, by its user id. */
   xUserId: "1791650356667224064",
   blueskyHandle: "allthingsweb.dev",
-  youtubeChannel: "https://www.youtube.com/@allthingsweb-dev/about",
+  youtubeChannel: "https://www.youtube.com/@allthings-sf/about",
   discordInvite: "B3Sm4b5mfD",
   meetupGroup: "reactjs-san-francisco",
   npmPackage: "allthings",
-  githubRepo: "allthingsweb-dev/allthingsweb",
+  githubRepo: "allthings-sf/allthingsweb",
 } as const;
 
 /** The sources, in the order they are shown. */

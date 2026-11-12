@@ -191,7 +191,7 @@ async function apply(owner: string, vault: string): Promise<void> {
       item: PROFILE_EDITOR_ITEM,
       vault,
       notes:
-        "Production connection for `bun run people <file>` in allthingsweb's core: titles, bios, handles, photo sources and now records on public.profiles, nothing else (core's README, \"Filling in profiles\"). Rotate with infra/scripts/profile-editor.ts in allthingsweb-dev/allthingsweb.",
+        "Production connection for `bun run people <file>` in allthingsweb's core: titles, bios, handles, photo sources and now records on public.profiles, nothing else (core's README, \"Filling in profiles\"). Rotate with infra/scripts/profile-editor.ts in allthings-sf/allthingsweb.",
     });
   } catch (cause) {
     throw new Error(
