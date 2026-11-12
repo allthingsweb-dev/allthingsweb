@@ -7,6 +7,7 @@ import { provisionLoginRole } from "../../infra/scripts/login-role.ts";
 import { makePreviewHandler, refusal } from "../src/preview/app.ts";
 import type { KeySource } from "../src/preview/access.ts";
 import { briefHtml, onlyAllowed } from "../src/preview/brief.ts";
+import { axeProblems } from "./support/a11y.ts";
 import { eventDatabase, longSlugs } from "./support/event-catalog.ts";
 import { serve } from "./support/socket.ts";
 
@@ -223,6 +224,77 @@ describe("the panel", () => {
       }),
     );
     expect(response.status).toBe(403);
+  });
+});
+
+describe("the brief as one document", () => {
+  const brief = `/${longSlugs.draft}/brief`;
+
+  test("holds the sections the signer's panel shows, numbered, and no others", async () => {
+    const html = await page(brief, "simon@example.com");
+    // The evening's lockup heads the cover, as its page sets it.
+    expect(html).toContain(
+      '<h1 class="brief-lockup">allthings<span class="slash">/</span><br/><span>draft</span>',
+    );
+    expect(html).toContain("a draft · not public · for round hosts");
+    expect(html).toContain('<a href="#brief-1">');
+    expect(html).toContain(">01</span><span>The pitch</span>");
+    expect(html).toContain(">02</span><span>Writing your round</span>");
+    expect(html).toContain('<h2 id="brief-2-heading">Writing your round</h2>');
+    // A section's subheading sits under its h2 in the document.
+    expect(html).toContain("<h3>The bar</h3>");
+    expect(html).not.toContain("Sentry is busy");
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).not.toContain("javascript:");
+  });
+
+  test("an organizer gets every section, and a venue its own", async () => {
+    const organizers = await page(brief, organizer);
+    expect(organizers).toContain("Sentry is busy on Tuesday.");
+    expect(organizers).toContain("for organizers");
+    const venue = await page(brief, "venue@example.com");
+    expect(venue).toContain("The pitch");
+    expect(venue).not.toContain("Writing your round");
+  });
+
+  test("an evening the signer isn't on answers as its page would", async () => {
+    for (const [slug, email] of [
+      ["another-draft", "simon@example.com"],
+      [longSlugs.draft, "gone@example.com"],
+      ["no-such-evening", organizer],
+    ] as const) {
+      const response = await get(`/${slug}/brief`, email);
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toBe(
+        `https://site.example/${slug}/brief`,
+      );
+    }
+  });
+
+  test("an evening with no brief says so", async () => {
+    const html = await page("/another-draft/brief", organizer);
+    expect(html).toContain("This evening has no brief yet.");
+    expect(html).not.toContain('class="brief-contents"');
+  });
+
+  test("is never kept or crawled, and passes axe", async () => {
+    const response = await get(brief, organizer);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    const html = await response.text();
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow"');
+    expect(await axeProblems(html)).toEqual([]);
+    expect(html.match(/<main\b/g)).toHaveLength(1);
+    expect(html.match(/<h1\b/g)).toHaveLength(1);
+  });
+
+  test("the panel links to it, once there is a brief", async () => {
+    expect(await page(`/${longSlugs.draft}`, "simon@example.com")).toContain(
+      `<a href="${brief}">read it as one document, or print it →</a>`,
+    );
+    expect(await page("/another-draft", organizer)).not.toContain(
+      "read it as one document",
+    );
   });
 });
 

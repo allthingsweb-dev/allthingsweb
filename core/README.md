@@ -1629,6 +1629,14 @@ a "for collaborators" panel in the site's own design:
 
 It has the same grid, rules and type, and layout tokens only.
 
+**The brief as one document.** `/<slug>/brief` on the preview, linked from
+the panel, is the brief's sections for you as one page to read through or
+hand to a co-host: the evening's lockup as its cover, in the evening's mode,
+then a numbered ledger row per section (web/src/preview/brief-document.tsx).
+Who may open it is who may open the page, and it holds exactly the sections
+the panel shows you. Printed or saved as a PDF from the browser, the cover
+takes the first sheet and the site's frame stays off the paper.
+
 ## Putting an evening out on Luma
 
 `src/luma/publish.ts` takes an evening's Luma event from private draft to

@@ -2143,6 +2143,365 @@ th {
   border-top: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
+/*
+ * An evening's brief as one document (src/preview/brief-document.tsx): the
+ * evening's artwork as its cover, in the evening's mode, then a ledger row
+ * per section. Printed, the cover fills the first sheet and the site's
+ * frame stays off the paper.
+ */
+.brief-doc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-layout-section);
+}
+
+.brief-cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--at-layout-block);
+  min-height: var(--at-size-mark-wide);
+  padding: var(--at-layout-margin);
+  container-type: inline-size;
+}
+
+.brief-cover-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--at-space-2) var(--at-space-6);
+  padding-top: var(--at-space-3);
+  border-top: var(--at-stroke-heavy) solid var(--at-text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.brief-lockup {
+  font-size: var(--at-font-size-hero-l);
+  font-weight: 800;
+  font-stretch: 112%;
+  text-indent: var(--at-type-event-lockup-inset);
+  line-height: 0.84;
+  letter-spacing: -0.045em;
+  overflow-wrap: break-word;
+}
+
+.brief-lockup-name {
+  font-size: var(--at-font-size-hero-s);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+/* The contents sit on the ledger's cut: the date in the label's three
+   columns, the sections in the other nine, as the rows below them. */
+.brief-cover-foot {
+  display: grid;
+  grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
+  column-gap: var(--at-layout-gutter);
+  row-gap: var(--at-space-6);
+  align-items: end;
+}
+
+.brief-asof {
+  grid-column: 1 / span var(--at-ledger-label);
+  grid-row: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.brief-contents {
+  grid-column: span var(--at-ledger-content) / -1;
+  grid-row: 1;
+}
+
+.brief-contents ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  column-count: 2;
+  column-gap: var(--at-layout-gutter);
+}
+
+.brief-contents li {
+  break-inside: avoid;
+  border-top: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
+.brief-contents a {
+  display: flex;
+  align-items: baseline;
+  gap: var(--at-space-3);
+  padding: var(--at-space-2) 0;
+  color: var(--at-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.brief-contents a:hover span:last-child {
+  text-decoration: underline;
+  text-decoration-thickness: var(--at-stroke-rule);
+  text-underline-offset: 0.18em;
+}
+
+.brief-number {
+  color: var(--at-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.brief-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-layout-block);
+}
+
+.brief-section {
+  display: grid;
+  grid-template-columns: repeat(var(--at-grid-columns), minmax(0, 1fr));
+  column-gap: var(--at-layout-gutter);
+  row-gap: var(--at-space-4);
+  padding-top: var(--at-space-4);
+  border-top: var(--at-stroke-heavy) solid var(--at-text);
+  scroll-margin-top: var(--at-space-6);
+}
+
+/* The number and heading stay beside a long section as it scrolls by. */
+.brief-section-head {
+  grid-column: span var(--at-ledger-label);
+  align-self: start;
+  position: sticky;
+  top: var(--at-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--at-space-2);
+}
+
+.brief-section-head h2 {
+  font-size: var(--at-font-size-title);
+  font-weight: 700;
+  font-stretch: 75%;
+  text-indent: var(--at-type-label-inset);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.brief-body {
+  grid-column: span var(--at-ledger-content);
+  max-width: var(--at-measure-prose);
+}
+
+.brief-body > * + * {
+  margin-top: var(--at-space-4);
+}
+
+.brief-body p,
+.brief-body ul,
+.brief-body ol,
+.brief-body table {
+  margin-bottom: 0;
+}
+
+.brief-body > h3 {
+  margin-top: var(--at-space-10);
+  font-size: var(--at-type-list-name-size);
+  font-weight: 700;
+  text-indent: var(--at-type-list-name-inset);
+  line-height: 1.2;
+}
+
+.brief-body > h3:first-child {
+  margin-top: 0;
+}
+
+.brief-body > h3 + * {
+  margin-top: var(--at-space-2);
+}
+
+.brief-body > h4 {
+  margin-top: var(--at-space-8);
+  color: var(--at-meta);
+  font-family: var(--at-font-mono);
+  font-size: var(--at-type-meta-size);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.brief-body code {
+  color: var(--at-meta);
+  font-size: 0.82em;
+  letter-spacing: 0.02em;
+}
+
+.brief-body strong {
+  font-weight: 700;
+}
+
+.brief-body :is(ul, ol) {
+  padding-left: var(--at-space-6);
+}
+
+.brief-body li + li {
+  margin-top: var(--at-space-2);
+}
+
+.brief-body li::marker {
+  color: var(--at-meta);
+  font-family: var(--at-font-mono);
+}
+
+/* What the brief asks of its reader: set apart by the slash's color, not a box. */
+.brief-body blockquote {
+  padding-left: var(--at-space-5);
+  border-left: var(--at-stroke-heavy) solid var(--at-slash);
+  font-size: var(--at-type-statement-size);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.brief-body blockquote > * + * {
+  margin-top: var(--at-space-3);
+}
+
+.brief-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.brief-body th {
+  padding: 0 var(--at-space-4) var(--at-space-2) 0;
+  border-bottom: var(--at-stroke-rule) solid var(--at-text);
+  color: var(--at-meta);
+  font-family: var(--at-font-mono);
+  font-size: var(--at-type-meta-size);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  vertical-align: bottom;
+}
+
+.brief-body td {
+  padding: var(--at-space-2) var(--at-space-4) var(--at-space-2) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
+  vertical-align: top;
+}
+
+.brief-body :is(th, td):last-child {
+  padding-right: 0;
+}
+
+.brief-empty,
+.brief-back {
+  max-width: var(--at-measure-prose);
+}
+
+.brief-back {
+  font-weight: 600;
+}
+
+@media (--at-below-xl) {
+  .brief-section-head,
+  .brief-body {
+    grid-column: 1 / -1;
+  }
+
+  .brief-section-head {
+    position: static;
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--at-space-3);
+  }
+
+  .brief-asof,
+  .brief-contents {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+
+@media (--at-below-l) {
+  .brief-cover {
+    min-height: var(--at-size-media);
+  }
+
+  .brief-contents ol {
+    column-count: 1;
+  }
+
+  /* A table wider than a phone scrolls inside its own box. */
+  .brief-body table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+/* On paper: the cover takes the first sheet, inside the printer's margins,
+   with its cursor held on; the sections follow at a printed size, with
+   nothing to click. The cover's shape fits a US Letter or A4 sheet at any
+   usual margin, so it never spills onto a second one. */
+@media print {
+  /* Paper is the sheet itself: the ground isn't printed around the cover. */
+  :root:has(.brief-doc) {
+    background: none;
+  }
+
+  .page:has(.brief-doc) {
+    max-width: none;
+    padding: 0;
+  }
+
+  .page:has(.brief-doc) :is(.skip-link, .site-header, .site-footer),
+  .brief-back {
+    display: none;
+  }
+
+  .brief-doc {
+    gap: 0;
+    font-size: var(--at-font-size-small);
+  }
+
+  .brief-cover {
+    aspect-ratio: 73 / 94;
+    min-height: 0;
+    break-after: page;
+    print-color-adjust: exact;
+  }
+
+  .brief-cover .at-cursor {
+    animation: none;
+  }
+
+  .brief-sections {
+    gap: var(--at-space-12);
+  }
+
+  /* In block flow, so a section's rule and heading never end a sheet
+     without its first lines. */
+  .brief-section {
+    display: block;
+  }
+
+  .brief-section-head {
+    position: static;
+    margin-bottom: var(--at-space-4);
+    break-after: avoid;
+  }
+
+  .brief-body > :is(h3, h4) {
+    break-after: avoid;
+  }
+
+  .brief-body :is(blockquote, tr, li) {
+    break-inside: avoid;
+  }
+
+  .brief-body a {
+    color: inherit;
+  }
+}
+
 /* For people who prefer reduced motion, the slash grid's photos don't
    ease when hovered. */
 @media (prefers-reduced-motion: reduce) {
