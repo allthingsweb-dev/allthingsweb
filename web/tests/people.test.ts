@@ -506,12 +506,19 @@ describe("/people/<slug>", () => {
     expect(grace).not.toContain("Talks elsewhere");
   });
 
-  it("leaves out what they do now, until it's turned on for everyone", async ({
+  it("shows what they do now after the bio, and nothing for someone without a record", async ({
     People,
   }) => {
     const html = await (await fetch(`${People}/people/ada-lovelace`)).text();
-    expect(html).not.toContain('id="now"');
-    expect(html).not.toContain("writes compilers at Acme");
+    expect(html).toContain(
+      '<h2 id="now" class="at-type-meta">Now · as of 2026.10</h2><p class="person-page-bio person-now"><span>Ada </span><a href="https://acme.example/team">writes compilers at Acme</a><span>.</span></p>',
+    );
+    expect(html.indexOf('id="bio"')).toBeLessThan(html.indexOf('id="now"'));
+    expect(html.indexOf('id="now"')).toBeLessThan(
+      html.indexOf('id="at-allthings"'),
+    );
+    const grace = await (await fetch(`${People}/people/grace-hopper`)).text();
+    expect(grace).not.toContain('id="now"');
   });
 
   it("lists the evenings an organizer hosted at allthings, the MC part on the same row", async ({

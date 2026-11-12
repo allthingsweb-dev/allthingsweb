@@ -39,8 +39,8 @@ export interface PersonProps {
   /** How photos are shown (see picture.tsx). */
   readonly images: ImageMode;
   /**
-   * Show what they do now (docs/now.md). Off on people's pages until Erik
-   * has reviewed the pilot; /lab/now shows it.
+   * Show what they do now (docs/now.md): on for people's pages and the
+   * lab's copies of them.
    */
   readonly showNow?: boolean;
   /** Ask search engines to stay out, as the lab's pages do. */

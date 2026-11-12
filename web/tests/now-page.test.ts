@@ -18,7 +18,7 @@ import { headingLevels, htmlProblems } from "./support/pages.ts";
  * What people do now (docs/now.md) on their pages, as pure functions of
  * fixed data: the Now section after the bio, every fact in its line a
  * link to its source, their latest work listed as talks elsewhere are, and
- * only where the page is asked to show it: /lab/now, until Erik's yes.
+ * only where the page is asked to show it: people's pages and /lab/now.
  */
 
 const record: Now = {

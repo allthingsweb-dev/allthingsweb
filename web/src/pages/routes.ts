@@ -441,11 +441,10 @@ const personPageAt = (
   );
 
 /**
- * /people/<slug>: one person's page. What they do now stays off it until
- * Erik has reviewed the pilot on /lab/now (docs/now.md); turning it on for
- * everyone is `showNow: true` here.
+ * /people/<slug>: one person's page, with what they do now where they have
+ * a record (docs/now.md).
  */
-const person = personPageAt("/people/:slug", personPath, { showNow: false });
+const person = personPageAt("/people/:slug", personPath, { showNow: true });
 
 /**
  * /lab/now: everyone with a "now" record, each linking to their page with
