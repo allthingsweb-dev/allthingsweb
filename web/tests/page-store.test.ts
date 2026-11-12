@@ -522,7 +522,7 @@ describe("the page store", () => {
   test("leaves photo variants to their own cache", async () => {
     const { fetch, kv } = setup();
     await fetch(get("/"));
-    const { response } = await fetch(get("/img/480/webp/1/people/ada.jpg"));
+    const { response } = await fetch(get("/img/480/webp/1-q80/people/ada.jpg"));
     expect(served(response)).toBeUndefined();
     expect(kv.pageKeys()).toEqual([]);
   });

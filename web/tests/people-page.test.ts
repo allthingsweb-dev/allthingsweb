@@ -1,5 +1,6 @@
 import { personSlug } from "allthings-core/src/person-slug.ts";
 import { describe, expect, test } from "bun:test";
+import { type Format, quality } from "../src/images/variants.ts";
 import type {
   PeopleView,
   PersonPage,
@@ -71,11 +72,11 @@ const view: PeopleView = {
 };
 
 describe("the people page's portraits as variants", () => {
-  const squares = (name: string, format: string, sides: Array<number>) =>
+  const squares = (name: string, format: Format, sides: Array<number>) =>
     sides
       .map(
         (side) =>
-          `/img/${side}x${side}/${format}/1767323045/profiles/${name}.png ${side}w`,
+          `/img/${side}x${side}/${format}/1767323045-q${quality[format]}/profiles/${name}.png ${side}w`,
       )
       .join(", ");
   const html = render(
@@ -100,7 +101,7 @@ describe("the people page's portraits as variants", () => {
         "<picture>",
         `<source type="image/avif" srcset="${squares("erik", "avif", [168, 336])}" sizes="${sizes}"/>`,
         `<source type="image/webp" srcset="${squares("erik", "webp", [168, 336])}" sizes="${sizes}"/>`,
-        `<img class="portrait" src="/img/168x168/jpeg/1767323045/profiles/erik.png" srcset="${squares("erik", "jpeg", [168, 336])}" sizes="${sizes}" alt="" width="168" height="168" decoding="async"/>`,
+        `<img class="portrait" src="/img/168x168/jpeg/1767323045-q80/profiles/erik.png" srcset="${squares("erik", "jpeg", [168, 336])}" sizes="${sizes}" alt="" width="168" height="168" decoding="async"/>`,
         "</picture>",
       ].join(""),
     );
@@ -109,7 +110,7 @@ describe("the people page's portraits as variants", () => {
   test("offer everyone else at 72 to 216 pixels square, loaded as they're scrolled to", () => {
     const sizes = "72px";
     expect(html).toContain(
-      `<img class="portrait" src="/img/72x72/jpeg/1767323045/profiles/ada.png" srcset="${squares("ada", "jpeg", [72, 144, 216])}" sizes="${sizes}" alt="" width="72" height="72" loading="lazy" decoding="async"/>`,
+      `<img class="portrait" src="/img/72x72/jpeg/1767323045-q80/profiles/ada.png" srcset="${squares("ada", "jpeg", [72, 144, 216])}" sizes="${sizes}" alt="" width="72" height="72" loading="lazy" decoding="async"/>`,
     );
     // A photo smaller than every square comes at the smallest.
     expect(html).toContain(`srcset="${squares("kit", "avif", [72])}"`);

@@ -31,7 +31,7 @@ describe("pathClass", () => {
       ["/people/erik-thorelli", "/people/*"],
       // Capitals aren't the site's: such a first segment is never an index.
       ["/Events/2024-11-12-all-things-web", "/(other)"],
-      ["/img/240/avif/1791086442/events/x.jpg", "/img/*"],
+      ["/img/240/avif/1791086442-q60/events/x.jpg", "/img/*"],
       ["/_site/prewarm", "/_site/*"],
     ] as const) {
       expect([path, pathClass(path)]).toEqual([path, kind]);
@@ -102,7 +102,7 @@ describe("redactedPath", () => {
       ["/invite/alice%40example.com/x", "/(word)/…"],
       ["/123456", "/(code)"],
       ["/alice%40example.com", "/(email)"],
-      ["/img/240/avif/1791086442/events/2024-11-12-all-thin.jpg", "/img/…"],
+      ["/img/240/avif/1791086442-q60/events/2024-11-12-all-thin.jpg", "/img/…"],
     ] as const) {
       expect([path, redactedPath(path)]).toEqual([path, kept]);
     }

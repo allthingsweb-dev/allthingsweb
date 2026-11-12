@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { type Format, quality } from "../src/images/variants.ts";
 import type {
   CommunityView,
   HeldEvening,
@@ -445,7 +446,8 @@ describe("the home page's photos as variants", () => {
     const [first] = tiles(
       variants(view(), new Map(), wallOf(walled("a", undefined, 1024, 768))),
     );
-    const of = (format: string) => `${format}/1767323045/events/a.jpg`;
+    const of = (format: Format) =>
+      `${format}/1767323045-q${quality[format]}/events/a.jpg`;
     expect(first).toBe(
       [
         "<picture>",
@@ -474,9 +476,9 @@ describe("the home page's photos as variants", () => {
       variants(view(), new Map(), wallOf(walled("a", undefined, 200, 150))),
     );
     expect(tile).toContain(
-      'srcset="/img/240/avif/1767323045/events/a.jpg 200w"',
+      'srcset="/img/240/avif/1767323045-q60/events/a.jpg 200w"',
     );
-    expect(tile).toContain('src="/img/240/jpeg/1767323045/events/a.jpg"');
+    expect(tile).toContain('src="/img/240/jpeg/1767323045-q80/events/a.jpg"');
   });
 
   test("leaves out a photo it can't make variants of, and lays out the rest", () => {
@@ -525,7 +527,7 @@ describe("the home page's photos as variants", () => {
       ),
     );
     expect(tile).toContain(
-      'src="/img/480/jpeg/1767323045/profiles/erik-pe%C3%B1a.png"',
+      'src="/img/480/jpeg/1767323045-q80/profiles/erik-pe%C3%B1a.png"',
     );
   });
 
@@ -535,14 +537,14 @@ describe("the home page's photos as variants", () => {
       new Map([[hosts[0].profileId, photo("erik", 2160, 2160)]]),
     );
     const footer = /<span class="portraits">(.*?)<\/span>/.exec(html)?.[1];
-    const squares = (format: string) =>
-      `/img/36x36/${format}/1767323045/events/erik.jpg 1x, /img/72x72/${format}/1767323045/events/erik.jpg 2x`;
+    const squares = (format: Format) =>
+      `/img/36x36/${format}/1767323045-q${quality[format]}/events/erik.jpg 1x, /img/72x72/${format}/1767323045-q${quality[format]}/events/erik.jpg 2x`;
     expect(footer).toStartWith(
       [
         "<picture>",
         `<source type="image/avif" srcset="${squares("avif")}"/>`,
         `<source type="image/webp" srcset="${squares("webp")}"/>`,
-        `<img src="/img/36x36/jpeg/1767323045/events/erik.jpg" srcset="${squares("jpeg")}" alt="Erik" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
+        `<img src="/img/36x36/jpeg/1767323045-q80/events/erik.jpg" srcset="${squares("jpeg")}" alt="Erik" width="36" height="36" loading="lazy" decoding="async" fetchpriority="low"/>`,
         "</picture>",
         '<img src="/assets/avatar.',
       ].join(""),

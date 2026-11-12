@@ -15,13 +15,14 @@ import {
   encodeKey,
   formats,
   parseVariant,
+  quality,
   type Size,
   type Variant,
   variantPath,
 } from "./variants.ts";
 
 /**
- * GET /img/<size>/<format>/<version>/<key> (see variants.ts): the photo at
+ * GET /img/<size>/<format>/<version>-q<quality>/<key> (see variants.ts): the photo at
  * `<media origin>/<key>`, resized and re-encoded by Cloudflare's Images
  * binding, then kept under its URL in the data center's cache and in the
  * stage's variants bucket (`VARIANTS`), so each variant is made once and
@@ -79,12 +80,22 @@ export interface ImageTransformer {
     overlay: ImageTransformer,
     options: { readonly top: number; readonly left: number },
   ) => ImageTransformer;
-  readonly output: (options: {
-    readonly format: string;
-    /** For JPEG and WebP: 1 to 100. */
-    readonly quality?: number;
-  }) => Promise<ImageTransformationResult>;
+  readonly output: (
+    options: OutputOptions,
+  ) => Promise<ImageTransformationResult>;
 }
+
+/**
+ * How the binding encodes: a lossy format always with its quality, 1 to
+ * 100, since without one the binding encodes WebP losslessly (five to ten
+ * times the bytes of a JPEG) and the others at its own default.
+ */
+export type OutputOptions =
+  | { readonly format: "image/png" }
+  | {
+      readonly format: "image/avif" | "image/webp" | "image/jpeg";
+      readonly quality: number;
+    };
 
 interface ImageTransform {
   readonly width: number;
@@ -543,7 +554,10 @@ const serve = (
         images.value
           .input(response.body ?? new ReadableStream())
           .transform(transformOf(variant.size))
-          .output({ format: formats[variant.format] }),
+          .output({
+            format: formats[variant.format],
+            quality: quality[variant.format],
+          }),
       catch: (cause) => new TransformFailed({ cause }),
     }).pipe(
       Effect.ensuring(Semaphore.release(transformBudget, permits)),

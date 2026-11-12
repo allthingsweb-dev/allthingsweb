@@ -3,7 +3,7 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import * as Effect from "effect/Effect";
 import { CacheControl, immutable } from "../src/cache.ts";
-import { parseVariant } from "../src/images/variants.ts";
+import { parseVariant, variantPath } from "../src/images/variants.ts";
 import { maxResizeBytes, rasterTypeOf } from "../src/images/route.ts";
 import { contentSecurityPolicy } from "../src/pages/response.ts";
 import { catalogDatabase } from "./support/catalog.ts";
@@ -238,7 +238,7 @@ describe("/ with variants", () => {
     expect(widthsOf(pier70, "webp")).toEqual([240, 360, 480]);
     expect(widthsOf(mux, "avif")).toEqual([240, 360, 480]);
     expect(effect).toContain(
-      `<img src="/img/480/jpeg/${version}/events/home/effect.jpg" srcset="/img/240/jpeg/${version}/events/home/effect.jpg 240w,`,
+      `<img src="/img/480/jpeg/${version}-q80/events/home/effect.jpg" srcset="/img/240/jpeg/${version}-q80/events/home/effect.jpg 240w,`,
     );
     expect(effect).toContain(
       'alt="Michael Arnaldi on stage at CodeRabbit" width="1600" height="1200"',
@@ -251,7 +251,7 @@ describe("/ with variants", () => {
   }) => {
     const html = await (await fetch(`${Variants}/`)).text();
     expect(html).toContain(
-      `<source type="image/avif" srcset="/img/36x36/avif/${version}/profiles/erik.jpg 1x, /img/72x72/avif/${version}/profiles/erik.jpg 2x"/>`,
+      `<source type="image/avif" srcset="/img/36x36/avif/${version}-q60/profiles/erik.jpg 1x, /img/72x72/avif/${version}-q60/profiles/erik.jpg 2x"/>`,
     );
   });
 
@@ -295,8 +295,10 @@ describe("/ with variants", () => {
       const formatsMade = new Set<string>();
       await Promise.all(
         [...sizes.values()].map(async ({ url, variant }, index) => {
-          const format = (["avif", "webp", "jpeg"] as const)[index % 3];
-          const path = url.replace(`/${variant?.format}/`, `/${format}/`);
+          const format =
+            (["avif", "webp", "jpeg"] as const)[index % 3] ?? "avif";
+          if (variant === undefined) throw new Error(`not a variant: ${url}`);
+          const path = variantPath({ ...variant, format });
           const { response, body } = await get(Variants, path);
           expect(response.status).toBe(200);
           expect(response.headers.get("content-type")).toBe(`image/${format}`);
@@ -331,7 +333,7 @@ describe("/img/", () => {
   it("makes a variant once, from the original, then serves it from the edge cache", async ({
     Variants,
   }) => {
-    const path = `/img/360/webp/${fresh}/events/home/mux.jpg`;
+    const path = `/img/360/webp/${fresh}-q80/events/home/mux.jpg`;
     const before = media.fetches("events/home/mux.jpg");
     const first = await get(Variants, path);
     expect(first.response.status).toBe(200);
@@ -354,7 +356,7 @@ describe("/img/", () => {
     Elsewhere,
     Probe,
   }) => {
-    const path = `/img/480/avif/${fresh}/events/home/mux.jpg`;
+    const path = `/img/480/avif/${fresh}-q60/events/home/mux.jpg`;
     const before = media.fetches("events/home/mux.jpg");
     const made = await get(Variants, path);
     expect(made.response.headers.get("server-timing")).toMatch(
@@ -407,7 +409,7 @@ describe("/img/", () => {
   it("fetches an original once more when the media origin fails for a moment", async ({
     Variants,
   }) => {
-    const path = `/img/240/webp/${fresh}/events/home/flaky.jpg`;
+    const path = `/img/240/webp/${fresh}-q80/events/home/flaky.jpg`;
     const made = await get(Variants, path);
     expect(made.response.status).toBe(200);
     expect(made.response.headers.get("content-type")).toBe("image/webp");
@@ -415,7 +417,7 @@ describe("/img/", () => {
   });
 
   it("is one entry in the cache whatever the query", async ({ Variants }) => {
-    const path = `/img/240/avif/${fresh}/events/home/mux.jpg`;
+    const path = `/img/240/avif/${fresh}-q60/events/home/mux.jpg`;
     const before = media.fetches("events/home/mux.jpg");
     await get(Variants, `${path}?a=1`);
     const again = await get(Variants, `${path}?b=2`);
@@ -424,18 +426,18 @@ describe("/img/", () => {
   });
 
   for (const path of [
-    "/img/500/webp/1/events/home/mux.jpg",
-    "/img/36/webp/1/events/home/mux.jpg",
-    "/img/480x480/webp/1/events/home/mux.jpg",
+    "/img/500/webp/1-q80/events/home/mux.jpg",
+    "/img/36/webp/1-q80/events/home/mux.jpg",
+    "/img/480x480/webp/1-q80/events/home/mux.jpg",
     "/img/480/png/1/events/home/mux.jpg",
     "/img/480/webp/latest/events/home/mux.jpg",
-    "/img/480/webp/1/events/home/..%2f..%2fprofiles/erik.jpg",
-    "/img/480/webp/1/events/home/%2e%2e%2fmux.jpg",
-    "/img/480/webp/1/events%2Fhome%2Fmux.jpg",
-    "/img/480/webp/1/events//home/mux.jpg",
-    "/img/480/webp/1/https:/elsewhere.example/a.jpg",
-    "/img/480/webp/1/events/home/mux.svg",
-    "/img/480/webp/1/events/home/m%75x.jpg",
+    "/img/480/webp/1-q80/events/home/..%2f..%2fprofiles/erik.jpg",
+    "/img/480/webp/1-q80/events/home/%2e%2e%2fmux.jpg",
+    "/img/480/webp/1-q80/events%2Fhome%2Fmux.jpg",
+    "/img/480/webp/1-q80/events//home/mux.jpg",
+    "/img/480/webp/1-q80/https:/elsewhere.example/a.jpg",
+    "/img/480/webp/1-q80/events/home/mux.svg",
+    "/img/480/webp/1-q80/events/home/m%75x.jpg",
     "/img/480/webp/1",
   ]) {
     it(`is not found, and fetches nothing, at ${path}`, async ({
@@ -456,7 +458,7 @@ describe("/img/", () => {
     // URLs resolve "%2e%2e" as "..": this is /secrets.jpg, no variant.
     const { response } = await get(
       Variants,
-      "/img/480/webp/1/events/home/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/secrets.jpg",
+      "/img/480/webp/1-q80/events/home/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/secrets.jpg",
     );
     expect(response.status).toBe(404);
     expect(media.requests.length).toBe(before);
@@ -467,7 +469,7 @@ describe("/img/", () => {
   }) => {
     const { response } = await get(
       Variants,
-      "/img/480/webp/1/events/home/gone.jpg",
+      "/img/480/webp/1-q80/events/home/gone.jpg",
     );
     expect(response.status).toBe(404);
     expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
@@ -477,7 +479,7 @@ describe("/img/", () => {
   it("sends the original, briefly, when it can't make the variant, and tries again next time", async ({
     Variants,
   }) => {
-    const path = "/img/480/webp/1/events/home/broken.jpg";
+    const path = "/img/480/webp/1-q80/events/home/broken.jpg";
     for (const attempt of [1, 2]) {
       const { response, body } = await get(Variants, path);
       expect(response.status).toBe(200);
@@ -495,7 +497,7 @@ describe("/img/", () => {
   }) => {
     const { response, body } = await get(
       Variants,
-      "/img/480/webp/1/events/home/huge.png",
+      "/img/480/webp/1-q80/events/home/huge.png",
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/png");
@@ -510,7 +512,7 @@ describe("/img/", () => {
   }) => {
     const { response, body } = await get(
       Variants,
-      `/img/480/webp/${fresh}/events/home/unsized.png`,
+      `/img/480/webp/${fresh}-q80/events/home/unsized.png`,
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("server-timing")).toBe('img;desc="original"');
@@ -527,8 +529,14 @@ describe("/img/", () => {
       expect(near.byteLength).toBeLessThan(maxResizeBytes);
       const results = await Promise.all(
         [1, 2, 3, 4].flatMap((n) => [
-          get(Variants, `/img/240/avif/${fresh}/events/large/over-${n}.png`),
-          get(Variants, `/img/240/avif/${fresh}/events/large/near-${n}.png`),
+          get(
+            Variants,
+            `/img/240/avif/${fresh}-q60/events/large/over-${n}.png`,
+          ),
+          get(
+            Variants,
+            `/img/240/avif/${fresh}-q60/events/large/near-${n}.png`,
+          ),
         ]),
       );
       results.forEach(({ response, body }, index) => {
@@ -566,7 +574,7 @@ describe("/img/", () => {
     expect(between.byteLength).toBeLessThan(20_000_000);
     const { response, body } = await get(
       Variants,
-      `/img/240/avif/${fresh}/events/large/between.png`,
+      `/img/240/avif/${fresh}-q60/events/large/between.png`,
     );
     expect(response.headers.get("server-timing")).toBe('img;desc="original"');
     expect(body.byteLength).toBe(between.byteLength);
@@ -577,7 +585,7 @@ describe("/img/", () => {
   }) => {
     const { response, body } = await get(
       Variants,
-      "/img/480/webp/1/events/home/page.jpg",
+      "/img/480/webp/1-q80/events/home/page.jpg",
     );
     expect(response.status).toBe(502);
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
@@ -589,7 +597,7 @@ describe("/img/", () => {
   }) => {
     const { response, body } = await get(
       Variants,
-      `/img/72x72/webp/${fresh}/profiles/untyped.png`,
+      `/img/72x72/webp/${fresh}-q80/profiles/untyped.png`,
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
@@ -603,7 +611,7 @@ describe("/img/", () => {
     for (const url of [Variants, Originals]) {
       const { response, body } = await get(
         url,
-        "/img/480/webp/1/events/home/untyped-page.jpg",
+        "/img/480/webp/1-q80/events/home/untyped-page.jpg",
       );
       expect(response.status).toBe(502);
       expect(new TextDecoder().decode(body)).not.toContain("script");
@@ -613,7 +621,7 @@ describe("/img/", () => {
   it("doesn't follow the media origin's redirects", async ({ Variants }) => {
     const { response } = await get(
       Variants,
-      "/img/480/webp/1/events/home/moved.jpg",
+      "/img/480/webp/1-q80/events/home/moved.jpg",
     );
     expect(response.status).toBe(502);
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
@@ -624,7 +632,7 @@ describe("/img/", () => {
   }) => {
     const { response, body } = await get(
       Originals,
-      "/img/480/webp/1/events/home/mux.jpg",
+      "/img/480/webp/1-q80/events/home/mux.jpg",
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/png");
@@ -638,7 +646,7 @@ describe("an untyped original, from a Worker without the Images binding", () => 
   it("is sent as the image its bytes are, whole", async ({ Originals }) => {
     const { response, body } = await get(
       Originals,
-      "/img/72x72/webp/1/profiles/untyped.png",
+      "/img/72x72/webp/1-q80/profiles/untyped.png",
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/png");
@@ -701,14 +709,14 @@ describe("/people with variants", () => {
       contentSecurityPolicy.variants,
     );
     expect(html).toContain(
-      `<img class="portrait" src="/img/168x168/jpeg/${version}/profiles/erik.jpg" srcset="/img/168x168/jpeg/${version}/profiles/erik.jpg 168w, /img/336x336/jpeg/${version}/profiles/erik.jpg 336w"`,
+      `<img class="portrait" src="/img/168x168/jpeg/${version}-q80/profiles/erik.jpg" srcset="/img/168x168/jpeg/${version}-q80/profiles/erik.jpg 168w, /img/336x336/jpeg/${version}-q80/profiles/erik.jpg 336w"`,
     );
     for (const path of [...subresources(html), ...imageUrls(html)]) {
       expect(path).toMatch(/^\/(?!\/)/);
     }
     const { response: variant, body } = await get(
       Variants,
-      `/img/336x336/webp/${version}/profiles/erik.jpg`,
+      `/img/336x336/webp/${version}-q80/profiles/erik.jpg`,
     );
     expect(variant.status).toBe(200);
     expect(dimensions(body)).toEqual({ width: 336, height: 336 });
@@ -728,7 +736,7 @@ describe("an event's page with variants", () => {
     // Its photo on another origin is left out.
     expect(html.match(/<li><picture>/g)).toHaveLength(1);
     expect(html).toContain(
-      `<img src="/img/480/jpeg/${version}/events/home/effect.jpg"`,
+      `<img src="/img/480/jpeg/${version}-q80/events/home/effect.jpg"`,
     );
     for (const path of [...subresources(html), ...imageUrls(html)]) {
       expect(path).toMatch(/^\/(?!\/)/);
