@@ -74,11 +74,11 @@ const cases: ReadonlyArray<readonly [string, NotFoundKind, string]> = [
   ["/x7k9q2m4AbC", "guessed", "/(code)"],
   // Anything else.
   [
-    "/img/240/jpeg/1791090037/events/a/b.jpg%20240w,%20/img/360/jpeg/1791090037/events/a/b.jpg%20360w",
+    "/img/240/jpeg/1791090037-q80/events/a/b.jpg%20240w,%20/img/360/jpeg/1791090037-q80/events/a/b.jpg%20360w",
     "other",
     "/img/… (a srcset read as one URL)",
   ],
-  ["/img/240/jpeg/1/events/a/missing.jpg", "other", "/img/…"],
+  ["/img/240/jpeg/1-q80/events/a/missing.jpg", "other", "/img/…"],
   [
     "//static.cloudflareinsights.com/beacon.min.js",
     "other",

@@ -47,7 +47,7 @@ describe("variant URLs", () => {
         version: "1",
         key: "profiles/erik-peña.png",
       }),
-    ).toBe("/img/480/avif/1/profiles/erik-pe%C3%B1a.png");
+    ).toBe("/img/480/avif/1-q70/profiles/erik-pe%C3%B1a.png");
     expect(
       variantPath({
         size: { kind: "square", side: 72 },
@@ -55,16 +55,24 @@ describe("variant URLs", () => {
         version: "1",
         key: "a.jpg",
       }),
-    ).toBe("/img/72x72/jpeg/1/a.jpg");
+    ).toBe("/img/72x72/jpeg/1-q80/a.jpg");
   });
 
   test.each([
+    // Before each format named its quality, and at others than its own.
+    "/img/480/webp/1767323045/events/a.jpg",
+    "/img/480/webp/1767323045-q/events/a.jpg",
+    "/img/480/webp/1767323045-q70/events/a.jpg",
+    "/img/480/webp/1767323045-q080/events/a.jpg",
+    "/img/480/avif/1767323045-q80/events/a.jpg",
+    "/img/480/webp/1767323045-q80-q80/events/a.jpg",
+    "/img/480/webp/-q80/events/a.jpg",
     // Sizes, formats and versions that don't exist.
-    "/img/500/webp/1/events/a.jpg",
-    "/img/36/webp/1/events/a.jpg",
-    "/img/0480/webp/1/events/a.jpg",
-    "/img/480x480/webp/1/events/a.jpg",
-    "/img/36x72/webp/1/events/a.jpg",
+    "/img/500/webp/1-q80/events/a.jpg",
+    "/img/36/webp/1-q80/events/a.jpg",
+    "/img/0480/webp/1-q80/events/a.jpg",
+    "/img/480x480/webp/1-q80/events/a.jpg",
+    "/img/36x72/webp/1-q80/events/a.jpg",
     "/img/480/png/1/events/a.jpg",
     "/img/480/WEBP/1/events/a.jpg",
     "/img/480/toString/1/events/a.jpg",
@@ -73,26 +81,26 @@ describe("variant URLs", () => {
     "/img/480/webp//events/a.jpg",
     // No key, or not a key.
     "/img/480/webp/1",
-    "/img/480/webp/1/",
-    "/img/480/webp/1/events/",
-    "/img/480/webp/1/.hidden.jpg",
-    "/img/480/webp/1/events/../a.jpg",
-    "/img/480/webp/1/events/%2e%2e/a.jpg",
-    "/img/480/webp/1/events/..%2fa.jpg",
-    "/img/480/webp/1/events/a..b.jpg",
-    "/img/480/webp/1/events//a.jpg",
-    "/img/480/webp/1/https:/elsewhere.example/a.jpg",
-    "/img/480/webp/1/events/a%20b.jpg",
-    "/img/480/webp/1/events/a.svg",
-    "/img/480/webp/1/events/a.html",
-    "/img/480/webp/1/events/a",
-    `/img/480/webp/1/${"a".repeat(600)}.jpg`,
+    "/img/480/webp/1-q80/",
+    "/img/480/webp/1-q80/events/",
+    "/img/480/webp/1-q80/.hidden.jpg",
+    "/img/480/webp/1-q80/events/../a.jpg",
+    "/img/480/webp/1-q80/events/%2e%2e/a.jpg",
+    "/img/480/webp/1-q80/events/..%2fa.jpg",
+    "/img/480/webp/1-q80/events/a..b.jpg",
+    "/img/480/webp/1-q80/events//a.jpg",
+    "/img/480/webp/1-q80/https:/elsewhere.example/a.jpg",
+    "/img/480/webp/1-q80/events/a%20b.jpg",
+    "/img/480/webp/1-q80/events/a.svg",
+    "/img/480/webp/1-q80/events/a.html",
+    "/img/480/webp/1-q80/events/a",
+    `/img/480/webp/1-q80/${"a".repeat(600)}.jpg`,
     // Malformed escapes.
-    "/img/480/webp/1/events/%E0%A4%A.jpg",
+    "/img/480/webp/1-q80/events/%E0%A4%A.jpg",
     // Other spellings of a variant that exists.
-    "/img/480/webp/1/events%2Fa.jpg",
-    "/img/480/webp/1/events/%61.jpg",
-    "/img/480/webp/1/events/a.jpg/",
+    "/img/480/webp/1-q80/events%2Fa.jpg",
+    "/img/480/webp/1-q80/events/%61.jpg",
+    "/img/480/webp/1-q80/events/a.jpg/",
     "/img//480/webp/1/events/a.jpg",
     "/IMG/480/webp/1/events/a.jpg",
     "img/480/webp/1/events/a.jpg",

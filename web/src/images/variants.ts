@@ -6,7 +6,7 @@ import { mediaOrigin } from "../links.ts";
  * the Worker (see route.ts) at a few fixed sizes and formats, under one URL
  * each on this site:
  *
- *     /img/<size>/<format>/<version>/<key>
+ *     /img/<size>/<format>/<version>-q<quality>/<key>
  *
  * - `size` is a width ("480"), which keeps the photo's proportions and never
  *   enlarges it, or a square ("36x36"), which crops the photo to fill it.
@@ -14,8 +14,11 @@ import { mediaOrigin } from "../links.ts";
  *   and known.
  * - `format` is avif, webp or jpeg. Pages offer the first two and keep JPEG
  *   for browsers that read neither.
- * - `version` is the image row's (see `Rows.Photo`): a changed row gets new
- *   URLs, so a variant never changes under its URL and is cached for good.
+ * - `version` is the image row's (see `Rows.Photo`), and `quality` the one
+ *   its format is encoded at ({@link quality}): a changed row or a changed
+ *   quality gets new URLs, so a variant never changes under its URL and is
+ *   cached for good. Changing a format's quality is how every variant in it
+ *   is made again: pages then link only URLs that nothing has kept yet.
  * - `key` is the object's key on the media origin, each segment
  *   percent-encoded as the app writes it.
  *
@@ -55,6 +58,20 @@ export const formats = {
 } as const;
 
 export type Format = keyof typeof formats;
+
+/**
+ * The quality each format is encoded at, 1 to 100. Every format names its
+ * own: given none, the Images binding encodes WebP losslessly, five to ten
+ * times the JPEG's bytes (a 960 of a phone photo was 990 KB). These were
+ * chosen on the binding itself, by bytes, SSIM and eye on real photos at
+ * 960: the binding's AVIF at 60 smoothed wood and fabric away; at 70 it
+ * keeps them, at about two thirds of the bytes its default made.
+ */
+export const quality = {
+  avif: 70,
+  webp: 80,
+  jpeg: 80,
+} as const satisfies Record<Format, number>;
 
 /** One variant of one photo. */
 export interface Variant {
@@ -102,7 +119,7 @@ const sizeName = (size: Size): string =>
 
 /** The variant's one URL path on this site. */
 export const variantPath = ({ size, format, version, key }: Variant): string =>
-  `/img/${sizeName(size)}/${format}/${version}/${encodeKey(key)}`;
+  `/img/${sizeName(size)}/${format}/${version}-q${quality[format]}/${encodeKey(key)}`;
 
 const isWidth = (value: number): value is Width =>
   widths.some((width) => width === value);
@@ -139,8 +156,9 @@ const decodeSegment = (part: string): string | undefined => {
  * slashes, dot segments, needless escapes) are all refused.
  */
 export function parseVariant(pathname: string): Variant | undefined {
-  const [empty, img, size, format, versionName, ...keyParts] =
-    pathname.split("/");
+  const [empty, img, size, format, encoding, ...keyParts] = pathname.split("/");
+  // Only the format's own quality reads back as the same path, below.
+  const versionName = encoding?.replace(/-q[0-9]{1,3}$/, "");
   if (empty !== "" || img !== "img" || keyParts.length === 0) return undefined;
   const parsedSize = size === undefined ? undefined : parseSize(size);
   if (parsedSize === undefined) return undefined;

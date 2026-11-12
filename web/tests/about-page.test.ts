@@ -326,7 +326,7 @@ describe("the about page's portraits as variants", () => {
       images: "variants",
     });
     expect(html).toContain(
-      '<img class="portrait" src="/img/168x168/jpeg/1767323045/profiles/erik.png" srcset="/img/168x168/jpeg/1767323045/profiles/erik.png 168w, /img/336x336/jpeg/1767323045/profiles/erik.png 336w" sizes="(max-width: 1023.98px) 96px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
+      '<img class="portrait" src="/img/168x168/jpeg/1767323045-q80/profiles/erik.png" srcset="/img/168x168/jpeg/1767323045-q80/profiles/erik.png 168w, /img/336x336/jpeg/1767323045-q80/profiles/erik.png 336w" sizes="(max-width: 1023.98px) 96px, 168px" alt="" width="168" height="168" loading="lazy" decoding="async"/>',
     );
     expect(html).not.toContain("media.allthings.dev");
   });
