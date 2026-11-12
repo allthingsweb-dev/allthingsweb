@@ -2442,9 +2442,37 @@ th {
    nothing to click. The cover's shape fits a US Letter or A4 sheet at any
    usual margin, so it never spills onto a second one. */
 @media print {
-  /* Paper is the sheet itself: the ground isn't printed around the cover. */
+  /* Paper is the sheet itself: the ground isn't printed around the cover,
+     and the sections print in Paper's colors whatever the screen's mode.
+     The cover keeps the colors of its own mode. */
   :root:has(.brief-doc) {
+    color-scheme: light;
     background: none;
+  }
+
+  .brief-sections {
+    color: var(--at-color-ink);
+  }
+
+  .brief-section {
+    border-top-color: var(--at-color-ink);
+  }
+
+  .brief-sections :is(.brief-number, h4, code, th),
+  .brief-sections li::marker {
+    color: var(--at-color-karl-text);
+  }
+
+  .brief-body th {
+    border-bottom-color: var(--at-color-ink);
+  }
+
+  .brief-body td {
+    border-bottom-color: var(--at-color-rule-paper);
+  }
+
+  .brief-body blockquote {
+    border-left-color: var(--at-color-bridge);
   }
 
   .page:has(.brief-doc) {
@@ -2499,6 +2527,16 @@ th {
 
   .brief-body a {
     color: inherit;
+  }
+
+  /* A table prints whole: no scrolling box, and a long word wraps in its cell. */
+  .brief-body table {
+    display: table;
+    overflow: visible;
+  }
+
+  .brief-body :is(th, td) {
+    overflow-wrap: anywhere;
   }
 }
 
