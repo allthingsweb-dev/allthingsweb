@@ -19,9 +19,9 @@ import {
  * announcement for each Meetup group, and the note for /about's history.
  * Drafts only: nothing is posted.
  *
- *   bun run promo:launch                           every draft, placeholders for what isn't settled
+ *   bun run promo:launch                           every draft, pointing to Luma for what's next
  *   bun run promo:launch --channel x --channel discord
- *   bun run promo:launch --x-handle allthingsdev   before launchXHandle is set
+ *   bun run promo:launch --x-handle allthingsdev   from another X account
  *   bun run promo:launch --next <slug> --json      naming a published evening next
  *
  * Only --next reads the database, and only reads it, so production's
@@ -70,13 +70,13 @@ const command = Command.make(
     ),
     xHandle: Flag.String("x-handle").pipe(
       Flag.withDescription(
-        "The X account's handle, in place of launchXHandle until it is set.",
+        "The X account's handle, in place of launchXHandle.",
       ),
       Flag.optional,
     ),
     next: Flag.String("next").pipe(
       Flag.withDescription(
-        "The slug of the published evening to name next; a placeholder without it.",
+        "The slug of the published evening to name next; without it, the drafts point to the Luma calendar.",
       ),
       Flag.optional,
     ),

@@ -1191,19 +1191,21 @@ in, and a note for /about's history. It says what changed (the name and
 the domain, short links, person pages, shared evenings, the at/hack
 starter, and the `allthings` command with the public MCP server it reads:
 both on X, LinkedIn, Discord and Luma, the command alone on Meetup, neither
-on Bluesky or in the /about note) and names the next evening. What isn't settled is one value with
-a placeholder and a gap: the X handle (`launchXHandle`) and the next
-evening. A checklist of what has to be true before posting comes first.
+on Bluesky or in the /about note), says the brand's line, "An open door and
+a high bar.", and names the next evening once one is published (`--next`);
+until then each draft says the next one goes up on luma.com/allthings first.
+The X handle is one value, `launchXHandle` (@allthingswebdev: X declined
+@allthings). A checklist of what has to be true before posting comes first.
 
 ```sh
-bun run promo:launch                                  # every draft, placeholders for what isn't settled
+bun run promo:launch                                  # every draft, pointing to Luma for what's next
 bun run promo:launch --channel x --channel discord    # only these
-bun run promo:launch --x-handle allthingsdev          # before launchXHandle is set
+bun run promo:launch --x-handle allthingsdev          # from another X account
 DATABASE_URL=… bun run promo:launch --next <slug>     # naming a published, upcoming evening of ours
 ```
 
 Only `--next` reads the database. `tests/promo-launch.test.ts` keeps the
-kit with placeholders and settled as golden files; regenerate them with
+kit without a handle or a next evening, and with both, as golden files; regenerate them with
 `UPDATE_GOLDEN=1 bun test tests/promo-launch.test.ts`.
 
 ## Planning

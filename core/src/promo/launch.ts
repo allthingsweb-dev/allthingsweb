@@ -31,20 +31,22 @@ import { fitOn } from "./limits.ts";
  * other draft, with one exception the brand makes for launch messaging:
  * the old name, said once, as what we were.
  *
- * Two things aren't settled, so each is one value with a placeholder in
- * the drafts and a gap that says so: the X account's handle
- * ({@link launchXHandle}) and the next evening (`--next <slug>` once it
- * is published).
+ * The X account's handle is one value ({@link launchXHandle}); a draft
+ * printed without one holds a placeholder and a gap that says so. The
+ * next evening is named only once it is published (`--next <slug>`);
+ * until then every draft points to the Luma calendar, where the next one
+ * goes up first, and never to an evening that isn't public.
  */
 
 /**
  * The X account the launch is posted from and points to, without the @;
- * null until it's ours. The one place to set it.
+ * null leaves a placeholder. X declined @allthings, so it stays
+ * @allthingswebdev for now. The one place to set it.
  */
-export const launchXHandle: string | null = null;
+export const launchXHandle: string | null = "allthingswebdev";
 
-/** The handles in the running, for the gap that asks for one. */
-export const xHandleChoices = ["allthings", "allthingsdev"] as const;
+/** The brand's line on who it's for (brand/foundations.md, "Who we are"). */
+export const openDoor = "An open door and a high bar.";
 
 /** What we were called, said only as what we were. */
 export const formerName = "All Things Web";
@@ -123,7 +125,10 @@ export interface LaunchConfig {
   readonly origin: string;
   /** The X account's handle; null until it's chosen (see {@link launchXHandle}). */
   readonly xHandle: string | null;
-  /** The evening to name next; null until it's published. */
+  /**
+   * The evening to name next; null while none is published, and the
+   * drafts point to the Luma calendar instead.
+   */
   readonly next: NextEvening | null;
 }
 
@@ -177,16 +182,8 @@ export const launchChannels: ReadonlyArray<LaunchChannel> = [
   "about",
 ];
 
-/** The X handle the drafts print until one is chosen. */
+/** The X handle the drafts print when none is given. */
 const handlePlaceholder = "[x-handle]";
-
-/** The next evening the drafts print until it is published. */
-const nextPlaceholder = (origin: string): NextEvening => ({
-  title: "[next evening]",
-  when: "[day, time]",
-  where: "[hosted at …]",
-  url: `${origin}/[next]`,
-});
 
 /** A URL without its scheme, as running copy shows it. */
 const bare = (url: string) =>
@@ -206,7 +203,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   if (handle === null) {
     throw new Error(`Not an X handle: ${config.xHandle ?? ""}`);
   }
-  const next = config.next ?? nextPlaceholder(config.origin);
+  const next = config.next;
   const discord = bare(discordInvite);
   const calendar = bare(lumaCalendar);
   const hack = bare(hackStarter.repository);
@@ -218,25 +215,27 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
 
   /** "Next: allthings/trivia, Thu Nov 12, 6:00 PM, hosted at …." */
   const nextLine = (
+    evening: NextEvening,
     withWhere: boolean,
     text: (part: string) => string = (part) => part,
   ) =>
-    `Next: ${text(next.title)}, ${text(next.when)}${
-      withWhere && next.where !== null ? `, ${text(next.where)}` : ""
+    `Next: ${text(evening.title)}, ${text(evening.when)}${
+      withWhere && evening.where !== null ? `, ${text(evening.where)}` : ""
     }.`;
 
-  const gaps = [
-    ...(config.xHandle === null
+  /** While no evening is published, where the next one goes up first. */
+  const upFirst = `The next evening goes up on ${calendar} first: subscribe there to hear when it does.`;
+
+  /** The next evening and its link, or where it goes up first. */
+  const nextPlain = (withWhere: boolean) =>
+    next === null ? upFirst : `${nextLine(next, withWhere)} ${next.url}`;
+
+  const gaps =
+    config.xHandle === null
       ? [
-          `No X handle yet (${xHandleChoices.map((h) => `@${h}`).join(" or ")}): the drafts say @${handlePlaceholder}. Set launchXHandle in core/src/promo/launch.ts, or pass --x-handle.`,
+          `No X handle: the drafts say @${handlePlaceholder}. Set launchXHandle in core/src/promo/launch.ts, or pass --x-handle.`,
         ]
-      : []),
-    ...(config.next === null
-      ? [
-          "No next evening yet: the drafts hold a placeholder until the trivia night is published. Pass --next <slug> then.",
-        ]
-      : []),
-  ];
+      : [];
 
   const checklist = [
     `${site} serves the new site and every ${formerDomain} address redirects to it, as every draft says (infra/docs/r2-migration.md, the full cutover). Post nothing before.`,
@@ -248,49 +247,59 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   ];
 
   const x = [
-    `${formerName} is now allthings.\n\nThe same evenings for people who build software, in the neighborhoods of San Francisco, under one name: allthings/_. Each evening fills the slot after the slash.\n\nThe site is ${site}. ${formerDomain} redirects there.`,
-    `Every evening has a short link, its name as an address: allthings/effect lives at ${site}/effect.\n\nA link, once given, is that evening's for good, so nothing printed, posted or put in a QR code ever comes to mean another evening.`,
+    `${formerName} is now allthings.\n\nThe same evenings for people who build software, in the neighborhoods of San Francisco, under one name: allthings/_. ${openDoor}\n\nThe site is ${site}. ${formerDomain} redirects there.`,
+    `Each evening fills the slot after the slash, and that's its short link: allthings/effect lives at ${site}/effect.\n\nA link, once given, is that evening's for good, so nothing printed, posted or put in a QR code ever comes to mean another evening.`,
     `Everyone who has been on stage has a page now, at ${people}: their talks and parts at our evenings, latest first, and the talks they gave elsewhere.`,
     "Some evenings aren't ours. When someone else runs one we think is good, we share it: it's listed beside ours, marked shared, with who organizes it.",
     `Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look: judges run each one and its tests.\n\n${hack}`,
     `allthings is in your terminal now: ${cliTry} shows what's coming up, and --json gives scripts the same answer.\n\nIt reads the public MCP server your agents can add, ${mcp}\n\n${npm}`,
-    fitOn("x", [
-      paragraphs(
-        nextLine(true),
-        next.url,
-        `Talk between evenings → ${discord}`,
-      ),
-      paragraphs(
-        nextLine(false),
-        next.url,
-        `Talk between evenings → ${discord}`,
-      ),
-      paragraphs(nextLine(false), next.url),
-    ]),
+    fitOn(
+      "x",
+      next === null
+        ? [paragraphs(upFirst, `Talk between evenings → ${discord}`)]
+        : [
+            paragraphs(
+              nextLine(next, true),
+              next.url,
+              `Talk between evenings → ${discord}`,
+            ),
+            paragraphs(
+              nextLine(next, false),
+              next.url,
+              `Talk between evenings → ${discord}`,
+            ),
+            paragraphs(nextLine(next, false), next.url),
+          ],
+    ),
   ].map((post) => fitOn("x", [post]));
 
   const bluesky = fitOn("bluesky", [
     paragraphs(
       `${formerName} is now allthings: the same evenings for people who build software in San Francisco, at ${site}. ${formerDomain} redirects there.`,
       `New: a short link for every evening (${shortLink}), a page for everyone who's been on stage, evenings we share, and at/hack for hackathons.`,
-      `${nextLine(false)} ${next.url}`,
+      nextPlain(false),
+    ),
+    paragraphs(
+      `${formerName} is now allthings, at ${site}. ${formerDomain} redirects there. ${openDoor}`,
+      `New: a short link for every evening, a page for everyone who's been on stage, evenings we share, and at/hack.`,
+      nextPlain(false),
     ),
     paragraphs(
       `${formerName} is now allthings, at ${site}. ${formerDomain} redirects there.`,
       `New: a short link for every evening, a page for everyone who's been on stage, evenings we share, and at/hack.`,
-      `${nextLine(false)} ${next.url}`,
+      nextPlain(false),
     ),
     // However long the next evening's name, the redirect and what's new
     // stay; the next evening is its link alone, at the least.
     paragraphs(
       `${formerName} is now allthings, at ${site}. ${formerDomain} redirects there.`,
       "New: short links, person pages, shared evenings and at/hack.",
-      `${nextLine(false)} ${next.url}`,
+      nextPlain(false),
     ),
     paragraphs(
       `${formerName} is now allthings, at ${site}. ${formerDomain} redirects there.`,
       "New: short links, person pages, shared evenings and at/hack.",
-      `Next: ${next.url}`,
+      `Next: ${next === null ? calendar : next.url}`,
     ),
   ]);
 
@@ -305,17 +314,18 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const linkedin = fitOn("linkedin", [
     paragraphs(
       `${formerName} is now allthings.`,
-      `The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. What changes is the name, allthings/_, where each evening fills the slot after the slash: ${examples}.`,
+      `The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. ${openDoor} What changes is the name, allthings/_, where each evening fills the slot after the slash: ${examples}.`,
       `The site is now ${site}, and ${formerDomain} redirects there. With it:`,
       changes.map((change) => `- ${change}`).join("\n"),
-      `${nextLine(true)} ${next.url}`,
+      nextPlain(true),
       `Talk between evenings → ${discord}\nOn X: x.com/${handle}`,
     ),
   ]);
 
   // Markdown: names and placeholders escaped, links bare where they read
   // as text.
-  const mdNext = (withWhere: boolean) => nextLine(withWhere, md);
+  const mdNext = (evening: NextEvening, withWhere: boolean) =>
+    nextLine(evening, withWhere, md);
   const mdChanges = [
     `Every evening has a short link, ${md(shortLink)}. Once given, it's that evening's for good.`,
     `Everyone who has been on stage has a page: ${people}.`,
@@ -327,9 +337,11 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const discordPost = fitOn("discord", [
     paragraphs(
       `**${formerName} is now allthings.**`,
-      `Same evenings, same server. The name is allthings/\\_, and each evening fills the slot after the slash: ${examples}.`,
+      `Same evenings, same server. ${openDoor} The name is allthings/\\_, and each evening fills the slot after the slash: ${examples}.`,
       `**What changed**\n- The site is **${site}**; ${formerDomain} redirects there.\n${mdChanges.map((change) => `- ${change}`).join("\n")}`,
-      `**${mdNext(true)}** <${next.url}>`,
+      next === null
+        ? `**The next evening goes up on Luma first:** subscribe at <${lumaCalendar}> to hear when it does.`
+        : `**${mdNext(next, true)}** <${next.url}>`,
       `On X: **@${md(handle)}**`,
     ),
   ]);
@@ -338,10 +350,12 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
     subject: "These evenings are now allthings",
     body: fitOn("luma", [
       paragraphs(
-        `${formerName} is now allthings: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, allthings/\\_. Each evening fills the slot after the slash: ${examples}.`,
+        `${formerName} is now allthings: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, allthings/\\_. Each evening fills the slot after the slash: ${examples}. ${openDoor}`,
         "Nothing changes here: you keep following this calendar, and every evening's seats are still taken here.",
         `**What changed**\n\n- The site is **[${site}](${config.origin})**, and ${formerDomain} redirects there.\n${mdChanges.map((change) => `- ${change}`).join("\n")}`,
-        `**${mdNext(true)}** [${md(bare(next.url))}](${next.url})`,
+        next === null
+          ? "**The next evening goes up on this calendar first**, so you'll hear about it here."
+          : `**${mdNext(next, true)}** [${md(bare(next.url))}](${next.url})`,
         `Talk between evenings → **[discord](${discordInvite})**. On X: **[@${md(handle)}](https://x.com/${handle})**.`,
       ),
     ]),
@@ -353,10 +367,10 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
       subject: "allthings/_: these evenings are now allthings",
       body: fitOn("meetup", [
         paragraphs(
-          `The evenings this group lists were part of ${formerName}. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash.`,
+          `The evenings this group lists were part of ${formerName}. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash. ${openDoor}`,
           `Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (${calendar}); the list on Meetup is a waitlist.`,
           `What's new on ${site} (${formerDomain} redirects there): a short link for every evening, ${shortLink}; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; at/hack, the template hackathons start from; and allthings in your terminal: ${cliTry}.`,
-          `${nextLine(true)} ${next.url}`,
+          nextPlain(true),
           `Talk between evenings → ${discord}`,
         ),
       ]),
