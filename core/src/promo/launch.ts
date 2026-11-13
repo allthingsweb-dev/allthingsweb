@@ -230,11 +230,12 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const nextPlain = (withWhere: boolean) =>
     next === null ? upFirst : `${nextLine(next, withWhere)} ${next.url}`;
 
-  /** What a bare `allthings` prints, as the CLI does with and without a next evening. */
-  const cliShows =
-    next === null
-      ? "shows the last evening and where the next goes up first"
-      : "shows the next evening";
+  /**
+   * What a bare `allthings` prints, said so it holds whatever the calendar
+   * has: the next evening, or where the next one goes up first. `next` here
+   * is only what --next passed, not what the CLI will find.
+   */
+  const cliShows = "shows what's next";
 
   const gaps =
     config.xHandle === null
