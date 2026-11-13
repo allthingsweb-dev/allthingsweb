@@ -64,6 +64,7 @@ const view = (overrides: Partial<AboutView> = {}): AboutView => ({
   hostingCompanies: 24,
   guests: 8215,
   first: remix,
+  latestYear: 2026,
   formerNames: [
     { name: "Remix Bay Area", evening: remix },
     { name: "React Bay Area", evening: react },
@@ -135,8 +136,17 @@ describe("the about page", () => {
       ["said “I’m in”", "8,215"],
     ]);
     expect(soFar).toContain(
-      'since <time datetime="2024-03-27T00:00:00.000Z">Tue Mar 26, 2024</time>',
+      'since <time datetime="2024-03-27T00:00:00.000Z">Tue Mar 26, 2024</time> · <a href="/year/2026">year by year <span aria-hidden="true">→</span></a></p>',
     );
+  });
+
+  test("leads the all-time tally to the latest year's page, and nowhere before one", () => {
+    expect(part(render(view({ latestYear: 2025 })), "so-far")).toContain(
+      '<a href="/year/2025">year by year',
+    );
+    expect(
+      part(render(view({ latestYear: undefined })), "so-far"),
+    ).not.toContain("/year/");
   });
 
   test("leaves out a number that is nothing, and the whole tally before anything has happened", () => {
@@ -150,6 +160,7 @@ describe("the about page", () => {
         hostingCompanies: 0,
         guests: 0,
         first: undefined,
+        latestYear: undefined,
         formerNames: [],
       }),
     );

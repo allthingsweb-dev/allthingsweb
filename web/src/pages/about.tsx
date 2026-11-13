@@ -13,6 +13,7 @@ import {
   mcpPath,
   personPath,
   socials,
+  yearPath,
 } from "../links.ts";
 import { coachPath } from "./coach.tsx";
 import { Document } from "./document.tsx";
@@ -98,6 +99,16 @@ function SoFar({ about }: { readonly about: AboutView }) {
             <time datetime={DateTime.formatIso(about.first.startsAt)} safe>
               {fullDate(about.first.startsAt)}
             </time>
+            {about.latestYear === undefined ? (
+              ""
+            ) : (
+              <>
+                {" · "}
+                <a href={yearPath(about.latestYear)}>
+                  year by year <span aria-hidden="true">→</span>
+                </a>
+              </>
+            )}
           </p>
         )}
       </>
