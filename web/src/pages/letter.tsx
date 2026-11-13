@@ -173,7 +173,7 @@ export function letterIndexPage({
       <div class="evenings">
         <div class="evenings-head">
           <h1 class="lockup at-type-event-lockup">the letter</h1>
-          <p class="lead at-type-lead" safe>
+          <p class="lead at-type-lead">
             {about}
           </p>
           <p>
