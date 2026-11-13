@@ -116,6 +116,19 @@ describe("our voice", () => {
     ).toBe(1);
   });
 
+  test("Windows line endings part paragraphs and wrap lines as newlines do", () => {
+    const words = (n: number) =>
+      Array.from({ length: n }, () => "word").join(" ");
+    expect(
+      voiceFindings("The water is deep\r\n\r\nDive teams train here."),
+    ).toEqual([]);
+    expect(
+      voiceFindings("Not just a meetup\r\n\r\nin town, but a movement."),
+    ).toEqual([]);
+    expect(voiceFindings("A deep\r\ndive on queues.").length).toBe(1);
+    expect(voiceFindings(`${words(30)}.\r\n\r\n${words(30)}.`)).toEqual([]);
+  });
+
   test("names what was said and why", () => {
     expect(voiceFindings("We leverage Postgres.")).toEqual([
       { why: "filler: say use", said: "leverage" },

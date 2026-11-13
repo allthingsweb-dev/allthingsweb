@@ -122,9 +122,11 @@ export function voiceFindings(
   rules: ReadonlyArray<VoiceRule> = voice,
 ): ReadonlyArray<VoiceFinding> {
   const findings: VoiceFinding[] = [];
+  // Windows and old Mac line endings read as one newline.
+  const normal = text.replace(/\r\n?/g, "\n");
   // Each paragraph is read whole, its wrapped lines as one: a phrase wrapped
   // across lines is still the phrase, and none runs across a blank line.
-  const paragraphs = text
+  const paragraphs = normal
     .split(/\n[ \t]*\n/)
     .map((paragraph) => paragraph.replace(/[ \t]*\n[ \t]*/g, " "));
   for (const { pattern, why } of rules) {
@@ -133,7 +135,7 @@ export function voiceFindings(
       .find((match) => match !== null);
     if (found) findings.push({ why, said: found[0] });
   }
-  for (const sentence of sentences(text)) {
+  for (const sentence of sentences(normal)) {
     const words = sentence
       .split(/\s+/)
       .filter((word) => /[\p{L}\p{N}]/u.test(word)).length;
