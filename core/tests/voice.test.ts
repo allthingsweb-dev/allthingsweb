@@ -121,5 +121,10 @@ describe("our voice", () => {
     ]);
     expect(voiceFindings(`${words(30)}.\n\n${words(30)}.`)).toEqual([]);
     expect(voiceFindings(`- ${words(30)}\n- ${words(30)}`)).toEqual([]);
+    const link = `[${words(11)}](https://allthings.dev/talks)`;
+    expect(voiceFindings(`${words(30)}.\n${link}`)).toEqual([]);
+    expect(
+      voiceFindings(`${words(30)}.\n<https://allthings.dev/talks>`),
+    ).toEqual([]);
   });
 });

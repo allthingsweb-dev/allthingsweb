@@ -143,9 +143,13 @@ export function voiceFindings(
 /**
  * `text`'s sentences. A paragraph's lines are one text, however it is
  * wrapped, split after a full stop, question mark or exclamation mark; a
- * semicolon or a colon doesn't end one. A list item or a heading starts a
- * paragraph of its own, and a blank line ends one.
+ * semicolon or a colon doesn't end one. A heading, or a line that is only a
+ * link, is a paragraph of its own; a list item starts one; a blank line
+ * ends one.
  */
+/** A line that is only a link: a Markdown link, or a URL, bare or in angle brackets. */
+const linkLine = /^(?:\[[^\]]*\]\([^)\s]+\)|<?https?:\/\/\S+>?)$/;
+
 function sentences(text: string): ReadonlyArray<string> {
   const paragraphs: string[] = [];
   let lines: string[] = [];
@@ -156,7 +160,7 @@ function sentences(text: string): ReadonlyArray<string> {
   for (const line of text.split("\n").map((each) => each.trim())) {
     if (line === "") {
       end();
-    } else if (/^#{1,6}\s/.test(line)) {
+    } else if (/^#{1,6}\s/.test(line) || linkLine.test(line)) {
       end();
       paragraphs.push(line);
     } else {
