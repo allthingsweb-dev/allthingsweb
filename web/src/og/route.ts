@@ -2,6 +2,7 @@ import { asOf } from "allthings-core/src/clock.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
 import { PeopleDirectory } from "allthings-core/src/people-directory.ts";
 import { slugPattern as personSlugPattern } from "allthings-core/src/person-slug.ts";
+import { Year } from "allthings-core/src/year.ts";
 import { Context, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
@@ -34,6 +35,7 @@ import {
   personCard,
   personCardQuality,
 } from "./person-card.ts";
+import { yearCardFacts } from "./year-card.ts";
 
 /**
  * Link-preview cards and QR codes:
@@ -49,6 +51,9 @@ import {
  *   same way over the people card's ground, with their photo (or the blank
  *   avatar) drawn into its box first, and named by their page with its
  *   version: a new photo, title or handle is a new card.
+ * - `/og/year/<yyyy>.png`: a year's card (year-card.ts), drawn as an
+ *   evening's is, from the year's numbers, and named by the year's page
+ *   with its version.
  * - The current site's card routes (`/api/v1/preview.png` and the rest)
  *   redirect for good to their counterparts here.
  * - `/api/v1/<slug>/qr.png`: a QR code to the event's page, and
@@ -373,6 +378,56 @@ const card = HttpRouter.add(
 );
 
 /**
+ * The card of `year`, drawn (year-card.ts): none when no evening of ours
+ * was held in it, and undefined inside when Images can't draw it.
+ */
+const drawYearCard = (year: number, origin: string) =>
+  Effect.gen(function* () {
+    const found = yield* Year.use((years) =>
+      years.read(year, mediaOrigin),
+    ).pipe(Effect.provide(repositories));
+    if (Option.isNone(found)) return Option.none<Response | undefined>();
+    const tools = yield* drawing;
+    if (Option.isNone(tools)) {
+      return Option.some<Response | undefined>(undefined);
+    }
+    const texts = layoutCard(yearCardFacts(found.value), yield* loadMetrics);
+    const drawn = yield* Effect.tryPromise(() =>
+      draw(tools.value, built.og.cards.eventNight, texts, origin, "image/png"),
+    ).pipe(Effect.catchCause(notDrawn(`the year ${year}`)));
+    return Option.some(drawn);
+  });
+
+/**
+ * A year's card at `/og/year/<yyyy>.png`, kept a day. A year without one
+ * of ours held is not found; when the card can't be drawn, the year page's
+ * own card file stands in, never kept.
+ */
+const yearCardRoute = HttpRouter.add(
+  "GET",
+  "/og/year/:file",
+  Effect.gen(function* () {
+    const { file = "" } = yield* HttpRouter.params;
+    const year = /^([1-9][0-9]{3})\.png$/.exec(file)?.[1];
+    if (year === undefined) return notFound;
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const { origin } = new URL(request.originalUrl);
+    const drawn = yield* drawYearCard(Number(year), origin);
+    if (Option.isNone(drawn)) return notFound;
+    if (drawn.value === undefined) {
+      return redirect(ogCards.year.src, 302, CacheControl.failure);
+    }
+    return cardResponse(drawn.value.body, "image/png");
+  }).pipe(
+    Effect.catchCause((cause) =>
+      Effect.logError("Error serving a year's card:", cause).pipe(
+        Effect.as(redirect(ogCards.year.src, 302, CacheControl.failure)),
+      ),
+    ),
+  ),
+);
+
+/**
  * A person's card at `/og/people/<slug>.jpg`. A slug they had before
  * redirects to their card's current, versioned URL, never kept, so a
  * redirect never outlives the version it names. When it can't be drawn,
@@ -494,6 +549,7 @@ const urlQr = HttpRouter.add(
 export const ogRoutes = Layer.mergeAll(
   card,
   personCardRoute,
+  yearCardRoute,
   legacyCards,
   eventQr,
   urlQr,

@@ -3,7 +3,7 @@ import type { Evening } from "allthings-core/src/home.ts";
 import type { YearEvening, YearView } from "allthings-core/src/year.ts";
 import { DateTime } from "effect";
 import { built } from "../src/assets.ts";
-import { ogCards } from "../src/og/cards.ts";
+import { yearCard } from "../src/og/year-card.ts";
 import { eventsPage } from "../src/pages/events.tsx";
 import { statement, yearPage } from "../src/pages/year.tsx";
 import { sitemapXml } from "../src/seo/sitemap.ts";
@@ -123,14 +123,14 @@ describe("statement", () => {
 });
 
 describe("a year's page", () => {
-  test("is titled as the year in evenings, at /year/<yyyy>, with its card", () => {
+  test("is titled as the year in evenings, at /year/<yyyy>, with its own card", () => {
     const html = render();
     expect(html).toContain("<title>2026 in evenings · allthings/_</title>");
     expect(html).toContain(
       '<link rel="canonical" href="https://allthings.dev/year/2026"/>',
     );
     expect(html).toContain(
-      `<meta property="og:image" content="${origin}${ogCards.year.src}"/>`,
+      `<meta property="og:image" content="${origin}${yearCard(year).src}"/>`,
     );
     expect(html).toContain(
       '<meta name="description" content="238 people said “I’m in.” 2 evenings in 2026, in the neighborhoods of San Francisco."/>',
