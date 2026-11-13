@@ -2,7 +2,7 @@ import { describe, expect } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { apcaContrast, wcagContrast } from "allthings-brand/src/contrast.ts";
 import { guideEntries } from "allthings-core/src/guide.ts";
-import { publishedLetters } from "allthings-core/src/letter.ts";
+import { everyIssue, publishedLetters } from "allthings-core/src/letter.ts";
 import {
   colors,
   contrastRequirements,
@@ -848,7 +848,7 @@ describe("every kind of page", () => {
 });
 
 describe("the letter", () => {
-  it("lists only the issues Erik approved, and an issue that isn't one is not found", async (url) => {
+  it("lists only the issues Erik approved, and a draft or an issue that isn't one is not found", async (url) => {
     const published = await Effect.runPromise(publishedLetters);
     const index = await (await fetch(`${url}/letter`)).text();
     expect(
@@ -856,10 +856,20 @@ describe("the letter", () => {
         ([, month]) => month,
       ),
     ).toEqual(published.map((letter) => letter.month));
+    // A draft is found nowhere: not its page, not the index, not the sitemap.
+    const drafts = everyIssue
+      .map((issue) => issue.month)
+      .filter((month) => !published.some((letter) => letter.month === month));
+    const sitemap = await (await fetch(`${url}/sitemap.xml`)).text();
+    for (const month of drafts) {
+      expect(index).not.toContain(`/letter/${month}`);
+      expect(sitemap).not.toContain(`/letter/${month}`);
+    }
     for (const path of [
       "/letter/2026-13",
       "/letter/nothing",
       "/letter/1999-01",
+      ...drafts.map((month) => `/letter/${month}`),
     ]) {
       const response = await fetch(url + path);
       expect({ path, status: response.status }).toEqual({ path, status: 404 });
