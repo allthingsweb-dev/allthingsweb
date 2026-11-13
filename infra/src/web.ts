@@ -11,7 +11,7 @@ import {
   REQUESTS_DATASET,
   type RequestsDataset,
 } from "../../web/src/metrics.ts";
-import { Reader } from "./reader.ts";
+import { Intaker, Reader } from "./reader.ts";
 import { requiredSecret } from "./sync.ts";
 
 /**
@@ -28,6 +28,27 @@ export const Database = Cloudflare.Hyperdrive.Connection("Database", {
   caching: readerCaching,
   originConnectionLimit: 5,
 });
+
+/**
+ * Hyperdrive in front of production's Neon database as `proposal_intake`
+ * (reader.ts's {@link Intaker}), for talk proposals from anyone
+ * (web/src/proposals.ts): a role that may only add a proposal. Prod alone
+ * has it, since every other stage reads production and must not write to
+ * it. It never caches; five origin connections is Hyperdrive's minimum.
+ */
+export const IntakeDatabase = Cloudflare.Hyperdrive.Connection("Intake", {
+  origin: Intaker,
+  caching: { disabled: true },
+  originConnectionLimit: 5,
+});
+
+/**
+ * The site's rate limit on proposals (web/src/proposals.ts), by address:
+ * `perMinute` a minute, counted in each Cloudflare location. The table
+ * stops a day's flood on its own (core/migrations/0040_proposals.ts).
+ * `namespaceId` names the limit's counters in the account.
+ */
+export const proposalsLimit = { namespaceId: 1001, perMinute: 5 } as const;
 
 /**
  * The page store's namespace: each stage has its own, named after it and
@@ -92,6 +113,8 @@ export const makeWeb = (
   refreshToken?: ReturnType<typeof requiredSecret>,
   requests: RequestsDataset = REQUESTS_DATASET.preview,
   analyticsToken?: Output.Output<string>,
+  /** Whether this stage takes talk proposals: prod alone ({@link IntakeDatabase}). */
+  intake = false,
 ) =>
   Effect.flatMap(Effect.all([Pages, Variants]), ([pages, variants]) =>
     Cloudflare.Worker("Web", {
@@ -124,6 +147,14 @@ export const makeWeb = (
         ...(analyticsToken === undefined
           ? {}
           : { WEB_ANALYTICS_TOKEN: analyticsToken }),
+        // How many proposals one address may send a minute
+        // (web/src/proposals.ts). Every stage counts; only prod keeps them.
+        PROPOSALS_LIMIT: Cloudflare.RateLimit("PROPOSALS_LIMIT", {
+          namespaceId: proposalsLimit.namespaceId,
+          simple: { limit: proposalsLimit.perMinute, period: 60 },
+        }),
+        // Prod keeps proposals, as proposal_intake (web/src/proposals.ts).
+        ...(intake ? { INTAKE: IntakeDatabase } : {}),
       },
       ...(domain === undefined ? {} : { domain }),
     }),
