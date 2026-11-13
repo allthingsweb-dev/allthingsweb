@@ -57,12 +57,25 @@ export function parseRpcBody(body: string, contentType: string): unknown {
   return JSON.parse(data);
 }
 
+/**
+ * The tools this CLI reads, by name: the whole public contract. `allthings mcp`
+ * lists them for agents, so the CLI and what it tells agents never differ.
+ */
+export const toolNames = [
+  "list_events",
+  "get_event",
+  "list_speakers",
+  "get_community",
+] as const;
+
+export type ToolName = (typeof toolNames)[number];
+
 export function createClient({
   endpoint = defaultEndpoint,
   fetch = globalThis.fetch,
 }: { endpoint?: string; fetch?: Fetch } = {}) {
   async function callTool<T>(
-    name: string,
+    name: ToolName,
     args: Record<string, unknown>,
     schema: z.ZodType<T>,
   ): Promise<T> {

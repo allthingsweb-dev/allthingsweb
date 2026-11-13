@@ -33,6 +33,14 @@ Add `--json` to any of them except `rsvp`, which prints just the link, for the p
 
 `ALLTHINGS_MCP_URL` points it at another server, such as a local Worker.
 
+## Agents
+
+```sh
+allthings mcp                       # a line to add allthings to Claude Code, Codex, VS Code or Cursor
+```
+
+It prints the server's URL, its tools and a line for each agent, for example `claude mcp add --transport http allthings https://allthings.dev/mcp`. It reads nothing, so it works offline. With `ALLTHINGS_MCP_URL` set, the lines name that server instead. `allthings mcp --json` gives `{ name, url, transport, tools }`. An agent with a shell can also just run this CLI with `--json`.
+
 ## aux
 
 At an evening that passes the aux, guests set the room's lights from their terminal, with the code on the card from the check-in table:
