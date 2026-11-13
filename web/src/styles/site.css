@@ -663,6 +663,11 @@ main > section,
   color: var(--at-meta);
 }
 
+/* Under a year on the evenings index, the link to its page. */
+.list-foot {
+  margin: var(--at-space-3) 0 0;
+}
+
 .row {
   display: grid;
   grid-template-columns: var(--at-size-date-column) minmax(0, 1fr) auto;

@@ -304,24 +304,28 @@ export function siteTokens(file: TokenFile): TokenFile {
 }
 
 /**
- * The home lab's stylesheet (src/styles/lab.css), which only its pages load,
- * after the site's: its rules read the theme's custom properties from
- * there, and its breakpoints are the theme's custom media queries.
+ * A stylesheet only some pages load, after the site's (src/styles/<name>.css):
+ * the home lab's, and the depth field's, which a year's page and the lab
+ * load. Its rules read the theme's custom properties from the site's, and
+ * its breakpoints are the theme's custom media queries.
  */
-async function buildLabStylesheet(): Promise<string> {
-  const lab = await Bun.file(join(web, "src/styles/lab.css")).text();
+async function buildPageStylesheet(name: "lab" | "depth"): Promise<string> {
+  const rules = await Bun.file(join(web, `src/styles/${name}.css`)).text();
   const breakpoints = themeCss(tokens)
     .split("\n")
     .filter((line) => line.startsWith("@custom-media "));
-  const source = join(dist, "lab.css");
-  await Bun.write(source, expandCustomMedia([...breakpoints, lab].join("\n")));
+  const source = join(dist, `${name}.css`);
+  await Bun.write(
+    source,
+    expandCustomMedia([...breakpoints, rules].join("\n")),
+  );
   const result = await Bun.build({ entrypoints: [source], minify: true });
   const [output] = result.outputs;
   if (!result.success || output === undefined) {
-    throw new AggregateError(result.logs, "The lab's stylesheet didn't build");
+    throw new AggregateError(result.logs, `${name}.css didn't build`);
   }
   await rm(source);
-  return writeAsset("lab", "css", await output.text());
+  return writeAsset(name, "css", await output.text());
 }
 
 /**
@@ -553,6 +557,7 @@ export interface OgCards {
   /** The same as a JPEG: what a person's card falls back to. */
   readonly peopleJpeg: Image;
   readonly talks: Image;
+  readonly year: Image;
   readonly about: Image;
   readonly codeOfConduct: Image;
   readonly privacy: Image;
@@ -648,6 +653,7 @@ async function buildOg(): Promise<{
       people: await mark("og-people.png", og),
       peopleJpeg: await mark("og-people.jpg", og),
       talks: await mark("og-talks.png", og),
+      year: await mark("og-year.png", og),
       about: await mark("og-about.png", og),
       codeOfConduct: await mark("og-code-of-conduct.png", og),
       privacy: await mark("og-privacy.png", og),
@@ -749,6 +755,8 @@ export interface BuildManifest {
   readonly stylesheet: string;
   /** The home lab's own stylesheet, which only its pages load. */
   readonly labStylesheet: string;
+  /** The depth field's and a year's page's, which they and the lab load. */
+  readonly depthStylesheet: string;
   /** The lab's script, which only its pages with an engine load. */
   readonly labScript: string;
   readonly fonts: ReadonlyArray<Font>;
@@ -800,7 +808,8 @@ export async function build(): Promise<BuildManifest> {
   const { css: fontFaces, fonts } = await buildFonts();
   const assets = {
     stylesheet: await buildStylesheet(fontFaces),
-    labStylesheet: await buildLabStylesheet(),
+    labStylesheet: await buildPageStylesheet("lab"),
+    depthStylesheet: await buildPageStylesheet("depth"),
     labScript: await buildLabScript(),
     fonts,
     marks: await buildMarks(),

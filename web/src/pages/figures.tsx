@@ -31,28 +31,31 @@ export function tallyFacts(
 /**
  * The tally as a row of big numbers over mono labels, as `kind` sets it:
  * a band under a hero, columns within one, or a compact row within
- * another band (the home lab's home-tight).
+ * another band (the home lab's home-tight). `label` names it to a screen
+ * reader: "So far", or the year a year's tally counts.
  */
 export function Tally({
   tally,
   kind,
   which,
+  label = "So far",
 }: {
   readonly tally: TallyView;
   readonly kind: "band" | "columns" | "compact";
   readonly which?: ReadonlyArray<keyof TallyView>;
+  readonly label?: string;
 }) {
   const facts = tallyFacts(tally, which);
   if (facts.length === 0) return "";
   return (
-    <section class={`figures figures-${kind}`} aria-label="So far">
+    <section class={`figures figures-${kind}`} aria-label={label}>
       <dl>
-        {facts.map(({ value, label }) => (
+        {facts.map((fact) => (
           <div>
             <dt class="at-type-meta" safe>
-              {label}
+              {fact.label}
             </dt>
-            <dd safe>{value}</dd>
+            <dd safe>{fact.value}</dd>
           </div>
         ))}
       </dl>

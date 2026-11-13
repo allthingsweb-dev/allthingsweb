@@ -1,7 +1,8 @@
 import type { EveningsView } from "allthings-core/src/evenings.ts";
 import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
-import { discord, lumaCalendar, xHandle } from "../links.ts";
+import { discord, lumaCalendar, xHandle, yearPath } from "../links.ts";
+import { yearTitle } from "./year.tsx";
 import { Document } from "./document.tsx";
 import { gatheringTitle } from "./metadata.tsx";
 import { EveningRow } from "./evening-row.tsx";
@@ -17,7 +18,8 @@ import type { ImageMode } from "./picture.tsx";
  * Under the title, where to follow along, in a quiet line of words as the
  * footer's socials are (brand/foundations.md, "People and channels").
  * Each list labels its right-hand column, on its year's line: the places
- * are neighborhoods.
+ * are neighborhoods. Under a year that held one of ours, a link to that
+ * year's page (pages/year.tsx).
  */
 
 /** Where to follow every evening, in the line under /events' title. */
@@ -64,14 +66,25 @@ export function byYear(
   return years;
 }
 
+/**
+ * Whether a year's page has something to look back on: one of the
+ * evenings that has happened in it is ours (core's src/year.ts holds
+ * ours, held).
+ */
+export const heldOne = (past: ReadonlyArray<Evening>): boolean =>
+  past.some((evening) => evening.curation.kind === "ours");
+
 function EveningList({
   id,
   title,
   evenings,
+  more,
 }: {
   readonly id: string;
   readonly title: string;
   readonly evenings: ReadonlyArray<Evening>;
+  /** A link under the list, to more about these evenings. */
+  readonly more?: { readonly href: string; readonly text: string } | undefined;
 }) {
   return (
     <section class="list" aria-labelledby={id}>
@@ -93,6 +106,15 @@ function EveningList({
           <EveningRow evening={evening} />
         ))}
       </ol>
+      {more === undefined ? (
+        ""
+      ) : (
+        <p class="list-links list-foot">
+          <a href={more.href}>
+            <span safe>{more.text}</span> <span aria-hidden="true">→</span>
+          </a>
+        </p>
+      )}
     </section>
   );
 }
@@ -144,6 +166,11 @@ export function eventsPage({
               id={`evenings-${when}`}
               title={String(when)}
               evenings={inYear}
+              more={
+                heldOne(inYear)
+                  ? { href: yearPath(when), text: yearTitle(when) }
+                  : undefined
+              }
             />
           ))}
         </div>

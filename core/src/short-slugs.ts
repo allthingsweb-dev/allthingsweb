@@ -61,6 +61,7 @@ export const reservedSlugs: ReadonlySet<string> = new Set([
   "shared",
   "speakers",
   "talks",
+  "year",
 ]);
 
 /**

@@ -25,6 +25,7 @@ export const ogCards = {
   events: card(cards.events, `every evening · allthings/_ · ${sentences}`),
   people: card(cards.people, `people · allthings/_ · ${sentences}`),
   talks: card(cards.talks, `every talk · allthings/_ · ${sentences}`),
+  year: card(cards.year, `the year in evenings · allthings/_ · ${sentences}`),
   about: card(cards.about, `about · allthings/_ · ${sentences}`),
   codeOfConduct: card(
     cards.codeOfConduct,
