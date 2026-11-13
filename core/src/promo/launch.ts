@@ -207,7 +207,6 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const discord = bare(discordInvite);
   const calendar = bare(lumaCalendar);
   const hack = bare(hackStarter.repository);
-  const examples = "allthings/effect, allthings/expo";
   const shortLink = `${site}/<topic>`;
   const people = `${site}/people`;
   const mcp = new URL(mcpPath, config.origin).href;
@@ -254,8 +253,8 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   ];
 
   const x = [
-    `${formerName} is now allthings.\n\nThe same evenings for people who build software, in the neighborhoods of San Francisco, under one name: allthings/_. ${openDoor}\n\nThe site is ${site}. ${formerDomain} redirects there.`,
-    `Each evening fills the slot after the slash, and that's its short link: allthings/effect lives at ${site}/effect.\n\nA link, once given, is that evening's for good, so nothing printed, posted or put in a QR code ever comes to mean another evening.`,
+    `${formerName} is now allthings.\n\nThe same evenings for people who build software, in the neighborhoods of San Francisco. ${openDoor}\n\nThe site is ${site}. ${formerDomain} redirects there.`,
+    `Every evening has a short link, like ${site}/effect, and it keeps that link for good, so nothing printed, posted or put in a QR code ever comes to mean another evening.`,
     `Everyone who has been on stage has a page now, at ${people}: their talks and parts at our evenings, latest first, and the talks they gave elsewhere.`,
     "Some evenings aren't ours. When someone else runs one we think is good, we share it: it's listed beside ours, marked shared, with who organizes it.",
     `Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look: judges run each one and its tests.\n\n${hack}`,
@@ -321,7 +320,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const linkedin = fitOn("linkedin", [
     paragraphs(
       `${formerName} is now allthings.`,
-      `The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. ${openDoor} What changes is the name, allthings/_, where each evening fills the slot after the slash: ${examples}.`,
+      `The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. ${openDoor}`,
       `The site is now ${site}, and ${formerDomain} redirects there. With it:`,
       changes.map((change) => `- ${change}`).join("\n"),
       nextPlain(true),
@@ -344,7 +343,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const discordPost = fitOn("discord", [
     paragraphs(
       `**${formerName} is now allthings.**`,
-      `Same evenings, same server. ${openDoor} The name is allthings/\\_, and each evening fills the slot after the slash: ${examples}.`,
+      `Same evenings, same server. ${openDoor}`,
       `**What changed**\n- The site is **${site}**; ${formerDomain} redirects there.\n${mdChanges.map((change) => `- ${change}`).join("\n")}`,
       next === null
         ? `**The next evening goes up on Luma first:** subscribe at <${lumaCalendar}> to hear when it does.`
@@ -357,7 +356,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
     subject: "These evenings are now allthings",
     body: fitOn("luma", [
       paragraphs(
-        `${formerName} is now allthings: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, allthings/\\_. Each evening fills the slot after the slash: ${examples}. ${openDoor}`,
+        `${formerName} is now allthings: the same evenings for people who build software, in the neighborhoods of San Francisco. ${openDoor}`,
         "Nothing changes here: you keep following this calendar, and every evening's seats are still taken here.",
         `**What changed**\n\n- The site is **[${site}](${config.origin})**, and ${formerDomain} redirects there.\n${mdChanges.map((change) => `- ${change}`).join("\n")}`,
         next === null
@@ -371,10 +370,10 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const meetup = meetupGroups.map(
     (group): MeetupAnnouncement => ({
       group,
-      subject: "allthings/_: these evenings are now allthings",
+      subject: "These evenings are now allthings",
       body: fitOn("meetup", [
         paragraphs(
-          `The evenings this group lists were part of ${formerName}. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash. ${openDoor}`,
+          `The evenings this group lists were part of ${formerName}. They're now allthings. ${openDoor}`,
           `Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (${calendar}); the list on Meetup is a waitlist.`,
           `What's new on ${site} (${formerDomain} redirects there): a short link for every evening, ${shortLink}; a page for everyone who has been on stage; evenings others run that we think are good, marked shared; at/hack, the template hackathons start from; and allthings in your terminal: ${cliTry}.`,
           nextPlain(true),
