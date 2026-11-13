@@ -1,7 +1,12 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { DateTime, Effect, Exit, Layer, Schema } from "effect";
-import { addPost, BackfillFile } from "../src/posts/add.ts";
+import {
+  addPost,
+  addPosts,
+  BackfillFile,
+  postUrlsIn,
+} from "../src/posts/add.ts";
 import {
   fromBlueskyThread,
   fromFxTweet,
@@ -430,6 +435,83 @@ describe("adding posts", () => {
       Exit.fail(new PostEventNotFound({ slug: "no-such-event" })),
     );
     expect(requests).toEqual([]);
+  });
+
+  const batch = (db: PGlite, slug: string, urls: ReadonlyArray<string>) => {
+    const platforms = fakePlatforms({
+      [xPath]: [{ body: xPhoto }],
+      [blueskyPath]: [{ body: blueskyImages }],
+      "/status/1": [{ status: 404 }],
+    });
+    return Effect.runPromiseExit(
+      settle(addPosts(slug, urls, { status: "pending" })).pipe(
+        Effect.provide(
+          Layer.mergeAll(PostSources.layer, EventPostWriter.layer).pipe(
+            Layer.provide(Layer.mergeAll(platforms.layer, configFrom())),
+            Layer.provideMerge(sqlLayer(db)),
+            Layer.provideMerge(clockLayer),
+          ),
+        ),
+      ),
+    ).then((exit) => ({ exit, requests: platforms.requests }));
+  };
+
+  test("a batch adds each post as pending, and one it can't read doesn't stop the rest", async () => {
+    const db = await database();
+    const { exit } = await batch(db, "2026-08-12-react-at-acme", [
+      "https://x.com/someone/status/1",
+      xUrl,
+      blueskyUrl,
+    ]);
+    expect(exit).toMatchObject(
+      Exit.succeed([
+        {
+          url: "https://x.com/someone/status/1",
+          failed: "https://api.fxtwitter.com/status/1 answered 404",
+        },
+        { url: xUrl, result: { _tag: "Added" } },
+        { url: blueskyUrl, result: { _tag: "Added" } },
+      ]),
+    );
+    expect(await rows(db)).toMatchObject([
+      { status: "pending" },
+      { status: "pending" },
+    ]);
+    // Again: both are there, as they are.
+    const again = await batch(db, "2026-08-12-react-at-acme", [xUrl]);
+    expect(again.exit).toMatchObject(
+      Exit.succeed([{ url: xUrl, result: { _tag: "Exists" } }]),
+    );
+  });
+
+  test("a batch for an unknown event reads no post", async () => {
+    const db = await database();
+    const { exit, requests } = await batch(db, "no-such-event", [xUrl]);
+    expect(exit).toEqual(
+      Exit.fail(new PostEventNotFound({ slug: "no-such-event" })),
+    );
+    expect(requests).toEqual([]);
+  });
+});
+
+describe("postUrlsIn", () => {
+  test("every post URL once, in order; notes skipped; other links set aside", () => {
+    expect(
+      postUrlsIn(
+        [
+          "# allthings/aie, X search 1",
+          `${xUrl}?s=20`,
+          "https://twitter.com/someone/status/2105474023287341382/photo/1",
+          `(seen at ${blueskyUrl}).`,
+          "https://bsky.app/profile/AndreLandgraf.com/post/3lp5q7rcqnk2v",
+          "https://allthings.dev/aie",
+          "# https://x.com/i/status/9",
+        ].join("\n"),
+      ),
+    ).toEqual({
+      urls: [`${xUrl}?s=20`, blueskyUrl],
+      ignored: ["https://allthings.dev/aie"],
+    });
   });
 });
 

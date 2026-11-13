@@ -785,6 +785,42 @@ SECURITY DEFINER function with its search path pinned that checks every
 field and inserts nothing but pending posts; the role holds no INSERT on
 `event_posts`, and EXECUTE is revoked from everyone else.
 
+An evening's links, to search by, are its Luma page (on luma.com and
+lu.ma), its short links (`event_slugs`, allthings.dev/aie) and its long
+slug on allthings.dev and allthingsweb.dev.
+
+### Sweeping one evening
+
+The agent running an evening keeps its page's posts live with a sweep
+(`src/posts/sweep.ts`): the same search for that one evening, named by its
+long slug or short link, from two weeks before it to a week after, whether
+or not it has started. It adds what scores enough as pending, then prints
+what is new, what it found again, and every post of the evening waiting
+for review. A sweep adds nothing it added before, so running it again is
+safe. `--every <minutes>` sweeps again at that interval until the
+evening's window closes; run it in the background for the lead-up and the
+night.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts sweep aie --dry-run   # what it would add
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts sweep aie --every 30   # until a week after
+```
+
+X's search needs a paid key, so X is searched in a browser instead.
+`bun run posts x-searches <slug or short link>` prints the searches to run
+on x.com, each with its URL: one for each of the evening's links (its
+short link and Luma page first), its name, its topic with "allthings", and
+its people saying allthings or mentioned with it, held to the evening's
+window by day. Copy each result's post URL into a file, one a line (a line
+starting with `#` is a note), then add them all at once. Each post goes in
+once, however often the file names it, as pending; one that can't be read
+is reported and the rest go on.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts x-searches aie
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run posts add <long slug> --from x-posts.txt [--dry-run]
+```
+
 ## An evening's photos
 
 `src/photos.ts` adds photos to an evening. Each file is re-encoded the way

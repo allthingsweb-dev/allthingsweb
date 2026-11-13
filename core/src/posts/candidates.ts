@@ -12,8 +12,9 @@ import {
 } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { SqlClient } from "effect/sql/SqlClient";
+import type * as Statement from "effect/sql/Statement";
 import { hostOrder } from "../catalog.ts";
-import { displayName } from "../lockup.ts";
+import { displayName, topicOf } from "../lockup.ts";
 import { orDataSourceError } from "../sql.ts";
 import { addPost } from "./add.ts";
 
@@ -533,6 +534,89 @@ export function xQueries(signals: EventSignals): ReadonlyArray<string> {
   ];
 }
 
+/** One search to run on x.com in a browser, by hand or by an agent. */
+export interface BrowserSearch {
+  /** What it looks for, in a few words. */
+  readonly what: string;
+  /** The query, as typed into X's search box. */
+  readonly query: string;
+  /** X's search page for it, latest posts first. */
+  readonly url: string;
+}
+
+/** A day as X's `since:` and `until:` take it, in UTC. */
+const xDay = (instant: DateTime.Utc) =>
+  DateTime.formatIso(instant).slice(0, 10);
+
+/**
+ * The searches to run on x.com for posts about the evening, while X's API
+ * has no key: one for each of its links (its short link and Luma page
+ * first), its name, its topic with "allthings", and its people saying
+ * allthings or being mentioned with it. Each is held to the evening's
+ * window by day (X's `until:` excludes its day, so it is the day after).
+ * Whoever runs them collects the posts' URLs for `bun run posts add
+ * <slug> --from <file>`.
+ */
+export function xBrowserSearches(
+  signals: EventSignals,
+): ReadonlyArray<BrowserSearch> {
+  const quoted = (s: string) => `"${s.replace(/"/g, "")}"`;
+  const { since, until } = windowOf(signals);
+  const days = `since:${xDay(since)} until:${xDay(DateTime.addDuration(until, Duration.days(1)))}`;
+  const topic = signals.topic ?? topicOf(signals.name) ?? null;
+  const words = [
+    "allthings",
+    quoted("all things"),
+    ...(topic === null ? [] : [quoted(topic)]),
+  ].join(" OR ");
+  // The links people share first: the short link, then Luma's page.
+  const rank = (link: string) =>
+    link.startsWith(`${siteOrigins[0]}/`) && !link.endsWith(`/${signals.slug}`)
+      ? 0
+      : /^https:\/\/(lu\.ma|luma\.com)\/(?!event\/)/.test(link)
+        ? 1
+        : 2;
+  const links = signals.links
+    .map((link, index) => ({ link, index }))
+    .toSorted((a, b) => rank(a.link) - rank(b.link) || a.index - b.index)
+    .map(({ link }) => bareLink(link));
+  const handles = signals.xHandles;
+  const searches: Array<Omit<BrowserSearch, "url">> = [
+    ...links.map((link) => ({
+      what: `links ${link}`,
+      query: `url:${quoted(link)} ${days}`,
+    })),
+    {
+      what: "names it",
+      query: `${quoted(displayName(signals.name))} ${days}`,
+    },
+    ...(topic === null
+      ? []
+      : [
+          {
+            what: `says allthings and ${topic}`,
+            query: `(allthings OR ${quoted("all things")}) ${quoted(topic)} ${days}`,
+          },
+        ]),
+    ...(handles.length === 0
+      ? []
+      : [
+          {
+            what: "its people saying it",
+            query: `(${handles.map((h) => `from:${h}`).join(" OR ")}) (${words}) ${days}`,
+          },
+          {
+            what: "its people mentioned with it",
+            query: `(${handles.map((h) => `@${h}`).join(" OR ")}) (${words}) ${days}`,
+          },
+        ]),
+  ];
+  return searches.map((search) => ({
+    ...search,
+    url: `https://x.com/search?${new URLSearchParams({ q: search.query, src: "typed_query", f: "live" }).toString()}`,
+  }));
+}
+
 /**
  * Posts an X search request returns unless `X_MAX_RESULTS` says otherwise:
  * X bills each one, so a run's cost is at most its requests times this.
@@ -737,6 +821,8 @@ const SignalsRow = Schema.Struct({
   startDate: Schema.DateTimeUtcFromDate,
   endDate: Schema.DateTimeUtcFromDate,
   lumaEventId: Schema.NullOr(Schema.String),
+  /** Its short links (`event_slugs`), the one in use first. */
+  shortSlugs: Schema.Array(Schema.String),
   hosts: Schema.Array(Schema.String),
   people: Schema.Array(
     Schema.Struct({
@@ -781,6 +867,11 @@ export function toSignals(
             `https://luma.com/event/${row.lumaEventId}`,
           ]),
       lumaPage,
+      // Luma's old domain still serves every page, and posts link it.
+      lumaPage?.replace(/^https:\/\/luma\.com\//, "https://lu.ma/") ?? null,
+      // Its short links are what we post and print; only allthings.dev
+      // ever gave them.
+      ...row.shortSlugs.map((short) => `${siteOrigins[0]}/${short}`),
       ...siteOrigins.map((origin) => `${origin}/${row.slug}`),
     ]),
     hosts: row.hosts,
@@ -794,8 +885,90 @@ export function toSignals(
   };
 }
 
+/**
+ * Published evenings that `where` holds, as signal rows, the latest first.
+ * `where` names the events table `e`.
+ */
+const signalRows = (sql: SqlClient, where: Statement.Fragment) =>
+  sql`
+  SELECT e.slug, e.name, e.topic, e.start_date AS "startDate",
+    e.end_date AS "endDate", e.luma_event_id AS "lumaEventId",
+    COALESCE((
+      SELECT json_agg(s.slug ORDER BY s.slug = e.short_slug DESC, s.slug)
+      FROM event_slugs s WHERE s.event_id = e.id
+    ), '[]'::json) AS "shortSlugs",
+    COALESCE((
+      SELECT json_agg(s.name ORDER BY ${sql.literal(hostOrder)})
+      FROM event_sponsors es JOIN sponsors s ON s.id = es.sponsor_id
+      WHERE es.event_id = e.id
+    ), '[]'::json) AS hosts,
+    COALESCE((
+      SELECT json_agg(json_build_object('x', p.twitter_handle,
+        'xId', p.x_user_id, 'bluesky', p.bluesky_handle) ORDER BY p.id)
+      FROM profiles p
+      WHERE p.id IN (
+        SELECT profile_id FROM event_people WHERE event_id = e.id
+        UNION
+        SELECT ts.speaker_id FROM talk_speakers ts
+        JOIN event_talks et ON et.talk_id = ts.talk_id
+        WHERE et.event_id = e.id)
+    ), '[]'::json) AS people
+  FROM events e
+  WHERE e.is_draft = false AND ${where}
+  ORDER BY e.start_date DESC, e.id`.pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(SignalsRow))),
+    orDataSourceError,
+  );
+
+/** Evenings by any of `slugs`: each its long slug or a short link it has. */
+const bySlugs = (sql: SqlClient, slugs: ReadonlyArray<string>) =>
+  slugs.length === 0
+    ? sql`FALSE`
+    : sql`(e.slug IN ${sql.in(slugs)} OR e.id IN (
+        SELECT event_id FROM event_slugs WHERE slug IN ${sql.in(slugs)}))`;
+
+/** The evening's Luma page, as Luma names it, or null. */
+const readLumaPage = (client: HttpClient.HttpClient, lumaEventId: string) =>
+  client
+    .execute(HttpClientRequest.get(`https://luma.com/event/${lumaEventId}`))
+    .pipe(
+      Effect.flatMap((response) => response.text),
+      Effect.map(
+        (html) =>
+          /<link rel="canonical" href="(https:\/\/luma\.com\/[^"]+)"/.exec(
+            html,
+          )?.[1] ?? null,
+      ),
+      Effect.timeout(Duration.seconds(15)),
+    );
+
+/**
+ * The published evening at `slug` (its long slug or a short link), with
+ * its Luma page where Luma answers; null when there is none. Whether it has
+ * started doesn't matter: its lead-up is when most posts about it are
+ * written.
+ */
+export const eveningSignals = (slug: string) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const client = yield* HttpClient.HttpClient;
+    const [row] = yield* signalRows(sql, bySlugs(sql, [slug]));
+    if (row === undefined) return null;
+    const page =
+      row.lumaEventId === null
+        ? null
+        : yield* readLumaPage(client, row.lumaEventId).pipe(
+            Effect.orElseSucceed(() => null),
+          );
+    return toSignals(row, page);
+  });
+
 /** Which evenings to search. */
 export type CandidateScope =
+  /**
+   * These, by long slug or short link, whether or not they have started:
+   * an evening's lead-up is searched too.
+   */
   | { readonly _tag: "Slugs"; readonly slugs: ReadonlyArray<string> }
   /** Every published evening that has started, the latest first. */
   | { readonly _tag: "Past" }
@@ -850,42 +1023,22 @@ export const findCandidates = (options: CandidateOptions) =>
     // a parameter, so every driver encodes it the same.
     const which =
       scope._tag === "Slugs"
-        ? scope.slugs.length === 0
-          ? sql`FALSE`
-          : sql`e.slug IN ${sql.in(scope.slugs)}`
+        ? bySlugs(sql, scope.slugs)
         : scope._tag === "Past"
           ? sql`TRUE`
           : // Ended, and within the window: an evening still on doesn't
             // take a slot from one that has finished.
             sql`e.end_date >= ${DateTime.toDateUtc(recentSince)}
               AND e.end_date < ${DateTime.toDateUtc(now)}`;
-    const readRows = (where: typeof which) =>
-      sql`
-      SELECT e.slug, e.name, e.topic, e.start_date AS "startDate",
-        e.end_date AS "endDate", e.luma_event_id AS "lumaEventId",
-        COALESCE((
-          SELECT json_agg(s.name ORDER BY ${sql.literal(hostOrder)})
-          FROM event_sponsors es JOIN sponsors s ON s.id = es.sponsor_id
-          WHERE es.event_id = e.id
-        ), '[]'::json) AS hosts,
-        COALESCE((
-          SELECT json_agg(json_build_object('x', p.twitter_handle,
-            'xId', p.x_user_id, 'bluesky', p.bluesky_handle) ORDER BY p.id)
-          FROM profiles p
-          WHERE p.id IN (
-            SELECT profile_id FROM event_people WHERE event_id = e.id
-            UNION
-            SELECT ts.speaker_id FROM talk_speakers ts
-            JOIN event_talks et ON et.talk_id = ts.talk_id
-            WHERE et.event_id = e.id)
-        ), '[]'::json) AS people
-      FROM events e
-      WHERE e.is_draft = false AND e.start_date <= ${DateTime.toDateUtc(now)}
-        AND ${where}
-      ORDER BY e.start_date DESC, e.id`.pipe(
-        Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(SignalsRow))),
-        orDataSourceError,
-      );
+    // Evenings named by slug are searched before they start too, and so is
+    // any evening a post found for them may be about; the other scopes
+    // read evenings that have started.
+    const started =
+      scope._tag === "Slugs"
+        ? sql`TRUE`
+        : sql`e.start_date <= ${DateTime.toDateUtc(now)}`;
+    const readRows = (where: Statement.Fragment) =>
+      signalRows(sql, sql`${started} AND ${where}`);
     const rows = yield* readRows(which);
     const events = rows.slice(0, options.maxEvents ?? rows.length);
     // The evenings a post found for one of these may be about instead: any
@@ -917,21 +1070,6 @@ export const findCandidates = (options: CandidateOptions) =>
     // Luma pages read this run, by slug, so a post can be matched to them.
     const lumaPages = new Map<string, string | null>();
 
-    /** The evening's Luma page, as Luma names it, or null. */
-    const lumaPage = (lumaEventId: string) =>
-      client
-        .execute(HttpClientRequest.get(`https://luma.com/event/${lumaEventId}`))
-        .pipe(
-          Effect.flatMap((response) => response.text),
-          Effect.map(
-            (html) =>
-              /<link rel="canonical" href="(https:\/\/luma\.com\/[^"]+)"/.exec(
-                html,
-              )?.[1] ?? null,
-          ),
-          Effect.timeout(Duration.seconds(15)),
-        );
-
     // Requests left: a Luma page and each add are counted before they are
     // sent; a search may send at most what is left, and reports what it sent.
     let left = options.maxRequests ?? Number.POSITIVE_INFINITY;
@@ -959,7 +1097,9 @@ export const findCandidates = (options: CandidateOptions) =>
           return toSignals(row, null);
         }
         if (spend(1) === 0) return null;
-        const read = yield* Effect.result(lumaPage(row.lumaEventId));
+        const read = yield* Effect.result(
+          readLumaPage(client, row.lumaEventId),
+        );
         if (read._tag === "Failure") {
           unreadable.add(row.slug);
           return null;
