@@ -903,6 +903,41 @@ server's `get_guide` and from `/api/v1/guide`: the contract's `Guide`
 (`src/contract.ts`), which `toGuide` builds, each entry with what its stars
 mean and its place on the page, `/guide#<id>`.
 
+## The letter
+
+The allthings letter is one a month, written by Claude and sent only once
+Erik has read it and said y. Each issue is a file in `core/letters/`
+(`2026-12.ts`), listed in `core/letters/index.ts`; `src/letter.ts` decodes
+it at import. Its sections come in one order (our next evenings,
+happenings worth your time, new open source, papers, jobs, then a closing
+paragraph), and a section with nothing real in it is left out. Each item
+names its data: an evening by its short link, a guide entry by its id, a
+talk by its id. Happenings may only name the guide's entries and evenings
+the site publishes, so nothing reaches the letter that isn't already out.
+
+`letterFindings` holds an issue to our voice (`src/voice.ts`) and to the
+letter's own rules: a word budget per section and 400 words in all, one
+question at most, no greeting and no "this month" opener, and every link
+https, written as words, to what the issue names or a page of this site.
+`tests/letter.test.ts` fails on any issue that breaks one.
+
+An issue is published (its page, the API, the MCP server, the sitemap)
+only once `core/letters/approvals.json` holds Erik's y with the approval
+token of exactly what he read (`src/approval.ts`); change a word and it is
+a draft again. `publishedLetters` is the only way a surface reads them.
+
+```sh
+bun run letter list                     # every issue, draft or approved
+bun run letter show 2026-12             # as it reads, its budgets, findings and token
+bun run letter approve 2026-12 <token>  # only on Erik's y for that token
+```
+
+Erik's edits to a draft become rules in `src/letter.ts` or `src/voice.ts`
+where they generalize, and examples in `core/letters/before-after.json`
+where they don't: every `after` must read in our voice, and no issue may
+say a `before` again. `bun run letter show` counts his edits to an issue
+by kind (cut, reword, fact); fewer cuts over time is the measure.
+
 ## Schedules and notes
 
 Some events' pages say more than the record: a hackathon's schedule, its
