@@ -240,9 +240,9 @@
   }
 }
 
-/* A year's page: the depth field as a panel in the page's column, the
-   tally, then the year's evenings, each row its words beside its photo,
-   or its words alone across the row. */
+/* A year's page: the depth field in the page's column, in the visitor's
+   mode, the tally, then the year's evenings, each row its words beside
+   its photo, or its words alone across the row. */
 
 .year {
   display: flex;

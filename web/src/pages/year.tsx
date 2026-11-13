@@ -17,11 +17,12 @@ import { simpleDate } from "./time.ts";
  * /year/<yyyy>: a year of our evenings, looked back on (core's
  * src/year.ts). Its hero is the lab's year-end retro: photos of the year's
  * evenings hanging at different depths around one statement made of its
- * numbers. Under it, the year's tally, then every evening held in it in
- * the order they were held: when and where, its name, who hosted, who was
- * on stage and how many said "I'm in". An evening without a photo is
- * shown without one; the row closes up around its words. Then the other
- * years. Every number is counted from the data.
+ * numbers, in the visitor's mode like every page. Under it, the year's
+ * tally, then every evening held in it in the order they were held: when
+ * and where, its name, who hosted, who was on stage and how many said
+ * "I'm in". An evening without a photo is shown without one; the row
+ * closes up around its words. Then the other years. Every number is
+ * counted from the data.
  *
  * The evenings index links each year that held one of ours here
  * (pages/events.tsx); the sitemap lists every year.
@@ -184,11 +185,7 @@ export function yearPage({
     images,
     children: (
       <div class="year">
-        <section
-          class="depth year-hero"
-          data-theme="dark"
-          aria-labelledby="year-statement"
-        >
+        <section class="depth year-hero" aria-labelledby="year-statement">
           <div class="depth-field" aria-hidden="true">
             <div class="depth-sway">
               {field.map((photo) => (

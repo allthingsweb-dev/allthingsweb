@@ -142,6 +142,8 @@ describe("a year's page", () => {
     expect(html).toContain(
       '<h1 id="year-statement" class="depth-statement"><span>238 people said “I’m in.”</span><span class="depth-after">2 evenings in 2026, in the neighborhoods of San Francisco.</span></h1>',
     );
+    // In the visitor's mode, never one of its own (brand/foundations.md).
+    expect(html).not.toContain("data-theme");
     // Only the evening with a photo is in the field, as texture.
     const field = html.slice(
       html.indexOf('class="depth-field"'),
