@@ -14,7 +14,7 @@ import { simpleDays } from "./time.ts";
 
 /**
  * /guide: the allthings guide (core's src/guide.ts), happenings beyond our
- * evenings worth going to, starred as the Michelin guide stars a kitchen.
+ * evenings worth going to, starred the way the Michelin guide stars a restaurant.
  * Three stars first, each count under what it means, then each happening:
  * its name, where it is and its next edition's days (or that they aren't
  * announced yet), why it's worth the journey, then who runs it and its own
@@ -95,7 +95,7 @@ export function guidePage({
     meta: {
       title: gatheringTitle("the guide"),
       description:
-        "Happenings worth the trip, starred as the Michelin guide stars a kitchen: three are worth a special journey, two a detour, one a stop.",
+        "Happenings worth the trip, starred the way the Michelin guide stars a restaurant: three stars are worth a special journey, two a detour, one a stop.",
       path: guidePath,
       image: ogCards.guide,
     },
@@ -109,7 +109,7 @@ export function guidePage({
           <h1 class="lockup at-type-event-lockup">the guide</h1>
           <p class="lead at-type-lead">
             Happenings worth the trip, starred the way the Michelin guide stars
-            a kitchen.
+            a restaurant.
           </p>
           <p>
             Three stars are worth a special journey, two a detour, one a stop.
