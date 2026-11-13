@@ -1331,8 +1331,8 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pla
 propose to give at one of our evenings: a title, an abstract and a format
 (a talk of about 20 minutes, a lightning talk of about 5, or a demo of
 about 10), who proposes it, their email, a few lines about them, up to four
-https links, notes for the organizers, where it came from, and whether we
-accepted it. Like the rest of planning it is private: no site role can read
+https links, notes for the organizers, where it came from, whether we
+accepted it, and, once it is on one, the evening it is on. Like the rest of planning it is private: no site role can read
 it, nothing public shows it, and no seed or fixture holds one.
 
 `src/proposals.ts` is the module and `bun run proposals` its CLI, as the
@@ -1352,6 +1352,10 @@ in uses it.
   still hashes to the token. Who decided and when are kept with it.
   `remove` deletes the row: spam, a test, or someone asking to be
   forgotten (/privacy).
+- **`place`** puts an accepted talk on an evening (`--event <slug>`, a
+  draft or one published), with the same dry run and token, so planning
+  stops suggesting it for others. Declining or accepting it again takes it
+  off.
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals list [--status new|accepted|declined|all] [--json]
@@ -1362,6 +1366,7 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pro
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals accept <id> --note "…" --approve <token>
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals decline <id> --dry-run
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals remove <id> --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals place <id> --event <draft slug> --dry-run
 ```
 
 #### Taking proposals from anyone

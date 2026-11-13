@@ -15,7 +15,12 @@ import { statements } from "./statements.ts";
  *   CLI, the API, or an organizer recording one sent to them, who is then
  *   named (`recorded_by`, an ALLTHINGS_ACTOR).
  * - Where it stands (`status`): `new`, then `accepted` or `declined`, with
- *   who decided, when, and a note of why.
+ *   who decided, when, and a note of why; and, once an accepted talk is
+ *   on an evening (a draft, or one published), that evening (`event_id`),
+ *   so planning stops suggesting it for others. It has no foreign key, so
+ *   it never keeps an evening from being forgotten
+ *   (migrations/0030_forget_draft.ts): a talk on an evening that is gone
+ *   reads as on none, and is free again.
  *
  * The rows are private: the email and the notes above all. In the planning
  * schema, so neither site role can read or write them
@@ -102,6 +107,7 @@ export const proposals: ReadonlyArray<string> = [
     "decided_at" timestamp with time zone,
     "decided_by" text,
     "decision_note" text,
+    "event_id" uuid,
     "created_at" timestamp with time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT "proposals_title_check" CHECK (${textRule("title", 120)} AND strpos("title", chr(10)) = 0),
@@ -118,9 +124,11 @@ export const proposals: ReadonlyArray<string> = [
     CONSTRAINT "proposals_status_check" CHECK ("status" IN ('new', 'accepted', 'declined')),
     CONSTRAINT "proposals_decided_check" CHECK (("status" = 'new') = ("decided_at" IS NULL) AND ("decided_at" IS NULL) = ("decided_by" IS NULL) AND ("decision_note" IS NULL OR "decided_at" IS NOT NULL)),
     CONSTRAINT "proposals_decided_by_check" CHECK (${actorRule("decided_by")}),
-    CONSTRAINT "proposals_decision_note_check" CHECK (${textRule("decision_note", 1000)})
+    CONSTRAINT "proposals_decision_note_check" CHECK (${textRule("decision_note", 1000)}),
+    CONSTRAINT "proposals_event_check" CHECK ("event_id" IS NULL OR "status" = 'accepted')
   )`,
   `CREATE INDEX "proposals_status_created_at_idx" ON "planning"."proposals" USING btree ("status", "created_at")`,
+  `CREATE INDEX "proposals_event_id_idx" ON "planning"."proposals" USING btree ("event_id")`,
   `CREATE FUNCTION "planning"."proposals_intake"() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
   IF NEW.source = 'organizer' THEN

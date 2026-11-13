@@ -812,14 +812,16 @@ column planning.proposals #012 status text not null default 'new'::text
 column planning.proposals #013 decided_at timestamp with time zone
 column planning.proposals #014 decided_by text
 column planning.proposals #015 decision_note text
-column planning.proposals #016 created_at timestamp with time zone not null default now()
-column planning.proposals #017 updated_at timestamp with time zone not null default now()
+column planning.proposals #016 event_id uuid
+column planning.proposals #017 created_at timestamp with time zone not null default now()
+column planning.proposals #018 updated_at timestamp with time zone not null default now()
 constraint planning.proposals proposals_about_check CHECK (((btrim(about) <> ''::text) AND (char_length(about) <= 1000)))
 constraint planning.proposals proposals_abstract_check CHECK (((btrim(abstract) <> ''::text) AND (char_length(abstract) <= 2000) AND (char_length(btrim(abstract)) >= 40)))
 constraint planning.proposals proposals_decided_by_check CHECK ((decided_by ~ '^[a-z0-9][a-z0-9._-]{0,31}(/[a-z0-9][a-z0-9._-]{0,31})?$'::text))
 constraint planning.proposals proposals_decided_check CHECK ((((status = 'new'::text) = (decided_at IS NULL)) AND ((decided_at IS NULL) = (decided_by IS NULL)) AND ((decision_note IS NULL) OR (decided_at IS NOT NULL))))
 constraint planning.proposals proposals_decision_note_check CHECK (((btrim(decision_note) <> ''::text) AND (char_length(decision_note) <= 1000)))
 constraint planning.proposals proposals_email_check CHECK (((char_length(email) <= 254) AND (email ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'::text)))
+constraint planning.proposals proposals_event_check CHECK (((event_id IS NULL) OR (status = 'accepted'::text)))
 constraint planning.proposals proposals_format_check CHECK ((format = ANY (ARRAY['talk'::text, 'lightning'::text, 'demo'::text])))
 constraint planning.proposals proposals_links_check CHECK (((cardinality(links) <= 4) AND (array_to_string(links, chr(10), ''::text) ~ '^(https://[^[:space:]]{1,247}(\n|$))*$'::text)))
 constraint planning.proposals proposals_name_check CHECK (((btrim(name) <> ''::text) AND (char_length(name) <= 100) AND (strpos(name, chr(10)) = 0)))
@@ -830,6 +832,7 @@ constraint planning.proposals proposals_recorded_by_check CHECK ((recorded_by ~ 
 constraint planning.proposals proposals_source_check CHECK ((source = ANY (ARRAY['site'::text, 'mcp'::text, 'cli'::text, 'api'::text, 'organizer'::text])))
 constraint planning.proposals proposals_status_check CHECK ((status = ANY (ARRAY['new'::text, 'accepted'::text, 'declined'::text])))
 constraint planning.proposals proposals_title_check CHECK (((btrim(title) <> ''::text) AND (char_length(title) <= 120) AND (strpos(title, chr(10)) = 0)))
+index planning.proposals CREATE INDEX proposals_event_id_idx ON planning.proposals USING btree (event_id)
 index planning.proposals CREATE INDEX proposals_status_created_at_idx ON planning.proposals USING btree (status, created_at)
 index planning.proposals CREATE UNIQUE INDEX proposals_pkey ON planning.proposals USING btree (id)
 relation planning.proposals kind=r persistence=p rls=f force_rls=f replica_identity=d options=

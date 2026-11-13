@@ -235,7 +235,7 @@ export const STUDIO_GRANTS: Readonly<Record<string, TableGrants>> = {
     update: ["status", "claimed_at", "published_at"],
     delete: true,
   },
-  // proposals add (an organizer records one); accept and decline
+  // proposals add (an organizer records one); accept, decline and place
   // --approve decide one, remove --approve deletes one (spam, a test, a
   // request to be forgotten). Read whole: the review is the studio's.
   "planning.proposals": {
@@ -257,6 +257,7 @@ export const STUDIO_GRANTS: Readonly<Record<string, TableGrants>> = {
       "decided_at",
       "decided_by",
       "decision_note",
+      "event_id",
       "updated_at",
     ],
     delete: true,

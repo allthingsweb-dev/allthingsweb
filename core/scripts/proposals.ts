@@ -172,22 +172,30 @@ const doing: Readonly<Record<DecisionKind, string>> = {
   accept: "Accept it",
   decline: "Decline it",
   remove: "Remove it: delete it and everything it says",
+  place: "Put it on the evening",
 };
 
 const done: Readonly<Record<DecisionKind, string>> = {
   accept: "Accepted",
   decline: "Declined",
   remove: "Removed",
+  place: "Placed",
 };
 
-/** accept, decline or remove: a dry run, or the decision approved. */
+/** accept, decline, remove or place: a dry run, or the decision approved. */
 const decision = (kind: DecisionKind, description: string) =>
   Command.make(
     kind,
     {
       id: idArgument,
       note: Flag.String("note").pipe(
-        Flag.withDescription("Why, kept with the decision."),
+        Flag.withDescription("Why, kept with an accept or a decline."),
+        Flag.optional,
+      ),
+      event: Flag.String("event").pipe(
+        Flag.withDescription(
+          "For place: the evening, by its slug or short link.",
+        ),
         Flag.optional,
       ),
       dryRun: Flag.Boolean("dry-run").pipe(
@@ -213,10 +221,17 @@ const decision = (kind: DecisionKind, description: string) =>
             ),
           );
         }
-        const asked: Decision = Option.match(options.note, {
-          onNone: () => ({ kind }),
-          onSome: (note) => ({ kind, note }),
-        });
+        const asked: Decision = {
+          kind,
+          ...Option.match(options.note, {
+            onNone: () => ({}),
+            onSome: (note) => ({ note }),
+          }),
+          ...Option.match(options.event, {
+            onNone: () => ({}),
+            onSome: (event) => ({ event }),
+          }),
+        };
         if (Option.isNone(options.approve)) {
           const planned = yield* planDecision(options.id, asked);
           return yield* Console.log(
@@ -224,7 +239,7 @@ const decision = (kind: DecisionKind, description: string) =>
               ? JSON.stringify({ dryRun: true, ...planned }, null, 2)
               : [
                   ...proposalLines(planned.proposal),
-                  `decision: ${doing[kind]}${planned.decision.note === null ? "." : `, noting ${JSON.stringify(planned.decision.note)}.`}`,
+                  `decision: ${doing[kind]}${planned.decision.event === null ? "" : ` ${planned.decision.event.slug}`}${planned.decision.note === null ? "." : `, noting ${JSON.stringify(planned.decision.note)}.`}`,
                   `approval token: ${planned.token}`,
                   `Nothing was changed. To decide exactly this: ${[
                     "bun run proposals",
@@ -233,6 +248,10 @@ const decision = (kind: DecisionKind, description: string) =>
                     ...Option.match(options.note, {
                       onNone: () => [],
                       onSome: (note) => ["--note", shellWord(note)],
+                    }),
+                    ...Option.match(options.event, {
+                      onNone: () => [],
+                      onSome: (event) => ["--event", shellWord(event)],
                     }),
                     "--approve",
                     planned.token,
@@ -255,7 +274,7 @@ const decision = (kind: DecisionKind, description: string) =>
 
 const proposals = Command.make("proposals").pipe(
   Command.withDescription(
-    "Talk proposals: read them, record one, and accept, decline or remove one.",
+    "Talk proposals: read them, record one, accept, decline or remove one, and put an accepted one on an evening.",
   ),
   Command.withSubcommands([
     list,
@@ -266,6 +285,10 @@ const proposals = Command.make("proposals").pipe(
     decision(
       "remove",
       "Delete a proposal (spam, a test, a request to be forgotten), exactly as a dry run showed it.",
+    ),
+    decision(
+      "place",
+      "Put an accepted talk on an evening (--event), so planning stops suggesting it, exactly as a dry run showed it.",
     ),
   ]),
 );

@@ -315,11 +315,11 @@ describe("deciding a proposal", () => {
     );
     expect(planned).toEqual({
       proposal,
-      decision: { kind: "accept", note: "Great fit." },
+      decision: { kind: "accept", note: "Great fit.", event: null },
       token: await Effect.runPromise(
         approvalToken({
           proposal,
-          decision: { kind: "accept", note: "Great fit." },
+          decision: { kind: "accept", note: "Great fit.", event: null },
         }),
       ),
     });
@@ -387,7 +387,7 @@ describe("deciding a proposal", () => {
           planDecision(proposal.id, { kind: "remove", note: "Spam." }),
         )
       ).message,
-    ).toContain("takes no note");
+    ).toContain("Only an accept or a decline takes a note");
     const { token } = await run(planDecision(proposal.id, { kind: "remove" }));
     expect(await run(decide(proposal.id, { kind: "remove" }, token))).toEqual(
       proposal,
@@ -396,6 +396,42 @@ describe("deciding a proposal", () => {
     expect((await failure(getProposal(proposal.id))).message).toBe(
       `No proposal has the id ${proposal.id}.`,
     );
+  });
+
+  test("places an accepted talk on an evening, and a new decision takes it off", async () => {
+    const proposal = await run(recordProposal(sent));
+    const place = { kind: "place" as const, event: "2026-09-01-draft-night" };
+    expect((await failure(planDecision(proposal.id, place))).message).toContain(
+      "only an accepted talk goes on an evening",
+    );
+    const accepting = await run(planDecision(proposal.id, { kind: "accept" }));
+    await run(decide(proposal.id, { kind: "accept" }, accepting.token));
+    expect(
+      (
+        await failure(
+          planDecision(proposal.id, { kind: "place", event: "no-such-night" }),
+        )
+      ).message,
+    ).toBe("No evening is at no-such-night.");
+    expect(
+      (await failure(planDecision(proposal.id, { kind: "place" }))).message,
+    ).toBe("Say which evening: --event <slug>.");
+    const placing = await run(planDecision(proposal.id, place));
+    expect(placing.decision.event?.slug).toBe("2026-09-01-draft-night");
+    const placed = await run(decide(proposal.id, place, placing.token));
+    expect(placed.status).toBe("accepted");
+    expect(placed.event).toMatchObject({
+      slug: "2026-09-01-draft-night",
+      isDraft: true,
+    });
+    expect((await failure(planDecision(proposal.id, place))).message).toContain(
+      "is already on 2026-09-01-draft-night",
+    );
+    const declining = await run(planDecision(proposal.id, { kind: "decline" }));
+    const declined = await run(
+      decide(proposal.id, { kind: "decline" }, declining.token),
+    );
+    expect(declined.event).toBeNull();
   });
 
   test("names what it can't find", async () => {

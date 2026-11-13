@@ -325,6 +325,15 @@ export const Proposal = Schema.Struct({
   decidedAt: Schema.NullOr(Schema.String),
   decidedBy: Schema.NullOr(Schema.String),
   decisionNote: Schema.NullOr(Schema.String),
+  /** The evening an accepted talk is on, once it is placed on one. */
+  event: Schema.NullOr(
+    Schema.Struct({
+      slug: Schema.String,
+      name: Schema.String,
+      startDate: Schema.String,
+      isDraft: Schema.Boolean,
+    }),
+  ),
   createdAt: Schema.String,
   updatedAt: Schema.String,
 });
@@ -340,6 +349,8 @@ const proposalJson = `json_build_object(
   'notes', p.notes, 'source', p.source, 'recordedBy', p.recorded_by,
   'status', p.status, 'decidedAt', ${iso("p.decided_at")}, 'decidedBy', p.decided_by,
   'decisionNote', p.decision_note,
+  'event', (SELECT json_build_object('slug', e.slug, 'name', e.name, 'startDate', ${iso("e.start_date")}, 'isDraft', e.is_draft)
+    FROM events e WHERE e.id = p.event_id),
   'createdAt', ${iso("p.created_at")}, 'updatedAt', ${iso("p.updated_at")}
 )`;
 
@@ -432,13 +443,18 @@ export const recordProposal = (raw: unknown) =>
     return stored!;
   });
 
-/** What an organizer decides about a proposal. */
-export type DecisionKind = "accept" | "decline" | "remove";
+/**
+ * What an organizer decides about a proposal: accept it, decline it,
+ * remove it, or place an accepted one on an evening.
+ */
+export type DecisionKind = "accept" | "decline" | "remove" | "place";
 
 export interface Decision {
   readonly kind: DecisionKind;
-  /** Why, kept with the decision (not with a removal, which keeps nothing). */
+  /** Why, kept with an accept or a decline. */
   readonly note?: string;
+  /** Where a placed talk goes: an evening's slug or short link. */
+  readonly event?: string;
 }
 
 /** A decision about a proposal as it stands, and its approval token. */
@@ -447,18 +463,57 @@ export interface PlannedDecision {
   readonly decision: {
     readonly kind: DecisionKind;
     readonly note: string | null;
+    /** The evening a placed talk goes on. */
+    readonly event: { readonly id: string; readonly slug: string } | null;
   };
   readonly token: string;
 }
+
+/** The evening at `slug` (its long slug or its short link). */
+const eveningAt = (slug: string) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient;
+    const events = yield* sql<{ id: string; slug: string }>`
+      SELECT id::text AS id, slug FROM events
+      WHERE slug = ${slug} OR short_slug = ${slug}
+      ORDER BY short_slug = ${slug} DESC NULLS LAST
+      LIMIT 1`;
+    const event = events[0];
+    if (event === undefined) return yield* refuse(`No evening is at ${slug}.`);
+    return event;
+  });
 
 /** `decision` about `proposal`, checked: the decision to hash, or a refusal. */
 const checkedDecision = (proposal: Proposal, decision: Decision) =>
   Effect.gen(function* () {
     const note = decision.note?.replaceAll(/\r\n?/g, "\n").trim();
-    if (note !== undefined && decision.kind === "remove") {
+    if (
+      note !== undefined &&
+      (decision.kind === "remove" || decision.kind === "place")
+    ) {
       return yield* refuse(
-        "A removal keeps nothing, so it takes no note: give it to an accept or a decline.",
+        "Only an accept or a decline takes a note: a removal keeps nothing, and a placing says only where.",
       );
+    }
+    if (decision.kind === "place") {
+      if (decision.event === undefined) {
+        return yield* refuse("Say which evening: --event <slug>.");
+      }
+      if (proposal.status !== "accepted") {
+        return yield* refuse(
+          `${proposal.id} is ${proposal.status}: only an accepted talk goes on an evening.`,
+        );
+      }
+      const event = yield* eveningAt(decision.event);
+      if (proposal.event?.slug === event.slug) {
+        return yield* refuse(
+          `${proposal.id} is already on ${event.slug}: nothing to change.`,
+        );
+      }
+      return { kind: decision.kind, note: null, event };
+    }
+    if (decision.event !== undefined) {
+      return yield* refuse("Only a placing takes an evening.");
     }
     if (note === "") return yield* refuse("The note is blank.");
     if (note !== undefined && note.length > proposalLimits.decisionNote) {
@@ -466,7 +521,9 @@ const checkedDecision = (proposal: Proposal, decision: Decision) =>
         `The note is ${note.length} characters; keep it to ${proposalLimits.decisionNote}.`,
       );
     }
-    const to: Readonly<Record<DecisionKind, ProposalStatus | null>> = {
+    const to: Readonly<
+      Record<Exclude<DecisionKind, "place">, ProposalStatus | null>
+    > = {
       accept: "accepted",
       decline: "declined",
       remove: null,
@@ -476,7 +533,7 @@ const checkedDecision = (proposal: Proposal, decision: Decision) =>
         `${proposal.id} is already ${proposal.status}: nothing to change.`,
       );
     }
-    return { kind: decision.kind, note: note ?? null };
+    return { kind: decision.kind, note: note ?? null, event: null };
   });
 
 /**
@@ -499,8 +556,8 @@ export const planDecision = (id: string, decision: Decision) =>
  * Decides `decision` about the proposal `id`, exactly as the dry run that
  * printed `token` showed it, as ALLTHINGS_ACTOR: in one transaction, with
  * the proposal locked, the decision is worked out again and refused unless
- * it hashes to `token`. Accepting or declining returns the proposal as it
- * now is; removing deletes it and returns it as it was.
+ * it hashes to `token`. Accepting, declining or placing returns the
+ * proposal as it now is; removing deletes it and returns it as it was.
  */
 export const decide = (id: string, decision: Decision, token: string) =>
   Effect.gen(function* () {
@@ -525,21 +582,33 @@ export const decide = (id: string, decision: Decision, token: string) =>
           yield* sql`DELETE FROM planning.proposals WHERE id = ${proposal.id}::uuid`;
           return proposal;
         }
+        // Placing names the evening; accepting or declining is a new
+        // decision, and takes it off any evening it was on.
         const rows = yield* sql.unsafe(
-          `WITH p AS (
-             UPDATE planning.proposals
-             SET status = $2, decided_at = now(), decided_by = $3,
-               decision_note = $4, updated_at = now()
-             WHERE id = $1::uuid
-             RETURNING *
-           )
-           SELECT ${proposalJson} AS proposal FROM p`,
-          [
-            proposal.id,
-            checked.kind === "accept" ? "accepted" : "declined",
-            actor,
-            checked.note,
-          ],
+          checked.kind === "place"
+            ? `WITH p AS (
+                 UPDATE planning.proposals
+                 SET event_id = $2::uuid, updated_at = now()
+                 WHERE id = $1::uuid
+                 RETURNING *
+               )
+               SELECT ${proposalJson} AS proposal FROM p`
+            : `WITH p AS (
+                 UPDATE planning.proposals
+                 SET status = $2, decided_at = now(), decided_by = $3,
+                   decision_note = $4, event_id = NULL, updated_at = now()
+                 WHERE id = $1::uuid
+                 RETURNING *
+               )
+               SELECT ${proposalJson} AS proposal FROM p`,
+          checked.kind === "place"
+            ? [proposal.id, checked.event.id]
+            : [
+                proposal.id,
+                checked.kind === "accept" ? "accepted" : "declined",
+                actor,
+                checked.note,
+              ],
         );
         const [decided] = yield* decodeRows(rows);
         return decided!;
@@ -565,6 +634,11 @@ export const proposalLines = (proposal: Proposal): ReadonlyArray<string> => [
   ...(proposal.decisionNote === null
     ? []
     : [`decision note: ${JSON.stringify(proposal.decisionNote)}`]),
+  ...(proposal.event === null
+    ? []
+    : [
+        `on: ${proposal.event.slug} (${proposal.event.isDraft ? "a draft" : "published"}, ${proposal.event.startDate.slice(0, 10)})`,
+      ]),
 ];
 
 /** A proposal in one line, for a list. */
