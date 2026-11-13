@@ -637,6 +637,15 @@ describe("MCP", () => {
     );
   });
 
+  /**
+   * Headers for a request the Worker answers before reading its whole body.
+   * workerd then closes the connection rather than read the rest, but Bun's
+   * fetch keeps it for the next request, which is reset when it goes out
+   * on it (ECONNRESET, with no answer). Closing it with the exchange keeps
+   * the next request on a fresh connection.
+   */
+  const refusedHeaders = { ...mcpHeaders, connection: "close" };
+
   it("refuses a body over its size limit before reading it", async ({
     Web,
   }) => {
@@ -644,6 +653,7 @@ describe("MCP", () => {
       mcpRequest(
         `${Web}/mcp`,
         call("get_event", { slug: "x".repeat(maxRequestBodySize) }),
+        refusedHeaders,
       ),
     );
     await response.body?.cancel();
@@ -672,7 +682,7 @@ describe("MCP", () => {
     });
     const request = new Request(`${Web}/mcp`, {
       method: "POST",
-      headers: mcpHeaders,
+      headers: refusedHeaders,
       body,
     });
     expect(request.headers.get("content-length")).toBeNull();
