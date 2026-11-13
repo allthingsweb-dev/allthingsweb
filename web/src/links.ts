@@ -84,7 +84,7 @@ export const cliPackage = "https://www.npmjs.com/package/allthings";
  * ~/.allthings/bin.
  */
 export const cliCommands = {
-  bunx: "bunx allthings events",
+  bunx: "bunx allthings",
   install: "curl -fsSL https://allthings.dev/install.bash | bash",
 } as const;
 
