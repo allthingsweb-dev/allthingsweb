@@ -382,6 +382,68 @@ describe("applying lineups", () => {
     );
   });
 
+  test("adds a hosting company on record, and only adds", async () => {
+    const db = await database();
+    const hosted: Lineups = {
+      people: {},
+      events: [
+        {
+          slug: "2026-10-03-hack-day",
+          name: "Hack day",
+          hosts: [
+            { company: "Acme", sources: source },
+            { company: "Globex", sources: source, hold: "needs Erik: test" },
+          ],
+          talks: [],
+          people: [],
+        },
+        {
+          lumaEventId: "evt-react",
+          name: "React at Acme",
+          hosts: [{ company: "Acme", sources: source }],
+          talks: [],
+          people: [],
+        },
+      ],
+    };
+    const hosts = async () =>
+      (
+        await db.query(
+          `SELECT e.slug, s.name FROM event_sponsors es
+           JOIN events e ON e.id = es.event_id JOIN sponsors s ON s.id = es.sponsor_id
+           ORDER BY e.slug, es.created_at`,
+        )
+      ).rows;
+    const exit = await apply(db, hosted);
+    expect(Exit.isSuccess(exit) ? exit.value.lines : []).toEqual([
+      "held: host Globex (Hack day): needs Erik: test",
+      "2026-10-03-hack-day Hack day",
+      "  host Acme: added",
+      "evt-react React at Acme",
+      "  host Acme: already there",
+    ]);
+    // React at Acme keeps both its hosts; the held Globex is never written.
+    expect(await hosts()).toEqual([
+      { slug: "2026-08-12-react-at-acme", name: "Globex" },
+      { slug: "2026-08-12-react-at-acme", name: "Acme" },
+      { slug: "2026-10-03-hack-day", name: "Acme" },
+    ]);
+    const unknown = await apply(db, {
+      people: {},
+      events: [
+        {
+          slug: "2026-10-03-hack-day",
+          name: "Hack day",
+          hosts: [{ company: "Initech", sources: source }],
+          talks: [],
+          people: [],
+        },
+      ],
+    });
+    expect(Exit.isFailure(unknown)).toBe(true);
+    expect(String(unknown)).toContain("no company named Initech");
+  });
+
   test("an event needs a Luma id or a slug", () => {
     const decode = Schema.decodeUnknownExit(Lineups);
     const event = { name: "Nameless", talks: [], people: [] };
@@ -851,6 +913,18 @@ describe("core/backfill/lineups.json", () => {
     ).toEqual([
       ["Effect San Francisco", ["Effect panel"], ["mc simon-farshid"]],
       ["DevTool AX Demos", [], ["mc erik-thorelli"]],
+    ]);
+    // Hosted at their offices, which Luma lists no company account for.
+    expect(
+      subset.events
+        .filter((event) => (event.hosts?.length ?? 0) > 0)
+        .map((event) => [
+          event.name,
+          (event.hosts ?? []).map((host) => host.company),
+        ]),
+    ).toEqual([
+      ["Dev Setup Demos - Show your agents.md!", ["WorkOS"]],
+      ["DevTool AX Demos", ["Mux"]],
     ]);
     const effect = subset.events.find(
       (event) => event.name === "Effect San Francisco",

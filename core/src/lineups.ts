@@ -18,6 +18,8 @@ import { DataSourceError } from "./errors.ts";
  * stay. An event is found by its Luma id, or by its slug where it has none.
  * A `venue` an organizer gives replaces the stored one and marks it as
  * theirs (events.venue_by_organizer), so no sync changes it after.
+ * A host names a company on record by its exact name and is only ever added
+ * to the event's hosting companies, never taken off.
  * What an event lists under `remove` goes first: a talk taken off it, with
  * its speakers when no other evening has it, and a person's part in it,
  * named only by an existing profile. A dry run does all of it, reports, and
@@ -157,6 +159,20 @@ export const Lineups = Schema.Struct({
           sources: Sources,
         }),
       ),
+      /**
+       * Companies that hosted it, each by its exact name in `sponsors`
+       * (backfill/hosts.json adds a company), where Luma doesn't list the
+       * company's own account as a host. Only ever added.
+       */
+      hosts: Schema.optionalKey(
+        Schema.Array(
+          Schema.Struct({
+            company: Schema.String.check(Schema.isNonEmpty()),
+            sources: Sources,
+            hold: Hold,
+          }),
+        ),
+      ),
       talks: Schema.Array(
         Schema.Struct({
           title: Schema.String.check(Schema.isNonEmpty()),
@@ -246,6 +262,9 @@ export function applicable(lineups: Lineups): Lineups {
     .filter((event) => event.hold === undefined)
     .map((event) => ({
       ...event,
+      ...(event.hosts === undefined
+        ? {}
+        : { hosts: event.hosts.filter((host) => host.hold === undefined) }),
       talks: event.talks.filter((talk) => talk.hold === undefined),
       people: event.people.filter((person) => person.hold === undefined),
     }))
@@ -253,6 +272,7 @@ export function applicable(lineups: Lineups): Lineups {
       (event) =>
         event.talks.length > 0 ||
         event.people.length > 0 ||
+        (event.hosts?.length ?? 0) > 0 ||
         event.recordingUrl !== undefined ||
         event.venue !== undefined ||
         (event.remove?.talks?.length ?? 0) > 0 ||
@@ -303,6 +323,11 @@ export function heldEntries(lineups: Lineups): ReadonlyArray<string> {
     if (event.hold !== undefined) {
       held.push(`event ${event.name}: ${event.hold}`);
       continue;
+    }
+    for (const host of event.hosts ?? []) {
+      if (host.hold !== undefined) {
+        held.push(`host ${host.company} (${event.name}): ${host.hold}`);
+      }
     }
     for (const talk of event.talks) {
       if (talk.hold !== undefined) {
@@ -539,6 +564,25 @@ export const applyLineups = (file: Lineups, dryRun: boolean) =>
             RETURNING 1`;
           lines.push(
             `  venue: ${placed.length === 0 ? "already as written" : `set by the organizers: ${fullAddress}`}`,
+          );
+        }
+        for (const host of event.hosts ?? []) {
+          const companies = yield* sql<{ id: string }>`
+            SELECT id FROM sponsors WHERE name = ${host.company}`;
+          const [company] = companies;
+          if (company === undefined || companies.length > 1) {
+            return yield* fail(
+              `${key}: ${companies.length === 0 ? "no company" : `${companies.length} companies`} named ${host.company}`,
+            );
+          }
+          // Only adds: a company Luma or the people import attached stays.
+          const hosted = yield* sql`
+            INSERT INTO event_sponsors (event_id, sponsor_id, created_at, updated_at)
+            VALUES (${row.id}::uuid, ${company.id}::uuid, ${stamp()}::timestamptz, now())
+            ON CONFLICT (event_id, sponsor_id) DO NOTHING
+            RETURNING 1`;
+          lines.push(
+            `  host ${host.company}: ${hosted.length === 0 ? "already there" : "added"}`,
           );
         }
         for (const talk of event.talks) {
