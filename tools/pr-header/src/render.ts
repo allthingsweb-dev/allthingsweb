@@ -1,6 +1,7 @@
 import manifest from "../shields/manifest.json" with { type: "json" };
 import {
   checks,
+  explainChangeFile,
   faceFile,
   findingsFace,
   mergeFace,
@@ -19,8 +20,11 @@ export const headerEnd = "<!-- allthings:pr-header:end -->";
  * address that changes whenever the drawing does, so GitHub's image cache
  * never shows an old one.
  */
-export function shieldUrl(repo: PrState["repo"], face: Face): string {
-  const file = faceFile(face);
+export function shieldUrl(
+  repo: PrState["repo"],
+  face: Face | typeof explainChangeFile,
+): string {
+  const file = typeof face === "string" ? face : faceFile(face);
   const version = (manifest as Record<string, string>)[file];
   if (!version) throw new Error(`No shield is drawn for ${file}`);
   return `https://raw.githubusercontent.com/${repo.owner}/${repo.name}/main/tools/pr-header/shields/${file}?v=${version}`;
@@ -97,7 +101,13 @@ export function renderHeader(pr: PrState): string {
     "",
     `<sub>${links.join(" · ")}</sub>`,
     ...(walkthrough
-      ? ["", renderWalkthrough(walkthrough, changeStackUrl(pr))]
+      ? [
+          "",
+          renderWalkthrough(
+            walkthrough,
+            `[![Explain Change](${shieldUrl(pr.repo, explainChangeFile)})](${changeStackUrl(pr)})`,
+          ),
+        ]
       : []),
     headerEnd,
   ].join("\n");

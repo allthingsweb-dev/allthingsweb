@@ -13,8 +13,9 @@ const comment = await Bun.file(
 ).text();
 const url =
   "https://github.com/allthings-sf/allthings/pull/429#issuecomment-6864449249";
-const changeStack =
-  "https://app.coderabbit.ai/change-stack/allthings-sf/allthings/pull/429";
+// The Explain Change shield's Markdown, as the header renders it.
+const explain =
+  "[![Explain Change](https://example.com/explain.svg)](https://app.coderabbit.ai/change-stack/allthings-sf/allthings/pull/429)";
 
 describe("reading CodeRabbit's walkthrough", () => {
   const walkthrough = parseWalkthrough(comment, url)!;
@@ -87,14 +88,11 @@ describe("reading CodeRabbit's walkthrough", () => {
 });
 
 describe("the CodeRabbit section", () => {
-  const section = renderWalkthrough(
-    parseWalkthrough(comment, url)!,
-    changeStack,
-  );
+  const section = renderWalkthrough(parseWalkthrough(comment, url)!, explain);
 
   test("puts the verdicts and links on one line", () => {
     expect(section.split("\n")[0]).toBe(
-      `**CodeRabbit** · merge risk **Minimal** · pre-merge checks **4 passed** · [Explain Change](${changeStack}) · [full walkthrough](${url})`,
+      `**CodeRabbit** · merge risk **Minimal** · pre-merge checks **4 passed** · ${explain} · [full walkthrough](${url})`,
     );
   });
 
@@ -118,7 +116,7 @@ describe("the CodeRabbit section", () => {
     expect(failing).not.toBe(comment);
     const rendered = renderWalkthrough(
       parseWalkthrough(failing, url)!,
-      changeStack,
+      explain,
     );
     expect(rendered).toContain("pre-merge checks **3 passed, 1 failed**");
     const [beforeFold] = rendered.split("<details>");
@@ -150,7 +148,7 @@ describe("the CodeRabbit section", () => {
       status: "failed",
     });
     expect(walkthrough.omittedChecks).toBe(1);
-    const rendered = renderWalkthrough(walkthrough, changeStack);
+    const rendered = renderWalkthrough(walkthrough, explain);
     expect(rendered).toContain(
       `pre-merge checks **${limits.checks} passed, 1 failed**`,
     );
@@ -163,9 +161,9 @@ describe("the CodeRabbit section", () => {
   });
 
   test("renders the same comment the same way every time", () => {
-    expect(
-      renderWalkthrough(parseWalkthrough(comment, url)!, changeStack),
-    ).toBe(section);
+    expect(renderWalkthrough(parseWalkthrough(comment, url)!, explain)).toBe(
+      section,
+    );
   });
 });
 
@@ -249,8 +247,8 @@ describe("CodeRabbit's text is data", () => {
     const walkthrough = parseWalkthrough(body, url)!;
     expect(walkthrough.changes).toHaveLength(limits.changes);
     expect(walkthrough.checks).toHaveLength(limits.checks);
-    expect(
-      renderWalkthrough(walkthrough, changeStack).length,
-    ).toBeLessThanOrEqual(maxSectionLength);
+    expect(renderWalkthrough(walkthrough, explain).length).toBeLessThanOrEqual(
+      maxSectionLength,
+    );
   });
 });

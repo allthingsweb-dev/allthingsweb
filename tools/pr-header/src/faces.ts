@@ -127,3 +127,6 @@ export function faceFile({ label, message }: Pick<Face, "label" | "message">) {
     .replace(/^-|-$/g, "");
   return `${label}-${slug}.svg`;
 }
+
+/** The file the Explain Change shield, which opens the Change Stack, is drawn to. */
+export const explainChangeFile = "coderabbit-explain-change.svg";
