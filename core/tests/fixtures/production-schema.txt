@@ -797,3 +797,39 @@ constraint public.community_gaps community_gaps_source_check CHECK ((source = AN
 constraint public.community_gaps community_gaps_tries_check CHECK ((tries >= 1))
 index public.community_gaps CREATE UNIQUE INDEX community_gaps_day_source_pk ON public.community_gaps USING btree (day, source)
 relation public.community_gaps kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+column planning.proposals #001 id uuid not null default gen_random_uuid()
+column planning.proposals #002 title text not null
+column planning.proposals #003 abstract text not null
+column planning.proposals #004 format text not null default 'talk'::text
+column planning.proposals #005 name text not null
+column planning.proposals #006 email text not null
+column planning.proposals #007 about text
+column planning.proposals #008 links text[] not null default '{}'::text[]
+column planning.proposals #009 notes text
+column planning.proposals #010 source text not null
+column planning.proposals #011 recorded_by text
+column planning.proposals #012 status text not null default 'new'::text
+column planning.proposals #013 decided_at timestamp with time zone
+column planning.proposals #014 decided_by text
+column planning.proposals #015 decision_note text
+column planning.proposals #016 created_at timestamp with time zone not null default now()
+column planning.proposals #017 updated_at timestamp with time zone not null default now()
+constraint planning.proposals proposals_about_check CHECK (((btrim(about) <> ''::text) AND (char_length(about) <= 1000)))
+constraint planning.proposals proposals_abstract_check CHECK (((btrim(abstract) <> ''::text) AND (char_length(abstract) <= 2000)))
+constraint planning.proposals proposals_decided_by_check CHECK ((decided_by ~ '^[a-z0-9][a-z0-9._-]{0,31}(/[a-z0-9][a-z0-9._-]{0,31})?$'::text))
+constraint planning.proposals proposals_decided_check CHECK ((((status = 'new'::text) = (decided_at IS NULL)) AND ((decided_at IS NULL) = (decided_by IS NULL)) AND ((decision_note IS NULL) OR (decided_at IS NOT NULL))))
+constraint planning.proposals proposals_decision_note_check CHECK (((btrim(decision_note) <> ''::text) AND (char_length(decision_note) <= 1000)))
+constraint planning.proposals proposals_email_check CHECK (((char_length(email) <= 254) AND (email ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'::text)))
+constraint planning.proposals proposals_format_check CHECK ((format = ANY (ARRAY['talk'::text, 'lightning'::text, 'demo'::text])))
+constraint planning.proposals proposals_links_check CHECK (((cardinality(links) <= 4) AND (array_to_string(links, chr(10), ''::text) ~ '^(https://[^[:space:]]{1,247}(\n|$))*$'::text)))
+constraint planning.proposals proposals_name_check CHECK (((btrim(name) <> ''::text) AND (char_length(name) <= 100) AND (strpos(name, chr(10)) = 0)))
+constraint planning.proposals proposals_notes_check CHECK (((btrim(notes) <> ''::text) AND (char_length(notes) <= 1000)))
+constraint planning.proposals proposals_organizer_check CHECK (((source = 'organizer'::text) = (recorded_by IS NOT NULL)))
+constraint planning.proposals proposals_pkey PRIMARY KEY (id)
+constraint planning.proposals proposals_recorded_by_check CHECK ((recorded_by ~ '^[a-z0-9][a-z0-9._-]{0,31}(/[a-z0-9][a-z0-9._-]{0,31})?$'::text))
+constraint planning.proposals proposals_source_check CHECK ((source = ANY (ARRAY['site'::text, 'mcp'::text, 'cli'::text, 'api'::text, 'organizer'::text])))
+constraint planning.proposals proposals_status_check CHECK ((status = ANY (ARRAY['new'::text, 'accepted'::text, 'declined'::text])))
+constraint planning.proposals proposals_title_check CHECK (((btrim(title) <> ''::text) AND (char_length(title) <= 120) AND (strpos(title, chr(10)) = 0)))
+index planning.proposals CREATE INDEX proposals_status_created_at_idx ON planning.proposals USING btree (status, created_at)
+index planning.proposals CREATE UNIQUE INDEX proposals_pkey ON planning.proposals USING btree (id)
+relation planning.proposals kind=r persistence=p rls=f force_rls=f replica_identity=d options=

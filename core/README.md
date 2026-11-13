@@ -110,7 +110,7 @@ The event studio's commands connect as `studio`, a login role made by
 [`infra/scripts/studio.ts`](../infra/scripts/studio.ts): `plan`,
 `readiness`, `luma create`, `update`, `publish`, `cover`, `registration`
 and `hosts`, `luma:drafts --add` and `--forget`, `social bluesky`, `discord` and `x`, `posts`,
-`photos`, `people photo`, `hosts logo`, `talks`, `community` and `collab`
+`photos`, `people photo`, `hosts logo`, `talks`, `community`, `proposals` and `collab`
 (all but `collab access end-sessions`, which reaches only Cloudflare). Its
 connection string
 is the 1Password item "allthings studio" (`credential`), so every one of
@@ -1323,6 +1323,45 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pla
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan note <draft slug> --kind decision --text "Five rounds, Erik MCs."
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan note resolve <question id>
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan status <draft slug> [--json]
+```
+
+### Talk proposals
+
+`planning.proposals` (`migrations/0040_proposals.ts`) holds talks people
+propose to give at one of our evenings: a title, an abstract and a format
+(a talk of about 20 minutes, a lightning talk of about 5, or a demo of
+about 10), who proposes it, their email, a few lines about them, up to four
+https links, notes for the organizers, where it came from, and whether we
+accepted it. Like the rest of planning it is private: no site role can read
+it, nothing public shows it, and no seed or fixture holds one.
+
+`src/proposals.ts` is the module and `bun run proposals` its CLI, as the
+studio. `readProposal` reads one in as anyone sends it, trimmed and held to
+the table's limits, with a reason per field a person can act on; every way
+in uses it.
+
+- **`list`** prints the proposals with a status (`new`, the default,
+  `accepted`, `declined` or `all`), oldest first, so nobody waits behind a
+  newer one; **`show`** prints one whole. Both only read.
+- **`add`** records a proposal sent to an organizer by email or a
+  message, as `ALLTHINGS_ACTOR`; `--dry-run` makes it and rolls it back.
+- **`accept`**, **`decline`** and **`remove`** decide one, exactly as a dry
+  run showed it, like `talks update`: `--dry-run` prints the proposal, the
+  decision (with `--note`, why) and an approval token; `--approve <token>`
+  locks the proposal, works the decision out again, and refuses unless it
+  still hashes to the token. Who decided and when are kept with it.
+  `remove` deletes the row: spam, a test, or someone asking to be
+  forgotten (/privacy).
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals list [--status new|accepted|declined|all] [--json]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals show <id> [--json]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals add --title "…" --abstract "…" --name "…" --email "…" \
+  [--format talk|lightning|demo] [--about "…"] [--link https://…] [--notes "…"] --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals accept <id> --note "…" --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals accept <id> --note "…" --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals decline <id> --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals remove <id> --dry-run
 ```
 
 ## Readiness

@@ -1,14 +1,15 @@
 /**
  * Creates studio, or gives it a new password: the login role the event
  * studio's commands connect as (core's README, "The studio's connection"):
- * planning, readiness, Luma, social, posts, and the studio's edits of
- * photos, profile photos, hosts' logos and talks. It holds exactly
- * STUDIO_GRANTS and nothing else, from those commands' own SQL:
+ * planning, readiness, Luma, social, posts, talk proposals, and the
+ * studio's edits of photos, profile photos, hosts' logos and talks. It
+ * holds exactly STUDIO_GRANTS and nothing else, from those commands' own
+ * SQL:
  *
  * - planning: the tables the studio keeps (ideas, wanted speakers, host
  *   prospects, contacts, notes, a draft's lineup and talks, its log and
- *   notes, publishes, sent posts), read whole, and written only in the
- *   columns and ways its commands write them.
+ *   notes, publishes, sent posts, talk proposals), read whole, and
+ *   written only in the columns and ways its commands write them.
  * - the collaboration (migrations/0026_draft_collaboration.ts), for
  *   `bun run collab`: read whole, and written as collab writes it. Its
  *   tables have row security, which this role doesn't bypass; its own
@@ -98,6 +99,7 @@ export const STUDIO_COMMANDS = [
   "hosts logo",
   "talks",
   "community",
+  "proposals",
   "collab !end-sessions",
 ] as const;
 
@@ -231,6 +233,32 @@ export const STUDIO_GRANTS: Readonly<Record<string, TableGrants>> = {
     select: true,
     insert: ["event_id", "status", "claimed_at"],
     update: ["status", "claimed_at", "published_at"],
+    delete: true,
+  },
+  // proposals add (an organizer records one); accept and decline
+  // --approve decide one, remove --approve deletes one (spam, a test, a
+  // request to be forgotten). Read whole: the review is the studio's.
+  "planning.proposals": {
+    select: true,
+    insert: [
+      "title",
+      "abstract",
+      "format",
+      "name",
+      "email",
+      "about",
+      "links",
+      "notes",
+      "source",
+      "recorded_by",
+    ],
+    update: [
+      "status",
+      "decided_at",
+      "decided_by",
+      "decision_note",
+      "updated_at",
+    ],
     delete: true,
   },
   // social discord / x: the claim, sent, unanswered, dropped or released.
