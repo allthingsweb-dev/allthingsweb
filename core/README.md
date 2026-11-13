@@ -1627,6 +1627,10 @@ the same in the same order:
 - network speakers whose past talks share the most of the evening's words
   (its topic, the idea's, and any `--topic` given), then the most recent
 - wanted speakers whose topics share one, free that day
+- talks people proposed and we accepted (see "Talk proposals") that are on
+  no evening yet, whose title or abstract shares the evening's words: most
+  shared first, then the one accepted longest ago, so nobody waits behind
+  a newer one. `proposals place` takes one off the list for good
 - host prospects, and hosts that last had us more than 90 days ago,
   longest first
 - open dates on the three weekdays our evenings have been on most, with

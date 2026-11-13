@@ -13,6 +13,7 @@ import {
 import { coverFactsOf } from "../cover.ts";
 import { eventTopic } from "../lockup.ts";
 import type { HostProspect, Idea, WantedSpeaker } from "../planning/model.ts";
+import { openAcceptedProposals } from "../proposals.ts";
 import { Planning, PlanningError } from "../planning/planning.ts";
 import { collabChecks, collabFacts, collabReadable } from "./collab.ts";
 import type { EventProgram } from "../rows.ts";
@@ -28,8 +29,10 @@ import {
   openDates,
   quietHosts,
   rankSpeakers,
+  rankProposals,
   rankWanted,
   type SpeakerSuggestion,
+  type ProposalSuggestion,
   type Wanted,
   type WantedSuggestion,
   wordsOf,
@@ -90,6 +93,12 @@ export interface ReadinessReport {
       readonly lineup: boolean;
       readonly network: ReadonlyArray<SpeakerSuggestion>;
       readonly wanted: ReadonlyArray<WantedSuggestion>;
+      /**
+       * Talks people proposed and we accepted, on no evening yet, that
+       * share its words (src/proposals.ts): only as a role that may read
+       * planning.
+       */
+      readonly proposed: ReadonlyArray<ProposalSuggestion>;
     };
     readonly hosts: {
       readonly prospects: ReadonlyArray<{
@@ -547,6 +556,14 @@ const make = Effect.gen(function* () {
             lineup: formats[program].stage !== null,
             network: rankSpeakers(terms, yield* network(now), onIt),
             wanted,
+            proposed: rankProposals(
+              terms,
+              readable
+                ? yield* openAcceptedProposals.pipe(
+                    Effect.provideService(SqlClient, sql),
+                  )
+                : [],
+            ),
           },
           hosts: {
             prospects: prospects

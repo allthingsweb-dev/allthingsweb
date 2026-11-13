@@ -234,6 +234,65 @@ export function rankWanted(
     );
 }
 
+/** A talk someone proposed and we accepted, on no evening yet (src/proposals.ts). */
+export interface AcceptedProposal {
+  readonly id: string;
+  readonly title: string;
+  readonly abstract: string;
+  readonly format: "talk" | "lightning" | "demo";
+  readonly name: string;
+  /** When we accepted it. */
+  readonly acceptedAt: string;
+}
+
+export interface ProposalSuggestion {
+  readonly id: string;
+  readonly title: string;
+  readonly format: AcceptedProposal["format"];
+  readonly name: string;
+  /** The evening's words its title and abstract share, sorted. */
+  readonly matched: ReadonlyArray<string>;
+  readonly acceptedOn: string;
+}
+
+/**
+ * Accepted talks on no evening yet whose title or abstract share a word
+ * with `terms` (every one, when the evening has no words): most shared
+ * words first, then the one accepted longest ago, so nobody waits behind a
+ * newer one; then by id.
+ */
+export function rankProposals(
+  terms: ReadonlyArray<string>,
+  proposals: ReadonlyArray<AcceptedProposal>,
+): ReadonlyArray<ProposalSuggestion> {
+  const evening = new Set(terms);
+  return proposals
+    .flatMap((proposal) => {
+      const matched = wordsOf(proposal.title, proposal.abstract).filter(
+        (word) => evening.has(word),
+      );
+      if (evening.size > 0 && matched.length === 0) return [];
+      return [
+        {
+          id: proposal.id,
+          title: proposal.title,
+          format: proposal.format,
+          name: proposal.name,
+          matched,
+          acceptedOn: proposal.acceptedAt.slice(0, 10),
+          acceptedAt: proposal.acceptedAt,
+        },
+      ];
+    })
+    .toSorted(
+      (a, b) =>
+        b.matched.length - a.matched.length ||
+        a.acceptedAt.localeCompare(b.acceptedAt) ||
+        a.id.localeCompare(b.id),
+    )
+    .map(({ acceptedAt: _, ...suggestion }) => suggestion);
+}
+
 /** A hosting company's record with us. */
 export interface HostHistory {
   readonly sponsorId: string;
