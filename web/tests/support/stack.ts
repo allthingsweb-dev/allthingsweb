@@ -19,6 +19,10 @@ export interface WorkerEnv {
   readonly WEB_ANALYTICS_TOKEN?: string;
   /** The origin of a `HYPERDRIVE` binding, as the Worker deploys. */
   readonly HYPERDRIVE?: Cloudflare.Hyperdrive.PublicOrigin;
+  /** The origin of an `INTAKE` binding, as prod deploys it (src/proposals.ts). */
+  readonly INTAKE?: Cloudflare.Hyperdrive.PublicOrigin;
+  /** A `PROPOSALS_LIMIT` rate limit of this many a minute (src/proposals.ts). */
+  readonly PROPOSALS_LIMIT?: number;
   /**
    * An `IMAGES` binding, as the Worker deploys. Locally, Alchemy's runtime
    * makes variants with Sharp: it reads the size but not the fit, so a
@@ -92,6 +96,8 @@ export const testStack = <const Name extends string>(
       for (const [worker, env] of Object.entries<WorkerEnv>(workers)) {
         const {
           HYPERDRIVE: origin,
+          INTAKE: intake,
+          PROPOSALS_LIMIT: proposalsLimit,
           IMAGES: images,
           PAGES: pages,
           VARIANTS: variants,
@@ -103,6 +109,22 @@ export const testStack = <const Name extends string>(
           ...(images === undefined
             ? {}
             : { IMAGES: Cloudflare.Images.Images("IMAGES") }),
+          ...(intake === undefined
+            ? {}
+            : {
+                INTAKE: yield* Cloudflare.Hyperdrive.Connection(
+                  `${worker}Intake`,
+                  { origin: intake, caching: { disabled: true } },
+                ),
+              }),
+          ...(proposalsLimit === undefined
+            ? {}
+            : {
+                PROPOSALS_LIMIT: Cloudflare.RateLimit("PROPOSALS_LIMIT", {
+                  namespaceId: 1001,
+                  simple: { limit: proposalsLimit, period: 60 },
+                }),
+              }),
           ...((bucket) => (bucket === undefined ? {} : { VARIANTS: bucket }))(
             variants === undefined ? undefined : buckets.get(variants),
           ),

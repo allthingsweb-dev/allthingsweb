@@ -1415,6 +1415,18 @@ email, title and abstract are already waiting, and refuses it past 100 from
 outside in a day (`ProposalIntakeFull`), so a flood that gets past the
 edge's rate limit stops at the table. An organizer's are never limited.
 
+- **The ways in** all hand what they were sent to the Worker's
+  `takeProposal` (`web/src/proposals.ts`): it counts the sender against
+  the edge's rate limit, reads the proposal in with `readProposal`, and
+  keeps it as this role through prod's `INTAKE` Hyperdrive
+  (infra/README.md, "Talk proposals"). The first is
+  `POST /api/v1/proposals`, a JSON body of the proposal's fields
+  (`title`, `abstract`, `name` and `email`; `format`, `about`, `links` and
+  `notes` if wanted): 202 when it is taken, 422 with each field's problem,
+  429 past the rate limit or the day's, 503 on a stage that doesn't keep
+  them. Only `application/json`, which a browser can't send to another
+  origin without a preflight it never answers, and a browser's request
+  from another site's page is refused.
 - **Its login** is set by `infra/scripts/proposal-intake.ts`, run by the
   maintainer with the owner's connection once the migration is on
   production, as profile_editor's is: `--dry-run` shows it, `--apply` sets

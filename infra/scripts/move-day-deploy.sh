@@ -36,6 +36,8 @@ MEDIA_UPLOAD_URL=$(v "allthings media upload/url")
 MEDIA_UPLOAD_TOKEN=$(v "allthings media upload/token")
 # The draft preview reads through draft_collab and seals rounds with this key.
 NEON_COLLAB_URL=$(v "allthings draft_collab/credential")
+# The site takes talk proposals as proposal_intake (web/src/proposals.ts).
+NEON_INTAKE_URL=$(v "allthings proposal_intake/credential")
 COLLAB_ANSWERS_KEY=$(v "allthings collab answers key/credential")
 # The writers tell the site its data changed with this token (web/src/refresh.ts).
 SITE_REFRESH_TOKEN=$(v "allthings site refresh/credential")
@@ -44,9 +46,9 @@ SITE_REFRESH_TOKEN=$(v "allthings site refresh/credential")
 ANALYTICS_READ_TOKEN=$(v "allthings analytics read/credential")
 : "${NEON_READER_URL:?empty}" "${NEON_SYNC_URL:?empty}" "${LUMA_API_KEY:?empty}" "${X_BEARER_TOKEN:?empty}"
 : "${MEDIA_UPLOAD_URL:?empty}" "${MEDIA_UPLOAD_TOKEN:?empty}"
-: "${NEON_COLLAB_URL:?empty}" "${COLLAB_ANSWERS_KEY:?empty}" "${SITE_REFRESH_TOKEN:?empty}" "${ANALYTICS_READ_TOKEN:?empty}"
+: "${NEON_INTAKE_URL:?empty}" "${NEON_COLLAB_URL:?empty}" "${COLLAB_ANSWERS_KEY:?empty}" "${SITE_REFRESH_TOKEN:?empty}" "${ANALYTICS_READ_TOKEN:?empty}"
 export NEON_READER_URL NEON_SYNC_URL LUMA_API_KEY X_BEARER_TOKEN MEDIA_UPLOAD_URL MEDIA_UPLOAD_TOKEN
-export NEON_COLLAB_URL COLLAB_ANSWERS_KEY SITE_REFRESH_TOKEN ANALYTICS_READ_TOKEN
+export NEON_INTAKE_URL NEON_COLLAB_URL COLLAB_ANSWERS_KEY SITE_REFRESH_TOKEN ANALYTICS_READ_TOKEN
 log "secrets read"
 
 # Prove the allthings profile can still deploy before waiting on it.

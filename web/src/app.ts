@@ -13,11 +13,14 @@ import { pageRoutes } from "./pages/routes.ts";
 import { seoRoutes } from "./seo/routes.ts";
 import { Site } from "./site.ts";
 import { ThroughStore } from "./through-store.ts";
+import { Intake, ProposalLimit } from "./proposals.ts";
+import { proposalsRoute } from "./v1/proposals.ts";
 import { v1Routes } from "./v1/routes.ts";
 
 /** Every route the Worker serves. */
 export const routes = Layer.mergeAll(
   v1Routes,
+  proposalsRoute,
   mcpRoute,
   toolRoute,
   pageRoutes,
@@ -63,6 +66,8 @@ export function makeHandler(
       Layer.mergeAll(
         ConfigProvider.layer(ConfigProvider.fromUnknown(env)),
         Hyperdrive.layer(env),
+        Intake.layer(env),
+        ProposalLimit.layer(env),
         Images.layer(env),
         Variants.layer(env),
         Assets.layer(env),

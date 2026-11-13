@@ -67,6 +67,8 @@ export default Alchemy.Stack(
             siteRefreshToken,
             REQUESTS_DATASET.prod,
             analytics?.siteToken.as<string>(),
+            // Prod alone takes talk proposals (web/src/proposals.ts).
+            true,
           );
     const webUrl = site?.url.as<string>();
     // Every deploy proves the variants bucket takes writes (src/web.ts).
