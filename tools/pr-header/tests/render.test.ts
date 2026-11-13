@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
   changeStackUrl,
-  colors,
   headerEnd,
   headerStart,
   renderHeader,
+  shieldUrl,
   withHeader,
 } from "../src/render.ts";
 import type { PrState } from "../src/state.ts";
@@ -37,7 +37,7 @@ describe("the PR header", () => {
     ).toEqual([
       ["preview: ready", previewUrl],
       ["coderabbit: approved", changeStackUrl(pr)],
-      ["findings: 5 resolved · 0 open", pr.url],
+      ["findings: all resolved", pr.url],
       ["checks: passing", `${pr.url}/checks`],
       ["merge: ready", pr.url],
     ]);
@@ -49,50 +49,41 @@ describe("the PR header", () => {
     );
   });
 
-  test("colors badges by status on Night labels", () => {
-    const params = (header: string) =>
-      badges(header).map(({ src }) => src.searchParams.get("color"));
-    expect(params(renderHeader(pr))).toEqual([
-      "276749",
-      "276749",
-      "276749",
-      "276749",
-      "276749",
-    ]);
-    const troubled: PrState = {
-      ...pr,
-      mergeState: "conflicts",
-      preview: { state: "failed", url: pr.preview.url },
-      coderabbit: {
-        review: "changes requested",
-        findings: { resolved: 1, open: 2 },
-      },
-      checks: "failing",
-    };
-    expect(params(renderHeader(troubled))).toEqual([
-      "C0362C",
-      "C0362C",
-      "975A16",
-      "C0362C",
-      "C0362C",
-    ]);
+  test("links each badge to its drawn shield on main, versioned by its drawing", () => {
     for (const { src } of badges(renderHeader(pr))) {
-      expect(src.searchParams.get("labelColor")).toBe("1C1236");
+      expect(src.origin + src.pathname).toMatch(
+        /^https:\/\/raw\.githubusercontent\.com\/allthings-sf\/allthingsweb\/main\/tools\/pr-header\/shields\/[a-z0-9-]+\.svg$/,
+      );
+      expect(src.searchParams.get("v")).toMatch(/^[0-9a-f]{12}$/);
     }
+    expect(badges(renderHeader(pr))[4]!.src.pathname).toEndWith(
+      "/merge-ready.svg",
+    );
   });
 
-  test("puts the brand mark on the first badge only", () => {
-    const mark = "data:image/svg+xml;base64,PHN2Zy8+";
-    expect(
-      badges(renderHeader(pr, mark)).map(({ src }) =>
-        src.searchParams.get("logo"),
-      ),
-    ).toEqual([mark, null, null, null, null]);
+  test("refuses a face that has no drawn shield", () => {
+    expect(() =>
+      shieldUrl(pr.repo, { label: "merge", message: "on fire", tone: "bad" }),
+    ).toThrow("No shield is drawn for merge-on-fire.svg");
+  });
+
+  test("counts open findings, and says when all are resolved", () => {
+    const findings = (resolved: number, open: number) =>
+      badges(
+        renderHeader({
+          ...pr,
+          coderabbit: { review: "commented", findings: { resolved, open } },
+        }),
+      )[2]!.alt;
+    expect(findings(5, 0)).toBe("findings: all resolved");
+    expect(findings(1, 2)).toBe("findings: 2 open");
+    expect(findings(0, 20)).toBe("findings: 20 open");
+    expect(findings(0, 21)).toBe("findings: 20+ open");
   });
 
   test("summarizes the diff and the key links on one line", () => {
     expect(renderHeader(pr)).toContain(
-      `<sub>[Preview](${previewUrl}) · [Change Stack](${changeStackUrl(pr)}) · [Checks](${pr.url}/checks) · [Files](${pr.url}/files): +120 −30 in 6 files</sub>`,
+      `<sub>[Preview](${previewUrl}) · [Change Stack](${changeStackUrl(pr)}) · Findings: 5 resolved, 0 open · [Checks](${pr.url}/checks) · [Files](${pr.url}/files): +120 −30 in 6 files</sub>`,
     );
   });
 
@@ -152,21 +143,4 @@ describe("placing the header", () => {
     const once = withHeader("Body", header);
     expect(withHeader(once, header)).toBe(once);
   });
-});
-
-describe("badge colors", () => {
-  const luminance = (hex: string) => {
-    const [r, g, b] = [0, 2, 4].map((i) => {
-      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
-      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-    });
-    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-  };
-
-  test.each(Object.entries(colors))(
-    "%s keeps white badge text at WCAG 2.2 AA (4.5:1)",
-    (_name, hex) => {
-      expect(1.05 / (luminance(hex) + 0.05)).toBeGreaterThanOrEqual(4.5);
-    },
-  );
 });

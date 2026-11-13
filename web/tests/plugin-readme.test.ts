@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { proposeToolName } from "../src/mcp/propose.ts";
 import { registerTools, toolInputs } from "../src/mcp/tools.ts";
 
 /**
@@ -16,7 +17,8 @@ function registered(): ReadonlyArray<string> {
       names.push(name);
     },
   } as unknown as McpServer;
-  registerTools(server, async () => ({ content: [] }));
+  const answer = async () => ({ content: [] });
+  registerTools(server, answer, answer);
   return names;
 }
 
@@ -31,7 +33,10 @@ describe("the plugin's README", () => {
       ([, name]) => name,
     );
     expect(named).toEqual([...registered()]);
-    // Every tool with an input schema is registered, and only those.
-    expect(registered().toSorted()).toEqual(Object.keys(toolInputs).toSorted());
+    // Every tool with an input schema is registered, and only those, with
+    // propose_talk, whose input is its own (propose.ts).
+    expect(registered().toSorted()).toEqual(
+      [...Object.keys(toolInputs), proposeToolName].toSorted(),
+    );
   });
 });

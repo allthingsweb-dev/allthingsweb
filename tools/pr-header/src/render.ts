@@ -1,94 +1,36 @@
+import manifest from "../shields/manifest.json" with { type: "json" };
+import {
+  checks,
+  faceFile,
+  findingsFace,
+  mergeFace,
+  preview,
+  review,
+  type Face,
+} from "./faces.ts";
 import type { PrState } from "./state.ts";
 
 export const headerStart = "<!-- allthings:pr-header:start -->";
 export const headerEnd = "<!-- allthings:pr-header:end -->";
 
-// Night labels from the brand palette. Status colors read the same in light
-// and dark GitHub themes and keep white badge text at 4.5:1 or better.
-export const colors = {
-  label: "1C1236",
-  good: "276749",
-  wait: "975A16",
-  bad: "C0362C",
-  info: "5B34D6",
-  idle: "5E5A55",
-} as const;
+/**
+ * Where a shield is served: the drawn file on main (src/shields.ts), at an
+ * address that changes whenever the drawing does, so GitHub's image cache
+ * never shows an old one.
+ */
+export function shieldUrl(repo: PrState["repo"], face: Face): string {
+  const file = faceFile(face);
+  const version = (manifest as Record<string, string>)[file];
+  if (!version) throw new Error(`No shield is drawn for ${file}`);
+  return `https://raw.githubusercontent.com/${repo.owner}/${repo.name}/main/tools/pr-header/shields/${file}?v=${version}`;
+}
 
-type Tone = Exclude<keyof typeof colors, "label">;
-
-type Badge = {
-  label: string;
-  message: string;
-  tone: Tone;
-  href: string;
-  logo?: string;
-};
-
-function badge({ label, message, tone, href, logo }: Badge): string {
-  const params = new URLSearchParams({
-    label,
-    message,
-    color: colors[tone],
-    labelColor: colors.label,
-    style: "flat-square",
-  });
-  if (logo) params.set("logo", logo);
-  return `[![${label}: ${message}](https://img.shields.io/static/v1?${params.toString()})](${href})`;
+function shield(repo: PrState["repo"], face: Face, href: string): string {
+  return `[![${face.label}: ${face.message}](${shieldUrl(repo, face)})](${href})`;
 }
 
 export function changeStackUrl(pr: Pick<PrState, "repo" | "number">): string {
   return `https://app.coderabbit.ai/change-stack/${pr.repo.owner}/${pr.repo.name}/pull/${pr.number}`;
-}
-
-const preview = {
-  ready: ["ready", "good"],
-  building: ["building", "wait"],
-  failed: ["failed", "bad"],
-  none: ["none yet", "idle"],
-} as const satisfies Record<
-  PrState["preview"]["state"],
-  readonly [string, Tone]
->;
-
-const review = {
-  approved: "good",
-  "changes requested": "bad",
-  reviewing: "wait",
-  commented: "info",
-  none: "idle",
-} as const satisfies Record<PrState["coderabbit"]["review"], Tone>;
-
-const checks = {
-  passing: "good",
-  failing: "bad",
-  running: "wait",
-  none: "idle",
-} as const satisfies Record<PrState["checks"], Tone>;
-
-const mergeStates = {
-  clean: ["ready", "good"],
-  blocked: ["blocked", "wait"],
-  behind: ["behind main", "wait"],
-  conflicts: ["conflicts", "bad"],
-  unstable: ["checks not green", "wait"],
-  checking: ["checking", "idle"],
-  unknown: ["unknown", "idle"],
-} as const satisfies Record<PrState["mergeState"], readonly [string, Tone]>;
-
-function mergeBadge(pr: PrState): [string, Tone] {
-  if (pr.state === "merged") return ["merged", "info"];
-  if (pr.state === "closed") return ["closed", "idle"];
-  if (pr.isDraft) return ["draft", "idle"];
-  const [message, tone] = mergeStates[pr.mergeState];
-  return [message, tone];
-}
-
-function findingsBadge({
-  resolved,
-  open,
-}: PrState["coderabbit"]["findings"]): [string, Tone] {
-  if (resolved + open === 0) return ["none", "idle"];
-  return [`${resolved} resolved · ${open} open`, open > 0 ? "wait" : "good"];
 }
 
 function plural(count: number, word: string): string {
@@ -100,54 +42,56 @@ function plural(count: number, word: string): string {
  * same state always renders the same header and an unchanged PR is never
  * rewritten.
  */
-export function renderHeader(pr: PrState, logo?: string): string {
+export function renderHeader(pr: PrState): string {
   const previewUrl = pr.preview.url ?? pr.url;
   const [previewMessage, previewTone] = preview[pr.preview.state];
-  const [findingsMessage, findingsTone] = findingsBadge(pr.coderabbit.findings);
-  const [mergeMessage, mergeTone] = mergeBadge(pr);
-  const badges = [
-    badge({
-      label: "preview",
-      message: previewMessage,
-      tone: previewTone,
-      href: previewUrl,
-      ...(logo ? { logo } : {}),
-    }),
-    badge({
-      label: "coderabbit",
-      message: pr.coderabbit.review,
-      tone: review[pr.coderabbit.review],
-      href: changeStackUrl(pr),
-    }),
-    badge({
-      label: "findings",
-      message: findingsMessage,
-      tone: findingsTone,
-      href: pr.url,
-    }),
-    badge({
-      label: "checks",
-      message: pr.checks,
-      tone: checks[pr.checks],
-      href: `${pr.url}/checks`,
-    }),
-    badge({
-      label: "merge",
-      message: mergeMessage,
-      tone: mergeTone,
-      href: pr.url,
-    }),
+  const [findingsMessage, findingsTone] = findingsFace(pr.coderabbit.findings);
+  const [mergeMessage, mergeTone] = mergeFace(pr);
+  const shields = [
+    shield(
+      pr.repo,
+      { label: "preview", message: previewMessage, tone: previewTone },
+      previewUrl,
+    ),
+    shield(
+      pr.repo,
+      {
+        label: "coderabbit",
+        message: pr.coderabbit.review,
+        tone: review[pr.coderabbit.review],
+      },
+      changeStackUrl(pr),
+    ),
+    shield(
+      pr.repo,
+      { label: "findings", message: findingsMessage, tone: findingsTone },
+      pr.url,
+    ),
+    shield(
+      pr.repo,
+      { label: "checks", message: pr.checks, tone: checks[pr.checks] },
+      `${pr.url}/checks`,
+    ),
+    shield(
+      pr.repo,
+      { label: "merge", message: mergeMessage, tone: mergeTone },
+      pr.url,
+    ),
   ];
   const { additions, deletions, files } = pr.diff;
+  const { resolved, open } = pr.coderabbit.findings;
   const links = [
     `[Preview](${previewUrl})`,
     `[Change Stack](${changeStackUrl(pr)})`,
+    ...(resolved + open > 0
+      ? [`Findings: ${resolved} resolved, ${open} open`]
+      : []),
     `[Checks](${pr.url}/checks)`,
     `[Files](${pr.url}/files): +${additions} −${deletions} in ${plural(files, "file")}`,
   ];
   return [
     headerStart,
-    badges.join(" "),
+    shields.join(" "),
     "",
     `<sub>${links.join(" · ")}</sub>`,
     headerEnd,
