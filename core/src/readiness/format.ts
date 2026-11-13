@@ -20,7 +20,7 @@ export function formatReadiness(report: ReadinessReport): string {
     `suggestions, matching: ${suggestions.terms.length === 0 ? "(no topic words)" : suggestions.terms.join(", ")}`,
   ];
 
-  const { network, wanted, lineup } = suggestions.speakers;
+  const { network, wanted, proposed, lineup } = suggestions.speakers;
   lines.push(
     `speakers${lineup ? "" : " (its program has no lineup)"}:`,
     ...(network.length === 0
@@ -33,6 +33,10 @@ export function formatReadiness(report: ReadinessReport): string {
     ...wanted.map(
       (speaker) =>
         `  wanted: ${speaker.name} [${speaker.status}]${speaker.freeThatDay ? "" : ", not free that day"}${speaker.matched.length === 0 ? "" : ` · ${speaker.matched.join(", ")}`}`,
+    ),
+    ...proposed.map(
+      (talk) =>
+        `  proposed: ${JSON.stringify(talk.title)} (${talk.format}) by ${talk.name}, accepted ${talk.acceptedOn}${talk.matched.length === 0 ? "" : ` · ${talk.matched.join(", ")}`} · proposals show ${talk.id}`,
     ),
   );
 

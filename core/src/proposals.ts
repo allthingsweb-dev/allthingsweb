@@ -429,6 +429,37 @@ export const listProposals = (status: ProposalStatus | "all" = "new") =>
     return yield* decodeRows(rows);
   });
 
+const OpenAccepted = Schema.Array(
+  Schema.Struct({
+    id: Schema.String,
+    title: Schema.String,
+    abstract: Schema.String,
+    format: ProposalFormat,
+    name: Schema.String,
+    acceptedAt: Schema.String,
+  }),
+);
+
+/**
+ * The talks we accepted that are on no evening (none placed, or one
+ * placed on an evening since forgotten), accepted longest ago first: what
+ * planning draws on for the next evenings (src/readiness/).
+ */
+export const openAcceptedProposals = Effect.gen(function* () {
+  const sql = yield* SqlClient;
+  const rows = yield* sql.unsafe(
+    `SELECT p.id::text AS id, p.title, p.abstract, p.format, p.name,
+       ${iso("p.decided_at")} AS "acceptedAt"
+     FROM planning.proposals p
+     WHERE p.status = 'accepted'
+       AND NOT EXISTS (SELECT 1 FROM events e WHERE e.id = p.event_id)
+     ORDER BY p.decided_at, p.id`,
+  );
+  return yield* Schema.decodeUnknownEffect(OpenAccepted)(rows).pipe(
+    Effect.orDie,
+  );
+});
+
 /**
  * Records a proposal an organizer was sent (an email, a message), read
  * in as anyone's is, as ALLTHINGS_ACTOR: the stored row.

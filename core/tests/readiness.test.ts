@@ -26,10 +26,12 @@ import {
 import { formatReadiness } from "../src/readiness/format.ts";
 import { type DraftRef, Readiness } from "../src/readiness/readiness.ts";
 import {
+  type AcceptedProposal,
   dateWindow,
   type NetworkPerson,
   openDates,
   quietHosts,
+  rankProposals,
   rankSpeakers,
   rankWanted,
   type Wanted,
@@ -622,6 +624,43 @@ describe("suggestions", () => {
     ).toEqual(["w3 asked true", "w2 asked false", "w1 wanted true"]);
   });
 
+  test("proposed talks: most shared words, then accepted longest ago", () => {
+    const accepted = (
+      id: string,
+      title: string,
+      acceptedAt: string,
+    ): AcceptedProposal => ({
+      id,
+      title,
+      abstract: "What we learned shipping it.",
+      format: "talk",
+      name: "Ada",
+      acceptedAt,
+    });
+    const proposals = [
+      accepted("p1", "Git internals", "2026-10-02T00:00:00.000Z"),
+      accepted("p2", "Effect and git together", "2026-10-03T00:00:00.000Z"),
+      accepted("p3", "CSS layers", "2026-09-01T00:00:00.000Z"),
+      accepted("p4", "Rebasing with git", "2026-09-30T00:00:00.000Z"),
+    ];
+    expect(
+      rankProposals(["effect", "git"], proposals).map(
+        (s) => `${s.id} ${s.matched.join("+")} ${s.acceptedOn}`,
+      ),
+    ).toEqual([
+      "p2 effect+git 2026-10-03",
+      "p4 git 2026-09-30",
+      "p1 git 2026-10-02",
+    ]);
+    // With no words, every one, accepted longest ago first.
+    expect(rankProposals([], proposals).map((s) => s.id)).toEqual([
+      "p3",
+      "p4",
+      "p1",
+      "p2",
+    ]);
+  });
+
   test("quiet hosts: none within 90 days, longest since first", () => {
     const host = (id: string, last: string, evenings = 1) => ({
       sponsorId: id,
@@ -776,6 +815,36 @@ describe("the report", () => {
     expect(result.planning).toBe("read");
     expect(formatReadiness(result)).toContain(
       "✗ not ready: 4 things block publishing",
+    );
+  });
+
+  test("suggests the talks we accepted and put on no evening yet, by the evening's words", async () => {
+    const insert = (title: string, status: string, eventSlug?: string) =>
+      db.exec(`
+        INSERT INTO planning.proposals (title, abstract, name, email, source, status, decided_at, decided_by, event_id)
+        VALUES ('${title}', 'What a year of it taught us, in production and at scale.', 'Ada', 'ada@example.com', 'site',
+          '${status}', ${status === "new" ? "NULL" : "now()"}, ${status === "new" ? "NULL" : "'erik'"},
+          ${eventSlug === undefined ? "NULL" : `(SELECT id FROM events WHERE slug = '${eventSlug}')`})`);
+    await insert("Effect in production", "accepted");
+    await insert("Effect, unaccepted", "new");
+    await insert("Effect, declined", "declined");
+    await insert(
+      "Effect, already on an evening",
+      "accepted",
+      "2026-08-12-react-at-acme",
+    );
+    await insert("CSS layers", "accepted");
+    const result = await report(
+      { _tag: "Event", slug: "2026-09-01-draft-night" },
+      ["effect"],
+    );
+    const proposed = result.suggestions.speakers.proposed;
+    expect(
+      proposed.map((talk) => `${talk.title}: ${talk.matched.join("+")}`),
+    ).toEqual(["Effect in production: effect"]);
+    expect(proposed[0]).not.toHaveProperty("email");
+    expect(formatReadiness(result)).toContain(
+      `  proposed: "Effect in production" (talk) by Ada, accepted `,
     );
   });
 
