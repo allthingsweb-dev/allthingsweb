@@ -35,8 +35,13 @@ concurrency:
 jobs:
   header:
     name: PR header
-    # This job's own completed check run must not start it again.
-    if: github.event_name != 'check_run' || github.event.check_run.name != 'PR header'
+    # This job's own completed check run must not start it again. A review
+    # of a pull request from a fork runs with a read-only token, whatever
+    # `permissions` asks for, so it could only fail and block the merge:
+    # the scheduled run updates that header within 15 minutes instead.
+    if: >-
+      (github.event_name != 'check_run' || github.event.check_run.name != 'PR header')
+      && (github.event_name != 'pull_request_review' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout main
