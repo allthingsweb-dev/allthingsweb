@@ -173,6 +173,11 @@ export function fakeClient(overrides: Partial<Client> = {}): Client {
     getCommunity: async () => community,
     getGuide: async () => guide,
     coachTalk: async () => coaching,
+    proposeTalk: async () => ({
+      received: true,
+      message:
+        "Thanks: your proposal is in. Erik and Andre read every one, and reply by email.",
+    }),
     ...overrides,
   };
 }

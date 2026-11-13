@@ -28,6 +28,7 @@ allthings open latest               # open the last evening's page on allthings.
 allthings guide                     # conferences worth the trip, starred as Michelin stars restaurants
 allthings about                     # where to find everyone between evenings
 allthings coach slides.md talk.vtt  # coaching for your talk, before you give it
+allthings propose                   # propose a talk for an evening
 ```
 
 `event`, `rsvp` and `open` take an evening's slug, from `events`, or `next` and `latest`, so every line above runs as typed. With nothing on the calendar, `allthings` shows the last evening and where the next one is announced first, and `event next` exits 3.
@@ -49,6 +50,16 @@ allthings coach rehearsal.txt --goal first-talk --json
 A file's extension says what it is: `.md` is an outline, or slides split by lines of `---`, and its first heading is the title unless `--title` gives one; `.txt`, `.vtt` and `.srt` are a rehearsal's transcript, and with timestamps (`.vtt`, `.srt`) it also checks your pace. Send at most one of each. `--slot` is the slot in minutes: 3, an open floor's, unless given, or 20 with `--talk`, and a slot over 5 minutes is a talk in the lineup. `--goal` says what you want from the talk, as often as you like: `first-talk`, `teach-a-technique`, `find-contributors`, `show-a-launch` or `get-hired`. `--abstract` adds the abstract.
 
 The files are read only to send them; `coach_talk` keeps none of what it is sent. A file it can't read, one too long for `coach_talk`, or an unknown goal exits 2 before anything is sent.
+
+## Propose a talk
+
+```sh
+allthings propose                   # asks for each part, shows it, and sends it on your yes
+allthings propose --title "Effect in production" --abstract "What a year of Effect taught us…" \
+  --name "Ada Lovelace" --email ada@example.com --format demo --link https://github.com/ada
+```
+
+An open door and a high bar: anyone may propose, and Erik and Andre read every proposal and reply by email. In a terminal it asks for whatever the options leave out (everything, with none), then shows the proposal and asks before sending; `--yes` skips that. Elsewhere, as in a script or an agent, `--title`, `--abstract` (at least 40 characters), `--name` and `--email` are required; `--format` (talk, lightning or demo), `--about`, `--link` (up to four) and `--notes` are not. With `--json` it prints the server's answer. It exits 2 with what to fix when the server finds a problem, and 1 when it can't take it (too many at once, or a stage that doesn't keep them). It sends through the MCP server's `propose_talk`, naming itself in its `User-Agent`, so the organizers see it came from the CLI. Nothing you send shows on allthings.dev unless you give the talk.
 
 ## Agents
 

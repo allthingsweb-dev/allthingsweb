@@ -12,15 +12,19 @@ async function exec(
     client = fakeClient(),
     isTTY = false,
     env = {},
+    answers,
   }: {
     client?: Client;
     isTTY?: boolean;
     env?: Record<string, string>;
+    /** A person's answers to the questions asked, in order; null ends the input. */
+    answers?: Array<string | null>;
   } = {},
 ) {
   let stdout = "";
   let stderr = "";
   const opened: string[] = [];
+  const asked: string[] = [];
   const io: Io = {
     stdout: (text) => (stdout += text),
     stderr: (text) => (stderr += text),
@@ -30,9 +34,17 @@ async function exec(
       opened.push(url);
     },
     client,
+    ...(answers === undefined
+      ? {}
+      : {
+          prompt: async (question: string) => {
+            asked.push(question);
+            return answers.shift() ?? null;
+          },
+        }),
   };
   const code = await run(argv, io);
-  return { code, stdout, stderr, opened };
+  return { code, stdout, stderr, opened, asked };
 }
 
 describe("allthings", () => {
@@ -188,6 +200,7 @@ describe("allthings", () => {
         "get_community",
         "get_guide",
         "coach_talk",
+        "propose_talk",
       ],
     });
   });
@@ -439,6 +452,182 @@ describe("allthings", () => {
     const { code, stderr } = await exec(["guide", "react"]);
     expect(code).toBe(ExitCode.UsageError);
     expect(stderr).toContain(`"guide" takes no arguments.`);
+  });
+});
+
+describe("allthings propose", () => {
+  const flags = [
+    "propose",
+    "--title",
+    "Effect in production",
+    "--abstract",
+    "What a year of Effect taught us about errors in payments.",
+    "--name",
+    "Ada Lovelace",
+    "--email",
+    "ada@example.com",
+  ];
+
+  /** A client that records what it was asked to send. */
+  const recording = () => {
+    const sent: unknown[] = [];
+    const client = fakeClient({
+      proposeTalk: async (proposal) => {
+        sent.push(proposal);
+        return { received: true, message: "Thanks: your proposal is in." };
+      },
+    });
+    return { sent, client };
+  };
+
+  test("sends what its options say, and prints the answer", async () => {
+    const { sent, client } = recording();
+    const { code, stdout } = await exec(
+      [
+        ...flags,
+        "--format",
+        "demo",
+        "--link",
+        "https://a.example",
+        "--link",
+        "https://b.example",
+      ],
+      { client },
+    );
+    expect(code).toBe(ExitCode.Ok);
+    expect(stdout).toBe("Thanks: your proposal is in.\n");
+    expect(sent).toEqual([
+      {
+        title: "Effect in production",
+        abstract: "What a year of Effect taught us about errors in payments.",
+        name: "Ada Lovelace",
+        email: "ada@example.com",
+        format: "demo",
+        links: ["https://a.example", "https://b.example"],
+      },
+    ]);
+  });
+
+  test("prints the server's answer as JSON", async () => {
+    const { stdout } = await exec([...flags, "--json"]);
+    expect(JSON.parse(stdout)).toEqual({
+      received: true,
+      message:
+        "Thanks: your proposal is in. Erik and Andre read every one, and reply by email.",
+    });
+  });
+
+  test("outside a terminal, needs every required part as an option, and sends nothing", async () => {
+    const { sent, client } = recording();
+    const { code, stderr } = await exec(["propose", "--title", "Effect"], {
+      client,
+      answers: ["never asked"],
+    });
+    expect(code).toBe(ExitCode.UsageError);
+    expect(stderr).toContain(
+      '"propose" needs --abstract, --name, --email. Run it in a terminal to be asked for each.',
+    );
+    expect(sent).toEqual([]);
+  });
+
+  test("in a terminal, asks for each part, shows the proposal, and sends it on a yes", async () => {
+    const { sent, client } = recording();
+    const { code, asked, stdout } = await exec(["propose"], {
+      client,
+      isTTY: true,
+      answers: [
+        "Effect in production",
+        "keynote",
+        "lightning",
+        "",
+        "What a year of Effect taught us about errors in payments.",
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "https://a.example https://b.example",
+        "Free Thursdays",
+        "y",
+      ],
+    });
+    expect(code).toBe(ExitCode.Ok);
+    // A blank title is asked again; a wrong format too.
+    expect(asked[0]).toBe("Title: ");
+    expect(asked.at(-1)).toBe("Send it? [y/N] ");
+    expect(stdout).toContain("Effect in production (lightning)");
+    expect(sent).toEqual([
+      {
+        title: "Effect in production",
+        abstract: "What a year of Effect taught us about errors in payments.",
+        name: "Ada Lovelace",
+        email: "ada@example.com",
+        format: "lightning",
+        links: ["https://a.example", "https://b.example"],
+        notes: "Free Thursdays",
+      },
+    ]);
+  });
+
+  test("in a terminal, asks only for what its options left out, and sends nothing without a yes", async () => {
+    const { sent, client } = recording();
+    const { code, asked, stderr } = await exec(
+      [
+        "propose",
+        "--title",
+        "Effect",
+        "--name",
+        "Ada",
+        "--email",
+        "ada@example.com",
+      ],
+      {
+        client,
+        isTTY: true,
+        answers: [
+          "What a year of Effect taught us about errors in payments.",
+          "n",
+        ],
+      },
+    );
+    expect(asked).toEqual([
+      "Abstract, what it's about and what people will leave knowing: ",
+      "Send it? [y/N] ",
+    ]);
+    expect(code).toBe(ExitCode.UsageError);
+    expect(stderr).toBe("Nothing was sent.\n");
+    expect(sent).toEqual([]);
+    // --yes sends without asking.
+    const yes = await exec([...flags, "--yes"], {
+      client,
+      isTTY: true,
+      answers: [],
+    });
+    expect(yes.code).toBe(ExitCode.Ok);
+    expect(sent).toHaveLength(1);
+  });
+
+  test("says what to fix, exit 2, when the server finds a problem", async () => {
+    const client = fakeClient({
+      proposeTalk: async () => {
+        throw new CliError(
+          "Some of the proposal needs another look: see each field's problem.\nemail: \"nope\" doesn't read as an email address.",
+          ExitCode.UsageError,
+        );
+      },
+    });
+    const { code, stderr } = await exec(flags, { client });
+    expect(code).toBe(ExitCode.UsageError);
+    expect(stderr).toContain("doesn't read as an email address");
+  });
+
+  test("its options go with propose alone, and --format is one of three", async () => {
+    expect((await exec(["events", "--title", "x"])).code).toBe(
+      ExitCode.UsageError,
+    );
+    const format = await exec([...flags, "--format", "keynote"]);
+    expect(format.code).toBe(ExitCode.UsageError);
+    expect(format.stderr).toContain("--format is talk, lightning or demo.");
+    const help = await exec(["propose", "--help"]);
+    expect(help.stdout).toContain("An open door and a high bar");
   });
 });
 

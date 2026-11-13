@@ -172,3 +172,22 @@ export type Speaker = z.infer<typeof speakerSchema>;
 export type Community = z.infer<typeof communitySchema>;
 export type GuideEntry = z.infer<typeof guideEntrySchema>;
 export type Guide = z.infer<typeof guideSchema>;
+
+/** What propose_talk answers when it takes a proposal (web/src/mcp/propose.ts). */
+export const proposalAnswerSchema = z.object({
+  received: z.boolean(),
+  message: z.string(),
+});
+export type ProposalAnswer = z.infer<typeof proposalAnswerSchema>;
+
+/** What propose_talk takes: the proposal, as the speaker gave it. */
+export interface ProposalFields {
+  readonly title: string;
+  readonly abstract: string;
+  readonly format?: "talk" | "lightning" | "demo";
+  readonly name: string;
+  readonly email: string;
+  readonly about?: string;
+  readonly links?: ReadonlyArray<string>;
+  readonly notes?: string;
+}

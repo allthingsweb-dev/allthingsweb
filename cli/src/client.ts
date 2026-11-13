@@ -1,4 +1,5 @@
 import { z } from "zod";
+import packageJson from "../package.json" with { type: "json" };
 import { commandName, defaultEndpoint } from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
 import {
@@ -7,6 +8,7 @@ import {
   guideSchema,
   eventListSchema,
   eventSchema,
+  proposalAnswerSchema,
   speakerListSchema,
   type Coaching,
   type Community,
@@ -15,8 +17,24 @@ import {
   type SlotFormat,
   type Event,
   type EventSummary,
+  type ProposalAnswer,
+  type ProposalFields,
   type Speaker,
 } from "./schemas.ts";
+
+/**
+ * How the CLI names itself to the server, so a proposal sent from it is
+ * kept as the CLI's (web/src/mcp/propose.ts).
+ */
+export const userAgent = `${commandName}-cli/${packageJson.version}`;
+
+/**
+ * Whether a propose_talk error is about the proposal itself, which its
+ * sender can fix: the server starts every such message so.
+ */
+export function isProposalProblem(message: string): boolean {
+  return message.startsWith("Some of the proposal needs another look");
+}
 
 /**
  * Whether a get_event tool error means the slug has no published event. The
@@ -85,6 +103,7 @@ export const toolNames = [
   "get_community",
   "get_guide",
   "coach_talk",
+  "propose_talk",
 ] as const;
 
 export type ToolName = (typeof toolNames)[number];
@@ -106,6 +125,7 @@ export function createClient({
           "content-type": "application/json",
           accept: "application/json, text/event-stream",
           "mcp-protocol-version": "2025-06-18",
+          "user-agent": userAgent,
         },
         body: JSON.stringify({
           jsonrpc: "2.0",
@@ -152,7 +172,11 @@ export function createClient({
       const message = result.content.map((part) => part.text ?? "").join("\n");
       throw new CliError(
         message,
-        isEventNotFound(message) ? ExitCode.NotFound : ExitCode.ServiceError,
+        isEventNotFound(message)
+          ? ExitCode.NotFound
+          : isProposalProblem(message)
+            ? ExitCode.UsageError
+            : ExitCode.ServiceError,
       );
     }
     const parsed = schema.safeParse(result.structuredContent);
@@ -200,6 +224,8 @@ export function createClient({
     getGuide: (): Promise<Guide> => callTool("get_guide", {}, guideSchema),
     coachTalk: (talk: TalkToCoach): Promise<Coaching> =>
       callTool("coach_talk", { ...talk }, coachingSchema),
+    proposeTalk: (proposal: ProposalFields): Promise<ProposalAnswer> =>
+      callTool("propose_talk", { ...proposal }, proposalAnswerSchema),
   };
 }
 
