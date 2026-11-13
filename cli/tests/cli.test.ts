@@ -53,6 +53,7 @@ describe("allthings", () => {
     expect(stdout).toContain("rsvp  https://lu.ma/event/evt-1");
     expect(stdout).toMatch(/allthings event next +The talks/);
     expect(stdout).toMatch(/allthings rsvp next +Say you're in/);
+    expect(stdout).toMatch(/allthings mcp +Add allthings to your agent/);
     // Nothing to fill in: every suggestion runs as typed.
     expect(stdout).not.toContain("<");
   });
@@ -137,6 +138,52 @@ describe("allthings", () => {
     expect(stdout).not.toContain("rsvp next");
   });
 
+  test("mcp gives a line for each agent, reading nothing", async () => {
+    const offline = fakeClient({
+      listEvents: async () => {
+        throw new Error("mcp should not read the server");
+      },
+    });
+    const { code, stdout } = await exec(["mcp"], { client: offline });
+    expect(code).toBe(ExitCode.Ok);
+    expect(stdout).toContain(
+      "claude mcp add --transport http allthings https://allthings.dev/mcp",
+    );
+    expect(stdout).toContain(
+      "codex mcp add allthings --url https://allthings.dev/mcp",
+    );
+    expect(stdout).toContain(
+      `code --add-mcp '{"name":"allthings","type":"http","url":"https://allthings.dev/mcp"}'`,
+    );
+    expect(stdout).toContain(
+      `{"mcpServers":{"allthings":{"url":"https://allthings.dev/mcp"}}}`,
+    );
+    expect(stdout).toContain(
+      "list_events, get_event, list_speakers, get_community",
+    );
+  });
+
+  test("mcp names the server the environment points at, quoted for the shell", async () => {
+    const url = "http://localhost:8787/mcp?who=it's";
+    const { stdout } = await exec(["mcp"], {
+      env: { ALLTHINGS_MCP_URL: url },
+    });
+    expect(stdout).toContain(
+      `claude mcp add --transport http allthings 'http://localhost:8787/mcp?who=it'\\''s'`,
+    );
+    expect(stdout).not.toContain("https://allthings.dev/mcp");
+  });
+
+  test("mcp --json gives the server and its tools", async () => {
+    const { stdout } = await exec(["mcp", "--json"], { isTTY: true });
+    expect(JSON.parse(stdout)).toEqual({
+      name: "allthings",
+      url: "https://allthings.dev/mcp",
+      transport: "streamable-http",
+      tools: ["list_events", "get_event", "list_speakers", "get_community"],
+    });
+  });
+
   test("prints help with examples and exit codes", async () => {
     for (const argv of [["--help"], ["help"]]) {
       const { code, stdout } = await exec(argv);
@@ -145,6 +192,9 @@ describe("allthings", () => {
       expect(stdout).toContain(
         "Exit codes: 0 ok, 1 service error, 2 usage error, 3 event not found.",
       );
+      expect(stdout).toContain("allthings mcp ");
+      // Pointing at another server is for "mcp" to explain, not the first screen.
+      expect(stdout).not.toContain("ALLTHINGS_MCP_URL");
     }
   });
 
@@ -164,6 +214,7 @@ describe("allthings", () => {
       ["events", "--unknown"],
       ["events", "--zone", "terrace"],
       ["about", "--zone", "terrace"],
+      ["mcp", "claude"],
       ["--past"],
       ["--limit", "3"],
     ]) {

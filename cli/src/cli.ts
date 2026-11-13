@@ -11,14 +11,13 @@ import {
   type AuxClient,
   type AuxResult,
 } from "./aux.ts";
-import { createClient, type Client, type Fetch } from "./client.ts";
+import { createClient, toolNames, type Client, type Fetch } from "./client.ts";
 import {
   auxCodeVariable,
   auxEndpointFrom,
   auxEndpointVariable,
   commandName,
   defaultAuxEndpoint,
-  defaultEndpoint,
   endpointFrom,
   endpointVariable,
   legacyCommandName,
@@ -60,6 +59,7 @@ Usage
   ${commandName} speakers [search] [--limit <n>] [--json]
   ${commandName} rsvp <slug | next> [--print]
   ${commandName} about [--json]
+  ${commandName} mcp [--json]
   ${commandName} aux <command> [--json]
 
 Examples
@@ -70,7 +70,8 @@ Examples
   ${commandName} event latest                The last evening: its talks and video
   ${commandName} speakers react              Who has been on stage about react
   ${commandName} rsvp next                   Open the next evening's page to say you're in
-  ${commandName} aux --help                  Set the room's lights at an evening that passes the aux
+  ${commandName} mcp                         Add allthings to Claude Code, Codex, VS Code or Cursor
+  ${commandName} aux --help                 Set the room's lights at an evening that passes the aux
 
 Options
   --json        Print the public JSON contract instead of text
@@ -78,7 +79,6 @@ Options
   -v, --version Show the version
 
 Exit codes: 0 ok, 1 service error, 2 usage error, 3 event not found.
-Set ${endpointVariable} to use another server (default ${defaultEndpoint}).
 `;
 
 const auxHelp = `${commandName} aux · the room's lights, at an evening that passes the aux
@@ -164,6 +164,55 @@ async function resolveSlug(client: Client, argument: string): Promise<string> {
   );
 }
 
+/** A word for the shell, as typed: quoted only when it has to be. */
+function shellWord(word: string): string {
+  return /^[\w@%+=:,./-]+$/.test(word)
+    ? word
+    : `'${word.replaceAll("'", `'\\''`)}'`;
+}
+
+/**
+ * `allthings mcp`: how to give an agent the server this CLI reads, with a
+ * line to paste for each agent that takes one. It reads nothing, so it works
+ * offline, and it names whatever server the environment points the CLI at,
+ * so a local Worker gets lines of its own.
+ */
+function mcpSetup(endpoint: string, json: boolean): string {
+  const name = commandName;
+  if (json) {
+    const setup = {
+      name,
+      url: endpoint,
+      transport: "streamable-http",
+      tools: toolNames,
+    };
+    return `${JSON.stringify(setup, null, 2)}\n`;
+  }
+  const url = shellWord(endpoint);
+  const vscode = JSON.stringify({ name, type: "http", url: endpoint });
+  const cursor = JSON.stringify({ mcpServers: { [name]: { url: endpoint } } });
+  const agents: [string, string][] = [
+    ["Claude Code", `claude mcp add --transport http ${name} ${url}`],
+    ["Codex", `codex mcp add ${name} --url ${url}`],
+    ["VS Code", `code --add-mcp ${shellWord(vscode)}`],
+    ["Cursor", `in .cursor/mcp.json: ${cursor}`],
+  ];
+  const width = Math.max(...agents.map(([agent]) => agent.length)) + 2;
+  const lines = agents
+    .map(([agent, line]) => `  ${agent.padEnd(width)}${line}`)
+    .join("\n");
+  return `${commandName} mcp · the server your agent can read: ${endpoint}
+
+Streamable HTTP, public, no sign-in. Its tools are this CLI's reads: ${toolNames.join(", ")}.
+
+Add it
+${lines}
+
+An agent with a shell can run this CLI too: every command but rsvp takes --json.
+Set ${endpointVariable} to point this CLI, and these lines, at another server.
+`;
+}
+
 /** A command to try and what it does, lined up for reading. */
 function tryLines(commands: [string, string][]): string {
   const width = Math.max(...commands.map(([command]) => command.length)) + 4;
@@ -196,6 +245,7 @@ async function home(
   const everything: [string, string][] = [
     ["speakers react", "Who has been on stage about react"],
     ["about", "Where everyone is between evenings"],
+    ["mcp", "Add allthings to your agent"],
     ["--help", "Every command; most take --json for scripts and agents"],
   ];
   const sections =
@@ -532,6 +582,11 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
         }
         io.stdout(`${event.rsvpUrl}\n`);
         if (!values.print && io.isTTY) await io.openUrl(event.rsvpUrl);
+        return ExitCode.Ok;
+      }
+      case "mcp": {
+        if (rest.length > 0) usage(`"mcp" takes no arguments.`);
+        io.stdout(mcpSetup(endpointFrom(io.env), values.json));
         return ExitCode.Ok;
       }
       case "about": {
