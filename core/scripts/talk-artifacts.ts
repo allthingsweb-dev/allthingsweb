@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Console, Effect } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
@@ -33,7 +34,7 @@ const command = Command.make(
   ({ file, dryRun }) =>
     Effect.gen(function* () {
       const text = yield* Effect.tryPromise({
-        try: () => Bun.file(new URL(`../${file}`, import.meta.url)).text(),
+        try: () => Bun.file(resolve(import.meta.dir, "..", file)).text(),
         catch: (cause) =>
           new Error(`Could not read ${file}: ${String(cause)}`, { cause }),
       });
