@@ -42,6 +42,14 @@
         "zod": "4.6.6",
       },
     },
+    "tools/plugin-manifests": {
+      "name": "allthings-plugin-manifests",
+      "devDependencies": {
+        "@types/bun": "1.4.2",
+        "ajv": "8.20.0",
+        "typescript": "7.0.2",
+      },
+    },
     "tools/xss-scan": {
       "name": "allthings-xss-scan",
       "devDependencies": {
@@ -506,6 +514,8 @@
     "allthings-brand": ["allthings-brand@workspace:brand"],
 
     "allthings-core": ["allthings-core@workspace:core"],
+
+    "allthings-plugin-manifests": ["allthings-plugin-manifests@workspace:tools/plugin-manifests"],
 
     "allthings-web": ["allthings-web@workspace:web"],
 

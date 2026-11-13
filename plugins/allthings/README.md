@@ -4,13 +4,18 @@ Evenings for people who build software, in the neighborhoods of San Francisco, i
 
 The plugin gives an agent the allthings MCP server (`list_events`, `get_event`, `list_speakers`, `get_community`, `get_guide`, `get_year`, `get_letter`, `coach_talk`, `propose_talk`) and two skills, `find-evenings` and `evening-briefing`. In Claude Code it also brings a mod that takes over the interface with the allthings/\_ look, two themes and an output style.
 
-| File                         | For                                                                                                   |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `plugin.json`, `mcp.json`    | The [Agent Plugins](https://agent-plugins.org) manifest and MCP config, read by every host            |
-| `.claude-plugin/plugin.json` | Claude Code's manifest: the same plugin, its MCP server from `mcp.json`, and the mod's state contract |
-| `skills/`                    | The two skills                                                                                        |
-| `hooks/`, `types/`, `tests/` | The Claude Code mod and its tests                                                                     |
-| `themes/`, `output-styles/`  | The allthings night and allthings paper themes, and the allthings output style                        |
+It installs in Claude Code, Codex and Grok Build. Codex and Grok Build get the server and the skills; the mod, the themes and the output style are Claude Code's alone.
+
+| File                         | For                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `plugin.json`, `mcp.json`    | The [Agent Plugins](https://agent-plugins.org) manifest and MCP config, read by Codex |
+| `.mcp.json`                  | The same MCP config where Grok Build and Claude Code look for it                      |
+| `.claude-plugin/plugin.json` | Claude Code's manifest: the same plugin, its MCP server, and the mod's state contract |
+| `skills/`                    | The two skills                                                                        |
+| `hooks/`, `types/`, `tests/` | The Claude Code mod and its tests                                                     |
+| `themes/`, `output-styles/`  | The allthings night and allthings paper themes, and the allthings output style        |
+
+Every manifest here, and the marketplaces in `.claude-plugin/` and `.agents/plugins/` at the repository's root, is written from one definition in `tools/plugin-manifests/src/manifests.ts`. Change it there and run `bun run write` in `tools/plugin-manifests`; CI fails when a committed manifest differs from what it writes.
 
 ## Try it in Claude Code
 
@@ -30,6 +35,28 @@ claude plugin install allthings@allthings
 ```
 
 or, at the Claude Code prompt, `/plugin marketplace add allthings-sf/allthings` and then `/plugin install allthings@allthings`. Run `/plugin` to see `allthings` among the active mods.
+
+## Try it in Codex
+
+Add this repository as a marketplace and install the plugin:
+
+```bash
+codex plugin marketplace add allthings-sf/allthings
+codex plugin add allthings@allthings
+```
+
+`codex plugin list` shows `allthings@allthings` installed and enabled, and `codex mcp list` shows the allthings server. Ask Codex what's on at allthings next, or who's on stage.
+
+## Try it in Grok Build
+
+Add this repository as a marketplace and install the plugin. `--trust` lets Grok Build start the plugin's MCP server:
+
+```bash
+grok plugin marketplace add allthings-sf/allthings
+grok plugin install allthings --trust
+```
+
+`grok mcp doctor allthings` checks the server and counts its tools, and `grok inspect` lists the two skills under `plugin: allthings`.
 
 ## What the mod does
 
