@@ -21,6 +21,7 @@ function data(overrides: Partial<PullRequestData> = {}): PullRequestData {
     deletions: 2,
     changedFiles: 3,
     reviews: { nodes: [] },
+    comments: { nodes: [] },
     reviewThreads: { nodes: [] },
     commits: {
       nodes: [{ commit: { statusCheckRollup: { contexts: { nodes: [] } } } }],
@@ -146,6 +147,31 @@ describe("summarizing a pull request", () => {
     expect(merge("UNKNOWN")).toBe("checking");
     expect(merge("SOMETHING_NEW")).toBe("unknown");
   });
+
+  test("reads CodeRabbit's walkthrough comment, and no one else's", () => {
+    const walkthrough =
+      "<!-- walkthrough_start -->\n\nAdds a thing.\n\n<!-- walkthrough_end -->";
+    const comment = (login: string, body: string, n: number) => ({
+      author: { login },
+      url: `https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-${n}`,
+      body,
+    });
+    const read = (nodes: ReturnType<typeof comment>[]) =>
+      summarize(repo, data({ comments: { nodes } }), ready).coderabbit
+        .walkthrough;
+    expect(read([])).toBeNull();
+    expect(read([comment("someone", walkthrough, 1)])).toBeNull();
+    expect(
+      read([
+        comment("someone", walkthrough, 1),
+        comment("coderabbitai", "Review triggered.", 2),
+        comment("coderabbitai", walkthrough, 3),
+      ]),
+    ).toMatchObject({
+      url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-3",
+      summary: "Adds a thing.",
+    });
+  });
 });
 
 describe("findings outside the diff", () => {
@@ -229,5 +255,83 @@ describe("loading a pull request", () => {
       resolved: 1,
       open: 2,
     });
+  });
+
+  test("follows comment pages until it finds CodeRabbit's walkthrough", async () => {
+    const comment = (login: string, body: string) => ({
+      author: { login },
+      url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-1",
+      body,
+    });
+    const walkthrough =
+      "<!-- walkthrough_start -->\n\nAdds a thing.\n\n<!-- walkthrough_end -->";
+    const pages = [
+      {
+        pageInfo: { hasNextPage: true, endCursor: "p2" },
+        nodes: [comment("someone", "Hi")],
+      },
+      {
+        pageInfo: { hasNextPage: true, endCursor: "p3" },
+        nodes: [comment("coderabbitai", walkthrough)],
+      },
+    ];
+    const cursors: unknown[] = [];
+    const github: GitHub = {
+      rest: async () => {
+        throw new Error("unused");
+      },
+      graphql: async <T>(query: string, variables: Record<string, unknown>) => {
+        if (!variables["after"])
+          return {
+            repository: { pullRequest: data({ comments: pages[0]! }) },
+          } as T;
+        expect(query).toContain("comments(first: 20, after: $after)");
+        cursors.push(variables["after"]);
+        return {
+          repository: { pullRequest: { comments: pages[1]! } },
+        } as T;
+      },
+    };
+    const pr = await fetchPullRequest(github, repo, 52);
+    // It stops at the page with the walkthrough, though more follow.
+    expect(cursors).toEqual(["p2"]);
+    expect(summarize(repo, pr, ready).coderabbit.walkthrough?.summary).toBe(
+      "Adds a thing.",
+    );
+  });
+
+  test("stops when a comment page hands back the cursor it was asked for", async () => {
+    const stuck = {
+      pageInfo: { hasNextPage: true, endCursor: "p2" },
+      nodes: [
+        {
+          author: { login: "someone" },
+          url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-1",
+          body: "Hi",
+        },
+      ],
+    };
+    let requests = 0;
+    const github: GitHub = {
+      rest: async () => {
+        throw new Error("unused");
+      },
+      graphql: async <T>(
+        _query: string,
+        variables: Record<string, unknown>,
+      ) => {
+        requests += 1;
+        return (
+          variables["after"]
+            ? { repository: { pullRequest: { comments: stuck } } }
+            : { repository: { pullRequest: data({ comments: stuck }) } }
+        ) as T;
+      },
+    };
+    await expect(fetchPullRequest(github, repo, 52)).rejects.toThrow(
+      "#52: comment pages stopped advancing at p2",
+    );
+    // The first page, then the one that repeated its cursor.
+    expect(requests).toBe(2);
   });
 });

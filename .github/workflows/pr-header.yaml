@@ -1,7 +1,8 @@
 name: PR header
 
 # Keeps a status header (preview, CodeRabbit, findings, checks, merge state)
-# at the top of every pull request description. It always runs the copy of
+# at the top of every pull request description, with CodeRabbit's merge risk,
+# pre-merge checks and walkthrough under it. It always runs the copy of
 # tools/pr-header on main, never code from the pull request, so it is safe to
 # give it a write token for pull requests from forks.
 
@@ -11,7 +12,8 @@ on:
   pull_request_review:
     types: [submitted, dismissed]
   issue_comment:
-    types: [created]
+    # CodeRabbit edits its walkthrough comment as a review goes on.
+    types: [created, edited]
   check_run:
     types: [completed]
   status:

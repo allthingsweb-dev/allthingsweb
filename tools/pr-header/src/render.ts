@@ -9,6 +9,7 @@ import {
   type Face,
 } from "./faces.ts";
 import type { PrState } from "./state.ts";
+import { renderWalkthrough } from "./walkthrough.ts";
 
 export const headerStart = "<!-- allthings:pr-header:start -->";
 export const headerEnd = "<!-- allthings:pr-header:end -->";
@@ -89,11 +90,15 @@ export function renderHeader(pr: PrState): string {
     `[Checks](${pr.url}/checks)`,
     `[Files](${pr.url}/files): +${additions} −${deletions} in ${plural(files, "file")}`,
   ];
+  const { walkthrough } = pr.coderabbit;
   return [
     headerStart,
     shields.join(" "),
     "",
     `<sub>${links.join(" · ")}</sub>`,
+    ...(walkthrough
+      ? ["", renderWalkthrough(walkthrough, changeStackUrl(pr))]
+      : []),
     headerEnd,
   ].join("\n");
 }

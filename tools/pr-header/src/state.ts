@@ -1,3 +1,5 @@
+import type { Walkthrough } from "./walkthrough.ts";
+
 /** Everything the header shows about one pull request, already summarized. */
 export type PrState = {
   repo: { owner: string; name: string };
@@ -23,6 +25,8 @@ export type PrState = {
     review:
       "approved" | "changes requested" | "reviewing" | "commented" | "none";
     findings: { resolved: number; open: number };
+    /** CodeRabbit's walkthrough comment, once it has posted one. */
+    walkthrough: Walkthrough | null;
   };
   checks: "passing" | "failing" | "running" | "none";
 };

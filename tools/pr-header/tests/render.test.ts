@@ -20,7 +20,11 @@ const pr: PrState = {
   mergeState: "clean",
   diff: { additions: 120, deletions: 30, files: 6 },
   preview: { state: "ready", url: previewUrl },
-  coderabbit: { review: "approved", findings: { resolved: 5, open: 0 } },
+  coderabbit: {
+    review: "approved",
+    findings: { resolved: 5, open: 0 },
+    walkthrough: null,
+  },
   checks: "passing",
 };
 
@@ -72,7 +76,11 @@ describe("the PR header", () => {
       badges(
         renderHeader({
           ...pr,
-          coderabbit: { review: "commented", findings: { resolved, open } },
+          coderabbit: {
+            review: "commented",
+            findings: { resolved, open },
+            walkthrough: null,
+          },
         }),
       )[2]!.alt;
     expect(findings(5, 0)).toBe("findings: all resolved");
@@ -110,9 +118,42 @@ describe("the PR header", () => {
   test("says when CodeRabbit has no findings yet", () => {
     const header = renderHeader({
       ...pr,
-      coderabbit: { review: "none", findings: { resolved: 0, open: 0 } },
+      coderabbit: {
+        review: "none",
+        findings: { resolved: 0, open: 0 },
+        walkthrough: null,
+      },
     });
     expect(badges(header)[2]!.alt).toBe("findings: none");
+  });
+
+  test("shows CodeRabbit's walkthrough under the shields once it exists", () => {
+    expect(renderHeader(pr)).not.toContain("**CodeRabbit**");
+    const header = renderHeader({
+      ...pr,
+      coderabbit: {
+        ...pr.coderabbit,
+        walkthrough: {
+          url: `${pr.url}#issuecomment-1`,
+          summary: "Adds a thing.",
+          changes: [],
+          effort: null,
+          mergeRisk: { level: "Low", upTo: "abc1234", reason: "Small." },
+          securityRisk: null,
+          checkCounts: {},
+          checks: [],
+          omittedChecks: 0,
+        },
+      },
+    });
+    const [, inside] = header.split(headerStart);
+    expect(inside).toContain(
+      `**CodeRabbit** · merge risk **Low** · [Explain Change](${changeStackUrl(pr)}) · [full walkthrough](${pr.url}#issuecomment-1)`,
+    );
+    expect(header.indexOf("**CodeRabbit**")).toBeGreaterThan(
+      header.indexOf("<sub>"),
+    );
+    expect(header).toEndWith(`</details>\n${headerEnd}`);
   });
 
   test("renders the same state the same way every time", () => {
