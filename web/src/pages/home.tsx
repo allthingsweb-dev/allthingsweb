@@ -3,7 +3,7 @@ import type { CommunityView } from "allthings-core/src/community.ts";
 import type { Evening, HomeView } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import { DateTime } from "effect";
-import { eventPath, everyEvening, lumaCalendar } from "../links.ts";
+import { eventPath, everyEvening, everyTalk, lumaCalendar } from "../links.ts";
 import { Document } from "./document.tsx";
 import { Cursor, EveningRow } from "./evening-row.tsx";
 import { Tally } from "./figures.tsx";
@@ -191,6 +191,10 @@ export function HomeBand({
               <p class="list-links">
                 <a href={everyEvening}>
                   every evening <span aria-hidden="true">→</span>
+                </a>
+                {" · "}
+                <a href={everyTalk}>
+                  every talk <span aria-hidden="true">→</span>
                 </a>
                 {next === undefined ? (
                   ""

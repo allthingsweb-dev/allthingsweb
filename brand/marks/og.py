@@ -192,6 +192,14 @@ PAGES = (
         SENTENCES,
     ),
     Page(
+        "og-talks.png",
+        "every talk · allthings/_",
+        ("every talk",),
+        False,
+        "on stage at every evening",
+        SENTENCES,
+    ),
+    Page(
         "og-about.png",
         "about · allthings/_",
         ("about",),

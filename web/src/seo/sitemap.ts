@@ -19,6 +19,7 @@ import { escapeXml } from "./xml.ts";
 export const sitePages = [
   "/",
   "/events",
+  "/talks",
   "/people",
   "/about",
   "/code-of-conduct",

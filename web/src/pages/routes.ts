@@ -22,6 +22,7 @@ import {
   isEventAddress,
   sharedPrefix,
 } from "allthings-core/src/short-slugs.ts";
+import { TalksLibrary } from "allthings-core/src/talks-library.ts";
 import { Duration, Effect, Layer, Option, Schema } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
@@ -32,6 +33,7 @@ import { Images, WaitUntil } from "../images/route.ts";
 import {
   aboutPath,
   eventPath,
+  everyTalk,
   hosts,
   mediaOrigin,
   personPath,
@@ -42,6 +44,7 @@ import { aboutPage } from "./about.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
 import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { privacyPage, privacyPath } from "./privacy.tsx";
+import { talksPage } from "./talks.tsx";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
@@ -629,6 +632,17 @@ const events = dataPage(
 );
 
 /**
+ * The talks library: every talk given at our evenings that are over
+ * (core's src/talks-library.ts), cached like the evenings index.
+ */
+const talks = dataPage(
+  everyTalk,
+  "the talks library",
+  TalksLibrary.use((library) => library.read),
+  (library, props) => talksPage({ talks: library, ...props }),
+);
+
+/**
  * /brand changes only when the Worker is deployed, but for the hosts'
  * portraits in its footer, which it reads on every request it reaches. It is
  * cached as a page, so a new portrait may take a day to reach the edge.
@@ -1053,6 +1067,7 @@ const elsewhere = page(
 export const pageRoutes = Layer.mergeAll(
   home,
   events,
+  talks,
   people,
   person,
   speakers,
