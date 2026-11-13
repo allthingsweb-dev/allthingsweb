@@ -149,7 +149,10 @@ export function effectiveState(
 /**
  * The pointer after asking the database at `at`, which answered `state`.
  * A version that is new is used only after `turnover` milliseconds; one
- * already in use, or already waiting, stays as it is.
+ * already in use, or already waiting, keeps its place but takes the
+ * boundaries `state` names: they can change with no write to the data, as
+ * when a deploy writes the guide a new edition's days (core's
+ * src/site-version.ts).
  */
 export function nextPointer(
   known: SitePointer | undefined,
@@ -163,10 +166,17 @@ export function nextPointer(
       ? undefined
       : { version: effective.version, boundaries: effective.boundaries };
   if (inUse?.version === state.version) {
-    return { checkedAt: at, current: inUse };
+    return {
+      checkedAt: at,
+      current: { version: state.version, boundaries: state.boundaries },
+    };
   }
   if (known?.next?.version === state.version) {
-    return { ...known, checkedAt: at };
+    return {
+      ...known,
+      checkedAt: at,
+      next: { ...known.next, boundaries: state.boundaries },
+    };
   }
   return {
     checkedAt: at,

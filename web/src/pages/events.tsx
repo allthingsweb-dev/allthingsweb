@@ -1,7 +1,7 @@
 import type { EveningsView } from "allthings-core/src/evenings.ts";
 import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
-import { discord, lumaCalendar, xHandle } from "../links.ts";
+import { discord, guidePath, lumaCalendar, xHandle } from "../links.ts";
 import { Document } from "./document.tsx";
 import { gatheringTitle } from "./metadata.tsx";
 import { EveningRow } from "./evening-row.tsx";
@@ -17,7 +17,8 @@ import type { ImageMode } from "./picture.tsx";
  * Under the title, where to follow along, in a quiet line of words as the
  * footer's socials are (brand/foundations.md, "People and channels").
  * Each list labels its right-hand column, on its year's line: the places
- * are neighborhoods.
+ * are neighborhoods. Under the channels, a link to the guide: happenings
+ * beyond our evenings worth going to.
  */
 
 /** Where to follow every evening, in the line under /events' title. */
@@ -132,6 +133,12 @@ export function eventsPage({
               </li>
             ))}
           </ul>
+          <p class="fact-links">
+            <a href={guidePath}>
+              the guide: happenings worth the trip{" "}
+              <span aria-hidden="true">→</span>
+            </a>
+          </p>
         </div>
         <div class="evenings-lists">
           {ahead.length === 0 ? (
