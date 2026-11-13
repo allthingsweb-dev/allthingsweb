@@ -893,11 +893,14 @@ is given.
 `bun run photos library <slug or short link>` reads the Apple Photos
 library on this Mac (`scripts/photo-library.ts`, through osxphotos, which
 uv runs pinned) for the photos taken from an hour before the evening to an
-hour after, San Francisco time. It never writes to the library. It keeps
-what the library says in `~/Desktop/allthings-photos/<date>/library.json`,
-copies each photo's own preview (which the library keeps even for a photo
-only in iCloud) into `previews/`, and draws a shortlist the same way every
-time:
+hour after, San Francisco time. It never writes to the library. Being in
+the library doesn't make a photo Erik's: anything in a shared album, a
+shared moment or an iCloud Shared Library, or Shared with You, is left out,
+by osxphotos's filters and again by what the library says of each photo
+(`isOwn`), his own shared ones too. It keeps what the library says of the
+rest in `~/Desktop/allthings-photos/<date>/library.json`, copies each one's
+still preview (which the library keeps even for a photo only in iCloud)
+into `previews/`, and draws a shortlist the same way every time:
 
 1. A photo less sharp than a quarter of the set's median is blurred and
    left out.
@@ -915,9 +918,14 @@ Look at the previews, pick, then export the picks at full size into
 written from looking at each one. A photo only in iCloud is downloaded
 through Photos, which macOS asks Erik to allow once (System Settings >
 Privacy & Security > Photos, for the app this runs in); when macOS refuses,
-the command says exactly what to allow.
+the command says exactly what to allow. Only the evening's own photos, as
+the library has them when it runs, can be exported, and each export must
+leave a new file, or the command fails naming the photos it didn't write.
+`--dry-run` reads the library and draws the shortlist from the previews
+where the library keeps them, and writes, copies and exports nothing.
 
 ```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos library agent-setups --dry-run   # the shortlist, nothing written
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos library agent-setups   # previews and the shortlist
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos library agent-setups --export <uuid> --export <uuid>   # the picks, full size
 ```

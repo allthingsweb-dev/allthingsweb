@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, stat } from "node:fs/promises";
+import { copyFile, mkdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { DateTime, Duration, Effect, Schema } from "effect";
@@ -78,8 +78,28 @@ export const LibraryPhoto = Schema.Struct({
   persons: Schema.Array(Schema.String),
   face_info: Schema.Array(Schema.Unknown),
   score: Schema.Struct({ overall: Schema.NullOr(Schema.Number) }),
+  /** In a shared iCloud album. */
+  shared: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+  /** Shared with You: sent by someone in Messages. */
+  syndicated: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+  /** In an iCloud Shared Library, which others add to. */
+  shared_library: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+  /** In a shared moment. */
+  shared_moment: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 });
 export type LibraryPhoto = typeof LibraryPhoto.Type;
+
+/**
+ * Whether a photo is one of Erik's own, as far as the library says: not in
+ * a shared album, a shared moment or a Shared Library, and not Shared with
+ * You. Being in the library doesn't make a photo his; someone else's is
+ * never copied, so anything shared is left out, his own shared ones too.
+ */
+export const isOwn = (photo: LibraryPhoto): boolean =>
+  photo.shared !== true &&
+  photo.syndicated !== true &&
+  photo.shared_library !== true &&
+  photo.shared_moment !== true;
 
 /** What a photo shows, for variety. */
 export type PhotoKind = "stage" | "crowd" | "room" | "close-up";
@@ -244,10 +264,14 @@ export function shortlist(
 ): Shortlist {
   const left: Array<Left> = [];
   const sorted = measured.map((m) => m.sharpness).toSorted((a, b) => a - b);
+  // The median: the middle value, or the mean of the two middle ones.
+  const middle = Math.floor(sorted.length / 2);
   const median =
     sorted.length === 0
       ? 0
-      : (sorted[Math.floor((sorted.length - 1) / 2)] ?? 0);
+      : sorted.length % 2 === 1
+        ? (sorted[middle] ?? 0)
+        : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
   const focused = measured.filter((m) => {
     if (m.sharpness >= median * blurShare) return true;
     left.push({ why: "blurred", uuid: m.photo.uuid });
@@ -270,8 +294,10 @@ export function shortlist(
   const picks: Array<Measured> = [];
   while (picks.length < max && queues.some((queue) => queue.length > 0)) {
     for (const queue of queues) {
+      // At the limit, what is still queued stays queued: it is left out.
+      if (picks.length >= max) break;
       const next = queue.shift();
-      if (next !== undefined && picks.length < max) picks.push(next);
+      if (next !== undefined) picks.push(next);
     }
   }
   for (const queue of queues) {
@@ -357,6 +383,11 @@ export const queryLibrary = (window: { from: string; to: string }) =>
     window.to,
     "--only-photos",
     "--not-screenshot",
+    // Other people's photos, however they reached the library.
+    "--not-shared",
+    "--not-syndicated",
+    "--not-shared-moment",
+    "--not-shared-library",
     "--json",
   ]).pipe(
     Effect.flatMap(
@@ -364,13 +395,22 @@ export const queryLibrary = (window: { from: string; to: string }) =>
         Schema.fromJsonString(Schema.Array(LibraryPhoto)),
       ),
     ),
+    // And again here, by what the library says of each: a filter osxphotos
+    // drops or changes never lets one through.
+    Effect.map((photos) => ({
+      own: photos.filter(isOwn),
+      shared: photos.filter((photo) => !isOwn(photo)).length,
+    })),
   );
 
-/** A photo's largest local preview, which the library keeps even for one in iCloud. */
+/** A preview Sharp reads: a JPEG, never a Live Photo's movie. */
+export const isStill = (path: string): boolean => /\.jpe?g$/i.test(path);
+
+/** A photo's largest still preview, which the library keeps even for one in iCloud. */
 export const largestPreview = (photo: LibraryPhoto) =>
   Effect.promise(async () => {
     let best: { path: string; size: number } | null = null;
-    for (const path of photo.path_derivatives) {
+    for (const path of photo.path_derivatives.filter(isStill)) {
       const size = await stat(path).then(
         (s) => s.size,
         () => -1,
@@ -381,20 +421,30 @@ export const largestPreview = (photo: LibraryPhoto) =>
     return best?.path ?? null;
   });
 
-/** Copies each photo's preview into `folder`/previews, named by its uuid. */
+/**
+ * Each photo's preview: copied into `folder`/previews, named by its uuid;
+ * or, in a dry run, read where the library keeps it and nothing written.
+ */
 export const stagePreviews = (
   photos: ReadonlyArray<LibraryPhoto>,
   folder: string,
+  dryRun: boolean,
 ) =>
   Effect.gen(function* () {
     const previews = join(folder, "previews");
-    yield* Effect.promise(() => mkdir(previews, { recursive: true }));
+    if (!dryRun) {
+      yield* Effect.promise(() => mkdir(previews, { recursive: true }));
+    }
     const staged: Array<{ photo: LibraryPhoto; preview: string }> = [];
     const noPreview: Array<string> = [];
     for (const photo of photos) {
       const source = yield* largestPreview(photo);
       if (source === null) {
         noPreview.push(photo.uuid);
+        continue;
+      }
+      if (dryRun) {
+        staged.push({ photo, preview: source });
         continue;
       }
       const preview = join(previews, `${photo.uuid}.jpeg`);
@@ -404,15 +454,29 @@ export const stagePreviews = (
     return { staged, noPreview };
   });
 
+/** An export osxphotos reported done that left no new file behind. */
+export class ExportMissing extends Schema.TaggedError<ExportMissing>()(
+  "ExportMissing",
+  { uuids: Schema.Array(Schema.String) },
+) {
+  override get message(): string {
+    return `osxphotos wrote no new file for: ${this.uuids.join(", ")}`;
+  }
+}
+
 /**
  * Exports the photos with `uuids` at full size, as JPEG named by uuid, into
- * `folder`/candidates. One only in iCloud is downloaded through Photos
- * (PhotoKit), which macOS must allow.
+ * `folder`/candidates, writing over any earlier export of them. One only in
+ * iCloud is downloaded through Photos (PhotoKit), which macOS must allow.
+ * osxphotos can finish without writing a photo (one deleted since, say), so
+ * each file must have been written by this export, or it fails naming them.
  */
 export const exportOriginals = (uuids: ReadonlyArray<string>, folder: string) =>
   Effect.gen(function* () {
     const candidates = join(folder, "candidates");
     yield* Effect.promise(() => mkdir(candidates, { recursive: true }));
+    // A second back, for filesystems that keep whole seconds.
+    const started = Date.now() - 1_000;
     yield* runOsxphotos([
       "export",
       candidates,
@@ -425,9 +489,24 @@ export const exportOriginals = (uuids: ReadonlyArray<string>, folder: string) =>
       "--skip-live",
       "--download-missing",
       "--use-photokit",
-      "--update",
+      "--overwrite",
     ]);
-    return uuids.map((uuid) => join(candidates, `${uuid}.jpeg`));
+    const files = uuids.map((uuid) => ({
+      uuid,
+      file: join(candidates, `${uuid}.jpeg`),
+    }));
+    const missing: Array<string> = [];
+    for (const { uuid, file } of files) {
+      const written = yield* Effect.promise(() =>
+        stat(file).then(
+          (s) => s.size > 0 && s.mtimeMs >= started,
+          () => false,
+        ),
+      );
+      if (!written) missing.push(uuid);
+    }
+    if (missing.length > 0) return yield* new ExportMissing({ uuids: missing });
+    return files.map(({ file }) => file);
   });
 
 const EveningRow = Schema.Struct({
@@ -474,13 +553,3 @@ export const eveningForPhotos = (slug: string) =>
     if (row === undefined) return yield* new PhotoEveningNotFound({ slug });
     return row;
   });
-
-/** The library's answer kept beside the previews, as osxphotos gave it. */
-export const readStaged = (folder: string) =>
-  Effect.promise(() => readFile(join(folder, "library.json"), "utf8")).pipe(
-    Effect.flatMap(
-      Schema.decodeUnknownEffect(
-        Schema.fromJsonString(Schema.Array(LibraryPhoto)),
-      ),
-    ),
-  );

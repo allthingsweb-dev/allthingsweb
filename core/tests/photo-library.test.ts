@@ -5,6 +5,8 @@ import {
   blockedBy,
   cleared,
   hashDistance,
+  isOwn,
+  isStill,
   kindOf,
   type LibraryPhoto,
   libraryWindow,
@@ -58,6 +60,36 @@ describe("the window", () => {
 
   test("the staging folder's date is the evening's in San Francisco", () => {
     expect(sfIso(at("2026-11-12T03:00:00Z")).slice(0, 10)).toBe("2026-11-11");
+  });
+});
+
+describe("whose photo it is", () => {
+  test("only Erik's own: nothing shared, Shared with You, in a Shared Library or a shared moment", () => {
+    expect(isOwn(photo())).toBe(true);
+    expect(
+      isOwn(
+        photo({
+          shared: false,
+          syndicated: null,
+          shared_library: false,
+          shared_moment: false,
+        }),
+      ),
+    ).toBe(true);
+    for (const shared of [
+      { shared: true },
+      { syndicated: true },
+      { shared_library: true },
+      { shared_moment: true },
+    ]) {
+      expect(isOwn(photo(shared))).toBe(false);
+    }
+  });
+
+  test("a preview is a still JPEG, never a Live Photo's movie", () => {
+    expect(isStill("/lib/derivatives/A_1_105_c.jpeg")).toBe(true);
+    expect(isStill("/lib/derivatives/A_4_5005_c.JPG")).toBe(true);
+    expect(isStill("/lib/derivatives/A_3_105_c.mov")).toBe(false);
   });
 });
 
@@ -178,6 +210,34 @@ describe("the shortlist", () => {
     ]);
     // The same photos give the same shortlist, in any order.
     expect(shortlist(set.toReversed(), [], 3)).toEqual(list);
+  });
+
+  test("at the limit, the rest of each kind is left out, never dropped", () => {
+    const list = shortlist(
+      [
+        m("1", { photo: { labels: ["Podium"] } }),
+        m("a", { photo: { face_info: faces(6) } }),
+        m("b", { photo: { labels: ["Chair"] } }),
+      ],
+      [],
+      1,
+    );
+    expect(list.picks.map((p) => p.photo.uuid)).toEqual(["1"]);
+    expect(list.left).toEqual([
+      { why: "past the limit", uuid: "a" },
+      { why: "past the limit", uuid: "b" },
+    ]);
+  });
+
+  test("of an even number, the median is the mean of the middle two", () => {
+    // Sharpness 5 and 100: the median is 52.5, so 5 is blurred.
+    const list = shortlist(
+      [m("1", { sharpness: 100 }), m("2", { sharpness: 5 })],
+      [],
+      8,
+    );
+    expect(list.picks.map((p) => p.photo.uuid)).toEqual(["1"]);
+    expect(list.left).toEqual([{ why: "blurred", uuid: "2" }]);
   });
 
   test("a close-up of someone on stage is shortlisted", () => {

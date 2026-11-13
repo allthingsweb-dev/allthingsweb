@@ -27,7 +27,6 @@ import {
   type Measured,
   measure,
   queryLibrary,
-  readStaged,
   shortlist,
   stagePreviews,
   stagingFolder,
@@ -357,25 +356,45 @@ const library = Command.make(
       ),
       Flag.atLeast(0),
     ),
+    dryRun: Flag.Boolean("dry-run").pipe(
+      Flag.withDescription(
+        "Read the library and draw the shortlist from its own previews; write, copy and export nothing.",
+      ),
+      Flag.withDefault(false),
+    ),
     json: Flag.Boolean("json").pipe(
       Flag.withDescription("Print the results as JSON."),
       Flag.withDefault(false),
     ),
   },
-  ({ slug, max, exportUuids, json }) =>
+  ({ slug, max, exportUuids, dryRun, json }) =>
     Effect.gen(function* () {
       const evening = yield* eveningForPhotos(slug);
       const folder = stagingFolder(evening.startDate);
+      const window = libraryWindow(evening.startDate, evening.endDate);
+      // Read now, never from a file: only the evening's own photos, as the
+      // library has them now, can be exported.
+      const { own, shared } = yield* queryLibrary(window);
       if (exportUuids.length > 0) {
-        const staged = yield* readStaged(folder);
         const unknown = exportUuids.filter(
-          (uuid) => !staged.some((photo) => photo.uuid === uuid),
+          (uuid) => !own.some((photo) => photo.uuid === uuid),
         );
         if (unknown.length > 0) {
           return yield* Effect.fail(
             new Error(
-              `Not among the evening's photos in ${folder}/library.json: ${unknown.join(", ")}`,
+              `Not among the evening's own photos in the library: ${unknown.join(", ")}`,
             ),
+          );
+        }
+        if (dryRun) {
+          return yield* Console.log(
+            json
+              ? JSON.stringify(
+                  { slug: evening.slug, dryRun, wouldExport: exportUuids },
+                  null,
+                  2,
+                )
+              : `Would export ${exportUuids.length} at full size into ${folder}/candidates; nothing was written.`,
           );
         }
         const files = yield* exportOriginals(exportUuids, folder);
@@ -388,13 +407,13 @@ const library = Command.make(
               ].join("\n"),
         );
       }
-      const window = libraryWindow(evening.startDate, evening.endDate);
-      const found = yield* queryLibrary(window);
-      yield* Effect.promise(() => mkdir(folder, { recursive: true }));
-      yield* Effect.promise(() =>
-        Bun.write(`${folder}/library.json`, JSON.stringify(found, null, 2)),
-      );
-      const { staged, noPreview } = yield* stagePreviews(found, folder);
+      if (!dryRun) {
+        yield* Effect.promise(() => mkdir(folder, { recursive: true }));
+        yield* Effect.promise(() =>
+          Bun.write(`${folder}/library.json`, JSON.stringify(own, null, 2)),
+        );
+      }
+      const { staged, noPreview } = yield* stagePreviews(own, folder, dryRun);
       const measured: Array<Measured> = [];
       for (const { photo, preview } of staged) {
         const { sharpness, hash } = yield* Effect.promise(() =>
@@ -405,9 +424,11 @@ const library = Command.make(
       const drawn = shortlist(measured, evening.people, max);
       const result = {
         slug: evening.slug,
+        dryRun,
         window,
         folder,
-        found: found.length,
+        found: own.length,
+        sharedLeftOut: shared,
         noPreview,
         picks: drawn.picks.map((m) => ({
           uuid: m.photo.uuid,
@@ -422,14 +443,19 @@ const library = Command.make(
         })),
         left: drawn.left,
       };
-      yield* Effect.promise(() =>
-        Bun.write(`${folder}/shortlist.json`, JSON.stringify(result, null, 2)),
-      );
+      if (!dryRun) {
+        yield* Effect.promise(() =>
+          Bun.write(
+            `${folder}/shortlist.json`,
+            JSON.stringify(result, null, 2),
+          ),
+        );
+      }
       return yield* Console.log(
         json
           ? JSON.stringify(result, null, 2)
           : [
-              `${evening.slug}: ${found.length} photos in the library from ${window.from} to ${window.to}; previews in ${folder}/previews`,
+              `${evening.slug}: ${own.length} of Erik's own photos in the library from ${window.from} to ${window.to}${shared > 0 ? ` (${shared} shared by others left out)` : ""}; ${dryRun ? "previews read in place, nothing written" : `previews in ${folder}/previews`}`,
               `Shortlist (${drawn.picks.length}):`,
               ...drawn.picks.map(
                 (m) =>
