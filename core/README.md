@@ -933,8 +933,8 @@ hour after, San Francisco time. It never writes to the library. Being in
 the library doesn't make a photo Erik's: anything in a shared album, a
 shared moment or an iCloud Shared Library, or Shared with You, is left out,
 by osxphotos's filters and again by what the library says of each photo
-(`isOwn`), his own shared ones too. It keeps what the library says of the
-rest in `~/Desktop/allthings-photos/<date>/library.json`, copies each one's
+(`isOwn`), his own shared ones too. So is a photo the library says nothing
+of on any of those four. It keeps what the library says of the rest in `~/Desktop/allthings-photos/<date>/library.json`, copies each one's
 still preview (which the library keeps even for a photo only in iCloud)
 into `previews/`, and draws a shortlist the same way every time:
 
