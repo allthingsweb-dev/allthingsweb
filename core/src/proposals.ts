@@ -187,6 +187,16 @@ const requiredFields: ReadonlyArray<ProposalField> = [
   "email",
 ];
 
+/**
+ * A proposal's links as one statement parameter: one a line, which the
+ * statement reads back with `string_to_array($n::text, chr(10))`. A link
+ * holds no line break (`linkProblem`), and `@effect/sql-pg` can't send an
+ * empty array, whose element type it can't infer; the empty string reads
+ * back as the empty array.
+ */
+export const linksParameter = (links: ReadonlyArray<string>): string =>
+  links.join("\n");
+
 /** A proposal, read in: trimmed, checked, ready to store. */
 export interface ProposalInput {
   readonly title: string;
@@ -438,7 +448,7 @@ export const recordProposal = (raw: unknown) =>
       `WITH p AS (
          INSERT INTO planning.proposals
            (title, abstract, format, name, email, about, links, notes, source, recorded_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7::text[], $8, 'organizer', $9)
+         VALUES ($1, $2, $3, $4, $5, $6, string_to_array($7::text, chr(10)), $8, 'organizer', $9)
          RETURNING *
        )
        SELECT ${proposalJson} AS proposal FROM p`,
@@ -449,7 +459,7 @@ export const recordProposal = (raw: unknown) =>
         proposal.name,
         proposal.email,
         proposal.about,
-        proposal.links as Array<string>,
+        linksParameter(proposal.links),
         proposal.notes,
         actor,
       ],

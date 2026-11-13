@@ -1,7 +1,11 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import type { SqlError } from "effect/sql/SqlError";
-import type { ProposalInput, ProposalSource } from "./proposals.ts";
+import {
+  linksParameter,
+  type ProposalInput,
+  type ProposalSource,
+} from "./proposals.ts";
 
 /**
  * Proposals from anyone (the site's form, its MCP server, the CLI, the
@@ -49,7 +53,7 @@ export const submitProposal = (proposal: ProposalInput, source: IntakeSource) =>
       .unsafe(
         `INSERT INTO planning.proposals
            (title, abstract, format, name, email, about, links, notes, source)
-         VALUES ($1, $2, $3, $4, $5, $6, $7::text[], $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, string_to_array($7::text, chr(10)), $8, $9)`,
         [
           proposal.title,
           proposal.abstract,
@@ -57,7 +61,7 @@ export const submitProposal = (proposal: ProposalInput, source: IntakeSource) =>
           proposal.name,
           proposal.email,
           proposal.about,
-          proposal.links as Array<string>,
+          linksParameter(proposal.links),
           proposal.notes,
           source,
         ],
