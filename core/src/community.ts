@@ -1,6 +1,7 @@
 import { Context, type DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
+import type * as Statement from "effect/sql/Statement";
 import { held, type Tally, TallyFields, tally } from "./about.ts";
 import {
   latestAppearanceFirst,
@@ -150,6 +151,33 @@ const Request = Schema.Struct({
 const photoJson = (alias: "img" | "i") =>
   `json_build_object('url', ${alias}.url, 'alt', ${alias}.alt, 'width', ${alias}.width, 'height', ${alias}.height, 'version', floor(extract(epoch FROM ${alias}.updated_at))::bigint::text)`;
 
+/**
+ * The photo that stands for the evening aliased `e` ({@link HeldEvening}),
+ * as a JSON object matching `Rows.Photo`, or null: its first in `wallJson`
+ * (the wall's picks, as JSON text), else its first attached, taken only
+ * from URLs that start with `photoPrefix`.
+ */
+export const eveningPhoto = (
+  sql: SqlClient,
+  wallJson: string,
+  photoPrefix: string,
+): Statement.Fragment => sql`(
+    SELECT ${sql.literal(photoJson("img"))}
+    FROM event_images ei
+    JOIN images img ON img.id = ei.image_id
+    LEFT JOIN json_array_elements(${wallJson}::json)
+      WITH ORDINALITY AS c(pick, ord)
+      ON (c.pick->>'image')::uuid = img.id
+      AND c.pick->>'evening' = e.slug
+    WHERE ei.event_id = e.id AND starts_with(img.url, ${photoPrefix})
+    ORDER BY c.ord NULLS LAST, ei.created_at, img.id
+    LIMIT 1
+  )`;
+
+/** The wall's picks as JSON text, for {@link eveningPhoto}. */
+export const wallPicksJson = (wall: ReadonlyArray<HeroPick>): string =>
+  JSON.stringify(wall.map(({ image, evening }) => ({ image, evening })));
+
 /** The lab, with the wall and the faces picked by `wall` and `faces`. */
 const make = (
   wall: ReadonlyArray<HeroPick>,
@@ -157,9 +185,7 @@ const make = (
 ) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
-    const wallJson = JSON.stringify(
-      wall.map(({ image, evening }) => ({ image, evening })),
-    );
+    const wallJson = wallPicksJson(wall);
     const facesJson = JSON.stringify(faces.map(({ profile }) => ({ profile })));
 
     const findCommunity = SqlSchema.findOne({
@@ -211,18 +237,7 @@ const make = (
             SELECT e.id, e.start_date, json_build_object(
               'slug', ${sql.literal(siteSlug("e"))}, 'name', e.name,
               'topic', e.topic, 'startDate', e.start_date,
-              'photo', (
-                SELECT ${sql.literal(photoJson("img"))}
-                FROM event_images ei
-                JOIN images img ON img.id = ei.image_id
-                LEFT JOIN json_array_elements(${wallJson}::json)
-                  WITH ORDINALITY AS c(pick, ord)
-                  ON (c.pick->>'image')::uuid = img.id
-                  AND c.pick->>'evening' = e.slug
-                WHERE ei.event_id = e.id AND starts_with(img.url, ${photoPrefix})
-                ORDER BY c.ord NULLS LAST, ei.created_at, img.id
-                LIMIT 1
-              )
+              'photo', ${eveningPhoto(sql, wallJson, photoPrefix)}
             ) AS evening
             FROM held e
             ORDER BY ${latestFirst(sql, "e")}
