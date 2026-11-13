@@ -172,6 +172,7 @@ describe("Events", () => {
     ).toEqual({
       id: "e0000000-0000-4000-8000-000000000001",
       slug: "2026-08-12-react-at-acme",
+      siteSlug: "2026-08-12-react-at-acme",
       name: "React at Acme",
       tagline: "Server components in practice",
       startDate: at("2026-08-13T01:00:00Z"),
@@ -323,7 +324,33 @@ describe("Events", () => {
           slug,
           "e0000000-0000-4000-8000-000000000001",
         ]);
+        // Whichever link found it, it keeps its long slug, and its page
+        // is at its short link.
+        expect([event.slug, event.siteSlug]).toEqual([
+          "2026-08-12-react-at-acme",
+          "react",
+        ]);
       }
+      // As the list and the speakers directory have it too.
+      const listed = await run(
+        Events.use((events) => events.listPublished),
+        { database: linked },
+      );
+      expect(
+        listed.map((event) => [event.slug, event.siteSlug]).slice(-2),
+      ).toEqual([
+        ["2026-08-12-react-at-acme", "react"],
+        ["2025-12-02-café-night", "2025-12-02-café-night"],
+      ]);
+      const directory = await run(
+        Speakers.use((speakers) => speakers.directory),
+        { database: linked },
+      );
+      expect(
+        directory.talks
+          .filter((talk) => talk.eventSlug === "2026-08-12-react-at-acme")
+          .map((talk) => talk.eventSiteSlug),
+      ).toEqual(["react", "react"]);
       const error = await run(
         Effect.flip(Events.use((events) => events.getPublished("draft"))),
         { database: linked },
@@ -387,6 +414,7 @@ describe("Speakers", () => {
       eventId: "e0000000-0000-4000-8000-000000000005",
       eventName: "Ends now",
       eventSlug: "2026-10-03-ends-now",
+      eventSiteSlug: "2026-10-03-ends-now",
       eventStart: at("2026-10-03T15:00:00Z"),
     });
   });
