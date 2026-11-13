@@ -117,7 +117,7 @@ describe("/propose", () => {
     expect(policy).not.toContain("script-src");
     const html = await response.text();
     expect(html).toContain(
-      '<form class="form" method="post" action="/propose">',
+      '<form class="form" method="post" action="/propose#send">',
     );
     for (const name of [
       "title",
@@ -141,6 +141,10 @@ describe("/propose", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     const html = await response.text();
+    // The answer opens at #send (the form's action), its thanks right under it.
+    expect(html).toMatch(
+      /<h2 id="send">Your proposal<\/h2>\s*<p role="status">/,
+    );
     expect(html).toContain(outcomeMessages.Kept.replace("'", "&#39;"));
     expect(html).not.toContain("<form");
     expect(await kept()).toEqual([
@@ -165,6 +169,10 @@ describe("/propose", () => {
     });
     expect(response.status).toBe(422);
     const html = await response.text();
+    // The answer opens at #send, the alert right under it, then the form.
+    expect(html).toMatch(
+      /<h2 id="send">Your proposal<\/h2>\s*<p role="alert">/,
+    );
     // What was sent comes back as text: out of the attribute, out of the textarea.
     expect(html).toContain(`value="&#34;><img src=x onerror=alert(1)>"`);
     expect(html).not.toContain("</textarea><script>");
