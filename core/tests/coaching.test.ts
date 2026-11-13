@@ -5,6 +5,7 @@ import {
   coach,
   Coaching,
   finishBy,
+  limits,
   type Goal,
   readTalk,
   readTranscript,
@@ -96,6 +97,52 @@ describe("reading a transcript", () => {
       120,
     );
     expect(readTalk({ slot: openFloor, transcript: "  " }).seconds).toBeNull();
+  });
+
+  test("overlapping cues: the talk ends at the latest end, not the last cue's", () => {
+    const transcript = [
+      "WEBVTT",
+      "",
+      "00:00.000 --> 03:20.000",
+      "A long cue.",
+      "",
+      "00:05.000 --> 00:10.000",
+      "A short one inside it.",
+    ].join("\n");
+    expect(readTalk({ slot: openFloor, transcript }).seconds).toBe(200);
+    expect(
+      coach({ slot: openFloor, transcript }).findings.find(
+        (f) => f.id === "length",
+      )?.severity,
+    ).toBe("must");
+  });
+
+  test("timestamps inside a cue split it into the parts said from then", () => {
+    expect(
+      readTranscript(
+        "WEBVTT\n\n00:00.000 --> 00:30.000\nHello. <00:25.000>I'm Sam and I built X.\n",
+      ).cues,
+    ).toEqual([
+      { start: 0, end: 25, text: "Hello." },
+      { start: 25, end: 30, text: "I'm Sam and I built X." },
+    ]);
+  });
+
+  test("reads text past its limits in linear time", () => {
+    const started = performance.now();
+    for (const transcript of [
+      `00:00.000 --> 00:01.000\n${"<".repeat(limits.transcript)}`,
+      `00:00.000 --> 00:01.000\n${"a".repeat(limits.transcript)}`,
+      "\n".repeat(limits.transcript),
+    ]) {
+      coach({
+        slot: openFloor,
+        transcript,
+        outline: "\n ".repeat(limits.outline / 2),
+        goals: ["teach-a-technique", "find-contributors", "get-hired"],
+      });
+    }
+    expect(performance.now() - started).toBeLessThan(2_000);
   });
 });
 
@@ -195,6 +242,25 @@ describe("opening", () => {
         "opening",
       ),
     ).toBeDefined();
+  });
+
+  test("words timed past 20 seconds inside a long cue don't count", () => {
+    // An inline timestamp places them; without one, a cue's words are read
+    // as said evenly across it.
+    for (const cue of [
+      "Hello there. <00:25.000>I'm Sam and I built X.",
+      `${words(30)} I'm Sam and I built X.`,
+    ]) {
+      expect(
+        finding(
+          {
+            slot: openFloor,
+            transcript: `WEBVTT\n\n00:00.000 --> 00:40.000\n${cue}\n`,
+          },
+          "opening",
+        )?.severity,
+      ).toBe("should");
+    }
   });
 
   test("said after 20 seconds doesn't count", () => {
@@ -460,13 +526,15 @@ describe("goals", () => {
   });
 
   test("teach a technique: steps or code", () => {
-    const outline = "1. Install\n2. Configure";
-    expect(
-      withGoal("teach-a-technique", {
-        slot: openFloor,
-        outline,
-      }).strengths.some((s) => s.id === "teach-a-technique"),
-    ).toBe(true);
+    // A numbered list after a heading: the pattern keeps its line flag.
+    for (const outline of ["1. Install\n2. Configure", "# Setup\n1. Install"]) {
+      expect(
+        withGoal("teach-a-technique", {
+          slot: openFloor,
+          outline,
+        }).strengths.some((s) => s.id === "teach-a-technique"),
+      ).toBe(true);
+    }
     expect(
       withGoal("teach-a-technique", {
         slot: openFloor,

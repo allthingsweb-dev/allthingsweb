@@ -215,10 +215,25 @@ const seconds = (stamp: string): number => {
   return whole + Number(`0.${fraction}`);
 };
 
+/** WebVTT's timestamp inside a cue, `<00:25.000>`: when the words after it start. */
+const inlineTiming = /<((?:\d+:)?\d{1,2}:\d{2}\.\d{1,3})>/;
+
+/**
+ * A cue's words without markup. A tag ends at the first `<` or `>` after
+ * it opens, so a run of `<` with no `>` is read once, never rescanned.
+ */
+const cueWords = (text: string): string =>
+  text
+    .replace(/<[^<>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 /**
  * A transcript, plain or timed. WebVTT and SRT are told apart from plain
  * text by their `-->` timing lines: their headers, notes, cue numbers and
- * voice tags are dropped, and each cue keeps its start, end and words.
+ * voice tags are dropped, and each cue keeps its start, end and words. A
+ * WebVTT cue with timestamps inside it is read as one cue per timed part,
+ * each starting at its timestamp, so the words keep the time they were said.
  */
 export function readTranscript(raw: string): Spoken {
   const lines = raw.replace(/\r\n?/g, "\n").split("\n");
@@ -230,14 +245,24 @@ export function readTranscript(raw: string): Spoken {
     null;
   const close = () => {
     if (current === null) return;
-    const words = current.lines
-      .join(" ")
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (words !== "") {
-      cues.push({ start: current.start, end: current.end, text: words });
+    const { start, end } = current;
+    // [words, stamp, words, stamp, words…]: split keeps the captured stamps.
+    const pieces = current.lines.join(" ").split(inlineTiming);
+    const parts: Array<{ start: number; text: string }> = [];
+    for (let index = 0; index < pieces.length; index += 2) {
+      const stamp = index === 0 ? start : seconds(pieces[index - 1] ?? "");
+      const text = cueWords(pieces[index] ?? "");
+      if (text !== "") {
+        parts.push({ start: Math.min(Math.max(stamp, start), end), text });
+      }
     }
+    parts.forEach((part, index) =>
+      cues.push({
+        start: part.start,
+        end: parts[index + 1]?.start ?? end,
+        text: part.text,
+      }),
+    );
     current = null;
   };
   for (const line of lines) {
@@ -273,10 +298,10 @@ export function slidesOf(outline: string): ReadonlyArray<string> | null {
     .replace(/\r\n?/g, "\n")
     .replace(/^---\n[\s\S]*?\n---\n/, "");
   const slides = body
-    .split(/^\s*---+\s*$/m)
+    .split(/^[ \t]*---+[ \t]*$/m)
     .map((slide) => slide.trim())
     .filter((slide) => slide !== "");
-  return /^\s*---+\s*$/m.test(body) && slides.length > 1 ? slides : null;
+  return /^[ \t]*---+[ \t]*$/m.test(body) && slides.length > 1 ? slides : null;
 }
 
 /** What the checks read: the materials, read once. */
@@ -300,12 +325,14 @@ export function readTalk(materials: TalkMaterials): Talk {
   const words = spoken === null ? 0 : wordsOf(spoken.text).length;
   const cues = spoken?.cues ?? null;
   const first = cues?.[0];
-  const last = cues?.at(-1);
+  // Cues are in order of their starts; their ends needn't be, as cues may
+  // overlap, so the talk ends at the latest end.
+  const end = cues?.reduce((latest, cue) => Math.max(latest, cue.end), 0);
   const length =
     spoken === null || words === 0
       ? null
-      : first !== undefined && last !== undefined
-        ? Math.max(0, last.end - first.start)
+      : first !== undefined && end !== undefined
+        ? Math.max(0, end - first.start)
         : (words / spokenWordsPerMinute) * 60;
   const outline = materials.outline?.trim() ?? "";
   return {
@@ -325,15 +352,25 @@ export function readTalk(materials: TalkMaterials): Talk {
 export const isTimed = (talk: Talk): boolean =>
   talk.spoken !== null && talk.spoken.cues !== null;
 
-/** The talk's first `openingSeconds`: its transcript's, else its outline's. */
+/**
+ * The talk's first `openingSeconds`: its transcript's, else its outline's.
+ * A cue that runs past them gives its share of words up to them, read as
+ * said evenly across the cue: its timing can't place them more closely.
+ */
 export function openingOf(talk: Talk): string {
   const { spoken } = talk;
   if (spoken !== null) {
     const first = spoken.cues?.[0];
     if (spoken.cues !== null && first !== undefined) {
+      const until = first.start + openingSeconds;
       return spoken.cues
-        .filter((cue) => cue.start - first.start < openingSeconds)
-        .map((cue) => cue.text)
+        .filter((cue) => cue.start < until)
+        .map((cue) => {
+          if (cue.end <= until) return cue.text;
+          const words = cue.text.split(" ");
+          const share = (until - cue.start) / (cue.end - cue.start);
+          return words.slice(0, Math.floor(words.length * share)).join(" ");
+        })
         .join(" ");
     }
     return firstWords(spoken.text, openingWords);
@@ -379,6 +416,10 @@ interface Found {
   readonly count: number;
 }
 
+/** `pattern` with `flags` added to its own (`m` on a line pattern stays). */
+const withFlags = (pattern: RegExp, flags: string): RegExp =>
+  new RegExp(pattern.source, [...new Set(pattern.flags + flags)].join(""));
+
 /** What `patterns` match in `text`, most often first, then alphabetically. */
 function phrases(
   text: string,
@@ -386,7 +427,7 @@ function phrases(
 ): ReadonlyArray<Found> {
   const counts = new Map<string, number>();
   for (const pattern of patterns) {
-    for (const match of text.matchAll(new RegExp(pattern.source, "giu"))) {
+    for (const match of text.matchAll(withFlags(pattern, "giu"))) {
       const phrase = match[0].toLowerCase().replace(/\s+/g, " ");
       counts.set(phrase, (counts.get(phrase) ?? 0) + 1);
     }
@@ -401,7 +442,7 @@ const quoted = ({ phrase, count }: Found): string =>
   count > 1 ? `"${phrase}" ×${count}` : `"${phrase}"`;
 
 const some = (text: string, patterns: ReadonlyArray<RegExp>): boolean =>
-  patterns.some((pattern) => new RegExp(pattern.source, "iu").test(text));
+  patterns.some((pattern) => withFlags(pattern, "iu").test(text));
 
 // ---------------------------------------------------------------------------
 // The rules
@@ -715,7 +756,7 @@ const slideWords: Rule = {
 
 const findIt = [
   /https?:\/\/\S+/,
-  /\b[\w-]+\.(?:dev|com|io|sh|org|app|ai|so|xyz|net|gg)\b/,
+  /\b[\w-]{1,63}\.(?:dev|com|io|sh|org|app|ai|so|xyz|net|gg)\b/,
   /\b(?:github|gitlab|codeberg|npm|jsr|pypi|crates)\b/,
   /\b(?:repo|repository|slides)\b/,
   /(?:^|\s)@\w+/,
@@ -884,12 +925,7 @@ const firstTalk: Rule = {
       : pass("You've rehearsed it out loud."),
 };
 
-const steps = [
-  /```/,
-  /^\s*\d+[.)]\s/m,
-  /\bsteps?\b/,
-  /\bfirst\b[\s\S]*\bthen\b/,
-];
+const steps = [/```/, /^[ \t]*\d+[.)][ \t]/m, /\bsteps?\b/];
 
 const teach: Rule = {
   id: "teach-a-technique",
