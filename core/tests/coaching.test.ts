@@ -557,6 +557,18 @@ describe("plain words", () => {
     });
   });
 
+  test("quotes the word that matched, not an earlier one containing it", () => {
+    expect(
+      finding(
+        {
+          slot: lineup,
+          abstract: "A nonrobust baseline becomes robust after retries.",
+        },
+        "plain-words",
+      )?.observed,
+    ).toBe('The abstract says "robust" (filler: say what it withstands).');
+  });
+
   test("names three, then how many more", () => {
     expect(
       finding(

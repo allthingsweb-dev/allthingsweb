@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { stockPhrases, voiceFindings } from "./voice.ts";
+import { stockPhrases, type VoiceFinding, voiceFindings } from "./voice.ts";
 
 /**
  * Coaching for a talk at allthings: a speaker sends what they have (the
@@ -917,16 +917,31 @@ const abstract: Rule = {
   },
 };
 
-/** `said` as it appears in `text`, widened to the whole words around it. */
-function wholeWords(text: string, said: string): string {
-  const at = text.indexOf(said);
-  if (at === -1) return said;
+/**
+ * What a finding quotes, widened to the whole words around the match it
+ * reports ("game-changing" for the rule's "game-chang"). The match is found
+ * again by the rule that made it, at the place it matched, so a quote of
+ * "robust" is never read inside an earlier "nonrobust". A finding no rule
+ * matches again (a long sentence) is quoted as it is.
+ */
+function quoteOf(text: string, finding: VoiceFinding): string {
+  // voiceFindings reads a paragraph's wrapped lines as one.
+  const plain = text.replace(/\s+/g, " ");
   const letter = /[\p{L}\p{N}'’-]/u;
-  let start = at;
-  let end = at + said.length;
-  while (start > 0 && letter.test(text.charAt(start - 1))) start--;
-  while (end < text.length && letter.test(text.charAt(end))) end++;
-  return text.slice(start, end);
+  for (const { pattern, why } of stockPhrases) {
+    if (why !== finding.why) continue;
+    const match = new RegExp(
+      pattern.source,
+      pattern.flags.replace("g", ""),
+    ).exec(plain);
+    if (match?.[0] !== finding.said) continue;
+    let start = match.index;
+    let end = start + match[0].length;
+    while (start > 0 && letter.test(plain.charAt(start - 1))) start--;
+    while (end < plain.length && letter.test(plain.charAt(end))) end++;
+    return plain.slice(start, end);
+  }
+  return finding.said;
 }
 
 /** How many of the words it found plain words names, at most. */
@@ -953,8 +968,8 @@ const plainWords: Rule = {
     if (parts.length === 0) return null;
     const found = parts.flatMap(([part, text]) =>
       voiceFindings(text ?? "", stockPhrases).map(
-        ({ said, why }) =>
-          `the ${part} says "${wholeWords(text ?? "", said)}" (${why})`,
+        (finding) =>
+          `the ${part} says "${quoteOf(text ?? "", finding)}" (${finding.why})`,
       ),
     );
     const which = parts.map(([part]) => part).join(" and ");
