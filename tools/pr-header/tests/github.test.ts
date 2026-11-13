@@ -299,4 +299,39 @@ describe("loading a pull request", () => {
       "Adds a thing.",
     );
   });
+
+  test("stops when a comment page hands back the cursor it was asked for", async () => {
+    const stuck = {
+      pageInfo: { hasNextPage: true, endCursor: "p2" },
+      nodes: [
+        {
+          author: { login: "someone" },
+          url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-1",
+          body: "Hi",
+        },
+      ],
+    };
+    let requests = 0;
+    const github: GitHub = {
+      rest: async () => {
+        throw new Error("unused");
+      },
+      graphql: async <T>(
+        _query: string,
+        variables: Record<string, unknown>,
+      ) => {
+        requests += 1;
+        return (
+          variables["after"]
+            ? { repository: { pullRequest: { comments: stuck } } }
+            : { repository: { pullRequest: data({ comments: stuck }) } }
+        ) as T;
+      },
+    };
+    await expect(fetchPullRequest(github, repo, 52)).rejects.toThrow(
+      "#52: comment pages stopped advancing at p2",
+    );
+    // The first page, then the one that repeated its cursor.
+    expect(requests).toBe(2);
+  });
 });

@@ -364,12 +364,24 @@ export async function fetchPullRequest(
     comments?.hasNextPage &&
     comments.endCursor
   ) {
+    const after = comments.endCursor;
     const next = await github.graphql<CommentPage>(commentsQuery, {
       ...variables,
-      after: comments.endCursor,
+      after,
     });
-    pr.comments.nodes.push(...next.repository.pullRequest.comments.nodes);
-    comments = next.repository.pullRequest.comments.pageInfo;
+    const commentPage = next.repository.pullRequest.comments;
+    // A page that claims more but hands back the cursor it was asked for
+    // would be fetched forever.
+    if (
+      commentPage.pageInfo.hasNextPage &&
+      commentPage.pageInfo.endCursor === after
+    ) {
+      throw new Error(
+        `#${number}: comment pages stopped advancing at ${after}`,
+      );
+    }
+    pr.comments.nodes.push(...commentPage.nodes);
+    comments = commentPage.pageInfo;
   }
   return pr;
 }
