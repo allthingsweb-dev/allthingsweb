@@ -180,7 +180,7 @@ describe("the talks library", () => {
   test("names who gave each talk, each linking to their page, then its evening, linking to its page", () => {
     const [first] = rows(render(talks));
     expect(first).toContain(
-      '<span class="talk-evening"><a href="/people/grace-hopper">Grace Hopper</a>, <a href="/people/ada-lovelace">Ada Lovelace</a><span class="talk-role at-type-meta"> · <a href="/effect">at<span class="slash">/</span><span>effect</span></a></span></span>',
+      '<span class="talk-evening"><a href="/people/grace-hopper">Grace Hopper</a>, <a href="/people/ada-lovelace">Ada Lovelace</a><span class="talk-role at-type-meta"> · <a href="/effect">at<span class="slash">/</span><span>effect</span></a></span>',
     );
   });
 
@@ -195,7 +195,7 @@ describe("the talks library", () => {
     const html = render(talks);
     const recordings = [
       ...html.matchAll(
-        /<p class="talk-links at-type-meta"><a href="([^"]+)">/g,
+        /<span class="talk-links at-type-meta"><a href="([^"]+)">/g,
       ),
     ].map(([, href]) => href);
     expect(recordings).toEqual([
@@ -273,9 +273,10 @@ describe("the talks library", () => {
         }),
       ]),
     );
-    const links = /<p class="talk-links at-type-meta">([\s\S]*?)<\/p>/.exec(
-      row ?? "",
-    )?.[1];
+    const links =
+      /<span class="talk-links at-type-meta">([\s\S]*?)<\/span><\/div>/.exec(
+        row ?? "",
+      )?.[1];
     expect(
       [
         ...(links ?? "").matchAll(/<a href="([^"]+)"><span>([^<]*)<\/span>/g),

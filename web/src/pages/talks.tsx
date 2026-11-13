@@ -116,15 +116,20 @@ function TalkLinks({ talk }: { readonly talk: LibraryTalk }) {
     )),
   ];
   if (links.length === 0) return "";
+  // A line of its own in the row's last cell, under who gave it: no rule
+  // of its own, since the stylesheet is at its budget.
   return (
-    <p class="talk-links at-type-meta">
-      {links.map((link, index) => (
-        <>
-          {index === 0 ? "" : " · "}
-          {link}
-        </>
-      ))}
-    </p>
+    <>
+      <br />
+      <span class="talk-links at-type-meta">
+        {links.map((link, index) => (
+          <>
+            {index === 0 ? "" : " · "}
+            {link}
+          </>
+        ))}
+      </span>
+    </>
   );
 }
 
@@ -169,8 +174,8 @@ function TalkRow({ talk }: { readonly talk: LibraryTalk }) {
               <EveningName evening={evening} />
             </a>
           </span>
+          <TalkLinks talk={talk} />
         </span>
-        <TalkLinks talk={talk} />
       </div>
     </li>
   );

@@ -585,7 +585,7 @@ describe("/talks", () => {
     );
     expect(html).toContain(`<a href="/${slugs.past}">`);
     expect(html).toContain(
-      '<p class="talk-links at-type-meta"><a href="https://youtu.be/sanity">',
+      '<span class="talk-links at-type-meta"><a href="https://youtu.be/sanity">',
     );
   });
 
