@@ -37,6 +37,9 @@ export interface CoachProps {
 /** Where the coaching page is. */
 export const coachPath = "/coach";
 
+/** The command that coaches a talk from its files (cli/README.md, "Coach your talk"). */
+export const coachCommand = "bunx allthings coach slides.md rehearsal.vtt";
+
 const openFloor = {
   format: "open-floor",
   minutes: defaultMinutes["open-floor"],
@@ -118,7 +121,14 @@ export function coachPage({
           ))}
           <h2 id="check">Check yours</h2>
           <p>
-            Send your slot, your title, an outline or your slides, and a
+            From your terminal, with your slides or outline in Markdown and a
+            rehearsal's transcript:
+          </p>
+          <p>
+            <code>{coachCommand}</code>
+          </p>
+          <p>
+            Or send your slot, your title, an outline or your slides, and a
             rehearsal's transcript (plain text, WebVTT or SRT) to{" "}
             <code>coach_talk</code>, a tool on our MCP server at{" "}
             <code safe>{`${origin}${mcpPath}`}</code>. Any agent can call it:{" "}

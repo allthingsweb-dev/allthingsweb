@@ -3,7 +3,7 @@ import { goalLabels, rules } from "allthings-core/src/coaching.ts";
 import { escapeHtml } from "@kitajs/html";
 import { discord } from "../src/links.ts";
 import { sections } from "../src/pages/document.tsx";
-import { coachPage, coachPath } from "../src/pages/coach.tsx";
+import { coachCommand, coachPage, coachPath } from "../src/pages/coach.tsx";
 import { sitePages } from "../src/seo/sitemap.ts";
 import {
   gzipped,
@@ -37,6 +37,15 @@ describe("/coach", () => {
       "An open floor gives each speaker 3 minutes. The timer starts at your first words, and at 3:00 the screen switches to the timer",
     );
     expect(html).toContain("by 2:40 of 3:00");
+  });
+
+  test("gives the command, as the CLI's README does", async () => {
+    const html = render();
+    expect(html).toContain(`<code>${coachCommand}</code>`);
+    const readme = await Bun.file(
+      new URL("../../cli/README.md", import.meta.url),
+    ).text();
+    expect(readme).toContain(coachCommand.replace(/^bunx /, ""));
   });
 
   test("points to coach_talk on the MCP server and says nothing is kept", () => {
