@@ -8,12 +8,16 @@ const opener =
       ? ["cmd", "/c", "start", ""]
       : ["xdg-open"];
 
-/** Asks one question on the terminal: the line typed, or null when the input ends (Ctrl-D). */
+/**
+ * Asks one question on the terminal: the line typed, or null when the input
+ * ends (Ctrl-D). The question goes to stderr, so stdout holds only what the
+ * command prints (with --json, its JSON alone).
+ */
 function ask(question: string): Promise<string | null> {
   return new Promise((resolve) => {
     const lines = createInterface({
       input: process.stdin,
-      output: process.stdout,
+      output: process.stderr,
     });
     let answered = false;
     lines.on("close", () => {

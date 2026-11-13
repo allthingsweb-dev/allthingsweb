@@ -608,6 +608,58 @@ describe("allthings propose", () => {
     expect(sent).toHaveLength(1);
   });
 
+  test("with --json in a terminal, shows the proposal on stderr, so stdout is the answer's JSON alone", async () => {
+    const { sent, client } = recording();
+    const { code, stdout, stderr } = await exec([...flags, "--json"], {
+      client,
+      isTTY: true,
+      answers: ["y"],
+    });
+    expect(code).toBe(ExitCode.Ok);
+    expect(sent).toHaveLength(1);
+    expect(stderr).toContain("Effect in production (talk)");
+    expect(JSON.parse(stdout)).toEqual({
+      received: true,
+      message: expect.any(String),
+    });
+  });
+
+  test("takes up to four links: a fifth option is a usage error, a fifth answer is asked again", async () => {
+    const { sent, client } = recording();
+    const five = ["a", "b", "c", "d", "e"].flatMap((name) => [
+      "--link",
+      `https://${name}.example`,
+    ]);
+    const options = await exec([...flags, ...five], { client });
+    expect(options.code).toBe(ExitCode.UsageError);
+    expect(options.stderr).toContain("--link goes up to four times.");
+    expect(sent).toEqual([]);
+    const { code, asked, stderr } = await exec(["propose"], {
+      client,
+      isTTY: true,
+      answers: [
+        "Effect in production",
+        "",
+        "What a year of Effect taught us about errors in payments.",
+        "Ada Lovelace",
+        "ada@example.com",
+        "",
+        "https://a.example https://b.example https://c.example https://d.example https://e.example",
+        "https://a.example",
+        "",
+        "y",
+      ],
+    });
+    expect(code).toBe(ExitCode.Ok);
+    expect(stderr).toContain("Up to four links.");
+    expect(
+      asked.filter((question) => question.startsWith("Links")),
+    ).toHaveLength(2);
+    expect(sent).toEqual([
+      expect.objectContaining({ links: ["https://a.example"] }),
+    ]);
+  });
+
   test("says what to fix, exit 2, when the server finds a problem", async () => {
     const client = fakeClient({
       proposeTalk: async () => {

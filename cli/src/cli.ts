@@ -310,7 +310,12 @@ interface ProposeOptions {
   readonly link?: ReadonlyArray<string> | undefined;
   readonly notes?: string | undefined;
   readonly yes: boolean;
+  /** With --json, stdout holds the server's answer alone, so the proposal is shown on stderr. */
+  readonly json?: boolean | undefined;
 }
+
+/** As many links as propose_talk takes (web/src/mcp/propose.ts). */
+const maxLinks = 4;
 
 /** The options only `propose` takes; a title and an abstract `coach` takes too. */
 const proposeOnly = [
@@ -378,6 +383,9 @@ async function proposal(
     notes: given(options.notes),
   };
   let links = (options.link ?? []).flatMap((link) => given(link) ?? []);
+  // The server refuses a fifth link before it reads the rest, as a failed
+  // call; here it is what it is, a usage error.
+  if (links.length > maxLinks) usage(`--link goes up to four times.`);
   if (prompt !== undefined) {
     const questions: ReadonlyArray<
       readonly [string, string, boolean, boolean]
@@ -431,10 +439,19 @@ async function proposal(
         }
         continue;
       }
+      if (part === "links") {
+        for (;;) {
+          const answer = await ask(question, true);
+          if (answer === null) return null;
+          links = answer.split(/\s+/).filter(Boolean);
+          if (links.length <= maxLinks) break;
+          io.stderr("Up to four links.\n");
+        }
+        continue;
+      }
       const answer = await ask(question, optional);
       if (answer === null) return null;
-      if (part === "links") links = answer.split(/\s+/).filter(Boolean);
-      else parts[part] = answer === "" ? undefined : answer;
+      parts[part] = answer === "" ? undefined : answer;
     }
   }
   const fields: ProposalFields = {
@@ -450,7 +467,8 @@ async function proposal(
     ...(parts["notes"] === undefined ? {} : { notes: parts["notes"] }),
   };
   if (prompt !== undefined && !options.yes) {
-    io.stdout(`\n${formatProposal(fields)}\n`);
+    // With --json, stdout is the answer's JSON alone.
+    (options.json ? io.stderr : io.stdout)(`\n${formatProposal(fields)}\n`);
     const answer = await prompt("Send it? [y/N] ");
     if (answer === null || !/^y(es)?$/i.test(answer.trim())) return null;
   }
