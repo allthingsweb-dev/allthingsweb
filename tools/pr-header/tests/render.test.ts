@@ -56,7 +56,7 @@ describe("the PR header", () => {
   test("links each badge to its drawn shield on main, versioned by its drawing", () => {
     for (const { src } of badges(renderHeader(pr))) {
       expect(src.origin + src.pathname).toMatch(
-        /^https:\/\/raw\.githubusercontent\.com\/allthings-sf\/allthingsweb\/main\/tools\/pr-header\/shields\/[a-z0-9-]+\.svg$/,
+        /^https:\/\/raw\.githubusercontent\.com\/allthings-sf\/allthings\/main\/tools\/pr-header\/shields\/[a-z0-9-]+\.svg$/,
       );
       expect(src.searchParams.get("v")).toMatch(/^[0-9a-f]{12}$/);
     }
