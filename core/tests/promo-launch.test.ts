@@ -171,12 +171,12 @@ describe("diction", () => {
       ];
       for (const [name, text] of texts) {
         // The command is code, named as the CLI names it, not our voice.
-        const voice = text.replaceAll(cliTry, "");
+        const ours = text.replaceAll(cliTry, "");
         for (const pattern of banned) {
           expect({
             name,
             pattern: String(pattern),
-            says: pattern.test(voice),
+            says: pattern.test(ours),
           }).toEqual({ name, pattern: String(pattern), says: false });
         }
       }
