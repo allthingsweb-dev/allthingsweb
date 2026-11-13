@@ -1010,10 +1010,11 @@ a.talk:hover .talk-title {
   text-underline-offset: 0.18em;
 }
 
-/* What a talk left behind, under its row: "recording · slides · code". */
+/* What a talk left behind, the row's last line, under who gave it:
+   "recording · slides · code". */
 .talk-links {
+  grid-column: 2;
   margin: 0;
-  padding: var(--at-space-1) 0 var(--at-space-1) var(--at-size-date-column);
   overflow-wrap: anywhere;
 }
 

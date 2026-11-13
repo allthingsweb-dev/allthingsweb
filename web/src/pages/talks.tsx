@@ -170,8 +170,8 @@ function TalkRow({ talk }: { readonly talk: LibraryTalk }) {
             </a>
           </span>
         </span>
+        <TalkLinks talk={talk} />
       </div>
-      <TalkLinks talk={talk} />
     </li>
   );
 }
