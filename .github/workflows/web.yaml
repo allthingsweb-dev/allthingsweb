@@ -13,6 +13,8 @@ on:
       - "cli/install.bash"
       - "cli/atw-install.bash"
       - "pages/**"
+      # tests/plugin-readme.test.ts holds the plugin README to the MCP tools.
+      - "plugins/allthings/README.md"
       - "tools/xss-scan/**"
       - "package.json"
       - "bun.lock"
@@ -30,6 +32,8 @@ on:
       - "cli/install.bash"
       - "cli/atw-install.bash"
       - "pages/**"
+      # tests/plugin-readme.test.ts holds the plugin README to the MCP tools.
+      - "plugins/allthings/README.md"
       - "tools/xss-scan/**"
       - "package.json"
       - "bun.lock"
