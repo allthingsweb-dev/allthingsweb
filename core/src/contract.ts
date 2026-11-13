@@ -291,10 +291,68 @@ export const Year = Schema.Struct({
   }),
 });
 
+/** One thing a section of the letter tells about. */
+export const LetterItem = Schema.Struct({
+  name: Schema.String,
+  text: Schema.String.annotate({
+    description:
+      "A paragraph on it. Links are written as Markdown links, [words](https://…).",
+  }),
+  url: HttpUrl.annotate({
+    description:
+      "What it is about: an evening's or a talk's page on allthings.dev, a guide entry's official site, or a page elsewhere.",
+  }),
+});
+
+/** One section of the letter, in the letter's order. */
+export const LetterSection = Schema.Struct({
+  key: Schema.Literals([
+    "evenings",
+    "happenings",
+    "openSource",
+    "papers",
+    "jobs",
+  ]),
+  title: Schema.String.annotate({ description: "Its heading." }),
+  items: Schema.Array(LetterItem),
+});
+
+/** An issue of the allthings letter, as Erik approved it: get_letter and /api/v1/letters. */
+export const Letter = Schema.Struct({
+  month: Schema.String.annotate({ description: "The issue's month, YYYY-MM." }),
+  title: Schema.String,
+  url: HttpUrl.annotate({ description: "The issue's page on allthings.dev." }),
+  sections: Schema.Array(LetterSection).annotate({
+    description:
+      "In the letter's order: our next evenings, worth your time, new open source, papers, jobs. A section with nothing in it is left out.",
+  }),
+  closing: Schema.NullOr(Schema.String).annotate({
+    description:
+      "The closing paragraph, with Markdown links; null without one.",
+  }),
+  approvedOn: IsoDay.annotate({
+    description: "The day Erik approved it, in San Francisco.",
+  }),
+});
+
+/** Every published issue of the letter: /api/v1/letters. */
+export const Letters = Schema.Struct({
+  about: Schema.String,
+  url: HttpUrl.annotate({
+    description: "The letter's archive on allthings.dev.",
+  }),
+  letters: Schema.Array(Letter).annotate({
+    description:
+      "Every issue Erik approved, newest first; drafts are never here.",
+  }),
+});
+
 export type EventStatus = typeof EventStatus.Type;
 export type Stars = typeof Stars.Type;
 export type GuideEntry = typeof GuideEntry.Type;
 export type Guide = typeof Guide.Type;
+export type Letter = typeof Letter.Type;
+export type Letters = typeof Letters.Type;
 export type PersonLinks = typeof PersonLinks.Type;
 export type EventSummary = typeof EventSummary.Type;
 export type TalkSpeaker = typeof TalkSpeaker.Type;

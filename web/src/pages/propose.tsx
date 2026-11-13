@@ -32,6 +32,13 @@ import type { Theme } from "./theme.ts";
 /** Where the page is, and where its form posts. */
 export const proposePath = "/propose";
 
+/**
+ * The form's section, which its answer opens at: the form posts to
+ * `/propose#send`, so a phone shows the thanks or the problems, not the top
+ * of a page that looks unchanged.
+ */
+export const sendSection = "send";
+
 /** The field only a script fills. */
 export const trapField = "website";
 
@@ -211,8 +218,8 @@ export function proposePage({
             <code>allthings.dev/mcp</code> sends the same proposal.
           </p>
         </div>
-        <section class="prose" aria-labelledby="send">
-          <h2 id="send">Your proposal</h2>
+        <section class="prose" aria-labelledby={sendSection}>
+          <h2 id={sendSection}>Your proposal</h2>
           {notice === undefined ? (
             ""
           ) : (
@@ -223,7 +230,11 @@ export function proposePage({
           {sent ? (
             ""
           ) : (
-            <form class="form" method="post" action={proposePath}>
+            <form
+              class="form"
+              method="post"
+              action={`${proposePath}#${sendSection}`}
+            >
               {line("title", "Title", "What the talk is called.", {
                 max: proposalLimits.title,
                 required: true,

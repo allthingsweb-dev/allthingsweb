@@ -122,6 +122,7 @@ describe("coach_talk", () => {
       "get_community",
       "get_guide",
       "get_year",
+      "get_letter",
     ]) {
       expect(isKeptTool(name)).toBe(true);
     }

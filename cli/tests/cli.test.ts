@@ -166,6 +166,9 @@ describe("allthings", () => {
       "codex mcp add allthings --url https://allthings.dev/mcp",
     );
     expect(stdout).toContain(
+      "grok mcp add allthings https://allthings.dev/mcp",
+    );
+    expect(stdout).toContain(
       `code --add-mcp '{"name":"allthings","type":"http","url":"https://allthings.dev/mcp"}'`,
     );
     expect(stdout).toContain(
@@ -621,6 +624,13 @@ describe("allthings propose", () => {
 
   test("its options go with propose alone, and --format is one of three", async () => {
     expect((await exec(["events", "--title", "x"])).code).toBe(
+      ExitCode.UsageError,
+    );
+    // aux reads none of them, so they stop it before it runs.
+    const aux = await exec(["aux", "pass", "--yes"]);
+    expect(aux.code).toBe(ExitCode.UsageError);
+    expect(aux.stderr).toContain('go with "propose"');
+    expect((await exec(["aux", "pass", "--abstract", "x"])).code).toBe(
       ExitCode.UsageError,
     );
     const format = await exec([...flags, "--format", "keynote"]);

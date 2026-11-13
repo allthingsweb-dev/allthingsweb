@@ -55,7 +55,7 @@ The files are read only to send them; `coach_talk` keeps none of what it is sent
 
 ```sh
 allthings propose                   # asks for each part, shows it, and sends it on your yes
-allthings propose --title "Effect in production" --abstract "What a year of Effect taught us…" \
+allthings propose --title "Effect in production" --abstract "What a year of Effect in a payments service taught us about errors." \
   --name "Ada Lovelace" --email ada@example.com --format demo --link https://github.com/ada
 ```
 
@@ -64,7 +64,7 @@ An open door and a high bar: anyone may propose, and Erik and Andre read every p
 ## Agents
 
 ```sh
-allthings mcp                       # a line to add allthings to Claude Code, Codex, VS Code or Cursor
+allthings mcp                       # a line to add allthings to Claude Code, Codex, Grok Build, VS Code or Cursor
 ```
 
 It prints the server's URL, its tools and a line for each agent, for example `claude mcp add --transport http allthings https://allthings.dev/mcp`. It reads nothing, so it works offline. With `ALLTHINGS_MCP_URL` set, the lines name that server instead. `allthings mcp --json` gives `{ name, url, transport, tools }`. An agent with a shell can also just run this CLI with `--json`.

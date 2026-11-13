@@ -90,8 +90,8 @@ Examples
   ${commandName} open latest                 Open the last evening's page on allthings.dev
   ${commandName} guide                       Conferences worth the trip, starred
   ${commandName} coach slides.md talk.vtt    Coach your talk for our stage before you give it
-  ${commandName} propose                    Propose a talk: it asks for each part
-  ${commandName} mcp                         Add allthings to Claude Code, Codex, VS Code or Cursor
+  ${commandName} propose                     Propose a talk: it asks for each part
+  ${commandName} mcp                         Add allthings to Claude Code, Codex, Grok Build, VS Code or Cursor
   ${commandName} aux --help                 Set the room's lights at an evening that passes the aux
 
 Options
@@ -274,6 +274,7 @@ function mcpSetup(endpoint: string, json: boolean): string {
   const agents: [string, string][] = [
     ["Claude Code", `claude mcp add --transport http ${name} ${url}`],
     ["Codex", `codex mcp add ${name} --url ${url}`],
+    ["Grok Build", `grok mcp add ${name} ${url}`],
     ["VS Code", `code --add-mcp ${shellWord(vscode)}`],
     ["Cursor", `in .cursor/mcp.json: ${cursor}`],
   ];
@@ -839,20 +840,11 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       io.stdout(`${packageJson.version}\n`);
       return ExitCode.Ok;
     }
-    if (command === "aux") return await runAux(rest, values, io);
-    if (command === "coach" && values.help) {
-      io.stdout(coachHelp);
-      return ExitCode.Ok;
-    }
-    if (command === "propose" && values.help) {
-      io.stdout(proposeHelp);
-      return ExitCode.Ok;
-    }
-    if (values.help || command === "help") {
-      io.stdout(help);
-      return ExitCode.Ok;
-    }
+    // Before aux, which reads none of them: a proposal's options anywhere
+    // else are a usage error, and nothing runs. Help still comes first.
+    const helping = values.help || command === "help";
     if (
+      !helping &&
       command !== "propose" &&
       proposeOnly.some((option) =>
         option === "yes"
@@ -866,11 +858,25 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
     }
     // A title and an abstract are a talk's, for coach and propose alike.
     if (
+      !helping &&
       command !== "coach" &&
       command !== "propose" &&
       (values.title !== undefined || values.abstract !== undefined)
     ) {
       usage(`--title and --abstract go with "coach" or "propose".`);
+    }
+    if (command === "aux") return await runAux(rest, values, io);
+    if (command === "coach" && values.help) {
+      io.stdout(coachHelp);
+      return ExitCode.Ok;
+    }
+    if (command === "propose" && values.help) {
+      io.stdout(proposeHelp);
+      return ExitCode.Ok;
+    }
+    if (helping) {
+      io.stdout(help);
+      return ExitCode.Ok;
     }
     if (values.zone !== undefined)
       usage('"--zone" works only with "aux color".');

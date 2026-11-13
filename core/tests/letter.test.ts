@@ -22,9 +22,12 @@ import {
   repeatsOfEdits,
   sourceFindings,
   sourceUrl,
+  toLetter,
+  toLetters,
   wordBudget,
   wordCount,
 } from "../src/letter.ts";
+import * as Contract from "../src/contract.ts";
 import { voiceFindings } from "../src/voice.ts";
 import { clockLayer, seededDatabase, sqlLayer } from "./support/database.ts";
 
@@ -597,5 +600,53 @@ describe("an issue's evenings and talks, against the database", () => {
         said: "a0000000-0000-4000-8000-000000000005",
       },
     ]);
+  });
+});
+
+describe("the letter as the public contract serves it", () => {
+  const approved = {
+    month: "2026-12",
+    on: "2026-12-01",
+    token: "0123456789abcdef",
+  };
+
+  test("is each section in the letter's order, each item linking what it names", () => {
+    const served = toLetter({ ...good, approved }, "https://allthings.dev");
+    expect(Schema.decodeUnknownSync(Contract.Letter)(served)).toEqual(served);
+    expect(served).toEqual({
+      month: "2026-12",
+      title: "Two trips for April",
+      url: "https://allthings.dev/letter/2026-12",
+      sections: [
+        {
+          key: "happenings",
+          title: "worth your time",
+          items: (good.happenings ?? []).map((each) => ({
+            name: each.name,
+            text: each.text,
+            url: sourceUrl(each.source),
+          })),
+        },
+      ],
+      closing: good.closing ?? null,
+      approvedOn: "2026-12-01",
+    });
+  });
+
+  test("says when an issue has no closing, and lists the letters as given", () => {
+    const { closing: _, ...rest } = good;
+    const served = toLetters(
+      [
+        {
+          ...rest,
+          month: "2027-01",
+          approved: { ...approved, month: "2027-01" },
+        },
+      ],
+      "https://allthings.dev",
+    );
+    expect(Schema.decodeUnknownSync(Contract.Letters)(served)).toEqual(served);
+    expect(served.url).toBe("https://allthings.dev/letter");
+    expect(served.letters.map((letter) => letter.closing)).toEqual([null]);
   });
 });
