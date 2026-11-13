@@ -536,6 +536,74 @@ describe("title and abstract", () => {
   });
 });
 
+describe("plain words", () => {
+  test("hype in the title or abstract is a consider, quoting what it said", () => {
+    expect(
+      finding(
+        {
+          slot: lineup,
+          title: "A game-changing queue",
+          abstract: "We dive into a seamless way to retry.",
+        },
+        "plain-words",
+      ),
+    ).toEqual({
+      id: "plain-words",
+      severity: "consider",
+      observed:
+        'The title says "game-changing" (hype: say what changed); the abstract says "seamless" (hype: say what works and how); the abstract says "dive into" (stock phrase: say what\'s covered).',
+      advice:
+        "If you'd like it plainer, say what the talk shows instead. It's your call.",
+    });
+  });
+
+  test("quotes the word that matched, not an earlier one containing it", () => {
+    expect(
+      finding(
+        {
+          slot: lineup,
+          abstract: "A nonrobust baseline becomes robust after retries.",
+        },
+        "plain-words",
+      )?.observed,
+    ).toBe('The abstract says "robust" (filler: say what it withstands).');
+  });
+
+  test("names three, then how many more", () => {
+    expect(
+      finding(
+        {
+          slot: openFloor,
+          title: "Seamless, robust, cutting-edge, world-class sync",
+        },
+        "plain-words",
+      )?.observed,
+    ).toEndWith("; and 1 more.");
+  });
+
+  test("the brand's own words are the speaker's to use", () => {
+    expect(
+      strength(
+        {
+          slot: lineup,
+          title: "Register allocation, and how sign-up works!",
+          abstract: "A sponsor asked us to RSVP.",
+        },
+        "plain-words",
+      )?.observed,
+    ).toBe("The title and abstract read plainly.");
+  });
+
+  test("nothing to read, nothing to say", () => {
+    const coaching = coach({ slot: openFloor });
+    expect(
+      [...coaching.findings, ...coaching.strengths].some(
+        (x) => x.id === "plain-words",
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("goals", () => {
   const withGoal = (goal: Goal, materials: Omit<TalkMaterials, "goals">) =>
     coach({ ...materials, goals: [goal] });
