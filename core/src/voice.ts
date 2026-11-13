@@ -142,7 +142,8 @@ export function voiceFindings(
 
 /**
  * `text`'s sentences. A paragraph's lines are one text, however it is
- * wrapped, split after a full stop, question mark or exclamation mark; a
+ * wrapped, split after a full stop, question mark or exclamation mark (and
+ * any closing quote or parenthesis after it); a
  * semicolon or a colon doesn't end one. A heading, or a line that is only a
  * link, is a paragraph of its own; a list item starts one; a blank line
  * ends one.
@@ -170,7 +171,9 @@ function sentences(text: string): ReadonlyArray<string> {
   }
   end();
   return paragraphs
-    .flatMap((paragraph) => paragraph.split(/(?<=[.?!])\s+(?=[A-Z"“(])/))
+    .flatMap((paragraph) =>
+      paragraph.split(/(?<=[.?!]["”’')]*)\s+(?=[A-Z"“‘(])/),
+    )
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence !== "");
 }
