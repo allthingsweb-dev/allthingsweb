@@ -136,13 +136,13 @@ describe("the about page", () => {
       ["said “I’m in”", "8,215"],
     ]);
     expect(soFar).toContain(
-      'since <time datetime="2024-03-27T00:00:00.000Z">Tue Mar 26, 2024</time> · <a href="/year/2026">year by year <span aria-hidden="true">→</span></a></p>',
+      'since <time datetime="2024-03-27T00:00:00.000Z">Tue Mar 26, 2024</time> · <a href="/year/2026">year\u00a0by\u00a0year\u00a0<span aria-hidden="true">→</span></a></p>',
     );
   });
 
   test("leads the all-time tally to the latest year's page, and nowhere before one", () => {
     expect(part(render(view({ latestYear: 2025 })), "so-far")).toContain(
-      '<a href="/year/2025">year by year',
+      '<a href="/year/2025">year\u00a0by\u00a0year',
     );
     expect(
       part(render(view({ latestYear: undefined })), "so-far"),
