@@ -56,6 +56,7 @@ import {
 } from "./propose.tsx";
 import { readForm, sameOrigin } from "../preview/forms.ts";
 import {
+  boundedBody,
   clientOf,
   type Outcome,
   outcomeMessages,
@@ -915,7 +916,7 @@ const proposeForm = HttpRouter.add(
         { cacheControl: "failure", theme, images, form: true, status },
       );
     if (!sameOrigin(request)) {
-      yield* Effect.promise(() => request.body?.cancel() ?? Promise.resolve());
+      yield* Effect.promise(() => boundedBody(request, proposeFormLimit));
       return answer(403, {
         notice: {
           kind: "problem",
@@ -927,6 +928,10 @@ const proposeForm = HttpRouter.add(
       readForm(request, proposeFormLimit),
     );
     if (!body.ok) {
+      // A refused body is read off, so the connection stays usable.
+      if (!request.bodyUsed) {
+        yield* Effect.promise(() => boundedBody(request, proposeFormLimit));
+      }
       return answer(body.status, {
         notice: { kind: "problem", text: body.reason },
       });

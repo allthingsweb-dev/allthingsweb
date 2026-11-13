@@ -4,6 +4,7 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { CacheControl } from "../cache.ts";
 import {
+  boundedBody as bounded,
   clientOf,
   type Outcome,
   outcomeMessages,
@@ -78,37 +79,6 @@ async function refused(
 ): Promise<Body> {
   await bounded(request, proposalBodyLimit);
   return { ok: false, status, error };
-}
-
-/**
- * The body's bytes, read only up to `limit`: undefined past it, however
- * long the body says it is, so nothing larger is ever held.
- */
-async function bounded(
-  request: Request,
-  limit: number,
-): Promise<Uint8Array | undefined> {
-  const reader = request.body?.getReader();
-  if (reader === undefined) return new Uint8Array();
-  const chunks: Array<Uint8Array> = [];
-  let length = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    length += value.byteLength;
-    if (length > limit) {
-      await reader.cancel().catch(() => {});
-      return undefined;
-    }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(length);
-  let at = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, at);
-    at += chunk.byteLength;
-  }
-  return bytes;
 }
 
 /** Why a request's body can't be read as a proposal, or the body. */

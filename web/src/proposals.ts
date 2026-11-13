@@ -165,3 +165,35 @@ export const takeProposal = (
 /** The address a request came from, as Cloudflare names it; "unknown" without one (tests). */
 export const clientOf = (request: Request): string =>
   request.headers.get("cf-connecting-ip") ?? "unknown";
+
+/**
+ * A request's body, read only up to `limit` bytes: undefined past it,
+ * however long the body says it is, so nothing larger is ever held. Read
+ * off even when it is refused, so the connection it came on stays usable.
+ */
+export async function boundedBody(
+  request: Request,
+  limit: number,
+): Promise<Uint8Array | undefined> {
+  const reader = request.body?.getReader();
+  if (reader === undefined) return new Uint8Array();
+  const chunks: Array<Uint8Array> = [];
+  let length = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    length += value.byteLength;
+    if (length > limit) {
+      await reader.cancel().catch(() => {});
+      return undefined;
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(length);
+  let at = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  return bytes;
+}
