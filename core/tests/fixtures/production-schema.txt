@@ -797,3 +797,29 @@ constraint public.community_gaps community_gaps_source_check CHECK ((source = AN
 constraint public.community_gaps community_gaps_tries_check CHECK ((tries >= 1))
 index public.community_gaps CREATE UNIQUE INDEX community_gaps_day_source_pk ON public.community_gaps USING btree (day, source)
 relation public.community_gaps kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+column public.talk_artifacts #001 id uuid not null default gen_random_uuid()
+column public.talk_artifacts #002 talk_id uuid not null
+column public.talk_artifacts #003 kind text not null
+column public.talk_artifacts #004 url text not null
+column public.talk_artifacts #005 label text
+column public.talk_artifacts #006 start_seconds integer
+column public.talk_artifacts #007 elsewhere text
+column public.talk_artifacts #008 "position" integer not null
+column public.talk_artifacts #009 source_url text
+column public.talk_artifacts #010 read_on date
+column public.talk_artifacts #011 created_at timestamp with time zone not null default now()
+column public.talk_artifacts #012 updated_at timestamp with time zone not null
+constraint public.talk_artifacts talk_artifacts_elsewhere_check CHECK (((btrim(elsewhere) = elsewhere) AND (elsewhere <> ''::text) AND (char_length(elsewhere) <= 120)))
+constraint public.talk_artifacts talk_artifacts_kind_check CHECK ((kind = ANY (ARRAY['recording'::text, 'slides'::text, 'repo'::text, 'site'::text, 'other'::text])))
+constraint public.talk_artifacts talk_artifacts_label_check CHECK (((btrim(label) = label) AND (label <> ''::text) AND (char_length(label) <= 120)))
+constraint public.talk_artifacts talk_artifacts_pkey PRIMARY KEY (id)
+constraint public.talk_artifacts talk_artifacts_position_check CHECK (("position" >= 0))
+constraint public.talk_artifacts talk_artifacts_source_read_check CHECK (((source_url IS NULL) = (read_on IS NULL)))
+constraint public.talk_artifacts talk_artifacts_source_url_check CHECK ((source_url ~ '^https://[^[:space:]]+$'::text))
+constraint public.talk_artifacts talk_artifacts_start_seconds_check CHECK (((start_seconds IS NULL) OR ((start_seconds >= 0) AND (kind = 'recording'::text))))
+constraint public.talk_artifacts talk_artifacts_talk_id_talks_id_fk FOREIGN KEY (talk_id) REFERENCES talks(id) ON DELETE CASCADE
+constraint public.talk_artifacts talk_artifacts_talk_id_url_unique UNIQUE (talk_id, url)
+constraint public.talk_artifacts talk_artifacts_url_check CHECK (((url ~ '^https://[^[:space:]]+$'::text) AND (char_length(url) <= 2000)))
+index public.talk_artifacts CREATE UNIQUE INDEX talk_artifacts_pkey ON public.talk_artifacts USING btree (id)
+index public.talk_artifacts CREATE UNIQUE INDEX talk_artifacts_talk_id_url_unique ON public.talk_artifacts USING btree (talk_id, url)
+relation public.talk_artifacts kind=r persistence=p rls=f force_rls=f replica_identity=d options=

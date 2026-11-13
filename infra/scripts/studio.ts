@@ -458,7 +458,7 @@ export const OWNER_ONLY: ReadonlyArray<{
     why: "DDL and ownership of every table: no login role in the vault may change the schema.",
   },
   {
-    what: "the backfills: `bun run hosts`, `lineups`, `programs`, `curation`, `event-extras`, `external-talks`, `luma:people`",
+    what: "the backfills: `bun run hosts`, `lineups`, `programs`, `curation`, `event-extras`, `external-talks`, `talk-artifacts`, `luma:people`",
     why: "They rewrite the public record from files reviewed in pull requests: they create profiles and companies, delete talks and people's parts, and set venues and recordings. That is most of public's write surface, which a role every agent can read must not hold.",
   },
 ];

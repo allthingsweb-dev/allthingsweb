@@ -22,6 +22,7 @@
     "photos": "bun --no-env-file scripts/photos.ts",
     "hosts": "bun --no-env-file scripts/hosts.ts",
     "external-talks": "bun --no-env-file scripts/external-talks.ts",
+    "talk-artifacts": "bun --no-env-file scripts/talk-artifacts.ts",
     "followers": "bun --no-env-file scripts/followers.ts",
     "community": "bun --no-env-file scripts/community.ts",
     "community-snapshot": "bun --no-env-file scripts/community-snapshot.ts",

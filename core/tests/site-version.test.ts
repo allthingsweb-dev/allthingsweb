@@ -42,6 +42,7 @@ describe("the site's version", () => {
     event_notes: `INSERT INTO event_notes (event_id, position, label, body, updated_at) VALUES ('e0000000-0000-4000-8000-000000000001', 0, 'Parking', 'Around the corner', now())`,
     profile_slugs: `INSERT INTO profile_slugs (slug, profile_id) VALUES ('ada-before', 'b0000000-0000-4000-8000-000000000001')`,
     event_slugs: `INSERT INTO event_slugs (slug, event_id) VALUES ('react-before', 'e0000000-0000-4000-8000-000000000001')`,
+    talk_artifacts: `INSERT INTO talk_artifacts (talk_id, kind, url, position, updated_at) VALUES ('a0000000-0000-4000-8000-000000000001', 'slides', 'https://example.com/slides', 0, now())`,
   };
 
   test.each([...siteTables])(
