@@ -514,6 +514,7 @@ const suites: Readonly<
   "hosts logo": ["host-logos.test.ts"],
   talks: ["talk-edits.test.ts"],
   community: ["community-metrics.test.ts"],
+  proposals: ["proposals.test.ts"],
   "collab !end-sessions": [
     "collab.test.ts",
     "collab-cli.test.ts",

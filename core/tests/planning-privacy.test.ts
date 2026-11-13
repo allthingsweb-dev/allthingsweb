@@ -95,6 +95,8 @@ const madeUp = `
     SELECT id, 'made-up', 'plan lineup set', 'Made up.' FROM made_up_event;
   INSERT INTO planning.draft_notes (event_id, actor, kind, text)
     SELECT id, 'made-up', 'question', 'Made up?' FROM made_up_event;
+  INSERT INTO planning.proposals (title, abstract, name, email, notes, source)
+    VALUES ('Made-up talk', 'A made-up abstract, long enough to be kept.', 'Made Up', 'made-up@example.com', 'Made up.', 'site');
 `;
 
 let db: PGlite;
@@ -157,6 +159,7 @@ describe("planning is private", () => {
       "logistics_confirmations",
       "logistics_items",
       "notes",
+      "proposals",
       "publishes",
       "reviews",
       "round_submissions",
