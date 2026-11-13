@@ -1,8 +1,13 @@
 import type { EveningsView } from "allthings-core/src/evenings.ts";
 import type { Evening } from "allthings-core/src/home.ts";
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
-import { discord, lumaCalendar, xHandle, yearPath } from "../links.ts";
-import { yearTitle } from "./year.tsx";
+import {
+  discord,
+  guidePath,
+  lumaCalendar,
+  xHandle,
+  yearPath,
+} from "../links.ts";
 import { Document } from "./document.tsx";
 import { gatheringTitle } from "./metadata.tsx";
 import { EveningRow } from "./evening-row.tsx";
@@ -18,8 +23,9 @@ import type { ImageMode } from "./picture.tsx";
  * Under the title, where to follow along, in a quiet line of words as the
  * footer's socials are (brand/foundations.md, "People and channels").
  * Each list labels its right-hand column, on its year's line: the places
- * are neighborhoods. Under a year that held one of ours, a link to that
- * year's page (pages/year.tsx).
+ * are neighborhoods. Under the channels, a link to the guide: happenings
+ * beyond our evenings worth going to. A year that held one of ours links
+ * its title to that year's page (pages/year.tsx).
  */
 
 /** Where to follow every evening, in the line under /events' title. */
@@ -83,15 +89,30 @@ function EveningList({
   readonly id: string;
   readonly title: string;
   readonly evenings: ReadonlyArray<Evening>;
-  /** A link under the list, to more about these evenings. */
-  readonly more?: { readonly href: string; readonly text: string } | undefined;
+  /**
+   * Where the title leads, with what it says there to a screen reader
+   * after the title: a year's page, "2026" and " in evenings".
+   */
+  readonly more?: { readonly href: string; readonly hint: string } | undefined;
 }) {
   return (
     <section class="list" aria-labelledby={id}>
       <div class="list-head">
-        <h2 id={id} class="list-title at-type-meta" safe>
-          {title}
-        </h2>
+        {more === undefined ? (
+          <h2 id={id} class="list-title at-type-meta" safe>
+            {title}
+          </h2>
+        ) : (
+          <h2 id={id} class="list-title at-type-meta">
+            <a href={more.href}>
+              <span safe>{title}</span>
+              <span class="visually-hidden" safe>
+                {more.hint}
+              </span>{" "}
+              <span aria-hidden="true">→</span>
+            </a>
+          </h2>
+        )}
         {evenings.some((evening) => evening.neighborhood !== null) ? (
           // Each row names its neighborhood to a screen reader (evening-row.tsx).
           <p class="list-column at-type-meta" aria-hidden="true">
@@ -106,15 +127,6 @@ function EveningList({
           <EveningRow evening={evening} />
         ))}
       </ol>
-      {more === undefined ? (
-        ""
-      ) : (
-        <p class="list-links list-foot">
-          <a href={more.href}>
-            <span safe>{more.text}</span> <span aria-hidden="true">→</span>
-          </a>
-        </p>
-      )}
     </section>
   );
 }
@@ -154,6 +166,12 @@ export function eventsPage({
               </li>
             ))}
           </ul>
+          <p class="fact-links">
+            <a href={guidePath}>
+              the guide: happenings worth the trip{" "}
+              <span aria-hidden="true">→</span>
+            </a>
+          </p>
         </div>
         <div class="evenings-lists">
           {ahead.length === 0 ? (
@@ -168,7 +186,7 @@ export function eventsPage({
               evenings={inYear}
               more={
                 heldOne(inYear)
-                  ? { href: yearPath(when), text: yearTitle(when) }
+                  ? { href: yearPath(when), hint: " in evenings" }
                   : undefined
               }
             />

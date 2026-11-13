@@ -1,6 +1,7 @@
 import { describe, expect } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { apcaContrast, wcagContrast } from "allthings-brand/src/contrast.ts";
+import { guideEntries } from "allthings-core/src/guide.ts";
 import {
   colors,
   contrastRequirements,
@@ -451,6 +452,7 @@ describe("links within the site", () => {
     "/",
     "/events",
     "/talks",
+    "/guide",
     "/year/2025",
     "/people",
     "/people/ada-lovelace",
@@ -592,6 +594,27 @@ describe("/talks", () => {
     expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
     expect(await htmlProblems(await response.text())).toEqual([]);
+  });
+});
+
+describe("/guide", () => {
+  it("lists every happening in the guide, cached like public data", async (url) => {
+    const response = await fetch(`${url}/guide`);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    const ids = [...html.matchAll(/<li class="guide-entry" id="([^"]+)">/g)];
+    expect(new Set(ids.map(([, id]) => id))).toEqual(
+      new Set(guideEntries.map((entry) => entry.id)),
+    );
+    expect(ids.length).toBe(guideEntries.length);
+  });
+
+  it("is shown without the database, since it reads none, but never stored", async (_, noDatabase) => {
+    const response = await fetch(`${noDatabase}/guide`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    expect(await response.text()).toContain('class="guide-entry"');
   });
 });
 
@@ -788,6 +811,7 @@ describe("every kind of page", () => {
     "/",
     "/events",
     "/talks",
+    "/guide",
     "/year/2025",
     `/${slugs.upcoming}`,
     `/${slugs.live}`,

@@ -20,6 +20,7 @@ export const sitePages = [
   "/",
   "/events",
   "/talks",
+  "/guide",
   "/people",
   "/about",
   "/code-of-conduct",

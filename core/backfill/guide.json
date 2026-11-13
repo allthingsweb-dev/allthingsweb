@@ -1,0 +1,50 @@
+{
+  "entries": [
+    {
+      "id": "chain-react",
+      "name": "Chain React",
+      "stars": 3,
+      "city": "Portland, Oregon",
+      "organizer": "Infinite Red, Expo and the React Foundation",
+      "url": "https://chainreactconf.com/",
+      "why": "The React Native conference, where the people who build React Native come to talk about it.",
+      "sources": ["https://chainreactconf.com/"]
+    },
+    {
+      "id": "react-miami",
+      "name": "React Miami",
+      "stars": 3,
+      "city": "Miami, Florida",
+      "organizer": "G2i",
+      "url": "https://www.reactmiami.com/",
+      "why": "Two days of React's best speakers and a crowd that makes the trip to Miami worth it.",
+      "next": { "from": "2027-04-29", "to": "2027-04-30" },
+      "sources": ["https://www.reactmiami.com/"]
+    },
+    {
+      "id": "ai-engineer-miami",
+      "name": "AI Engineer Miami",
+      "stars": 3,
+      "city": "Miami, Florida",
+      "organizer": "G2i",
+      "url": "https://www.ai.engineer/miami/2027",
+      "why": "Talks from engineers who ship AI, the same week as React Miami, so one trip covers both.",
+      "next": { "from": "2027-04-26", "to": "2027-04-27" },
+      "sources": ["https://www.ai.engineer/miami/2027"]
+    },
+    {
+      "id": "all-things-open",
+      "name": "All Things Open",
+      "stars": 3,
+      "city": "Raleigh, North Carolina",
+      "organizer": "All Things Open",
+      "url": "https://allthingsopen.org/",
+      "why": "The people who make open source, together in Raleigh for talks on the tools and the work behind them.",
+      "next": { "from": "2027-10-17", "to": "2027-10-19" },
+      "sources": [
+        "https://allthingsopen.org/",
+        "https://2026.allthingsopen.org/"
+      ]
+    }
+  ]
+}

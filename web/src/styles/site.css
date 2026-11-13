@@ -663,11 +663,6 @@ main > section,
   color: var(--at-meta);
 }
 
-/* Under a year on the evenings index, the link to its page. */
-.list-foot {
-  margin: var(--at-space-3) 0 0;
-}
-
 .row {
   display: grid;
   grid-template-columns: var(--at-size-date-column) minmax(0, 1fr) auto;
@@ -1011,6 +1006,15 @@ main > section,
 .talk:hover .talk-title {
   text-decoration: underline var(--at-stroke-rule);
   text-underline-offset: 0.18em;
+}
+
+/* A happening in the guide (pages/guide.tsx), in a list of talks' rules:
+   its name, where and when, why, then who runs it. */
+.guide-entry {
+  display: grid;
+  row-gap: var(--at-space-2);
+  padding: var(--at-space-3) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
 }
 
 /* An event: its lockup, then the ledger, where each fact has its own row

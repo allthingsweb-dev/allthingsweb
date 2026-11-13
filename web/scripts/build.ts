@@ -557,6 +557,7 @@ export interface OgCards {
   /** The same as a JPEG: what a person's card falls back to. */
   readonly peopleJpeg: Image;
   readonly talks: Image;
+  readonly guide: Image;
   readonly year: Image;
   readonly about: Image;
   readonly codeOfConduct: Image;
@@ -653,6 +654,7 @@ async function buildOg(): Promise<{
       people: await mark("og-people.png", og),
       peopleJpeg: await mark("og-people.jpg", og),
       talks: await mark("og-talks.png", og),
+      guide: await mark("og-guide.png", og),
       year: await mark("og-year.png", og),
       about: await mark("og-about.png", og),
       codeOfConduct: await mark("og-code-of-conduct.png", og),

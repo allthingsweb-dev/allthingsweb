@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { published, statusChanges } from "./catalog.ts";
 import type { DataSourceError } from "./errors.ts";
+import { guideBoundaries } from "./guide.ts";
 import { siteTables } from "./site-tables.ts";
 import { orDataSourceError } from "./sql.ts";
 
@@ -17,7 +18,9 @@ import { orDataSourceError } from "./sql.ts";
  *   write, as pages read the clock (the start of each minute, clock.ts):
  *   each published evening's start, when it goes live, and the first minute
  *   after the one it ends in, when it is over (catalog.ts's `ahead`,
- *   `ended` and `eventStatus` are the only rules that read the clock).
+ *   `ended` and `eventStatus` are the only rules that read the clock),
+ *   and the start of the day after each of the guide's editions ends,
+ *   when the guide stops showing its days (guide.ts's `guideBoundaries`).
  *
  * One statement, with `now()` in it so Hyperdrive never answers it from its
  * cache (Hyperdrive caches no statement that calls a volatile function).
@@ -67,6 +70,14 @@ const make = Effect.gen(function* () {
       ), '[]'::json) AS boundaries,
       now() AS read_at`.pipe(
     Effect.flatMap(([row]) => Schema.decodeUnknownEffect(Row)(row)),
+    Effect.map(
+      (state): SiteState => ({
+        version: state.version,
+        boundaries: [
+          ...new Set([...state.boundaries, ...guideBoundaries]),
+        ].toSorted((a, b) => a - b),
+      }),
+    ),
     orDataSourceError,
     Effect.withSpan("SiteVersion.read"),
   );

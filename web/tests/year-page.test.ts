@@ -269,7 +269,7 @@ describe("a year's page", () => {
 });
 
 describe("the evenings index", () => {
-  test("links each year that held one of ours to its page, and no year of only others' evenings", () => {
+  test("links each year that held one of ours to its page by its title, and no year of only others' evenings", () => {
     const html = eventsPage({
       evenings: {
         ahead: [],
@@ -295,7 +295,10 @@ describe("the evenings index", () => {
       images: "originals",
     });
     expect(html).toContain(
-      '</ol><p class="list-links list-foot"><a href="/year/2026"><span>2026 in evenings</span> <span aria-hidden="true">→</span></a></p></section>',
+      '<h2 id="evenings-2026" class="list-title at-type-meta"><a href="/year/2026"><span>2026</span><span class="visually-hidden"> in evenings</span> <span aria-hidden="true">→</span></a></h2>',
+    );
+    expect(html).toContain(
+      '<h2 id="evenings-2025" class="list-title at-type-meta">2025</h2>',
     );
     expect(html).not.toContain('href="/year/2025"');
   });
