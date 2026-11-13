@@ -88,6 +88,25 @@ describe("our voice", () => {
     );
   });
 
+  test("typographic apostrophes and phrases wrapped across lines are found too", () => {
+    for (const broken of [
+      "Don’t miss it.",
+      "Whether you’re an expert or not.",
+      "It’s not a conference, it’s a party.",
+      "In today’s world.",
+      "A deep\ndive on queues.",
+    ]) {
+      expect({ broken, found: voiceFindings(broken).length > 0 }).toEqual({
+        broken,
+        found: true,
+      });
+    }
+    // A blank line parts two paragraphs, so their words never make one phrase.
+    expect(
+      voiceFindings("The water is deep\n\nDive teams train here."),
+    ).toEqual([]);
+  });
+
   test("names what was said and why", () => {
     expect(voiceFindings("We leverage Postgres.")).toEqual([
       { why: "filler: say use", said: "leverage" },
@@ -126,6 +145,10 @@ describe("our voice", () => {
         `“${words(30)}.”\nThe ${words(29)}.\n(${words(30)}.)\nAnd ${words(29)}.`,
       ),
     ).toEqual([]);
+    expect(voiceFindings(`${words(30)}. 2026 ${words(30)}.`)).toEqual([]);
+    expect(voiceFindings(`${words(30)}.\nhttps://allthings.dev/talks`)).toEqual(
+      [],
+    );
     const link = `[${words(11)}](https://allthings.dev/talks)`;
     expect(voiceFindings(`${words(30)}.\n${link}`)).toEqual([]);
     expect(

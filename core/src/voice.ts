@@ -73,7 +73,7 @@ export const stockPhrases: ReadonlyArray<VoiceRule> = [
     "stock phrase: say the thing itself",
   ),
   rule(
-    /\bever[ -]evolving\b|\bfast[ -]paced\b|\bin today's\b/i,
+    /\bever[ -]evolving\b|\bfast[ -]paced\b|\bin today['’]s\b/i,
     "stock phrase: start with the particular",
   ),
   rule(
@@ -88,16 +88,16 @@ export const stockPhrases: ReadonlyArray<VoiceRule> = [
     "throat-clearing: say the news",
   ),
   rule(
-    /\bdon'?t miss\b|\bstay tuned\b|\bbuckle up\b|\blook no further\b/i,
+    /\bdon['’]?t miss\b|\bstay tuned\b|\bbuckle up\b|\blook no further\b/i,
     "a pitch: say what's there and let people decide",
   ),
-  rule(/\bwhether you'?re an?\b/i, "a pitch to everyone: speak to someone"),
+  rule(/\bwhether you['’]?re an?\b/i, "a pitch to everyone: speak to someone"),
   rule(
     /\bnot (just|only|merely) [^.;:]{1,60}, but\b|\bmore than just\b/i,
     "a setup for a contrast nobody raised: say what it is",
   ),
   rule(
-    /\bit'?s not [^.;:]{1,40}[,;] it'?s\b/i,
+    /\bit['’]?s not [^.;:]{1,40}[,;] it['’]?s\b/i,
     "a setup for a contrast nobody raised: say what it is",
   ),
   rule(
@@ -122,8 +122,10 @@ export function voiceFindings(
   rules: ReadonlyArray<VoiceRule> = voice,
 ): ReadonlyArray<VoiceFinding> {
   const findings: VoiceFinding[] = [];
+  // A phrase wrapped across lines is still the phrase; a blank line still parts two.
+  const flowing = text.replace(/([^\n])[ \t]*\n[ \t]*(?=[^\n])/g, "$1 ");
   for (const { pattern, why } of rules) {
-    const found = pattern.exec(text);
+    const found = pattern.exec(flowing);
     if (found !== null) findings.push({ why, said: found[0] });
   }
   for (const sentence of sentences(text)) {
@@ -172,7 +174,7 @@ function sentences(text: string): ReadonlyArray<string> {
   end();
   return paragraphs
     .flatMap((paragraph) =>
-      paragraph.split(/(?<=[.?!]["”’')]*)\s+(?=[A-Z"“‘(])/),
+      paragraph.split(/(?<=[.?!]["”’')]*)\s+(?=[\p{Lu}\d"“‘(])/u),
     )
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence !== "");
