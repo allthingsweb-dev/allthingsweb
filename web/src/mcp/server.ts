@@ -4,19 +4,22 @@ import { type CallTool, registerTools } from "./tools.ts";
 
 /**
  * The most array elements and object members a call's arguments may hold.
- * The largest real call has two (list_events' `when` and `limit`), so this
- * is far past any client's, and a call over it is answered with an error
- * before its schema runs (GHSA-46jr-4wx8-v453).
+ * The largest real call is coach_talk's, with 7 members and 5 goals, so
+ * this is far past any client's, and a call over it is answered with an
+ * error before its schema runs (GHSA-46jr-4wx8-v453).
  */
 export const maxToolInputElements = 64;
 
 /**
- * The largest request body `/mcp` reads, in bytes: a client's `initialize`
- * with its capabilities is a few KiB and a tool call far less. A larger body
- * is answered 413 before it's parsed (GHSA-46jr-4wx8-v453); the SDK's own
- * default is 4 MiB.
+ * The largest request body `/mcp` reads, in bytes. A client's `initialize`
+ * with its capabilities is a few KiB and most tool calls far less; the
+ * largest is coach_talk's with every field at its limit
+ * (allthings-core/src/coaching.ts `limits`, 83,200 characters), which
+ * fits as JSON even when every character takes two bytes escaped or three
+ * as UTF-8. A larger body is answered 413 before it's parsed
+ * (GHSA-46jr-4wx8-v453); the SDK's own default is 4 MiB.
  */
-export const maxRequestBodySize = 64 * 1024;
+export const maxRequestBodySize = 256 * 1024;
 
 /**
  * The MCP server: the official SDK's web-standard handler, as the app serves

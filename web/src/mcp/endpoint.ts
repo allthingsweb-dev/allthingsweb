@@ -20,6 +20,10 @@ import type { CallTool, ToolName } from "./tools.ts";
  * time window like any page. A call already answered for this version
  * never reads the database, so Claude sessions calling the tools don't
  * wake Neon. Without a store (tests, previews) a call runs its program.
+ *
+ * coach_talk is the exception (tools.ts, `keptTools`): it reads only what
+ * a speaker sends, so its calls always run here, never as a GET, and
+ * nothing of them is kept.
  */
 
 /** Where a tool's answer is kept: `/_mcp/tools/<name>?input=<its input as JSON>`. */
@@ -103,10 +107,15 @@ export class Mcp extends Context.Service<
           : unmarked(await run(program));
       };
 
-      /** Asks the store for the tool's answer; runs it here if that fails. */
+      /**
+       * Asks the store for the tool's answer; runs it here if that fails.
+       * A tool that doesn't read public data (coach_talk) always runs here.
+       */
       const via =
         (through: (request: Request) => Promise<Response>): CallTool =>
         async (name, input) => {
+          const { isKeptTool } = await tools();
+          if (!isKeptTool(name)) return direct(name, input);
           const canonical = canonicalInput(input);
           if (canonical.length > keptInputMax) return direct(name, input);
           try {
@@ -139,7 +148,7 @@ export class Mcp extends Context.Service<
           );
         },
         answer: async (url) => {
-          const { isToolName, toolInputs, toolProgram } = await tools();
+          const { isKeptTool, toolInputs, toolProgram } = await tools();
           const name = url.pathname.slice(toolPath.length + 1);
           const raw = url.searchParams.get("input") ?? "";
           let parsed: unknown;
@@ -148,8 +157,9 @@ export class Mcp extends Context.Service<
           } catch {
             parsed = undefined;
           }
+          // Only a tool whose answers are kept: never coach_talk.
           const checked =
-            isToolName(name) && raw.length <= keptInputMax
+            isKeptTool(name) && raw.length <= keptInputMax
               ? toolInputs[name satisfies ToolName].safeParse(parsed)
               : undefined;
           // Only the call as `via` writes it, nothing added and nothing
@@ -164,7 +174,7 @@ export class Mcp extends Context.Service<
                 )
               : undefined;
           const program =
-            isToolName(name) &&
+            isKeptTool(name) &&
             checked?.success === true &&
             location !== undefined &&
             `${url.pathname}${url.search}` ===

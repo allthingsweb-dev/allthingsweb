@@ -359,6 +359,9 @@ describe("the page store", () => {
       `/_mcp/tools/list%5Fevents?input=${encodeURIComponent('{"limit":3,"when":"past"}')}`,
       '/_mcp/tools/list_events?input={"limit":3,"when":"past"}',
       "/_mcp/tools/get_community",
+      // coach_talk reads only what it is sent: never kept, so never a GET.
+      `/_mcp/tools/coach_talk?input=${encodeURIComponent("{}")}`,
+      `/_mcp/tools/coach_talk?input=${encodeURIComponent('{"format":"open-floor"}')}`,
     ]) {
       const { response } = await get(Cached, path);
       expect(response.status).toBe(400);

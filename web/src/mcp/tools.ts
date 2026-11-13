@@ -4,6 +4,7 @@ import type {
   StandardSchemaWithJSON,
 } from "@modelcontextprotocol/server";
 import { asOf } from "allthings-core/src/clock.ts";
+import * as Coaching from "allthings-core/src/coaching.ts";
 import * as Contract from "allthings-core/src/contract.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Events } from "allthings-core/src/events.ts";
@@ -23,7 +24,8 @@ import { transientMark } from "./endpoint.ts";
  * The public MCP tools, as app/src/lib/mcp/tools.ts declares them: the same
  * names, titles, descriptions, annotations, input schemas and error texts,
  * because agents and the CLI (cli/, `allthings`) rely on them. get_year,
- * a year of our evenings looked back on, is the Worker's own.
+ * a year of our evenings looked back on, and coach_talk are the Worker's
+ * own: the app never had them.
  *
  * Input schemas stay in zod, the MCP SDK's own schema library and so already
  * in the bundle: they are what clients see in tools/list and they word the
@@ -36,6 +38,12 @@ export type ToolProgram = Effect.Effect<CallToolResult, never, Site>;
 
 /** Runs a tool's program with the isolate's services. */
 export type RunTool = (program: ToolProgram) => Promise<CallToolResult>;
+
+const goals = Coaching.Goal.literals;
+
+/** coach_talk's text fields: each optional, at most its limit. */
+const material = (max: number, description: string) =>
+  z.string().max(max).optional().describe(description);
 
 /** The public tools' inputs, as MCP clients send them. */
 export const toolInputs = {
@@ -66,12 +74,64 @@ export const toolInputs = {
         "The year, on San Francisco's calendar. Leave it out for the latest year with an evening held.",
       ),
   }),
+  coach_talk: z.object({
+    format: z
+      .enum(Coaching.SlotFormat.literals)
+      .default("open-floor")
+      .describe(
+        "open-floor: a short slot anyone can take at an open floor. talk: a talk in an evening's lineup.",
+      ),
+    minutes: z
+      .number()
+      .int()
+      .min(1)
+      .max(Coaching.maxSlotMinutes)
+      .optional()
+      .describe(
+        `The slot's length in minutes: ${Coaching.defaultMinutes["open-floor"]} for an open floor and ${Coaching.defaultMinutes.talk} for a talk unless given.`,
+      ),
+    title: material(Coaching.limits.title, "The talk's title."),
+    abstract: material(
+      Coaching.limits.abstract,
+      "The talk's abstract, as people will read it.",
+    ),
+    outline: material(
+      Coaching.limits.outline,
+      "An outline or the slides' text. Slides separated by lines of --- are counted as slides.",
+    ),
+    transcript: material(
+      Coaching.limits.transcript,
+      "A rehearsal's transcript: plain text, or WebVTT or SRT with timestamps.",
+    ),
+    goals: z
+      .array(z.enum(goals))
+      .max(Coaching.limits.goals)
+      .optional()
+      .describe("What the speaker wants from the talk."),
+  }),
 } as const;
 
 export type ToolName = keyof typeof toolInputs;
 
 export const isToolName = (name: string): name is ToolName =>
   Object.hasOwn(toolInputs, name);
+
+/**
+ * The tools that read public data, whose answers the page store keeps
+ * (endpoint.ts). coach_talk reads only what it's sent: its calls never
+ * reach the store, so nothing a speaker sends is kept or put in a URL.
+ */
+export const keptTools: ReadonlySet<ToolName> = new Set([
+  "list_events",
+  "get_event",
+  "list_speakers",
+  "get_community",
+  "get_guide",
+  "get_year",
+]);
+
+export const isKeptTool = (name: string): name is ToolName =>
+  isToolName(name) && keptTools.has(name);
 
 /**
  * How a tool call is answered: by name, with its input as the tool's schema
@@ -235,6 +295,31 @@ const getYear = (asked: number | undefined) =>
   }).pipe(withDataSource("get_year", "years"));
 
 /**
+ * Coaching for the talk in `input` (core/src/coaching.ts): a pure function
+ * of what was sent, which is neither stored nor logged.
+ */
+const coachTalk = (
+  input: z.infer<(typeof toolInputs)["coach_talk"]>,
+): ToolProgram =>
+  Effect.sync(() =>
+    succeed(
+      Coaching.coach({
+        slot: {
+          format: input.format,
+          minutes: input.minutes ?? Coaching.defaultMinutes[input.format],
+        },
+        ...(input.title === undefined ? {} : { title: input.title }),
+        ...(input.abstract === undefined ? {} : { abstract: input.abstract }),
+        ...(input.outline === undefined ? {} : { outline: input.outline }),
+        ...(input.transcript === undefined
+          ? {}
+          : { transcript: input.transcript }),
+        ...(input.goals === undefined ? {} : { goals: input.goals }),
+      }),
+    ),
+  );
+
+/**
  * The program that answers `name` with `input` (untrusted: it is parsed
  * with the tool's schema first), or undefined for input the tool refuses.
  */
@@ -270,6 +355,10 @@ export function toolProgram(
     case "get_year": {
       const parsed = toolInputs.get_year.safeParse(input);
       return parsed.success ? getYear(parsed.data.year) : undefined;
+    }
+    case "coach_talk": {
+      const parsed = toolInputs.coach_talk.safeParse(input);
+      return parsed.success ? coachTalk(parsed.data) : undefined;
     }
     default:
       return undefined;
@@ -358,5 +447,18 @@ export function registerTools(server: McpServer, call: CallTool): void {
       annotations: readOnly,
     },
     (input) => call("get_year", input),
+  );
+
+  server.registerTool(
+    "coach_talk",
+    {
+      title: "Coach a talk",
+      description:
+        "Coach a talk for an allthings stage. Send the slot (an open floor is 3 minutes, and the timer is hard) and any of a title, an abstract, an outline or slide text, a rehearsal's transcript (plain, WebVTT or SRT) and goals. Returns findings, most pressing first (must, should, consider), each with what was measured and one line of advice, what's already working, and what more could be checked. The checks are deterministic, and nothing sent is stored or logged.",
+      inputSchema: toolInputs.coach_talk,
+      outputSchema: outputSchema(Schema.Struct(Coaching.Coaching.fields)),
+      annotations: readOnly,
+    },
+    (input) => call("coach_talk", input),
   );
 }
