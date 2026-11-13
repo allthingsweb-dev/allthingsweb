@@ -140,11 +140,33 @@ export function voiceFindings(
   return findings;
 }
 
-/** `text`'s sentences, prose only: a line that is a list item, a heading or a link is its own sentence. */
+/**
+ * `text`'s sentences. A paragraph's lines are one text, however it is
+ * wrapped, split after a full stop, question mark or exclamation mark; a
+ * semicolon or a colon doesn't end one. A list item or a heading starts a
+ * paragraph of its own, and a blank line ends one.
+ */
 function sentences(text: string): ReadonlyArray<string> {
-  return text
-    .split(/\n+/)
-    .flatMap((line) => line.split(/(?<=[.?:;])\s+(?=[A-Z"“(])/))
+  const paragraphs: string[] = [];
+  let lines: string[] = [];
+  const end = () => {
+    if (lines.length > 0) paragraphs.push(lines.join(" "));
+    lines = [];
+  };
+  for (const line of text.split("\n").map((each) => each.trim())) {
+    if (line === "") {
+      end();
+    } else if (/^#{1,6}\s/.test(line)) {
+      end();
+      paragraphs.push(line);
+    } else {
+      if (/^(?:[-*+•]|\d+[.)])\s/.test(line)) end();
+      lines.push(line);
+    }
+  }
+  end();
+  return paragraphs
+    .flatMap((paragraph) => paragraph.split(/(?<=[.?!])\s+(?=[A-Z"“(])/))
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence !== "");
 }

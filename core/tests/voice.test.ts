@@ -105,6 +105,21 @@ describe("our voice", () => {
     const atMost = Array.from({ length: longestSentence }, () => "word").join(
       " ",
     );
-    expect(voiceFindings(`${atMost}.\n${atMost}.\n- ${atMost}`)).toEqual([]);
+    expect(voiceFindings(`${atMost}.\n\n${atMost}.\n- ${atMost}`)).toEqual([]);
+  });
+
+  test("a sentence is counted whole, however it is wrapped, and a semicolon doesn't end it", () => {
+    const words = (n: number) =>
+      Array.from({ length: n }, () => "word").join(" ");
+    const wrapped = `${words(20)}\n${words(21)}.`;
+    expect(voiceFindings(wrapped).map(({ why }) => why)).toEqual([
+      `a sentence of 41 words: split it (${longestSentence} at most)`,
+    ]);
+    const clauses = `${words(21)}; And ${words(20)}.`;
+    expect(voiceFindings(clauses).map(({ why }) => why)).toEqual([
+      `a sentence of 42 words: split it (${longestSentence} at most)`,
+    ]);
+    expect(voiceFindings(`${words(30)}.\n\n${words(30)}.`)).toEqual([]);
+    expect(voiceFindings(`- ${words(30)}\n- ${words(30)}`)).toEqual([]);
   });
 });
