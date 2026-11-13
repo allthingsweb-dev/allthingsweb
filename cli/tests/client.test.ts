@@ -56,6 +56,63 @@ describe("MCP client", () => {
     });
   });
 
+  test("proposes a talk, naming itself, and takes a problem with it as a usage error", async () => {
+    const headers: Array<Headers> = [];
+    const answer = { received: true, message: "Thanks: your proposal is in." };
+    const ok = respondWith({
+      result: { content: [], structuredContent: answer },
+    });
+    const proposal = {
+      title: "Effect in production",
+      abstract: "What a year of Effect taught us about errors in payments.",
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+    };
+    expect(
+      await createClient({
+        fetch: async (url, init) => {
+          headers.push(new Headers(init.headers));
+          return ok.fetch(url, init);
+        },
+      }).proposeTalk(proposal),
+    ).toEqual(answer);
+    expect(ok.requests[0]).toEqual({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "propose_talk", arguments: proposal },
+    });
+    expect(headers[0]?.get("user-agent")).toMatch(/^allthings-cli\/\d/);
+
+    const problem = respondWith({
+      result: {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: "Some of the proposal needs another look: see each field's problem.\nemail: \"nope\" doesn't read as an email address.",
+          },
+        ],
+      },
+    });
+    await expectCliError(
+      createClient({ fetch: problem.fetch }).proposeTalk(proposal),
+      ExitCode.UsageError,
+    );
+    const closed = respondWith({
+      result: {
+        isError: true,
+        content: [
+          { type: "text", text: "Proposals can't be taken right now." },
+        ],
+      },
+    });
+    await expectCliError(
+      createClient({ fetch: closed.fetch }).proposeTalk(proposal),
+      ExitCode.ServiceError,
+    );
+  });
+
   test("reads plain JSON responses too", async () => {
     const { fetch } = respondWith(
       { result: { content: [], structuredContent: event } },

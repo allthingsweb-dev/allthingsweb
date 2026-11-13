@@ -1,3 +1,4 @@
+import { createInterface } from "node:readline";
 import { run } from "./cli.ts";
 
 const opener =
@@ -6,6 +7,29 @@ const opener =
     : process.platform === "win32"
       ? ["cmd", "/c", "start", ""]
       : ["xdg-open"];
+
+/**
+ * Asks one question on the terminal: the line typed, or null when the input
+ * ends (Ctrl-D). The question goes to stderr, so stdout holds only what the
+ * command prints (with --json, its JSON alone).
+ */
+function ask(question: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const lines = createInterface({
+      input: process.stdin,
+      output: process.stderr,
+    });
+    let answered = false;
+    lines.on("close", () => {
+      if (!answered) resolve(null);
+    });
+    lines.question(question, (answer) => {
+      answered = true;
+      lines.close();
+      resolve(answer);
+    });
+  });
+}
 
 /** Runs the CLI against this process; `legacy` is true when started as `atw`. */
 export async function main(legacy: boolean): Promise<never> {
@@ -17,6 +41,9 @@ export async function main(legacy: boolean): Promise<never> {
     env: process.env,
     legacy,
     readFile: (path) => Bun.file(path).text(),
+    // A person at a terminal is asked for what a command needs
+    // (`propose`); a script or an agent never is.
+    ...(process.stdin.isTTY && process.stdout.isTTY ? { prompt: ask } : {}),
     openUrl: async (url) => {
       // The link is already printed, so a missing opener (no xdg-open) is fine.
       try {

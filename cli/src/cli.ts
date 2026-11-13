@@ -13,6 +13,7 @@ import {
 } from "./aux.ts";
 import { createClient, toolNames, type Client, type Fetch } from "./client.ts";
 import { longestOpenFloor, talkToCoach } from "./coach.ts";
+import type { ProposalFields } from "./schemas.ts";
 import {
   auxCodeVariable,
   auxEndpointFrom,
@@ -53,6 +54,11 @@ export type Io = {
   legacy?: boolean;
   /** Reads a file `coach` is given; tests pass a fake. */
   readFile?: (path: string) => Promise<string>;
+  /**
+   * Asks a person a question and reads their line: only when stdin and
+   * stdout are a terminal, else absent. Null when they end the input.
+   */
+  prompt?: (question: string) => Promise<string | null>;
 };
 
 const tagline = `${commandName} · evenings for people who build software, from your terminal and your agents`;
@@ -69,6 +75,7 @@ Usage
   ${commandName} guide [--json]
   ${commandName} about [--json]
   ${commandName} coach <files...> [--slot <minutes>] [--talk] [--goal <goal>] [--json]
+  ${commandName} propose [--title "…" --abstract "…" --name "…" --email "…" …] [--json]
   ${commandName} mcp [--json]
   ${commandName} aux <command> [--json]
 
@@ -83,6 +90,7 @@ Examples
   ${commandName} open latest                 Open the last evening's page on allthings.dev
   ${commandName} guide                       Conferences worth the trip, starred
   ${commandName} coach slides.md talk.vtt    Coach your talk for our stage before you give it
+  ${commandName} propose                     Propose a talk: it asks for each part
   ${commandName} mcp                         Add allthings to Claude Code, Codex, Grok Build, VS Code or Cursor
   ${commandName} aux --help                 Set the room's lights at an evening that passes the aux
 
@@ -150,6 +158,38 @@ Options
 
 The files go to coach_talk on ${siteOrigin}/mcp, which keeps none of what it is sent.
 Exit codes: 0 coached, 1 service error, 2 usage error (a file it can't read, an unknown goal).
+`;
+
+const proposeHelp = `${commandName} propose · propose a talk for an evening
+
+An open door and a high bar: anyone may propose, and we pick the talks people
+will still talk about on the way home. Something you built, broke or worked out
+the hard way; open source above all; never a product pitch. Erik and Andre read
+every proposal and reply by email.
+
+Usage
+  ${commandName} propose
+  ${commandName} propose --title "…" --abstract "…" --name "…" --email "…"
+    [--format talk|lightning|demo] [--about "…"] [--link https://…]… [--notes "…"]
+    [--yes] [--json]
+
+In a terminal, it asks for each part you leave out, then shows the proposal and
+asks before sending it. Elsewhere it takes them all as options, and sends.
+
+Options
+  --title       The talk's title, on one line
+  --abstract    What it's about, and what people will leave knowing (40+ characters)
+  --format      talk (about 20 minutes, the default), lightning (about 5) or demo (about 10)
+  --name        Your name, as you'd like it on the evening
+  --email       Where we reply; only the organizers see it
+  --about       What you build, and where
+  --link        An https link: your site, GitHub, the project; up to four
+  --notes       Dates that work, a co-speaker, anything else
+  --yes         Send it without asking first
+  --json        Print the server's answer as JSON
+
+Exit codes: 0 sent, 1 the server couldn't take it, 2 something in it to fix.
+Nothing you send shows on allthings.dev unless you give the talk.
 `;
 
 function usage(message: string): never {
@@ -252,6 +292,202 @@ ${lines}
 An agent with a shell can run this CLI too: every command but rsvp and open takes --json.
 Set ${endpointVariable} to point this CLI, and these lines, at another server.
 `;
+}
+
+const proposalFormats = ["talk", "lightning", "demo"] as const;
+type ProposalFormat = (typeof proposalFormats)[number];
+const isProposalFormat = (value: string): value is ProposalFormat =>
+  (proposalFormats as ReadonlyArray<string>).includes(value);
+
+/** The options `propose` takes, as parsed. */
+interface ProposeOptions {
+  readonly title?: string | undefined;
+  readonly abstract?: string | undefined;
+  readonly format?: string | undefined;
+  readonly name?: string | undefined;
+  readonly email?: string | undefined;
+  readonly about?: string | undefined;
+  readonly link?: ReadonlyArray<string> | undefined;
+  readonly notes?: string | undefined;
+  readonly yes: boolean;
+  /** With --json, stdout holds the server's answer alone, so the proposal is shown on stderr. */
+  readonly json?: boolean | undefined;
+}
+
+/** As many links as propose_talk takes (web/src/mcp/propose.ts). */
+const maxLinks = 4;
+
+/** The options only `propose` takes; a title and an abstract `coach` takes too. */
+const proposeOnly = [
+  "format",
+  "name",
+  "email",
+  "about",
+  "link",
+  "notes",
+  "yes",
+] as const;
+
+const required = ["title", "abstract", "name", "email"] as const;
+
+/** Text given, or undefined when it is blank. */
+const given = (value: string | undefined) =>
+  value === undefined || value.trim() === "" ? undefined : value.trim();
+
+/**
+ * The proposal `allthings propose` sends: its options, and in a terminal
+ * an answer to a question for each part left out (every part, when none
+ * was given), then the proposal shown whole and a yes before it goes,
+ * unless --yes. Elsewhere, every required part must be an option. The
+ * server checks the rest and says what to fix.
+ */
+async function proposal(
+  options: ProposeOptions,
+  io: Io,
+): Promise<ProposalFields | null> {
+  if (options.format !== undefined && !isProposalFormat(options.format)) {
+    usage(`--format is talk, lightning or demo.`);
+  }
+  const prompt = io.isTTY ? io.prompt : undefined;
+  const missing = required.filter((part) => given(options[part]) === undefined);
+  if (missing.length > 0 && prompt === undefined) {
+    usage(
+      `"propose" needs ${missing.map((part) => `--${part}`).join(", ")}. Run it in a terminal to be asked for each.`,
+    );
+  }
+  const none =
+    options.title === undefined &&
+    options.abstract === undefined &&
+    proposeOnly.every((option) =>
+      option === "yes"
+        ? !options.yes
+        : option === "link"
+          ? (options.link ?? []).length === 0
+          : options[option] === undefined,
+    );
+  /** Asks until it gets an answer, or a blank one when `optional`; null when the input ends. */
+  const ask = async (question: string, optional: boolean) => {
+    for (;;) {
+      const answer = await prompt!(question);
+      if (answer === null) return null;
+      if (answer.trim() !== "" || optional) return answer.trim();
+    }
+  };
+  const parts: Record<string, string | undefined> = {
+    title: given(options.title),
+    abstract: given(options.abstract),
+    name: given(options.name),
+    email: given(options.email),
+    format: options.format,
+    about: given(options.about),
+    notes: given(options.notes),
+  };
+  let links = (options.link ?? []).flatMap((link) => given(link) ?? []);
+  // The server refuses a fifth link before it reads the rest, as a failed
+  // call; here it is what it is, a usage error.
+  if (links.length > maxLinks) usage(`--link goes up to four times.`);
+  if (prompt !== undefined) {
+    const questions: ReadonlyArray<
+      readonly [string, string, boolean, boolean]
+    > = [
+      // [part, question, optional, asked only when no option was given]
+      ["title", "Title: ", false, false],
+      [
+        "format",
+        "Format, talk (about 20 min), lightning (5) or demo (10) [talk]: ",
+        true,
+        true,
+      ],
+      [
+        "abstract",
+        "Abstract, what it's about and what people will leave knowing: ",
+        false,
+        false,
+      ],
+      ["name", "Your name: ", false, false],
+      [
+        "email",
+        "Your email, where we reply (only the organizers see it): ",
+        false,
+        false,
+      ],
+      ["about", "About you, what you build and where (optional): ", true, true],
+      [
+        "links",
+        "Links, https and separated by spaces (optional): ",
+        true,
+        true,
+      ],
+      [
+        "notes",
+        "Notes for us: dates that work, anything else (optional): ",
+        true,
+        true,
+      ],
+    ];
+    for (const [part, question, optional, onlyWhenNone] of questions) {
+      if (onlyWhenNone ? !none : parts[part] !== undefined) continue;
+      if (part === "format") {
+        for (;;) {
+          const answer = await ask(question, true);
+          if (answer === null) return null;
+          if (answer === "" || isProposalFormat(answer)) {
+            parts["format"] = answer === "" ? undefined : answer;
+            break;
+          }
+          io.stderr("It's talk, lightning or demo.\n");
+        }
+        continue;
+      }
+      if (part === "links") {
+        for (;;) {
+          const answer = await ask(question, true);
+          if (answer === null) return null;
+          links = answer.split(/\s+/).filter(Boolean);
+          if (links.length <= maxLinks) break;
+          io.stderr("Up to four links.\n");
+        }
+        continue;
+      }
+      const answer = await ask(question, optional);
+      if (answer === null) return null;
+      parts[part] = answer === "" ? undefined : answer;
+    }
+  }
+  const fields: ProposalFields = {
+    title: parts["title"]!,
+    abstract: parts["abstract"]!,
+    name: parts["name"]!,
+    email: parts["email"]!,
+    ...(parts["format"] === undefined
+      ? {}
+      : { format: parts["format"] as ProposalFormat }),
+    ...(parts["about"] === undefined ? {} : { about: parts["about"] }),
+    ...(links.length === 0 ? {} : { links }),
+    ...(parts["notes"] === undefined ? {} : { notes: parts["notes"] }),
+  };
+  if (prompt !== undefined && !options.yes) {
+    // With --json, stdout is the answer's JSON alone.
+    (options.json ? io.stderr : io.stdout)(`\n${formatProposal(fields)}\n`);
+    const answer = await prompt("Send it? [y/N] ");
+    if (answer === null || !/^y(es)?$/i.test(answer.trim())) return null;
+  }
+  return fields;
+}
+
+/** A proposal as its sender reads it back before it goes. */
+function formatProposal(fields: ProposalFields): string {
+  return [
+    `${fields.title} (${fields.format ?? "talk"})`,
+    fields.abstract,
+    `${fields.name} <${fields.email}>`,
+    ...(fields.about === undefined ? [] : [`About you: ${fields.about}`]),
+    ...(fields.links ?? []).map((link) => `Link: ${link}`),
+    ...(fields.notes === undefined ? [] : [`Notes: ${fields.notes}`]),
+  ]
+    .map((line) => `  ${line}`)
+    .join("\n")
+    .concat("\n");
 }
 
 /** A command to try and what it does, lined up for reading. */
@@ -544,6 +780,13 @@ const options = {
   goal: { type: "string", multiple: true },
   title: { type: "string" },
   abstract: { type: "string" },
+  format: { type: "string" },
+  name: { type: "string" },
+  email: { type: "string" },
+  about: { type: "string" },
+  link: { type: "string", multiple: true },
+  notes: { type: "string" },
+  yes: { type: "boolean", default: false },
   help: { type: "boolean", short: "h", default: false },
   version: { type: "boolean", short: "v", default: false },
 } as const;
@@ -556,6 +799,7 @@ const commands = [
   "rsvp",
   "open",
   "guide",
+  "propose",
   "about",
   "coach",
   "mcp",
@@ -614,12 +858,41 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       io.stdout(`${packageJson.version}\n`);
       return ExitCode.Ok;
     }
+    // Before aux, which reads none of them: a proposal's options anywhere
+    // else are a usage error, and nothing runs. Help still comes first.
+    const helping = values.help || command === "help";
+    if (
+      !helping &&
+      command !== "propose" &&
+      proposeOnly.some((option) =>
+        option === "yes"
+          ? values.yes
+          : option === "link"
+            ? values.link !== undefined
+            : values[option] !== undefined,
+      )
+    ) {
+      usage(`--${proposeOnly.join(", --")} go with "propose".`);
+    }
+    // A title and an abstract are a talk's, for coach and propose alike.
+    if (
+      !helping &&
+      command !== "coach" &&
+      command !== "propose" &&
+      (values.title !== undefined || values.abstract !== undefined)
+    ) {
+      usage(`--title and --abstract go with "coach" or "propose".`);
+    }
     if (command === "aux") return await runAux(rest, values, io);
     if (command === "coach" && values.help) {
       io.stdout(coachHelp);
       return ExitCode.Ok;
     }
-    if (values.help || command === "help") {
+    if (command === "propose" && values.help) {
+      io.stdout(proposeHelp);
+      return ExitCode.Ok;
+    }
+    if (helping) {
       io.stdout(help);
       return ExitCode.Ok;
     }
@@ -627,13 +900,9 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       usage('"--zone" works only with "aux color".');
     if (
       command !== "coach" &&
-      (values.slot !== undefined ||
-        values.talk ||
-        values.goal !== undefined ||
-        values.title !== undefined ||
-        values.abstract !== undefined)
+      (values.slot !== undefined || values.talk || values.goal !== undefined)
     ) {
-      usage(`--slot, --talk, --goal, --title and --abstract go with "coach".`);
+      usage(`--slot, --talk and --goal go with "coach".`);
     }
 
     const color = io.isTTY && !io.env["NO_COLOR"] && !values.json;
@@ -708,6 +977,19 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
           usage(`"open" takes one event slug, or next or latest.`);
         const event = await client.getEvent(await resolveSlug(client, slug));
         return await printAndOpen(event.url);
+      }
+      case "propose": {
+        if (rest.length > 0) {
+          usage(`"propose" takes its parts as options, like --title "…".`);
+        }
+        const fields = await proposal(values, io);
+        if (fields === null) {
+          io.stderr("Nothing was sent.\n");
+          return ExitCode.UsageError;
+        }
+        const answer = await client.proposeTalk(fields);
+        print(`${answer.message}\n`, answer);
+        return ExitCode.Ok;
       }
       case "mcp": {
         if (rest.length > 0) usage(`"mcp" takes no arguments.`);
