@@ -729,7 +729,6 @@ describe("core/backfill/lineups.json", () => {
         "All Things React Native",
         "After Party - All Things React Native",
         "TypeScript AI: The official conference after-party",
-        "All Things Sync",
         "All Things Agent Setups",
       ],
     );
@@ -832,6 +831,12 @@ describe("core/backfill/lineups.json", () => {
         ["Panel: AI and the tools we build"],
         ["mc erik-thorelli"],
       ],
+      // Two of its talks wait for their titles; the panel had everyone.
+      [
+        "All Things Sync",
+        ["Four fresh ideas for local-first", "Panel discussion"],
+        ["mc erik-thorelli"],
+      ],
     ]);
     // What Erik said the record had wrong (2026-10-06): the panel was the
     // fireside chat, he MC'd the Effect evening, and not DevTool AX Demos.
@@ -892,6 +897,7 @@ describe("core/backfill/lineups.json", () => {
     expect(Object.keys(subset.people).toSorted()).toEqual([
       "abhi-aiyer",
       "andre-landgraf",
+      "anselm-eickhoff",
       "arthur-stockman",
       "dan-goosewin",
       "david-cusatis",
@@ -899,6 +905,8 @@ describe("core/backfill/lineups.json", () => {
       "evan-bacon",
       "greg-pstrucha",
       "ivan-burazin",
+      "james-arthur",
+      "james-cowling",
       "james-grugett",
       "jeff-huber",
       "kevin-whinnery",
