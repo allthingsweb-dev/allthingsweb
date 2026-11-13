@@ -104,8 +104,10 @@ function SoFar({ about }: { readonly about: AboutView }) {
             ) : (
               <>
                 {" · "}
+                {/* No-break spaces: the link wraps whole, never its arrow alone. */}
                 <a href={yearPath(about.latestYear)}>
-                  year by year <span aria-hidden="true">→</span>
+                  {"year by year "}
+                  <span aria-hidden="true">→</span>
                 </a>
               </>
             )}
