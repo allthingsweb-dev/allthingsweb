@@ -1,7 +1,7 @@
 import { Effect, Result, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import { approvalToken, isApprovalToken } from "./approval.ts";
-import { currentActor } from "./planning/draft-log.ts";
+import { currentActor, logDraft } from "./planning/draft-log.ts";
 
 /**
  * Talks people propose to give at one of our evenings
@@ -464,17 +464,28 @@ export interface PlannedDecision {
     readonly kind: DecisionKind;
     readonly note: string | null;
     /** The evening a placed talk goes on. */
-    readonly event: { readonly id: string; readonly slug: string } | null;
+    readonly event: Evening | null;
   };
   readonly token: string;
+}
+
+/** An evening a talk goes on, as a placing hashes it: what would change it. */
+export interface Evening {
+  readonly id: string;
+  readonly slug: string;
+  readonly startDate: string;
+  readonly isDraft: boolean;
 }
 
 /** The evening at `slug` (its long slug or its short link). */
 const eveningAt = (slug: string) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
-    const events = yield* sql<{ id: string; slug: string }>`
-      SELECT id::text AS id, slug FROM events
+    const events = yield* sql<Evening>`
+      SELECT id::text AS id, slug,
+        to_char(start_date AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "startDate",
+        is_draft AS "isDraft"
+      FROM events
       WHERE slug = ${slug} OR short_slug = ${slug}
       ORDER BY short_slug = ${slug} DESC NULLS LAST
       LIMIT 1`;
@@ -577,6 +588,26 @@ export const decide = (id: string, decision: Decision, token: string) =>
           return yield* refuse(
             `The proposal or the decision has changed since ${token} was approved: it is now ${now}. Read it again with --dry-run, and approve that.`,
           );
+        }
+        // A talk leaving a draft evening, or put on one, is a line in that
+        // draft's log, in this transaction: ids and the format, never what
+        // anyone wrote.
+        const payload = { proposalId: proposal.id, format: proposal.format };
+        if (proposal.event?.isDraft === true) {
+          yield* logDraft({
+            event: { slug: proposal.event.slug },
+            command: `proposals ${checked.kind}`,
+            summary: "An accepted talk left this evening.",
+            payload,
+          });
+        }
+        if (checked.kind === "place" && checked.event.isDraft) {
+          yield* logDraft({
+            event: { id: checked.event.id },
+            command: "proposals place",
+            summary: "An accepted talk was put on this evening.",
+            payload,
+          });
         }
         if (checked.kind === "remove") {
           yield* sql`DELETE FROM planning.proposals WHERE id = ${proposal.id}::uuid`;

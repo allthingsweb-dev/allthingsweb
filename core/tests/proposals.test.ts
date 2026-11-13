@@ -417,7 +417,21 @@ describe("deciding a proposal", () => {
       (await failure(planDecision(proposal.id, { kind: "place" }))).message,
     ).toBe("Say which evening: --event <slug>.");
     const placing = await run(planDecision(proposal.id, place));
-    expect(placing.decision.event?.slug).toBe("2026-09-01-draft-night");
+    expect(placing.decision.event).toMatchObject({
+      slug: "2026-09-01-draft-night",
+      startDate: "2026-09-02T01:00:00.000Z",
+      isDraft: true,
+    });
+    // The evening's day is in the token: moved since, it stops the approval.
+    await db.exec(
+      `UPDATE events SET start_date = start_date + interval '1 day' WHERE slug = '2026-09-01-draft-night'`,
+    );
+    expect(
+      (await failure(decide(proposal.id, place, placing.token))).message,
+    ).toContain("has changed since");
+    await db.exec(
+      `UPDATE events SET start_date = start_date - interval '1 day' WHERE slug = '2026-09-01-draft-night'`,
+    );
     const placed = await run(decide(proposal.id, place, placing.token));
     expect(placed.status).toBe("accepted");
     expect(placed.event).toMatchObject({
@@ -432,6 +446,29 @@ describe("deciding a proposal", () => {
       decide(proposal.id, { kind: "decline" }, declining.token),
     );
     expect(declined.event).toBeNull();
+    // Each move in or out of a draft is a line in its log, with no words
+    // of the proposal.
+    const log = await db.query<{
+      command: string;
+      summary: string;
+      payload: unknown;
+    }>(
+      `SELECT l.command, l.summary, l.payload FROM planning.draft_log l
+       JOIN events e ON e.id = l.event_id WHERE e.slug = $1 ORDER BY l.at, l.id`,
+      ["2026-09-01-draft-night"],
+    );
+    expect(log.rows).toEqual([
+      {
+        command: "proposals place",
+        summary: "An accepted talk was put on this evening.",
+        payload: { proposalId: proposal.id, format: "talk" },
+      },
+      {
+        command: "proposals decline",
+        summary: "An accepted talk left this evening.",
+        payload: { proposalId: proposal.id, format: "talk" },
+      },
+    ]);
   });
 
   test("names what it can't find", async () => {

@@ -1354,8 +1354,11 @@ in uses it.
   forgotten (/privacy).
 - **`place`** puts an accepted talk on an evening (`--event <slug>`, a
   draft or one published), with the same dry run and token, so planning
-  stops suggesting it for others. Declining or accepting it again takes it
-  off.
+  stops suggesting it for others. Placing it on another evening moves it;
+  declining or removing it takes it off. A move onto or off a draft is a
+  line in that draft's log, ids and the format alone, and the evening's
+  day and draft state are in the token, so a moved evening stops the
+  approval.
 
 ```sh
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals list [--status new|accepted|declined|all] [--json]
