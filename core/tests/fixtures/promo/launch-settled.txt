@@ -9,19 +9,17 @@
 - [ ] Display names say allthings before the posts do: X, Bluesky, the LinkedIn page, the Discord server and the Luma calendar.
 - [ ] Send each Meetup announcement from its own group, to all its members.
 
-## x: thread 1/7 (241 / 280)
+## x: thread 1/7 (212 / 280)
 
 All Things Web is now allthings.
 
-The same evenings for people who build software, in the neighborhoods of San Francisco, under one name: allthings/_. An open door and a high bar.
+The same evenings for people who build software, in the neighborhoods of San Francisco. An open door and a high bar.
 
 The site is allthings.dev. allthingsweb.dev redirects there.
 
-## x: thread 2/7 (251 / 280)
+## x: thread 2/7 (174 / 280)
 
-Each evening fills the slot after the slash, and that's its short link: allthings/effect lives at allthings.dev/effect.
-
-A link, once given, is that evening's for good, so nothing printed, posted or put in a QR code ever comes to mean another evening.
+Every evening has a short link, like allthings.dev/effect, and it keeps that link for good, so nothing printed, posted or put in a QR code ever comes to mean another evening.
 
 ## x: thread 3/7 (159 / 280)
 
@@ -61,11 +59,11 @@ New: a short link for every evening, a page for everyone who's been on stage, ev
 
 Next: allthings/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-11-05-upcoming
 
-## linkedin (1295 / 3000)
+## linkedin (1171 / 3000)
 
 All Things Web is now allthings.
 
-The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. An open door and a high bar. What changes is the name, allthings/_, where each evening fills the slot after the slash: allthings/effect, allthings/expo.
+The evenings stay what they were: for people who build software, in the neighborhoods of San Francisco, about who's on stage and what they built. An open door and a high bar.
 
 The site is now allthings.dev, and allthingsweb.dev redirects there. With it:
 
@@ -80,11 +78,11 @@ Next: allthings/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-
 Talk between evenings → discord.gg/B3Sm4b5mfD
 On X: x.com/allthingsdev
 
-## discord (932 / 2000)
+## discord (823 / 2000)
 
 **All Things Web is now allthings.**
 
-Same evenings, same server. An open door and a high bar. The name is allthings/\_, and each evening fills the slot after the slash: allthings/effect, allthings/expo.
+Same evenings, same server. An open door and a high bar.
 
 **What changed**
 - The site is **allthings.dev**; allthingsweb.dev redirects there.
@@ -98,11 +96,11 @@ Same evenings, same server. An open door and a high bar. The name is allthings/\
 
 On X: **@allthingsdev**
 
-## luma: newsletter (1258 / 5000)
+## luma: newsletter (1149 / 5000)
 
 subject: These evenings are now allthings
 
-All Things Web is now allthings: the same evenings for people who build software, in the neighborhoods of San Francisco, under one name, allthings/\_. Each evening fills the slot after the slash: allthings/effect, allthings/expo. An open door and a high bar.
+All Things Web is now allthings: the same evenings for people who build software, in the neighborhoods of San Francisco. An open door and a high bar.
 
 Nothing changes here: you keep following this calendar, and every evening's seats are still taken here.
 
@@ -119,13 +117,13 @@ Nothing changes here: you keep following this calendar, and every evening's seat
 
 Talk between evenings → **[discord](https://discord.gg/B3Sm4b5mfD)**. On X: **[@allthingsdev](https://x.com/allthingsdev)**.
 
-## meetup: allthings · React & Web · San Francisco (841 / 5000)
+## meetup: allthings · React & Web · San Francisco (769 / 5000)
 
 group: https://www.meetup.com/reactjs-san-francisco/
 
-subject: allthings/_: these evenings are now allthings
+subject: These evenings are now allthings
 
-The evenings this group lists were part of All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash. An open door and a high bar.
+The evenings this group lists were part of All Things Web. They're now allthings. An open door and a high bar.
 
 Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthings); the list on Meetup is a waitlist.
 
@@ -135,13 +133,13 @@ Next: allthings/upcoming meetup, Thu Nov 5, 6:00 PM. https://allthings.dev/2026-
 
 Talk between evenings → discord.gg/B3Sm4b5mfD
 
-## meetup: Remix Bay Area (841 / 5000)
+## meetup: Remix Bay Area (769 / 5000)
 
 group: https://www.meetup.com/remix-bay-area/
 
-subject: allthings/_: these evenings are now allthings
+subject: These evenings are now allthings
 
-The evenings this group lists were part of All Things Web. They're now allthings: one name, allthings/_, and each evening fills the slot after the slash. An open door and a high bar.
+The evenings this group lists were part of All Things Web. They're now allthings. An open door and a high bar.
 
 Nothing changes for you here. This group continues under allthings, you stay a member, and each evening is still listed here. Seats are on Luma (luma.com/allthings); the list on Meetup is a waitlist.
 
