@@ -173,9 +173,7 @@ export function letterIndexPage({
       <div class="evenings">
         <div class="evenings-head">
           <h1 class="lockup at-type-event-lockup">the letter</h1>
-          <p class="lead at-type-lead">
-            {about}
-          </p>
+          <p class="lead at-type-lead">{about}</p>
           <p>
             Claude writes it, and Erik reads every word before it goes out to
             everyone subscribed to our calendar on Luma.
