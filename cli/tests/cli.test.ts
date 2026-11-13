@@ -224,6 +224,33 @@ describe("allthings", () => {
     }
   });
 
+  test("suggests the command or option a typo meant", async () => {
+    const command = await exec(["evnts"]);
+    expect(command.code).toBe(ExitCode.UsageError);
+    expect(command.stderr).toBe(
+      'allthings: Unknown command "evnts". Did you mean "allthings events"?\nRun "allthings --help" for usage.\n',
+    );
+    const option = await exec(["events", "--jsn"]);
+    expect(option.code).toBe(ExitCode.UsageError);
+    expect(option.stderr).toContain(
+      'Unknown option "--jsn". Did you mean "--json"?',
+    );
+    // In its own words, without node's advice about positionals.
+    expect(option.stderr).not.toContain("positional");
+    expect((await exec(["frobnicate"])).stderr).not.toContain("Did you mean");
+  });
+
+  test("suggests an aux command without repeating what was typed", async () => {
+    const near = await exec(["aux", "stauts"]);
+    expect(near.code).toBe(ExitCode.UsageError);
+    expect(near.stderr).toContain('Did you mean "allthings aux status"?');
+    expect(near.stderr).not.toContain("stauts");
+    // A guest's code typed in the wrong place is never echoed.
+    const code = await exec(["aux", "K7QX-29MB"]);
+    expect(code.stderr).not.toContain("K7QX");
+    expect(code.stderr).not.toContain("Did you mean");
+  });
+
   test("lists upcoming events by default and passes filters through", async () => {
     const calls: unknown[] = [];
     const client = fakeClient({
