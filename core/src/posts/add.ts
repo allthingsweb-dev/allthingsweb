@@ -12,6 +12,7 @@ import {
   PostEventNotFound,
   type PostStatus,
 } from "./store.ts";
+import { canonicalUrl, parsePostUrl } from "./urls.ts";
 
 /**
  * Adds the post at `url` to the event with `slug`: the one path the CLI
@@ -71,4 +72,79 @@ export const addPost = (
     if (resolved !== null) return resolved;
     if (options.dryRun === true) return { _tag: "WouldAdd", post } as const;
     return yield* writer.add(slug, post, options.status ?? "approved");
+  });
+
+/**
+ * The post URLs in `text`, such as a file a browser search's results were
+ * copied into: every X, Bluesky or LinkedIn post URL anywhere in it, each
+ * post once (as first written), in order. A line starting with `#` is a
+ * note. Any other URL is returned in `ignored`, so none is dropped unseen.
+ */
+export function postUrlsIn(text: string): {
+  readonly urls: ReadonlyArray<string>;
+  readonly ignored: ReadonlyArray<string>;
+} {
+  const urls: Array<string> = [];
+  const ignored: Array<string> = [];
+  const seen = new Set<string>();
+  for (const line of text.split(/\r?\n/)) {
+    if (line.trimStart().startsWith("#")) continue;
+    for (const [match] of line.matchAll(/https?:\/\/[^\s<>"'`]+/g)) {
+      // A URL ends before punctuation that closes the sentence around it.
+      const url = match.replace(/[),.;:!?\]]+$/, "");
+      const ref = parsePostUrl(url);
+      if (ref === null) {
+        ignored.push(url);
+        continue;
+      }
+      // A Bluesky URL by handle is one post by its handle and record key.
+      const key =
+        ref.platform === "bluesky"
+          ? `bluesky:${ref.actor}/${ref.rkey}`
+          : canonicalUrl(ref);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      urls.push(url);
+    }
+  }
+  return { urls, ignored };
+}
+
+/** What adding one URL of a batch did, or why it couldn't be read. */
+export type BatchResult =
+  | { readonly url: string; readonly result: AddPostResult }
+  | { readonly url: string; readonly failed: string };
+
+/**
+ * Adds each of `urls` to the evening with `slug`, in order, as
+ * {@link addPost} does with `options`. A post that can't be read is
+ * reported and the rest go on; an evening that doesn't exist fails the
+ * batch before any post is read.
+ */
+export const addPosts = (
+  slug: string,
+  urls: ReadonlyArray<string>,
+  options: { readonly dryRun?: boolean; readonly status?: PostStatus } = {},
+): Effect.Effect<
+  ReadonlyArray<BatchResult>,
+  PostEventNotFound | DataSourceError,
+  PostSources | EventPostWriter
+> =>
+  Effect.gen(function* () {
+    const writer = yield* EventPostWriter;
+    if (!(yield* writer.hasEvent(slug))) {
+      return yield* new PostEventNotFound({ slug });
+    }
+    const results: Array<BatchResult> = [];
+    for (const url of urls) {
+      results.push(
+        yield* addPost(slug, url, options).pipe(
+          Effect.map((result): BatchResult => ({ url, result })),
+          Effect.catchTag("PostSourceError", (error) =>
+            Effect.succeed<BatchResult>({ url, failed: error.reason }),
+          ),
+        ),
+      );
+    }
+    return results;
   });

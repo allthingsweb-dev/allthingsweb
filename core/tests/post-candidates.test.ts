@@ -27,8 +27,10 @@ import {
   makeXSearch,
   scoreCandidate,
   toSignals,
+  xBrowserSearches,
   xQueries,
 } from "../src/posts/candidates.ts";
+import { sweep, SweepEveningNotFound } from "../src/posts/sweep.ts";
 import { movePost, pendingPosts, setPostStatus } from "../src/posts/review.ts";
 import { PostSources } from "../src/posts/sources.ts";
 import { EventPostWriter } from "../src/posts/store.ts";
@@ -700,6 +702,43 @@ describe("what platforms answer", () => {
       '(from:ada) ("allthings" OR "all things" OR "react") -is:retweet',
     ]);
   });
+
+  test("X's searches in a browser: the short link and Luma's page first, held to the window by day", () => {
+    const searches = xBrowserSearches({
+      ...signals,
+      links: [...signals.links, "https://allthings.dev/react"],
+    });
+    const days = "since:2026-07-30 until:2026-08-21";
+    expect(searches.map((s) => s.query)).toEqual([
+      `url:"allthings.dev/react" ${days}`,
+      `url:"luma.com/react-at-acme" ${days}`,
+      `url:"lu.ma/event/evt-react" ${days}`,
+      `url:"allthings.dev/2026-08-12-react-at-acme" ${days}`,
+      `"React at Acme" ${days}`,
+      `(allthings OR "all things") "react" ${days}`,
+      `(from:ada) (allthings OR "all things" OR "react") ${days}`,
+      `(@ada) (allthings OR "all things" OR "react") ${days}`,
+    ]);
+    expect(searches[0]?.url).toBe(
+      "https://x.com/search?q=url%3A%22allthings.dev%2Freact%22+since%3A2026-07-30+until%3A2026-08-21&src=typed_query&f=live",
+    );
+  });
+
+  test("an evening without a topic set takes its name's", () => {
+    const aie = {
+      ...signals,
+      name: "allthings/aie",
+      topic: null,
+      xHandles: [],
+    };
+    expect(xBrowserSearches(aie).map((s) => s.what)).toEqual([
+      "links luma.com/react-at-acme",
+      "links lu.ma/event/evt-react",
+      "links allthings.dev/2026-08-12-react-at-acme",
+      "names it",
+      "says allthings and aie",
+    ]);
+  });
 });
 
 describe("toSignals", () => {
@@ -713,6 +752,7 @@ describe("toSignals", () => {
           startDate: at("2026-01-01T00:00:00Z"),
           endDate: at("2026-01-01T03:00:00Z"),
           lumaEventId: "evt-1",
+          shortSlugs: ["n", "n-2026-01"],
           hosts: ["Acme"],
           people: [
             { x: "@Ada", xId: null, bluesky: null },
@@ -728,10 +768,14 @@ describe("toSignals", () => {
       topic: null,
       startsAt: at("2026-01-01T00:00:00Z"),
       endsAt: at("2026-01-01T03:00:00Z"),
+      // Luma's page on its old domain too, and every short link it has.
       links: [
         "https://lu.ma/event/evt-1",
         "https://luma.com/event/evt-1",
         "https://luma.com/n",
+        "https://lu.ma/n",
+        "https://allthings.dev/n",
+        "https://allthings.dev/n-2026-01",
         "https://allthings.dev/s",
         "https://allthingsweb.dev/s",
       ],
@@ -1063,6 +1107,99 @@ describe("findCandidates", () => {
       pendingPosts().pipe(Effect.provide(sqlLayer(db))),
     );
     expect(pending.filter((p) => p.url === strong.url)).toEqual([]);
+  });
+});
+
+describe("sweep", () => {
+  /** The seed's upcoming evening, at its short link allthings.dev/upcoming. */
+  const upcomingDatabase = async () => {
+    const db = await seededDatabase();
+    databases.push(db);
+    await db.exec(`
+      INSERT INTO event_slugs (slug, event_id) VALUES
+        ('upcoming', 'e0000000-0000-4000-8000-000000000004');
+      UPDATE events SET short_slug = 'upcoming'
+        WHERE id = 'e0000000-0000-4000-8000-000000000004';
+    `);
+    return db;
+  };
+  // Ten days before it starts, so in its window, linking its short link.
+  const announced = post({
+    platform: "bluesky",
+    url: "https://bsky.app/profile/did:plc:abc/post/3soon",
+    authorHandle: "someone.example",
+    text: "see you there",
+    links: ["https://allthings.dev/upcoming"],
+    postedAt: at("2026-10-27T17:00:00Z"),
+  });
+  const runSweep = (
+    db: PGlite,
+    slug: string,
+    posts: ReadonlyArray<FoundPost>,
+  ) =>
+    Effect.runPromiseExit(
+      sweep(slug, { dryRun: false }).pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            fakeSearches(posts),
+            noLuma,
+            EventPostWriter.layer.pipe(Layer.provideMerge(sqlLayer(db))),
+            fakeSources,
+            clockLayer,
+          ),
+        ),
+      ),
+    );
+
+  test("an evening not yet started is swept by its short link; again, nothing is new", async () => {
+    const db = await upcomingDatabase();
+    const first = await runSweep(db, "upcoming", [announced]);
+    expect(first).toMatchObject(
+      Exit.succeed({
+        slug: "2026-11-05-upcoming",
+        searched: { bluesky: 1 },
+        added: [
+          {
+            url: announced.url,
+            score: 6,
+            reasons: ["+6 links allthings.dev/upcoming"],
+            outcome: "added",
+          },
+        ],
+        known: [],
+        waiting: [{ url: announced.url, eventSlug: "2026-11-05-upcoming" }],
+      }),
+    );
+    if (Exit.isSuccess(first)) {
+      expect(DateTime.formatIso(first.value.window.since)).toBe(
+        "2026-10-23T02:00:00.000Z",
+      );
+      expect(DateTime.formatIso(first.value.window.until)).toBe(
+        "2026-11-13T05:00:00.000Z",
+      );
+    }
+    const again = await runSweep(db, "2026-11-05-upcoming", [announced]);
+    expect(again).toMatchObject(
+      Exit.succeed({
+        added: [],
+        known: [
+          {
+            url: announced.url,
+            outcome: "already there (pending, 2026-11-05-upcoming)",
+          },
+        ],
+        waiting: [{ url: announced.url }],
+      }),
+    );
+  });
+
+  test("a draft or unknown slug is no evening to sweep", async () => {
+    const db = await upcomingDatabase();
+    for (const slug of ["2026-09-01-draft-night", "nothing-here"]) {
+      expect(await runSweep(db, slug, [announced])).toEqual(
+        Exit.fail(new SweepEveningNotFound({ slug })),
+      );
+    }
   });
 });
 

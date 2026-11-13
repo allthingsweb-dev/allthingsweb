@@ -66,9 +66,14 @@ export function parsePostUrl(input: string): PostRef | null {
 
   if (linkedinHosts.has(host)) {
     // /feed/update/urn:li:activity:<id>/ and its share and ugcPost forms.
-    const urn = decodeURIComponent(url.pathname).match(
-      /urn:li:(activity|share|ugcPost):(\d{10,25})/,
-    );
+    // A path with a malformed escape (%ZZ) names no post.
+    let path: string;
+    try {
+      path = decodeURIComponent(url.pathname);
+    } catch {
+      return null;
+    }
+    const urn = path.match(/urn:li:(activity|share|ugcPost):(\d{10,25})/);
     if (urn !== null) {
       return {
         platform: "linkedin",
