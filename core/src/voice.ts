@@ -122,11 +122,16 @@ export function voiceFindings(
   rules: ReadonlyArray<VoiceRule> = voice,
 ): ReadonlyArray<VoiceFinding> {
   const findings: VoiceFinding[] = [];
-  // A phrase wrapped across lines is still the phrase; a blank line still parts two.
-  const flowing = text.replace(/([^\n])[ \t]*\n[ \t]*(?=[^\n])/g, "$1 ");
+  // Each paragraph is read whole, its wrapped lines as one: a phrase wrapped
+  // across lines is still the phrase, and none runs across a blank line.
+  const paragraphs = text
+    .split(/\n[ \t]*\n/)
+    .map((paragraph) => paragraph.replace(/[ \t]*\n[ \t]*/g, " "));
   for (const { pattern, why } of rules) {
-    const found = pattern.exec(flowing);
-    if (found !== null) findings.push({ why, said: found[0] });
+    const found = paragraphs
+      .map((paragraph) => pattern.exec(paragraph))
+      .find((match) => match !== null);
+    if (found) findings.push({ why, said: found[0] });
   }
   for (const sentence of sentences(text)) {
     const words = sentence

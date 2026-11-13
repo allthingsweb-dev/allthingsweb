@@ -105,6 +105,15 @@ describe("our voice", () => {
     expect(
       voiceFindings("The water is deep\n\nDive teams train here."),
     ).toEqual([]);
+    expect(
+      voiceFindings("Not just a meetup\n\nin town, but a movement."),
+    ).toEqual([]);
+    expect(
+      voiceFindings("Not just a meetup\n \nin town, but a movement."),
+    ).toEqual([]);
+    expect(
+      voiceFindings("Not just a meetup\nin town, but a movement.").length,
+    ).toBe(1);
   });
 
   test("names what was said and why", () => {
