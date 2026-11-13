@@ -924,6 +924,52 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pho
 runs it against `tests/seed.sql` with a media origin that only keeps what it
 is given.
 
+### From the Photos library on Erik's Mac
+
+`bun run photos library <slug or short link>` reads the Apple Photos
+library on this Mac (`scripts/photo-library.ts`, through osxphotos, which
+uv runs pinned) for the photos taken from an hour before the evening to an
+hour after, San Francisco time. It never writes to the library. Being in
+the library doesn't make a photo Erik's: anything in a shared album, a
+shared moment or an iCloud Shared Library, or Shared with You, is left out,
+by osxphotos's filters and again by what the library says of each photo
+(`isOwn`), his own shared ones too. It keeps what the library says of the
+rest in `~/Desktop/allthings-photos/<date>/library.json`, copies each one's
+still preview (which the library keeps even for a photo only in iCloud)
+into `previews/`, and draws a shortlist the same way every time:
+
+1. A photo less sharp than a quarter of the set's median is blurred and
+   left out.
+2. Of photos that are the same shot (difference hashes within 10 bits), the
+   one the library scores best stays.
+3. A close-up (one to three faces) is shortlisted only when the library
+   names every face in it as someone on the evening's stage or running it.
+   Any other close-up is a guest's: it is listed for Erik to pick, never
+   shortlisted. Crowds, rooms and the stage are fine.
+4. The rest are taken by kind in turn (the stage, a crowd, the room,
+   close-ups), best first, up to `--max` (8).
+
+Look at the previews, pick, then export the picks at full size into
+`candidates/`, as JPEG named by uuid, and add them as above with alt text
+written from looking at each one. A photo only in iCloud is downloaded
+through Photos, which macOS asks Erik to allow once (System Settings >
+Privacy & Security > Photos, for the app this runs in); when macOS refuses,
+the command says exactly what to allow. Only the evening's own photos, as
+the library has them when it runs, can be exported, and each export must
+leave a new file, or the command fails naming the photos it didn't write.
+`--dry-run` reads the library and draws the shortlist from the previews
+where the library keeps them, and writes, copies and exports nothing.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos library agent-setups --dry-run   # the shortlist, nothing written
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos library agent-setups   # previews and the shortlist
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run photos library agent-setups --export <uuid> --export <uuid>   # the picks, full size
+```
+
+Other people's photos are never copied: they come in as their posts (see
+"Posts about events"), which pages show with their author's name and a
+link, so the photo stays theirs.
+
 ### The home lab's wall, faces and tally
 
 The home lab (`web/src/pages/lab/`, at /lab/home) tries heroes that show
