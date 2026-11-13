@@ -18,6 +18,11 @@ import { type Repositories, repositories } from "../database.ts";
 import { mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { community } from "./community.ts";
+import {
+  proposeDescription,
+  proposeInput,
+  proposeToolName,
+} from "./propose.ts";
 import { transientMark } from "./endpoint.ts";
 
 /**
@@ -380,8 +385,15 @@ export function toolProgram(
   }
 }
 
-/** Registers the public tools on `server`; `call` answers them. */
-export function registerTools(server: McpServer, call: CallTool): void {
+/**
+ * Registers the public tools on `server`: propose_talk (propose.ts), which
+ * `propose` answers, and every other, which `call` answers.
+ */
+export function registerTools(
+  server: McpServer,
+  call: CallTool,
+  propose: (input: Record<string, unknown>) => Promise<CallToolResult>,
+): void {
   server.registerTool(
     "list_events",
     {
@@ -475,5 +487,26 @@ export function registerTools(server: McpServer, call: CallTool): void {
       annotations: readOnly,
     },
     (input) => call("coach_talk", input),
+  );
+
+  server.registerTool(
+    proposeToolName,
+    {
+      title: "Propose a talk",
+      description: proposeDescription,
+      inputSchema: proposeInput,
+      outputSchema: outputSchema(
+        Schema.Struct({ received: Schema.Boolean, message: Schema.String }),
+      ),
+      // It adds a proposal and changes nothing else; the same one sent
+      // again while the first waits is kept once.
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    (input) => propose(input),
   );
 }

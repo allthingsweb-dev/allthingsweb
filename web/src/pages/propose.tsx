@@ -206,6 +206,10 @@ export function proposePage({
             you send, and none of it shows on the site unless you give the talk
             (<a href={privacyPath}>privacy</a>).
           </p>
+          <p>
+            From an agent, the <code>propose_talk</code> tool on{" "}
+            <code>allthings.dev/mcp</code> sends the same proposal.
+          </p>
         </div>
         <section class="prose" aria-labelledby="send">
           <h2 id="send">Your proposal</h2>

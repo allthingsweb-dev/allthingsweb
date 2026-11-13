@@ -142,10 +142,20 @@ export class Mcp extends Context.Service<
 
       return Mcp.of({
         fetch: async (request, through) => {
-          const { mcpHandler } = await import("./server.ts");
-          return mcpHandler(through === undefined ? direct : via(through))(
-            request,
-          );
+          const [{ mcpHandler }, { proposeProgram, sourceOf }, { clientOf }] =
+            await Promise.all([
+              import("./server.ts"),
+              import("./propose.ts"),
+              import("../proposals.ts"),
+            ]);
+          // propose_talk runs here, never through the store: each call is
+          // its own, from this request's sender, and none is kept.
+          const propose = (input: Record<string, unknown>) =>
+            run(proposeProgram(input, sourceOf(request), clientOf(request)));
+          return mcpHandler(
+            through === undefined ? direct : via(through),
+            propose,
+          )(request);
         },
         answer: async (url) => {
           const { isKeptTool, toolInputs, toolProgram } = await tools();
