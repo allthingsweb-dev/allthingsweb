@@ -1,4 +1,4 @@
-import { copyFile, mkdir, stat } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rename, rm, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { DateTime, Duration, Effect, Schema } from "effect";
@@ -454,59 +454,84 @@ export const stagePreviews = (
     return { staged, noPreview };
   });
 
-/** An export osxphotos reported done that left no new file behind. */
+/** An export osxphotos reported done that left a photo's file missing or empty. */
 export class ExportMissing extends Schema.TaggedError<ExportMissing>()(
   "ExportMissing",
   { uuids: Schema.Array(Schema.String) },
 ) {
   override get message(): string {
-    return `osxphotos wrote no new file for: ${this.uuids.join(", ")}`;
+    return `osxphotos wrote no file for: ${this.uuids.join(", ")}`;
   }
 }
 
+/** How an export is run: osxphotos with these arguments, or a stand-in in tests. */
+export type Runner = (
+  args: ReadonlyArray<string>,
+) => Effect.Effect<string, LibraryBlocked | LibraryError>;
+
 /**
  * Exports the photos with `uuids` at full size, as JPEG named by uuid, into
- * `folder`/candidates, writing over any earlier export of them. One only in
- * iCloud is downloaded through Photos (PhotoKit), which macOS must allow.
- * osxphotos can finish without writing a photo (one deleted since, say), so
- * each file must have been written by this export, or it fails naming them.
+ * `folder`/candidates. One only in iCloud is downloaded through Photos
+ * (PhotoKit), which macOS must allow. osxphotos can finish without writing
+ * a photo (one deleted since, say), and a copied original keeps its own
+ * modification time, so the export goes into a new, empty folder this run
+ * makes: whatever is there was written by it. Every photo must be there,
+ * not empty, or it fails naming those that aren't and moves nothing; then
+ * each moves into `candidates/`, over any earlier export of it.
  */
-export const exportOriginals = (uuids: ReadonlyArray<string>, folder: string) =>
+export const exportOriginals = (
+  uuids: ReadonlyArray<string>,
+  folder: string,
+  run: Runner = runOsxphotos,
+) =>
   Effect.gen(function* () {
     const candidates = join(folder, "candidates");
     yield* Effect.promise(() => mkdir(candidates, { recursive: true }));
-    // A second back, for filesystems that keep whole seconds.
-    const started = Date.now() - 1_000;
-    yield* runOsxphotos([
-      "export",
-      candidates,
-      ...uuids.flatMap((uuid) => ["--uuid", uuid]),
-      "--convert-to-jpeg",
-      "--jpeg-ext",
-      "jpeg",
-      "--filename",
-      "{uuid}",
-      "--skip-live",
-      "--download-missing",
-      "--use-photokit",
-      "--overwrite",
-    ]);
-    const files = uuids.map((uuid) => ({
-      uuid,
-      file: join(candidates, `${uuid}.jpeg`),
-    }));
-    const missing: Array<string> = [];
-    for (const { uuid, file } of files) {
-      const written = yield* Effect.promise(() =>
-        stat(file).then(
-          (s) => s.size > 0 && s.mtimeMs >= started,
-          () => false,
-        ),
-      );
-      if (!written) missing.push(uuid);
-    }
-    if (missing.length > 0) return yield* new ExportMissing({ uuids: missing });
-    return files.map(({ file }) => file);
+    const fresh = yield* Effect.promise(() =>
+      mkdtemp(join(candidates, ".export-")),
+    );
+    const done = yield* Effect.gen(function* () {
+      yield* run([
+        "export",
+        fresh,
+        ...uuids.flatMap((uuid) => ["--uuid", uuid]),
+        "--convert-to-jpeg",
+        "--jpeg-ext",
+        "jpeg",
+        "--filename",
+        "{uuid}",
+        "--skip-live",
+        "--download-missing",
+        "--use-photokit",
+      ]);
+      const missing: Array<string> = [];
+      for (const uuid of uuids) {
+        const written = yield* Effect.promise(() =>
+          stat(join(fresh, `${uuid}.jpeg`)).then(
+            (s) => s.isFile() && s.size > 0,
+            () => false,
+          ),
+        );
+        if (!written) missing.push(uuid);
+      }
+      if (missing.length > 0) {
+        return yield* new ExportMissing({ uuids: missing });
+      }
+      const files: Array<string> = [];
+      for (const uuid of uuids) {
+        const file = join(candidates, `${uuid}.jpeg`);
+        yield* Effect.promise(() => rename(join(fresh, `${uuid}.jpeg`), file));
+        files.push(file);
+      }
+      return files;
+    }).pipe(
+      // The run's own folder goes, whatever happened: osxphotos keeps its
+      // export database there too.
+      Effect.ensuring(
+        Effect.promise(() => rm(fresh, { recursive: true, force: true })),
+      ),
+    );
+    return done;
   });
 
 const EveningRow = Schema.Struct({

@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { DateTime } from "effect";
+import { mkdtemp, readdir, utimes, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { DateTime, Effect, Exit } from "effect";
 import sharp from "sharp";
 import {
   blockedBy,
   cleared,
+  ExportMissing,
+  exportOriginals,
   hashDistance,
   isOwn,
   isStill,
@@ -252,6 +256,56 @@ describe("the shortlist", () => {
     );
     expect(list.picks.map((p) => p.photo.uuid)).toEqual(["e"]);
     expect(list.forErik).toEqual([]);
+  });
+});
+
+describe("exporting the picks", () => {
+  const evening = () =>
+    mkdtemp(join(process.env["TMPDIR"] ?? "/tmp", "photo-library-export-"));
+
+  /**
+   * A stand-in for osxphotos: writes `{uuid}.jpeg` for each of `writes`
+   * into the folder it's given, dated 2020 as a copied original keeps its
+   * own time.
+   */
+  const fakeExport =
+    (writes: ReadonlyArray<string>) => (args: ReadonlyArray<string>) =>
+      Effect.promise(async () => {
+        const into = args[1] ?? "";
+        for (const uuid of writes) {
+          const file = join(into, `${uuid}.jpeg`);
+          await writeFile(file, "jpeg bytes");
+          const old = new Date("2020-01-01T00:00:00Z");
+          await utimes(file, old, old);
+        }
+        return "";
+      });
+
+  test("a file the export wrote counts, however old its time; it moves into candidates", async () => {
+    const folder = await evening();
+    const files = await Effect.runPromise(
+      exportOriginals(["A", "B"], folder, fakeExport(["A", "B"])),
+    );
+    expect(files).toEqual([
+      join(folder, "candidates", "A.jpeg"),
+      join(folder, "candidates", "B.jpeg"),
+    ]);
+    // Only the photos: the run's own folder is gone.
+    expect((await readdir(join(folder, "candidates"))).toSorted()).toEqual([
+      "A.jpeg",
+      "B.jpeg",
+    ]);
+  });
+
+  test("a photo the export didn't write fails it, even with an earlier export there", async () => {
+    const folder = await evening();
+    await Effect.runPromise(exportOriginals(["B"], folder, fakeExport(["B"])));
+    const exit = await Effect.runPromiseExit(
+      exportOriginals(["A", "B"], folder, fakeExport(["A"])),
+    );
+    expect(exit).toEqual(Exit.fail(new ExportMissing({ uuids: ["B"] })));
+    // Nothing moved: candidates holds only the earlier export.
+    expect(await readdir(join(folder, "candidates"))).toEqual(["B.jpeg"]);
   });
 });
 
