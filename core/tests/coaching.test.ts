@@ -133,6 +133,28 @@ describe("reading a transcript", () => {
     ).toBe(359_999 + 1);
   });
 
+  test("cues are read by when they start, inline timestamps included", () => {
+    const transcript = [
+      "WEBVTT",
+      "",
+      "00:00.000 --> 03:20.000",
+      "<00:30.000>Later words.",
+      "",
+      "00:05.000 --> 00:10.000",
+      "Hi, I'm Sam and I built X.",
+    ].join("\n");
+    expect(readTranscript(transcript).cues?.map((cue) => cue.start)).toEqual([
+      5, 30,
+    ]);
+    // From the first words at 0:05 to the latest end at 3:20.
+    expect(readTalk({ slot: openFloor, transcript }).seconds).toBe(195);
+    expect(
+      coach({ slot: openFloor, transcript }).findings.find(
+        (f) => f.id === "length",
+      )?.severity,
+    ).toBe("must");
+  });
+
   test("timestamps inside a cue split it into the parts said from then", () => {
     expect(
       readTranscript(

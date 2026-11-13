@@ -198,7 +198,7 @@ export interface Cue {
 
 /** A transcript as the checks read it. */
 export interface Spoken {
-  /** Every cue, in order, when it had timestamps; null for plain text. */
+  /** Every cue, by when it starts, when it had timestamps; null for plain text. */
   readonly cues: ReadonlyArray<Cue> | null;
   /** The words, without timestamps, cue numbers or markup. */
   readonly text: string;
@@ -285,7 +285,10 @@ export function readTranscript(raw: string): Spoken {
     }
   }
   close();
-  return { cues, text: cues.map((cue) => cue.text).join(" ") };
+  // A part timed inside a cue can start after the next cue does: in order
+  // of their starts, the first cue is the earliest.
+  const ordered = cues.toSorted((a, b) => a.start - b.start);
+  return { cues: ordered, text: ordered.map((cue) => cue.text).join(" ") };
 }
 
 /** The words of `text`, as they are counted. */
