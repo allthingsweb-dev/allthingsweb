@@ -1,7 +1,14 @@
 import { Context, type DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
-import { ended, latestFirst, ours, published, talksOf } from "./catalog.ts";
+import {
+  artifactsOf,
+  ended,
+  latestFirst,
+  ours,
+  published,
+  talksOf,
+} from "./catalog.ts";
 import { asOf } from "./clock.ts";
 import type { DataSourceError } from "./errors.ts";
 import { type Evening, toEvening } from "./home.ts";
@@ -9,6 +16,12 @@ import { httpUrlOrNull } from "./mappers.ts";
 import { type StageRole, stageRole } from "./people.ts";
 import * as Rows from "./rows.ts";
 import { listingJson, orDataSourceError } from "./sql.ts";
+import {
+  ArtifactRow,
+  artifactJson,
+  type TalkLinks,
+  talkLinks,
+} from "./talk-artifacts.ts";
 
 /**
  * The talks library, read as of the `Clock`: every talk given at one of
@@ -41,6 +54,11 @@ export interface LibraryTalk {
   readonly evening: Evening;
   /** The evening's recording, when it has one at an http(s) URL. */
   readonly recordingUrl: string | null;
+  /**
+   * What the talk left behind (src/talk-artifacts.ts): its own recording,
+   * from its start, and its slides, code and other links in order.
+   */
+  readonly links: TalkLinks;
 }
 
 const SpeakerRow = Schema.Struct({
@@ -55,6 +73,7 @@ const TalkRow = Schema.Struct({
   title: Schema.String,
   format: Rows.TalkFormat,
   speakers: Schema.Array(SpeakerRow),
+  artifacts: Schema.Array(ArtifactRow),
 });
 
 /** One evening with its talks, as the statement reads it. */
@@ -87,6 +106,7 @@ export function toLibrary(
         })),
         evening,
         recordingUrl,
+        links: talkLinks(talk.artifacts),
       }),
     );
   });
@@ -110,7 +130,8 @@ const make = Effect.gen(function* () {
         ${sql.literal(listingJson)} AS listing,
         e.recording_url AS "recordingUrl",
         ${talksOf(sql, "e", {
-          talk: sql`'id', t.id, 'title', t.title, 'format', t.format`,
+          talk: sql`'id', t.id, 'title', t.title, 'format', t.format,
+            'artifacts', ${artifactsOf(sql, artifactJson(sql))}`,
           speaker: sql`json_build_object(
             'id', p.id, 'slug', p.slug, 'name', p.name, 'role', ts.role
           )`,

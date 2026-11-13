@@ -1003,7 +1003,10 @@ main > section,
   line-height: 1.35;
 }
 
-.talk:hover .talk-title {
+/* A row that is one link (a.talk, as on person pages) underlines its title
+   on hover; a row that isn't (on /talks) doesn't pretend to be a link, and a
+   title that is a link itself is underlined as any link is. */
+a:hover .talk-title {
   text-decoration: underline var(--at-stroke-rule);
   text-underline-offset: 0.18em;
 }
