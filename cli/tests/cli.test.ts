@@ -35,8 +35,110 @@ async function exec(
 }
 
 describe("allthings", () => {
+  test("on its own, shows the next evening and commands that run as typed", async () => {
+    const calls: unknown[] = [];
+    const client = fakeClient({
+      listEvents: async (when, limit) => {
+        calls.push([when, limit]);
+        return when === "upcoming" ? [summary] : [];
+      },
+    });
+    const { code, stdout } = await exec([], { client });
+    expect(code).toBe(ExitCode.Ok);
+    expect(calls).toEqual([
+      ["upcoming", 1],
+      ["past", 1],
+    ]);
+    expect(stdout).toContain("Next up\nEffect San Francisco [upcoming]");
+    expect(stdout).toContain("rsvp  https://lu.ma/event/evt-1");
+    expect(stdout).toMatch(/allthings event next +The talks/);
+    expect(stdout).toMatch(/allthings rsvp next +Say you're in/);
+    // Nothing to fill in: every suggestion runs as typed.
+    expect(stdout).not.toContain("<");
+  });
+
+  test("on its own with nothing scheduled, says where the next one lands and shows the last", async () => {
+    const past = { ...summary, status: "past" as const };
+    const client = fakeClient({
+      listEvents: async (when) => (when === "upcoming" ? [] : [past]),
+    });
+    const { code, stdout } = await exec([], { client });
+    expect(code).toBe(ExitCode.Ok);
+    expect(stdout).toContain(
+      "Nothing is on the calendar yet. New evenings land on https://luma.com/allthings first.",
+    );
+    expect(stdout).toContain("Last time\nEffect San Francisco\n");
+    expect(stdout).toMatch(/allthings event latest +Its talks/);
+    expect(stdout).not.toContain("event next");
+  });
+
+  test("on its own with --json, gives the next and latest evenings", async () => {
+    const client = fakeClient({
+      listEvents: async (when) => (when === "upcoming" ? [] : [summary]),
+    });
+    const { stdout } = await exec(["--json"], { client, isTTY: true });
+    expect(JSON.parse(stdout)).toEqual({ next: null, latest: summary });
+  });
+
+  test("next and latest stand for an evening wherever a slug goes", async () => {
+    const asked: string[] = [];
+    const client = fakeClient({
+      listEvents: async (when) => [
+        { ...summary, slug: when === "upcoming" ? "soon" : "before" },
+      ],
+      getEvent: async (slug) => {
+        asked.push(slug);
+        return event;
+      },
+    });
+    await exec(["event", "next"], { client });
+    await exec(["event", "latest"], { client });
+    await exec(["rsvp", "next", "--print"], { client });
+    await exec(["event", summary.slug], { client });
+    expect(asked).toEqual(["soon", "before", "soon", summary.slug]);
+  });
+
+  test("next with nothing scheduled is not found, with where to look", async () => {
+    const client = fakeClient({ listEvents: async () => [] });
+    const { code, stderr } = await exec(["event", "next"], { client });
+    expect(code).toBe(ExitCode.NotFound);
+    expect(stderr).toContain("Nothing is on the calendar yet.");
+    expect(stderr).toContain("https://luma.com/allthings");
+  });
+
+  test("events with nothing scheduled says where the next one lands", async () => {
+    const client = fakeClient({ listEvents: async () => [] });
+    const { stdout } = await exec(["events"], { client });
+    expect(stdout).toBe(
+      'Nothing is on the calendar yet. New evenings land on https://luma.com/allthings first. "allthings events --past" shows the evenings so far.\n',
+    );
+    // Scripts still get the contract, without waiting on the community.
+    const asked: string[] = [];
+    const json = fakeClient({
+      listEvents: async () => [],
+      getCommunity: async () => {
+        asked.push("community");
+        throw new Error("not needed");
+      },
+    });
+    expect(
+      JSON.parse((await exec(["events", "--json"], { client: json })).stdout),
+    ).toEqual({ events: [] });
+    expect(asked).toEqual([]);
+  });
+
+  test("on its own, suggests rsvp only when the next evening has an RSVP page", async () => {
+    const client = fakeClient({
+      listEvents: async (when) =>
+        when === "upcoming" ? [{ ...summary, rsvpUrl: null }] : [],
+    });
+    const { stdout } = await exec([], { client });
+    expect(stdout).toContain("allthings event next");
+    expect(stdout).not.toContain("rsvp next");
+  });
+
   test("prints help with examples and exit codes", async () => {
-    for (const argv of [[], ["--help"], ["help"]]) {
+    for (const argv of [["--help"], ["help"]]) {
       const { code, stdout } = await exec(argv);
       expect(code).toBe(ExitCode.Ok);
       expect(stdout).toContain("allthings events [--past | --all]");
@@ -62,6 +164,8 @@ describe("allthings", () => {
       ["events", "--unknown"],
       ["events", "--zone", "terrace"],
       ["about", "--zone", "terrace"],
+      ["--past"],
+      ["--limit", "3"],
     ]) {
       const { code, stderr } = await exec(argv);
       expect(code).toBe(ExitCode.UsageError);

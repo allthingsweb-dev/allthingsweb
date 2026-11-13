@@ -59,7 +59,7 @@ export const formerDomain = "allthingsweb.dev";
  * it with Bun, as cli/README.md gives it, and its package on npm. It reads
  * the site's public MCP server, at {@link mcpPath}, the one agents add.
  */
-export const cliTry = "bunx allthings events";
+export const cliTry = "bunx allthings";
 export const cliPackage = "https://www.npmjs.com/package/allthings";
 
 /** The MCP server on the site, as plugins/allthings/mcp.json names it. */
@@ -230,6 +230,13 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const nextPlain = (withWhere: boolean) =>
     next === null ? upFirst : `${nextLine(next, withWhere)} ${next.url}`;
 
+  /**
+   * What a bare `allthings` prints, said so it holds whatever the calendar
+   * has: the next evening, or where the next one goes up first. `next` here
+   * is only what --next passed, not what the CLI will find.
+   */
+  const cliShows = "shows what's next";
+
   const gaps =
     config.xHandle === null
       ? [
@@ -240,7 +247,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
   const checklist = [
     `${site} serves the new site and every ${formerDomain} address redirects to it, as every draft says (infra/docs/r2-migration.md, the full cutover). Post nothing before.`,
     `Every published evening has its short link, as the drafts say: bun run slugs --dry-run (in core/) gives none, or run it without --dry-run first.`,
-    `${cliTry} prints what's coming up on a machine that never ran it, as the drafts say.`,
+    `${cliTry} ${cliShows} on a machine that never ran it, as the drafts say.`,
     `Post the X thread from @${handle}, each post a reply to the one before.`,
     "Display names say allthings before the posts do: X, Bluesky, the LinkedIn page, the Discord server and the Luma calendar.",
     "Send each Meetup announcement from its own group, to all its members.",
@@ -252,7 +259,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
     `Everyone who has been on stage has a page now, at ${people}: their talks and parts at our evenings, latest first, and the talks they gave elsewhere.`,
     "Some evenings aren't ours. When someone else runs one we think is good, we share it: it's listed beside ours, marked shared, with who organizes it.",
     `Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look: judges run each one and its tests.\n\n${hack}`,
-    `allthings is in your terminal now: ${cliTry} shows what's coming up, and --json gives scripts the same answer.\n\nIt reads the public MCP server your agents can add, ${mcp}\n\n${npm}`,
+    `allthings is in your terminal now: ${cliTry} ${cliShows}, and --json gives scripts the same answer.\n\nIt reads the public MCP server your agents can add, ${mcp}\n\n${npm}`,
     fitOn(
       "x",
       next === null
@@ -308,7 +315,7 @@ export function launchDrafts(config: LaunchConfig): LaunchDrafts {
     `Everyone who has been on stage has a page, at ${people}: their talks and parts at our evenings, and the talks they gave elsewhere.`,
     "Evenings other people run that we think are good are listed beside ours, marked shared, with who organizes them.",
     `Hackathons start from at/hack, a template: fork it, build, hand in a public repo. Projects are judged on whether they work before how they look. ${hack}`,
-    `allthings is in your terminal: ${cliTry} shows what's coming up (${npm}). It reads the public MCP server your agents can add, ${mcp}`,
+    `allthings is in your terminal: ${cliTry} ${cliShows} (${npm}). It reads the public MCP server your agents can add, ${mcp}`,
   ];
 
   const linkedin = fitOn("linkedin", [

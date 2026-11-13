@@ -249,7 +249,7 @@ describe("the about page", () => {
       ...terminal.matchAll(/<li><code>([^<]+)<\/code><\/li>/g),
     ].map(([, command]) => command);
     expect(commands).toEqual([
-      "bunx allthings events",
+      "bunx allthings",
       "curl -fsSL https://allthings.dev/install.bash | bash",
     ]);
     const readme = await Bun.file(

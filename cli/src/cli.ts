@@ -24,10 +24,12 @@ import {
   legacyCommandName,
 } from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
+import type { EventSummary } from "./schemas.ts";
 import {
   formatAuxStatus,
   formatCommunity,
   formatEvent,
+  formatEventSummary,
   formatEventList,
   formatSpeakers,
   formatTracks,
@@ -47,22 +49,27 @@ export type Io = {
   legacy?: boolean;
 };
 
-const help = `${commandName} · evenings for people who build software, from your terminal and your agents
+const tagline = `${commandName} · evenings for people who build software, from your terminal and your agents`;
+
+const help = `${tagline}
 
 Usage
+  ${commandName}
   ${commandName} events [--past | --all] [--limit <n>] [--json]
-  ${commandName} event <slug> [--json]
+  ${commandName} event <slug | next | latest> [--json]
   ${commandName} speakers [search] [--limit <n>] [--json]
-  ${commandName} rsvp <slug> [--print]
+  ${commandName} rsvp <slug | next> [--print]
   ${commandName} about [--json]
   ${commandName} aux <command> [--json]
 
 Examples
+  ${commandName}                             The next evening, and what to run from there
   ${commandName} events                      What's coming up
   ${commandName} events --past --limit 5     The five most recent evenings
-  ${commandName} event <slug> --json         One evening in full, for scripts and agents
+  ${commandName} event next --json           The next evening in full, for scripts and agents
+  ${commandName} event latest                The last evening: its talks and video
   ${commandName} speakers react              Who has been on stage about react
-  ${commandName} rsvp <slug>                 Open the evening's page to say you're in
+  ${commandName} rsvp next                   Open the next evening's page to say you're in
   ${commandName} aux --help                  Set the room's lights at an evening that passes the aux
 
 Options
@@ -119,6 +126,106 @@ function parseLimit(value: string | undefined, fallback: number, max: number) {
     usage(`--limit must be a whole number from 1 to ${max}.`);
   }
   return limit;
+}
+
+/**
+ * Where new evenings are announced, for when nothing is on the calendar. The
+ * link comes from the community's own record; without it, the sentence still
+ * says what to run next.
+ */
+async function whereNextIsAnnounced(client: Client): Promise<string> {
+  try {
+    const { links } = await client.getCommunity();
+    return `New evenings land on ${links.events} first.`;
+  } catch {
+    return `Run "${commandName} about" for where new evenings land first.`;
+  }
+}
+
+const nothingScheduled = "Nothing is on the calendar yet.";
+
+/**
+ * The slug an event argument names. Besides a slug, `next` is the soonest
+ * upcoming evening and `latest` the most recent one that happened, so the
+ * examples run as typed. Slugs start with a date, so neither is ever a slug.
+ */
+async function resolveSlug(client: Client, argument: string): Promise<string> {
+  if (argument !== "next" && argument !== "latest") return argument;
+  const [found] = await client.listEvents(
+    argument === "next" ? "upcoming" : "past",
+    1,
+  );
+  if (found !== undefined) return found.slug;
+  throw new CliError(
+    argument === "next"
+      ? `${nothingScheduled} ${await whereNextIsAnnounced(client)} "${commandName} event latest" shows the last evening.`
+      : "No evening has happened yet.",
+    ExitCode.NotFound,
+  );
+}
+
+/** A command to try and what it does, lined up for reading. */
+function tryLines(commands: [string, string][]): string {
+  const width = Math.max(...commands.map(([command]) => command.length)) + 4;
+  return commands
+    .map(
+      ([command, what]) =>
+        `  ${`${commandName} ${command}`.padEnd(width + commandName.length + 1)}${what}`,
+    )
+    .join("\n");
+}
+
+/**
+ * `allthings` on its own: the next evening and the commands that go from
+ * there, or the last evening when nothing is on the calendar. A person or an
+ * agent trying it for the first time lands on something real to act on,
+ * every line of it runnable as typed.
+ */
+async function home(
+  client: Client,
+  json: boolean,
+  color: boolean,
+): Promise<string> {
+  const [[next = null], [latest = null]] = await Promise.all([
+    client.listEvents("upcoming", 1),
+    client.listEvents("past", 1),
+  ]);
+  if (json) return `${JSON.stringify({ next, latest }, null, 2)}\n`;
+  const event = (label: string, summary: EventSummary) =>
+    `${label}\n${formatEventSummary(summary, color)}`;
+  const everything: [string, string][] = [
+    ["speakers react", "Who has been on stage about react"],
+    ["about", "Where everyone is between evenings"],
+    ["--help", "Every command; most take --json for scripts and agents"],
+  ];
+  const sections =
+    next !== null
+      ? [
+          event("Next up", next),
+          tryLines([
+            ["event next", "The talks and who's on stage"],
+            ...(next.rsvpUrl === null
+              ? []
+              : ([["rsvp next", "Say you're in"]] as [string, string][])),
+            ["events", "Everything coming up"],
+            ...everything,
+          ]),
+        ]
+      : [
+          `${nothingScheduled} ${await whereNextIsAnnounced(client)}`,
+          ...(latest === null ? [] : [event("Last time", latest)]),
+          tryLines([
+            ...(latest === null
+              ? []
+              : ([["event latest", "Its talks, speakers and video"]] as [
+                  string,
+                  string,
+                ][])),
+            ["events --past", "Every evening so far"],
+            ...everything,
+          ]),
+        ];
+  return `${tagline}\n\n${sections.join("\n\n")}\n`;
 }
 
 function auxUsage(message: string): never {
@@ -358,7 +465,7 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       return ExitCode.Ok;
     }
     if (command === "aux") return await runAux(rest, values, io);
-    if (values.help || command === undefined || command === "help") {
+    if (values.help || command === "help") {
       io.stdout(help);
       return ExitCode.Ok;
     }
@@ -372,6 +479,13 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       io.stdout(values.json ? `${JSON.stringify(data, null, 2)}\n` : text);
 
     switch (command) {
+      case undefined: {
+        if (values.past || values.all || values.limit !== undefined) {
+          usage(`--past, --all and --limit go with "events".`);
+        }
+        io.stdout(await home(client, values.json, color));
+        return ExitCode.Ok;
+      }
       case "events": {
         if (rest.length > 0) usage(`"events" takes no arguments.`);
         if (values.past && values.all) usage("Use --past or --all, not both.");
@@ -380,14 +494,19 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
           when,
           parseLimit(values.limit, 20, 100),
         );
-        print(formatEventList(events, color), { events });
+        print(
+          events.length === 0 && when === "upcoming" && !values.json
+            ? `${nothingScheduled} ${await whereNextIsAnnounced(client)} "${commandName} events --past" shows the evenings so far.\n`
+            : formatEventList(events, color),
+          { events },
+        );
         return ExitCode.Ok;
       }
       case "event": {
         const [slug, ...extra] = rest;
         if (slug === undefined || extra.length > 0)
-          usage(`"event" takes one event slug.`);
-        const event = await client.getEvent(slug);
+          usage(`"event" takes one event slug, or next or latest.`);
+        const event = await client.getEvent(await resolveSlug(client, slug));
         print(formatEvent(event, color), event);
         return ExitCode.Ok;
       }
@@ -403,8 +522,8 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       case "rsvp": {
         const [slug, ...extra] = rest;
         if (slug === undefined || extra.length > 0)
-          usage(`"rsvp" takes one event slug.`);
-        const event = await client.getEvent(slug);
+          usage(`"rsvp" takes one event slug, or next.`);
+        const event = await client.getEvent(await resolveSlug(client, slug));
         if (!event.rsvpUrl) {
           throw new CliError(
             `${event.name} has no RSVP page.`,
