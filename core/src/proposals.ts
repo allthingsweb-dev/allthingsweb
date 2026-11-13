@@ -364,7 +364,11 @@ const decodeRows = (rows: ReadonlyArray<unknown>) =>
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** The proposal `id`, locked for the transaction under `lock`. */
+/**
+ * The proposal `id`. Under `lock`, inside a transaction, its row is locked
+ * first (FOR UPDATE), then the evening it is on (FOR SHARE), so neither can
+ * change before the transaction ends, and only then read.
+ */
 const findProposal = (id: string, lock: boolean) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
@@ -373,9 +377,20 @@ const findProposal = (id: string, lock: boolean) =>
         `${id} is not a proposal's id: proposals list shows them.`,
       );
     }
+    if (lock) {
+      yield* sql.unsafe(
+        `SELECT 1 FROM planning.proposals WHERE id = $1::uuid FOR UPDATE`,
+        [id.toLowerCase()],
+      );
+      yield* sql.unsafe(
+        `SELECT 1 FROM events e JOIN planning.proposals p ON p.event_id = e.id
+         WHERE p.id = $1::uuid FOR SHARE OF e`,
+        [id.toLowerCase()],
+      );
+    }
     const rows = yield* sql.unsafe(
       `SELECT ${proposalJson} AS proposal FROM planning.proposals p
-       WHERE p.id = $1::uuid${lock ? " FOR UPDATE" : ""}`,
+       WHERE p.id = $1::uuid`,
       [id.toLowerCase()],
     );
     const [found] = yield* decodeRows(rows);
@@ -477,8 +492,12 @@ export interface Evening {
   readonly isDraft: boolean;
 }
 
-/** The evening at `slug` (its long slug or its short link). */
-const eveningAt = (slug: string) =>
+/**
+ * The evening at `slug` (its long slug or its short link); under `lock`,
+ * inside a transaction, locked (FOR SHARE) so its day and draft state hold
+ * until it ends.
+ */
+const eveningAt = (slug: string, lock: boolean) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient;
     const events = yield* sql<Evening>`
@@ -488,14 +507,18 @@ const eveningAt = (slug: string) =>
       FROM events
       WHERE slug = ${slug} OR short_slug = ${slug}
       ORDER BY short_slug = ${slug} DESC NULLS LAST
-      LIMIT 1`;
+      LIMIT 1 ${sql.literal(lock ? "FOR SHARE" : "")}`;
     const event = events[0];
     if (event === undefined) return yield* refuse(`No evening is at ${slug}.`);
     return event;
   });
 
 /** `decision` about `proposal`, checked: the decision to hash, or a refusal. */
-const checkedDecision = (proposal: Proposal, decision: Decision) =>
+const checkedDecision = (
+  proposal: Proposal,
+  decision: Decision,
+  lock: boolean,
+) =>
   Effect.gen(function* () {
     const note = decision.note?.replaceAll(/\r\n?/g, "\n").trim();
     if (
@@ -515,7 +538,7 @@ const checkedDecision = (proposal: Proposal, decision: Decision) =>
           `${proposal.id} is ${proposal.status}: only an accepted talk goes on an evening.`,
         );
       }
-      const event = yield* eveningAt(decision.event);
+      const event = yield* eveningAt(decision.event, lock);
       if (proposal.event?.slug === event.slug) {
         return yield* refuse(
           `${proposal.id} is already on ${event.slug}: nothing to change.`,
@@ -554,7 +577,7 @@ const checkedDecision = (proposal: Proposal, decision: Decision) =>
 export const planDecision = (id: string, decision: Decision) =>
   Effect.gen(function* () {
     const proposal = yield* findProposal(id, false);
-    const checked = yield* checkedDecision(proposal, decision);
+    const checked = yield* checkedDecision(proposal, decision, false);
     const planned: PlannedDecision = {
       proposal,
       decision: checked,
@@ -582,7 +605,7 @@ export const decide = (id: string, decision: Decision, token: string) =>
     return yield* sql.withTransaction(
       Effect.gen(function* () {
         const proposal = yield* findProposal(id, true);
-        const checked = yield* checkedDecision(proposal, decision);
+        const checked = yield* checkedDecision(proposal, decision, true);
         const now = yield* approvalToken({ proposal, decision: checked });
         if (now !== token) {
           return yield* refuse(
