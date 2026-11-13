@@ -21,6 +21,7 @@ function data(overrides: Partial<PullRequestData> = {}): PullRequestData {
     deletions: 2,
     changedFiles: 3,
     reviews: { nodes: [] },
+    comments: { nodes: [] },
     reviewThreads: { nodes: [] },
     commits: {
       nodes: [{ commit: { statusCheckRollup: { contexts: { nodes: [] } } } }],
@@ -145,6 +146,31 @@ describe("summarizing a pull request", () => {
     expect(merge("BEHIND")).toBe("behind");
     expect(merge("UNKNOWN")).toBe("checking");
     expect(merge("SOMETHING_NEW")).toBe("unknown");
+  });
+
+  test("reads CodeRabbit's walkthrough comment, and no one else's", () => {
+    const walkthrough =
+      "<!-- walkthrough_start -->\n\nAdds a thing.\n\n<!-- walkthrough_end -->";
+    const comment = (login: string, body: string, n: number) => ({
+      author: { login },
+      url: `https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-${n}`,
+      body,
+    });
+    const read = (nodes: ReturnType<typeof comment>[]) =>
+      summarize(repo, data({ comments: { nodes } }), ready).coderabbit
+        .walkthrough;
+    expect(read([])).toBeNull();
+    expect(read([comment("someone", walkthrough, 1)])).toBeNull();
+    expect(
+      read([
+        comment("someone", walkthrough, 1),
+        comment("coderabbitai", "Review triggered.", 2),
+        comment("coderabbitai", walkthrough, 3),
+      ]),
+    ).toMatchObject({
+      url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-3",
+      summary: "Adds a thing.",
+    });
   });
 });
 

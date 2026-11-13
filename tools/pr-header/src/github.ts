@@ -1,4 +1,5 @@
 import type { PrState } from "./state.ts";
+import { parseWalkthrough } from "./walkthrough.ts";
 
 export type Repo = PrState["repo"];
 
@@ -55,6 +56,7 @@ export const pullRequestQuery = `
         number url state isDraft mergeStateStatus headRefOid body
         additions deletions changedFiles
         reviews(last: 20) { nodes { author { login } state body } }
+        comments(first: 20) { nodes { author { login } url body } }
         reviewThreads(first: 100) {
           pageInfo { hasNextPage endCursor }
           nodes { isResolved comments(first: 1) { nodes { author { login } } } }
@@ -106,6 +108,9 @@ export type PullRequestData = {
   changedFiles: number;
   reviews: {
     nodes: { author: { login: string } | null; state: string; body: string }[];
+  };
+  comments: {
+    nodes: { author: { login: string } | null; url: string; body: string }[];
   };
   reviewThreads: {
     pageInfo?: { hasNextPage: boolean; endCursor: string | null };
@@ -200,6 +205,14 @@ export function summarize(
       ? outsideDiffFindings(latestReview.body)
       : 0;
 
+  // CodeRabbit posts its walkthrough among the first comments and edits it
+  // in place from then on.
+  const walkthrough =
+    pr.comments.nodes
+      .filter((c) => c.author?.login === coderabbit)
+      .map((c) => parseWalkthrough(c.body, c.url))
+      .find((w) => w !== null) ?? null;
+
   const outcomes = contexts
     .filter((c) => !separateChecks.test(contextName(c)))
     .map(contextOutcome);
@@ -244,6 +257,7 @@ export function summarize(
     coderabbit: {
       review,
       findings: { resolved, open: threads.length - resolved + outsideDiff },
+      walkthrough,
     },
     checks,
   };
