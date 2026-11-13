@@ -256,6 +256,11 @@ didn't have, each with its sources: talks to take off it (a talk on no
 other evening is deleted with its speakers) and people's parts in it
 (by an existing profile and role).
 
+A lineup can name the companies that hosted an evening (`hosts`), each by
+its exact name in `sponsors` and with its sources, where Luma doesn't list
+the company's own account as a host. They are only ever added; a company
+the database lacks comes in through `backfill/hosts.json` first.
+
 ### Editing a talk
 
 `bun run talks update` edits a talk that exists (`src/talk-edits.ts`): its

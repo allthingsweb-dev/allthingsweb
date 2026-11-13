@@ -910,6 +910,16 @@
     {
       "lumaEventId": "evt-wJxtorPCscwoGS4",
       "name": "Dev Setup Demos - Show your agents.md!",
+      "hosts": [
+        {
+          "company": "WorkOS",
+          "sources": [
+            "https://luma.com/l83mbtna",
+            "https://x.com/grinich/status/2039072402601361804",
+            "https://x.com/zwiebelhelm/status/2039210303737459086"
+          ]
+        }
+      ],
       "talks": [
         {
           "title": "My most used slash commands and custom subagents for development",
@@ -945,6 +955,16 @@
     {
       "lumaEventId": "evt-tMlbKr2pQktx6Qx",
       "name": "DevTool AX Demos",
+      "hosts": [
+        {
+          "company": "Mux",
+          "sources": [
+            "https://luma.com/fq56wfwr",
+            "https://bsky.app/profile/mux.com/post/3mf5tt6tn222z",
+            "https://bsky.app/profile/andrelandgraf.com/post/3mfpmeas6zc22"
+          ]
+        }
+      ],
       "talks": [
         {
           "title": "Panel & open discussion",
