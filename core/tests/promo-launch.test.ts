@@ -14,6 +14,7 @@ import {
   openDoor,
 } from "../src/promo/launch.ts";
 import { fits, type Platform } from "../src/promo/limits.ts";
+import { voice } from "../src/voice.ts";
 import {
   clockLayer,
   now,
@@ -152,16 +153,13 @@ describe("every draft fits its platform", () => {
 });
 
 describe("diction", () => {
+  // Our voice (src/voice.ts), and the launch's own: an evening, never an
+  // event, and no sign-off before there's an evening to come to.
   const banned = [
-    /\brsvp/i,
-    /\bregister/i,
-    /\bsign(ed)? ?up\b/i,
-    /\bsponsor/i,
+    ...voice.map(({ pattern }) => pattern),
     /\bevents?\b/i,
     /\bjoin us\b/i,
     /see you/i,
-    /!/,
-    /\p{Extended_Pictographic}/u,
   ];
 
   test("drafts never use words the brand doesn't say", () => {
@@ -173,12 +171,12 @@ describe("diction", () => {
       ];
       for (const [name, text] of texts) {
         // The command is code, named as the CLI names it, not our voice.
-        const voice = text.replaceAll(cliTry, "");
+        const ours = text.replaceAll(cliTry, "");
         for (const pattern of banned) {
           expect({
             name,
             pattern: String(pattern),
-            says: pattern.test(voice),
+            says: pattern.test(ours),
           }).toEqual({ name, pattern: String(pattern), says: false });
         }
       }
