@@ -188,6 +188,13 @@ describe("applyTalkArtifacts", () => {
     expect(Exit.isSuccess(corrected) ? corrected.value[1] : corrected).toBe(
       '"Server components": recording https://www.youtube.com/watch?v=evening: updated',
     );
+    const reread = await apply(db, {
+      ...file,
+      artifacts: [{ ...first, startSeconds: 390, read: "2026-12-01" }, ...rest],
+    });
+    expect(Exit.isSuccess(reread) ? reread.value[1] : reread).toBe(
+      '"Server components": recording https://www.youtube.com/watch?v=evening: updated',
+    );
     expect(await stored(db)).toHaveLength(5);
   });
 
@@ -365,6 +372,18 @@ describe("playAt", () => {
     );
     expect(playAt("https://www.youtube.com/watch?v=abc", null)).toBe(
       "https://www.youtube.com/watch?v=abc",
+    );
+  });
+
+  test("starts at 0 without a start the address carried, and null leaves it", () => {
+    expect(playAt("https://www.youtube.com/watch?v=abc&t=385", 0)).toBe(
+      "https://www.youtube.com/watch?v=abc",
+    );
+    expect(playAt("https://vimeo.com/123#t=30s", 0)).toBe(
+      "https://vimeo.com/123",
+    );
+    expect(playAt("https://www.youtube.com/watch?v=abc&t=385", null)).toBe(
+      "https://www.youtube.com/watch?v=abc&t=385",
     );
   });
 });

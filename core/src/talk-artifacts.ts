@@ -5,7 +5,7 @@ import { HttpUrl } from "./contract.ts";
 import { DataSourceError } from "./errors.ts";
 
 /**
- * What a talk left behind (`talk_artifacts`, migrations/0040): its
+ * What a talk left behind (`talk_artifacts`, made by its migration): its
  * recording, its slides, its code, its site. Each is one link, so the
  * recorder in the room, a speaker sharing their slides and a sourced
  * backfill each add rows, never columns.
@@ -188,17 +188,25 @@ export const applyTalkArtifacts = (file: TalkArtifactsFile, dryRun: boolean) =>
       const lines: Array<string> = file.held.map(
         (held) => `held: "${held.title}": ${held.kind} ${held.url}`,
       );
+      // Every talk the file names, locked in one order before anything is
+      // written, so two runs for one talk can't each add a recording of its
+      // own and both pass the check below.
+      const talkIds = [
+        ...new Set(file.artifacts.map((entry) => entry.talkId)),
+      ].toSorted();
       const titles = new Map<string, string>();
+      if (talkIds.length > 0) {
+        const rows = yield* sql<{ id: string; title: string }>`
+          SELECT id::text AS id, title FROM talks
+          WHERE id IN ${sql.in(talkIds)}
+          ORDER BY id
+          FOR UPDATE`;
+        for (const row of rows) titles.set(row.id, row.title);
+      }
       const positions = new Map<string, number>();
       for (const entry of file.artifacts) {
         if (!titles.has(entry.talkId)) {
-          const rows = yield* sql<{ title: string }>`
-            SELECT title FROM talks WHERE id = ${entry.talkId}::uuid`;
-          const [row] = rows;
-          if (row === undefined) {
-            return yield* fail(`No talk has the id ${entry.talkId}.`);
-          }
-          titles.set(entry.talkId, row.title);
+          return yield* fail(`No talk has the id ${entry.talkId}.`);
         }
         if (titles.get(entry.talkId) !== entry.title) {
           return yield* fail(
@@ -222,10 +230,11 @@ export const applyTalkArtifacts = (file: TalkArtifactsFile, dryRun: boolean) =>
             updated_at = excluded.updated_at
           WHERE (talk_artifacts.kind, talk_artifacts.label,
               talk_artifacts.start_seconds, talk_artifacts.elsewhere,
-              talk_artifacts.position, talk_artifacts.source_url)
+              talk_artifacts.position, talk_artifacts.source_url,
+              talk_artifacts.read_on)
             IS DISTINCT FROM (excluded.kind, excluded.label,
               excluded.start_seconds, excluded.elsewhere, excluded.position,
-              excluded.source_url)
+              excluded.source_url, excluded.read_on)
           RETURNING (xmax = 0) AS added`;
         const [outcome] = written;
         lines.push(
@@ -238,7 +247,6 @@ export const applyTalkArtifacts = (file: TalkArtifactsFile, dryRun: boolean) =>
           }`,
         );
       }
-      const talkIds = [...titles.keys()];
       const twice =
         talkIds.length === 0
           ? []
@@ -311,11 +319,13 @@ export interface TalkLinks {
 }
 
 /**
- * `url` played from `seconds` in: YouTube's `t` parameter, Vimeo's `#t=`;
- * any other host's address as it is, which plays from the start.
+ * `url` played from `seconds` in: YouTube's `t` parameter, Vimeo's `#t=`,
+ * and at 0 without either, so a start the address carried doesn't stay;
+ * any other host's address as it is, which plays from the start. Null
+ * leaves every address as it is.
  */
 export function playAt(url: string, seconds: number | null): string {
-  if (seconds === null || seconds === 0) return url;
+  if (seconds === null) return url;
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -324,11 +334,12 @@ export function playAt(url: string, seconds: number | null): string {
   }
   const host = parsed.hostname.replace(/^(www|m)\./, "");
   if (host === "youtube.com" || host === "youtu.be") {
-    parsed.searchParams.set("t", String(seconds));
+    if (seconds === 0) parsed.searchParams.delete("t");
+    else parsed.searchParams.set("t", String(seconds));
     return parsed.toString();
   }
   if (host === "vimeo.com") {
-    parsed.hash = `t=${seconds}s`;
+    parsed.hash = seconds === 0 ? "" : `t=${seconds}s`;
     return parsed.toString();
   }
   return url;
