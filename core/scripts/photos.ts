@@ -1,4 +1,5 @@
 import { BunRuntime, BunServices } from "@effect/platform-bun";
+import { mkdir } from "node:fs/promises";
 import { basename } from "node:path";
 import { Console, Effect, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
@@ -18,6 +19,19 @@ import {
 } from "../src/photos.ts";
 import { encode, placeholder } from "./encode.ts";
 import { mediaOrigin as origin, noMedia, uploadMedia } from "./media.ts";
+import {
+  eveningForPhotos,
+  exportOriginals,
+  kindOf,
+  libraryWindow,
+  type Measured,
+  measure,
+  queryLibrary,
+  readStaged,
+  shortlist,
+  stagePreviews,
+  stagingFolder,
+} from "./photo-library.ts";
 import { shellWord } from "./shell.ts";
 
 /**
@@ -323,9 +337,122 @@ const remove = Command.make(
   ),
 );
 
+const library = Command.make(
+  "library",
+  {
+    slug: Argument.String("slug").pipe(
+      Argument.withDescription("The evening's slug or short link."),
+    ),
+    max: Flag.Int("max").pipe(
+      Flag.withDescription("Shortlist at most this many, 1 or more."),
+      Flag.filter(
+        (max) => max >= 1,
+        (max) => `--max must be 1 or more, not ${max}`,
+      ),
+      Flag.withDefault(8),
+    ),
+    exportUuids: Flag.String("export").pipe(
+      Flag.withDescription(
+        "Export this photo at full size, by uuid, for photos add; repeat for more.",
+      ),
+      Flag.atLeast(0),
+    ),
+    json: Flag.Boolean("json").pipe(
+      Flag.withDescription("Print the results as JSON."),
+      Flag.withDefault(false),
+    ),
+  },
+  ({ slug, max, exportUuids, json }) =>
+    Effect.gen(function* () {
+      const evening = yield* eveningForPhotos(slug);
+      const folder = stagingFolder(evening.startDate);
+      if (exportUuids.length > 0) {
+        const staged = yield* readStaged(folder);
+        const unknown = exportUuids.filter(
+          (uuid) => !staged.some((photo) => photo.uuid === uuid),
+        );
+        if (unknown.length > 0) {
+          return yield* Effect.fail(
+            new Error(
+              `Not among the evening's photos in ${folder}/library.json: ${unknown.join(", ")}`,
+            ),
+          );
+        }
+        const files = yield* exportOriginals(exportUuids, folder);
+        return yield* Console.log(
+          json
+            ? JSON.stringify({ slug: evening.slug, files }, null, 2)
+            : [
+                ...files.map((file) => `exported ${file}`),
+                `Then, with one --alt per photo saying what it shows: bun run photos add ${shellWord(evening.slug)} ${files.map(shellWord).join(" ")} ${files.map(() => '--alt "…"').join(" ")}`,
+              ].join("\n"),
+        );
+      }
+      const window = libraryWindow(evening.startDate, evening.endDate);
+      const found = yield* queryLibrary(window);
+      yield* Effect.promise(() => mkdir(folder, { recursive: true }));
+      yield* Effect.promise(() =>
+        Bun.write(`${folder}/library.json`, JSON.stringify(found, null, 2)),
+      );
+      const { staged, noPreview } = yield* stagePreviews(found, folder);
+      const measured: Array<Measured> = [];
+      for (const { photo, preview } of staged) {
+        const { sharpness, hash } = yield* Effect.promise(() =>
+          measure(preview),
+        );
+        measured.push({ photo, preview, kind: kindOf(photo), sharpness, hash });
+      }
+      const drawn = shortlist(measured, evening.people, max);
+      const result = {
+        slug: evening.slug,
+        window,
+        folder,
+        found: found.length,
+        noPreview,
+        picks: drawn.picks.map((m) => ({
+          uuid: m.photo.uuid,
+          kind: m.kind,
+          taken: m.photo.date,
+          inICloudOnly: m.photo.ismissing,
+          preview: m.preview,
+        })),
+        forErik: drawn.forErik.map((m) => ({
+          uuid: m.photo.uuid,
+          preview: m.preview,
+        })),
+        left: drawn.left,
+      };
+      yield* Effect.promise(() =>
+        Bun.write(`${folder}/shortlist.json`, JSON.stringify(result, null, 2)),
+      );
+      return yield* Console.log(
+        json
+          ? JSON.stringify(result, null, 2)
+          : [
+              `${evening.slug}: ${found.length} photos in the library from ${window.from} to ${window.to}; previews in ${folder}/previews`,
+              `Shortlist (${drawn.picks.length}):`,
+              ...drawn.picks.map(
+                (m) =>
+                  `  ${m.photo.uuid} ${m.kind}, ${m.photo.date}${m.photo.ismissing ? ", in iCloud only" : ""}\n    ${m.preview}`,
+              ),
+              `For Erik to pick, close-ups of people not known to be on its stage (${drawn.forErik.length}):`,
+              ...drawn.forErik.map(
+                (m) => `  ${m.photo.uuid}\n    ${m.preview}`,
+              ),
+              `Left out: ${drawn.left.filter((l) => l.why === "blurred").length} blurred, ${drawn.left.filter((l) => l.why === "same shot").length} the same shot as another, ${drawn.left.filter((l) => l.why === "past the limit").length} past the limit${noPreview.length > 0 ? `, ${noPreview.length} with no preview` : ""}`,
+              `Look at the previews, pick, then: bun run photos library ${shellWord(slug)} --export <uuid> [--export <uuid>]…`,
+            ].join("\n"),
+      );
+    }).pipe(Effect.provide(Database.scriptLayer)),
+).pipe(
+  Command.withDescription(
+    "An evening's photos from the Photos library on this Mac: previews and a shortlist, then the picked ones at full size.",
+  ),
+);
+
 const photos = Command.make("photos").pipe(
   Command.withDescription("An evening's photos."),
-  Command.withSubcommands([list, add, replace, remove]),
+  Command.withSubcommands([list, add, replace, remove, library]),
 );
 
 Command.run(photos, { version: "1.0.0" }).pipe(
