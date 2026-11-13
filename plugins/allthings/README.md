@@ -2,7 +2,7 @@
 
 Evenings for people who build software, in the neighborhoods of San Francisco, inside your coding agent.
 
-The plugin gives an agent the allthings MCP server (`list_events`, `get_event`, `list_speakers`, `get_community`, `get_guide`, `get_year`, `coach_talk`, `propose_talk`) and two skills, `find-evenings` and `evening-briefing`. In Claude Code it also brings a mod that takes over the interface with the allthings/\_ look, two themes and an output style.
+The plugin gives an agent the allthings MCP server (`list_events`, `get_event`, `list_speakers`, `get_community`, `get_guide`, `get_year`, `get_letter`, `coach_talk`, `propose_talk`) and two skills, `find-evenings` and `evening-briefing`. In Claude Code it also brings a mod that takes over the interface with the allthings/\_ look, two themes and an output style.
 
 | File                         | For                                                                                                   |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------- |

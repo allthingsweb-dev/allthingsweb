@@ -1,4 +1,9 @@
 import { readGuide, toGuide } from "allthings-core/src/guide.ts";
+import {
+  publishedLetters,
+  toLetter,
+  toLetters,
+} from "allthings-core/src/letter.ts";
 import { Year, yearContract } from "allthings-core/src/year.ts";
 import { type Cause, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
@@ -15,7 +20,9 @@ import { isPostgresUuid } from "./uuid.ts";
  * The public v1 API, answering as app/src/app/api/v1/{events,speakers} do:
  * the same paths, status codes, error bodies and response bodies. The
  * years (/api/v1/years and /api/v1/years/:year) are the Worker's own, in
- * the contract's shape (core's src/contract.ts), as get_year answers.
+ * the contract's shape (core's src/contract.ts), as get_year answers, and
+ * so are the letter's (/api/v1/letters and /api/v1/letters/:month), as
+ * get_letter answers.
  */
 
 const respond = (body: unknown, status: number, cacheControl: CacheControl) =>
@@ -121,6 +128,53 @@ const guide = HttpRouter.add(
   }),
 );
 
+/**
+ * The letter's published issues, newest first, as the public contract has
+ * them (core's src/letter.ts and src/contract.ts): only those Erik
+ * approved, exactly as he read them. It reads no database.
+ */
+const letters = HttpRouter.add(
+  "GET",
+  "/api/v1/letters",
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    return yield* respond(
+      toLetters(yield* publishedLetters, origin),
+      200,
+      CacheControl.publicData,
+    );
+  }),
+);
+
+const letterNotFound = respond(
+  { error: "Letter not found" },
+  404,
+  CacheControl.notFound,
+);
+
+/**
+ * One published issue by its month, YYYY-MM (`Contract.Letter`), the body
+ * get_letter answers with: not found for a draft, a month without an
+ * issue, or what isn't a month, alike.
+ */
+const letterByMonth = HttpRouter.add(
+  "GET",
+  "/api/v1/letters/:month",
+  Effect.gen(function* () {
+    const { month = "" } = yield* HttpRouter.params;
+    const letter = (yield* publishedLetters).find(
+      (each) => each.month === month,
+    );
+    if (letter === undefined) return yield* letterNotFound;
+    const { origin } = yield* Site;
+    return yield* respond(
+      { letter: toLetter(letter, origin) },
+      200,
+      CacheControl.publicData,
+    );
+  }),
+);
+
 /** Every year with an evening of ours held, latest first. */
 const years = HttpRouter.add(
   "GET",
@@ -176,6 +230,8 @@ export const v1Routes = Layer.mergeAll(
   eventById,
   speakers,
   guide,
+  letters,
+  letterByMonth,
   years,
   yearById,
 );

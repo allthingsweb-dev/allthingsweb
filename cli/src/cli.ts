@@ -83,7 +83,7 @@ Examples
   ${commandName} open latest                 Open the last evening's page on allthings.dev
   ${commandName} guide                       Conferences worth the trip, starred
   ${commandName} coach slides.md talk.vtt    Coach your talk for our stage before you give it
-  ${commandName} mcp                         Add allthings to Claude Code, Codex, VS Code or Cursor
+  ${commandName} mcp                         Add allthings to Claude Code, Codex, Grok Build, VS Code or Cursor
   ${commandName} aux --help                 Set the room's lights at an evening that passes the aux
 
 Options
@@ -234,6 +234,7 @@ function mcpSetup(endpoint: string, json: boolean): string {
   const agents: [string, string][] = [
     ["Claude Code", `claude mcp add --transport http ${name} ${url}`],
     ["Codex", `codex mcp add ${name} --url ${url}`],
+    ["Grok Build", `grok mcp add ${name} ${url}`],
     ["VS Code", `code --add-mcp ${shellWord(vscode)}`],
     ["Cursor", `in .cursor/mcp.json: ${cursor}`],
   ];

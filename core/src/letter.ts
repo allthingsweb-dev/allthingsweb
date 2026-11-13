@@ -6,6 +6,7 @@ import { issueFiles } from "../letters/index.ts";
 import { approvalToken, isApprovalToken } from "./approval.ts";
 import { ahead, ours, published } from "./catalog.ts";
 import { asOf } from "./clock.ts";
+import type * as Contract from "./contract.ts";
 import { HttpUrl } from "./contract.ts";
 import { guideEntries } from "./guide.ts";
 import { isShortSlug } from "./short-slugs.ts";
@@ -667,3 +668,44 @@ export function repeatsOfEdits(
       })),
   );
 }
+
+/** What the letter is, in one sentence: for its archive, the API and the tools. */
+export const letterAbout =
+  "One letter a month from allthings: our next evenings, what's worth your time beyond them, and a closing paragraph. Claude writes it, and Erik reads every word before it goes out.";
+
+/** `letter` as the public contract serves it (src/contract.ts), its page under `origin`. */
+export function toLetter(letter: Letter, origin: string): Contract.Letter {
+  return {
+    month: letter.month,
+    title: letter.title,
+    url: `${origin}/letter/${letter.month}`,
+    sections: sectionOrder.flatMap((key) => {
+      const items = letter[key];
+      return items === undefined
+        ? []
+        : [
+            {
+              key,
+              title: sectionTitles[key],
+              items: items.map((each) => ({
+                name: each.name,
+                text: each.text,
+                url: sourceUrl(each.source),
+              })),
+            },
+          ];
+    }),
+    closing: letter.closing ?? null,
+    approvedOn: letter.approved.on,
+  };
+}
+
+/** Every published letter as the public contract serves it: /api/v1/letters. */
+export const toLetters = (
+  letters: ReadonlyArray<Letter>,
+  origin: string,
+): Contract.Letters => ({
+  about: letterAbout,
+  url: `${origin}/letter`,
+  letters: letters.map((letter) => toLetter(letter, origin)),
+});
