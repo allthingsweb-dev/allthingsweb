@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { stockPhrases, voiceFindings } from "./voice.ts";
 
 /**
  * Coaching for a talk at allthings: a speaker sends what they have (the
@@ -916,6 +917,57 @@ const abstract: Rule = {
   },
 };
 
+/** `said` as it appears in `text`, widened to the whole words around it. */
+function wholeWords(text: string, said: string): string {
+  const at = text.indexOf(said);
+  if (at === -1) return said;
+  const letter = /[\p{L}\p{N}'’-]/u;
+  let start = at;
+  let end = at + said.length;
+  while (start > 0 && letter.test(text.charAt(start - 1))) start--;
+  while (end < text.length && letter.test(text.charAt(end))) end++;
+  return text.slice(start, end);
+}
+
+/** How many of the words it found plain words names, at most. */
+const plainWordsShown = 3;
+
+/**
+ * The title and abstract against our voice's stock phrases and longest
+ * sentence (src/voice.ts), as a suggestion only: a speaker's title is
+ * theirs. The brand's own diction (RSVP, register, sponsor, exclamation
+ * marks) is how we describe evenings, not a rule for what a talk is about,
+ * so it isn't applied.
+ */
+const plainWords: Rule = {
+  id: "plain-words",
+  goal: null,
+  good: "A title and abstract in plain words: what you built and what the room will learn, without hype.",
+  why: "People pick a talk by what it says it shows. Plain words say it; hype hides it. This is only a suggestion: your title is yours.",
+  needs: "nothing",
+  check: (talk) => {
+    const parts = [
+      ["title", talk.title],
+      ["abstract", talk.abstract],
+    ].filter(([, text]) => text !== "");
+    if (parts.length === 0) return null;
+    const found = parts.flatMap(([part, text]) =>
+      voiceFindings(text ?? "", stockPhrases).map(
+        ({ said, why }) =>
+          `the ${part} says "${wholeWords(text ?? "", said)}" (${why})`,
+      ),
+    );
+    const which = parts.map(([part]) => part).join(" and ");
+    if (found.length === 0) return pass(`The ${which} read plainly.`);
+    const shown = found.slice(0, plainWordsShown).join("; ");
+    return flag(
+      "consider",
+      `${shown.charAt(0).toUpperCase()}${shown.slice(1)}${found.length > plainWordsShown ? `; and ${found.length - plainWordsShown} more` : ""}.`,
+      "If you'd like it plainer, say what the talk shows instead. It's your call.",
+    );
+  },
+};
+
 const firstTalk: Rule = {
   id: "first-talk",
   goal: "first-talk",
@@ -1036,6 +1088,7 @@ export const rules: ReadonlyArray<Rule> = [
   slideWords,
   title,
   abstract,
+  plainWords,
   firstTalk,
   teach,
   contributorsRepo,
