@@ -161,6 +161,8 @@ export const testStack = <const Name extends string>(
  * 10,000 to 10,100 on 2026-11-05 for the request data points
  * (src/worker.ts, src/metrics.ts): about 45 bytes that hand each answer to
  * the lazily loaded src/metrics.ts after it is sent, which no smaller hook
- * does.
+ * does. It went to 9,200 on 2026-11-13, when a cold start stopped
+ * parsing the build manifest for its hash (src/build-id.ts): about 9,060
+ * then.
  */
-export const bundleBudgets = { startup: 10_100, lazy: 120_000 } as const;
+export const bundleBudgets = { startup: 9_200, lazy: 120_000 } as const;

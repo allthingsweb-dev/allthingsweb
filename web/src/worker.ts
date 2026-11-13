@@ -1,6 +1,6 @@
 import type { ExecutionContext } from "./app.ts";
 import { forWorkersCache, prewarmPlan, withEdgePurge } from "./cache.ts";
-import { built } from "./assets.ts";
+import { buildId } from "./build-id.ts";
 import {
   dataCenterCache,
   type PageNamespace,
@@ -127,7 +127,7 @@ export default {
           ? app
           : pageStored(app, {
               pages,
-              build: built.build,
+              build: buildId,
               now: Date.now,
               siteState,
               turnover,
@@ -148,7 +148,7 @@ export default {
               // rather than within the edge lifetime. The report says how it went.
               prewarm: withEdgePurge(() =>
                 prewarm({
-                  build: built.build,
+                  build: buildId,
                   serve: site,
                   pointer: () => readSitePointer(pages),
                   now: Date.now,

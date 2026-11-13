@@ -21,7 +21,9 @@ import { CacheControl, immutable } from "../src/cache.ts";
  *   under `/assets/` is named by a hash of its content, so `_headers` lets
  *   browsers and the edge keep it for a year without asking again.
  * - `dist/build.json` tells the Worker those hashed paths. The Worker
- *   bundles it.
+ *   bundles it, and loads it with the app, never on a cold start.
+ * - `dist/build-id.json` is the build's hash alone, which a cold start
+ *   reads to keep pages by (page-store.ts).
  * - `dist/foundations.json` holds brand/foundations.md as HTML, for /brand
  *   alone: the Worker loads it with that page, never on a cold start.
  * - Files the current site serves under fixed names (its icons, /brand/*,
@@ -758,6 +760,14 @@ export interface BuildManifest {
   };
 }
 
+/**
+ * What the Worker reads from dist/build-id.json on a cold start: the
+ * build's hash alone, so starting never parses the rest of the manifest.
+ */
+export interface BuildId {
+  readonly build: string;
+}
+
 /** What the Worker reads from dist/foundations.json: the foundations as HTML. */
 export interface Foundations {
   readonly html: string;
@@ -815,6 +825,8 @@ export async function build(): Promise<BuildManifest> {
     join(dist, "build.json"),
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
+  const buildId: BuildId = { build: manifest.build };
+  await Bun.write(join(dist, "build-id.json"), `${JSON.stringify(buildId)}\n`);
   await Bun.write(
     join(dist, "foundations.json"),
     `${JSON.stringify(foundations)}\n`,
