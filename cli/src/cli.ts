@@ -59,6 +59,7 @@ Usage
   ${commandName} event <slug | next | latest> [--json]
   ${commandName} speakers [search] [--limit <n>] [--json]
   ${commandName} rsvp <slug | next> [--print]
+  ${commandName} open <slug | next | latest> [--print]
   ${commandName} about [--json]
   ${commandName} mcp [--json]
   ${commandName} aux <command> [--json]
@@ -71,6 +72,7 @@ Examples
   ${commandName} event latest                The last evening: its talks and video
   ${commandName} speakers react              Who has been on stage about react
   ${commandName} rsvp next                   Open the next evening's page to say you're in
+  ${commandName} open latest                 Open the last evening's page on allthings.dev
   ${commandName} mcp                         Add allthings to Claude Code, Codex, VS Code or Cursor
   ${commandName} aux --help                 Set the room's lights at an evening that passes the aux
 
@@ -209,7 +211,7 @@ Streamable HTTP, public, no sign-in. Its tools are this CLI's reads: ${toolNames
 Add it
 ${lines}
 
-An agent with a shell can run this CLI too: every command but rsvp takes --json.
+An agent with a shell can run this CLI too: every command but rsvp and open takes --json.
 Set ${endpointVariable} to point this CLI, and these lines, at another server.
 `;
 }
@@ -509,6 +511,7 @@ const commands = [
   "event",
   "speakers",
   "rsvp",
+  "open",
   "about",
   "mcp",
   "aux",
@@ -579,6 +582,12 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       io.client ?? createClient({ endpoint: endpointFrom(io.env) });
     const print = (text: string, data: unknown) =>
       io.stdout(values.json ? `${JSON.stringify(data, null, 2)}\n` : text);
+    /** Prints a link, and opens it too for a person at a terminal, unless --print. */
+    const printAndOpen = async (url: string) => {
+      io.stdout(`${url}\n`);
+      if (!values.print && io.isTTY) await io.openUrl(url);
+      return ExitCode.Ok;
+    };
 
     switch (command) {
       case undefined: {
@@ -632,9 +641,14 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
             ExitCode.NotFound,
           );
         }
-        io.stdout(`${event.rsvpUrl}\n`);
-        if (!values.print && io.isTTY) await io.openUrl(event.rsvpUrl);
-        return ExitCode.Ok;
+        return await printAndOpen(event.rsvpUrl);
+      }
+      case "open": {
+        const [slug, ...extra] = rest;
+        if (slug === undefined || extra.length > 0)
+          usage(`"open" takes one event slug, or next or latest.`);
+        const event = await client.getEvent(await resolveSlug(client, slug));
+        return await printAndOpen(event.url);
       }
       case "mcp": {
         if (rest.length > 0) usage(`"mcp" takes no arguments.`);
