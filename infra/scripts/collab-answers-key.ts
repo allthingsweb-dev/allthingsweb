@@ -56,7 +56,7 @@ export function rotationRefusal(asked: {
 }
 
 const notes =
-  "Seals the draft preview's round answer keys at rest (core/src/collab/seal.ts). Losing it loses every round sealed with it. Made by infra/scripts/collab-answers-key.ts in allthings-sf/allthingsweb.";
+  "Seals the draft preview's round answer keys at rest (core/src/collab/seal.ts). Losing it loses every round sealed with it. Made by infra/scripts/collab-answers-key.ts in allthings-sf/allthings.";
 
 async function exists(item: string): Promise<boolean> {
   const items = JSON.parse(

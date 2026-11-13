@@ -25,11 +25,11 @@ claude --plugin-dir plugins/allthings
 To keep it, add this repository as a marketplace and install the plugin:
 
 ```bash
-claude plugin marketplace add allthings-sf/allthingsweb
+claude plugin marketplace add allthings-sf/allthings
 claude plugin install allthings@allthings
 ```
 
-or, at the Claude Code prompt, `/plugin marketplace add allthings-sf/allthingsweb` and then `/plugin install allthings@allthings`. Run `/plugin` to see `allthings` among the active mods.
+or, at the Claude Code prompt, `/plugin marketplace add allthings-sf/allthings` and then `/plugin install allthings@allthings`. Run `/plugin` to see `allthings` among the active mods.
 
 ## What the mod does
 

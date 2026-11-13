@@ -23,7 +23,7 @@ export const ITEM = "allthings site refresh";
 const VAULT = "allthings";
 
 const notes =
-  "Lets whatever writes allthings.dev's data (the Sync Worker) tell the site it changed (web/src/refresh.ts in allthings-sf/allthingsweb). Made by infra/scripts/site-refresh-token.ts; rotate with --rotate, then deploy prod.";
+  "Lets whatever writes allthings.dev's data (the Sync Worker) tell the site it changed (web/src/refresh.ts in allthings-sf/allthings). Made by infra/scripts/site-refresh-token.ts; rotate with --rotate, then deploy prod.";
 
 async function main(): Promise<void> {
   if (!process.env["OP_SERVICE_ACCOUNT_TOKEN"]) {

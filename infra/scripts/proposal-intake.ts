@@ -188,7 +188,7 @@ async function apply(owner: string, vault: string): Promise<void> {
       item: PROPOSAL_INTAKE_ITEM,
       vault,
       notes:
-        "Production connection for the site's Worker to take talk proposals: INSERT of a proposal's columns on planning.proposals, nothing else (core's README, \"Taking proposals from anyone\"). A prod deploy reads it. Rotate with infra/scripts/proposal-intake.ts in allthings-sf/allthingsweb, then deploy prod.",
+        "Production connection for the site's Worker to take talk proposals: INSERT of a proposal's columns on planning.proposals, nothing else (core's README, \"Taking proposals from anyone\"). A prod deploy reads it. Rotate with infra/scripts/proposal-intake.ts in allthings-sf/allthings, then deploy prod.",
     });
   } catch (cause) {
     throw new Error(
