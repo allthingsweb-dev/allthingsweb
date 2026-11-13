@@ -117,6 +117,22 @@ describe("reading a transcript", () => {
     ).toBe("must");
   });
 
+  test("hours past two digits aren't a timestamp, so every length fits its schema", () => {
+    const transcript = "00:00.000 --> 9999999999999:00:00.000\nHello";
+    expect(readTranscript(transcript).cues).toBeNull();
+    expect(() =>
+      Schema.decodeUnknownSync(Coaching)(
+        coach({ slot: openFloor, transcript }),
+      ),
+    ).not.toThrow();
+    expect(
+      readTalk({
+        slot: openFloor,
+        transcript: "00:00.000 --> 99:59:59.999\nHello",
+      }).seconds,
+    ).toBe(359_999 + 1);
+  });
+
   test("timestamps inside a cue split it into the parts said from then", () => {
     expect(
       readTranscript(

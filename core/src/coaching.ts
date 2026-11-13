@@ -204,8 +204,12 @@ export interface Spoken {
   readonly text: string;
 }
 
+/**
+ * A cue's timing line. Hours have at most two digits: under 100 hours, so
+ * every length a transcript gives is a safe integer of seconds.
+ */
 const timing =
-  /^\s*((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})\s*-->\s*((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})/;
+  /^\s*((?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3})\s*-->\s*((?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3})/;
 
 /** "01:02:03.500", "02:03,5" or "2:03.500" in seconds. */
 const seconds = (stamp: string): number => {
@@ -216,7 +220,7 @@ const seconds = (stamp: string): number => {
 };
 
 /** WebVTT's timestamp inside a cue, `<00:25.000>`: when the words after it start. */
-const inlineTiming = /<((?:\d+:)?\d{1,2}:\d{2}\.\d{1,3})>/;
+const inlineTiming = /<((?:\d{1,2}:)?\d{1,2}:\d{2}\.\d{1,3})>/;
 
 /**
  * A cue's words without markup. A tag ends at the first `<` or `>` after
