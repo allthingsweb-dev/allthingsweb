@@ -46,33 +46,35 @@ function withTimeZone(event: EventSummary): string {
   return `${parts["weekday"]}, ${parts["month"]} ${parts["day"]}, ${parts["year"]}, ${parts["hour"]}:${parts["minute"]} ${parts["dayPeriod"]} ${parts["timeZoneName"]}`;
 }
 
+/** One evening in a list: its name and status, when and where, and its slug. */
+export function formatEventSummary(
+  event: EventSummary,
+  color: boolean,
+): string {
+  const style = createStyler(color);
+  const status =
+    event.status === "past" ? "" : ` ${style("yellow", `[${event.status}]`)}`;
+  const where = formatWhere(event);
+  const shared = sharedBy(event);
+  return [
+    `${style("bold", event.name)}${status}${shared ? ` ${style("dim", shared)}` : ""}`,
+    `  ${withTimeZone(event)}${where ? ` · ${where}` : ""}`,
+    event.rsvpUrl && event.status !== "past"
+      ? `  ${style("dim", "rsvp")}  ${event.rsvpUrl}`
+      : null,
+    `  ${style("dim", "slug")}  ${event.slug}`,
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
+}
+
 export function formatEventList(
   events: EventSummary[],
   color: boolean,
 ): string {
-  const style = createStyler(color);
   if (events.length === 0) return "No events found.\n";
   return (
-    events
-      .map((event) => {
-        const status =
-          event.status === "past"
-            ? ""
-            : ` ${style("yellow", `[${event.status}]`)}`;
-        const where = formatWhere(event);
-        const shared = sharedBy(event);
-        return [
-          `${style("bold", event.name)}${status}${shared ? ` ${style("dim", shared)}` : ""}`,
-          `  ${withTimeZone(event)}${where ? ` · ${where}` : ""}`,
-          event.rsvpUrl && event.status !== "past"
-            ? `  ${style("dim", "rsvp")}  ${event.rsvpUrl}`
-            : null,
-          `  ${style("dim", "slug")}  ${event.slug}`,
-        ]
-          .filter((line): line is string => line !== null)
-          .join("\n");
-      })
-      .join("\n\n") + "\n"
+    events.map((event) => formatEventSummary(event, color)).join("\n\n") + "\n"
   );
 }
 
