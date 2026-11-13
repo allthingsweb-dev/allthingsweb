@@ -877,6 +877,23 @@ against production when either file changes, on main, and every Monday.
 DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run hero-photos
 ```
 
+## The guide
+
+The allthings guide (/guide) stars happenings beyond our evenings the way
+the Michelin guide stars a restaurant: three stars are worth a special
+journey, two a detour, one a stop. The stars are the organizers' judgment,
+written by hand in `core/backfill/guide.json`, never counted or voted.
+
+It is editorial, as the wall is: it names other people's conferences and
+evenings, which we neither host nor sync, so it is a file, not a table.
+`src/guide.ts` decodes it at import and refuses an entry without a
+sentence of why, an official https site and a source for its facts, or one
+named twice. A next edition's days are written only once its organizers
+announce them, and the guide shows them through the edition's last day in
+San Francisco; the site's version names the start of the day after as a
+boundary (`guideBoundaries`, `src/site-version.ts`), so no kept page shows
+days that are over.
+
 ## Schedules and notes
 
 Some events' pages say more than the record: a hackathon's schedule, its

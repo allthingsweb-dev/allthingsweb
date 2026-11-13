@@ -2,6 +2,7 @@ import { About } from "allthings-core/src/about.ts";
 import { asOf } from "allthings-core/src/clock.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
+import { readGuide } from "allthings-core/src/guide.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
 import { Community, type CommunityView } from "allthings-core/src/community.ts";
 import { Home } from "allthings-core/src/home.ts";
@@ -34,6 +35,7 @@ import {
   aboutPath,
   eventPath,
   everyTalk,
+  guidePath,
   hosts,
   mediaOrigin,
   personPath,
@@ -45,6 +47,7 @@ import { calendarFile, calendarFileName } from "./calendar.ts";
 import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { privacyPage, privacyPath } from "./privacy.tsx";
 import { talksPage } from "./talks.tsx";
+import { guidePage } from "./guide.tsx";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
@@ -643,6 +646,29 @@ const talks = dataPage(
 );
 
 /**
+ * The allthings guide (core's src/guide.ts): written by hand, so it reads
+ * no database but for the hosts' portraits in its footer, as the code of
+ * conduct does. It is read as of the clock, which takes an edition's days
+ * off once it is over, so it is cached like public data and that reaches
+ * visitors within minutes; the page store keeps it by the guide's own
+ * boundaries (core's src/site-version.ts).
+ */
+const guide = page(guidePath, ({ theme, acceptEncoding, images }) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const groups = yield* readGuide;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      guidePage({ groups, origin, theme, portraits, images }),
+      acceptEncoding,
+      { cacheControl: read ? "publicData" : "failure", theme, images },
+    );
+  }),
+);
+
+/**
  * /brand changes only when the Worker is deployed, but for the hosts'
  * portraits in its footer, which it reads on every request it reaches. It is
  * cached as a page, so a new portrait may take a day to reach the edge.
@@ -1068,6 +1094,7 @@ export const pageRoutes = Layer.mergeAll(
   home,
   events,
   talks,
+  guide,
   people,
   person,
   speakers,

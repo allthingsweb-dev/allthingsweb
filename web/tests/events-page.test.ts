@@ -196,6 +196,12 @@ describe("the evenings index", () => {
     expect(html).not.toContain("subscribe on luma");
   });
 
+  test("links to the guide under where to follow along", () => {
+    expect(render(view)).toContain(
+      '</ul><p class="fact-links"><a href="/guide">the guide: happenings worth the trip <span aria-hidden="true">→</span></a></p></div>',
+    );
+  });
+
   test("has one h1 and headings in order", () => {
     const levels = headingLevels(render(view));
     expect(levels).toEqual([1, 2, 2, 2]);
