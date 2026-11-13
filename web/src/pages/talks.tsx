@@ -1,4 +1,8 @@
 import type { PortraitsById } from "allthings-core/src/portraits.ts";
+import type {
+  ArtifactKind,
+  TalkArtifact,
+} from "allthings-core/src/talk-artifacts.ts";
 import type { LibraryTalk } from "allthings-core/src/talks-library.ts";
 import { DateTime } from "effect";
 import { eventPath, everyTalk, personPath } from "../links.ts";
@@ -15,10 +19,12 @@ import { proposePath } from "./propose.tsx";
  * /talks: every talk given at our evenings, latest evening first and each
  * evening's talks in its running order (core's src/talks-library.ts),
  * under the year it was given in, as /events lists the evenings. Each
- * talk is a row as a person's page lists one: the day, the title, then
- * who gave it, each linking to their page, and the evening, linking to
- * its page; under it, the evening's recording, when it has one. Nothing a
- * talk leaves out is filled in.
+ * talk is a row as a person's page lists one: the day, the title, linking
+ * to the talk's own recording when it has one, then who gave it, each
+ * linking to their page, and the evening, linking to its page; under it,
+ * its slides, code and other links (core's src/talk-artifacts.ts), and the
+ * evening's recording where the talk has none of its own. Nothing a talk
+ * leaves out is filled in.
  *
  * It belongs to the evenings in the header, as an evening's page does: a
  * fifth section wouldn't fit the header at 320 pixels. Home's Recently
@@ -63,9 +69,69 @@ export function talksByYear(
 const count = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`;
 
+/** How a link a talk left behind is named under its row, by its kind. */
+const kindNames: Readonly<Record<ArtifactKind, string>> = {
+  recording: "recording",
+  slides: "slides",
+  repo: "code",
+  site: "site",
+  other: "link",
+};
+
 /**
- * One talk: its evening's day, its title, who gave it and where, and the
- * evening's recording under the row.
+ * The words a talk's link shows: its label, or its kind, and where the
+ * same talk was given when it comes from there ("recording at Chain
+ * React 2024").
+ */
+export const artifactText = (artifact: TalkArtifact): string =>
+  artifact.label ??
+  (artifact.elsewhere === null
+    ? kindNames[artifact.kind]
+    : `${kindNames[artifact.kind]} at ${artifact.elsewhere}`);
+
+/**
+ * Under a talk's row, what it left behind, in order: its slides, code,
+ * site and recordings of it elsewhere; and the evening's recording where
+ * the talk has none of its own. Nothing when it has neither.
+ */
+function TalkLinks({ talk }: { readonly talk: LibraryTalk }) {
+  const links = [
+    ...(talk.links.recording === null && talk.recordingUrl !== null
+      ? [
+          <a href={talk.recordingUrl}>
+            <span>recording</span>
+            <span class="visually-hidden" safe>
+              {` of the evening with ${talk.title}`}
+            </span>
+          </a>,
+        ]
+      : []),
+    ...talk.links.artifacts.map((artifact) => (
+      <a href={artifact.url}>
+        <span safe>{artifactText(artifact)}</span>
+        <span class="visually-hidden" safe>
+          {` for ${talk.title}`}
+        </span>
+      </a>
+    )),
+  ];
+  if (links.length === 0) return "";
+  return (
+    <p class="talk-links at-type-meta">
+      {links.map((link, index) => (
+        <>
+          {index === 0 ? "" : " · "}
+          {link}
+        </>
+      ))}
+    </p>
+  );
+}
+
+/**
+ * One talk: its evening's day, its title, linking to the talk's own
+ * recording when it has one, who gave it and where, and what it left
+ * behind under the row.
  */
 function TalkRow({ talk }: { readonly talk: LibraryTalk }) {
   const { evening } = talk;
@@ -79,9 +145,15 @@ function TalkRow({ talk }: { readonly talk: LibraryTalk }) {
         >
           {simpleDate(evening.startsAt)}
         </time>
-        <span class="talk-title" safe>
-          {talk.title}
-        </span>
+        {talk.links.recording === null ? (
+          <span class="talk-title" safe>
+            {talk.title}
+          </span>
+        ) : (
+          <a class="talk-title" href={talk.links.recording.url} safe>
+            {talk.title}
+          </a>
+        )}
         <span class="talk-evening">
           {talk.speakers.map((speaker, index) => (
             <>
@@ -99,16 +171,7 @@ function TalkRow({ talk }: { readonly talk: LibraryTalk }) {
           </span>
         </span>
       </div>
-      {talk.recordingUrl === null ? (
-        ""
-      ) : (
-        <a class="talk-video at-type-meta" href={talk.recordingUrl}>
-          <span>recording</span>
-          <span class="visually-hidden" safe>
-            {` of the evening with ${talk.title}`}
-          </span>
-        </a>
-      )}
+      <TalkLinks talk={talk} />
     </li>
   );
 }

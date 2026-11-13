@@ -30,6 +30,10 @@ await db.exec(`
   INSERT INTO event_talks (event_id, talk_id, created_at, updated_at) VALUES
     ('${shared}', 'a0000000-0000-4000-8000-000000000301', '2026-01-02T00:00:09Z', now()),
     ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000302', '2026-01-02T00:00:10Z', now());
+  INSERT INTO talk_artifacts (talk_id, kind, url, start_seconds, elsewhere, position, updated_at) VALUES
+    ('a0000000-0000-4000-8000-000000000002', 'repo', 'https://github.com/grace/effect-demo', NULL, NULL, 1, now()),
+    ('a0000000-0000-4000-8000-000000000002', 'recording', 'https://www.youtube.com/watch?v=abc123', 300, NULL, 0, now()),
+    ('a0000000-0000-4000-8000-000000000002', 'recording', 'https://www.youtube.com/watch?v=conf', NULL, 'Effect Days', 2, now());
 `);
 afterAll(() => db.close());
 
@@ -116,6 +120,35 @@ describe("TalksLibrary", () => {
       (talk) => talk.evening.slug === "2025-12-02-café-night",
     );
     expect(cafe.map((talk) => talk.recordingUrl)).toEqual([null, null]);
+  });
+
+  test("reads what each talk left behind: its own recording from its start, then its other links in order", async () => {
+    const talks = await read();
+    expect(
+      talks.find((talk) => talk.title === "Effect in production")?.links,
+    ).toEqual({
+      recording: {
+        url: "https://www.youtube.com/watch?v=abc123&t=300",
+        startSeconds: 300,
+      },
+      artifacts: [
+        {
+          kind: "repo",
+          url: "https://github.com/grace/effect-demo",
+          label: null,
+          elsewhere: null,
+        },
+        {
+          kind: "recording",
+          url: "https://www.youtube.com/watch?v=conf",
+          label: null,
+          elsewhere: "Effect Days",
+        },
+      ],
+    });
+    expect(
+      talks.find((talk) => talk.title === "Where React goes next")?.links,
+    ).toEqual({ recording: null, artifacts: [] });
   });
 
   test("never lists a talk of an evening we only share, of a draft, or of one not over", async () => {

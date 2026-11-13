@@ -53,6 +53,7 @@ const talk = (
   ],
   evening: on,
   recordingUrl: null,
+  links: { recording: null, artifacts: [] },
   ...overrides,
 });
 
@@ -76,6 +77,17 @@ const talks: ReadonlyArray<LibraryTalk> = [
   }),
   talk("Typed errors", effect, {
     recordingUrl: "https://www.youtube.com/watch?v=abc123",
+    links: {
+      recording: null,
+      artifacts: [
+        {
+          kind: "slides",
+          url: "https://speakerdeck.com/ada/typed-errors?from=talk&page=1",
+          label: null,
+          elsewhere: null,
+        },
+      ],
+    },
   }),
   talk("Countdown", newYears, { speakers: [] }),
 ];
@@ -182,7 +194,9 @@ describe("the talks library", () => {
   test("links the evening's recording under each of its talks, and nothing where it has none", () => {
     const html = render(talks);
     const recordings = [
-      ...html.matchAll(/<a class="talk-video at-type-meta" href="([^"]+)">/g),
+      ...html.matchAll(
+        /<p class="talk-links at-type-meta"><a href="([^"]+)">/g,
+      ),
     ].map(([, href]) => href);
     expect(recordings).toEqual([
       "https://www.youtube.com/watch?v=abc123",
@@ -191,7 +205,94 @@ describe("the talks library", () => {
     expect(html).toContain(
       '<span>recording</span><span class="visually-hidden"> of the evening with State of Effect 2026</span>',
     );
-    expect(section(html, "talks-2024")).not.toContain("talk-video");
+    expect(section(html, "talks-2024")).not.toContain("talk-links");
+  });
+
+  test("titles a talk that has no recording of its own as text, not a link", () => {
+    for (const row of rows(render(talks))) {
+      expect(row).toContain('<span class="talk-title">');
+      expect(row).not.toContain('<a class="talk-title"');
+    }
+  });
+
+  test("links a talk's title to its own recording, and then leaves out the evening's", () => {
+    const [row] = rows(
+      render([
+        talk("State of Effect 2026", effect, {
+          recordingUrl: "https://www.youtube.com/watch?v=abc123",
+          links: {
+            recording: {
+              url: "https://www.youtube.com/watch?v=abc123&t=385",
+              startSeconds: 385,
+            },
+            artifacts: [],
+          },
+        }),
+      ]),
+    );
+    expect(row).toContain(
+      '<a class="talk-title" href="https://www.youtube.com/watch?v=abc123&t=385">State of Effect 2026</a>',
+    );
+    expect(row).not.toContain("talk-links");
+  });
+
+  test("lists what a talk left behind under its row, in order, each named by its label or kind", () => {
+    const [row] = rows(
+      render([
+        talk("Typed errors", effect, {
+          recordingUrl: "https://www.youtube.com/watch?v=abc123",
+          links: {
+            recording: null,
+            artifacts: [
+              {
+                kind: "slides",
+                url: "https://speakerdeck.com/ada/typed-errors",
+                label: null,
+                elsewhere: null,
+              },
+              {
+                kind: "repo",
+                url: "https://github.com/ada/typed-errors",
+                label: null,
+                elsewhere: null,
+              },
+              {
+                kind: "recording",
+                url: "https://www.youtube.com/watch?v=conf",
+                label: null,
+                elsewhere: "Effect Days 2026",
+              },
+              {
+                kind: "other",
+                url: "https://effect.website/blog/releases/effect/40",
+                label: "the Effect 4.0 release",
+                elsewhere: null,
+              },
+            ],
+          },
+        }),
+      ]),
+    );
+    const links = /<p class="talk-links at-type-meta">([\s\S]*?)<\/p>/.exec(
+      row ?? "",
+    )?.[1];
+    expect(
+      [
+        ...(links ?? "").matchAll(/<a href="([^"]+)"><span>([^<]*)<\/span>/g),
+      ].map(([, href, text]) => [text, href]),
+    ).toEqual([
+      ["recording", "https://www.youtube.com/watch?v=abc123"],
+      ["slides", "https://speakerdeck.com/ada/typed-errors"],
+      ["code", "https://github.com/ada/typed-errors"],
+      ["recording at Effect Days 2026", "https://www.youtube.com/watch?v=conf"],
+      [
+        "the Effect 4.0 release",
+        "https://effect.website/blog/releases/effect/40",
+      ],
+    ]);
+    expect(links).toContain(
+      '<span class="visually-hidden"> for Typed errors</span></a> · <a',
+    );
   });
 
   test("writes every date as a simple date, and no year in two digits", () => {

@@ -1003,9 +1003,18 @@ main > section,
   line-height: 1.35;
 }
 
-.talk:hover .talk-title {
+/* A row that is one link underlines its title; a title that is a link of
+   its own (a talk's recording, on /talks) is underlined as any link is. */
+a.talk:hover .talk-title {
   text-decoration: underline var(--at-stroke-rule);
   text-underline-offset: 0.18em;
+}
+
+/* What a talk left behind, under its row: "recording · slides · code". */
+.talk-links {
+  margin: 0;
+  padding: var(--at-space-1) 0 var(--at-space-1) var(--at-size-date-column);
+  overflow-wrap: anywhere;
 }
 
 /* A happening in the guide (pages/guide.tsx), in a list of talks' rules:
