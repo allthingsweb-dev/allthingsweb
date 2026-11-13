@@ -12,15 +12,17 @@ import {
   type PersonLookup,
 } from "allthings-core/src/people-directory.ts";
 import { TalksLibrary } from "allthings-core/src/talks-library.ts";
+import { Year } from "allthings-core/src/year.ts";
 import {
   clockAt,
   now,
   seededDatabase,
   sqlLayer,
 } from "allthings-core/tests/support/database.ts";
-import { ConfigProvider, DateTime, Effect, Layer } from "effect";
+import { ConfigProvider, DateTime, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import { Mcp, mcpRoute } from "../src/mcp/endpoint.ts";
+import { byYear, heldOne } from "../src/pages/events.tsx";
 import { FeedData } from "../src/seo/data.ts";
 import { Site } from "../src/site.ts";
 import { v1Routes } from "../src/v1/routes.ts";
@@ -249,6 +251,7 @@ function surfacesAt(at: DateTime.Utc) {
     Home.layer,
     PeopleDirectory.layer,
     TalksLibrary.layer,
+    Year.layer,
   ).pipe(Layer.provideMerge(sqlLayer(db)), Layer.provideMerge(clock));
 
   return {
@@ -287,6 +290,7 @@ function surfacesAt(at: DateTime.Utc) {
         | Home
         | PeopleDirectory
         | TalksLibrary
+        | Year
       >,
     ): Promise<A> => Effect.runPromise(Effect.provide(program, models)),
   };
@@ -489,6 +493,38 @@ describe("which evenings there are, and in what order", () => {
     expect(about.evenings).toBe(
       view.past.filter((e) => e.curation.kind === "ours").length,
     );
+  });
+
+  test("each year's page holds the evenings /events lists as over and ours in that year, and /events links it", async () => {
+    const view = await evenings();
+    const years = await surfaces.read(Year.use((year) => year.years));
+    expect(years.length).toBeGreaterThan(0);
+    const about = await surfaces.read(
+      About.use((repository) => repository.read([], photoOrigin)),
+    );
+    let held = 0;
+    for (const year of years) {
+      const found = await surfaces.read(
+        Year.use((repository) => repository.read(year, photoOrigin)),
+      );
+      const page = Option.getOrThrow(found);
+      // /events lists them latest first; the year, in the order held.
+      const ours = byYear(view.past)
+        .find((group) => group.year === year)
+        ?.evenings.filter((e) => e.curation.kind === "ours");
+      expect(ids(page.evenings.map((entry) => entry.evening))).toEqual(
+        ids((ours ?? []).toReversed()),
+      );
+      expect(page.tally.evenings).toBe(page.evenings.length);
+      held += page.tally.evenings;
+    }
+    expect(held).toBe(about.evenings);
+    // /events links exactly the years that have a page.
+    expect(
+      byYear(view.past)
+        .filter((group) => heldOne(group.evenings))
+        .map((group) => group.year),
+    ).toEqual([...years]);
   });
 });
 

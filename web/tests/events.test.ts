@@ -150,8 +150,18 @@ describe("/events", () => {
   }) => {
     const { html } = await events(Announced);
     expect(
-      [...html.matchAll(/<h2 id="([^"]+)"[^>]*>([^<]*)<\/h2>/g)].map(
-        ([, id, title]) => [id, title],
+      // A year that held one of ours links its title to its page.
+      [...html.matchAll(/<h2 id="([^"]+)"[^>]*>(.*?)<\/h2>/g)].map(
+        ([, id, title = ""]) => [
+          id,
+          title
+            .replace(
+              /<span (?:class="visually-hidden"|aria-hidden="true")>[^<]*<\/span>/g,
+              "",
+            )
+            .replace(/<[^>]+>/g, "")
+            .trim(),
+        ],
       ),
     ).toEqual([
       ["upcoming", "Upcoming"],

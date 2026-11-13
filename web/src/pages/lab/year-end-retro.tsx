@@ -1,38 +1,18 @@
-import { count } from "../about.tsx";
 import { HomeBand } from "../home.tsx";
 import { type ImageMode, Photo, showable } from "../picture.tsx";
+import { fieldCount, statement } from "../year.tsx";
 import { decorative, type LabData, NextEvening, screenShare } from "./lab.tsx";
 
 /**
  * year-end-retro: saved from the home lab's first round, where it was
- * depth-field, for a December retro or holiday party page. On Night,
- * photos of the evenings hang at different sizes and depths around one
- * statement made of the year's real numbers, drifting slowly in a 3D field
- * that sways, so the near ones pass the far ones.
+ * depth-field, and now the hero of a year's page (pages/year.tsx), whose
+ * statement and field it shares. On Night, photos of the evenings hang at
+ * different sizes and depths around one statement made of the real
+ * numbers, drifting slowly in a 3D field that sways, so the near ones pass
+ * the far ones.
  */
 
-/** The field's photos: twelve places around the statement. */
-export const fieldCount = 12;
-
-/**
- * The statement, from the tally: how many people said "I'm in", and over
- * how many evenings. Without guests counted, the evenings alone.
- */
-export function statement(tally: {
-  readonly guests: number;
-  readonly evenings: number;
-}): { readonly lead: string; readonly after: string } {
-  const evenings = `${count(tally.evenings)} ${tally.evenings === 1 ? "evening" : "evenings"}`;
-  return tally.guests > 0
-    ? {
-        lead: `${count(tally.guests)} people said “I’m in.”`,
-        after: `${evenings}, in the neighborhoods of San Francisco.`,
-      }
-    : {
-        lead: `${evenings} for people who build software.`,
-        after: "In the neighborhoods of San Francisco.",
-      };
-}
+export { fieldCount, statement };
 
 export function YearEndRetro({
   data: { home, community },

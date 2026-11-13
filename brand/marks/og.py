@@ -208,6 +208,14 @@ PAGES = (
         SENTENCES,
     ),
     Page(
+        "og-year.png",
+        "the year in evenings · allthings/_",
+        ("the year",),
+        False,
+        "in evenings",
+        SENTENCES,
+    ),
+    Page(
         "og-about.png",
         "about · allthings/_",
         ("about",),

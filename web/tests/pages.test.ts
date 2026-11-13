@@ -453,6 +453,7 @@ describe("links within the site", () => {
     "/events",
     "/talks",
     "/guide",
+    "/year/2025",
     "/people",
     "/people/ada-lovelace",
     "/people/erik-thorelli",
@@ -614,6 +615,37 @@ describe("/guide", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
     expect(await response.text()).toContain('class="guide-entry"');
+  });
+});
+
+describe("/year/<yyyy>", () => {
+  it("looks back on a year that held one of ours, cached like public data, each evening with who was on stage", async (url) => {
+    const response = await fetch(`${url}/year/2025`);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    expect(html).toContain("<title>2025 in evenings · allthings/_</title>");
+    // Sanity's evening, then the hackathon, in the order they were held.
+    const linked = [
+      ...html.matchAll(/class="year-evening-name"><a href="([^"]+)"/g),
+    ].map(([, href]) => href);
+    expect(linked).toEqual([`/${slugs.past}`, `/${slugs.hackathon}`]);
+    expect(html).toContain('<a href="/people/grace-hopper">Grace Hopper</a>');
+  });
+
+  it("is not found for a year without one of ours held, or what isn't a year", async (url) => {
+    for (const path of ["/year/2099", "/year/1999", "/year/25", "/year/x"]) {
+      const response = await fetch(`${url}${path}`);
+      expect(response.status).toBe(404);
+      expect(response.headers.get("cache-control")).toBe(CacheControl.notFound);
+    }
+  });
+
+  it("says plainly when the year can't be read, and is never cached", async (_, noDatabase) => {
+    const response = await fetch(`${noDatabase}/year/2025`);
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+    expect(await htmlProblems(await response.text())).toEqual([]);
   });
 });
 
@@ -780,6 +812,7 @@ describe("every kind of page", () => {
     "/events",
     "/talks",
     "/guide",
+    "/year/2025",
     `/${slugs.upcoming}`,
     `/${slugs.live}`,
     `/${slugs.past}`,
@@ -815,6 +848,7 @@ describe("simple dates", () => {
     "/",
     "/events",
     "/talks",
+    "/year/2025",
     `/${slugs.upcoming}`,
     `/${slugs.live}`,
     `/${slugs.past}`,

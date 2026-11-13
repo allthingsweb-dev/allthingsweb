@@ -14,12 +14,14 @@ const stylesheet = (name: string) =>
   Bun.file(new URL(`../src/styles/${name}`, import.meta.url)).text();
 const site = await stylesheet("site.css");
 const lab = await stylesheet("lab.css");
+const depth = await stylesheet("depth.css");
 const theme = themeCss(tokens);
 
 /** Every stylesheet of the site's own rules, by name. */
 const stylesheets = [
   ["site.css", site],
   ["lab.css", lab],
+  ["depth.css", depth],
 ] as const;
 
 /** CSS Color 4's named colors, plus the keywords that also pick a color. */
@@ -291,7 +293,9 @@ describe.each(stylesheets)("display type in %s", (name, css) => {
           ),
       )
       .map(({ selector }) => selector);
-    expect(sheetRules.length).toBeGreaterThan(name === "site.css" ? 100 : 50);
+    expect(sheetRules.length).toBeGreaterThan(
+      { "site.css": 100, "lab.css": 50, "depth.css": 25 }[name],
+    );
     expect(unpulled).toEqual([]);
   });
 });

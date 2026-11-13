@@ -29,6 +29,7 @@ export const ogCards = {
     cards.guide,
     "the guide · allthings/_ · Happenings worth the trip: three stars are worth a special journey, two a detour, one a stop.",
   ),
+  year: card(cards.year, `the year in evenings · allthings/_ · ${sentences}`),
   about: card(cards.about, `about · allthings/_ · ${sentences}`),
   codeOfConduct: card(
     cards.codeOfConduct,

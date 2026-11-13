@@ -210,9 +210,15 @@ export interface DocumentProps {
   readonly section?: Section | undefined;
   /**
    * A page of the home lab (pages/lab/): its own stylesheet after the
-   * site's, and a frame whose regions may run from edge to edge.
+   * site's and the depth field's, and a frame whose regions may run from
+   * edge to edge.
    */
   readonly lab?: true | undefined;
+  /**
+   * A page with the depth field, a year's (pages/year.tsx): its
+   * stylesheet (src/styles/depth.css) after the site's.
+   */
+  readonly depth?: true | undefined;
   /**
    * The lab's script (src/client/lab.ts), for a lab page with an engine:
    * a module of this site's, which its policy lets run.
@@ -229,6 +235,7 @@ export function Document({
   images,
   section,
   lab,
+  depth,
   script,
   children,
 }: PropsWithChildren<DocumentProps>): string {
@@ -251,6 +258,11 @@ export function Document({
           />
         ))}
         <link rel="stylesheet" href={built.stylesheet} />
+        {lab === undefined && depth === undefined ? (
+          ""
+        ) : (
+          <link rel="stylesheet" href={built.depthStylesheet} />
+        )}
         {lab === undefined ? (
           ""
         ) : (

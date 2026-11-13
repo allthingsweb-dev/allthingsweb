@@ -111,10 +111,13 @@ describe("the evenings index", () => {
 
   test("lists past evenings under their year, latest year first, without the cursor", () => {
     const html = render(view);
-    expect(html.match(/<h2 [^>]*>[^<]*<\/h2>/g)).toEqual([
+    // A year that held one of ours links its title to its page.
+    const yearTitle = (year: number) =>
+      `<h2 id="evenings-${year}" class="list-title at-type-meta"><a href="/year/${year}"><span>${year}</span><span class="visually-hidden"> in evenings</span> <span aria-hidden="true">→</span></a></h2>`;
+    expect(html.match(/<h2 [^>]*>.*?<\/h2>/g)).toEqual([
       '<h2 id="upcoming" class="list-title at-type-meta">Upcoming</h2>',
-      '<h2 id="evenings-2026" class="list-title at-type-meta">2026</h2>',
-      '<h2 id="evenings-2024" class="list-title at-type-meta">2024</h2>',
+      yearTitle(2026),
+      yearTitle(2024),
     ]);
     const y2024 = rows(section(html, "evenings-2024"));
     expect(y2024).toHaveLength(2);
