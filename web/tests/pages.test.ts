@@ -2,6 +2,7 @@ import { describe, expect } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { apcaContrast, wcagContrast } from "allthings-brand/src/contrast.ts";
 import { guideEntries } from "allthings-core/src/guide.ts";
+import { publishedLetters } from "allthings-core/src/letter.ts";
 import {
   colors,
   contrastRequirements,
@@ -806,8 +807,8 @@ describe("static assets", () => {
 
 describe("every kind of page", () => {
   /** One of each: home, the index, evenings of every kind, people, about,
-   * the brand, the code of conduct, privacy, coaching, proposing a talk, a
-   * page that isn't, and one that is gone. */
+   * the brand, the code of conduct, privacy, coaching, proposing a talk, the
+   * letter, a page that isn't, and one that is gone. */
   const paths = [
     "/",
     "/events",
@@ -828,6 +829,7 @@ describe("every kind of page", () => {
     "/privacy",
     "/coach",
     "/propose",
+    "/letter",
     "/no-such-page",
     "/logos/logo-1.91x1.png",
   ];
@@ -843,6 +845,27 @@ describe("every kind of page", () => {
       expect(html.match(/<h1\b/g)).toHaveLength(1);
     });
   }
+});
+
+describe("the letter", () => {
+  it("lists only the issues Erik approved, and an issue that isn't one is not found", async (url) => {
+    const published = await Effect.runPromise(publishedLetters);
+    const index = await (await fetch(`${url}/letter`)).text();
+    expect(
+      [...index.matchAll(/href="\/letter\/(\d{4}-\d{2})"/g)].map(
+        ([, month]) => month,
+      ),
+    ).toEqual(published.map((letter) => letter.month));
+    for (const path of [
+      "/letter/2026-13",
+      "/letter/nothing",
+      "/letter/1999-01",
+    ]) {
+      const response = await fetch(url + path);
+      expect({ path, status: response.status }).toEqual({ path, status: 404 });
+      await response.arrayBuffer();
+    }
+  });
 });
 
 describe("simple dates", () => {
@@ -865,6 +888,7 @@ describe("simple dates", () => {
     "/code-of-conduct",
     "/privacy",
     "/coach",
+    "/letter",
     labPath,
     ...variants.map(({ name }) => variantPath(name)),
   ];

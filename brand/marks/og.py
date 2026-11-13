@@ -259,6 +259,14 @@ PAGES = (
         ),
     ),
     Page(
+        "og-letter.png",
+        "the letter · allthings/_",
+        ("the letter",),
+        False,
+        "one a month",
+        ("Our next evenings, and what's worth", "your time beyond them."),
+    ),
+    Page(
         "og-brand.png",
         "allthings/brand",
         ("brand",),

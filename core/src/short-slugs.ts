@@ -50,6 +50,7 @@ export const reservedSlugs: ReadonlySet<string> = new Set([
   "hero-image-rocket",
   "img",
   "lab",
+  "letter",
   "logos",
   "mcp",
   "monitoring",

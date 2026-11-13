@@ -1,6 +1,6 @@
 import { eventUrl } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
-import { personPath, yearPath } from "../links.ts";
+import { issuePath, personPath, yearPath } from "../links.ts";
 import type { FeedEvent, FeedPerson } from "./data.ts";
 import { escapeXml } from "./xml.ts";
 
@@ -26,6 +26,7 @@ export const sitePages = [
   "/code-of-conduct",
   "/privacy",
   "/coach",
+  "/letter",
   "/brand",
 ] as const;
 
@@ -38,19 +39,23 @@ const url = (loc: string, lastmod?: DateTime.Utc) =>
  * The sitemap of the site at `origin`. `events` are listed in the order
  * given (FeedData's: latest start first), each with when it last changed;
  * each of `years` (core's src/year.ts: latest first) as its page, after
- * the site's own.
+ * the site's own, then each of `letters`, the months of the letter's
+ * published issues (core's src/letter.ts: newest first). A draft is never
+ * among them.
  */
 export function sitemapXml(
   events: ReadonlyArray<FeedEvent>,
   origin: string,
   people: ReadonlyArray<FeedPerson> = [],
   years: ReadonlyArray<number> = [],
+  letters: ReadonlyArray<string> = [],
 ): string {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...sitePages.map((path) => url(`${origin}${path}`)),
     ...years.map((year) => url(`${origin}${yearPath(year)}`)),
+    ...letters.map((month) => url(`${origin}${issuePath(month)}`)),
     ...events.map((event) =>
       url(eventUrl(origin, event.slug), event.updatedAt),
     ),

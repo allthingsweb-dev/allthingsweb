@@ -194,6 +194,7 @@ export const slugRoots: ReadonlySet<string> = new Set([
   "code-of-conduct",
   "privacy",
   "coach",
+  "letter",
 ]);
 
 /**

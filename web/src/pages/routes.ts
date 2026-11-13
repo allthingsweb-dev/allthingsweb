@@ -25,6 +25,7 @@ import {
 } from "allthings-core/src/short-slugs.ts";
 import { TalksLibrary } from "allthings-core/src/talks-library.ts";
 import { Year } from "allthings-core/src/year.ts";
+import { publishedLetters } from "allthings-core/src/letter.ts";
 import { Duration, Effect, Layer, Option, Schema } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
@@ -38,6 +39,8 @@ import {
   everyTalk,
   guidePath,
   hosts,
+  issuePath,
+  letterPath,
   mediaOrigin,
   personPath,
 } from "../links.ts";
@@ -54,6 +57,7 @@ import {
   type ProposeProps,
   trapField,
 } from "./propose.tsx";
+import { issuePage, letterIndexPage } from "./letter.tsx";
 import { readForm, sameOrigin } from "../preview/forms.ts";
 import {
   boundedBody,
@@ -986,6 +990,60 @@ const proposeForm = HttpRouter.add(
 );
 
 /**
+ * /letter: the letter's archive (pages/letter.tsx), every issue Erik
+ * approved. The issues are files deployed with the Worker, so it changes
+ * only when the Worker is deployed, but for the hosts' portraits in its
+ * footer; it is cached as a page, as /coach is.
+ */
+const letterIndex = page(letterPath, ({ theme, acceptEncoding, images }) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const letters = yield* publishedLetters;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      letterIndexPage({ letters, origin, theme, portraits, images }),
+      acceptEncoding,
+      { cacheControl: read ? "page" : "failure", theme, images },
+    );
+  }),
+);
+
+/** A month as /letter/<yyyy-mm> names it. */
+const monthPattern = /^\d{4}-(?:0[1-9]|1[0-2])$/;
+
+/**
+ * /letter/<yyyy-mm>: one issue, when Erik approved it. A draft, a month
+ * with no issue and anything that isn't a month are not found, as an
+ * address that never was: nothing says a draft exists.
+ */
+const issueAt = page(
+  `${letterPath}/:month`,
+  ({ theme, acceptEncoding, params, images }) =>
+    Effect.gen(function* () {
+      const { origin } = yield* Site;
+      const asked = params["month"] ?? "";
+      const path = issuePath(asked);
+      const letter = monthPattern.test(asked)
+        ? (yield* publishedLetters).find((each) => each.month === asked)
+        : undefined;
+      if (letter === undefined) {
+        return yield* nothingAt(path, 404, { theme, acceptEncoding, images });
+      }
+      const { portraits, read } = yield* footer(
+        hostPortraits.pipe(Effect.provide(repositories)),
+      );
+      return htmlResponse(
+        issuePage({ letter, origin, theme, portraits, images }),
+        acceptEncoding,
+        { cacheControl: read ? "page" : "failure", theme, images },
+      );
+    }),
+  (params) => issuePath(params["month"] ?? ""),
+);
+
+/**
  * Where an event's routes are: at the root, and a shared evening's link
  * under shared/ (core's src/short-slugs.ts).
  */
@@ -1368,6 +1426,8 @@ export const pageRoutes = Layer.mergeAll(
   coach,
   propose,
   proposeForm,
+  letterIndex,
+  issueAt,
   eventAt(""),
   eventAt(sharedPrefix),
   calendarAt(""),
