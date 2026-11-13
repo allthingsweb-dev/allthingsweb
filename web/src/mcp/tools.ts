@@ -7,6 +7,7 @@ import { asOf } from "allthings-core/src/clock.ts";
 import * as Contract from "allthings-core/src/contract.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Events } from "allthings-core/src/events.ts";
+import { readGuide, toGuide } from "allthings-core/src/guide.ts";
 import * as Mappers from "allthings-core/src/mappers.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
 import { Year, yearContract } from "allthings-core/src/year.ts";
@@ -53,6 +54,7 @@ export const toolInputs = {
     limit: z.number().int().min(1).max(200).default(50),
   }),
   get_community: z.object({}),
+  get_guide: z.object({}),
   get_year: z.object({
     year: z
       .number()
@@ -208,6 +210,12 @@ const getCommunity: ToolProgram = Site.useSync(({ origin }) =>
   succeed(community(origin)),
 );
 
+/** The guide as of the clock (core's src/guide.ts): it reads no database. */
+const getGuide: ToolProgram = Effect.gen(function* () {
+  const { origin } = yield* Site;
+  return succeed(toGuide(yield* readGuide, origin));
+});
+
 /**
  * A year of our evenings (core's src/year.ts), the latest with one held
  * when none is asked for. A year without one is an answer, not a failure.
@@ -254,6 +262,10 @@ export function toolProgram(
     case "get_community":
       return toolInputs.get_community.safeParse(input).success
         ? getCommunity
+        : undefined;
+    case "get_guide":
+      return toolInputs.get_guide.safeParse(input).success
+        ? getGuide
         : undefined;
     case "get_year": {
       const parsed = toolInputs.get_year.safeParse(input);
@@ -320,6 +332,19 @@ export function registerTools(server: McpServer, call: CallTool): void {
       annotations: readOnly,
     },
     () => call("get_community", {}),
+  );
+
+  server.registerTool(
+    "get_guide",
+    {
+      title: "The allthings guide",
+      description:
+        "Conferences and happenings beyond allthings' own evenings worth going to, starred as the Michelin guide stars restaurants: 3 stars are worth a special journey, 2 a detour, 1 a stop. Each with its city, why, who runs it, its official site, and its next edition's dates once announced.",
+      inputSchema: toolInputs.get_guide,
+      outputSchema: outputSchema(Schema.Struct(Contract.Guide.fields)),
+      annotations: readOnly,
+    },
+    () => call("get_guide", {}),
   );
 
   server.registerTool(

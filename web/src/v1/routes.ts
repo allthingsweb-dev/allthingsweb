@@ -1,3 +1,4 @@
+import { readGuide, toGuide } from "allthings-core/src/guide.ts";
 import { Year, yearContract } from "allthings-core/src/year.ts";
 import { type Cause, Effect, Layer, Option } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
@@ -102,6 +103,24 @@ const speakers = HttpRouter.add(
   ),
 );
 
+/**
+ * The allthings guide, as the public contract has it (core's src/guide.ts
+ * and src/contract.ts), the same body get_guide answers with. It is new,
+ * so it has no app shape to keep; it reads no database.
+ */
+const guide = HttpRouter.add(
+  "GET",
+  "/api/v1/guide",
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    return yield* respond(
+      toGuide(yield* readGuide, origin),
+      200,
+      CacheControl.publicData,
+    );
+  }),
+);
+
 /** Every year with an evening of ours held, latest first. */
 const years = HttpRouter.add(
   "GET",
@@ -156,6 +175,7 @@ export const v1Routes = Layer.mergeAll(
   events,
   eventById,
   speakers,
+  guide,
   years,
   yearById,
 );

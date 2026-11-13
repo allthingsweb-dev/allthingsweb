@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { DateTime, Effect, Schema } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import guideFile from "../backfill/guide.json" with { type: "json" };
+import { Guide } from "../src/contract.ts";
 import {
   type GuideEntry,
   GuideFile,
@@ -11,6 +12,7 @@ import {
   guideOn,
   readGuide,
   repeated,
+  toGuide,
 } from "../src/guide.ts";
 
 /**
@@ -217,6 +219,56 @@ describe("when the guide changes on its own", () => {
         .filter((listed) => listed.next !== null).length;
     for (const boundary of guideBoundaries) {
       expect(dated(boundary)).toBe(dated(boundary - 60_000) - 1);
+    }
+  });
+});
+
+describe("the guide as the public contract serves it", () => {
+  const origin = "https://allthings.dev";
+
+  test("is every entry in the guide's order, each with what its stars mean and its place on the page", () => {
+    const groups = guideOn(
+      [
+        entry("detour", 2),
+        entry("journey", 3, {
+          next: { from: "2027-04-26", to: "2027-04-27" },
+        }),
+      ],
+      "2026-11-13",
+    );
+    expect(toGuide(groups, origin).entries).toEqual([
+      {
+        id: "journey",
+        name: "journey",
+        stars: 3,
+        meaning: "worth a special journey",
+        city: "Portland, Oregon",
+        organizer: "Someone",
+        url: "https://journey.example.com/",
+        why: "Worth going.",
+        next: { from: "2027-04-26", to: "2027-04-27" },
+        guideUrl: "https://allthings.dev/guide#journey",
+      },
+      {
+        id: "detour",
+        name: "detour",
+        stars: 2,
+        meaning: "worth a detour",
+        city: "Portland, Oregon",
+        organizer: "Someone",
+        url: "https://detour.example.com/",
+        why: "Worth going.",
+        next: null,
+        guideUrl: "https://allthings.dev/guide#detour",
+      },
+    ]);
+  });
+
+  test("keeps the contract on every day the written guide changes", () => {
+    for (const at of [Date.UTC(2026, 10, 13), ...guideBoundaries]) {
+      const guide = toGuide(guideAt(DateTime.makeUnsafe(at)), origin);
+      expect(Schema.decodeUnknownSync(Guide)(guide)).toEqual(guide);
+      expect(guide.url).toBe("https://allthings.dev/guide");
     }
   });
 });

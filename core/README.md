@@ -898,6 +898,11 @@ San Francisco; the site's version names the start of the day after as a
 boundary (`guideBoundaries`, `src/site-version.ts`), so no kept page shows
 days that are over.
 
+Agents and scripts read the same guide, as of the same clock, from the MCP
+server's `get_guide` and from `/api/v1/guide`: the contract's `Guide`
+(`src/contract.ts`), which `toGuide` builds, each entry with what its stars
+mean and its place on the page, `/guide#<id>`.
+
 ## Schedules and notes
 
 Some events' pages say more than the record: a hackathon's schedule, its

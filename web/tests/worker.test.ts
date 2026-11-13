@@ -2,6 +2,8 @@ import { describe, expect } from "bun:test";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
+import { Guide } from "allthings-core/src/contract.ts";
+import { guideEntries } from "allthings-core/src/guide.ts";
 import { seededDatabase } from "allthings-core/tests/support/database.ts";
 import * as Contract from "allthings-core/src/contract.ts";
 import * as Effect from "effect/Effect";
@@ -370,6 +372,32 @@ describe("v1 API", () => {
     }
   });
 
+  it("GET /api/v1/guide answers the guide, as get_guide does, with no database", async ({
+    Web,
+    Unconfigured,
+  }) => {
+    const response = await fetch(`${Web}/api/v1/guide`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    const body = await response.json();
+    const guide = Schema.decodeUnknownSync(Guide)(body);
+    expect(guide.url).toBe(`${origin}/guide`);
+    expect(new Set(guide.entries.map((entry) => entry.id))).toEqual(
+      new Set(guideEntries.map((entry) => entry.id)),
+    );
+    for (const entry of guide.entries) {
+      expect(entry.guideUrl).toBe(`${origin}/guide#${entry.id}`);
+    }
+    const tool = await fetch(mcpRequest(`${Web}/mcp`, call("get_guide", {})));
+    const { result } = rpcMessage(await tool.text()) as {
+      result: { structuredContent: unknown };
+    };
+    expect(result.structuredContent).toEqual(body);
+    const bare = await fetch(`${Unconfigured}/api/v1/guide`);
+    expect(bare.status).toBe(200);
+    expect(await bare.json()).toEqual(body);
+  });
+
   for (const [path, error] of [
     ["/api/v1/events", "Failed to fetch events"],
     [`/api/v1/events/${eventIds[0]}`, "Failed to fetch event"],
@@ -420,17 +448,21 @@ describe("MCP", () => {
     type Tool = { outputSchema: unknown } & Record<string, unknown>;
     const tools = (body: string) =>
       (rpcMessage(body) as { result: { tools: Array<Tool> } }).result.tools;
-    // The app's four tools, then get_year, the Worker's own.
-    const [own, ...more] = tools(actual.body).toReversed();
-    const served = more.toReversed();
+    const all = tools(actual.body);
     const today = tools(expected.body);
-    expect(own?.["name"]).toBe("get_year");
-    expect(served.map((tool) => tool["name"])).toEqual([
+    expect(all.map((tool) => tool["name"])).toEqual([
       "list_events",
       "get_event",
       "list_speakers",
       "get_community",
+      "get_guide",
+      "get_year",
     ]);
+    // get_guide and get_year are new: the app never had them (core's
+    // contract holds them).
+    const served = all.filter(
+      (tool) => tool["name"] !== "get_guide" && tool["name"] !== "get_year",
+    );
     // Names, titles, descriptions, annotations and input schemas, exactly,
     // but for one deliberate difference: the Worker writes the name as one
     // word, allthings, where the app still writes "all things".
@@ -749,6 +781,7 @@ describe("MCP", () => {
     for (const message of [
       { jsonrpc: "2.0", id: 1, method: "tools/list" },
       call("get_community", {}),
+      call("get_guide", {}),
     ]) {
       const response = await fetch(mcpRequest(`${Unconfigured}/mcp`, message));
       const { result } = rpcMessage(await response.text()) as {
