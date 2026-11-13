@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import {
   createGitHub,
   fetchPullRequest,
@@ -14,15 +13,6 @@ function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is not set`);
   return value;
-}
-
-/** The a/ mark from the brand kit, inlined for shields.io. */
-async function logo(): Promise<string | undefined> {
-  const file = Bun.file(
-    join(import.meta.dir, "../../../brand/public/mark-night.svg"),
-  );
-  if (!(await file.exists())) return undefined;
-  return `data:image/svg+xml;base64,${Buffer.from(await file.bytes()).toString("base64")}`;
 }
 
 async function prNumbers(
@@ -53,13 +43,12 @@ async function refresh(
   github: GitHub,
   repo: Repo,
   number: number,
-  mark: string | undefined,
 ): Promise<void> {
   const pr = await fetchPullRequest(github, repo, number);
   const deployment = await previewDeployment(github, repo, pr.headRefOid);
   const body = withHeader(
     pr.body,
-    renderHeader(summarize(repo, pr, deployment), mark),
+    renderHeader(summarize(repo, pr, deployment)),
   );
   if (body === (pr.body ?? "")) {
     console.log(`#${number}: header up to date`);
@@ -87,12 +76,11 @@ async function main(): Promise<void> {
   const eventName = required("GITHUB_EVENT_NAME");
   const payload: object = await Bun.file(required("GITHUB_EVENT_PATH")).json();
 
-  const mark = await logo();
   const numbers = await prNumbers(github, repo, eventName, payload);
   let failed = false;
   for (const number of numbers) {
     try {
-      await refresh(github, repo, number, mark);
+      await refresh(github, repo, number);
     } catch (error) {
       failed = true;
       console.error(
