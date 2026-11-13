@@ -23,6 +23,7 @@ import {
   legacyCommandName,
 } from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
+import { suggest } from "./suggest.ts";
 import type { EventSummary } from "./schemas.ts";
 import {
   formatAuxStatus,
@@ -391,9 +392,16 @@ function auxCommand(
     case "skip":
       noArguments(args, name);
       return async (aux) => done("Skipped.")(await aux.skipTrack());
-    default:
-      // Never repeated back: a guest may have typed their code here.
-      return auxUsage(`"aux" has no such command.`);
+    default: {
+      // Never repeated back: a guest may have typed their code here. The
+      // suggestion is one of the known commands, never their input.
+      const nearest = suggest(name, auxCommands);
+      return auxUsage(
+        nearest === undefined
+          ? `"aux" has no such command.`
+          : `"aux" has no such command. Did you mean "${commandName} aux ${nearest}"?`,
+      );
+    }
   }
 }
 
@@ -483,6 +491,59 @@ async function runAux(
 /** What the old name prints, on stderr so scripts reading stdout are unaffected. */
 export const legacyNote = `${legacyCommandName} is now ${commandName}. The old name still works for now and goes away in a later release.\n`;
 
+/** Every option, for parsing and for suggesting one when it is mistyped. */
+const options = {
+  json: { type: "boolean", default: false },
+  past: { type: "boolean", default: false },
+  all: { type: "boolean", default: false },
+  limit: { type: "string" },
+  print: { type: "boolean", default: false },
+  zone: { type: "string" },
+  help: { type: "boolean", short: "h", default: false },
+  version: { type: "boolean", short: "v", default: false },
+} as const;
+
+/** The commands `run` knows, for suggesting one when it is mistyped. */
+const commands = [
+  "events",
+  "event",
+  "speakers",
+  "rsvp",
+  "about",
+  "mcp",
+  "aux",
+  "help",
+] as const;
+
+/** The aux commands, for suggesting one; never the guest's input. */
+const auxCommands = [
+  "login",
+  "status",
+  "scenes",
+  "scene",
+  "color",
+  "request",
+  "pass",
+  "tracks",
+  "queue",
+  "skip",
+] as const;
+
+/**
+ * What a parse error says, in the CLI's words: an unknown option names the
+ * nearest real one, without node's advice about positionals.
+ */
+function parseError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const unknown = /^Unknown option '(-{1,2}[^']+)'/.exec(message)?.[1];
+  if (unknown === undefined) return message;
+  const names = Object.keys(options).map((name) => `--${name}`);
+  const nearest = suggest(unknown, names);
+  return nearest === undefined
+    ? `Unknown option "${unknown}".`
+    : `Unknown option "${unknown}". Did you mean "${nearest}"?`;
+}
+
 export async function run(argv: string[], io: Io): Promise<ExitCode> {
   if (io.legacy === true) io.stderr(legacyNote);
   try {
@@ -492,19 +553,10 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
           args: argv,
           allowPositionals: true,
           strict: true,
-          options: {
-            json: { type: "boolean", default: false },
-            past: { type: "boolean", default: false },
-            all: { type: "boolean", default: false },
-            limit: { type: "string" },
-            print: { type: "boolean", default: false },
-            zone: { type: "string" },
-            help: { type: "boolean", short: "h", default: false },
-            version: { type: "boolean", short: "v", default: false },
-          },
+          options,
         });
       } catch (error) {
-        return usage(error instanceof Error ? error.message : String(error));
+        return usage(parseError(error));
       }
     })();
     const { values, positionals } = parsed;
@@ -595,8 +647,14 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
         print(formatCommunity(community, color), community);
         return ExitCode.Ok;
       }
-      default:
-        return usage(`Unknown command "${command}".`);
+      default: {
+        const nearest = suggest(command, commands);
+        return usage(
+          nearest === undefined
+            ? `Unknown command "${command}".`
+            : `Unknown command "${command}". Did you mean "${commandName} ${nearest}"?`,
+        );
+      }
     }
   } catch (error) {
     if (error instanceof CliError) {
