@@ -1,0 +1,110 @@
+import { describe, expect, test } from "bun:test";
+import {
+  brandDiction,
+  longestSentence,
+  stockPhrases,
+  voiceFindings,
+} from "../src/voice.ts";
+
+/** What each stock-phrase rule is for: a line that breaks it, and the plain line that says the same. */
+const stock: ReadonlyArray<readonly [broken: string, plain: string]> = [
+  ["Deploys are seamless now.", "Deploys take one command now."],
+  ["This unlocks offline sync.", "Now it syncs offline."],
+  ["Talks that elevate your craft.", "Talks on how they built it."],
+  ["We leverage Postgres.", "We use Postgres."],
+  ["We delve into indexes.", "We look at indexes."],
+  ["A deep dive on queues.", "Three ways queues fail."],
+  ["Let's dive in.", "First, the queue."],
+  ["A game-changer for apps.", "Apps start in a tenth of the time."],
+  ["Cutting-edge research.", "Research from June."],
+  ["State-of-the-art models.", "Models from this year."],
+  ["A world-class lineup.", "Four maintainers on stage."],
+  ["It will revolutionize testing.", "Tests run in parallel now."],
+  ["Supercharge your builds.", "Builds take half the time."],
+  ["Tools that empower teams.", "Tools two people can run."],
+  ["Real synergy between them.", "They ship one release together."],
+  ["A robust parser.", "A parser that takes malformed input."],
+  ["Our vibrant community.", "About 150 people came."],
+  ["A tapestry of ideas.", "Six talks."],
+  ["A testament to open source.", "Built in the open, by four people."],
+  ["In the realm of databases.", "In databases."],
+  ["In an ever-evolving field.", "In a field that changed in June."],
+  ["In today's world, agents matter.", "Agents write half our code."],
+  ["The AI landscape keeps moving.", "Three labs shipped models in June."],
+  ["Navigate the complexity of auth.", "Set up auth."],
+  ["Harness the power of types.", "Use types."],
+  ["Embark on a new project.", "Start a new project."],
+  ["We're thrilled to announce a party.", "We're throwing a party."],
+  ["Don't miss it.", "It's Tuesday at six."],
+  ["Stay tuned.", "More on Monday."],
+  [
+    "Whether you're a beginner or an expert, come.",
+    "Come if you build software.",
+  ],
+  ["Not just a meetup, but a movement.", "An evening of talks."],
+  ["More than just talks.", "Talks, then a party."],
+  ["It's not a conference, it's a party.", "It's a party."],
+  ["An incredibly fast build.", "A build in two seconds."],
+  ["An amazing night.", "A night of five talks."],
+  ["The speakers — all of them — ship.", "The speakers all ship."],
+];
+
+describe("our voice", () => {
+  test("each stock phrase is found, and its plain version passes", () => {
+    for (const [broken, plain] of stock) {
+      expect({ broken, found: voiceFindings(broken).length > 0 }).toEqual({
+        broken,
+        found: true,
+      });
+      expect({ plain, findings: voiceFindings(plain) }).toEqual({
+        plain,
+        findings: [],
+      });
+    }
+  });
+
+  test("every stock-phrase rule has a line here that breaks it", () => {
+    for (const { pattern } of stockPhrases) {
+      expect({
+        pattern: String(pattern),
+        tested: stock.some(([broken]) => pattern.test(broken)),
+      }).toEqual({ pattern: String(pattern), tested: true });
+    }
+  });
+
+  test("the brand's words: people say they're in, and hosts host", () => {
+    for (const broken of [
+      "RSVP on Luma.",
+      "Register now.",
+      "Sign up here.",
+      "Thanks to our sponsors.",
+      "Tonight!",
+      "Tonight 🎉",
+    ]) {
+      expect(voiceFindings(broken, brandDiction).length).toBe(1);
+    }
+    expect(voiceFindings("Say you're in on Luma. Hosted at Sentry.")).toEqual(
+      [],
+    );
+  });
+
+  test("names what was said and why", () => {
+    expect(voiceFindings("We leverage Postgres.")).toEqual([
+      { why: "filler: say use", said: "leverage" },
+    ]);
+  });
+
+  test("a sentence past the longest we write is found, and a list line is its own sentence", () => {
+    const long = `${Array.from({ length: longestSentence + 1 }, () => "word").join(" ")}.`;
+    expect(voiceFindings(long)).toEqual([
+      {
+        why: `a sentence of ${longestSentence + 1} words: split it (${longestSentence} at most)`,
+        said: `${long.slice(0, 60)}…`,
+      },
+    ]);
+    const atMost = Array.from({ length: longestSentence }, () => "word").join(
+      " ",
+    );
+    expect(voiceFindings(`${atMost}.\n${atMost}.\n- ${atMost}`)).toEqual([]);
+  });
+});

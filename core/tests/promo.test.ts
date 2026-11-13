@@ -28,6 +28,7 @@ import {
   sqlLayer,
   studioRun,
 } from "./support/database.ts";
+import { voice } from "../src/voice.ts";
 
 /**
  * Promotion drafts (src/promo/) over tests/seed.sql, plus an organizer, a
@@ -194,15 +195,8 @@ const readPage = (slug: string): Promise<EventPage> =>
   );
 
 describe("diction", () => {
-  const banned = [
-    /\brsvp/i,
-    /\bregister/i,
-    /\bsign(ed)? ?up\b/i,
-    /\bsponsor/i,
-    /all things web/i,
-    /!/,
-    /\p{Extended_Pictographic}/u,
-  ];
+  // Our voice (src/voice.ts), and the old name, which these never say.
+  const banned = [...voice.map(({ pattern }) => pattern), /all things web/i];
 
   test("drafts never use words the brand doesn't say", async () => {
     for (const slug of slugs) {
