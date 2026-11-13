@@ -4,6 +4,12 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
 import { Guide } from "allthings-core/src/contract.ts";
 import { guideEntries } from "allthings-core/src/guide.ts";
+import {
+  everyIssue,
+  publishedLetters,
+  toLetter,
+  toLetters,
+} from "allthings-core/src/letter.ts";
 import { seededDatabase } from "allthings-core/tests/support/database.ts";
 import * as Contract from "allthings-core/src/contract.ts";
 import * as Effect from "effect/Effect";
@@ -437,7 +443,7 @@ describe("MCP", () => {
     ).toBe("allthings");
   });
 
-  it("lists the same tools, with the same input and output schemas, then coach_talk", async ({
+  it("lists the same tools, with the same input and output schemas, then get_letter and coach_talk", async ({
     Web,
   }) => {
     const [actual, expected] = await mcp(Web, {
@@ -458,14 +464,17 @@ describe("MCP", () => {
       "get_community",
       "get_guide",
       "get_year",
+      "get_letter",
       "coach_talk",
     ]);
-    // get_guide, get_year and coach_talk are new: the app never had them
-    // (core's contract holds the first two; web/tests/coach-tool.test.ts,
-    // coach_talk).
+    // get_guide, get_year, get_letter and coach_talk are new: the app
+    // never had them (core's contract holds the first three;
+    // web/tests/coach-tool.test.ts, coach_talk).
     const served = all.filter(
       (tool) =>
-        !["get_guide", "get_year", "coach_talk"].includes(String(tool["name"])),
+        !["get_guide", "get_year", "get_letter", "coach_talk"].includes(
+          String(tool["name"]),
+        ),
     );
     // Names, titles, descriptions, annotations and input schemas, exactly,
     // but for one deliberate difference: the Worker writes the name as one
@@ -677,6 +686,56 @@ describe("MCP", () => {
     const response = await fetch(request);
     await response.body?.cancel();
     expect(response.status).toBe(413);
+  });
+
+  it("serves only the letters Erik approved, from /api/v1/letters as get_letter does", async ({
+    Web,
+  }) => {
+    const published = await Effect.runPromise(publishedLetters);
+    const list = await fetch(`${Web}/api/v1/letters`);
+    expect(list.status).toBe(200);
+    expect(list.headers.get("cache-control")).toBe(CacheControl.publicData);
+    const body = Schema.decodeUnknownSync(Contract.Letters)(await list.json());
+    expect(body).toEqual(toLetters(published, origin));
+    const ask = async (args: Record<string, unknown>) =>
+      (
+        rpcMessage(
+          await (
+            await fetch(mcpRequest(`${Web}/mcp`, call("get_letter", args)))
+          ).text(),
+        ) as {
+          result: {
+            isError?: boolean;
+            structuredContent?: unknown;
+            content: Array<{ text: string }>;
+          };
+        }
+      ).result;
+    const latest = await ask({});
+    if (published[0] === undefined) {
+      expect(latest.isError).toBe(true);
+      expect(latest.content[0]?.text).toBe(
+        "No allthings letter has been published yet.",
+      );
+    } else {
+      expect(latest.structuredContent).toEqual(toLetter(published[0], origin));
+    }
+    // A month without a published issue is not found, whether or not a
+    // draft is written for it.
+    const drafts = everyIssue
+      .map((issue) => issue.month)
+      .filter((month) => !published.some((letter) => letter.month === month));
+    for (const month of ["1999-01", ...drafts]) {
+      const missing = await fetch(`${Web}/api/v1/letters/${month}`);
+      expect(missing.status).toBe(404);
+      expect(await missing.json()).toEqual({ error: "Letter not found" });
+      const none = await ask({ month });
+      expect(none.isError).toBe(true);
+      expect(none.content[0]?.text).toBe(
+        `No allthings letter was published for ${month}.`,
+      );
+    }
+    expect((await ask({ month: "2026-13" })).isError).toBe(true);
   });
 
   it("get_year looks back on a year of our evenings in the contract's shape, the latest when none is asked for", async ({

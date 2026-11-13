@@ -9,6 +9,7 @@ import * as Contract from "allthings-core/src/contract.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Events } from "allthings-core/src/events.ts";
 import { readGuide, toGuide } from "allthings-core/src/guide.ts";
+import { publishedLetters, toLetter } from "allthings-core/src/letter.ts";
 import * as Mappers from "allthings-core/src/mappers.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
 import { Year, yearContract } from "allthings-core/src/year.ts";
@@ -24,8 +25,9 @@ import { transientMark } from "./endpoint.ts";
  * The public MCP tools, as app/src/lib/mcp/tools.ts declares them: the same
  * names, titles, descriptions, annotations, input schemas and error texts,
  * because agents and the CLI (cli/, `allthings`) rely on them. get_year,
- * a year of our evenings looked back on, and coach_talk are the Worker's
- * own: the app never had them.
+ * a year of our evenings looked back on, get_letter, the letter's
+ * published issues, and coach_talk are the Worker's own: the app never had
+ * them.
  *
  * Input schemas stay in zod, the MCP SDK's own schema library and so already
  * in the bundle: they are what clients see in tools/list and they word the
@@ -72,6 +74,15 @@ export const toolInputs = {
       .optional()
       .describe(
         "The year, on San Francisco's calendar. Leave it out for the latest year with an evening held.",
+      ),
+  }),
+  get_letter: z.object({
+    month: z
+      .string()
+      .regex(/^\d{4}-(?:0[1-9]|1[0-2])$/)
+      .optional()
+      .describe(
+        "The issue's month, YYYY-MM. Leave it out for the latest issue.",
       ),
   }),
   coach_talk: z.object({
@@ -139,6 +150,7 @@ export const toolKeeping: { readonly [Name in ToolName]: Keeping } = {
   get_community: kept,
   get_guide: kept,
   get_year: kept,
+  get_letter: kept,
   coach_talk: {
     kept: false,
     why: "It reads only what a speaker sends: its calls never reach the store, so nothing sent is kept or put in a URL.",
@@ -310,6 +322,29 @@ const getYear = (asked: number | undefined) =>
   }).pipe(withDataSource("get_year", "years"));
 
 /**
+ * An issue of the letter Erik approved (core's src/letter.ts), the latest
+ * when none is asked for: it reads no database. A month without a
+ * published issue, a draft's included, is an answer, not a failure.
+ */
+const getLetter = (month: string | undefined): ToolProgram =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const letters = yield* publishedLetters;
+    const letter =
+      month === undefined
+        ? letters.at(0)
+        : letters.find((each) => each.month === month);
+    if (letter === undefined) {
+      return fail(
+        month === undefined
+          ? "No allthings letter has been published yet."
+          : `No allthings letter was published for ${month}.`,
+      );
+    }
+    return succeed(toLetter(letter, origin));
+  });
+
+/**
  * Coaching for the talk in `input` (core/src/coaching.ts): a pure function
  * of what was sent, which is neither stored nor logged.
  */
@@ -370,6 +405,10 @@ export function toolProgram(
     case "get_year": {
       const parsed = toolInputs.get_year.safeParse(input);
       return parsed.success ? getYear(parsed.data.year) : undefined;
+    }
+    case "get_letter": {
+      const parsed = toolInputs.get_letter.safeParse(input);
+      return parsed.success ? getLetter(parsed.data.month) : undefined;
     }
     case "coach_talk": {
       const parsed = toolInputs.coach_talk.safeParse(input);
@@ -462,6 +501,19 @@ export function registerTools(server: McpServer, call: CallTool): void {
       annotations: readOnly,
     },
     (input) => call("get_year", input),
+  );
+
+  server.registerTool(
+    "get_letter",
+    {
+      title: "Get the letter",
+      description:
+        "An issue of the allthings letter, one a month: our next evenings, happenings worth your time, new open source, papers and jobs, each item with what it links to, then a closing paragraph. Only issues the organizers approved are published. Leave out the month for the latest.",
+      inputSchema: toolInputs.get_letter,
+      outputSchema: outputSchema(Schema.Struct(Contract.Letter.fields)),
+      annotations: readOnly,
+    },
+    (input) => call("get_letter", input),
   );
 
   server.registerTool(

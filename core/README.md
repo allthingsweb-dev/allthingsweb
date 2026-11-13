@@ -976,6 +976,10 @@ one at that short link, ours and not yet over in our next evenings, and
 each talk given at the evening it names. It prints the token only when the
 issue breaks no rule, and `--approve` refuses one that does.
 
+Agents read the published issues from `/api/v1/letters`,
+`/api/v1/letters/<yyyy-mm>` and the MCP server's `get_letter`: the
+contract's `Letter` (`src/contract.ts`), which `toLetter` builds.
+
 ```sh
 bun run letter list            # every issue, draft or approved
 bun run letter show 2026-12    # as it reads, its budgets and findings; no database
