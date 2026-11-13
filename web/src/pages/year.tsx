@@ -2,7 +2,7 @@ import type { PortraitsById } from "allthings-core/src/portraits.ts";
 import type { YearEvening, YearView } from "allthings-core/src/year.ts";
 import { DateTime } from "effect";
 import { eventPath, personPath, yearPath } from "../links.ts";
-import { ogCards } from "../og/cards.ts";
+import { yearCard } from "../og/year-card.ts";
 import { count } from "./about.tsx";
 import { Document } from "./document.tsx";
 import { EveningName } from "./evening-row.tsx";
@@ -177,7 +177,7 @@ export function yearPage({
       title: gatheringTitle(title),
       description: `${lead} ${after}`,
       path: yearPath(year),
-      image: ogCards.year,
+      image: yearCard(view),
     },
     origin,
     theme,

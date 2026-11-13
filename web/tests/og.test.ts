@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { inflateSync } from "node:zlib";
 import { roleColor, tokens } from "allthings-brand/src/tokens.ts";
 import type { EventPage } from "allthings-core/src/event-page.ts";
+import type { YearView } from "allthings-core/src/year.ts";
 import { DateTime } from "effect";
 import { encode } from "uqr";
 import type { OgMetrics } from "../scripts/build.ts";
@@ -16,6 +17,7 @@ import {
   textWidth,
 } from "../src/og/event-card.ts";
 import { qrPng } from "../src/og/qr.ts";
+import { yearCard, yearCardFacts } from "../src/og/year-card.ts";
 
 /** Event cards' layout and QR codes, as pure functions of fixed data. */
 
@@ -206,6 +208,72 @@ describe("an event's card", () => {
     expect(cardVersion(cardFacts(event({ tagline: "Another" }), now))).toBe(
       cardVersion(cardFacts(event(), now)),
     );
+  });
+});
+
+describe("a year's card", () => {
+  const year = (tally: Partial<YearView["tally"]> = {}): YearView => ({
+    year: 2026,
+    tally: {
+      evenings: 7,
+      speakers: 12,
+      hostingCompanies: 4,
+      guests: 2852,
+      ...tally,
+    },
+    evenings: [],
+    years: [2026, 2025],
+  });
+
+  test("says the year, its statement in the lockup's place, and the rest of its tally", () => {
+    expect(yearCardFacts(year())).toEqual({
+      slug: "year/2026",
+      mode: "night",
+      topic: undefined,
+      name: "2,852 people said “I’m in.”",
+      ahead: false,
+      when: "2026 IN EVENINGS",
+      label: "7 EVENINGS · 12 PEOPLE ON STAGE · 4 HOSTING COMPANIES",
+    });
+  });
+
+  test("says the evenings in the statement when no guests were counted, and never a zero", () => {
+    expect(
+      yearCardFacts(year({ guests: 0, hostingCompanies: 0 })),
+    ).toMatchObject({
+      name: "7 evenings for people who build software.",
+      label: "12 PEOPLE ON STAGE",
+    });
+  });
+
+  test("keeps every word inside the card's margins, without a cursor", () => {
+    for (const tally of [
+      {},
+      { guests: 123456, speakers: 1234, hostingCompanies: 345, evenings: 99 },
+      { guests: 0 },
+    ]) {
+      const runs = layoutCard(yearCardFacts(year(tally)), measured);
+      expect(runs.map(({ text }) => text)).not.toContain("_");
+      for (const run of runs) {
+        expect(run.left).toBeGreaterThanOrEqual(60);
+        expect(
+          run.left + textWidth(measured[run.font], run.text, run.size),
+        ).toBeLessThanOrEqual(cardWidth - 60);
+        expect(run.top).toBeGreaterThanOrEqual(60);
+        expect(run.top + run.size).toBeLessThanOrEqual(cardHeight - 40);
+      }
+    }
+  });
+
+  test("is named by its page with a version that changes when its numbers do", () => {
+    const card = yearCard(year());
+    expect(card).toEqual({
+      src: `/og/year/2026.png?v=${cardVersion(yearCardFacts(year()))}`,
+      width: 1200,
+      height: 630,
+      alt: "2026 in evenings · allthings/_ · 2,852 people said “I’m in.” 7 evenings in 2026, in the neighborhoods of San Francisco.",
+    });
+    expect(yearCard(year({ guests: 2853 })).src).not.toBe(card.src);
   });
 });
 

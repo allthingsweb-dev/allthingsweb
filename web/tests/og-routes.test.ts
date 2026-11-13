@@ -164,6 +164,51 @@ describe("pages' cards", () => {
   }
 });
 
+describe("years' cards", () => {
+  it("are named by each year's page, absolute on the origin", async ({
+    Cards,
+  }) => {
+    const html = await (await fetch(`${Cards}/year/2025`)).text();
+    expect(html).toMatch(
+      new RegExp(
+        `<meta property="og:image" content="${origin}/og/year/2025\\.png\\?v=[0-9a-z]+"/>`,
+      ),
+    );
+  });
+
+  it("draw a year's card on Night's ground, kept a day", async ({ Cards }) => {
+    const { response, body } = await get(`${Cards}/og/year/2025.png`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+    );
+    const view = new DataView(body.buffer);
+    expect([view.getUint32(16), view.getUint32(20)]).toEqual([1200, 630]);
+  });
+
+  it("send the year page's card file, never kept, when a year's can't be drawn", async ({
+    NoImages,
+  }) => {
+    const { response } = await get(`${NoImages}/og/year/2025.png`);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(ogCards.year.src);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.failure);
+  });
+
+  for (const path of [
+    "/og/year/2099.png",
+    "/og/year/25.png",
+    "/og/year/2025.jpg",
+    "/og/year/x.png",
+  ]) {
+    it(`${path} is not found`, async ({ Cards }) => {
+      const { response } = await get(`${Cards}${path}`);
+      expect(response.status).toBe(404);
+    });
+  }
+});
+
 describe("people's cards", () => {
   it("are named by each person's page; the people page keeps the brand's", async ({
     Cards,
