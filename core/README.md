@@ -1427,6 +1427,11 @@ edge's rate limit stops at the table. An organizer's are never limited.
   them. Only `application/json`, which a browser can't send to another
   origin without a preflight it never answers, and a browser's request
   from another site's page is refused.
+- **`/propose`**, the site's form (`web/src/pages/propose.tsx`), works
+  without a script: it posts URL-encoded to itself, only from the site's
+  own page, and answers with the page again, thanks or each problem by its
+  field. A hidden field no person fills (`website`) marks a script's form,
+  which is thanked and kept nowhere.
 - **Its login** is set by `infra/scripts/proposal-intake.ts`, run by the
   maintainer with the owner's connection once the migration is on
   production, as profile_editor's is: `--dry-run` shows it, `--apply` sets

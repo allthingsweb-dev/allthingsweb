@@ -248,6 +248,17 @@ PAGES = (
         ("What a good talk looks like on our stage,", "and how to check yours."),
     ),
     Page(
+        "og-propose.png",
+        "propose a talk · allthings/_",
+        ("propose a talk",),
+        False,
+        "an open door and a high bar",
+        (
+            "Anyone may propose a talk for an evening.",
+            "We pick the ones people will still talk about.",
+        ),
+    ),
+    Page(
         "og-brand.png",
         "allthings/brand",
         ("brand",),

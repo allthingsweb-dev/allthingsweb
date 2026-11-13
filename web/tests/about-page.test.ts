@@ -222,12 +222,10 @@ describe("the about page", () => {
     expect(part(render(view({ organizers: [] })), "organizers")).toBe("");
   });
 
-  test("asks companies to host and people to take the stage on the channels we have, with no form", () => {
+  test("asks companies to host on discord and people to propose a talk at /propose, with no form here", () => {
     const html = render(view());
     expect(part(html, "host")).toContain(`<a href="${discord}">ask on discord`);
-    expect(part(html, "stage")).toContain(
-      `<a href="${discord}">pitch a talk on discord`,
-    );
+    expect(part(html, "stage")).toContain(`<a href="/propose">propose a talk`);
     expect(part(html, "stage")).toContain(
       `<a href="${coachPath}">coach your talk`,
     );

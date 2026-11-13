@@ -2075,8 +2075,8 @@ th {
   white-space: pre-line;
 }
 
-/* A comment form: its label over a box as wide as reading copy, then the button. */
-.collab-form {
+/* A form (a draft's comments and rounds, /propose): each label over a box as wide as reading copy, then the button. */
+.form {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -2084,7 +2084,7 @@ th {
   margin-top: var(--at-space-4);
 }
 
-.collab-form label {
+.form label {
   display: flex;
   flex-direction: column;
   gap: var(--at-space-1);
@@ -2092,7 +2092,7 @@ th {
   max-width: var(--at-measure-prose);
 }
 
-.collab-form textarea {
+.form textarea {
   width: 100%;
   padding: var(--at-space-2);
   border: var(--at-stroke-hairline) solid var(--at-rule);
@@ -2129,7 +2129,7 @@ th {
   padding: 0;
 }
 
-.collab-form :is(input, select) {
+.form :is(input, select) {
   width: 100%;
   min-height: var(--at-size-target);
   padding: 0 var(--at-space-2);

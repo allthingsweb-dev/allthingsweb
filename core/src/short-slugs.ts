@@ -57,6 +57,7 @@ export const reservedSlugs: ReadonlySet<string> = new Set([
   "people",
   "privacy",
   "profile",
+  "propose",
   "r",
   "rss",
   "sentry-example-page",

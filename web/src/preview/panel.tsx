@@ -192,7 +192,7 @@ function RoundForm({
         ""
       ) : (
         <form
-          class="collab-form collab-round"
+          class="form collab-round"
           method="post"
           action={forms.roundAction}
         >
@@ -279,7 +279,7 @@ function CommentBox({
   readonly label: string;
 }) {
   return (
-    <form class="collab-form" method="post" action={forms.action}>
+    <form class="form" method="post" action={forms.action}>
       <input type="hidden" name="token" value={forms.commentToken} />
       <input type="hidden" name="on" value={on} />
       <label>
@@ -407,7 +407,7 @@ function Logistics({
           )}
           {answering && forms !== undefined ? (
             <form
-              class="collab-form"
+              class="form"
               method="post"
               action={forms.logisticsAction}
             >
