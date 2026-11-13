@@ -215,14 +215,18 @@ describe("recording a proposal", () => {
 
 describe("the table", () => {
   test("holds whatever writes to the same limits", async () => {
+    // Each its own title, so the intake trigger never takes one for another sent twice.
+    let tries = 0;
     const insert = (columns: string, values: string) =>
       db
-        .exec(`INSERT INTO planning.proposals (${columns}) VALUES (${values})`)
+        .exec(
+          `INSERT INTO planning.proposals (${columns}) VALUES (${values.replace("{n}", String(++tries))})`,
+        )
         .then(
           () => undefined,
           (error: Error) => error.message,
         );
-    const base = `'T', 'An abstract.', 'Ada', 'ada@example.com'`;
+    const base = `'T{n}', 'An abstract.', 'Ada', 'ada@example.com'`;
     const columns = `title, abstract, name, email`;
     expect(await insert(`${columns}, source`, `${base}, 'site'`)).toBe(
       undefined,

@@ -25,7 +25,56 @@ import { statements } from "./statements.ts";
  *
  * The limits here are the ones src/proposals.ts checks first, with a
  * reason a person can read; these hold whatever writes.
+ *
+ * Anyone may propose, through the site's Worker, which writes as
+ * `proposal_intake` (src/proposal-intake.ts): a role made here without a
+ * login, which may INSERT the columns a proposal is sent with, as a
+ * source other than an organizer (it can't name one), and nothing else.
+ * No SELECT, so a statement of its can't read a proposal back, not even
+ * its own; no UPDATE or DELETE; no other table. Its login is set by
+ * infra/scripts/proposal-intake.ts, as profile_editor's is
+ * (migrations/0034_profile_editor.ts), and
+ * tests/proposal-intake-role.test.ts holds the catalog to this.
+ *
+ * And `proposals_intake`, a trigger that runs as the table's owner
+ * (SECURITY DEFINER), so it can read what the role can't, before each
+ * proposal from outside is kept:
+ *
+ * - the same proposal (email, title and abstract) sent again while the
+ *   first is still new is dropped, quietly: the sender is told what they
+ *   were told the first time, and nothing else;
+ * - past 100 proposals from outside in a day, it refuses (SQLSTATE 54000),
+ *   so a flood that gets past the edge's rate limit stops here, and the
+ *   site says to try again tomorrow.
+ *
+ * PUBLIC may not execute it, so the studio's tests see no new function.
  */
+
+/** The role the site's Worker sends proposals as; src/proposal-intake.ts states it once more. */
+const INTAKE = "proposal_intake";
+
+/** What a proposal is sent with: no status, no decision, no organizer. */
+const INTAKE_INSERTS = [
+  "title",
+  "abstract",
+  "format",
+  "name",
+  "email",
+  "about",
+  "links",
+  "notes",
+  "source",
+];
+
+/** One short INSERT a request, through Hyperdrive. */
+const INTAKE_SETTINGS = {
+  statement_timeout: "5s",
+  lock_timeout: "2s",
+  idle_in_transaction_session_timeout: "5s",
+};
+
+/** The most proposals from outside the table takes in a day. */
+const DAILY_LIMIT = 100;
 
 /** ALLTHINGS_ACTOR's shape: `erik`, `andre`, `erik/claude-work`. */
 const actorRule = (column: string) =>
@@ -71,6 +120,48 @@ export const proposals: ReadonlyArray<string> = [
     CONSTRAINT "proposals_decision_note_check" CHECK (${textRule("decision_note", 1000)})
   )`,
   `CREATE INDEX "proposals_status_created_at_idx" ON "planning"."proposals" USING btree ("status", "created_at")`,
+  `CREATE FUNCTION "planning"."proposals_intake"() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF NEW.source = 'organizer' THEN
+    RETURN NEW;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM planning.proposals p
+    WHERE p.status = 'new' AND lower(p.email) = lower(NEW.email)
+      AND p.title = NEW.title AND p.abstract = NEW.abstract
+  ) THEN
+    RETURN NULL;
+  END IF;
+  IF (
+    SELECT count(*) FROM planning.proposals p
+    WHERE p.source <> 'organizer' AND p.created_at > now() - interval '1 day'
+  ) >= ${DAILY_LIMIT} THEN
+    RAISE EXCEPTION 'planning.proposals takes at most ${DAILY_LIMIT} proposals a day from outside'
+      USING ERRCODE = '54000';
+  END IF;
+  RETURN NEW;
+END
+$$`,
+  `REVOKE ALL ON FUNCTION "planning"."proposals_intake"() FROM PUBLIC`,
+  `CREATE TRIGGER "proposals_intake" BEFORE INSERT ON "planning"."proposals" FOR EACH ROW EXECUTE FUNCTION "planning"."proposals_intake"()`,
+  `DO $role$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = '${INTAKE}') THEN
+    CREATE ROLE ${INTAKE} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOREPLICATION NOINHERIT;
+  END IF;
+END
+$role$`,
+  ...["public", "planning"].flatMap((schema) => [
+    `REVOKE ALL ON ALL TABLES IN SCHEMA ${schema} FROM ${INTAKE}`,
+    `REVOKE ALL ON ALL SEQUENCES IN SCHEMA ${schema} FROM ${INTAKE}`,
+    `REVOKE ALL ON ALL FUNCTIONS IN SCHEMA ${schema} FROM ${INTAKE}`,
+    `REVOKE ALL ON SCHEMA ${schema} FROM ${INTAKE}`,
+  ]),
+  `GRANT USAGE ON SCHEMA planning TO ${INTAKE}`,
+  `GRANT INSERT (${INTAKE_INSERTS.map((column) => `"${column}"`).join(", ")}) ON "planning"."proposals" TO ${INTAKE}`,
+  ...Object.entries(INTAKE_SETTINGS).map(
+    ([name, value]) => `ALTER ROLE ${INTAKE} SET ${name} = '${value}'`,
+  ),
 ];
 
 export default statements(proposals);

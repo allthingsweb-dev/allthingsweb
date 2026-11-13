@@ -833,3 +833,5 @@ constraint planning.proposals proposals_title_check CHECK (((btrim(title) <> '':
 index planning.proposals CREATE INDEX proposals_status_created_at_idx ON planning.proposals USING btree (status, created_at)
 index planning.proposals CREATE UNIQUE INDEX proposals_pkey ON planning.proposals USING btree (id)
 relation planning.proposals kind=r persistence=p rls=f force_rls=f replica_identity=d options=
+routine planning.proposals_intake() 484a5a77597152b9032a53a2aaf6987a
+trigger CREATE TRIGGER proposals_intake BEFORE INSERT ON planning.proposals FOR EACH ROW EXECUTE FUNCTION planning.proposals_intake()

@@ -1364,6 +1364,35 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pro
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals remove <id> --dry-run
 ```
 
+#### Taking proposals from anyone
+
+Anyone may propose, so the public way in writes as a role that can do
+nothing else: `proposal_intake` (made by the same migration, stated in
+`src/proposal-intake-role.ts`). It may INSERT a proposal's columns, as any
+source but an organizer (it can't name one), and nothing more: no SELECT,
+not even of what it just added, no UPDATE or DELETE, no other table, and
+statements of at most 5 seconds. `submitProposal` (`src/proposal-intake.ts`)
+is all it runs, and it returns nothing, so whoever sends a proposal learns
+only that it was taken.
+
+Before a proposal from outside is kept, the table's trigger
+`proposals_intake`, which runs as the owner, drops it quietly when the same
+email, title and abstract are already waiting, and refuses it past 100 from
+outside in a day (`ProposalIntakeFull`), so a flood that gets past the
+edge's rate limit stops at the table. An organizer's are never limited.
+
+- **Its login** is set by `infra/scripts/proposal-intake.ts`, run by the
+  maintainer with the owner's connection once the migration is on
+  production, as profile_editor's is: `--dry-run` shows it, `--apply` sets
+  a new password, stores the connection string in "allthings
+  proposal_intake" without printing it, and signs in with what 1Password
+  holds. Rerun `--apply` to rotate it.
+- **Proved.** `tests/proposal-intake-role.test.ts` holds the role's
+  catalog privileges and settings to the lists above, tries every column
+  of `public` and `planning` both ways, and runs `submitProposal` as the
+  role: a proposal kept, the same one sent twice kept once, and the 101st
+  of a day refused.
+
 ## Readiness
 
 `src/readiness/` says whether a draft evening is ready to go out, and what
