@@ -25,6 +25,9 @@ statement from it.
   lists the code that reads the time for its own work.
 - **Ours or shared:** `ours(e)`. Whether a surface counts the evenings we
   share is a named choice, never a filter written inline.
+- **Which year:** `inYear(e, year)`, the year an evening starts in on San
+  Francisco's calendar (`yearOf(e)`), so an evening at 11pm on December
+  31st is that year's though UTC has moved on.
 - **An evening's lineup:** its talks in running order, each talk's
   speakers in the order they were attached, with their part; its hosts, as
   attached; its people, by role. `talksOf`, `hostsOf` and `peopleOf` read
@@ -36,7 +39,8 @@ statement from it.
   each scoped by whose evenings (`ours` or `any`) and when (`any`, or
   once `ended`), latest evening first (`latestTalkFirst`,
   `latestAppearanceFirst`). /people is our evenings' at any time; a
-  person's page, every evening's; /about counts ours once over; the sitemap
+  person's page, every evening's; /about counts ours once over, and a
+  year (`src/year.ts`) counts the same at that year's evenings; the sitemap
   lists everyone at any; the speakers list (`list_speakers`,
   `/api/v1/speakers`) counts our evenings' talks once `ended`, and the
   talks library (/talks, `src/talks-library.ts`) lists those talks, each
