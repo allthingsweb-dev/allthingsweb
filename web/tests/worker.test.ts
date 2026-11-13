@@ -16,7 +16,9 @@ import {
 } from "./support/http.ts";
 import { normalizeJsonSchema } from "./support/json-schema.ts";
 import { ignoringAttachOrder, type Json } from "./support/order.ts";
-import { budgetProblems } from "./support/bundle.ts";
+import { built } from "../src/assets.ts";
+import { buildId } from "../src/build-id.ts";
+import { budgetProblems, startupContributors } from "./support/bundle.ts";
 import { bundleBudgets, hyperdriveTo, testStack } from "./support/stack.ts";
 
 /**
@@ -684,5 +686,15 @@ describe("bundle", () => {
       bundleBudgets,
     );
     expect(problems).toBeUndefined();
+  });
+
+  it("starts from the build's id alone, never the whole manifest", async () => {
+    expect(buildId).toBe(built.build);
+    const startup = await startupContributors(
+      new URL("../.alchemy/bundles/Web", import.meta.url).pathname,
+    );
+    const names = startup.map((contributor) => contributor.name);
+    expect(names).toContain("src/build-id.ts");
+    expect(names).not.toContain("src/assets.ts");
   });
 });
