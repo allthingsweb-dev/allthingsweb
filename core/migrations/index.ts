@@ -38,7 +38,7 @@ import profileXPostsMigration from "./0036_profile_x_posts.ts";
 import communityMetricsMigration from "./0037_community_metrics.ts";
 import communityGapsMigration from "./0038_community_gaps.ts";
 import ideaPostponedMigration from "./0039_idea_postponed.ts";
-import venueGuestsOnlyMigration from "./0041_venue_guests_only.ts";
+import venueGuestsOnlyMigration from "./0042_venue_guests_only.ts";
 import type { Migration } from "./statements.ts";
 
 /**
@@ -87,7 +87,7 @@ export const migrations: Readonly<Record<string, Migration>> = {
   "0037_community_metrics": communityMetricsMigration,
   "0038_community_gaps": communityGapsMigration,
   "0039_idea_postponed": ideaPostponedMigration,
-  "0041_venue_guests_only": venueGuestsOnlyMigration,
+  "0042_venue_guests_only": venueGuestsOnlyMigration,
 };
 
 /** The migrations, in id order, for the migrator. */
