@@ -143,6 +143,10 @@ describe("reading a proposal in", () => {
       name: `Jose${String.fromCodePoint(0x301)} Valim`,
     });
     expect(read.ok ? read.proposal.name : "").toBe("Jos\u00e9 Valim");
+    // A link keeps the characters it was sent with: NFC would change the URL.
+    const kelvin = `https://example.com/${String.fromCodePoint(0x212a)}`;
+    const linked = readProposal({ ...sent, links: [kelvin] });
+    expect(linked.ok ? linked.proposal.links : []).toEqual([kelvin]);
     const refused = readProposal({
       ...sent,
       title: "Effect\u0007 in production",

@@ -205,12 +205,17 @@ export interface ProposalProblem {
   readonly message: string;
 }
 
-/** A string trimmed, with `\r\n` and `\r` read as `\n`, in NFC; anything else as it is. */
-const tidy = (value: unknown): unknown =>
+/**
+ * A string trimmed, with `\r\n` and `\r` read as `\n`, and, unless it is a
+ * link (`nfc` false), in NFC; an array, each of its strings; anything else
+ * as it is. A link keeps the characters it was sent with: NFC would change
+ * some, and the URL with them.
+ */
+const tidy = (value: unknown, nfc = true): unknown =>
   typeof value === "string"
-    ? value.replaceAll(/\r\n?/g, "\n").normalize("NFC").trim()
+    ? (nfc ? value.normalize("NFC") : value).replaceAll(/\r\n?/g, "\n").trim()
     : Array.isArray(value)
-      ? value.map(tidy)
+      ? value.map((item) => tidy(item, nfc))
       : value;
 
 /**
@@ -251,7 +256,7 @@ export function readProposal(
   for (const [field, schema] of Object.entries(fieldSchemas) as Array<
     [ProposalField, Schema.Codec<unknown, unknown>]
   >) {
-    let value = tidy(fields[field]);
+    let value = tidy(fields[field], field !== "links");
     if (field === "links" && Array.isArray(value)) {
       value = value.filter((link) => link !== "");
     }
