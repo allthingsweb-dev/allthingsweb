@@ -93,20 +93,22 @@ export function toLibrary(
   return rows.flatMap((row) => {
     const evening = toEvening(row.listing, now);
     const recordingUrl = httpUrlOrNull(row.recordingUrl);
-    return row.talks.map((talk): LibraryTalk => ({
-      id: talk.id,
-      title: talk.title,
-      format: talk.format,
-      speakers: talk.speakers.map((speaker) => ({
-        id: speaker.id,
-        slug: speaker.slug,
-        name: speaker.name,
-        role: stageRole(talk.format, speaker.role),
-      })),
-      evening,
-      recordingUrl,
-      links: talkLinks(talk.artifacts),
-    }));
+    return row.talks.map(
+      (talk): LibraryTalk => ({
+        id: talk.id,
+        title: talk.title,
+        format: talk.format,
+        speakers: talk.speakers.map((speaker) => ({
+          id: speaker.id,
+          slug: speaker.slug,
+          name: speaker.name,
+          role: stageRole(talk.format, speaker.role),
+        })),
+        evening,
+        recordingUrl,
+        links: talkLinks(talk.artifacts),
+      }),
+    );
   });
 }
 
