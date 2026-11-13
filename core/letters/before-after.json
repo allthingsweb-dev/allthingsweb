@@ -1,0 +1,4 @@
+{
+  "about": "Erik's edits to the letter's drafts, kept as examples where no rule generalizes them (core/src/letter.ts, Edit). One entry per edit: the issue's month (YYYY-MM); where in it (title, closing, or a section and item as letterFindings names them, like \"happenings: React Miami\"); its kind (cut, reword or fact); what the draft said (before) and what Erik made it (after, empty for a cut); and why, when he said, on one line. tests/letter.test.ts holds every after to our voice and fails on any issue that says a before again.",
+  "edits": []
+}

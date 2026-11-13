@@ -28,6 +28,7 @@
     "community-snapshot": "bun --no-env-file scripts/community-snapshot.ts",
     "lineups": "bun --no-env-file scripts/lineups.ts",
     "talks": "bun --no-env-file scripts/talks.ts",
+    "letter": "bun --no-env-file scripts/letter.ts",
     "proposals": "bun --no-env-file scripts/proposals.ts",
     "people": "bun --no-env-file scripts/people.ts",
     "event-extras": "bun --no-env-file scripts/event-extras.ts",
