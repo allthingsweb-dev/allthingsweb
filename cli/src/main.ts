@@ -16,6 +16,7 @@ export async function main(legacy: boolean): Promise<never> {
     isTTY: process.stdout.isTTY === true,
     env: process.env,
     legacy,
+    readFile: (path) => Bun.file(path).text(),
     openUrl: async (url) => {
       // The link is already printed, so a missing opener (no xdg-open) is fine.
       try {

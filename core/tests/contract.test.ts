@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { DateTime, Schema } from "effect";
 import { z } from "zod";
 import { isEventNotFound } from "../../cli/src/client.ts";
+import * as cliCoach from "../../cli/src/coach.ts";
 import * as cli from "../../cli/src/schemas.ts";
+import * as coaching from "../src/coaching.ts";
 import * as core from "../src/contract.ts";
 import { EventNotFound } from "../src/errors.ts";
 import { guideAt, toGuide } from "../src/guide.ts";
@@ -35,6 +37,7 @@ const pairs: ReadonlyArray<Pair> = [
   ["Speaker", core.Speaker, cli.speakerSchema],
   ["Community", core.Community, cli.communitySchema],
   ["Guide", core.Guide, cli.guideSchema],
+  ["Coaching", coaching.Coaching, cli.coachingSchema],
 ];
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -149,6 +152,38 @@ describe("live responses", () => {
       }
     },
   );
+});
+
+describe("coaching", () => {
+  test("the CLI's limits, goals and formats are core's", () => {
+    expect(cli.coachingLimits).toEqual(coaching.limits);
+    expect(cli.maxSlotMinutes).toBe(coaching.maxSlotMinutes);
+    expect<Readonly<Record<string, number>>>(cliCoach.defaultMinutes).toEqual(
+      coaching.defaultMinutes,
+    );
+    expect([...cli.goals]).toEqual([...coaching.Goal.literals]);
+    expect([...cli.slotFormats]).toEqual([...coaching.SlotFormat.literals]);
+  });
+
+  test("coach_talk's answers decode losslessly, as zod parses them", () => {
+    const [, effect, zod] = pairs.find(([name]) => name === "Coaching")!;
+    for (const materials of [
+      { slot: { format: "open-floor", minutes: 3 } },
+      {
+        slot: { format: "talk", minutes: 20 },
+        title: "A queue",
+        outline: "# I'm Sam\nI built a queue\n---\nDemo\n---\ngithub.com/sam/q",
+        transcript:
+          "WEBVTT\n\n00:00.000 --> 00:30.000\nHi, I'm Sam, um, and I built a queue. Book a demo.",
+        goals: ["find-contributors", "get-hired"],
+      },
+    ] as const) {
+      const value = coaching.coach(materials);
+      const decoded = Schema.decodeUnknownSync(effect)(value);
+      expect(Schema.encodeSync(effect)(decoded)).toEqual(value);
+      expect(decoded).toEqual(zod.parse(value));
+    }
+  });
 });
 
 describe("verdicts", () => {

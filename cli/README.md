@@ -27,6 +27,7 @@ allthings rsvp next                 # open the next evening's page to say you're
 allthings open latest               # open the last evening's page on allthings.dev
 allthings guide                     # conferences worth the trip, starred as Michelin stars restaurants
 allthings about                     # where to find everyone between evenings
+allthings coach slides.md talk.vtt  # coaching for your talk, before you give it
 ```
 
 `event`, `rsvp` and `open` take an evening's slug, from `events`, or `next` and `latest`, so every line above runs as typed. With nothing on the calendar, `allthings` shows the last evening and where the next one is announced first, and `event next` exits 3.
@@ -34,6 +35,20 @@ allthings about                     # where to find everyone between evenings
 Add `--json` to any of them except `rsvp` and `open`, which print just the link, for the public contract, unformatted, for scripts and agents. On its own, `allthings --json` gives `{ next, latest }`, each an evening or `null`. Exit codes are part of that contract: 0 ok, 1 service error, 2 usage error, 3 no such evening.
 
 `ALLTHINGS_MCP_URL` points it at another server, such as a local Worker.
+
+## Coach your talk
+
+```sh
+allthings coach slides.md rehearsal.vtt                      # a 3-minute open-floor slot
+allthings coach outline.md --slot 20 --goal teach-a-technique
+allthings coach rehearsal.txt --goal first-talk --json
+```
+
+`coach` sends your talk to `coach_talk`, the MCP server's coaching, and prints what to change first, then each finding (must, should, consider) with what it measured and what to do, what already works, and what it couldn't check without more. Every check is explained at [allthings.dev/coach](https://allthings.dev/coach).
+
+A file's extension says what it is: `.md` is an outline, or slides split by lines of `---`, and its first heading is the title unless `--title` gives one; `.txt`, `.vtt` and `.srt` are a rehearsal's transcript, and with timestamps (`.vtt`, `.srt`) it also checks your pace. Send at most one of each. `--slot` is the slot in minutes: 3, an open floor's, unless given, or 20 with `--talk`, and a slot over 5 minutes is a talk in the lineup. `--goal` says what you want from the talk, as often as you like: `first-talk`, `teach-a-technique`, `find-contributors`, `show-a-launch` or `get-hired`. `--abstract` adds the abstract.
+
+The files are read only to send them; `coach_talk` keeps none of what it is sent. A file it can't read, one too long for `coach_talk`, or an unknown goal exits 2 before anything is sent.
 
 ## Agents
 

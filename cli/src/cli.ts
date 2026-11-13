@@ -12,6 +12,7 @@ import {
   type AuxResult,
 } from "./aux.ts";
 import { createClient, toolNames, type Client, type Fetch } from "./client.ts";
+import { longestOpenFloor, talkToCoach } from "./coach.ts";
 import {
   auxCodeVariable,
   auxEndpointFrom,
@@ -21,12 +22,14 @@ import {
   endpointFrom,
   endpointVariable,
   legacyCommandName,
+  siteOrigin,
 } from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
 import { suggest } from "./suggest.ts";
-import type { EventSummary } from "./schemas.ts";
+import { goals as knownGoals, type EventSummary } from "./schemas.ts";
 import {
   formatAuxStatus,
+  formatCoaching,
   formatCommunity,
   formatGuide,
   formatEvent,
@@ -48,6 +51,8 @@ export type Io = {
   fetch?: Fetch;
   /** True when started by its old name, `atw`, which still works for now. */
   legacy?: boolean;
+  /** Reads a file `coach` is given; tests pass a fake. */
+  readFile?: (path: string) => Promise<string>;
 };
 
 const tagline = `${commandName} · evenings for people who build software, from your terminal and your agents`;
@@ -63,6 +68,7 @@ Usage
   ${commandName} open <slug | next | latest> [--print]
   ${commandName} guide [--json]
   ${commandName} about [--json]
+  ${commandName} coach <files...> [--slot <minutes>] [--talk] [--goal <goal>] [--json]
   ${commandName} mcp [--json]
   ${commandName} aux <command> [--json]
 
@@ -76,6 +82,7 @@ Examples
   ${commandName} rsvp next                   Open the next evening's page to say you're in
   ${commandName} open latest                 Open the last evening's page on allthings.dev
   ${commandName} guide                       Conferences worth the trip, starred
+  ${commandName} coach slides.md talk.vtt    Coach your talk for our stage before you give it
   ${commandName} mcp                         Add allthings to Claude Code, Codex, VS Code or Cursor
   ${commandName} aux --help                 Set the room's lights at an evening that passes the aux
 
@@ -116,6 +123,33 @@ Options
 
 Exit codes: 0 ok, 1 the hub refused or couldn't be reached, 2 usage error (an unknown scene or color, or no code).
 Set ${auxCodeVariable} to use a code without saving it, and ${auxEndpointVariable} to use another hub (default ${defaultAuxEndpoint}).
+`;
+
+const coachHelp = `${commandName} coach · coaching for your talk, before you're on our stage
+
+Usage
+  ${commandName} coach <files...> [--slot <minutes>] [--talk] [--goal <goal>]... [--title <title>] [--abstract <text>] [--json]
+
+Files
+  .md                  An outline, or slides split by lines of ---
+  .txt, .vtt, .srt     A rehearsal's transcript; with timestamps (.vtt, .srt) it also checks your pace
+
+Examples
+  ${commandName} coach slides.md rehearsal.vtt            A 3-minute open-floor slot
+  ${commandName} coach outline.md --slot 20 --goal teach-a-technique
+  ${commandName} coach rehearsal.txt --goal first-talk --json
+
+Options
+  --slot <minutes>  The slot's length: 3 unless given, 20 with --talk; over ${longestOpenFloor} is a talk
+  --talk            A talk in an evening's lineup, not an open floor
+  --goal <goal>     What you want from it, as often as you like: ${knownGoals.join(", ")}
+  --title <title>   The talk's title; otherwise the outline's first heading
+  --abstract <text> The talk's abstract, as people will read it
+  --json            Print coach_talk's JSON instead of text
+  -h, --help        Show this help
+
+The files go to coach_talk on ${siteOrigin}/mcp, which keeps none of what it is sent.
+Exit codes: 0 coached, 1 service error, 2 usage error (a file it can't read, an unknown goal).
 `;
 
 function usage(message: string): never {
@@ -209,7 +243,7 @@ function mcpSetup(endpoint: string, json: boolean): string {
     .join("\n");
   return `${commandName} mcp · the server your agent can read: ${endpoint}
 
-Streamable HTTP, public, no sign-in. Its tools are this CLI's reads: ${toolNames.join(", ")}.
+Streamable HTTP, public, no sign-in. Its tools are the ones this CLI calls: ${toolNames.join(", ")}.
 
 Add it
 ${lines}
@@ -504,6 +538,11 @@ const options = {
   limit: { type: "string" },
   print: { type: "boolean", default: false },
   zone: { type: "string" },
+  slot: { type: "string" },
+  talk: { type: "boolean", default: false },
+  goal: { type: "string", multiple: true },
+  title: { type: "string" },
+  abstract: { type: "string" },
   help: { type: "boolean", short: "h", default: false },
   version: { type: "boolean", short: "v", default: false },
 } as const;
@@ -517,6 +556,7 @@ const commands = [
   "open",
   "guide",
   "about",
+  "coach",
   "mcp",
   "aux",
   "help",
@@ -574,12 +614,26 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
       return ExitCode.Ok;
     }
     if (command === "aux") return await runAux(rest, values, io);
+    if (command === "coach" && values.help) {
+      io.stdout(coachHelp);
+      return ExitCode.Ok;
+    }
     if (values.help || command === "help") {
       io.stdout(help);
       return ExitCode.Ok;
     }
     if (values.zone !== undefined)
       usage('"--zone" works only with "aux color".');
+    if (
+      command !== "coach" &&
+      (values.slot !== undefined ||
+        values.talk ||
+        values.goal !== undefined ||
+        values.title !== undefined ||
+        values.abstract !== undefined)
+    ) {
+      usage(`--slot, --talk, --goal, --title and --abstract go with "coach".`);
+    }
 
     const color = io.isTTY && !io.env["NO_COLOR"] && !values.json;
     const client =
@@ -663,6 +717,37 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
         if (rest.length > 0) usage(`"guide" takes no arguments.`);
         const guide = await client.getGuide();
         print(formatGuide(guide, color), guide);
+        return ExitCode.Ok;
+      }
+      case "coach": {
+        if (values.past || values.all || values.limit !== undefined) {
+          usage(`--past, --all and --limit go with "events".`);
+        }
+        const read = io.readFile ?? ((path: string) => Bun.file(path).text());
+        const files = await Promise.all(
+          rest.map(async (path) => {
+            try {
+              return { path, text: await read(path) };
+            } catch (error) {
+              const reason =
+                error instanceof Error && "code" in error
+                  ? String(error.code)
+                  : error instanceof Error
+                    ? error.message
+                    : String(error);
+              return usage(`Can't read ${path} (${reason}).`);
+            }
+          }),
+        );
+        const talk = talkToCoach(files, {
+          slot: values.slot,
+          talk: values.talk,
+          goals: values.goal ?? [],
+          title: values.title,
+          abstract: values.abstract,
+        });
+        const coaching = await client.coachTalk(talk);
+        print(formatCoaching(coaching, color, `${siteOrigin}/coach`), coaching);
         return ExitCode.Ok;
       }
       case "about": {

@@ -2,13 +2,17 @@ import { z } from "zod";
 import { commandName, defaultEndpoint } from "./config.ts";
 import { CliError, ExitCode } from "./errors.ts";
 import {
+  coachingSchema,
   communitySchema,
   guideSchema,
   eventListSchema,
   eventSchema,
   speakerListSchema,
+  type Coaching,
   type Community,
   type Guide,
+  type Goal,
+  type SlotFormat,
   type Event,
   type EventSummary,
   type Speaker,
@@ -46,6 +50,17 @@ const rpcResponseSchema = z.union([
   z.object({ error: z.object({ message: z.string() }) }),
 ]);
 
+/** A talk as coach_talk takes it; only the slot is required. */
+export interface TalkToCoach {
+  readonly format: SlotFormat;
+  readonly minutes: number;
+  readonly title?: string;
+  readonly abstract?: string;
+  readonly outline?: string;
+  readonly transcript?: string;
+  readonly goals?: ReadonlyArray<Goal>;
+}
+
 export type Fetch = (input: string, init: RequestInit) => Promise<Response>;
 
 /** Reads a single JSON-RPC message from a JSON or event-stream response. */
@@ -60,7 +75,7 @@ export function parseRpcBody(body: string, contentType: string): unknown {
 }
 
 /**
- * The tools this CLI reads, by name: the whole public contract. `allthings mcp`
+ * The tools this CLI calls, by name: the whole public contract. `allthings mcp`
  * lists them for agents, so the CLI and what it tells agents never differ.
  */
 export const toolNames = [
@@ -69,6 +84,7 @@ export const toolNames = [
   "list_speakers",
   "get_community",
   "get_guide",
+  "coach_talk",
 ] as const;
 
 export type ToolName = (typeof toolNames)[number];
@@ -182,6 +198,8 @@ export function createClient({
     getCommunity: (): Promise<Community> =>
       callTool("get_community", {}, communitySchema),
     getGuide: (): Promise<Guide> => callTool("get_guide", {}, guideSchema),
+    coachTalk: (talk: TalkToCoach): Promise<Coaching> =>
+      callTool("coach_talk", { ...talk }, coachingSchema),
   };
 }
 

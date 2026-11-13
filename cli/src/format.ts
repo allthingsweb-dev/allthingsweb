@@ -1,6 +1,7 @@
 import { styleText } from "node:util";
 import type { AuxStatus, Track } from "./aux.ts";
 import type {
+  Coaching,
   Community,
   Event,
   EventSummary,
@@ -233,4 +234,85 @@ export function formatTracks(tracks: Track[], color: boolean): string {
       )
       .join("\n") + "\n"
   );
+}
+
+/** "find-contributors" as a person reads it: "find contributors". */
+const words = (id: string) => id.replaceAll("-", " ");
+
+/**
+ * coach_talk's answer, for a person: what to do first, then each finding
+ * by how much it matters with what was measured and what to do, what's
+ * already working, and what more it could check. `guide` is the page that
+ * explains every check.
+ */
+export function formatCoaching(
+  coaching: Coaching,
+  color: boolean,
+  guide: string,
+): string {
+  const style = createStyler(color);
+  const { slot } = coaching;
+  const head = [
+    slot.format === "open-floor" ? "open floor" : "talk",
+    `${slot.minutes} minute${slot.minutes === 1 ? "" : "s"}`,
+    ...(coaching.goals.length === 0
+      ? []
+      : [coaching.goals.map(words).join(", ")]),
+  ].join(" · ");
+  const width = Math.max(
+    0,
+    ...[...coaching.findings, ...coaching.strengths, ...coaching.unchecked].map(
+      (item) => item.id.length,
+    ),
+  );
+  const label = (id: string) => style("dim", id.padEnd(width));
+  const indent = " ".repeat(width + 4);
+  const severities = [
+    ["must", "Must", "red"],
+    ["should", "Should", "yellow"],
+    ["consider", "Consider", "cyan"],
+  ] as const;
+  const sections = [
+    [
+      style("bold", "First"),
+      ...coaching.summary.map((line, index) => `  ${index + 1}. ${line}`),
+    ].join("\n"),
+    ...severities.flatMap(([severity, title, hue]) => {
+      const found = coaching.findings.filter(
+        (finding) => finding.severity === severity,
+      );
+      return found.length === 0
+        ? []
+        : [
+            [
+              style(["bold", hue], title),
+              ...found.map(
+                (finding) =>
+                  `  ${label(finding.id)}  ${finding.observed}\n${indent}${finding.advice}`,
+              ),
+            ].join("\n"),
+          ];
+    }),
+    ...(coaching.strengths.length === 0
+      ? []
+      : [
+          [
+            style(["bold", "green"], "Working"),
+            ...coaching.strengths.map(
+              (strength) => `  ${label(strength.id)}  ${strength.observed}`,
+            ),
+          ].join("\n"),
+        ]),
+    ...(coaching.unchecked.length === 0
+      ? []
+      : [
+          [
+            style("bold", "Not checked"),
+            ...coaching.unchecked.map(
+              (check) => `  ${label(check.id)}  needs ${check.needs}`,
+            ),
+          ].join("\n"),
+        ]),
+  ];
+  return `${style("bold", "Coaching")} ${style("dim", `· ${head}`)}\n\n${sections.join("\n\n")}\n\n${style("dim", `Every check, and why: ${guide}`)}\n`;
 }
