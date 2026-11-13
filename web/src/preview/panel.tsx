@@ -406,11 +406,7 @@ function Logistics({
             </p>
           )}
           {answering && forms !== undefined ? (
-            <form
-              class="form"
-              method="post"
-              action={forms.logisticsAction}
-            >
+            <form class="form" method="post" action={forms.logisticsAction}>
               <input type="hidden" name="token" value={forms.logisticsToken} />
               <input type="hidden" name="item" value={item.id} />
               <label>
