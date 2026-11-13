@@ -344,6 +344,33 @@ describe("allthings", () => {
     ).toEqual([]);
   });
 
+  test("open prints the evening's page and opens it only for a person at a terminal", async () => {
+    const atTerminal = await exec(["open", summary.slug], { isTTY: true });
+    expect(atTerminal.stdout).toBe(`${event.url}\n`);
+    expect(atTerminal.opened).toEqual([event.url]);
+
+    expect((await exec(["open", "latest"], { isTTY: false })).opened).toEqual(
+      [],
+    );
+    expect(
+      (await exec(["open", summary.slug, "--print"], { isTTY: true })).opened,
+    ).toEqual([]);
+  });
+
+  test("open takes exactly one evening", async () => {
+    const none = await exec(["open"]);
+    expect(none.code).toBe(ExitCode.UsageError);
+    expect(none.stderr).toContain(
+      '"open" takes one event slug, or next or latest.',
+    );
+    expect((await exec(["open", "a", "b"])).code).toBe(ExitCode.UsageError);
+  });
+
+  test("suggests open for a typo", async () => {
+    const { stderr } = await exec(["opne", summary.slug]);
+    expect(stderr).toContain('Did you mean "allthings open"?');
+  });
+
   test("rsvp fails clearly when an event has no RSVP page", async () => {
     const client = fakeClient({
       getEvent: async () => ({ ...event, rsvpUrl: null }),
