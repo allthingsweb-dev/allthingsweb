@@ -1,5 +1,6 @@
 import type { Client } from "../src/client.ts";
 import type {
+  Coaching,
   Community,
   Event,
   EventSummary,
@@ -123,6 +124,47 @@ export const guide: Guide = {
   ],
 };
 
+/** coach_talk's answer for a 3-minute open floor that runs long. */
+export const coaching: Coaching = {
+  slot: { format: "open-floor", minutes: 3 },
+  goals: ["find-contributors"],
+  measures: {
+    words: 426,
+    timed: true,
+    seconds: 185,
+    wordsPerMinute: 138,
+    fillersPerMinute: 1,
+    slides: null,
+    mostWordsOnASlide: null,
+  },
+  findings: [
+    {
+      id: "length",
+      severity: "must",
+      observed: "Your rehearsal runs 3:05, in a 3:00 slot.",
+      advice:
+        "Cut 0:25 to finish by 2:40. At 3:00 the screen goes to the timer, mid-sentence or mid-demo.",
+    },
+    {
+      id: "find-contributors-issue",
+      severity: "should",
+      observed: "No first issue named.",
+      advice:
+        'Name one good first issue, or the "good first issue" label, so someone can start tonight.',
+    },
+  ],
+  strengths: [
+    { id: "no-pitch", observed: "Nothing to buy, book or sign up for." },
+  ],
+  unchecked: [
+    { id: "slide-count", needs: "slides, separated by lines of ---" },
+  ],
+  summary: [
+    "Cut 0:25 to finish by 2:40. At 3:00 the screen goes to the timer, mid-sentence or mid-demo.",
+    'Name one good first issue, or the "good first issue" label, so someone can start tonight.',
+  ],
+};
+
 export function fakeClient(overrides: Partial<Client> = {}): Client {
   return {
     listEvents: async () => [summary],
@@ -130,6 +172,7 @@ export function fakeClient(overrides: Partial<Client> = {}): Client {
     listSpeakers: async () => [speaker],
     getCommunity: async () => community,
     getGuide: async () => guide,
+    coachTalk: async () => coaching,
     ...overrides,
   };
 }

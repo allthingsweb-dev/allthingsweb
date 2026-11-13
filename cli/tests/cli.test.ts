@@ -187,6 +187,7 @@ describe("allthings", () => {
         "list_speakers",
         "get_community",
         "get_guide",
+        "coach_talk",
       ],
     });
   });
