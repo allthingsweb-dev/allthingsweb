@@ -117,7 +117,7 @@ describe("/propose", () => {
     expect(policy).not.toContain("script-src");
     const html = await response.text();
     expect(html).toContain(
-      '<form class="form" method="post" action="/propose">',
+      '<form class="form" method="post" action="/propose#send">',
     );
     for (const name of [
       "title",
