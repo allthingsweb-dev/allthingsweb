@@ -140,7 +140,9 @@ describe("the PR header", () => {
           effort: null,
           mergeRisk: { level: "Low", upTo: "abc1234", reason: "Small." },
           securityRisk: null,
+          checkCounts: {},
           checks: [],
+          omittedChecks: 0,
         },
       },
     });

@@ -1,5 +1,5 @@
 import type { PrState } from "./state.ts";
-import { parseWalkthrough } from "./walkthrough.ts";
+import { isWalkthrough, parseWalkthrough } from "./walkthrough.ts";
 
 export type Repo = PrState["repo"];
 
@@ -56,7 +56,10 @@ export const pullRequestQuery = `
         number url state isDraft mergeStateStatus headRefOid body
         additions deletions changedFiles
         reviews(last: 20) { nodes { author { login } state body } }
-        comments(first: 20) { nodes { author { login } url body } }
+        comments(first: 20) {
+          pageInfo { hasNextPage endCursor }
+          nodes { author { login } url body }
+        }
         reviewThreads(first: 100) {
           pageInfo { hasNextPage endCursor }
           nodes { isResolved comments(first: 1) { nodes { author { login } } } }
@@ -110,6 +113,7 @@ export type PullRequestData = {
     nodes: { author: { login: string } | null; state: string; body: string }[];
   };
   comments: {
+    pageInfo?: { hasNextPage: boolean; endCursor: string | null };
     nodes: { author: { login: string } | null; url: string; body: string }[];
   };
   reviewThreads: {
@@ -205,13 +209,11 @@ export function summarize(
       ? outsideDiffFindings(latestReview.body)
       : 0;
 
-  // CodeRabbit posts its walkthrough among the first comments and edits it
-  // in place from then on.
-  const walkthrough =
-    pr.comments.nodes
-      .filter((c) => c.author?.login === coderabbit)
-      .map((c) => parseWalkthrough(c.body, c.url))
-      .find((w) => w !== null) ?? null;
+  // CodeRabbit posts its walkthrough once and edits it in place from then on.
+  const comment = pr.comments.nodes.find(isWalkthrough);
+  const walkthrough = comment
+    ? parseWalkthrough(comment.body, comment.url)
+    : null;
 
   const outcomes = contexts
     .filter((c) => !separateChecks.test(contextName(c)))
@@ -307,13 +309,35 @@ const reviewThreadsQuery = `
   }
 `;
 
+const commentsQuery = `
+  query ($owner: String!, $name: String!, $number: Int!, $after: String!) {
+    repository(owner: $owner, name: $name) {
+      pullRequest(number: $number) {
+        comments(first: 20, after: $after) {
+          pageInfo { hasNextPage endCursor }
+          nodes { author { login } url body }
+        }
+      }
+    }
+  }
+`;
+
+type CommentPage = {
+  repository: {
+    pullRequest: { comments: Required<PullRequestData["comments"]> };
+  };
+};
+
 type ThreadPage = {
   repository: {
     pullRequest: { reviewThreads: Required<PullRequestData["reviewThreads"]> };
   };
 };
 
-/** Loads a PR with all of its review threads, however many pages they span. */
+/**
+ * Loads a PR with all of its review threads, however many pages they span,
+ * and its comments up to CodeRabbit's walkthrough, wherever it falls.
+ */
 export async function fetchPullRequest(
   github: GitHub,
   repo: Repo,
@@ -333,6 +357,19 @@ export async function fetchPullRequest(
     const threads = next.repository.pullRequest.reviewThreads;
     pr.reviewThreads.nodes.push(...threads.nodes);
     page = threads.pageInfo;
+  }
+  let comments = pr.comments.pageInfo;
+  while (
+    !pr.comments.nodes.some(isWalkthrough) &&
+    comments?.hasNextPage &&
+    comments.endCursor
+  ) {
+    const next = await github.graphql<CommentPage>(commentsQuery, {
+      ...variables,
+      after: comments.endCursor,
+    });
+    pr.comments.nodes.push(...next.repository.pullRequest.comments.nodes);
+    comments = next.repository.pullRequest.comments.pageInfo;
   }
   return pr;
 }

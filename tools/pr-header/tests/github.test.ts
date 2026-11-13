@@ -256,4 +256,47 @@ describe("loading a pull request", () => {
       open: 2,
     });
   });
+
+  test("follows comment pages until it finds CodeRabbit's walkthrough", async () => {
+    const comment = (login: string, body: string) => ({
+      author: { login },
+      url: "https://github.com/allthings-sf/allthingsweb/pull/52#issuecomment-1",
+      body,
+    });
+    const walkthrough =
+      "<!-- walkthrough_start -->\n\nAdds a thing.\n\n<!-- walkthrough_end -->";
+    const pages = [
+      {
+        pageInfo: { hasNextPage: true, endCursor: "p2" },
+        nodes: [comment("someone", "Hi")],
+      },
+      {
+        pageInfo: { hasNextPage: true, endCursor: "p3" },
+        nodes: [comment("coderabbitai", walkthrough)],
+      },
+    ];
+    const cursors: unknown[] = [];
+    const github: GitHub = {
+      rest: async () => {
+        throw new Error("unused");
+      },
+      graphql: async <T>(query: string, variables: Record<string, unknown>) => {
+        if (!variables["after"])
+          return {
+            repository: { pullRequest: data({ comments: pages[0]! }) },
+          } as T;
+        expect(query).toContain("comments(first: 20, after: $after)");
+        cursors.push(variables["after"]);
+        return {
+          repository: { pullRequest: { comments: pages[1]! } },
+        } as T;
+      },
+    };
+    const pr = await fetchPullRequest(github, repo, 52);
+    // It stops at the page with the walkthrough, though more follow.
+    expect(cursors).toEqual(["p2"]);
+    expect(summarize(repo, pr, ready).coderabbit.walkthrough?.summary).toBe(
+      "Adds a thing.",
+    );
+  });
 });

@@ -53,10 +53,10 @@ describe("reading CodeRabbit's walkthrough", () => {
     expect(
       walkthrough.checks.map(({ name, status }) => [name, status]),
     ).toEqual([
-      ["Description Check", "Passed"],
-      ["Title check", "Passed"],
-      ["Linked Issues check", "Passed"],
-      ["Out of Scope Changes check", "Passed"],
+      ["Description Check", "passed"],
+      ["Title check", "passed"],
+      ["Linked Issues check", "passed"],
+      ["Out of Scope Changes check", "passed"],
     ]);
   });
 
@@ -79,7 +79,9 @@ describe("reading CodeRabbit's walkthrough", () => {
       effort: null,
       mergeRisk: null,
       securityRisk: null,
+      checkCounts: {},
       checks: [],
+      omittedChecks: 0,
     });
   });
 });
@@ -104,7 +106,7 @@ describe("the CodeRabbit section", () => {
       "| **CLI commands and issue registry**<br>`core/letters/index.ts`",
     );
     expect(section).toContain("**Merge risk: Minimal**, up to `9e0bb`.");
-    expect(section).toContain("| Title check | Passed |");
+    expect(section).toContain("| Title check | passed |");
     expect(section).toEndWith("</details>");
   });
 
@@ -121,6 +123,43 @@ describe("the CodeRabbit section", () => {
     expect(rendered).toContain("pre-merge checks **3 passed, 1 failed**");
     const [beforeFold] = rendered.split("<details>");
     expect(beforeFold).toContain("- **Title check**: failed. The title names");
+  });
+
+  test("counts every check, and shows those that didn't pass first", () => {
+    const row = (name: string, status: string) =>
+      `| ${name} | ![${status}](https://example.com/x.svg) | Why. |`;
+    const body = [
+      "<!-- walkthrough_start -->\n\nA change.\n\n<!-- walkthrough_end -->",
+      "<!-- pre_merge_checks_walkthrough_start -->",
+      "| Check name | Status | Explanation |",
+      "| :--- | :---: | :--- |",
+      ...Array.from({ length: limits.checks }, (_, i) =>
+        row(`Check ${i}`, "Passed"),
+      ),
+      row("Late check", "Failed"),
+      "<!-- pre_merge_checks_walkthrough_end -->",
+    ].join("\n");
+    const walkthrough = parseWalkthrough(body, url)!;
+    expect(walkthrough.checkCounts).toEqual({
+      passed: limits.checks,
+      failed: 1,
+    });
+    expect(walkthrough.checks).toHaveLength(limits.checks);
+    expect(walkthrough.checks[0]).toMatchObject({
+      name: "Late check",
+      status: "failed",
+    });
+    expect(walkthrough.omittedChecks).toBe(1);
+    const rendered = renderWalkthrough(walkthrough, changeStack);
+    expect(rendered).toContain(
+      `pre-merge checks **${limits.checks} passed, 1 failed**`,
+    );
+    expect(rendered.split("<details>")[0]).toContain(
+      "- **Late check**: failed. Why.",
+    );
+    expect(rendered).toContain(
+      `And 1 more pre-merge checks in the [full walkthrough](${url}).`,
+    );
   });
 
   test("renders the same comment the same way every time", () => {
@@ -150,10 +189,17 @@ describe("CodeRabbit's text is data", () => {
     expect(plain("# Heading", 100)).toBe("\\# Heading");
   });
 
-  test("is cut to its limit", () => {
-    const cut = plain("word ".repeat(500), 50);
-    expect(cut.length).toBeLessThanOrEqual(50);
-    expect(cut).toEndWith("…");
+  test("is cut to its limit, escapes included", () => {
+    for (const text of [
+      "word ".repeat(500),
+      "<".repeat(500),
+      `${"1".repeat(25_000)}. summary`,
+      `- ${"x".repeat(500)}`,
+    ]) {
+      const cut = plain(text, 50);
+      expect(cut.length).toBeLessThanOrEqual(50);
+      expect(cut).toEndWith("…");
+    }
   });
 
   test("keeps only plain file paths", () => {
@@ -182,7 +228,7 @@ describe("CodeRabbit's text is data", () => {
     const body = [
       "<!-- walkthrough_start -->",
       "",
-      huge(50_000),
+      `${"1".repeat(25_000)}. ${huge(50_000)}`,
       "",
       "|Layer / File(s)|Summary|",
       "|:---|:---|",

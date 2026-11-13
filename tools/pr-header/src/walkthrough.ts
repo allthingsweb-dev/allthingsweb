@@ -20,11 +20,42 @@ export type Walkthrough = {
   effort: string | null;
   mergeRisk: { level: string; upTo: string | null; reason: string } | null;
   securityRisk: { level: string; upTo: string | null } | null;
-  checks: { name: string; status: string; explanation: string }[];
+  /** How many checks came out each way, all of them counted. */
+  checkCounts: Partial<Record<CheckOutcome, number>>;
+  /** The checks shown, those that didn't pass first, at most `limits.checks`. */
+  checks: { name: string; status: CheckOutcome; explanation: string }[];
+  /** Checks counted but not shown. */
+  omittedChecks: number;
 };
+
+/** How a pre-merge check came out; a status CodeRabbit adds later is "other". */
+export const checkOutcomes = [
+  "failed",
+  "warning",
+  "inconclusive",
+  "other",
+  "passed",
+] as const;
+export type CheckOutcome = (typeof checkOutcomes)[number];
+
+function outcome(status: string): CheckOutcome {
+  const word = status.trim().toLowerCase();
+  return checkOutcomes.find((known) => known === word) ?? "other";
+}
 
 /** The marker that starts every CodeRabbit walkthrough comment. */
 const walkthroughMarker = "<!-- walkthrough_start -->";
+
+/** Whether a comment is CodeRabbit's walkthrough, by its author and marker. */
+export function isWalkthrough(comment: {
+  author: { login: string } | null;
+  body: string;
+}): boolean {
+  return (
+    comment.author?.login === "coderabbitai" &&
+    comment.body.includes(walkthroughMarker)
+  );
+}
 
 export const limits = {
   summary: 700,
@@ -38,7 +69,6 @@ export const limits = {
   reason: 900,
   checks: 10,
   checkName: 80,
-  checkStatus: 20,
   explanation: 300,
 } as const;
 
@@ -99,14 +129,16 @@ export function plain(text: string, max: number): string {
     .replace(/\*\*|__|`/g, "")
     .replace(/:\/\//g, `:/${zeroWidthSpace}/`)
     .replace(/\bwww\./gi, (www) => `${www.slice(0, 3)}${zeroWidthSpace}.`);
-  // Nor may it start a list: "- a" is written \- a, and "1. a" 1\. a.
-  const number = /^\d+(?=[.)])/.exec(line)?.[0] ?? "";
-  const out: string[] = /^[-+]/.test(line) ? ["\\"] : number ? [number] : [];
-  const rest = number ? `\\${line.slice(number.length)}` : line;
-  let length = out.join("").length;
-  const chars = Array.from(graphemes.segment(rest), ({ segment }) => segment);
+  // Nor may it start a list: "- a" is written \- a, and "1. a" 1\. a. The
+  // mark's escape counts toward the length like any other.
+  const listMark = /^[-+]/.test(line)
+    ? 0
+    : (/^\d+(?=[.)])/.exec(line)?.[0].length ?? -1);
+  const out: string[] = [];
+  let length = 0;
+  const chars = Array.from(graphemes.segment(line), ({ segment }) => segment);
   for (const [i, char] of chars.entries()) {
-    const piece = number && i === 0 ? char : escaped(char);
+    const piece = i === listMark ? `\\${char}` : escaped(char);
     const room = i === chars.length - 1 ? max : max - 1;
     if (length + piece.length > room) {
       out.push("…");
@@ -213,19 +245,33 @@ export function parseWalkthrough(
       )
     : "";
 
-  const checks = rows(section(body, "pre_merge_checks_walkthrough") ?? "")
+  // Every check is counted; the ones shown are bounded, those that didn't
+  // pass first.
+  const allChecks = rows(
+    section(body, "pre_merge_checks_walkthrough") ?? "",
+  ).flatMap(([name, status, explanation]) => {
+    const alt = status ? /!\[([^\]]+)\]/.exec(status)?.[1] : undefined;
+    return name && alt
+      ? [{ name, status: outcome(alt), explanation: explanation ?? "" }]
+      : [];
+  });
+  const checkCounts: Walkthrough["checkCounts"] = {};
+  for (const { status } of allChecks) {
+    checkCounts[status] = (checkCounts[status] ?? 0) + 1;
+  }
+  const checks = allChecks
+    .map((check, i) => ({ check, i }))
+    .toSorted(
+      (a, b) =>
+        checkOutcomes.indexOf(a.check.status) -
+          checkOutcomes.indexOf(b.check.status) || a.i - b.i,
+    )
     .slice(0, limits.checks)
-    .flatMap(([name, status, explanation]) => {
-      const alt = status ? /!\[([^\]]+)\]/.exec(status)?.[1] : undefined;
-      if (!name || !alt) return [];
-      return [
-        {
-          name: plain(name, limits.checkName),
-          status: plain(alt, limits.checkStatus),
-          explanation: plain(explanation ?? "", limits.explanation),
-        },
-      ];
-    });
+    .map(({ check }) => ({
+      name: plain(check.name, limits.checkName),
+      status: check.status,
+      explanation: plain(check.explanation, limits.explanation),
+    }));
 
   return {
     url,
@@ -237,19 +283,21 @@ export function parseWalkthrough(
       section(body, "architecture_review"),
       "Security architecture risk",
     ),
+    checkCounts,
     checks,
+    omittedChecks: allChecks.length - checks.length,
   };
 }
 
-function checksLine(checks: Walkthrough["checks"]): string | null {
-  if (checks.length === 0) return null;
-  const counts = new Map<string, number>();
-  for (const { status } of checks) {
-    counts.set(status, (counts.get(status) ?? 0) + 1);
-  }
-  return [...counts]
-    .map(([status, count]) => `${count} ${status.toLowerCase()}`)
-    .join(", ");
+/** "3 passed, 1 failed", passes first. */
+function checksLine(counts: Walkthrough["checkCounts"]): string | null {
+  const parts = checkOutcomes
+    .toSorted((a, b) => (a === "passed" ? -1 : b === "passed" ? 1 : 0))
+    .flatMap((status) => {
+      const count = counts[status];
+      return count ? [`${count} ${status}`] : [];
+    });
+  return parts.length > 0 ? parts.join(", ") : null;
 }
 
 /**
@@ -260,21 +308,20 @@ export function renderWalkthrough(
   walkthrough: Walkthrough,
   changeStack: string,
 ): string {
-  const { mergeRisk, securityRisk, checks } = walkthrough;
+  const { mergeRisk, securityRisk, checks, omittedChecks } = walkthrough;
+  const counted = checksLine(walkthrough.checkCounts);
   const verdicts = [
     "**CodeRabbit**",
     ...(mergeRisk ? [`merge risk **${mergeRisk.level}**`] : []),
-    ...(checks.length > 0
-      ? [`pre-merge checks **${checksLine(checks)}**`]
-      : []),
+    ...(counted ? [`pre-merge checks **${counted}**`] : []),
     `[Explain Change](${changeStack})`,
     `[full walkthrough](${walkthrough.url})`,
   ];
   const notPassed = checks
-    .filter(({ status }) => status.toLowerCase() !== "passed")
+    .filter(({ status }) => status !== "passed")
     .map(
       ({ name, status, explanation }) =>
-        `- **${name}**: ${status.toLowerCase()}. ${explanation}`,
+        `- **${name}**: ${status}. ${explanation}`,
     );
 
   const details: string[] = [];
@@ -315,6 +362,11 @@ export function renderWalkthrough(
             `| ${name} | ${status} | ${explanation} |`,
         ),
       ].join("\n"),
+    );
+  }
+  if (omittedChecks > 0) {
+    details.push(
+      `And ${omittedChecks} more pre-merge checks in the [full walkthrough](${walkthrough.url}).`,
     );
   }
 
