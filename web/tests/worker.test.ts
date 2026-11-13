@@ -8,6 +8,7 @@ import { seededDatabase } from "allthings-core/tests/support/database.ts";
 import * as Contract from "allthings-core/src/contract.ts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
+import { coach } from "allthings-core/src/coaching.ts";
 import { CacheControl } from "../src/cache.ts";
 import { maxRequestBodySize, maxToolInputElements } from "../src/mcp/server.ts";
 import { loadApp } from "./support/app.ts";
@@ -436,7 +437,7 @@ describe("MCP", () => {
     ).toBe("allthings");
   });
 
-  it("lists the same tools, with the same input and output schemas", async ({
+  it("lists the same tools, with the same input and output schemas, then coach_talk", async ({
     Web,
   }) => {
     const [actual, expected] = await mcp(Web, {
@@ -457,11 +458,14 @@ describe("MCP", () => {
       "get_community",
       "get_guide",
       "get_year",
+      "coach_talk",
     ]);
-    // get_guide and get_year are new: the app never had them (core's
-    // contract holds them).
+    // get_guide, get_year and coach_talk are new: the app never had them
+    // (core's contract holds the first two; web/tests/coach-tool.test.ts,
+    // coach_talk).
     const served = all.filter(
-      (tool) => tool["name"] !== "get_guide" && tool["name"] !== "get_year",
+      (tool) =>
+        !["get_guide", "get_year", "coach_talk"].includes(String(tool["name"])),
     );
     // Names, titles, descriptions, annotations and input schemas, exactly,
     // but for one deliberate difference: the Worker writes the name as one
@@ -591,6 +595,44 @@ describe("MCP", () => {
       result: { structuredContent: { events: Array<unknown> } };
     };
     expect(message.result.structuredContent.events).toHaveLength(5);
+  });
+
+  it("coaches a talk with no database, its answer matching its output schema", async ({
+    Unconfigured,
+  }) => {
+    const transcript = [
+      "WEBVTT",
+      "",
+      "00:00.000 --> 00:10.000",
+      "Hi, I'm Sam, and I built a queue.",
+      "",
+      "00:10.000 --> 03:20.000",
+      "Book a demo, it's 20% off this week.",
+    ].join("\n");
+    const response = await fetch(
+      mcpRequest(
+        `${Unconfigured}/mcp`,
+        call("coach_talk", { title: "A queue", transcript }),
+      ),
+    );
+    const { result } = rpcMessage(await response.text()) as {
+      result: {
+        isError?: boolean;
+        structuredContent: unknown;
+      };
+    };
+    // The SDK checks structured content against the output schema, and
+    // answers an error when they differ.
+    expect(result.isError).toBeUndefined();
+    const coaching = coach({
+      slot: { format: "open-floor", minutes: 3 },
+      title: "A queue",
+      transcript,
+    });
+    expect(result.structuredContent).toEqual(coaching);
+    expect(coaching.findings.map((finding) => finding.id)).toEqual(
+      expect.arrayContaining(["length", "no-pitch"]),
+    );
   });
 
   it("refuses a body over its size limit before reading it", async ({
