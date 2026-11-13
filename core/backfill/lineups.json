@@ -510,6 +510,53 @@
     "steve-heffernan": {
       "profileId": "458980d5-75c3-4b1f-9a55-2803d1a303e2",
       "sources": ["https://www.youtube.com/watch?v=edOxB0lXFmo"]
+    },
+    "james-arthur": {
+      "create": {
+        "name": "James Arthur",
+        "title": "CEO, ElectricSQL",
+        "bio": "",
+        "twitterHandle": "thruflo",
+        "blueskyHandle": null,
+        "linkedinHandle": null,
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/lu6m402p",
+        "https://x.com/waynesutton/status/2049166141134979215",
+        "https://x.com/esthor/status/2049713517268541754"
+      ]
+    },
+    "anselm-eickhoff": {
+      "create": {
+        "name": "Anselm Eickhoff",
+        "title": "CEO, Garden Computing (Jazz)",
+        "bio": "",
+        "twitterHandle": "anselm_io",
+        "blueskyHandle": null,
+        "linkedinHandle": "anselm-eickhoff",
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/lu6m402p",
+        "https://x.com/waynesutton/status/2049166141134979215",
+        "https://x.com/anselm_io/status/2049186658030108737"
+      ]
+    },
+    "james-cowling": {
+      "create": {
+        "name": "James Cowling",
+        "title": "Co-founder & CTO, Convex",
+        "bio": "",
+        "twitterHandle": "jamesacowling",
+        "blueskyHandle": null,
+        "linkedinHandle": "jcowling",
+        "photoSourceUrl": null
+      },
+      "sources": [
+        "https://luma.com/lu6m402p",
+        "https://x.com/waynesutton/status/2049166141134979215"
+      ]
     }
   },
   "events": [
@@ -1736,7 +1783,95 @@
     {
       "lumaEventId": "evt-oZuT52GZDnYkAcL",
       "name": "All Things Sync",
-      "talks": [],
+      "talks": [
+        {
+          "title": "Agents on sync (title unknown)",
+          "format": "talk",
+          "description": "",
+          "position": 0,
+          "speakers": [
+            {
+              "person": "james-arthur",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://luma.com/lu6m402p",
+            "https://x.com/andrelandgraf/status/2049664278723223671"
+          ],
+          "confidence": "medium",
+          "hold": "needs Erik: the talk's title; Andre's post says James opened with agents running on sync (ElectricSQL launched Electric Agents that day)"
+        },
+        {
+          "title": "Four fresh ideas for local-first",
+          "format": "talk",
+          "description": "",
+          "position": 1,
+          "speakers": [
+            {
+              "person": "anselm-eickhoff",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://x.com/anselm_io/status/2049186658030108737",
+            "https://x.com/andrelandgraf/status/2049668416529891682",
+            "https://luma.com/lu6m402p"
+          ],
+          "confidence": "high"
+        },
+        {
+          "title": "Sync will save engineering",
+          "format": "talk",
+          "description": "",
+          "position": 2,
+          "speakers": [
+            {
+              "person": "james-cowling",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://x.com/andrelandgraf/status/2049671680692470192",
+            "https://luma.com/lu6m402p"
+          ],
+          "confidence": "medium",
+          "hold": "needs Erik: is \"Sync will save Engineering\", which Andre quoted from it, the talk's title?"
+        },
+        {
+          "title": "Panel discussion",
+          "format": "panel",
+          "description": "",
+          "position": 3,
+          "speakers": [
+            {
+              "person": "erik-thorelli",
+              "role": "moderator"
+            },
+            {
+              "person": "james-arthur",
+              "role": "speaker"
+            },
+            {
+              "person": "james-cowling",
+              "role": "speaker"
+            },
+            {
+              "person": "anselm-eickhoff",
+              "role": "speaker"
+            },
+            {
+              "person": "andre-landgraf",
+              "role": "speaker"
+            }
+          ],
+          "sources": [
+            "https://x.com/esthor/status/2049713517268541754",
+            "https://luma.com/lu6m402p"
+          ],
+          "confidence": "high"
+        }
+      ],
       "people": [
         {
           "person": "erik-thorelli",
