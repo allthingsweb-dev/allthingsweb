@@ -4,7 +4,6 @@ import { SourceError } from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
-import { opRead } from "../../core/src/site-refresh.ts";
 
 /**
  * The read-only role on production's branch, created by scripts/site-reader.ts.
@@ -109,6 +108,30 @@ export const Collaborator = Config.Redacted("NEON_COLLAB_URL").pipe(
  * 0040_proposals with a login from scripts/proposal-intake.ts.
  */
 export const INTAKE_ROLE = "proposal_intake";
+
+/**
+ * A vault item's value through the 1Password CLI, signed in as the deploy
+ * is (OP_SERVICE_ACCOUNT_TOKEN): undefined when `op` isn't there, fails, or
+ * takes over 15 seconds. Its value never prints. Core's commands have their
+ * own (core/src/site-refresh.ts); infra installs none of core's packages.
+ */
+export async function opRead(reference: string): Promise<string | undefined> {
+  try {
+    const child = Bun.spawn(["op", "read", "--no-newline", reference], {
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "ignore",
+      timeout: 15_000,
+    });
+    const [code, value] = await Promise.all([
+      child.exited,
+      new Response(child.stdout).text(),
+    ]);
+    return code === 0 && value.trim() !== "" ? value.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Where the vault keeps its connection string (scripts/proposal-intake.ts). */
 export const intakeReference =
