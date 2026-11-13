@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { Schema } from "effect";
+import { DateTime, Schema } from "effect";
 import { z } from "zod";
 import { isEventNotFound } from "../../cli/src/client.ts";
 import * as cli from "../../cli/src/schemas.ts";
 import * as core from "../src/contract.ts";
 import { EventNotFound } from "../src/errors.ts";
+import { guideAt, toGuide } from "../src/guide.ts";
 import community from "./fixtures/community.json";
 import eventDetails from "./fixtures/event-details.json";
 import events from "./fixtures/events.json";
@@ -33,6 +34,7 @@ const pairs: ReadonlyArray<Pair> = [
   ["Event", core.Event, cli.eventSchema],
   ["Speaker", core.Speaker, cli.speakerSchema],
   ["Community", core.Community, cli.communitySchema],
+  ["Guide", core.Guide, cli.guideSchema],
 ];
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -124,6 +126,15 @@ describe("live responses", () => {
     ["get_event", pairs[1]!, eventDetails.events.map(asOurs)],
     ["list_speakers", pairs[2]!, speakers.speakers],
     ["get_community", pairs[3]!, [community]],
+    [
+      "get_guide",
+      pairs[4]!,
+      // The guide is written by hand: as it is served today, and once every
+      // written edition is over.
+      [Date.UTC(2026, 10, 13), Date.UTC(2028, 0, 1)].map((at) =>
+        toGuide(guideAt(DateTime.makeUnsafe(at)), "https://allthings.dev"),
+      ),
+    ],
   ];
 
   test.each(live)(
@@ -243,6 +254,42 @@ describe("verdicts", () => {
       expect(effectVerdict(summary, input).ok).toBe(false);
     },
   );
+});
+
+describe("a guide entry's days", () => {
+  const [, guide, guideZod] = pairs[4]!;
+  const [entry] = toGuide(
+    guideAt(DateTime.makeUnsafe(Date.UTC(2026, 10, 13))),
+    "https://allthings.dev",
+  ).entries;
+  const withDays = (from: unknown, to: unknown) => ({
+    about: "x",
+    url: "https://allthings.dev/guide",
+    entries: [{ ...entry, next: { from, to } }],
+  });
+
+  test.each([
+    "2027-04-26",
+    "2028-02-29",
+    "2027-02-29",
+    "2027-04-31",
+    "2027-4-26",
+    "2027-04-26T00:00:00Z",
+    "",
+  ])("%j gets the same verdict and value", (day) => {
+    const input = withDays(day, "2027-04-27");
+    expect(effectVerdict(guide, input)).toEqual(zodVerdict(guideZod, input));
+  });
+
+  test.each([0, 4, "3"])("stars %j get the same verdict", (stars) => {
+    const input = {
+      about: "x",
+      url: "https://allthings.dev/guide",
+      entries: [{ ...entry, stars }],
+    };
+    expect(effectVerdict(guide, input)).toEqual(zodVerdict(guideZod, input));
+    expect(effectVerdict(guide, input).ok).toBe(false);
+  });
 });
 
 describe("errors", () => {

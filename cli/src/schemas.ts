@@ -82,6 +82,25 @@ export const communitySchema = z.object({
   }),
 });
 
+export const guideEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  stars: z.literal([1, 2, 3]),
+  meaning: z.string(),
+  city: z.string(),
+  organizer: z.string(),
+  url: z.httpUrl(),
+  why: z.string(),
+  next: z.object({ from: z.iso.date(), to: z.iso.date() }).nullable(),
+  guideUrl: z.httpUrl(),
+});
+
+export const guideSchema = z.object({
+  about: z.string(),
+  url: z.httpUrl(),
+  entries: z.array(guideEntrySchema),
+});
+
 export const eventListSchema = z.object({
   events: z.array(eventSummarySchema),
 });
@@ -91,3 +110,5 @@ export type EventSummary = z.infer<typeof eventSummarySchema>;
 export type Event = z.infer<typeof eventSchema>;
 export type Speaker = z.infer<typeof speakerSchema>;
 export type Community = z.infer<typeof communitySchema>;
+export type GuideEntry = z.infer<typeof guideEntrySchema>;
+export type Guide = z.infer<typeof guideSchema>;

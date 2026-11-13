@@ -78,7 +78,10 @@ export const EventSummary = Schema.Struct({
   }),
   name: Schema.String,
   tagline: Schema.String,
-  url: HttpUrl.annotate({ description: "Event page on allthings.dev." }),
+  url: HttpUrl.annotate({
+    description:
+      "Event page on allthings.dev, at its short link when it has one.",
+  }),
   status: EventStatus,
   startsAt: IsoInstant.annotate({
     description: "Start time as an ISO 8601 UTC instant.",
@@ -161,10 +164,142 @@ export const Community = Schema.Struct({
   }),
 });
 
+const isoDay = new RegExp(`^${isoDate}$`);
+
+/** A day on the calendar, YYYY-MM-DD, as `z.iso.date()` accepts. */
+export const IsoDay = Schema.String.check(
+  Schema.isPattern(isoDay, {
+    expected: "an ISO 8601 calendar day",
+    toJsonSchema: () => ({ format: "date", pattern: isoDay.source }),
+  }),
+);
+
+/** How far a happening in the guide is worth going, as Michelin's stars say it. */
+export const Stars = Schema.Literals([1, 2, 3]).annotate({
+  description:
+    "3: worth a special journey. 2: worth a detour. 1: worth a stop.",
+});
+
+export const GuideEntry = Schema.Struct({
+  id: Schema.String.annotate({
+    description: "Stable identifier; the guide page's anchor.",
+  }),
+  name: Schema.String,
+  stars: Stars,
+  meaning: Schema.String.annotate({
+    description:
+      "What its stars mean: worth a special journey, a detour or a stop.",
+  }),
+  city: Schema.String,
+  organizer: Schema.String.annotate({ description: "Who runs it." }),
+  url: HttpUrl.annotate({ description: "Its official site." }),
+  why: Schema.String.annotate({
+    description: "Why it's worth the trip, in one sentence.",
+  }),
+  next: Schema.NullOr(Schema.Struct({ from: IsoDay, to: IsoDay })).annotate({
+    description:
+      "The next edition's days where it happens, both included, once its organizers announce them and until it ends; null otherwise.",
+  }),
+  guideUrl: HttpUrl.annotate({
+    description: "Its entry in the guide on allthings.dev.",
+  }),
+});
+
+export const Guide = Schema.Struct({
+  about: Schema.String,
+  url: HttpUrl.annotate({ description: "The guide on allthings.dev." }),
+  entries: Schema.Array(GuideEntry).annotate({
+    description:
+      "Three stars first, then two, then one; within each, dated entries soonest first, then the rest by name.",
+  }),
+});
+
+/** A year's tally, as /about counts its own, at that year's evenings. */
+export const YearTally = Schema.Struct({
+  evenings: Schema.Int.annotate({ description: "Our evenings held." }),
+  speakers: Schema.Int.annotate({
+    description: "Distinct people on stage at them.",
+  }),
+  hostingCompanies: Schema.Int.annotate({
+    description: "Distinct companies that hosted them.",
+  }),
+  guests: Schema.Int.annotate({
+    description:
+      "Guests as Luma counted them, at evenings with at least 20; smaller counts are artifacts.",
+  }),
+});
+
+/** One evening of a year, as the year's page shows it. */
+export const YearEvening = Schema.Struct({
+  slug: Schema.String.annotate({
+    description: "Its address on allthings.dev; pass it to get_event.",
+  }),
+  name: Schema.String,
+  topic: Schema.NullOr(Schema.String).annotate({
+    description: "The slot in allthings/<topic>, when it has one.",
+  }),
+  url: HttpUrl.annotate({ description: "Evening page on allthings.dev." }),
+  startsAt: IsoInstant.annotate({
+    description: "Start time as an ISO 8601 UTC instant.",
+  }),
+  neighborhood: Schema.NullOr(Schema.String).annotate({
+    description:
+      "The San Francisco neighborhood, as locals name it, when the venue is a known one.",
+  }),
+  hosts: Schema.Array(Schema.String).annotate({
+    description: "The hosting companies' names, as attached.",
+  }),
+  onStage: Schema.Array(
+    Schema.Struct({
+      name: Schema.String,
+      url: HttpUrl.annotate({ description: "Their page on allthings.dev." }),
+    }),
+  ).annotate({
+    description:
+      "Everyone on stage, each once, in the order they first came on.",
+  }),
+  guests: Schema.NullOr(Schema.Int).annotate({
+    description:
+      "Guests as Luma counted them; null under 20, where a count is an artifact.",
+  }),
+  photo: Schema.NullOr(
+    Schema.Struct({
+      url: HttpUrl,
+      alt: Schema.String,
+      width: Schema.Int,
+      height: Schema.Int,
+    }),
+  ).annotate({
+    description: "The photo that stands for the evening, when it has one.",
+  }),
+});
+
+/** A year of our evenings, looked back on: get_year and /api/v1/years/:year. */
+export const Year = Schema.Struct({
+  year: Schema.Int,
+  url: HttpUrl.annotate({ description: "The year's page on allthings.dev." }),
+  timeZone: Schema.Literal("America/Los_Angeles").annotate({
+    description:
+      "The calendar the year is counted on: an evening belongs to the year it started in there.",
+  }),
+  tally: YearTally,
+  evenings: Schema.Array(YearEvening).annotate({
+    description: "Every evening of ours held in the year, in the order held.",
+  }),
+  years: Schema.Array(Schema.Int).annotate({
+    description: "Every year with an evening of ours held, latest first.",
+  }),
+});
+
 export type EventStatus = typeof EventStatus.Type;
+export type Stars = typeof Stars.Type;
+export type GuideEntry = typeof GuideEntry.Type;
+export type Guide = typeof Guide.Type;
 export type PersonLinks = typeof PersonLinks.Type;
 export type EventSummary = typeof EventSummary.Type;
 export type TalkSpeaker = typeof TalkSpeaker.Type;
 export type Event = typeof Event.Type;
 export type Speaker = typeof Speaker.Type;
 export type Community = typeof Community.Type;
+export type YearEvening = typeof YearEvening.Type;
+export type Year = typeof Year.Type;

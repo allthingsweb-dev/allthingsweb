@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { legacyNote, run, type Io } from "../src/cli.ts";
 import type { Client } from "../src/client.ts";
 import { CliError, ExitCode } from "../src/errors.ts";
-import { event, fakeClient, summary } from "./fixtures.ts";
+import { formatDays } from "../src/format.ts";
+import { event, fakeClient, guide, summary } from "./fixtures.ts";
 import packageJson from "../package.json";
 
 async function exec(
@@ -159,7 +160,7 @@ describe("allthings", () => {
       `{"mcpServers":{"allthings":{"url":"https://allthings.dev/mcp"}}}`,
     );
     expect(stdout).toContain(
-      "list_events, get_event, list_speakers, get_community",
+      "list_events, get_event, list_speakers, get_community, get_guide",
     );
   });
 
@@ -180,7 +181,13 @@ describe("allthings", () => {
       name: "allthings",
       url: "https://allthings.dev/mcp",
       transport: "streamable-http",
-      tools: ["list_events", "get_event", "list_speakers", "get_community"],
+      tools: [
+        "list_events",
+        "get_event",
+        "list_speakers",
+        "get_community",
+        "get_guide",
+      ],
     });
   });
 
@@ -385,6 +392,52 @@ describe("allthings", () => {
     expect(speakers.stdout).toContain("Ada Lovelace · Engineer");
     const about = await exec(["about"]);
     expect(about.stdout).toContain("https://discord.gg/B3Sm4b5mfD");
+  });
+
+  test("guide shows each star count under what it means, then each happening", async () => {
+    const { code, stdout } = await exec(["guide"]);
+    expect(code).toBe(ExitCode.Ok);
+    expect(stdout).toBe(
+      [
+        "Happenings worth the trip.",
+        "",
+        "★★★ worth a special journey",
+        "",
+        "React Miami  Miami, Florida · 2027.04.29–30",
+        "Two days of React's best speakers.",
+        "by G2i · https://www.reactmiami.com/",
+        "",
+        "Chain React  Portland, Oregon · dates not announced yet",
+        "The React Native conference.",
+        "by Infinite Red · https://chainreactconf.com/",
+        "",
+        "★ worth a stop",
+        "",
+        "Demo Night  San Francisco · 2026.12.07",
+        "Short demos.",
+        "by Someone · https://demo.example.com/",
+        "",
+        "https://allthings.dev/guide",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test.each([
+    ["2027-04-29", "2027-04-29", "2027.04.29"],
+    ["2027-04-29", "2027-04-30", "2027.04.29–30"],
+    ["2027-04-29", "2027-05-02", "2027.04.29–05.02"],
+    ["2027-12-30", "2028-01-02", "2027.12.30–2028.01.02"],
+  ])("guide writes %s through %s as the site does: %s", (from, to, days) => {
+    expect(formatDays(from, to)).toBe(days);
+  });
+
+  test("guide --json is the public contract, and takes no arguments", async () => {
+    const { stdout } = await exec(["guide", "--json"]);
+    expect(JSON.parse(stdout)).toEqual(guide);
+    const { code, stderr } = await exec(["guide", "react"]);
+    expect(code).toBe(ExitCode.UsageError);
+    expect(stderr).toContain(`"guide" takes no arguments.`);
   });
 });
 
