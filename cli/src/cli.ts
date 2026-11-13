@@ -196,7 +196,7 @@ async function home(
   const everything: [string, string][] = [
     ["speakers react", "Who has been on stage about react"],
     ["about", "Where everyone is between evenings"],
-    ["--help", "Every command. Add --json to any for scripts and agents"],
+    ["--help", "Every command; most take --json for scripts and agents"],
   ];
   const sections =
     next !== null
@@ -204,7 +204,9 @@ async function home(
           event("Next up", next),
           tryLines([
             ["event next", "The talks and who's on stage"],
-            ["rsvp next", "Say you're in"],
+            ...(next.rsvpUrl === null
+              ? []
+              : ([["rsvp next", "Say you're in"]] as [string, string][])),
             ["events", "Everything coming up"],
             ...everything,
           ]),
@@ -493,7 +495,7 @@ export async function run(argv: string[], io: Io): Promise<ExitCode> {
           parseLimit(values.limit, 20, 100),
         );
         print(
-          events.length === 0 && when === "upcoming"
+          events.length === 0 && when === "upcoming" && !values.json
             ? `${nothingScheduled} ${await whereNextIsAnnounced(client)} "${commandName} events --past" shows the evenings so far.\n`
             : formatEventList(events, color),
           { events },

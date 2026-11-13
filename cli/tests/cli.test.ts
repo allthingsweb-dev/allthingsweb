@@ -112,10 +112,29 @@ describe("allthings", () => {
     expect(stdout).toBe(
       'Nothing is on the calendar yet. New evenings land on https://luma.com/allthings first. "allthings events --past" shows the evenings so far.\n',
     );
-    // Scripts still get the contract.
+    // Scripts still get the contract, without waiting on the community.
+    const asked: string[] = [];
+    const json = fakeClient({
+      listEvents: async () => [],
+      getCommunity: async () => {
+        asked.push("community");
+        throw new Error("not needed");
+      },
+    });
     expect(
-      JSON.parse((await exec(["events", "--json"], { client })).stdout),
+      JSON.parse((await exec(["events", "--json"], { client: json })).stdout),
     ).toEqual({ events: [] });
+    expect(asked).toEqual([]);
+  });
+
+  test("on its own, suggests rsvp only when the next evening has an RSVP page", async () => {
+    const client = fakeClient({
+      listEvents: async (when) =>
+        when === "upcoming" ? [{ ...summary, rsvpUrl: null }] : [],
+    });
+    const { stdout } = await exec([], { client });
+    expect(stdout).toContain("allthings event next");
+    expect(stdout).not.toContain("rsvp next");
   });
 
   test("prints help with examples and exit codes", async () => {

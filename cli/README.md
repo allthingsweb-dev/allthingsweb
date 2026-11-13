@@ -29,7 +29,7 @@ allthings about                     # where to find everyone between evenings
 
 `event` and `rsvp` take an evening's slug, from `events`, or `next` and `latest`, so every line above runs as typed. With nothing on the calendar, `allthings` shows the last evening and where the next one is announced first, and `event next` exits 3.
 
-Add `--json` to any of them for the public contract (on its own, `allthings --json` gives `{ next, latest }`, each an evening or `null`), unformatted, for scripts and agents. Exit codes are part of that contract: 0 ok, 1 service error, 2 usage error, 3 no such evening.
+Add `--json` to any of them except `rsvp`, which prints just the link, for the public contract, unformatted, for scripts and agents. On its own, `allthings --json` gives `{ next, latest }`, each an evening or `null`. Exit codes are part of that contract: 0 ok, 1 service error, 2 usage error, 3 no such evening.
 
 `ALLTHINGS_MCP_URL` points it at another server, such as a local Worker.
 
