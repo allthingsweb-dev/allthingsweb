@@ -21,7 +21,7 @@ import type { CallTool, ToolName } from "./tools.ts";
  * never reads the database, so Claude sessions calling the tools don't
  * wake Neon. Without a store (tests, previews) a call runs its program.
  *
- * coach_talk is the exception (tools.ts, `keptTools`): it reads only what
+ * coach_talk is the exception (tools.ts, `toolKeeping`): it reads only what
  * a speaker sends, so its calls always run here, never as a GET, and
  * nothing of them is kept.
  */

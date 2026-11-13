@@ -117,21 +117,36 @@ export const isToolName = (name: string): name is ToolName =>
   Object.hasOwn(toolInputs, name);
 
 /**
- * The tools that read public data, whose answers the page store keeps
- * (endpoint.ts). coach_talk reads only what it's sent: its calls never
- * reach the store, so nothing a speaker sends is kept or put in a URL.
+ * Whether the page store may keep a tool's answers (endpoint.ts), and why
+ * not when it may not.
  */
-export const keptTools: ReadonlySet<ToolName> = new Set([
-  "list_events",
-  "get_event",
-  "list_speakers",
-  "get_community",
-  "get_guide",
-  "get_year",
-]);
+export type Keeping =
+  | { readonly kept: true }
+  | { readonly kept: false; readonly why: string };
+
+const kept: Keeping = { kept: true };
+
+/**
+ * Every tool's keeping, by name: a tool that reads public data is kept, so
+ * a call already answered never reads the database again; one that isn't
+ * says why. The type asks for every tool in `toolInputs`, so a new tool
+ * doesn't typecheck until it says which it is.
+ */
+export const toolKeeping: { readonly [Name in ToolName]: Keeping } = {
+  list_events: kept,
+  get_event: kept,
+  list_speakers: kept,
+  get_community: kept,
+  get_guide: kept,
+  get_year: kept,
+  coach_talk: {
+    kept: false,
+    why: "It reads only what a speaker sends: its calls never reach the store, so nothing sent is kept or put in a URL.",
+  },
+};
 
 export const isKeptTool = (name: string): name is ToolName =>
-  isToolName(name) && keptTools.has(name);
+  isToolName(name) && toolKeeping[name].kept;
 
 /**
  * How a tool call is answered: by name, with its input as the tool's schema
