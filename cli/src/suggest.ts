@@ -7,7 +7,7 @@ export function distance(a: string, b: string): number {
   const rows = a.length + 1;
   const cols = b.length + 1;
   const d: number[][] = Array.from({ length: rows }, (_, i) =>
-    Array.from({ length: cols }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+    Array.from({ length: cols }, (_cell, j) => (i === 0 ? j : j === 0 ? i : 0)),
   );
   for (let i = 1; i < rows; i++) {
     for (let j = 1; j < cols; j++) {
