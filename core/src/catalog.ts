@@ -75,6 +75,24 @@ export const statusChanges = (
     (date_trunc('minute', ${column(sql, e, "end_date")}) + interval '1 minute')
   )`;
 
+/** Where our evenings are, whose calendar a year is counted on. */
+export const calendarZone = "America/Los_Angeles";
+
+/**
+ * The year the evening aliased `e` starts in, in San Francisco, as an
+ * integer: an evening at 11pm on December 31st there is that year's,
+ * though it is already the next in UTC.
+ */
+export const yearOf = (sql: SqlClient, e: EventAlias): Statement.Fragment =>
+  sql`extract(year FROM ${column(sql, e, "start_date")} AT TIME ZONE ${sql.literal(`'${calendarZone}'`)})::int`;
+
+/** Evenings that start in `year`, in San Francisco ({@link yearOf}). */
+export const inYear = (
+  sql: SqlClient,
+  e: EventAlias,
+  year: number,
+): Statement.Fragment => sql`${yearOf(sql, e)} = ${year}`;
+
 /** Our own evenings, not those we share. */
 export const ours = (sql: SqlClient, e: EventAlias): Statement.Fragment =>
   sql`${column(sql, e, "curation")} = 'ours'`;

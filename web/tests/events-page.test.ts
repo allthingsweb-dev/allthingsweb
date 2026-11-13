@@ -111,10 +111,13 @@ describe("the evenings index", () => {
 
   test("lists past evenings under their year, latest year first, without the cursor", () => {
     const html = render(view);
-    expect(html.match(/<h2 [^>]*>[^<]*<\/h2>/g)).toEqual([
+    // A year that held one of ours links its title to its page.
+    const yearTitle = (year: number) =>
+      `<h2 id="evenings-${year}" class="list-title at-type-meta"><a href="/year/${year}"><span>${year}</span><span class="visually-hidden"> in evenings</span> <span aria-hidden="true">→</span></a></h2>`;
+    expect(html.match(/<h2 [^>]*>.*?<\/h2>/g)).toEqual([
       '<h2 id="upcoming" class="list-title at-type-meta">Upcoming</h2>',
-      '<h2 id="evenings-2026" class="list-title at-type-meta">2026</h2>',
-      '<h2 id="evenings-2024" class="list-title at-type-meta">2024</h2>',
+      yearTitle(2026),
+      yearTitle(2024),
     ]);
     const y2024 = rows(section(html, "evenings-2024"));
     expect(y2024).toHaveLength(2);
@@ -194,6 +197,12 @@ describe("the evenings index", () => {
       `<ul class="socials at-type-meta"><li><a href="${lumaCalendar}">luma calendar</a></li><li><a href="${discord}">discord</a></li><li><a href="https://x.com/allthingswebdev">x</a></li></ul>`,
     );
     expect(html).not.toContain("subscribe on luma");
+  });
+
+  test("links to the guide under where to follow along", () => {
+    expect(render(view)).toContain(
+      '</ul><p class="fact-links"><a href="/guide">the guide: happenings worth the trip <span aria-hidden="true">→</span></a></p></div>',
+    );
   });
 
   test("has one h1 and headings in order", () => {

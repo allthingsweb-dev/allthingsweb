@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import type { PGlite } from "@electric-sql/pglite";
 import { Effect, Layer } from "effect";
+import { guideBoundaries } from "../src/guide.ts";
 import { SiteVersion, siteTables } from "../src/site-version.ts";
 import { seededDatabase, sqlLayer } from "./support/database.ts";
 
@@ -76,7 +77,7 @@ describe("the site's version", () => {
     expect(await read(db)).toEqual(before);
   });
 
-  test("names the minute each published evening goes live and the minute it is over, and no draft's", async () => {
+  test("names the minute each published evening goes live and the minute it is over, and no draft's, and the day after each of the guide's editions", async () => {
     const db = await database();
     const { boundaries } = await read(db);
     const { rows } = await db.query<{ starts: number; ends: number }>(
@@ -86,14 +87,17 @@ describe("the site's version", () => {
     );
     const minute = 60_000;
     const expected = [
-      ...new Set(
-        rows.flatMap(({ starts, ends }) => [
+      ...new Set([
+        ...rows.flatMap(({ starts, ends }) => [
           Math.ceil(starts / minute) * minute,
           Math.floor(ends / minute) * minute + minute,
         ]),
-      ),
+        ...guideBoundaries,
+      ]),
     ].toSorted((a, b) => a - b);
     expect(boundaries).toEqual(expected);
+    // React Miami's last day is April 30, 2027: midnight in San Francisco.
+    expect(boundaries).toContain(Date.UTC(2027, 4, 1, 7));
     // React at Acme ends at 04:00 sharp: live through 04:00, over from 04:01.
     expect(boundaries).toContain(Date.UTC(2026, 7, 13, 4, 1));
     expect(boundaries).not.toContain(Date.UTC(2026, 7, 13, 4, 0));

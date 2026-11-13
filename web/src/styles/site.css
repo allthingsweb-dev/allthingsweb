@@ -1008,6 +1008,15 @@ main > section,
   text-underline-offset: 0.18em;
 }
 
+/* A happening in the guide (pages/guide.tsx), in a list of talks' rules:
+   its name, where and when, why, then who runs it. */
+.guide-entry {
+  display: grid;
+  row-gap: var(--at-space-2);
+  padding: var(--at-space-3) 0;
+  border-bottom: var(--at-stroke-hairline) solid var(--at-rule);
+}
+
 /* An event: its lockup, then the ledger, where each fact has its own row
    under a small label (design round EP1-B). */
 

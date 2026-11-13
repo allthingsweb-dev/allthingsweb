@@ -2,6 +2,7 @@ import { About } from "allthings-core/src/about.ts";
 import { asOf } from "allthings-core/src/clock.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Evenings } from "allthings-core/src/evenings.ts";
+import { readGuide } from "allthings-core/src/guide.ts";
 import { EventPages } from "allthings-core/src/event-page.ts";
 import { Community, type CommunityView } from "allthings-core/src/community.ts";
 import { Home } from "allthings-core/src/home.ts";
@@ -23,6 +24,7 @@ import {
   sharedPrefix,
 } from "allthings-core/src/short-slugs.ts";
 import { TalksLibrary } from "allthings-core/src/talks-library.ts";
+import { Year } from "allthings-core/src/year.ts";
 import { Duration, Effect, Layer, Option, Schema } from "effect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
@@ -34,6 +36,7 @@ import {
   aboutPath,
   eventPath,
   everyTalk,
+  guidePath,
   hosts,
   mediaOrigin,
   personPath,
@@ -45,6 +48,8 @@ import { calendarFile, calendarFileName } from "./calendar.ts";
 import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { privacyPage, privacyPath } from "./privacy.tsx";
 import { talksPage } from "./talks.tsx";
+import { guidePage } from "./guide.tsx";
+import { yearPage } from "./year.tsx";
 import { eventPage, eventUnavailablePage, notFoundPage } from "./event.tsx";
 import { eventsPage } from "./events.tsx";
 import { homePage, unavailablePage } from "./home.tsx";
@@ -642,6 +647,103 @@ const talks = dataPage(
   (library, props) => talksPage({ talks: library, ...props }),
 );
 
+/** A year as /year/<yyyy> names it: four digits, never 0000. */
+const yearPattern = /^[1-9][0-9]{3}$/;
+
+/**
+ * /year/<yyyy>: a year of our evenings (core's src/year.ts), cached like
+ * the evenings index. A year in which none of ours was held, or anything
+ * that isn't a year, is not found, cached briefly: a year's first evening
+ * may end at any minute. The year and the hosts' portraits are read at
+ * once, over the request's pool.
+ */
+const yearAt = page(
+  "/year/:year",
+  ({ theme, acceptEncoding, params, images }) =>
+    Effect.gen(function* () {
+      const { origin } = yield* Site;
+      const asked = params["year"] ?? "";
+      const path = `/year/${asked}` as const;
+      // No year has an address of that shape: nothing to read.
+      if (!yearPattern.test(asked)) {
+        return yield* nothingAt(path, 404, { theme, acceptEncoding, images });
+      }
+      return yield* Effect.all(
+        [
+          Year.use((years) => years.read(Number(asked), mediaOrigin)),
+          footer(hostPortraits),
+        ],
+        { concurrency: "unbounded" },
+      ).pipe(
+        Effect.provide(repositories),
+        Effect.timed,
+        Effect.map(([took, [found, { portraits, read }]]) => {
+          const db = Duration.toMillis(took);
+          return Option.match(found, {
+            onNone: () =>
+              htmlResponse(
+                notFoundPage({ origin, path, theme, portraits, images }),
+                acceptEncoding,
+                {
+                  cacheControl: read ? "notFound" : "failure",
+                  theme,
+                  images,
+                  status: 404,
+                  db,
+                },
+              ),
+            onSome: (view) =>
+              htmlResponse(
+                yearPage({ year: view, origin, theme, portraits, images }),
+                acceptEncoding,
+                {
+                  cacheControl: read ? "publicData" : "failure",
+                  theme,
+                  images,
+                  db,
+                },
+              ),
+          });
+        }),
+        Effect.catchCause((cause) =>
+          Effect.logError("Error rendering a year's page:", cause).pipe(
+            Effect.as(
+              htmlResponse(
+                unavailablePage({ origin, path, theme, images }),
+                acceptEncoding,
+                { cacheControl: "failure", theme, images, status: 503 },
+              ),
+            ),
+          ),
+        ),
+      );
+    }),
+  (params) => `/year/${params["year"] ?? ""}`,
+);
+
+/**
+ * The allthings guide (core's src/guide.ts): written by hand, so it reads
+ * no database but for the hosts' portraits in its footer, as the code of
+ * conduct does. It is read as of the clock, which takes an edition's days
+ * off once it is over, so it is cached like public data and that reaches
+ * visitors within minutes; the page store keeps it by the guide's own
+ * boundaries (core's src/site-version.ts).
+ */
+const guide = page(guidePath, ({ theme, acceptEncoding, images }) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const groups = yield* readGuide;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      guidePage({ groups, origin, theme, portraits, images }),
+      acceptEncoding,
+      { cacheControl: read ? "publicData" : "failure", theme, images },
+    );
+  }),
+);
+
 /**
  * /brand changes only when the Worker is deployed, but for the hosts'
  * portraits in its footer, which it reads on every request it reaches. It is
@@ -1068,6 +1170,8 @@ export const pageRoutes = Layer.mergeAll(
   home,
   events,
   talks,
+  guide,
+  yearAt,
   people,
   person,
   speakers,

@@ -1,6 +1,12 @@
 import { styleText } from "node:util";
 import type { AuxStatus, Track } from "./aux.ts";
-import type { Community, Event, EventSummary, Speaker } from "./schemas.ts";
+import type {
+  Community,
+  Event,
+  EventSummary,
+  Guide,
+  Speaker,
+} from "./schemas.ts";
 
 type Style = Parameters<typeof styleText>[0];
 
@@ -153,6 +159,51 @@ export function formatCommunity(community: Community, color: boolean): string {
     `${style("dim", "conduct")}  ${community.links.codeOfConduct}`,
     "",
   ].join("\n");
+}
+
+/**
+ * "2027.04.29–30": an edition's days as the site writes them, year first,
+ * each part said once: "2027.04.29–05.02" across a month,
+ * "2027.12.30–2028.01.02" across a year, "2027.04.29" for one day.
+ */
+export function formatDays(from: string, to: string): string {
+  const dotted = (day: string) => day.replaceAll("-", ".");
+  if (from === to) return dotted(from);
+  if (from.slice(0, 4) !== to.slice(0, 4)) {
+    return `${dotted(from)}–${dotted(to)}`;
+  }
+  if (from.slice(5, 7) !== to.slice(5, 7)) {
+    return `${dotted(from)}–${dotted(to.slice(5))}`;
+  }
+  return `${dotted(from)}–${to.slice(8)}`;
+}
+
+/**
+ * The guide, as its page shows it: each star count under what it means,
+ * then each happening's name, where and when, why, and who runs it with its
+ * site.
+ */
+export function formatGuide(guide: Guide, color: boolean): string {
+  const style = createStyler(color);
+  const lines: string[] = [];
+  let stars: number | undefined;
+  for (const entry of guide.entries) {
+    if (entry.stars !== stars) {
+      stars = entry.stars;
+      lines.push("", style("bold", `${"★".repeat(stars)} ${entry.meaning}`));
+    }
+    const when =
+      entry.next === null
+        ? "dates not announced yet"
+        : formatDays(entry.next.from, entry.next.to);
+    lines.push(
+      "",
+      `${style("bold", entry.name)}  ${style("dim", `${entry.city} · ${when}`)}`,
+      entry.why,
+      style("dim", `by ${entry.organizer} · ${entry.url}`),
+    );
+  }
+  return [guide.about, ...lines, "", guide.url, ""].join("\n");
 }
 
 /** aux_status, for a person: the holder, your place in line and cooldown. */

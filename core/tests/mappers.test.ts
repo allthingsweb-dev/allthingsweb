@@ -11,6 +11,7 @@ const at = (iso: string) => DateTime.makeUnsafe(iso);
 const event: Rows.Event = {
   id: "e0000000-0000-4000-8000-000000000001",
   slug: "2026-08-12-react-at-acme",
+  siteSlug: "2026-08-12-react-at-acme",
   name: "React at Acme",
   tagline: "Server components in practice",
   startDate: at("2026-08-13T01:00:00Z"),
@@ -65,6 +66,18 @@ describe("toEventSummary", () => {
     );
   });
 
+  test("links to the page at its short link, and keeps the long slug", () => {
+    const now = at("2026-10-03T19:00:00Z");
+    const summary = (siteSlug: string) =>
+      Mappers.toEventSummary({ ...event, siteSlug }, origin, now);
+    expect(summary("react")).toMatchObject({
+      slug: "2026-08-12-react-at-acme",
+      url: `${origin}/react`,
+    });
+    expect(summary("shared/react-day").url).toBe(`${origin}/shared/react-day`);
+    expect(summary(event.slug).url).toBe(`${origin}/2026-08-12-react-at-acme`);
+  });
+
   test("shows a venue when either its name or address is known", () => {
     const now = at("2026-10-03T19:00:00Z");
     const venue = (shortLocation: string | null, fullAddress: string | null) =>
@@ -79,6 +92,50 @@ describe("toEventSummary", () => {
       name: null,
       address: "1 Market St",
     });
+  });
+});
+
+describe("toSpeakers", () => {
+  test("links each talk to its event's page at its short link", () => {
+    const profile: Rows.Profile = {
+      id: "b0000000-0000-4000-8000-000000000001",
+      slug: "ada-lovelace",
+      name: "Ada Lovelace",
+      title: "",
+      bio: "",
+      twitterHandle: null,
+      blueskyHandle: null,
+      linkedinHandle: null,
+      image: null,
+    };
+    const [speaker] = Mappers.toSpeakers(
+      {
+        speakers: [{ profile, talkIds: ["t"] }],
+        talks: [
+          {
+            talkId: "t",
+            title: "Server components",
+            description: "",
+            speakerIds: [profile.id],
+            eventId: event.id,
+            eventName: event.name,
+            eventSlug: event.slug,
+            eventSiteSlug: "react",
+            eventStart: event.startDate,
+          },
+        ],
+      },
+      origin,
+    );
+    expect(speaker?.talks).toEqual([
+      {
+        title: "Server components",
+        eventName: "React at Acme",
+        eventSlug: "2026-08-12-react-at-acme",
+        eventUrl: `${origin}/react`,
+        date: "2026-08-13T01:00:00.000Z",
+      },
+    ]);
   });
 });
 

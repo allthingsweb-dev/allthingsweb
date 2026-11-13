@@ -553,6 +553,24 @@ describe("nextPointer", () => {
     });
   });
 
+  test("takes the boundaries the database names for a version it already has, in use or waiting", () => {
+    // A deploy can add one with no write, as the guide's editions do.
+    const moved = { ...v1, boundaries: [...v1.boundaries, 9_000] };
+    expect(
+      nextPointer({ checkedAt: 0, current: v1 }, moved, 500, turnover),
+    ).toEqual({ checkedAt: 500, current: moved });
+    const waiting: SitePointer = {
+      checkedAt: 0,
+      current: v2,
+      next: { ...v1, from: 1_000 },
+    };
+    expect(nextPointer(waiting, moved, 500, turnover)).toEqual({
+      checkedAt: 500,
+      current: v2,
+      next: { ...moved, from: 1_000 },
+    });
+  });
+
   test("keeps serving what is in use while a newer one waits", () => {
     const pointer: SitePointer = { checkedAt: 0, current: v1 };
     const next = nextPointer(pointer, v2, 1_000, turnover);

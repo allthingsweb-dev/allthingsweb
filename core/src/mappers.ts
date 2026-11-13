@@ -92,7 +92,7 @@ export function toEventSummary(
     slug: event.slug,
     name: event.name,
     tagline: event.tagline,
-    url: eventUrl(origin, event.slug),
+    url: eventUrl(origin, event.siteSlug),
     status: eventStatus(event, now),
     startsAt: DateTime.formatIso(event.startDate),
     endsAt: DateTime.formatIso(event.endDate),
@@ -156,7 +156,7 @@ export function toSpeakers(
         title: talk.title,
         eventName: talk.eventName,
         eventSlug: talk.eventSlug,
-        eventUrl: eventUrl(origin, talk.eventSlug),
+        eventUrl: eventUrl(origin, talk.eventSiteSlug),
         date: DateTime.formatIso(talk.eventStart),
       });
       talksBySpeaker.set(speakerId, talks);

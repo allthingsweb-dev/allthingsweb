@@ -3,6 +3,7 @@ import type {
   Community,
   Event,
   EventSummary,
+  Guide,
   Speaker,
 } from "../src/schemas.ts";
 
@@ -79,12 +80,56 @@ export const community: Community = {
   },
 };
 
+export const guide: Guide = {
+  about: "Happenings worth the trip.",
+  url: "https://allthings.dev/guide",
+  entries: [
+    {
+      id: "react-miami",
+      name: "React Miami",
+      stars: 3,
+      meaning: "worth a special journey",
+      city: "Miami, Florida",
+      organizer: "G2i",
+      url: "https://www.reactmiami.com/",
+      why: "Two days of React's best speakers.",
+      next: { from: "2027-04-29", to: "2027-04-30" },
+      guideUrl: "https://allthings.dev/guide#react-miami",
+    },
+    {
+      id: "chain-react",
+      name: "Chain React",
+      stars: 3,
+      meaning: "worth a special journey",
+      city: "Portland, Oregon",
+      organizer: "Infinite Red",
+      url: "https://chainreactconf.com/",
+      why: "The React Native conference.",
+      next: null,
+      guideUrl: "https://allthings.dev/guide#chain-react",
+    },
+    {
+      id: "demo-night",
+      name: "Demo Night",
+      stars: 1,
+      meaning: "worth a stop",
+      city: "San Francisco",
+      organizer: "Someone",
+      url: "https://demo.example.com/",
+      why: "Short demos.",
+      next: { from: "2026-12-07", to: "2026-12-07" },
+      guideUrl: "https://allthings.dev/guide#demo-night",
+    },
+  ],
+};
+
 export function fakeClient(overrides: Partial<Client> = {}): Client {
   return {
     listEvents: async () => [summary],
     getEvent: async () => event,
     listSpeakers: async () => [speaker],
     getCommunity: async () => community,
+    getGuide: async () => guide,
     ...overrides,
   };
 }

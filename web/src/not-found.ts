@@ -184,6 +184,7 @@ export const slugRoots: ReadonlySet<string> = new Set([
   "events",
   "people",
   "talks",
+  "year",
   "speakers",
   "about",
   "brand",

@@ -25,6 +25,9 @@ statement from it.
   lists the code that reads the time for its own work.
 - **Ours or shared:** `ours(e)`. Whether a surface counts the evenings we
   share is a named choice, never a filter written inline.
+- **Which year:** `inYear(e, year)`, the year an evening starts in on San
+  Francisco's calendar (`yearOf(e)`), so an evening at 11pm on December
+  31st is that year's though UTC has moved on.
 - **An evening's lineup:** its talks in running order, each talk's
   speakers in the order they were attached, with their part; its hosts, as
   attached; its people, by role. `talksOf`, `hostsOf` and `peopleOf` read
@@ -38,7 +41,8 @@ statement from it.
   each scoped by whose evenings (`ours` or `any`) and when (`any`, or
   once `ended`), latest evening first (`latestTalkFirst`,
   `latestAppearanceFirst`). /people is our evenings' at any time; a
-  person's page, every evening's; /about counts ours once over; the sitemap
+  person's page, every evening's; /about counts ours once over, and a
+  year (`src/year.ts`) counts the same at that year's evenings; the sitemap
   lists everyone at any; the speakers list (`list_speakers`,
   `/api/v1/speakers`) counts our evenings' talks once `ended`, and the
   talks library (/talks, `src/talks-library.ts`) lists those talks, each
@@ -112,7 +116,7 @@ The event studio's commands connect as `studio`, a login role made by
 [`infra/scripts/studio.ts`](../infra/scripts/studio.ts): `plan`,
 `readiness`, `luma create`, `update`, `publish`, `cover`, `registration`
 and `hosts`, `luma:drafts --add` and `--forget`, `social bluesky`, `discord` and `x`, `posts`,
-`photos`, `people photo`, `hosts logo`, `talks`, `community` and `collab`
+`photos`, `people photo`, `hosts logo`, `talks`, `community`, `proposals` and `collab`
 (all but `collab access end-sessions`, which reaches only Cloudflare). Its
 connection string
 is the 1Password item "allthings studio" (`credential`), so every one of
@@ -914,6 +918,28 @@ against production when either file changes, on main, and every Monday.
 DATABASE_URL=$(op read "op://allthings/allthings site_reader/credential") bun run hero-photos
 ```
 
+## The guide
+
+The allthings guide (/guide) stars happenings beyond our evenings the way
+the Michelin guide stars a restaurant: three stars are worth a special
+journey, two a detour, one a stop. The stars are the organizers' judgment,
+written by hand in `core/backfill/guide.json`, never counted or voted.
+
+It is editorial, as the wall is: it names other people's conferences and
+evenings, which we neither host nor sync, so it is a file, not a table.
+`src/guide.ts` decodes it at import and refuses an entry without a
+sentence of why, an official https site and a source for its facts, or one
+named twice. A next edition's days are written only once its organizers
+announce them, and the guide shows them through the edition's last day in
+San Francisco; the site's version names the start of the day after as a
+boundary (`guideBoundaries`, `src/site-version.ts`), so no kept page shows
+days that are over.
+
+Agents and scripts read the same guide, as of the same clock, from the MCP
+server's `get_guide` and from `/api/v1/guide`: the contract's `Guide`
+(`src/contract.ts`), which `toGuide` builds, each entry with what its stars
+mean and its place on the page, `/guide#<id>`.
+
 ## Schedules and notes
 
 Some events' pages say more than the record: a hackathon's schedule, its
@@ -1361,6 +1387,82 @@ DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run pla
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan note resolve <question id>
 DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run plan status <draft slug> [--json]
 ```
+
+### Talk proposals
+
+`planning.proposals` (`migrations/0040_proposals.ts`) holds talks people
+propose to give at one of our evenings: a title, an abstract and a format
+(a talk of about 20 minutes, a lightning talk of about 5, or a demo of
+about 10), who proposes it, their email, a few lines about them, up to four
+https links, notes for the organizers, where it came from, whether we
+accepted it, and, once it is on one, the evening it is on. Like the rest of planning it is private: no site role can read
+it, nothing public shows it, and no seed or fixture holds one.
+
+`src/proposals.ts` is the module and `bun run proposals` its CLI, as the
+studio. `readProposal` reads one in as anyone sends it, trimmed and held to
+the table's limits, with a reason per field a person can act on; every way
+in uses it.
+
+- **`list`** prints the proposals with a status (`new`, the default,
+  `accepted`, `declined` or `all`), oldest first, so nobody waits behind a
+  newer one; **`show`** prints one whole. Both only read.
+- **`add`** records a proposal sent to an organizer by email or a
+  message, as `ALLTHINGS_ACTOR`; `--dry-run` makes it and rolls it back.
+- **`accept`**, **`decline`** and **`remove`** decide one, exactly as a dry
+  run showed it, like `talks update`: `--dry-run` prints the proposal, the
+  decision (with `--note`, why) and an approval token; `--approve <token>`
+  locks the proposal, works the decision out again, and refuses unless it
+  still hashes to the token. Who decided and when are kept with it.
+  `remove` deletes the row: spam, a test, or someone asking to be
+  forgotten (/privacy).
+- **`place`** puts an accepted talk on an evening (`--event <slug>`, a
+  draft or one published), with the same dry run and token, so planning
+  stops suggesting it for others. Placing it on another evening moves it;
+  declining or removing it takes it off. A move onto or off a draft is a
+  line in that draft's log, ids and the format alone, and the evening's
+  day and draft state are in the token, so a moved evening stops the
+  approval.
+
+```sh
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals list [--status new|accepted|declined|all] [--json]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals show <id> [--json]
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals add --title "…" --abstract "…" --name "…" --email "…" \
+  [--format talk|lightning|demo] [--about "…"] [--link https://…] [--notes "…"] --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals accept <id> --note "…" --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals accept <id> --note "…" --approve <token>
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals decline <id> --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals remove <id> --dry-run
+DATABASE_URL=$(op read "op://allthings/allthings studio/credential") bun run proposals place <id> --event <draft slug> --dry-run
+```
+
+#### Taking proposals from anyone
+
+Anyone may propose, so the public way in writes as a role that can do
+nothing else: `proposal_intake` (made by the same migration, stated in
+`src/proposal-intake-role.ts`). It may INSERT a proposal's columns, as any
+source but an organizer (it can't name one), and nothing more: no SELECT,
+not even of what it just added, no UPDATE or DELETE, no other table, and
+statements of at most 5 seconds. `submitProposal` (`src/proposal-intake.ts`)
+is all it runs, and it returns nothing, so whoever sends a proposal learns
+only that it was taken.
+
+Before a proposal from outside is kept, the table's trigger
+`proposals_intake`, which runs as the owner, drops it quietly when the same
+email, title and abstract are already waiting, and refuses it past 100 from
+outside in a day (`ProposalIntakeFull`), so a flood that gets past the
+edge's rate limit stops at the table. An organizer's are never limited.
+
+- **Its login** is set by `infra/scripts/proposal-intake.ts`, run by the
+  maintainer with the owner's connection once the migration is on
+  production, as profile_editor's is: `--dry-run` shows it, `--apply` sets
+  a new password, stores the connection string in "allthings
+  proposal_intake" without printing it, and signs in with what 1Password
+  holds. Rerun `--apply` to rotate it.
+- **Proved.** `tests/proposal-intake-role.test.ts` holds the role's
+  catalog privileges and settings to the lists above, tries every column
+  of `public` and `planning` both ways, and runs `submitProposal` as the
+  role: a proposal kept, the same one sent twice kept once, and the 101st
+  of a day refused.
 
 ## Readiness
 

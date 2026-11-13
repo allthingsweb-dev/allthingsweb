@@ -2,8 +2,12 @@ import { describe, expect } from "bun:test";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Test from "alchemy/Test/Bun";
+import { Guide } from "allthings-core/src/contract.ts";
+import { guideEntries } from "allthings-core/src/guide.ts";
 import { seededDatabase } from "allthings-core/tests/support/database.ts";
+import * as Contract from "allthings-core/src/contract.ts";
 import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { CacheControl } from "../src/cache.ts";
 import { maxRequestBodySize, maxToolInputElements } from "../src/mcp/server.ts";
 import { loadApp } from "./support/app.ts";
@@ -16,7 +20,9 @@ import {
 } from "./support/http.ts";
 import { normalizeJsonSchema } from "./support/json-schema.ts";
 import { ignoringAttachOrder, type Json } from "./support/order.ts";
-import { budgetProblems } from "./support/bundle.ts";
+import { built } from "../src/assets.ts";
+import { buildId } from "../src/build-id.ts";
+import { budgetProblems, startupContributors } from "./support/bundle.ts";
 import { bundleBudgets, hyperdriveTo, testStack } from "./support/stack.ts";
 
 /**
@@ -148,7 +154,7 @@ const sinceTheApp = ["curation", "organizer"];
 
 /** Where an event's page is: the contract names allthings.dev, the legacy app its own host. */
 const eventPage = {
-  contract: "Event page on allthings.dev.",
+  contract: "Event page on allthings.dev, at its short link when it has one.",
   app: "Event page on allthingsweb.dev.",
 };
 
@@ -300,6 +306,34 @@ describe("v1 API", () => {
     ]);
   });
 
+  it("lists the years with an evening of ours held, and answers each as get_year does", async ({
+    Web,
+  }) => {
+    const list = await fetch(`${Web}/api/v1/years`);
+    expect(list.status).toBe(200);
+    expect(list.headers.get("cache-control")).toBe(CacheControl.publicData);
+    expect(await list.json()).toEqual({ years: [2026, 2025] });
+    const response = await fetch(`${Web}/api/v1/years/2025`);
+    expect(response.status).toBe(200);
+    const { year } = (await response.json()) as { year: unknown };
+    const decoded = Schema.decodeUnknownSync(Contract.Year)(year);
+    expect(decoded.evenings.map((evening) => evening.slug)).toEqual([
+      "2025-12-02-café-night",
+    ]);
+    const tool = rpcMessage(
+      await (
+        await fetch(mcpRequest(`${Web}/mcp`, call("get_year", { year: 2025 })))
+      ).text(),
+    ) as { result: { structuredContent: unknown } };
+    expect(year).toEqual(tool.result.structuredContent);
+    for (const path of ["/api/v1/years/2024", "/api/v1/years/25"]) {
+      const missing = await fetch(`${Web}${path}`);
+      expect(missing.status).toBe(404);
+      expect(await missing.json()).toEqual({ error: "Year not found" });
+      expect(missing.headers.get("cache-control")).toBe(CacheControl.notFound);
+    }
+  });
+
   for (const id of [
     "not-a-uuid",
     "2026-08-12-react-at-acme",
@@ -336,6 +370,32 @@ describe("v1 API", () => {
       const failed = await fetch(`${Unreachable}${path}`);
       expect(failed.headers.get("cache-control")).toBe(CacheControl.failure);
     }
+  });
+
+  it("GET /api/v1/guide answers the guide, as get_guide does, with no database", async ({
+    Web,
+    Unconfigured,
+  }) => {
+    const response = await fetch(`${Web}/api/v1/guide`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(CacheControl.publicData);
+    const body = await response.json();
+    const guide = Schema.decodeUnknownSync(Guide)(body);
+    expect(guide.url).toBe(`${origin}/guide`);
+    expect(new Set(guide.entries.map((entry) => entry.id))).toEqual(
+      new Set(guideEntries.map((entry) => entry.id)),
+    );
+    for (const entry of guide.entries) {
+      expect(entry.guideUrl).toBe(`${origin}/guide#${entry.id}`);
+    }
+    const tool = await fetch(mcpRequest(`${Web}/mcp`, call("get_guide", {})));
+    const { result } = rpcMessage(await tool.text()) as {
+      result: { structuredContent: unknown };
+    };
+    expect(result.structuredContent).toEqual(body);
+    const bare = await fetch(`${Unconfigured}/api/v1/guide`);
+    expect(bare.status).toBe(200);
+    expect(await bare.json()).toEqual(body);
   });
 
   for (const [path, error] of [
@@ -388,14 +448,21 @@ describe("MCP", () => {
     type Tool = { outputSchema: unknown } & Record<string, unknown>;
     const tools = (body: string) =>
       (rpcMessage(body) as { result: { tools: Array<Tool> } }).result.tools;
-    const served = tools(actual.body);
+    const all = tools(actual.body);
     const today = tools(expected.body);
-    expect(served.map((tool) => tool["name"])).toEqual([
+    expect(all.map((tool) => tool["name"])).toEqual([
       "list_events",
       "get_event",
       "list_speakers",
       "get_community",
+      "get_guide",
+      "get_year",
     ]);
+    // get_guide and get_year are new: the app never had them (core's
+    // contract holds them).
+    const served = all.filter(
+      (tool) => tool["name"] !== "get_guide" && tool["name"] !== "get_year",
+    );
     // Names, titles, descriptions, annotations and input schemas, exactly,
     // but for one deliberate difference: the Worker writes the name as one
     // word, allthings, where the app still writes "all things".
@@ -570,6 +637,54 @@ describe("MCP", () => {
     expect(response.status).toBe(413);
   });
 
+  it("get_year looks back on a year of our evenings in the contract's shape, the latest when none is asked for", async ({
+    Web,
+  }) => {
+    type YearAnswer = {
+      result: {
+        isError?: boolean;
+        structuredContent?: Contract.Year;
+        content: Array<{ text: string }>;
+      };
+    };
+    const ask = async (args: Record<string, unknown>) =>
+      (
+        rpcMessage(
+          await (
+            await fetch(mcpRequest(`${Web}/mcp`, call("get_year", args)))
+          ).text(),
+        ) as YearAnswer
+      ).result;
+    const latest = await ask({});
+    expect(latest.isError).toBeUndefined();
+    const year = Schema.decodeUnknownSync(Contract.Year)(
+      latest.structuredContent,
+    );
+    expect(year.year).toBe(2026);
+    expect(year.years).toEqual([2026, 2025]);
+    expect(year.url).toBe(`${origin}/year/2026`);
+    // In the order held; the Worker reads the seed at today's clock, when
+    // every evening of it is over. The draft is never one.
+    expect(year.evenings.map((evening) => evening.slug)).toEqual([
+      "2026-08-12-react-at-acme",
+      "2026-10-03-ends-now",
+      "2026-10-03-hack-day",
+      "2026-11-05-upcoming",
+    ]);
+    expect(year.evenings[0]?.onStage[0]).toEqual({
+      name: "Linus",
+      url: `${origin}/people/linus`,
+    });
+    expect(year.tally.guests).toBe(118);
+    expect((await ask({ year: 2025 })).structuredContent?.year).toBe(2025);
+    const none = await ask({ year: 2024 });
+    expect(none.isError).toBe(true);
+    expect(none.content[0]?.text).toBe(
+      "No allthings evening was held in 2024.",
+    );
+    expect((await ask({ year: 26 })).isError).toBe(true);
+  });
+
   it("answers a call whose arguments hold too many elements with an error, and still serves", async ({
     Web,
   }) => {
@@ -666,6 +781,7 @@ describe("MCP", () => {
     for (const message of [
       { jsonrpc: "2.0", id: 1, method: "tools/list" },
       call("get_community", {}),
+      call("get_guide", {}),
     ]) {
       const response = await fetch(mcpRequest(`${Unconfigured}/mcp`, message));
       const { result } = rpcMessage(await response.text()) as {
@@ -684,5 +800,15 @@ describe("bundle", () => {
       bundleBudgets,
     );
     expect(problems).toBeUndefined();
+  });
+
+  it("starts from the build's id alone, never the whole manifest", async () => {
+    expect(buildId).toBe(built.build);
+    const startup = await startupContributors(
+      new URL("../.alchemy/bundles/Web", import.meta.url).pathname,
+    );
+    const names = startup.map((contributor) => contributor.name);
+    expect(names).toContain("src/build-id.ts");
+    expect(names).not.toContain("src/assets.ts");
   });
 });

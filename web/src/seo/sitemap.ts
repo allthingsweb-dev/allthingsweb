@@ -1,6 +1,6 @@
 import { eventUrl } from "allthings-core/src/mappers.ts";
 import { DateTime } from "effect";
-import { personPath } from "../links.ts";
+import { personPath, yearPath } from "../links.ts";
 import type { FeedEvent, FeedPerson } from "./data.ts";
 import { escapeXml } from "./xml.ts";
 
@@ -20,6 +20,7 @@ export const sitePages = [
   "/",
   "/events",
   "/talks",
+  "/guide",
   "/people",
   "/about",
   "/code-of-conduct",
@@ -34,17 +35,21 @@ const url = (loc: string, lastmod?: DateTime.Utc) =>
 
 /**
  * The sitemap of the site at `origin`. `events` are listed in the order
- * given (FeedData's: latest start first), each with when it last changed.
+ * given (FeedData's: latest start first), each with when it last changed;
+ * each of `years` (core's src/year.ts: latest first) as its page, after
+ * the site's own.
  */
 export function sitemapXml(
   events: ReadonlyArray<FeedEvent>,
   origin: string,
   people: ReadonlyArray<FeedPerson> = [],
+  years: ReadonlyArray<number> = [],
 ): string {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...sitePages.map((path) => url(`${origin}${path}`)),
+    ...years.map((year) => url(`${origin}${yearPath(year)}`)),
     ...events.map((event) =>
       url(eventUrl(origin, event.slug), event.updatedAt),
     ),

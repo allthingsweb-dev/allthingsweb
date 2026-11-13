@@ -40,6 +40,7 @@ export const reservedSlugs: ReadonlySet<string> = new Set([
   "brand",
   "code-of-conduct",
   "events",
+  "guide",
   "handler",
   "hero-image-404",
   "hero-image-goodbye",
@@ -61,6 +62,7 @@ export const reservedSlugs: ReadonlySet<string> = new Set([
   "shared",
   "speakers",
   "talks",
+  "year",
 ]);
 
 /**

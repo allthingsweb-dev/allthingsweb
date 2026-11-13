@@ -566,207 +566,15 @@
   height: 100%;
 }
 
-/* year-end-retro: photos hanging at different depths around the statement,
-   drifting, in a field that sways so the near ones pass the far ones. */
-
-.depth {
-  position: relative;
-  overflow: hidden;
-  grid-template-rows: minmax(calc(var(--at-size-mark-wide) * 1.2), auto);
-}
+/* year-end-retro: the depth field (depth.css) from edge to edge, its
+   statement in the page's column. */
 
 .depth-field {
   grid-column: full;
-  grid-row: 1;
-  position: relative;
-  perspective: calc(var(--at-size-mark-wide) * 1.6);
 }
 
-.depth-sway {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  animation: depth-sway 38s ease-in-out infinite alternate;
-}
-
-@keyframes depth-sway {
-  from {
-    transform: rotateY(-5deg) rotateX(2deg);
-  }
-
-  to {
-    transform: rotateY(5deg) rotateX(-2deg);
-  }
-}
-
-.depth-photo {
-  position: absolute;
-  width: var(--at-size-tile-m);
-  transform-style: preserve-3d;
-}
-
-.depth-drift {
-  animation: depth-drift 17s ease-in-out infinite alternate;
-}
-
-.depth-photo img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-}
-
-@keyframes depth-drift {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(var(--at-space-6), calc(var(--at-space-4) * -1), 0);
-  }
-}
-
-/* Near photos are large and bright, far ones small and dim: each place in
-   the field has its own size, depth and pace. They keep to the edges and
-   the bands above and below the statement, and run off the page. */
-.depth-photo:nth-child(1) {
-  top: 2%;
-  left: -6%;
-  width: var(--at-size-tile-l);
-  transform: translateZ(var(--at-space-14));
-}
-
-.depth-photo:nth-child(2) {
-  top: 3%;
-  left: 30%;
-  width: var(--at-size-tile-s);
-  transform: translateZ(calc(var(--at-space-14) * -4));
-  opacity: 0.5;
-}
-
-.depth-photo:nth-child(3) {
-  top: 1%;
-  left: 60%;
-  transform: translateZ(calc(var(--at-space-14) * -1));
-  opacity: 0.8;
-}
-
-.depth-photo:nth-child(4) {
-  top: 16%;
-  left: 87%;
-  width: var(--at-size-tile-s);
-  transform: translateZ(calc(var(--at-space-14) * -3));
-  opacity: 0.55;
-}
-
-.depth-photo:nth-child(5) {
-  top: 52%;
-  left: 84%;
-  width: var(--at-size-tile-l);
-  transform: translateZ(var(--at-space-14));
-}
-
-.depth-photo:nth-child(6) {
-  top: 86%;
-  left: 64%;
-  width: var(--at-size-tile-s);
-  transform: translateZ(calc(var(--at-space-14) * -2));
-  opacity: 0.65;
-}
-
-.depth-photo:nth-child(7) {
-  top: 84%;
-  left: 36%;
-  transform: translateZ(calc(var(--at-space-14) * -3));
-  opacity: 0.5;
-}
-
-.depth-photo:nth-child(8) {
-  top: 64%;
-  left: -2%;
-  transform: translateZ(calc(var(--at-space-14) * -1));
-  opacity: 0.85;
-}
-
-.depth-photo:nth-child(9) {
-  top: 36%;
-  left: 3%;
-  width: var(--at-size-tile-s);
-  transform: translateZ(calc(var(--at-space-14) * -4));
-  opacity: 0.45;
-}
-
-.depth-photo:nth-child(10) {
-  top: 9%;
-  left: 47%;
-  width: var(--at-size-tile-s);
-  transform: translateZ(calc(var(--at-space-14) * -5));
-  opacity: 0.4;
-}
-
-.depth-photo:nth-child(11) {
-  top: 90%;
-  left: 90%;
-  width: var(--at-size-tile-s);
-  transform: translateZ(calc(var(--at-space-14) * -2));
-  opacity: 0.6;
-}
-
-.depth-photo:nth-child(12) {
-  top: 80%;
-  left: 14%;
-  width: var(--at-size-tile-s);
-  transform: translateZ(calc(var(--at-space-14) * -5));
-  opacity: 0.4;
-}
-
-.depth-photo:nth-child(3n + 2) .depth-drift {
-  animation-duration: 23s;
-  animation-delay: -7s;
-}
-
-.depth-photo:nth-child(3n) .depth-drift {
-  animation-duration: 29s;
-  animation-delay: -13s;
-  animation-direction: alternate-reverse;
-}
-
-/* The statement, as wide as the page's middle allows, its size from it. */
 .depth-text {
-  grid-row: 1;
-  z-index: 1;
-  align-self: center;
-  justify-self: center;
-  display: flex;
-  flex-direction: column;
-  gap: var(--at-space-12);
-  width: 100%;
-  max-width: calc(var(--at-size-mark-wide) * 1.25);
-  padding: var(--at-layout-block) 0;
-  container-type: inline-size;
-  text-shadow: 0 0 var(--at-space-8) var(--at-ground);
-}
-
-.depth-statement {
-  display: flex;
-  flex-direction: column;
-  gap: var(--at-space-5);
-  font-size: var(--at-font-size-hero-m);
-  font-weight: 800;
-  font-stretch: 112%;
-  text-indent: var(--at-type-event-lockup-inset);
-  line-height: 0.92;
-  letter-spacing: -0.04em;
-  text-wrap: balance;
-}
-
-.depth-after {
-  font-size: var(--at-type-lead-size);
-  font-weight: 500;
-  font-stretch: 100%;
-  text-indent: 0;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  color: var(--at-meta);
+  grid-column: content;
 }
 
 /* faces: the wordmark across the page, its letters made of people
@@ -1031,30 +839,6 @@ h1.letters-word .at-cursor {
     display: none;
   }
 
-  .depth-photo,
-  .depth-photo:nth-child(1),
-  .depth-photo:nth-child(5) {
-    width: calc(var(--at-size-tile-s) * 0.9);
-  }
-
-  .depth-photo:nth-child(2),
-  .depth-photo:nth-child(4),
-  .depth-photo:nth-child(9),
-  .depth-photo:nth-child(10),
-  .depth-photo:nth-child(11),
-  .depth-photo:nth-child(12) {
-    width: calc(var(--at-size-tile-s) * 0.6);
-  }
-
-  .depth-photo:nth-child(n + 11) {
-    display: none;
-  }
-
-  /* On a phone the field passes behind the statement: it stays dim. */
-  .depth-field .depth-photo {
-    opacity: 0.45;
-  }
-
   /* allthings/_ on three lines, each as wide as the page allows. */
   .letters-word {
     font-size: calc(var(--at-font-size-mural) * 1.55);
@@ -1070,8 +854,6 @@ h1.letters-word .at-cursor {
    they start. The engines don't start at all (src/client/lab.ts). */
 @media (prefers-reduced-motion: reduce) {
   .wall-tile > :nth-child(2),
-  .depth-sway,
-  .depth-drift,
   .letters-track,
   .letters[data-engine-stage] .letters-photos,
   .liquid[data-engine-stage] .liquid-field {

@@ -110,6 +110,9 @@ const published = [
   "2024-10-05-hackathon & more",
 ];
 
+/** The years in which one of ours was held, latest first. */
+const heldYears = [2026, 2025, 2024];
+
 describe("robots.txt", () => {
   it("lets crawlers in on the production host and names its sitemap", async (urls) => {
     const { response, body } = await get(`${urls.Site}/robots.txt`, {
@@ -180,6 +183,8 @@ describe("/sitemap.xml", () => {
     ).urlset.url;
     expect(entries.map((entry) => entry.loc)).toEqual([
       ...sitePages.map((path) => `${origin}${path}`),
+      // Every year that held one of ours has a page, latest first.
+      ...heldYears.map((year) => `${origin}/year/${year}`),
       ...published.map((slug) => `${origin}/${encodeURIComponent(slug)}`),
       // Everyone who took part in a published evening has a page.
       `${origin}/people/zoe-judge`,
@@ -188,10 +193,18 @@ describe("/sitemap.xml", () => {
     expect(body).not.toContain("/people/nobody");
     expect(entries.at(-2)?.lastmod).toBe("2026-09-17T00:00:00.000Z");
     expect(entries.at(-1)?.lastmod).toBe("2026-09-18T00:00:00.000Z");
-    // The site's own pages have none; every event says when it changed.
+    // The site's own pages and the years have none; every event says when
+    // it changed.
     expect(entries.filter((entry) => entry.lastmod === undefined)).toHaveLength(
-      sitePages.length,
+      sitePages.length + heldYears.length,
     );
+  });
+
+  it("lists only years whose page the Worker serves", async (urls) => {
+    for (const year of heldYears) {
+      const { response } = await get(`${urls.Site}/year/${year}`);
+      expect(response.status).toBe(200);
+    }
   });
 
   it("lists only pages the Worker serves", async (urls) => {

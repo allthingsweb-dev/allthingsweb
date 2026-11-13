@@ -200,6 +200,22 @@ PAGES = (
         SENTENCES,
     ),
     Page(
+        "og-guide.png",
+        "the guide · allthings/_",
+        ("the guide",),
+        False,
+        "worth the trip",
+        SENTENCES,
+    ),
+    Page(
+        "og-year.png",
+        "the year in evenings · allthings/_",
+        ("the year",),
+        False,
+        "in evenings",
+        SENTENCES,
+    ),
+    Page(
         "og-about.png",
         "about · allthings/_",
         ("about",),

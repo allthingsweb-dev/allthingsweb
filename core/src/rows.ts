@@ -48,7 +48,10 @@ export const Curation = Schema.Union([
  */
 export const Event = Schema.Struct({
   id: Schema.String,
+  /** Its long slug, which the API and the MCP tools look it up by. */
   slug: Schema.String,
+  /** Where its page is: its short link, or its long slug until it has one. */
+  siteSlug: Schema.String,
   name: Schema.String,
   tagline: Schema.String,
   startDate: Schema.DateTimeUtcFromDate,
@@ -155,6 +158,8 @@ export const DirectoryRow = Schema.Struct({
   eventId: Schema.String,
   eventName: Schema.String,
   eventSlug: Schema.String,
+  /** The event's `siteSlug`: where its page is. */
+  eventSiteSlug: Schema.String,
   eventStart: Schema.DateTimeUtcFromDate,
 });
 

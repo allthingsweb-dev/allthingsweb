@@ -7,11 +7,14 @@ import { asOf } from "allthings-core/src/clock.ts";
 import * as Contract from "allthings-core/src/contract.ts";
 import type { DataSourceError } from "allthings-core/src/errors.ts";
 import { Events } from "allthings-core/src/events.ts";
+import { readGuide, toGuide } from "allthings-core/src/guide.ts";
 import * as Mappers from "allthings-core/src/mappers.ts";
 import { Speakers } from "allthings-core/src/speakers.ts";
-import { Effect, Schema } from "effect";
+import { Year, yearContract } from "allthings-core/src/year.ts";
+import { Effect, Option, Schema } from "effect";
 import { z } from "zod";
 import { type Repositories, repositories } from "../database.ts";
+import { mediaOrigin } from "../links.ts";
 import { Site } from "../site.ts";
 import { community } from "./community.ts";
 import { transientMark } from "./endpoint.ts";
@@ -19,7 +22,8 @@ import { transientMark } from "./endpoint.ts";
 /**
  * The public MCP tools, as app/src/lib/mcp/tools.ts declares them: the same
  * names, titles, descriptions, annotations, input schemas and error texts,
- * because agents and the CLI (cli/, `allthings`) rely on them.
+ * because agents and the CLI (cli/, `allthings`) rely on them. get_year,
+ * a year of our evenings looked back on, is the Worker's own.
  *
  * Input schemas stay in zod, the MCP SDK's own schema library and so already
  * in the bundle: they are what clients see in tools/list and they word the
@@ -33,7 +37,7 @@ export type ToolProgram = Effect.Effect<CallToolResult, never, Site>;
 /** Runs a tool's program with the isolate's services. */
 export type RunTool = (program: ToolProgram) => Promise<CallToolResult>;
 
-/** The four public tools' inputs, as MCP clients send them. */
+/** The public tools' inputs, as MCP clients send them. */
 export const toolInputs = {
   list_events: z.object({
     when: z
@@ -50,6 +54,18 @@ export const toolInputs = {
     limit: z.number().int().min(1).max(200).default(50),
   }),
   get_community: z.object({}),
+  get_guide: z.object({}),
+  get_year: z.object({
+    year: z
+      .number()
+      .int()
+      .min(1000)
+      .max(9999)
+      .optional()
+      .describe(
+        "The year, on San Francisco's calendar. Leave it out for the latest year with an evening held.",
+      ),
+  }),
 } as const;
 
 export type ToolName = keyof typeof toolInputs;
@@ -194,6 +210,30 @@ const getCommunity: ToolProgram = Site.useSync(({ origin }) =>
   succeed(community(origin)),
 );
 
+/** The guide as of the clock (core's src/guide.ts): it reads no database. */
+const getGuide: ToolProgram = Effect.gen(function* () {
+  const { origin } = yield* Site;
+  return succeed(toGuide(yield* readGuide, origin));
+});
+
+/**
+ * A year of our evenings (core's src/year.ts), the latest with one held
+ * when none is asked for. A year without one is an answer, not a failure.
+ */
+const getYear = (asked: number | undefined) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const year = asked ?? (yield* Year.use((years) => years.years)).at(0);
+    if (year === undefined) {
+      return fail("No allthings evening has been held yet.");
+    }
+    const found = yield* Year.use((years) => years.read(year, mediaOrigin));
+    return Option.match(found, {
+      onNone: () => fail(`No allthings evening was held in ${year}.`),
+      onSome: (view) => succeed(yearContract(view, origin)),
+    });
+  }).pipe(withDataSource("get_year", "years"));
+
 /**
  * The program that answers `name` with `input` (untrusted: it is parsed
  * with the tool's schema first), or undefined for input the tool refuses.
@@ -223,12 +263,20 @@ export function toolProgram(
       return toolInputs.get_community.safeParse(input).success
         ? getCommunity
         : undefined;
+    case "get_guide":
+      return toolInputs.get_guide.safeParse(input).success
+        ? getGuide
+        : undefined;
+    case "get_year": {
+      const parsed = toolInputs.get_year.safeParse(input);
+      return parsed.success ? getYear(parsed.data.year) : undefined;
+    }
     default:
       return undefined;
   }
 }
 
-/** Registers the four public tools on `server`; `call` answers them. */
+/** Registers the public tools on `server`; `call` answers them. */
 export function registerTools(server: McpServer, call: CallTool): void {
   server.registerTool(
     "list_events",
@@ -284,5 +332,31 @@ export function registerTools(server: McpServer, call: CallTool): void {
       annotations: readOnly,
     },
     () => call("get_community", {}),
+  );
+
+  server.registerTool(
+    "get_guide",
+    {
+      title: "The allthings guide",
+      description:
+        "Conferences and happenings beyond allthings' own evenings worth going to, starred as the Michelin guide stars restaurants: 3 stars are worth a special journey, 2 a detour, 1 a stop. Each with its city, why, who runs it, its official site, and its next edition's dates once announced.",
+      inputSchema: toolInputs.get_guide,
+      outputSchema: outputSchema(Schema.Struct(Contract.Guide.fields)),
+      annotations: readOnly,
+    },
+    () => call("get_guide", {}),
+  );
+
+  server.registerTool(
+    "get_year",
+    {
+      title: "Get a year",
+      description:
+        "A year of allthings evenings, looked back on: every evening of ours held that year in order, with its neighborhood, hosting companies, who was on stage, Luma's guest count and its photo, and the year's tally of evenings, people on stage, hosting companies and guests.",
+      inputSchema: toolInputs.get_year,
+      outputSchema: outputSchema(Schema.Struct(Contract.Year.fields)),
+      annotations: readOnly,
+    },
+    (input) => call("get_year", input),
   );
 }

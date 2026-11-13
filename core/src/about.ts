@@ -6,6 +6,7 @@ import type * as Statement from "effect/sql/Statement";
 import type * as Contract from "./contract.ts";
 import {
   ended,
+  inYear,
   ours,
   published,
   soonestFirst,
@@ -81,18 +82,27 @@ export const TallyFields = {
 
 /**
  * Our evenings held as of `now` (published and ended), for a statement's
- * `WITH held AS (…)`: what {@link tally} counts.
+ * `WITH held AS (…)`: what {@link tally} counts. Given a `year`, only
+ * those that started in it in San Francisco (`inYear`), for a year's
+ * tally (src/year.ts).
  */
 export const held = (
   sql: SqlClient,
   now: DateTime.Utc | Date,
+  year?: number,
 ): Statement.Fragment =>
   sql`SELECT e.* FROM events e
-    WHERE ${sql.and([published(sql, "e"), ended(sql, "e", now), ours(sql, "e")])}`;
+    WHERE ${sql.and([
+      published(sql, "e"),
+      ended(sql, "e", now),
+      ours(sql, "e"),
+      ...(year === undefined ? [] : [inYear(sql, "e", year)]),
+    ])}`;
 
 /**
  * The tally as four columns of a SELECT under `WITH held AS (…)`
- * ({@link held}), each counted from the data; nothing is typed in.
+ * ({@link held}), each counted from the data at the evenings `held`
+ * holds; nothing is typed in.
  */
 export const tally = (
   sql: SqlClient,
@@ -102,6 +112,7 @@ export const tally = (
     (
       SELECT count(DISTINCT a.profile_id)::int
       FROM ${talkAppearances(sql, { whose: "ours", when: { ended: now } })} a
+      WHERE a.event_id IN (SELECT id FROM held)
     ) AS speakers,
     (
       SELECT count(DISTINCT es.sponsor_id)::int

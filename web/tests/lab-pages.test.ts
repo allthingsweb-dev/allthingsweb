@@ -214,12 +214,14 @@ describe.each(everyName)("/lab/home/%s", (name) => {
     );
   });
 
-  test("loads the lab's stylesheet after the site's, and no script but the lab's own, where it has an engine", () => {
+  test("loads the lab's stylesheet after the site's and the depth field's, and no script but the lab's own, where it has an engine", () => {
     const html = render(name);
     const site = html.indexOf(`href="${built.stylesheet}"`);
+    const depth = html.indexOf(`href="${built.depthStylesheet}"`);
     const lab = html.indexOf(`href="${built.labStylesheet}"`);
     expect(site).toBeGreaterThan(-1);
-    expect(lab).toBeGreaterThan(site);
+    expect(depth).toBeGreaterThan(site);
+    expect(lab).toBeGreaterThan(depth);
     const scripts = [
       ...html.matchAll(/<script(?! type="application\/ld\+json")[^>]*>/g),
     ].map(([tag]) => tag);
@@ -613,6 +615,11 @@ const site = await Bun.file(
   new URL("../src/styles/site.css", import.meta.url),
 ).text();
 
+/** depth.css: the depth field, which a year's page and the lab load. */
+const depth = await Bun.file(
+  new URL("../src/styles/depth.css", import.meta.url),
+).text();
+
 /** lab.css, and its rules selector by selector. */
 const lab = await Bun.file(
   new URL("../src/styles/lab.css", import.meta.url),
@@ -640,6 +647,14 @@ describe("lab.css", () => {
       expect(stoppedSelectors).toContain(selector);
     }
     // Transitions are cut too, in each stylesheet (styles.test.ts).
+  });
+
+  test("leaves the depth field to depth.css, which holds it still for people who prefer reduced motion", () => {
+    expect(lab).not.toContain("@keyframes depth-");
+    expect(site).not.toContain("@keyframes depth-");
+    expect(depth).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{\s*\.depth-sway,\s*\.depth-drift \{\s*animation: none;/,
+    );
   });
 
   test("holds an engine's surface back only while the script runs, and shows the stills if it never starts", () => {
@@ -672,8 +687,9 @@ describe("lab.css", () => {
   });
 
   test("animates only opacity and transforms, and hides what is out of a cross", () => {
+    // The depth field's are in depth.css, which the lab loads too.
     const keyframes = [
-      ...lab.matchAll(/@keyframes [a-z-]+ \{([\s\S]*?)\n\}/g),
+      ...`${lab}\n${depth}`.matchAll(/@keyframes [a-z-]+ \{([\s\S]*?)\n\}/g),
     ].map(([, body = ""]) => body);
     expect(keyframes.length).toBeGreaterThan(3);
     for (const body of keyframes) {

@@ -40,6 +40,10 @@
       "fields": ["credential"]
     },
     {
+      "title": "allthings proposal_intake",
+      "fields": ["credential"]
+    },
+    {
       "title": "allthings site refresh",
       "fields": ["credential"]
     },

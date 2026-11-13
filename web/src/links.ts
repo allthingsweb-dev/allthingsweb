@@ -37,6 +37,14 @@ export const everyEvening = "/events";
 /** Every talk given at our evenings, listed: the talks library (pages/talks.tsx). */
 export const everyTalk = "/talks";
 
+/** Happenings beyond our evenings worth going to: the allthings guide (pages/guide.tsx). */
+export const guidePath = "/guide";
+/**
+ * A year of our evenings looked back on (pages/year.tsx): /year/2026. Not
+ * /2026, which may be an evening's own short link.
+ */
+export const yearPath = (year: number): `/${string}` => `/year/${year}`;
+
 /** What allthings is, where it came from and who organizes it. */
 export const aboutPath = "/about";
 

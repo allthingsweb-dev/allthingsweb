@@ -5,7 +5,7 @@ import * as SqlSchema from "effect/sql/SqlSchema";
 import { latestFirst, talkAppearances } from "./catalog.ts";
 import type { DataSourceError } from "./errors.ts";
 import * as Rows from "./rows.ts";
-import { orDataSourceError, profileJson } from "./sql.ts";
+import { orDataSourceError, profileJson, siteSlug } from "./sql.ts";
 
 /** A speaker and the talks they gave, in their newest-first order. */
 export interface DirectorySpeaker {
@@ -25,6 +25,8 @@ export interface TalkAppearance {
   readonly eventId: string;
   readonly eventName: string;
   readonly eventSlug: string;
+  /** Where the event's page is: its short link, or its long slug. */
+  readonly eventSiteSlug: string;
   readonly eventStart: DateTime.Utc;
 }
 
@@ -83,6 +85,7 @@ export const toDirectory = (
         eventId: row.eventId,
         eventName: row.eventName,
         eventSlug: row.eventSlug,
+        eventSiteSlug: row.eventSiteSlug,
         eventStart: row.eventStart,
       };
       talks.set(appearanceId, talk);
@@ -110,7 +113,7 @@ const make = Effect.gen(function* () {
         ${sql.literal(profileJson)} AS profile,
         t.id AS "talkId", t.title AS "talkTitle", t.description AS "talkDescription",
         e.id AS "eventId", e.name AS "eventName", e.slug AS "eventSlug",
-        e.start_date AS "eventStart"
+        ${sql.literal(siteSlug("e"))} AS "eventSiteSlug", e.start_date AS "eventStart"
       FROM ${talkAppearances(sql, {
         whose: "ours",
         when: { ended: now },

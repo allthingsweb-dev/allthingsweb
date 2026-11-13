@@ -101,6 +101,22 @@ export function simpleMonth(when: string): string {
   return `${when.slice(0, 4)}.${when.slice(5, 7)}`;
 }
 
+/**
+ * "2027.04.29–30": days on the calendar from `from` through `to`, both
+ * "YYYY-MM-DD", in simple dates, each part said once: "2027.04.29" for one
+ * day, "2027.04.29–05.02" across a month, "2027.12.30–2028.01.02" across a
+ * year.
+ */
+export function simpleDays(from: string, to: string): string {
+  const [start, end] = [dayParts(from), dayParts(to)];
+  const first = simpleDate(from);
+  if (start.year !== end.year) return `${first}–${simpleDate(to)}`;
+  if (start.month !== end.month) {
+    return `${first}–${twoDigits(end.month)}.${twoDigits(end.day)}`;
+  }
+  return start.day === end.day ? first : `${first}–${twoDigits(end.day)}`;
+}
+
 /** "2026.10.11", or "2026.10" for a date known only by its month. */
 export const simpleDayOrMonth = (when: string): string =>
   when.length === 7 ? simpleMonth(when) : simpleDate(when);
