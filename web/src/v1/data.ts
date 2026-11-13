@@ -159,7 +159,10 @@ export interface V1DataShape {
 
 /** Columns that reference an image, as the queries alias their tables. */
 type ImageColumn =
-  "e.preview_image" | "p.image" | "s.square_logo_light" | "s.square_logo_dark";
+  | "e.preview_image"
+  | "p.image"
+  | "s.square_logo_light"
+  | "s.square_logo_dark";
 
 /** `column`'s image as a JSON object matching `ImageRow`, or NULL. */
 const imageJson = (column: ImageColumn) =>
