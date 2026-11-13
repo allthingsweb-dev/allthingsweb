@@ -399,6 +399,13 @@ describe("decodeTalkArtifactsFile", () => {
 
   test("refuses an unknown field, an unknown kind, an impossible day, a link that isn't https, a negative start and an empty label", async () => {
     expect(await decodes(file)).toBe(true);
+    // A title is matched as stored, a trailing space included.
+    expect(
+      await decodes({
+        artifacts: [{ ...first, title: "Live Content with RSC " }],
+        held: [],
+      }),
+    ).toBe(true);
     for (const artifact of [
       { ...first, venue: "Somewhere" },
       { ...first, kind: "video" },

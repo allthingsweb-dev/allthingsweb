@@ -63,10 +63,16 @@ const TalkId = Schema.String.check(
   ),
 );
 
+/**
+ * A talk's title exactly as stored, to check against it: some stored
+ * titles carry a space or an invisible character at an end, kept as is.
+ */
+const Title = Schema.String.check(Schema.isNonEmpty());
+
 export const ArtifactEntry = Schema.Struct({
   /** The talk, and its title as stored, which must still match. */
   talkId: TalkId,
-  title: Text(500),
+  title: Title,
   kind: Schema.Literals(artifactKinds),
   url: Url,
   /** What the link is, where its kind doesn't say enough. */
@@ -95,7 +101,7 @@ export const TalkArtifactsFile = Schema.Struct({
   held: Schema.Array(
     Schema.Struct({
       talkId: TalkId,
-      title: Text(500),
+      title: Title,
       kind: Schema.Literals(artifactKinds),
       url: Url,
       question: Text(1000),
