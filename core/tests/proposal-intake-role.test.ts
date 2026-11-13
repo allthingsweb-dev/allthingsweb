@@ -12,7 +12,7 @@ import {
 } from "../../infra/scripts/studio.ts";
 import { vaultItems } from "../../infra/scripts/vault-items.ts";
 import { sqlLayer as ownerLayer } from "../scripts/pglite.ts";
-import { submitProposal } from "../src/proposal-intake.ts";
+import { type IntakeSource, submitProposal } from "../src/proposal-intake.ts";
 import { PROPOSAL_INTAKE } from "../src/proposal-intake-role.ts";
 import { readProposal, recordProposal } from "../src/proposals.ts";
 import { seededDatabase } from "./support/database.ts";
@@ -237,10 +237,10 @@ describe("nothing else", () => {
       `SELECT planning.proposals_intake()`,
       // What it adds, it can't read back.
       `INSERT INTO planning.proposals (title, abstract, name, email, source)
-         VALUES ('T', 'An abstract long enough.', 'Ada', 'ada@example.com', 'site') RETURNING id`,
+         VALUES ('T', 'An abstract long enough to read, at forty characters.', 'Ada', 'ada@example.com', 'site') RETURNING id`,
       // An organizer is named, and it may not name one.
       `INSERT INTO planning.proposals (title, abstract, name, email, source, recorded_by)
-         VALUES ('T', 'An abstract long enough.', 'Ada', 'ada@example.com', 'organizer', 'erik')`,
+         VALUES ('T', 'An abstract long enough to read, at forty characters.', 'Ada', 'ada@example.com', 'organizer', 'erik')`,
     ];
     const outcomes = await asIntake(attempts);
     expect(
@@ -252,7 +252,7 @@ describe("nothing else", () => {
     // Without a name, an organizer's is refused by the table.
     const [unnamed] = await asIntake([
       `INSERT INTO planning.proposals (title, abstract, name, email, source)
-         VALUES ('T', 'An abstract long enough.', 'Ada', 'ada@example.com', 'organizer')`,
+         VALUES ('T', 'An abstract long enough to read, at forty characters.', 'Ada', 'ada@example.com', 'organizer')`,
     ]);
     expect(unnamed).toContain("proposals_organizer_check");
   });
@@ -294,7 +294,10 @@ describe("submitProposal, as the role", () => {
     return result.proposal;
   };
 
-  const submit = (fields?: Record<string, unknown>, source = "site" as const) =>
+  const submit = (
+    fields?: Record<string, unknown>,
+    source: IntakeSource = "site",
+  ) =>
     Effect.runPromise(
       submitProposal(read(fields), source).pipe(
         Effect.provide(asRole()),
@@ -357,7 +360,7 @@ describe("submitProposal, as the role", () => {
   test("stops at 100 a day from outside, but not an organizer's", async () => {
     await db.exec(`
       INSERT INTO planning.proposals (title, abstract, name, email, source)
-      SELECT 'Talk ' || n, 'An abstract long enough to read.', 'Someone', 'someone' || n || '@example.com', 'site'
+      SELECT 'Talk ' || n, 'An abstract long enough to read, at forty characters.', 'Someone', 'someone' || n || '@example.com', 'site'
       FROM generate_series(1, 99) AS n`);
     expect(await submit()).toBe("kept");
     expect(await submit({ title: "One more" })).toBe("ProposalIntakeFull");

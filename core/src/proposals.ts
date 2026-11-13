@@ -77,17 +77,34 @@ export const proposalLimits = {
   decisionNote: 1000,
 } as const;
 
+/**
+ * Control characters but a tab and a line break, and Unicode's line and
+ * paragraph separators: what doesn't read as it looks.
+ */
+const unreadable = (value: string): boolean => {
+  for (const char of value) {
+    const code = char.codePointAt(0) ?? 0;
+    if ((code < 0x20 && char !== "\t" && char !== "\n") || code === 0x7f) {
+      return true;
+    }
+    if (code === 0x2028 || code === 0x2029) return true;
+  }
+  return false;
+};
+
 /** One line of text, from 1 to `max` characters, saying `what` when it isn't. */
 const line = (max: number, what: string) =>
   Schema.String.check(
     Schema.makeFilter((value: string) =>
       value === ""
         ? `${what} is missing.`
-        : value.length > max
-          ? `${what} is ${value.length} characters; keep it to ${max}.`
-          : value.includes("\n")
-            ? `${what} fits on one line.`
-            : undefined,
+        : unreadable(value)
+          ? `${what} has a character in it that isn't text.`
+          : value.length > max
+            ? `${what} is ${value.length} characters; keep it to ${max}.`
+            : value.includes("\n")
+              ? `${what} fits on one line.`
+              : undefined,
     ),
   );
 
@@ -97,11 +114,13 @@ const text = (min: number, max: number, what: string) =>
     Schema.makeFilter((value: string) =>
       value === ""
         ? `${what} is missing.`
-        : value.length < min
-          ? `${what} is ${value.length} characters; say a little more, at least ${min}.`
-          : value.length > max
-            ? `${what} is ${value.length} characters; keep it to ${max}.`
-            : undefined,
+        : unreadable(value)
+          ? `${what} has a character in it that isn't text.`
+          : value.length < min
+            ? `${what} is ${value.length} characters; say a little more, at least ${min}.`
+            : value.length > max
+              ? `${what} is ${value.length} characters; keep it to ${max}.`
+              : undefined,
     ),
   );
 
@@ -111,6 +130,7 @@ const Email = Schema.String.check(
     value === ""
       ? "An email is missing: it is how we answer you."
       : value.length <= proposalLimits.email &&
+          !unreadable(value) &&
           /^[^@\s]+@[^@\s]+[.][^@\s]+$/.test(value)
         ? undefined
         : `${JSON.stringify(value.slice(0, 60))} doesn't read as an email address.`,
@@ -185,10 +205,10 @@ export interface ProposalProblem {
   readonly message: string;
 }
 
-/** A string trimmed, with `\r\n` and `\r` read as `\n`; anything else as it is. */
+/** A string trimmed, with `\r\n` and `\r` read as `\n`, in NFC; anything else as it is. */
 const tidy = (value: unknown): unknown =>
   typeof value === "string"
-    ? value.replaceAll(/\r\n?/g, "\n").trim()
+    ? value.replaceAll(/\r\n?/g, "\n").normalize("NFC").trim()
     : Array.isArray(value)
       ? value.map(tidy)
       : value;

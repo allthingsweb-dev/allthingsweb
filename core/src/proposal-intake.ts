@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql/SqlClient";
+import type { SqlError } from "effect/sql/SqlError";
 import type { ProposalInput, ProposalSource } from "./proposals.ts";
 
 /**
@@ -64,8 +65,10 @@ export const submitProposal = (proposal: ProposalInput, source: IntakeSource) =>
       .pipe(
         Effect.catchTag("SqlError", (error) =>
           isDailyLimit(error.reason.cause)
-            ? Effect.fail(new ProposalIntakeFull())
-            : Effect.fail(error),
+            ? Effect.fail<ProposalIntakeFull | SqlError>(
+                new ProposalIntakeFull(),
+              )
+            : Effect.fail<ProposalIntakeFull | SqlError>(error),
         ),
       );
   });

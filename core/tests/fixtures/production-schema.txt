@@ -815,7 +815,7 @@ column planning.proposals #015 decision_note text
 column planning.proposals #016 created_at timestamp with time zone not null default now()
 column planning.proposals #017 updated_at timestamp with time zone not null default now()
 constraint planning.proposals proposals_about_check CHECK (((btrim(about) <> ''::text) AND (char_length(about) <= 1000)))
-constraint planning.proposals proposals_abstract_check CHECK (((btrim(abstract) <> ''::text) AND (char_length(abstract) <= 2000)))
+constraint planning.proposals proposals_abstract_check CHECK (((btrim(abstract) <> ''::text) AND (char_length(abstract) <= 2000) AND (char_length(btrim(abstract)) >= 40)))
 constraint planning.proposals proposals_decided_by_check CHECK ((decided_by ~ '^[a-z0-9][a-z0-9._-]{0,31}(/[a-z0-9][a-z0-9._-]{0,31})?$'::text))
 constraint planning.proposals proposals_decided_check CHECK ((((status = 'new'::text) = (decided_at IS NULL)) AND ((decided_at IS NULL) = (decided_by IS NULL)) AND ((decision_note IS NULL) OR (decided_at IS NOT NULL))))
 constraint planning.proposals proposals_decision_note_check CHECK (((btrim(decision_note) <> ''::text) AND (char_length(decision_note) <= 1000)))
@@ -833,5 +833,5 @@ constraint planning.proposals proposals_title_check CHECK (((btrim(title) <> '':
 index planning.proposals CREATE INDEX proposals_status_created_at_idx ON planning.proposals USING btree (status, created_at)
 index planning.proposals CREATE UNIQUE INDEX proposals_pkey ON planning.proposals USING btree (id)
 relation planning.proposals kind=r persistence=p rls=f force_rls=f replica_identity=d options=
-routine planning.proposals_intake() 484a5a77597152b9032a53a2aaf6987a
+routine planning.proposals_intake() eb307a1a61482986ca4cb224bf8a3c0e
 trigger CREATE TRIGGER proposals_intake BEFORE INSERT ON planning.proposals FOR EACH ROW EXECUTE FUNCTION planning.proposals_intake()

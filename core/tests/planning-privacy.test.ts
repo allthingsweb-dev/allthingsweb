@@ -96,7 +96,7 @@ const madeUp = `
   INSERT INTO planning.draft_notes (event_id, actor, kind, text)
     SELECT id, 'made-up', 'question', 'Made up?' FROM made_up_event;
   INSERT INTO planning.proposals (title, abstract, name, email, notes, source)
-    VALUES ('Made-up talk', 'Made up.', 'Made Up', 'made-up@example.com', 'Made up.', 'site');
+    VALUES ('Made-up talk', 'A made-up abstract, long enough to be kept.', 'Made Up', 'made-up@example.com', 'Made up.', 'site');
 `;
 
 let db: PGlite;

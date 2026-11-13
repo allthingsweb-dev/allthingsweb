@@ -137,6 +137,34 @@ describe("reading a proposal in", () => {
     ]);
   });
 
+  test("keeps text as it reads: in NFC, without control characters", () => {
+    const read = readProposal({
+      ...sent,
+      name: `Jose${String.fromCodePoint(0x301)} Valim`,
+    });
+    expect(read.ok ? read.proposal.name : "").toBe("Jos\u00e9 Valim");
+    const refused = readProposal({
+      ...sent,
+      title: "Effect\u0007 in production",
+      abstract: sent.abstract.replace(" ", String.fromCodePoint(0x2028)),
+      email: "ada\u0000@example.com",
+    });
+    expect(refused.ok ? [] : refused.problems).toEqual([
+      {
+        field: "title",
+        message: "The title has a character in it that isn't text.",
+      },
+      {
+        field: "abstract",
+        message: "The abstract has a character in it that isn't text.",
+      },
+      {
+        field: "email",
+        message: '"ada\\u0000@example.com" doesn\'t read as an email address.',
+      },
+    ]);
+  });
+
   test("holds links to four, each https, none twice", () => {
     const links = (given: ReadonlyArray<string>) => {
       const read = readProposal({ ...sent, links: given });
@@ -226,7 +254,7 @@ describe("the table", () => {
           () => undefined,
           (error: Error) => error.message,
         );
-    const base = `'T{n}', 'An abstract.', 'Ada', 'ada@example.com'`;
+    const base = `'T{n}', 'An abstract long enough to read, at forty characters.', 'Ada', 'ada@example.com'`;
     const columns = `title, abstract, name, email`;
     expect(await insert(`${columns}, source`, `${base}, 'site'`)).toBe(
       undefined,
@@ -263,9 +291,15 @@ describe("the table", () => {
     expect(
       await insert(
         `title, abstract, name, email, source`,
-        `E'Two\\nlines', 'An abstract.', 'Ada', 'ada@example.com', 'site'`,
+        `E'Two\\nlines', 'An abstract long enough to read, at forty characters.', 'Ada', 'ada@example.com', 'site'`,
       ),
     ).toContain("proposals_title_check");
+    expect(
+      await insert(
+        `title, abstract, name, email, source`,
+        `'Short', '  Under forty characters, once trimmed.  ', 'Ada', 'ada@example.com', 'site'`,
+      ),
+    ).toContain("proposals_abstract_check");
   });
 });
 

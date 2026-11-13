@@ -38,7 +38,8 @@ import { statements } from "./statements.ts";
  *
  * And `proposals_intake`, a trigger that runs as the table's owner
  * (SECURITY DEFINER), so it can read what the role can't, before each
- * proposal from outside is kept:
+ * proposal from outside is kept, one at a time (a lock held to its
+ * commit, so two sent at once are checked one after the other):
  *
  * - the same proposal (email, title and abstract) sent again while the
  *   first is still new is dropped, quietly: the sender is told what they
@@ -104,7 +105,7 @@ export const proposals: ReadonlyArray<string> = [
     "created_at" timestamp with time zone DEFAULT now() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT "proposals_title_check" CHECK (${textRule("title", 120)} AND strpos("title", chr(10)) = 0),
-    CONSTRAINT "proposals_abstract_check" CHECK (${textRule("abstract", 2000)}),
+    CONSTRAINT "proposals_abstract_check" CHECK (${textRule("abstract", 2000)} AND char_length(btrim("abstract")) >= 40),
     CONSTRAINT "proposals_format_check" CHECK ("format" IN ('talk', 'lightning', 'demo')),
     CONSTRAINT "proposals_name_check" CHECK (${textRule("name", 100)} AND strpos("name", chr(10)) = 0),
     CONSTRAINT "proposals_email_check" CHECK (char_length("email") <= 254 AND "email" ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'),
@@ -125,6 +126,10 @@ BEGIN
   IF NEW.source = 'organizer' THEN
     RETURN NEW;
   END IF;
+  -- One proposal from outside at a time, to its commit: each check below
+  -- then sees every one kept before it, so two sent at once can't both
+  -- pass as the first, or both as the 100th.
+  PERFORM pg_advisory_xact_lock(hashtext('planning.proposals_intake'));
   IF EXISTS (
     SELECT 1 FROM planning.proposals p
     WHERE p.status = 'new' AND lower(p.email) = lower(NEW.email)
