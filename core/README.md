@@ -1518,6 +1518,12 @@ edge's rate limit stops at the table. An organizer's are never limited.
   own page, and answers with the page again, thanks or each problem by its
   field. A hidden field no person fills (`website`) marks a script's form,
   which is thanked and kept nowhere.
+- **`propose_talk`**, the MCP server's one tool that writes
+  (`web/src/mcp/propose.ts`): the proposal's fields as its input, and as
+  its answer only that it was taken, or each problem. It runs on every
+  call, never through the page store, and the store's own address refuses
+  it. A call from the `allthings` command (its `User-Agent` says
+  `allthings-cli/`) is kept as the CLI's, any other as MCP's.
 - **Its login** is set by `infra/scripts/proposal-intake.ts`, run by the
   maintainer with the owner's connection once the migration is on
   production, as profile_editor's is: `--dry-run` shows it, `--apply` sets

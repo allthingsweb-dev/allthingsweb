@@ -1,5 +1,6 @@
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import packageJson from "../../package.json" with { type: "json" };
+import type { CallToolResult } from "@modelcontextprotocol/server";
 import { type CallTool, registerTools } from "./tools.ts";
 
 /**
@@ -27,8 +28,9 @@ export const maxRequestBodySize = 512 * 1024;
  * it through mcp-handler. Every request gets a fresh server (stateless, no
  * sessions), as the SDK requires since 2.3.0; requests from 2025-era
  * clients, such as the CLI, are served by the SDK's stateless fallback,
- * exactly as today. `call` answers its tools (endpoint.ts), through the page
- * store where the Worker has one.
+ * exactly as today. `call` answers the tools that read (endpoint.ts),
+ * through the page store where the Worker has one, and `propose` answers
+ * propose_talk, which is never kept.
  *
  * The SDK and zod are most of the Worker's code but serve only `/mcp`, so
  * this module is loaded the first time an isolate is asked for it (see
@@ -36,6 +38,7 @@ export const maxRequestBodySize = 512 * 1024;
  */
 export function mcpHandler(
   call: CallTool,
+  propose: (input: Record<string, unknown>) => Promise<CallToolResult>,
 ): (request: Request) => Promise<Response> {
   const handler = createMcpHandler(
     () => {
@@ -43,7 +46,7 @@ export function mcpHandler(
         { name: "allthings", version: packageJson.version },
         { maxToolInputElements },
       );
-      registerTools(server, call);
+      registerTools(server, call, propose);
       return server;
     },
     { legacy: "stateless", maxRequestBodySize },
