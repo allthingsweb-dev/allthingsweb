@@ -25,6 +25,7 @@ export const sitePages = [
   "/about",
   "/code-of-conduct",
   "/privacy",
+  "/coach",
   "/brand",
 ] as const;
 

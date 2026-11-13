@@ -47,6 +47,7 @@ import { aboutPage } from "./about.tsx";
 import { calendarFile, calendarFileName } from "./calendar.ts";
 import { codeOfConductPage, codeOfConductPath } from "./code-of-conduct.tsx";
 import { privacyPage, privacyPath } from "./privacy.tsx";
+import { coachPage, coachPath } from "./coach.tsx";
 import { talksPage } from "./talks.tsx";
 import { guidePage } from "./guide.tsx";
 import { yearPage } from "./year.tsx";
@@ -805,6 +806,24 @@ const privacy = page(privacyPath, ({ theme, acceptEncoding, images }) =>
 );
 
 /**
+ * The coaching page changes only when the Worker is deployed, but for the
+ * hosts' portraits in its footer; it is cached as a page, as /privacy is.
+ */
+const coach = page(coachPath, ({ theme, acceptEncoding, images }) =>
+  Effect.gen(function* () {
+    const { origin } = yield* Site;
+    const { portraits, read } = yield* footer(
+      hostPortraits.pipe(Effect.provide(repositories)),
+    );
+    return htmlResponse(
+      coachPage({ origin, theme, portraits, images }),
+      acceptEncoding,
+      { cacheControl: read ? "page" : "failure", theme, images },
+    );
+  }),
+);
+
+/**
  * Where an event's routes are: at the root, and a shared evening's link
  * under shared/ (core's src/short-slugs.ts).
  */
@@ -1184,6 +1203,7 @@ export const pageRoutes = Layer.mergeAll(
   brand,
   codeOfConduct,
   privacy,
+  coach,
   eventAt(""),
   eventAt(sharedPrefix),
   calendarAt(""),

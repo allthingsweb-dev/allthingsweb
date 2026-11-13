@@ -5,6 +5,7 @@ import type { Evening } from "allthings-core/src/home.ts";
 import { DateTime } from "effect";
 import { cliCommands, discord, socials } from "../src/links.ts";
 import { aboutPage, count } from "../src/pages/about.tsx";
+import { coachPath } from "../src/pages/coach.tsx";
 import { headingLevels, htmlProblems } from "./support/pages.ts";
 
 /** The about page as a pure function of fixed data. */
@@ -215,6 +216,9 @@ describe("the about page", () => {
     expect(part(html, "host")).toContain(`<a href="${discord}">ask on discord`);
     expect(part(html, "stage")).toContain(
       `<a href="${discord}">pitch a talk on discord`,
+    );
+    expect(part(html, "stage")).toContain(
+      `<a href="${coachPath}">coach your talk`,
     );
     expect(html).not.toMatch(/<form|<input/);
     // The one button is the mode control.

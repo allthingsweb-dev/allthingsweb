@@ -806,7 +806,7 @@ describe("static assets", () => {
 
 describe("every kind of page", () => {
   /** One of each: home, the index, evenings of every kind, people, about,
-   * the brand, the code of conduct, privacy, a page that isn't, and one that is gone. */
+   * the brand, the code of conduct, privacy, coaching, a page that isn't, and one that is gone. */
   const paths = [
     "/",
     "/events",
@@ -825,6 +825,7 @@ describe("every kind of page", () => {
     "/brand",
     "/code-of-conduct",
     "/privacy",
+    "/coach",
     "/no-such-page",
     "/logos/logo-1.91x1.png",
   ];
@@ -861,6 +862,7 @@ describe("simple dates", () => {
     "/brand",
     "/code-of-conduct",
     "/privacy",
+    "/coach",
     labPath,
     ...variants.map(({ name }) => variantPath(name)),
   ];

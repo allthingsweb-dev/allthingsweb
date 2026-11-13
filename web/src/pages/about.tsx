@@ -14,6 +14,7 @@ import {
   personPath,
   socials,
 } from "../links.ts";
+import { coachPath } from "./coach.tsx";
 import { Document } from "./document.tsx";
 import { gatheringTitle, siteDescription } from "./metadata.tsx";
 import { Portrait } from "./people.tsx";
@@ -320,6 +321,10 @@ export function aboutPage({
               <p class="fact-links">
                 <a href={discord}>
                   pitch a talk on discord <span aria-hidden="true">→</span>
+                </a>
+                {" · "}
+                <a href={coachPath}>
+                  coach your talk <span aria-hidden="true">→</span>
                 </a>
               </p>
             </>
