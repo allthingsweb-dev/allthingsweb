@@ -143,19 +143,27 @@ export const Unchecked = Schema.Struct({
 });
 export type Unchecked = typeof Unchecked.Type;
 
+/** A whole number of things, as JSON Schema bounds a safe integer. */
+const Count = Schema.Int.check(
+  Schema.isBetween({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+);
+
+/** A finite rate, never NaN or Infinity. */
+const Rate = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+
 /** The numbers the checks read, null where nothing measured them. */
 export const Measures = Schema.Struct({
   /** Words in the transcript. */
-  words: Schema.NullOr(Schema.Int),
+  words: Schema.NullOr(Count),
   /** Whether the transcript had timestamps (WebVTT or SRT). */
   timed: Schema.Boolean,
   /** Spoken length, from the timestamps or estimated from the words. */
-  seconds: Schema.NullOr(Schema.Int),
-  wordsPerMinute: Schema.NullOr(Schema.Int),
-  fillersPerMinute: Schema.NullOr(Schema.Number),
+  seconds: Schema.NullOr(Count),
+  wordsPerMinute: Schema.NullOr(Count),
+  fillersPerMinute: Schema.NullOr(Rate),
   /** Slides in the outline, when it is split into slides. */
-  slides: Schema.NullOr(Schema.Int),
-  mostWordsOnASlide: Schema.NullOr(Schema.Int),
+  slides: Schema.NullOr(Count),
+  mostWordsOnASlide: Schema.NullOr(Count),
 });
 export type Measures = typeof Measures.Type;
 
