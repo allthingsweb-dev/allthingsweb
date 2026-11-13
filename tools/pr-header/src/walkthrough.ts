@@ -303,10 +303,12 @@ function checksLine(counts: Walkthrough["checkCounts"]): string | null {
 /**
  * The CodeRabbit section under the header: the verdicts on one line, any
  * check that didn't pass spelled out, and the walkthrough folded away.
+ * `explainChange` is the Markdown of the Explain Change shield, linked to
+ * the Change Stack.
  */
 export function renderWalkthrough(
   walkthrough: Walkthrough,
-  changeStack: string,
+  explainChange: string,
 ): string {
   const { mergeRisk, securityRisk, checks, omittedChecks } = walkthrough;
   const counted = checksLine(walkthrough.checkCounts);
@@ -314,7 +316,7 @@ export function renderWalkthrough(
     "**CodeRabbit**",
     ...(mergeRisk ? [`merge risk **${mergeRisk.level}**`] : []),
     ...(counted ? [`pre-merge checks **${counted}**`] : []),
-    `[Explain Change](${changeStack})`,
+    explainChange,
     `[full walkthrough](${walkthrough.url})`,
   ];
   const notPassed = checks
