@@ -125,7 +125,9 @@ export function guidePage({
             <section class="list" aria-labelledby={`stars-${group.stars}`}>
               <div class="list-head">
                 <h2 id={`stars-${group.stars}`} class="list-title at-type-meta">
-                  <span aria-hidden="true">{starMarks(group.stars)}</span>{" "}
+                  <span aria-hidden="true" safe>
+                    {starMarks(group.stars)}
+                  </span>{" "}
                   <span class="visually-hidden" safe>
                     {`${starsSaid[group.stars]}: `}
                   </span>
