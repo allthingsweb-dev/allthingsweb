@@ -6,11 +6,23 @@ on:
     paths:
       - "tools/pr-header/**"
       - ".github/workflows/pr-header*.yaml"
+      # What the shields are drawn from (tools/pr-header/src/shields.ts).
+      - "brand/all-things.tokens.json"
+      - "brand/og/og-lead.ttf"
+      - "brand/og/og-meta.ttf"
+      - "brand/public/mark.svg"
+      - "brand/src/contrast.ts"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - "tools/pr-header/**"
       - ".github/workflows/pr-header*.yaml"
+      # What the shields are drawn from (tools/pr-header/src/shields.ts).
+      - "brand/all-things.tokens.json"
+      - "brand/og/og-lead.ttf"
+      - "brand/og/og-meta.ttf"
+      - "brand/public/mark.svg"
+      - "brand/src/contrast.ts"
 
 permissions:
   contents: read
